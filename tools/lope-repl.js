@@ -19,6 +19,7 @@
  *   {"cmd": "delete-variable", "name": "myVar", "module": "@tomlarkworthy/tests"}
  *   {"cmd": "click", "selector": "button.submit"}
  *   {"cmd": "fill", "selector": "input[name='query']", "value": "hello"}
+ *   {"cmd": "query", "selector": "button", "limit": 10}
  *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
@@ -338,6 +339,40 @@ async function handleCommand(line) {
         respondOk(getStatus());
         break;
 
+      case 'query':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        if (!cmd.selector) {
+          respondError('Missing selector');
+          return;
+        }
+        try {
+          const limit = cmd.limit || 10;
+          const elements = await page.evaluate(({ selector, limit }) => {
+            const els = document.querySelectorAll(selector);
+            const results = [];
+            for (let i = 0; i < Math.min(els.length, limit); i++) {
+              const el = els[i];
+              results.push({
+                tag: el.tagName.toLowerCase(),
+                id: el.id || null,
+                class: el.className || null,
+                text: el.textContent?.slice(0, 100)?.trim() || null,
+                value: el.value !== undefined ? el.value : null,
+                visible: el.offsetParent !== null,
+                rect: el.getBoundingClientRect()
+              });
+            }
+            return { count: els.length, elements: results };
+          }, { selector: cmd.selector, limit });
+          respondOk(elements);
+        } catch (e) {
+          respondError(`Query failed: ${e.message}`);
+        }
+        break;
+
       case 'click':
         if (!runtimeReady) {
           respondError('No notebook loaded');
@@ -454,7 +489,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'click', 'fill', 'screenshot', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'query', 'click', 'fill', 'screenshot', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];
