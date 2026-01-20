@@ -80,11 +80,13 @@ Common Observable runtime utilities used by both `lope-runner.js` and `lope-repl
 
 | Function | Purpose |
 |----------|---------|
-| `runTestVariables` | Run test_* cells with observer pattern |
+| `runTestVariables` | Run test_* variables with observer pattern |
 | `readLatestState` | Read from tests module's latest_state Map |
-| `getCellInfo` | Get info about a specific cell |
-| `listAllCells` | List all cells in runtime |
-| `serializeValue` | Serialize cell values for output |
+| `getCellInfo` | Get info about a specific variable |
+| `listAllVariables` | List all variables in runtime |
+| `defineVariable` | Define or redefine a runtime variable |
+| `findModule` | Find a module by name |
+| `serializeValue` | Serialize values for output |
 | `generateTAPReport` | Generate TAP format test reports |
 
 These functions are designed to run in page context via `page.evaluate()` - the same pattern lopecode itself uses for reactive cells.
@@ -174,8 +176,9 @@ JSON commands via stdin:
 {"cmd": "run-tests", "timeout": 30000, "filter": "test_foo", "force": true}
 {"cmd": "read-tests", "timeout": 30000}
 {"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
-{"cmd": "get-cell", "name": "myCell"}
-{"cmd": "list-cells"}
+{"cmd": "get-variable", "name": "myVar"}
+{"cmd": "list-variables"}
+{"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": []}
 {"cmd": "screenshot", "path": "output.png", "fullPage": true}
 {"cmd": "status"}
 {"cmd": "quit"}
@@ -191,12 +194,42 @@ echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_r
 **Key commands:**
 - `run-tests` - Runs tests by forcing reachability (works always)
 - `read-tests` - Reads from `latest_state` (requires tests module visible in hash URL)
+- `define-variable` - Define or redefine a runtime variable (see below)
 - `screenshot` - Takes screenshot of current page
 
 Benefits:
 - ~10x faster than lope-runner.js after initial load
 - Can run multiple test cycles without browser restart
 - Interactive debugging with `eval` command
+
+### Cells vs Variables
+
+**Important distinction:**
+- A **cell** is Observable source code (what you write)
+- A **variable** is a runtime entity (what gets executed)
+
+A single cell can create multiple variables:
+- `viewof foo = ...` creates two variables: `viewof foo` (the DOM element) and `foo` (the extracted value)
+- `mutable bar = ...` creates three variables: `initial bar`, `mutable bar`, and `bar`
+
+The `define-variable` command creates/redefines a single runtime variable. For complex cells (viewof, mutable), use the compile machinery in @tomlarkworthy/observablejs-toolchain.
+
+#### define-variable command
+
+```json
+{"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": []}
+```
+
+Parameters:
+- `name` - Variable name (required)
+- `definition` - Function as string, e.g. `"() => 42"` or `"(x, y) => x + y"` (required)
+- `inputs` - Array of dependency names (default: `[]`)
+- `module` - Target module name (default: main module)
+
+Example with dependencies:
+```json
+{"cmd": "define-variable", "name": "doubled", "definition": "(value) => value * 2", "inputs": ["value"]}
+```
 
 ### Lopecode Cell Format
 

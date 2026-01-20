@@ -242,13 +242,32 @@ export function getCellInfo(cellName) {
   const runtime = window.__ojs_runtime;
   if (!runtime) return { error: 'Runtime not found' };
 
+  // Inline serialize to avoid dependency issues in page context
+  const serialize = (value, maxLen = 500) => {
+    if (value === undefined) return 'undefined';
+    if (value === null) return 'null';
+    if (value instanceof Error) return `Error: ${value.message}`;
+    if (typeof value === 'function') return value.toString().slice(0, maxLen);
+    if (value instanceof HTMLElement) {
+      return `<${value.tagName.toLowerCase()}> (${value.outerHTML.slice(0, 100)}...)`;
+    }
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value, null, 2).slice(0, maxLen);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value).slice(0, maxLen);
+  };
+
   for (const v of runtime._variables) {
     if (v._name === cellName) {
       return {
         name: v._name,
         hasValue: v._value !== undefined,
         hasError: v._error !== undefined,
-        value: serializeValue(v._value),
+        value: serialize(v._value),
         error: v._error?.message,
         reachable: v._reachable
       };
@@ -258,19 +277,22 @@ export function getCellInfo(cellName) {
 }
 
 /**
- * List all cells in the runtime
+ * List all variables in the runtime
+ * Note: This lists runtime variables, not cells. A cell like "viewof foo"
+ * creates multiple variables ("viewof foo" and "foo").
+ *
  * Designed to be called via page.evaluate()
  *
- * @returns {Array} Array of cell info objects
+ * @returns {Array} Array of variable info objects
  */
-export function listAllCells() {
+export function listAllVariables() {
   const runtime = window.__ojs_runtime;
   if (!runtime) return { error: 'Runtime not found' };
 
-  const cells = [];
+  const variables = [];
   for (const v of runtime._variables) {
     if (!v._name) continue;
-    cells.push({
+    variables.push({
       name: v._name,
       hasValue: v._value !== undefined,
       hasError: v._error !== undefined,
@@ -278,7 +300,7 @@ export function listAllCells() {
     });
   }
 
-  return cells.sort((a, b) => a.name.localeCompare(b.name));
+  return variables.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -303,6 +325,130 @@ export function serializeValue(value, maxLen = 500) {
     }
   }
   return String(value).slice(0, maxLen);
+}
+
+/**
+ * Find a module by name in the runtime
+ * @param {Object} runtime - window.__ojs_runtime
+ * @param {string|null} moduleName - Module name to find, or null for main
+ * @returns {Object|null} The module or null
+ */
+export function findModule(runtime, moduleName) {
+  if (!moduleName) {
+    // Return main module (first variable's module)
+    for (const v of runtime._variables) {
+      if (v._module) return v._module;
+    }
+    return null;
+  }
+
+  // Find module by name
+  for (const v of runtime._variables) {
+    if (v._module?._name === moduleName) {
+      return v._module;
+    }
+    // Also check for "module @..." naming pattern
+    if (v._name?.startsWith('module ') && v._name === `module ${moduleName}`) {
+      return v._module;
+    }
+  }
+  return null;
+}
+
+/**
+ * Define or redefine a single variable in the runtime
+ * Note: This creates ONE runtime variable. Observable cells like "viewof foo"
+ * actually create multiple variables (viewof foo, foo). For complex cells,
+ * use the compile() function from @tomlarkworthy/observablejs-toolchain.
+ *
+ * Designed to be called via page.evaluate()
+ *
+ * @param {Object} options - { name, inputs, definition, moduleName }
+ *   - name: Variable name (string)
+ *   - inputs: Array of input variable names (default [])
+ *   - definition: Function definition as string, e.g. "() => 'hello'"
+ *   - moduleName: Optional module name (null for main module)
+ * @returns {Object} { success, name, module } or { error }
+ */
+export function defineVariable({ name, inputs = [], definition, moduleName = null }) {
+  const runtime = window.__ojs_runtime;
+  if (!runtime) return { error: 'Runtime not found' };
+
+  // Find the module
+  let targetModule = null;
+  if (!moduleName) {
+    // Use main module
+    for (const v of runtime._variables) {
+      if (v._module) {
+        targetModule = v._module;
+        break;
+      }
+    }
+  } else {
+    // Find by name
+    for (const v of runtime._variables) {
+      if (v._module?._name === moduleName) {
+        targetModule = v._module;
+        break;
+      }
+      // Also check "module @..." naming
+      if (v._name === `module ${moduleName}`) {
+        targetModule = v._module;
+        break;
+      }
+    }
+  }
+
+  if (!targetModule) {
+    return { error: `Module not found: ${moduleName || 'main'}` };
+  }
+
+  // Check if variable already exists
+  let existingVar = null;
+  for (const v of runtime._variables) {
+    if (v._name === name && v._module === targetModule) {
+      existingVar = v;
+      break;
+    }
+  }
+
+  // Parse the definition string into a function
+  let fn;
+  try {
+    eval('fn = ' + definition);
+    if (typeof fn !== 'function') {
+      return { error: 'Definition must evaluate to a function' };
+    }
+  } catch (e) {
+    return { error: `Failed to parse definition: ${e.message}` };
+  }
+
+  // Define the variable
+  try {
+    if (existingVar) {
+      // Redefine existing variable
+      existingVar.define(name, inputs, fn);
+    } else {
+      // Create new variable
+      const newVar = targetModule.variable({});
+      newVar.define(name, inputs, fn);
+    }
+
+    // Trigger recomputation
+    const actualRuntime = targetModule._runtime;
+    if (actualRuntime?._computeNow) {
+      actualRuntime._computeNow();
+    }
+
+    return {
+      success: true,
+      name,
+      module: targetModule._name || 'main',
+      redefined: !!existingVar
+    };
+  } catch (e) {
+    return { error: `Failed to define variable: ${e.message}` };
+  }
 }
 
 /**

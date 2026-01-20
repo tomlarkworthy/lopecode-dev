@@ -13,8 +13,9 @@
  *   {"cmd": "run-tests", "timeout": 30000, "filter": "optional", "force": true}
  *   {"cmd": "read-tests", "timeout": 30000, "filter": "optional"}  // reads from latest_state (requires tests module rendered)
  *   {"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
- *   {"cmd": "get-cell", "name": "cellName"}
- *   {"cmd": "list-cells"}
+ *   {"cmd": "get-variable", "name": "varName"}
+ *   {"cmd": "list-variables"}
+ *   {"cmd": "define-variable", "name": "myVar", "definition": "() => 'hello'", "inputs": [], "module": "@tomlarkworthy/tests"}
  *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
@@ -32,7 +33,8 @@ import {
   runTestVariables,
   readLatestState,
   getCellInfo,
-  listAllCells
+  listAllVariables,
+  defineVariable
 } from './tools.js';
 
 // Parse args
@@ -229,8 +231,8 @@ async function evalCode(code) {
   return result;
 }
 
-// Get a specific cell
-async function getCell(name) {
+// Get a specific variable
+async function getVariable(name) {
   if (!runtimeReady) {
     throw new Error('No notebook loaded');
   }
@@ -243,19 +245,19 @@ async function getCell(name) {
   return result;
 }
 
-// List all cells
-async function listCells() {
+// List all variables
+async function listVariables() {
   if (!runtimeReady) {
     throw new Error('No notebook loaded');
   }
 
-  const cells = await page.evaluate(listAllCells);
+  const variables = await page.evaluate(listAllVariables);
 
-  if (cells.error) {
-    throw new Error(cells.error);
+  if (variables.error) {
+    throw new Error(variables.error);
   }
 
-  return { count: cells.length, cells };
+  return { count: variables.length, variables };
 }
 
 // Get status
@@ -314,17 +316,17 @@ async function handleCommand(line) {
         respondOk(evalResult);
         break;
 
-      case 'get-cell':
+      case 'get-variable':
         if (!cmd.name) {
-          respondError('Missing cell name');
+          respondError('Missing variable name');
           return;
         }
-        const cellResult = await getCell(cmd.name);
-        respondOk(cellResult);
+        const varResult = await getVariable(cmd.name);
+        respondOk(varResult);
         break;
 
-      case 'list-cells':
-        const listResult = await listCells();
+      case 'list-variables':
+        const listResult = await listVariables();
         respondOk(listResult);
         break;
 
@@ -341,6 +343,32 @@ async function handleCommand(line) {
         const fullPage = cmd.fullPage !== false;
         await page.screenshot({ path: screenshotPath, fullPage });
         respondOk({ path: screenshotPath, fullPage });
+        break;
+
+      case 'define-variable':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        if (!cmd.name) {
+          respondError('Missing variable name');
+          return;
+        }
+        if (!cmd.definition) {
+          respondError('Missing variable definition');
+          return;
+        }
+        const defineResult = await page.evaluate(defineVariable, {
+          name: cmd.name,
+          inputs: cmd.inputs || [],
+          definition: cmd.definition,
+          moduleName: cmd.module || null
+        });
+        if (defineResult.error) {
+          respondError(defineResult.error);
+        } else {
+          respondOk(defineResult);
+        }
         break;
 
       case 'quit':
@@ -364,7 +392,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-cell', 'list-cells', 'screenshot', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'screenshot', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];
