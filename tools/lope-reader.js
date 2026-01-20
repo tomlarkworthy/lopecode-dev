@@ -4,21 +4,27 @@
  *
  * Usage:
  *   node lope-reader.js <notebook.html> [options]
+ *   node lope-reader.js --manifest [directory]
  *
  * Options:
  *   --list-modules        List all modules in the notebook
  *   --get-module <name>   Get source code for a specific module
  *   --list-files          List all file attachments (names only)
+ *   --summary             Show notebook summary (default if no options)
+ *   --manifest [dir]      Generate manifest.json of all notebooks in directory
  *   --json                Output as JSON
  *
  * Examples:
  *   node lope-reader.js notebook.html --list-modules
  *   node lope-reader.js notebook.html --get-module @tomlarkworthy/tests
  *   node lope-reader.js notebook.html --list-files
+ *   node lope-reader.js notebook.html --summary
+ *   node lope-reader.js --manifest lopecode/lopebooks/notebooks
  */
 
 import fs from 'fs';
 import path from 'path';
+import { glob } from 'glob';
 import * as cheerio from 'cheerio';
 
 function parseArgs(args) {
@@ -27,6 +33,9 @@ function parseArgs(args) {
     listModules: false,
     getModule: null,
     listFiles: false,
+    summary: false,
+    manifest: false,
+    manifestDir: null,
     json: false,
   };
 
@@ -38,6 +47,14 @@ function parseArgs(args) {
       options.getModule = args[++i];
     } else if (arg === '--list-files') {
       options.listFiles = true;
+    } else if (arg === '--summary') {
+      options.summary = true;
+    } else if (arg === '--manifest') {
+      options.manifest = true;
+      // Check if next arg is a directory (doesn't start with --)
+      if (args[i + 1] && !args[i + 1].startsWith('--')) {
+        options.manifestDir = args[++i];
+      }
     } else if (arg === '--json') {
       options.json = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -57,17 +74,22 @@ lope-reader.js - Read lopecode notebook source without running it
 
 Usage:
   node lope-reader.js <notebook.html> [options]
+  node lope-reader.js --manifest [directory]
 
 Options:
   --list-modules        List all modules in the notebook
   --get-module <name>   Get source code for a specific module
   --list-files          List all file attachments (names only)
+  --summary             Show notebook summary (default if no options)
+  --manifest [dir]      Generate manifest.json of all notebooks
   --json                Output as JSON
 
 Examples:
   node lope-reader.js notebook.html --list-modules
   node lope-reader.js notebook.html --get-module @tomlarkworthy/tests
   node lope-reader.js notebook.html --list-files
+  node lope-reader.js notebook.html --summary
+  node lope-reader.js --manifest lopecode/lopebooks/notebooks
   `);
 }
 
@@ -176,6 +198,74 @@ function extractSource(body) {
 }
 
 /**
+ * Generate manifest of all notebooks in a directory
+ */
+async function generateManifest(directory, json) {
+  const dir = path.resolve(directory || '.');
+  const htmlFiles = await glob('**/*.html', { cwd: dir, absolute: true });
+
+  const manifest = {
+    generated: new Date().toISOString(),
+    directory: dir,
+    notebooks: {},
+    moduleIndex: {}
+  };
+
+  for (const htmlFile of htmlFiles) {
+    try {
+      const html = fs.readFileSync(htmlFile, 'utf-8');
+      const { modules, files } = parseNotebook(html);
+
+      if (modules.size === 0) continue; // Skip non-lopecode HTML files
+
+      const basename = path.basename(htmlFile, '.html');
+      const relPath = path.relative(dir, htmlFile);
+      const stats = fs.statSync(htmlFile);
+
+      const modulesInfo = {};
+      for (const [id, mod] of modules) {
+        modulesInfo[id] = {
+          cellCount: mod.cells.length,
+          cells: mod.cells.map(c => c.displayName)
+        };
+
+        // Update module index
+        if (!manifest.moduleIndex[id]) {
+          manifest.moduleIndex[id] = [];
+        }
+        manifest.moduleIndex[id].push(basename);
+      }
+
+      manifest.notebooks[basename] = {
+        path: relPath,
+        sizeMb: (stats.size / 1024 / 1024).toFixed(2),
+        moduleCount: modules.size,
+        modules: modulesInfo,
+        fileAttachments: files.length
+      };
+    } catch (err) {
+      // Skip files that can't be parsed
+      continue;
+    }
+  }
+
+  if (json) {
+    return JSON.stringify(manifest, null, 2);
+  }
+
+  let output = `Manifest for: ${dir}\n`;
+  output += `Generated: ${manifest.generated}\n\n`;
+  output += `Notebooks: ${Object.keys(manifest.notebooks).length}\n`;
+  output += `Unique modules: ${Object.keys(manifest.moduleIndex).length}\n\n`;
+
+  for (const [name, info] of Object.entries(manifest.notebooks)) {
+    output += `${name} (${info.sizeMb} MB, ${info.moduleCount} modules, ${info.fileAttachments} files)\n`;
+  }
+
+  return output;
+}
+
+/**
  * Format module for display
  */
 function formatModule(module, json) {
@@ -201,6 +291,13 @@ function formatModule(module, json) {
 async function main() {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
+
+  // Handle manifest generation (doesn't require notebook)
+  if (options.manifest) {
+    const output = await generateManifest(options.manifestDir, options.json);
+    console.log(output);
+    return;
+  }
 
   if (!options.notebook) {
     console.error('Usage: node lope-reader.js <notebook.html> [options]');
@@ -259,8 +356,10 @@ async function main() {
       }
     }
   } else {
-    // Default: show summary
-    console.log(`Notebook: ${path.basename(notebookPath)}\n`);
+    // Default: show summary (also handles --summary explicitly)
+    const stats = fs.statSync(notebookPath);
+    console.log(`Notebook: ${path.basename(notebookPath)}`);
+    console.log(`Size: ${(stats.size / 1024 / 1024).toFixed(1)} MB\n`);
     console.log(`Modules: ${modules.size}`);
     for (const [id, mod] of modules) {
       console.log(`  ${id} (${mod.cells.length} cells)`);

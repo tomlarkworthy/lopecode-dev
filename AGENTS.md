@@ -65,13 +65,11 @@ lopecode-dev/
 │   ├── lopebooks/
 │   │   └── notebooks/           # Development/staging notebooks (e.g., reactive-reflective-testing)
 │   └── src/                     # Source/development notebooks
-├── tools/                       # Agent utilities
-│   ├── lope-reader.js          # Fast static HTML parser (Node.js)
-│   ├── lope-runner.js          # Headless notebook runner (Playwright)
-│   ├── lope-utils.py           # Python CLI for parsing notebooks
-│   └── lope-extract.sh         # Shell script for extraction
-├── .lope-extracted/             # Generated module extractions (gitignored)
-│   └── manifest.json           # Index of all modules across notebooks
+├── tools/                       # Agent utilities (Node.js only)
+│   ├── lope-reader.js          # Fast static analysis (no browser)
+│   ├── lope-runner.js          # One-off runtime execution (Playwright)
+│   └── lope-repl.js            # Persistent REPL for iterative development
+├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
 └── AGENTS.md                    # This file
 ```
 
@@ -79,124 +77,110 @@ lopecode-dev/
 
 **PROBLEM**: Lopecode HTML files are 1-3MB with 17k-25k lines. Reading entire files exhausts context.
 
-**SOLUTION**: Use the provided tools to access specific parts.
+**SOLUTION**: Use the three Node.js tools to access specific parts.
 
-#### Tool Commands
+#### Which Tool to Use
 
-**Which tool to use:**
-- **`lope-reader.js`** - Use for fast static analysis: listing modules, reading cell source, exploring structure. No browser needed, instant results.
-- **`lope-runner.js`** - Use for one-off test runs or cell queries. Starts fresh browser each time (~10s overhead).
-- **`lope-repl.js`** - Use for iterative development. Keeps browser running, accepts JSON commands via stdin. Much faster after initial load (<1s per command).
+| Task | Tool | Speed |
+|------|------|-------|
+| List modules/cells | `lope-reader.js` | Instant |
+| Read cell source | `lope-reader.js` | Instant |
+| Check file attachments | `lope-reader.js` | Instant |
+| Generate manifest | `lope-reader.js --manifest` | Fast |
+| One-off test run | `lope-runner.js` | ~10s startup |
+| Get computed values | `lope-runner.js` | ~10s startup |
+| Iterative development | `lope-repl.js` | <1s after load |
+| Multiple test cycles | `lope-repl.js` | <1s per command |
+| Screenshots | `lope-repl.js` | <1s |
 
-**lope-reader.js** - Fast static HTML parser (no browser required):
+#### lope-reader.js - Fast Static Analysis
+
+No browser needed, instant results:
+
 ```bash
-# Get overview of a notebook
-node tools/lope-reader.js lopecode/notebooks/@tomlarkworthy_exporter.html
+# Get notebook summary (default)
+node tools/lope-reader.js notebook.html
 
-# List all modules in a notebook
+# List all modules
 node tools/lope-reader.js notebook.html --list-modules
 
 # Get source code for a specific module
 node tools/lope-reader.js notebook.html --get-module @tomlarkworthy/tests
 
-# List file attachments (names only, not content)
+# List file attachments
 node tools/lope-reader.js notebook.html --list-files
 
-# JSON output for programmatic use
+# Generate manifest of all notebooks in a directory
+node tools/lope-reader.js --manifest lopecode/lopebooks/notebooks
+
+# JSON output
 node tools/lope-reader.js notebook.html --list-modules --json
 ```
 
-**lope-utils.py** - Python CLI (alternative):
-```bash
-# Get overview of a notebook (modules, cells, file attachments)
-uv run --project tools lope-utils summary lopecode/notebooks/@tomlarkworthy_exporter.html
+#### lope-runner.js - One-off Runtime Execution
 
-# List modules in a notebook
-uv run --project tools lope-utils list-modules lopecode/notebooks/@tomlarkworthy_exporter.html
-
-# List cells in a specific module
-uv run --project tools lope-utils list-cells lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter
-
-# Read a specific cell's source code
-uv run --project tools lope-utils read-cell lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter _exporter
-
-# Read entire module source (use sparingly - can be large)
-uv run --project tools lope-utils read-module lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter
-
-# Regenerate manifest after notebook changes
-uv run --project tools lope-utils manifest
-```
-
-#### Running Tests
+For test runs and runtime queries (starts fresh browser each time):
 
 ```bash
 # Run all tests in a notebook
-node tools/lope-runner.js lopecode/notebooks/@tomlarkworthy_jumpgate.html --run-tests
+node tools/lope-runner.js notebook.html --run-tests
 
 # Run tests with JSON output
 node tools/lope-runner.js notebook.html --run-tests --json
 
-# Run specific test suite
-node tools/lope-runner.js notebook.html --run-tests --suite decompilationSuite
+# Filter by module/test name
+node tools/lope-runner.js notebook.html --run-tests --suite @tomlarkworthy/tests
 
-# Run with longer timeout
+# Increase timeout for slow tests
 node tools/lope-runner.js notebook.html --run-tests --test-timeout 60000
+
+# Get computed cell value
+node tools/lope-runner.js notebook.html --get-cell myVariable
 ```
 
-Exit codes:
-- `0` - All tests passed
-- `1` - One or more tests failed
-- `2` - Error (no tests found, load failed)
+Exit codes: `0` = passed, `1` = failed, `2` = error
 
-#### Interactive REPL (lope-repl.js)
+#### lope-repl.js - Persistent REPL
 
-For iterative development, use the persistent browser session:
+For iterative development with a persistent browser session:
 
 ```bash
-# Start REPL (keeps browser running)
+# Start REPL
 node tools/lope-repl.js
 
 # With visible browser for debugging
 node tools/lope-repl.js --headed --verbose
 ```
 
-Send JSON commands via stdin:
+JSON commands via stdin:
 ```json
-{"cmd": "load", "notebook": "path/to/notebook.html"}
-{"cmd": "run-tests", "filter": "test_compile"}
+{"cmd": "load", "notebook": "path/to/notebook.html", "hash": "view=@module1,@module2"}
+{"cmd": "run-tests", "timeout": 30000, "filter": "test_foo", "force": true}
+{"cmd": "read-tests", "timeout": 30000}
 {"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
 {"cmd": "get-cell", "name": "myCell"}
 {"cmd": "list-cells"}
+{"cmd": "screenshot", "path": "output.png", "fullPage": true}
 {"cmd": "status"}
 {"cmd": "quit"}
 ```
 
 Example session:
 ```bash
-echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html"}
-{"cmd": "run-tests", "filter": "normalize"}
+echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html", "hash": "view=R100(S50(@tomlarkworthy/module-selection),S25(@tomlarkworthy/reactive-reflective-testing),S13(@tomlarkworthy/observablejs-toolchain),S13(@tomlarkworthy/tests))"}
+{"cmd": "read-tests"}
 {"cmd": "quit"}' | node tools/lope-repl.js
 ```
+
+**Key commands:**
+- `run-tests` - Runs tests by forcing reachability (works always)
+- `read-tests` - Reads from `latest_state` (requires tests module visible in hash URL)
+- `screenshot` - Takes screenshot of current page
 
 Benefits:
 - ~10x faster than lope-runner.js after initial load
 - Can run multiple test cycles without browser restart
 - Interactive debugging with `eval` command
-
-#### Understanding the Manifest
-
-The manifest at `.lope-extracted/manifest.json` provides:
-- **notebooks**: List of all notebook files with paths and sizes
-- **module_index**: Which notebooks contain which modules
-
-Use grep to query the manifest:
-```bash
-# Find which notebooks contain a specific module
-grep -A1 '"@tomlarkworthy/view"' .lope-extracted/manifest.json
-
-# List all unique modules
-grep -oP '"@[^"]+":' .lope-extracted/manifest.json | sort -u
-```
 
 ### Lopecode Cell Format
 
@@ -258,27 +242,40 @@ Agents can help by:
 
 #### Reading a notebook's structure
 ```bash
-uv run --project tools lope-utils summary lopecode/notebooks/NOTEBOOK.html
+node tools/lope-reader.js lopecode/notebooks/NOTEBOOK.html
 ```
 
 #### Finding where a module is used
 ```bash
+# Quick search
 grep -l "module-name" lopecode/notebooks/*.html
+
+# Or generate manifest and query
+node tools/lope-reader.js --manifest lopecode/notebooks --json | grep "module-name"
 ```
 
 #### Comparing module versions across notebooks
 ```bash
 # Extract same module from two notebooks and diff
-uv run --project tools lope-utils read-module notebook1.html @tomlarkworthy/view > /tmp/v1.js
-uv run --project tools lope-utils read-module notebook2.html @tomlarkworthy/view > /tmp/v2.js
+node tools/lope-reader.js notebook1.html --get-module @tomlarkworthy/view > /tmp/v1.js
+node tools/lope-reader.js notebook2.html --get-module @tomlarkworthy/view > /tmp/v2.js
 diff /tmp/v1.js /tmp/v2.js
+```
+
+#### Running tests with natural observation
+```bash
+# Use split layout hash URL to enable natural test observation
+echo '{"cmd": "load", "notebook": "notebook.html", "hash": "view=R100(S50(@module),S50(@tomlarkworthy/tests))"}
+{"cmd": "read-tests"}
+{"cmd": "quit"}' | node tools/lope-repl.js
 ```
 
 ### Tips for Agents
 
 1. **Never read entire HTML files** - Use the tools to extract relevant parts
-2. **Start with summary** - Always run `summary` first to understand a notebook
-3. **Track module relationships** - Use the manifest to understand dependencies
+2. **Start with summary** - Run `lope-reader.js` first to understand a notebook
+3. **Use lope-repl.js for iteration** - Much faster than lope-runner.js for multiple operations
 4. **Provide precise instructions** - Reference cells by `module.cellName`
-5. **Test locally is not possible** - Notebooks must be opened in a browser
+5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
+7. **See DEVELOPMENT.md** - For Observable runtime internals and lopepage architecture

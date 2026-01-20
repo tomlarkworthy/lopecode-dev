@@ -15,6 +15,7 @@
  *   {"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
  *   {"cmd": "get-cell", "name": "cellName"}
  *   {"cmd": "list-cells"}
+ *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
  *
@@ -534,6 +535,17 @@ async function handleCommand(line) {
         respondOk(getStatus());
         break;
 
+      case 'screenshot':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        const screenshotPath = cmd.path || 'screenshot.png';
+        const fullPage = cmd.fullPage !== false;
+        await page.screenshot({ path: screenshotPath, fullPage });
+        respondOk({ path: screenshotPath, fullPage });
+        break;
+
       case 'quit':
         respondOk({ message: 'Goodbye' });
         if (browser) await browser.close();
@@ -555,7 +567,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-cell', 'list-cells', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-cell', 'list-cells', 'screenshot', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];
