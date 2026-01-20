@@ -72,13 +72,15 @@ async function initBrowser() {
 }
 
 // Load a notebook
-async function loadNotebook(notebookPath) {
+async function loadNotebook(notebookPath, hashUrl = null) {
   const absPath = path.resolve(notebookPath);
   if (!fs.existsSync(absPath)) {
     throw new Error(`Notebook not found: ${absPath}`);
   }
 
-  const fileUrl = `file://${absPath}`;
+  // Support hash URL to open specific modules (helps with test observation)
+  const hash = hashUrl ? (hashUrl.startsWith('#') ? hashUrl : `#${hashUrl}`) : '';
+  const fileUrl = `file://${absPath}${hash}`;
   process.stderr.write(`Loading: ${fileUrl}\n`);
 
   await page.goto(fileUrl, { timeout: 60000, waitUntil: 'networkidle' });
@@ -338,7 +340,7 @@ async function handleCommand(line) {
           respondError('Missing notebook path');
           return;
         }
-        const loadResult = await loadNotebook(cmd.notebook);
+        const loadResult = await loadNotebook(cmd.notebook, cmd.hash);
         respondOk(loadResult);
         break;
 
