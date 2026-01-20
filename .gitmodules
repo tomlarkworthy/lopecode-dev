@@ -1,0 +1,6 @@
+[submodule "lopecode"]
+	path = lopecode
+	url = https://github.com/tomlarkworthy/lopecode
+[submodule "opencode"]
+	path = opencode
+	url = https://github.com/anomalyco/opencode
