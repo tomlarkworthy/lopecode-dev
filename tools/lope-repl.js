@@ -17,6 +17,8 @@
  *   {"cmd": "list-variables"}
  *   {"cmd": "define-variable", "name": "myVar", "definition": "() => 'hello'", "inputs": [], "module": "@tomlarkworthy/tests"}
  *   {"cmd": "delete-variable", "name": "myVar", "module": "@tomlarkworthy/tests"}
+ *   {"cmd": "click", "selector": "button.submit"}
+ *   {"cmd": "fill", "selector": "input[name='query']", "value": "hello"}
  *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
@@ -336,6 +338,44 @@ async function handleCommand(line) {
         respondOk(getStatus());
         break;
 
+      case 'click':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        if (!cmd.selector) {
+          respondError('Missing selector');
+          return;
+        }
+        try {
+          await page.click(cmd.selector, { timeout: cmd.timeout || 5000 });
+          respondOk({ clicked: cmd.selector });
+        } catch (e) {
+          respondError(`Click failed: ${e.message}`);
+        }
+        break;
+
+      case 'fill':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        if (!cmd.selector) {
+          respondError('Missing selector');
+          return;
+        }
+        if (cmd.value === undefined) {
+          respondError('Missing value');
+          return;
+        }
+        try {
+          await page.fill(cmd.selector, cmd.value, { timeout: cmd.timeout || 5000 });
+          respondOk({ filled: cmd.selector, value: cmd.value });
+        } catch (e) {
+          respondError(`Fill failed: ${e.message}`);
+        }
+        break;
+
       case 'screenshot':
         if (!runtimeReady) {
           respondError('No notebook loaded');
@@ -414,7 +454,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'screenshot', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'click', 'fill', 'screenshot', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];

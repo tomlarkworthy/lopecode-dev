@@ -181,6 +181,8 @@ JSON commands via stdin:
 {"cmd": "list-variables"}
 {"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": [], "module": "@tomlarkworthy/tests"}
 {"cmd": "delete-variable", "name": "myVar", "module": "@tomlarkworthy/tests"}
+{"cmd": "click", "selector": "button.run-all"}
+{"cmd": "fill", "selector": "input[type='text']", "value": "hello"}
 {"cmd": "screenshot", "path": "output.png", "fullPage": true}
 {"cmd": "status"}
 {"cmd": "quit"}
@@ -197,6 +199,8 @@ echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_r
 - `run-tests` - Runs tests by forcing reachability (works always)
 - `read-tests` - Reads from `latest_state` (requires tests module visible in hash URL)
 - `define-variable` - Define or redefine a runtime variable (see below)
+- `click` - Click on a UI element by CSS selector
+- `fill` - Fill an input field with a value
 - `screenshot` - Takes screenshot of current page
 
 Benefits:
