@@ -128,6 +128,30 @@ export async function runTestVariables({ testTimeout, filterStr, force }) {
         resolve();
       }, testTimeout);
 
+      // Check if already has value or error - resolve immediately
+      if (v._value !== undefined) {
+        clearTimeout(timeoutId);
+        results.set(fullName, {
+          state: 'passed',
+          name,
+          module: moduleName,
+          value: v._value === undefined ? 'undefined' : String(v._value).slice(0, 200)
+        });
+        resolve();
+        return;
+      }
+      if (v._error !== undefined) {
+        clearTimeout(timeoutId);
+        results.set(fullName, {
+          state: 'failed',
+          name,
+          module: moduleName,
+          error: v._error?.message || String(v._error)
+        });
+        resolve();
+        return;
+      }
+
       // Only force reachable if requested
       if (force && !v._reachable) {
         v._reachable = true;
