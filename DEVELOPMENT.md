@@ -321,3 +321,152 @@ console.log({
   inputs: myVar._inputs?.map(i => i._name)
 });
 ```
+
+## Lopepage Architecture
+
+Lopepage is the multi-notebook UI system that allows multiple modules to be displayed simultaneously in a configurable layout. Understanding lopepages is crucial for headless testing.
+
+### What is a Lopepage?
+
+A lopepage is an HTML file that:
+1. Contains multiple `<script type="lope-module">` blocks (Observable modules)
+2. Uses `@tomlarkworthy/lopepage` to render a dynamic multi-panel UI
+3. Controls which modules are visible via the URL hash fragment
+
+### Hash URL DSL
+
+The hash URL controls which modules are displayed and their layout arrangement:
+
+```
+#view=<layout-expression>
+```
+
+**Basic module reference:**
+```
+@tomlarkworthy/module-name
+```
+
+**With optional weight (size ratio):**
+```
+50@tomlarkworthy/module-name
+```
+
+**Layout containers:**
+- `S` - Stack (vertical arrangement)
+- `C` - Column (horizontal arrangement)
+- `R` - Row (horizontal, similar to C)
+
+**Examples:**
+
+```bash
+# Single module
+#view=@tomlarkworthy/my-module
+
+# Two modules stacked vertically (default)
+#view=@tomlarkworthy/module-a,@tomlarkworthy/module-b
+
+# Two modules side by side with weights
+#view=C100(S50(@tomlarkworthy/left),S50(@tomlarkworthy/right))
+
+# Complex 4-panel layout
+#view=R100(S50(@tomlarkworthy/module-selection),S25(@tomlarkworthy/reactive-reflective-testing),S13(@tomlarkworthy/observablejs-toolchain),S13(@tomlarkworthy/tests))
+```
+
+### Why Layout Matters for Testing
+
+**Key insight**: The Observable runtime is lazy. Modules only compute their cells when they are *rendered* in the UI.
+
+When running tests headlessly, opening the notebook without a hash URL means:
+- Only the default view renders
+- Test modules may not be rendered
+- `test_*` cells won't compute naturally
+
+**Solution**: Use a hash URL that includes the tests module:
+
+```javascript
+// Load with tests module visible
+{"cmd": "load",
+ "notebook": "notebook.html",
+ "hash": "view=R100(S50(@tomlarkworthy/module-selection),S25(@tomlarkworthy/main),S13(@tomlarkworthy/toolchain),S13(@tomlarkworthy/tests))"}
+```
+
+### The Tests Module and latest_state
+
+The `@tomlarkworthy/tests` module provides reactive test infrastructure:
+
+1. **Automatic Discovery**: Finds all `test_*` cells across all loaded modules
+2. **Observation**: Installs observers on test cells when the tests UI renders
+3. **State Tracking**: Stores results in `latest_state` Map
+
+```javascript
+// latest_state structure
+Map {
+  "@tomlarkworthy/module#test_foo" => {
+    state: "fulfilled",  // or "rejected", "pending", "paused"
+    value: "test passed",
+    error: null
+  },
+  // ...
+}
+```
+
+### Two Approaches to Headless Testing
+
+**1. Force Reachability (works without tests module UI)**
+```javascript
+// Manually mark tests as reachable and trigger computation
+variable._reachable = true;
+actualRuntime._dirty.add(variable);
+actualRuntime._computeNow();
+```
+
+**2. Natural Observation (requires tests module rendered)**
+```javascript
+// Read from latest_state after tests module UI observes
+const latestState = [...runtime._variables]
+  .find(v => v._name === 'latest_state' && v._value instanceof Map)
+  ._value;
+
+for (const [name, result] of latestState) {
+  console.log(name, result.state);
+}
+```
+
+The `lope-repl.js` tool supports both:
+- `run-tests` command: Uses force reachability (works always)
+- `read-tests` command: Reads from latest_state (requires tests module visible)
+
+### Key Modules
+
+| Module | Purpose |
+|--------|---------|
+| `@tomlarkworthy/lopepage` | Main UI container, Golden Layout integration |
+| `@tomlarkworthy/lopepage-urls` | Hash URL DSL parser and serializer |
+| `@tomlarkworthy/module-selection` | Module picker UI, persistence |
+| `@tomlarkworthy/tests` | Test discovery and observation |
+| `@tomlarkworthy/visualizer` | Renders module cells as interactive UI |
+
+### Creating Layout URLs
+
+The DSL parser in `@tomlarkworthy/lopepage-urls` handles:
+
+```javascript
+parseViewDSL("R100(S50(@owner/left),S50(@owner/right))")
+// Returns AST:
+{
+  nodeType: "group",
+  groupType: "R",
+  weight: 100,
+  children: [
+    { nodeType: "group", groupType: "S", weight: 50, children: [...] },
+    { nodeType: "group", groupType: "S", weight: 50, children: [...] }
+  ]
+}
+```
+
+### Best Practices
+
+1. **For testing**: Include the tests module in your hash URL
+2. **For development**: Use module-selection to interactively choose modules
+3. **For CI**: Use `read-tests` with a split layout that shows the tests module
+4. **Weights**: Use relative weights (they sum and divide proportionally)
