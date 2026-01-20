@@ -62,6 +62,8 @@ lopecode-dev/
 │   │   ├── @tomlarkworthy_exporter.html
 │   │   ├── @tomlarkworthy_notes.html
 │   │   └── ...
+│   ├── lopebooks/
+│   │   └── notebooks/           # Development/staging notebooks (e.g., reactive-reflective-testing)
 │   └── src/                     # Source/development notebooks
 ├── tools/                       # Agent utilities
 │   ├── lope-reader.js          # Fast static HTML parser (Node.js)
@@ -80,6 +82,10 @@ lopecode-dev/
 **SOLUTION**: Use the provided tools to access specific parts.
 
 #### Tool Commands
+
+**Which tool to use:**
+- **`lope-reader.js`** - Use for fast static analysis: listing modules, reading cell source, exploring structure. No browser needed, instant results.
+- **`lope-runner.js`** - Use only when you need runtime values (computed cell outputs, test results). Slower, requires Playwright.
 
 **lope-reader.js** - Fast static HTML parser (no browser required):
 ```bash
