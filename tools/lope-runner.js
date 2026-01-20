@@ -87,7 +87,7 @@ function parseArgs(args) {
   return options;
 }
 
-// Test suite detection - to be evaluated in page context
+// Test suite detection - to be evaluated in page context (legacy suite pattern)
 function detectTestSuitesInPage() {
   const runtime = window.__ojs_runtime;
   if (!runtime) return { error: 'Runtime not found' };
@@ -124,8 +124,122 @@ function detectTestSuitesInPage() {
   return { suites };
 }
 
-// Generate TAP format report
-function generateTAPReport(suites) {
+// Run test_* variables using observer pattern - to be evaluated in page context
+async function runTestVariablesInPage(testTimeout) {
+  const runtime = window.__ojs_runtime;
+  if (!runtime) return { error: 'Runtime not found' };
+
+  const results = new Map();
+  const pendingPromises = [];
+
+  // Find actual runtime (the one with _computeNow)
+  let actualRuntime = null;
+  for (const v of runtime._variables) {
+    if (v._module?._runtime?._computeNow) {
+      actualRuntime = v._module._runtime;
+      break;
+    }
+  }
+
+  if (!actualRuntime) {
+    return { error: 'Could not find actual runtime with _computeNow' };
+  }
+
+  // Find all test_ variables
+  const testVars = [];
+  for (const variable of runtime._variables) {
+    const name = variable._name;
+    if (typeof name === 'string' && name.startsWith('test_')) {
+      testVars.push(variable);
+    }
+  }
+
+  if (testVars.length === 0) {
+    return { error: 'No test variables found (cells starting with test_)' };
+  }
+
+  // Build module name lookup
+  const moduleNames = new Map();
+  for (const v of runtime._variables) {
+    if (v._module && !moduleNames.has(v._module)) {
+      // Try to find module name from variables that look like module definitions
+      const modName = v._module._name ||
+        (v._name?.startsWith('module ') ? v._name : null);
+      if (modName) moduleNames.set(v._module, modName);
+    }
+  }
+
+  // Install an observer on each test variable
+  for (const v of testVars) {
+    const name = v._name;
+    const moduleName = moduleNames.get(v._module) || 'main';
+    const fullName = `${moduleName}#${name}`;
+
+    // Create a promise that resolves when the test completes
+    const p = new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        results.set(fullName, { state: 'timeout', name, module: moduleName });
+        resolve();
+      }, testTimeout);
+
+      // Mark as reachable to trigger computation
+      if (!v._reachable) {
+        v._reachable = true;
+        actualRuntime._dirty.add(v);
+      }
+
+      // Install observer
+      const oldObserver = v._observer;
+      v._observer = {
+        fulfilled: (value) => {
+          clearTimeout(timeout);
+          results.set(fullName, {
+            state: 'passed',
+            name,
+            module: moduleName,
+            value: value === undefined ? 'undefined' : String(value).slice(0, 200)
+          });
+          resolve();
+          if (oldObserver?.fulfilled) oldObserver.fulfilled(value);
+        },
+        rejected: (error) => {
+          clearTimeout(timeout);
+          results.set(fullName, {
+            state: 'failed',
+            name,
+            module: moduleName,
+            error: error?.message || String(error),
+            stack: error?.stack?.slice(0, 500)
+          });
+          resolve();
+          if (oldObserver?.rejected) oldObserver.rejected(error);
+        },
+        pending: () => {
+          if (oldObserver?.pending) oldObserver.pending();
+        }
+      };
+    });
+
+    pendingPromises.push(p);
+  }
+
+  // Trigger computation
+  actualRuntime._computeNow();
+
+  // Wait for all tests (with overall timeout)
+  await Promise.race([
+    Promise.all(pendingPromises),
+    new Promise(resolve => setTimeout(resolve, testTimeout + 5000))
+  ]);
+
+  // Convert results to array
+  const output = [...results.values()];
+
+  return { tests: output, totalCount: testVars.length };
+}
+
+// Generate TAP format report from suite-style results (legacy)
+function generateTAPReportFromSuites(suites) {
   let totalTests = 0;
   for (const suite of suites) {
     totalTests += Object.keys(suite.results).length;
@@ -157,6 +271,52 @@ function generateTAPReport(suites) {
         }
         failed++;
       }
+    }
+  }
+
+  output += `# tests ${totalTests}\n`;
+  output += `# pass ${passed}\n`;
+  output += `# fail ${failed}\n`;
+
+  return { output, passed, failed, total: totalTests };
+}
+
+// Generate TAP format report from test_* variable results
+function generateTAPReport(tests) {
+  const totalTests = tests.length;
+
+  let output = 'TAP version 13\n';
+  output += `1..${totalTests}\n`;
+
+  let testIndex = 0;
+  let passed = 0;
+  let failed = 0;
+
+  // Sort by module then name
+  const sortedTests = [...tests].sort((a, b) => {
+    const modCmp = (a.module || '').localeCompare(b.module || '');
+    if (modCmp !== 0) return modCmp;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  for (const test of sortedTests) {
+    testIndex++;
+    const fullName = test.module ? `${test.module}#${test.name}` : test.name;
+
+    if (test.state === 'passed') {
+      output += `ok ${testIndex} - ${fullName}\n`;
+      passed++;
+    } else if (test.state === 'timeout') {
+      output += `not ok ${testIndex} - ${fullName} # TIMEOUT\n`;
+      failed++;
+    } else {
+      output += `not ok ${testIndex} - ${fullName}\n`;
+      if (test.error) {
+        output += `  ---\n`;
+        output += `  message: ${test.error.slice(0, 500)}\n`;
+        output += `  ...\n`;
+      }
+      failed++;
     }
   }
 
@@ -373,75 +533,49 @@ async function runNotebook(options) {
       }
       console.log(JSON.stringify(cell, null, 2));
     } else if (options.runTests) {
-      // Run tests mode
-      console.error('Detecting test suites...');
+      // Run tests mode - uses test_* variable pattern with observers
+      console.error('Running tests (test_* variables)...');
 
-      // Wait longer for tests to compute - tests may need more time
-      const testWait = Math.max(options.wait, 5000);
-      await page.waitForTimeout(testWait);
-
-      // Detect test suites
-      const testData = await page.evaluate(detectTestSuitesInPage);
+      // Run tests using observer pattern
+      const testData = await page.evaluate(runTestVariablesInPage, options.testTimeout);
 
       if (testData.error) {
         console.error(`Error: ${testData.error}`);
         process.exit(2);
       }
 
-      let suites = testData.suites;
+      let tests = testData.tests;
 
-      // Filter by suite name if specified
+      // Filter by suite/module name if specified
       if (options.suiteName) {
-        suites = suites.filter(s => s.name === options.suiteName || s.name.includes(options.suiteName));
-        if (suites.length === 0) {
-          console.error(`No test suite found matching: ${options.suiteName}`);
-          console.error(`Available suites: ${testData.suites.map(s => s.name).join(', ')}`);
+        tests = tests.filter(t =>
+          t.module?.includes(options.suiteName) ||
+          t.name?.includes(options.suiteName)
+        );
+        if (tests.length === 0) {
+          console.error(`No tests found matching: ${options.suiteName}`);
+          const modules = [...new Set(testData.tests.map(t => t.module))];
+          console.error(`Available modules: ${modules.join(', ')}`);
           process.exit(2);
         }
       }
 
-      if (suites.length === 0) {
-        console.error('No test suites found in notebook');
-        console.error('Test suites must have a "results" object and "viewofResults" property');
-        process.exit(2);
-      }
-
-      console.error(`Found ${suites.length} test suite(s): ${suites.map(s => s.name).join(', ')}`);
-
-      // Wait for tests to complete (poll until no pending tests)
-      const startTime = Date.now();
-      while (Date.now() - startTime < options.testTimeout) {
-        const currentData = await page.evaluate(detectTestSuitesInPage);
-        let pendingCount = 0;
-
-        for (const suite of currentData.suites) {
-          if (options.suiteName && !suite.name.includes(options.suiteName)) continue;
-          for (const result of Object.values(suite.results)) {
-            if (result === 'pending') pendingCount++;
-          }
-        }
-
-        if (pendingCount === 0) {
-          suites = options.suiteName
-            ? currentData.suites.filter(s => s.name.includes(options.suiteName))
-            : currentData.suites;
-          break;
-        }
-
-        console.error(`Waiting for ${pendingCount} pending test(s)...`);
-        await page.waitForTimeout(1000);
-      }
+      // Summary
+      const passed = tests.filter(t => t.state === 'passed').length;
+      const failed = tests.filter(t => t.state === 'failed').length;
+      const timeout = tests.filter(t => t.state === 'timeout').length;
+      console.error(`Found ${tests.length} test(s): ${passed} passed, ${failed} failed, ${timeout} timeout`);
 
       // Generate output
       if (options.outputFormat === 'json') {
-        console.log(JSON.stringify(suites, null, 2));
+        console.log(JSON.stringify(tests, null, 2));
       } else {
-        const report = generateTAPReport(suites);
+        const report = generateTAPReport(tests);
         console.log(report.output);
       }
 
       // Determine exit code
-      const report = generateTAPReport(suites);
+      const report = generateTAPReport(tests);
       await browser.close();
       process.exit(report.failed > 0 ? 1 : 0);
     } else {
