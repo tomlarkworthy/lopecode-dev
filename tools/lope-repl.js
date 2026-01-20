@@ -9,8 +9,9 @@
  *   node lope-repl.js [--headed] [--verbose]
  *
  * Commands (JSON, one per line):
- *   {"cmd": "load", "notebook": "path/to/notebook.html"}
- *   {"cmd": "run-tests", "timeout": 30000, "filter": "optional"}
+ *   {"cmd": "load", "notebook": "path/to/notebook.html", "hash": "view=..."}
+ *   {"cmd": "run-tests", "timeout": 30000, "filter": "optional", "force": true}
+ *   {"cmd": "read-tests", "timeout": 30000, "filter": "optional"}  // reads from latest_state (requires tests module rendered)
  *   {"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
  *   {"cmd": "get-cell", "name": "cellName"}
  *   {"cmd": "list-cells"}
@@ -96,6 +97,150 @@ async function loadNotebook(notebookPath, hashUrl = null) {
   process.stderr.write(`Loaded: ${notebookPath}\n`);
 
   return { notebook: notebookPath };
+}
+
+// Read tests from latest_state (natural observation via tests module UI)
+async function readTestsFromLatestState(timeout = 30000, filter = null) {
+  if (!runtimeReady) {
+    throw new Error('No notebook loaded');
+  }
+
+  // Wait for tests to settle, polling latest_state
+  const startTime = Date.now();
+  let lastPending = Infinity;
+  let stableCount = 0;
+
+  while (Date.now() - startTime < timeout) {
+    const state = await page.evaluate((filterStr) => {
+      const runtime = window.__ojs_runtime;
+      if (!runtime) return { error: 'Runtime not found' };
+
+      // Find latest_state variable
+      let latestState = null;
+      for (const v of runtime._variables) {
+        if (v._name === 'latest_state' && v._value instanceof Map) {
+          latestState = v._value;
+          break;
+        }
+      }
+
+      if (!latestState) {
+        return { error: 'latest_state not found - is the tests module rendered?' };
+      }
+
+      const tests = [];
+      const counts = { fulfilled: 0, rejected: 0, pending: 0, paused: 0 };
+
+      for (const [key, val] of latestState) {
+        // Apply filter if provided
+        if (filterStr && !key.includes(filterStr)) {
+          continue;
+        }
+
+        counts[val.state] = (counts[val.state] || 0) + 1;
+        tests.push({
+          name: key,
+          state: val.state === 'fulfilled' ? 'passed' :
+                 val.state === 'rejected' ? 'failed' : val.state,
+          error: val.error?.message || val.error,
+          value: val.value === undefined ? undefined :
+                 typeof val.value === 'object' ? JSON.stringify(val.value).slice(0, 200) :
+                 String(val.value).slice(0, 200)
+        });
+      }
+
+      return {
+        tests,
+        counts,
+        total: latestState.size
+      };
+    }, filter);
+
+    if (state.error) {
+      throw new Error(state.error);
+    }
+
+    // Check if stable (no pending tests, or pending count unchanged)
+    const currentPending = state.counts.pending || 0;
+    if (currentPending === 0) {
+      // All tests resolved
+      const passed = state.counts.fulfilled || 0;
+      const failed = state.counts.rejected || 0;
+      return {
+        tests: state.tests,
+        summary: {
+          total: state.tests.length,
+          passed,
+          failed,
+          pending: 0,
+          paused: state.counts.paused || 0
+        }
+      };
+    }
+
+    if (currentPending === lastPending) {
+      stableCount++;
+      if (stableCount >= 3) {
+        // Pending count stable for 3 checks, return current state
+        const passed = state.counts.fulfilled || 0;
+        const failed = state.counts.rejected || 0;
+        return {
+          tests: state.tests,
+          summary: {
+            total: state.tests.length,
+            passed,
+            failed,
+            pending: currentPending,
+            paused: state.counts.paused || 0
+          }
+        };
+      }
+    } else {
+      stableCount = 0;
+      lastPending = currentPending;
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  // Timeout - return current state
+  const finalState = await page.evaluate((filterStr) => {
+    const runtime = window.__ojs_runtime;
+    let latestState = null;
+    for (const v of runtime._variables) {
+      if (v._name === 'latest_state' && v._value instanceof Map) {
+        latestState = v._value;
+        break;
+      }
+    }
+
+    const tests = [];
+    const counts = { fulfilled: 0, rejected: 0, pending: 0, paused: 0 };
+
+    for (const [key, val] of latestState) {
+      if (filterStr && !key.includes(filterStr)) continue;
+      counts[val.state] = (counts[val.state] || 0) + 1;
+      tests.push({
+        name: key,
+        state: val.state === 'fulfilled' ? 'passed' :
+               val.state === 'rejected' ? 'failed' : val.state,
+        error: val.error?.message || val.error,
+      });
+    }
+
+    return { tests, counts };
+  }, filter);
+
+  return {
+    tests: finalState.tests,
+    summary: {
+      total: finalState.tests.length,
+      passed: finalState.counts.fulfilled || 0,
+      failed: finalState.counts.rejected || 0,
+      pending: finalState.counts.pending || 0,
+      paused: finalState.counts.paused || 0
+    }
+  };
 }
 
 // Run tests (reuse logic from lope-runner.js)
@@ -356,6 +501,12 @@ async function handleCommand(line) {
         }
         break;
 
+      case 'read-tests':
+        // Read tests from latest_state (requires tests module to be rendered)
+        const readResult = await readTestsFromLatestState(cmd.timeout || 30000, cmd.filter || null);
+        respondOk(readResult);
+        break;
+
       case 'eval':
         if (!cmd.code) {
           respondError('Missing code');
@@ -404,7 +555,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'eval', 'get-cell', 'list-cells', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-cell', 'list-cells', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];
