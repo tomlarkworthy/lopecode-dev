@@ -184,6 +184,7 @@ JSON commands via stdin:
 {"cmd": "query", "selector": "button", "limit": 10}
 {"cmd": "click", "selector": "button.run-all"}
 {"cmd": "fill", "selector": "input[type='text']", "value": "hello"}
+{"cmd": "download", "selector": "text=Download", "path": "output.html"}
 {"cmd": "screenshot", "path": "output.png", "fullPage": true}
 {"cmd": "status"}
 {"cmd": "quit"}
@@ -203,6 +204,7 @@ echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_r
 - `query` - Find elements by CSS selector (returns count, tag, text, visibility)
 - `click` - Click on a UI element by CSS selector
 - `fill` - Fill an input field with a value
+- `download` - Click element and capture file download
 - `screenshot` - Takes screenshot of current page
 
 Benefits:
