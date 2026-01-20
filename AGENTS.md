@@ -85,7 +85,8 @@ lopecode-dev/
 
 **Which tool to use:**
 - **`lope-reader.js`** - Use for fast static analysis: listing modules, reading cell source, exploring structure. No browser needed, instant results.
-- **`lope-runner.js`** - Use only when you need runtime values (computed cell outputs, test results). Slower, requires Playwright.
+- **`lope-runner.js`** - Use for one-off test runs or cell queries. Starts fresh browser each time (~10s overhead).
+- **`lope-repl.js`** - Use for iterative development. Keeps browser running, accepts JSON commands via stdin. Much faster after initial load (<1s per command).
 
 **lope-reader.js** - Fast static HTML parser (no browser required):
 ```bash
@@ -146,6 +147,41 @@ Exit codes:
 - `0` - All tests passed
 - `1` - One or more tests failed
 - `2` - Error (no tests found, load failed)
+
+#### Interactive REPL (lope-repl.js)
+
+For iterative development, use the persistent browser session:
+
+```bash
+# Start REPL (keeps browser running)
+node tools/lope-repl.js
+
+# With visible browser for debugging
+node tools/lope-repl.js --headed --verbose
+```
+
+Send JSON commands via stdin:
+```json
+{"cmd": "load", "notebook": "path/to/notebook.html"}
+{"cmd": "run-tests", "filter": "test_compile"}
+{"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
+{"cmd": "get-cell", "name": "myCell"}
+{"cmd": "list-cells"}
+{"cmd": "status"}
+{"cmd": "quit"}
+```
+
+Example session:
+```bash
+echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html"}
+{"cmd": "run-tests", "filter": "normalize"}
+{"cmd": "quit"}' | node tools/lope-repl.js
+```
+
+Benefits:
+- ~10x faster than lope-runner.js after initial load
+- Can run multiple test cycles without browser restart
+- Interactive debugging with `eval` command
 
 #### Understanding the Manifest
 
