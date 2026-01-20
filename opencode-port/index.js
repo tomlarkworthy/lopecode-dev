@@ -74,3 +74,22 @@ export {
   registerTool,
   executeTool
 } from './tool.js';
+
+// LLM integration
+export {
+  // Provider configuration
+  openaiProvider,
+  anthropicProvider,
+
+  // Message formatting
+  toOpenAIMessages,
+  toAnthropicMessages,
+
+  // Streaming
+  streamOpenAI,
+  streamAnthropic,
+  streamChat,
+
+  // Non-streaming
+  chat
+} from './llm.js';
