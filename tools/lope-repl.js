@@ -99,12 +99,12 @@ async function loadNotebook(notebookPath, hashUrl = null) {
 }
 
 // Run tests (reuse logic from lope-runner.js)
-async function runTests(timeout = 30000, filter = null) {
+async function runTests(timeout = 30000, filter = null, forceReachable = true) {
   if (!runtimeReady) {
     throw new Error('No notebook loaded');
   }
 
-  const testData = await page.evaluate(async ({ testTimeout, filterStr }) => {
+  const testData = await page.evaluate(async ({ testTimeout, filterStr, force }) => {
     const runtime = window.__ojs_runtime;
     if (!runtime) return { error: 'Runtime not found' };
 
@@ -161,12 +161,13 @@ async function runTests(timeout = 30000, filter = null) {
       const fullName = `${moduleName}#${name}`;
 
       const p = new Promise((resolve) => {
-        const timeout = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           results.set(fullName, { state: 'timeout', name, module: moduleName });
           resolve();
         }, testTimeout);
 
-        if (!v._reachable) {
+        // Only force reachable if requested
+        if (force && !v._reachable) {
           v._reachable = true;
           actualRuntime._dirty.add(v);
         }
@@ -174,7 +175,7 @@ async function runTests(timeout = 30000, filter = null) {
         const oldObserver = v._observer;
         v._observer = {
           fulfilled: (value) => {
-            clearTimeout(timeout);
+            clearTimeout(timeoutId);
             results.set(fullName, {
               state: 'passed',
               name,
@@ -185,7 +186,7 @@ async function runTests(timeout = 30000, filter = null) {
             if (oldObserver?.fulfilled) oldObserver.fulfilled(value);
           },
           rejected: (error) => {
-            clearTimeout(timeout);
+            clearTimeout(timeoutId);
             results.set(fullName, {
               state: 'failed',
               name,
@@ -219,7 +220,7 @@ async function runTests(timeout = 30000, filter = null) {
     const timeout_count = tests.filter(t => t.state === 'timeout').length;
 
     return { tests, summary: { total: tests.length, passed, failed, timeout: timeout_count } };
-  }, { testTimeout: timeout, filterStr: filter });
+  }, { testTimeout: timeout, filterStr: filter, force: forceReachable });
 
   return testData;
 }
@@ -345,7 +346,9 @@ async function handleCommand(line) {
         break;
 
       case 'run-tests':
-        const testResult = await runTests(cmd.timeout || 30000, cmd.filter || null);
+        // force defaults to true for backwards compatibility
+        const forceReachable = cmd.force !== false;
+        const testResult = await runTests(cmd.timeout || 30000, cmd.filter || null, forceReachable);
         if (testResult.error) {
           respondError(testResult.error);
         } else {
