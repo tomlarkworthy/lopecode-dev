@@ -66,12 +66,28 @@ lopecode-dev/
 │   │   └── notebooks/           # Development/staging notebooks (e.g., reactive-reflective-testing)
 │   └── src/                     # Source/development notebooks
 ├── tools/                       # Agent utilities (Node.js only)
+│   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.js          # Fast static analysis (no browser)
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
 │   └── lope-repl.js            # Persistent REPL for iterative development
 ├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
 └── AGENTS.md                    # This file
 ```
+
+### Shared Library: tools.js
+
+Common Observable runtime utilities used by both `lope-runner.js` and `lope-repl.js`:
+
+| Function | Purpose |
+|----------|---------|
+| `runTestVariables` | Run test_* cells with observer pattern |
+| `readLatestState` | Read from tests module's latest_state Map |
+| `getCellInfo` | Get info about a specific cell |
+| `listAllCells` | List all cells in runtime |
+| `serializeValue` | Serialize cell values for output |
+| `generateTAPReport` | Generate TAP format test reports |
+
+These functions are designed to run in page context via `page.evaluate()` - the same pattern lopecode itself uses for reactive cells.
 
 ### Working with Large Files
 
@@ -278,4 +294,9 @@ echo '{"cmd": "load", "notebook": "notebook.html", "hash": "view=R100(S50(@modul
 4. **Provide precise instructions** - Reference cells by `module.cellName`
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
-7. **See DEVELOPMENT.md** - For Observable runtime internals and lopepage architecture
+7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
+8. **See DEVELOPMENT.md** - Contains critical info on:
+   - Observable runtime lazy evaluation (cells only compute when observed)
+   - Lopepage hash URL DSL for multi-module layouts
+   - Natural test observation via `latest_state` Map
+   - How to force cell computation with `_reachable` and `_computeNow()`

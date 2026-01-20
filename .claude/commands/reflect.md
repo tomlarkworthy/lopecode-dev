@@ -1,7 +1,7 @@
 You are an expert in prompt engineering, specializing in optimizing AI code assistant instructions. Your task is to analyze and improve the instructions for Claude Code. Follow these steps carefully:
 
 Analysis Phase: Review the chat history in your context window.
-Then, examine the current Claude instructions, commands and config <claude_instructions> /CLAUDE.md /.claude/commands/* **/CLAUDE.md .claude/settings.json .claude/settings.local.json </claude_instructions>
+Then, examine the current Claude instructions, commands and config <claude_instructions> /CLAUDE.md /AGENTS.md /.claude/commands/* **/CLAUDE.md .claude/settings.json .claude/settings.local.json </claude_instructions>
 
 Analyze the chat history, instructions, commands and config to identify areas that could be improved. Look for:
 
