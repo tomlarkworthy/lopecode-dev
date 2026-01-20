@@ -1,0 +1,11 @@
+# Extracted module data (regenerated from notebooks)
+.lope-extracted/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS
+.DS_Store
+Thumbs.db
