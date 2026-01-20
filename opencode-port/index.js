@@ -99,3 +99,26 @@ export {
   createLoop,
   runLoop
 } from './loop.js';
+
+// Notebook tools
+export {
+  // Cell tools
+  readCellTool,
+  listCellsTool,
+  defineCellTool,
+  deleteCellTool,
+  getCellValueTool,
+  registerCellTools,
+  getCellTools,
+
+  // Runtime tools
+  listModulesTool,
+  runTestsTool,
+  evalTool,
+  searchCellsTool,
+  registerRuntimeTools,
+  getRuntimeTools,
+
+  // All tools
+  registerAllTools
+} from './tools/index.js';
