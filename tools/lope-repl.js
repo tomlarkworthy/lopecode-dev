@@ -28,6 +28,12 @@ import { chromium } from 'playwright';
 import * as readline from 'readline';
 import path from 'path';
 import fs from 'fs';
+import {
+  runTestVariables,
+  readLatestState,
+  getCellInfo,
+  listAllCells
+} from './tools.js';
 
 // Parse args
 const args = process.argv.slice(2);
@@ -112,50 +118,7 @@ async function readTestsFromLatestState(timeout = 30000, filter = null) {
   let stableCount = 0;
 
   while (Date.now() - startTime < timeout) {
-    const state = await page.evaluate((filterStr) => {
-      const runtime = window.__ojs_runtime;
-      if (!runtime) return { error: 'Runtime not found' };
-
-      // Find latest_state variable
-      let latestState = null;
-      for (const v of runtime._variables) {
-        if (v._name === 'latest_state' && v._value instanceof Map) {
-          latestState = v._value;
-          break;
-        }
-      }
-
-      if (!latestState) {
-        return { error: 'latest_state not found - is the tests module rendered?' };
-      }
-
-      const tests = [];
-      const counts = { fulfilled: 0, rejected: 0, pending: 0, paused: 0 };
-
-      for (const [key, val] of latestState) {
-        // Apply filter if provided
-        if (filterStr && !key.includes(filterStr)) {
-          continue;
-        }
-
-        counts[val.state] = (counts[val.state] || 0) + 1;
-        tests.push({
-          name: key,
-          state: val.state === 'fulfilled' ? 'passed' :
-                 val.state === 'rejected' ? 'failed' : val.state,
-          error: val.error?.message || val.error,
-          value: val.value === undefined ? undefined :
-                 typeof val.value === 'object' ? JSON.stringify(val.value).slice(0, 200) :
-                 String(val.value).slice(0, 200)
-        });
-      }
-
-      return {
-        tests,
-        counts,
-        total: latestState.size
-      };
-    }, filter);
+    const state = await page.evaluate(readLatestState, filter);
 
     if (state.error) {
       throw new Error(state.error);
@@ -205,32 +168,7 @@ async function readTestsFromLatestState(timeout = 30000, filter = null) {
   }
 
   // Timeout - return current state
-  const finalState = await page.evaluate((filterStr) => {
-    const runtime = window.__ojs_runtime;
-    let latestState = null;
-    for (const v of runtime._variables) {
-      if (v._name === 'latest_state' && v._value instanceof Map) {
-        latestState = v._value;
-        break;
-      }
-    }
-
-    const tests = [];
-    const counts = { fulfilled: 0, rejected: 0, pending: 0, paused: 0 };
-
-    for (const [key, val] of latestState) {
-      if (filterStr && !key.includes(filterStr)) continue;
-      counts[val.state] = (counts[val.state] || 0) + 1;
-      tests.push({
-        name: key,
-        state: val.state === 'fulfilled' ? 'passed' :
-               val.state === 'rejected' ? 'failed' : val.state,
-        error: val.error?.message || val.error,
-      });
-    }
-
-    return { tests, counts };
-  }, filter);
+  const finalState = await page.evaluate(readLatestState, filter);
 
   return {
     tests: finalState.tests,
@@ -244,129 +182,17 @@ async function readTestsFromLatestState(timeout = 30000, filter = null) {
   };
 }
 
-// Run tests (reuse logic from lope-runner.js)
+// Run tests using shared runTestVariables
 async function runTests(timeout = 30000, filter = null, forceReachable = true) {
   if (!runtimeReady) {
     throw new Error('No notebook loaded');
   }
 
-  const testData = await page.evaluate(async ({ testTimeout, filterStr, force }) => {
-    const runtime = window.__ojs_runtime;
-    if (!runtime) return { error: 'Runtime not found' };
-
-    const results = new Map();
-    const pendingPromises = [];
-
-    // Find actual runtime
-    let actualRuntime = null;
-    for (const v of runtime._variables) {
-      if (v._module?._runtime?._computeNow) {
-        actualRuntime = v._module._runtime;
-        break;
-      }
-    }
-
-    if (!actualRuntime) {
-      return { error: 'Could not find actual runtime' };
-    }
-
-    // Build module name lookup
-    const moduleNames = new Map();
-    for (const v of runtime._variables) {
-      if (v._module && !moduleNames.has(v._module)) {
-        const modName = v._module._name ||
-          (v._name?.startsWith('module ') ? v._name : null);
-        if (modName) moduleNames.set(v._module, modName);
-      }
-    }
-
-    // Find test variables
-    const testVars = [];
-    for (const variable of runtime._variables) {
-      const name = variable._name;
-      if (typeof name === 'string' && name.startsWith('test_')) {
-        // Apply filter if provided
-        if (filterStr) {
-          const moduleName = moduleNames.get(variable._module) || '';
-          if (!name.includes(filterStr) && !moduleName.includes(filterStr)) {
-            continue;
-          }
-        }
-        testVars.push(variable);
-      }
-    }
-
-    if (testVars.length === 0) {
-      return { error: 'No test variables found' };
-    }
-
-    // Install observers
-    for (const v of testVars) {
-      const name = v._name;
-      const moduleName = moduleNames.get(v._module) || 'main';
-      const fullName = `${moduleName}#${name}`;
-
-      const p = new Promise((resolve) => {
-        const timeoutId = setTimeout(() => {
-          results.set(fullName, { state: 'timeout', name, module: moduleName });
-          resolve();
-        }, testTimeout);
-
-        // Only force reachable if requested
-        if (force && !v._reachable) {
-          v._reachable = true;
-          actualRuntime._dirty.add(v);
-        }
-
-        const oldObserver = v._observer;
-        v._observer = {
-          fulfilled: (value) => {
-            clearTimeout(timeoutId);
-            results.set(fullName, {
-              state: 'passed',
-              name,
-              module: moduleName,
-              value: value === undefined ? 'undefined' : String(value).slice(0, 200)
-            });
-            resolve();
-            if (oldObserver?.fulfilled) oldObserver.fulfilled(value);
-          },
-          rejected: (error) => {
-            clearTimeout(timeoutId);
-            results.set(fullName, {
-              state: 'failed',
-              name,
-              module: moduleName,
-              error: error?.message || String(error)
-            });
-            resolve();
-            if (oldObserver?.rejected) oldObserver.rejected(error);
-          },
-          pending: () => {
-            if (oldObserver?.pending) oldObserver.pending();
-          }
-        };
-      });
-
-      pendingPromises.push(p);
-    }
-
-    // Trigger computation
-    actualRuntime._computeNow();
-
-    // Wait for completion
-    await Promise.race([
-      Promise.all(pendingPromises),
-      new Promise(resolve => setTimeout(resolve, testTimeout + 5000))
-    ]);
-
-    const tests = [...results.values()];
-    const passed = tests.filter(t => t.state === 'passed').length;
-    const failed = tests.filter(t => t.state === 'failed').length;
-    const timeout_count = tests.filter(t => t.state === 'timeout').length;
-
-    return { tests, summary: { total: tests.length, passed, failed, timeout: timeout_count } };
-  }, { testTimeout: timeout, filterStr: filter, force: forceReachable });
+  const testData = await page.evaluate(runTestVariables, {
+    testTimeout: timeout,
+    filterStr: filter,
+    force: forceReachable
+  });
 
   return testData;
 }
@@ -409,25 +235,7 @@ async function getCell(name) {
     throw new Error('No notebook loaded');
   }
 
-  const result = await page.evaluate((cellName) => {
-    const runtime = window.__ojs_runtime;
-    for (const v of runtime._variables) {
-      if (v._name === cellName) {
-        return {
-          name: v._name,
-          hasValue: v._value !== undefined,
-          hasError: v._error !== undefined,
-          value: v._value === undefined ? undefined :
-                 typeof v._value === 'function' ? v._value.toString().slice(0, 500) :
-                 typeof v._value === 'object' ? JSON.stringify(v._value).slice(0, 1000) :
-                 String(v._value),
-          error: v._error?.message,
-          reachable: v._reachable
-        };
-      }
-    }
-    return { error: `Cell not found: ${cellName}` };
-  }, name);
+  const result = await page.evaluate(getCellInfo, name);
 
   if (result.error) {
     throw new Error(result.error);
@@ -441,22 +249,11 @@ async function listCells() {
     throw new Error('No notebook loaded');
   }
 
-  const cells = await page.evaluate(() => {
-    const runtime = window.__ojs_runtime;
-    const cells = [];
+  const cells = await page.evaluate(listAllCells);
 
-    for (const v of runtime._variables) {
-      if (!v._name) continue;
-      cells.push({
-        name: v._name,
-        hasValue: v._value !== undefined,
-        hasError: v._error !== undefined,
-        reachable: v._reachable
-      });
-    }
-
-    return cells.sort((a, b) => a.name.localeCompare(b.name));
-  });
+  if (cells.error) {
+    throw new Error(cells.error);
+  }
 
   return { count: cells.length, cells };
 }
