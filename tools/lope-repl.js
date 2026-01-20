@@ -20,6 +20,7 @@
  *   {"cmd": "click", "selector": "button.submit"}
  *   {"cmd": "fill", "selector": "input[name='query']", "value": "hello"}
  *   {"cmd": "query", "selector": "button", "limit": 10}
+ *   {"cmd": "download", "selector": "text=Download", "path": "output.html"}
  *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
@@ -411,6 +412,35 @@ async function handleCommand(line) {
         }
         break;
 
+      case 'download':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        if (!cmd.selector) {
+          respondError('Missing selector');
+          return;
+        }
+        try {
+          const downloadPath = cmd.path || 'download';
+          // Start waiting for download before clicking
+          const [download] = await Promise.all([
+            page.waitForEvent('download', { timeout: cmd.timeout || 30000 }),
+            page.click(cmd.selector, { timeout: cmd.timeout || 5000 })
+          ]);
+          // Save to specified path
+          await download.saveAs(downloadPath);
+          const suggestedName = download.suggestedFilename();
+          respondOk({
+            path: downloadPath,
+            suggestedFilename: suggestedName,
+            url: download.url()
+          });
+        } catch (e) {
+          respondError(`Download failed: ${e.message}`);
+        }
+        break;
+
       case 'screenshot':
         if (!runtimeReady) {
           respondError('No notebook loaded');
@@ -489,7 +519,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'query', 'click', 'fill', 'screenshot', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'query', 'click', 'fill', 'download', 'screenshot', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];
