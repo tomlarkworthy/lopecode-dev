@@ -64,6 +64,8 @@ lopecode-dev/
 │   │   └── ...
 │   └── src/                     # Source/development notebooks
 ├── tools/                       # Agent utilities
+│   ├── lope-reader.js          # Fast static HTML parser (Node.js)
+│   ├── lope-runner.js          # Headless notebook runner (Playwright)
 │   ├── lope-utils.py           # Python CLI for parsing notebooks
 │   └── lope-extract.sh         # Shell script for extraction
 ├── .lope-extracted/             # Generated module extractions (gitignored)
@@ -79,6 +81,25 @@ lopecode-dev/
 
 #### Tool Commands
 
+**lope-reader.js** - Fast static HTML parser (no browser required):
+```bash
+# Get overview of a notebook
+node tools/lope-reader.js lopecode/notebooks/@tomlarkworthy_exporter.html
+
+# List all modules in a notebook
+node tools/lope-reader.js notebook.html --list-modules
+
+# Get source code for a specific module
+node tools/lope-reader.js notebook.html --get-module @tomlarkworthy/tests
+
+# List file attachments (names only, not content)
+node tools/lope-reader.js notebook.html --list-files
+
+# JSON output for programmatic use
+node tools/lope-reader.js notebook.html --list-modules --json
+```
+
+**lope-utils.py** - Python CLI (alternative):
 ```bash
 # Get overview of a notebook (modules, cells, file attachments)
 uv run --project tools lope-utils summary lopecode/notebooks/@tomlarkworthy_exporter.html
