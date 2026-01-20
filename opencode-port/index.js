@@ -93,3 +93,9 @@ export {
   // Non-streaming
   chat
 } from './llm.js';
+
+// Agentic loop
+export {
+  createLoop,
+  runLoop
+} from './loop.js';
