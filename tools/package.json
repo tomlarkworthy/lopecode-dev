@@ -1,0 +1,16 @@
+{
+  "name": "lopecode-tools",
+  "version": "1.0.0",
+  "description": "Tools for agentic development of lopecode notebooks",
+  "type": "module",
+  "scripts": {
+    "test": "npx playwright test",
+    "run-notebook": "node lope-runner.js"
+  },
+  "dependencies": {
+    "playwright": "^1.51.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0"
+  }
+}

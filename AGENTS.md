@@ -81,23 +81,44 @@ lopecode-dev/
 
 ```bash
 # Get overview of a notebook (modules, cells, file attachments)
-python3 tools/lope-utils.py summary lopecode/notebooks/@tomlarkworthy_exporter.html
+uv run --project tools lope-utils summary lopecode/notebooks/@tomlarkworthy_exporter.html
 
 # List modules in a notebook
-python3 tools/lope-utils.py list-modules lopecode/notebooks/@tomlarkworthy_exporter.html
+uv run --project tools lope-utils list-modules lopecode/notebooks/@tomlarkworthy_exporter.html
 
 # List cells in a specific module
-python3 tools/lope-utils.py list-cells lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter
+uv run --project tools lope-utils list-cells lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter
 
 # Read a specific cell's source code
-python3 tools/lope-utils.py read-cell lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter _exporter
+uv run --project tools lope-utils read-cell lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter _exporter
 
 # Read entire module source (use sparingly - can be large)
-python3 tools/lope-utils.py read-module lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter
+uv run --project tools lope-utils read-module lopecode/notebooks/@tomlarkworthy_exporter.html @tomlarkworthy/exporter
 
 # Regenerate manifest after notebook changes
-python3 tools/lope-utils.py manifest
+uv run --project tools lope-utils manifest
 ```
+
+#### Running Tests
+
+```bash
+# Run all tests in a notebook
+node tools/lope-runner.js lopecode/notebooks/@tomlarkworthy_jumpgate.html --run-tests
+
+# Run tests with JSON output
+node tools/lope-runner.js notebook.html --run-tests --json
+
+# Run specific test suite
+node tools/lope-runner.js notebook.html --run-tests --suite decompilationSuite
+
+# Run with longer timeout
+node tools/lope-runner.js notebook.html --run-tests --test-timeout 60000
+```
+
+Exit codes:
+- `0` - All tests passed
+- `1` - One or more tests failed
+- `2` - Error (no tests found, load failed)
 
 #### Understanding the Manifest
 
@@ -174,7 +195,7 @@ Agents can help by:
 
 #### Reading a notebook's structure
 ```bash
-python3 tools/lope-utils.py summary lopecode/notebooks/NOTEBOOK.html
+uv run --project tools lope-utils summary lopecode/notebooks/NOTEBOOK.html
 ```
 
 #### Finding where a module is used
@@ -185,8 +206,8 @@ grep -l "module-name" lopecode/notebooks/*.html
 #### Comparing module versions across notebooks
 ```bash
 # Extract same module from two notebooks and diff
-python3 tools/lope-utils.py read-module notebook1.html @tomlarkworthy/view > /tmp/v1.js
-python3 tools/lope-utils.py read-module notebook2.html @tomlarkworthy/view > /tmp/v2.js
+uv run --project tools lope-utils read-module notebook1.html @tomlarkworthy/view > /tmp/v1.js
+uv run --project tools lope-utils read-module notebook2.html @tomlarkworthy/view > /tmp/v2.js
 diff /tmp/v1.js /tmp/v2.js
 ```
 
