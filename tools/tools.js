@@ -452,6 +452,60 @@ export function defineVariable({ name, inputs = [], definition, moduleName = nul
 }
 
 /**
+ * Delete a variable from the runtime
+ * Designed to be called via page.evaluate()
+ *
+ * @param {Object} options - { name, moduleName }
+ *   - name: Variable name to delete (string)
+ *   - moduleName: Optional module name (null for main module)
+ * @returns {Object} { success, name, module } or { error }
+ */
+export function deleteVariable({ name, moduleName = null }) {
+  const runtime = window.__ojs_runtime;
+  if (!runtime) return { error: 'Runtime not found' };
+
+  // Find the module
+  let targetModule = null;
+  if (!moduleName) {
+    for (const v of runtime._variables) {
+      if (v._module) {
+        targetModule = v._module;
+        break;
+      }
+    }
+  } else {
+    for (const v of runtime._variables) {
+      if (v._module?._name === moduleName) {
+        targetModule = v._module;
+        break;
+      }
+      if (v._name === `module ${moduleName}`) {
+        targetModule = v._module;
+        break;
+      }
+    }
+  }
+
+  if (!targetModule) {
+    return { error: `Module not found: ${moduleName || 'main'}` };
+  }
+
+  // Find and delete the variable
+  for (const v of runtime._variables) {
+    if (v._name === name && v._module === targetModule) {
+      v.delete();
+      return {
+        success: true,
+        name,
+        module: targetModule._name || 'main'
+      };
+    }
+  }
+
+  return { error: `Variable not found: ${name} in module ${moduleName || 'main'}` };
+}
+
+/**
  * Generate TAP format report from test results
  * @param {Array} tests - Array of test result objects
  * @returns {Object} { output, passed, failed, total }

@@ -85,6 +85,7 @@ Common Observable runtime utilities used by both `lope-runner.js` and `lope-repl
 | `getCellInfo` | Get info about a specific variable |
 | `listAllVariables` | List all variables in runtime |
 | `defineVariable` | Define or redefine a runtime variable |
+| `deleteVariable` | Delete a variable from runtime |
 | `findModule` | Find a module by name |
 | `serializeValue` | Serialize values for output |
 | `generateTAPReport` | Generate TAP format test reports |
@@ -178,7 +179,8 @@ JSON commands via stdin:
 {"cmd": "eval", "code": "window.__ojs_runtime._variables.size"}
 {"cmd": "get-variable", "name": "myVar"}
 {"cmd": "list-variables"}
-{"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": []}
+{"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": [], "module": "@tomlarkworthy/tests"}
+{"cmd": "delete-variable", "name": "myVar", "module": "@tomlarkworthy/tests"}
 {"cmd": "screenshot", "path": "output.png", "fullPage": true}
 {"cmd": "status"}
 {"cmd": "quit"}
@@ -214,16 +216,23 @@ A single cell can create multiple variables:
 
 The `define-variable` command creates/redefines a single runtime variable. For complex cells (viewof, mutable), use the compile machinery in @tomlarkworthy/observablejs-toolchain.
 
-#### define-variable command
+#### define-variable / delete-variable commands
+
+**Module selection:** Both commands accept an optional `module` parameter specifying which module to target. If omitted, defaults to the main/first module. Use the module name as it appears in the notebook (e.g., `"@tomlarkworthy/tests"`).
 
 ```json
-{"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": []}
+{"cmd": "define-variable", "name": "myVar", "definition": "() => 42", "inputs": [], "module": "@tomlarkworthy/tests"}
+{"cmd": "delete-variable", "name": "myVar", "module": "@tomlarkworthy/tests"}
 ```
 
-Parameters:
+**define-variable parameters:**
 - `name` - Variable name (required)
 - `definition` - Function as string, e.g. `"() => 42"` or `"(x, y) => x + y"` (required)
 - `inputs` - Array of dependency names (default: `[]`)
+- `module` - Target module name (default: main module)
+
+**delete-variable parameters:**
+- `name` - Variable name to delete (required)
 - `module` - Target module name (default: main module)
 
 Example with dependencies:

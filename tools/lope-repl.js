@@ -16,6 +16,7 @@
  *   {"cmd": "get-variable", "name": "varName"}
  *   {"cmd": "list-variables"}
  *   {"cmd": "define-variable", "name": "myVar", "definition": "() => 'hello'", "inputs": [], "module": "@tomlarkworthy/tests"}
+ *   {"cmd": "delete-variable", "name": "myVar", "module": "@tomlarkworthy/tests"}
  *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
@@ -34,7 +35,8 @@ import {
   readLatestState,
   getCellInfo,
   listAllVariables,
-  defineVariable
+  defineVariable,
+  deleteVariable
 } from './tools.js';
 
 // Parse args
@@ -371,6 +373,26 @@ async function handleCommand(line) {
         }
         break;
 
+      case 'delete-variable':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        if (!cmd.name) {
+          respondError('Missing variable name');
+          return;
+        }
+        const deleteResult = await page.evaluate(deleteVariable, {
+          name: cmd.name,
+          moduleName: cmd.module || null
+        });
+        if (deleteResult.error) {
+          respondError(deleteResult.error);
+        } else {
+          respondOk(deleteResult);
+        }
+        break;
+
       case 'quit':
         respondOk({ message: 'Goodbye' });
         if (browser) await browser.close();
@@ -392,7 +414,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'screenshot', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'screenshot', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];
