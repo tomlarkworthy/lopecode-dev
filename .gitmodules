@@ -4,3 +4,9 @@
 [submodule "opencode"]
 	path = opencode
 	url = https://github.com/anomalyco/opencode
+[submodule "codex"]
+	path = codex
+	url = https://github.com/openai/codex.git
+[submodule "nanoclaw"]
+	path = nanoclaw
+	url = https://github.com/qwibitai/nanoclaw.git
