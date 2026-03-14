@@ -1,0 +1,135 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+export METADEV=1
+
+# Per-instance correlation ID for marker files (supports parallel sessions)
+export METADEV_CORRELATION_ID=${METADEV_CORRELATION_ID:-$(python3 -c "import uuid; print(uuid.uuid4())")}
+
+# Per-instance restart file (parallel sessions don't stomp each other)
+RESTART_FILE="/tmp/metadev-restart-${METADEV_CORRELATION_ID}.json"
+rm -f "$RESTART_FILE"
+
+if ! command -v safehouse &>/dev/null; then
+    echo "metadev: error: 'safehouse' not found. Install it with:"
+    echo "  brew install eugene1g/safehouse/agent-safehouse"
+    exit 1
+fi
+
+ENV_PASS="METADEV,METADEV_CORRELATION_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_REGION,AWS_DEFAULT_REGION,AWS_SESSION_EXPIRATION,AWS_CREDENTIAL_EXPIRATION,AWS_VAULT,ANTHROPIC_API_KEY,ANTHROPIC_BASE_URL,DISABLE_AUTOUPDATER"
+
+SAFEHOUSE_ARGS=(
+    --env-pass="$ENV_PASS"
+    --add-dirs-ro=~/.aws/config
+    --add-dirs-ro=/Library/Developer/CommandLineTools
+    --add-dirs-ro=~/.orbstack
+    --add-dirs-ro=/Applications/OrbStack.app
+    --add-dirs-ro=~/.local
+    --add-dirs-ro=~/Library/Application\ Support/pypoetry
+    --add-dirs-ro=~/.ssh
+    --add-dirs-ro=~/.zshrc
+    --add-dirs=~/.claude
+    --add-dirs=~/.aws-sam
+    --add-dirs=~/.mavenrc
+    --enable=docker,shell-init,process-control,electron
+)
+
+if [[ "${METADEV_REEXEC:-}" == "1" ]]; then
+    # Re-exec after restart: args already set by restart handler
+    CLAUDE_ARGS=("$@")
+    unset METADEV_REEXEC
+else
+    echo "metadev: CORRELATION=$METADEV_CORRELATION_ID"
+    CLAUDE_ARGS=(--dangerously-skip-permissions "$@")
+fi
+
+while true; do
+    # Run claude inside safehouse (don't exit on failure)
+    safehouse "${SAFEHOUSE_ARGS[@]}" claude "${CLAUDE_ARGS[@]}" || true
+
+    # Check for restart request
+    if [ ! -f "$RESTART_FILE" ]; then
+        break
+    fi
+
+    echo ""
+    echo "metadev: restart requested"
+
+    # Read and remove restart file
+    restart=$(cat "$RESTART_FILE")
+    rm -f "$RESTART_FILE"
+
+    # Show reason if provided
+    reason=$(echo "$restart" | python3 -c "import sys,json; print(json.load(sys.stdin).get('reason',''))" 2>/dev/null || true)
+    if [ -n "$reason" ]; then
+        echo "metadev: reason: $reason"
+    fi
+
+    # Execute pre-restart commands with confirmation
+    pre_cmds=$(echo "$restart" | python3 -c "
+import sys, json
+cmds = json.load(sys.stdin).get('commands', [])
+for c in cmds:
+    print(c)
+" 2>/dev/null || true)
+
+    cmd_output=""
+    if [ -n "$pre_cmds" ]; then
+        echo "metadev: commands to run before restart:"
+        echo "$pre_cmds" | while IFS= read -r cmd; do echo "  $ $cmd"; done
+        echo ""
+        if [[ "${METADEV_NOCONFIRM:-}" == "1" ]]; then
+            confirm="Y"
+        else
+            read -r "confirm?metadev: execute these commands? [Y/n] "
+        fi
+        if [[ "${confirm:-Y}" =~ ^[Yy]?$ ]]; then
+            # Source shell profile so functions like `assume` are available
+            source ~/.zshrc 2>/dev/null || true
+            while IFS= read -r cmd; do
+                echo "metadev: running: $cmd"
+                # eval in current shell so env vars (e.g. AWS creds from `assume`)
+                # propagate. Capture output via temp file to avoid subshell.
+                local _tmpout="/tmp/metadev-cmd-$$"
+                eval "$cmd" > "$_tmpout" 2>&1 || true
+                cat "$_tmpout" >&2  # display to user
+                out=$(cat "$_tmpout")
+                rm -f "$_tmpout"
+                cmd_output+="$ $cmd"$'\n'"$out"$'\n'
+            done <<< "$pre_cmds"
+        else
+            echo "metadev: skipped commands"
+            cmd_output="Commands skipped by user."
+        fi
+    fi
+
+    # Read the marker file to find which session was actually active.
+    # The SessionEnd hook writes the active session ID here.
+    MARKER_FILE="/tmp/metadev-session-${METADEV_CORRELATION_ID}"
+    RESUME_SID=""
+    if [ -f "$MARKER_FILE" ]; then
+        RESUME_SID=$(cat "$MARKER_FILE")
+        rm -f "$MARKER_FILE"
+    fi
+
+    # Build auto-continue prompt with reason and command output
+    auto_prompt="Restart complete${reason:+: $reason}."
+    if [ -n "$cmd_output" ]; then
+        auto_prompt+=$'\n\nPre-restart command output:\n```\n'"$cmd_output"'```'
+    fi
+    auto_prompt+=$'\n\nContinue where you left off.'
+
+    resume=$(echo "$restart" | python3 -c "import sys,json; print(json.load(sys.stdin).get('resume',True))" 2>/dev/null || echo "True")
+    if [ "$resume" = "True" ] && [ -n "$RESUME_SID" ]; then
+        CLAUDE_ARGS=(--dangerously-skip-permissions --resume "$RESUME_SID" "$auto_prompt")
+        echo "metadev: resuming session $RESUME_SID..."
+    else
+        CLAUDE_ARGS=(--dangerously-skip-permissions)
+        echo "metadev: starting fresh session..."
+    fi
+
+    # Re-exec the script so edits to metadev take effect on restart
+    # (shell has already parsed the file, so in-process changes don't help)
+    echo "metadev: re-exec with updated config..."
+    export METADEV_REEXEC=1
+    exec "$0" "${CLAUDE_ARGS[@]}"
+done
