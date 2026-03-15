@@ -1,5 +1,6 @@
-# Extracted module data (regenerated from notebooks)
+# Extracted/disassembled notebook data (regenerated from source notebooks)
 .lope-extracted/
+notebooks/
 
 # Python
 __pycache__/

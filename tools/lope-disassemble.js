@@ -89,81 +89,78 @@ function main() {
     bootconf: null,
   };
 
-  $("script[id]").each((_, el) => {
+  // Extract lope-module scripts (Observable notebook modules, plain text JS)
+  $('script[type="lope-module"]').each((_, el) => {
     const $el = $(el);
     const id = $el.attr("id");
     const text = $el.text().trim();
-    const mime = $el.attr("data-mime");
-    const encoding = $el.attr("data-encoding");
+    if (!id || !text) return;
 
+    const outPath = path.join(outputDir, "modules", id + ".js");
+    writeFile(outPath, Buffer.from(text, "utf-8"));
+    manifest.modules.push({ id, file: `modules/${id}.js`, encoding: "text" });
+    console.error(`  module: ${id}`);
+  });
+
+  // Extract lope-file scripts (file attachments, typically base64+gzip encoded)
+  $('script[type="lope-file"]').each((_, el) => {
+    const $el = $(el);
+    const id = $el.attr("id");
+    const moduleName = $el.attr("module");
+    const fileName = $el.attr("file");
+    const mime = $el.attr("mime") || "application/octet-stream";
+    const text = $el.text().trim();
     if (!text) return;
 
-    // bootconf.json
-    if (id === "bootconf.json") {
-      const outPath = path.join(outputDir, "bootconf.json");
-      writeFile(outPath, text);
-      manifest.bootconf = JSON.parse(text);
-      console.error(`  bootconf.json`);
-      return;
-    }
+    // Determine output path: use module/file structure if available
+    const outName = moduleName && fileName
+      ? `${moduleName}/${fileName}`
+      : id || `unknown_${manifest.files.length}`;
+    const outPath = path.join(outputDir, "files", outName);
 
-    // Skip non-module script tags (networking_script, main, CSS URLs, etc.)
-    if (id === "networking_script" || id === "main") return;
-    if (id.startsWith("https://")) return; // CSS stylesheets
-
-    // Embedded dependencies (runtime, inspector, es-module-shims)
-    if (id === "es-module-shims@2.6.2") return; // not needed in Node
-
-    const isRuntime =
-      id === "@observablehq/runtime@6.0.0" ||
-      id === "@observablehq/inspector@5.0.1";
-
-    if (isRuntime) {
-      const name =
-        id === "@observablehq/runtime@6.0.0" ? "runtime.js" : "inspector.js";
-      const content = decodeContent(text, encoding);
-      const outPath = path.join(outputDir, "deps", name);
-      writeFile(outPath, content);
-      manifest.deps.push({ id, file: `deps/${name}` });
-      console.error(`  dep: ${id} -> deps/${name}`);
-      return;
-    }
-
-    // File attachments: IDs like @org/module/filename.ext
-    // These are sub-resources of a module (contain a / after the module name)
-    if (id.startsWith("file://")) {
-      const name = id.slice(7); // strip file://
-      const content = decodeContent(text, encoding);
-      const outPath = path.join(outputDir, "files", name);
-      writeFile(outPath, content);
-      manifest.files.push({ id, file: `files/${name}`, mime, encoding });
-      console.error(`  file: ${id}`);
-      return;
-    }
-
-    // Module sub-files: @org/name/subfile.gz (has 3+ path segments, mime is not JS)
-    if (id.startsWith("@") && mime !== "application/javascript") {
-      const content = decodeContent(text, encoding);
-      const outPath = path.join(outputDir, "files", id);
-      writeFile(outPath, content);
-      manifest.files.push({ id, file: `files/${id}`, mime, encoding });
-      console.error(`  file: ${id}`);
-      return;
-    }
-
-    // Regular JS modules: @org/name
-    if (id.startsWith("@")) {
-      const content = decodeContent(text, encoding);
-      const outPath = path.join(outputDir, "modules", id + ".js");
-      writeFile(outPath, content);
-      manifest.modules.push({ id, file: `modules/${id}.js`, encoding });
-      console.error(`  module: ${id}`);
-      return;
-    }
-
-    // Anything else - dump to misc
-    console.error(`  skipped: ${id} (${mime}, ${encoding})`);
+    // lope-file content is base64-encoded (possibly gzipped based on .gz extension)
+    const raw = b64ToBytes(text);
+    writeFile(outPath, raw);
+    manifest.files.push({
+      id: id || outName,
+      module: moduleName,
+      fileName,
+      file: `files/${outName}`,
+      mime,
+    });
+    console.error(`  file: ${outName}`);
   });
+
+  // Extract bootloader (first inline script without type)
+  $("script:not([type]):not([id])").each((_, el) => {
+    const text = $(el).text().trim();
+    if (!text || text.length < 100) return;
+    const outPath = path.join(outputDir, "bootloader.js");
+    writeFile(outPath, Buffer.from(text, "utf-8"));
+    console.error(`  bootloader.js`);
+  });
+
+  // Look for bootconf.json
+  $('script[id="bootconf.json"]').each((_, el) => {
+    const text = $(el).text().trim();
+    if (!text) return;
+    const outPath = path.join(outputDir, "bootconf.json");
+    writeFile(outPath, text);
+    manifest.bootconf = JSON.parse(text);
+    console.error(`  bootconf.json`);
+  });
+
+  // Extract runtime from lope-file if present (runtime.js.gz)
+  const runtimeFile = manifest.files.find(f => f.fileName === "runtime.js.gz");
+  if (runtimeFile) {
+    const gzPath = path.join(outputDir, runtimeFile.file);
+    const gzData = fs.readFileSync(gzPath);
+    const runtimeJs = gunzipSync(gzData);
+    const outPath = path.join(outputDir, "deps", "runtime.js");
+    writeFile(outPath, runtimeJs);
+    manifest.deps.push({ id: "runtime", file: "deps/runtime.js", source: runtimeFile.file });
+    console.error(`  dep: runtime.js (from ${runtimeFile.fileName})`);
+  }
 
   // Write manifest
   writeFile(path.join(outputDir, "manifest.json"), JSON.stringify(manifest, null, 2));
