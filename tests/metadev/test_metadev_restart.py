@@ -6,7 +6,7 @@
 
 Uses a mock Anthropic API server so real claude runs but no tokens are consumed.
 
-Run with:  uv run --with pytest pytest tests/test_metadev_restart.py -v
+Run with:  uv run --with pytest pytest tests/metadev/test_metadev_restart.py -v
 """
 
 import json

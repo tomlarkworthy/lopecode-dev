@@ -7,7 +7,7 @@
 These tests use the real claude CLI against a mock API server to verify
 that hooks in .claude/settings.json block unsandboxed sessions.
 
-Run with:  uv run --with pytest pytest tests/test_metadev_hooks.py -v
+Run with:  uv run --with pytest pytest tests/metadev/test_metadev_hooks.py -v
 """
 
 import os

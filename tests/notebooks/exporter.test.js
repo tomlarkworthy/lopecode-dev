@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // The exporter module is an Observable notebook definition.
 // We can extract the const declarations and evaluate them to get the pure functions.
 const exporterSource = fs.readFileSync(
-  path.join(__dirname, "../notebooks/@tomlarkworthy/exporter-2/modules/@tomlarkworthy/exporter.js"),
+  path.join(__dirname, "../../notebooks/@tomlarkworthy/exporter-2/modules/@tomlarkworthy/exporter.js"),
   "utf-8"
 );
 

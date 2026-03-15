@@ -16,8 +16,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-TEST_ROOT = REPO_ROOT / "tests" / ".testenv"
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+TEST_ROOT = REPO_ROOT / "tests" / "metadev" / ".testenv"
 
 
 # ---------------------------------------------------------------------------
