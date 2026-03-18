@@ -142,7 +142,7 @@ function parseVariableGroups(content) {
 
   // First pass: extract all cell function definitions
   const cellFunctions = new Map();
-  const cellRegex = /const\s+(_[a-zA-Z0-9_]+)\s*=\s*function\s+/g;
+  const cellRegex = /const\s+(_[a-zA-Z0-9_]+)\s*=\s*(?:async\s+)?function\*?\s+/g;
   let match;
   while ((match = cellRegex.exec(content)) !== null) {
     const funcName = match[1];
@@ -483,8 +483,8 @@ async function pushToObservable(cells, targetUrl, options, { filteredOriginalInd
   try {
     // Navigate to the Observable notebook
     log(`Navigating to ${targetUrl}...`);
-    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: options.timeout });
-    await page.waitForTimeout(2000);
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: options.timeout });
+    await page.waitForTimeout(5000);
 
     // Check if we're logged in (may redirect to GitHub login)
     const currentUrl = page.url();

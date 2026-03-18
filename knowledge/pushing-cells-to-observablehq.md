@@ -220,10 +220,28 @@ decompile([{
 - `mutable bar`: Pass all three (initial, mutable, getter) as an array
 - Anonymous cells: `_name: null`
 
+### Inner Module Cell Extraction
+
+Lopecode HTML files embed modules as `<script id="@author/module-name">` blocks. These inner modules use a **minified define pattern** `$def()` instead of `main.variable(observer(...)).define(...)`:
+
+```js
+// Inner module pattern:
+$def("_19j3iky", "linkTo", ["isOnObservableCom","URLSearchParams"], _19j3iky);
+
+// vs. main module pattern:
+main.variable(observer("linkTo")).define("linkTo", ["isOnObservableCom","URLSearchParams"], _19j3iky);
+```
+
+`lope-push-to-observablehq.js` supports both patterns, so `--module @author/inner-module` works for extracting and pushing inner module cells.
+
 ### Limitations
 
 - **Import decompilation needs live module refs** — `decompile()` can't reconstruct `import {x} from "@author/notebook"` from static data alone. Handle imports via static analysis of `main.define("name", ["module @author/pkg", "@variable"], ...)` patterns.
 - Runs in a browser (needs Playwright) since it depends on bundled acorn/escodegen from the notebook
+
+## Navigation Timeouts
+
+Observable pages never reach Playwright's `networkidle` state due to persistent streaming connections. Both `lope-push-to-observablehq.js` and `lope-jumpgate.js` use `domcontentloaded` + a fixed wait instead.
 
 ## Authentication
 

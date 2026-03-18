@@ -181,9 +181,10 @@ async function main() {
     log(`Navigating to: ${fileUrl}`);
 
     await page.goto(fileUrl, {
-      timeout: 60000,
-      waitUntil: 'networkidle',
+      timeout: options.timeout,
+      waitUntil: 'domcontentloaded',
     });
+    await page.waitForTimeout(3000);
 
     // Wait for Observable runtime
     log('Waiting for runtime...');

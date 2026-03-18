@@ -273,6 +273,18 @@ Since re-exporting is a human-driven process, agents should:
 - Reference cells by module and name (e.g., `@tomlarkworthy/exporter._parameters`)
 - Use the tools to read existing cell content before suggesting modifications
 
+### Pushing Changes to ObservableHQ
+
+Use `lope-push-to-observablehq.js` (NOT dev-browser) to push cell changes to Observable. See `knowledge/pushing-cells-to-observablehq.md` for full details.
+
+```bash
+# Push specific cells (safe partial update)
+node tools/lope-push-to-observablehq.js <notebook.html> --module @author/module --target https://observablehq.com/@author/notebook --cells cellName
+
+# Dry run first to verify extraction
+node tools/lope-push-to-observablehq.js <notebook.html> --module @author/module --dry-run
+```
+
 ### Creating New Notebooks
 
 New notebooks are created by composing existing modules. The process:
