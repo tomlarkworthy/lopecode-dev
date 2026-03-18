@@ -112,9 +112,33 @@ function parseNotebook(html) {
     // Skip empty content
     if (!content) return;
 
-    // Categorize by id pattern
-    if (id.startsWith('@')) {
-      // Module: @username/notebook
+    const type = $el.attr('type');
+    const isJsModule = dataMime === 'application/javascript' ||
+                       type === 'lope-module';
+    const isFileAttachment = type === 'lope-file' ||
+                             (dataEncoding === 'base64' && !isJsModule);
+
+    if (isJsModule) {
+      modules.set(id, {
+        id,
+        type: 'module',
+        mime: dataMime,
+        encoding: dataEncoding,
+        content,
+        cells: parseModuleCells(content)
+      });
+    } else if (isFileAttachment) {
+      const moduleName = $el.attr('module');
+      const fileName = $el.attr('file');
+      files.push({
+        id,
+        name: fileName || id,
+        module: moduleName,
+        size: content.length,
+        encoding: dataEncoding
+      });
+    } else if (id.startsWith('@') && !dataMime) {
+      // Legacy format: @-prefixed without data-mime are modules
       modules.set(id, {
         id,
         type: 'module',
@@ -124,7 +148,6 @@ function parseNotebook(html) {
         cells: parseModuleCells(content)
       });
     } else if (id.startsWith('file://')) {
-      // File attachment - just record name and size, not content
       files.push({
         id,
         name: id.replace('file://', ''),

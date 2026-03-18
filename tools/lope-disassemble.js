@@ -89,47 +89,112 @@ function main() {
     bootconf: null,
   };
 
-  // Extract lope-module scripts (Observable notebook modules, plain text JS)
-  $('script[type="lope-module"]').each((_, el) => {
-    const $el = $(el);
-    const id = $el.attr("id");
-    const text = $el.text().trim();
-    if (!id || !text) return;
+  // Detect format: exporter-2 uses <script type="text/plain" data-mime="...">
+  // while legacy uses <script type="lope-module"> and <script type="lope-file">
+  const hasLegacyModules = $('script[type="lope-module"]').length > 0;
+  const hasNewModules = $('script[type="text/plain"][data-mime="application/javascript"]').length > 0;
 
-    const outPath = path.join(outputDir, "modules", id + ".js");
-    writeFile(outPath, Buffer.from(text, "utf-8"));
-    manifest.modules.push({ id, file: `modules/${id}.js`, encoding: "text" });
-    console.error(`  module: ${id}`);
-  });
+  if (hasNewModules) {
+    console.error(`  format: exporter-2`);
 
-  // Extract lope-file scripts (file attachments, typically base64+gzip encoded)
-  $('script[type="lope-file"]').each((_, el) => {
-    const $el = $(el);
-    const id = $el.attr("id");
-    const moduleName = $el.attr("module");
-    const fileName = $el.attr("file");
-    const mime = $el.attr("mime") || "application/octet-stream";
-    const text = $el.text().trim();
-    if (!text) return;
+    // Extract modules: <script id="@org/name" type="text/plain" data-mime="application/javascript">
+    $('script[type="text/plain"][data-mime="application/javascript"]').each((_, el) => {
+      const $el = $(el);
+      const id = $el.attr("id");
+      const text = $el.text().trim();
+      if (!id || !text) return;
 
-    // Determine output path: use module/file structure if available
-    const outName = moduleName && fileName
-      ? `${moduleName}/${fileName}`
-      : id || `unknown_${manifest.files.length}`;
-    const outPath = path.join(outputDir, "files", outName);
-
-    // lope-file content is base64-encoded (possibly gzipped based on .gz extension)
-    const raw = b64ToBytes(text);
-    writeFile(outPath, raw);
-    manifest.files.push({
-      id: id || outName,
-      module: moduleName,
-      fileName,
-      file: `files/${outName}`,
-      mime,
+      const outPath = path.join(outputDir, "modules", id + ".js");
+      writeFile(outPath, Buffer.from(text, "utf-8"));
+      manifest.modules.push({ id, file: `modules/${id}.js`, encoding: "text" });
+      console.error(`  module: ${id}`);
     });
-    console.error(`  file: ${outName}`);
-  });
+
+    // Extract file attachments: <script id="@org/module/filename" type="text/plain" data-encoding="base64">
+    $('script[type="text/plain"][data-encoding="base64"]').each((_, el) => {
+      const $el = $(el);
+      const id = $el.attr("id");
+      const mime = $el.attr("data-mime") || "application/octet-stream";
+      const text = $el.text().trim();
+      if (!id || !text) return;
+
+      // id format: @org/module/filename — split into module + fileName
+      const lastSlash = id.lastIndexOf("/");
+      const secondSlash = id.indexOf("/", id.indexOf("/") + 1);
+      let moduleName, fileName;
+      if (secondSlash > 0 && secondSlash < lastSlash) {
+        // e.g. @tomlarkworthy/module/file.ext
+        moduleName = id.substring(0, lastSlash);
+        fileName = id.substring(lastSlash + 1);
+      } else if (secondSlash > 0) {
+        moduleName = id.substring(0, secondSlash);
+        fileName = id.substring(secondSlash + 1);
+      } else {
+        moduleName = null;
+        fileName = id;
+      }
+
+      const outName = moduleName ? `${moduleName}/${fileName}` : id;
+      const outPath = path.join(outputDir, "files", outName);
+
+      const raw = b64ToBytes(text);
+      writeFile(outPath, raw);
+      manifest.files.push({
+        id,
+        module: moduleName,
+        fileName,
+        file: `files/${outName}`,
+        mime,
+      });
+      console.error(`  file: ${outName}`);
+    });
+  } else if (hasLegacyModules) {
+    console.error(`  format: legacy (lope-module/lope-file)`);
+
+    // Extract lope-module scripts (Observable notebook modules, plain text JS)
+    $('script[type="lope-module"]').each((_, el) => {
+      const $el = $(el);
+      const id = $el.attr("id");
+      const text = $el.text().trim();
+      if (!id || !text) return;
+
+      const outPath = path.join(outputDir, "modules", id + ".js");
+      writeFile(outPath, Buffer.from(text, "utf-8"));
+      manifest.modules.push({ id, file: `modules/${id}.js`, encoding: "text" });
+      console.error(`  module: ${id}`);
+    });
+
+    // Extract lope-file scripts (file attachments, typically base64+gzip encoded)
+    $('script[type="lope-file"]').each((_, el) => {
+      const $el = $(el);
+      const id = $el.attr("id");
+      const moduleName = $el.attr("module");
+      const fileName = $el.attr("file");
+      const mime = $el.attr("mime") || "application/octet-stream";
+      const text = $el.text().trim();
+      if (!text) return;
+
+      // Determine output path: use module/file structure if available
+      const outName = moduleName && fileName
+        ? `${moduleName}/${fileName}`
+        : id || `unknown_${manifest.files.length}`;
+      const outPath = path.join(outputDir, "files", outName);
+
+      // lope-file content is base64-encoded (possibly gzipped based on .gz extension)
+      const raw = b64ToBytes(text);
+      writeFile(outPath, raw);
+      manifest.files.push({
+        id: id || outName,
+        module: moduleName,
+        fileName,
+        file: `files/${outName}`,
+        mime,
+      });
+      console.error(`  file: ${outName}`);
+    });
+  } else {
+    console.error(`  warning: no modules found in either format`);
+  }
 
   // Extract bootloader (first inline script without type)
   $("script:not([type]):not([id])").each((_, el) => {
