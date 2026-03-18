@@ -39,7 +39,7 @@ lopecode-dev/
 ├── tests/                       # Node.js unit tests (node:test)
 │   └── notebooks/               # Tests for notebook module pure functions
 ├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
-└── AGENTS.md                    # This file
+└── CLAUDE.md                    # This file
 ```
 
 ### Shared Library: tools.js
@@ -305,7 +305,7 @@ Agents can help by:
 |--------|---------|
 | `@tomlarkworthy/exporter` | Self-serialization to HTML |
 | `@tomlarkworthy/lopepage` | Multi-notebook UI layout |
-| `@tomlarkworthy/editor-2-i` | CodeMirror-based code editor |
+| `@tomlarkworthy/editor-5` | CodeMirror-based code editor (latest) |
 | `@tomlarkworthy/view` | Composite views and reactive forms |
 | `@tomlarkworthy/testing` | Reactive unit testing |
 | `@tomlarkworthy/robocoop` | AI collaboration features |

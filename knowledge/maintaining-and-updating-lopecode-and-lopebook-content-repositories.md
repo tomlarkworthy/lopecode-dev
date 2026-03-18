@@ -188,6 +188,35 @@ const res = await evalFns(repl, ["parseViewDSL", "serializeGoldenDSL"], `
 
 See `tests/notebooks/lopepage-urls.test.js` for a complete working example.
 
+## Debugging Jumpgate Failures
+
+When jumpgate fails, always rerun with `--verbose`:
+
+```bash
+node tools/lope-jumpgate.js --source @tomlarkworthy/notebook --output out.html --verbose 2>&1
+```
+
+**Reading the output:** Most browser errors (`invalid module`, `selectVariable is not a function`, `error loading module`) are normal noise from module resolution. Filter for the real signal:
+
+```bash
+# Extract only jumpgate log lines
+... 2>&1 | grep '\[lope-jumpgate\]'
+```
+
+**Common failures:**
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `exported variable not found` after timeout | Source notebook doesn't exist on Observable (404) | Verify the notebook name is correct and published on ObservableHQ |
+| `page.goto: Timeout` with `networkidle` | Page makes ongoing API requests that never settle | Change `waitUntil` to `'domcontentloaded'` in lope-jumpgate.js |
+| `Export error: Load source not ticked` | `load_source` query param not propagating | Check `addInitScript` is setting `window.rEPseDFzXFSPYkNz` correctly |
+
+**Tip:** The jumpgate fetches from `api.observablehq.com` — you can verify a notebook exists with:
+```bash
+curl -sI "https://api.observablehq.com/@tomlarkworthy/notebook-name.js?v=4" | head -1
+# Should return HTTP/2 200, not 404
+```
+
 ## Verifying Exports
 
 ```bash

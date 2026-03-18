@@ -167,7 +167,8 @@ function parseVariableGroups(content) {
       endIndex++;
     }
 
-    const fullFn = content.slice(match.index + headerMatch[0].indexOf('function'), endIndex);
+    const fnStart = isAsync ? headerMatch[0].indexOf('async') : headerMatch[0].indexOf('function');
+    const fullFn = content.slice(match.index + fnStart, endIndex);
     cellFunctions.set(funcName, fullFn);
   }
 
