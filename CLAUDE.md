@@ -29,7 +29,8 @@ lopecode-dev/
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.js          # Fast static analysis (no browser)
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
-│   └── lope-repl.js            # Persistent REPL for iterative development
+│   ├── lope-repl.js            # Persistent REPL for iterative development
+│   └── lope-jumpgate.js          # Automated jumpgate export (Playwright)
 ├── tests/                       # Node.js unit tests (node:test)
 │   └── notebooks/               # Tests for notebook module pure functions
 ├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
@@ -73,6 +74,7 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | Iterative development | `lope-repl.js` | <1s after load |
 | Multiple test cycles | `lope-repl.js` | <1s per command |
 | Screenshots | `lope-repl.js` | <1s |
+| Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 
 #### lope-reader.js - Fast Static Analysis
 
@@ -173,6 +175,16 @@ Benefits:
 - ~10x faster than lope-runner.js after initial load
 - Can run multiple test cycles without browser restart
 - Interactive debugging with `eval` command
+
+#### lope-jumpgate.js - Automated Jumpgate Export
+
+Automates exporting Observable notebooks to lopecode HTML via jumpgate. See `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` for full usage, arguments, and repository update workflows.
+
+```bash
+node tools/lope-jumpgate.js --source @tomlarkworthy/exporter-2 --output lopecode/notebooks/@tomlarkworthy_exporter-2.html
+```
+
+Exit codes: `0` = success, `1` = failure
 
 ### Cells vs Variables
 
