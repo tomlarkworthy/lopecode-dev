@@ -650,8 +650,8 @@ async function readCellMap(page) {
  *   2. Match cells by name against decompiled replacements
  *   3. For each match (bottom-to-top to preserve indices):
  *      a. Write single cell to clipboard
- *      b. Click the target cell's menu → "Select"
- *      c. Paste (inserts above) → Delete old cell
+ *      b. Click the target cell → Escape to navigation mode
+ *      c. Paste (inserts above) → ArrowDown to old cell → dd to delete
  */
 async function replaceCellsInPlace(page, iframe, cells, targetIndices, options) {
   const cellMap = await readCellMap(page);
@@ -696,43 +696,52 @@ async function replaceCellsInPlace(page, iframe, cells, targetIndices, options) 
     // Write single cell to clipboard
     await writeToClipboard(iframe, [cell]);
 
-    // Find the target cell's menu button by DOM index
-    const menuButtons = page.locator('button[title*="Click for cell actions"]');
-    const menuCount = await menuButtons.count();
-
-    if (index >= menuCount) {
-      log(`Warning: Cell index ${index} out of range (${menuCount} menu buttons). Skipping.`);
+    // Click on the target cell to focus it, then Escape to navigation mode.
+    // This avoids "Select" checkbox mode where paste goes to the top.
+    const cellDiv = page.locator(`#cell-${cellId}`);
+    if (await cellDiv.count() === 0) {
+      log(`Warning: Could not find #cell-${cellId}. Skipping.`);
       continue;
     }
 
-    // Menu button has display:none — make it visible, click, then click "Select"
-    await page.evaluate((idx) => {
-      const buttons = document.querySelectorAll('button[title*="Click for cell actions"]');
-      const btn = buttons[idx];
-      // Make visible temporarily
-      btn.style.display = 'block';
-      btn.click();
-    }, index);
+    const beforeCellIds = await page.evaluate(() =>
+      [...document.querySelectorAll('[id^="cell-"]')].map(el => el.id)
+    );
+
+    await cellDiv.click();
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
 
-    // Click "Select" menu item via evaluate (may also be hidden)
-    await page.evaluate(() => {
-      const item = document.querySelector('[data-valuetext="Select"]');
-      if (item) item.click();
-    });
-    await page.waitForTimeout(500);
-
-    // Paste — new cell appears above the selected cell
+    // Paste — inserts new cell above the focused cell
     await page.keyboard.press('Meta+v');
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
 
-    // The old cell's checkbox should still be checked. Delete it.
-    await page.keyboard.press('d');
-    await page.waitForTimeout(1000);
-    await page.keyboard.press('d');
-    await page.waitForTimeout(2000);
+    const afterCellIds = await page.evaluate(() =>
+      [...document.querySelectorAll('[id^="cell-"]')].map(el => el.id)
+    );
 
-    log(`Cell "${name}" replaced.`);
+    const newCellIds = afterCellIds.filter(id => !beforeCellIds.includes(id));
+
+    if (newCellIds.length > 0 && afterCellIds.includes(`cell-${cellId}`)) {
+      // Paste inserted a new cell above — delete the old cell below it.
+      // After paste, the new cell is focused in navigation mode.
+      // ArrowDown moves to the old cell, dd deletes it.
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(200);
+      await page.keyboard.press('ArrowDown');
+      await page.waitForTimeout(500);
+      await page.keyboard.press('d');
+      await page.waitForTimeout(1000);
+      await page.keyboard.press('d');
+      await page.waitForTimeout(2000);
+      log(`Cell "${name}" replaced (paste + delete old).`);
+    } else if (!afterCellIds.includes(`cell-${cellId}`)) {
+      // Paste replaced the old cell in-place — no deletion needed
+      log(`Cell "${name}" replaced in-place.`);
+    } else {
+      log(`Warning: Unexpected state after pasting "${name}".`);
+    }
   }
 }
 
