@@ -30,6 +30,8 @@ lopecode-dev/
 │   ├── lope-reader.js          # Fast static analysis (no browser)
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
 │   └── lope-repl.js            # Persistent REPL for iterative development
+├── tests/                       # Node.js unit tests (node:test)
+│   └── notebooks/               # Tests for notebook module pure functions
 ├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
 └── AGENTS.md                    # This file
 ```
@@ -265,6 +267,15 @@ Agents can help by:
 | `@tomlarkworthy/module-selection` | Module composition UI |
 
 ### Common Tasks
+
+#### Running Node.js unit tests
+```bash
+# Run all tests
+node --test tests/notebooks/*.test.js
+
+# Run a specific test file
+node --test tests/notebooks/exporter.test.js
+```
 
 #### Reading a notebook's structure
 ```bash
