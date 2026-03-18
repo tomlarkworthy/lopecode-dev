@@ -1,11 +1,19 @@
 # Maintaining and Updating Lopecode & Lopebook Content Repositories
 
+## Source of Truth
+
+**ObservableHQ.com is the canonical source code for all lopecode modules.** The HTML files in the content repositories are generated artifacts — they are bundled from Observable and should be regenerated whenever the Observable source is updated.
+
+The workflow is: **edit on Observable → regenerate HTML via jumpgate → commit to content repo**.
+
+Do not treat the HTML files as source code. If a module needs changing, update it on ObservableHQ first, then regenerate the affected notebooks.
+
 ## Repository Structure
 
-- `lopecode/` — Main repository (submodule at `tomlarkworthy/lopecode`). Contains published notebook HTML files in `lopecode/notebooks/`.
-- `lopecode/lopebooks/` — Was a nested submodule, now a sibling directory. Contains development/staging notebooks in `lopebooks/notebooks/`.
+- `lopecode/` — Main content repository (submodule at `tomlarkworthy/lopecode`). Contains published notebook HTML files in `lopecode/notebooks/`.
+- `lopebooks/` — Development/staging content repository (submodule at `tomlarkworthy/lopebooks`). Contains notebooks in `lopebooks/notebooks/`.
 
-Both repos hold self-contained lopecode HTML files (1-3 MB each).
+Both repos hold self-contained lopecode HTML files (1-3 MB each). Each core module should have a fresh bundled HTML file here, regenerated after the ObservableHQ source of truth is updated.
 
 ## How Notebooks Get Updated
 

@@ -13,18 +13,22 @@ Lopecode notebooks are single HTML files (1-3MB each) that contain:
 
 Work primarily involves authoring new notebooks by composing existing modules differently.
 
+### Source of Truth
+
+**ObservableHQ.com is the canonical source code.** The HTML files in `lopecode/notebooks/` and `lopebooks/notebooks/` are generated artifacts bundled from Observable via jumpgate. When a module changes, update it on ObservableHQ first, then regenerate the affected HTML files. See `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` for the full workflow.
+
 ### File Structure
 
 ```
 lopecode-dev/
-├── lopecode/                    # Main lopecode repository (submodule)
+├── lopecode/                    # Main content repository (submodule)
 │   ├── notebooks/               # Published notebook HTML files
 │   │   ├── @tomlarkworthy_exporter.html
 │   │   ├── @tomlarkworthy_notes.html
 │   │   └── ...
-│   ├── lopebooks/
-│   │   └── notebooks/           # Development/staging notebooks (e.g., reactive-reflective-testing)
 │   └── src/                     # Source/development notebooks
+├── lopebooks/                   # Development/staging content repository (submodule)
+│   └── notebooks/               # Staging notebooks (e.g., reactive-reflective-testing)
 ├── tools/                       # Agent utilities (Node.js only)
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.js          # Fast static analysis (no browser)
