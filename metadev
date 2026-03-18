@@ -30,7 +30,7 @@ SAFEHOUSE_ARGS=(
     --add-dirs=~/.claude
     --add-dirs=~/.aws-sam
     --add-dirs=~/.mavenrc
-    --enable=docker,shell-init,process-control,electron,chromium-headless
+    --enable=docker,shell-init,process-control,electron,chromium-full
 )
 
 if [[ "${METADEV_REEXEC:-}" == "1" ]]; then
@@ -41,6 +41,10 @@ else
     echo "metadev: CORRELATION=$METADEV_CORRELATION_ID"
     CLAUDE_ARGS=(--dangerously-skip-permissions "$@")
 fi
+
+# Prevent macOS sleep and keep network alive while metadev is running
+# -i = prevent idle sleep, -s = prevent system sleep (keeps network on AC power)
+caffeinate -is -w $$ &
 
 while true; do
     # Run claude inside safehouse (don't exit on failure)
