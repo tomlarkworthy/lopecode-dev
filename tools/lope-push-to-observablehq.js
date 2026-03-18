@@ -11,6 +11,9 @@
  * Options:
  *   --module <name>     Module to extract cells from (required)
  *   --target <url>      Observable notebook URL to push to (required)
+ *   --cells <names>     Comma-separated cell names to push (default: all)
+ *                       Matches against variable group names (e.g. "viewof foo,bar,test_baz")
+ *   --no-delete         Skip deleting old cells (default when --cells is used)
  *   --headed            Show browser for debugging
  *   --dry-run           List cells that would be pushed without pushing
  *   --verbose           Show browser console logs
@@ -35,13 +38,16 @@ function parseArgs(argv) {
     notebook: null,
     module: null,
     target: null,
+    cells: null,
+    noDelete: false,
+    login: false,
     headed: false,
     dryRun: false,
     verbose: false,
     timeout: 60000,
     profile: path.join(
       process.env.HOME,
-      '.claude/plugins/cache/dev-browser-marketplace/dev-browser/66682fb0513a/skills/dev-browser/profiles/browser-data'
+      '.claude/lope-push-browser-profile'
     ),
   };
 
@@ -49,12 +55,18 @@ function parseArgs(argv) {
     const arg = args[i];
     if (arg === '--module' && args[i + 1]) {
       options.module = args[++i];
+    } else if (arg === '--cells' && args[i + 1]) {
+      options.cells = args[++i].split(',').map(s => s.trim()).filter(Boolean);
+    } else if (arg === '--no-delete') {
+      options.noDelete = true;
     } else if (arg === '--target' && args[i + 1]) {
       options.target = args[++i];
     } else if (arg === '--timeout' && args[i + 1]) {
       options.timeout = parseInt(args[++i], 10);
     } else if (arg === '--profile' && args[i + 1]) {
       options.profile = args[++i];
+    } else if (arg === '--login') {
+      options.login = true;
     } else if (arg === '--headed') {
       options.headed = true;
     } else if (arg === '--dry-run') {
@@ -71,6 +83,8 @@ Usage:
 Options:
   --module <name>     Module to extract cells from (required)
   --target <url>      Observable notebook URL to push to (required)
+  --cells <names>     Comma-separated cell names to push (default: all)
+  --no-delete         Skip deleting old cells (default when --cells is used)
   --headed            Show browser for debugging
   --dry-run           List cells that would be pushed without pushing
   --verbose           Show browser console logs
@@ -202,6 +216,22 @@ function parseVariableGroups(content) {
         .filter(s => s);
     }
 
+    if (definition) {
+      allDefines.push({ _name: varName, _definition: definition, _inputs: inputs });
+    }
+  }
+
+  // Also parse $def() calls used in inner/embedded modules
+  // Pattern: $def("_funcRef", "name", ["dep1", "dep2"], _funcRef);
+  const defRegex = /\$def\("([^"]+)",\s*"([^"]*)",\s*\[([^\]]*)\],\s*(_[a-zA-Z0-9_]+)\)/g;
+  while ((match = defRegex.exec(content)) !== null) {
+    const varName = match[2] || null;
+    const inputsStr = match[3];
+    const funcRefName = match[4];
+    const inputs = inputsStr.split(',')
+      .map(s => s.trim().replace(/^"|"$/g, ''))
+      .filter(s => s);
+    const definition = cellFunctions.get(funcRefName);
     if (definition) {
       allDefines.push({ _name: varName, _definition: definition, _inputs: inputs });
     }
@@ -424,14 +454,25 @@ async function decompileVariables(variableGroups, options) {
 
 // --- Browser automation ---
 
-async function pushToObservable(cells, targetUrl, options) {
-  log(`Launching browser (${options.headed ? 'headed' : 'headless'})...`);
+async function launchWithProfile(options) {
+  // Ensure profile directory exists
+  if (!fs.existsSync(options.profile)) {
+    fs.mkdirSync(options.profile, { recursive: true });
+  }
 
   const browser = await chromium.launchPersistentContext(options.profile, {
     headless: !options.headed,
     args: ['--disable-web-security'],
     viewport: { width: 1920, height: 1080 },
   });
+
+  return { browser };
+}
+
+async function pushToObservable(cells, targetUrl, options, { filteredOriginalIndices, totalOriginalGroups } = {}) {
+  log(`Launching browser (${options.headed ? 'headed' : 'headless'})...`);
+
+  const { browser } = await launchWithProfile(options);
 
   const page = await browser.newPage();
 
@@ -445,66 +486,35 @@ async function pushToObservable(cells, targetUrl, options) {
     await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: options.timeout });
     await page.waitForTimeout(2000);
 
-    // Check if we're logged in
-    const signInVisible = await page.locator('text=Sign in').isVisible().catch(() => false);
-    if (signInVisible) {
-      throw new Error('Not logged in to Observable. Please log in first using the dev-browser.');
+    // Check if we're logged in (may redirect to GitHub login)
+    const currentUrl = page.url();
+    if (options.verbose) log(`Current URL: ${currentUrl}`);
+    if (currentUrl.includes('github.com/login') || currentUrl.includes('/sign-in')) {
+      throw new Error(
+        'Not logged in to Observable. Log in first by running:\n' +
+        `  node tools/lope-push-to-observablehq.js --login --headed --profile ${options.profile}`
+      );
     }
 
-    // Get iframe handle
-    const iframeHandle = await page.locator('iframe').first().elementHandle();
-    if (!iframeHandle) throw new Error('Could not find notebook iframe');
+    // Wait for the notebook iframe to appear (indicates page loaded and we're authenticated)
+    const iframeHandle = await page.locator('iframe').first().elementHandle({ timeout: 15000 }).catch(() => null);
+    if (!iframeHandle) {
+      throw new Error(
+        'Could not find notebook iframe — you may not be logged in.\n' +
+        'Log in first by running:\n' +
+        `  node tools/lope-push-to-observablehq.js --login --headed --profile ${options.profile}`
+      );
+    }
     const iframe = await iframeHandle.contentFrame();
     if (!iframe) throw new Error('Could not access notebook iframe content');
 
-    // Count existing cells before paste
-    const existingCellCount = await countCells(page);
-    log(`Found ${existingCellCount} existing cell(s)`);
-
-    // Step 1: Write cells to clipboard using execCommand("copy") trick
-    log(`Preparing ${cells.length} cells for paste...`);
-    const cellPayload = cells.map((value, i) => ({
-      id: i + 1,
-      value,
-      pinned: false,
-      mode: 'js',
-      data: null,
-      name: null,
-    }));
-
-    await iframe.evaluate((jsonData) => {
-      function listener(e) {
-        e.clipboardData.setData('text/plain', 'observable cells');
-        e.clipboardData.setData('application/vnd.observablehq+json', jsonData);
-        e.preventDefault();
-      }
-      document.addEventListener('copy', listener);
-      document.execCommand('copy');
-      document.removeEventListener('copy', listener);
-    }, JSON.stringify(cellPayload));
-
-    // Step 2: Click first cell, Escape to selection mode, then paste
-    log('Pasting cells...');
-    const firstElement = await iframe.locator('h1, h2, h3, p, div.observablehq').first();
-    await firstElement.click();
-    await page.waitForTimeout(300);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
-    await page.keyboard.press('Meta+v');
-    await page.waitForTimeout(3000);
-
-    // Step 3: Verify paste worked by counting cells
-    const afterPasteCount = await countCells(page);
-    log(`Cell count after paste: ${afterPasteCount}`);
-
-    if (afterPasteCount <= existingCellCount) {
-      throw new Error('Paste did not add new cells');
+    if (filteredOriginalIndices && !options.noDelete) {
+      // --- In-place cell replacement (--cells mode) ---
+      await replaceCellsInPlace(page, iframe, cells, filteredOriginalIndices, options);
+    } else {
+      // --- Full replace or add-only mode ---
+      await fullReplace(page, iframe, cells, options);
     }
-
-    // Step 4: Delete old cells
-    // Enter select mode via cell menu on an old cell (last cell)
-    log('Selecting old cells for deletion...');
-    await deleteOldCells(page, iframe, existingCellCount, afterPasteCount, options);
 
     // Wait for autosave
     log('Waiting for autosave...');
@@ -527,11 +537,209 @@ async function pushToObservable(cells, targetUrl, options) {
   }
 }
 
+/**
+ * Full replace: paste all cells at top, then delete all old cells.
+ */
+async function fullReplace(page, iframe, cells, options) {
+  const existingCellCount = await countCells(page);
+  log(`Found ${existingCellCount} existing cell(s)`);
+
+  // Write cells to clipboard
+  log(`Preparing ${cells.length} cells for paste...`);
+  await writeToClipboard(iframe, cells);
+
+  // Click first cell, Escape to selection mode, then paste
+  log('Pasting cells...');
+  const firstElement = await iframe.locator('h1, h2, h3, p, div.observablehq').first();
+  await firstElement.click();
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Meta+v');
+  await page.waitForTimeout(3000);
+
+  const afterPasteCount = await countCells(page);
+  log(`Cell count after paste: ${afterPasteCount}`);
+
+  if (afterPasteCount <= existingCellCount) {
+    throw new Error('Paste did not add new cells');
+  }
+
+  if (options.noDelete) {
+    log(`Skipping deletion (--no-delete). ${afterPasteCount - existingCellCount} new cell(s) added at top.`);
+    log('You will need to manually remove the old versions of these cells.');
+  } else {
+    log('Selecting old cells for deletion...');
+    await deleteOldCells(page, iframe, existingCellCount, afterPasteCount, options);
+  }
+}
+
+/**
+ * Write Observable cells to clipboard via execCommand("copy") trick.
+ */
+async function writeToClipboard(iframe, cells) {
+  const cellPayload = cells.map((value, i) => ({
+    id: i + 1,
+    value,
+    pinned: false,
+    mode: 'js',
+    data: null,
+    name: null,
+  }));
+
+  await iframe.evaluate((jsonData) => {
+    function listener(e) {
+      e.clipboardData.setData('text/plain', 'observable cells');
+      e.clipboardData.setData('application/vnd.observablehq+json', jsonData);
+      e.preventDefault();
+    }
+    document.addEventListener('copy', listener);
+    document.execCommand('copy');
+    document.removeEventListener('copy', listener);
+  }, JSON.stringify(cellPayload));
+}
+
+/**
+ * Extract cell name from Observable source code.
+ * e.g. "viewof foo = ..." → "viewof foo", "bar = 42" → "bar"
+ */
+function extractCellName(source) {
+  if (!source) return null;
+  const m = source.match(/^(viewof\s+\w+|mutable\s+\w+|\w+)\s*=/);
+  if (m) return m[1];
+  if (source.startsWith('import ')) return source.trim();
+  return null;
+}
+
+/**
+ * Read cell names and their Observable internal IDs from __NEXT_DATA__.
+ * Returns array of { cellId, name, index } ordered by DOM position.
+ */
+async function readCellMap(page) {
+  // __NEXT_DATA__ contains all cell sources and internal IDs
+  const nodes = await page.evaluate(() => {
+    const el = document.getElementById('__NEXT_DATA__');
+    if (!el) return null;
+    const data = JSON.parse(el.textContent);
+    return data?.props?.pageProps?.initialNotebook?.nodes;
+  });
+
+  if (!nodes) return [];
+
+  // Get DOM order by reading cell-N divs in order
+  const domOrder = await page.evaluate(() => {
+    const cellDivs = document.querySelectorAll('[id^="cell-"]');
+    return [...cellDivs].map(el => parseInt(el.id.replace('cell-', ''), 10));
+  });
+
+  // Build ordered map: DOM position → { cellId, name }
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  return domOrder.map((cellId, index) => {
+    const node = nodeMap.get(cellId);
+    const name = node ? extractCellName(node.value) : null;
+    return { cellId, name, index };
+  });
+}
+
+/**
+ * Replace specific cells in-place by matching cell names.
+ *
+ * Strategy:
+ *   1. Read cell names from __NEXT_DATA__ (Observable's embedded notebook data)
+ *   2. Match cells by name against decompiled replacements
+ *   3. For each match (bottom-to-top to preserve indices):
+ *      a. Write single cell to clipboard
+ *      b. Click the target cell's menu → "Select"
+ *      c. Paste (inserts above) → Delete old cell
+ */
+async function replaceCellsInPlace(page, iframe, cells, targetIndices, options) {
+  const cellMap = await readCellMap(page);
+  log(`Found ${cellMap.length} existing cell(s) in target notebook`);
+
+  if (options.verbose) {
+    for (const c of cellMap) {
+      log(`  cell-${c.cellId} [${c.index}]: "${c.name || '(anonymous)'}"`);
+    }
+  }
+
+  // Build a map from cell name to decompiled replacement source
+  const replacements = new Map();
+  for (const cell of cells) {
+    const name = extractCellName(cell);
+    if (name) replacements.set(name, cell);
+  }
+
+  // Find matching cells by name
+  const matches = [];
+  for (const c of cellMap) {
+    if (c.name && replacements.has(c.name)) {
+      matches.push({ ...c, cell: replacements.get(c.name) });
+    }
+  }
+
+  if (matches.length === 0) {
+    log('Warning: No matching cells found in target notebook.');
+    log(`Looked for: ${[...replacements.keys()].join(', ')}`);
+    log(`Found in target: ${cellMap.filter(c => c.name).map(c => c.name).join(', ')}`);
+    return;
+  }
+
+  log(`Matched ${matches.length} cell(s) for replacement: ${matches.map(m => m.name).join(', ')}`);
+
+  // Process bottom-to-top so indices don't shift
+  matches.sort((a, b) => b.index - a.index);
+
+  for (const { index, name, cell, cellId } of matches) {
+    log(`Replacing cell "${name}" (cell-${cellId}, index ${index})...`);
+
+    // Write single cell to clipboard
+    await writeToClipboard(iframe, [cell]);
+
+    // Find the target cell's menu button by DOM index
+    const menuButtons = page.locator('button[title*="Click for cell actions"]');
+    const menuCount = await menuButtons.count();
+
+    if (index >= menuCount) {
+      log(`Warning: Cell index ${index} out of range (${menuCount} menu buttons). Skipping.`);
+      continue;
+    }
+
+    // Menu button has display:none — make it visible, click, then click "Select"
+    await page.evaluate((idx) => {
+      const buttons = document.querySelectorAll('button[title*="Click for cell actions"]');
+      const btn = buttons[idx];
+      // Make visible temporarily
+      btn.style.display = 'block';
+      btn.click();
+    }, index);
+    await page.waitForTimeout(500);
+
+    // Click "Select" menu item via evaluate (may also be hidden)
+    await page.evaluate(() => {
+      const item = document.querySelector('[data-valuetext="Select"]');
+      if (item) item.click();
+    });
+    await page.waitForTimeout(500);
+
+    // Paste — new cell appears above the selected cell
+    await page.keyboard.press('Meta+v');
+    await page.waitForTimeout(2000);
+
+    // The old cell's checkbox should still be checked. Delete it.
+    await page.keyboard.press('d');
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('d');
+    await page.waitForTimeout(2000);
+
+    log(`Cell "${name}" replaced.`);
+  }
+}
+
 async function countCells(page) {
   // Count checkbox/gutter elements that represent cells
   // The outer page has "Click to insert or merge cells" buttons between cells
   // and gutter buttons for each cell. Count the gutter buttons.
-  const gutterCount = await page.locator('button:has-text("gutter")').count();
+  const gutterCount = await page.locator('button[aria-label="gutter"]').count();
   // Also try counting via iframe cells
   return gutterCount || 1; // at least 1
 }
@@ -545,7 +753,7 @@ async function deleteOldCells(page, iframe, oldCount, totalCount, options) {
   // 4. Delete them
 
   // Find the last cell's menu button (⋮)
-  const menuButtons = page.locator('button:has-text("Click for cell actions")');
+  const menuButtons = page.locator('button[title*="Click for cell actions"]');
   const menuCount = await menuButtons.count();
   if (menuCount === 0) throw new Error('Could not find cell menu buttons');
 
@@ -646,6 +854,17 @@ async function deleteOldCells(page, iframe, oldCount, totalCount, options) {
 async function main() {
   const options = parseArgs(process.argv);
 
+  // --login mode: open browser for manual login, then exit
+  if (options.login) {
+    log(`Opening browser for login (profile: ${options.profile})...`);
+    const { browser } = await launchWithProfile({ ...options, headed: true });
+    const page = await browser.newPage();
+    await page.goto('https://observablehq.com/', { waitUntil: 'networkidle', timeout: 30000 });
+    log('Please log in to Observable. Press Ctrl+C when done.');
+    // Wait indefinitely (user kills with Ctrl+C)
+    await new Promise(() => {});
+  }
+
   if (!options.notebook) {
     console.error('Error: notebook HTML file is required');
     process.exit(1);
@@ -680,7 +899,7 @@ async function main() {
   }
 
   const moduleContent = modules.get(options.module).content;
-  const variableGroups = parseVariableGroups(moduleContent);
+  let variableGroups = parseVariableGroups(moduleContent);
 
   if (variableGroups.length === 0) {
     console.error('Error: No variables extracted from module');
@@ -688,6 +907,36 @@ async function main() {
   }
 
   log(`Extracted ${variableGroups.length} variable groups from ${options.module}`);
+
+  // Filter by --cells if specified
+  // Track original indices for targeted deletion
+  let filteredOriginalIndices = null;
+  const totalOriginalGroups = variableGroups.length;
+
+  if (options.cells) {
+    const filterSet = new Set(options.cells);
+    const before = variableGroups.length;
+    filteredOriginalIndices = [];
+    const filteredGroups = [];
+
+    for (let i = 0; i < variableGroups.length; i++) {
+      const group = variableGroups[i];
+      const matches = group.some(v => v._name && filterSet.has(v._name));
+      if (matches) {
+        filteredOriginalIndices.push(i);
+        filteredGroups.push(group);
+      }
+    }
+
+    variableGroups = filteredGroups;
+    log(`Filtered to ${variableGroups.length}/${before} groups matching: ${options.cells.join(', ')}`);
+
+    if (variableGroups.length === 0) {
+      console.error(`Error: No variable groups matched --cells filter: ${options.cells.join(', ')}`);
+      console.error('Tip: use --dry-run without --cells to see all available cell names');
+      process.exit(1);
+    }
+  }
 
   // Decompile using the toolchain
   const cells = await decompileVariables(variableGroups, options);
@@ -700,18 +949,29 @@ async function main() {
   log(`Decompiled ${cells.length} cells`);
 
   if (options.dryRun) {
+    // Show variable group names alongside decompiled previews
     console.log(`\nDry run: ${cells.length} cells would be pushed\n`);
     for (let i = 0; i < cells.length; i++) {
+      const groupNames = variableGroups[i]
+        ? variableGroups[i].map(v => v._name || '(anonymous)').join(', ')
+        : '?';
       const preview = cells[i].length > 100
         ? cells[i].slice(0, 100) + '...'
         : cells[i];
-      console.log(`  [${i + 1}] ${preview}`);
+      console.log(`  [${i + 1}] ${groupNames}`);
+      console.log(`       ${preview}`);
+    }
+    if (options.cells) {
+      console.log(`\nFiltered by --cells: ${options.cells.join(', ')}`);
     }
     process.exit(0);
   }
 
   try {
-    await pushToObservable(cells, options.target, options);
+    await pushToObservable(cells, options.target, options, {
+      filteredOriginalIndices,
+      totalOriginalGroups,
+    });
     process.exit(0);
   } catch (err) {
     console.error(`Error: ${err.message}`);

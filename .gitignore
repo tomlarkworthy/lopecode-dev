@@ -11,3 +11,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 tools/node_modules/
+
+# Debug artifacts
+tools/*.png
+tools/*.json

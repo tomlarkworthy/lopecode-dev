@@ -33,8 +33,9 @@ lopecode-dev/
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.js          # Fast static analysis (no browser)
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
-│   ├── lope-browser-repl.js            # Persistent REPL for iterative development
-│   └── lope-jumpgate.js          # Automated jumpgate export (Playwright)
+│   ├── lope-node-repl.js       # Persistent REPL in Node.js (default, no browser)
+│   ├── lope-browser-repl.js    # Persistent REPL with Playwright browser
+│   └── lope-jumpgate.js        # Automated jumpgate export (Playwright)
 ├── tests/                       # Node.js unit tests (node:test)
 │   └── notebooks/               # Tests for notebook module pure functions
 ├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
@@ -75,9 +76,9 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | Generate manifest | `lope-reader.js --manifest` | Fast |
 | One-off test run | `lope-runner.js` | ~10s startup |
 | Get computed values | `lope-runner.js` | ~10s startup |
-| Iterative development | `lope-browser-repl.js` | <1s after load |
-| Multiple test cycles | `lope-browser-repl.js` | <1s per command |
-| Screenshots | `lope-browser-repl.js` | <1s |
+| Iterative development | `lope-node-repl.js` (default) | ~5s load |
+| Multiple test cycles | `lope-node-repl.js` | <1s per command |
+| DOM interaction/screenshots | `lope-browser-repl.js` | <1s after load |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 
 #### lope-reader.js - Fast Static Analysis
@@ -127,9 +128,23 @@ node tools/lope-runner.js notebook.html --get-cell myVariable
 
 Exit codes: `0` = passed, `1` = failed, `2` = error
 
-#### lope-browser-repl.js - Persistent REPL
+#### lope-node-repl.js - Node REPL (default)
 
-For iterative development with a persistent browser session:
+Runs the Observable runtime directly in Node.js via JSDOM — no browser needed. **Prefer this over lope-browser-repl.js** unless you need DOM interaction, screenshots, or browser-specific APIs.
+
+```bash
+node tools/lope-node-repl.js [--verbose]
+```
+
+Same JSON command protocol as the browser REPL (load, list-variables, get-variable, eval, define-variable, delete-variable, run-tests, status, quit). Does NOT support: query, click, fill, download, screenshot.
+
+Some modules that rely on `URL.createObjectURL` or browser-only APIs will fail to load — this is expected and doesn't affect pure JS modules.
+
+For persistent bidirectional sessions, see `knowledge/running-a-live-repl-session-with-a-notebook.md`.
+
+#### lope-browser-repl.js - Browser REPL
+
+For iterative development with a persistent browser session. Use when you need DOM queries, clicks, screenshots, or browser-only APIs:
 
 ```bash
 # Start REPL
@@ -329,7 +344,7 @@ echo '{"cmd": "load", "notebook": "notebook.html", "hash": "view=R100(S50(@modul
 
 1. **Never read entire HTML files** - Use the tools to extract relevant parts
 2. **Start with summary** - Run `lope-reader.js` first to understand a notebook
-3. **Use lope-browser-repl.js for iteration** - Much faster than lope-runner.js for multiple operations
+3. **Use lope-node-repl.js for iteration** - Default REPL; use lope-browser-repl.js only when you need DOM/screenshots
 4. **Provide precise instructions** - Reference cells by `module.cellName`
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
