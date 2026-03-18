@@ -432,7 +432,7 @@ for (const [name, result] of latestState) {
 }
 ```
 
-The `lope-repl.js` tool supports both:
+The `lope-browser-repl.js` tool supports both:
 - `run-tests` command: Uses force reachability (works always)
 - `read-tests` command: Reads from latest_state (requires tests module visible)
 

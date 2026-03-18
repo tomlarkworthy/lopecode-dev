@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * lope-repl.js - Persistent Playwright session with REPL interface
+ * lope-browser-repl.js - Persistent Playwright session with REPL interface
  *
  * Keeps a browser running and accepts JSON commands via stdin.
  * Much faster for iterative development than starting fresh each time.
  *
  * Usage:
- *   node lope-repl.js [--headed] [--verbose]
+ *   node lope-browser-repl.js [--headed] [--verbose]
  *
  * Commands (JSON, one per line):
  *   {"cmd": "load", "notebook": "path/to/notebook.html", "hash": "view=..."}

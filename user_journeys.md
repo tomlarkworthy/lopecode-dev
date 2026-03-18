@@ -29,7 +29,7 @@ The core lopecode workflow: load a notebook, modify it, and export a new version
 echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html", "hash": "view=@tomlarkworthy/exporter-2"}
 {"cmd": "define-variable", "name": "agent_marker", "definition": "() => \"Modified by agent\"", "inputs": []}
 {"cmd": "download", "selector": "text=Download", "path": "tools/exported.html"}
-{"cmd": "quit"}' | node tools/lope-repl.js
+{"cmd": "quit"}' | node tools/lope-browser-repl.js
 ```
 
 ### Notes

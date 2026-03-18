@@ -114,6 +114,72 @@ The jumpgate notebook (`@tomlarkworthy/jumpgate` module) has these important cel
 | `exported` | computed | Final export result with `.source` (HTML) and `.report` |
 | `output` | mutable | Progress updates during export |
 
+## Testing Lopecode Module Functions with Node.js
+
+Use `lope-browser-repl.js` to test module functions from Node.js test files. Key patterns:
+
+### Sync IIFEs only
+
+The REPL's `eval` does NOT support async functions (they return `{}`). Always use sync IIFEs:
+
+```javascript
+// GOOD
+{"cmd": "eval", "code": "(() => { ... return JSON.stringify(result); })()"}
+
+// BAD — returns {}
+{"cmd": "eval", "code": "(async () => { ... return JSON.stringify(result); })()"}
+```
+
+### Poll for variable readiness
+
+Observable evaluates lazily. After `load`, poll until target variables are computed:
+
+```javascript
+// In test before() hook, after load:
+for (let i = 0; i < 30; i++) {
+  const check = await sendCommand(repl, {
+    cmd: "eval",
+    code: `(() => {
+      const runtime = window.__ojs_runtime;
+      for (const v of runtime._variables) {
+        if (v._name === "myFunction" && typeof v._value === "function") return "ready";
+      }
+      return "waiting";
+    })()`,
+  });
+  if (check.ok && check.result?.value === "ready") break;
+  await new Promise((r) => setTimeout(r, 500));
+}
+```
+
+### Helper: look up and call runtime functions
+
+```javascript
+function evalFns(repl, fnNames, bodyCode) {
+  const lookups = fnNames
+    .map(n => `for (const v of runtime._variables) { if (v._name === "${n}" && typeof v._value === "function") { ${n} = v._value; break; } }`)
+    .join("\n");
+  const decls = fnNames.map(n => `let ${n};`).join("\n");
+  return sendCommand(repl, {
+    cmd: "eval",
+    code: `(() => {
+      const runtime = window.__ojs_runtime;
+      ${decls}
+      ${lookups}
+      ${bodyCode}
+    })()`,
+  });
+}
+
+// Usage:
+const res = await evalFns(repl, ["parseViewDSL", "serializeGoldenDSL"], `
+  const gl = parseGoldenDSL("R100(S50(@tomlarkworthy/a),S50(@tomlarkworthy/b))");
+  return JSON.stringify(serializeGoldenDSL(gl));
+`);
+```
+
+See `tests/notebooks/lopepage-urls.test.js` for a complete working example.
+
 ## Verifying Exports
 
 ```bash
