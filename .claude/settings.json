@@ -1,25 +1,7 @@
 {
-  "enabledMcpjsonServers": [
-    "linear-server"
-  ],
   "enableAllProjectMcpServers": true,
   "permissions": {
-    "allow": [
-      "mcp__linear-server__get_issue",
-      "mcp__linear-server__list_comments",
-      "mcp__linear-server__create_comment",
-      "mcp__linear-server__list_issues",
-      "mcp__linear-server__list_teams",
-      "mcp__linear-server__list_issue_labels",
-      "Bash(docker exec:*)",
-      "Bash(docker ps:*)",
-      "Bash(docker port:*)",
-      "Bash(docker logs:*)",
-      "Bash(docker inspect:*)",
-      "Bash(docker cp:*)",
-      "Bash(docker compose:*)",
-      "WebFetch(domain:linear.app)"
-    ],
+    "allow": [],
     "deny": [],
     "ask": []
   },
