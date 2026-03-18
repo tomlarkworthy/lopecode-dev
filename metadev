@@ -30,7 +30,7 @@ SAFEHOUSE_ARGS=(
     --add-dirs=~/.claude
     --add-dirs=~/.aws-sam
     --add-dirs=~/.mavenrc
-    --enable=docker,shell-init,process-control,electron
+    --enable=docker,shell-init,process-control,electron,chromium-headless
 )
 
 if [[ "${METADEV_REEXEC:-}" == "1" ]]; then

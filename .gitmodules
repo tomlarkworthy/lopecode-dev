@@ -1,18 +1,6 @@
 [submodule "lopecode"]
 	path = lopecode
 	url = https://github.com/tomlarkworthy/lopecode
-[submodule "opencode"]
-	path = opencode
-	url = https://github.com/anomalyco/opencode
-[submodule "codex"]
-	path = codex
-	url = https://github.com/openai/codex.git
-[submodule "nanoclaw"]
-	path = nanoclaw
-	url = https://github.com/qwibitai/nanoclaw.git
-[submodule "claude-code-system-prompts"]
-	path = claude-code-system-prompts
-	url = https://github.com/Piebald-AI/claude-code-system-prompts
 [submodule "lopebooks"]
 	path = lopebooks
 	url = https://github.com/tomlarkworthy/lopebooks
