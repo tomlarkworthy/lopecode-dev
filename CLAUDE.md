@@ -171,6 +171,8 @@ echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_r
 - `download` - Click element and capture file download
 - `screenshot` - Takes screenshot of current page
 
+**Important:** The `eval` command does NOT support async functions. Use synchronous IIFEs only — async IIFEs return `{}` instead of the resolved value. For timing, poll with repeated sync evals rather than using `await`.
+
 Benefits:
 - ~10x faster than lope-runner.js after initial load
 - Can run multiple test cycles without browser restart
