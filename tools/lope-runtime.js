@@ -63,6 +63,9 @@ export async function loadNotebook(notebookPath, options = {}) {
   const rawHtml = fs.readFileSync(absPath, "utf-8");
   const { document, window: linkedomWindow } = parseHTML(rawHtml);
 
+  // Set baseURI to the file:// URL of the notebook (mirrors browser behavior)
+  try { Object.defineProperty(document, "baseURI", { value: `file://${absPath}`, configurable: true }); } catch {}
+
   // Build script index
   const scriptMap = new Map();
   for (const el of document.querySelectorAll("script[id]")) {
@@ -121,6 +124,15 @@ export async function loadNotebook(notebookPath, options = {}) {
   if (typeof linkedomWindow.requestAnimationFrame !== "function") {
     linkedomWindow.requestAnimationFrame = (cb) => setTimeout(cb, 16);
     linkedomWindow.cancelAnimationFrame = (id) => clearTimeout(id);
+  }
+
+  // LinkeDOM uses NodeList everywhere; alias HTMLCollection for libraries that check it
+  if (!linkedomWindow.HTMLCollection) {
+    linkedomWindow.HTMLCollection = linkedomWindow.NodeList || class HTMLCollection extends Array {};
+  }
+  // SVGElement may be missing
+  if (!linkedomWindow.SVGElement) {
+    linkedomWindow.SVGElement = linkedomWindow.Element || class {};
   }
 
   // ---- 3. Script execution queue (for d3-require AMD) ----
@@ -192,7 +204,7 @@ export async function loadNotebook(notebookPath, options = {}) {
 
   function runAndNotify(scriptEl, source, filename, done) {
     try {
-      vm.runInContext(source, sharedContext, { filename });
+      vm.runInContext(source, sharedContext, { filename, importModuleDynamically });
       log(`Executed: ${filename.slice(0, 80)} (${source.length} chars)`);
     } catch (e) {
       log(`Script error: ${filename.slice(0, 80)}: ${e.message}`);
@@ -316,10 +328,17 @@ export async function loadNotebook(notebookPath, options = {}) {
     DecompressionStream, CompressionStream,
     structuredClone, queueMicrotask, atob, btoa,
     AbortController, AbortSignal,
-    Event, EventTarget, CustomEvent,
+    Event: linkedomWindow.Event || Event,
+    EventTarget: linkedomWindow.EventTarget || EventTarget,
+    CustomEvent: linkedomWindow.CustomEvent || CustomEvent,
+    InputEvent: linkedomWindow.InputEvent || class InputEvent extends (linkedomWindow.Event || Event) { constructor(type, opts) { super(type, opts); } },
     fetch: patchedFetch,
     document,
     window: undefined, globalThis: undefined, self: undefined,
+    // Window-level event listeners (used by Observable stdlib's resize/width cells)
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: (e) => true,
     requestAnimationFrame: linkedomWindow.requestAnimationFrame,
     cancelAnimationFrame: linkedomWindow.cancelAnimationFrame,
     MutationObserver: linkedomWindow.MutationObserver || class { observe(){} disconnect(){} takeRecords(){ return []; } },
@@ -330,7 +349,13 @@ export async function loadNotebook(notebookPath, options = {}) {
     Element: linkedomWindow.Element || class {},
     Node: linkedomWindow.Node || class {},
     NodeList: linkedomWindow.NodeList || class {},
+    HTMLCollection: linkedomWindow.HTMLCollection,
+    SVGElement: linkedomWindow.SVGElement,
+    Text: linkedomWindow.Text || class {},
+    Comment: linkedomWindow.Comment || class {},
     DocumentFragment: linkedomWindow.DocumentFragment || class {},
+    DOMParser: linkedomWindow.DOMParser || class {},
+    NamedNodeMap: linkedomWindow.NamedNodeMap || class {},
     localStorage: localStorageShim,
     location: locationShim,
     navigator: { userAgent: "lopecode-node/1.0", locks: null },
@@ -606,6 +631,7 @@ export class LopecodeExecution {
   computeNow() {
     this.runtime._computeNow?.();
   }
+
 
   /**
    * Get a variable's value directly (no serialization).
