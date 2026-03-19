@@ -62,38 +62,39 @@ describe("@tomlarkworthy/lopepage-urls", () => {
   let repl;
 
   before(async () => {
-    repl = spawn("node", [path.join(PROJECT_ROOT, "tools/lope-browser-repl.js")], {
-      cwd: PROJECT_ROOT,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    repl = spawn(
+      "node",
+      ["--experimental-vm-modules", path.join(PROJECT_ROOT, "tools/lope-node-repl.js")],
+      { cwd: PROJECT_ROOT, stdio: ["pipe", "pipe", "pipe"] }
+    );
 
-    const ready = await sendCommand(repl, { cmd: "status" });
+    // Wait for auto-ready message (don't send a command — the REPL emits it on startup)
+    const ready = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("REPL startup timeout")), 30_000);
+      let buf = "";
+      const onData = (chunk) => {
+        buf += chunk.toString();
+        for (const line of buf.split("\n").filter(l => l.trim())) {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.ok && parsed.result?.status === "ready") {
+              clearTimeout(timeout);
+              repl.stdout.removeListener("data", onData);
+              resolve(parsed);
+              return;
+            }
+          } catch {}
+        }
+      };
+      repl.stdout.on("data", onData);
+    });
     assert.ok(ready.ok, "REPL should be ready");
 
-    const hash =
-      "view=R100(S50(@tomlarkworthy/module-selection),S50(@tomlarkworthy/lopepage-urls))";
     const load = await sendCommand(repl, {
       cmd: "load",
       notebook: NOTEBOOK,
-      hash,
     });
-    assert.ok(load.ok, "Notebook should load");
-
-    // Wait for Observable runtime lazy eval to settle by polling a known variable
-    for (let i = 0; i < 30; i++) {
-      const check = await sendCommand(repl, {
-        cmd: "eval",
-        code: `(() => {
-          const runtime = window.__ojs_runtime;
-          for (const v of runtime._variables) {
-            if (v._name === "parseViewDSL" && typeof v._value === "function") return "ready";
-          }
-          return "waiting";
-        })()`,
-      });
-      if (check.ok && check.result?.value === "ready") break;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    assert.ok(load.ok, "Notebook should load: " + load.error);
   }, { timeout: 120_000 });
 
   after(async () => {
@@ -268,8 +269,9 @@ describe("@tomlarkworthy/lopepage-urls", () => {
 
     it("returns hash-only for same-page navigation", async () => {
       const res = await evalFns(repl, ["linkTo"], `
+        const base = document.baseURI || "file:///test.html";
         const result = linkTo("@tomlarkworthy/foo", {
-          baseURI: document.baseURI,
+          baseURI: base,
           onObservable: false,
         });
         return JSON.stringify({ result, startsWithHash: result.startsWith("#") });

@@ -30,12 +30,17 @@ lopecode-dev/
 ├── lopebooks/                   # Development/staging content repository (submodule)
 │   └── notebooks/               # Staging notebooks (e.g., reactive-reflective-testing)
 ├── tools/                       # Agent utilities (Node.js only)
+│   ├── lope-runtime.js         # Core library: loadNotebook() → LopecodeExecution
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.js          # Fast static analysis (no browser)
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
 │   ├── lope-node-repl.js       # Persistent REPL in Node.js (default, no browser)
 │   ├── lope-browser-repl.js    # Persistent REPL with Playwright browser
 │   └── lope-jumpgate.js        # Automated jumpgate export (Playwright)
+├── vendor/                      # Reference submodules
+│   ├── observable-runtime/      # Observable runtime source
+│   ├── observable-inputs/       # Observable inputs source
+│   └── observable-stdlib/       # Observable stdlib source
 ├── tests/                       # Node.js unit tests (node:test)
 │   └── notebooks/               # Tests for notebook module pure functions
 ├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
@@ -76,8 +81,9 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | Generate manifest | `lope-reader.js --manifest` | Fast |
 | One-off test run | `lope-runner.js` | ~10s startup |
 | Get computed values | `lope-runner.js` | ~10s startup |
-| Iterative development | `lope-node-repl.js` (default) | ~5s load |
+| Iterative development | `lope-node-repl.js` (default) | ~1.5s load |
 | Multiple test cycles | `lope-node-repl.js` | <1s per command |
+| Programmatic access | `lope-runtime.js` | ~1.5s load |
 | DOM interaction/screenshots | `lope-browser-repl.js` | <1s after load |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 
@@ -128,17 +134,47 @@ node tools/lope-runner.js notebook.html --get-cell myVariable
 
 Exit codes: `0` = passed, `1` = failed, `2` = error
 
-#### lope-node-repl.js - Node REPL (default)
+#### lope-runtime.js - Core Library
 
-Runs the Observable runtime directly in Node.js via JSDOM — no browser needed. **Prefer this over lope-browser-repl.js** unless you need DOM interaction, screenshots, or browser-specific APIs.
+The foundation for `lope-node-repl.js`. Loads notebooks using LinkeDOM + `vm.SourceTextModule` — mirrors the browser bootstrap exactly (bootloader, stdlib, builtins, mains). No browser needed.
 
-```bash
-node tools/lope-node-repl.js [--verbose]
+```javascript
+import { loadNotebook } from './tools/lope-runtime.js';
+
+const execution = await loadNotebook('notebook.html', {
+  settleTimeout: 10000,     // ms to wait for boot
+  log: console.error,       // logging function
+  localStorage: {},         // pre-populate localStorage
+  hash: '#view=...',        // override location.hash
+  search: '?source=...',   // set location.search
+  observer: () => ({}),     // observer factory
+});
+
+execution.runtime;          // Observable Runtime (direct access)
+execution.document;         // LinkeDOM document
+execution.mains;            // Map(name → module)
+
+execution.getVariable(name, module);
+execution.defineVariable(name, inputs, fn, module);
+execution.waitForVariable(name, timeout);
+execution.runTests(timeout, filter);
+execution.eval(code);
+execution.dispose();
 ```
 
-Same JSON command protocol as the browser REPL (load, list-variables, get-variable, eval, define-variable, delete-variable, run-tests, status, quit). Does NOT support: query, click, fill, download, screenshot.
+Requires `node --experimental-vm-modules`.
 
-Some modules that rely on `URL.createObjectURL` or browser-only APIs will fail to load — this is expected and doesn't affect pure JS modules.
+#### lope-node-repl.js - Node REPL (default)
+
+Runs the Observable runtime directly in Node.js — no browser needed. Uses `lope-runtime.js` internally. **Prefer this over lope-browser-repl.js** unless you need DOM interaction, screenshots, or browser-specific APIs.
+
+```bash
+node --experimental-vm-modules tools/lope-node-repl.js [--verbose]
+```
+
+Same JSON command protocol as the browser REPL (load, list-variables, get-variable, eval, define-variable, delete-variable, run-tests, status, quit) plus `wait-for`. Does NOT support: query, click, fill, download, screenshot.
+
+The `load` command runs the full bootloader pipeline — stdlib builtins (Inputs, d3, Plot, md, htl, etc.) are available to all cells.
 
 For persistent bidirectional sessions, see `knowledge/running-a-live-repl-session-with-a-notebook.md`.
 

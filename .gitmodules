@@ -4,3 +4,12 @@
 [submodule "lopebooks"]
 	path = lopebooks
 	url = https://github.com/tomlarkworthy/lopebooks
+[submodule "vendor/observable-runtime"]
+	path = vendor/observable-runtime
+	url = https://github.com/observablehq/runtime.git
+[submodule "vendor/observable-inputs"]
+	path = vendor/observable-inputs
+	url = https://github.com/observablehq/inputs.git
+[submodule "vendor/observable-stdlib"]
+	path = vendor/observable-stdlib
+	url = https://github.com/observablehq/stdlib.git

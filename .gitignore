@@ -10,6 +10,10 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+package-lock.json
 tools/node_modules/
 
 # Debug artifacts
