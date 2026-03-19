@@ -6,7 +6,7 @@
  * Much faster for iterative development than starting fresh each time.
  *
  * Usage:
- *   node lope-browser-repl.js [--headed] [--verbose]
+ *   node lope-browser-repl.js [--headed] [--verbose] [--log <path>]
  *
  * Commands (JSON, one per line):
  *   {"cmd": "load", "notebook": "path/to/notebook.html", "hash": "view=..."}
@@ -22,6 +22,7 @@
  *   {"cmd": "query", "selector": "button", "limit": 10}
  *   {"cmd": "download", "selector": "text=Download", "path": "output.html"}
  *   {"cmd": "screenshot", "path": "output.png", "fullPage": true}
+ *   {"cmd": "watch", "timeout": 60000, "interval": 500}  // watch for cell changes, returns new history entries
  *   {"cmd": "status"}
  *   {"cmd": "quit"}
  *
@@ -47,16 +48,28 @@ import {
 const args = process.argv.slice(2);
 const headed = args.includes('--headed');
 const verbose = args.includes('--verbose');
+const logIndex = args.indexOf('--log');
+const logPath = logIndex !== -1 ? args[logIndex + 1] : null;
+let logFd = null;
+if (logPath) {
+  logFd = fs.openSync(logPath, 'a');
+  process.stderr.write(`Logging to: ${logPath}\n`);
+}
 
 // State
 let browser = null;
 let page = null;
 let currentNotebook = null;
 let runtimeReady = false;
+let watchHighWaterMark = 0; // tracks how many history entries we've already seen
 
 // Helper to send JSON response
 function respond(obj) {
-  console.log(JSON.stringify(obj));
+  const line = JSON.stringify(obj);
+  console.log(line);
+  if (logFd !== null) {
+    fs.writeSync(logFd, line + '\n');
+  }
 }
 
 // Helper for errors
@@ -109,9 +122,54 @@ async function loadNotebook(notebookPath, hashUrl = null) {
 
   currentNotebook = notebookPath;
   runtimeReady = true;
+  watchHighWaterMark = 0; // reset watch position for new notebook
   process.stderr.write(`Loaded: ${notebookPath}\n`);
 
+  // Start auto-watch if logging is enabled
+  startAutoWatch();
+
   return { notebook: notebookPath };
+}
+
+// Auto-watch: background interval that polls for history changes and logs them
+let autoWatchInterval = null;
+
+function startAutoWatch() {
+  stopAutoWatch();
+  if (!logFd) return; // only auto-watch when logging
+
+  // Initial snapshot of history length
+  let initializing = true;
+
+  autoWatchInterval = setInterval(async () => {
+    if (!runtimeReady || !page) return;
+    try {
+      const result = await page.evaluate(readHistorySince, watchHighWaterMark);
+      if (result.error) return; // silently skip errors (e.g. history not yet available)
+
+      if (initializing) {
+        // First poll: just set the high water mark, don't report existing entries
+        watchHighWaterMark = result.total;
+        initializing = false;
+        process.stderr.write(`auto-watch: initialized at history index ${watchHighWaterMark}\n`);
+        return;
+      }
+
+      if (result.entries.length > 0) {
+        watchHighWaterMark = result.total;
+        respond({ event: 'change', changes: result.entries, historyIndex: result.total });
+      }
+    } catch {
+      // page might be navigating, ignore
+    }
+  }, 1000);
+}
+
+function stopAutoWatch() {
+  if (autoWatchInterval) {
+    clearInterval(autoWatchInterval);
+    autoWatchInterval = null;
+  }
 }
 
 // Read tests from latest_state (natural observation via tests module UI)
@@ -273,6 +331,74 @@ function getStatus() {
     notebook: currentNotebook,
     runtimeReady
   };
+}
+
+// Page-context function: read new history entries since a given index
+function readHistorySince(sinceIndex) {
+  try {
+    const runtime = window.__ojs_runtime;
+    if (!runtime) return { error: 'Runtime not available' };
+
+    // Find the history variable
+    for (const v of runtime._variables) {
+      if (v._name === 'history' && v._value && Array.isArray(v._value)) {
+        const history = v._value;
+        const total = history.length;
+        if (total <= sinceIndex) return { total, entries: [] };
+        const newEntries = history.slice(sinceIndex).map(e => ({
+          t: e.t,
+          op: e.op,
+          module: e.module,
+          _name: e._name,
+          source: e.source,
+          _inputs: e._inputs,
+          _definition: typeof e._definition === 'function'
+            ? e._definition.toString().slice(0, 200)
+            : String(e._definition).slice(0, 200)
+        }));
+        return { total, entries: newEntries };
+      }
+    }
+    return { error: 'history variable not found (is local-change-history module loaded?)' };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// Watch for cell changes by polling the history variable
+async function watchChanges(timeout = 60000, interval = 500) {
+  if (!runtimeReady) {
+    throw new Error('No notebook loaded');
+  }
+
+  const startTime = Date.now();
+
+  // On first call, snapshot the current high water mark
+  if (watchHighWaterMark === 0) {
+    const snapshot = await page.evaluate(readHistorySince, 0);
+    if (snapshot.error) throw new Error(snapshot.error);
+    watchHighWaterMark = snapshot.total;
+    process.stderr.write(`watch: initialized at history index ${watchHighWaterMark}\n`);
+  }
+
+  // Poll until new entries or timeout
+  while (Date.now() - startTime < timeout) {
+    const result = await page.evaluate(readHistorySince, watchHighWaterMark);
+    if (result.error) throw new Error(result.error);
+
+    if (result.entries.length > 0) {
+      watchHighWaterMark = result.total;
+      return {
+        changes: result.entries,
+        historyIndex: result.total
+      };
+    }
+
+    await page.waitForTimeout(interval);
+  }
+
+  // Timeout with no changes
+  return { changes: [], historyIndex: watchHighWaterMark, timeout: true };
 }
 
 // Handle a command
@@ -498,7 +624,18 @@ async function handleCommand(line) {
         }
         break;
 
+      case 'watch':
+        if (!runtimeReady) {
+          respondError('No notebook loaded');
+          return;
+        }
+        const watchResult = await watchChanges(cmd.timeout || 60000, cmd.interval || 500);
+        respondOk(watchResult);
+        break;
+
       case 'quit':
+        stopAutoWatch();
+        if (logFd !== null) fs.closeSync(logFd);
         respondOk({ message: 'Goodbye' });
         if (browser) await browser.close();
         process.exit(0);
@@ -519,7 +656,7 @@ async function main() {
   process.stderr.write('lope-repl: Ready. Send JSON commands via stdin.\n');
 
   // Signal ready
-  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'query', 'click', 'fill', 'download', 'screenshot', 'status', 'quit'] });
+  respondOk({ status: 'ready', commands: ['load', 'run-tests', 'read-tests', 'eval', 'get-variable', 'list-variables', 'define-variable', 'delete-variable', 'query', 'click', 'fill', 'download', 'screenshot', 'watch', 'status', 'quit'] });
 
   // Command queue for sequential processing
   const commandQueue = [];

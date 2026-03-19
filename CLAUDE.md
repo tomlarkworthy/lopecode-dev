@@ -85,6 +85,7 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | Multiple test cycles | `lope-node-repl.js` | <1s per command |
 | Programmatic access | `lope-runtime.js` | ~1.5s load |
 | DOM interaction/screenshots | `lope-browser-repl.js` | <1s after load |
+| Pair programming (live collab) | `lope-browser-repl.js --headed --log` | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 
 #### lope-reader.js - Fast Static Analysis
@@ -188,6 +189,9 @@ node tools/lope-browser-repl.js
 
 # With visible browser for debugging
 node tools/lope-browser-repl.js --headed --verbose
+
+# With log file (enables auto-watch for cell changes)
+node tools/lope-browser-repl.js --headed --log /tmp/lope-pair.log
 ```
 
 JSON commands via stdin:
@@ -205,6 +209,7 @@ JSON commands via stdin:
 {"cmd": "fill", "selector": "input[type='text']", "value": "hello"}
 {"cmd": "download", "selector": "text=Download", "path": "output.html"}
 {"cmd": "screenshot", "path": "output.png", "fullPage": true}
+{"cmd": "watch", "timeout": 60000, "interval": 500}
 {"cmd": "status"}
 {"cmd": "quit"}
 ```
@@ -220,11 +225,14 @@ echo '{"cmd": "load", "notebook": "lopecode/lopebooks/notebooks/@tomlarkworthy_r
 - `run-tests` - Runs tests by forcing reachability (works always)
 - `read-tests` - Reads from `latest_state` (requires tests module visible in hash URL)
 - `define-variable` - Define or redefine a runtime variable (see below)
+- `watch` - Poll for cell changes via `history` variable (from `@tomlarkworthy/local-change-history`)
 - `query` - Find elements by CSS selector (returns count, tag, text, visibility)
 - `click` - Click on a UI element by CSS selector
 - `fill` - Fill an input field with a value
 - `download` - Click element and capture file download
 - `screenshot` - Takes screenshot of current page
+
+**Logging (`--log <path>`):** All JSON responses are appended to the log file. When logging is enabled and a notebook is loaded, **auto-watch** starts automatically — a background poller checks for cell changes every second and writes `{"event": "change", ...}` entries to the log. No need to send `watch` commands manually.
 
 **Important:** The `eval` command does NOT support async functions. Use synchronous IIFEs only — async IIFEs return `{}` instead of the resolved value. For timing, poll with repeated sync evals rather than using `await`.
 
@@ -232,6 +240,7 @@ Benefits:
 - ~10x faster than lope-runner.js after initial load
 - Can run multiple test cycles without browser restart
 - Interactive debugging with `eval` command
+- Pair programming via `--headed --log` (see below)
 
 #### lope-jumpgate.js - Automated Jumpgate Export
 
@@ -388,11 +397,49 @@ echo '{"cmd": "load", "notebook": "notebook.html", "hash": "view=R100(S50(@modul
 {"cmd": "quit"}' | node tools/lope-browser-repl.js
 ```
 
+#### Pair Programming (live collaboration)
+
+Open a headed browser with logging to collaborate on a notebook in real-time. The agent watches the log for user edits and can push changes back via `define-variable`.
+
+**Prerequisites:** The notebook must include `@tomlarkworthy/local-change-history` (provides the `history` variable that tracks cell edits).
+
+**Setup:**
+```bash
+# 1. Create a named pipe for sending commands
+mkfifo /tmp/lope-pair-pipe
+
+# 2. Start headed REPL with log file (auto-watch enabled)
+tail -f /tmp/lope-pair-pipe | node tools/lope-browser-repl.js --headed --log /tmp/lope-pair.log > /dev/null 2>/tmp/lope-pair-stderr.log &
+
+# 3. Load notebook (include local-change-history in hash for observation)
+echo '{"cmd": "load", "notebook": "lopecode/notebooks/NOTEBOOK.html", "hash": "view=R100(S50(@tomlarkworthy/MAIN_MODULE),S25(@tomlarkworthy/local-change-history),S25(@tomlarkworthy/tests))"}' > /tmp/lope-pair-pipe
+```
+
+**Workflow:**
+1. User edits cells in the headed browser
+2. Auto-watch detects changes and writes `{"event": "change", ...}` to the log
+3. Agent reads log: `tail -10 /tmp/lope-pair.log`
+4. Agent responds: runs tests, suggests fixes, or pushes changes via the pipe
+5. User sees agent's changes live in the browser
+
+**Log format:**
+```json
+{"event": "change", "changes": [{"t": 1234, "op": "upd", "module": "@tomlarkworthy/debugger", "_name": "myCell", "_definition": "() => 42"}], "historyIndex": 5}
+```
+
+Change entry fields: `t` (timestamp), `op` (`"new"` / `"upd"` / `"del"`), `module`, `_name`, `source`, `_inputs`, `_definition` (truncated to 200 chars).
+
+**Sending commands during a session:**
+```bash
+echo '{"cmd": "run-tests"}' > /tmp/lope-pair-pipe
+sleep 5 && tail -1 /tmp/lope-pair.log
+```
+
 ### Tips for Agents
 
 1. **Never read entire HTML files** - Use the tools to extract relevant parts
 2. **Start with summary** - Run `lope-reader.js` first to understand a notebook
-3. **Use lope-node-repl.js for iteration** - Default REPL; use lope-browser-repl.js only when you need DOM/screenshots
+3. **Use lope-node-repl.js for iteration** - Default REPL; use lope-browser-repl.js only when you need DOM/screenshots/pair-programming
 4. **Provide precise instructions** - Reference cells by `module.cellName`
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
