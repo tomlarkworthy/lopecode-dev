@@ -591,6 +591,69 @@ channel_config = ({
 - **No persistent credentials**: token is ephemeral. No secrets stored in notebook or on disk.
 - **Sender gating**: only paired WebSocket connections can push messages. Unpaired connections receive `pair-failed` and are closed.
 
+## Implementation Status (2026-03-20)
+
+### What's Built
+
+| Component | Status | Files |
+|-----------|--------|-------|
+| Channel server (MCP + WebSocket) | **Done** | `tools/channel/lopecode-channel.ts` |
+| MCP tools (8 tools) | **Done** | reply, get/define/delete_variable, list_variables, run_tests, eval_code, fork_notebook |
+| Observable module (7 cells) | **Done** | `tools/channel/claude-channels-module.js` |
+| Notebook injection script | **Done** | `tools/channel/inject-module.js` |
+| Standalone notebook | **Done** | `lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html` (not committed — generate with inject-module.js) |
+| .mcp.json registration | **Done** | `.mcp.json` |
+| Server integration tests | **Done** | `tools/test-lopecode-channel.js` (10 tests, all pass) |
+| Cell injection tests | **Done** | `tools/test-channel-cells.js` (injects into live notebook via browser REPL) |
+| Documentation | **Done** | `knowledge/lopecode-claude-channel.md` |
+
+### What's Tested
+
+- **Channel server**: WebSocket pairing, message forwarding, cell-change forwarding, notebook-info storage, disconnection cleanup, invalid token rejection, health endpoint. All tested via `node --test tools/test-lopecode-channel.js`.
+- **Notebook cells**: All 7 cells inject via `define-variable` into a live debugger notebook, compute without errors, and produce correct values. Chat widget renders with setup panel (token input + connect button). Tested via `tools/test-channel-cells.js`.
+- **Standalone notebook**: Module loads as a native Observable module via lopepage. Chat widget renders in its own panel. Tested via `lope-browser-repl.js`.
+
+### What's NOT Tested (Blocked)
+
+Claude Code **channels feature is not available** for our account (Team plan, Taktile org). The `--dangerously-load-development-channels server:lopecode` flag is silently ignored with "Channels are not currently available". This blocks testing of:
+
+1. **MCP notification delivery** — We cannot verify that `notifications/claude/channel` events actually arrive in Claude's context. The server sends them, but we can't confirm Claude receives them.
+2. **End-to-end pairing flow** — Can't test: user pastes token in notebook → server pairs → Claude sees "connected" notification.
+3. **Claude calling MCP tools** — Can't test: Claude receives a user message → calls `reply` tool → reply appears in notebook chat.
+4. **Full round-trip** — Can't test any of the user journeys (pair programming, debug assist, TDD, forking).
+5. **Command execution in notebook** — The notebook-side command handler (get-variable, define-variable, run-tests, etc.) is implemented but untested over the actual WebSocket→MCP→Claude→MCP→WebSocket path. The individual functions work (they're the same as `tools/tools.js`), but the async command-result correlation over WebSocket hasn't been end-to-end tested.
+
+### What's Needed to Resume
+
+1. **Channels feature access** — Anthropic needs to enable channels for the Taktile org. The `channelsEnabled` managed setting is already `true` in `~/.claude/remote-settings.json`. Issue may need to be raised at https://github.com/anthropics/claude-code/issues.
+2. Once channels work, test with:
+   ```bash
+   # Terminal 1: Start Claude with channel
+   claude --dangerously-load-development-channels server:lopecode
+
+   # The channel server starts automatically, prints pairing token to stderr.
+   # Open the standalone notebook in a browser:
+   open lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html
+   # (generate it first: node tools/channel/inject-module.js lopecode/notebooks/@tomlarkworthy_debugger.html lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html)
+
+   # Paste the LOPE-XXXX token into the chat widget, click Connect.
+   # Type a message in the chat. Claude should see it and reply.
+   ```
+3. If pairing works, test each MCP tool: get_variable, define_variable, run_tests, eval_code, fork_notebook.
+4. Test cell-change forwarding: edit a cell in the browser, verify Claude sees the `cell_change` notification.
+
+### Known Issues
+
+- **Lopepage hash nesting**: Hash URLs only support flat `R100(S_w(@mod),S_w(@mod),...)`. Nesting `R` inside `S` inside `C` causes "Lost?" page. The inject-module.js handles this correctly.
+- **Notebook HTML has duplicate markers**: The exporter module embeds template copies of `<!-- Bootloader -->`, `bootconf.json`, and `<script type="module" id="main">`. Always use `lastIndexOf` when editing notebook HTML programmatically.
+- **md tagged template**: In the chat widget, `md` must be called as `md([content])` (array argument) for string interpolation, not as a tagged template literal (which requires backtick syntax not available in this context).
+
+### Future Work (after channels are available and tested)
+
+- Create `@tomlarkworthy/claude-channels` module on ObservableHQ
+- Add to notebooks via module-selection UI and export via jumpgate
+- Package as a Claude Code plugin for `/plugin install`
+
 ## Out of Scope for v1
 
 - **Reactive markdown interpolation** in Claude's replies (v2: render Observable JS in reply bubbles, e.g. `${Inputs.button("Apply fix")}`)
