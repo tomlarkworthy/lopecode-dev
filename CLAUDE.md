@@ -36,7 +36,11 @@ lopecode-dev/
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
 │   ├── lope-node-repl.js       # Persistent REPL in Node.js (default, no browser)
 │   ├── lope-browser-repl.js    # Persistent REPL with Playwright browser
-│   └── lope-jumpgate.js        # Automated jumpgate export (Playwright)
+│   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright)
+│   └── channel/                 # Claude Code ↔ notebook channel (Bun + MCP)
+│       ├── lopecode-channel.ts  # Channel server (MCP + WebSocket)
+│       ├── claude-channels-module.js  # Observable module for notebook injection
+│       └── inject-module.js     # Script to inject module into notebook HTML
 ├── vendor/                      # Reference submodules
 │   ├── observable-runtime/      # Observable runtime source
 │   ├── observable-inputs/       # Observable inputs source
@@ -87,6 +91,7 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | DOM interaction/screenshots | `lope-browser-repl.js` | <1s after load |
 | Pair programming (live collab) | `lope-browser-repl.js --headed --log` | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
+| Claude ↔ notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 
 #### lope-reader.js - Fast Static Analysis
 
