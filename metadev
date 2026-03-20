@@ -113,6 +113,10 @@ for c in cmds:
     if [ -f "$MARKER_FILE" ]; then
         RESUME_SID=$(cat "$MARKER_FILE")
         rm -f "$MARKER_FILE"
+        # SessionEnd hook writes "unknown" when it can't find a session file
+        if [ "$RESUME_SID" = "unknown" ]; then
+            RESUME_SID=""
+        fi
     fi
 
     # Build auto-continue prompt with reason and command output
