@@ -366,14 +366,20 @@ export function findModule(runtime, moduleName) {
     return null;
   }
 
+  // Check runtime.mains map first (lopecode bootloader populates this)
+  if (runtime.mains) {
+    const mod = runtime.mains.get(moduleName);
+    if (mod) return mod;
+  }
+
   // Find module by name
   for (const v of runtime._variables) {
     if (v._module?._name === moduleName) {
       return v._module;
     }
-    // Also check for "module @..." naming pattern
+    // "module @..." variables hold the imported module as their value
     if (v._name?.startsWith('module ') && v._name === `module ${moduleName}`) {
-      return v._module;
+      return v._value || v._module;
     }
   }
   return null;
@@ -398,27 +404,23 @@ export function defineVariable({ name, inputs = [], definition, moduleName = nul
   const runtime = window.__ojs_runtime;
   if (!runtime) return { error: 'Runtime not found' };
 
-  // Find the module
+  // Find the module (inline findModule logic for page.evaluate() context)
   let targetModule = null;
   if (!moduleName) {
-    // Use main module
     for (const v of runtime._variables) {
-      if (v._module) {
-        targetModule = v._module;
-        break;
-      }
+      if (v._module) { targetModule = v._module; break; }
     }
   } else {
-    // Find by name
-    for (const v of runtime._variables) {
-      if (v._module?._name === moduleName) {
-        targetModule = v._module;
-        break;
-      }
-      // Also check "module @..." naming
-      if (v._name === `module ${moduleName}`) {
-        targetModule = v._module;
-        break;
+    // Check runtime.mains map first (lopecode bootloader populates this)
+    if (runtime.mains) {
+      targetModule = runtime.mains.get(moduleName) || null;
+    }
+    if (!targetModule) {
+      for (const v of runtime._variables) {
+        if (v._module?._name === moduleName) { targetModule = v._module; break; }
+        if (v._name?.startsWith('module ') && v._name === `module ${moduleName}`) {
+          targetModule = v._value || v._module; break;
+        }
       }
     }
   }
@@ -488,24 +490,22 @@ export function deleteVariable({ name, moduleName = null }) {
   const runtime = window.__ojs_runtime;
   if (!runtime) return { error: 'Runtime not found' };
 
-  // Find the module
+  // Find the module (inline findModule logic for page.evaluate() context)
   let targetModule = null;
   if (!moduleName) {
     for (const v of runtime._variables) {
-      if (v._module) {
-        targetModule = v._module;
-        break;
-      }
+      if (v._module) { targetModule = v._module; break; }
     }
   } else {
-    for (const v of runtime._variables) {
-      if (v._module?._name === moduleName) {
-        targetModule = v._module;
-        break;
-      }
-      if (v._name === `module ${moduleName}`) {
-        targetModule = v._module;
-        break;
+    if (runtime.mains) {
+      targetModule = runtime.mains.get(moduleName) || null;
+    }
+    if (!targetModule) {
+      for (const v of runtime._variables) {
+        if (v._module?._name === moduleName) { targetModule = v._module; break; }
+        if (v._name?.startsWith('module ') && v._name === `module ${moduleName}`) {
+          targetModule = v._value || v._module; break;
+        }
       }
     }
   }
