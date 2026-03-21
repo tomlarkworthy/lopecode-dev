@@ -73,6 +73,57 @@ Examples:
 - `@tomlarkworthy/exporter-2` → `@tomlarkworthy_exporter-2.html`
 - `@tomlarkworthy/jumpgate` → `@tomlarkworthy_jumpgate.html`
 
+### Bulk Export with lope-bulk-jumpgate.js
+
+`tools/lope-bulk-jumpgate.js` exports multiple notebooks in one run. It drives the `@tomlarkworthy/bulk-jumpgate` notebook headlessly via Playwright — each notebook gets its own fresh runtime that's disposed after export, keeping memory bounded.
+
+```bash
+# Export from a spec file
+node tools/lope-bulk-jumpgate.js --spec export_spec.json --output ./exported
+
+# Inline spec for a single notebook
+node tools/lope-bulk-jumpgate.js \
+  --spec '{"additionalMains":["@tomlarkworthy/lopepage"],"notebooks":[{"name":"@tomlarkworthy/lopecode-tour"}]}' \
+  --output ./exported
+
+# With debugging
+node tools/lope-bulk-jumpgate.js --spec export_spec.json --output ./exported --verbose --headed
+```
+
+| Arg | Default | Description |
+|-----|---------|-------------|
+| `--spec <path\|json>` | (required) | Export spec: path to JSON file, or inline JSON string |
+| `--output <dir>` | (required) | Output directory for exported HTML files |
+| `--bulk-jumpgate <path>` | `lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html` | Path to bulk-jumpgate notebook |
+| `--timeout <ms>` | `600000` | Max wait for entire export (10 min) |
+| `--headed` | false | Show browser window |
+| `--verbose` | false | Show browser console logs |
+
+Exit codes: `0` = all exported, `1` = some failed, `2` = setup error
+
+**Spec format:**
+```json
+{
+  "additionalMains": ["@tomlarkworthy/lopepage"],
+  "notebooks": [
+    { "name": "@tomlarkworthy/lopecode-tour" },
+    { "name": "@tomlarkworthy/exporter" }
+  ]
+}
+```
+
+**How it works internally:**
+
+1. Loads the bulk-jumpgate notebook in Playwright with the hash URL `#view=S100(@tomlarkworthy/bulk-jumpgate)` so cells are observed
+2. Shims two variables for headless operation:
+   - `directoryHandle` → dummy object (skips native File System Access picker)
+   - `save_file` → triggers browser downloads (Playwright captures to output dir)
+3. Sets the export spec via the textarea input
+4. Waits for `main_defines` to resolve (fetches additionalMains from Observable API)
+5. Clicks "Start export" — the notebook's own `bulk_export` function drives the flowQueue pipeline
+6. Each notebook export: fetches define from API → creates runtime → runs `exportToHTML` → disposes runtime → saves via download
+7. Polls the notebook's log textarea for "Export complete."
+
 ## Workflow: Updating a Notebook in lopecode
 
 ```bash

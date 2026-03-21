@@ -91,6 +91,7 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | DOM interaction/screenshots | `lope-browser-repl.js` | <1s after load |
 | Pair programming (live collab) | `lope-browser-repl.js --headed --log` | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
+| Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
 | Claude ↔ notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 
 #### lope-reader.js - Fast Static Analysis
