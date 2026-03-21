@@ -34,15 +34,11 @@ function buildAttachmentScripts() {
 // The Zig module cells
 const ZIG_MODULE_CELLS = `
 const _1 = function _1(md){return(
-md\`# Zig Notebook
+md\`# Compile Zig
 
 Compile and run [Zig](https://ziglang.org/) code in your browser using WebAssembly.
 
-The Zig compiler and standard library are embedded in this notebook (~4MB compressed). No network required after loading.
-
-Uses the [Zig 0.14.0](https://ziglang.org/) self-hosted WebAssembly backend from [zigtools/playground](https://github.com/zigtools/playground).
-
-**Ctrl/Cmd+Enter** to compile and run.
+Uses the [Zig 0.14.0](https://ziglang.org/) self-hosted WebAssembly backend from [zigtools/playground](https://github.com/zigtools/playground), bundled as a file attachment (~4MB compressed). No network required.
 \`
 )};
 const _2 = function _2(exporter){return(
@@ -353,10 +349,14 @@ export default function define(runtime, observer) {
   main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
   main.variable(observer()).define(["md"], _1);
   main.variable(observer()).define(["exporter"], _2);
+  main.variable(observer("viewof examples_select")).define("viewof examples_select", ["Inputs"], _examples_select);
+  main.variable(observer("examples_select")).define("examples_select", ["Generators", "viewof examples_select"], (G, _) => G.input(_));
+  main.variable().define("load_example", ["examples_select", "viewof zig_source", "viewof compile_button"], _load_example);
   main.variable(observer("viewof zig_source")).define("viewof zig_source", ["Inputs"], _zig_source);
   main.variable(observer("zig_source")).define("zig_source", ["Generators", "viewof zig_source"], (G, _) => G.input(_));
   main.variable(observer("viewof compile_button")).define("viewof compile_button", ["Inputs"], _compile_button);
   main.variable(observer("compile_button")).define("compile_button", ["Generators", "viewof compile_button"], (G, _) => G.input(_));
+  main.variable(observer()).define("output_display", ["compilation_result", "execution_result", "htl"], _output_display);
   main.variable().define("unzip", ["Response", "DecompressionStream"], _unzip);
   main.variable().define("unzip_text", ["Response", "DecompressionStream"], _unzip_text);
   main.variable().define("zig_assets", ["unzip", "unzip_text", "FileAttachment"], _zig_assets);
@@ -365,10 +365,6 @@ export default function define(runtime, observer) {
   main.variable().define("run_wasm", ["zig_assets", "create_worker_from_code"], _run_wasm);
   main.variable().define("compilation_result", ["compile_button", "compile_zig", "viewof zig_source"], _compilation_result);
   main.variable().define("execution_result", ["compilation_result", "run_wasm"], _execution_result);
-  main.variable(observer()).define("output_display", ["compilation_result", "execution_result", "htl"], _output_display);
-  main.variable(observer("viewof examples_select")).define("viewof examples_select", ["Inputs"], _examples_select);
-  main.variable(observer("examples_select")).define("examples_select", ["Generators", "viewof examples_select"], (G, _) => G.input(_));
-  main.variable().define("load_example", ["examples_select", "viewof zig_source", "viewof compile_button"], _load_example);
   main.define("module @tomlarkworthy/exporter-2", async () => runtime.module((await import("/@tomlarkworthy/exporter-2.js?v=4")).default));
   main.define("exporter", ["module @tomlarkworthy/exporter-2", "@variable"], (_, v) => v.import("exporter", _));
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
@@ -405,6 +401,13 @@ html = html.replace(
 
 // 5. Update bootconf - replace notes with compile-zig in mains and hash
 html = html.replaceAll('@tomlarkworthy/notes', '@tomlarkworthy/compile-zig');
+
+// 6. Set the default hash URL to show compile-zig + fileattachments
+const newHash = '#view=R100(S63(@tomlarkworthy/compile-zig),S37(@tomlarkworthy/fileattachments))';
+html = html.replace(
+  /("hash":\s*")#view=[^"]*(")/g,
+  `$1${newHash}$2`
+);
 
 writeFileSync(OUTPUT, html);
 const sizeMB = (html.length / 1024 / 1024).toFixed(1);
