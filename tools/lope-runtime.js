@@ -21,6 +21,11 @@ import path from "path";
 import zlib from "zlib";
 import vm from "vm";
 import { parseHTML } from "linkedom";
+import {
+  IDBFactory, IDBKeyRange, IDBCursor, IDBCursorWithValue,
+  IDBDatabase, IDBIndex, IDBObjectStore, IDBOpenDBRequest,
+  IDBRequest, IDBTransaction, IDBVersionChangeEvent,
+} from "fake-indexeddb";
 
 // ==========================================================================
 // loadNotebook
@@ -323,9 +328,11 @@ export async function loadNotebook(notebookPath, options = {}) {
     Int8Array, Int16Array, Int32Array, Float32Array, Float64Array,
     BigInt, BigInt64Array, BigUint64Array, DataView,
     TextEncoder, TextDecoder,
+    TextEncoderStream, TextDecoderStream,
     Blob, Response, Request, Headers,
     ReadableStream, WritableStream, TransformStream,
     DecompressionStream, CompressionStream,
+    crypto,
     structuredClone, queueMicrotask, atob, btoa,
     AbortController, AbortSignal,
     Event: linkedomWindow.Event || Event,
@@ -359,13 +366,10 @@ export async function loadNotebook(notebookPath, options = {}) {
     localStorage: localStorageShim,
     location: locationShim,
     navigator: { userAgent: "lopecode-node/1.0", locks: null },
-    indexedDB: {
-      open: () => {
-        const req = { error: new Error("IndexedDB not available in Node.js") };
-        queueMicrotask(() => { if (req.onerror) req.onerror(); });
-        return req;
-      },
-    },
+    indexedDB: new IDBFactory(),
+    IDBKeyRange, IDBCursor, IDBCursorWithValue, IDBDatabase,
+    IDBIndex, IDBObjectStore, IDBOpenDBRequest, IDBRequest,
+    IDBTransaction, IDBVersionChangeEvent,
     CSS: { escape: (s) => String(s).replace(/([^\w-])/g, "\\$1") },
     lopecode: {
       dvfBytes,

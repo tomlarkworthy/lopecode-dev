@@ -92,6 +92,8 @@ These functions are designed to run in page context via `page.evaluate()` - the 
 | Pair programming (live collab) | `lope-browser-repl.js --headed --log` | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
+| QC compare exports | `bulk-export-qc.js` | Instant |
+| Smoke test exports | `bulk-smoke-test.js` | ~20s each |
 | Claude ↔ notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 
 #### lope-reader.js - Fast Static Analysis
@@ -257,6 +259,8 @@ node tools/lope-jumpgate.js --source @tomlarkworthy/exporter-2 --output lopecode
 ```
 
 Exit codes: `0` = success, `1` = failure
+
+For bulk exporting lopebooks (with QC and smoke testing), see `knowledge/bulk-exporting-lopebooks.md`.
 
 ### Cells vs Variables
 
