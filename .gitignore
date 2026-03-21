@@ -19,3 +19,4 @@ tools/node_modules/
 # Debug artifacts
 tools/*.png
 tools/*.json
+tools/tmp-export/

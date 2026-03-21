@@ -239,6 +239,16 @@ const res = await evalFns(repl, ["parseViewDSL", "serializeGoldenDSL"], `
 
 See `tests/notebooks/lopepage-urls.test.js` for a complete working example.
 
+## Patching Runtime Variables from Playwright
+
+When driving lopecode notebooks from Playwright, you may need to redefine variables. Key rules:
+
+- **Use `module.redefine(name, inputs, fn)`** — never set `v._definition` directly (it won't trigger recomputation)
+- **Find the module owner:** `for (const v of rt._variables) { if (v._name === 'foo' && v._module) { v._module.redefine(...); break; } }`
+- **Redefining breaks downstream closures.** If cell B captures cell A's value in a closure, redefining A gives B a new value — but any UI element (button, textarea) that was created by B still holds the OLD closure. The button must also recompute.
+- **Prefer changing the notebook HTML** over runtime redefines when possible (e.g., bumping a timeout). Runtime redefines are fragile due to closure propagation.
+- **If you must redefine a closure-captured value** (like `timeout_ms` inside a flowQueue), redefine the upstream dependency (e.g., `flowQueue` itself) so the entire chain recomputes. Or better yet, just edit the HTML source.
+
 ## Debugging Jumpgate Failures
 
 When jumpgate fails, always rerun with `--verbose`:
@@ -261,6 +271,7 @@ node tools/lope-jumpgate.js --source @tomlarkworthy/notebook --output out.html -
 | `exported variable not found` after timeout | Source notebook doesn't exist on Observable (404) | Verify the notebook name is correct and published on ObservableHQ |
 | `page.goto: Timeout` with `networkidle` | Page makes ongoing API requests that never settle | Change `waitUntil` to `'domcontentloaded'` in lope-jumpgate.js |
 | `Export error: Load source not ticked` | `load_source` query param not propagating | Check `addInitScript` is setting `window.rEPseDFzXFSPYkNz` correctly |
+| `"module N"` reference in exported HTML | Source notebook imports a module that isn't "shared" on Observable | Share the dependency notebook on ObservableHQ, then re-jumpgate |
 
 **Tip:** The jumpgate fetches from `api.observablehq.com` — you can verify a notebook exists with:
 ```bash
