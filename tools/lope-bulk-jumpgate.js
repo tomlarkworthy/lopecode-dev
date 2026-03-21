@@ -12,7 +12,7 @@
  * Options:
  *   --spec <path|json>   Export spec: path to JSON file, or inline JSON string (required)
  *   --output <dir>       Output directory for exported HTML files (required)
- *   --notebook <path>    Path to bulk-jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html)
+ *   --bulk-jumpgate <path>    Path to bulk-jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html)
  *   --timeout <ms>       Max wait for entire export (default: 600000 = 10 min)
  *   --headed             Show browser window
  *   --verbose            Show browser console logs
@@ -55,7 +55,7 @@ function parseArgs(argv) {
   const options = {
     spec: null,
     output: null,
-    notebook: resolve(projectRoot, 'lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html'),
+    bulkJumpgate: resolve(projectRoot, 'lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html'),
     timeout: 600000,
     headed: false,
     verbose: false,
@@ -67,8 +67,8 @@ function parseArgs(argv) {
       options.spec = args[++i];
     } else if (arg === '--output' && args[i + 1]) {
       options.output = args[++i];
-    } else if (arg === '--notebook' && args[i + 1]) {
-      options.notebook = args[++i];
+    } else if (arg === '--bulk-jumpgate' && args[i + 1]) {
+      options.bulkJumpgate = args[++i];
     } else if (arg === '--timeout' && args[i + 1]) {
       options.timeout = parseInt(args[++i], 10);
     } else if (arg === '--headed') {
@@ -85,7 +85,7 @@ Usage:
 Options:
   --spec <path|json>   Export spec JSON file or inline JSON (required)
   --output <dir>       Output directory (required)
-  --notebook <path>    Bulk-jumpgate notebook path (default: lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html)
+  --bulk-jumpgate <path>    Bulk-jumpgate notebook path (default: lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html)
   --timeout <ms>       Max wait time (default: 600000)
   --headed             Show browser
   --verbose            Show browser console
@@ -129,7 +129,7 @@ if (!options.output) {
 }
 
 const spec = loadSpec(options.spec);
-const notebookPath = resolve(options.notebook);
+const notebookPath = resolve(options.bulkJumpgate);
 const outputDir = resolve(options.output);
 
 if (!fs.existsSync(notebookPath)) {
