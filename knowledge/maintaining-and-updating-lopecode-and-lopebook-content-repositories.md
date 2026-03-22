@@ -279,6 +279,70 @@ curl -sI "https://api.observablehq.com/@tomlarkworthy/notebook-name.js?v=4" | he
 # Should return HTTP/2 200, not 404
 ```
 
+## Tool Reference: lope-reader.js (Fast Static Analysis)
+
+No browser needed, instant results. Use this for exploring notebook structure without running code.
+
+```bash
+# Get notebook summary (default)
+node tools/lope-reader.js notebook.html
+
+# List all modules
+node tools/lope-reader.js notebook.html --list-modules
+
+# Get source code for a specific module
+node tools/lope-reader.js notebook.html --get-module @tomlarkworthy/tests
+
+# List file attachments
+node tools/lope-reader.js notebook.html --list-files
+
+# Generate manifest of all notebooks in a directory
+node tools/lope-reader.js --manifest lopecode/notebooks
+
+# JSON output
+node tools/lope-reader.js notebook.html --list-modules --json
+```
+
+### Comparing module versions across notebooks
+
+```bash
+node tools/lope-reader.js notebook1.html --get-module @tomlarkworthy/view > /tmp/v1.js
+node tools/lope-reader.js notebook2.html --get-module @tomlarkworthy/view > /tmp/v2.js
+diff /tmp/v1.js /tmp/v2.js
+```
+
+### Finding where a module is used
+
+```bash
+grep -l "module-name" lopecode/notebooks/*.html
+
+# Or via manifest
+node tools/lope-reader.js --manifest lopecode/notebooks --json | grep "module-name"
+```
+
+## Tool Reference: lope-runner.js (One-off Runtime Execution)
+
+For test runs and runtime queries (starts fresh browser each time):
+
+```bash
+# Run all tests in a notebook
+node tools/lope-runner.js notebook.html --run-tests
+
+# Run tests with JSON output
+node tools/lope-runner.js notebook.html --run-tests --json
+
+# Filter by module/test name
+node tools/lope-runner.js notebook.html --run-tests --suite @tomlarkworthy/tests
+
+# Increase timeout for slow tests
+node tools/lope-runner.js notebook.html --run-tests --test-timeout 60000
+
+# Get computed cell value
+node tools/lope-runner.js notebook.html --get-cell myVariable
+```
+
+Exit codes: `0` = passed, `1` = failed, `2` = error
+
 ## Verifying Exports
 
 ```bash
