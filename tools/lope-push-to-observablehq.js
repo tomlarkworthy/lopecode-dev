@@ -224,9 +224,10 @@ function parseVariableGroups(content) {
 
   // Also parse $def() calls used in inner/embedded modules
   // Pattern: $def("_funcRef", "name", ["dep1", "dep2"], _funcRef);
-  const defRegex = /\$def\("([^"]+)",\s*"([^"]*)",\s*\[([^\]]*)\],\s*(_[a-zA-Z0-9_]+)\)/g;
+  // Pattern: $def("_funcRef", null, ["dep1"], _funcRef);  (anonymous cells)
+  const defRegex = /\$def\("([^"]+)",\s*(?:"([^"]*)"|null),\s*\[([^\]]*)\],\s*(_[a-zA-Z0-9_]+)\)/g;
   while ((match = defRegex.exec(content)) !== null) {
-    const varName = match[2] || null;
+    const varName = match[2] ?? null;  // null for anonymous cells
     const inputsStr = match[3];
     const funcRefName = match[4];
     const inputs = inputsStr.split(',')
