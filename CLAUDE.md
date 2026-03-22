@@ -42,7 +42,6 @@ lopecode-dev/
 ├── vendor/                      # Reference submodules
 ├── tests/                       # Node.js unit tests (node:test)
 ├── knowledge/                   # Detailed workflow guides (see below)
-├── DEVELOPMENT.md               # Runtime internals and lopepage architecture
 └── CLAUDE.md                    # This file
 ```
 
@@ -59,6 +58,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/lopecode-claude-channel.md` | Claude Code <-> notebook real-time channel |
 | `knowledge/how-file-attachments-work.md` | File attachment internals |
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
+| `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
 
 ### Which Tool to Use
 
@@ -141,7 +141,7 @@ node --test tests/notebooks/exporter.test.js
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
 7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
-8. **See DEVELOPMENT.md** - Contains critical info on:
+8. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
    - Observable runtime lazy evaluation (cells only compute when observed)
    - Lopepage hash URL DSL for multi-module layouts
    - Natural test observation via `latest_state` Map
