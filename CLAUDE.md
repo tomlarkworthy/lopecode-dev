@@ -13,6 +13,10 @@ Lopecode notebooks are single HTML files (1-3MB each) that contain:
 
 Work primarily involves authoring new notebooks by composing existing modules differently.
 
+### Running the Agent
+
+The preferred harness is `./metadev`, which uses [safehouse](https://github.com/anthropics/safehouse) to execute Claude Code with `--dangerously-skip-permissions` fully autonomously but safely sandboxed.
+
 ### Source of Truth
 
 **ObservableHQ.com is the canonical source code.** The HTML files in `lopecode/notebooks/` and `lopebooks/notebooks/` are generated artifacts bundled from Observable via jumpgate. When a module changes, update it on ObservableHQ first, then regenerate the affected HTML files. See `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` for the full workflow.
