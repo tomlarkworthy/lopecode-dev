@@ -439,14 +439,21 @@ export async function loadNotebook(notebookPath, options = {}) {
     }
 
     if (specifier.startsWith("blob:")) {
+      if (moduleRegistry.has(specifier)) {
+        const m = moduleRegistry.get(specifier);
+        if (m.status === "unlinked") await m.link(linker);
+        if (m.status === "linked") await m.evaluate();
+        return m;
+      }
       const blob = blobUrlStore.get(specifier);
       if (blob) {
         try {
           const text = await blob.text();
           const mod = new vm.SourceTextModule(text, {
-            context: sharedContext, identifier: `blob:${specifier.slice(0, 40)}`,
+            context: sharedContext, identifier: specifier,
             importModuleDynamically,
           });
+          moduleRegistry.set(specifier, mod);
           await mod.link(linker);
           await mod.evaluate();
           return mod;
@@ -486,6 +493,22 @@ export async function loadNotebook(notebookPath, options = {}) {
           await mod.link(linker);
           return mod;
         } catch (e) { log(`Link fail "${rid}": ${e.message}`); }
+      }
+    }
+    // Handle blob: URLs (e.g. decompressed FileAttachment modules)
+    if (specifier.startsWith("blob:")) {
+      const blob = blobUrlStore.get(specifier);
+      if (blob) {
+        try {
+          const text = await blob.text();
+          const mod = new vm.SourceTextModule(text, {
+            context: sharedContext, identifier: specifier,
+            importModuleDynamically,
+          });
+          moduleRegistry.set(specifier, mod);
+          await mod.link(linker);
+          return mod;
+        } catch (e) { log(`Blob link fail: ${e.message}`); }
       }
     }
     const stub = new vm.SyntheticModule(["default"],
@@ -751,12 +774,7 @@ export class LopecodeExecution {
           resolve(); return;
         }
 
-        if (!v._reachable) {
-          v._reachable = true;
-          this.runtime._dirty?.add(v);
-        }
-
-        const oldObserver = v._observer;
+        // Attach a real observer so the runtime considers this variable (and deps) reachable
         v._observer = {
           fulfilled: (value) => {
             clearTimeout(tid);
@@ -770,6 +788,10 @@ export class LopecodeExecution {
           },
           pending: () => {},
         };
+        if (!v._reachable) {
+          v._reachable = true;
+          this.runtime._dirty?.add(v);
+        }
       });
       promises.push(p);
     }
@@ -805,12 +827,31 @@ export class LopecodeExecution {
    * Wait for a specific variable to have a value.
    */
   async waitForVariable(name, timeout = 30000, moduleName = null) {
+    // Attach an observer to force the variable (and its transitive deps) reachable
+    let observedVar = null;
+    for (const v of this.runtime._variables) {
+      if (v._name === name) {
+        if (moduleName && v._module?._name !== moduleName) {
+          const mainsMod = this.mains.get(moduleName);
+          if (mainsMod && v._module !== mainsMod) continue;
+        }
+        observedVar = v;
+        break;
+      }
+    }
+    if (observedVar && typeof observedVar._observer === 'symbol') {
+      // Replace the no_observer sentinel with a real observer to make reachable
+      observedVar._observer = { fulfilled() {}, rejected() {}, pending() {} };
+      this.runtime._dirty?.add(observedVar);
+      this.computeNow();
+    }
+
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       const result = this.getVariable(name, moduleName);
       if (result.found && (result.hasValue || result.hasError)) return result;
-      await new Promise(r => setTimeout(r, 100));
       this.computeNow();
+      await new Promise(r => setTimeout(r, 100));
     }
     throw new Error(`Timeout waiting for variable: ${name}`);
   }
