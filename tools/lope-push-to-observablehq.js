@@ -240,24 +240,29 @@ function parseVariableGroups(content) {
 
   // Also parse import defines
   // Pattern: main.define("name", ["module @author/pkg", "@variable"], (_, v) => v.import("name", _));
-  const importRegex = /main\.define\("([^"]+)",\s*\["module\s+([^"]+)",\s*"@variable"\],\s*\(([^)]+)\)\s*=>\s*([^)]+\))/g;
+  // Pattern with alias: main.define("local", ["module @author/pkg", "@variable"], (_, v) => v.import("remote", "local", _));
+  const importRegex = /main\.define\("([^"]+)",\s*\["module\s+([^"]+)",\s*"@variable"\],\s*\([^)]+\)\s*=>\s*v\.import\(([^)]+)\)/g;
   const importsByModule = new Map();
 
   while ((match = importRegex.exec(content)) !== null) {
-    const importedName = match[1];
+    const localName = match[1];
     const moduleName = match[2];
-    const definition = `(${match[3]}) => ${match[4]}`;
+    const importArgs = match[3];
 
-    if (importedName.startsWith('module ')) continue;
+    if (localName.startsWith('module ')) continue;
+
+    // Parse import args to detect aliases: v.import("remote", "local", _) or v.import("name", _)
+    const argParts = importArgs.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+    let remoteName = localName;
+    if (argParts.length >= 3) {
+      // v.import("remote", "local", _)
+      remoteName = argParts[0];
+    }
 
     if (!importsByModule.has(moduleName)) {
       importsByModule.set(moduleName, []);
     }
-    importsByModule.get(moduleName).push({
-      _name: importedName,
-      _definition: definition,
-      _inputs: [`module ${moduleName}`, '@variable']
-    });
+    importsByModule.get(moduleName).push({ local: localName, remote: remoteName });
   }
 
   // Group: viewof X goes with X (the G.input getter)
@@ -321,12 +326,17 @@ function parseVariableGroups(content) {
     groups.push(group);
   }
 
-  // Add imports (grouped by module as single import statements)
-  for (const [, importVars] of importsByModule) {
-    groups.push(importVars);
+  // Add imports as pre-formatted OJS import statements (not variable groups).
+  // These bypass the decompiler since they're already valid OJS.
+  const preformatted = [];
+  for (const [moduleName, specs] of importsByModule) {
+    const specifiers = specs.map(({ local, remote }) =>
+      local !== remote ? `${remote} as ${local}` : local
+    ).join(',\n  ');
+    preformatted.push(`import {\n  ${specifiers}\n} from "${moduleName}"`);
   }
 
-  return groups;
+  return { groups, preformatted };
 }
 
 /**
@@ -340,116 +350,52 @@ async function decompileVariables(variableGroups, options) {
     throw new Error(`Toolchain notebook not found: ${toolchainNotebook}`);
   }
 
-  log('Loading toolchain for decompilation...');
+  log('Loading toolchain for decompilation (Node runtime)...');
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--disable-web-security'],
+  // Suppress unhandled rejections from Observable module loading errors
+  const rejectionHandler = (reason) => {
+    if (options.verbose) {
+      console.error(`[suppressed rejection] ${reason}`);
+    }
+  };
+  process.on('unhandledRejection', rejectionHandler);
+
+  // Use lope-runtime.js for decompilation — more reliable than Playwright
+  const { loadNotebook } = await import('./lope-runtime.js');
+  const verboseLog = options.verbose ? console.error : () => {};
+  const execution = await loadNotebook(toolchainNotebook, {
+    settleTimeout: 20000,
+    log: verboseLog,
+    hash: '#view=R100(S100(@tomlarkworthy/observablejs-toolchain))',
   });
-  const context = await browser.newContext();
-  const page = await context.newPage();
 
   try {
-    const fileUrl = `file://${toolchainNotebook}#view=R100(S100(@tomlarkworthy/observablejs-toolchain))`;
-    await page.goto(fileUrl, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(5000);
-
-    // Force the toolchain cells to compute by running tests briefly
-    await page.evaluate(() => {
-      const rt = window.__ojs_runtime;
-      if (!rt) throw new Error('Runtime not found');
-      // Force all variables reachable
-      for (const v of rt._variables) {
-        v._reachable = true;
-      }
-      rt._dirty = new Set(rt._variables);
-      rt._compute();
-    });
-    await page.waitForTimeout(3000);
-
-    // Verify decompile is available
-    const decompileReady = await page.evaluate(() => {
-      const vars = window.__ojs_runtime._variables;
-      const dVar = [...vars].find(v => v._name === 'decompile');
-      return dVar && dVar._value && typeof dVar._value === 'function';
-    });
-
-    if (!decompileReady) {
-      throw new Error('decompile function not ready in toolchain');
+    // Wait for decompile function to be available
+    log('Waiting for decompile function...');
+    const result = await execution.waitForVariable('decompile', 30000);
+    const decompile = result.value;
+    if (!decompile || typeof decompile !== 'function') {
+      throw new Error(`decompile function not ready in toolchain (got ${typeof decompile})`);
     }
 
     log(`Decompiling ${variableGroups.length} cell groups...`);
 
     const results = [];
-    const BATCH_SIZE = 10;
-
-    for (let i = 0; i < variableGroups.length; i += BATCH_SIZE) {
-      const batch = variableGroups.slice(i, i + BATCH_SIZE);
-
-      // Set up batch decompilation
-      await page.evaluate((batchData) => {
-        window.__decompileBatch = batchData;
-        window.__decompileResults = null;
-        window.__decompileError = null;
-
-        (async () => {
-          try {
-            const vars = window.__ojs_runtime._variables;
-            const dVar = [...vars].find(v => v._name === 'decompile');
-            const decompile = dVar._value;
-
-            const results = [];
-            for (const group of window.__decompileBatch) {
-              try {
-                const source = await decompile(group);
-                results.push({ ok: true, source });
-              } catch (e) {
-                results.push({ ok: false, error: e.message, group });
-              }
-            }
-            window.__decompileResults = results;
-          } catch (e) {
-            window.__decompileError = e.message;
-          }
-        })();
-      }, batch);
-
-      // Poll for results
-      let attempts = 0;
-      while (attempts < 30) {
-        const done = await page.evaluate(() =>
-          window.__decompileResults !== null || window.__decompileError !== null
-        );
-        if (done) break;
-        await page.waitForTimeout(200);
-        attempts++;
-      }
-
-      const batchResult = await page.evaluate(() => ({
-        results: window.__decompileResults,
-        error: window.__decompileError
-      }));
-
-      if (batchResult.error) {
-        throw new Error(`Decompile batch error: ${batchResult.error}`);
-      }
-
-      if (batchResult.results) {
-        for (const r of batchResult.results) {
-          if (r.ok) {
-            results.push(r.source);
-          } else {
-            if (options.verbose) {
-              log(`Warning: failed to decompile: ${r.error}`);
-            }
-          }
+    for (const group of variableGroups) {
+      try {
+        const source = await decompile(group);
+        results.push(source);
+      } catch (e) {
+        if (options.verbose) {
+          log(`Warning: failed to decompile: ${e.message}`);
         }
       }
     }
 
     return results;
   } finally {
-    await browser.close();
+    execution.dispose();
+    process.removeListener('unhandledRejection', rejectionHandler);
   }
 }
 
@@ -755,106 +701,102 @@ async function countCells(page) {
 }
 
 async function deleteOldCells(page, iframe, oldCount, totalCount, options) {
-  // The old cells are at the bottom (paste inserts above the selected cell).
-  // We need to:
-  // 1. Click the ⋮ menu on one of the old cells (now at the bottom)
-  // 2. Click "Select" to enter checkbox mode
-  // 3. Check all old cells (bottom N cells)
-  // 4. Delete them
+  // Strategy:
+  // 1. Enter select mode via cell menu → "Select"
+  // 2. Click "Select all" to check every cell
+  // 3. Uncheck the new cells (first N checkboxes) by clicking them
+  // 4. Delete the remaining selected (old) cells
 
-  // Find the last cell's menu button (⋮)
-  const menuButtons = page.locator('button[title*="Click for cell actions"]');
-  const menuCount = await menuButtons.count();
-  if (menuCount === 0) throw new Error('Could not find cell menu buttons');
+  const newCellCount = totalCount - oldCount;
+  log(`Deleting ${oldCount} old cells (keeping first ${newCellCount} of ${totalCount})...`);
 
-  // Click the last menu button (an old cell)
-  await menuButtons.last().click();
-  await page.waitForTimeout(500);
+  // Enter select mode: trigger via cell action menu on any cell
+  await page.evaluate(() => {
+    const btn = document.querySelector('button[title*="Click for cell actions"]');
+    if (btn) { btn.style.display = 'block'; btn.click(); }
+  });
+  await page.waitForTimeout(800);
 
-  // Click "Select" in the dropdown
-  await page.locator('text=Select').first().click();
-  await page.waitForTimeout(500);
-
-  // Now we're in checkbox selection mode.
-  // The last cell is checked. We need to check all other old cells too.
-  // Old cells are the last `oldCount` cells.
-  // New cells are the first `totalCount - oldCount` cells.
-
-  // Get all checkboxes
-  const checkboxes = page.locator('input[type="checkbox"], [role="checkbox"]');
-  let cbCount = await checkboxes.count();
-
-  // If no standard checkboxes, try the ARIA checkbox approach
-  if (cbCount === 0) {
-    // Observable uses custom checkbox elements — find them via snapshot
-    // We need to check the bottom `oldCount` checkboxes
-    // Let's use a different approach: check all, then uncheck the new ones
-
-    // First, try clicking the select-all checkbox in the toolbar
-    const selectAllBtn = page.locator('button:has-text("Select all")');
-    if (await selectAllBtn.count() > 0) {
-      await selectAllBtn.click();
-      await page.waitForTimeout(300);
-    }
+  // Click "Select" menu item to enter checkbox mode
+  const selectClicked = await page.evaluate(() => {
+    const item = document.querySelector('[data-valuetext="Select"]');
+    if (item) { item.click(); return true; }
+    return false;
+  });
+  if (!selectClicked) {
+    log('Warning: Could not find Select menu item');
+    return;
   }
+  await page.waitForTimeout(1000);
 
-  // Get fresh checkbox state — Observable uses plain checkbox elements
-  // positioned in the gutter area outside the iframe
-  const allCheckboxes = page.locator('input[type="checkbox"]');
-  cbCount = await allCheckboxes.count();
-
-  if (cbCount > 0) {
-    // Check all checkboxes first
-    for (let i = 0; i < cbCount; i++) {
-      const cb = allCheckboxes.nth(i);
-      const checked = await cb.isChecked().catch(() => false);
-      if (!checked) {
-        await cb.click();
-        await page.waitForTimeout(100);
-      }
-    }
-
-    // Uncheck the new cells (first totalCount - oldCount checkboxes)
-    const newCellCount = totalCount - oldCount;
-    for (let i = 0; i < newCellCount && i < cbCount; i++) {
-      const cb = allCheckboxes.nth(i);
-      const checked = await cb.isChecked().catch(() => true);
-      if (checked) {
-        await cb.click();
-        await page.waitForTimeout(100);
-      }
-    }
+  // Click "Select all" to check all cells
+  const selectAllBtn = page.locator('text=Select all');
+  if (await selectAllBtn.count() > 0) {
+    await selectAllBtn.first().click();
+    await page.waitForTimeout(500);
+    log('Selected all cells');
   } else {
-    // Fallback: use ARIA-based checkbox detection
-    log('Warning: Could not find standard checkboxes, trying ARIA approach...');
-
-    // Evaluate page to find and click checkboxes
-    await page.evaluate(({ oldCount, totalCount }) => {
-      const cbs = document.querySelectorAll('[role="checkbox"]');
-      const newCount = totalCount - oldCount;
-      // Check old cells (last oldCount), uncheck new cells (first newCount)
-      for (let i = 0; i < cbs.length; i++) {
-        const isOldCell = i >= newCount;
-        const isChecked = cbs[i].getAttribute('aria-checked') === 'true' ||
-                          cbs[i].classList.contains('checked');
-        if (isOldCell && !isChecked) cbs[i].click();
-        if (!isOldCell && isChecked) cbs[i].click();
+    // Try alternative: check all checkboxes manually
+    log('No "Select all" button found, checking all manually...');
+    const allCellCbs = page.locator('[id^="cell-"] input[type="checkbox"]');
+    const cbCount = await allCellCbs.count();
+    for (let i = 0; i < cbCount; i++) {
+      const cb = allCellCbs.nth(i);
+      if (!(await cb.isChecked().catch(() => false))) {
+        await cb.click();
       }
-    }, { oldCount, totalCount });
+    }
     await page.waitForTimeout(500);
   }
 
-  await page.waitForTimeout(300);
+  // Uncheck the new cells (first newCellCount cell checkboxes).
+  // Observable's cell checkboxes are inside [id^="cell-"] containers.
+  // There may also be a "select all" checkbox in a toolbar — skip it.
+  // Uncheck new cells + 1 buffer because dd also deletes the focused cell
+  const safeNewCount = newCellCount + 1;
+  log(`Unchecking first ${safeNewCount} cell checkboxes (${newCellCount} new + 1 buffer for dd focus)...`);
+  const cellCheckboxes = page.locator('[id^="cell-"] input[type="checkbox"]');
+  const cbTotal = await cellCheckboxes.count();
+  log(`Found ${cbTotal} cell checkboxes`);
+  for (let i = 0; i < Math.min(safeNewCount, cbTotal); i++) {
+    const cb = cellCheckboxes.nth(i);
+    if (await cb.isChecked().catch(() => true)) {
+      await cb.click();
+      if (i % 20 === 19) await page.waitForTimeout(100);
+    }
+  }
+  await page.waitForTimeout(500);
 
-  // Click Delete button
-  // First press D (keyboard shortcut)
-  log('Deleting old cells...');
-  await page.keyboard.press('d');
-  await page.waitForTimeout(1000);
+  // Verify selection count
+  const checkedCount = await page.evaluate(() =>
+    document.querySelectorAll('[id^="cell-"] input[type="checkbox"]:checked').length
+  );
+  log(`${checkedCount} cells selected for deletion`);
 
-  // Confirm deletion (press D again)
-  await page.keyboard.press('d');
-  await page.waitForTimeout(2000);
+  // Try the "Delete N cells" button in the selection toolbar first.
+  // Observable shows this button when cells are selected in checkbox mode.
+  const deleteBtnLocator = page.locator('button').filter({ hasText: /Delete \d+ cell/ });
+  if (await deleteBtnLocator.count() > 0) {
+    log(`Clicking "${await deleteBtnLocator.first().textContent()}"...`);
+    await deleteBtnLocator.first().click();
+    await page.waitForTimeout(1000);
+    // Confirm deletion dialog if one appears
+    const confirmBtn = page.locator('button').filter({ hasText: /Delete/i });
+    if (await confirmBtn.count() > 1) {
+      await confirmBtn.last().click();
+      await page.waitForTimeout(1000);
+    }
+  } else {
+    // Fallback: keyboard dd
+    log('No Delete button found, trying keyboard dd...');
+    await page.keyboard.press('d');
+    await page.waitForTimeout(300);
+    await page.keyboard.press('d');
+  }
+
+  // Wait for deletion
+  const waitTime = Math.min(oldCount * 50, 15000);
+  await page.waitForTimeout(waitTime);
 
   log('Old cells deleted');
 }
@@ -909,14 +851,15 @@ async function main() {
   }
 
   const moduleContent = modules.get(options.module).content;
-  let variableGroups = parseVariableGroups(moduleContent);
+  const { groups: variableGroupsRaw, preformatted: importCells } = parseVariableGroups(moduleContent);
+  let variableGroups = variableGroupsRaw;
 
-  if (variableGroups.length === 0) {
+  if (variableGroups.length === 0 && importCells.length === 0) {
     console.error('Error: No variables extracted from module');
     process.exit(1);
   }
 
-  log(`Extracted ${variableGroups.length} variable groups from ${options.module}`);
+  log(`Extracted ${variableGroups.length} variable groups + ${importCells.length} import statements from ${options.module}`);
 
   // Filter by --cells if specified
   // Track original indices for targeted deletion
@@ -948,27 +891,39 @@ async function main() {
     }
   }
 
-  // Decompile using the toolchain
-  const cells = await decompileVariables(variableGroups, options);
+  // Decompile variable groups using the toolchain
+  const decompiled = await decompileVariables(variableGroups, options);
+
+  // Combine decompiled cells + pre-formatted import statements.
+  // Prepend a sacrificial markdown cell — Observable's paste swallows the first cell
+  // when it gets merged with the target cell during paste-above.
+  const sacrificialCell = 'md`---`';
+  const cells = [sacrificialCell, ...decompiled, ...importCells];
 
   if (cells.length === 0) {
     console.error('Error: No cells produced by decompilation');
     process.exit(1);
   }
 
-  log(`Decompiled ${cells.length} cells`);
+  log(`Decompiled ${decompiled.length} cells + ${importCells.length} imports = ${cells.length} total`);
 
   if (options.dryRun) {
-    // Show variable group names alongside decompiled previews
     console.log(`\nDry run: ${cells.length} cells would be pushed\n`);
-    for (let i = 0; i < cells.length; i++) {
+    for (let i = 0; i < decompiled.length; i++) {
       const groupNames = variableGroups[i]
         ? variableGroups[i].map(v => v._name || '(anonymous)').join(', ')
         : '?';
-      const preview = cells[i].length > 100
-        ? cells[i].slice(0, 100) + '...'
-        : cells[i];
+      const preview = decompiled[i].length > 100
+        ? decompiled[i].slice(0, 100) + '...'
+        : decompiled[i];
       console.log(`  [${i + 1}] ${groupNames}`);
+      console.log(`       ${preview}`);
+    }
+    for (let i = 0; i < importCells.length; i++) {
+      const preview = importCells[i].length > 100
+        ? importCells[i].slice(0, 100) + '...'
+        : importCells[i];
+      console.log(`  [${decompiled.length + i + 1}] (import)`);
       console.log(`       ${preview}`);
     }
     if (options.cells) {
