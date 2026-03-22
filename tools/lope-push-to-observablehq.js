@@ -333,8 +333,8 @@ function parseVariableGroups(content) {
   for (const [moduleName, specs] of importsByModule) {
     const specifiers = specs.map(({ local, remote }) =>
       local !== remote ? `${remote} as ${local}` : local
-    ).join(',\n  ');
-    preformatted.push(`import {\n  ${specifiers}\n} from "${moduleName}"`);
+    ).join(', ');
+    preformatted.push(`import { ${specifiers} } from "${moduleName}"`);
   }
 
   return { groups, preformatted };
