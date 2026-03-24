@@ -543,7 +543,7 @@ try {
       }
       // Root: redirect to blank notebook with auto-connect token
       if (url.pathname === "/") {
-        const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S70(@tomlarkworthy/blank-notebook),S30(@tomlarkworthy/module-selection))&cc=${PAIRING_TOKEN}`;
+        const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=${PAIRING_TOKEN}`;
         return new Response(null, {
           status: 302,
           headers: { Location: notebookUrl },
