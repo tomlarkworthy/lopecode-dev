@@ -2,34 +2,28 @@
 
 Pair program with Claude directly from a Lopecode notebook. Chat, watch reactive variables, define cells, manipulate the DOM, run tests — all through a two-way channel between the browser and Claude Code.
 
-## Quick Start
+## Quick Start (new users)
 
-### Connection string
+```bash
+# One-time setup (requires Bun: https://bun.sh)
+bun install -g @lopecode/channel
+claude mcp add lopecode bunx @lopecode/channel
 
-Claude provides this URL when starting a session. Open it in any browser:
-
+# Start Claude Code with channels enabled
+claude --channels server:lopecode
 ```
-https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=LOPE-PORT-XXXX
-```
 
-The notebook auto-connects — no manual token paste needed.
+Then ask Claude: **"Open a lopecode notebook"**
+
+Claude gets the pairing token, opens the notebook in your browser, and auto-connects. No manual token paste needed.
 
 ### For lopecode-dev developers
 
-The `.mcp.json` at the project root is already configured:
+The `.mcp.json` at the project root is already configured. Start with:
 
-```json
-{
-  "mcpServers": {
-    "lopecode": {
-      "command": "bun",
-      "args": ["run", "tools/channel/lopecode-channel.ts"]
-    }
-  }
-}
+```bash
+claude --channels server:lopecode
 ```
-
-Use `get_pairing_token` MCP tool to retrieve the token, then open the connection URL.
 
 ## Architecture
 
