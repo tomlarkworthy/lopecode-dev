@@ -323,7 +323,6 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
         break;
       }
-        break;
       case "delete_variable":
         action = "delete-variable";
         params = { name: args.name, module: args.module || null };
