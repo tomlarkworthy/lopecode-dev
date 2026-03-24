@@ -26,7 +26,7 @@ const _cc_watches = function _cc_watches(Inputs){return(
   Inputs.input([])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, cc_watches, summarizeJS, invalidation){return(
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, cc_watches, summarizeJS, observe, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -293,21 +293,16 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     }
     if (!targetVar) return { ok: false, error: "Variable not found: " + name };
 
-    // Force reachable so it computes
-    var actualRuntime = findActualRuntime(runtime);
-    if (!targetVar._reachable && actualRuntime) {
-      targetVar._reachable = true;
-      actualRuntime._dirty.add(targetVar);
-    }
+    var moduleName = (targetVar._module && targetVar._module._name) || "main";
+    var debounceTimer = null;
+    var latestValue = undefined;
+    var latestError = undefined;
 
-    // Install observer
-    var oldObserver = targetVar._observer || {};
-    var disposed = false;
-
-    function sendUpdate(value, error) {
-      if (disposed) return;
-      var moduleName = (targetVar._module && targetVar._module._name) || "main";
-      var serialized = error ? ("Error: " + (error.message || String(error))) : serializeValue(value, 2000);
+    function flush() {
+      debounceTimer = null;
+      var serialized = latestError
+        ? ("Error: " + (latestError.message || String(latestError)))
+        : serializeValue(latestValue, 2000);
       var now = new Date().toLocaleTimeString();
 
       // Update cc_watches table
@@ -327,41 +322,42 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
       // Send over WebSocket if connected
       if (!paired || !ws) return;
       var msg = { type: "variable-update", name: name, module: moduleName };
-      if (error) { msg.error = error.message || String(error); }
+      if (latestError) { msg.error = latestError.message || String(latestError); }
       else { msg.value = serialized; }
       ws.send(JSON.stringify(msg));
     }
 
-    targetVar._observer = {
-      fulfilled: function(value) {
-        sendUpdate(value, null);
-        if (oldObserver.fulfilled) oldObserver.fulfilled(value);
-      },
-      rejected: function(error) {
-        sendUpdate(null, error);
-        if (oldObserver.rejected) oldObserver.rejected(error);
-      },
-      pending: function() {
-        if (oldObserver.pending) oldObserver.pending();
+    function scheduleUpdate(value, error) {
+      latestValue = value;
+      latestError = error;
+      if (!debounceTimer) {
+        // First update fires immediately
+        flush();
+      } else {
+        clearTimeout(debounceTimer);
       }
-    };
+      debounceTimer = setTimeout(flush, 1000);
+    }
+
+    // Use runtime-sdk observe() for clean subscription
+    var cancel = observe(targetVar, {
+      fulfilled: function(value) { scheduleUpdate(value, null); },
+      rejected: function(error) { scheduleUpdate(null, error); }
+    }, { invalidation: invalidation });
 
     watchers.set(key, {
       dispose: function() {
-        disposed = true;
-        targetVar._observer = oldObserver;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        cancel();
+        // Remove from watches table
+        var watches = cc_watches.value.filter(function(w) {
+          return !(w.name === name && w.module === moduleName);
+        });
+        cc_watches.value = watches;
+        cc_watches.dispatchEvent(new Event("input"));
         watchers.delete(key);
       }
     });
-
-    if (actualRuntime && actualRuntime._computeNow) actualRuntime._computeNow();
-
-    // Send current value immediately if available
-    if (targetVar._value !== undefined) {
-      sendUpdate(targetVar._value, null);
-    } else if (targetVar._error !== undefined) {
-      sendUpdate(null, targetVar._error);
-    }
 
     return { ok: true, result: { watching: true, key: key } };
   }
@@ -775,7 +771,7 @@ export default function define(runtime, observer) {
   main.variable(observer("cc_status")).define("cc_status", ["Inputs"], _cc_status);
   main.variable(observer("cc_messages")).define("cc_messages", ["Inputs"], _cc_messages);
   main.variable(observer("cc_watches")).define("cc_watches", ["Inputs"], _cc_watches);
-  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "cc_watches", "summarizeJS", "invalidation"], _cc_ws);
+  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "cc_watches", "summarizeJS", "observe", "invalidation"], _cc_ws);
   main.variable(observer("cc_change_forwarder")).define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
   main.variable(observer("cc_watch_table")).define("cc_watch_table", ["cc_watches", "Inputs"], _cc_watch_table);
   main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
