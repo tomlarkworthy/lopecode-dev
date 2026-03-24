@@ -49,12 +49,36 @@ Browser (Notebook)  ←→  WebSocket  ←→  Channel Server (Bun)  ←→  MCP
 
 Each server session generates a single-use token (`LOPE-XXXX`). The same token pairs all notebooks in that session. Token is validated on the first WebSocket message only.
 
-1. Server prints token to stderr
+1. Server prints token to stderr (also retrievable via `get_pairing_token` MCP tool)
 2. Claude shows it to the user
 3. User pastes into notebook chat widget
 4. Widget sends `{type: "pair", token, url, title}` over WebSocket
 5. Server validates and sends `{type: "paired", notebook_id}`
 6. Claude receives a `connected` notification
+
+### Auto-connect via hash URL
+
+The pairing token can be embedded in the notebook's hash URL using the `cc=` parameter. This enables:
+- **Programmatic reconnection**: Claude can set the hash and reload the page to force a reconnect with the new token
+- **Bookmarkable sessions**: Users can bookmark a URL with the token for quick reconnection
+
+Example hash: `#view=R100(S53(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-channels))&cc=LOPE-XXXX`
+
+The `cc=` parameter is parsed from the hash fragment using `&` as the separator (not `?`, which doesn't work inside hash fragments). The `@tomlarkworthy/claude-channels` module auto-connects on load when it finds this parameter.
+
+**Claude can trigger a reload with auto-connect** using `eval_code`:
+```javascript
+var hash = location.hash;
+if (hash.includes('cc=')) {
+  hash = hash.replace(/cc=[^&)]+/, 'cc=NEW-TOKEN');
+} else {
+  hash = hash + '&cc=NEW-TOKEN';
+}
+location.hash = hash;
+location.reload();
+```
+
+This is useful when the notebook needs to reload (e.g., after module code changes) — Claude can inject the token and reload in one step, avoiding manual re-pairing.
 
 ## Available MCP Tools
 
@@ -68,12 +92,50 @@ Each server session generates a single-use token (`LOPE-XXXX`). The same token p
 | `run_tests` | Run `test_*` variables | `filter?`, `timeout?` |
 | `eval_code` | Evaluate JS in browser context | `code` |
 | `fork_notebook` | Self-serialize to sibling HTML | `suffix?` |
+| `watch_variable` | Subscribe to reactive updates | `name`, `module?`, `notebook_id?` |
+| `unwatch_variable` | Unsubscribe from a variable | `name`, `module?`, `notebook_id?` |
+| `get_pairing_token` | Returns the session pairing token | — |
 
 When only one notebook is connected, `notebook_id` can be omitted.
 
+## Variable Watching
+
+Claude can subscribe to reactive variable updates using `watch_variable`. When the variable's value changes in the Observable runtime, a notification is pushed automatically.
+
+```
+watch_variable(name: "currentModules", module: "@tomlarkworthy/module-map")
+```
+
+Updates arrive as channel notifications:
+```
+<channel source="lopecode" type="variable_update" notebook="file:///..." name="currentModules" module="@tomlarkworthy/module-map">
+serialized value (via summarizeJS, truncated to 2000 chars)
+</channel>
+```
+
+Use `unwatch_variable` to stop receiving updates. All watches are automatically cleaned up on disconnect.
+
+### How it works
+
+1. `watch_variable` MCP tool sends a `watch` command to the notebook
+2. Notebook installs an observer on the runtime variable via `_observer`
+3. Forces the variable reachable if needed (so it computes)
+4. On each `fulfilled`/`rejected` callback, sends a `variable-update` WebSocket message
+5. Channel server forwards it as a `notifications/claude/channel` notification
+6. Current value is sent immediately if already available
+
 ## Injecting Cells into a Notebook
 
-The cells are defined in `tools/channel/cells.ts`. They can be injected programmatically using `define-variable`:
+The module is defined in `tools/channel/claude-channels-module.js`. It can be injected into a notebook HTML using `tools/channel/inject-module.js`.
+
+### Module imports
+
+The claude-channels module imports from these dependencies:
+- `@tomlarkworthy/module-map` → `currentModules`, `moduleMap`
+- `@tomlarkworthy/runtime-sdk` → `runtime_variables`, `observe`
+- `@tomlarkworthy/summarizejs` → `summarizeJS` (used for value serialization)
+
+### Cells
 
 | Cell | Inputs | Purpose |
 |------|--------|---------|
@@ -81,7 +143,7 @@ The cells are defined in `tools/channel/cells.ts`. They can be injected programm
 | `cc_notebook_id` | — | `location.href` |
 | `cc_status` | `Inputs` | Reactive status: disconnected/connecting/pairing/connected |
 | `cc_messages` | `Inputs` | Reactive message array |
-| `cc_ws` | `cc_config`, `cc_notebook_id`, `cc_status`, `cc_messages`, `invalidation` | WebSocket connection + command handler |
+| `cc_ws` | `cc_config`, `cc_notebook_id`, `cc_status`, `cc_messages`, `summarizeJS`, `invalidation` | WebSocket connection + command handler |
 | `cc_change_forwarder` | `cc_ws`, `invalidation` | Polls `history` variable, forwards cell changes |
 | `cc_chat` | `cc_messages`, `cc_status`, `cc_ws`, `md`, `htl`, `Inputs` | Chat widget UI |
 

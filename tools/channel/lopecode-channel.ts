@@ -73,8 +73,14 @@ Notebook lifecycle events:
   <channel source="lopecode" type="connected" notebook="file:///...">notebook title</channel>
   <channel source="lopecode" type="disconnected" notebook="file:///...">notebook title</channel>
 
+Variable update events arrive when watching a variable:
+  <channel source="lopecode" type="variable_update" notebook="file:///..." name="varName" module="@author/mod">
+  serialized value
+  </channel>
+
 Use the reply tool to send messages back to a specific notebook's chat widget.
 Use define_variable, get_variable, run_tests, list_variables, eval_code to interact with notebook runtimes.
+Use watch_variable/unwatch_variable to subscribe to reactive variable updates.
 Use fork_notebook to create a safe copy for experimentation.
 
 When multiple notebooks are connected, always specify which one via notebook_id (the URL).
@@ -123,6 +129,11 @@ function sendCommand(
 // --- MCP Tools ---
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
+    {
+      name: "get_pairing_token",
+      description: "Returns the pairing token needed to connect a notebook to this channel session.",
+      inputSchema: { type: "object", properties: {} },
+    },
     {
       name: "reply",
       description: "Send a markdown message to a notebook's chat widget.",
@@ -226,12 +237,43 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
       },
     },
+    {
+      name: "watch_variable",
+      description: "Subscribe to reactive updates for a variable. Changes are pushed as notifications.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          name: { type: "string", description: "Variable name to watch" },
+          module: { type: "string", description: "Module name (optional, defaults to main)" },
+        },
+        required: ["name"],
+      },
+    },
+    {
+      name: "unwatch_variable",
+      description: "Unsubscribe from a watched variable.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          name: { type: "string", description: "Variable name to unwatch" },
+          module: { type: "string", description: "Module name (optional)" },
+        },
+        required: ["name"],
+      },
+    },
   ],
 }));
 
 mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
   const args = (req.params.arguments ?? {}) as Record<string, unknown>;
   try {
+    // get_pairing_token needs no notebook connection
+    if (req.params.name === "get_pairing_token") {
+      return { content: [{ type: "text", text: PAIRING_TOKEN }] };
+    }
+
     const notebookId = args.notebook_id as string | undefined;
 
     // reply is fire-and-forget to the WebSocket
@@ -285,6 +327,14 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "fork";
         timeout = 120000;
         params = { suffix: args.suffix || null };
+        break;
+      case "watch_variable":
+        action = "watch";
+        params = { name: args.name, module: args.module || null };
+        break;
+      case "unwatch_variable":
+        action = "unwatch";
+        params = { name: args.name, module: args.module || null };
         break;
       default:
         return { content: [{ type: "text", text: `Unknown tool: ${req.params.name}` }], isError: true };
@@ -402,6 +452,27 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
           },
         });
       }
+      break;
+    }
+
+    case "variable-update": {
+      const notebookUrl = wsBySocket.get(ws);
+      if (!notebookUrl) return;
+      void mcp.notification({
+        method: "notifications/claude/channel",
+        params: {
+          content: msg.error
+            ? `Error: ${msg.error}`
+            : (typeof msg.value === "string" ? msg.value : JSON.stringify(msg.value)),
+          meta: {
+            type: "variable_update",
+            notebook: notebookUrl,
+            name: msg.name || "",
+            module: msg.module || "",
+            ...(msg.error ? { error: true } : {}),
+          },
+        },
+      });
       break;
     }
 

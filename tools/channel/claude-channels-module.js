@@ -22,7 +22,7 @@ const _cc_messages = function _cc_messages(Inputs){return(
   Inputs.input([])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, invalidation){return(
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, summarizeJS, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -30,27 +30,12 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
 
   function serializeValue(value, maxLen) {
     maxLen = maxLen || 500;
-    if (value === undefined) return "undefined";
-    if (value === null) return "null";
-    if (value instanceof Error) return "Error: " + value.message;
-    if (typeof value === "function") return value.toString().slice(0, maxLen);
-    if (value instanceof HTMLElement) {
-      return "<" + value.tagName.toLowerCase() + "> (" + value.outerHTML.slice(0, 100) + "...)";
-    }
-    if (typeof value === "object") {
-      try { return JSON.stringify(value, null, 2).slice(0, maxLen); }
-      catch(e) { return String(value); }
-    }
-    return String(value).slice(0, maxLen);
+    try { return String(summarizeJS(value)).slice(0, maxLen); }
+    catch(e) { return String(value).slice(0, maxLen); }
   }
 
   function findModule(runtime, moduleName) {
-    if (!moduleName) {
-      for (var v of runtime._variables) {
-        if (v._module) return v._module;
-      }
-      return null;
-    }
+    if (!moduleName) return null; // no module filter — match any module
     for (var v of runtime._variables) {
       if (v._module && v._module._name === moduleName) return v._module;
       if (v._name && v._name.startsWith("module ") && v._name === "module " + moduleName)
@@ -142,7 +127,7 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
 
       case "list-variables": {
         var moduleName = cmd.params.module;
-        var targetModule = moduleName ? findModule(runtime, moduleName) : null;
+        var targetModule = findModule(runtime, moduleName);
         var variables = [];
         for (var v of runtime._variables) {
           if (!v._name) continue;
@@ -177,6 +162,18 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
 
       case "fork": {
         return handleFork(runtime);
+      }
+
+      case "watch": {
+        return watchVariable(runtime, cmd.params.name, cmd.params.module);
+      }
+
+      case "unwatch": {
+        return unwatchVariable(cmd.params.name, cmd.params.module);
+      }
+
+      case "unwatch-all": {
+        return unwatchAll();
       }
 
       default:
@@ -273,6 +270,99 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         outerResolve({ ok: true, result: { tests: tests, summary: { total: tests.length, passed: passed, failed: failed, timeout: timeoutCount } } });
       });
     });
+  }
+
+  // --- Variable watching ---
+  var watchers = new Map(); // key: "module:name" -> { dispose: function }
+
+  function watchVariable(runtime, name, moduleName) {
+    var key = (moduleName || "main") + ":" + name;
+    if (watchers.has(key)) return { ok: true, result: { already_watching: true, key: key } };
+
+    var targetModule = findModule(runtime, moduleName);
+    var targetVar = null;
+    for (var v of runtime._variables) {
+      if (v._name === name && (!targetModule || v._module === targetModule)) {
+        targetVar = v;
+        break;
+      }
+    }
+    if (!targetVar) return { ok: false, error: "Variable not found: " + name };
+
+    // Force reachable so it computes
+    var actualRuntime = findActualRuntime(runtime);
+    if (!targetVar._reachable && actualRuntime) {
+      targetVar._reachable = true;
+      actualRuntime._dirty.add(targetVar);
+    }
+
+    // Install observer
+    var oldObserver = targetVar._observer || {};
+    var disposed = false;
+
+    function sendUpdate(value, error) {
+      if (disposed || !paired || !ws) return;
+      var msg = {
+        type: "variable-update",
+        name: name,
+        module: (targetVar._module && targetVar._module._name) || "main"
+      };
+      if (error) {
+        msg.error = error.message || String(error);
+      } else {
+        msg.value = serializeValue(value, 2000);
+      }
+      ws.send(JSON.stringify(msg));
+    }
+
+    targetVar._observer = {
+      fulfilled: function(value) {
+        sendUpdate(value, null);
+        if (oldObserver.fulfilled) oldObserver.fulfilled(value);
+      },
+      rejected: function(error) {
+        sendUpdate(null, error);
+        if (oldObserver.rejected) oldObserver.rejected(error);
+      },
+      pending: function() {
+        if (oldObserver.pending) oldObserver.pending();
+      }
+    };
+
+    watchers.set(key, {
+      dispose: function() {
+        disposed = true;
+        targetVar._observer = oldObserver;
+        watchers.delete(key);
+      }
+    });
+
+    if (actualRuntime && actualRuntime._computeNow) actualRuntime._computeNow();
+
+    // Send current value immediately if available
+    if (targetVar._value !== undefined) {
+      sendUpdate(targetVar._value, null);
+    } else if (targetVar._error !== undefined) {
+      sendUpdate(null, targetVar._error);
+    }
+
+    return { ok: true, result: { watching: true, key: key } };
+  }
+
+  function unwatchVariable(name, moduleName) {
+    var key = (moduleName || "main") + ":" + name;
+    var watcher = watchers.get(key);
+    if (!watcher) return { ok: false, error: "Not watching: " + key };
+    watcher.dispose();
+    return { ok: true, result: { unwatched: true, key: key } };
+  }
+
+  function unwatchAll() {
+    var keys = Array.from(watchers.keys());
+    for (var i = 0; i < keys.length; i++) {
+      watchers.get(keys[i]).dispose();
+    }
+    return { ok: true, result: { unwatched_all: true, count: keys.length } };
   }
 
   function handleFork(runtime) {
@@ -390,6 +480,18 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
 
     ws.onerror = function() {};
   }
+
+  // Auto-connect if cc=TOKEN is in the hash fragment
+  // Hash format: #view=R100(...)&cc=LOPE-XXXX
+  (function autoConnect() {
+    var hash = location.hash || "";
+    var match = hash.match(/[&?]cc=([A-Z0-9-]+)/);
+    if (match) {
+      var token = match[1];
+      // Small delay to let the WebSocket server be ready
+      setTimeout(function() { connect(token); }, 500);
+    }
+  })();
 
   invalidation.then(function() {
     if (ws) { ws.close(); ws = null; }
@@ -616,11 +718,27 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
 
 export default function define(runtime, observer) {
   const main = runtime.module();
+
+  // Import from @tomlarkworthy/module-map
+  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
+  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
+  main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));
+
+  // Import from @tomlarkworthy/runtime-sdk
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
+  main.define("viewof runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("viewof runtime_variables", _));
+  main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
+  main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
+
+  // Import from @tomlarkworthy/summarizejs
+  main.define("module @tomlarkworthy/summarizejs", async () => runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));
+  main.define("summarizeJS", ["module @tomlarkworthy/summarizejs", "@variable"], (_, v) => v.import("summarizeJS", _));
+
   main.variable(observer("cc_config")).define("cc_config", [], _cc_config);
   main.variable(observer("cc_notebook_id")).define("cc_notebook_id", [], _cc_notebook_id);
   main.variable(observer("cc_status")).define("cc_status", ["Inputs"], _cc_status);
   main.variable(observer("cc_messages")).define("cc_messages", ["Inputs"], _cc_messages);
-  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "invalidation"], _cc_ws);
+  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "summarizeJS", "invalidation"], _cc_ws);
   main.variable(observer("cc_change_forwarder")).define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
   main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
   return main;
