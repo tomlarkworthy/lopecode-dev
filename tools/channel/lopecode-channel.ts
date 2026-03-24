@@ -16,9 +16,11 @@ import type { ServerWebSocket } from "bun";
 import { join, dirname, basename } from "path";
 
 // --- Configuration ---
-const PORT = Number(process.env.LOPECODE_PORT ?? 8787);
+const BASE_PORT = Number(process.env.LOPECODE_PORT ?? 8787);
+const PORT_RANGE = 10; // try BASE_PORT through BASE_PORT + PORT_RANGE - 1
+let PORT = BASE_PORT;
 
-// --- Pairing token ---
+// --- Pairing token (generated after port binding) ---
 function generateToken(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1
   let code = "";
@@ -26,7 +28,7 @@ function generateToken(): string {
   return `LOPE-${PORT}-${code}`;
 }
 
-const PAIRING_TOKEN = generateToken();
+let PAIRING_TOKEN = "";
 
 // --- State ---
 type ConnectionMeta = { url: string; title: string; modules?: string[] };
@@ -533,10 +535,10 @@ function handleWsClose(ws: ServerWebSocket<unknown>) {
 // sees the channel capability during the initialization handshake)
 await mcp.connect(new StdioServerTransport());
 
-// Start WebSocket + HTTP server
-try {
-  Bun.serve({
-    port: PORT,
+// Start WebSocket + HTTP server — try ports in range
+function createServer(port: number) {
+  return Bun.serve({
+    port,
     hostname: "127.0.0.1",
     fetch(req, server) {
       const url = new URL(req.url);
@@ -544,14 +546,12 @@ try {
         if (server.upgrade(req)) return;
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
-      // Health check
       if (url.pathname === "/health") {
         return new Response(JSON.stringify({
           paired: pairedConnections.size,
           pending: pendingConnections.size,
         }), { headers: { "content-type": "application/json" } });
       }
-      // Root: redirect to blank notebook with auto-connect token
       if (url.pathname === "/") {
         const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=${PAIRING_TOKEN}`;
         return new Response(null, {
@@ -569,18 +569,30 @@ try {
       close: handleWsClose,
     },
   });
-} catch (err) {
-  const msg = err instanceof Error ? err.message : String(err);
-  if (msg.includes("EADDRINUSE") || msg.includes("address already in use") || msg.includes("port") && msg.includes("in use")) {
-    process.stderr.write(
-      `lopecode-channel: ERROR — port ${PORT} is already in use.\n` +
-      `Another lopecode-channel or other service is running on this port.\n` +
-      `Kill the existing process or set LOPECODE_PORT=<other port>.\n`
-    );
-    process.exit(1);
-  }
-  throw err;
 }
 
+let bound = false;
+for (let i = 0; i < PORT_RANGE; i++) {
+  PORT = BASE_PORT + i;
+  try {
+    createServer(PORT);
+    bound = true;
+    break;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isPortBusy = msg.includes("EADDRINUSE") || msg.includes("address already in use") || (msg.includes("port") && msg.includes("in use"));
+    if (!isPortBusy || i === PORT_RANGE - 1) {
+      if (isPortBusy) {
+        process.stderr.write(
+          `lopecode-channel: ERROR — ports ${BASE_PORT}-${BASE_PORT + PORT_RANGE - 1} are all in use.\n`
+        );
+        process.exit(1);
+      }
+      throw err;
+    }
+  }
+}
+
+PAIRING_TOKEN = generateToken();
 process.stderr.write(`lopecode-channel: pairing token: ${PAIRING_TOKEN}\n`);
 process.stderr.write(`lopecode-channel: WebSocket server on ws://127.0.0.1:${PORT}/ws\n`);
