@@ -747,34 +747,31 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
 export default function define(runtime, observer) {
   const main = runtime.module();
 
-  // Import from @tomlarkworthy/module-map
+  // Visual cells first (controls render order)
+  main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
+  main.variable(observer("cc_watch_table")).define("cc_watch_table", ["cc_watches", "Inputs"], _cc_watch_table);
+
+  // Internal cells (no observer = no DOM output)
+  main.variable().define("cc_config", [], _cc_config);
+  main.variable().define("cc_notebook_id", [], _cc_notebook_id);
+  main.variable().define("cc_status", ["Inputs"], _cc_status);
+  main.variable().define("cc_messages", ["Inputs"], _cc_messages);
+  main.variable().define("viewof cc_watches", ["Inputs"], _cc_watches);
+  main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
+  main.variable().define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "viewof cc_watches", "summarizeJS", "observe", "invalidation"], _cc_ws);
+  main.variable().define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
+
+  // Imports (at bottom — no visual output)
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
   main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
   main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));
-
-  // Import from @tomlarkworthy/runtime-sdk
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
   main.define("viewof runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("viewof runtime_variables", _));
   main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
   main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
-
-  // Import hash (page URL/layout state) from d/57d79353bac56631@44
   main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));
   main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));
-
-  // Import from @tomlarkworthy/summarizejs
   main.define("module @tomlarkworthy/summarizejs", async () => runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));
   main.define("summarizeJS", ["module @tomlarkworthy/summarizejs", "@variable"], (_, v) => v.import("summarizeJS", _));
-
-  main.variable(observer("cc_config")).define("cc_config", [], _cc_config);
-  main.variable(observer("cc_notebook_id")).define("cc_notebook_id", [], _cc_notebook_id);
-  main.variable(observer("cc_status")).define("cc_status", ["Inputs"], _cc_status);
-  main.variable(observer("cc_messages")).define("cc_messages", ["Inputs"], _cc_messages);
-  main.variable(observer("viewof cc_watches")).define("viewof cc_watches", ["Inputs"], _cc_watches);
-  main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
-  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "viewof cc_watches", "summarizeJS", "observe", "invalidation"], _cc_ws);
-  main.variable(observer("cc_change_forwarder")).define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
-  main.variable(observer("cc_watch_table")).define("cc_watch_table", ["cc_watches", "Inputs"], _cc_watch_table);
-  main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
   return main;
 }
