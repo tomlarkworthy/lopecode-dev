@@ -26,7 +26,7 @@ const _cc_watches = function _cc_watches(Inputs){return(
   Inputs.input([])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, cc_watches, summarizeJS, observe, invalidation){return(
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -306,7 +306,7 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
       var now = new Date().toLocaleTimeString();
 
       // Update cc_watches table
-      var watches = cc_watches.value.slice();
+      var watches = viewof_cc_watches.value.slice();
       var found = false;
       for (var i = 0; i < watches.length; i++) {
         if (watches[i].name === name && watches[i].module === moduleName) {
@@ -316,8 +316,8 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         }
       }
       if (!found) watches.push({ name: name, module: moduleName, value: serialized.slice(0, 200), updated: now });
-      cc_watches.value = watches;
-      cc_watches.dispatchEvent(new Event("input"));
+      viewof_cc_watches.value = watches;
+      viewof_cc_watches.dispatchEvent(new Event("input"));
 
       // Send over WebSocket if connected
       if (!paired || !ws) return;
@@ -350,11 +350,11 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         if (debounceTimer) clearTimeout(debounceTimer);
         cancel();
         // Remove from watches table
-        var watches = cc_watches.value.filter(function(w) {
+        var watches = viewof_cc_watches.value.filter(function(w) {
           return !(w.name === name && w.module === moduleName);
         });
-        cc_watches.value = watches;
-        cc_watches.dispatchEvent(new Event("input"));
+        viewof_cc_watches.value = watches;
+        viewof_cc_watches.dispatchEvent(new Event("input"));
         watchers.delete(key);
       }
     });
@@ -770,8 +770,9 @@ export default function define(runtime, observer) {
   main.variable(observer("cc_notebook_id")).define("cc_notebook_id", [], _cc_notebook_id);
   main.variable(observer("cc_status")).define("cc_status", ["Inputs"], _cc_status);
   main.variable(observer("cc_messages")).define("cc_messages", ["Inputs"], _cc_messages);
-  main.variable(observer("cc_watches")).define("cc_watches", ["Inputs"], _cc_watches);
-  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "cc_watches", "summarizeJS", "observe", "invalidation"], _cc_ws);
+  main.variable(observer("viewof cc_watches")).define("viewof cc_watches", ["Inputs"], _cc_watches);
+  main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
+  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "viewof cc_watches", "summarizeJS", "observe", "invalidation"], _cc_ws);
   main.variable(observer("cc_change_forwarder")).define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
   main.variable(observer("cc_watch_table")).define("cc_watch_table", ["cc_watches", "Inputs"], _cc_watch_table);
   main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
