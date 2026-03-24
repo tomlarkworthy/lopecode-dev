@@ -143,10 +143,10 @@ Use `realize` from `@tomlarkworthy/runtime-sdk` to create cells. Do NOT manually
 Use the runtime-sdk or `delete_variable` MCP tool. Target the correct module via `runtime.mains.get(moduleName)`.
 
 ### 5. Create/import a module
-Use module-selection UI (guide user to click in the module-selection panel) or programmatic import via the runtime.
+Guide the user to use the module-selection panel. New modules must be fetched from Observable and embedded — this requires the module-selection UI. Claude can open the panel via hash: `&open=@tomlarkworthy/module-selection`.
 
 ### 6. Delete/remove a module
-Guide user via module-selection UI.
+Guide the user to use the module-selection panel. Programmatic module deletion is fragile and risks cascading side effects.
 
 ### 7. Move a cell
 Not yet supported programmatically. Guide user to use the editor.
