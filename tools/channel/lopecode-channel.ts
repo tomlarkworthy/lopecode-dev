@@ -16,9 +16,8 @@ import type { ServerWebSocket } from "bun";
 import { join, dirname, basename } from "path";
 
 // --- Configuration ---
-const BASE_PORT = Number(process.env.LOPECODE_PORT ?? 8787);
-const PORT_RANGE = 10; // try BASE_PORT through BASE_PORT + PORT_RANGE - 1
-let PORT = BASE_PORT;
+const REQUESTED_PORT = Number(process.env.LOPECODE_PORT ?? 0); // 0 = OS picks a free port
+let PORT = REQUESTED_PORT;
 
 // --- Pairing token (generated after port binding) ---
 function generateToken(): string {
@@ -535,64 +534,41 @@ function handleWsClose(ws: ServerWebSocket<unknown>) {
 // sees the channel capability during the initialization handshake)
 await mcp.connect(new StdioServerTransport());
 
-// Start WebSocket + HTTP server — try ports in range
-function createServer(port: number) {
-  return Bun.serve({
-    port,
-    hostname: "127.0.0.1",
-    fetch(req, server) {
-      const url = new URL(req.url);
-      if (url.pathname === "/ws") {
-        if (server.upgrade(req)) return;
-        return new Response("WebSocket upgrade failed", { status: 400 });
-      }
-      if (url.pathname === "/health") {
-        return new Response(JSON.stringify({
-          paired: pairedConnections.size,
-          pending: pendingConnections.size,
-        }), { headers: { "content-type": "application/json" } });
-      }
-      if (url.pathname === "/") {
-        const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=${PAIRING_TOKEN}`;
-        return new Response(null, {
-          status: 302,
-          headers: { Location: notebookUrl },
-        });
-      }
-      return new Response("lopecode-channel", { status: 200 });
-    },
-    websocket: {
-      open(ws) {
-        pendingConnections.add(ws);
-      },
-      message: handleWsMessage,
-      close: handleWsClose,
-    },
-  });
-}
-
-let bound = false;
-for (let i = 0; i < PORT_RANGE; i++) {
-  PORT = BASE_PORT + i;
-  try {
-    createServer(PORT);
-    bound = true;
-    break;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const isPortBusy = msg.includes("EADDRINUSE") || msg.includes("address already in use") || (msg.includes("port") && msg.includes("in use"));
-    if (!isPortBusy || i === PORT_RANGE - 1) {
-      if (isPortBusy) {
-        process.stderr.write(
-          `lopecode-channel: ERROR — ports ${BASE_PORT}-${BASE_PORT + PORT_RANGE - 1} are all in use.\n`
-        );
-        process.exit(1);
-      }
-      throw err;
+// Start WebSocket + HTTP server
+const server = Bun.serve({
+  port: REQUESTED_PORT,
+  hostname: "127.0.0.1",
+  fetch(req, server) {
+    const url = new URL(req.url);
+    if (url.pathname === "/ws") {
+      if (server.upgrade(req)) return;
+      return new Response("WebSocket upgrade failed", { status: 400 });
     }
-  }
-}
+    if (url.pathname === "/health") {
+      return new Response(JSON.stringify({
+        paired: pairedConnections.size,
+        pending: pendingConnections.size,
+      }), { headers: { "content-type": "application/json" } });
+    }
+    if (url.pathname === "/") {
+      const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=${PAIRING_TOKEN}`;
+      return new Response(null, {
+        status: 302,
+        headers: { Location: notebookUrl },
+      });
+    }
+    return new Response("lopecode-channel", { status: 200 });
+  },
+  websocket: {
+    open(ws) {
+      pendingConnections.add(ws);
+    },
+    message: handleWsMessage,
+    close: handleWsClose,
+  },
+});
 
+PORT = server.port; // read actual port (important when REQUESTED_PORT is 0)
 PAIRING_TOKEN = generateToken();
 process.stderr.write(`lopecode-channel: pairing token: ${PAIRING_TOKEN}\n`);
 process.stderr.write(`lopecode-channel: WebSocket server on ws://127.0.0.1:${PORT}/ws\n`);
