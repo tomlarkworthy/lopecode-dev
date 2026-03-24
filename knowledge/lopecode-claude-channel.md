@@ -134,6 +134,7 @@ The claude-channels module imports from these dependencies:
 - `@tomlarkworthy/module-map` → `currentModules`, `moduleMap`
 - `@tomlarkworthy/runtime-sdk` → `runtime_variables`, `observe`
 - `@tomlarkworthy/summarizejs` → `summarizeJS` (used for value serialization)
+- `d/57d79353bac56631@44` → `hash` (reactive page URL/layout state)
 
 ### Cells
 

@@ -22,7 +22,11 @@ const _cc_messages = function _cc_messages(Inputs){return(
   Inputs.input([])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, summarizeJS, invalidation){return(
+const _cc_watches = function _cc_watches(Inputs){return(
+  Inputs.input([])
+)};
+
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, cc_watches, summarizeJS, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -301,17 +305,30 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     var disposed = false;
 
     function sendUpdate(value, error) {
-      if (disposed || !paired || !ws) return;
-      var msg = {
-        type: "variable-update",
-        name: name,
-        module: (targetVar._module && targetVar._module._name) || "main"
-      };
-      if (error) {
-        msg.error = error.message || String(error);
-      } else {
-        msg.value = serializeValue(value, 2000);
+      if (disposed) return;
+      var moduleName = (targetVar._module && targetVar._module._name) || "main";
+      var serialized = error ? ("Error: " + (error.message || String(error))) : serializeValue(value, 2000);
+      var now = new Date().toLocaleTimeString();
+
+      // Update cc_watches table
+      var watches = cc_watches.value.slice();
+      var found = false;
+      for (var i = 0; i < watches.length; i++) {
+        if (watches[i].name === name && watches[i].module === moduleName) {
+          watches[i] = { name: name, module: moduleName, value: serialized.slice(0, 200), updated: now };
+          found = true;
+          break;
+        }
       }
+      if (!found) watches.push({ name: name, module: moduleName, value: serialized.slice(0, 200), updated: now });
+      cc_watches.value = watches;
+      cc_watches.dispatchEvent(new Event("input"));
+
+      // Send over WebSocket if connected
+      if (!paired || !ws) return;
+      var msg = { type: "variable-update", name: name, module: moduleName };
+      if (error) { msg.error = error.message || String(error); }
+      else { msg.value = serialized; }
       ws.send(JSON.stringify(msg));
     }
 
@@ -432,6 +449,13 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
             modules: modules,
             hash: location.hash
           }));
+
+          // Auto-watch default variables
+          var runtime2 = window.__ojs_runtime;
+          if (runtime2) {
+            watchVariable(runtime2, "hash", null);
+            watchVariable(runtime2, "currentModules", null);
+          }
           break;
 
         case "pair-failed":
@@ -499,6 +523,14 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
 
   return { connect: connect, get paired() { return paired; }, get ws() { return ws; } };
 })()
+)};
+
+const _cc_watch_table = function _cc_watch_table(cc_watches, Inputs){return(
+  Inputs.table(cc_watches, {
+    columns: ["name", "module", "value", "updated"],
+    header: { name: "Variable", module: "Module", value: "Value", updated: "Updated" },
+    width: { name: 120, module: 140, value: 300, updated: 80 }
+  })
 )};
 
 const _cc_change_forwarder = function _cc_change_forwarder(cc_ws, invalidation){return(
@@ -730,6 +762,10 @@ export default function define(runtime, observer) {
   main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
   main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
 
+  // Import hash (page URL/layout state) from d/57d79353bac56631@44
+  main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));
+  main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));
+
   // Import from @tomlarkworthy/summarizejs
   main.define("module @tomlarkworthy/summarizejs", async () => runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));
   main.define("summarizeJS", ["module @tomlarkworthy/summarizejs", "@variable"], (_, v) => v.import("summarizeJS", _));
@@ -738,8 +774,10 @@ export default function define(runtime, observer) {
   main.variable(observer("cc_notebook_id")).define("cc_notebook_id", [], _cc_notebook_id);
   main.variable(observer("cc_status")).define("cc_status", ["Inputs"], _cc_status);
   main.variable(observer("cc_messages")).define("cc_messages", ["Inputs"], _cc_messages);
-  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "summarizeJS", "invalidation"], _cc_ws);
+  main.variable(observer("cc_watches")).define("cc_watches", ["Inputs"], _cc_watches);
+  main.variable(observer("cc_ws")).define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "cc_watches", "summarizeJS", "invalidation"], _cc_ws);
   main.variable(observer("cc_change_forwarder")).define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
+  main.variable(observer("cc_watch_table")).define("cc_watch_table", ["cc_watches", "Inputs"], _cc_watch_table);
   main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
   return main;
 }
