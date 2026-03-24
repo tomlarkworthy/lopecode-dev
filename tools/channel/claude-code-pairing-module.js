@@ -746,22 +746,26 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
 
 export default function define(runtime, observer) {
   const main = runtime.module();
+  const $def = (pid, name, deps, fn) => {
+    main.variable(observer(name)).define(name, deps, fn).pid = pid;
+  };
+  const module_name = "@tomlarkworthy/claude-code-pairing";
 
   // Visual cells first (controls render order)
-  main.variable(observer("cc_chat")).define("cc_chat", ["cc_messages", "cc_status", "cc_ws", "md", "htl", "Inputs"], _cc_chat);
-  main.variable(observer("cc_watch_table")).define("cc_watch_table", ["cc_watches", "Inputs"], _cc_watch_table);
+  $def("_cc_chat", "cc_chat", ["cc_messages","cc_status","cc_ws","md","htl","Inputs"], _cc_chat);
+  $def("_cc_watch_table", "cc_watch_table", ["cc_watches","Inputs"], _cc_watch_table);
 
-  // Internal cells (no observer = no DOM output)
-  main.variable().define("cc_config", [], _cc_config);
-  main.variable().define("cc_notebook_id", [], _cc_notebook_id);
-  main.variable().define("cc_status", ["Inputs"], _cc_status);
-  main.variable().define("cc_messages", ["Inputs"], _cc_messages);
-  main.variable().define("viewof cc_watches", ["Inputs"], _cc_watches);
+  // Internal cells
+  $def("_cc_config", "cc_config", [], _cc_config);
+  $def("_cc_notebook_id", "cc_notebook_id", [], _cc_notebook_id);
+  $def("_cc_status", "cc_status", ["Inputs"], _cc_status);
+  $def("_cc_messages", "cc_messages", ["Inputs"], _cc_messages);
+  $def("_cc_watches", "viewof cc_watches", ["Inputs"], _cc_watches);
   main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
-  main.variable().define("cc_ws", ["cc_config", "cc_notebook_id", "cc_status", "cc_messages", "viewof cc_watches", "summarizeJS", "observe", "invalidation"], _cc_ws);
-  main.variable().define("cc_change_forwarder", ["cc_ws", "invalidation"], _cc_change_forwarder);
+  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","invalidation"], _cc_ws);
+  $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","invalidation"], _cc_change_forwarder);
 
-  // Imports (at bottom — no visual output)
+  // Imports
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
   main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
   main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));
