@@ -1,7 +1,38 @@
 {
   "name": "lopecode-channel",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "description": "Pair program with Claude inside Lopecode notebooks. MCP server bridging browser notebooks and Claude Code.",
   "type": "module",
+  "bin": {
+    "lopecode-channel": "./lopecode-channel.ts"
+  },
+  "files": [
+    "lopecode-channel.ts",
+    "claude-code-pairing-module.js",
+    "inject-module.js"
+  ],
+  "keywords": [
+    "mcp",
+    "claude",
+    "lopecode",
+    "notebook",
+    "pair-programming",
+    "observable"
+  ],
+  "author": {
+    "name": "Tom Larkworthy",
+    "url": "https://github.com/tomlarkworthy"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomlarkworthy/lopecode-dev",
+    "directory": "tools/channel"
+  },
+  "homepage": "https://github.com/tomlarkworthy/lopecode-dev#readme",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"
   }
