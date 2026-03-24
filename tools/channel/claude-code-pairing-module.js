@@ -26,7 +26,7 @@ const _cc_watches = function _cc_watches(Inputs){return(
   Inputs.input([])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, invalidation){return(
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, realize, runtime, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -102,31 +102,36 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         var definition = cmd.params.definition;
         var inputs = cmd.params.inputs || [];
         var moduleName = cmd.params.module;
-        var targetModule = findModule(runtime, moduleName);
-        if (!targetModule) return { ok: false, error: "Module not found: " + (moduleName || "main") };
+        var mod = runtime.mains && runtime.mains.get(moduleName);
+        if (!mod && runtime.mains) {
+          for (var entry of runtime.mains) {
+            if (!FRAMEWORK_MODULES.has(entry[0])) { mod = entry[1]; break; }
+          }
+        }
+        if (!mod) return { ok: false, error: "Module not found: " + (moduleName || "default") };
 
-        var fn;
-        try {
-          eval("fn = " + definition);
+        return realize([definition], runtime).then(function(results) {
+          var fn = results[0];
           if (typeof fn !== "function") return { ok: false, error: "Definition must evaluate to a function" };
-        } catch (e) {
-          return { ok: false, error: "Failed to parse definition: " + e.message };
-        }
 
-        var existingVar = null;
-        for (var v of runtime._variables) {
-          if (v._name === name && v._module === targetModule) { existingVar = v; break; }
-        }
+          var existingVar = null;
+          for (var v of runtime._variables) {
+            if (v._name === name && v._module === mod) { existingVar = v; break; }
+          }
 
-        try {
-          if (existingVar) { existingVar.define(name, inputs, fn); }
-          else { var nv = targetModule.variable({}); nv.define(name, inputs, fn); }
-          var actualRuntime = findActualRuntime(runtime);
-          if (actualRuntime && actualRuntime._computeNow) actualRuntime._computeNow();
-          return { ok: true, result: { success: true, name: name, module: targetModule._name || "main", redefined: !!existingVar } };
-        } catch (e) {
-          return { ok: false, error: "Failed to define variable: " + e.message };
-        }
+          if (existingVar) {
+            existingVar.define(name, inputs, fn);
+          } else {
+            var obsFactory = null;
+            for (var v of runtime._variables) {
+              if (v._name === "__ojs_observer" && typeof v._value === "function") { obsFactory = v._value; break; }
+            }
+            mod.variable(obsFactory ? obsFactory(name) : {}).define(name, inputs, fn);
+          }
+          return { ok: true, result: { success: true, name: name, module: moduleName || "default" } };
+        }).catch(function(e) {
+          return { ok: false, error: "define failed: " + e.message };
+        });
       }
 
       case "delete-variable": {
@@ -783,7 +788,7 @@ export default function define(runtime, observer) {
   $def("_cc_messages", "cc_messages", ["Inputs"], _cc_messages);
   $def("_cc_watches", "viewof cc_watches", ["Inputs"], _cc_watches);
   main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
-  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","invalidation"], _cc_ws);
+  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","runtime","invalidation"], _cc_ws);
   $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","invalidation"], _cc_change_forwarder);
 
   // Imports
@@ -794,6 +799,8 @@ export default function define(runtime, observer) {
   main.define("viewof runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("viewof runtime_variables", _));
   main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
   main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
+  main.define("realize", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("realize", _));
+  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
   main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));
   main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));
   main.define("module @tomlarkworthy/summarizejs", async () => runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));

@@ -310,14 +310,19 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "get-variable";
         params = { name: args.name, module: args.module || null };
         break;
-      case "define_variable":
+      case "define_variable": {
         action = "define-variable";
+        let inputs = args.inputs;
+        if (typeof inputs === "string") inputs = JSON.parse(inputs);
+        if (!Array.isArray(inputs)) inputs = [];
         params = {
           name: args.name,
           definition: args.definition,
-          inputs: (args.inputs as string[]) || [],
+          inputs,
           module: args.module || null,
         };
+        break;
+      }
         break;
       case "delete_variable":
         action = "delete-variable";
