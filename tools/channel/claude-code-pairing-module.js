@@ -26,7 +26,7 @@ const _cc_watches = function _cc_watches(Inputs){return(
   Inputs.input([])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, currentModules, invalidation){return(
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -48,20 +48,15 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
   ]);
 
   function findModule(runtime, moduleName) {
-    // Use currentModules (Map<Module, {name, ...}>) for reliable lookup
-    if (currentModules && currentModules instanceof Map) {
-      if (!moduleName) {
-        // No name specified — return the first user content module (not framework, not import)
-        for (var entry of currentModules) {
-          var info = entry[1];
-          if (info.name && !FRAMEWORK_MODULES.has(info.name) && !info.type) {
-            return entry[0];
-          }
-        }
-      } else {
-        for (var entry of currentModules) {
-          if (entry[1].name === moduleName) return entry[0];
-        }
+    // Use runtime.mains (Map<name, Module>) — the actual module refs used by the runtime
+    var mains = runtime.mains;
+    if (mains && mains instanceof Map) {
+      if (moduleName) {
+        return mains.get(moduleName) || null;
+      }
+      // No name specified — return the first non-framework main
+      for (var entry of mains) {
+        if (!FRAMEWORK_MODULES.has(entry[0])) return entry[1];
       }
     }
     return null;
@@ -788,7 +783,7 @@ export default function define(runtime, observer) {
   $def("_cc_messages", "cc_messages", ["Inputs"], _cc_messages);
   $def("_cc_watches", "viewof cc_watches", ["Inputs"], _cc_watches);
   main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
-  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","currentModules","invalidation"], _cc_ws);
+  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","invalidation"], _cc_ws);
   $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","invalidation"], _cc_change_forwarder);
 
   // Imports

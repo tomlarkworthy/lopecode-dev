@@ -126,6 +126,49 @@ node tools/channel/inject-module.js <input.html> <output.html>
 
 This injects the module, adds it to `bootconf.json` mains, and updates the hash layout.
 
+## Core User Journeys
+
+These must work reliably end-to-end.
+
+### 1. Initial connection
+User says "open a lopecode notebook". Claude gets the token, opens the browser with the connection URL. Notebook auto-connects with chat panel visible. No manual token paste.
+
+### 2. Convert web notebook to local file
+User has a notebook open from GitHub Pages. Guide them to open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2`) and use the fork button to save to disk.
+
+### 3. Create a cell
+Use `realize` from `@tomlarkworthy/runtime-sdk` to create cells. Do NOT manually call `module.variable().define()` — it doesn't set up observers or dependency resolution correctly. `realize` handles compilation, observer creation, and rendering.
+
+### 4. Delete a cell
+Use the runtime-sdk or `delete_variable` MCP tool. Target the correct module via `runtime.mains.get(moduleName)`.
+
+### 5. Create/import a module
+Use module-selection UI (guide user to click in the module-selection panel) or programmatic import via the runtime.
+
+### 6. Delete/remove a module
+Guide user via module-selection UI.
+
+### 7. Move a cell
+Not yet supported programmatically. Guide user to use the editor.
+
+### 8. Explain how a notebook works
+Use `currentModules` watch (auto-watched on connect) for module list with dependencies. Use `cellMap` for cell-level detail. Use `get_variable` to read specific values. Summarize the structure using module names, titles, and dependency graph.
+
+## Implementation: Use Existing Modules
+
+**CRITICAL**: Do not reinvent Observable runtime internals. The following modules already provide correct, tested implementations:
+
+| Need | Use | NOT |
+|------|-----|-----|
+| Find a module by name | `runtime.mains.get(name)` | Scanning `_variables` or `currentModules` Map keys |
+| Create/define a cell | `realize` from runtime-sdk | `module.variable({}).define()` |
+| Read cell source code | `cellMap` | Parsing `_definition.toString()` |
+| List modules | `currentModules` (auto-watched) | Scanning `_variables` for `_module._name` |
+| Observe a variable | `observe` from runtime-sdk | Monkey-patching `_observer` |
+| Serialize values | `summarizeJS` | Custom `JSON.stringify` wrappers |
+
+The `define_variable` MCP tool handler should use `realize` for new cells rather than raw `module.variable().define()`.
+
 ## Environment Variables
 
 - `LOPECODE_PORT` — WebSocket server port (default: 8787). Encoded in the pairing token.
