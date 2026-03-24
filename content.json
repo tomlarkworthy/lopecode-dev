@@ -1,0 +1,1972 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "id": "all",
+      "label": "All",
+      "color": "var(--theme-foreground-muted)"
+    }
+  ],
+  "entries": [
+    {
+      "slug": "@tomlarkworthy/cell-map",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_cell-map.html",
+      "title": "Cell Map",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/cell-map",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/circular-barcode-simulator",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html",
+      "title": "Circular Barcode Simulator",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/circular-barcode-simulator",
+      "sizeMb": 5.6
+    },
+    {
+      "slug": "@tomlarkworthy/editable-md",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_editable-md.html",
+      "title": "Editable Md",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/editable-md",
+      "sizeMb": 2.3
+    },
+    {
+      "slug": "@tomlarkworthy/fast-1d-circular-barcode-matching",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html",
+      "title": "Fast 1d Circular Barcode Matching",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/fast-1d-circular-barcode-matching",
+      "sizeMb": 5.9
+    },
+    {
+      "slug": "@tomlarkworthy/jumpgate",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_jumpgate.html",
+      "title": "Jumpgate",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/jumpgate",
+      "sizeMb": 2.4
+    },
+    {
+      "slug": "@tomlarkworthy/lopecode-vision",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html",
+      "title": "Lopecode Vision",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lopecode-vision",
+      "sizeMb": 2.4
+    },
+    {
+      "slug": "@tomlarkworthy/manipulate",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_manipulate.html",
+      "title": "Manipulate",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/manipulate",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/my-lopebooks",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_my-lopebooks.html",
+      "title": "My Lopebooks",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/my-lopebooks",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/notebook-semantics",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html",
+      "title": "Notebook Semantics",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/notebook-semantics",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/notes",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_notes.html",
+      "title": "Notes",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/notes",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/observable-notes",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_observable-notes.html",
+      "title": "Observable Notes",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/observable-notes",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/reactive-reflective-testing",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html",
+      "title": "Reactive Reflective Testing",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/reactive-reflective-testing",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/robocoop-2",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_robocoop-2.html",
+      "title": "Robocoop 2",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/robocoop-2",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/robocoop-3",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_robocoop-3.html",
+      "title": "Robocoop 3",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/robocoop-3",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/sequencer",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_sequencer.html",
+      "title": "Sequencer",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/sequencer",
+      "sizeMb": 2.7
+    },
+    {
+      "slug": "@tomlarkworthy/spectral-layout",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_spectral-layout.html",
+      "title": "Spectral Layout",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/spectral-layout",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/unaggregating-cloudwatch-metrics",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_unaggregating-cloudwatch-metrics.html",
+      "title": "Unaggregating Cloudwatch Metrics",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/unaggregating-cloudwatch-metrics",
+      "sizeMb": 2.7
+    },
+    {
+      "slug": "@spond/revised-sars-cov-2-analytics-page",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+      "title": "Revised Sars Cov 2 Analytics Page",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@spond/revised-sars-cov-2-analytics-page",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/2d-spatial-wormhole-warp",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html",
+      "title": "2d Spatial Wormhole Warp",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/2d-spatial-wormhole-warp",
+      "sizeMb": 2.3
+    },
+    {
+      "slug": "@tomlarkworthy/animated-kirigami",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+      "title": "Animated Kirigami",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/animated-kirigami",
+      "sizeMb": 2.4
+    },
+    {
+      "slug": "@tomlarkworthy/animation",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_animation.html",
+      "title": "Animation",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/animation",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/aqi_no_loop_breaking",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html",
+      "title": "Aqi No Loop Breaking",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/aqi_no_loop_breaking",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html",
+      "title": "Async Lambda Sqs Eventbridge Benchmark",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/atlas",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_atlas.html",
+      "title": "Atlas",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/atlas",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/audio-inputs",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_audio-inputs.html",
+      "title": "Audio Inputs",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/audio-inputs",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/bitcoin-energy",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html",
+      "title": "Bitcoin Energy",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/bitcoin-energy",
+      "sizeMb": 5.2
+    },
+    {
+      "slug": "@tomlarkworthy/blm-us-wealth",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html",
+      "title": "Blm Us Wealth",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/blm-us-wealth",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/blog-first-post",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+      "title": "Blog First Post",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/blog-first-post",
+      "sizeMb": 14.6
+    },
+    {
+      "slug": "@tomlarkworthy/blog-netlify-deployment-manager",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+      "title": "Blog Netlify Deployment Manager",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/blog-netlify-deployment-manager",
+      "sizeMb": 14.7
+    },
+    {
+      "slug": "@tomlarkworthy/building-a-team-chore-app",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_building-a-team-chore-app.html",
+      "title": "Building A Team Chore App",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/building-a-team-chore-app",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/cloudevents-explorer",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+      "title": "Cloudevents Explorer",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/cloudevents-explorer",
+      "sizeMb": 27.5
+    },
+    {
+      "slug": "@tomlarkworthy/coffeescript-demo",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html",
+      "title": "Coffeescript Demo",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/coffeescript-demo",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/colorpicker",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_colorpicker.html",
+      "title": "Colorpicker",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/colorpicker",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/dijkstra",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_dijkstra.html",
+      "title": "Dijkstra",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/dijkstra",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/ego-graph",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_ego-graph.html",
+      "title": "Ego Graph",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/ego-graph",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/fsm",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_fsm.html",
+      "title": "Fsm",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/fsm",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/glpk-canonicalization",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html",
+      "title": "Glpk Canonicalization",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/glpk-canonicalization",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/hacker-favourites-analysis",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_hacker-favourites-analysis.html",
+      "title": "Hacker Favourites Analysis",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/hacker-favourites-analysis",
+      "sizeMb": 7.5
+    },
+    {
+      "slug": "@tomlarkworthy/howto-import-react-application",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html",
+      "title": "Howto Import React Application",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/howto-import-react-application",
+      "sizeMb": 3.1
+    },
+    {
+      "slug": "@tomlarkworthy/howto-monitoring",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_howto-monitoring.html",
+      "title": "Howto Monitoring",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/howto-monitoring",
+      "sizeMb": 5.5
+    },
+    {
+      "slug": "@tomlarkworthy/ilda-laser-show-player",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_ilda-laser-show-player.html",
+      "title": "Ilda Laser Show Player",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/ilda-laser-show-player",
+      "sizeMb": 3.3
+    },
+    {
+      "slug": "@tomlarkworthy/ilda-virtual-laser-test-pattern",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_ilda-virtual-laser-test-pattern.html",
+      "title": "Ilda Virtual Laser Test Pattern",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/ilda-virtual-laser-test-pattern",
+      "sizeMb": 2.3
+    },
+    {
+      "slug": "@tomlarkworthy/imgchooser",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_imgchooser.html",
+      "title": "Imgchooser",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/imgchooser",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/infinite-kirigami-the-endless-wall",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html",
+      "title": "Infinite Kirigami The Endless Wall",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/infinite-kirigami-the-endless-wall",
+      "sizeMb": 3.9
+    },
+    {
+      "slug": "@tomlarkworthy/ink",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_ink.html",
+      "title": "Ink",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/ink",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/inspector",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_inspector.html",
+      "title": "Inspector",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/inspector",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/jamstack",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_jamstack.html",
+      "title": "Jamstack",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/jamstack",
+      "sizeMb": 13.5
+    },
+    {
+      "slug": "@tomlarkworthy/jsqrcode",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+      "title": "Jsqrcode",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/jsqrcode",
+      "sizeMb": 3.7
+    },
+    {
+      "slug": "@tomlarkworthy/juice",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_juice.html",
+      "title": "Juice",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/juice",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/juice-and-charts",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html",
+      "title": "Juice And Charts",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/juice-and-charts",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/kirigami-turret",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_kirigami-turret.html",
+      "title": "Kirigami Turret",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/kirigami-turret",
+      "sizeMb": 5.6
+    },
+    {
+      "slug": "@tomlarkworthy/lazer-cut-plant-pot",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html",
+      "title": "Lazer Cut Plant Pot",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lazer-cut-plant-pot",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/lazer-light",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lazer-light.html",
+      "title": "Lazer Light",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lazer-light",
+      "sizeMb": 2.3
+    },
+    {
+      "slug": "@tomlarkworthy/lazer-simulator",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html",
+      "title": "Lazer Simulator",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lazer-simulator",
+      "sizeMb": 3.6
+    },
+    {
+      "slug": "@tomlarkworthy/linear-app-technical-deep-dive",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html",
+      "title": "Linear App Technical Deep Dive",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/linear-app-technical-deep-dive",
+      "sizeMb": 3.7
+    },
+    {
+      "slug": "@tomlarkworthy/linkpreview",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_linkpreview.html",
+      "title": "Linkpreview",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/linkpreview",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/literateobject",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_literateobject.html",
+      "title": "Literateobject",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/literateobject",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/lopecode-substrate-2026",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html",
+      "title": "Lopecode Substrate 2026",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lopecode-substrate-2026",
+      "sizeMb": 3.2
+    },
+    {
+      "slug": "@tomlarkworthy/lopecode-tour",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html",
+      "title": "Lopecode Tour",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lopecode-tour",
+      "sizeMb": 2.7
+    },
+    {
+      "slug": "@tomlarkworthy/matrix-background",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_matrix-background.html",
+      "title": "Matrix Background",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/matrix-background",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/micro-kernel-design",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html",
+      "title": "Micro Kernel Design",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/micro-kernel-design",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/module-map",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_module-map.html",
+      "title": "Module Map",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/module-map",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/module-selection",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_module-selection.html",
+      "title": "Module Selection",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/module-selection",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/blank-notebook",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_blank-notebook.html",
+      "title": "Blank",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/blank-notebook",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/bulk-jumpgate",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html",
+      "title": "Bulk Jumpgate",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/bulk-jumpgate",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/dataflow-templating",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html",
+      "title": "Dataflow Templating",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/dataflow-templating",
+      "sizeMb": 1.9
+    },
+    {
+      "slug": "@tomlarkworthy/debugger",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_debugger.html",
+      "title": "Debugger",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/debugger",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/debugger--claude-channel",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_debugger--claude-channel.html",
+      "title": "Debugger  Claude Channel",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/debugger--claude-channel",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/editor-5",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_editor-5.html",
+      "title": "Editor 5",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/editor-5",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/exporter-2",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_exporter-2.html",
+      "title": "Exporter 2",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/exporter-2",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/fileattachments",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_fileattachments.html",
+      "title": "Fileattachments",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/fileattachments",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/local-change-history",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_local-change-history.html",
+      "title": "Local Change History",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/local-change-history",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/lopepage",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lopepage.html",
+      "title": "Lopepage",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lopepage",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/lopepage-urls",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html",
+      "title": "Lopepage Urls",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/lopepage-urls",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/firestore-messaging",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html",
+      "title": "Firestore Messaging",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/firestore-messaging",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/moldable-webpage",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+      "title": "Moldable Webpage",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/moldable-webpage",
+      "sizeMb": 3.2
+    },
+    {
+      "slug": "@tomlarkworthy/moltbook",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_moltbook.html",
+      "title": "Moltbook",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/moltbook",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/most-favorited-hacker-news-youtube-videos",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html",
+      "title": "Most Favorited Hacker News Youtube Videos",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/most-favorited-hacker-news-youtube-videos",
+      "sizeMb": 7.5
+    },
+    {
+      "slug": "@tomlarkworthy/mutable-form-input",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_mutable-form-input.html",
+      "title": "Mutable Form Input",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/mutable-form-input",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/n-door-monty-hall",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_n-door-monty-hall.html",
+      "title": "N Door Monty Hall",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/n-door-monty-hall",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/native-file-system-adapter",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_native-file-system-adapter.html",
+      "title": "Native File System Adapter",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/native-file-system-adapter",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/ndd",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_ndd.html",
+      "title": "Ndd",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/ndd",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/neato",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_neato.html",
+      "title": "Neato",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/neato",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/notebook-kit",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+      "title": "Notebook Kit",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/notebook-kit",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/notebook-kit-examples",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_notebook-kit-examples.html",
+      "title": "Notebook Kit Examples",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/notebook-kit-examples",
+      "sizeMb": 4.1
+    },
+    {
+      "slug": "@tomlarkworthy/notebook-visualizer",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html",
+      "title": "Notebook Visualizer",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/notebook-visualizer",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/observable-runtime",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_observable-runtime.html",
+      "title": "Observable Runtime",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/observable-runtime",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/observable-runtime-v6",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_observable-runtime-v6.html",
+      "title": "Observable Runtime V6",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/observable-runtime-v6",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/observable-tour",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_observable-tour.html",
+      "title": "Observable Tour",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/observable-tour",
+      "sizeMb": 61.7
+    },
+    {
+      "slug": "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html",
+      "title": "Observables Now Temporal Spacing Is 60 Frames Per Second",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/parametric-kirigami-the-castle-wall",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_parametric-kirigami-the-castle-wall.html",
+      "title": "Parametric Kirigami The Castle Wall",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/parametric-kirigami-the-castle-wall",
+      "sizeMb": 2.4
+    },
+    {
+      "slug": "@tomlarkworthy/pause-and-play-book",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_pause-and-play-book.html",
+      "title": "Pause And Play Book",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/pause-and-play-book",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/pause-and-play-shop",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_pause-and-play-shop.html",
+      "title": "Pause And Play Shop",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/pause-and-play-shop",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/phiresky-sqlite-query",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html",
+      "title": "Phiresky Sqlite Query",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/phiresky-sqlite-query",
+      "sizeMb": 5.9
+    },
+    {
+      "slug": "@tomlarkworthy/prosemirror",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_prosemirror.html",
+      "title": "Prosemirror",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/prosemirror",
+      "sizeMb": 2.3
+    },
+    {
+      "slug": "@tomlarkworthy/radial-explosion",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_radial-explosion.html",
+      "title": "Radial Explosion",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/radial-explosion",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/randomid",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_randomid.html",
+      "title": "Randomid",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/randomid",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/rate-estimation",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_rate-estimation.html",
+      "title": "Rate Estimation",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/rate-estimation",
+      "sizeMb": 2.4
+    },
+    {
+      "slug": "@tomlarkworthy/rate-estimation-min",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_rate-estimation-min.html",
+      "title": "Rate Estimation Min",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/rate-estimation-min",
+      "sizeMb": 2.4
+    },
+    {
+      "slug": "@tomlarkworthy/redirect-debugging",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html",
+      "title": "Redirect Debugging",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/redirect-debugging",
+      "sizeMb": 3.3
+    },
+    {
+      "slug": "@tomlarkworthy/remote-cell-value",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html",
+      "title": "Remote Cell Value",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/remote-cell-value",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/repo1",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_repo1.html",
+      "title": "Repo1",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/repo1",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/retro-title-graphic",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html",
+      "title": "Retro Title Graphic",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/retro-title-graphic",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/robocoop-gallery",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_robocoop-gallery.html",
+      "title": "Robocoop Gallery",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/robocoop-gallery",
+      "sizeMb": 2.7
+    },
+    {
+      "slug": "@tomlarkworthy/rss-feed",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_rss-feed.html",
+      "title": "Rss Feed",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/rss-feed",
+      "sizeMb": 14.6
+    },
+    {
+      "slug": "@tomlarkworthy/sign-a-pdf",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html",
+      "title": "Sign A Pdf",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/sign-a-pdf",
+      "sizeMb": 5.4
+    },
+    {
+      "slug": "@tomlarkworthy/simplest-cms",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_simplest-cms.html",
+      "title": "Simplest Cms",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/simplest-cms",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/single-stroke-font",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_single-stroke-font.html",
+      "title": "Single Stroke Font",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/single-stroke-font",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/sticky-footer-in-list",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html",
+      "title": "Sticky Footer In List",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/sticky-footer-in-list",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/stream-operators",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_stream-operators.html",
+      "title": "Stream Operators",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/stream-operators",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/subdomain-certification",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html",
+      "title": "Subdomain Certification",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/subdomain-certification",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/summarizejs",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_summarizejs.html",
+      "title": "Summarizejs",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/summarizejs",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/svg-boinger",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_svg-boinger.html",
+      "title": "Svg Boinger",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/svg-boinger",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/svg-twist",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_svg-twist.html",
+      "title": "Svg Twist",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/svg-twist",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/switch-dataflow",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_switch-dataflow.html",
+      "title": "Switch Dataflow",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/switch-dataflow",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/synchronizing-external-state-into-bigquery-efficiently",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_synchronizing-external-state-into-bigquery-efficiently.html",
+      "title": "Synchronizing External State Into Bigquery Efficiently",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/synchronizing-external-state-into-bigquery-efficiently",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/tabbed-pane-view",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html",
+      "title": "Tabbed Pane View",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/tabbed-pane-view",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/testblog",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_testblog.html",
+      "title": "Testblog",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/testblog",
+      "sizeMb": 10.3
+    },
+    {
+      "slug": "@tomlarkworthy/tester",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_tester.html",
+      "title": "Tester",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/tester",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/tiktok",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_tiktok.html",
+      "title": "Tiktok",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/tiktok",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/tiny-notebook",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_tiny-notebook.html",
+      "title": "Tiny Notebook",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/tiny-notebook",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/tom-larkworthy",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_tom-larkworthy.html",
+      "title": "Tom Larkworthy",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/tom-larkworthy",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/tweetstorm",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_tweetstorm.html",
+      "title": "Tweetstorm",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/tweetstorm",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/twitter-trending-notebook-bot-dataset-2022",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_twitter-trending-notebook-bot-dataset-2022.html",
+      "title": "Twitter Trending Notebook Bot Dataset 2022",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/twitter-trending-notebook-bot-dataset-2022",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/unrolling-a-deploy-command",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_unrolling-a-deploy-command.html",
+      "title": "Unrolling A Deploy Command",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/unrolling-a-deploy-command",
+      "sizeMb": 3.3
+    },
+    {
+      "slug": "@tomlarkworthy/url-query-field-view",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_url-query-field-view.html",
+      "title": "Url Query Field View",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/url-query-field-view",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/userspace-editor",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_userspace-editor.html",
+      "title": "Userspace Editor",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/userspace-editor",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/utils",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_utils.html",
+      "title": "Utils",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/utils",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/vertical-sliders",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_vertical-sliders.html",
+      "title": "Vertical Sliders",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/vertical-sliders",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/view",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_view.html",
+      "title": "View",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/view",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/view-examples",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_view-examples.html",
+      "title": "View Examples",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/view-examples",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/viewroutine",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_viewroutine.html",
+      "title": "Viewroutine",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/viewroutine",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/vr-hackerspace",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html",
+      "title": "Vr Hackerspace",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/vr-hackerspace",
+      "sizeMb": 2.5
+    },
+    {
+      "slug": "@tomlarkworthy/webxr-dom-overlay",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_webxr-dom-overlay.html",
+      "title": "Webxr Dom Overlay",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/webxr-dom-overlay",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/whisper-input",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_whisper-input.html",
+      "title": "Whisper Input",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/whisper-input",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/wiki",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_wiki.html",
+      "title": "Wiki",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/wiki",
+      "sizeMb": 2.1
+    },
+    {
+      "slug": "@tomlarkworthy/wms-leaflet-gca-dev",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html",
+      "title": "Wms Leaflet Gca Dev",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/wms-leaflet-gca-dev",
+      "sizeMb": 2.2
+    },
+    {
+      "slug": "@tomlarkworthy/womens-suffrage",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html",
+      "title": "Womens Suffrage",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/womens-suffrage",
+      "sizeMb": 3.9
+    },
+    {
+      "slug": "@tomlarkworthy/wormhole",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_wormhole.html",
+      "title": "Wormhole",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/wormhole",
+      "sizeMb": 2.3
+    },
+    {
+      "slug": "@tomlarkworthy/wormhole2",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_wormhole2.html",
+      "title": "Wormhole2",
+      "description": "todo",
+      "tags": [
+        "all"
+      ],
+      "category": "all",
+      "thumbnail": null,
+      "featured": false,
+      "sourceUrl": "https://observablehq.com/@tomlarkworthy/wormhole2",
+      "sizeMb": 2.5
+    }
+  ]
+}
