@@ -27,7 +27,7 @@ claude --dangerously-load-development-channels server:lopecode
 
 Claude's terminal will show:
 ```
-lopecode-channel: pairing token: LOPE-XXXX
+lopecode-channel: pairing token: LOPE-PORT-XXXX
 lopecode-channel: WebSocket server on ws://127.0.0.1:8787/ws
 ```
 
@@ -47,7 +47,7 @@ Browser (Notebook)  ←→  WebSocket  ←→  Channel Server (Bun)  ←→  MCP
 
 ## Pairing
 
-Each server session generates a single-use token (`LOPE-XXXX`). The same token pairs all notebooks in that session. Token is validated on the first WebSocket message only.
+Each server session generates a single-use token (`LOPE-PORT-XXXX`). The same token pairs all notebooks in that session. Token is validated on the first WebSocket message only.
 
 1. Server prints token to stderr (also retrievable via `get_pairing_token` MCP tool)
 2. Claude shows it to the user
@@ -62,7 +62,7 @@ The pairing token can be embedded in the notebook's hash URL using the `cc=` par
 - **Programmatic reconnection**: Claude can set the hash and reload the page to force a reconnect with the new token
 - **Bookmarkable sessions**: Users can bookmark a URL with the token for quick reconnection
 
-Example hash: `#view=R100(S53(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-code-pairing))&cc=LOPE-XXXX`
+Example hash: `#view=R100(S53(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-code-pairing))&cc=LOPE-PORT-XXXX`
 
 The `cc=` parameter is parsed from the hash fragment using `&` as the separator (not `?`, which doesn't work inside hash fragments). The `@tomlarkworthy/claude-code-pairing` module auto-connects on load when it finds this parameter.
 

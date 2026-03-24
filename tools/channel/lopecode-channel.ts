@@ -23,7 +23,7 @@ function generateToken(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1
   let code = "";
   for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return `LOPE-${code}`;
+  return `LOPE-${PORT}-${code}`;
 }
 
 const PAIRING_TOKEN = generateToken();

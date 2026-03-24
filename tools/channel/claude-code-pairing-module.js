@@ -402,10 +402,17 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
   function connect(token) {
     if (ws) { ws.close(); ws = null; }
 
+    // Parse port from token format LOPE-PORT-XXXX
+    var connectPort = port;
+    if (token) {
+      var parts = token.match(/^LOPE-(\d+)-[A-Z0-9]+$/);
+      if (parts) connectPort = parseInt(parts[1], 10);
+    }
+
     cc_status.value = "connecting";
     cc_status.dispatchEvent(new Event("input"));
 
-    ws = new WebSocket("ws://" + host + ":" + port + "/ws");
+    ws = new WebSocket("ws://" + host + ":" + connectPort + "/ws");
 
     ws.onopen = function() {
       if (token) {
@@ -502,10 +509,10 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
   }
 
   // Auto-connect if cc=TOKEN is in the hash fragment
-  // Hash format: #view=R100(...)&cc=LOPE-XXXX
+  // Hash format: #view=R100(...)&cc=LOPE-PORT-XXXX
   (function autoConnect() {
     var hash = location.hash || "";
-    var match = hash.match(/[&?]cc=([A-Z0-9-]+)/);
+    var match = hash.match(/[&?]cc=(LOPE-[A-Z0-9-]+)/);
     if (match) {
       var token = match[1];
       // Small delay to let the WebSocket server be ready
