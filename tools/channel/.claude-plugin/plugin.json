@@ -1,0 +1,15 @@
+{
+  "name": "lopecode-channel",
+  "version": "0.1.0",
+  "description": "Pair program with Claude inside Lopecode notebooks. Two-way channel between browser notebooks and Claude Code via MCP.",
+  "author": {
+    "name": "Tom Larkworthy",
+    "url": "https://github.com/tomlarkworthy"
+  },
+  "homepage": "https://github.com/tomlarkworthy/lopecode-dev",
+  "repository": "https://github.com/tomlarkworthy/lopecode-dev",
+  "license": "MIT",
+  "keywords": ["lopecode", "notebook", "pair-programming", "observable", "mcp"],
+  "mcpServers": "./mcp.json",
+  "hooks": "./hooks/hooks.json"
+}

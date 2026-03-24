@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "lopecode": {
+      "command": "bun",
+      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/lopecode-channel.ts"],
+      "env": {
+        "NODE_PATH": "${CLAUDE_PLUGIN_DATA}/node_modules"
+      }
+    }
+  }
+}
