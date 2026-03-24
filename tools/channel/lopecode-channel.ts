@@ -59,13 +59,16 @@ const mcp = new Server(
     },
     instructions: `You are connected to Lopecode notebooks via the lopecode channel.
 
-## Starting a notebook
+## Starting a lopecode notebook
 
-When the user asks to start/open/create a notebook, or when no notebooks are connected and collaboration would benefit from one:
-1. Call get_pairing_token to get the token
-2. Open the browser with: open 'https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN'
-3. The notebook auto-connects — wait for the connected notification
-4. Send a welcome message via reply
+When the user asks to start/open a lopecode notebook, or start a pairing/collaboration session:
+1. Call get_pairing_token to get the token (format: LOPE-PORT-XXXX)
+2. Construct the URL: https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
+3. Open the browser: run open 'URL' (macOS) or xdg-open 'URL' (Linux)
+4. Wait for the connected notification
+5. Send a welcome message via reply
+
+If channels are not enabled, tell the user to restart with: claude --channels server:lopecode
 
 ## Message formats
 
