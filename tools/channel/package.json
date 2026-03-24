@@ -1,10 +1,11 @@
 {
-  "name": "lopecode-channel",
+  "name": "@lopecode/channel",
   "version": "0.1.0",
   "description": "Pair program with Claude inside Lopecode notebooks. MCP server bridging browser notebooks and Claude Code.",
   "type": "module",
   "bin": {
-    "lopecode-channel": "./lopecode-channel.ts"
+    "lopecode-channel": "./lopecode-channel.ts",
+    "@lopecode/channel": "./lopecode-channel.ts"
   },
   "files": [
     "lopecode-channel.ts",
