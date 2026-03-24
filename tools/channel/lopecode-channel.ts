@@ -541,6 +541,14 @@ try {
           pending: pendingConnections.size,
         }), { headers: { "content-type": "application/json" } });
       }
+      // Root: redirect to blank notebook with auto-connect token
+      if (url.pathname === "/") {
+        const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank.html#view=R100(S70(d/ab5f35ca1f4066ba),S30(@tomlarkworthy/module-selection))&cc=${PAIRING_TOKEN}`;
+        return new Response(null, {
+          status: 302,
+          headers: { Location: notebookUrl },
+        });
+      }
       return new Response("lopecode-channel", { status: 200 });
     },
     websocket: {

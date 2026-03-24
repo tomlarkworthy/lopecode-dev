@@ -62,9 +62,9 @@ The pairing token can be embedded in the notebook's hash URL using the `cc=` par
 - **Programmatic reconnection**: Claude can set the hash and reload the page to force a reconnect with the new token
 - **Bookmarkable sessions**: Users can bookmark a URL with the token for quick reconnection
 
-Example hash: `#view=R100(S53(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-channels))&cc=LOPE-XXXX`
+Example hash: `#view=R100(S53(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-code-pairing))&cc=LOPE-XXXX`
 
-The `cc=` parameter is parsed from the hash fragment using `&` as the separator (not `?`, which doesn't work inside hash fragments). The `@tomlarkworthy/claude-channels` module auto-connects on load when it finds this parameter.
+The `cc=` parameter is parsed from the hash fragment using `&` as the separator (not `?`, which doesn't work inside hash fragments). The `@tomlarkworthy/claude-code-pairing` module auto-connects on load when it finds this parameter.
 
 **Claude can trigger a reload with auto-connect** using `eval_code`:
 ```javascript
@@ -126,11 +126,11 @@ Use `unwatch_variable` to stop receiving updates. All watches are automatically 
 
 ## Injecting Cells into a Notebook
 
-The module is defined in `tools/channel/claude-channels-module.js`. It can be injected into a notebook HTML using `tools/channel/inject-module.js`.
+The module is defined in `tools/channel/claude-code-pairing-module.js`. It can be injected into a notebook HTML using `tools/channel/inject-module.js`.
 
 ### Module imports
 
-The claude-channels module imports from these dependencies:
+The claude-code-pairing module imports from these dependencies:
 - `@tomlarkworthy/module-map` → `currentModules`, `moduleMap`
 - `@tomlarkworthy/runtime-sdk` → `runtime_variables`, `observe`
 - `@tomlarkworthy/summarizejs` → `summarizeJS` (used for value serialization)
@@ -186,14 +186,14 @@ Requires `@tomlarkworthy/exporter-2` in the notebook.
 - **No auto-reconnect** — re-pair each session (security by design)
 - **eval is synchronous** — async code in `eval_code` won't return resolved values
 - **Fork payload size** — 1-3MB HTML over WebSocket (Bun handles this fine)
-- **Cells must be injected manually** — until a proper `@tomlarkworthy/claude-channels` Observable module is created
+- **Cells must be injected manually** — until a proper `@tomlarkworthy/claude-code-pairing` Observable module is created
 
 ## Distribution via Claude Marketplace
 
 The target user journey for new users:
 
 1. **Install** — User adds the lopecode-channel MCP server from Claude's marketplace
-2. **Open** — Channel server serves a starter notebook at `http://127.0.0.1:8787/` with claude-channels module pre-loaded
+2. **Open** — Channel server serves a starter notebook at `http://127.0.0.1:8787/` with claude-code-pairing module pre-loaded
 3. **Auto-pair** — Served HTML embeds the pairing token, no manual paste needed for localhost
 4. **Collaborate** — Claude and user pair program in the notebook: chat, watch variables, define cells, run tests
 5. **Save** — User exports/forks the notebook to local filesystem as a self-contained HTML file
@@ -210,7 +210,7 @@ The target user journey for new users:
 
 The current implementation injects cells programmatically. The intermediate path:
 
-1. Create `@tomlarkworthy/claude-channels` module on ObservableHQ
+1. Create `@tomlarkworthy/claude-code-pairing` module on ObservableHQ
 2. Add it to notebooks via the module-selection UI
 3. Export via jumpgate to embed in HTML files
 4. Cells become native — no injection needed

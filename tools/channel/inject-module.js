@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Injects the @tomlarkworthy/claude-channels module into a lopecode notebook HTML.
+ * Injects the @tomlarkworthy/claude-code-pairing module into a lopecode notebook HTML.
  *
  * Usage: node tools/channel/inject-module.js <input.html> <output.html>
  *
  * This:
  * 1. Reads the source notebook HTML
- * 2. Inserts the claude-channels module as a <script> block before the bootloader
- * 3. Adds "@tomlarkworthy/claude-channels" to bootconf.json mains
+ * 2. Inserts the claude-code-pairing module as a <script> block before the bootloader
+ * 3. Adds "@tomlarkworthy/claude-code-pairing" to bootconf.json mains
  * 4. Updates the hash URL to include the channel module in the layout
  * 5. Writes the result to output.html
  */
@@ -23,7 +23,7 @@ if (!inputPath || !outputPath) {
 }
 
 const html = readFileSync(resolve(inputPath), "utf8");
-const moduleSource = readFileSync(resolve(import.meta.dirname, "claude-channels-module.js"), "utf8");
+const moduleSource = readFileSync(resolve(import.meta.dirname, "claude-code-pairing-module.js"), "utf8");
 
 // 1. Find the bootconf.json script and insert our module before it
 const bootconfMarker = '<!-- Bootloader -->';
@@ -34,7 +34,7 @@ if (bootconfIdx === -1) {
 }
 
 const moduleScript = `
-<script id="@tomlarkworthy/claude-channels"
+<script id="@tomlarkworthy/claude-code-pairing"
   type="text/plain"
   data-mime="application/javascript"
 >
@@ -72,16 +72,16 @@ let bootconfContent = result.slice(bootconfContentStart, bootconfContentEnd);
 try {
   const bootconf = JSON.parse(bootconfContent);
 
-  // Add claude-channels to mains
-  if (!bootconf.mains.includes("@tomlarkworthy/claude-channels")) {
-    bootconf.mains.push("@tomlarkworthy/claude-channels");
+  // Add claude-code-pairing to mains
+  if (!bootconf.mains.includes("@tomlarkworthy/claude-code-pairing")) {
+    bootconf.mains.push("@tomlarkworthy/claude-code-pairing");
   }
 
-  // Update hash to include claude-channels in layout
+  // Update hash to include claude-code-pairing in layout
   // Lopepage only supports flat R(S,S,...) — no nesting
   // Extract existing module references and add ours as a new panel
   const currentHash = bootconf.hash || "";
-  if (!currentHash.includes("claude-channels")) {
+  if (!currentHash.includes("claude-code-pairing")) {
     // Parse existing modules from hash like R100(S70(@mod1),S30(@mod2))
     const moduleRefs = [];
     const modulePattern = /S(\d+)\(([^)]+)\)/g;
@@ -91,18 +91,18 @@ try {
     }
 
     if (moduleRefs.length > 0) {
-      // Scale existing weights to 75% and add claude-channels at 25%
+      // Scale existing weights to 75% and add claude-code-pairing at 25%
       const totalWeight = moduleRefs.reduce((sum, r) => sum + r.weight, 0);
       const scaled = moduleRefs.map(r => ({
         weight: Math.round((r.weight / totalWeight) * 75),
         module: r.module,
       }));
-      scaled.push({ weight: 25, module: "@tomlarkworthy/claude-channels" });
+      scaled.push({ weight: 25, module: "@tomlarkworthy/claude-code-pairing" });
       const parts = scaled.map(r => `S${r.weight}(${r.module})`).join(",");
       bootconf.hash = `#view=R100(${parts})`;
     } else {
       // Simple fallback
-      bootconf.hash = "#view=R100(S75(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-channels))";
+      bootconf.hash = "#view=R100(S75(@tomlarkworthy/debugger),S25(@tomlarkworthy/claude-code-pairing))";
     }
   }
 
@@ -127,5 +127,5 @@ if (titleMatch) {
 writeFileSync(resolve(outputPath), result);
 const inputSize = (html.length / 1024 / 1024).toFixed(2);
 const outputSize = (result.length / 1024 / 1024).toFixed(2);
-console.log(`Injected @tomlarkworthy/claude-channels into ${outputPath}`);
+console.log(`Injected @tomlarkworthy/claude-code-pairing into ${outputPath}`);
 console.log(`Input: ${inputSize} MB → Output: ${outputSize} MB`);

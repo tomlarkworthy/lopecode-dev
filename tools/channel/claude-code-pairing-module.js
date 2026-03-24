@@ -1,9 +1,9 @@
 /**
- * @tomlarkworthy/claude-channels — Observable module
+ * @tomlarkworthy/claude-code-pairing — Observable module
  *
  * Two-way communication channel between Lopecode notebooks and Claude Code.
- * Paste this into a <script type="text/plain" id="@tomlarkworthy/claude-channels">
- * in any lopecode notebook HTML, and add "@tomlarkworthy/claude-channels" to bootconf.json mains.
+ * Paste this into a <script type="text/plain" id="@tomlarkworthy/claude-code-pairing">
+ * in any lopecode notebook HTML, and add "@tomlarkworthy/claude-code-pairing" to bootconf.json mains.
  */
 
 const _cc_config = function _cc_config(){return(
