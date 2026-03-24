@@ -188,9 +188,27 @@ Requires `@tomlarkworthy/exporter-2` in the notebook.
 - **Fork payload size** — 1-3MB HTML over WebSocket (Bun handles this fine)
 - **Cells must be injected manually** — until a proper `@tomlarkworthy/claude-channels` Observable module is created
 
-## Migration Path
+## Distribution via Claude Marketplace
 
-The current implementation injects cells programmatically. The long-term path:
+The target user journey for new users:
+
+1. **Install** — User adds the lopecode-channel MCP server from Claude's marketplace
+2. **Open** — Channel server serves a starter notebook at `http://127.0.0.1:8787/` with claude-channels module pre-loaded
+3. **Auto-pair** — Served HTML embeds the pairing token, no manual paste needed for localhost
+4. **Collaborate** — Claude and user pair program in the notebook: chat, watch variables, define cells, run tests
+5. **Save** — User exports/forks the notebook to local filesystem as a self-contained HTML file
+6. **Grow** — User adds modules via module-selection, builds up their notebook, re-exports as needed
+
+### What needs to happen
+
+- **HTTP notebook serving**: Channel server serves a bootable lopecode notebook at `/` (currently just returns plain text)
+- **HTTP initialization pathway**: Notebook must bootstrap from HTTP — import maps resolve modules from the server or a CDN rather than `file://` embedded scripts
+- **Zero-config pairing**: For localhost, embed the token in the served HTML so the connection is instant
+- **Marketplace packaging**: Single `package.json` with Bun runtime, MCP server definition in marketplace format
+
+### Current migration path
+
+The current implementation injects cells programmatically. The intermediate path:
 
 1. Create `@tomlarkworthy/claude-channels` module on ObservableHQ
 2. Add it to notebooks via the module-selection UI
