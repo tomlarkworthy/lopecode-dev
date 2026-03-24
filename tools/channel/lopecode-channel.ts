@@ -95,6 +95,8 @@ Variable updates (when watching):
 - eval_code: Evaluate JS in browser context
 - fork_notebook: Create a copy as sibling HTML file
 
+IMPORTANT: Always specify the module parameter when calling define_variable, get_variable, etc.
+Use the currentModules watch to identify the user's content module (not lopepage, module-selection, or claude-code-pairing).
 When multiple notebooks are connected, specify notebook_id (the URL). When only one is connected, it's used automatically.`,
   }
 );
