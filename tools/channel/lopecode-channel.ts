@@ -59,32 +59,39 @@ const mcp = new Server(
     },
     instructions: `You are connected to Lopecode notebooks via the lopecode channel.
 
-User chat messages arrive as:
-  <channel source="lopecode" type="message" notebook="file:///..." sender="user">
-  message text here
-  </channel>
+## Starting a notebook
 
-Cell change events arrive automatically as:
-  <channel source="lopecode" type="cell_change" notebook="file:///..." module="@author/mod" cell="cellName" op="upd">
-  truncated definition
-  </channel>
+When the user asks to start/open/create a notebook, or when no notebooks are connected and collaboration would benefit from one:
+1. Call get_pairing_token to get the token
+2. Open the browser with: open 'https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN'
+3. The notebook auto-connects — wait for the connected notification
+4. Send a welcome message via reply
 
-Notebook lifecycle events:
-  <channel source="lopecode" type="connected" notebook="file:///...">notebook title</channel>
-  <channel source="lopecode" type="disconnected" notebook="file:///...">notebook title</channel>
+## Message formats
 
-Variable update events arrive when watching a variable:
-  <channel source="lopecode" type="variable_update" notebook="file:///..." name="varName" module="@author/mod">
-  serialized value
-  </channel>
+User chat messages:
+  <channel source="lopecode" type="message" notebook="..." sender="user">text</channel>
 
-Use the reply tool to send messages back to a specific notebook's chat widget.
-Use define_variable, get_variable, run_tests, list_variables, eval_code to interact with notebook runtimes.
-Use watch_variable/unwatch_variable to subscribe to reactive variable updates.
-Use fork_notebook to create a safe copy for experimentation.
+Cell changes (automatic):
+  <channel source="lopecode" type="cell_change" notebook="..." module="@author/mod" cell="cellName" op="upd">definition</channel>
 
-When multiple notebooks are connected, always specify which one via notebook_id (the URL).
-When only one notebook is connected, notebook_id can be omitted and the sole connection is used.`,
+Lifecycle:
+  <channel source="lopecode" type="connected" notebook="...">title</channel>
+  <channel source="lopecode" type="disconnected" notebook="...">title</channel>
+
+Variable updates (when watching):
+  <channel source="lopecode" type="variable_update" notebook="..." name="varName" module="@author/mod">value</channel>
+
+## Tools
+
+- reply: Send markdown to notebook chat
+- get_variable / define_variable / delete_variable / list_variables: Interact with runtime
+- watch_variable / unwatch_variable: Subscribe to reactive variable updates
+- run_tests: Run test_* variables
+- eval_code: Evaluate JS in browser context
+- fork_notebook: Create a copy as sibling HTML file
+
+When multiple notebooks are connected, specify notebook_id (the URL). When only one is connected, it's used automatically.`,
   }
 );
 
