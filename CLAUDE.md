@@ -59,7 +59,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/running-a-live-repl-session-with-a-notebook.md` | Using lope-node-repl.js, lope-browser-repl.js, lope-runtime.js, pair programming |
 | `knowledge/bulk-exporting-lopebooks.md` | Bulk export, QC, smoke testing |
 | `knowledge/pushing-cells-to-observablehq.md` | Pushing cell changes back to Observable |
-| `knowledge/lopecode-claude-channel.md` | Claude Code <-> notebook real-time channel |
+| `knowledge/live-collaboration-with-claude-code-pairing.md` | Live pair programming via claude-code-pairing channel |
 | `knowledge/how-file-attachments-work.md` | File attachment internals |
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
