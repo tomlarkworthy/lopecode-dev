@@ -143,10 +143,17 @@ Use `realize` from `@tomlarkworthy/runtime-sdk` to create cells. Do NOT manually
 Use the runtime-sdk or `delete_variable` MCP tool. Target the correct module via `runtime.mains.get(moduleName)`.
 
 ### 5. Create/import a module
-Guide the user to use the module-selection panel. New modules must be fetched from Observable and embedded — this requires the module-selection UI. Claude can open the panel via hash: `&open=@tomlarkworthy/module-selection`.
+Claude can create a module programmatically via eval:
+```javascript
+importShim("@author/module-name").then(function(mod) {
+  var ojsMod = runtime.module(mod.default, window.__ojs_observer || function() { return {}; });
+  runtime.mains.set("@author/module-name", ojsMod);
+});
+```
+This works for modules already embedded in the notebook HTML. For modules not yet embedded, guide the user to use the module-selection panel (`&open=@tomlarkworthy/module-selection`) which fetches and embeds from Observable.
 
 ### 6. Delete/remove a module
-Guide the user to use the module-selection panel. Programmatic module deletion is fragile and risks cascading side effects.
+Not yet reliably supported programmatically. Guide the user to use the module-selection panel.
 
 ### 7. Move a cell
 Not yet supported programmatically. Guide user to use the editor.
