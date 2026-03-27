@@ -59,7 +59,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/running-a-live-repl-session-with-a-notebook.md` | Using lope-node-repl.js, lope-browser-repl.js, lope-runtime.js, pair programming |
 | `knowledge/bulk-exporting-lopebooks.md` | Bulk export, QC, smoke testing |
 | `knowledge/pushing-cells-to-observablehq.md` | Pushing cell changes back to Observable |
-| `knowledge/live-collaboration-with-claude-code-pairing.md` | Live pair programming via claude-code-pairing channel |
+| `knowledge/live-collaboration-with-claude-code-pairing.md` | Claude Code pairing: setup, user journeys, MCP tools, distribution |
 | `knowledge/how-file-attachments-work.md` | File attachment internals |
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
@@ -74,9 +74,11 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Iterative development, multiple test cycles | `lope-node-repl.js` (default) | ~1.5s load |
 | DOM interaction, screenshots, pair programming | `lope-browser-repl.js` | <1s after load |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
-| Push cells to ObservableHQ | `lope-push-to-observablehq.js` | ~30s |
+| Push cells to ObservableHQ (WS) | `lope-push-ws.js` | ~5s |
+| Push cells to ObservableHQ (legacy) | `lope-push-to-observablehq.js` | ~30s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
 | Claude <-> notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
+| Claude <-> notebook channel (npm) | `bunx @lopecode/channel` | Real-time |
 
 ### Cells vs Variables
 
