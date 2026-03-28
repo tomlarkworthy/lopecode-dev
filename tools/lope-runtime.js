@@ -45,6 +45,9 @@ import {
  * @param {object} [options.localStorage] - Initial localStorage entries {key: value}
  * @param {string} [options.hash] - Override location.hash (default: from bootconf)
  * @param {string} [options.search] - Set location.search (e.g. for query params)
+ * @param {Object<string, string>} [options.modules] - Map of module name → .js file path.
+ *   These override any embedded modules with the same id in the notebook HTML.
+ *   Also added to bootconf.mains if not already present.
  * @returns {Promise<LopecodeExecution>}
  */
 export async function loadNotebook(notebookPath, options = {}) {
@@ -56,6 +59,7 @@ export async function loadNotebook(notebookPath, options = {}) {
     localStorage: initialLocalStorage = {},
     hash: overrideHash = null,
     search: overrideSearch = null,
+    modules: moduleOverrides = null,
   } = options;
 
   const log = _log;
@@ -83,6 +87,57 @@ export async function loadNotebook(notebookPath, options = {}) {
   }
 
   log(`Parsed: ${scriptMap.size} scripts`);
+
+  // ---- Module overrides (inject standalone .js files into scriptMap) ----
+  if (moduleOverrides) {
+    for (const [moduleId, filePath] of Object.entries(moduleOverrides)) {
+      const absModPath = path.resolve(filePath);
+      if (!fs.existsSync(absModPath)) {
+        throw new Error(`Module file not found: ${absModPath} (for ${moduleId})`);
+      }
+      const source = fs.readFileSync(absModPath, "utf-8");
+      scriptMap.set(moduleId, {
+        encoding: "text",
+        mime: "application/javascript",
+        type: "text/plain",
+        textContent: source,
+      });
+      // Also inject into DOM so document.getElementById() finds it
+      const existing = document.getElementById(moduleId);
+      if (existing) {
+        existing.textContent = source;
+      } else {
+        const el = document.createElement("script");
+        el.setAttribute("id", moduleId);
+        el.setAttribute("type", "text/plain");
+        el.setAttribute("data-mime", "application/javascript");
+        el.textContent = source;
+        document.body.appendChild(el);
+      }
+      log(`Module override: ${moduleId} ← ${absModPath} (${source.length} chars)`);
+    }
+
+    // Patch bootconf.json to include overridden modules in mains
+    const bootconfEntry = scriptMap.get("bootconf.json");
+    if (bootconfEntry) {
+      try {
+        const bc = JSON.parse(bootconfEntry.textContent);
+        let changed = false;
+        for (const moduleId of Object.keys(moduleOverrides)) {
+          if (!bc.mains.includes(moduleId)) {
+            bc.mains.push(moduleId);
+            changed = true;
+            log(`Added ${moduleId} to bootconf.mains`);
+          }
+        }
+        if (changed) {
+          bootconfEntry.textContent = JSON.stringify(bc, null, 2);
+        }
+      } catch (e) {
+        log(`Warning: could not patch bootconf.json: ${e.message}`);
+      }
+    }
+  }
 
   // ---- Helpers ----
   function decompressSource(id) {
