@@ -577,7 +577,7 @@ await mcp.connect(new StdioServerTransport());
 const server = Bun.serve({
   port: REQUESTED_PORT,
   hostname: "127.0.0.1",
-  fetch(req, server) {
+  async fetch(req, server) {
     const url = new URL(req.url);
     if (url.pathname === "/ws") {
       if (server.upgrade(req)) return;
@@ -588,6 +588,51 @@ const server = Bun.serve({
         paired: pairedConnections.size,
         pending: pendingConnections.size,
       }), { headers: { "content-type": "application/json" } });
+    }
+
+    // Tool activity endpoint — receives PostToolUse hook data and broadcasts to notebooks
+    if (url.pathname === "/tool-activity" && req.method === "POST") {
+      try {
+        const body = await req.json();
+        const toolName = body.tool_name || "unknown";
+        const toolInput = body.tool_input || {};
+        const toolResponse = body.tool_response;
+
+        // Build a compact summary for the chat widget
+        let summary = toolName;
+        if (toolName === "Read" && toolInput.file_path) {
+          summary = `Read ${toolInput.file_path}`;
+        } else if (toolName === "Edit" && toolInput.file_path) {
+          summary = `Edit ${toolInput.file_path}`;
+        } else if (toolName === "Write" && toolInput.file_path) {
+          summary = `Write ${toolInput.file_path}`;
+        } else if (toolName === "Bash" && toolInput.command) {
+          summary = `$ ${toolInput.command.slice(0, 120)}`;
+        } else if (toolName === "Grep" && toolInput.pattern) {
+          summary = `Grep "${toolInput.pattern}"`;
+        } else if (toolName === "Glob" && toolInput.pattern) {
+          summary = `Glob "${toolInput.pattern}"`;
+        } else if (toolName === "Agent" && toolInput.description) {
+          summary = `Agent: ${toolInput.description}`;
+        } else if (toolName.startsWith("mcp__lopecode__")) {
+          // Our own MCP tools — skip broadcasting to avoid echo
+          return new Response("ok", { status: 200 });
+        }
+
+        // Broadcast to all paired notebooks
+        const msg = JSON.stringify({
+          type: "tool-activity",
+          tool_name: toolName,
+          summary,
+          timestamp: Date.now(),
+        });
+        for (const ws of pairedConnections.values()) {
+          ws.send(msg);
+        }
+        return new Response("ok", { status: 200 });
+      } catch (e) {
+        return new Response("bad request", { status: 400 });
+      }
     }
     if (url.pathname === "/") {
       const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=${PAIRING_TOKEN}`;
@@ -609,5 +654,11 @@ const server = Bun.serve({
 
 PORT = server.port; // read actual port (important when REQUESTED_PORT is 0)
 PAIRING_TOKEN = generateToken();
+
+// Write port file so hooks can find us
+const portFilePath = join(import.meta.dir, ".lopecode-port");
+await Bun.write(portFilePath, String(PORT));
+process.on("exit", () => { try { require("fs").unlinkSync(portFilePath); } catch {} });
+
 process.stderr.write(`lopecode-channel: pairing token: ${PAIRING_TOKEN}\n`);
 process.stderr.write(`lopecode-channel: WebSocket server on ws://127.0.0.1:${PORT}/ws\n`);

@@ -519,6 +519,17 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
           cc_messages.dispatchEvent(new Event("input"));
           break;
 
+        case "tool-activity":
+          var msgs2 = cc_messages.value.concat([{
+            role: "tool",
+            tool_name: msg.tool_name,
+            content: msg.summary,
+            timestamp: msg.timestamp || Date.now()
+          }]);
+          cc_messages.value = msgs2;
+          cc_messages.dispatchEvent(new Event("input"));
+          break;
+
         case "command":
           Promise.resolve(handleCommand(msg)).then(function(result) {
             ws.send(JSON.stringify({
@@ -636,41 +647,41 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
     disconnected: "#ef4444"
   };
 
-  function renderSetup() {
+  function renderConnect() {
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;justify-content:center;align-items:center;padding:16px;";
+
     var tokenInput = document.createElement("input");
     tokenInput.type = "text";
     tokenInput.placeholder = "LOPE-XXXX";
-    tokenInput.style.cssText = "font-family:monospace;font-size:16px;padding:8px 12px;border:2px solid #d1d5db;border-radius:6px;width:140px;text-transform:uppercase;letter-spacing:2px;";
+    tokenInput.style.cssText = "font-family:var(--monospace, monospace);font-size:16px;padding:8px 12px;border:2px solid var(--theme-foreground-faint);border-radius:6px;width:140px;text-transform:uppercase;letter-spacing:2px;background:var(--theme-background-a);color:var(--theme-foreground);";
 
     var connectBtn = document.createElement("button");
     connectBtn.textContent = "Connect";
-    connectBtn.style.cssText = "padding:8px 20px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;";
+    connectBtn.style.cssText = "padding:8px 20px;background:var(--theme-foreground);color:var(--theme-background-a);border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;";
     connectBtn.onclick = function() {
       var token = tokenInput.value.trim();
       if (token) cc_ws.connect(token);
     };
-
     tokenInput.addEventListener("keydown", function(e) {
       if (e.key === "Enter") connectBtn.click();
     });
 
-    var container = document.createElement("div");
-    container.className = "cc-setup";
-    container.innerHTML = '<div style="padding:24px;max-width:400px;margin:0 auto;text-align:center;">' +
-      '<div style="font-size:24px;margin-bottom:8px;">Claude Channel</div>' +
-      '<p style="color:#6b7280;margin-bottom:20px;font-size:14px;">Connect to Claude Code to chat with Claude from this notebook.</p>' +
-      '<div style="text-align:left;background:#f3f4f6;padding:16px;border-radius:8px;margin-bottom:20px;font-size:13px;">' +
-      '<div style="font-weight:600;margin-bottom:8px;">Setup:</div>' +
-      '<ol style="margin:0;padding-left:20px;line-height:1.8;">' +
+    row.append(tokenInput, connectBtn);
+
+    var guide = document.createElement("details");
+    guide.style.cssText = "padding:0 16px 16px;font-size:13px;color:var(--theme-foreground);";
+    guide.innerHTML = '<summary style="cursor:pointer;font-weight:600;font-size:14px;">Setup guide</summary>' +
+      '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.8;">' +
       '<li>Install <a href="https://bun.sh" target="_blank">Bun</a> if needed, then:<br>' +
-      '<code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">bun install -g @lopecode/channel</code><br>' +
-      '<code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">claude mcp add lopecode bunx @lopecode/channel</code></li>' +
-      '<li>Start Claude Code:<br><code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">claude --channels server:lopecode</code></li>' +
-      '<li>Ask Claude to connect, or paste a pairing token below</li>' +
-      '</ol></div>' +
-      '<div style="display:flex;gap:8px;justify-content:center;align-items:center;" class="cc-token-row"></div>' +
-      '</div>';
-    container.querySelector(".cc-token-row").append(tokenInput, connectBtn);
+      '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">bun install -g @lopecode/channel</code><br>' +
+      '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude mcp add lopecode bunx @lopecode/channel</code></li>' +
+      '<li>Start Claude Code:<br><code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude --dangerously-load-development-channels server:lopecode</code></li>' +
+      '<li>Ask Claude to connect, or paste a pairing token above</li>' +
+      '</ol>';
+
+    var container = document.createElement("div");
+    container.append(row, guide);
     return container;
   }
 
@@ -683,11 +694,11 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
     textarea.className = "cc-input";
     textarea.placeholder = "Message Claude...";
     textarea.rows = 2;
-    textarea.style.cssText = "width:100%;box-sizing:border-box;resize:none;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;outline:none;";
+    textarea.style.cssText = "width:100%;box-sizing:border-box;resize:none;border:1px solid var(--theme-foreground-faint);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;outline:none;background:var(--theme-background-a);color:var(--theme-foreground);";
 
     var sendBtn = document.createElement("button");
     sendBtn.textContent = "Send";
-    sendBtn.style.cssText = "padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:auto;";
+    sendBtn.style.cssText = "padding:8px 16px;background:var(--theme-foreground);color:var(--theme-background-a);border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:auto;";
 
     function sendMessage() {
       var text = textarea.value.trim();
@@ -705,7 +716,7 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
     });
 
     var inputRow = document.createElement("div");
-    inputRow.style.cssText = "display:flex;gap:8px;padding:12px;align-items:flex-end;border-top:1px solid #e5e7eb;";
+    inputRow.style.cssText = "display:flex;gap:8px;padding:12px;align-items:flex-end;border-top:1px solid var(--theme-foreground-faint);";
     inputRow.append(textarea, sendBtn);
 
     var container = document.createElement("div");
@@ -715,15 +726,47 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
 
     function updateMessages() {
       messagesDiv.innerHTML = "";
-      for (var i = 0; i < cc_messages.value.length; i++) {
-        var msg = cc_messages.value[i];
+      var msgs = cc_messages.value;
+      var i = 0;
+      while (i < msgs.length) {
+        var msg = msgs[i];
+
+        // Group consecutive tool messages into a collapsible block
+        if (msg.role === "tool") {
+          var toolGroup = [];
+          while (i < msgs.length && msgs[i].role === "tool") {
+            toolGroup.push(msgs[i]);
+            i++;
+          }
+          var details = document.createElement("details");
+          details.style.cssText = "max-width:90%;align-self:flex-start;font-size:12px;opacity:0.85;margin:2px 0;";
+          var summary = document.createElement("summary");
+          summary.style.cssText = "cursor:pointer;padding:4px 10px;border-radius:8px;" +
+            "background:var(--theme-background-alt, #f0f0f0);color:var(--theme-foreground, #333);" +
+            "font-family:var(--monospace, monospace);border-left:2px solid var(--theme-foreground-faint, #ccc);list-style:inside;font-size:12px;";
+          summary.textContent = toolGroup.length === 1
+            ? "\u{1F527} " + toolGroup[0].content
+            : "\u{1F527} " + toolGroup.length + " tool calls \u2014 " + toolGroup[toolGroup.length - 1].content;
+          details.appendChild(summary);
+          var list = document.createElement("div");
+          list.style.cssText = "padding:4px 10px 4px 20px;font-family:var(--monospace, monospace);color:var(--theme-foreground, #333);line-height:1.6;font-size:11px;";
+          for (var j = 0; j < toolGroup.length; j++) {
+            var line = document.createElement("div");
+            line.textContent = toolGroup[j].content;
+            list.appendChild(line);
+          }
+          details.appendChild(list);
+          messagesDiv.appendChild(details);
+          continue;
+        }
+
         var bubble = document.createElement("div");
         bubble.className = "cc-msg cc-msg-" + msg.role;
         var isUser = msg.role === "user";
         bubble.style.cssText = "max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;" +
           (isUser
-            ? "align-self:flex-end;background:#2563eb;color:white;border-bottom-right-radius:4px;"
-            : "align-self:flex-start;background:#f3f4f6;color:#1f2937;border-bottom-left-radius:4px;");
+            ? "align-self:flex-end;background:var(--theme-foreground);color:var(--theme-background-a);border-bottom-right-radius:4px;"
+            : "align-self:flex-start;background:var(--theme-background-b);color:var(--theme-foreground);border-bottom-left-radius:4px;");
 
         if (isUser) {
           bubble.textContent = msg.content;
@@ -735,6 +778,7 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
           } catch(e) { bubble.textContent = msg.content; }
         }
         messagesDiv.appendChild(bubble);
+        i++;
       }
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -744,13 +788,16 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
     return container;
   }
 
+  var isConnected = (cc_status.value === "connected");
+
   var wrapper = document.createElement("div");
   wrapper.className = "cc-chat";
-  wrapper.style.cssText = "border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;height:400px;display:flex;flex-direction:column;background:white;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;";
+  wrapper.style.cssText = "border:1px solid var(--theme-foreground-faint);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:var(--theme-background-a);font-family:inherit;" +
+    (isConnected ? "height:400px;" : "");
 
   var statusBar = document.createElement("div");
   statusBar.className = "cc-status-bar";
-  statusBar.style.cssText = "display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;background:#fafafa;";
+  statusBar.style.cssText = "display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--theme-foreground-faint);font-size:12px;color:var(--theme-foreground-faint);background:var(--theme-background-b);";
 
   var statusDot = document.createElement("span");
   statusDot.style.cssText = "width:8px;height:8px;border-radius:50%;display:inline-block;";
@@ -770,18 +817,21 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
 
   function render() {
     var status = cc_status.value || "disconnected";
+    var connected = (status === "connected");
     statusDot.style.background = statusColors[status] || "#ef4444";
-    statusText.textContent = status === "connected" ? "Connected to Claude Code"
+    statusText.textContent = connected ? "Connected to Claude Code"
       : (status === "connecting" || status === "pairing") ? "Connecting..."
       : "Not connected";
 
+    wrapper.style.height = connected ? "400px" : "";
+
     body.innerHTML = "";
-    if (status === "connected") {
+    if (connected) {
       chatView = renderChat();
       body.appendChild(chatView);
     } else {
       chatView = null;
-      body.appendChild(renderSetup());
+      body.appendChild(renderConnect());
     }
   }
 

@@ -31,3 +31,6 @@ export_spec.json
 # Staging directories
 tools/staging/
 tools/screenshots/
+
+# Channel server runtime files
+tools/channel/.lopecode-port

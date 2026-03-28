@@ -600,8 +600,8 @@ channel_config = ({
 | Channel server (MCP + WebSocket) | **Done** | `tools/channel/lopecode-channel.ts` |
 | MCP tools (8 tools) | **Done** | reply, get/define/delete_variable, list_variables, run_tests, eval_code, fork_notebook |
 | Observable module (7 cells) | **Done** | `tools/channel/claude-channels-module.js` |
-| Notebook injection script | **Done** | `tools/channel/inject-module.js` |
-| Standalone notebook | **Done** | `lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html` (not committed — generate with inject-module.js) |
+| Notebook injection script | **Done** | `tools/channel/sync-module.ts` |
+| Standalone notebook | **Done** | `lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html` (not committed — generate with sync-module.ts) |
 | .mcp.json registration | **Done** | `.mcp.json` |
 | Server integration tests | **Done** | `tools/test-lopecode-channel.js` (10 tests, all pass) |
 | Cell injection tests | **Done** | `tools/test-channel-cells.js` (injects into live notebook via browser REPL) |
@@ -634,7 +634,7 @@ Claude Code **channels feature is not available** for our account (Team plan, Ta
    # The channel server starts automatically, prints pairing token to stderr.
    # Open the standalone notebook in a browser:
    open lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html
-   # (generate it first: node tools/channel/inject-module.js lopecode/notebooks/@tomlarkworthy_debugger.html lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html)
+   # (generate it first: node tools/channel/sync-module.ts lopecode/notebooks/@tomlarkworthy_debugger.html lopecode/notebooks/@tomlarkworthy_debugger--claude-channel.html)
 
    # Paste the LOPE-XXXX token into the chat widget, click Connect.
    # Type a message in the chat. Claude should see it and reply.
@@ -644,7 +644,7 @@ Claude Code **channels feature is not available** for our account (Team plan, Ta
 
 ### Known Issues
 
-- **Lopepage hash nesting**: Hash URLs only support flat `R100(S_w(@mod),S_w(@mod),...)`. Nesting `R` inside `S` inside `C` causes "Lost?" page. The inject-module.js handles this correctly.
+- **Lopepage hash nesting**: Hash URLs only support flat `R100(S_w(@mod),S_w(@mod),...)`. Nesting `R` inside `S` inside `C` causes "Lost?" page. The sync-module.ts handles this correctly.
 - **Notebook HTML has duplicate markers**: The exporter module embeds template copies of `<!-- Bootloader -->`, `bootconf.json`, and `<script type="module" id="main">`. Always use `lastIndexOf` when editing notebook HTML programmatically.
 - **md tagged template**: In the chat widget, `md` must be called as `md([content])` (array argument) for string interpolation, not as a tagged template literal (which requires backtick syntax not available in this context).
 
@@ -659,6 +659,7 @@ Claude Code **channels feature is not available** for our account (Team plan, Ta
 - **Reactive markdown interpolation** in Claude's replies (v2: render Observable JS in reply bubbles, e.g. `${Inputs.button("Apply fix")}`)
 - **Persistent chat history** across sessions
 - **Auto-reconnect with remembered tokens** (re-pair each session for security)
+- **Session resumption** — when Claude restarts, the notebook's existing WebSocket connection is stale; need a mechanism for the new server to reclaim/reconnect notebooks without user re-pairing
 - **File/image attachments** in chat messages
 - **Voice input** via Whisper integration
 - **Plugin packaging** for `/plugin install` marketplace distribution
