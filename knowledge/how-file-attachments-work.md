@@ -165,6 +165,29 @@ When a notebook exports itself, exporter-2's `lopemodule` function serializes ea
 
 The `module_specs` cell also merges main module attachments into sub-modules when `main_files !== false`, so files attached at the top level are available everywhere.
 
+## Module Name Resolution at Runtime
+
+The lopecode bootloader populates `runtime.mains` — a `Map<string, Module>` mapping module names (e.g. `"@tomlarkworthy/fileattachments"`) to their runtime module instances. This is the most reliable way to find a module by name at runtime.
+
+For imported (non-main) modules, look for variables named `module @author/name` — the variable's `_value` (NOT `_module`) is the imported module instance. The `_module` property points to the *importing* module, not the imported one.
+
+```javascript
+// Build a name → module map from the runtime
+const nameMap = new Map();
+for (const v of runtime._variables) {
+  if (v._name?.startsWith("module ")) {
+    const modName = v._name.slice(7);
+    if (v._value?._scope) nameMap.set(v._value, modName);
+  }
+}
+// Also include mains
+if (runtime.mains) {
+  for (const [name, mod] of runtime.mains) nameMap.set(mod, name);
+}
+```
+
+This pattern is used by `tools.js` `findModule()` and by the `all_module_files` cell in `@tomlarkworthy/fileattachments`.
+
 ## Node.js Support (lope-node-runner.js)
 
 For headless execution, `lope-node-runner.js` patches `runtime.fileAttachments` to resolve file attachments without a browser DOM. It reads from the same Map structure but resolves blob URLs via an in-memory `blobUrls` Map or filesystem paths.

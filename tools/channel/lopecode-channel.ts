@@ -90,6 +90,7 @@ Variable updates (when watching):
 
 - reply: Send markdown to notebook chat
 - get_variable / define_variable / delete_variable / list_variables: Interact with runtime
+- create_module / delete_module: Create or remove modules (registered in runtime.mains, visible in moduleMap)
 - watch_variable / unwatch_variable: Subscribe to reactive variable updates
 - run_tests: Run test_* variables
 - eval_code: Evaluate JS in browser context
@@ -251,6 +252,30 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "create_module",
+      description: "Create a new empty module in the runtime. The module is registered in runtime.mains so it appears in moduleMap/currentModules.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          name: { type: "string", description: "Module name, e.g. '@tomlarkworthy/my-module'" },
+        },
+        required: ["name"],
+      },
+    },
+    {
+      name: "delete_module",
+      description: "Delete a module and all its variables from the runtime.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          name: { type: "string", description: "Module name to delete" },
+        },
+        required: ["name"],
+      },
+    },
+    {
       name: "watch_variable",
       description: "Subscribe to reactive updates for a variable. Changes are pushed as notifications.",
       inputSchema: {
@@ -344,6 +369,14 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "fork";
         timeout = 120000;
         params = { suffix: args.suffix || null };
+        break;
+      case "create_module":
+        action = "create-module";
+        params = { name: args.name };
+        break;
+      case "delete_module":
+        action = "delete-module";
+        params = { name: args.name };
         break;
       case "watch_variable":
         action = "watch";

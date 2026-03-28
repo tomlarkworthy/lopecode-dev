@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script id="@tomlarkworthy/exporter-3" type="text/plain" data-mime="application/javascript">
+const _title = function _1(md){return(
+md`# Exporter 3: Raw Variable Serializer
+
+Removes cellMap and moduleMap. Operates directly on raw runtime variables.
+
+- **No cellMap** — no grouping of viewof/mutable variables
+- **No moduleMap** — builds module names from runtime.mains + "module X" vars
+- **Uniform serialization** — viewof, mutable, simple all handled the same way
+
+\`\`\`js
+import {buildModuleNames, buildModuleSpecs, generateModuleSource} from "@tomlarkworthy/exporter-3"
+\`\`\``
+)};
+const _buildModuleNames = function _buildModuleNames(){return(
+function buildModuleNames(runtime, { cache = [] } = {}) {
+  const names = new Map();
+
+  for (const [module, info] of cache) {
+    names.set(module, info);
+  }
+
+  if (runtime.mains) {
+    for (const [name, module] of runtime.mains) {
+      if (!names.has(module)) {
+        names.set(module, { name, module });
+      }
+    }
+  }
+
+  for (const v of runtime._variables) {
+    if (
+      typeof v._name === "string" &&
+      v._name.startsWith("module ") &&
+      v._value &&
+      !names.has(v._value)
+    ) {
+      const name = v._name.slice(7);
+      names.set(v._value, { name, module: v._value });
+    }
+  }
+
+  const builtinModule = runtime._builtin;
+  if (builtinModule && !names.has(builtinModule)) {
+    names.set(builtinModule, { name: "builtin", module: builtinModule });
+  }
+
+  for (const v of runtime._variables) {
+    if (!names.has(v._module)) {
+      names.set(v._module, { name: "main", module: v._module });
+    }
+  }
+
+  return names;
+}
+)};
+const _isModuleVar = function _isModuleVar(){return(
+(v) => typeof v._name === "string" && v._name.startsWith("module ")
+)};
+const _isDynamicVar = function _isDynamicVar(){return(
+(v) => typeof v._name === "string" && v._name.startsWith("dynamic ")
+)};
+const _isLiveImport = function _isLiveImport(){return(
+(v) =>
+  !v._name &&
+  v._definition
+    ?.toString()
+    .includes("observablehq" + "--inspect " + "observablehq--import")
+)};
+const _isImportBridged = function _isImportBridged(){return(
+function isImportBridged(v) {
+  if (
+    v._inputs.length === 1 &&
+    v._inputs[0]._module !== v._module &&
+    !v._inputs[0]._name?.startsWith?.("@")
+  ) {
+    return true;
+  }
+  if (v._inputs.length === 2 && v._inputs[1]?._name === "@variable") {
+    return true;
+  }
+  return false;
+}
+)};
+const _getImportSource = function _getImportSource(){return(
+async function getImportSource(v) {
+  if (v._inputs.length === 1 && v._inputs[0]._module !== v._module) {
+    return v._inputs[0]._module;
+  }
+  if (v._inputs.length === 2 && v._inputs[1]?._name === "@variable") {
+    return v._inputs[0]._value || null;
+  }
+  return null;
+}
+)};
+const _findImportedName = function _findImportedName(){return(
+async function findImportedName(v) {
+  if (v._inputs.length === 1 && v._inputs[0]._name === "@variable") {
+    let capture;
+    await v._definition({ import: (...args) => (capture = args) });
+    return capture[0];
+  }
+  if (v._inputs.length === 1) {
+    return v._inputs[0]._name;
+  }
+  const regex = /v\.import\("([^"]+)",\s*"([^"]+)"/;
+  const match = v._definition.toString().match(regex);
+  if (match) return match[1];
+  return v._name;
+}
+)};
+const _contentHash = function _contentHash(){return(
+function contentHash(s) {
+  s = String(s);
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++)
+    h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return "_" + (h >>> 0).toString(36);
+}
+)};
+const _pid = function _pid(contentHash){return(
+function pid(v) {
+  if (!v.pid) {
+    v.pid = contentHash(v._name + v._definition.toString());
+  }
+  return v.pid;
+}
+)};
+const _variableToDefinition = function _variableToDefinition(isModuleVar,isImportBridged,isLiveImport,isDynamicVar,pid){return(
+function variableToDefinition(v) {
+  if (isModuleVar(v)) return "";
+  if (isImportBridged(v)) return "";
+  if (isLiveImport(v)) return "";
+  if (isDynamicVar(v)) return "";
+
+  return `const ${pid(v)} = ${v._definition.toString()};\n`;
+}
+)};
+const _variableToDefine = function _variableToDefine(isLiveImport,isDynamicVar,isModuleVar,isImportBridged,findImportedName,pid){return(
+async function variableToDefine(v, { moduleNames } = {}) {
+  if (isLiveImport(v)) return [];
+  if (isDynamicVar(v)) return [];
+
+  if (isModuleVar(v)) {
+    const moduleName = v._name.slice(7);
+    return [
+      `  main.define("${v._name}", async () => runtime.module((await import("/${moduleName}.js?v=4")).default));`
+    ];
+  }
+
+  if (isImportBridged(v)) {
+    const importedName = await findImportedName(v);
+    let moduleVarName = null;
+
+    if (v._inputs.length === 2 && v._inputs[1]?._name === "@variable") {
+      moduleVarName = v._inputs[0]._name;
+    } else if (v._inputs.length === 1 && v._inputs[0]._module !== v._module) {
+      const sourceModule = v._inputs[0]._module;
+      const sourceInfo = moduleNames?.get(sourceModule);
+      if (sourceInfo) {
+        moduleVarName = `module ${sourceInfo.name}`;
+      }
+    }
+
+    if (!moduleVarName) {
+      console.warn(`Cannot determine module for import-bridged variable: ${v._name}`);
+      return [];
+    }
+
+    return [
+      `  main.define("${v._name}", ["${moduleVarName}", "@variable"], (_, v) => v.import(${
+        importedName && importedName !== v._name ? `"${importedName}", ` : ""
+      }"${v._name}", _));`
+    ];
+  }
+
+  const deps = JSON.stringify(v._inputs.map((i) => i._name));
+  const name_literal = v._name ? `"${v._name}"` : "null";
+  return [`  $def("${pid(v)}", ${name_literal}, ${deps}, ${pid(v)});`];
+}
+)};
+const _generateDefinitions = function _generateDefinitions(variableToDefinition){return(
+function generateDefinitions(variables) {
+  return variables.map((v) => variableToDefinition(v)).join("");
+}
+)};
+const _generateDefine = function _generateDefine(variableToDefine){return(
+async function generateDefine(spec, variables, fileAttachments, { moduleNames } = {}) {
+  const fileAttachmentExpression = fileAttachments?.size
+    ? `  const fileAttachments = new Map(${JSON.stringify([
+        ...fileAttachments.keys(),
+      ])}.map((name) => {
+    const module_name = "${spec.name}";
+    const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
+    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
+    return [name, {url: blob_url, mimeType: mime}]
+  }));
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));\n`
+    : "";
+
+  const defines = (
+    await Promise.all(
+      variables.map((v) => variableToDefine(v, { moduleNames }))
+    )
+  )
+    .flat()
+    .join("  \n");
+
+  return `export default function define(runtime, observer) {
+  const main = runtime.module();
+  const $def = (pid, name, deps, fn) => {
+    main.variable(observer(name)).define(name, deps, fn).pid = pid;
+  };
+${fileAttachmentExpression}${defines}
+  return main;
+}`;
+}
+)};
+const _generateModuleSource = function _generateModuleSource(generateDefinitions,generateDefine){return(
+async function generateModuleSource(spec, variables, fileAttachments, { moduleNames } = {}) {
+  return `\n${generateDefinitions(variables)}\n${await generateDefine(
+    spec,
+    variables,
+    fileAttachments,
+    { moduleNames }
+  )}`;
+}
+)};
+const _buildModuleSpecs = function _buildModuleSpecs(buildModuleNames,isDynamicVar,isModuleVar,generateModuleSource){return(
+async function buildModuleSpecs({ runtime, mains, getFileAttachments, options = {} }) {
+  const moduleNames = buildModuleNames(runtime, {
+    cache: [...mains.entries()].map(([name, module]) => [module, { name, module }]),
+  });
+
+  const byModule = new Map();
+  for (const v of runtime._variables) {
+    if (v._type !== 1) continue;
+    if (isDynamicVar(v)) continue;
+    let arr = byModule.get(v._module);
+    if (!arr) byModule.set(v._module, (arr = []));
+    arr.push(v);
+  }
+
+  const excludedNames = new Set(["builtin", "main", "TBD", "error"]);
+
+  const specs = new Map();
+  for (const [module, variables] of byModule) {
+    const info = moduleNames.get(module);
+    if (!info) continue;
+    if (excludedNames.has(info.name)) continue;
+
+    const fileAttachments = getFileAttachments?.(module) || new Map();
+
+    const imports = variables
+      .filter((v) => isModuleVar(v))
+      .map((v) => v._name.slice(7))
+      .filter((m) => !excludedNames.has(m));
+
+    const source = await generateModuleSource(info, variables, fileAttachments, {
+      moduleNames,
+    });
+
+    specs.set(info.name, {
+      url: info.name,
+      imports,
+      fileAttachments,
+      source,
+      variables,
+      module,
+    });
+  }
+
+  return specs;
+}
+)};
+export default function define(runtime, observer) {
+  const main = runtime.module();
+  const $def = (pid, name, deps, fn) => {
+    main.variable(observer(name)).define(name, deps, fn).pid = pid;
+  };
+  $def("_title", null, ["md"], _title);
+  $def("_buildModuleNames", "buildModuleNames", [], _buildModuleNames);
+  $def("_isModuleVar", "isModuleVar", [], _isModuleVar);
+  $def("_isDynamicVar", "isDynamicVar", [], _isDynamicVar);
+  $def("_isLiveImport", "isLiveImport", [], _isLiveImport);
+  $def("_isImportBridged", "isImportBridged", [], _isImportBridged);
+  $def("_getImportSource", "getImportSource", [], _getImportSource);
+  $def("_findImportedName", "findImportedName", [], _findImportedName);
+  $def("_contentHash", "contentHash", [], _contentHash);
+  $def("_pid", "pid", ["contentHash"], _pid);
+  $def("_variableToDefinition", "variableToDefinition", ["isModuleVar","isImportBridged","isLiveImport","isDynamicVar","pid"], _variableToDefinition);
+  $def("_variableToDefine", "variableToDefine", ["isLiveImport","isDynamicVar","isModuleVar","isImportBridged","findImportedName","pid"], _variableToDefine);
+  $def("_generateDefinitions", "generateDefinitions", ["variableToDefinition"], _generateDefinitions);
+  $def("_generateDefine", "generateDefine", ["variableToDefine"], _generateDefine);
+  $def("_generateModuleSource", "generateModuleSource", ["generateDefinitions","generateDefine"], _generateModuleSource);
+  $def("_buildModuleSpecs", "buildModuleSpecs", ["buildModuleNames","isDynamicVar","isModuleVar","generateModuleSource"], _buildModuleSpecs);
+  return main;
+}
+</script>
+</body>
+</html>

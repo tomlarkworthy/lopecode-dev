@@ -43,7 +43,6 @@ All lopebooks currently use `@tomlarkworthy/lopepage` as their frame.
 ### Export failures (2 of 21)
 
 - **`@tomlarkworthy/circular-barcode-simulator`** — times out during export. Depends on `d/b2bbebd2f186ed03@1803` (Range Slider) which fails to resolve from the Observable API.
-- **`@tomlarkworthy/opencode-agent`** — times out silently during export.
 
 ### Size changes after re-export
 
@@ -72,6 +71,17 @@ To support bulk testing, these shims were added:
 - `IDBKeyRange` and other IDB globals on the vm context
 - `TextEncoderStream`, `TextDecoderStream` — stream APIs
 - `crypto` — Web Crypto API
+
+### Worker subprocess protocol
+
+`bulk-smoke-test.js` runs each notebook in an isolated subprocess (`bulk-smoke-test-worker.js`). A key gotcha: notebook code runs `console.log` which writes to the worker's stdout, polluting any JSON result. The solution is a tagged protocol:
+
+- Worker writes results to **stderr** prefixed with `__RESULT__`
+- Parent scans stderr for the `__RESULT__` line and parses JSON from it
+- Notebook stdout/stderr noise is ignored
+- `killSignal: 'SIGKILL'` is required in `execFile` — Node.js vm processes ignore SIGTERM during certain operations
+
+When adding new shims, check npm first (e.g., `fake-indexeddb`) rather than writing custom mocks. See the feedback memory `feedback_node_shims_over_browser` for rationale.
 
 ## QC Tool
 

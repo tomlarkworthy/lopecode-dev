@@ -23,15 +23,23 @@ const _cc_messages = function _cc_messages(Inputs){return(
 )};
 
 const _cc_watches = function _cc_watches(Inputs){return(
-  Inputs.input([])
+  Inputs.input([
+    { name: "hash", module: null },
+    { name: "currentModules", module: null }
+  ])
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, realize, runtime, invalidation){return(
+const _cc_module = function _cc_module(thisModule){return(
+  thisModule()
+)};
+
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, realize, createModule, deleteModule, lookupVariable, cc_module, runtime, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
   var paired = false;
-
+  // Cache the observer factory (used by lopepage to render cells)
+  var ojs_observer = window.__ojs_observer || null;
 
   function serializeValue(value, maxLen) {
     maxLen = maxLen || 500;
@@ -79,22 +87,21 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         var name = cmd.params.name;
         var moduleName = cmd.params.module;
         var targetModule = findModule(runtime, moduleName);
-        for (var v of runtime._variables) {
-          if (v._name === name && (!targetModule || v._module === targetModule)) {
-            return {
-              ok: true,
-              result: {
-                name: v._name,
-                hasValue: v._value !== undefined,
-                hasError: v._error !== undefined,
-                value: serializeValue(v._value),
-                error: v._error ? v._error.message : undefined,
-                reachable: v._reachable
-              }
-            };
-          }
-        }
-        return { ok: false, error: "Variable not found: " + name };
+        if (!targetModule) return { ok: false, error: "Module not found: " + (moduleName || "default") };
+        return lookupVariable(name, targetModule).then(function(v) {
+          if (!v) return { ok: false, error: "Variable not found: " + name };
+          return {
+            ok: true,
+            result: {
+              name: v._name,
+              hasValue: v._value !== undefined,
+              hasError: v._error !== undefined,
+              value: serializeValue(v._value),
+              error: v._error ? v._error.message : undefined,
+              reachable: v._reachable
+            }
+          };
+        });
       }
 
       case "define-variable": {
@@ -102,32 +109,22 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         var definition = cmd.params.definition;
         var inputs = cmd.params.inputs || [];
         var moduleName = cmd.params.module;
-        var mod = runtime.mains && runtime.mains.get(moduleName);
-        if (!mod && runtime.mains) {
-          for (var entry of runtime.mains) {
-            if (!FRAMEWORK_MODULES.has(entry[0])) { mod = entry[1]; break; }
-          }
-        }
+        var mod = findModule(runtime, moduleName);
         if (!mod) return { ok: false, error: "Module not found: " + (moduleName || "default") };
 
         return realize([definition], runtime).then(function(results) {
           var fn = results[0];
           if (typeof fn !== "function") return { ok: false, error: "Definition must evaluate to a function" };
 
-          var existingVar = null;
-          for (var v of runtime._variables) {
-            if (v._name === name && v._module === mod) { existingVar = v; break; }
-          }
-
+          // Use module._scope to check for existing variable
+          var existingVar = mod._scope.get(name);
           if (existingVar) {
             existingVar.define(name, inputs, fn);
           } else {
-            var obsFactory = null;
-            for (var v of runtime._variables) {
-              if (v._name === "__ojs_observer" && typeof v._value === "function") { obsFactory = v._value; break; }
-            }
-            mod.variable(obsFactory ? obsFactory(name) : {}).define(name, inputs, fn);
+            mod.variable(ojs_observer ? ojs_observer(name) : {}).define(name, inputs, fn);
           }
+          // Auto-watch the defined variable so the result arrives reactively
+          watchVariable(runtime, name, moduleName || null);
           return { ok: true, result: { success: true, name: name, module: moduleName || "default" } };
         }).catch(function(e) {
           return { ok: false, error: "define failed: " + e.message };
@@ -139,24 +136,23 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         var moduleName = cmd.params.module;
         var targetModule = findModule(runtime, moduleName);
         if (!targetModule) return { ok: false, error: "Module not found: " + (moduleName || "main") };
-        for (var v of runtime._variables) {
-          if (v._name === name && v._module === targetModule) {
-            v.delete();
-            return { ok: true, result: { success: true, name: name, module: targetModule._name || "main" } };
-          }
-        }
-        return { ok: false, error: "Variable not found: " + name + " in module " + (moduleName || "main") };
+        return lookupVariable(name, targetModule).then(function(v) {
+          if (!v) return { ok: false, error: "Variable not found: " + name + " in module " + (moduleName || "main") };
+          v.delete();
+          return { ok: true, result: { success: true, name: name, module: targetModule._name || "main" } };
+        });
       }
 
       case "list-variables": {
         var moduleName = cmd.params.module;
         var targetModule = findModule(runtime, moduleName);
+        if (!targetModule) return { ok: false, error: "Module not found: " + (moduleName || "default") };
+        // Use module._scope instead of scanning runtime._variables
         var variables = [];
-        for (var v of runtime._variables) {
-          if (!v._name) continue;
-          if (targetModule && v._module !== targetModule) continue;
+        for (var entry of targetModule._scope) {
+          var v = entry[1];
           variables.push({
-            name: v._name,
+            name: entry[0],
             module: (v._module && v._module._name) || "main",
             hasValue: v._value !== undefined,
             hasError: v._error !== undefined,
@@ -171,6 +167,28 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         var filter = cmd.params.filter;
         var timeout = cmd.params.timeout || 30000;
         return runTests(runtime, filter, timeout);
+      }
+
+      case "create-module": {
+        var moduleName = cmd.params.name;
+        if (!moduleName) return { ok: false, error: "Module name is required" };
+        try {
+          createModule(moduleName, runtime);
+          return { ok: true, result: { success: true, name: moduleName } };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
+      }
+
+      case "delete-module": {
+        var moduleName = cmd.params.name;
+        if (!moduleName) return { ok: false, error: "Module name is required" };
+        try {
+          deleteModule(moduleName, runtime);
+          return { ok: true, result: { success: true, name: moduleName } };
+        } catch (e) {
+          return { ok: false, error: e.message };
+        }
       }
 
       case "eval": {
@@ -302,17 +320,14 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     var key = (moduleName || "main") + ":" + name;
     if (watchers.has(key)) return { ok: true, result: { already_watching: true, key: key } };
 
-    var targetModule = findModule(runtime, moduleName);
-    var targetVar = null;
-    for (var v of runtime._variables) {
-      if (v._name === name && (!targetModule || v._module === targetModule)) {
-        targetVar = v;
-        break;
-      }
-    }
+    // Use findModule for named modules, cc_module (thisModule) for unqualified lookups
+    var targetModule = moduleName ? findModule(runtime, moduleName) : cc_module;
+    if (!targetModule) return Promise.resolve({ ok: false, error: "Module not found: " + (moduleName || "default") });
+
+    return lookupVariable(name, targetModule).then(function(targetVar) {
     if (!targetVar) return { ok: false, error: "Variable not found: " + name };
 
-    var moduleName = (targetVar._module && targetVar._module._name) || "main";
+    var resolvedModule = (targetVar._module && targetVar._module._name) || "main";
     var debounceTimer = null;
     var latestValue = undefined;
     var latestError = undefined;
@@ -328,19 +343,19 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
       var watches = viewof_cc_watches.value.slice();
       var found = false;
       for (var i = 0; i < watches.length; i++) {
-        if (watches[i].name === name && watches[i].module === moduleName) {
-          watches[i] = { name: name, module: moduleName, value: serialized.slice(0, 200), updated: now };
+        if (watches[i].name === name && (watches[i].module === resolvedModule || watches[i].module == null)) {
+          watches[i] = { name: name, module: resolvedModule, value: serialized.slice(0, 200), updated: now };
           found = true;
           break;
         }
       }
-      if (!found) watches.push({ name: name, module: moduleName, value: serialized.slice(0, 200), updated: now });
+      if (!found) watches.push({ name: name, module: resolvedModule, value: serialized.slice(0, 200), updated: now });
       viewof_cc_watches.value = watches;
       viewof_cc_watches.dispatchEvent(new Event("input"));
 
       // Send over WebSocket if connected
       if (!paired || !ws) return;
-      var msg = { type: "variable-update", name: name, module: moduleName };
+      var msg = { type: "variable-update", name: name, module: resolvedModule };
       if (latestError) { msg.error = latestError.message || String(latestError); }
       else { msg.value = serialized; }
       ws.send(JSON.stringify(msg));
@@ -370,7 +385,7 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         cancel();
         // Remove from watches table
         var watches = viewof_cc_watches.value.filter(function(w) {
-          return !(w.name === name && w.module === moduleName);
+          return !(w.name === name && w.module === resolvedModule);
         });
         viewof_cc_watches.value = watches;
         viewof_cc_watches.dispatchEvent(new Event("input"));
@@ -379,6 +394,7 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     });
 
     return { ok: true, result: { watching: true, key: key } };
+    }); // close lookupVariable.then
   }
 
   function unwatchVariable(name, moduleName) {
@@ -420,6 +436,11 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
 
   function connect(token) {
     if (ws) { ws.close(); ws = null; }
+
+    // Persist token for reconnection across reloads
+    if (token) {
+      try { sessionStorage.setItem("lopecode_cc_token", token); } catch(e) {}
+    }
 
     // Parse port from token format LOPE-PORT-XXXX
     var connectPort = port;
@@ -472,11 +493,13 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
             hash: location.hash
           }));
 
-          // Auto-watch default variables
+          // Set up watches from cc_watches (initialized with defaults via dependency resolution)
           var runtime2 = window.__ojs_runtime;
           if (runtime2) {
-            watchVariable(runtime2, "hash", null);
-            watchVariable(runtime2, "currentModules", null);
+            var initialWatches = viewof_cc_watches.value || [];
+            for (var i = 0; i < initialWatches.length; i++) {
+              watchVariable(runtime2, initialWatches[i].name, initialWatches[i].module);
+            }
           }
           break;
 
@@ -527,13 +550,23 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     ws.onerror = function() {};
   }
 
-  // Auto-connect if cc=TOKEN is in the hash fragment
-  // Hash format: #view=R100(...)&cc=LOPE-PORT-XXXX
+  // Auto-connect: check hash param first, then sessionStorage fallback
   (function autoConnect() {
+    var token = null;
+
+    // 1. Check &cc=TOKEN in hash
     var hash = location.hash || "";
     var match = hash.match(/[&?]cc=(LOPE-[A-Z0-9-]+)/);
     if (match) {
-      var token = match[1];
+      token = match[1];
+    }
+
+    // 2. Fallback to sessionStorage (survives reloads even if hash is mangled)
+    if (!token) {
+      try { token = sessionStorage.getItem("lopecode_cc_token"); } catch(e) {}
+    }
+
+    if (token) {
       // Small delay to let the WebSocket server be ready
       setTimeout(function() { connect(token); }, 500);
     }
@@ -629,9 +662,11 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
       '<div style="text-align:left;background:#f3f4f6;padding:16px;border-radius:8px;margin-bottom:20px;font-size:13px;">' +
       '<div style="font-weight:600;margin-bottom:8px;">Setup:</div>' +
       '<ol style="margin:0;padding-left:20px;line-height:1.8;">' +
-      '<li>Start Claude with the channel flag:<br><code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">claude --dangerously-load-development-channels server:lopecode</code></li>' +
-      '<li>Copy the pairing token from the terminal</li>' +
-      '<li>Paste it below and click Connect</li>' +
+      '<li>Install <a href="https://bun.sh" target="_blank">Bun</a> if needed, then:<br>' +
+      '<code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">bun install -g @lopecode/channel</code><br>' +
+      '<code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">claude mcp add lopecode bunx @lopecode/channel</code></li>' +
+      '<li>Start Claude Code:<br><code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:12px;">claude --channels server:lopecode</code></li>' +
+      '<li>Ask Claude to connect, or paste a pairing token below</li>' +
       '</ol></div>' +
       '<div style="display:flex;gap:8px;justify-content:center;align-items:center;" class="cc-token-row"></div>' +
       '</div>';
@@ -788,7 +823,9 @@ export default function define(runtime, observer) {
   $def("_cc_messages", "cc_messages", ["Inputs"], _cc_messages);
   $def("_cc_watches", "viewof cc_watches", ["Inputs"], _cc_watches);
   main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
-  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","runtime","invalidation"], _cc_ws);
+  $def("_cc_module", "viewof cc_module", ["thisModule"], _cc_module);
+  main.variable().define("cc_module", ["Generators", "viewof cc_module"], (G, v) => G.input(v));
+  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","createModule","deleteModule","lookupVariable","cc_module","runtime","invalidation"], _cc_ws);
   $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","invalidation"], _cc_change_forwarder);
 
   // Imports
@@ -800,6 +837,10 @@ export default function define(runtime, observer) {
   main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
   main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
   main.define("realize", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("realize", _));
+  main.define("createModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("createModule", _));
+  main.define("deleteModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("deleteModule", _));
+  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));
+  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
   main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));
   main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));

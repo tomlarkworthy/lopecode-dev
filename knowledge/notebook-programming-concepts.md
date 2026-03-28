@@ -84,10 +84,90 @@ Lopecode notebooks expose `window.__ojs_runtime` which provides access to:
 ```javascript
 const runtime = window.__ojs_runtime;
 
-runtime._variables    // Set of all variables across all modules
-runtime.mains         // Main module definitions
+runtime.mains         // Map<name, Module> — all registered modules
+runtime._variables    // Set of ALL variables (last resort — prefer module._scope or lookupVariable)
 runtime.fileAttachments  // File attachment resolver
 ```
+
+## Runtime SDK Metaprogramming
+
+`@tomlarkworthy/runtime-sdk` provides the correct, tested APIs for metaprogramming. **Always use these instead of scanning `runtime._variables`.**
+
+### Getting Your Own Module Reference
+
+```javascript
+// Declare as a viewof cell — Observable resolves the module asynchronously
+viewof myModule = thisModule()
+// myModule is now the actual Module object for your module
+```
+
+Use this when you need to look up variables in your own module's scope.
+
+### Finding Variables
+
+```javascript
+// By name within a known module (async, waits for scope to populate)
+const variable = await lookupVariable("myCell", module)
+
+// Synchronous check if you know it's already defined
+const variable = module._scope.get("myCell")
+```
+
+**Do NOT** scan `runtime._variables` to find a variable by name. Use `lookupVariable` or `module._scope`.
+
+### Finding Modules
+
+```javascript
+// By name from the mains registry
+const mod = runtime.mains.get("@tomlarkworthy/my-module")
+```
+
+### Module CRUD
+
+```javascript
+// Create a new empty module (registered in runtime.mains)
+const mod = createModule("@tomlarkworthy/my-module", runtime)
+
+// Delete a module and all its variables
+deleteModule("@tomlarkworthy/my-module", runtime)
+// Uses runtime._variables iteration internally (correct — anonymous vars aren't in _scope)
+```
+
+### Defining Cells
+
+```javascript
+// Compile Observable JS source to a function
+const [fn] = await realize(["(x) => x + 1"], runtime)
+
+// Define on a module (redefine if exists, create if not)
+const existing = module._scope.get("myCell")
+if (existing) {
+  existing.define("myCell", ["x"], fn)
+} else {
+  module.variable(observer).define("myCell", ["x"], fn)
+}
+```
+
+### Observing Variables Reactively
+
+```javascript
+// Subscribe to a variable's value changes
+const cancel = observe(variable, {
+  fulfilled: (value) => console.log("value:", value),
+  rejected: (error) => console.log("error:", error)
+}, { invalidation })
+
+// Later: cancel() to unsubscribe
+```
+
+### When `runtime._variables` Is Still Needed
+
+A few operations genuinely require cross-module iteration:
+- **Test discovery** — finding all `test_*` variables across all modules
+- **Fork/export** — finding `_exportToHTML` regardless of which module defines it
+- **`deleteModule`** — anonymous variables aren't in `_scope`, only in `runtime._variables`
+
+For everything else, use `runtime.mains` + `lookupVariable` + `module._scope`.
 
 ## Testing Infrastructure
 
@@ -307,11 +387,12 @@ ticker = {
 ### Inspecting Runtime State
 
 ```javascript
-// In browser console with notebook open
-const runtime = window.__ojs_runtime;
+// Preferred: use runtime-sdk lookupVariable
+const mod = runtime.mains.get("@tomlarkworthy/my-module");
+const myVar = await lookupVariable("myCell", mod);
 
-// Find a variable by name
-const myVar = [...runtime._variables].find(v => v._name === 'myCell');
+// Or synchronously via module scope
+const myVar = mod._scope.get("myCell");
 
 // Check its state
 console.log({

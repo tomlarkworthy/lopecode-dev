@@ -20,3 +20,14 @@ tools/node_modules/
 tools/*.png
 tools/*.json
 tools/tmp-export/
+
+# Bulk export / smoke test artifacts
+candidate-*
+export_spec.json
+
+# Screen recordings
+*.mov
+
+# Staging directories
+tools/staging/
+tools/screenshots/
