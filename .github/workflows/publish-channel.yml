@@ -23,6 +23,13 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Check version sync
+        run: bun run sync-version.ts --check
+
+      - name: Run tests
+        working-directory: .
+        run: bun test tests/channel/lopecode-channel.test.ts
+
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

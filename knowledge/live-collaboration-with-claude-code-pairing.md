@@ -2,7 +2,19 @@
 
 Pair program with Claude directly from a Lopecode notebook. Chat, watch reactive variables, define cells, manipulate the DOM, run tests — all through a two-way channel between the browser and Claude Code.
 
-## Quick Start (new users)
+## Design Principles
+
+1. **Metaprogramming lives in the notebook.** Core operations — creating modules, defining cells, deleting variables, observing values — belong in `@tomlarkworthy/runtime-sdk` and the Observable runtime. The channel is a thin bridge that exposes this existing expressivity to Claude, not a reimplementation of it.
+
+2. **Reactive, not request/response.** The Observable runtime is reactive. The channel should match this. When Claude defines a variable, it should automatically watch the result — the value arrives as a reactive update when ready, not via polling or a synchronous return. The channel translates between Claude's request/response MCP protocol and the notebook's reactive dataflow.
+
+3. **The notebook is the UI.** The channel doesn't need its own rendering or state management. It forwards commands to runtime-sdk functions and subscribes to their reactive outputs. The notebook handles display, error rendering, and user interaction.
+
+## Setup
+
+There are two entry points depending on where the user starts.
+
+### Starting from Claude Code (CLI-first)
 
 ```bash
 # One-time setup (requires Bun: https://bun.sh)
@@ -17,7 +29,7 @@ Then ask Claude: **"Open a lopecode notebook"**
 
 Claude gets the pairing token, opens the notebook in your browser, and auto-connects. No manual token paste needed.
 
-### For lopecode-dev developers
+#### For lopecode-dev developers
 
 The `.mcp.json` at the project root is already configured. Start with:
 
@@ -25,15 +37,49 @@ The `.mcp.json` at the project root is already configured. Start with:
 claude --channels server:lopecode
 ```
 
+### Starting from a Lopecode notebook (notebook-first)
+
+If you see the `@tomlarkworthy/claude-code-pairing` module panel in a notebook but don't have Claude Code connected:
+
+1. **Install Bun** if you don't have it: https://bun.sh
+2. **Install the channel plugin**:
+   ```bash
+   bun install -g @lopecode/channel
+   claude mcp add lopecode bunx @lopecode/channel
+   ```
+3. **Start Claude Code with channels**:
+   ```bash
+   claude --channels server:lopecode
+   ```
+4. **Ask Claude** to connect to your notebook. Claude will provide a `&cc=TOKEN` URL — paste it into your notebook's address bar, or ask Claude to open a fresh notebook.
+
+The pairing module panel shows connection status. When connected, you'll see a chat interface and a watch table showing live variable values.
+
 ## Architecture
 
 ```
 Browser (Notebook)  ←→  WebSocket  ←→  Channel Server (Bun)  ←→  MCP stdio  ←→  Claude Code
 ```
 
-- **Channel Server** (`tools/channel/lopecode-channel.ts`): Bridges WebSocket to MCP
-- **Notebook Module** (`@tomlarkworthy/claude-code-pairing`): Observable module with chat UI, watch table, command handler
-- **MCP Tools**: Claude calls `reply`, `get_variable`, `define_variable`, `watch_variable`, etc.
+- **Channel Server** (`tools/channel/lopecode-channel.ts`): Bridges WebSocket to MCP. Translates MCP tool calls into WebSocket commands, and WebSocket notifications into MCP notifications. Stateless — all intelligence is in the notebook module and runtime-sdk.
+- **Notebook Module** (`@tomlarkworthy/claude-code-pairing`): Observable module with chat UI, watch table, command handler. Dispatches commands to runtime-sdk functions.
+- **Runtime SDK** (`@tomlarkworthy/runtime-sdk`): The authoritative implementation of metaprogramming operations — `realize`, `observe`, `createModule`, `deleteModule`, `lookupVariable`, etc. The channel module calls these; it does not reimplement them.
+
+### What the channel server does
+
+- Generates pairing tokens
+- Relays MCP tool calls → WebSocket commands
+- Relays WebSocket notifications → MCP notifications (variable updates, cell changes, chat messages)
+- Manages notebook connection lifecycle
+- Value serialization for the MCP boundary (summarizeJS bridging) — this is a bridging function that naturally lives at the bridge
+
+### What the channel server does NOT do
+
+- Parse or compile Observable cell code
+- Track runtime state
+- Implement module/variable CRUD logic
+
+These belong in the notebook environment (runtime-sdk, claude-code-pairing module, etc.). Generally prefer putting logic in the notebook over the channel server — the notebook is reactive, testable, and visible to the user.
 
 ## Pairing
 
@@ -42,6 +88,10 @@ Each session generates a token in format `LOPE-PORT-XXXX` (e.g., `LOPE-8787-Q2SM
 ### Auto-connect via `&cc=` hash parameter
 
 The `&cc=TOKEN` parameter in the hash URL triggers auto-connect on page load. The notebook parses the port from the token and connects without manual intervention.
+
+### Reconnection across reloads
+
+On successful connect, the token is persisted to `sessionStorage`. On page reload (even if `&cc=` is lost from the hash due to bootloader mangling), the notebook checks `sessionStorage` as a fallback and auto-reconnects. This is critical for the agentic workflow where Claude triggers reloads.
 
 ### Claude-initiated reload with reconnect
 
@@ -62,7 +112,9 @@ Useful when the notebook needs to reload after module code changes.
 
 Multiple notebooks can connect with the same token simultaneously. When more than one is connected, specify `notebook_id` (the URL) in tool calls. When only one is connected, it's used automatically.
 
-## Available MCP Tools
+## MCP Tools
+
+These are the tools Claude sees. Each is a thin wrapper that sends a command to the notebook, where the real work happens in runtime-sdk.
 
 | Tool | Description | Key Params |
 |------|-------------|------------|
@@ -76,7 +128,15 @@ Multiple notebooks can connect with the same token simultaneously. When more tha
 | `eval_code` | Evaluate JS in browser context | `code` |
 | `watch_variable` | Subscribe to reactive updates | `name`, `module?`, `notebook_id?` |
 | `unwatch_variable` | Unsubscribe from a variable | `name`, `module?`, `notebook_id?` |
+| `create_module` | Create a new empty module in the runtime | `name` |
+| `delete_module` | Remove a module and all its variables | `name` |
 | `fork_notebook` | Self-serialize to sibling HTML file | `suffix?` |
+
+### Reactive tool behavior
+
+**`define_variable`** should automatically add a watch on the defined variable. Claude does not need to call `watch_variable` separately — the result arrives as a reactive `variable_update` notification when the runtime resolves the cell. This matches the Observable runtime's push-based model: define a cell, observe the result when it's ready.
+
+**`create_module`** and **`delete_module`** trigger `currentModules` updates automatically (since `currentModules` is already watched), so Claude sees the module list change reactively.
 
 ## Variable Watching
 
@@ -84,7 +144,7 @@ Multiple notebooks can connect with the same token simultaneously. When more tha
 
 ### Auto-watches on connect
 
-The module automatically watches `hash` and `currentModules` when a connection is established, giving Claude immediate visibility into the page layout and loaded modules.
+The `cc_watches` cell is initialized with default watches (`hash`, `currentModules`) via Observable dependency resolution — not imperatively on connect. When a connection is established, the pairing module reads the initialized watches and subscribes to each using `lookupVariable(name, cc_module)` + `observe()`. This gives Claude immediate visibility into the page layout and loaded modules.
 
 ### Watch table
 
@@ -102,9 +162,13 @@ serialized value (via summarizeJS, truncated to 2000 chars)
 
 `@tomlarkworthy/claude-code-pairing` imports from:
 - `@tomlarkworthy/module-map` → `currentModules`, `moduleMap`
-- `@tomlarkworthy/runtime-sdk` → `runtime_variables`, `observe`
+- `@tomlarkworthy/runtime-sdk` → `observe`, `realize`, `createModule`, `deleteModule`, `lookupVariable`, `thisModule`
 - `@tomlarkworthy/summarizejs` → `summarizeJS`
 - `d/57d79353bac56631@44` → `hash`
+
+### Own module reference
+
+The pairing module uses `viewof cc_module = thisModule()` to get its own module reference. This allows `lookupVariable(name, cc_module)` for variables imported into the pairing module's scope (like `hash`, `currentModules`) — no `runtime._variables` scanning needed.
 
 ## Cell Change Forwarding
 
@@ -130,51 +194,50 @@ This injects the module, adds it to `bootconf.json` mains, and updates the hash 
 
 These must work reliably end-to-end.
 
-### 1. Initial connection
+### 1. Initial connection (CLI-first)
 User says "open a lopecode notebook". Claude gets the token, opens the browser with the connection URL. Notebook auto-connects with chat panel visible. No manual token paste.
 
-### 2. Convert web notebook to local file
+### 2. Initial connection (notebook-first)
+User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
+
+### 3. Convert web notebook to local file
 User has a notebook open from GitHub Pages. Guide them to open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2`) and use the fork button to save to disk.
 
-### 3. Create a cell
-Use `realize` from `@tomlarkworthy/runtime-sdk` to create cells. Do NOT manually call `module.variable().define()` — it doesn't set up observers or dependency resolution correctly. `realize` handles compilation, observer creation, and rendering.
+### 4. Create a cell
+Claude calls `define_variable` with the cell name, definition source, and inputs. The channel module calls `realize` from runtime-sdk to compile and define the cell. A watch is automatically added — the result arrives reactively as a `variable_update` notification. Claude does not poll or wait synchronously.
 
-### 4. Delete a cell
-Use the runtime-sdk or `delete_variable` MCP tool. Target the correct module via `runtime.mains.get(moduleName)`.
+### 5. Delete a cell
+Use `delete_variable` MCP tool. The channel module uses `lookupVariable(name, module)` to find the variable, then calls `v.delete()`.
 
-### 5. Create/import a module
-Claude can create a module programmatically via eval:
-```javascript
-importShim("@author/module-name").then(function(mod) {
-  var ojsMod = runtime.module(mod.default, window.__ojs_observer || function() { return {}; });
-  runtime.mains.set("@author/module-name", ojsMod);
-});
-```
-This works for modules already embedded in the notebook HTML. For modules not yet embedded, guide the user to use the module-selection panel (`&open=@tomlarkworthy/module-selection`) which fetches and embeds from Observable.
+### 6. Create a module
+Claude calls `create_module` with a name. The channel module calls `createModule` from runtime-sdk, which calls `runtime.module()`, sets `_name`, and registers in `runtime.mains`. The `currentModules` watch fires automatically, confirming creation. Then use `define_variable` with that module name to add cells.
 
-### 6. Delete/remove a module
-Not yet reliably supported programmatically. Guide the user to use the module-selection panel.
+For importing modules already embedded in the notebook HTML, guide the user to use the module-selection panel (`&open=@tomlarkworthy/module-selection`).
 
-### 7. Move a cell
+### 7. Delete a module
+Claude calls `delete_module` with a name. The channel module calls `deleteModule` from runtime-sdk, which iterates `runtime._variables` to find all variables where `v._module === mod` (not just named variables in `_scope`), calls `v.delete()` on each, and removes the module from `runtime.mains`. The `currentModules` watch fires automatically.
+
+### 8. Move a cell
 Not yet supported programmatically. Guide user to use the editor.
 
-### 8. Explain how a notebook works
+### 9. Explain how a notebook works
 Use `currentModules` watch (auto-watched on connect) for module list with dependencies. Use `cellMap` for cell-level detail. Use `get_variable` to read specific values. Summarize the structure using module names, titles, and dependency graph.
 
 ## Implementation: Use Existing Modules
 
-**CRITICAL**: Do not reinvent Observable runtime internals. The following modules already provide correct, tested implementations:
+**CRITICAL**: Do not reinvent Observable runtime internals. The channel module is a thin command dispatcher — all real logic lives in runtime-sdk and other notebook modules.
 
 | Need | Use | NOT |
 |------|-----|-----|
 | Find a module by name | `runtime.mains.get(name)` | Scanning `_variables` or `currentModules` Map keys |
+| Create a module | `createModule` from runtime-sdk | Inline `runtime.module()` + manual registration |
+| Delete a module | `deleteModule` from runtime-sdk | Iterating `_scope` (misses anonymous variables) |
 | Create/define a cell | `realize` from runtime-sdk | `module.variable({}).define()` |
+| Delete a cell | `lookupVariable(name, module)` then `v.delete()` | Scanning `runtime._variables` |
 | Read cell source code | `cellMap` | Parsing `_definition.toString()` |
 | List modules | `currentModules` (auto-watched) | Scanning `_variables` for `_module._name` |
 | Observe a variable | `observe` from runtime-sdk | Monkey-patching `_observer` |
 | Serialize values | `summarizeJS` | Custom `JSON.stringify` wrappers |
-
-The `define_variable` MCP tool handler should use `realize` for new cells rather than raw `module.variable().define()`.
 
 ## Environment Variables
 
@@ -215,12 +278,59 @@ tools/channel/
 
 ### What still needs to happen
 
+- **runtime-sdk CRUD** — move `createModule`, `deleteModule` into `@tomlarkworthy/runtime-sdk` as proper cells
+- **Auto-watch on define** — `define_variable` handler should automatically watch the defined variable
+- **Delete module support** — implement `delete_module` MCP tool + runtime-sdk `deleteModule` function
 - **Marketplace submission** — submit plugin to Claude's marketplace or self-host
 - **Activity feed** — tail Claude's session log to show thinking/tool use in notebook UI ([#9](https://github.com/tomlarkworthy/lopecode-dev/issues/9))
 - **Hash param preservation** — fix bootloader hash mangling ([#140](https://github.com/tomlarkworthy/lopecode/issues/140))
 
-## Running Tests
+## Development
+
+### Running Tests
+
+Integration tests exercise the WebSocket protocol (pairing, commands, notifications, health endpoint) by spawning the channel server as a subprocess and connecting via plain WebSocket. No browser or Claude Code needed.
 
 ```bash
-node --test tools/test-lopecode-channel.js
+bun test tests/channel/lopecode-channel.test.ts
 ```
+
+### Local Testing (manual)
+
+Start the server standalone and connect a notebook:
+
+```bash
+bun run tools/channel/lopecode-channel.ts
+# stderr shows: pairing token: LOPE-PORT-XXXX
+# Open http://127.0.0.1:PORT/ to redirect to a notebook with auto-connect
+# Or check http://127.0.0.1:PORT/health for connection status
+```
+
+### Version Bumping
+
+The version is canonical in `tools/channel/package.json`. Two other files must stay in sync:
+- `tools/channel/.claude-plugin/plugin.json`
+- `tools/channel/.claude-plugin/marketplace.json`
+
+After bumping `package.json`, run:
+
+```bash
+bun run tools/channel/sync-version.ts
+```
+
+To check without modifying:
+
+```bash
+bun run tools/channel/sync-version.ts --check
+```
+
+### Publishing
+
+Publishing is automated via GitHub Actions (`.github/workflows/publish-channel.yml`). To release:
+
+1. Bump version in `tools/channel/package.json`
+2. Run `bun run tools/channel/sync-version.ts` to propagate
+3. Commit and tag: `git tag channel-v0.1.4`
+4. Push the tag: `git push origin channel-v0.1.4`
+
+CI runs version sync check and integration tests before `npm publish`.

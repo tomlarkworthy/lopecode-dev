@@ -135,7 +135,7 @@ Since re-exporting is a human-driven process, agents should:
 
 ```bash
 node --test tests/notebooks/*.test.js
-node --test tests/notebooks/exporter.test.js
+bun test tests/channel/lopecode-channel.test.ts
 ```
 
 ### Tips for Agents
