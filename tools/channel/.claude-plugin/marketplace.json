@@ -13,15 +13,24 @@
       "name": "lopecode-channel",
       "source": ".",
       "description": "Pair program with Claude inside Lopecode notebooks. Chat, watch variables, define cells, run tests — all from the browser.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Tom Larkworthy"
       },
       "repository": "https://github.com/tomlarkworthy/lopecode-dev",
       "license": "MIT",
-      "keywords": ["lopecode", "notebook", "pair-programming", "observable"],
+      "keywords": [
+        "lopecode",
+        "notebook",
+        "pair-programming",
+        "observable"
+      ],
       "category": "development",
-      "tags": ["notebook", "mcp", "pair-programming"]
+      "tags": [
+        "notebook",
+        "mcp",
+        "pair-programming"
+      ]
     }
   ]
 }
