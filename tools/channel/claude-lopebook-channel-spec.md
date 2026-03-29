@@ -531,7 +531,7 @@ The `--` separator distinguishes forks from the original. Forks are disposable �
 ### Journey 7: Export to Observable
 
 1. User: "Push the changes in @tomlarkworthy/debugger to Observable"
-2. Claude runs `lope-push-to-observablehq.js` via Bash.
+2. Claude runs `lope-push-ws.js` via Bash.
 3. Reports in chat: "Pushed 3 cells: `parse_date`, `threshold`, `filtered_data`"
 
 ## Configuration
@@ -800,7 +800,7 @@ For understanding how `define-variable` works at the runtime level:
 |---------|-----------|
 | `knowledge/running-a-live-repl-session-with-a-notebook.md` | Patterns for persistent bidirectional sessions — the channel replaces this workflow |
 | `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` | How to publish the new `@tomlarkworthy/claude-channels` module: create on ObservableHQ, export via jumpgate, commit to lopecode repo |
-| `knowledge/pushing-cells-to-observablehq.md` | For Journey 7 (export to Observable) — how `lope-push-to-observablehq.js` works |
+| `knowledge/pushing-cells-to-observablehq.md` | For Journey 7 (export to Observable) — how `lope-push-ws.js` works |
 | `knowledge/how-file-attachments-work.md` | File attachment resolution — relevant if the chat widget needs to display images or if forked notebooks need to preserve attachments |
 
 ### Testing Module

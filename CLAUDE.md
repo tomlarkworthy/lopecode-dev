@@ -37,7 +37,6 @@ lopecode-dev/
 │   ├── lope-node-repl.js       # Persistent REPL in Node.js (default, no browser)
 │   ├── lope-browser-repl.js    # Persistent REPL with Playwright browser
 │   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright)
-│   ├── lope-push-to-observablehq.js  # Push cells to Observable
 │   ├── channel/                 # Claude Code <-> notebook channel (Bun + MCP)
 │   ├── staging/                 # Bulk export staging artifacts
 │   ├── scratch/                 # Experimental/test scripts
@@ -74,8 +73,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Iterative development, multiple test cycles | `lope-node-repl.js` (default) | ~1.5s load |
 | DOM interaction, screenshots, pair programming | `lope-browser-repl.js` | <1s after load |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
-| Push cells to ObservableHQ (WS) | `lope-push-ws.js` | ~5s |
-| Push cells to ObservableHQ (legacy) | `lope-push-to-observablehq.js` | ~30s |
+| Push cells to ObservableHQ | `lope-push-ws.js` | ~5s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
 | Claude <-> notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 | Claude <-> notebook channel (npm) | `bunx @lopecode/channel` | Real-time |
@@ -152,7 +150,8 @@ bun test tests/channel/lopecode-channel.test.ts
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
 7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
 8. **After editing module `.js` files** - Sync to the target notebook with `bun tools/channel/sync-module.ts --module @name --source file.js --target notebook.html`, then tell the user to hard reload (Cmd+Shift+R)
-9. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
+10. **Blank notebook (theme but no content)?** - Check the `bootconf.json` script in the HTML. An empty `"mains": []` means no modules are booted. Fix by adding lopepage and the main module name (e.g. `["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"]`)
+11. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
    - Observable runtime lazy evaluation (cells only compute when observed)
    - Lopepage hash URL DSL for multi-module layouts
    - Natural test observation via `latest_state` Map

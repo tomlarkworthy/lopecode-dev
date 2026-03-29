@@ -122,7 +122,7 @@ function log(msg) {
   process.stderr.write(`[lope-push-ws] ${msg}\n`);
 }
 
-// --- Notebook parsing (shared with lope-push-to-observablehq.js) ---
+// --- Notebook parsing ---
 
 function parseNotebook(html) {
   const $ = cheerio.load(html);
@@ -305,10 +305,24 @@ function parseVariableGroups(content) {
 
   const preformatted = [];
   for (const [moduleName, specs] of importsByModule) {
-    const specifiers = specs.map(({ local, remote }) =>
+    // Filter out implicit getter imports: Observable auto-imports `X` when
+    // you import `viewof X` or `mutable X`, so listing both causes
+    // "Identifier 'X' has already been declared" errors.
+    const viewofNames = new Set(specs.filter(s => s.local.startsWith('viewof ')).map(s => s.local.replace(/^viewof /, '')));
+    const mutableNames = new Set(specs.filter(s => s.local.startsWith('mutable ')).map(s => s.local.replace(/^mutable /, '')));
+    const filtered = specs.filter(({ local }) =>
+      !viewofNames.has(local) && !mutableNames.has(local)
+    );
+
+    const specifiers = filtered.map(({ local, remote }) =>
       local !== remote ? `${remote} as ${local}` : local
     ).join(', ');
-    preformatted.push(`import { ${specifiers} } from "${moduleName}"`);
+
+    // Strip internal `d/` routing prefix from module names — Observable
+    // source uses bare hex IDs (e.g. "57d79353bac56631@44" not "d/57d79353bac56631@44")
+    const sourceModuleName = moduleName.replace(/^d\//, '');
+
+    preformatted.push(`import { ${specifiers} } from "${sourceModuleName}"`);
   }
 
   return { groups, preformatted };
