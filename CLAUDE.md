@@ -79,6 +79,10 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
 | Claude <-> notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 | Claude <-> notebook channel (npm) | `bunx @lopecode/channel` | Real-time |
+| Create new notebook with pairing | See `knowledge/live-collaboration-with-claude-code-pairing.md` § "Creating a New Notebook" | ~2min |
+| Define cells via Observable source | `define_cell` MCP tool (via pairing channel) | Instant |
+| List cells with source/inputs | `list_cells` MCP tool (via pairing channel) | Instant |
+| Export/save notebook in place | `export_notebook` MCP tool (via pairing channel) | ~5-10s |
 
 ### Cells vs Variables
 
@@ -147,7 +151,8 @@ bun test tests/channel/lopecode-channel.test.ts
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
 7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
-8. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
+8. **After editing module `.js` files** - Sync to the target notebook with `bun tools/channel/sync-module.ts --module @name --source file.js --target notebook.html`, then tell the user to hard reload (Cmd+Shift+R)
+9. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
    - Observable runtime lazy evaluation (cells only compute when observed)
    - Lopepage hash URL DSL for multi-module layouts
    - Natural test observation via `latest_state` Map

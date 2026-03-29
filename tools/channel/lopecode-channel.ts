@@ -89,7 +89,8 @@ Variable updates (when watching):
 ## Tools
 
 - reply: Send markdown to notebook chat
-- get_variable / define_variable / delete_variable / list_variables: Interact with runtime
+- define_cell: Define cells using Observable source (supports imports, named cells, viewof, mutable)
+- get_variable / define_variable / delete_variable / list_variables: Interact with runtime (low-level)
 - create_module / delete_module: Create or remove modules (registered in runtime.mains, visible in moduleMap)
 - watch_variable / unwatch_variable: Subscribe to reactive variable updates
 - run_tests: Run test_* variables
@@ -193,6 +194,24 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "define_cell",
+      description:
+        "Define a cell using Observable source code. Supports full Observable syntax including imports (e.g. 'import {md} from \"@tomlarkworthy/editable-md\"'), named cells ('x = 42'), markdown ('md`# Hello`'), viewof, mutable, etc. The source is compiled via the Observable toolchain and may produce multiple runtime variables.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          source: {
+            type: "string",
+            description:
+              'Observable source code, e.g. \'import {md} from "@tomlarkworthy/editable-md"\' or \'x = 42\'',
+          },
+          module: { type: "string", description: "Target module name (optional)" },
+        },
+        required: ["source"],
+      },
+    },
+    {
       name: "delete_variable",
       description: "Delete a variable from the runtime.",
       inputSchema: {
@@ -217,6 +236,22 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "list_cells",
+      description:
+        "List all cells in a module with their names, inputs, and definition source. More detailed than list_variables — shows the cell's dependency inputs and function definition.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          module: {
+            type: "string",
+            description: "Module name (required)",
+          },
+        },
+        required: ["module"],
+      },
+    },
+    {
       name: "run_tests",
       description: "Run test_* variables and return results.",
       inputSchema: {
@@ -238,6 +273,16 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
           code: { type: "string", description: "JavaScript code to evaluate" },
         },
         required: ["code"],
+      },
+    },
+    {
+      name: "export_notebook",
+      description: "Export/save the notebook in place. Serializes the current runtime state (all modules, cells, file attachments) back to the HTML file, overwriting it. Use this to persist cells created via define_cell.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+        },
       },
     },
     {
@@ -348,6 +393,10 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
         break;
       }
+      case "define_cell":
+        action = "define-cell";
+        params = { source: args.source, module: args.module || null };
+        break;
       case "delete_variable":
         action = "delete-variable";
         params = { name: args.name, module: args.module || null };
@@ -355,6 +404,10 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       case "list_variables":
         action = "list-variables";
         params = { module: args.module || null };
+        break;
+      case "list_cells":
+        action = "list-cells";
+        params = { module: args.module };
         break;
       case "run_tests":
         action = "run-tests";
@@ -369,6 +422,11 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "fork";
         timeout = 120000;
         params = { suffix: args.suffix || null };
+        break;
+      case "export_notebook":
+        action = "fork";
+        timeout = 120000;
+        params = { _save_in_place: true };
         break;
       case "create_module":
         action = "create-module";
@@ -398,12 +456,26 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
 
     // Fork special handling: write the HTML to disk
     if (action === "fork" && result.result?.html) {
-      const originalUrl = target.url;
+      // Strip hash and query fragments before extracting the file path
+      const originalUrl = target.url.split("#")[0].split("?")[0];
       let originalPath: string;
       if (originalUrl.startsWith("file://")) {
         originalPath = decodeURIComponent(originalUrl.replace("file://", ""));
       } else {
         originalPath = originalUrl;
+      }
+      if (params._save_in_place) {
+        // Export: overwrite the original file
+        const html = result.result.html;
+        const htmlStr = typeof html === "string" ? html : String(html);
+        if (typeof html !== "string") {
+          console.error(`[export] WARNING: html is ${typeof html}, keys: ${html && typeof html === "object" ? Object.keys(html).join(",") : "N/A"}`);
+        }
+        if (htmlStr.length < 1000) {
+          return { content: [{ type: "text", text: `Export failed: HTML content too small (${htmlStr.length} bytes). Type was: ${typeof html}` }], isError: true };
+        }
+        await Bun.write(originalPath, htmlStr);
+        return { content: [{ type: "text", text: `Exported to ${originalPath} (${(htmlStr.length / 1024 / 1024).toFixed(2)} MB)` }] };
       }
       const dir = dirname(originalPath);
       const base = basename(originalPath, ".html");

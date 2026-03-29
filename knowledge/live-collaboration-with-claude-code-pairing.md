@@ -22,7 +22,7 @@ bun install -g @lopecode/channel
 claude mcp add lopecode bunx @lopecode/channel
 
 # Start Claude Code with channels enabled
-claude --channels server:lopecode
+claude --dangerously-load-development-channels server:lopecode
 ```
 
 Then ask Claude: **"Open a lopecode notebook"**
@@ -34,7 +34,7 @@ Claude gets the pairing token, opens the notebook in your browser, and auto-conn
 The `.mcp.json` at the project root is already configured. Start with:
 
 ```bash
-claude --channels server:lopecode
+claude --dangerously-load-development-channels server:lopecode
 ```
 
 ### Starting from a Lopecode notebook (notebook-first)
@@ -49,7 +49,7 @@ If you see the `@tomlarkworthy/claude-code-pairing` module panel in a notebook b
    ```
 3. **Start Claude Code with channels**:
    ```bash
-   claude --channels server:lopecode
+   claude --dangerously-load-development-channels server:lopecode
    ```
 4. **Ask Claude** to connect to your notebook. Claude will provide a `&cc=TOKEN` URL — paste it into your notebook's address bar, or ask Claude to open a fresh notebook.
 
@@ -120,16 +120,19 @@ These are the tools Claude sees. Each is a thin wrapper that sends a command to 
 |------|-------------|------------|
 | `get_pairing_token` | Returns the session pairing token | — |
 | `reply` | Send markdown to notebook chat | `markdown`, `notebook_id?` |
+| `define_cell` | **Primary cell authoring tool.** Accepts Observable source, compiles via toolchain, applies all resulting definitions | `source`, `module?` |
+| `list_cells` | List cells with names, inputs, and definition source | `module` |
 | `get_variable` | Read a runtime variable's value | `name`, `module?`, `notebook_id?` |
-| `define_variable` | Create or redefine a variable | `name`, `definition`, `inputs[]`, `module?` |
+| `define_variable` | Low-level: create/redefine a variable with a function string | `name`, `definition`, `inputs[]`, `module?` |
 | `delete_variable` | Remove a variable | `name`, `module?` |
-| `list_variables` | List all named variables | `module?` |
+| `list_variables` | List all named variables (less detail than `list_cells`) | `module?` |
 | `run_tests` | Run `test_*` variables | `filter?`, `timeout?` |
-| `eval_code` | Evaluate JS in browser context | `code` |
+| `eval_code` | Evaluate JS in browser context (ephemeral) | `code` |
 | `watch_variable` | Subscribe to reactive updates | `name`, `module?`, `notebook_id?` |
 | `unwatch_variable` | Unsubscribe from a variable | `name`, `module?`, `notebook_id?` |
 | `create_module` | Create a new empty module in the runtime | `name` |
 | `delete_module` | Remove a module and all its variables | `name` |
+| `export_notebook` | Save notebook in place (persists all runtime cells to HTML) | `notebook_id?` |
 | `fork_notebook` | Self-serialize to sibling HTML file | `suffix?` |
 
 ### Reactive tool behavior
@@ -162,6 +165,9 @@ serialized value (via summarizeJS, truncated to 2000 chars)
 
 `@tomlarkworthy/claude-code-pairing` imports from:
 - `@tomlarkworthy/module-map` → `currentModules`, `moduleMap`
+- `@tomlarkworthy/exporter-2` → `exportToHTML`
+- `@tomlarkworthy/observablejs-toolchain` → `compile`
+- `@tomlarkworthy/local-change-history` → `viewof history`, `history`
 - `@tomlarkworthy/runtime-sdk` → `observe`, `realize`, `createModule`, `deleteModule`, `lookupVariable`, `thisModule`
 - `@tomlarkworthy/summarizejs` → `summarizeJS`
 - `d/57d79353bac56631@44` → `hash`
@@ -172,23 +178,109 @@ The pairing module uses `viewof cc_module = thisModule()` to get its own module 
 
 ## Cell Change Forwarding
 
-When the notebook includes `@tomlarkworthy/local-change-history`, the `cc_change_forwarder` cell polls the `history` variable every second and sends new entries to Claude as `cell_change` notifications. Claude sees every cell edit in real-time.
+The `cc_change_forwarder` cell takes `history` as a direct dependency (imported from `@tomlarkworthy/local-change-history`) and polls it every second. New entries are sent to Claude as `cell_change` notifications — Claude sees every cell edit in real-time.
 
-## Forking
+## Exporting and Forking
 
-The best way to fork is to open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2` in the hash) and click the fork button. The exporter passes all URL params (including `&cc=` token) forward automatically, so the fork auto-connects.
+### export_notebook — Save in place
 
-The `fork_notebook` MCP tool also works for `file://` notebooks — it serializes the HTML and saves to a sibling file on disk.
+`export_notebook` calls `exportToHTML()` (imported from `@tomlarkworthy/exporter-2`) and overwrites the notebook's HTML file on disk. This persists all runtime state — modules, cells, file attachments — so cells created via `define_cell` survive reloads.
+
+**Important:** `exportToHTML()` returns `{source: string, report: object}`, not a raw HTML string. The pairing module extracts `.source` for the HTML content.
+
+### fork_notebook — Save as copy
+
+Creates a sibling HTML file (e.g., `notebook--1234.html`). Useful for checkpoints.
+
+### Manual fork via UI
+
+Open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2` in the hash) and click the fork button. The exporter passes all URL params (including `&cc=` token) forward automatically, so the fork auto-connects.
 
 ## Injecting into Existing Notebooks
 
 For notebooks that don't already include `@tomlarkworthy/claude-code-pairing`:
 
 ```bash
-node tools/channel/inject-module.js <input.html> <output.html>
+bun tools/channel/sync-module.ts <input.html> [output.html]
+bun tools/channel/sync-module.ts --watch <input.html>
 ```
 
+If output is omitted, the input file is modified in-place. The script is idempotent — it upserts the module (replaces if it already exists, inserts if not). With `--watch`, it re-injects whenever the module source file changes.
+
 This injects the module, adds it to `bootconf.json` mains, and updates the hash layout.
+
+## Creating a New Notebook for Pairing
+
+To create a new notebook that includes the pairing module:
+
+1. **Choose a base notebook** that has the modules you need (e.g., `@tomlarkworthy_editable-md.html` for blog posts with rich markdown, `@tomlarkworthy_blank-notebook.html` for general use)
+2. **Jumpgate the base** to get a fresh copy with latest modules from Observable:
+   ```bash
+   node tools/lope-jumpgate.js --source @tomlarkworthy/editable-md \
+     --output lopebooks/notebooks/@tomlarkworthy_editable-md.html
+   ```
+3. **Copy to the new filename:**
+   ```bash
+   cp lopebooks/notebooks/@tomlarkworthy_editable-md.html \
+      lopebooks/notebooks/@tomlarkworthy_my-new-notebook.html
+   ```
+4. **Inject the pairing module:**
+   ```bash
+   bun tools/channel/sync-module.ts \
+     --module @tomlarkworthy/claude-code-pairing \
+     --source tools/channel/claude-code-pairing-module.js \
+     --target lopebooks/notebooks/@tomlarkworthy_my-new-notebook.html
+   ```
+5. **Open with pairing token** — include the content module, module-selection, AND claude-code-pairing in the hash URL:
+   ```
+   file:///path/to/@tomlarkworthy_my-new-notebook.html#view=R100(S50(@tomlarkworthy/my-content-module),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
+   ```
+
+Always jumpgate fresh before copying — stale base notebooks may have outdated lopepage or other core modules that cause rendering bugs.
+
+## Authoring Cells via Claude — The Full Loop
+
+The primary workflow for creating notebook content via Claude Code:
+
+1. **Create the module** (if it doesn't exist):
+   ```
+   create_module(name: "@tomlarkworthy/my-notebook")
+   ```
+
+2. **Add an import** (e.g., editable-md for rich markdown):
+   ```
+   define_cell(source: 'import {md} from "@tomlarkworthy/editable-md"', module: "@tomlarkworthy/my-notebook")
+   ```
+   This compiles to multiple definitions — a module reference and each imported variable. Auto-watches fire for each.
+
+3. **Add content cells** using Observable source:
+   ```
+   define_cell(source: 'header = md`# My Title`', module: "@tomlarkworthy/my-notebook")
+   define_cell(source: 'x = 42', module: "@tomlarkworthy/my-notebook")
+   ```
+
+4. **Persist to disk** so cells survive reloads:
+   ```
+   export_notebook()
+   ```
+   This calls `exportToHTML()` from exporter-2 and overwrites the HTML file.
+
+5. **Verify after reload** — use `list_cells(module: "...")` to confirm cells survived.
+
+### What `define_cell` supports
+
+- Named cells: `x = 42`
+- Imports: `import {md} from "@tomlarkworthy/editable-md"`
+- Multi-imports: `import {foo, bar} from "@tomlarkworthy/my-lib"`
+- Markdown: `` md`# Hello` ``
+- viewof: `viewof slider = Inputs.range([0, 100])`
+- mutable: `mutable count = 0`
+- Anonymous cells: `md`some text``
+
+### What `define_cell` does NOT support (yet)
+
+- Moving cells (reordering) — use the editor UI
+- Renaming cells — delete + re-create
 
 ## Core User Journeys
 
@@ -198,19 +290,21 @@ These must work reliably end-to-end.
 User says "open a lopecode notebook". Claude gets the token, opens the browser with the connection URL. Notebook auto-connects with chat panel visible. No manual token paste.
 
 ### 2. Initial connection (notebook-first)
-User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
+User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--dangerously-load-development-channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
 
 ### 3. Convert web notebook to local file
 User has a notebook open from GitHub Pages. Guide them to open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2`) and use the fork button to save to disk.
 
 ### 4. Create a cell
-Claude calls `define_variable` with the cell name, definition source, and inputs. The channel module calls `realize` from runtime-sdk to compile and define the cell. A watch is automatically added — the result arrives reactively as a `variable_update` notification. Claude does not poll or wait synchronously.
+**Preferred:** Use `define_cell` with Observable source code. This supports the full Observable syntax — imports (`import {md} from "@tomlarkworthy/editable-md"`), named cells (`x = 42`), markdown (`` md`# Hello` ``), `viewof`, `mutable`, etc. The source is compiled via `@tomlarkworthy/observablejs-toolchain` and may produce multiple runtime variables (e.g., an import produces a module reference + each imported name). A watch is automatically added for non-internal variables.
+
+**Low-level fallback:** `define_variable` with a function string and explicit inputs array. Use only when you need precise control over the low-level cell definition.
 
 ### 5. Delete a cell
 Use `delete_variable` MCP tool. The channel module uses `lookupVariable(name, module)` to find the variable, then calls `v.delete()`.
 
 ### 6. Create a module
-Claude calls `create_module` with a name. The channel module calls `createModule` from runtime-sdk, which calls `runtime.module()`, sets `_name`, and registers in `runtime.mains`. The `currentModules` watch fires automatically, confirming creation. Then use `define_variable` with that module name to add cells.
+Claude calls `create_module` with a name. The channel module calls `createModule` from runtime-sdk, which calls `runtime.module()`, sets `_name`, and registers in `runtime.mains`. The `currentModules` watch fires automatically, confirming creation. Then use `define_cell` with that module name to add cells.
 
 For importing modules already embedded in the notebook HTML, guide the user to use the module-selection panel (`&open=@tomlarkworthy/module-selection`).
 
@@ -232,12 +326,24 @@ Use `currentModules` watch (auto-watched on connect) for module list with depend
 | Find a module by name | `runtime.mains.get(name)` | Scanning `_variables` or `currentModules` Map keys |
 | Create a module | `createModule` from runtime-sdk | Inline `runtime.module()` + manual registration |
 | Delete a module | `deleteModule` from runtime-sdk | Iterating `_scope` (misses anonymous variables) |
-| Create/define a cell | `realize` from runtime-sdk | `module.variable({}).define()` |
+| Create/define a cell | `compile` + `realize` (via `define_cell`) | `module.variable({}).define()` or raw `realize` |
 | Delete a cell | `lookupVariable(name, module)` then `v.delete()` | Scanning `runtime._variables` |
 | Read cell source code | `cellMap` | Parsing `_definition.toString()` |
 | List modules | `currentModules` (auto-watched) | Scanning `_variables` for `_module._name` |
 | Observe a variable | `observe` from runtime-sdk | Monkey-patching `_observer` |
 | Serialize values | `summarizeJS` | Custom `JSON.stringify` wrappers |
+
+## eval_code vs define_cell vs define_variable
+
+**`eval_code`** runs arbitrary JS in the browser. Effects are **ephemeral** — lost on reload/export. Use for quick experiments, DOM hacks, debugging, and one-off side effects (e.g., `location.reload()`, setting `window.location.hash`).
+
+**`define_cell`** is the **primary cell authoring tool**. Accepts Observable source code (`import {md} from "..."`, `x = 42`, `` md`# Hello` ``), compiles via the Observable toolchain, and applies all resulting definitions to the target module. Cells are **persistent** — they survive `export_notebook` and reload. Use this for all normal cell creation.
+
+**`define_variable`** is a **low-level fallback**. Takes a function string and explicit inputs array — no compilation. Use only when you need precise control over the runtime definition (e.g., wiring up specific internal variables).
+
+**Rule of thumb:** `define_cell` for almost everything. `eval_code` for throwaway/ephemeral actions. `define_variable` only for edge cases.
+
+**Never use `define_cell` or `define_variable` for one-off side effects** (e.g., setting `window.location.hash`, triggering a download, logging). These create persistent cells that re-execute on every reload/export. Use `eval_code` instead.
 
 ## Environment Variables
 
@@ -247,7 +353,7 @@ Use `currentModules` watch (auto-watched on connect) for module list with depend
 
 - **No persistent chat history** — messages are lost on page reload
 - **eval is synchronous** — async code in `eval_code` won't return resolved values
-- **No activity feed** — Claude's thinking/tool use is invisible in the notebook UI (see [issue #9](https://github.com/tomlarkworthy/lopecode-dev/issues/9))
+- **Activity feed (implemented)** — Claude's tool calls are streamed to the chat via a `PostToolUse` hook that POSTs to the channel server's `/tool-activity` endpoint. Consecutive tool calls are grouped into collapsible `<details>` elements. The hook script (`tools/channel/post-tool-hook.sh`) discovers the server port via `tools/channel/.lopecode-port`.
 - **Hash mangling** — bootloader may overwrite custom hash params on load (see [issue #140](https://github.com/tomlarkworthy/lopecode/issues/140))
 
 ## Distribution via Claude Marketplace
@@ -272,7 +378,7 @@ tools/channel/
 ├── mcp.json                      # MCP server config
 ├── lopecode-channel.ts           # Channel server (Bun)
 ├── claude-code-pairing-module.js # Observable module source
-├── inject-module.js              # Injection tool for existing notebooks
+├── sync-module.ts              # Upsert module into notebooks (supports --watch)
 └── package.json                  # Dependencies
 ```
 
@@ -282,7 +388,6 @@ tools/channel/
 - **Auto-watch on define** — `define_variable` handler should automatically watch the defined variable
 - **Delete module support** — implement `delete_module` MCP tool + runtime-sdk `deleteModule` function
 - **Marketplace submission** — submit plugin to Claude's marketplace or self-host
-- **Activity feed** — tail Claude's session log to show thinking/tool use in notebook UI ([#9](https://github.com/tomlarkworthy/lopecode-dev/issues/9))
 - **Hash param preservation** — fix bootloader hash mangling ([#140](https://github.com/tomlarkworthy/lopecode/issues/140))
 
 ## Development

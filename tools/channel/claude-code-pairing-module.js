@@ -33,7 +33,7 @@ const _cc_module = function _cc_module(thisModule){return(
   thisModule()
 )};
 
-const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, realize, createModule, deleteModule, lookupVariable, cc_module, runtime, invalidation){return(
+const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, realize, compile, createModule, deleteModule, lookupVariable, exportToHTML, cc_module, runtime, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
   var ws = null;
@@ -131,6 +131,51 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         });
       }
 
+      case "define-cell": {
+        var source = cmd.params.source;
+        var moduleName = cmd.params.module;
+        var mod = findModule(runtime, moduleName);
+        if (!mod) return { ok: false, error: "Module not found: " + (moduleName || "default") };
+
+        try {
+          var compiled = compile(source);
+          if (!compiled || compiled.length === 0) return { ok: false, error: "Compilation returned no definitions" };
+
+          var definitions = [];
+          for (var ci = 0; ci < compiled.length; ci++) {
+            definitions.push(compiled[ci]._definition);
+          }
+
+          return realize(definitions, runtime).then(function(fns) {
+            var defined = [];
+            for (var di = 0; di < compiled.length; di++) {
+              var cellDef = compiled[di];
+              var fn = fns[di];
+              var cellName = cellDef._name;
+              var cellInputs = cellDef._inputs || [];
+
+              var existingVar = mod._scope.get(cellName);
+              if (existingVar) {
+                existingVar.define(cellName, cellInputs, fn);
+              } else {
+                mod.variable(ojs_observer ? ojs_observer(cellName) : {}).define(cellName, cellInputs, fn);
+              }
+              defined.push(cellName);
+
+              // Auto-watch non-internal variables
+              if (cellName && !cellName.startsWith("module ")) {
+                watchVariable(runtime, cellName, moduleName || null);
+              }
+            }
+            return { ok: true, result: { success: true, defined: defined, module: moduleName || "default" } };
+          }).catch(function(e) {
+            return { ok: false, error: "define-cell realize failed: " + e.message };
+          });
+        } catch (e) {
+          return { ok: false, error: "define-cell compile failed: " + e.message };
+        }
+      }
+
       case "delete-variable": {
         var name = cmd.params.name;
         var moduleName = cmd.params.module;
@@ -161,6 +206,28 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
         }
         variables.sort(function(a, b) { return a.name.localeCompare(b.name); });
         return { ok: true, result: variables };
+      }
+
+      case "list-cells": {
+        var moduleName = cmd.params.module;
+        var targetModule = findModule(runtime, moduleName);
+        if (!targetModule) return { ok: false, error: "Module not found: " + (moduleName || "default") };
+        var cells = [];
+        for (var entry of targetModule._scope) {
+          var v = entry[1];
+          var defStr = "";
+          try { defStr = String(v._definition).slice(0, 300); } catch(e) {}
+          cells.push({
+            name: entry[0],
+            inputs: (v._inputs || []).map(function(inp) { return inp._name || "?"; }),
+            definition: defStr,
+            hasValue: v._value !== undefined,
+            hasError: v._error !== undefined,
+            error: v._error ? (v._error.message || String(v._error)) : undefined
+          });
+        }
+        cells.sort(function(a, b) { return a.name.localeCompare(b.name); });
+        return { ok: true, result: cells };
       }
 
       case "run-tests": {
@@ -202,7 +269,7 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
       }
 
       case "fork": {
-        return handleFork(runtime);
+        return handleFork();
       }
 
       case "watch": {
@@ -413,24 +480,19 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     return { ok: true, result: { unwatched_all: true, count: keys.length } };
   }
 
-  function handleFork(runtime) {
-    return new Promise(function(resolve) {
-      for (var v of runtime._variables) {
-        if ((v._name === "_exportToHTML" || v._name === "exportToHTML") && typeof v._value === "function") {
-          try {
-            Promise.resolve(v._value()).then(function(html) {
-              resolve({ ok: true, result: { html: html } });
-            }).catch(function(e) {
-              resolve({ ok: false, error: "Export failed: " + e.message });
-            });
-            return;
-          } catch (e) {
-            resolve({ ok: false, error: "Export failed: " + e.message });
-            return;
-          }
-        }
+  function handleFork() {
+    if (typeof exportToHTML !== "function") {
+      return { ok: false, error: "exportToHTML not available. Does this notebook include @tomlarkworthy/exporter-2?" };
+    }
+    return Promise.resolve(exportToHTML()).then(function(result) {
+      // exportToHTML returns { source: string, report: object }
+      var html = typeof result === "string" ? result : result.source;
+      if (!html || typeof html !== "string") {
+        return { ok: false, error: "Export returned no HTML source" };
       }
-      resolve({ ok: false, error: "_exportToHTML not found. Does this notebook include @tomlarkworthy/exporter-2?" });
+      return { ok: true, result: { html: html } };
+    }).catch(function(e) {
+      return { ok: false, error: "Export failed: " + e.message };
     });
   }
 
@@ -599,38 +661,31 @@ const _cc_watch_table = function _cc_watch_table(cc_watches, Inputs){return(
   })
 )};
 
-const _cc_change_forwarder = function _cc_change_forwarder(cc_ws, invalidation){return(
+const _cc_change_forwarder = function _cc_change_forwarder(cc_ws, history, invalidation){return(
 (function() {
   var highWaterMark = 0;
   var initializing = true;
 
   var interval = setInterval(function() {
     if (!cc_ws.paired || !cc_ws.ws) return;
-    var runtime = window.__ojs_runtime;
-    if (!runtime) return;
+    if (!history || !Array.isArray(history)) return;
 
-    for (var v of runtime._variables) {
-      if (v._name === "history" && v._value && Array.isArray(v._value)) {
-        var history = v._value;
-        var total = history.length;
+    var total = history.length;
 
-        if (initializing) { highWaterMark = total; initializing = false; return; }
-        if (total <= highWaterMark) return;
+    if (initializing) { highWaterMark = total; initializing = false; return; }
+    if (total <= highWaterMark) return;
 
-        var newEntries = history.slice(highWaterMark).map(function(e) {
-          return {
-            t: e.t, op: e.op, module: e.module, _name: e._name,
-            _inputs: e._inputs,
-            _definition: typeof e._definition === "function"
-              ? e._definition.toString().slice(0, 500)
-              : String(e._definition || "").slice(0, 500)
-          };
-        });
-        highWaterMark = total;
-        cc_ws.ws.send(JSON.stringify({ type: "cell-change", changes: newEntries }));
-        break;
-      }
-    }
+    var newEntries = history.slice(highWaterMark).map(function(e) {
+      return {
+        t: e.t, op: e.op, module: e.module, _name: e._name,
+        _inputs: e._inputs,
+        _definition: typeof e._definition === "function"
+          ? e._definition.toString().slice(0, 500)
+          : String(e._definition || "").slice(0, 500)
+      };
+    });
+    highWaterMark = total;
+    cc_ws.ws.send(JSON.stringify({ type: "cell-change", changes: newEntries }));
   }, 1000);
 
   invalidation.then(function() { clearInterval(interval); });
@@ -677,7 +732,7 @@ const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Input
       '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">bun install -g @lopecode/channel</code><br>' +
       '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude mcp add lopecode bunx @lopecode/channel</code></li>' +
       '<li>Start Claude Code:<br><code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude --dangerously-load-development-channels server:lopecode</code></li>' +
-      '<li>Ask Claude to connect, or paste a pairing token above</li>' +
+      '<li>Ask Claude for a pairing token, then paste it above</li>' +
       '</ol>';
 
     var container = document.createElement("div");
@@ -875,13 +930,20 @@ export default function define(runtime, observer) {
   main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
   $def("_cc_module", "viewof cc_module", ["thisModule"], _cc_module);
   main.variable().define("cc_module", ["Generators", "viewof cc_module"], (G, v) => G.input(v));
-  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","createModule","deleteModule","lookupVariable","cc_module","runtime","invalidation"], _cc_ws);
-  $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","invalidation"], _cc_change_forwarder);
+  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","compile","createModule","deleteModule","lookupVariable","exportToHTML","cc_module","runtime","invalidation"], _cc_ws);
+  $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","history","invalidation"], _cc_change_forwarder);
 
   // Imports
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
   main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
   main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));
+  main.define("module @tomlarkworthy/exporter-2", async () => runtime.module((await import("/@tomlarkworthy/exporter-2.js?v=4")).default));
+  main.define("exportToHTML", ["module @tomlarkworthy/exporter-2", "@variable"], (_, v) => v.import("exportToHTML", _));
+  main.define("module @tomlarkworthy/observablejs-toolchain", async () => runtime.module((await import("/@tomlarkworthy/observablejs-toolchain.js?v=4")).default));
+  main.define("compile", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("compile", _));
+  main.define("module @tomlarkworthy/local-change-history", async () => runtime.module((await import("/@tomlarkworthy/local-change-history.js?v=4")).default));
+  main.define("viewof history", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("viewof history", _));
+  main.define("history", ["Generators", "viewof history"], (G, v) => G.input(v));
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
   main.define("viewof runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("viewof runtime_variables", _));
   main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
