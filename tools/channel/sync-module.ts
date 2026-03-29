@@ -126,8 +126,9 @@ function inject(
   const existing = html.match(scriptPattern);
 
   if (existing) {
-    // Replace in-place using string replacement (preserves backslashes)
-    html = html.replace(existing[0], scriptBlock);
+    // Replace in-place using indexOf+slice (avoids $ interpretation in String.replace)
+    const idx = html.indexOf(existing[0]);
+    html = html.slice(0, idx) + scriptBlock + html.slice(idx + existing[0].length);
     console.log(`Updated existing ${moduleId} module`);
   } else {
     // Insert before bootloader
@@ -141,82 +142,9 @@ function inject(
     console.log(`Inserted new ${moduleId} module`);
   }
 
-  // Ensure module is in bootconf.json mains
-  html = ensureBootconf(html, moduleId);
-
   writeFileSync(targetPath, html);
   const size = (html.length / 1024 / 1024).toFixed(2);
   console.log(`Wrote ${targetPath} (${size} MB)`);
-}
-
-function ensureBootconf(html: string, moduleId: string): string {
-  const bootconfPattern = 'id="bootconf.json"';
-  let bootconfScriptStart = html.lastIndexOf(bootconfPattern);
-  if (bootconfScriptStart === -1) {
-    console.warn("Could not find bootconf.json — skipping mains/hash update");
-    return html;
-  }
-
-  const next200 = html.substring(
-    bootconfScriptStart,
-    bootconfScriptStart + 200
-  );
-  if (!next200.includes("application/json")) {
-    console.warn(
-      "Found bootconf.json but it's not application/json — skipping"
-    );
-    return html;
-  }
-
-  const bootconfContentStart = html.indexOf(">", bootconfScriptStart) + 1;
-  const bootconfContentEnd = html.indexOf("</script>", bootconfContentStart);
-  const bootconfContent = html.slice(bootconfContentStart, bootconfContentEnd);
-
-  try {
-    const bootconf = JSON.parse(bootconfContent);
-
-    // Add to mains if missing
-    if (!bootconf.mains.includes(moduleId)) {
-      bootconf.mains.push(moduleId);
-    }
-
-    // Update hash to include module in layout
-    const currentHash: string = bootconf.hash || "";
-    if (!currentHash.includes(moduleId.split("/").pop()!)) {
-      const modulePattern = /S(\d+)\(([^)]+)\)/g;
-      const moduleRefs: { weight: number; module: string }[] = [];
-      let m;
-      while ((m = modulePattern.exec(currentHash)) !== null) {
-        moduleRefs.push({ weight: parseInt(m[1]), module: m[2] });
-      }
-
-      if (moduleRefs.length > 0) {
-        const totalWeight = moduleRefs.reduce((sum, r) => sum + r.weight, 0);
-        const scaled = moduleRefs.map((r) => ({
-          weight: Math.round((r.weight / totalWeight) * 75),
-          module: r.module,
-        }));
-        scaled.push({ weight: 25, module: moduleId });
-        const parts = scaled
-          .map((r) => `S${r.weight}(${r.module})`)
-          .join(",");
-        bootconf.hash = `#view=R100(${parts})`;
-      } else {
-        bootconf.hash = `#view=R100(S75(@tomlarkworthy/debugger),S25(${moduleId}))`;
-      }
-    }
-
-    const newBootconfContent =
-      "\n" + JSON.stringify(bootconf, null, 2) + "\n";
-    html =
-      html.slice(0, bootconfContentStart) +
-      newBootconfContent +
-      html.slice(bootconfContentEnd);
-  } catch (e: any) {
-    console.warn("Failed to parse bootconf.json:", e.message);
-  }
-
-  return html;
 }
 
 function extractToJs(targetPath: string, moduleId: string, jsPath: string): void {

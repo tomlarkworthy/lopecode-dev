@@ -12,6 +12,7 @@
 
 import { readFileSync, statSync, existsSync } from "fs";
 import { resolve, basename, relative } from "path";
+import { createHash } from "crypto";
 import * as cheerio from "cheerio";
 
 interface ModuleInfo {
@@ -36,7 +37,7 @@ interface NotebookSpec {
   title: string;
   bootconf: Record<string, unknown> | null;
   files: string[];
-  modules: Record<string, { files?: string[] }>;
+  modules: Record<string, { hash: string; files?: string[] }>;
 }
 
 interface Options {
@@ -148,8 +149,9 @@ function buildSpec(notebookName: string, parsed: ParseResult): NotebookSpec {
   const globalFiles = files.filter((f) => !f.module).map((f) => f.name);
 
   // Build modules object
-  const modulesObj: Record<string, { files?: string[] }> = {};
-  for (const [id] of modules) {
+  const modulesObj: Record<string, { hash: string; files?: string[] }> = {};
+  for (const [id, mod] of modules) {
+    const hash = createHash("md5").update(mod.content).digest("hex");
     const moduleFiles = files
       .filter((f) => f.module === id)
       .map((f) => {
@@ -157,7 +159,7 @@ function buildSpec(notebookName: string, parsed: ParseResult): NotebookSpec {
         const prefix = id + "/";
         return f.name.startsWith(prefix) ? f.name.slice(prefix.length) : f.name;
       });
-    modulesObj[id] = moduleFiles.length > 0 ? { files: moduleFiles } : {};
+    modulesObj[id] = moduleFiles.length > 0 ? { hash, files: moduleFiles } : { hash };
   }
 
   return {

@@ -414,6 +414,24 @@ A lopepage is an HTML file that:
 2. Uses `@tomlarkworthy/lopepage` to render a dynamic multi-panel UI
 3. Controls which modules are visible via the URL hash fragment
 
+### Bootconf and Mains
+
+Each notebook has a `bootconf.json` script block that configures startup:
+
+```json
+{
+  "mains": ["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"],
+  "hash": "#view=R100(S70(@tomlarkworthy/my-notebook),S30(@tomlarkworthy/module-selection))",
+  "headless": true
+}
+```
+
+**`mains`** lists modules that are eagerly loaded as top-level entry points at startup. Only modules that need to run immediately should be in mains — typically `lopepage` and the notebook's own content module. **Dependency modules should NOT be in mains.** They are imported on-demand by the cells that need them via the Observable runtime's `import()` mechanism. Adding a dependency like `@tomlarkworthy/runtime-sdk` to mains would cause it to load as a visible top-level module unnecessarily.
+
+**`hash`** is the default hash URL that controls the visible layout (see Hash URL DSL below). This is an intentional author choice and should not be modified by automated tools like sync-module.
+
+**Key rule for sync-module**: When syncing a module's content across notebooks, never modify bootconf. The module content is a dependency — it gets replaced in its `<script>` block, but bootconf (mains list and hash URL) reflects the author's intended startup behavior and layout.
+
 ### Hash URL DSL
 
 The hash URL controls which modules are displayed and their layout arrangement:
