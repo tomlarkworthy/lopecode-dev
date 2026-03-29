@@ -1,6 +1,6 @@
 {
   "name": "@lopecode/channel",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Pair program with Claude inside Lopecode notebooks. MCP server bridging browser notebooks and Claude Code.",
   "type": "module",
   "bin": {
@@ -10,7 +10,8 @@
   "files": [
     "lopecode-channel.ts",
     "claude-code-pairing-module.js",
-    "sync-module.ts"
+    "sync-module.ts",
+    "README.md"
   ],
   "keywords": [
     "mcp",

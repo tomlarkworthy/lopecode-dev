@@ -60,6 +60,8 @@ const mcp = new Server(
     },
     instructions: `You are connected to Lopecode notebooks via the lopecode channel.
 
+Lopecode notebooks are self-contained HTML files built on the Observable runtime. Each notebook contains modules (collections of reactive cells). The Observable runtime provides reactive dataflow: cells automatically recompute when their dependencies change, like a spreadsheet.
+
 ## Starting a lopecode notebook
 
 When the user asks to start/open a lopecode notebook, or start a pairing/collaboration session:
@@ -70,6 +72,72 @@ When the user asks to start/open a lopecode notebook, or start a pairing/collabo
 5. Send a welcome message via reply
 
 If channels are not enabled, tell the user to restart with: claude --channels server:lopecode
+
+## Observable Cell Syntax
+
+Cells use Observable JavaScript. The define_cell tool accepts this syntax directly.
+
+### Named cells
+x = 42
+greeting = \`Hello, \${name}!\`   // depends on 'name' cell — auto-recomputes when name changes
+
+### Markdown
+md\`# Title\nSome **bold** text\`
+
+### HTML
+htl.html\`<div style="color: red">Hello</div>\`
+
+### Imports (from other modules in the notebook)
+import {md} from "@tomlarkworthy/editable-md"
+import {chart, data} from "@tomlarkworthy/my-viz"
+
+### viewof — interactive inputs (creates TWO cells: "viewof X" for DOM, "X" for value)
+viewof slider = Inputs.range([0, 100], {label: "Value", value: 50})
+viewof name = Inputs.text({label: "Name"})
+viewof choice = Inputs.select(["a", "b", "c"])
+
+### mutable — imperative state
+mutable counter = 0
+// Other cells can do: mutable counter++
+
+### Block cells (multi-statement)
+result = {
+  const data = await fetch(url).then(r => r.json());
+  return data.filter(d => d.value > 10);
+}
+
+### Generator cells (streaming values)
+ticker = {
+  let i = 0;
+  while (true) { yield i++; await Promises.delay(1000); }
+}
+
+## Testing
+
+Any cell named test_* is a test. It passes if it doesn't throw:
+test_addition = {
+  if (add(2, 2) !== 4) throw new Error("Expected 4");
+  return "2 + 2 = 4";
+}
+
+Use run_tests to execute all test_* cells.
+
+## Typical workflow
+
+1. create_module("@tomlarkworthy/my-app")
+2. define_cell('import {md} from "@tomlarkworthy/editable-md"', module: "...")
+3. define_cell('title = md\`# My App\`', module: "...")
+4. define_cell('viewof name = Inputs.text({label: "Name"})', module: "...")
+5. define_cell('greeting = md\`Hello, **\${name}**!\`', module: "...")
+6. export_notebook() to persist cells to disk
+
+## Tool guidance
+
+- define_cell: PRIMARY tool for creating content. Accepts Observable source, compiles via toolchain. Use for almost everything.
+- eval_code: For throwaway/ephemeral actions (DOM hacks, debugging, location.reload()). Lost on reload. NEVER use define_cell for one-off side effects.
+- define_variable: Low-level escape hatch with explicit function string + inputs array. Rarely needed.
+- export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads.
+- fork_notebook: Creates a sibling HTML copy (checkpoint).
 
 ## Message formats
 
@@ -85,17 +153,6 @@ Lifecycle:
 
 Variable updates (when watching):
   <channel source="lopecode" type="variable_update" notebook="..." name="varName" module="@author/mod">value</channel>
-
-## Tools
-
-- reply: Send markdown to notebook chat
-- define_cell: Define cells using Observable source (supports imports, named cells, viewof, mutable)
-- get_variable / define_variable / delete_variable / list_variables: Interact with runtime (low-level)
-- create_module / delete_module: Create or remove modules (registered in runtime.mains, visible in moduleMap)
-- watch_variable / unwatch_variable: Subscribe to reactive variable updates
-- run_tests: Run test_* variables
-- eval_code: Evaluate JS in browser context
-- fork_notebook: Create a copy as sibling HTML file
 
 IMPORTANT: Always specify the module parameter when calling define_variable, get_variable, etc.
 Use the currentModules watch to identify the user's content module (not lopepage, module-selection, or claude-code-pairing).
