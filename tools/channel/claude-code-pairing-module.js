@@ -484,7 +484,7 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
     if (typeof exportToHTML !== "function") {
       return { ok: false, error: "exportToHTML not available. Does this notebook include @tomlarkworthy/exporter-2?" };
     }
-    return Promise.resolve(exportToHTML()).then(function(result) {
+    return Promise.resolve(exportToHTML({ mains: runtime.mains })).then(function(result) {
       // exportToHTML returns { source: string, report: object }
       var html = typeof result === "string" ? result : result.source;
       if (!html || typeof html !== "string") {
