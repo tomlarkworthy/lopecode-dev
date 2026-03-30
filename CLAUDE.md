@@ -2,7 +2,7 @@
 
 ## Lopecode Development Guide
 
-This repository is designed for agentic development of **lopecode** - a modular, self-serializing notebook system built on the Observable runtime.
+This repository is designed for agentic development of **lopecode** - a modular, self-serializing notebook system built on the Observable reactive runtime. Cells declare dependencies and automatically recompute when upstream values change — the runtime handles scheduling, not the programmer.
 
 ### What is Lopecode?
 
