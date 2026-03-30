@@ -1,38 +1,246 @@
-/**
- * @tomlarkworthy/claude-code-pairing — Observable module
- *
- * Two-way communication channel between Lopecode notebooks and Claude Code.
- * Paste this into a <script type="text/plain" id="@tomlarkworthy/claude-code-pairing">
- * in any lopecode notebook HTML, and add "@tomlarkworthy/claude-code-pairing" to bootconf.json mains.
- */
+const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Inputs){return(
+(function() {
+  var statusColors = {
+    connected: "#22c55e",
+    connecting: "#f59e0b",
+    pairing: "#f59e0b",
+    disconnected: "#ef4444"
+  };
 
+  function renderConnect() {
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;justify-content:center;align-items:center;padding:16px;";
+
+    var tokenInput = document.createElement("input");
+    tokenInput.type = "text";
+    tokenInput.placeholder = "LOPE-XXXX";
+    tokenInput.style.cssText = "font-family:var(--monospace, monospace);font-size:16px;padding:8px 12px;border:2px solid var(--theme-foreground-faint);border-radius:6px;width:140px;text-transform:uppercase;letter-spacing:2px;background:var(--theme-background-a);color:var(--theme-foreground);";
+
+    var connectBtn = document.createElement("button");
+    connectBtn.textContent = "Connect";
+    connectBtn.style.cssText = "padding:8px 20px;background:var(--theme-foreground);color:var(--theme-background-a);border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;";
+    connectBtn.onclick = function() {
+      var token = tokenInput.value.trim();
+      if (token) cc_ws.connect(token);
+    };
+    tokenInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") connectBtn.click();
+    });
+
+    row.append(tokenInput, connectBtn);
+
+    var guide = document.createElement("details");
+    guide.style.cssText = "padding:0 16px 16px;font-size:13px;color:var(--theme-foreground);";
+    guide.innerHTML = '<summary style="cursor:pointer;font-weight:600;font-size:14px;">Setup guide</summary>' +
+      '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.8;">' +
+      '<li>Install <a href="https://bun.sh" target="_blank">Bun</a> if needed, then:<br>' +
+      '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">bun install -g @lopecode/channel</code><br>' +
+      '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude mcp add lopecode bunx @lopecode/channel</code></li>' +
+      '<li>Start Claude Code:<br><code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude --dangerously-load-development-channels server:lopecode</code></li>' +
+      '<li>Ask Claude for a pairing token, then paste it above</li>' +
+      '</ol>';
+
+    var container = document.createElement("div");
+    container.append(row, guide);
+    return container;
+  }
+
+  function renderChat() {
+    var messagesDiv = document.createElement("div");
+    messagesDiv.className = "cc-messages";
+    messagesDiv.style.cssText = "flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;";
+
+    var textarea = document.createElement("textarea");
+    textarea.className = "cc-input";
+    textarea.placeholder = "Message Claude...";
+    textarea.rows = 2;
+    textarea.style.cssText = "width:100%;box-sizing:border-box;resize:none;border:1px solid var(--theme-foreground-faint);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;outline:none;background:var(--theme-background-a);color:var(--theme-foreground);";
+
+    var sendBtn = document.createElement("button");
+    sendBtn.textContent = "Send";
+    sendBtn.style.cssText = "padding:8px 16px;background:var(--theme-foreground);color:var(--theme-background-a);border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:auto;";
+
+    function sendMessage() {
+      var text = textarea.value.trim();
+      if (!text || !cc_ws.ws) return;
+      var msgs = cc_messages.value.concat([{ role: "user", content: text, timestamp: Date.now() }]);
+      cc_messages.value = msgs;
+      cc_messages.dispatchEvent(new Event("input"));
+      cc_ws.ws.send(JSON.stringify({ type: "message", content: text }));
+      textarea.value = "";
+    }
+
+    sendBtn.onclick = sendMessage;
+    textarea.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    var inputRow = document.createElement("div");
+    inputRow.style.cssText = "display:flex;gap:8px;padding:12px;align-items:flex-end;border-top:1px solid var(--theme-foreground-faint);";
+    inputRow.append(textarea, sendBtn);
+
+    var container = document.createElement("div");
+    container.className = "cc-chat-view";
+    container.style.cssText = "display:flex;flex-direction:column;height:100%;";
+    container.append(messagesDiv, inputRow);
+
+    function updateMessages() {
+      messagesDiv.innerHTML = "";
+      var msgs = cc_messages.value;
+      var i = 0;
+      while (i < msgs.length) {
+        var msg = msgs[i];
+
+        // Group consecutive tool messages into a collapsible block
+        if (msg.role === "tool") {
+          var toolGroup = [];
+          while (i < msgs.length && msgs[i].role === "tool") {
+            toolGroup.push(msgs[i]);
+            i++;
+          }
+          var details = document.createElement("details");
+          details.style.cssText = "max-width:90%;align-self:flex-start;font-size:12px;opacity:0.85;margin:2px 0;";
+          var summary = document.createElement("summary");
+          summary.style.cssText = "cursor:pointer;padding:4px 10px;border-radius:8px;" +
+            "background:var(--theme-background-alt, #f0f0f0);color:var(--theme-foreground, #333);" +
+            "font-family:var(--monospace, monospace);border-left:2px solid var(--theme-foreground-faint, #ccc);list-style:inside;font-size:12px;";
+          summary.textContent = toolGroup.length === 1
+            ? "\u{1F527} " + toolGroup[0].content
+            : "\u{1F527} " + toolGroup.length + " tool calls \u2014 " + toolGroup[toolGroup.length - 1].content;
+          details.appendChild(summary);
+          var list = document.createElement("div");
+          list.style.cssText = "padding:4px 10px 4px 20px;font-family:var(--monospace, monospace);color:var(--theme-foreground, #333);line-height:1.6;font-size:11px;";
+          for (var j = 0; j < toolGroup.length; j++) {
+            var line = document.createElement("div");
+            line.textContent = toolGroup[j].content;
+            list.appendChild(line);
+          }
+          details.appendChild(list);
+          messagesDiv.appendChild(details);
+          continue;
+        }
+
+        var bubble = document.createElement("div");
+        bubble.className = "cc-msg cc-msg-" + msg.role;
+        var isUser = msg.role === "user";
+        bubble.style.cssText = "max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;" +
+          (isUser
+            ? "align-self:flex-end;background:var(--theme-foreground);color:var(--theme-background-a);border-bottom-right-radius:4px;"
+            : "align-self:flex-start;background:var(--theme-background-b);color:var(--theme-foreground);border-bottom-left-radius:4px;");
+
+        if (isUser) {
+          bubble.textContent = msg.content;
+        } else {
+          try {
+            var rendered = md([msg.content]);
+            if (rendered instanceof Node) { bubble.appendChild(rendered); }
+            else { bubble.textContent = msg.content; }
+          } catch(e) { bubble.textContent = msg.content; }
+        }
+        messagesDiv.appendChild(bubble);
+        i++;
+      }
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    updateMessages();
+    container._updateMessages = updateMessages;
+    return container;
+  }
+
+  var isConnected = (cc_status.value === "connected");
+
+  var wrapper = document.createElement("div");
+  wrapper.className = "cc-chat";
+  wrapper.style.cssText = "border:1px solid var(--theme-foreground-faint);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:var(--theme-background-a);font-family:inherit;" +
+    (isConnected ? "height:400px;" : "");
+
+  var statusBar = document.createElement("div");
+  statusBar.className = "cc-status-bar";
+  statusBar.style.cssText = "display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--theme-foreground-faint);font-size:12px;color:var(--theme-foreground-faint);background:var(--theme-background-b);";
+
+  var statusDot = document.createElement("span");
+  statusDot.style.cssText = "width:8px;height:8px;border-radius:50%;display:inline-block;";
+
+  var statusText = document.createElement("span");
+  statusText.className = "cc-status-text";
+
+  statusBar.append(statusDot, statusText);
+
+  var body = document.createElement("div");
+  body.className = "cc-body";
+  body.style.cssText = "flex:1;overflow:hidden;display:flex;flex-direction:column;";
+
+  wrapper.append(statusBar, body);
+
+  var chatView = null;
+
+  function render() {
+    var status = cc_status.value || "disconnected";
+    var connected = (status === "connected");
+    statusDot.style.background = statusColors[status] || "#ef4444";
+    statusText.textContent = connected ? "Connected to Claude Code"
+      : (status === "connecting" || status === "pairing") ? "Connecting..."
+      : "Not connected";
+
+    wrapper.style.height = connected ? "400px" : "";
+
+    body.innerHTML = "";
+    if (connected) {
+      chatView = renderChat();
+      body.appendChild(chatView);
+    } else {
+      chatView = null;
+      body.appendChild(renderConnect());
+    }
+  }
+
+  render();
+
+  var lastStatus = cc_status.value;
+  var lastMsgCount = cc_messages.value.length;
+  var pollInterval = setInterval(function() {
+    if (cc_status.value !== lastStatus) { lastStatus = cc_status.value; render(); }
+    if (cc_messages.value.length !== lastMsgCount) {
+      lastMsgCount = cc_messages.value.length;
+      if (chatView && chatView._updateMessages) chatView._updateMessages();
+    }
+  }, 200);
+
+  var originalRemove = wrapper.remove.bind(wrapper);
+  wrapper.remove = function() { clearInterval(pollInterval); originalRemove(); };
+
+  return wrapper;
+})()
+)};
+const _cc_watch_table = function _cc_watch_table(cc_watches, Inputs){return(
+  Inputs.table(cc_watches, {
+    columns: ["name", "module", "value", "updated"],
+    header: { name: "Variable", module: "Module", value: "Value", updated: "Updated" },
+    width: { name: 120, module: 140, value: 300, updated: 80 }
+  })
+)};
 const _cc_config = function _cc_config(){return(
   { port: 8787, host: "127.0.0.1" }
 )};
-
 const _cc_notebook_id = function _cc_notebook_id(){return(
   location.href
 )};
-
 const _cc_status = function _cc_status(Inputs){return(
   Inputs.input("disconnected")
 )};
-
 const _cc_messages = function _cc_messages(Inputs){return(
   Inputs.input([])
 )};
-
 const _cc_watches = function _cc_watches(Inputs){return(
   Inputs.input([
     { name: "hash", module: null },
     { name: "currentModules", module: null }
   ])
 )};
-
 const _cc_module = function _cc_module(thisModule){return(
   thisModule()
 )};
-
 const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages, viewof_cc_watches, summarizeJS, observe, realize, compile, createModule, deleteModule, lookupVariable, exportToHTML, cc_module, runtime, invalidation){return(
 (function() {
   var port = cc_config.port, host = cc_config.host;
@@ -652,15 +860,6 @@ const _cc_ws = function _cc_ws(cc_config, cc_notebook_id, cc_status, cc_messages
   return { connect: connect, get paired() { return paired; }, get ws() { return ws; } };
 })()
 )};
-
-const _cc_watch_table = function _cc_watch_table(cc_watches, Inputs){return(
-  Inputs.table(cc_watches, {
-    columns: ["name", "module", "value", "updated"],
-    header: { name: "Variable", module: "Module", value: "Value", updated: "Updated" },
-    width: { name: 120, module: 140, value: 300, updated: 80 }
-  })
-)};
-
 const _cc_change_forwarder = function _cc_change_forwarder(cc_ws, history, invalidation){return(
 (function() {
   var highWaterMark = 0;
@@ -692,271 +891,242 @@ const _cc_change_forwarder = function _cc_change_forwarder(cc_ws, history, inval
   return "change forwarder active";
 })()
 )};
-
-const _cc_chat = function _cc_chat(cc_messages, cc_status, cc_ws, md, htl, Inputs){return(
-(function() {
-  var statusColors = {
-    connected: "#22c55e",
-    connecting: "#f59e0b",
-    pairing: "#f59e0b",
-    disconnected: "#ef4444"
-  };
-
-  function renderConnect() {
-    var row = document.createElement("div");
-    row.style.cssText = "display:flex;gap:8px;justify-content:center;align-items:center;padding:16px;";
-
-    var tokenInput = document.createElement("input");
-    tokenInput.type = "text";
-    tokenInput.placeholder = "LOPE-XXXX";
-    tokenInput.style.cssText = "font-family:var(--monospace, monospace);font-size:16px;padding:8px 12px;border:2px solid var(--theme-foreground-faint);border-radius:6px;width:140px;text-transform:uppercase;letter-spacing:2px;background:var(--theme-background-a);color:var(--theme-foreground);";
-
-    var connectBtn = document.createElement("button");
-    connectBtn.textContent = "Connect";
-    connectBtn.style.cssText = "padding:8px 20px;background:var(--theme-foreground);color:var(--theme-background-a);border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;";
-    connectBtn.onclick = function() {
-      var token = tokenInput.value.trim();
-      if (token) cc_ws.connect(token);
-    };
-    tokenInput.addEventListener("keydown", function(e) {
-      if (e.key === "Enter") connectBtn.click();
-    });
-
-    row.append(tokenInput, connectBtn);
-
-    var guide = document.createElement("details");
-    guide.style.cssText = "padding:0 16px 16px;font-size:13px;color:var(--theme-foreground);";
-    guide.innerHTML = '<summary style="cursor:pointer;font-weight:600;font-size:14px;">Setup guide</summary>' +
-      '<ol style="margin:8px 0 0;padding-left:20px;line-height:1.8;">' +
-      '<li>Install <a href="https://bun.sh" target="_blank">Bun</a> if needed, then:<br>' +
-      '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">bun install -g @lopecode/channel</code><br>' +
-      '<code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude mcp add lopecode bunx @lopecode/channel</code></li>' +
-      '<li>Start Claude Code:<br><code style="background:var(--theme-background-alt);padding:2px 6px;border-radius:3px;font-size:12px;">claude --dangerously-load-development-channels server:lopecode</code></li>' +
-      '<li>Ask Claude for a pairing token, then paste it above</li>' +
-      '</ol>';
-
-    var container = document.createElement("div");
-    container.append(row, guide);
-    return container;
-  }
-
-  function renderChat() {
-    var messagesDiv = document.createElement("div");
-    messagesDiv.className = "cc-messages";
-    messagesDiv.style.cssText = "flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;";
-
-    var textarea = document.createElement("textarea");
-    textarea.className = "cc-input";
-    textarea.placeholder = "Message Claude...";
-    textarea.rows = 2;
-    textarea.style.cssText = "width:100%;box-sizing:border-box;resize:none;border:1px solid var(--theme-foreground-faint);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px;outline:none;background:var(--theme-background-a);color:var(--theme-foreground);";
-
-    var sendBtn = document.createElement("button");
-    sendBtn.textContent = "Send";
-    sendBtn.style.cssText = "padding:8px 16px;background:var(--theme-foreground);color:var(--theme-background-a);border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:auto;";
-
-    function sendMessage() {
-      var text = textarea.value.trim();
-      if (!text || !cc_ws.ws) return;
-      var msgs = cc_messages.value.concat([{ role: "user", content: text, timestamp: Date.now() }]);
-      cc_messages.value = msgs;
-      cc_messages.dispatchEvent(new Event("input"));
-      cc_ws.ws.send(JSON.stringify({ type: "message", content: text }));
-      textarea.value = "";
+const _1ua10kr = function identity(x) {
+  return x;
+};
+const _ocdbin = function identity(x) {
+  return x;
+};
+const _15u7kly = function identity(x) {
+  return x;
+};
+const _geocyt = function identity(x) {
+  return x;
+};
+const _3tvbri = (G, v) => G.input(v);
+const _1oqy2z3 = (_, v) => v.import("viewof runtime_variables", _);
+const _wsfdch = function identity(x) {
+  return x;
+};
+const _b5syxl = function identity(x) {
+  return x;
+};
+const _1i368tj = function _cc_voice(KeyboardEvent,SpeechSynthesisUtterance,invalidation) {
+    var chatEl = null;
+    var textarea = null;
+    var messagesDiv = null;
+    var placed = false;
+    var toggle = document.createElement('label');
+    toggle.className = 'cc-voice-toggle';
+    toggle.style.cssText = 'display:flex;align-items:center;cursor:pointer;flex-shrink:0;';
+    toggle.title = 'Toggle voice mode';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.style.cssText = 'display:none;';
+    var icon = document.createElement('span');
+    icon.style.cssText = 'font-size:20px;opacity:0.4;transition:opacity 0.15s;line-height:1;';
+    icon.textContent = '\uD83C\uDF99️';
+    toggle.append(cb, icon);
+    function findAndPlace() {
+        if (placed)
+            return true;
+        chatEl = document.querySelector('.cc-chat');
+        if (!chatEl)
+            return false;
+        textarea = chatEl.querySelector('.cc-input');
+        var inputRow = textarea && textarea.parentElement;
+        messagesDiv = chatEl.querySelector('.cc-messages');
+        if (!inputRow)
+            return false;
+        var buttons = inputRow.querySelectorAll('button');
+        var sendBtn = buttons[buttons.length - 1];
+        if (!sendBtn)
+            return false;
+        inputRow.insertBefore(toggle, sendBtn);
+        placed = true;
+        return true;
     }
-
-    sendBtn.onclick = sendMessage;
-    textarea.addEventListener("keydown", function(e) {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-    });
-
-    var inputRow = document.createElement("div");
-    inputRow.style.cssText = "display:flex;gap:8px;padding:12px;align-items:flex-end;border-top:1px solid var(--theme-foreground-faint);";
-    inputRow.append(textarea, sendBtn);
-
-    var container = document.createElement("div");
-    container.className = "cc-chat-view";
-    container.style.cssText = "display:flex;flex-direction:column;height:100%;";
-    container.append(messagesDiv, inputRow);
-
-    function updateMessages() {
-      messagesDiv.innerHTML = "";
-      var msgs = cc_messages.value;
-      var i = 0;
-      while (i < msgs.length) {
-        var msg = msgs[i];
-
-        // Group consecutive tool messages into a collapsible block
-        if (msg.role === "tool") {
-          var toolGroup = [];
-          while (i < msgs.length && msgs[i].role === "tool") {
-            toolGroup.push(msgs[i]);
-            i++;
-          }
-          var details = document.createElement("details");
-          details.style.cssText = "max-width:90%;align-self:flex-start;font-size:12px;opacity:0.85;margin:2px 0;";
-          var summary = document.createElement("summary");
-          summary.style.cssText = "cursor:pointer;padding:4px 10px;border-radius:8px;" +
-            "background:var(--theme-background-alt, #f0f0f0);color:var(--theme-foreground, #333);" +
-            "font-family:var(--monospace, monospace);border-left:2px solid var(--theme-foreground-faint, #ccc);list-style:inside;font-size:12px;";
-          summary.textContent = toolGroup.length === 1
-            ? "\u{1F527} " + toolGroup[0].content
-            : "\u{1F527} " + toolGroup.length + " tool calls \u2014 " + toolGroup[toolGroup.length - 1].content;
-          details.appendChild(summary);
-          var list = document.createElement("div");
-          list.style.cssText = "padding:4px 10px 4px 20px;font-family:var(--monospace, monospace);color:var(--theme-foreground, #333);line-height:1.6;font-size:11px;";
-          for (var j = 0; j < toolGroup.length; j++) {
-            var line = document.createElement("div");
-            line.textContent = toolGroup[j].content;
-            list.appendChild(line);
-          }
-          details.appendChild(list);
-          messagesDiv.appendChild(details);
-          continue;
+    var findId = setInterval(function () {
+        if (findAndPlace())
+            clearInterval(findId);
+    }, 500);
+    findAndPlace();
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = null;
+    var synth = window.speechSynthesis;
+    var active = false;
+    var muteUntil = 0;
+    var lastUnmuteTime = 0;
+    var lastSpokenCount = 0;
+    function isMuted() {
+        return Date.now() < muteUntil;
+    }
+    function startRecognition() {
+        if (!SR || recognition)
+            return;
+        var rec = new SR();
+        recognition = rec;
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = 'en-US';
+        rec.onresult = function (e) {
+            if (!textarea || isMuted()) {
+                if (textarea)
+                    textarea.value = '';
+                return;
+            }
+            var transcript = '';
+            var isFinal = false;
+            for (var i = e.resultIndex; i < e.results.length; i++) {
+                transcript += e.results[i][0].transcript;
+                if (e.results[i].isFinal)
+                    isFinal = true;
+            }
+            if (isFinal && Date.now() - lastUnmuteTime < 2000) {
+                textarea.value = '';
+                return;
+            }
+            textarea.value = transcript;
+            if (isFinal && transcript.trim()) {
+                textarea.value = '\uD83C\uDFA4 ' + transcript.trim();
+                textarea.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    bubbles: true
+                }));
+                textarea.value = '';
+            }
+        };
+        rec.onend = function () {
+            if (rec !== recognition)
+                return;
+            recognition = null;
+            if (active)
+                setTimeout(function () {
+                    if (active)
+                        startRecognition();
+                }, 100);
+        };
+        rec.onerror = function (e) {
+            if (e.error === 'not-allowed') {
+                active = false;
+                cb.checked = false;
+                icon.style.opacity = '0.4';
+            }
+        };
+        try {
+            rec.start();
+        } catch (e) {
+            recognition = null;
         }
-
-        var bubble = document.createElement("div");
-        bubble.className = "cc-msg cc-msg-" + msg.role;
-        var isUser = msg.role === "user";
-        bubble.style.cssText = "max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;" +
-          (isUser
-            ? "align-self:flex-end;background:var(--theme-foreground);color:var(--theme-background-a);border-bottom-right-radius:4px;"
-            : "align-self:flex-start;background:var(--theme-background-b);color:var(--theme-foreground);border-bottom-left-radius:4px;");
-
-        if (isUser) {
-          bubble.textContent = msg.content;
+    }
+    function speakText(text) {
+        muteUntil = Date.now() + 600000;
+        if (textarea)
+            textarea.value = '';
+        var utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.1;
+        utter.onend = function () {
+            muteUntil = Date.now() + 2000;
+            lastUnmuteTime = Date.now() + 2000;
+            if (textarea)
+                textarea.value = '';
+        };
+        utter.onerror = function () {
+            muteUntil = Date.now() + 2000;
+            lastUnmuteTime = Date.now() + 2000;
+        };
+        synth.speak(utter);
+    }
+    function stopAll() {
+        active = false;
+        if (recognition) {
+            try {
+                recognition.abort();
+            } catch (e) {
+            }
+            recognition = null;
+        }
+        synth.cancel();
+    }
+    var pollId = setInterval(function () {
+        if (!active || !messagesDiv)
+            return;
+        var bubbles = messagesDiv.querySelectorAll('.cc-msg-assistant');
+        if (bubbles.length > lastSpokenCount) {
+            for (var i = lastSpokenCount; i < bubbles.length; i++) {
+                speakText(bubbles[i].textContent.replace(/\n{2,}/g, '. '));
+            }
+            lastSpokenCount = bubbles.length;
+        }
+    }, 500);
+    cb.onchange = function () {
+        icon.style.opacity = cb.checked ? '1' : '0.4';
+        if (cb.checked) {
+            active = true;
+            lastSpokenCount = messagesDiv ? messagesDiv.querySelectorAll('.cc-msg-assistant').length : 0;
+            startRecognition();
         } else {
-          try {
-            var rendered = md([msg.content]);
-            if (rendered instanceof Node) { bubble.appendChild(rendered); }
-            else { bubble.textContent = msg.content; }
-          } catch(e) { bubble.textContent = msg.content; }
+            stopAll();
         }
-        messagesDiv.appendChild(bubble);
-        i++;
-      }
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    updateMessages();
-    container._updateMessages = updateMessages;
-    return container;
-  }
-
-  var isConnected = (cc_status.value === "connected");
-
-  var wrapper = document.createElement("div");
-  wrapper.className = "cc-chat";
-  wrapper.style.cssText = "border:1px solid var(--theme-foreground-faint);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:var(--theme-background-a);font-family:inherit;" +
-    (isConnected ? "height:400px;" : "");
-
-  var statusBar = document.createElement("div");
-  statusBar.className = "cc-status-bar";
-  statusBar.style.cssText = "display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--theme-foreground-faint);font-size:12px;color:var(--theme-foreground-faint);background:var(--theme-background-b);";
-
-  var statusDot = document.createElement("span");
-  statusDot.style.cssText = "width:8px;height:8px;border-radius:50%;display:inline-block;";
-
-  var statusText = document.createElement("span");
-  statusText.className = "cc-status-text";
-
-  statusBar.append(statusDot, statusText);
-
-  var body = document.createElement("div");
-  body.className = "cc-body";
-  body.style.cssText = "flex:1;overflow:hidden;display:flex;flex-direction:column;";
-
-  wrapper.append(statusBar, body);
-
-  var chatView = null;
-
-  function render() {
-    var status = cc_status.value || "disconnected";
-    var connected = (status === "connected");
-    statusDot.style.background = statusColors[status] || "#ef4444";
-    statusText.textContent = connected ? "Connected to Claude Code"
-      : (status === "connecting" || status === "pairing") ? "Connecting..."
-      : "Not connected";
-
-    wrapper.style.height = connected ? "400px" : "";
-
-    body.innerHTML = "";
-    if (connected) {
-      chatView = renderChat();
-      body.appendChild(chatView);
-    } else {
-      chatView = null;
-      body.appendChild(renderConnect());
-    }
-  }
-
-  render();
-
-  var lastStatus = cc_status.value;
-  var lastMsgCount = cc_messages.value.length;
-  var pollInterval = setInterval(function() {
-    if (cc_status.value !== lastStatus) { lastStatus = cc_status.value; render(); }
-    if (cc_messages.value.length !== lastMsgCount) {
-      lastMsgCount = cc_messages.value.length;
-      if (chatView && chatView._updateMessages) chatView._updateMessages();
-    }
-  }, 200);
-
-  var originalRemove = wrapper.remove.bind(wrapper);
-  wrapper.remove = function() { clearInterval(pollInterval); originalRemove(); };
-
-  return wrapper;
-})()
-)};
-
+    };
+    invalidation.then(function () {
+        stopAll();
+        clearInterval(pollId);
+        clearInterval(findId);
+        if (toggle.parentElement)
+            toggle.remove();
+    });
+    return 'voice ready';
+};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
-  const module_name = "@tomlarkworthy/claude-code-pairing";
-
-  // Visual cells first (controls render order)
-  $def("_cc_chat", "cc_chat", ["cc_messages","cc_status","cc_ws","md","htl","Inputs"], _cc_chat);
-  $def("_cc_watch_table", "cc_watch_table", ["cc_watches","Inputs"], _cc_watch_table);
-
-  // Internal cells
-  $def("_cc_config", "cc_config", [], _cc_config);
-  $def("_cc_notebook_id", "cc_notebook_id", [], _cc_notebook_id);
-  $def("_cc_status", "cc_status", ["Inputs"], _cc_status);
-  $def("_cc_messages", "cc_messages", ["Inputs"], _cc_messages);
-  $def("_cc_watches", "viewof cc_watches", ["Inputs"], _cc_watches);
-  main.variable().define("cc_watches", ["Generators", "viewof cc_watches"], (G, v) => G.input(v));
-  $def("_cc_module", "viewof cc_module", ["thisModule"], _cc_module);
-  main.variable().define("cc_module", ["Generators", "viewof cc_module"], (G, v) => G.input(v));
-  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","compile","createModule","deleteModule","lookupVariable","exportToHTML","cc_module","runtime","invalidation"], _cc_ws);
-  $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","history","invalidation"], _cc_change_forwarder);
-
-  // Imports
-  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
-  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
-  main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));
-  main.define("module @tomlarkworthy/exporter-2", async () => runtime.module((await import("/@tomlarkworthy/exporter-2.js?v=4")).default));
-  main.define("exportToHTML", ["module @tomlarkworthy/exporter-2", "@variable"], (_, v) => v.import("exportToHTML", _));
-  main.define("module @tomlarkworthy/observablejs-toolchain", async () => runtime.module((await import("/@tomlarkworthy/observablejs-toolchain.js?v=4")).default));
-  main.define("compile", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("compile", _));
-  main.define("module @tomlarkworthy/local-change-history", async () => runtime.module((await import("/@tomlarkworthy/local-change-history.js?v=4")).default));
-  main.define("viewof history", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("viewof history", _));
-  main.define("history", ["Generators", "viewof history"], (G, v) => G.input(v));
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
-  main.define("viewof runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("viewof runtime_variables", _));
-  main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));
-  main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
-  main.define("realize", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("realize", _));
-  main.define("createModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("createModule", _));
-  main.define("deleteModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("deleteModule", _));
-  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));
-  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));
-  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
-  main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));
-  main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));
-  main.define("module @tomlarkworthy/summarizejs", async () => runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));
-  main.define("summarizeJS", ["module @tomlarkworthy/summarizejs", "@variable"], (_, v) => v.import("summarizeJS", _));
+  const fileAttachments = new Map([].map((name) => {
+    const module_name = "@tomlarkworthy/claude-code-pairing";
+    const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
+    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
+    return [name, {url: blob_url, mimeType: mime}]
+  }));
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
+  $def("_cc_chat", "cc_chat", ["cc_messages","cc_status","cc_ws","md","htl","Inputs"], _cc_chat);  
+  $def("_cc_watch_table", "cc_watch_table", ["cc_watches","Inputs"], _cc_watch_table);  
+  $def("_cc_config", "cc_config", [], _cc_config);  
+  $def("_cc_notebook_id", "cc_notebook_id", [], _cc_notebook_id);  
+  $def("_cc_status", "cc_status", ["Inputs"], _cc_status);  
+  $def("_cc_messages", "cc_messages", ["Inputs"], _cc_messages);  
+  $def("_cc_watches", "viewof cc_watches", ["Inputs"], _cc_watches);  
+  main.variable(observer("cc_watches")).define("cc_watches", ["Generators", "viewof cc_watches"], (G, _) => G.input(_));  
+  $def("_cc_module", "viewof cc_module", ["thisModule"], _cc_module);  
+  main.variable(observer("cc_module")).define("cc_module", ["Generators", "viewof cc_module"], (G, _) => G.input(_));  
+  $def("_cc_ws", "cc_ws", ["cc_config","cc_notebook_id","cc_status","cc_messages","viewof cc_watches","summarizeJS","observe","realize","compile","createModule","deleteModule","lookupVariable","exportToHTML","cc_module","runtime","invalidation"], _cc_ws);  
+  $def("_cc_change_forwarder", "cc_change_forwarder", ["cc_ws","history","invalidation"], _cc_change_forwarder);  
+  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
+  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));  
+  main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));  
+  main.define("module @tomlarkworthy/exporter-2", async () => runtime.module((await import("/@tomlarkworthy/exporter-2.js?v=4")).default));  
+  main.define("exportToHTML", ["module @tomlarkworthy/exporter-2", "@variable"], (_, v) => v.import("exportToHTML", _));  
+  main.define("module @tomlarkworthy/observablejs-toolchain", async () => runtime.module((await import("/@tomlarkworthy/observablejs-toolchain.js?v=4")).default));  
+  main.define("compile", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("compile", _));  
+  main.define("module @tomlarkworthy/local-change-history", async () => runtime.module((await import("/@tomlarkworthy/local-change-history.js?v=4")).default));  
+  main.define("viewof history", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("viewof history", _));  
+  $def("_3tvbri", "history", ["Generators","viewof history"], _3tvbri);  
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
+  main.define("viewof runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("viewof runtime_variables", _));  
+  main.define("runtime_variables", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime_variables", _));  
+  main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));  
+  main.define("realize", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("realize", _));  
+  main.define("createModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("createModule", _));  
+  main.define("deleteModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("deleteModule", _));  
+  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));  
+  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
+  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
+  main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));  
+  main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));  
+  main.define("module @tomlarkworthy/summarizejs", async () => runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));  
+  main.define("summarizeJS", ["module @tomlarkworthy/summarizejs", "@variable"], (_, v) => v.import("summarizeJS", _));  
+  $def("_1i368tj", "cc_voice", ["KeyboardEvent","SpeechSynthesisUtterance","invalidation"], _1i368tj);
   return main;
 }
