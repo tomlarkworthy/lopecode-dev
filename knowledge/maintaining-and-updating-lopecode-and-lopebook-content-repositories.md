@@ -242,25 +242,25 @@ diff /tmp/v1.js /tmp/v2.js
 grep -l "module-name" lopecode/notebooks/*.html
 ```
 
-## Tool Reference: lope-runner.js (One-off Runtime Execution)
+## Tool Reference: lope-browser-runner.ts (One-off Runtime Execution)
 
 For test runs and runtime queries (starts fresh browser each time):
 
 ```bash
 # Run all tests in a notebook
-node tools/lope-runner.js notebook.html --run-tests
+bun tools/lope-browser-runner.ts notebook.html --run-tests
 
 # Run tests with JSON output
-node tools/lope-runner.js notebook.html --run-tests --json
+bun tools/lope-browser-runner.ts notebook.html --run-tests --json
 
 # Filter by module/test name
-node tools/lope-runner.js notebook.html --run-tests --suite @tomlarkworthy/tests
+bun tools/lope-browser-runner.ts notebook.html --run-tests --suite @tomlarkworthy/tests
 
 # Increase timeout for slow tests
-node tools/lope-runner.js notebook.html --run-tests --test-timeout 60000
+bun tools/lope-browser-runner.ts notebook.html --run-tests --test-timeout 60000
 
 # Get computed cell value
-node tools/lope-runner.js notebook.html --get-cell myVariable
+bun tools/lope-browser-runner.ts notebook.html --get-cell myVariable
 ```
 
 Exit codes: `0` = passed, `1` = failed, `2` = error
@@ -272,5 +272,5 @@ Exit codes: `0` = passed, `1` = failed, `2` = error
 bun tools/lope-reader.ts lopecode/notebooks/NOTEBOOK.html
 
 # Run tests if the notebook has any
-node tools/lope-runner.js lopecode/notebooks/NOTEBOOK.html --run-tests
+bun tools/lope-browser-runner.ts lopecode/notebooks/NOTEBOOK.html --run-tests
 ```

@@ -190,20 +190,20 @@ test_addition = {
 
 ### Running Tests Headlessly
 
-Use `lope-runner.js --run-tests`:
+Use `lope-browser-runner.ts --run-tests`:
 
 ```bash
 # Run all tests
-node tools/lope-runner.js notebook.html --run-tests
+bun tools/lope-browser-runner.ts notebook.html --run-tests
 
 # Filter by module/test name
-node tools/lope-runner.js notebook.html --run-tests --suite @tomlarkworthy/tests
+bun tools/lope-browser-runner.ts notebook.html --run-tests --suite @tomlarkworthy/tests
 
 # JSON output
-node tools/lope-runner.js notebook.html --run-tests --json
+bun tools/lope-browser-runner.ts notebook.html --run-tests --json
 
 # Increase timeout for slow tests
-node tools/lope-runner.js notebook.html --run-tests --test-timeout 60000
+bun tools/lope-browser-runner.ts notebook.html --run-tests --test-timeout 60000
 ```
 
 The runner:
@@ -306,14 +306,14 @@ bun tools/lope-reader.ts notebook.html
 bun tools/lope-reader.ts notebook.html --get-module @tomlarkworthy/view
 ```
 
-### lope-runner.js (Slow, Dynamic)
+### lope-browser-runner.ts (Slow, Dynamic)
 
 For runtime values and test execution:
 
 ```bash
-node tools/lope-runner.js notebook.html --list-cells
-node tools/lope-runner.js notebook.html --get-cell myVariable
-node tools/lope-runner.js notebook.html --run-tests
+bun tools/lope-browser-runner.ts notebook.html --list-cells
+bun tools/lope-browser-runner.ts notebook.html --get-cell myVariable
+bun tools/lope-browser-runner.ts notebook.html --run-tests
 ```
 
 ### When to Use Which
@@ -321,8 +321,8 @@ node tools/lope-runner.js notebook.html --run-tests
 | Task | Tool |
 |------|------|
 | List modules, read source | lope-reader.ts |
-| Get computed values | lope-runner.js |
-| Run tests | lope-runner.js |
+| Get computed values | lope-browser-runner.ts |
+| Run tests | lope-browser-runner.ts |
 | Check file attachments | lope-reader.ts |
 
 ## Common Patterns

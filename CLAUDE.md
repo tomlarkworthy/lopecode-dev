@@ -33,7 +33,7 @@ lopecode-dev/
 │   ├── lope-runtime.js         # Core library: loadNotebook() -> LopecodeExecution
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.ts          # Fast static analysis (no browser, Bun)
-│   ├── lope-runner.js          # One-off runtime execution (Playwright)
+│   ├── lope-browser-runner.ts          # One-off runtime execution (Playwright)
 │   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright)
 │   ├── channel/                 # Claude Code <-> notebook channel (Bun + MCP)
 │   ├── staging/                 # Bulk export staging artifacts
@@ -50,7 +50,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 
 | File | When to read |
 |------|-------------|
-| `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` | Exporting/updating notebooks, using lope-reader.ts, lope-runner.js, lope-jumpgate.js |
+| `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` | Exporting/updating notebooks, using lope-reader.ts, lope-browser-runner.ts, lope-jumpgate.js |
 | `knowledge/bulk-exporting-lopebooks.md` | Bulk export, QC, smoke testing |
 | `knowledge/pushing-cells-to-observablehq.md` | Pushing cell changes back to Observable |
 | `knowledge/live-collaboration-with-claude-code-pairing.md` | Claude Code pairing: setup, user journeys, MCP tools, distribution |
@@ -65,7 +65,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 |------|------|-------|
 | List modules, read module source | `lope-reader.ts` | Instant |
 | Check file attachments, generate manifest | `lope-reader.ts` | Instant |
-| One-off test run, get computed values | `lope-runner.js` | ~10s startup |
+| One-off test run, get computed values | `lope-browser-runner.ts` | ~10s startup |
 | Iterative development, pair programming | Pairing channel + MCP tools | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 | Push cells to ObservableHQ | `lope-push-ws.js` | ~5s |

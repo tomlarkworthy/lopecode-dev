@@ -188,10 +188,6 @@ if (runtime.mains) {
 
 This pattern is used by `tools.js` `findModule()` and by the `all_module_files` cell in `@tomlarkworthy/fileattachments`.
 
-## Node.js Support (lope-node-runner.js)
-
-For headless execution, `lope-node-runner.js` patches `runtime.fileAttachments` to resolve file attachments without a browser DOM. It reads from the same Map structure but resolves blob URLs via an in-memory `blobUrls` Map or filesystem paths.
-
 ## Summary: The Full Lifecycle
 
 ```
