@@ -1,6 +1,6 @@
 {
   "name": "lopecode-channel",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Pair program with Claude inside Lopecode notebooks. Two-way channel between browser notebooks and Claude Code via MCP.",
   "author": {
     "name": "Tom Larkworthy",
