@@ -2,6 +2,9 @@
 /**
  * lope-reader.ts - Read lopecode notebook structure without running it
  *
+ * TODO: Migrate remaining flags from lope-reader.js (--list-modules, --list-files,
+ * --summary, --json) and update all references. Check bun compatibility first.
+ *
  * Usage:
  *   bun tools/lope-reader.ts <notebook.html>              # JSON spec (default)
  *   bun tools/lope-reader.ts <notebook.html> --get-module <name>  # Module source

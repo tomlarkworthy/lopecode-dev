@@ -39,9 +39,7 @@ lopecode-dev/
 │   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright)
 │   ├── channel/                 # Claude Code <-> notebook channel (Bun + MCP)
 │   ├── staging/                 # Bulk export staging artifacts
-│   ├── scratch/                 # Experimental/test scripts
-│   ├── screenshots/             # Test screenshots
-│   └── prototypes/              # Prototype scripts
+│   └── screenshots/             # Test screenshots
 ├── vendor/                      # Reference submodules
 ├── tests/                       # Node.js unit tests (node:test)
 ├── knowledge/                   # Detailed workflow guides (see below)
@@ -62,6 +60,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/how-file-attachments-work.md` | File attachment internals |
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
+| `knowledge/what-makes-a-great-lopebook.md` | Quality criteria and best practices for lopebook content |
 
 ### Which Tool to Use
 
@@ -75,6 +74,8 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 | Push cells to ObservableHQ | `lope-push-ws.js` | ~5s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
+| Smoke test notebooks in Node.js | `bulk-smoke-test.js` | ~5s each |
+| QC bulk exports against reference | `bulk-export-qc.js` | Instant |
 | Claude <-> notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 | Claude <-> notebook channel (npm) | `bunx @lopecode/channel` | Real-time |
 | Create new notebook with pairing | See `knowledge/live-collaboration-with-claude-code-pairing.md` § "Creating a New Notebook" | ~2min |

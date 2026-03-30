@@ -238,6 +238,21 @@ To create a new notebook that includes the pairing module:
 
 Always jumpgate fresh before copying — stale base notebooks may have outdated lopepage or other core modules that cause rendering bugs.
 
+### Bootconf Requirements
+
+The `bootconf.json` script inside the HTML must list the modules to instantiate at boot in its `"mains"` array. A notebook with `"mains": []` will show theme colors but no content — nothing gets loaded.
+
+For a typical pairing notebook, mains should include lopepage and the main content module:
+```json
+{
+  "mains": ["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"],
+  "hash": "#view=...",
+  "headless": true
+}
+```
+
+When using `export_notebook` via the pairing channel, verify the exported file has correct mains — if the notebook was created dynamically (via `create_module`), the exporter may capture an empty mains array.
+
 ## Authoring Cells via Claude — The Full Loop
 
 The primary workflow for creating notebook content via Claude Code:
