@@ -103,4 +103,4 @@ This deduplication depends on es-module-shims being in the import path (shimMode
 
 ## Agent testing notes
 
-When testing in Playwright under the safehouse sandbox, Chromium's own sandbox (`--sandbox`) conflicts with safehouse, blocking outbound network. Launch with `--no-sandbox --disable-setuid-sandbox` to allow network requests from `file://` pages. The `lope-browser-repl.js` includes these flags.
+When testing in Playwright under the safehouse sandbox, Chromium's own sandbox (`--sandbox`) conflicts with safehouse, blocking outbound network. Launch with `--no-sandbox --disable-setuid-sandbox` to allow network requests from `file://` pages.

@@ -34,11 +34,11 @@ function parseArgs(argv) {
 function getModuleList(filePath) {
   try {
     const output = execSync(
-      `node tools/lope-reader.js "${filePath}" --list-modules --json`,
+      `bun tools/lope-reader.ts "${filePath}"`,
       { encoding: 'utf-8', timeout: 30000 }
     );
     const data = JSON.parse(output);
-    return data.modules.map(m => m.name);
+    return Object.keys(data.modules);
   } catch {
     return null;
   }

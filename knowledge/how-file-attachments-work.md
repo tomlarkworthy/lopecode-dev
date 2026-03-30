@@ -24,7 +24,7 @@ These are associated with a specific module and resolved via `window.lopecode.co
 
 ### 2. Standalone attachments: `file://filename`
 
-A legacy/alternative pattern used by `lope-reader.js` for detection:
+A legacy/alternative pattern used by `lope-reader.ts` for detection:
 
 ```html
 <script id="file://syntax.css"

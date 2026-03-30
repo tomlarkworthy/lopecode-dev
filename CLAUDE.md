@@ -29,13 +29,11 @@ lopecode-dev/
 │   └── notebooks/               # Published notebook HTML files
 ├── lopebooks/                   # Development/staging content repository (submodule)
 │   └── notebooks/               # Staging notebooks
-├── tools/                       # Agent utilities (Node.js only)
+├── tools/                       # Agent utilities
 │   ├── lope-runtime.js         # Core library: loadNotebook() -> LopecodeExecution
 │   ├── tools.js                # Shared Observable runtime utilities
-│   ├── lope-reader.js          # Fast static analysis (no browser)
+│   ├── lope-reader.ts          # Fast static analysis (no browser, Bun)
 │   ├── lope-runner.js          # One-off runtime execution (Playwright)
-│   ├── lope-node-repl.js       # Persistent REPL in Node.js (default, no browser)
-│   ├── lope-browser-repl.js    # Persistent REPL with Playwright browser
 │   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright)
 │   ├── channel/                 # Claude Code <-> notebook channel (Bun + MCP)
 │   ├── staging/                 # Bulk export staging artifacts
@@ -52,8 +50,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 
 | File | When to read |
 |------|-------------|
-| `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` | Exporting/updating notebooks, using lope-reader.js, lope-runner.js, lope-jumpgate.js |
-| `knowledge/running-a-live-repl-session-with-a-notebook.md` | Using lope-node-repl.js, lope-browser-repl.js, lope-runtime.js, pair programming |
+| `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` | Exporting/updating notebooks, using lope-reader.ts, lope-runner.js, lope-jumpgate.js |
 | `knowledge/bulk-exporting-lopebooks.md` | Bulk export, QC, smoke testing |
 | `knowledge/pushing-cells-to-observablehq.md` | Pushing cell changes back to Observable |
 | `knowledge/live-collaboration-with-claude-code-pairing.md` | Claude Code pairing: setup, user journeys, MCP tools, distribution |
@@ -66,11 +63,10 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 
 | Task | Tool | Speed |
 |------|------|-------|
-| List modules/cells, read cell source | `lope-reader.js` | Instant |
-| Check file attachments, generate manifest | `lope-reader.js` | Instant |
+| List modules, read module source | `lope-reader.ts` | Instant |
+| Check file attachments, generate manifest | `lope-reader.ts` | Instant |
 | One-off test run, get computed values | `lope-runner.js` | ~10s startup |
-| Iterative development, multiple test cycles | `lope-node-repl.js` (default) | ~1.5s load |
-| DOM interaction, screenshots, pair programming | `lope-browser-repl.js` | <1s after load |
+| Iterative development, pair programming | Pairing channel + MCP tools | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~60-120s |
 | Push cells to ObservableHQ | `lope-push-ws.js` | ~5s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~30-60s each |
@@ -144,8 +140,8 @@ bun test tests/channel/lopecode-channel.test.ts
 ### Tips for Agents
 
 1. **Never read entire HTML files** - Use the tools to extract relevant parts
-2. **Start with summary** - Run `lope-reader.js` first to understand a notebook
-3. **Use lope-node-repl.js for iteration** - Default REPL; use lope-browser-repl.js only when you need DOM/screenshots/pair-programming
+2. **Start with spec** - Run `bun tools/lope-reader.ts` first to understand a notebook
+3. **Use pairing channel for iteration** - Connect via MCP for live define/eval/watch
 4. **Provide precise instructions** - Reference cells by `module.cellName`
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed

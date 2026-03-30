@@ -133,7 +133,7 @@ node tools/lope-jumpgate.js \
   --output lopecode/notebooks/@tomlarkworthy_notebook-name.html
 
 # 2. Verify the export
-node tools/lope-reader.js lopecode/notebooks/@tomlarkworthy_notebook-name.html
+bun tools/lope-reader.ts lopecode/notebooks/@tomlarkworthy_notebook-name.html
 
 # 3. Commit and push in the lopecode submodule
 cd lopecode
@@ -172,72 +172,6 @@ The jumpgate notebook (`@tomlarkworthy/jumpgate` module) has these important cel
 | `load_source` | `urlQueryFieldView("load_source")` | Toggle to trigger API fetch |
 | `exported` | computed | Final export result with `.source` (HTML) and `.report` |
 | `output` | mutable | Progress updates during export |
-
-## Testing Lopecode Module Functions with Node.js
-
-Use `lope-browser-repl.js` to test module functions from Node.js test files. Key patterns:
-
-### Sync IIFEs only
-
-The REPL's `eval` does NOT support async functions (they return `{}`). Always use sync IIFEs:
-
-```javascript
-// GOOD
-{"cmd": "eval", "code": "(() => { ... return JSON.stringify(result); })()"}
-
-// BAD — returns {}
-{"cmd": "eval", "code": "(async () => { ... return JSON.stringify(result); })()"}
-```
-
-### Poll for variable readiness
-
-Observable evaluates lazily. After `load`, poll until target variables are computed:
-
-```javascript
-// In test before() hook, after load:
-for (let i = 0; i < 30; i++) {
-  const check = await sendCommand(repl, {
-    cmd: "eval",
-    code: `(() => {
-      const runtime = window.__ojs_runtime;
-      for (const v of runtime._variables) {
-        if (v._name === "myFunction" && typeof v._value === "function") return "ready";
-      }
-      return "waiting";
-    })()`,
-  });
-  if (check.ok && check.result?.value === "ready") break;
-  await new Promise((r) => setTimeout(r, 500));
-}
-```
-
-### Helper: look up and call runtime functions
-
-```javascript
-function evalFns(repl, fnNames, bodyCode) {
-  const lookups = fnNames
-    .map(n => `for (const v of runtime._variables) { if (v._name === "${n}" && typeof v._value === "function") { ${n} = v._value; break; } }`)
-    .join("\n");
-  const decls = fnNames.map(n => `let ${n};`).join("\n");
-  return sendCommand(repl, {
-    cmd: "eval",
-    code: `(() => {
-      const runtime = window.__ojs_runtime;
-      ${decls}
-      ${lookups}
-      ${bodyCode}
-    })()`,
-  });
-}
-
-// Usage:
-const res = await evalFns(repl, ["parseViewDSL", "serializeGoldenDSL"], `
-  const gl = parseGoldenDSL("R100(S50(@tomlarkworthy/a),S50(@tomlarkworthy/b))");
-  return JSON.stringify(serializeGoldenDSL(gl));
-`);
-```
-
-See `tests/notebooks/lopepage-urls.test.js` for a complete working example.
 
 ## Patching Runtime Variables from Playwright
 
@@ -279,35 +213,26 @@ curl -sI "https://api.observablehq.com/@tomlarkworthy/notebook-name.js?v=4" | he
 # Should return HTTP/2 200, not 404
 ```
 
-## Tool Reference: lope-reader.js (Fast Static Analysis)
+## Tool Reference: lope-reader.ts (Fast Static Analysis)
 
-No browser needed, instant results. Use this for exploring notebook structure without running code.
+No browser needed, instant results. Use this for exploring notebook structure without running code. Outputs JSON specs by default.
 
 ```bash
-# Get notebook summary (default)
-node tools/lope-reader.js notebook.html
+# Get notebook spec (JSON: title, bootconf, modules with hashes, files)
+bun tools/lope-reader.ts notebook.html
 
-# List all modules
-node tools/lope-reader.js notebook.html --list-modules
-
-# Get source code for a specific module
-node tools/lope-reader.js notebook.html --get-module @tomlarkworthy/tests
-
-# List file attachments
-node tools/lope-reader.js notebook.html --list-files
+# Get raw source code for a specific module
+bun tools/lope-reader.ts notebook.html --get-module @tomlarkworthy/tests
 
 # Generate manifest of all notebooks in a directory
-node tools/lope-reader.js --manifest lopecode/notebooks
-
-# JSON output
-node tools/lope-reader.js notebook.html --list-modules --json
+bun tools/lope-reader.ts --manifest lopecode/notebooks
 ```
 
 ### Comparing module versions across notebooks
 
 ```bash
-node tools/lope-reader.js notebook1.html --get-module @tomlarkworthy/view > /tmp/v1.js
-node tools/lope-reader.js notebook2.html --get-module @tomlarkworthy/view > /tmp/v2.js
+bun tools/lope-reader.ts notebook1.html --get-module @tomlarkworthy/view > /tmp/v1.js
+bun tools/lope-reader.ts notebook2.html --get-module @tomlarkworthy/view > /tmp/v2.js
 diff /tmp/v1.js /tmp/v2.js
 ```
 
@@ -315,9 +240,6 @@ diff /tmp/v1.js /tmp/v2.js
 
 ```bash
 grep -l "module-name" lopecode/notebooks/*.html
-
-# Or via manifest
-node tools/lope-reader.js --manifest lopecode/notebooks --json | grep "module-name"
 ```
 
 ## Tool Reference: lope-runner.js (One-off Runtime Execution)
@@ -346,11 +268,8 @@ Exit codes: `0` = passed, `1` = failed, `2` = error
 ## Verifying Exports
 
 ```bash
-# Check structure
-node tools/lope-reader.js lopecode/notebooks/NOTEBOOK.html
-
-# List modules
-node tools/lope-reader.js lopecode/notebooks/NOTEBOOK.html --list-modules
+# Check structure (JSON spec)
+bun tools/lope-reader.ts lopecode/notebooks/NOTEBOOK.html
 
 # Run tests if the notebook has any
 node tools/lope-runner.js lopecode/notebooks/NOTEBOOK.html --run-tests

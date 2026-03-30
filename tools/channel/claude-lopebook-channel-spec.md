@@ -523,7 +523,7 @@ The `--` separator distinguishes forks from the original. Forks are disposable �
 
 1. User has debugger notebook connected.
 2. Types: "Grab the `color_palette` cell from the atlas notebook"
-3. Claude uses its own filesystem tools (`lope-reader.js`) to read the atlas HTML.
+3. Claude uses its own filesystem tools (`lope-reader.ts`) to read the atlas HTML.
 4. Extracts the cell source.
 5. Calls `define-variable` on the debugger notebook.
 6. User sees the new cell appear live.
@@ -611,7 +611,7 @@ channel_config = ({
 
 - **Channel server**: WebSocket pairing, message forwarding, cell-change forwarding, notebook-info storage, disconnection cleanup, invalid token rejection, health endpoint. All tested via `node --test tools/test-lopecode-channel.js`.
 - **Notebook cells**: All 7 cells inject via `define-variable` into a live debugger notebook, compute without errors, and produce correct values. Chat widget renders with setup panel (token input + connect button). Tested via `tools/test-channel-cells.js`.
-- **Standalone notebook**: Module loads as a native Observable module via lopepage. Chat widget renders in its own panel. Tested via `lope-browser-repl.js`.
+- **Standalone notebook**: Module loads as a native Observable module via lopepage. Chat widget renders in its own panel.
 
 ### What's NOT Tested (Blocked)
 
@@ -683,11 +683,9 @@ The current REPL-based pair programming tools are the direct predecessors to thi
 
 | File | What to learn from it |
 |------|----------------------|
-| `tools/lope-browser-repl.js` | Command dispatch pattern, `--log` auto-watch implementation, `readHistorySince` page-context function for polling `history`. The `watch` command and auto-watch interval are the prototype for the channel's change forwarding. |
-| `tools/lope-node-repl.js` | JSON command protocol, `wait-for` pattern. Simpler than browser REPL — good for understanding the core command set without Playwright complexity. |
 | `tools/tools.js` | **Critical.** All page-context functions: `runTestVariables`, `readLatestState`, `getCellInfo`, `listAllVariables`, `defineVariable`, `deleteVariable`, `findModule`, `serializeValue`. These are designed for `page.evaluate()` — the channel's WebSocket commands will need equivalent implementations that run in the notebook's browser context. |
 | `tools/lope-runtime.js` | `loadNotebook()` API and LinkeDOM bootstrap. Not directly used by the channel (we use the real browser), but shows how the Observable runtime is initialized and what APIs are available on `execution.runtime`. |
-| `tools/lope-reader.js` | Static analysis without a browser. Claude can use this via its own Bash tools to read module/cell source from notebooks on disk — relevant for the cross-notebook copy journey (Journey 6). |
+| `tools/lope-reader.ts` | Static analysis without a browser. Claude can use this via its own Bash tools to read module/cell source from notebooks on disk — relevant for the cross-notebook copy journey (Journey 6). |
 
 ### Chat Widget UI — Robocoop Reference
 

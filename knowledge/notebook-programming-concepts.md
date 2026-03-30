@@ -243,11 +243,11 @@ Each notebook contains multiple modules in `<script type="lope-module">` tags:
 ### Finding Modules
 
 ```bash
-# List all modules in a notebook
-node tools/lope-reader.js notebook.html --list-modules
+# Get notebook spec (JSON: title, modules, files)
+bun tools/lope-reader.ts notebook.html
 
 # Get source for a specific module
-node tools/lope-reader.js notebook.html --get-module @tomlarkworthy/tests
+bun tools/lope-reader.ts notebook.html --get-module @tomlarkworthy/tests
 ```
 
 ### Module Dependencies
@@ -297,14 +297,13 @@ Key tests: `test_decompile_*` and `test_compile_*` in `@tomlarkworthy/tests`
 
 ## Development Tools
 
-### lope-reader.js (Fast, Static)
+### lope-reader.ts (Fast, Static)
 
 For exploring notebook structure without running code:
 
 ```bash
-node tools/lope-reader.js notebook.html --list-modules
-node tools/lope-reader.js notebook.html --get-module @tomlarkworthy/view
-node tools/lope-reader.js notebook.html --list-files
+bun tools/lope-reader.ts notebook.html
+bun tools/lope-reader.ts notebook.html --get-module @tomlarkworthy/view
 ```
 
 ### lope-runner.js (Slow, Dynamic)
@@ -321,11 +320,10 @@ node tools/lope-runner.js notebook.html --run-tests
 
 | Task | Tool |
 |------|------|
-| List modules/cells | lope-reader.js |
-| Read cell source | lope-reader.js |
+| List modules, read source | lope-reader.ts |
 | Get computed values | lope-runner.js |
 | Run tests | lope-runner.js |
-| Check file attachments | lope-reader.js |
+| Check file attachments | lope-reader.ts |
 
 ## Common Patterns
 
@@ -530,10 +528,6 @@ for (const [name, result] of latestState) {
   console.log(name, result.state);
 }
 ```
-
-The `lope-browser-repl.js` tool supports both:
-- `run-tests` command: Uses force reachability (works always)
-- `read-tests` command: Reads from latest_state (requires tests module visible)
 
 ### Key Modules
 
