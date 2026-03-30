@@ -135,9 +135,84 @@ Use run_tests to execute all test_* cells.
 
 - define_cell: PRIMARY tool for creating content. Accepts Observable source, compiles via toolchain. Use for almost everything.
 - eval_code: For throwaway/ephemeral actions (DOM hacks, debugging, location.reload()). Lost on reload. NEVER use define_cell for one-off side effects.
-- define_variable: Low-level escape hatch with explicit function string + inputs array. Rarely needed.
-- export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads.
+- define_variable: Low-level escape hatch with explicit function string + inputs array. Use when you need precise control over variable names and inputs that the compiler might mangle.
+- export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads. ALWAYS export before pushing to Observable.
 - fork_notebook: Creates a sibling HTML copy (checkpoint).
+
+## High-level cell patterns (define_cell)
+
+define_cell accepts Observable Notebook 1.0 syntax. Key patterns:
+
+### Inputs listing
+Every free variable a cell reads must be declared. The compiler auto-detects most, but be aware:
+- \`Inputs\`, \`htl\`, \`d3\`, \`Plot\`, \`md\`, \`width\` are standard library globals
+- \`viewof x\` gives the DOM element; \`x\` gives the extracted value
+- Any cell reading variable \`x\` re-evaluates when \`x\` changes
+
+### UI patterns
+\`\`\`
+// Counter button
+viewof count = Inputs.button("Increment", {value: 0, reduce: v => v + 1})
+
+// Toggle
+viewof ready = Inputs.toggle({label: "Ready", value: false})
+
+// Dropdown
+viewof choice = Inputs.select(["a", "b", "c"], {value: "a"})
+
+// Form (single view returning an object)
+viewof config = Inputs.form({
+  name: Inputs.text({label: "Name"}),
+  size: Inputs.range([1, 100], {label: "Size", value: 50})
+})
+\`\`\`
+
+### Imports (ESM CDN with pinned version)
+\`\`\`
+dateFns = await import("https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm")
+\`\`\`
+
+### Reactive block cell
+\`\`\`
+result = {
+  const data = await fetch(url).then(r => r.json());
+  return data.filter(d => d.value > 10);
+}
+\`\`\`
+
+## Low-level variable patterns (define_variable)
+
+define_variable gives direct control over variable name, inputs array, and definition function string. Use when:
+- You need exact control over the variable name (e.g. "viewof x", "module @owner/notebook")
+- The compiler would mangle inputs or produce wrong dependencies
+- You're creating import loaders or runtime-level plumbing
+
+### Key semantics
+- A variable is a named reactive value defined as a function of its declared inputs
+- Evaluation is topological: pending → fulfilled or rejected; rejection halts dependents
+- viewof cells create TWO variables: "viewof x" (DOM) and "x" (value stream)
+- Mutables create THREE: "initial x", "mutable x", and "x"
+- Only reachable variables compute (visible or depended upon)
+
+### Import pattern (two-step, must be named)
+Never use ES module import syntax inside a runtime variable definition. Use the two-step pattern:
+
+Step 1 — Loader variable:
+  name: "module @owner/notebook"
+  inputs: []
+  definition: "async () => runtime.module((await import(\\"@owner/notebook\\")).default)"
+
+Step 2 — Importer variable:
+  name: "someSymbol"
+  inputs: ["module @owner/notebook", "@variable"]
+  definition: "(_, v) => v.import(\\"someSymbol\\", _)"
+
+### Aliasing: v.import("original", "alias", _)
+### viewof import: v.import("viewof x", _)
+### mutable import: v.import("mutable x", _)
+
+### Strict naming
+Always name variables. Anonymous variables cannot be referenced as inputs by other cells. Every define_variable call should include a name.
 
 ## Message formats
 
@@ -153,6 +228,70 @@ Lifecycle:
 
 Variable updates (when watching):
   <channel source="lopecode" type="variable_update" notebook="..." name="varName" module="@author/mod">value</channel>
+
+## Compiled module format (low-level)
+
+When editing module .js files directly (e.g. tools/channel/claude-code-pairing-module.js), cells are compiled JavaScript, not Observable syntax.
+
+### Cell function pattern
+Each cell is a const function. The function name matches the cell name with _ prefix:
+\`\`\`javascript
+const _myCell = function _myCell(dep1, dep2){return(
+  dep1 + dep2
+)};
+\`\`\`
+
+### Registration in define()
+The export default function define(runtime, observer) registers cells:
+\`\`\`javascript
+// Visual cell (gets an observer — renders in UI, controls render order)
+$def("_myCell", "myCell", ["dep1", "dep2"], _myCell);
+
+// Hidden cell (no observer — invisible, for internal logic)
+main.variable().define("myCell", ["dep1", "dep2"], _myCell);
+\`\`\`
+
+### viewof pattern (compiled)
+viewof creates TWO registrations — the DOM element and the extracted value:
+\`\`\`javascript
+const _myToggle = function _myToggle(){return(
+  // Must return a DOM element with a .value property
+  // Must dispatch "input" events when value changes
+  (function() {
+    var el = document.createElement("span");
+    el.value = false;
+    el.onclick = function() {
+      el.value = !el.value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    return el;
+  })()
+)};
+
+// In define():
+$def("_myToggle", "viewof myToggle", [], _myToggle);
+main.variable().define("myToggle", ["Generators", "viewof myToggle"], (G, v) => G.input(v));
+\`\`\`
+
+### Depending on viewof (getting the DOM element)
+When a cell needs the DOM element (not the value), depend on "viewof X":
+\`\`\`javascript
+const _ui = function _ui(viewof_myToggle){return(
+  // viewof_myToggle is the DOM element — embed it in your UI
+  // This cell does NOT re-evaluate when the toggle value changes
+)};
+
+// In define():
+$def("_ui", "ui", ["viewof myToggle"], _ui);
+\`\`\`
+
+### Key rules
+- **Visual cells ($def) control render order** — first $def renders first in lopepage
+- **Hidden cells (main.variable().define)** don't render but ARE included in exports
+- **viewof value is extracted by Generators.input()** which reads .value on each "input" event
+- **After syncing module .js to notebook HTML**, always export_notebook before pushing to Observable (export captures hidden cells that lope-push-ws otherwise misses from the raw module JS)
+- **Two observers cannot share a DOM element** — if viewof returns an element AND another cell appends it, they fight. Use viewof for the element source; the consuming cell depends on "viewof X" to receive it.
+- **Cells re-evaluate when dependencies change** — a cell depending on a value (e.g. voiceEnabled boolean) re-runs on every toggle. A cell depending on viewof (the DOM element) only evaluates once.
 
 IMPORTANT: Always specify the module parameter when calling define_variable, get_variable, etc.
 Use the currentModules watch to identify the user's content module (not lopepage, module-selection, or claude-code-pairing).
