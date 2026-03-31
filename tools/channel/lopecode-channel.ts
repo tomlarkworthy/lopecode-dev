@@ -13,8 +13,9 @@ import {
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerWebSocket } from "bun";
-import { join, dirname, basename } from "path";
-import { mkdirSync, writeFileSync } from "fs";
+import { join, dirname, basename, resolve } from "path";
+import { mkdirSync, writeFileSync, readdirSync, statSync, watchFile, unwatchFile } from "fs";
+import { homedir } from "os";
 
 // --- Configuration ---
 const REQUESTED_PORT = Number(process.env.LOPECODE_PORT ?? 0); // 0 = OS picks a free port
@@ -939,6 +940,201 @@ function handleWsClose(ws: ServerWebSocket<unknown>) {
   }
 }
 
+// --- Session log tailing ---
+
+/** Broadcast an activity event to all paired notebooks */
+function broadcastActivity(toolName: string, summary: string) {
+  if (pairedConnections.size === 0) return;
+  const msg = JSON.stringify({
+    type: "tool-activity",
+    tool_name: toolName,
+    summary,
+    timestamp: Date.now(),
+  });
+  for (const ws of pairedConnections.values()) {
+    ws.send(msg);
+  }
+}
+
+/** Build summary from a tool_use content block */
+function summarizeToolUse(name: string, input: Record<string, any>): string | null {
+  // Skip our own MCP tools to avoid echo
+  if (name.startsWith("mcp__lopecode__")) return null;
+
+  if (name === "Read" && input.file_path) return `Read ${input.file_path}`;
+  if (name === "Edit" && input.file_path) return `Edit ${input.file_path}`;
+  if (name === "Write" && input.file_path) return `Write ${input.file_path}`;
+  if (name === "Bash" && input.command) return `$ ${input.command.slice(0, 120)}`;
+  if (name === "Grep" && input.pattern) return `Grep "${input.pattern}"`;
+  if (name === "Glob" && input.pattern) return `Glob "${input.pattern}"`;
+  if (name === "Agent" && input.description) return `Agent: ${input.description}`;
+  return name;
+}
+
+/**
+ * Discover the Claude Code session log directory.
+ *
+ * Strategy:
+ * 1. If LOPECODE_PROJECT_DIR env var is set, use that as the project CWD
+ * 2. Otherwise, scan ~/.claude/projects/ for the directory with the most recently
+ *    modified .jsonl file (the active session)
+ *
+ * Claude Code stores logs at ~/.claude/projects/<sanitized-cwd>/<session-id>.jsonl
+ * where sanitized-cwd replaces / with -
+ */
+function discoverLogDir(): string | null {
+  const projectsBase = join(homedir(), ".claude", "projects");
+
+  // Strategy 1: explicit project dir
+  const explicitDir = process.env.LOPECODE_PROJECT_DIR;
+  if (explicitDir) {
+    const sanitized = explicitDir.replace(/\//g, "-");
+    const logDir = join(projectsBase, sanitized);
+    try { statSync(logDir); return logDir; } catch { /* fall through */ }
+  }
+
+  // Strategy 2: try CWD (works when channel runs in-process)
+  const cwd = process.cwd();
+  const sanitizedCwd = cwd.replace(/\//g, "-");
+  const cwdLogDir = join(projectsBase, sanitizedCwd);
+  try { statSync(cwdLogDir); return cwdLogDir; } catch { /* fall through */ }
+
+  // Strategy 3: find the project dir with the most recently modified .jsonl
+  try {
+    const dirs = readdirSync(projectsBase);
+    let bestDir: string | null = null;
+    let bestMtime = 0;
+    for (const dir of dirs) {
+      const fullDir = join(projectsBase, dir);
+      try {
+        const st = statSync(fullDir);
+        if (!st.isDirectory()) continue;
+        // Check newest jsonl in this dir
+        const files = readdirSync(fullDir).filter(f => f.endsWith(".jsonl"));
+        for (const f of files) {
+          const mtime = statSync(join(fullDir, f)).mtimeMs;
+          if (mtime > bestMtime) {
+            bestMtime = mtime;
+            bestDir = fullDir;
+          }
+        }
+      } catch { continue; }
+    }
+    return bestDir;
+  } catch {
+    return null;
+  }
+}
+
+/** Find the most recently modified .jsonl file in a directory */
+function findNewestLog(dir: string): string | null {
+  try {
+    const files = readdirSync(dir)
+      .filter(f => f.endsWith(".jsonl"))
+      .map(f => ({ name: f, mtime: statSync(join(dir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    return files.length > 0 ? join(dir, files[0].name) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Parse a JSONL log entry and broadcast relevant activity */
+function processLogEntry(line: string) {
+  try {
+    const entry = JSON.parse(line);
+    // Only process assistant messages (they contain tool_use and thinking)
+    if (entry.message?.role !== "assistant") return;
+
+    const content = entry.message.content;
+    if (!Array.isArray(content)) return;
+
+    for (const block of content) {
+      if (block.type === "tool_use") {
+        const summary = summarizeToolUse(block.name, block.input || {});
+        if (summary) broadcastActivity(block.name, summary);
+      } else if (block.type === "thinking") {
+        broadcastActivity("thinking", "Thinking…");
+      } else if (block.type === "text" && block.text) {
+        // Broadcast full text as a side-comment in the chat
+        if (pairedConnections.size > 0) {
+          const msg = JSON.stringify({
+            type: "assistant-text",
+            text: block.text,
+            timestamp: Date.now(),
+          });
+          for (const ws of pairedConnections.values()) {
+            ws.send(msg);
+          }
+        }
+      }
+    }
+  } catch {
+    // Ignore malformed lines
+  }
+}
+
+/**
+ * Tail the active session log file and broadcast activity events.
+ * Uses Bun.file + polling to detect new content appended to the JSONL file.
+ */
+function startSessionLogTail() {
+  const logDir = discoverLogDir();
+  if (!logDir) {
+    process.stderr.write("lopecode-channel: could not discover session log directory\n");
+    return;
+  }
+
+  let currentLogPath: string | null = null;
+  let fileOffset = 0;
+  let partialLine = "";
+
+  async function readNewLines() {
+    // Check if there's a newer log file (session rotation)
+    const newest = findNewestLog(logDir);
+    if (!newest) return;
+
+    if (newest !== currentLogPath) {
+      // New session log — start from current end (don't replay history)
+      currentLogPath = newest;
+      try {
+        const stat = statSync(currentLogPath);
+        fileOffset = stat.size;
+        partialLine = "";
+        process.stderr.write(`lopecode-channel: tailing session log ${basename(currentLogPath)}\n`);
+      } catch {
+        return;
+      }
+    }
+
+    try {
+      const stat = statSync(currentLogPath);
+      if (stat.size <= fileOffset) return; // No new data
+
+      const file = Bun.file(currentLogPath);
+      const newData = await file.slice(fileOffset, stat.size).text();
+      fileOffset = stat.size;
+
+      // Process complete lines
+      const chunk = partialLine + newData;
+      const lines = chunk.split("\n");
+      partialLine = lines.pop() || ""; // Last element may be incomplete
+
+      for (const line of lines) {
+        if (line.trim()) processLogEntry(line);
+      }
+    } catch {
+      // File may have been rotated or deleted
+    }
+  }
+
+  // Poll every 500ms for new log content
+  const interval = setInterval(readNewLines, 500);
+  process.on("exit", () => clearInterval(interval));
+
+  process.stderr.write(`lopecode-channel: session log tailing started (dir: ${basename(logDir)})\n`);
+}
+
 // Connect MCP stdio transport FIRST (must happen before Bun.serve so Claude Code
 // sees the channel capability during the initialization handshake)
 await mcp.connect(new StdioServerTransport());
@@ -966,39 +1162,8 @@ const server = Bun.serve({
         const body = await req.json();
         const toolName = body.tool_name || "unknown";
         const toolInput = body.tool_input || {};
-        const toolResponse = body.tool_response;
-
-        // Build a compact summary for the chat widget
-        let summary = toolName;
-        if (toolName === "Read" && toolInput.file_path) {
-          summary = `Read ${toolInput.file_path}`;
-        } else if (toolName === "Edit" && toolInput.file_path) {
-          summary = `Edit ${toolInput.file_path}`;
-        } else if (toolName === "Write" && toolInput.file_path) {
-          summary = `Write ${toolInput.file_path}`;
-        } else if (toolName === "Bash" && toolInput.command) {
-          summary = `$ ${toolInput.command.slice(0, 120)}`;
-        } else if (toolName === "Grep" && toolInput.pattern) {
-          summary = `Grep "${toolInput.pattern}"`;
-        } else if (toolName === "Glob" && toolInput.pattern) {
-          summary = `Glob "${toolInput.pattern}"`;
-        } else if (toolName === "Agent" && toolInput.description) {
-          summary = `Agent: ${toolInput.description}`;
-        } else if (toolName.startsWith("mcp__lopecode__")) {
-          // Our own MCP tools — skip broadcasting to avoid echo
-          return new Response("ok", { status: 200 });
-        }
-
-        // Broadcast to all paired notebooks
-        const msg = JSON.stringify({
-          type: "tool-activity",
-          tool_name: toolName,
-          summary,
-          timestamp: Date.now(),
-        });
-        for (const ws of pairedConnections.values()) {
-          ws.send(msg);
-        }
+        const summary = summarizeToolUse(toolName, toolInput);
+        if (summary) broadcastActivity(toolName, summary);
         return new Response("ok", { status: 200 });
       } catch (e) {
         return new Response("bad request", { status: 400 });
@@ -1025,3 +1190,6 @@ process.on("exit", () => { try { require("fs").unlinkSync(portFilePath); } catch
 
 process.stderr.write(`lopecode-channel: pairing token: ${PAIRING_TOKEN}\n`);
 process.stderr.write(`lopecode-channel: WebSocket server on ws://127.0.0.1:${PORT}/ws\n`);
+
+// Start tailing the session log for live activity feed
+startSessionLogTail();

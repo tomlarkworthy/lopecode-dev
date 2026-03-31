@@ -9,6 +9,16 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/post-tool-hook.sh\""
+          }
+        ]
+      }
     ]
   }
 }
