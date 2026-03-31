@@ -14,6 +14,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerWebSocket } from "bun";
 import { join, dirname, basename } from "path";
+import { mkdirSync, writeFileSync } from "fs";
 
 // --- Configuration ---
 const REQUESTED_PORT = Number(process.env.LOPECODE_PORT ?? 0); // 0 = OS picks a free port
@@ -66,10 +67,14 @@ Lopecode notebooks are self-contained HTML files built on the Observable runtime
 
 When the user asks to start/open a lopecode notebook, or start a pairing/collaboration session:
 1. Call get_pairing_token to get the token (format: LOPE-PORT-XXXX)
-2. Construct the URL: https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
-3. Open the browser: run open 'URL' (macOS) or xdg-open 'URL' (Linux)
-4. Wait for the connected notification
-5. Send a welcome message via reply
+2. Find the local notebook HTML file (e.g. lopecode/notebooks/@tomlarkworthy_blank-notebook.html or lopebooks/notebooks/...)
+3. Construct a file:// URL with the hash layout and cc=TOKEN parameter:
+   file:///absolute/path/to/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&open=@tomlarkworthy/claude-code-pairing&cc=TOKEN
+4. Use the open_url tool to open it (this preserves hash fragments on file:// URLs — the macOS open command strips them)
+5. Wait for the connected notification
+6. Send a welcome message via reply
+
+Always use file:// paths to local notebooks, never GitHub Pages URLs. The open_url tool handles the macOS bug where the open command strips hash fragments from file:// URLs.
 
 If channels are not enabled, tell the user to restart with: claude --channels server:lopecode
 
@@ -219,6 +224,8 @@ Always name variables. Anonymous variables cannot be referenced as inputs by oth
 User chat messages:
   <channel source="lopecode" type="message" notebook="..." sender="user">text</channel>
 
+When a user message contains "[USER ATTACHED N SCREENSHOT(S)]" followed by file paths, you MUST use the Read tool to view each screenshot file before responding. These are images the user pasted into the chat.
+
 Cell changes (automatic):
   <channel source="lopecode" type="cell_change" notebook="..." module="@author/mod" cell="cellName" op="upd">definition</channel>
 
@@ -231,7 +238,7 @@ Variable updates (when watching):
 
 ## Compiled module format (low-level)
 
-When editing module .js files directly (e.g. tools/channel/claude-code-pairing-module.js), cells are compiled JavaScript, not Observable syntax.
+When editing module .js files directly, cells are compiled JavaScript, not Observable syntax. The pairing module source lives in lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html.
 
 ### Cell function pattern
 Each cell is a const function. The function name matches the cell name with _ prefix:
@@ -344,6 +351,18 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: "get_pairing_token",
       description: "Returns the pairing token needed to connect a notebook to this channel session.",
       inputSchema: { type: "object", properties: {} },
+    },
+    {
+      name: "open_url",
+      description: "Open a URL in the system default browser, preserving hash fragments. Works around the macOS `open` command bug that strips hash fragments from file:// URLs.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "Full URL to open (file:// or https://), including hash fragment" },
+          browser: { type: "string", description: "Optional browser binary path override (default: system default)" },
+        },
+        required: ["url"],
+      },
     },
     {
       name: "reply",
@@ -553,6 +572,48 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       return { content: [{ type: "text", text: PAIRING_TOKEN }] };
     }
 
+    // open_url: launch a URL in the browser, preserving hash fragments
+    if (req.params.name === "open_url") {
+      const url = args.url as string;
+      const browser = args.browser as string | undefined;
+      if (!url) return { content: [{ type: "text", text: "url is required" }], isError: true };
+
+      let cmd: string[];
+      if (browser) {
+        cmd = [browser, url];
+      } else if (process.platform === "darwin") {
+        // macOS `open` strips hash fragments from file:// URLs.
+        // For file:// URLs with fragments, find the default browser binary and call it directly.
+        const needsDirectLaunch = url.startsWith("file://") && url.includes("#");
+        if (needsDirectLaunch) {
+          // macOS `open` strips hash fragments from file:// URLs.
+          // Workaround: write a temporary HTML file that redirects via JS.
+          const tmpDir = join(dirname(new URL(url).pathname), "..");
+          const tmpFile = join(tmpDir, `.lopecode-redirect-${Date.now()}.html`);
+          const redirectHtml = `<!DOCTYPE html><html><head><script>location.replace(${JSON.stringify(url)});</script></head><body>Redirecting...</body></html>`;
+          await Bun.write(tmpFile, redirectHtml);
+          // Open the redirect file (no hash needed), then clean up after a delay
+          cmd = ["open", tmpFile];
+          setTimeout(() => { try { require("fs").unlinkSync(tmpFile); } catch {} }, 5000);
+        } else {
+          cmd = ["open", url];
+        }
+      } else {
+        cmd = ["xdg-open", url];
+      }
+
+      process.stderr.write(`lopecode-channel: open_url cmd=${JSON.stringify(cmd)}\n`);
+      const proc = Bun.spawn(cmd, { stdout: "ignore", stderr: "pipe" });
+      const stderr = await new Response(proc.stderr).text();
+      const exitCode = await proc.exited;
+      if (exitCode !== 0) {
+        const msg = `Failed (exit ${exitCode}): ${stderr || "(no stderr)"}`;
+        process.stderr.write(`lopecode-channel: open_url error: ${msg}\n`);
+        return { content: [{ type: "text", text: msg }], isError: true };
+      }
+      return { content: [{ type: "text", text: `Opened (${cmd[0].split("/").pop()}): ${url}` }] };
+    }
+
     const notebookId = args.notebook_id as string | undefined;
 
     // reply is fire-and-forget to the WebSocket
@@ -736,10 +797,37 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
     case "message": {
       const notebookUrl = wsBySocket.get(ws);
       if (!notebookUrl) return; // not paired
+
+      // Save any image attachments to disk
+      const attachments = msg.attachments as Array<{ dataUrl: string; name: string; type: string }> | undefined;
+      const savedPaths: string[] = [];
+      if (attachments && attachments.length > 0) {
+        const screenshotDir = join(process.cwd(), "tools", "screenshots");
+        try { mkdirSync(screenshotDir, { recursive: true }); } catch {}
+        for (const att of attachments) {
+          const match = att.dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (!match) continue;
+          const ext = match[1] === "jpeg" ? "jpg" : match[1];
+          const fileName = `screenshot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+          const filePath = join(screenshotDir, fileName);
+          writeFileSync(filePath, Buffer.from(match[2], "base64"));
+          savedPaths.push(filePath);
+          process.stderr.write(`lopecode-channel: saved screenshot ${filePath}\n`);
+        }
+      }
+
+      let content = msg.content as string;
+      if (savedPaths.length > 0) {
+        const pathList = savedPaths.map(p => p).join("\n");
+        content = (content || "") + (content ? "\n\n" : "") +
+          `[USER ATTACHED ${savedPaths.length} SCREENSHOT(S) — use the Read tool on each path to view them]\n${pathList}`;
+        process.stderr.write(`lopecode-channel: notification content=${JSON.stringify(content).slice(0, 200)}\n`);
+      }
+
       void mcp.notification({
         method: "notifications/claude/channel",
         params: {
-          content: msg.content as string,
+          content,
           meta: {
             type: "message",
             notebook: notebookUrl,
@@ -747,6 +835,20 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
           },
         },
       });
+      // Send a separate notification for each screenshot so Claude sees the paths
+      for (const p of savedPaths) {
+        void mcp.notification({
+          method: "notifications/claude/channel",
+          params: {
+            content: `[Screenshot saved — read this file to view it: ${p}]`,
+            meta: {
+              type: "message",
+              notebook: notebookUrl,
+              sender: "system",
+            },
+          },
+        });
+      }
       break;
     }
 
@@ -902,14 +1004,7 @@ const server = Bun.serve({
         return new Response("bad request", { status: 400 });
       }
     }
-    if (url.pathname === "/") {
-      const notebookUrl = `https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=${PAIRING_TOKEN}`;
-      return new Response(null, {
-        status: 302,
-        headers: { Location: notebookUrl },
-      });
-    }
-    return new Response("lopecode-channel", { status: 200 });
+    return new Response("not found", { status: 404 });
   },
   websocket: {
     open(ws) {

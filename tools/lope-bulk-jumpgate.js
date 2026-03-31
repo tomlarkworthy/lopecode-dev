@@ -41,6 +41,7 @@
  */
 
 import { chromium } from 'playwright';
+import { execFileSync } from 'child_process';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -276,8 +277,25 @@ if (downloadPromises.length > 0) {
   await Promise.all(downloadPromises);
 }
 
-// Summary
+// Generate .json specs for each exported HTML
 const htmlFiles = downloadedFiles.filter(f => f.endsWith('.html'));
+const lopeReaderPath = resolve(__dirname, 'lope-reader.ts');
+for (const f of htmlFiles) {
+  const htmlPath = resolve(outputDir, f);
+  const jsonPath = htmlPath.replace(/\.html$/, '.json');
+  try {
+    const spec_output = execFileSync('bun', [lopeReaderPath, htmlPath], {
+      encoding: 'utf-8',
+      timeout: 30000,
+    });
+    fs.writeFileSync(jsonPath, spec_output);
+    log(`Spec: ${f.replace('.html', '.json')}`);
+  } catch (e) {
+    log(`Warning: failed to generate spec for ${f}: ${e.message}`);
+  }
+}
+
+// Summary
 log(`\nExported ${htmlFiles.length}/${spec.notebooks.length} notebook(s):`);
 for (const f of htmlFiles) {
   const stat = fs.statSync(resolve(outputDir, f));

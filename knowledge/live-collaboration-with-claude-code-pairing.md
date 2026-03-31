@@ -14,7 +14,7 @@ Pair program with Claude directly from a Lopecode notebook. Chat, watch reactive
 
 There are two entry points depending on where the user starts.
 
-### Starting from Claude Code (CLI-first)
+### Starting from Claude Code (CLI-first) — Preferred
 
 ```bash
 # One-time setup (requires Bun: https://bun.sh)
@@ -27,7 +27,7 @@ claude --dangerously-load-development-channels server:lopecode
 
 Then ask Claude: **"Open a lopecode notebook"**
 
-Claude gets the pairing token, opens the notebook in your browser, and auto-connects. No manual token paste needed.
+Claude gets the pairing token, constructs a `file://` URL to the local notebook HTML file with the `&cc=TOKEN` hash parameter, and uses the `open_url` MCP tool to open it in the browser. The `open_url` tool is critical because macOS's `open` command strips hash fragments from `file://` URLs — `open_url` works around this by launching the browser binary directly. No manual token paste needed.
 
 #### For lopecode-dev developers
 
@@ -224,16 +224,16 @@ To create a new notebook that includes the pairing module:
    cp lopebooks/notebooks/@tomlarkworthy_editable-md.html \
       lopebooks/notebooks/@tomlarkworthy_my-new-notebook.html
    ```
-4. **Inject the pairing module:**
+4. **Inject the pairing module** (source is in `lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html`):
    ```bash
    bun tools/channel/sync-module.ts \
      --module @tomlarkworthy/claude-code-pairing \
-     --source tools/channel/claude-code-pairing-module.js \
+     --source lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html \
      --target lopebooks/notebooks/@tomlarkworthy_my-new-notebook.html
    ```
 5. **Open with pairing token** — include the content module, module-selection, AND claude-code-pairing in the hash URL:
    ```
-   file:///path/to/@tomlarkworthy_my-new-notebook.html#view=R100(S50(@tomlarkworthy/my-content-module),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
+   file:///path/to/@tomlarkworthy_my-new-notebook.html#view=R100(S50(@tomlarkworthy/my-content-module),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&open=@tomlarkworthy/claude-code-pairing&cc=TOKEN
    ```
 
 Always jumpgate fresh before copying — stale base notebooks may have outdated lopepage or other core modules that cause rendering bugs.
@@ -302,7 +302,7 @@ The primary workflow for creating notebook content via Claude Code:
 These must work reliably end-to-end.
 
 ### 1. Initial connection (CLI-first)
-User says "open a lopecode notebook". Claude gets the token, opens the browser with the connection URL. Notebook auto-connects with chat panel visible. No manual token paste.
+User says "open a lopecode notebook". Claude gets the token, constructs a `file://` URL to a local notebook with `&cc=TOKEN` in the hash, and uses the `open_url` MCP tool to open it (preserving the hash fragment). Notebook auto-connects with chat panel visible. No manual token paste.
 
 ### 2. Initial connection (notebook-first)
 User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--dangerously-load-development-channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
@@ -392,7 +392,7 @@ tools/channel/
 │   └── hooks.json                # SessionStart: auto-install deps
 ├── mcp.json                      # MCP server config
 ├── lopecode-channel.ts           # Channel server (Bun)
-├── claude-code-pairing-module.js # Observable module source
+├── # Module source: lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html
 ├── sync-module.ts              # Upsert module into notebooks (supports --watch)
 └── package.json                  # Dependencies
 ```
@@ -422,8 +422,7 @@ Start the server standalone and connect a notebook:
 ```bash
 bun run tools/channel/lopecode-channel.ts
 # stderr shows: pairing token: LOPE-PORT-XXXX
-# Open http://127.0.0.1:PORT/ to redirect to a notebook with auto-connect
-# Or check http://127.0.0.1:PORT/health for connection status
+# Check http://127.0.0.1:PORT/health for connection status
 ```
 
 ### Version Bumping

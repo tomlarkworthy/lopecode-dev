@@ -9,7 +9,6 @@
   },
   "files": [
     "lopecode-channel.ts",
-    "claude-code-pairing-module.js",
     "sync-module.ts",
     "README.md"
   ],

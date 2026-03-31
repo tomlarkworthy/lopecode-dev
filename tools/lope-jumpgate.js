@@ -23,6 +23,7 @@
  */
 
 import { chromium } from 'playwright';
+import { execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
@@ -297,6 +298,19 @@ async function main() {
 
     const fileSize = fs.statSync(outputPath).size;
     log(`Saved: ${outputPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+
+    // Generate .json spec alongside the HTML
+    const jsonPath = outputPath.replace(/\.html$/, '.json');
+    try {
+      const spec = execFileSync('bun', ['tools/lope-reader.ts', outputPath], {
+        encoding: 'utf-8',
+        timeout: 30000,
+      });
+      fs.writeFileSync(jsonPath, spec);
+      log(`Spec: ${jsonPath}`);
+    } catch (e) {
+      log(`Warning: failed to generate spec: ${e.message}`);
+    }
 
   } catch (error) {
     log(`Error: ${error.message}`);
