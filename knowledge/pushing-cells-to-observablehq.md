@@ -57,19 +57,19 @@ Two cookies are required (both from `observablehq.com`):
 
 ```bash
 # Push all cells (full replace)
-node tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target https://observablehq.com/d/ab8e6f7e97de571f
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target https://observablehq.com/d/ab8e6f7e97de571f
 
 # Replace specific cells in-place (safe)
-node tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target URL --cells "test_foo,test_bar"
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target URL --cells "test_foo,test_bar"
 
 # Add new cells without deleting (for seeding)
-node tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target URL --no-delete
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target URL --no-delete
 
 # Dry run to see available cell names
-node tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --dry-run
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --dry-run
 
 # Login (required once, uses Playwright to capture cookies)
-node tools/lope-push-ws.js --login --headed
+node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 ```
 
 ### Options
@@ -142,7 +142,7 @@ This is separate from the dev-browser profile to avoid `SingletonLock` conflicts
 
 Log in once:
 ```bash
-node tools/lope-push-ws.js --login --headed
+node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 ```
 
 The session persists across runs in the dedicated profile.

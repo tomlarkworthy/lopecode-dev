@@ -186,6 +186,46 @@ result = {
 }
 \`\`\`
 
+### Importing runtime-sdk
+Runtime-sdk exports (like \`runtime\`) are reactive views — they must be imported as Observable cell dependencies, not via \`await import()\`.
+
+\`\`\`
+// Correct: import as a cell
+import {runtime} from "@tomlarkworthy/runtime-sdk"
+
+// Then reference inside a block cell to capture as closure
+myCell = {
+  const _runtime = runtime;  // captured as Observable dependency
+  return function(...) { /* use _runtime here */ };
+}
+\`\`\`
+
+Never use \`window.__ojs_runtime\` in userspace — always import \`runtime\` from runtime-sdk.
+
+### Block cells with dependencies
+To create a cell that depends on other cells and returns a computed value, use a block:
+
+\`\`\`
+// Block cell — Observable infers dependencies from variable references
+myFn = {
+  const dep = someOtherCell;  // creates dependency on someOtherCell
+  return function(x) { return dep + x; };
+}
+\`\`\`
+
+Do NOT use \`myFn = function(dep) { ... }\` — Observable treats named function params as dependency injection, making the function itself the cell's value rather than calling it.
+
+### Self-modifying cells
+To rewrite a cell's own source (e.g., to persist state in source code):
+
+1. Tag the view element with a unique Symbol: \`root._tag = Symbol("my-tag")\`
+2. Search \`runtime._variables\` for the variable whose \`_value\` has that tag
+3. Read \`variable._inputs.map(i => i._name)\` for dependency names
+4. Create new definition: \`Function(...inputNames, '"use strict"; return myFn(args, newData)')\`
+5. Call \`variable.define(variable._name, inputNames, newDef)\`
+
+Use a module-level Map (separate cell) to cache state (e.g. crypto keys) across redefinitions so the new instance can auto-recover without user input.
+
 ## Low-level variable patterns (define_variable)
 
 define_variable gives direct control over variable name, inputs array, and definition function string. Use when:
