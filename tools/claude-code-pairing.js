@@ -1,3 +1,30 @@
+const _cc_doc_watches = function _cc_doc_watches(md){return(
+md`### Watched Variables
+Live values of variables being observed by Claude Code.`
+)};
+
+const _cc_doc_overview = function _cc_doc_overview(md){return(
+md`## Claude Code Pairing
+
+Bridges a lopecode notebook to Claude Code via WebSocket.
+
+\`\`\`
+Claude Code CLI  ←MCP→  Channel Server  ←WS→  This Module (browser)
+\`\`\`
+
+**Cell groups** (in dependency order):
+1. **UI** — \`cc_chat\` (main interface), \`cc_watch_table\` (variable inspector)
+2. **State** — \`cc_config\`, \`cc_notebook_id\`, \`cc_activity\`, \`cc_status\`, \`cc_messages\`, \`cc_watches\`, \`cc_module\`, \`voiceEnabled\`
+3. **Module lookup** — \`cc_find_module\` resolves module names via \`currentModules\`
+4. **Serialization** — \`cc_serialize_value\` (safe value→string for transport)
+5. **Variable watcher** — \`cc_watchers\` observes variables, debounces & sends updates
+6. **Command handlers** — \`cc_handle_*\` (one per MCP tool)
+7. **Command dispatch** — \`cc_command_handlers\` routes action→handler
+8. **WebSocket** — \`cc_ws\` manages connect/pair/auto-reconnect and message dispatch
+9. **Side effects** — \`cc_change_forwarder\` streams cell edits, \`cc_voice\` optional speech I/O
+10. **Imports** — \`currentModules\`, \`exportToHTML\`, \`compile\`, \`history\`, runtime-sdk helpers`
+)};
+
 const _r112xq = function _cc_chat(cc_ws,cc_messages,Event,$0,md,Node,cc_status,cc_activity)
 {
     var statusColors = {
@@ -335,6 +362,12 @@ Inputs.table(cc_watches, {
     }
 })
 )};
+const _cc_doc_state = function _cc_doc_state(md){return(
+md`---
+### State cells
+Reactive \`Inputs.input()\` cells holding connection state. These are the shared mutable atoms that UI and WebSocket cells read/write.`
+)};
+
 const _htme50 = function _cc_config(){return(
 {
     port: 8787,
@@ -353,7 +386,13 @@ Inputs.input([])
 const _cc_activity_cell = function _cc_activity(Inputs){return(
 Inputs.input([])
 )};
-const _5395h = function _cc_find_module(){return(
+const _cc_doc_lookup = function _cc_doc_lookup(md){return(
+md`---
+### Module lookup & serialization
+\`cc_find_module\` resolves a module name (e.g. \`"@tomlarkworthy/exporter-2"\`) to a runtime Module object by scanning \`currentModules\` from the module-map. \`cc_serialize_value\` safely converts any runtime value to a truncated string for transport.`
+)};
+
+const _5395h = function _cc_find_module(currentModules){return(
 function () {
     var FRAMEWORK_MODULES = new Set([
         'bootloader',
@@ -363,15 +402,9 @@ function () {
         '@tomlarkworthy/module-selection'
     ]);
     return function findModule(runtime, moduleName) {
-        var mains = runtime.mains;
-        if (mains && mains instanceof Map) {
-            if (moduleName) {
-                return mains.get(moduleName) || null;
-            }
-            for (var entry of mains) {
-                if (!FRAMEWORK_MODULES.has(entry[0]))
-                    return entry[1];
-            }
+        for (var [key, entry] of currentModules) {
+            if (moduleName ? entry.name === moduleName : !FRAMEWORK_MODULES.has(entry.name))
+                return entry.module;
         }
         return null;
     };
@@ -387,6 +420,12 @@ function serializeValue(value, maxLen) {
     }
 }
 )};
+const _cc_doc_watchers = function _cc_doc_watchers(md){return(
+md`---
+### Variable watcher
+Subscribes to Observable variables via \`observe()\`, debounces updates (1s), and forwards changes to Claude Code over the WebSocket. Also maintains the \`cc_watches\` table UI.`
+)};
+
 const _aaoorg = function _cc_watchers(cc_find_module,cc_module,lookupVariable,cc_serialize_value,$0,Event,observe,invalidation){return(
 function () {
     var watchers = new Map();
@@ -539,6 +578,12 @@ function () {
     };
 }()
 )};
+const _cc_doc_handlers = function _cc_doc_handlers(md){return(
+md`---
+### Command handlers
+One handler per MCP tool. Each receives a \`cmd\` object and the Observable \`runtime\`, returns \`{ok, result}\` or \`{ok:false, error}\`. Handlers: get-variable, define-variable, define-cell, delete-variable, list-variables, list-cells, run-tests, create-module, delete-module, eval, fork, watch, unwatch.`
+)};
+
 const _wsgvw8 = function _cc_handle_get_variable(cc_find_module,lookupVariable,cc_serialize_value){return(
 function handleGetVariable(cmd, runtime) {
     var name = cmd.params.name;
@@ -1031,6 +1076,12 @@ function handleUnwatch(cmd, runtime) {
     return cc_watchers.unwatchVariable(cmd.params.name, cmd.params.module);
 }
 )};
+const _cc_doc_dispatch = function _cc_doc_dispatch(md){return(
+md`---
+### Command dispatch & WebSocket
+\`cc_command_handlers\` maps action strings to handler functions. \`cc_ws\` manages the WebSocket lifecycle: connect, pair with token, dispatch incoming messages (commands, replies, tool-activity), and auto-reconnect from the URL hash \`cc=\` param or sessionStorage.`
+)};
+
 const _1mcq9bb = function _cc_command_handlers(cc_handle_get_variable,cc_handle_define_variable,cc_handle_define_cell,cc_handle_delete_variable,cc_handle_list_variables,cc_handle_list_cells,cc_handle_run_tests,cc_handle_create_module,cc_handle_delete_module,cc_handle_eval,cc_handle_fork,cc_handle_watch,cc_handle_unwatch){return(
 function handleCommand(cmd) {
     var runtime = window.__ojs_runtime;
@@ -1085,6 +1136,13 @@ const _12fvm6c = function _cc_ws(cc_config,sessionStorage,cc_status,Event,cc_not
                     sessionStorage.setItem('lopecode_cc_token', token);
                 } catch (e) {
                 }
+                var hash = location.hash || '#';
+                if (/[&?]cc=/.test(hash)) {
+                    hash = hash.replace(/([&?])cc=[^&]*/, '$1cc=' + token);
+                } else {
+                    hash += (hash.length > 1 ? '&' : '') + 'cc=' + token;
+                }
+                history.replaceState(null, '', hash);
             }
             var connectPort = port;
             if (token) {
@@ -1254,6 +1312,12 @@ const _12fvm6c = function _cc_ws(cc_config,sessionStorage,cc_status,Event,cc_not
         };
     }();
 };
+const _cc_doc_side_effects = function _cc_doc_side_effects(md){return(
+md`---
+### Side effects
+\`cc_change_forwarder\` polls the local-change-history and streams new cell edits to Claude Code. \`cc_voice\` provides optional speech recognition input and TTS output for hands-free pairing.`
+)};
+
 const _d9cyj2 = function _cc_change_forwarder(cc_ws,history,invalidation){return(
 function () {
     var highWaterMark = 0;
@@ -1502,19 +1566,25 @@ export default function define(runtime, observer) {
     return [name, {url: blob_url, mimeType: mime}]
   }));
   main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
+  $def("_r112xq", "cc_chat", ["cc_ws","cc_messages","Event","viewof voiceEnabled","md","Node","cc_status","cc_activity"], _r112xq);
+  $def("_cc_doc_watches", "cc_doc_watches", ["md"], _cc_doc_watches);
+  $def("_18kodgt", "cc_watch_table", ["Inputs","cc_watches"], _18kodgt);
+  $def("_cc_doc_overview", "cc_doc_overview", ["md"], _cc_doc_overview);
+  $def("_cc_doc_state", "cc_doc_state", ["md"], _cc_doc_state);
+  $def("_htme50", "cc_config", [], _htme50);
+  $def("_3ktj0x", "cc_notebook_id", ["location"], _3ktj0x);
   $def("_cc_activity_cell", "cc_activity", ["Inputs"], _cc_activity_cell);
-  $def("_r112xq", "cc_chat", ["cc_ws","cc_messages","Event","viewof voiceEnabled","md","Node","cc_status","cc_activity"], _r112xq);  
-  $def("_18kodgt", "cc_watch_table", ["Inputs","cc_watches"], _18kodgt);  
-  $def("_htme50", "cc_config", [], _htme50);  
-  $def("_3ktj0x", "cc_notebook_id", ["location"], _3ktj0x);  
-  $def("_1kt3w30", "cc_status", ["Inputs"], _1kt3w30);  
-  $def("_vs7fhb", "cc_messages", ["Inputs"], _vs7fhb);  
-  $def("_5395h", "cc_find_module", [], _5395h);  
-  $def("_1cw0xck", "cc_serialize_value", ["summarizeJS"], _1cw0xck);  
-  $def("_aaoorg", "cc_watchers", ["cc_find_module","cc_module","lookupVariable","cc_serialize_value","viewof cc_watches","Event","observe","invalidation"], _aaoorg);  
-  $def("_wsgvw8", "cc_handle_get_variable", ["cc_find_module","lookupVariable","cc_serialize_value"], _wsgvw8);  
-  $def("_os9fet", "cc_handle_define_variable", ["cc_find_module","realize","cc_watchers"], _os9fet);  
-  $def("_1gvixop", "cc_handle_define_cell", ["cc_find_module","compile","realize","cc_watchers"], _1gvixop);  
+  $def("_1kt3w30", "cc_status", ["Inputs"], _1kt3w30);
+  $def("_vs7fhb", "cc_messages", ["Inputs"], _vs7fhb);
+  $def("_cc_doc_lookup", "cc_doc_lookup", ["md"], _cc_doc_lookup);
+  $def("_5395h", "cc_find_module", ["currentModules"], _5395h);
+  $def("_1cw0xck", "cc_serialize_value", ["summarizeJS"], _1cw0xck);
+  $def("_cc_doc_watchers", "cc_doc_watchers", ["md"], _cc_doc_watchers);
+  $def("_aaoorg", "cc_watchers", ["cc_find_module","cc_module","lookupVariable","cc_serialize_value","viewof cc_watches","Event","observe","invalidation"], _aaoorg);
+  $def("_cc_doc_handlers", "cc_doc_handlers", ["md"], _cc_doc_handlers);
+  $def("_wsgvw8", "cc_handle_get_variable", ["cc_find_module","lookupVariable","cc_serialize_value"], _wsgvw8);
+  $def("_os9fet", "cc_handle_define_variable", ["cc_find_module","realize","cc_watchers"], _os9fet);
+  $def("_1gvixop", "cc_handle_define_cell", ["cc_find_module","compile","realize","cc_watchers"], _1gvixop);
   $def("_1xkaywh", "cc_handle_delete_variable", ["cc_find_module","lookupVariable"], _1xkaywh);  
   $def("_1c0824h", "cc_handle_list_variables", ["cc_find_module"], _1c0824h);  
   $def("_15uwot5", "cc_handle_list_cells", ["cc_find_module"], _15uwot5);  
@@ -1524,9 +1594,11 @@ export default function define(runtime, observer) {
   $def("_17zi194", "cc_handle_eval", ["cc_serialize_value"], _17zi194);  
   $def("_ncjpde", "cc_handle_fork", ["exportToHTML","runtime"], _ncjpde);  
   $def("_pw9yec", "cc_handle_watch", ["cc_watchers"], _pw9yec);  
-  $def("_1it7xms", "cc_handle_unwatch", ["cc_watchers"], _1it7xms);  
-  $def("_1mcq9bb", "cc_command_handlers", ["cc_handle_get_variable","cc_handle_define_variable","cc_handle_define_cell","cc_handle_delete_variable","cc_handle_list_variables","cc_handle_list_cells","cc_handle_run_tests","cc_handle_create_module","cc_handle_delete_module","cc_handle_eval","cc_handle_fork","cc_handle_watch","cc_handle_unwatch"], _1mcq9bb);  
-  $def("_12fvm6c", "cc_ws", ["cc_config","sessionStorage","cc_status","Event","cc_notebook_id","cc_watchers","location","viewof cc_watches","cc_messages","cc_command_handlers","cc_activity","invalidation"], _12fvm6c);  
+  $def("_1it7xms", "cc_handle_unwatch", ["cc_watchers"], _1it7xms);
+  $def("_cc_doc_dispatch", "cc_doc_dispatch", ["md"], _cc_doc_dispatch);
+  $def("_1mcq9bb", "cc_command_handlers", ["cc_handle_get_variable","cc_handle_define_variable","cc_handle_define_cell","cc_handle_delete_variable","cc_handle_list_variables","cc_handle_list_cells","cc_handle_run_tests","cc_handle_create_module","cc_handle_delete_module","cc_handle_eval","cc_handle_fork","cc_handle_watch","cc_handle_unwatch"], _1mcq9bb);
+  $def("_12fvm6c", "cc_ws", ["cc_config","sessionStorage","cc_status","Event","cc_notebook_id","cc_watchers","location","viewof cc_watches","cc_messages","cc_command_handlers","cc_activity","invalidation"], _12fvm6c);
+  $def("_cc_doc_side_effects", "cc_doc_side_effects", ["md"], _cc_doc_side_effects);
   $def("_d9cyj2", "cc_change_forwarder", ["cc_ws","history","invalidation"], _d9cyj2);  
   $def("_skdmle", "cc_voice", ["voiceEnabled","KeyboardEvent","SpeechSynthesisUtterance","invalidation"], _skdmle);  
   $def("_jynll5", "viewof cc_watches", ["Inputs"], _jynll5);  
