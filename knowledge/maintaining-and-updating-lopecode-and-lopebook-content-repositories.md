@@ -49,6 +49,7 @@ node tools/lope-jumpgate.js \
 | `--frame <name>` | `@tomlarkworthy/lopepage` | Frame notebook shorthand |
 | `--jumpgate <path>` | `lopecode/notebooks/@tomlarkworthy_jumpgate.html` | Path to jumpgate HTML |
 | `--output <path>` | (required) | Where to write the exported HTML |
+| `--hash <hash>` | existing spec or side-panel | Hash for bootconf (e.g. `#view=@author/notebook`) |
 | `--timeout <ms>` | `120000` | Max wait for export |
 | `--headed` | false | Show browser for debugging |
 | `--verbose` | false | Show browser console logs |

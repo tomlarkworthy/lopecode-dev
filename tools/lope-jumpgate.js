@@ -13,6 +13,7 @@
  *   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
  *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
  *   --output <path>      Where to write the exported HTML (required)
+ *   --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
  *   --timeout <ms>       Max wait for export (default: 120000)
  *   --headed             Show browser for debugging
  *   --verbose            Show browser console logs
@@ -36,6 +37,7 @@ function parseArgs(argv) {
     frame: '@tomlarkworthy/lopepage',
     jumpgate: 'lopecode/notebooks/@tomlarkworthy_jumpgate.html',
     output: null,
+    hash: null,
     timeout: 120000,
     headed: false,
     verbose: false,
@@ -51,6 +53,8 @@ function parseArgs(argv) {
       options.jumpgate = args[++i];
     } else if (arg === '--output' && args[i + 1]) {
       options.output = args[++i];
+    } else if (arg === '--hash' && args[i + 1]) {
+      options.hash = args[++i];
     } else if (arg === '--timeout' && args[i + 1]) {
       options.timeout = parseInt(args[++i], 10);
     } else if (arg === '--headed') {
@@ -69,6 +73,7 @@ Options:
   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
   --output <path>      Where to write the exported HTML (required)
+  --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
   --timeout <ms>       Max wait for export (default: 120000)
   --headed             Show browser for debugging
   --verbose            Show browser console logs
@@ -128,12 +133,32 @@ async function main() {
   const frameUrl = toFullUrl(options.frame);
   const sourceNotebook = toNotebookName(options.source);
 
+  // Resolve hash: --hash flag > existing spec > default side-panel layout
+  let hash = options.hash;
+  if (!hash) {
+    const specPath = outputPath.replace(/\.html$/, '.json');
+    if (fs.existsSync(specPath)) {
+      try {
+        const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+        if (spec.bootconf?.hash) {
+          hash = spec.bootconf.hash;
+          log(`Using hash from existing spec: ${hash}`);
+        }
+      } catch (e) {
+        log(`Warning: failed to read existing spec: ${e.message}`);
+      }
+    }
+  }
+  if (!hash) {
+    hash = `#view=${encodeURI(
+      `R100(S70(${sourceNotebook}),S30(@tomlarkworthy/module-selection))`
+    )}`;
+  }
+
   // Build export_state JSON
   const exportState = JSON.stringify({
     title: sourceNotebook,
-    hash: `#view=${encodeURI(
-      `R100(S70(${sourceNotebook}),S30(@tomlarkworthy/module-selection))`
-    )}`
+    hash,
   });
 
   log(`Source: ${sourceUrl}`);
