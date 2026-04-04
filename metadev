@@ -39,7 +39,7 @@ if [[ "${METADEV_REEXEC:-}" == "1" ]]; then
     unset METADEV_REEXEC
 else
     echo "metadev: CORRELATION=$METADEV_CORRELATION_ID"
-    CLAUDE_ARGS=(--dangerously-skip-permissions "$@")
+    CLAUDE_ARGS=(--dangerously-skip-permissions --dangerously-load-development-channels server:lopecode "$@")
 fi
 
 # Prevent macOS sleep and keep network alive while metadev is running
@@ -128,10 +128,10 @@ for c in cmds:
 
     resume=$(echo "$restart" | python3 -c "import sys,json; print(json.load(sys.stdin).get('resume',True))" 2>/dev/null || echo "True")
     if [ "$resume" = "True" ] && [ -n "$RESUME_SID" ]; then
-        CLAUDE_ARGS=(--dangerously-skip-permissions --resume "$RESUME_SID" "$auto_prompt")
+        CLAUDE_ARGS=(--dangerously-skip-permissions --dangerously-load-development-channels server:lopecode --resume "$RESUME_SID" "$auto_prompt")
         echo "metadev: resuming session $RESUME_SID..."
     else
-        CLAUDE_ARGS=(--dangerously-skip-permissions)
+        CLAUDE_ARGS=(--dangerously-skip-permissions --dangerously-load-development-channels server:lopecode)
         echo "metadev: starting fresh session..."
     fi
 

@@ -97,6 +97,19 @@ Re-running cells shouldn't break state or produce different results. Avoid cells
 
 If a notebook has features that need a server (auth, serverless cells, external APIs), the rest of the notebook should still work. Explain what's unavailable and why, rather than showing a wall of red errors.
 
+## Documentation Style
+
+### 10. Use Markdown Cells for Documentation
+
+Notebook documentation should be written as `md` tagged template literal cells, not as code comments. These render as visible, formatted markdown in the notebook UI, making the notebook self-documenting for readers.
+
+```
+section_header = md`## My Section
+Description of what this section does.`
+```
+
+Code comments are invisible to notebook readers — reserve them for implementation details within complex cells. Use markdown cells to organize the notebook into labeled sections, explain architecture, and guide the reader through the module's structure.
+
 ## Content Hygiene
 
 ### 10. No Stale Content
@@ -110,6 +123,17 @@ The notebook name should tell you what it does without opening it. `@tomlarkwort
 ### 12. Meaningful Defaults
 
 Interactive inputs should have sensible initial values so the notebook looks good on first load — not empty or blank until the user interacts. The reader should see a working example immediately.
+
+### 13. Self-Testing
+
+Notebooks should include `test_*` cells that verify critical functionality. These cells are automatically discovered by the testing infrastructure (`lope-browser-runner.ts --run-tests`) and serve as regression guards.
+
+**Good test cells:**
+- Verify key UI elements render (DOM queries)
+- Check computed values match expectations
+- Validate that imports resolve correctly
+
+**Why:** Reactive dataflow means upstream changes can silently break downstream cells. Embedded tests catch this before users do.
 
 ## Validation Checklist
 
@@ -127,3 +151,4 @@ Before adding a notebook to lopebooks:
 - [ ] No stale/dead content (TODOs, commented-out experiments)
 - [ ] Name is self-describing
 - [ ] Interactive inputs have meaningful defaults
+- [ ] Has `test_*` cells covering critical functionality

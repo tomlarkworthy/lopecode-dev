@@ -199,9 +199,18 @@ async function main() {
     log('Forcing all variables reachable...');
     await page.evaluate(() => {
       const runtime = window.__ojs_runtime;
-      for (const v of runtime._variables) {
-        v._reachable = true;
-        runtime._dirty.add(v);
+      const allModules = [runtime];
+      if (runtime.mains) {
+        for (const mod of runtime.mains.values()) {
+          allModules.push(mod);
+        }
+      }
+      for (const mod of allModules) {
+        if (!mod._variables) continue;
+        for (const v of mod._variables) {
+          v._reachable = true;
+          runtime._dirty.add(v);
+        }
       }
       runtime._computeNow();
     });
@@ -217,9 +226,20 @@ async function main() {
         let exportedVar = null;
         let outputVar = null;
 
-        for (const v of runtime._variables) {
-          if (v._name === 'exported') exportedVar = v;
-          if (v._name === 'output') outputVar = v;
+        // Scan all modules (mains map + bootloader) for the exported variable
+        const allModules = [runtime];
+        if (runtime.mains) {
+          for (const mod of runtime.mains.values()) {
+            allModules.push(mod);
+          }
+        }
+
+        for (const mod of allModules) {
+          if (!mod._variables) continue;
+          for (const v of mod._variables) {
+            if (v._name === 'exported') exportedVar = v;
+            if (v._name === 'output') outputVar = v;
+          }
         }
 
         const result = { exported: null, output: null, error: null };
@@ -272,10 +292,19 @@ async function main() {
     // Check if we timed out
     const finalCheck = await page.evaluate(() => {
       const runtime = window.__ojs_runtime;
-      for (const v of runtime._variables) {
-        if (v._name === 'exported') {
-          if (v._value && v._value.source) return { ready: true };
-          if (v._error) return { ready: false, error: String(v._error) };
+      const allModules = [runtime];
+      if (runtime.mains) {
+        for (const mod of runtime.mains.values()) {
+          allModules.push(mod);
+        }
+      }
+      for (const mod of allModules) {
+        if (!mod._variables) continue;
+        for (const v of mod._variables) {
+          if (v._name === 'exported') {
+            if (v._value && v._value.source) return { ready: true };
+            if (v._error) return { ready: false, error: String(v._error) };
+          }
         }
       }
       return { ready: false, error: 'exported variable not found' };

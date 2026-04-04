@@ -337,6 +337,25 @@ b = 2
 sum = a + b  // Re-runs when a or b changes
 ```
 
+### How Observable Resolves Identifiers as Dependencies
+
+In Observable JavaScript, **every identifier used in a cell body becomes a declared dependency** (an input to the compiled function). This is fundamental to how reactivity works — the toolchain statically extracts all free identifiers and lists them as inputs:
+
+```javascript
+// Observable source:
+css = [theme_assets.map(url => fetch(url)), extra_css]
+
+// Compiles to:
+const _css = function _css(theme_assets, extra_css){return(
+  [theme_assets.map(url => fetch(url)), extra_css]
+)};
+// Registered with: $def("_css", "css", ["theme_assets", "extra_css"], _css)
+```
+
+This means browser globals like `CSS`, `Node`, `Event`, `DOMParser`, `document`, `location` etc. also appear as inputs when used in a cell. They are **not** notebook-defined cells — the Observable runtime resolves them from the standard library, which passes through `window` globals. However, because they're declared as inputs, you *can* override them by defining a cell with the same name — this is by design, allowing dependency injection.
+
+**Common mistake when analyzing cells:** Seeing `CSS` in a cell's input list doesn't mean there's a `CSS` cell somewhere — it's `window.CSS`. Don't try to move or refactor browser globals.
+
 ### Viewof Pattern
 
 Separates UI element from its value:
@@ -563,3 +582,45 @@ parseViewDSL("R100(S50(@owner/left),S50(@owner/right))")
 2. **For development**: Use module-selection to interactively choose modules
 3. **For CI**: Use `read-tests` with a split layout that shows the tests module
 4. **Weights**: Use relative weights (they sum and divide proportionally)
+
+## Observable vs Lopecode Runtime Differences
+
+When developing tools that work on both Observable (observablehq.com) and lopecode (local HTML files), be aware of these runtime differences. These are especially important for the exporter modules.
+
+### `runtime.mains` — lopecode only
+
+Lopecode registers booted modules in `runtime.mains` (a `Map<string, Module>`). Observable's runtime has no such property. Code that iterates `runtime.mains` to discover modules will fail on Observable. Use `moduleMap` from `@tomlarkworthy/module-map` instead — it works on both.
+
+### `importShim` — lopecode only (polyfill available)
+
+Lopecode uses es-module-shims which provides `importShim` globally for import-mapped module resolution. Observable doesn't have it. The `@tomlarkworthy/runtime-sdk` module exports an `importShim` polyfill that uses `window.importShim` on lopecode and falls back to native `import()` on Observable. Import it in any module that needs dynamic imports.
+
+### Module reference variable naming
+
+In lopecode, module reference variables are named `"module @tomlarkworthy/runtime-sdk"`. On Observable, they're named `"module 1"`, `"module 2"`, etc. Use `moduleNames` (from `moduleMap`) to look up the proper name via the module object: `moduleNames.get(v._value).name`.
+
+### Module reference variable `_type`
+
+In the live Observable runtime, module reference variables have `_type === 2` (implicit/internal). In a fresh task_runtime created by loading a notebook via `import()` + `define(runtime, observer)`, all variables are `_type === 1`. In lopecode, module reference variables are always `_type === 1`. Don't rely on `_type` to filter module vars — use `isModuleVar(v)` (checks `v._name.startsWith("module ")`).
+
+### Import closure pattern (Observable only)
+
+On Observable, some import-bridged variables use a closure pattern:
+```js
+// Observable closure pattern (e, i captured from enclosing scope)
+async t => t.import(e.name, e.alias, await i)
+```
+Instead of the explicit pattern used in lopecode:
+```js
+// Lopecode explicit pattern
+(_, v) => v.import("cellMap", _)
+```
+When serializing these variables, the closure variables `e` and `i` are lost. Detect them by checking for 1 input `@variable` + definition containing `.import(`, then reconstruct the import by searching `moduleNames` for a module whose `_scope` contains the variable name.
+
+### `history.replaceState` — not available in Observable iframe
+
+Observable notebooks run in a sandboxed iframe where `history.replaceState` throws. Wrap calls in try/catch.
+
+### Task-dependent cells on Observable
+
+Exporter cells like `module_specs`, `report`, `book` depend on `task` (a flowQueue) and have no value until the user triggers an export/fork. When debugging on Observable, use cells that depend on live runtime values or use `eval_code` instead of creating cells that depend on the export pipeline.

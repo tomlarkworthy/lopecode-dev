@@ -196,18 +196,62 @@ Creates a sibling HTML file (e.g., `notebook--1234.html`). Useful for checkpoint
 
 Open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2` in the hash) and click the fork button. The exporter passes all URL params (including `&cc=` token) forward automatically, so the fork auto-connects.
 
-## Injecting into Existing Notebooks
+## Injecting Pairing into Existing Notebooks
 
-For notebooks that don't already include `@tomlarkworthy/claude-code-pairing`:
+For notebooks that don't already include `@tomlarkworthy/claude-code-pairing`, you need to inject the module and update the bootconf. This is a multi-step process:
+
+### Step 1: Inject the pairing module
+
+The pairing module source lives at `tools/claude-code-pairing.js`. Use `sync-module.ts` to inject it:
 
 ```bash
-bun tools/channel/sync-module.ts <input.html> [output.html]
-bun tools/channel/sync-module.ts --watch <input.html>
+bun tools/channel/sync-module.ts \
+  --module @tomlarkworthy/claude-code-pairing \
+  --source tools/claude-code-pairing.js \
+  --target path/to/notebook.html
 ```
 
-If output is omitted, the input file is modified in-place. The script is idempotent — it upserts the module (replaces if it already exists, inserts if not). With `--watch`, it re-injects whenever the module source file changes.
+### Step 2: Ensure runtime-sdk is up to date
 
-This injects the module, adds it to `bootconf.json` mains, and updates the hash layout.
+The pairing module depends on `@tomlarkworthy/runtime-sdk`. If the notebook has an outdated version (or is missing it), extract the latest from a known-good notebook and sync it:
+
+```bash
+# Extract latest runtime-sdk source from blank notebook
+bun tools/lope-reader.ts lopecode/notebooks/@tomlarkworthy_blank-notebook.html \
+  --get-module @tomlarkworthy/runtime-sdk > tools/scratch/runtime-sdk.js
+
+# Inject into target notebook
+bun tools/channel/sync-module.ts \
+  --module @tomlarkworthy/runtime-sdk \
+  --source tools/scratch/runtime-sdk.js \
+  --target path/to/notebook.html
+```
+
+### Step 3: Add pairing module to bootconf mains
+
+The pairing module must be listed in the `bootconf.json` mains array inside the HTML, otherwise it won't be instantiated at boot. Find the `<script id="bootconf.json">` near the end of the file and add `"@tomlarkworthy/claude-code-pairing"` to the mains array:
+
+```json
+{
+  "mains": ["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook", "@tomlarkworthy/claude-code-pairing"],
+  "hash": "#view=...",
+  "headless": true
+}
+```
+
+### Step 4: Open with pairing layout
+
+Include the pairing module in the hash URL layout so it's visible:
+
+```
+file:///path/to/notebook.html#view=R100(S50(@tomlarkworthy/my-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&open=@tomlarkworthy/claude-code-pairing&cc=TOKEN
+```
+
+### Troubleshooting
+
+- **Blank page after injection** — Don't replace the lopepage module with one extracted from a different notebook; versions may be incompatible. Only inject pairing and runtime-sdk.
+- **Pairing panel doesn't appear** — Check that `@tomlarkworthy/claude-code-pairing` is in the bootconf mains array (Step 3).
+- **Connection fails** — Ensure runtime-sdk is up to date (Step 2). The pairing module depends on `observe`, `realize`, `lookupVariable`, etc.
 
 ## Creating a New Notebook for Pairing
 
@@ -319,7 +363,9 @@ User has a notebook open from GitHub Pages. Guide them to open the exporter-2 pa
 Use `delete_variable` MCP tool. The channel module uses `lookupVariable(name, module)` to find the variable, then calls `v.delete()`.
 
 ### 6. Create a module
-Claude calls `create_module` with a name. The channel module calls `createModule` from runtime-sdk, which calls `runtime.module()`, sets `_name`, and registers in `runtime.mains`. The `currentModules` watch fires automatically, confirming creation. Then use `define_cell` with that module name to add cells.
+Claude calls `create_module` with a name. The channel module calls `createModule` from runtime-sdk, which calls `runtime.module()`, sets `_name`, and registers in `runtime.mains`. The `currentModules` watch fires automatically, confirming creation.
+
+**Important: The new module must be observed (displayed) before its cells will evaluate.** After `create_module`, the module exists in the runtime but has no observers — the Observable runtime is lazy and won't compute cells that nobody is watching. You must open/display the module in the UI (e.g. by navigating to a hash URL that includes it in the layout) before `define_cell` will work. Without this, `cc_find_module` won't find the module in `currentModules` because unobserved modules don't appear there.
 
 For importing modules already embedded in the notebook HTML, guide the user to use the module-selection panel (`&open=@tomlarkworthy/module-selection`).
 

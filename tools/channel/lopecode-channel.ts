@@ -143,7 +143,7 @@ Use run_tests to execute all test_* cells.
 - eval_code: For throwaway/ephemeral actions (DOM hacks, debugging, location.reload()). Lost on reload. NEVER use define_cell for one-off side effects.
 - define_variable: Low-level escape hatch with explicit function string + inputs array. Use when you need precise control over variable names and inputs that the compiler might mangle.
 - export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads. ALWAYS export before pushing to Observable.
-- fork_notebook: Creates a sibling HTML copy (checkpoint).
+- fork_notebook: Forks the notebook into a new browser tab via exporter-2.
 
 ## High-level cell patterns (define_cell)
 
@@ -201,6 +201,9 @@ myCell = {
 \`\`\`
 
 Never use \`window.__ojs_runtime\` in userspace — always import \`runtime\` from runtime-sdk.
+
+### Module lookup via currentModules
+The runtime variable \`currentModules\` (from @tomlarkworthy/module-map) is a Map containing all modules in the notebook. Each entry value has \`{ name, module, dependsOn, dependedBy }\`. Use this for module discovery — \`runtime.mains\` only contains booted top-level modules, not imported dependencies like exporter-2.
 
 ### Block cells with dependencies
 To create a cell that depends on other cells and returns a computed value, use a block:
@@ -543,12 +546,11 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "fork_notebook",
-      description: "Create a copy of the notebook as a sibling HTML file. Returns the new file path.",
+      description: "Fork the notebook into a new browser tab via exporter-2's fork mechanism.",
       inputSchema: {
         type: "object",
         properties: {
           notebook_id: { type: "string" },
-          suffix: { type: "string", description: "Suffix for forked file (default: timestamp)" },
         },
       },
     },
@@ -719,7 +721,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       case "fork_notebook":
         action = "fork";
         timeout = 120000;
-        params = { suffix: args.suffix || null };
+        params = {};
         break;
       case "export_notebook":
         action = "fork";
@@ -752,9 +754,8 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
     }
 
-    // Fork special handling: write the HTML to disk
-    if (action === "fork" && result.result?.html) {
-      // Strip hash and query fragments before extracting the file path
+    // Export special handling: write the HTML to disk (save in place)
+    if (params._save_in_place && result.result?.html) {
       const originalUrl = target.url.split("#")[0].split("?")[0];
       let originalPath: string;
       if (originalUrl.startsWith("file://")) {
@@ -762,26 +763,16 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       } else {
         originalPath = originalUrl;
       }
-      if (params._save_in_place) {
-        // Export: overwrite the original file
-        const html = result.result.html;
-        const htmlStr = typeof html === "string" ? html : String(html);
-        if (typeof html !== "string") {
-          console.error(`[export] WARNING: html is ${typeof html}, keys: ${html && typeof html === "object" ? Object.keys(html).join(",") : "N/A"}`);
-        }
-        if (htmlStr.length < 1000) {
-          return { content: [{ type: "text", text: `Export failed: HTML content too small (${htmlStr.length} bytes). Type was: ${typeof html}` }], isError: true };
-        }
-        await Bun.write(originalPath, htmlStr);
-        return { content: [{ type: "text", text: `Exported to ${originalPath} (${(htmlStr.length / 1024 / 1024).toFixed(2)} MB)` }] };
+      const html = result.result.html;
+      const htmlStr = typeof html === "string" ? html : String(html);
+      if (typeof html !== "string") {
+        console.error(`[export] WARNING: html is ${typeof html}, keys: ${html && typeof html === "object" ? Object.keys(html).join(",") : "N/A"}`);
       }
-      const dir = dirname(originalPath);
-      const base = basename(originalPath, ".html");
-      const suffix = params.suffix || Date.now().toString();
-      const forkPath = join(dir, `${base}--${suffix}.html`);
-      await Bun.write(forkPath, result.result.html);
-      const forkUrl = `file://${forkPath}`;
-      return { content: [{ type: "text", text: `Forked to ${forkUrl}\nFile: ${forkPath}` }] };
+      if (htmlStr.length < 1000) {
+        return { content: [{ type: "text", text: `Export failed: HTML content too small (${htmlStr.length} bytes). Type was: ${typeof html}` }], isError: true };
+      }
+      await Bun.write(originalPath, htmlStr);
+      return { content: [{ type: "text", text: `Exported to ${originalPath} (${(htmlStr.length / 1024 / 1024).toFixed(2)} MB)` }] };
     }
 
     // Return result as formatted text
