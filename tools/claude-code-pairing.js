@@ -15,7 +15,7 @@ Claude Code CLI  ←MCP→  Channel Server  ←WS→  This Module (browser)
 **Cell groups** (in dependency order):
 1. **UI** — \`cc_chat\` (main interface), \`cc_watch_table\` (variable inspector)
 2. **State** — \`cc_config\`, \`cc_notebook_id\`, \`cc_activity\`, \`cc_status\`, \`cc_messages\`, \`cc_watches\`, \`cc_module\`, \`voiceEnabled\`
-3. **Module lookup** — \`cc_find_module\` resolves module names via \`currentModules\`
+3. **Module lookup** — \`cc_find_module\` resolves module names via \`runtime.mains\`
 4. **Serialization** — \`cc_serialize_value\` (safe value→string for transport)
 5. **Variable watcher** — \`cc_watchers\` observes variables, debounces & sends updates
 6. **Command handlers** — \`cc_handle_*\` (one per MCP tool)
@@ -389,10 +389,10 @@ Inputs.input([])
 const _cc_doc_lookup = function _cc_doc_lookup(md){return(
 md`---
 ### Module lookup & serialization
-\`cc_find_module\` resolves a module name (e.g. \`"@tomlarkworthy/exporter-2"\`) to a runtime Module object by scanning \`currentModules\` from the module-map. \`cc_serialize_value\` safely converts any runtime value to a truncated string for transport.`
+\`cc_find_module\` resolves a module name (e.g. \`"@tomlarkworthy/exporter-2"\`) to a runtime Module object by polling \`viewof currentModules.value\` at call time (not reactively). \`cc_serialize_value\` safely converts any runtime value to a truncated string for transport.`
 )};
 
-const _5395h = function _cc_find_module(currentModules){return(
+const _5395h = function _cc_find_module($0){return(
 function () {
     var FRAMEWORK_MODULES = new Set([
         'bootloader',
@@ -402,7 +402,8 @@ function () {
         '@tomlarkworthy/module-selection'
     ]);
     return function findModule(runtime, moduleName) {
-        for (var [key, entry] of currentModules) {
+        var modules = $0.value;
+        for (var [key, entry] of modules) {
             if (moduleName ? entry.name === moduleName : !FRAMEWORK_MODULES.has(entry.name))
                 return entry.module;
         }
@@ -1082,10 +1083,10 @@ md`---
 \`cc_command_handlers\` maps action strings to handler functions. \`cc_ws\` manages the WebSocket lifecycle: connect, pair with token, dispatch incoming messages (commands, replies, tool-activity), and auto-reconnect from the URL hash \`cc=\` param or sessionStorage.`
 )};
 
-const _1mcq9bb = function _cc_command_handlers(cc_handle_get_variable,cc_handle_define_variable,cc_handle_define_cell,cc_handle_delete_variable,cc_handle_list_variables,cc_handle_list_cells,cc_handle_run_tests,cc_handle_create_module,cc_handle_delete_module,cc_handle_eval,cc_handle_fork,cc_handle_watch,cc_handle_unwatch){return(
+const _1mcq9bb = function _cc_command_handlers(cc_handle_get_variable,cc_handle_define_variable,cc_handle_define_cell,cc_handle_delete_variable,cc_handle_list_variables,cc_handle_list_cells,cc_handle_run_tests,cc_handle_create_module,cc_handle_delete_module,cc_handle_eval,cc_handle_fork,cc_handle_watch,cc_handle_unwatch,runtime){return(
 function handleCommand(cmd) {
-    var runtime = window.__ojs_runtime;
-    if (!runtime)
+    var rt = window.__ojs_runtime || runtime;
+    if (!rt)
         return {
             ok: false,
             error: 'Runtime not found'
@@ -1117,7 +1118,7 @@ function handleCommand(cmd) {
             ok: false,
             error: 'Unknown action: ' + cmd.action
         };
-    return handler(cmd, runtime);
+    return handler(cmd, rt);
 }
 )};
 const _12fvm6c = function _cc_ws(cc_config,sessionStorage,cc_status,Event,cc_notebook_id,cc_watchers,location,$0,cc_messages,cc_command_handlers,cc_activity,invalidation)
@@ -1142,7 +1143,7 @@ const _12fvm6c = function _cc_ws(cc_config,sessionStorage,cc_status,Event,cc_not
                 } else {
                     hash += (hash.length > 1 ? '&' : '') + 'cc=' + token;
                 }
-                history.replaceState(null, '', hash);
+                try { history.replaceState(null, '', hash); } catch (e) { /* sandboxed iframe */ }
             }
             var connectPort = port;
             if (token) {
@@ -1577,7 +1578,7 @@ export default function define(runtime, observer) {
   $def("_1kt3w30", "cc_status", ["Inputs"], _1kt3w30);
   $def("_vs7fhb", "cc_messages", ["Inputs"], _vs7fhb);
   $def("_cc_doc_lookup", "cc_doc_lookup", ["md"], _cc_doc_lookup);
-  $def("_5395h", "cc_find_module", ["currentModules"], _5395h);
+  $def("_5395h", "cc_find_module", ["viewof currentModules"], _5395h);
   $def("_1cw0xck", "cc_serialize_value", ["summarizeJS"], _1cw0xck);
   $def("_cc_doc_watchers", "cc_doc_watchers", ["md"], _cc_doc_watchers);
   $def("_aaoorg", "cc_watchers", ["cc_find_module","cc_module","lookupVariable","cc_serialize_value","viewof cc_watches","Event","observe","invalidation"], _aaoorg);
@@ -1608,7 +1609,8 @@ export default function define(runtime, observer) {
   $def("_1tgi7r0", "viewof voiceEnabled", ["Event"], _1tgi7r0);  
   main.variable(observer("voiceEnabled")).define("voiceEnabled", ["Generators", "viewof voiceEnabled"], (G, _) => G.input(_));  
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
-  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));  
+  main.define("viewof currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("viewof currentModules", _));
+  main.define("currentModules", ["Generators", "viewof currentModules"], (G, _) => G.input(_));  
   main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));  
   main.define("module @tomlarkworthy/exporter-2", async () => runtime.module((await import("/@tomlarkworthy/exporter-2.js?v=4")).default));  
   main.define("exportToHTML", ["module @tomlarkworthy/exporter-2", "@variable"], (_, v) => v.import("exportToHTML", _));  
