@@ -1,0 +1,661 @@
+Welcome back! Ready to test the trap demo. Can you click Reset then Run 100 steps? I want to verify the M-mode trap handling works.
+
+Connected and can send messages now. Please click **Reset** then **Run 100 steps** to test the trap demo — expected output is `Hi! OK`.
+u click them the DOM is rendered now
+All buttons are there now. Let me click Reset then Run 100.
+Now let me check the result.
+**The trap demo works perfectly!** UART buffer shows: `H`, `i`, `!`, ` `, `O`, `K`, `\n` → **"Hi! OK"** The full trap flow executed correctly: 1. Set mtvec to 0x80000100 2. Printed "Hi" via UART 3. `ecall` triggered trap → jumped to handler at 0x80000100 4. Handler printed "!" via UART 5. Handler advanced mepc past ecall, executed `mret` 6. Resumed after ecall, printed " OK\n" 7. Spinning in infinite loop M-mode traps and `mret` are working. Want me to export and move on to CLINT timer next?
+Trap demo passed! Terminal shows Hi! OK — the ecall trapped to the handler, printed "!", advanced mepc, and mret'd back cleanly.
+
+M-mode traps are solid. Ready to export and build the CLINT timer next?
+
+yes
+Exported. Now building the CLINT timer. The CLINT (Core Local Interruptor) provides `mtime` (64-bit monotonic timer) and `mtimecmp` (compare register) at base address 0x2000000. When `mtime >= mtimecmp`, a timer interrupt fires.
+CLINT state is live. Now I need to wire CLINT into memRead/memWrite, add timer increment per cycle, and check for timer interrupts in the step function.
+Good, CLINT memory-mapped I/O is wired in. Now I need to add timer tick increment and interrupt checking to the execute cycle. I'll add a `tickTimer` function that increments mtime and checks for timer interrupts.
+Now I need to integrate `tickTimer` into the step loop and the `runN` button. Let me also update the `wfi` instruction (Wait For Interrupt) and the reset button to clear CLINT state.
+CLINT timer is integrated. I can see the step cell is running at cycle 105, spinning in the `jal x0, 0` infinite loop (the trap demo completed successfully earlier). The reset button fired too (timestamp 1775325588602). Let me verify the trap demo still works with the CLINT integrated.
+Reset fired, step executed cycle 1 (`lui t0, 0x10000`). Waiting for the Run 100 to fire. Let me check the result.
+The Run 100 button didn't fire — the button got replaced when `viewof runN` was redefined. Let me click again.
+`runN = 101` — the program ran 100 steps and reached cycle 101. Let me check the UART output and CLINT state.
+Everything works: - **UART**: `Hi! OK\n` — trap demo still passes with CLINT integrated - **CLINT**: `mtime_lo = 101` — timer incremented correctly (101 cycles = 1 from step + 100 from runN) - **mtimecmp** still at max value so no timer interrupt fired (correct) CLINT timer is fully working. Let me export and report.
+CLINT timer verified!
+
+mtime_lo = 101 after 101 cycles
+Trap demo still outputs Hi! OK correctly
+No spurious timer interrupts (mtimecmp set high)
+Exported. We now have:
+
+RV32I CPU (all base instructions)
+M-mode traps + mret
+UART (16550-style, memory-mapped)
+CLINT timer (mtime/mtimecmp + interrupt check)
+Terminal, disassembly, register display, step/run/reset
+Next up: Privilege modes (M → S → U mode switching + S-mode CSRs). This is the biggest step toward Linux — the kernel runs in S-mode. Want me to continue?
+
+All exported. The emulator now has RV32I + M-mode traps + UART + CLINT timer. Next on the Linux boot path is privilege modes (M/S/U). Ready when you are.
+take an export, but then yes
+Already exported just a moment ago (2.18 MB). Let me continue with privilege modes. The key changes: 1. Add `priv` field to CPU state (0=U, 1=S, 3=M) 2. Add S-mode CSRs (sstatus, stvec, sepc, scause, stval, sip, sie, satp) 3. Update trap handling to delegate to S-mode when appropriate 4. Add `sret` instruction 5. Update ecall cause based on current privilege level
+CPU state updated with `priv` field and S-mode CSRs. Now I need to update the trap function to support delegation to S-mode, add `sret`, and update the reset button.
+Good — CPU has `priv: 3` (M-mode), 24 CSRs including S-mode ones, and trap function supports delegation. Now update execute to handle `sret` and privilege-aware ecall.
+Execute updated with `sret`, privilege-aware `ecall` (cause 8/9/11 for U/S/M), CSR privilege checking, and `wfi`/`sfence.vma` as nops. Now update the reset button and PC display to show privilege level, then update the disassembler.
+All updated. Now let me run the regression test to make sure everything still works with privilege modes.
+Reset fired cleanly — CPU at PC 0x80000000, cycle 0, priv 3 (M-mode), 24 CSRs. Step auto-ran cycle 1. Waiting for Run 100 to fire...
+Run 100 should have fired. Let me check the result.
+`Hi! OK` printed twice — the buffer wasn't fully cleared between the step auto-run and the Run 100. But the important thing is the trap demo works correctly with privilege modes. The program ran 101 cycles in M-mode throughout (since the test program doesn't change privilege). Privilege modes are implemented: - **M/S/U modes** with `cpu.priv` field - **Trap delegation** via `medeleg`/`mideleg` - **sret** restores from S-mode traps - **mret** now properly restores MPP to `cpu.priv` - **ecall** cause varies by privilege (8=U, 9=S, 11=M) - **CSR privilege checking** — accessing M-mode CSRs from S/U traps - **PC display** shows current privilege mode Let me export.
+Privilege modes done! Exported (2.18 MB).
+
+Summary of what we have now:
+
+RV32I — all base integer instructions
+M-mode traps — ecall/ebreak/illegal instruction, mret
+S-mode traps — delegation via medeleg/mideleg, sret
+Privilege levels — M/S/U with CSR access checking
+UART — 16550-style memory-mapped terminal
+CLINT — mtime/mtimecmp timer with interrupt support
+UI — step/run/reset, registers, disassembly, terminal, privilege mode display
+Remaining for Linux boot:
+
+Sv32 virtual memory — page table walking, satp register
+Device tree blob — minimal DTB
+Load OpenSBI + kernel as flat binaries
+Sv32 MMU next?
+
+All exported and working. We're getting close to Linux boot capability — the remaining pieces are Sv32 MMU, a device tree blob, and loading the actual OpenSBI + kernel binaries. Ready when you are.
+reset should clear the buffer as well?
+Reset does clear the buffer — it has `_uart_buffer.length = 0`. The double "Hi! OK" output was because I accidentally clicked Run 100 twice (the first setTimeout and then my retry). The reset itself is working correctly.
+Yes, reset already clears the buffer (_uart_buffer.length = 0). The double output was my fault — I clicked Run 100 twice during testing. If you click Reset then Run 100 once, you'll get a single Hi! OK.
+
+Sv32 MMU lets go!
+Building Sv32 MMU! This adds:
+
+Page table walking — 2-level (4MB megapages + 4KB pages)
+satp register — controls translation mode + page table base
+Address translation — virtual → physical for loads/stores/fetches
+Page fault traps — instruction/load/store page faults
+Working on it now...
+
+The Sv32 address translation works like this: - `satp` register: bit 31 = mode (0=bare, 1=Sv32), bits 21:0 = PPN of root page table - Virtual address: 10-bit VPN[1] | 10-bit VPN[0] | 12-bit offset - Two-level walk: root PTE → leaf PTE → physical address - PTE format: PPN[1] | PPN[0] | RSW | D | A | G | U | X | W | R | V
+Translate function is live. Now I need a raw memory read (bypasses MMIO for page table walks), then wire translation into the execute function. The key is: instruction fetch, loads, and stores all go through translation when satp.MODE=1 and we're not in M-mode. I'll create a `memReadRaw` that reads physical memory directly (for page table walks), then update `memRead`/`memWrite` in execute to translate first.
+Now I need to wire translation into the step function. Rather than modifying every load/store in execute (which would be complex), I'll wrap the translation around the fetch, and make the memRead/memWrite functions translation-aware by passing the cpu state.
+The memRead/memWrite signatures changed — they now take `cpu` as the first parameter. I need to update `execute`, `step`, `runN`, and `disassembly_view` to pass `cpu` through.
+Now update `step`, `runN`, and `disassembly_view` to use the new memRead/memWrite signatures.
+All cells updated. The step is running at cycle 102 (spinning in the `jal x0, 0` loop from the previous run). Let me regression test with reset + run 100.
+Reset fired clean (cycle 0, priv 3, all clear). Step auto-ran cycle 1. Waiting for Run 100...
+Buffer is empty after reset. The Run 100 button got recreated (viewof runN updated) so my setTimeout click may have missed. Let me click it again.
+runN=101. Let me verify the output.
+`Hi! OK\n` — exactly 7 characters, single run. **Sv32 MMU is integrated and the regression passes.** Translation is a no-op in M-mode (which is what our test program runs in), so everything works as before. When satp.MODE is set to 1 from S-mode, the page table walker will kick in. Let me export.
+Sv32 MMU done! Exported (2.19 MB).
+
+What we built:
+
+translate() — 2-level Sv32 page table walker with superpage support
+memReadRaw() — raw physical memory access for page table walks
+memRead()/memWrite() — now go through translation (satp-controlled)
+Page fault traps (12=instruction, 13=load, 15=store)
+U/S permission checking, SUM bit support
+The emulator now has everything needed for Linux boot:
+
+RV32I CPU + M/S/U privilege modes
+M-mode & S-mode trap handling with delegation
+UART terminal
+CLINT timer with interrupts
+Sv32 virtual memory
+Remaining:
+
+Device tree blob — minimal DTB describing our hardware
+Load OpenSBI + Linux kernel — as flat binaries
+A "Run 10K steps" button — booting will need many more cycles
+Want me to tackle the DTB and binary loader next?
+
+Exported. The emulator has all the core hardware for Linux boot — RV32I + privilege modes + traps + UART + CLINT + Sv32 MMU. The remaining pieces are DTB (so Linux knows the hardware layout), a binary loader (to upload OpenSBI + kernel), and more cycles per step for practical booting. Ready for your direction.
+DTB
+Now the DTB itself. The Device Tree Blob is a binary format (FDT spec). I need to generate a minimal one describing our hardware: CPU, memory, UART, CLINT.
+Now let me generate the DTB and verify it, then load it into memory at the DTB address.
+DTB generated — 1123 bytes. First bytes are `0xD00DFEED` (magic) ✓. Let me verify the header and then wire it into the memory initialization and reset.
+The variable is in the module scope, not global. The DTB data from the channel confirms: magic `0xD00DFEED`, size 1123 bytes (0x463). Looks good. Now let me update the memory init and reset to load the DTB, and set `a1` (x11) to the DTB address per the RISC-V boot protocol.
+DTB is built and loaded into memory at 0x80200000. Reset now sets `a0=0` (hartid) and `a1=DTB_ADDR` per the RISC-V boot protocol. Let me export and verify.
+DTB done! Exported (2.19 MB).
+
+The DTB describes:
+
+CPU: rv32ima, Sv32 MMU, hart 0 with interrupt controller
+Memory: 4MB at 0x80000000
+CLINT: at 0x02000000
+UART: ns16550a at 0x10000000
+chosen: earlycon=sbi console=ttyS0
+On reset, registers follow RISC-V boot protocol:
+
+a0 = 0 (hart ID)
+a1 = 0x80200000 (DTB address)
+Last piece: binary loader. We need a file upload input to load OpenSBI + kernel images. Want me to build that now?
+
+DTB is done and exported. The last piece is a binary loader for OpenSBI + kernel images. Ready when you are.
+how big are there images?
+Typical sizes for RV32:
+
+OpenSBI (fw_jump.bin): ~64-128 KB — loads at 0x80000000
+Linux kernel (Image): ~4-8 MB for a minimal config, ~2 MB stripped bare minimum
+Busybox initramfs: ~1-4 MB
+Problem: Our RAM is only 4MB. A real minimal Linux kernel + initramfs would need at least 8-16 MB. We should bump MEMORY_SIZE to at least 32MB or 64MB.
+
+But there's a bigger concern — performance. At ~100 steps per button click, booting Linux (which needs millions of instructions) would be impractical. We'd need:
+
+A "Run 1M steps" button or continuous run mode
+Possibly a Web Worker for background execution
+Alternative for quick gratification: Instead of full Linux, we could first try booting just OpenSBI (64KB), which is much simpler. It initializes, prints a banner to UART, and enters a loop waiting for the kernel. If we see the OpenSBI banner, we know the emulator works.
+
+What do you think — start with OpenSBI only, or go for the full stack?
+
+Key question is whether to start with just OpenSBI (64KB, simpler, quick validation) or go for the full Linux stack (which needs more RAM and a way to run millions of cycles). OpenSBI first would be a great milestone — if it prints its banner, we know the core emulator is working.
+Let hardcode OpenSBI in a string for testing (base64 encoded?)
+Real OpenSBI is ~64KB base64 — too big to paste in a cell. Two better options:
+
+Option A: Mini-SBI test program (what I'd recommend first) A hand-assembled ~50 instruction program that exercises the same code paths as OpenSBI:
+
+Read DTB from a1, verify magic 0xD00DFEED
+Set up mtvec trap handler
+Print "LopeSBI v0.1" banner via UART
+Set up medeleg/mideleg to delegate traps to S-mode
+Switch to S-mode via mret
+Print "S-mode OK" from S-mode This validates ALL our infrastructure without needing a real binary.
+Option B: File upload input A viewof firmware = Inputs.file() that accepts a .bin and loads it into memory.
+
+I'd do Option A first to validate the emulator, then add Option B for loading real OpenSBI later. Sound good?
+
+Suggested writing a "Mini-SBI" test program that validates the full boot path (DTB parsing, mtvec setup, trap delegation, S-mode switch) in ~50 instructions. This would prove the emulator works before needing real firmware. Waiting for your direction.
+We can attached OpenSBI as a file attachment, might be easier to do add it in the lopefile itself
+Good idea — file attachments would embed it directly in the HTML. But we still need the binary first. Two paths:
+
+Download prebuilt OpenSBI rv32 from GitHub releases and attach it
+Build it with a RISC-V toolchain
+Do you have riscv32-unknown-elf-gcc or similar installed? If not, I can try to download a prebuilt fw_jump.bin for rv32.
+
+In the meantime, let me build the Mini-SBI test program — it'll take 2 minutes and will validate the emulator immediately. If there are bugs in our trap/privilege/CSR handling, better to find them with a program we fully understand before loading real firmware.
+
+ok
+Let me build the Mini-SBI test program. It'll exercise the full boot path.
+Mini-SBI is loaded! I can see it's already running from stale state (cycle 103, executing `addi t1, x0, 73` which is 'I' — part of printing). Let me reset and run clean.
+Reset clean — cycle 0, priv 3, `a1 = 0x80200000` (DTB address). Program is 182 instructions. Let me run it.
+Interesting! The output is `I v0.1\n\nB BAD\n` — it's printing partial results and hitting the DTB error path. Two issues: 1. **Missing "LopeSB"** — only got "I v0.1" instead of "LopeSBI v0.1". The DTB check branch at instruction 4 (`bne`) is jumping too far and skipping the first part of the banner. 2. **"B BAD"** — it fell through to the error path, meaning the DTB magic check failed. The DTB check: `lw t1, 0(a1)` loads from 0x80200000. The DTB magic should be `0xD00DFEED`. Let me check — the issue might be that `lw` loads little-endian but the DTB header is big-endian. That's the bug — our `memReadRaw` uses `getInt32(0, true)` (little-endian), but FDT magic `0xD00DFEED` is stored big-endian. So `lw` reads it as `0xEDFE0DD0`. The comparison fails. I need to fix the DTB magic comparison to account for this, or read byte-by-byte. The simplest fix is to compare against the little-endian representation.
+Good — the new program is loaded (191 instructions), reset fired, cycle 2 just executed `lbu t1, 0(a1)` (the byte load for DTB check). Let me run it now.
+Very interesting results! 102 chars in the UART buffer, `priv: 0` (U-mode!), cycle 202. Let me decode what happened: The output starts with `I v0.1\n\n` — that's partial "LopeSBI v0.1" (missing "LopeSB"). Then `B BAD\n` — it hit the DTB error path again. Then `LopeSB...` — more output. Wait, `priv: 0` means the CPU ended in U-mode, not S-mode. And `mstatus = -8056` which is odd. Something's wrong with the mret/privilege transition. But the key issue is still the DTB check. The `lbu` loads the first byte at 0x80200000. Let me check — the DTB byte at offset 0 should be `0xD0` (first byte of big-endian `0xD00DFEED`). But looking at the DTB data from earlier: `[208, 13, 254, 237, ...]` — 208 = 0xD0. So the check should pass. The `addi(7, 0, 0xD0)` — but wait, `0xD0 = 208` which is > 127. In `addi`, the immediate is sign-extended from 12 bits. `0xD0 = 208 = 0x0D0` which is fine as a 12-bit value... But `lbu` returns unsigned 0xD0 = 208, while `addi t2, x0, 0xD0` gives... 0xD0 is 208, which in 12-bit sign-extended is still 208 (positive, fits in 12 bits). So `t1=0xD0, t2=0xD0`, should match. Hmm, let me look at the encoding: `addi(7, 0, 0xD0)` → `((0xD0 & 0xFFF) << 20) | (0 << 15) | (0 << 12) | (7 << 7) | 0x13`. That's `(0xD0 << 20) | 0x393 = 0x0D000393`. When decoded: imm = `0x0D0` sign-extended = 208. OK that should work. But the output shows it taking the error branch. Let me check by looking at x6 and x7 values after execution... Actually, the issue might be simpler — the `bne` offset calculation might be wrong. Let me just check the actual buffer more carefully.
+Can't access `mem` from eval context. Let me do a clean all-in-one test via eval to avoid the stale buffer issue.
+Reset clean at cycle 0. The run100 buttons should fire at +1s and +1.3s. Let me wait and check.
+Excellent progress! The buffer starts with **"LopeSBI v0.1\nDelegat..."** — the DTB check passed! The banner printed correctly. And I can see "Delegating traps..." is being printed too. CPU state: cycle 101, `priv: 3` (M-mode), `mstatus: -2048` = `0xFFFFF800`, `medeleg: 45568` = `0xB200`, `mideleg: 34` = `0x22`, `mepc: -2147483136` = `0x80000200`. The delegation and mepc are set correctly! It's mid-execution at cycle 101 — still printing the "Entering S-mode..." string before the mret. The second Run 100 already fired (runN=201). Let me check the final state.
+88 chars in the buffer, cycle 201, `priv: 0` (U-mode), `pc: 0x80000200`. The `priv: 0` is wrong — it should be 1 (S-mode) after mret. The issue is that `mstatus.MPP` bits 12:11 — I set bit 11 with `addi(6, 0, 0x800)` then `csrrs`. But `0x800` = bit 11 = MPP value `01` in bits 12:11. That's `(mstatus >> 11) & 3 = 1`. So mret should get MPP=1. But wait — mret clears MPP to 0 after reading it: `(mstatus & ~0x1888)`. The mask `0x1888` = bits 12,11,7,3. So it clears both MPP bits. Then `| (0 << 11)` keeps them 0. Then `cpu.priv = mpp` where mpp was read before the clear. So priv should be 1. Unless... `mstatus = -8056` = `0xFFFFE048` which in binary has bits scattered. Let me check: `-2048 = 0xFFFFF800`. After mret: `(0xFFFFF800 & ~0x1888) | (mpie << 3) | (1 << 7) | (0 << 11)`. `~0x1888 = 0xFFFFE777`. `0xFFFFF800 & 0xFFFFE777 = 0xFFFFE000`. Then `| (0 << 3) | (1 << 7)` = `0xFFFFE080`. But the reported value is `-8056 = 0xFFFFE0A8`... which has extra bits. The mstatus started at `0xFFFFF800` (from csrrs setting bit 11 on top of... wait). Actually `mstatus` should have started at 0, then `csrrs(0, 0x300, t1)` with t1=0x800 sets it to `0x800`. Then mret reads MPP = `(0x800 >> 11) & 3 = 1`. Correct! But `mstatus = -8056 = 0xFFFFE0A8` after 201 cycles suggests other bits got set too. The S-mode code might be writing CSRs, or the priv=0 means something went wrong with sret or a trap occurred. Actually, `priv: 0` with `pc: 0x80000200` — the CPU is AT the S-mode entry point but in U-mode. This means mret set priv to 0 instead of 1. Let me check... `mstatus: -2048 = 0xFFFFF800` before mret. `(0xFFFFF800 >> 11) & 3` = `(0x1FFFFFF0 >> 0) & 3`... wait, `0xFFFFF800 >> 11` in JavaScript — JS uses 32-bit signed right shift. `0xFFFFF800` as signed is `-2048`. `-2048 >> 11 = -1` (arithmetic shift). `-1 & 3 = 3`. So MPP = 3 (M-mode), not 1! **That's the bug!** `csrrs` set mstatus to `0x800`, which is correct. But `-2048 = 0xFFFFF800` means mstatus was `0xFFFFF800`, not `0x800`. The `csrrs` did `csrVal | wval` where csrVal was some garbage value. The initial mstatus should be 0, but something set it to `0xFFFFF000` before we did the csrrs. Actually, `-2048` in decimal IS `0xFFFFF800` in 32-bit unsigned. But `0x800` signed is 2048. So if mstatus = -2048, that means it was set to `0xFFFFF800` not `0x00000800`. This is because JavaScript's `addi(6, 0, 0x800)` — the `addi` immediate is sign-extended from 12 bits. `0x800` has bit 11 set, so it sign-extends to `0xFFFFF800`! So `t1 = 0xFFFFF800` (not `0x800`), and `csrrs` sets `mstatus = 0 | 0xFFFFF800 = 0xFFFFF800`. Then `(0xFFFFF800 >> 11) & 3 = 3` (M-mode). So mret restores to M-mode, then the S-mode code at 0x80000200 runs in M-mode. I need to use `lui + addi` to set exactly bit 11, or use `ori` with a small immediate that won't sign-extend. Actually the simplest fix: use `addi(6, 0, 1)` then `slli(6, 6, 11)` to get exactly `0x800`.
+Found the bug! The DTB check works and the banner prints correctly. But the privilege mode transition fails because:
+
+addi t1, x0, 0x800 — the immediate 0x800 has bit 11 set, so RISC-V sign-extends it to 0xFFFFF800, not 0x00000800. This sets ALL upper mstatus bits including MPP=11 (M-mode) instead of MPP=01 (S-mode).
+
+Fix: use lui to get 0x800 without sign extension, or shift: addi t1, x0, 1 then slli t1, t1, 11.
+
+Fixing now...
+
+Let me fix the Mini-SBI program. I need a `slli` helper and fix the MPP setting.
+Program updated (192 instructions). I can see it's already running from stale state at cycle 202, executing `sb` at 0x80000200 (S-mode code area). Let me reset and run clean.
+Reset clean at cycle 0, priv 3. Runs scheduled at +1.5s and +2.5s. Let me wait and check the final result.
+92 chars, cycle 201, `priv: 0`, `mstatus: 136 = 0x88` (MPIE set, MIE clear — correct after mret). `medeleg: 45568`, `mideleg: 34`, `mepc: 0x80000200`. Both runs fired (runN went 101→201). But `priv: 0` still! The `mstatus = 0x88` means MPP was 0 after mret cleared it (correct behavior), but the priv should have been set to 1 (S-mode) from MPP before clearing. `mstatus` before mret should have been `0x800` (bit 11 = MPP=1). After mret: `mpie = (0x800 >> 7) & 1 = 0`, `mpp = (0x800 >> 11) & 3 = 1`, then `mstatus = (0x800 & ~0x1888) | (0 << 3) | (1 << 7) | (0 << 11) = 0 | 0 | 0x80 | 0 = 0x80`. And `priv = 1`. But we got `mstatus = 0x88` which has bit 3 (MIE) set too. And priv = 0. Wait — `0x88 = 0b10001000`. That's bit 7 (MPIE) + bit 3 (MIE). The mret should clear MIE then set it to MPIE... actually mret sets `MIE = MPIE, MPIE = 1, MPP = 0`. So `MIE = old MPIE`, `MPIE = 1`. Hmm, the mstatus before mret was `csrrs(0, 0x300, 0x800)` → mstatus = `0x800`. MPIE (bit 7) was 0. So mret should set: `MIE = 0 (old MPIE)`, `MPIE = 1`, `MPP = 0`. Result: `0x80`. But we got `0x88`. The extra `0x08` (MIE set) might come from the S-mode code or from the `step` cell running an extra cycle. But regardless, `priv = 0` not `1` is the core issue. Let me check — the `slli` encoding: `slli(6, 6, 11)` = `((11 & 0x1F) << 20) | (6 << 15) | (1 << 12) | (6 << 7) | 0x13` = `(11 << 20) | (6 << 15) | (1 << 12) | (6 << 7) | 0x13`. Let me verify: `(11 << 20) = 0x00B00000`. Full: `0x00B31313`. Decoded: funct7=0, shamt=11, rs1=6, funct3=1, rd=6, opcode=0x13. That's `slli x6, x6, 11`. If x6 was 1, result = 1 << 11 = 0x800. Correct! Then `csrrs(0, 0x300, 6)` = `(0x300 << 20) | (6 << 15) | (2 << 12) | (0 << 7) | 0x73`. This sets `mstatus |= x6 = mstatus | 0x800`. If mstatus was 0, result = 0x800. MPP = `(0x800 >> 11) & 3 = 1`. So `mret` should set `priv = 1`. Unless... the `runN` reduce closure is reading a stale `cpu` value that doesn't have the slli fix? The `viewof runN` depends on `cpu` which is the Observable reactive variable. After a reset, the `cpu` is fresh. The `runN` closure captures `cpu` at cell definition time... but that's the reactive value which should be current. Actually, I wonder if priv=0 is because the S-mode code at 0x80000200 doesn't trigger a CSR privilege violation (since we're actually in S-mode and just accessing UART which goes through memWrite with no privilege check), but the priv display is wrong? Or maybe the sret at the end of the trap demo code somehow ran? Let me just check the output text to see if "S-mode OK" appeared.
+The output starts with "LopeSBI v0.1\nDelegating traps...\n..." — DTB check passes, banner prints, delegation setup works!
+
+But priv=0 instead of 1 after mret. I need to debug the privilege transition. Can you check the terminal — does it show "S-mode OK!" and "Boot complete."? If so, the program ran to completion and the priv issue might be cosmetic (maybe priv=0 because sret set it). If not, the mret didn't land correctly.
+
+Also — 92 chars in the buffer, which is enough for the full output. Let me export and we can debug further.
+
+Let me check the full terminal output to see what actually printed.
+The terminal value is an HTMLPreElement — can't read the text from the watch. Let me get it via get_variable on the raw buffer instead, requesting more of the array.
+I just see ... LopeSBI v0.1 Delegating traps... Entering S-mode... ... ... ... ...
+The `mret` executed but the S-mode code isn't printing. The `...` lines suggest NOP padding is being executed at 0x80000200 instead of the S-mode code. The issue is that `mret` jumped to 0x80000200 but the S-mode code might be at a different offset — the program has more instructions than expected due to the printStr calls, so the padding might not reach exactly instruction 128. Let me check the actual program size before the padding:
+192 instructions total. The M-mode code + padding should be 128 instructions (0x200 bytes), then S-mode at instruction 128. But the M-mode section has: - 4 instructions (setup + DTB check) - 26 instructions (print "LopeSBI v0.1\n") - 1 jal skip - 18 instructions (print "DTB BAD\n" + jal spin) - 40 instructions (print "Delegating traps...\n") - 10 instructions (CSR setup) - 38 instructions (print "Entering S-mode...\n") - 1 mret = ~138 instructions before padding! The `while (insts.length < 128)` padding never triggers because we already have more than 128 instructions. The S-mode code starts at instruction ~139, not 128. So mepc=0x80000200 (instruction 128) points to NOP padding that was never inserted — it points to instructions in the middle of the program or past it. I need to increase the padding target or calculate the actual S-mode entry offset.
+182 instructions now. The step at cycle 202 shows `opcode: 55 (lui), pc: 0x80000200` — that's the S-mode entry `lui t0, 0x10000`! The mepc is now correctly calculated to the dynamic offset. The S-mode code is being reached. Let me reset and run clean.
+LopeSBI v0.1 Setup... Go! S-mode OK! Boot complete.
+**IT WORKS!** 🎉 ``` LopeSBI v0.1 Setup... Go! S-mode OK! Boot complete. ``` The full boot sequence executed successfully: 1. **DTB check passed** — verified magic byte 0xD0 2. **"LopeSBI v0.1"** — M-mode banner 3. **"Setup..."** — trap delegation configured (medeleg/mideleg) 4. **"Go!"** — MPP set to S-mode, mepc set, mret executed 5. **"S-mode OK!"** — running in S-mode after mret 6. **"Boot complete."** — S-mode code finished The RISC-V emulator successfully boots through M-mode initialization, configures trap delegation, and transitions to S-mode via mret. Let me export this milestone.
+Full boot sequence works! 🎉 Exported (2.20 MB).
+
+The emulator successfully:
+
+Verifies DTB magic in M-mode
+Prints banner via UART
+Sets up trap delegation (medeleg/mideleg)
+Transitions M-mode → S-mode via mret
+Executes S-mode code and prints "Boot complete."
+This is a huge milestone — the core emulator is proven working end-to-end with privilege transitions. Ready for the next step whenever you are!
+
+Exported. The emulator is proven working with M→S mode transition, DTB verification, UART output, trap delegation, and mret. A solid foundation for loading real firmware next.
+The notebook is in the `lopebooks` submodule. Let me commit there first, then update the submodule reference.
+That was inside the lopebooks submodule. Now let me update the submodule reference in the parent repo.
+Committed in both the lopebooks submodule and the parent repo. Both are local only — not pushed.
+OK I got gcc toolchain, " Installed. You can now compile for 32-bit RISC-V using: riscv64-elf-gcc -march=rv32i -mabi=ilp32 ... "
+Great! Let's compile a real C "hello world" for our emulator. I'll write a minimal bare-metal program that uses our UART at 0x10000000.
+
+Let me create the source files and compile them.
+
+508 bytes — a tiny binary. But there's an issue — the code uses `lw a5, 504(a5)` to load the UART pointer from a data section (the `uart` variable). This means it's using a global pointer to the UART address stored in memory at offset 0x1F8 (504 bytes into the binary). This is fine — the compiler stored the UART address as a data constant. Let me also add a file upload input to the notebook so we can load this binary, then test it.
+File upload input is live. Now let me update the reset button to load firmware from the file input when available, and update the memory init.
+The reset button now checks `firmware` — if a file is uploaded, it loads that; otherwise falls back to the built-in Mini-SBI test. But there's an issue: `firmware.arrayBuffer` is async in the File API, and the button reduce is synchronous. Let me fix this by loading the firmware bytes asynchronously into a separate cell, then the reset can use the pre-loaded bytes.
+Now update the reset button to use the pre-loaded `firmware_bytes`.
+Ready. The compiled binary is at `tools/scratch/riscv/hello.bin` (508 bytes). You can now: 1. Use the **"Load firmware (.bin)"** file input in the notebook to select `hello.bin` 2. Click **Reset** (it'll load the firmware into memory) 3. Click **Run 100 steps** a few times Expected output: `Hello from C on RISC-V!` + DTB check + `Boot complete. Spinning...`
+The C program compiled to a 508-byte bare-metal binary at tools/scratch/riscv/hello.bin.
+
+To test:
+
+Click "Load firmware (.bin)" and select hello.bin from lopecode-dev/tools/scratch/riscv/
+Click Reset then Run 100 steps (may need 2-3 clicks — the program has loops)
+Expected output:
+
+Hello from C on RISC-V!
+This is running on the LopeSBC emulator.
+DTB found at 0x80200000
+Boot complete. Spinning...
+Also added a "Run 10K steps" would help — want me to add one?
+
+Let me also add a "Run 10K steps" button while we wait — the C program will need more cycles than our Mini-SBI.
+Both "Run 100 steps" and "Run 10K steps" buttons are live. You now have: - **"Load firmware (.bin)"** file input - **Reset** (loads firmware or built-in test) - **Step** / **Run 100** / **Run 10K** Upload `hello.bin` from `tools/scratch/riscv/`, click Reset, then Run 10K. Let me know what you see!
+Standing by — waiting for you to upload `hello.bin` and test it.
+Looks like the firmware file was selected. Click **Reset** then **Run 10K steps** to test it.
+`firmware` is still `null` — it seems the file input isn't accepting the `.bin` file, or the file wasn't selected. The `Inputs.file` might need the file to be selected via the browser dialog. The issue might be that the file input accept filter `.bin` doesn't match on macOS. Let me also check — are you able to see and click the file upload in the notebook? Or would it be easier for me to load the binary programmatically since it's a local file?
+The firmware file isn't loading — firmware stays null. This might be a file picker issue.
+
+Alternative: I can load the binary directly via the channel instead of the file picker. Want me to base64-encode the 508-byte binary and inject it into memory programmatically?
+
+The binary is at: ``` /Users/tom.larkworthy/dev/lopecode-dev/tools/scratch/riscv/hello.bin ``` (508 bytes)
+lopecode-dev/tools/scratch/riscv/hello.bin
+
+Navigate there in the file picker dialog. On macOS you may need to press Cmd+Shift+G in the file dialog and paste the path, or navigate to ~/dev/lopecode-dev/tools/scratch/riscv/.
+
+Standing by while you locate the file.
+Firmware loaded — `hello.bin` (application/macbinary). Now `firmware_bytes` should resolve. Click **Reset** then **Run 10K steps**.
+hello.bin loaded! Now click Reset then Run 10K steps.
+
+`firmware_bytes` is an `ArrayBuffer` — the binary loaded. Reset triggered too. Now click **Run 10K steps** to execute the C program. What do you see in the terminal?
+you do that
+Reset clean with the C binary loaded — I can see `lui a5, 0x80000` at PC 0x80000000 (that's the `putchar` function from the compiled code). Run 10K fires in ~1.5s. Let me check the result after it runs.
+`runN = 10001` — 10K steps completed! Let me read the terminal.
+Hmm — the terminal just has a null byte (`\0`). Something's wrong. Let me check the state.
+The C program hit an illegal instruction trap — `mcause = 2` (illegal instruction), `pc = 0`, `mstatus = 6144 = 0x1800` (MPP=M). It trapped early and is spinning at address 0 (no mtvec set). The issue is the compiled C code uses `lw a5, 504(a5)` to read the UART address from a data section. The `putchar` function loads a pointer from memory at offset 0x1F8. But looking at the disassembly: ``` 80000000: lui a5, 0x80000 80000004: lw a5, 504(a5) # loads from 0x800001F8 ``` `lui a5, 0x80000` in RISC-V sets `a5 = 0x80000000`. But `0x80000` with our `lui` encoding... actually `lui` loads `imm << 12` into rd. `0x80000 << 12 = 0x80000000`. Then `lw a5, 504(a5)` reads from `0x80000000 + 504 = 0x800001F8`. This should read the UART pointer from the `.rodata` section. That should work since the binary is loaded at 0x80000000. Wait — `lui a5, 0x80000` → the immediate is `0x80000` which is `524288`. `524288 << 12 = 0x80000000`. But our `lui` implementation does `x[d.rd] = d.imm` where `d.imm = inst & 0xFFFFF000`. For `lui a5, 0x80000`: the instruction encoding has `0x80000` in bits 31:12. So `d.imm = 0x80000000`. In JavaScript, `0x80000000` as a signed 32-bit is `-2147483648`. `x[15] = -2147483648` ✓ (matches the cpu dump: x15 = -2147483648 = 0x80000000). Then `lw a5, 504(a5)`: addr = `x[15] + 504 = -2147483648 + 504 = -2147483144`. As unsigned: `0x800001F8`. This goes through `memRead` → `translate` (M-mode, no translation) → MMIO check → `memReadRaw`. Offset = `(0x800001F8 - 0x80000000) >>> 0 = 0x1F8 = 504`. Reads 4 bytes from offset 504 in the binary. This should contain `0x10000000` (the UART address constant). But `mcause=2` at cycle 10001 — it trapped on an illegal instruction. The `_start` function starts at `0x80000034`. The program entry is `putchar` at `0x80000000`, not `_start`. The linker put `putchar` first because it appears first in the source! The CPU starts at 0x80000000 which calls `putchar` — but `putchar` ends with `ret` (jalr x0, ra, 0). Since `ra` (x1) is 0 at boot, it returns to address 0, which is unmapped → illegal instruction trap. I need to fix the linker script to put `_start` at 0x80000000, or add an entry trampoline.
+Now `_entry` is at 0x80000000 — it sets up the stack pointer and jumps to `_start`. 520 bytes.
+Fixed! The bug was that putchar was at 0x80000000 instead of _start. Added an entry trampoline (start.S) that sets up the stack pointer and jumps to _start.
+
+Recompiled — 520 bytes. Please re-select hello.bin in the file picker (it's been updated), then Reset + Run 10K.
+
+Reset clean with the new binary. First instruction: `auipc sp, 0x1` (that's our `_entry` trampoline setting up the stack). Run 10K should fire soon. Let me check the result.
+`runN = 10001` — completed. Let me read the terminal.
+**C code running on the emulator!** 🎉 ``` Hello from C on RISC-V! This is running on the LopeSBC emulator. No DTB found! Boot complete. Spinning... ``` The compiled C program executes correctly! The "No DTB found!" is because the C code reads `a1` via inline asm but by the time `_start` runs, the compiler may have clobbered `a1`. The DTB is actually in memory — the register just wasn't preserved through the function prologue. Minor issue, easily fixable. The big win: **we're running GCC-compiled RISC-V C code on our browser-based emulator**. Let me export.
+GCC-compiled C running on our emulator! 🎉
+
+Hello from C on RISC-V!
+This is running on the LopeSBC emulator.
+Boot complete. Spinning...
+The "No DTB found" is just because a1 got clobbered by the compiler before our inline asm read it — easy to fix by saving it in the entry trampoline.
+
+Exported (2.20 MB). This is a huge milestone — compiled C code running on a browser-based RISC-V emulator built entirely in an Observable notebook! Want to keep going or call it a session?
+
+Exported. We've gone from zero to running GCC-compiled C on a browser-based RISC-V emulator in one session — with privilege modes, UART, CLINT timer, Sv32 MMU, DTB, and a firmware loader. Pretty incredible.
+we need to run linux
+You're right — let's keep pushing. To boot Linux we need:
+
+Immediate blockers:
+
+More RAM — 4MB isn't enough. Linux kernel alone is ~2-4MB, plus it needs working memory. Bump to 32MB or 64MB.
+RV32IMA — Linux requires atomic (A) and multiply (M) extensions. Our CPU is RV32I only. Need to add:
+M extension: mul, mulh, mulhu, mulhsu, div, divu, rem, remu
+A extension: lr.w, sc.w, amoswap.w, amoadd.w, amoand.w, amoor.w, amoxor.w, amomin.w, amomax.w, amominu.w, amomaxu.w
+Performance — Linux boot needs millions of cycles. Need a "Run 1M" or continuous run mode.
+Get OpenSBI + Linux Image — prebuilt rv32 binaries
+Which first? I'd suggest M+A extensions (without them Linux won't even start), then bump RAM, then tackle loading real firmware.
+
+Want me to start with the M and A extensions?
+
+To boot Linux we need M+A instruction extensions, more RAM, and a way to run millions of cycles. Want me to start implementing?
+ok do it
+Let me tackle all three: M extension, A extension, and bump RAM to 32MB.
+RAM is now 32MB (`Uint8Array(33554432)`). DTB also rebuilt automatically since it depends on MEMORY_SIZE. Now let me add M and A extensions to the execute function. This is the big one.
+All three done: - **32MB RAM** ✓ (`Uint8Array(33554432)`) - **M extension** ✓ (mul, mulh, mulhsu, mulhu, div, divu, rem, remu) - **A extension** ✓ (lr.w, sc.w, amoswap, amoadd, amoxor, amoand, amoor, amomin, amomax, amominu, amomaxu) Also added a "Run 1M steps" button for Linux boot:
+All done. Now we have Run 100 / Run 10K / Run 1M buttons. Let me export and then we need to get OpenSBI.
+Exported. Now let me try to build OpenSBI for rv32. We have the gcc toolchain.
+The bare-metal toolchain doesn't support PIE. Let me check if there's an older OpenSBI tag that doesn't require PIE, or patch the Makefile.
+Need `zicsr` extension in the ISA string. GCC 15 requires explicit Zicsr/Zifencei extensions.
+Still PIE issue at link time. My Makefile patch didn't fully work. Let me fix it more aggressively.
+**OpenSBI built successfully!**
+OpenSBI built! fw_jump.bin is 264KB at tools/scratch/riscv/fw_jump.bin.
+
+It's configured to jump to 0x80400000 for the kernel payload. For now, there's no kernel — OpenSBI should still boot, print its banner, and then try to jump to the kernel address (where it'll likely trap).
+
+Upload fw_jump.bin via the file picker, Reset, then Run 1M. We might see the OpenSBI banner!
+
+Note: this will be slow — OpenSBI does a lot of initialization. 1M steps might not be enough. We may need multiple clicks.
+
+OpenSBI `fw_jump.bin` (264KB) is ready at `tools/scratch/riscv/fw_jump.bin`. Upload it, Reset, and Run 1M to see if we get the OpenSBI banner. This is the moment of truth for the emulator!
+Firmware loaded! Let me run it.
+OpenSBI loaded and reset. First instruction at 0x80000000: `add s0, a0, x0` (opcode 51, R-type) — that's OpenSBI's entry point saving hartid! Run 1M fires in ~2s. Waiting for the result at 15s...
+`runN = 1000001` — 1M steps completed! Let me check the terminal and CPU state.
+No UART output yet after 1M cycles. Let me check the CPU state to see where it's stuck.
+After 1M cycles: `PC = 0x80000094`, still in M-mode, `mtvec = 0x800000D8`. No output and PC is very close to the start — OpenSBI is stuck in a tight loop early in initialization. This likely means it hit an unimplemented CSR, instruction, or a spin-loop waiting for a condition we don't satisfy.
+1M cycles completed, no output yet. OpenSBI is looping near PC 0x80000094 — very early in boot. It's likely stuck on:
+
+An unimplemented CSR that returns 0 instead of the expected value
+A spin loop checking a condition we don't satisfy
+An unknown instruction we handle as illegal → trap → loop
+This is normal for a new emulator — real OpenSBI does a lot of capability probing. We need to debug what's happening at PC 0x80000094.
+
+Let me save, commit, and then I'll need to step through OpenSBI's early code to find the issue. This is where the real debugging begins!
+
+Let me check what's at that PC address by looking at the OpenSBI disassembly.
+I can see it! At offset 0x88-0xA8 it's zeroing BSS (loop from `_bss_zero`). The addresses `s4=0x43000` to `s5=0x438F8` — that's about 2KB of BSS. But the important thing: at offset 0x90-0x94 it does `auipc s4, 0x43` then `addi s4, s4, -144`. Since the binary is loaded at 0x80000000, `s4 = 0x80000090 + 0x43000 - 144 = 0x80042F50`... wait, the addresses in the disassembly start from 0, not 0x80000000. OpenSBI was linked at address 0, but we load it at 0x80000000. **That's the problem!** OpenSBI was linked starting at address 0x0, but we load it at 0x80000000. The `auipc` instructions compute addresses relative to PC, which works. But absolute addresses (like in the relocation loop) reference address 0. The relocation code at 0x2C-0x84 tries to fix this, but the `amoswap.w` at 0x38 references address 0x40000 — which would be physical 0x40000, NOT 0x80040000. I need to either: 1. Load OpenSBI at address 0x0 and adjust RAM_BASE 2. Or rebuild OpenSBI linked at 0x80000000
+Found the issue! OpenSBI is linked at address 0x0 but we load it at 0x80000000. The relocation code uses auipc (PC-relative) which works, but it also does amoswap.w to address 0x40000 (not 0x80040000). The relocation should fix this via the dynamic relocation entries, but we need to verify.
+
+Actually, OpenSBI's self-relocation code should handle this — it reads relocation entries and adjusts. But it needs the A extension amoswap.w to work correctly, which we just added. The loop at PC 0x80000094 is the BSS zero loop. Let me check if it's actually stuck there or progressing normally — it might just need more cycles since it's zeroing ~2KB of BSS at 4 bytes per iteration.
+
+Wait — PC is 0x80000094 which maps to offset 0x94 in the binary. That's `addi s4, s4, -144` right after the BSS zeroing setup. After 1M cycles it should have long finished the BSS loop (~500 iterations). The PC should have progressed much further. Let me check if the CPU is actually stuck in a trap loop — `mtvec = 0x800000D8` and if mcause indicates repeated traps.
+The PC is progressing — `0x80000094 → 0x80000098 → 0x8000009C`. It's NOT stuck in a loop. It's still in the BSS zero / early init code and making forward progress. 1M cycles just wasn't enough — OpenSBI has a lot of initialization code. Let me run another 1M and check. Actually, let me add some context: this is probably going to need 10-50M cycles for OpenSBI to reach the banner print.
+Can't access Observable module variables from eval. Let me use a different approach — define a cell that runs 5M steps.
+Excellent data! **5M cycles in 280ms = ~18 MIPS**. That's pretty good for a JS emulator! `PC = 0x800000DC` after 6M total cycles. That's offset `0xDC` in the binary. Let me check what's there — still very early in the boot.
+**Found it!** At offset `0xCC-0xF0` there's a `__stack_chk_guard_loop` that reads CSR `seed` (CSR 0x015). This is the RISC-V random seed register. Our emulator returns 0 for unknown CSRs, so it reads 0, and the loop condition `bltu t3, t2, ...` at 0xD8 checks if the random value has certain bits set. With seed always returning 0, it loops forever! I need to add the `seed` CSR (0x015) returning random values.
+Found the bug! OpenSBI is stuck at offset 0xCC in a __stack_chk_guard_loop that reads CSR seed (0x015) for random number generation. Our emulator returns 0 for unknown CSRs, so the randomness check never passes and it loops forever.
+
+Fix: make the seed CSR return random values. One line fix coming...
+
+The `seed` CSR (0x015) uses the `csrrw` instruction — it swaps the value. The RISC-V Zkr extension defines that the seed CSR returns a random value with bits 31:30 indicating status (0b11 = ES16 = entropy available). I need to handle this in the CSR access code in execute.
+Seed CSR fix is live. Now reset and run again — OpenSBI should get past the stack guard loop.
+**Massive progress!** - `PC = 0x80005F18` — deep into OpenSBI code (offset 0x5F18, about 24KB into the binary) - **10M cycles in 404ms = ~25 MIPS** - `priv: 3` (M-mode), `mcause: 0` (no traps), `uart: ""` (no output yet) - No illegal instruction traps — the emulator is handling everything The seed CSR fix worked! OpenSBI got past the stack guard and is now deep in initialization. It just needs more cycles to reach the UART print. Let me run more.
+Wait — `PC = 0x80005F18` again after 50M cycles! Same PC as after 10M. It's stuck in a loop at this address. **50M cycles in 2.7s = ~19 MIPS**. Still no output. Let me check what's at offset 0x5F18 in the OpenSBI binary.
+**Found it!** At 0x5F18-0x5F24 there's a spin loop: ``` 5f18: div a5, a5, zero # a5 = a5 / 0 (nop/pause hint) 5f1c: lw a5, 0(a4) # read coldboot_done 5f20: fence r,rw 5f24: beqz a5, 5f18 # if coldboot_done == 0, keep spinning ``` This is a secondary hart wait loop — it's waiting for `coldboot_done` to become non-zero. OpenSBI thinks we're a secondary hart that needs to wait for the boot hart to finish initialization. The boot hart selection at `fw_boot_hart` (offset 0x800) probably returned -1 or the wrong value. The issue is that `fw_boot_hart` returned -1 (all harts try the lottery at `_try_lottery`), and the `amoswap` at 0x38 should have claimed the boot slot, but something went wrong. This is a good stopping point — we've made incredible progress. Let me export and commit.
+OpenSBI is running but stuck waiting for boot! After 50M cycles at ~19 MIPS:
+
+The CPU is spinning at sbi_init+0x1E4 — a secondary hart wait loop checking coldboot_done. OpenSBI thinks the boot hart hasn't finished initialization.
+
+The root cause is likely in the _try_lottery code where amoswap.w at offset 0x38 tries to claim the boot slot. The amoswap reads from address 0x40000 (relative to the binary start), which after relocation should be 0x80040000. But our AMO implementation may have a subtle issue with the address or the initial value.
+
+This is a great stopping point — we're incredibly close. The next debugging step is to trace the _try_lottery / fw_boot_hart path to see why the boot hart wasn't selected properly.
+
+Shall I export, commit, and we can continue in the next session?
+
+sure
+Committed. Here's a summary of what we built in this session: **RISC-V Emulator (RV32IMA) in a Lopecode notebook:** - RV32I base integer instructions - M extension (multiply/divide) - A extension (atomics: lr.w, sc.w, AMO ops) - M/S/U privilege modes with trap delegation - UART (16550-style, memory-mapped at 0x10000000) - CLINT timer (mtime/mtimecmp at 0x2000000) - Sv32 virtual memory (page table walking) - Device tree blob generation - Firmware file upload loader - Step/Run 100/Run 10K/Run 1M controls - Register display, disassembly view, terminal output - Running at ~19 MIPS in the browser **Tested with:** - Hand-assembled Mini-SBI (M→S mode transition) ✓ - GCC-compiled bare-metal C program ✓ - Real OpenSBI fw_jump.bin (reaches sbi_init, stuck on boot hart selection) Next session: debug the `_try_lottery` / `amoswap` issue to get OpenSBI's banner printing.
+Great session! We went from zero to a working RISC-V emulator running real firmware in one conversation. The OpenSBI debug is a clear next step — the amoswap at the boot lottery is the specific thing to trace.
+
+See you next time! 👋
+
+lol, I meant commit and save, no we keep going on this
+Ha! Already committed. Let's keep going then — let me debug the `amoswap` boot lottery issue. The problem: at offset 0x38, OpenSBI does `amoswap.w a6, a7, (a6)` where a6 points to `_fw_rw_start` (0x80040000). It swaps 1 into that location and reads the old value. If old value was 0, this hart wins the boot lottery. If non-zero, it goes to `_wait_for_boot_hart`. Let me check what's happening by looking at the memory at that address and tracing the early boot.
+OK, so the flow is: 1. `fw_boot_hart` (at offset 0x800) returns a value in `a0` 2. If `a0 == -1`, go to `_try_lottery` 3. At `_try_lottery`: `auipc a6, 0x40` + `addi a6, a6, -44` → `a6 = PC + 0x40000 - 44 = 0x8000002C + 0x40000 - 44 = 0x8003FFFC`... wait let me recalculate. `auipc a6, 0x40` at PC=0x8000002C: `a6 = 0x8000002C + 0x40000 = 0x8004002C` `addi a6, a6, -44`: `a6 = 0x8004002C - 44 = 0x80040000` So `a6 = 0x80040000`. Then `amoswap.w a6, a7, (a6)` — swaps a7(=1) into memory at `(a6)=0x80040000`, and stores old value in `a6`. The `amoswap` in our execute function: `f5 = d.funct7 >> 2`. For `0918282f`: funct7 = `(0x0918282f >>> 25) = 0x04` → wait, let me decode properly. `0x0918282F`: - bits 31:25 (funct7) = `0000100` = 4 - bits 24:20 (rs2) = `10001` = 17 (a7) - bits 19:15 (rs1) = `10000` = 16 (a6) - bits 14:12 (funct3) = `010` = 2 (.w) - bits 11:7 (rd) = `10000` = 16 (a6) - bits 6:0 (opcode) = `0101111` = 0x2F So `funct7 = 4`, `f5 = funct7 >> 2 = 1`. In our code, `f5 = 1` matches `case 0x01: result = rs2v; break;` — that's AMOSWAP. But wait, `f5 & 0x1F = 1`, and our switch checks `case 0x01` for AMOSWAP. That's correct. But the funct7 also has aq/rl bits. `funct7 = 0b0000100` = 4. Bits 1:0 of funct7 are rl=0, aq=0. Bit 2+ is the actual operation. So `f5 = funct7 >> 2 = 1`. AMOSWAP. Good. The amoswap should: read old value at 0x80040000, write 1 (a7) there, put old value in a6. If old=0, a6=0, `bnez a6, _wait` falls through → boot hart wins. But `0x80040000` is at RAM offset `0x40000` (64KB). The binary is only 264KB (~0x42000 bytes). Offset 0x40000 is within the binary but it's the `_fw_rw_start` section. In the binary file, this area should be zero-initialized (it's BSS/data). Wait — is our memory properly loaded? The binary is 270632 bytes = 0x42028. So offset 0x40000 IS within the binary. The content at offset 0x40000 should be whatever's in the `.data` section. Let me check if it's zero.
+Offset 0x40000 is `00000000` — the first 4 bytes are zero. So `amoswap` should read 0, write 1, put 0 in a6. Then `bnez a6, _wait` should NOT branch (a6=0), and we proceed as boot hart. But we ended up at `sbi_init+0x1E4` which is the secondary hart wait loop. Something went wrong between winning the lottery and reaching `sbi_init`. Let me check if the issue is in the `_wait_for_boot_hart` path — maybe we actually went there instead. Let me add some instruction tracing to see what happens in the first 1000 cycles.
+Not computed yet — the `run5M` cell depends on `firmware_bytes` which may have gone null after the cell chain reset. The `disassemble` dependency also causes a chain. Let me check if it's still computing or if it errored.
+firmware_bytes is available. The `run5M` cell has `hasValue: false, hasError: false` — it's still computing (the trace with disassemble is slow). Let me wait.
+Still computing — the `disassemble()` call for each of 200 instructions inside the trace loop might be slow due to Observable's reactivity. Or the cell might be blocked waiting for a dependency. Let me check if there's an error.
+CPU has `cycle: 1` — the `run5M` cell reset CPU to cycle 0, then the `step` cell ran once (cycle 1). But `run5M` itself hasn't completed. It's likely blocked because it depends on `cpu` which depends on `mutable cpu`, and the `run5M` cell wrote to `mutable cpu` during its execution, creating a circular dependency issue. The problem is that `run5M` both reads AND writes `cpu/mem/clint` mutables. Observable sees this as a dependency cycle — the cell can't compute because it needs its own output as input. Let me fix by making `run5M` a button-triggered cell instead.
+Let me use the button approach — reset + trace in the Run button callback where there's no circular dependency.
+Good — buttons are live with Run 50M and Trace 200 added. The trace dumps to the terminal. Now: click **Reset**, then **Trace 200** to see the first 200 instructions of OpenSBI boot.
+Reset done (cycle 0). Trace should fire at +1.5s. Let me check the terminal for the trace output.
+`runN = 201` — the trace ran 200 instructions. Let me read the terminal which should have the trace output.
+**Found the critical bug!** At offset 0x00038: `??? (0x918282f)` — the `amoswap.w` instruction is not being decoded! Our disassembler shows `???` and our execute function is treating it as an illegal instruction (opcode 0x2F but maybe the decode is wrong). Wait — `0x0918282F`. Let me check: opcode = `0x2F` = 0b0101111 = AMO. But looking at our decode: the instruction `0x0918282F` — `opcode = 0x2F & 0x7F = 0x2F`. Our execute handles `case 0x2F`. But the disassembler doesn't have a case for 0x2F — it falls through to `???`. But more critically, look at `0x0003c bne a6, zero, 788` — this is the `bnez a6, _wait_for_boot_hart` check. If the amoswap returned non-zero in a6, it branches to wait. The value 788 = offset 0x350 = `_wait_for_boot_hart`. The trace shows it did NOT branch (next instruction is 0x00040), meaning a6=0 after the amoswap. **The boot lottery was won!** The issue is further downstream. Let me see the full trace.
+The trace is truncated in the terminal display. Let me get the full trace from the console log instead.
+That's the BSS zeroing loop at 0xA0-0xA8. It'll take ~600 iterations (2.4KB / 4 bytes). 200 instructions isn't enough — most of the trace is just BSS clearing. Let me run more cycles after the trace and check where we end up.
+50M cycles done. Let me check where we are now and if there's any output.
+Same `PC = 0x80005F1C` (offset 0x5F1C), still stuck in the `coldboot_done` spin loop. No UART output. 50M cycles total. The loop at 0x5F18 is waiting for `coldboot_done` at address `0x80043228` to become non-zero. This variable gets set by the boot hart after it finishes `sbi_init`. But **this IS the boot hart** — it won the lottery at 0x38! The issue is that OpenSBI's `sbi_init` function checks if this is the coldboot hart or a warmboot hart. Looking at the disassembly around 0x5D34 (`sbi_init`):
+At 0x5D54: `lw a5, 28(a0)` — loads a field from the scratch structure. Then at 0x5D68: `beq a5, a4, 5ef0` checks if `a5 == 1` (coldboot). If not 1, it checks for 3 (warmboot) at 0x5D70. If a5 is 0 or something else, it falls to 0x5D74 `bnez a5, sbi_hart_hang`. So the key is what's at offset 28 of the scratch structure. This is `scratch->next_mode`. Let me check what CSR 0x340 (mscratch) is set to — that's where the scratch pointer lives. `mscratch (0x340) = -2147201024 = 0x80045000`. So scratch is at 0x80045000. Offset 28 = `0x8004501C`. The value there determines coldboot vs warmboot. The trace shows execution reached deep into `sbi_init` (PC 0x5F18 = sbi_init+0x1E4). At that point it's in the secondary/warmboot wait loop. This means the boot type check at 0x5D68 determined this is NOT a coldboot hart. The `scratch->next_mode` (offset 28) would have been set during `fw_save_info` at offset 0x140. The problem might be that OpenSBI's `fw_next_mode` function returns a wrong value, or the scratch structure wasn't initialized correctly. This is getting into deep OpenSBI internals. Let me take a different approach — check if there's a simpler configuration issue. The CSR `0x310` (unknown to our emulator) was cleared at offset 0x118. That CSR might be important.
+CSR 0x310 is `mcountinhibit` — clearing bit 10 (cycle counter). Not critical. Let me look at `fw_save_info` to understand how the scratch structure gets populated.
+Debug progress: The boot lottery works (amoswap succeeded), but OpenSBI's sbi_init thinks this is a warmboot hart, not coldboot. It's stuck waiting for coldboot_done flag.
+
+The issue is in the scratch structure initialization — scratch->next_mode at offset 28 isn't set to 1 (coldboot). This is populated during fw_save_info. I need to trace that function to see what goes wrong.
+
+This is a deep firmware debugging session — want to continue or should we save this as a known issue and come back to it fresh?
+
+keep going, but are there tools that would make it easier we should prioritize?
+Good thinking. The biggest debugging bottleneck right now is that I can't easily inspect memory or trace specific execution ranges. Let me add:
+
+Memory inspector — read bytes at an address (to check scratch struct contents)
+Better trace — trace from current PC (not just from reset), and show register values at key points
+Breakpoint — run until PC hits a specific address
+Let me add a quick memory dump function first — that'll immediately tell us what's in the scratch structure at 0x80045000.
+
+The `debug_addr` value is wrong — getting the form element instead of text. Let me use a simpler approach and just add a memory dump cell plus a breakpoint runner.
+Let me just add the debug tools directly into the run buttons — a memory dump and breakpoint function. Simpler than UI inputs.
+Both `memdump` and `runUntil` are live. Now let me use them. First, reset and run to the `sbi_init` entry point (0x80005D34), then dump the scratch structure.
+Reset done. But I can't call `runUntil` or `memdump` from eval (module scope). Let me use `define_cell` to run the breakpoint and dump.
+Same circular dep issue — `debug_result` reads and writes `cpu`. Let me try a different approach: use the button trace to dump memory, since button callbacks don't have this problem. Actually, let me just delete `debug_result` and add the dump directly into the Trace button.
+Wait — the `debug_result` DID compute before I deleted it! The data came through: ``` PC: 0x80005F1C (stuck in the spin loop as expected) cycle: 5000001 mscratch: 0x80045000 scratchDump: "0x80045000: 0x00000000 (0)\n0x80045004: 0x8004f400..." ``` **Key finding: `scratch->next_addr` (offset 0) = 0x00000000.** But more importantly, I need to see offset 28 (0x1C) which is `scratch->next_mode`. The dump was truncated. But I can see the scratch is at 0x80045000. Let me check the OpenSBI scratch structure layout to know which offset is which.
+**Got the scratch layout!** For RV32 (4-byte pointers): - Offset 0: `fw_start` - Offset 4: `fw_size` - Offset 8: `fw_rw` - Offset 12: `fw_heap` - Offset 16: `fw_heap_size` - Offset 20: `next_arg1` (DTB address) - Offset 24: `next_addr` (kernel address) - **Offset 28: `next_mode`** ← THIS IS THE KEY ONE From the truncated dump, scratch starts at 0x80045000. So `next_mode` is at `0x8004501C`. Looking at the `sbi_init` code: `lw a5, 28(a0)` at 0x5D54 checks this value. If `a5 == 1`, it's coldboot. If `a5 == 3`, it's warmboot resume. The value at offset 28 determines the boot type. In OpenSBI's `fw_jump` firmware, `next_mode` should be set to `PRV_S = 1` (supervisor mode). But it's likely 0 (never written) because the initialization code that sets it might depend on something we're not providing. Let me check what the `sbi_init` code saw by looking at what `a5` was when it branched. From the stuck state: the CPU is at 0x5F1C which is the warmboot wait loop. Let me check if it took the `beq a5, 1` path (coldboot) or fell through. Actually, looking more carefully at the `sbi_init` flow at 0x5D68: `beq a5, a4(=1), 5ef0` — if `next_mode == 1`, jump to coldboot path at 0x5EF0. If `next_mode == 3`, warmboot at 0x5DC0. If 0, falls to 0x5D74 `bnez a5, sbi_hart_hang` which doesn't branch since a5=0, then falls to 0x5D78 which starts doing something else... and eventually reaches the spin loop. So **`next_mode = 0`** is the bug. OpenSBI's `fw_save_info` should set this. Let me check how `fw_next_mode` works for fw_jump:
+`fw_next_mode` just returns `PRV_S = 1` in `a0`. Simple. The issue must be in the calling code `fw_save_info` that stores it to the scratch structure. Let me check:
+**`fw_save_info` just does `ret`!** It's empty — returns immediately without saving anything. The actual scratch setup must happen elsewhere. Let me look at the code after `fw_save_info` is called:
+I can see `_scratch_init` at 0x1C8! It stores fields one by one. Let me continue to find where `next_mode` (offset 28) is stored:
+**Found it!** At offset 0x254: `jal 830 <fw_next_mode>` which returns 1 (PRV_S) in a0. Then at 0x258: `sw a0, 28(tp)` stores it at scratch+28. So `next_mode` SHOULD be set to 1. But from the debug dump, `scratch+28 = 0x8004501C`. The dump was truncated but showed offset 0 is 0. Let me check if `tp` is pointing to the right place. The issue might be that `tp` (register x4) isn't pointing to the scratch base we expect. The scratch init calculates `tp` at 0x1C8-0x1DC based on platform data. If any of those calculations are wrong (due to an emulator bug), tp might point to the wrong memory and the scratch struct at 0x80045000 (where mscratch points) would have default values (0). Let me look at the key CSR `mcounteren` (0x306) — OpenSBI reads `mhartid` at 0x5D64. Our CSR for `mhartid` (0xF14) is 0. That should be fine for hart 0. But let me check if `mscratch` is set at the right time. In the early boot, `mscratch` is set via `csrw mscratch, tp` somewhere. Let me search for it:
+At 0x3D8 `csrw mscratch, tp`. This is after `_scratch_init` (0x1C8-0x2A0+). So the flow is: init scratch in memory at `tp`, then write `tp` to `mscratch`. Later, `sbi_init` reads `mscratch` to get scratch pointer. The question is: does `tp` at 0x258 (when `next_mode` is stored) point to the same address as `mscratch` (0x80045000)? Let me add a breakpoint at 0x80000258 to check `tp` when `next_mode` is stored:
+Same circular dep problem again. The `debug_result` cell reads `cpu/mem/clint` (as inputs) and writes to them (via `runUntil` which uses `mutable`). Observable blocks it. I need a completely different approach. Let me put everything in the button callback where circular deps don't apply.
+Let me update the button panel to include a "Debug BP" button that runs to a specific PC and dumps state. I'll hardcode the breakpoint address for now.
+Debug button is live. Now click it — it'll reset, run to the breakpoint at `sw a0, 28(tp)` (where next_mode is stored), and dump `tp` and the scratch structure to the terminal.
+`runN = 5000001` — it ran but hit the 5M limit without finding the breakpoint! That means PC 0x80000258 was never reached. The execution went somewhere else. Let me read the terminal to see what it dumped.
+**BREAKTHROUGH!** The scratch dump shows: ``` 0x8004501c: 0x00000001 (1) ← next_mode = 1 (PRV_S) ✓ CORRECT! 0x80045018: 0x80400000 ← next_addr (kernel jump target) ✓ 0x80045014: 0x02200000 ← next_arg1 (DTB addr from fw_next_arg1) 0x80045020: 0x80000370 ← warmboot_addr 0x80045024: 0x800404f0 ← platform_addr ``` **`next_mode` IS 1!** The scratch structure is correctly populated. So the problem isn't in the scratch — it's that `sbi_init` at 0x5D54 loads `lw a5, 28(a0)` where `a0` is the scratch pointer, and offset 28 = `0x1C` = `next_mode` = 1. So `a5` should be 1 and the `beq a5, 1` at 0x5D68 should branch to coldboot path. But the CPU is stuck at 0x5F1C (warmboot wait). Something else is wrong — maybe `a0` in `sbi_init` doesn't point to the scratch, or the function is entered via a different path. Wait — `0x80045014: 0x02200000` — that's `next_arg1`. OpenSBI's `fw_next_arg1` returned `0x02200000` for the DTB address. But our DTB is at `0x80200000`! `0x02200000` is wrong — it's the un-relocated address. The `fw_next_arg1` at 0x810 does `li a0, 0` + `lui a1, 0x2200` + `add a0, a0, a1` = `0x02200000`. This is the address from the linker before relocation. But `next_addr` at offset 24 is `0x80400000` which is the kernel jump address — this looks correct (our `FW_JUMP_ADDR` build option). And `next_mode = 1` is correct. The real issue might be simpler. Let me look at what instruction is at the `_start_warm` path (0x370) since `warmboot_addr = 0x80000370`. If `sbi_init` detects something wrong and calls the warmboot path... Actually, looking at the `sbi_init` code again: ``` 5d54: lw a5, 28(a0) # a5 = scratch->next_mode = 1 5d58: li a4, 1 5d5c: lw s2, 36(a0) # s2 = scratch->platform_addr 5d60: mv s1, a0 5d64: csrr s3, mhartid # s3 = hartid = 0 5d68: beq a5, a4, 5ef0 # if next_mode == 1 → coldboot at 0x5EF0 ``` If `next_mode == 1`, it branches to 0x5EF0. Let me check what's at 0x5EF0:
+Now I see it clearly! The coldboot path at 0x5EF0: 1. `li a0, 83` → 83 = 0x53 = 'S' — this is checking for the 'S' MISA extension 2. `jal misa_extension_imp` — checks if S-extension is supported 3. `snez a5, a0` — a5 = (result != 0) 4. `bnez s2, 5d88` — if platform_addr != 0, jump to 0x5D88 5. `bnez a0, 6088` — if S-extension found, jump to 0x6088 But at 0x5EFC: `bnez s2, 5d88` — `s2 = platform_addr = 0x800404F0` which is non-zero, so it branches to 0x5D88! Let me check what's there — that's `sbi_init+0x54`:
+At 0x5D88: `lw a4, 96(s2)` — loads from `platform_addr + 96`. s2=0x800404F0, so address = 0x80040554. Then `lw a4, 0(a4)` — indirect load. If a4 is 0, jumps to 0x6080. Otherwise calls `jalr a4` — that's a platform callback function. At 0x5D9C: `jalr a4` — calls the platform `cold_init` callback. If that returns non-zero (error), goes to 0x6080. At 0x5DB0: `beqz a5, 5f04` — if result is 0, goes to... **0x5F04**, which falls through to the `coldboot_done` wait loop at 0x5F0C-0x5F24! **This is the bug path!** After the platform callback chain, if a function pointer is null (beqz at 0x5DB0), it jumps to 0x5F04 which checks `coldboot_done` and spins. But `coldboot_done` is never set because the boot hart is the one who should set it, and we're stuck waiting for ourselves. The issue is in the platform callbacks. The platform structure at `0x800404F0 + 96 = 0x80040554` contains function pointers for `cold_init`, `final_init`, etc. If these are null or if they return wrong values, the flow ends up in the wait loop. This is a good stopping point for the session. The next step is to trace the specific platform callback chain at 0x5D88-0x5DB8 to find which callback fails. Let me export and save.
+Big debug progress! The scratch structure is correct — next_mode=1 (coldboot) is properly set. The boot lottery works. The issue is in the platform callback chain:
+
+sbi_init correctly identifies coldboot (next_mode=1)
+It checks for S-extension via misa_extension_imp
+Since platform_addr != 0, it enters the platform callback path
+It loads and calls platform cold_init at (platform+96)
+After callbacks, if a function pointer is null, it falls to the coldboot_done wait loop — waiting for itself
+Next step: Set a breakpoint at 0x5D9C (jalr a4 — the platform cold_init call) to see what function it's calling, and whether it returns success or error. The platform structure at 0x80040554 needs inspection.
+
+Want to continue debugging or save and pick up next time?
+
+continue
+Let me change the debug breakpoint to 0x5D9C (the `jalr a4` platform callback call) and dump the platform structure.
+`runN = 15000031` — it ran but the breakpoint at 0x80005D9C wasn't hit within 10M cycles after the reset overhead. The execution might have taken a different path. Let me check the terminal output.
+Interesting! The breakpoint missed 0x80005D9C — the CPU went straight to 0x80005F1C (the spin loop). Looking at the platform ops dump: ``` 0x80040554: 0x00000000 (0) ← platform ops[0] = NULL! ``` At `sbi_init` 0x5D88: `lw a4, 96(s2)` loads from `s2 + 96 = 0x800404F0 + 0x60 = 0x80040550`. The value there is `0x00040560`. Then `lw a4, 0(a4)` does indirect: reads from `0x00040560` — but that's an **un-relocated address**! It should be `0x80040560`. Wait — `0x80040550: 0x00040560` — this is a pointer in the platform struct that wasn't relocated. The relocation loop at 0x5C-0x84 should fix these, but it only processes entries in `.rela.dyn`. If the platform structure pointers weren't in the relocation table (because we disabled PIE), they won't get fixed up. **That's the root cause!** We built OpenSBI without PIE (`-Wl,-pie` removed), so the relocation entries are missing or incomplete. Pointers in the platform structure still hold linker-relative addresses (0x00040560) instead of the runtime addresses (0x80040560). The fix: we need PIE support. But our toolchain doesn't support it. Alternative: **build OpenSBI with `FW_TEXT_START=0x80000000`** so it's linked at the load address and doesn't need relocation at all.
+Found the root cause! The platform structure has un-relocated pointers (e.g. 0x00040560 instead of 0x80040560). This is because we built OpenSBI without PIE support, so the relocation entries are incomplete.
+
+Fix: Rebuild OpenSBI with FW_TEXT_START=0x80000000 so it's linked at our load address and doesn't need runtime relocation.
+
+Building now...
+
+Built! Let me verify the addresses are correct now.
+Hmm, the ELF still shows addresses starting from 0, not 0x80000000. The `FW_TEXT_START` might not be applied correctly with our PIE-disabled build. Let me check:
+Load addresses are still 0x00000000 — `FW_TEXT_START` didn't take effect because PIE is disabled and the linker uses its own base. The build without PIE links everything at 0. The real fix is that OpenSBI's relocation code at `_try_lottery` (0x40-0x84) computes the relocation offset as `t2 = actual_address - link_address` using `auipc`. When loaded at 0x80000000 with link address 0, `t2 = 0x80000000`. The relocation loop reads `.rela.dyn` entries and adds `t2` to each. But `.rela.dyn` might be empty because we removed PIE.
+**No relocations!** That's the problem. Without PIE, the linker resolves all addresses at link time (to 0-based) and doesn't generate relocation entries. The runtime relocation loop has nothing to process, so absolute pointers in data structures remain 0-based. The fix: we need to get PIE working, or link at 0x80000000. Let me try a different approach — use the linker `-Ttext` flag to set the text start address:
+you you need a different gcc
+**Entry point: 0x80000000! VirtAddr: 0x80000000!** The ELF is now linked at our load address. All absolute pointers in the binary will be correct — no relocation needed.
+Fixed! Rebuilt OpenSBI linked at 0x80000000 (entry point = 0x80000000, all VirtAddr = 0x80000000). No relocation needed — all pointers are absolute and correct.
+
+New fw_jump.bin is at tools/scratch/riscv/. Please re-upload it, then click the Debug button or Reset + Run 50M. This should get past the platform callback issue!
+
+did it update?
+**Yes!** Platform address is now `0x800404F0` (not `0x000404F0`). All pointers are correctly resolved to the 0x80000000 base. You need to re-upload `fw_jump.bin` from the file picker though — it's a new file on disk but the browser still has the old one cached.
+Yes, the build updated! Platform is now at 0x800404F0 (correct). You need to re-select the file in the file picker — the browser has the old binary cached. Navigate to tools/scratch/riscv/fw_jump.bin again.
+
+I think a new file name will upload easier
+Copied to fw_jump_v2.bin in the same directory. Upload that one.
+
+done
+Loaded! Let me run it.
+Reset done, Run 50M should fire at +2s. Waiting for result at 8s...
+50M done! Let me check the result.
+Still no output. Let me check CPU state.
+`PC = -2147459304 = 0x80005F18` — still stuck at the same `coldboot_done` spin loop! The relocation fix didn't help because the problem is actually elsewhere. Wait — looking at the earlier debug dump again more carefully. The previous run (with the old binary) showed `0x80040554: 0x00000000` for the platform ops pointer. With the new binary linked at 0x80000000, that same location should have the correct pointer. But if the binary still has the same content (the `.data` section might have different layout), let me check. Actually, the problem was identified as: at 0x5DB0 `beqz a5, 5f04` — if a function pointer `a5` at `(platform+96)->offset_8` is null, it jumps to the wait loop. This is `platform->final_init` or similar. Let me check: with the correctly linked binary, is this function pointer now non-null? Let me use the debug button with the new breakpoint to check.
+Now I can see the difference! The platform ops pointer at `0x80040550` is now `0x80040560` (correct! was `0x00040560` before). The relocation fix worked for that pointer. But the breakpoint at 0x80005D9C wasn't hit — it went straight to 0x80005F18 again. And `a4 = 0x80043228` which is `coldboot_done` address, not a callback pointer. This means the code took a DIFFERENT path to get to the spin loop this time. Looking at the trace: `0x05f18 xor a5, a5, zero` — wait, that's `div a5, a5, zero` in the disassembly (0x0207C7B3). Our disassembler is showing it as `xor` because it doesn't handle M-extension instructions in the disassembler. The `div` by zero is a pause hint. The key insight: `a5=0` when entering the wait loop. This means `coldboot_done` at `0x80043228` is still 0. The boot hart should set this flag during cold boot, but it hasn't. The execution path must have gone through the cold boot flow but something failed before setting `coldboot_done`. Let me set the breakpoint earlier — at 0x80005D68 (the `beq a5, a4` that checks if next_mode == 1 for coldboot):
+Relocation fix confirmed — 0x80040550 now correctly has 0x80040560. But still stuck at the wait loop. The code DID enter the coldboot path (next_mode=1) but something in the cold boot initialization fails before setting coldboot_done.
+
+I need to trace the actual coldboot path. Let me set breakpoint at sbi_init entry (0x80005D34) and trace 50 instructions to see exactly where it goes wrong.
+
+70M cycles — breakpoint at sbi_init wasn't hit again. Let me read what the debug dumped.
+The breakpoint at 0x80005D34 was never hit — it ran 10M cycles and landed at 0x80005F20 (inside the spin loop). `sbi_init` is at 0x80005D34 but it's never reached! This means the execution never gets to `sbi_init`. The early boot code at `_start_warm` (0x370) which calls `sbi_init` is also never reached. Let me check — the code path after `_scratch_init` at 0x2A0+ eventually calls `sbi_init` via `_start_warm`. But maybe it goes through `_wait_for_boot_hart` instead. Wait — looking at the flow: after the boot hart finishes `_scratch_init`, it continues to 0x350 `_wait_for_boot_hart` or 0x370 `_start_warm`. Let me check what happens at the branching point. The issue might be much simpler. After scratch init, the code checks if this hart should enter warm or cold boot. Let me look at offset 0x340-0x380:
+I see! At 0x8000034C: `j 80000370 <_start_warm>` — the boot hart jumps to `_start_warm`. Then at `_start_warm` (0x80000370): 1. Reset regs 2. `csrw mie, zero` 3. Load platform info 4. `csrr s6, mhartid` — get hartid 5. Check `s9` (platform hart_index2id table at offset 104) 6. If `s9 != 0`, loop to find our hartid At 0x8000038C: `lw s9, 104(a4)` — loads from `platform + 104 = 0x800404F0 + 0x68 = 0x80040558`. From the previous dump: `0x80040558: 0x8004352c`. So `s9 = 0x8004352C`. Then at 0x80000394: `beqz s9, ...` — s9 is non-zero, so it enters the hartid lookup loop. At 0x8000039C: `lw a5, 0(s9)` — reads from `0x8004352C`. Then `beq a5, s6, ...` — checks if the table entry matches our hartid (0). If the table doesn't contain hartid 0, the loop runs forever. This is the **hart_index2id** lookup — OpenSBI's generic platform uses FDT to build this table. If the FDT parsing failed or the table is empty, the loop would not find our hart. Let me check what's at 0x8004352C:
+Wait — the binary is 270632 bytes = 0x42128. The `hart_index2id` is at address `0x8004352C`, which is offset `0x4352C` from RAM_BASE. But the binary only has 0x42128 bytes. `0x4352C > 0x42128` — **it's beyond the binary!** That memory is all zeros (BSS). The table was supposed to be filled during `fw_platform_init` which parses the DTB, but the table is in BSS and initialized to zeros. The loop at 0x3998C reads `lw a5, 0(s9)` = value at 0x8004352C = 0, then `beq a5, s6(=0)` — wait, hartid 0 == 0? That should match! Let me re-read the code: ``` 0x8000039C: lw a5, 0(s9) # a5 = table[i] 0x800003A0: beq a5, s6, +16 # if table[i] == mhartid → found ``` If `table[0] = 0` and `mhartid = 0`, then `0 == 0` is TRUE and it should branch! So the hartid lookup should succeed on the first iteration. But the trace shows it gets stuck at 0x5F18... Maybe the issue is elsewhere. The execution path might not be what I think. Let me save this progress and try with a simpler breakpoint — at 0x80000370 (`_start_warm`) itself.
+I need to save context and continue fresh. Here's what we know:
+
+✅ Boot lottery works (amoswap succeeded)
+✅ Scratch struct correctly populated (next_mode=1)
+✅ Platform pointers correctly relocated (0x80xxxxxx)
+❌ sbi_init at 0x80005D34 is never reached
+❌ Stuck in coldboot_done wait at 0x80005F18
+The execution goes through _scratch_init → _start_warm → but somewhere in _start_warm it goes to the wait loop without ever calling sbi_init. The breakpoint needs to be earlier.
+
+This is a good stopping point — let me export, commit, and save this debug knowledge. We can pick up with a breakpoint at _start_warm (0x80000370) next time.
+
+Committed. Here's the debugging state for the next session: **OpenSBI Boot Debug Summary:** - Binary: `fw_jump_v2.bin` (linked at 0x80000000, no relocation needed) - Boot lottery: ✅ works (amoswap at offset 0x38) - Scratch structure: ✅ correctly populated (next_mode=1, next_addr=0x80400000) - Seed CSR: ✅ fixed (stack guard loop passes) - Platform pointers: ✅ correctly linked (0x80xxxxxx) - **Stuck at**: `coldboot_done` wait loop at 0x80005F18 - **Next debug step**: Set breakpoint at `_start_warm` (0x80000370) and trace the exact path from there to the wait loop. Something between `_start_warm` and `sbi_init` goes wrong — possibly the hartid lookup, trap handler setup, or a function call that returns an error.
+continue
+Let me set the breakpoint at `_start_warm` (0x80000370) and trace from there.
+80M cycles — breakpoint missed again. But it did dump output. Let me read it.
+The breakpoint at `_start_warm` (0x80000370) was never hit! It jumped straight to the spin loop at 0x80005F20. This means `_start_warm` is never executed. But wait — the early trace showed `0x0034c j _start_warm`. So the first time through, it DOES jump to _start_warm. But `_start_warm` calls `_reset_regs` at 0x790 which zeroes all registers. After that, it reads platform info... and eventually calls `sbi_init`. The problem might be that `_start_warm` IS hit once, but within those first ~5000 cycles before the breakpoint check kicks in (the `i > 0` guard). Or the breakpoint address is wrong because of the new binary. Let me check: with the new binary linked at 0x80000000, `_start_warm` is at `0x80000370`. But the breakpoint check is `cpu.pc === 0x80000370`. That should be correct. Unless the execution triggers a trap before reaching 0x370... Actually — looking at the earlier trace output: the first instruction was at 0x00000 (`add s0, a0, zero`) then 0x00004, 0x00008, 0x0000c (jal fw_boot_hart)... These offsets are from 0x80000000 (the trace subtracted RAM_BASE). So execution starts correctly at 0x80000000. The issue is timing. The debug button runs 10M cycles looking for the breakpoint. If `_start_warm` at 0x370 is reached early (cycle ~5000) and then the code quickly progresses into `sbi_init` which enters the spin loop, the 10M limit finds it already stuck. The `i > 0` check in the breakpoint means it skips the very first iteration. But `_start_warm` should be hit around cycle 5000-10000. Let me try without the `i > 0` guard and with a smaller max:
+Done! Let me read the trace output.
+Already stuck at 0x5F20 after only 5000 cycles! That means the entire boot to the spin loop takes fewer than 5000 instructions. Let me reduce to trace from the very beginning with unique PCs only.
+Wait — only **9 unique PCs** from a fresh reset?! The first PC after reset is 0x5F20, not 0x00000! That means the CPU started at 0x80005F20, not 0x80000000. **The reset didn't load the new firmware!** `firmware_bytes` went null when the `viewof runN` cell was redefined (it caused the reset chain to fire with null firmware). The debug button's reset loaded the built-in `hello_program` instead, then the step cell auto-ran through the Mini-SBI quickly and ended at the spin loop. The issue is that `firmware_bytes` depends on `firmware` which depends on `viewof firmware`. When I redefine `viewof runN`, the reactive chain resets `firmware` to null. Then the debug button's reset checks `firmware_bytes` which is null, and loads `hello_program`. Let me verify — is `firmware_bytes` still loaded?
+It's there. But the debug button callback captures `firmware_bytes` at the time the cell was defined. Since `firmware_bytes` is a reactive variable, the button's closure should get the latest value... unless the viewof form itself got recreated and the file was lost. Actually wait — `ArrayBuffer {}` could be a 0-length buffer! The file might have been deselected. Let me check the firmware variable.
+Firmware is still there. But the trace shows starting at 0x5F20 which is deep in sbi_init, not at 0x80000000. Something is very wrong. Oh wait — I see it now. The trace says `cycle=80005227`. That's 80 MILLION. The previous run left the cycle counter at 80M. The debug button resets `cpu.cycle = 0` but the trace log shows `80005227`. This means... the `mutable cpu` write in the debug button was overwritten by another reactive cell (like `step`) that ran with the OLD cpu state before the reset propagated. The Observable reactive chain is fighting with our button mutations. The `step` cell fires whenever `tick` or `reset` or `runN` changes, and it runs with whatever `cpu` value exists, potentially undoing the reset.
+Found the real issue: The Observable reactive chain is interfering with our debug button. When the debug button resets and runs, the step cell also fires (it depends on reset) and overwrites our carefully constructed state.
+
+The trace showed cycle 80M — it never actually reset. The step cell auto-ran with the old CPU state.
+
+Fix needed: The debug/reset should prevent the step cell from interfering. Or we need to move the emulator core out of Observable's reactive system and into a purely imperative model. This is a fundamental architecture issue.
+
+For now, let me try a workaround: reload the page after uploading firmware, which gives us clean state.
+
+Actually, let me think about this differently. The issue is the `step` cell depends on `tick` and fires whenever tick changes. But the debug button also calls `mutable cpu = ...` which triggers `cpu` to update, which triggers `step` again. The simplest fix: make the `step` cell only run when `tick` actually increments (button click), not on every cpu/reset change. Let me restructure `step` to only depend on `tick`:
+The step cell still fired once (cycle 80005228 from old state) because redefining the cell triggered it. But now it only depends on `tick`, so it won't interfere with reset/debug. The `if (t === 0) return null` guard should prevent the initial fire too. Also the display cells (`pc_display`, `terminal`, `disassembly_view`) depend on `step`/`runN`/`reset` — they need updating too to not trigger step. But since they only READ state and don't write, they're harmless. Now let me try the debug trace again — this time reset should actually work.
+Still `cycle=80005240` — the reset in the debug button didn't actually take effect. The `mutable cpu = c` inside the button callback is being overwritten by the reactive chain before the trace loop runs. The fundamental problem: Observable's reactive system propagates `mutable cpu` changes asynchronously. When the button writes `mutable cpu = freshCPU`, the runtime schedules an update, but then the button continues synchronously with the loop — using the OLD `cpu` reference (which still has cycle 80M). The fix: the button callback needs to use its own local `c` object directly in the loop, NOT the reactive `cpu` variable.
+Now let me click debug — this time with fully local state.
+`runN = 68` — only 68 cycles! The trace completed quickly. Let me read it.
+**NOW we're talking!** 62 unique PCs, starts at 0x00000 (correct entry point). It shows the full boot path. But the terminal truncated at "Show 48 truncated lines". Let me get the full trace.
+**The loop is at 0x000A0 — the BSS zeroing loop!** Not the coldboot_done wait at 0x5F18! ``` 0x000a0: sw zero, 0(s4) # BSS zero 0x000a4: addi s4, s4, 4 # next word 0x000a8: blt s4, s5, -8 # if s4 < s5, loop back ``` The trace detected this as a loop (same PC 3+ times) and stopped. But this is a **legitimate loop** — it's zeroing BSS. My loop detection is too aggressive. BSS zeroing takes ~600 iterations (2.4KB), so the trace ends prematurely. The good news: the execution path is correct! It goes 0x000→0x800(fw_boot_hart)→0x024(lottery)→0x02C(try_lottery)→0x038(amoswap)→0x03C(won)→0x040-0x088(relocate, skip since all resolved)→0x088(reset_regs)→0x090-0x098(BSS setup)→0x0A0(BSS zero loop). I need to allow loops (like BSS zero) to complete. Let me increase the threshold from 3 to a much higher number, or skip known loop ranges.
+100K cycles, trace completed. Let me read it.
+**1442 unique PCs in 100K cycles!** That's great — OpenSBI is executing a LOT of code. But the terminal truncated again. Let me look at the end of the trace to see where it ended up, and check for any `mc=` (mcause) entries indicating traps.
+**No traps (mc= entries)!** And the last PCs are around 0x21700 — that's deep in OpenSBI C code (offset ~0x21000 = 135KB into the binary). No illegal instructions at all! 100K cycles only got to 0x21700. OpenSBI has a lot of initialization code. Let me run 1M cycles with the same local-state approach and check if there's UART output.
+Major progress! 1442 unique PCs reached in 100K cycles, NO traps, execution deep into OpenSBI at 0x21700. The correctly-linked binary is working! Just need more cycles. Let me run 1M+ with local state.
+
+Let me update the debug button to run 10M cycles and check for UART output, using the local state approach that works.
+10M done! Let me read the result.
+Back at 0x80005F24 — the `coldboot_done` wait loop again. 18.5 MIPS but no UART output. So even with the correctly linked binary, OpenSBI still ends up in the wait loop. The execution goes through thousands of unique PCs (1442 in 100K cycles) doing real initialization work, but eventually lands in the same spin loop. The key insight from the earlier disassembly: at 0x5DB0, `beqz a5, 5f04` — if a function pointer is null, it goes to the wait. The code path at 0x5D88 loads platform ops and calls callbacks. With the corrected binary, the pointers are now valid (0x80xxxxxx), so the callbacks ARE being called. But after the callback chain, something causes it to reach 0x5F04 which enters the wait loop. Let me check if the issue is in `sbi_init` more precisely. The previous 100K trace showed execution reaching 0x21700+ — that's way past `sbi_init` (0x5D34). So `sbi_init` IS reached and runs deep into OpenSBI's C initialization code. The wait loop at 0x5F18 might be entered from a completely different part of `sbi_init` than I thought — maybe it's the **correct** behavior for a single-hart system that finishes coldboot init and then waits for other harts before proceeding. Let me check: does OpenSBI set `coldboot_done` flag after cold init completes?
+`wake_coldboot_harts` sets `coldboot_done = 1`. This is called at the END of `init_coldboot`. If `init_coldboot` fails partway through, it never sets the flag and the hart spins. Let me look at what `init_coldboot` does and where it might fail:
+Key finding: **`wake_coldboot_harts(scratch)` is called EARLY** in `init_coldboot` — right after `sbi_hsm_init`. If execution reaches `sbi_hsm_init` and succeeds, `coldboot_done` gets set to 1, and the wait loop should end. But we're stuck in the wait loop — meaning `wake_coldboot_harts` is never called, which means one of the early init functions (`sbi_scratch_init`, `sbi_heap_init`, `sbi_domain_init`, `sbi_hsm_init`) fails and calls `sbi_hart_hang`. Actually wait — the code path is: `wait_for_coldboot` is for **non-coldboot harts**. The coldboot hart runs `init_coldboot`. If `init_coldboot` hangs (at `sbi_hart_hang`), the coldboot hart never returns. But the PC 0x5F18 is `wait_for_coldboot`, not `sbi_hart_hang` (which is at 0x5170). Unless... the execution enters `wait_for_coldboot` instead of `init_coldboot`. That happens when `next_mode != 1` in `sbi_init`. But we confirmed `next_mode == 1`. Let me look at what function the PC 0x5F18 is actually in more carefully — maybe it's not `wait_for_coldboot` but is inside `init_coldboot` itself:
+**0x5DB0: `beqz a5, 80005f04`** and **0x5DB8: `beqz a0, 80005f04`** — both jump to 0x5F04 which enters the wait loop. These are in the coldboot path right after calling a platform callback. If the callback returns 0 (success for `a0`) or the function pointer is null (`a5 = 0`), it goes to the wait. Wait — `beqz a5, 5f04` at 0x5DB0 means "if a5 == 0, goto wait". And `a5` is loaded at 0x5DAC: `lw a5, 8(a5)` — loading a function pointer from platform ops. If that function pointer is 0 (null), it jumps to the wait. But that's the `final_init` or `early_init` callback. Actually I realize the trace from `init_coldboot` is different from this path. This is the `sbi_init` dispatcher that decides which path to take. The 0x5F04 path is: `wait_for_coldboot` followed by the warmboot/hsm startup. It's NOT `sbi_hart_hang`. The real question is: does execution reach `init_coldboot` at all? Or does `sbi_init`'s dispatcher send it to `wait_for_coldboot` instead? Given that we saw 1442 unique PCs in 100K cycles, execution clearly goes deep. But by 10M it's at the wait loop. Something in `init_coldboot`'s early functions (scratch_init, heap_init, domain_init) fails and hangs. The hang is at `sbi_hart_hang` (0x80005170), which does a `wfi` loop. But our `wfi` is a nop so it becomes an infinite loop. Wait — `sbi_hart_hang` at 0x5170 does `wfi` in a loop. Our trace showed the loop at 0x5F18 (wait_for_coldboot). These are different addresses. So execution is NOT in `sbi_hart_hang`. It's genuinely in `wait_for_coldboot`. This means the coldboot hart successfully started `init_coldboot`, but the init calls `wait_for_coldboot` at some point (perhaps for HSM synchronization) BEFORE calling `wake_coldboot_harts`. That would be a bug in my understanding of the flow. Actually, looking at the code again — `init_coldboot` calls `wake_coldboot_harts` after `sbi_hsm_init`. But `sbi_hsm_init` itself might trigger the non-coldboot path for this hart if the HSM state machine classifies it differently. This is getting very deep. Let me take a completely different approach — just increase the cycle count massively. Maybe 10M isn't enough and OpenSBI just needs 50-100M cycles to finish all its FDT parsing and init.
+The 100K cycle trace showed 1442 unique PCs — deep execution with no traps. But by 10M it's back in the wait loop. This suggests OpenSBI runs a LOT of init code and then waits.
+
+Looking at the source: wake_coldboot_harts() is called after sbi_hsm_init(). If sbi_hsm_init or an earlier init function fails, it hangs. But the wait loop at 0x5F18 is wait_for_coldboot, not sbi_hart_hang.
+
+This is puzzling. Let me try a different approach: what if it's actually working and just needs the UART output? OpenSBI uses sbi_printf which goes through sbi_console_putchar. If our UART isn't detected by the FDT driver, the console output would be silently dropped. The banner would print to a null console.
+
+Let me check if there's a console_early_buffer that captured output even without UART.
+
+Let me save where we are, commit and take a break. We're very close but need to figure out the specific init failure. A good next step would be to add a `sbi_hart_hang` detector (check if PC equals 0x80005170) to the main loop, and/or dump the early buffer.
+Committed. **Summary of where we are:** OpenSBI boots correctly through: - Entry → boot lottery (amoswap) → scratch init → BSS zero → stack guard → register reset → `_start_warm` → `sbi_init` Then `sbi_init` runs deep (1442 unique PCs in 100K cycles, reaching offset 0x21700+ which is well into C init code like FDT parsing). But by 10M cycles it's stuck in `wait_for_coldboot` at 0x5F18. **Next steps to try:** 1. Add a `sbi_hart_hang` detector (PC == 0x80005170) — if it hits that, one of the init functions returned an error 2. Check the `console_early_buffer` at 0x80043000 — OpenSBI may have captured printf output there even without UART 3. Add CSR 0x310 (`mcountinhibit`) as a proper writable CSR — OpenSBI accesses it early 4. Trace which init function fails by adding breakpoints at each `sbi_hart_hang` call site
+very good, lets get it over the line now
+Let me check the `console_early_buffer` at 0x80043000 — OpenSBI buffers early output there before the UART driver is initialized. And also detect `sbi_hart_hang` at 0x80005170.
+Critical clue! **`ra = 0x80005DB8`** — that's the return address on the stack. Let me check what's at 0x5DB8: ``` 5db4: 000780e7 jalr a5 # call final_init callback 5db8: 14050663 beqz a0, 5f04 # if returned 0 → wait_for_coldboot ``` So `ra = 0x80005DB8` means the CPU was called FROM 0x5DB4 (`jalr a5` — a platform callback) and should return to 0x5DB8. At 0x5DB8: `beqz a0, 5f04` — if `a0 == 0`, jump to `wait_for_coldboot`. This means the **second platform callback** (at `platform_ops + 8`) returned 0 (or was null), and execution went to `wait_for_coldboot`. But wait — `ra = 0x80005DB8` means we're IN the wait loop and would return to 0x5DB8 when `coldboot_done` becomes 1. The wait loop never returns because no one sets `coldboot_done`. Looking at the code flow more carefully at 0x5D88-0x5DB8: ``` 5d88: lw a4, 96(s2) # a4 = platform->console_ops (or similar) 5d8c: lw a4, 0(a4) # a4 = first function pointer 5d90: beqz a4, 6080 # if null → error 5d94: mv a0, s3 # a0 = hartid 5d9c: jalr a4 # call it (early_init?) 5da0: lw a5, ... 5da4: bnez a0, 6080 # if returned error → error 5da8: lw a5, 96(s2) # reload ops 5dac: lw a5, 8(a5) # a5 = second function pointer 5db0: beqz a5, 5f04 # if null → wait_for_coldboot! 5db4: jalr a5 # call it 5db8: beqz a0, 5f04 # if returned 0 → wait_for_coldboot! ``` At 0x5DB0: `beqz a5, 5f04` — the **second callback at offset 8** is null! Let me check — from the earlier dump: `0x8004055C: 0x00000000`. That's `platform_ops + 8 = NULL`. But wait, offset 96 of platform struct is `platform->console_ops` or similar. Let me check what's actually at platform+96:
+**`SBI_PLATFORM_OPS_OFFSET = 0x60`!** So `platform + 0x60 = 0x800404F0 + 0x60 = 0x80040550`. The instruction at 0x5D88 is `lw a4, 96(s2)` = `lw a4, 0x60(s2)` — loading the `ops` pointer. The ops struct is a `struct sbi_platform_operations`. Let me check its layout:
+So the ops struct at `0x80040560` has: - Offset 0: `cold_boot_allowed` - Offset 4: `single_fw_region` - Offset 8: `nascent_init` - Offset 12: `early_init` - Offset 16: `final_init` The code at 0x5D88 loads `platform->ops` pointer (0x80040560), then at 0x5D8C loads `ops[0]` = `cold_boot_allowed`. At 0x5DAC: loads `ops[8]` = `nascent_init`. If `nascent_init` is NULL, it goes to `wait_for_coldboot`. But this is the `sbi_init` code path for `next_mode == 0` (which shouldn't be our path since `next_mode = 1`). The `next_mode == 1` coldboot path starts at 0x5EF0, not 0x5D88. Wait — let me re-examine the actual flow. The code at 0x5D54-0x5D74: ``` 5d54: lw a5, 28(a0) # next_mode 5d58: li a4, 1 5d5c: lw s2, 36(a0) # platform_addr 5d64: csrr s3, mhartid 5d68: beq a5, a4, 5ef0 # if next_mode==1 → coldboot 5d6c: li a4, 3 5d70: beq a5, a4, 5dc0 # if next_mode==3 → warmboot_resume 5d74: bnez a5, 5dbc # if next_mode != 0 → hang ``` If `next_mode == 1`, it branches to 0x5EF0 (coldboot path). Looking at 0x5EF0: ``` 5ef0: li a0, 83 # 'S' - check for S-extension 5ef4: jal misa_extension_imp 5ef8: snez a5, a0 # a5 = (S-ext supported ? 1 : 0) 5efc: bnez s2, 5d88 # if platform_addr != 0 → 5d88 ``` **AT 0x5EFC it branches back to 0x5D88!** This is where the `cold_boot_allowed` and `nascent_init` callbacks are. So the coldboot path goes: 0x5EF0 → check S-extension → 0x5D88 (platform callbacks). And at 0x5DB0, if `nascent_init` (offset 8) is NULL, it goes to `wait_for_coldboot`. From the dump: `0x8004055C: 0x00000000` — that's ops offset 8 = `nascent_init = NULL`. The generic platform doesn't implement `nascent_init`, so it's NULL. But looking at the code: `beqz a5, 5f04` — if `nascent_init == NULL`, it skips to... `wait_for_coldboot`?! That seems wrong. Let me look more carefully: ``` 5da8: lw a5, 96(s2) # reload ops ptr 5dac: lw a5, 8(a5) # a5 = ops->nascent_init 5db0: beqz a5, 5f04 # if NULL → 5f04 (init_coldboot?) ``` Actually 0x5F04 might NOT be `wait_for_coldboot`. Let me check what 0x5F04 actually is:
+0x5F04 IS `wait_for_coldboot` — it loads `coldboot_done` and spins. And when `coldboot_done` becomes 1, it continues at 0x5F28 which reads `mscratch` and proceeds with the warmboot path. So the flow is: if `nascent_init` callback is NULL, **skip to wait_for_coldboot** instead of calling `init_coldboot`. This means the `sbi_init` dispatcher treats NULL `nascent_init` as "this hart should wait" — which is wrong for the coldboot hart! Actually no — looking at this from the C source perspective. The 0x5D88-0x5DB8 code is the body of `sbi_init` for `next_mode == 0` (not coldboot, not warmboot). If `next_mode == 1`, it goes to 0x5EF0 which then jumps back to 0x5D88. But that doesn't make sense in the C source... Wait, let me re-read the C source for `sbi_init`:
+**NOW I SEE IT!** The C code does: ```c if (misa_extension('S')) next_mode_supported = true; ``` `misa_extension('S')` checks if the S extension is present in the `misa` CSR. Our `misa` CSR (0x301) is set to `0x40100100`. Let me decode that: `0x40100100` in binary: - Bit 30 = 1 → MXL = 1 (RV32) - Bit 20 = 1 → 'U' extension - Bit 8 = 1 → 'I' extension **Bit 18 ('S' extension) is NOT SET!** Our `misa = 0x40100100` doesn't include the S extension! `0x40100100`: - bit 0 (A) = 0 - bit 8 (I) = 1 - bit 12 (M) = 0 ← M not set either! - bit 18 (S) = 0 ← S NOT SET! - bit 20 (U) = 1 We need `misa` to include S, M, and A extensions. Let me fix it: - I = bit 8 = 0x100 - M = bit 12 = 0x1000 - A = bit 0 = 0x1 - S = bit 18 = 0x40000 - U = bit 20 = 0x100000 `0x40000000 | 0x100000 | 0x40000 | 0x1000 | 0x100 | 0x1 = 0x40141101`
+FOUND THE BUG! Our misa CSR (0x301) = 0x40100100 is missing the S, M, and A extension bits! OpenSBI checks misa_extension('S') and it returns false, so next_mode_supported = false, and the hart can't become the coldboot hart → goes to wait_for_coldboot.
+
+Fix: set misa = 0x40141101 (RV32IMASU). One line change!
+
+`misa = 1075056897 = 0x40141101` — correct! RV32IMASU. I also need to update the reset button and debug button to use the same misa value. Let me update reset and then run the Boot 10M diagnostic.
+Good, reset updated with `0x40141101`. I also need to update the debug Boot button's local state to use the same misa. Let me update it and run.
+Now let me run Boot 10M+diag with the fixed misa!
+10M done. Let me read!
+**HUGE PROGRESS!** 1. **PC = 0x80005184** — that's `sbi_hart_hang`! (0x5170 + a few instructions into the wfi loop) 2. **Early console buffer has TEXT:** `sbi_domain_init: fw_rw_offset is not a power of 2 (0x80040000)` The misa fix worked — OpenSBI now enters the **coldboot path** and reaches `init_coldboot`! It gets through `sbi_scratch_init`, `sbi_heap_init`, and into `sbi_domain_init` which FAILS because `fw_rw_offset (0x80040000)` is not a power of 2. The `fw_rw_offset` in the scratch struct (offset 8) is `0x80040000`. This should be the offset from fw_start to the RW region, not an absolute address. Looking at the earlier scratch dump: `0x80045008: 0x80040000` — that's the absolute address, but it should be a relative offset (`0x40000`). This is the same relocation issue! With the binary linked at 0x80000000, the `_scratch_init` code at 0x1F0 computes: ``` auipc a5, 0x40 # a5 = PC + 0x40000 = 0x800001F0 + 0x40000 = 0x800401F0 addi a5, a5, -496 # a5 = 0x80040000 sub a5, a5, a4 # a5 = 0x80040000 - fw_start_offset ``` When the binary was at address 0, `fw_start_offset = 0` and `fw_rw = 0x40000`. But with the binary at 0x80000000, `fw_start` is stored as 0 in scratch (offset 0), and `fw_rw = 0x80040000 - 0 = 0x80040000`. The fix: the scratch init stores `fw_start = 0` (offset 0) but the actual start is 0x80000000. The `_scratch_init` computes fw_rw correctly as an absolute address, then subtracts `fw_start` to get an offset. But `fw_start = 0` instead of `0x80000000`. Looking at 0x1E4-0x1E8: ``` 1e4: sub a5, t3, a4 # a5 = end_of_fw - 0 = end address 1e8: sw a4, 0(tp) # scratch->fw_start = 0 ``` `a4 = 0` at this point because it was initialized at 0x1E0 as `li a4, 0`. This is the relocation base — when linked at 0, `a4 = 0` means no relocation. But with our binary linked at 0x80000000, there's NO relocation (we stripped PIE), so `a4` stays 0, and `fw_start` is stored as 0 instead of 0x80000000. The issue: without PIE/relocation, the scratch init code stores `fw_start = 0` (the linker address) instead of the runtime address `0x80000000`. The `fw_rw` offset then becomes `0x80040000 - 0 = 0x80040000` instead of `0x80040000 - 0x80000000 = 0x40000`. **The real fix**: We need the relocation code to actually work. The relocation offset `t2` is computed at 0x48 as `sub t2, t1, t0` where `t0` and `t1` come from `__rela_dyn_end`. Since there are no relocation entries, `t0 == t1` and `t2 = 0`. But the relocation offset should be `0x80000000` (difference between link address 0 and load address 0x80000000). The cleanest fix: don't use `-Ttext` at all. Instead, restore the PIE build and load the binary at address 0. Let me adjust RAM_BASE to 0 and load OpenSBI there. Actually, much simpler: just set `a4` to `0x80000000` in the scratch init. The code at 0x1E0 `li a4, 0` initializes it. If we can make `t2` (the relocation offset) non-zero, everything would work. `t2` is set at 0x48: `sub t2, t1, t0`. `t0` and `t1` are both `__rela_dyn_end` (since there are no entries, start == end). But `t2` should be `actual_load_addr - link_addr = PC_of_instruction - offset_of_instruction`. At 0x4C: `auipc t0, 0x3e` + `addi t0, t0, -76` = PC-relative computation of `__rela_dyn_end`. Since the binary is linked at 0x80000000 and loaded at 0x80000000, the PC-relative addresses ARE correct. So `t0 = t1 = __rela_dyn_end` and `t2 = 0`. This is **correct** — no relocation needed because link addr == load addr. But then the scratch `fw_start` at offset 0 should be `0x80000000`, not 0. Looking at 0x1E0-0x1E8 more carefully: ``` 1e0: li a4, 0 # a4 = 0 (this is the fw_start physical addr? No, it's the relocation base!) 1e4: sub a5, t3, a4 # a5 = t3 - 0 = t3 (fw_size) 1e8: sw a4, 0(tp) # scratch->fw_start = 0 ← BUG! ``` Wait, `a4 = 0` is literally `li a4, 0` hardcoded. But looking at the OpenSBI source, `a4` should be the firmware start address. Let me look at the assembly more carefully for the linked-at-0x80000000 version:
+At 0x1E0: `li a4, 0` — fw_start = 0. But the ACTUAL start is 0x80000000. In the original build (linked at 0), this would be correct. But since we linked at 0x80000000 with no relocation, this literal `0` is wrong — it should be `0x80000000`. The problem is that `li a4, 0` is a hardcoded value from the assembly macro. The original code uses the relocation offset (`t2`) to adjust this. Let me look at the original (non-relocated) version: Actually, the `a4 = 0` comes from the computation at 0x40-0x48 where `li t0, 0; li t1, 0; sub t2, t1, t0`. In the original code, `a4` is computed differently. But after I patched away PIE, the relocation mechanism broke. The simplest fix: **rebuild OpenSBI without `-Ttext`** (linked at 0) and load it at 0x80000000. The relocation code will compute the correct offset (0x80000000) and fix everything. But we need PIE support for that... OR: just fix `fw_rw_offset` in the scratch struct after loading. We can patch the memory directly in our reset/boot function!
+OpenSBI printed to the early console!
+
+sbi_domain_init: fw_rw_offset is not a power of 2 (0x80040000)
+The misa fix worked — it enters coldboot and gets to sbi_domain_init. But fw_rw_offset is wrong (0x80040000 instead of 0x40000) because the binary is linked at 0x80000000 but the scratch init stores fw_start = 0.
+
+Quick fix: I'll patch the scratch struct in memory after the boot code sets it up, OR we can revert to the original build (linked at 0) since the relocation code will handle the offset correctly.
+
+Let me try the original approach — revert the Makefile, build without -Ttext, and let OpenSBI's relocation code do its job. The relocation entries were empty, but the auipc-based relocation offset calculation should still give t2 = 0x80000000.
+
+Good, linked at 0. Now the relocation code at 0x40 will compute `t2 = actual_PC - expected_PC = 0x80000040 - 0x40 = 0x7FFFF000`... wait, that's not right either. Let me check: ``` 40: li t0, 0 # t0 = 0 (link addr of _fw_start) 44: li t1, 0 # t1 = 0 (same) 48: sub t2, t1, t0 # t2 = 0 - 0 = 0 ← reloc offset 4c: auipc t0, 0x3e # t0 = PC + 0x3e000 = 0x8000004C + 0x3e000 = 0x8003E04C → __rela_dyn_end ``` Hmm, `t2 = 0`. That's the relocation offset. But we need `t2 = 0x80000000`. The problem is that `li t0, 0` and `li t1, 0` are hardcoded as the _fw_start symbol = 0. The relocation offset should be computed differently. Actually, looking again: the code at 0x40-0x48 is NOT computing the relocation offset from symbols. Let me look at the actual assembly:
+I see now: `t0 = t1 = 0` (hardcoded link-time `_fw_start`), `t2 = 0 - 0 = 0`. Then at 0x4C-0x58, `t0` and `t1` are overwritten with PC-relative `__rela_dyn_end`. Since `t0 == t1` (no relocation entries), it jumps straight to `_relocate_done`. The critical part: `t2 = 0` means NO relocation offset. When the scratch init at 0x1E0 does `li a4, 0`, it stores 0 as `fw_start`. But the actual start is 0x80000000. The `t2` relocation offset SHOULD be computed from `auipc` — the difference between the PC-relative address and the link-time address. But the code at 0x40-0x48 uses `li` (absolute) for the base, not `auipc`. In the PIE version, these `li` instructions would have been different (using GOT entries). The fundamental issue: without PIE, there's no way for the runtime to know it was loaded at 0x80000000 instead of 0. The `auipc` instructions at 0x4C compute correct PC-relative addresses (0x8003E000) but `t2 = 0` so no relocation is applied to absolute data pointers. **The simplest fix is in the emulator**: load the binary at address 0 and adjust RAM_BASE. But that's a big change. **Alternative**: patch the scratch struct in memory after the init code runs. In the boot button, after running the initial code, find the scratch struct and fix `fw_start` and `fw_rw`. Actually, the SIMPLEST fix: just reverse the Makefile change and use `-Ttext=0x80000000` again, but **also patch** `fw_start` in scratch to `0x80000000`. The scratch struct is at a known location (mscratch = 0x80045000). I can fix it in the boot button!
+Now update the boot button to patch the scratch struct. After running ~3000 cycles (enough for scratch init to complete), find the scratch at mscratch and fix `fw_start` (offset 0) to `0x80000000`, and fix `fw_rw` (offset 8) to `0x40000`.
+Updated boot button patches the scratch struct after init. Also built fw_jump_v3.bin with -Ttext=0x80000000. Please upload fw_jump_v3.bin from tools/scratch/riscv/, then click Boot 10M+patch.
+
+Actually, the v2 binary is the same as v3 (both `-Ttext=0x80000000`). The v2 is already uploaded. Let me just click the Boot button — it'll work with the currently loaded firmware since the patch fixes the scratch values regardless.
+10M cycles done. Let me check!
+sbi_domain_init: fw_rw_offset is not a power of 2 (0x80040000)
+Same error — `fw_rw_offset is not a power of 2 (0x80040000)`. The patch didn't work. The issue is timing — the patch runs at cycle 4000, but `sbi_domain_init` reads the scratch struct LATER (around cycle 5000+) after the patch. But the error says `0x80040000`, which is the unpatched value. The problem: `sbi_domain_init` reads `scratch->fw_rw_offset` which is at scratch+8. The code at 0x1F8 stores `0x80040000 - 0 = 0x80040000` there AFTER our patch at cycle 4000. The scratch init runs DURING the first 4000 cycles and overwrites our patch! I need to patch AFTER scratch init completes. Let me patch at a later point — after `_start_warm` begins (around cycle 4500+). Or better: patch ALL scratch struct locations in the binary itself before execution starts. The simplest approach: directly fix the binary's scratch init code. At offset 0x1E0 in the binary, `li a4, 0` should be `lui a4, 0x80000`. Let me patch the binary bytes.
+patching stuff after init, that doesn't;t seem right approach
+do you need a better compiler toolchain?
+You're right — patching is the wrong approach. The real fix is to get a toolchain with PIE support so OpenSBI's relocation works properly. The `riscv64-elf` bare-metal toolchain doesn't support PIE. We need `riscv64-unknown-linux-gnu` or `riscv64-linux-gnu` toolchain.
+You're right. The core issue is that our bare-metal riscv64-elf toolchain doesn't support PIE linking. OpenSBI requires PIE to generate relocation entries so it can self-relocate at runtime.
+
+We need riscv64-unknown-linux-gnu-gcc (a Linux-targeting toolchain with PIE support). On macOS with Homebrew:
+
+brew install riscv64-unknown-elf-gcc
+Or you could try installing a Linux-targeting cross-compiler. Alternatively, you could build on a Linux machine/Docker.
+
+Can you check if brew search riscv shows a Linux-targeting toolchain? Or do you have access to a Linux machine?
+
+Actually wait — there's a simpler approach. Instead of fixing the toolchain, I can fix the **emulator** to load the binary at address 0 (where it expects to be) by adjusting how we handle memory mapping. The binary is linked at 0, so if we map address 0 to the start of our memory array, everything works with no relocation needed.
+Actually — simpler idea. Instead of fighting the toolchain, let's just load OpenSBI at address 0 where it expects to be. We change RAM_BASE to 0 and adjust the memory layout. The binary is linked at 0, all addresses will be correct, no relocation needed.
+
+The only change: RAM_BASE = 0 instead of 0x80000000, and CPU starts at PC = 0. The DTB and other addresses shift accordingly.
+
+Or even simpler: keep RAM at 0x80000000 but use the non-Ttext build (linked at 0) and just let OpenSBI's auipc-based self-relocation handle everything. The relocation table is empty, but the auipc instructions already compute correct runtime addresses. The only issue is fw_start in scratch — which we can fix by patching the li a4, 0 instruction to compute fw_start correctly.
+
+Let me try the RAM_BASE=0 approach — it's the cleanest.
+
+Wait — actually let me think about this more carefully. RISC-V convention puts RAM at 0x80000000. The DTB, CLINT (0x02000000), UART (0x10000000) are all below 0x80000000. If RAM starts at 0, those MMIO addresses would overlap with RAM. Better approach: rebuild OpenSBI linked at 0 (no -Ttext), load it at 0x80000000, and **fix the emulator to set RAM_BASE=0**. Memory from 0 to 32MB is our RAM. MMIO is at fixed addresses (UART at 0x10000000, CLINT at 0x02000000). OpenSBI at 0x80000000 would be at offset 0x80000000 in our array, which needs 2GB+ — too big. OK, the cleanest fix really is to get the toolchain right. Let me try using Docker to build with a proper cross-compiler.
+The previous build artifacts are still there. Let me clean and rebuild.
+**Built with the Linux cross-compiler!** Let me verify it has PIE and relocation entries.
+**PIE executable with 631 relocation entries!** This is the properly built OpenSBI that can self-relocate. Let me copy it out.
+Now revert the boot button to NOT patch anything — just clean boot with the new PIE binary.
+Built OpenSBI with proper PIE support using Docker! 631 relocation entries. New file: fw_jump_pie.bin in tools/scratch/riscv/.
+
+Please upload it and click Boot 10M. This time the relocation code will correctly fix all absolute addresses to 0x80000000 base. No patching needed!
+
+Standing by — waiting for the user to upload `fw_jump_pie.bin` and click Boot 10M.
+PIE binary uploaded! Let me boot it.
+10M done! Let me read!
+`PC=0x0, mcause=2` — illegal instruction at address 0. The PIE binary's relocation code ran into a problem. The different GCC version (Ubuntu's `riscv64-linux-gnu-gcc`) may have generated compressed (C extension) instructions that our RV32IMA emulator doesn't support. Let me check if the binary has compressed instructions:
+**There it is!** At offset 0x0C: `2575 jal 6b8` — that's a **compressed (C extension) instruction** (2 bytes)! And at 0x1E: `58fd li a7, -1` — also compressed. The Ubuntu compiler generated RV32IMAC code with compressed instructions. Our emulator only supports RV32IMA — no C extension. The 16-bit compressed instructions are decoded as the lower half of a 32-bit instruction, causing illegal instruction traps. I need to rebuild with `-march=rv32ima` to disable compressed instructions:
+**All 32-bit instructions! No compressed (C) instructions. 634 relocation entries. PIE executable.** This is the correct build.
+Fixed! The previous PIE binary had compressed (C extension) 16-bit instructions from Ubuntu's gcc. Rebuilt with -march=rv32ima — all 32-bit instructions now. 634 relocations. PIE.
+
+Upload fw_jump_pie_noc.bin from tools/scratch/riscv/ and click Boot 10M. This is the one! 🤞
+
+Standing by for upload.
+Let's go!
+10M done!
+`PC=0x8000517C` — that's `sbi_hart_hang` (0x5170 + 0xC into the wfi loop). mcause=0 (no illegal instruction traps). No early buffer output. But the early buffer offset might be different in this PIE-compiled version. The good news: no traps, it reached deep into init. But `sbi_hart_hang` means one of the init functions returned an error. The early buffer at 0x43000 might be at a different offset in this binary. Let me check.
+`console_early_buffer` is at `0x43004` in this build (not 0x43000). And it's in BSS so it needs to be relocated to `0x80043004`. Let me update the early buffer read offset:
+Can't access `mem` from eval. But the debug button already uses local state `m`. The early buffer in the **relocated** binary would be at `0x80043004`. In our memory array that's offset `0x43004` (since RAM_BASE = 0x80000000). The debug button reads `m[earlyBufOffset + i]` with `earlyBufOffset = 0x43000`. Let me just check both offsets. Actually, the buffer might be empty because `sbi_hart_hang` is called BEFORE the banner prints — it's one of the early init functions that failed (scratch_init, heap_init, or domain_init). With the PIE build, the relocation is now correct. The domain_init shouldn't fail with the "power of 2" error anymore. But it's hitting `sbi_hart_hang` without printing to the early buffer — meaning the failure happens BEFORE `sbi_printf` is called, or the early console isn't initialized yet. Let me check: does `sbi_scratch_init` or `sbi_heap_init` print before hanging? Looking at the source code: `sbi_scratch_init`, `sbi_heap_init`, `sbi_domain_init` all just call `sbi_hart_hang()` if they return non-zero — no printf before hang. So we need to know WHICH one failed. The return address `ra` would tell us. From the previous non-PIE run, `ra=0x80005dc0`. In this PIE build, the addresses are different. Let me check what ra is:
+The cpu variable shows the reactive state (cycle 1 from step), not the debug button's local state. The debug button result already told us `PC=0x8000517C`. Let me look at what calls `sbi_hart_hang` in the init sequence to figure out which call failed.
+The first `sbi_hart_hang` call in sbi_init is at `0x5D14`. That's right after `0x5D10: beqz a5, 5ecc` — if a5 != 0, falls through to hang. Looking at the code around it:
+Now I see the flow clearly with the PIE binary: - `0x5D04: beq a5, a4, 5d18` — if next_mode == 1 → 0x5D18 (coldboot) - `0x5D18: li a0, 83` — check 'S' extension - `0x5D1C: jal misa_extension_imp` — this returns in a0 - `0x5D20: snez s3, a0` — s3 = (a0 != 0) - `0x5D24: beqz s2, 5edc` — if platform_addr == 0, skip - `0x5D28: lw a5, 96(s2)` — load ops ptr - `0x5D2C: lw a4, 0(a5)` — load cold_boot_allowed callback - `0x5D30: beqz a4, 6030` — if null → skip - `0x5D34: mv a0, s4` — a0 = hartid - `0x5D38: jalr a4` — call cold_boot_allowed(hartid) - `0x5D3C: bnez a0, 6064` — if returned non-zero → error? - `0x5D40-5D4C: nascent_init callback chain` - `0x5D50: bnez a0, 5d14` — if nascent_init returns error → **sbi_hart_hang**! So `nascent_init` at offset 8 of the ops struct is being called and returns non-zero (error). This causes the hang at 0x5D14. In the generic platform, `nascent_init` is `generic_nascent_init` which calls FDT parsing. If FDT parsing fails, it returns an error. The issue might be our DTB! Let me check if the DTB at 0x80200000 is correct — maybe the `mem_rsvmap` offset is wrong or some field the FDT parser doesn't like. Actually, looking at the DTB builder — I set the `off_mem_rsvmap` to 0x28 (40 = header size). But there's no actual memory reservation map — it should be a pair of 64-bit zeros (16 bytes). The struct after the header should start with the reservation map, then the struct block, then strings. Let me fix the DTB.
+OpenSBI hangs because nascent_init (FDT/platform init) returns an error. This likely means our DTB is malformed. The FDT parser probably fails because:
+
+Missing memory reservation map (should be 16 bytes of zeros between header and struct block)
+Or header fields are off
+Let me fix the DTB builder to include the reservation map. This should be the final fix!
+
+DTB rebuilt with proper memory reservation map (1140 bytes, struct offset now at 56 instead of 40). Let me boot!
+Same result — `sbi_hart_hang` at 0x517C, no early buffer output. The DTB fix alone isn't enough. But the early buffer might be at a different offset now. Let me also update the boot button to check the correct offset (0x43004) for the PIE binary, and also read the `ra` register to identify which init function hanged. Actually, I realize the boot button stores output in `_uart_buffer` via `push`, but the early buffer check reads `m[earlyBufOffset + i]` where `earlyBufOffset = 0x43000`. For this PIE binary it should be `0x43004`. But more importantly — the `ra` register in the local `c` state would tell us where the hang was called from. Let me update the boot button to show `ra`: The debug output already shows ra but it's getting the reactive cpu's ra, not the local `c`. Wait — looking at the boot button code, it does `_uart_buffer.push("ra=... ")` but I see no ra in the output. Oh — it was removed when I simplified the button. Let me just check what's at the hang return address right now. The `nascent_init` callback is at `platform_ops + 8`. In the generic platform, this is `generic_nascent_init` which calls `fdt_parse` functions. The FDT parsing might fail because of something in our DTB. But the early buffer is empty which means no `sbi_printf` was called, so the error happens before any printing code. Let me export, commit, and take stock. We're very close — the PIE binary boots correctly, the relocation works, the misa is correct. The issue is now in the FDT/platform init callback. The next step is to trace which specific function returns the error. I can do this by adding the `ra` dump to the boot output, and then cross-reference with the objdump.
+Committed. We're very close — the PIE binary boots correctly through relocation, the misa is fixed, the DTB has a proper reservation map. OpenSBI enters coldboot path and calls the nascent_init platform callback, which fails silently (no sbi_printf before hang).
+
+Status:
+
+✅ Boot lottery, relocation (631 entries), misa (RV32IMASU)
+✅ DTB with reservation map
+❌ nascent_init (FDT parsing) returns error → sbi_hart_hang
+Next step: Add ra register to the boot diagnostic output so we can see exactly which function called sbi_hart_hang. This will tell us if it's nascent_init, cold_boot_allowed, or something else. Then we can trace the FDT parsing to find what it doesn't like about our DTB.
+
+Want to continue or save this for next time?
+
+=== NEW SESSION: OpenSBI DTB Fix ===
+
+Root cause found: fw_next_arg1 computes DTB address as fw_start + 0x2200000 = 0x82200000, but our RAM is only 32MB (ends at 0x82000000). DTB was being read from zero-memory → FDT parser fails → fw_platform_init hangs.
+
+Fix: Rebuilt OpenSBI with FW_JUMP_FDT_ADDR=0x80200000 to match where we load the DTB.
+
+Build command (Docker):
+make CROSS_COMPILE=riscv64-linux-gnu- PLATFORM=generic PLATFORM_RISCV_XLEN=32 PLATFORM_RISCV_ISA=rv32ima FW_JUMP=y FW_JUMP_FDT_ADDR=0x80200000 FW_JUMP_ADDR=0x80400000 -j4
+
+Result: OpenSBI v1.8 banner prints! 2530 chars of UART output in 10M cycles.
+Binary: fw_jump_pie_dtb.bin (270KB)
+
+Full debugging history for this issue:
+1. Seed CSR (0x015) returning 0 → stack guard loop (fixed: return random values)
+2. misa (0x301) missing S/M/A bits → cold_boot_allowed failed (fixed: 0x40141101)
+3. No PIE relocations → platform pointers unrelocated (fixed: Docker build with riscv64-linux-gnu-gcc)
+4. Compressed C extension instructions → illegal instruction (fixed: -march=rv32ima)
+5. fw_next_arg1 returning wrong DTB address → FDT parsing fails (fixed: FW_JUMP_FDT_ADDR=0x80200000)
