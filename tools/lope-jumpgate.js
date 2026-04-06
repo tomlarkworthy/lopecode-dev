@@ -14,6 +14,7 @@
  *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
  *   --output <path>      Where to write the exported HTML (required)
  *   --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
+ *   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec)
  *   --timeout <ms>       Max wait for export (default: 120000)
  *   --headed             Show browser for debugging
  *   --verbose            Show browser console logs
@@ -38,6 +39,7 @@ function parseArgs(argv) {
     jumpgate: 'lopecode/notebooks/@tomlarkworthy_jumpgate.html',
     output: null,
     hash: null,
+    theme: null,
     timeout: 120000,
     headed: false,
     verbose: false,
@@ -55,6 +57,8 @@ function parseArgs(argv) {
       options.output = args[++i];
     } else if (arg === '--hash' && args[i + 1]) {
       options.hash = args[++i];
+    } else if (arg === '--theme' && args[i + 1]) {
+      options.theme = args[++i];
     } else if (arg === '--timeout' && args[i + 1]) {
       options.timeout = parseInt(args[++i], 10);
     } else if (arg === '--headed') {
@@ -74,6 +78,7 @@ Options:
   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
   --output <path>      Where to write the exported HTML (required)
   --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
+  --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec or none)
   --timeout <ms>       Max wait for export (default: 120000)
   --headed             Show browser for debugging
   --verbose            Show browser console logs
@@ -133,20 +138,23 @@ async function main() {
   const frameUrl = toFullUrl(options.frame);
   const sourceNotebook = toNotebookName(options.source);
 
-  // Resolve hash: --hash flag > existing spec > default side-panel layout
+  // Resolve hash and theme: --flag > existing spec > defaults
   let hash = options.hash;
-  if (!hash) {
-    const specPath = outputPath.replace(/\.html$/, '.json');
-    if (fs.existsSync(specPath)) {
-      try {
-        const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
-        if (spec.bootconf?.hash) {
-          hash = spec.bootconf.hash;
-          log(`Using hash from existing spec: ${hash}`);
-        }
-      } catch (e) {
-        log(`Warning: failed to read existing spec: ${e.message}`);
+  let theme = options.theme;
+  const specPath = outputPath.replace(/\.html$/, '.json');
+  if ((!hash || !theme) && fs.existsSync(specPath)) {
+    try {
+      const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+      if (!hash && spec.bootconf?.hash) {
+        hash = spec.bootconf.hash;
+        log(`Using hash from existing spec: ${hash}`);
       }
+      if (!theme && spec.bootconf?.theme) {
+        theme = spec.bootconf.theme;
+        log(`Using theme from existing spec: ${theme}`);
+      }
+    } catch (e) {
+      log(`Warning: failed to read existing spec: ${e.message}`);
     }
   }
   if (!hash) {
@@ -159,6 +167,7 @@ async function main() {
   const exportState = JSON.stringify({
     title: sourceNotebook,
     hash,
+    ...(theme ? { theme } : {}),
   });
 
   log(`Source: ${sourceUrl}`);
@@ -239,6 +248,10 @@ async function main() {
       }
       runtime._computeNow();
     });
+
+    if (theme) {
+      log(`Theme: ${theme} (via export_state)`);
+    }
 
     // Poll for the exported variable to settle
     log('Waiting for export to complete...');
@@ -356,11 +369,20 @@ async function main() {
     // Generate .json spec alongside the HTML
     const jsonPath = outputPath.replace(/\.html$/, '.json');
     try {
-      const spec = execFileSync('bun', ['tools/lope-reader.ts', outputPath], {
+      const specStr = execFileSync('bun', ['tools/lope-reader.ts', outputPath], {
         encoding: 'utf-8',
         timeout: 30000,
       });
-      fs.writeFileSync(jsonPath, spec);
+      // Add theme to bootconf if specified
+      if (theme) {
+        const specObj = JSON.parse(specStr);
+        if (specObj.bootconf) {
+          specObj.bootconf.theme = theme;
+        }
+        fs.writeFileSync(jsonPath, JSON.stringify(specObj, null, 2) + '\n');
+      } else {
+        fs.writeFileSync(jsonPath, specStr);
+      }
       log(`Spec: ${jsonPath}`);
     } catch (e) {
       log(`Warning: failed to generate spec: ${e.message}`);
