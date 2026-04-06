@@ -780,6 +780,7 @@ function handleListVariables(cmd, runtime) {
 const _15uwot5 = function _cc_handle_list_cells(cc_find_module){return(
 function handleListCells(cmd, runtime) {
     var moduleName = cmd.params.module;
+    var maxLen = cmd.params.maxDefinitionLength;
     var targetModule = cc_find_module(runtime, moduleName);
     if (!targetModule)
         return {
@@ -791,7 +792,8 @@ function handleListCells(cmd, runtime) {
         var v = entry[1];
         var defStr = '';
         try {
-            defStr = String(v._definition).slice(0, 2000);
+            var raw = String(v._definition);
+            defStr = maxLen === 0 ? raw : raw.slice(0, maxLen || 2000);
         } catch (e) {
         }
         cells.push({

@@ -506,6 +506,10 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description: "Module name (required)",
           },
+          max_definition_length: {
+            type: "number",
+            description: "Max characters per cell definition (default: 2000, 0 for unlimited)",
+          },
         },
         required: ["module"],
       },
@@ -707,7 +711,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         break;
       case "list_cells":
         action = "list-cells";
-        params = { module: args.module };
+        params = { module: args.module, maxDefinitionLength: args.max_definition_length };
         break;
       case "run_tests":
         action = "run-tests";
