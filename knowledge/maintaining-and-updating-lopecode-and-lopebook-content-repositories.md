@@ -50,9 +50,12 @@ node tools/lope-jumpgate.js \
 | `--jumpgate <path>` | `lopecode/notebooks/@tomlarkworthy_jumpgate.html` | Path to jumpgate HTML |
 | `--output <path>` | (required) | Where to write the exported HTML |
 | `--hash <hash>` | existing spec or side-panel | Hash for bootconf (e.g. `#view=@author/notebook`) |
+| `--theme <name>` | existing spec or none | Theme name (e.g. `near-midnight`) |
 | `--timeout <ms>` | `120000` | Max wait for export |
 | `--headed` | false | Show browser for debugging |
 | `--verbose` | false | Show browser console logs |
+
+Jumpgate also writes the source Observable URL to the `.json` spec file as `"observablehq.com"`. This is read by `lope-push-ws.js` as a default `--target`, so pushes don't need an explicit URL after the first jumpgate.
 
 Exit codes: `0` = success, `1` = failure
 

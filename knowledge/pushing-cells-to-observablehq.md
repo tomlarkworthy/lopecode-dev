@@ -56,14 +56,17 @@ Two cookies are required (both from `observablehq.com`):
 ## Tool: lope-push-ws.js (Preferred)
 
 ```bash
-# Push all cells (full replace)
+# Push all cells (auto-reads target from spec file's "observablehq.com" field)
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing
+
+# Push all cells (explicit target)
 node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target https://observablehq.com/d/ab8e6f7e97de571f
 
 # Replace specific cells in-place (safe)
-node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target URL --cells "test_foo,test_bar"
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --cells "test_foo,test_bar"
 
 # Add new cells without deleting (for seeding)
-node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --target URL --no-delete
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --no-delete
 
 # Dry run to see available cell names
 node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing --dry-run
@@ -77,7 +80,7 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 | Option | Description |
 |--------|-------------|
 | `--module <name>` | Module to extract cells from (required) |
-| `--target <url>` | Observable notebook URL to push to (required, unless `--dry-run`) |
+| `--target <url>` | Observable notebook URL to push to (reads from spec `"observablehq.com"` field if omitted) |
 | `--cells <names>` | Comma-separated cell names to push (default: all) |
 | `--no-delete` | Skip deleting old cells |
 | `--dry-run` | List cells that would be pushed without pushing |
