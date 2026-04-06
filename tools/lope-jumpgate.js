@@ -373,16 +373,12 @@ async function main() {
         encoding: 'utf-8',
         timeout: 30000,
       });
-      // Add theme to bootconf if specified
-      if (theme) {
-        const specObj = JSON.parse(specStr);
-        if (specObj.bootconf) {
-          specObj.bootconf.theme = theme;
-        }
-        fs.writeFileSync(jsonPath, JSON.stringify(specObj, null, 2) + '\n');
-      } else {
-        fs.writeFileSync(jsonPath, specStr);
+      const specObj = JSON.parse(specStr);
+      specObj["observablehq.com"] = sourceUrl;
+      if (theme && specObj.bootconf) {
+        specObj.bootconf.theme = theme;
       }
+      fs.writeFileSync(jsonPath, JSON.stringify(specObj, null, 2) + '\n');
       log(`Spec: ${jsonPath}`);
     } catch (e) {
       log(`Warning: failed to generate spec: ${e.message}`);

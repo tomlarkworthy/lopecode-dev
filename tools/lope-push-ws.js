@@ -811,15 +811,28 @@ async function main() {
     console.error('Error: --module is required');
     process.exit(1);
   }
-  if (!options.target && !options.dryRun) {
-    console.error('Error: --target is required (or use --dry-run)');
-    process.exit(1);
-  }
-
   const notebookPath = path.resolve(options.notebook);
   if (!fs.existsSync(notebookPath)) {
     console.error(`Error: Notebook not found: ${notebookPath}`);
     process.exit(1);
+  }
+
+  // Fall back to spec file's observablehq.com field if no --target
+  if (!options.target && !options.dryRun) {
+    const specPath = notebookPath.replace(/\.html$/, '.json');
+    if (fs.existsSync(specPath)) {
+      try {
+        const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+        if (spec["observablehq.com"]) {
+          options.target = spec["observablehq.com"];
+          log(`Using target from spec: ${options.target}`);
+        }
+      } catch (e) {}
+    }
+    if (!options.target) {
+      console.error('Error: --target is required (or use --dry-run). Tip: run jumpgate first to populate the spec.');
+      process.exit(1);
+    }
   }
 
   // Parse the notebook and extract the module
