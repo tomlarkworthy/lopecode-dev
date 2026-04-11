@@ -813,6 +813,8 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
       connectionMeta.set(ws, { url, title });
       wsBySocket.set(ws, url);
       ws.send(JSON.stringify({ type: "paired", notebook_id: url }));
+      // Restore port file if it was removed on last disconnect
+      try { require("fs").writeFileSync(portFilePath, String(PORT)); } catch {}
 
       // Notify Claude
       void mcp.notification({
@@ -972,6 +974,11 @@ function handleWsClose(ws: ServerWebSocket<unknown>) {
       },
     });
     process.stderr.write(`lopecode-channel: disconnected ${url}\n`);
+    // Remove port file when last notebook disconnects so the PostToolUse hook
+    // skips immediately instead of trying to curl a server with no listeners.
+    if (pairedConnections.size === 0) {
+      try { require("fs").unlinkSync(portFilePath); } catch {}
+    }
   }
 }
 
