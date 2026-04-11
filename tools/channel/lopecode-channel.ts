@@ -140,7 +140,10 @@ Use run_tests to execute all test_* cells.
 ## Tool guidance
 
 - define_cell: PRIMARY tool for creating content. Accepts Observable source, compiles via toolchain. Use for almost everything.
-- eval_code: For throwaway/ephemeral actions (DOM hacks, debugging, location.reload()). Lost on reload. NEVER use define_cell for one-off side effects.
+- eval_code: For throwaway/ephemeral actions. Lost on reload. NEVER use define_cell for one-off side effects. Common uses:
+  - Reload the page: \`location.reload()\` — use after sync-module to pick up changes, or to fix broken runtime state
+  - DOM inspection: \`document.querySelector('.foo')?.textContent\`
+  - Debugging: \`runtime._variables.size\`
 - define_variable: Low-level escape hatch with explicit function string + inputs array. Use when you need precise control over variable names and inputs that the compiler might mangle.
 - export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads. ALWAYS export before pushing to Observable.
 - fork_notebook: Forks the notebook into a new browser tab via exporter-2.
@@ -528,7 +531,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "eval_code",
-      description: "Evaluate JavaScript code in the notebook's browser context.",
+      description: "Evaluate JavaScript code in the notebook's browser context. Use for throwaway/ephemeral actions. Example: reload the page with `location.reload()` to pick up changes after sync-module or to fix a broken runtime state.",
       inputSchema: {
         type: "object",
         properties: {
