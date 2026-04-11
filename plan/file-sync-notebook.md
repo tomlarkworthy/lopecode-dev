@@ -286,26 +286,47 @@ This is simpler than a custom `lastWriteSource` flag system and integrates clean
 2. ✅ Export from jumpgate to update lopebooks HTML file
 3. ✅ Verify: `exportModuleJS` works on live runtime (tested on flow-queue, exporter-3, claude-code-pairing — imports, file attachments, viewof all correct)
 
-### Phase 1: Disassemble (one-shot write)
-1. Create `@tomlarkworthy/file-sync` notebook on ObservableHQ
-2. Implement `viewof directory` (showDirectoryPicker)
-3. Implement `disassemble` — iterate moduleMap, call exportModuleJS for each, write files
-4. Implement file attachment writing
-5. Write `bootconf.json` and `.file-sync.json`
-6. Test: open notebook, pick dir, verify all modules written correctly
+### Phase 1: Disassemble (one-shot write) ✅ COMPLETE (2026-04-11)
+1. ✅ Created `@tomlarkworthy/file-sync` notebook locally (jumpgated blank-notebook, renamed module)
+2. ✅ Implement `viewof directory` (showDirectoryPicker) — Chrome-only, uses `<div>` container for viewof value (button `.value` coerces to string)
+3. ✅ Implement `disassemble` — iterates moduleMap, calls exportModuleJS for each, writes files sequentially
+4. ✅ Implement file attachment writing (fetches blob URLs, writes decoded bytes)
+5. ✅ Write `bootconf.json` and `.file-sync.json`
+6. ✅ Test: 41 modules exported, 0 failures, file attachments correct
 
-### Phase 2: Notebook → Files (live)
-1. Implement `notebookToFiles` via onCodeChange
-2. Add debounce (200ms per module)
-3. Echo suppression: check `__provenance.source !== "file-sync"` before writing
-4. Test: edit a cell in the notebook, verify .js file updates on disk
+**Key files:**
+- Module source: `tools/scratch/file-sync-module.js`
+- Notebook HTML: `lopebooks/notebooks/@tomlarkworthy_file-sync.html`
+- Workflow: edit `.js` file → `sync-module.ts` → hard reload in Chrome
 
-### Phase 3: Files → Notebook (live)
-1. Implement polling loop with `file.lastModified` fast path
-2. Implement `probeDefine` parser
-3. Implement `applyModuleFromSource` — diff and apply to runtime
-4. Tag applied definitions with `tag(defn, {source: "file-sync"})` for echo suppression
-5. Test: edit a .js file externally, verify cell updates in notebook
+**Learnings:**
+- `<button>.value` coerces non-string values — use `<div>` container for viewof cells that hold objects
+- Observable compiler turns `new Event(...)` into a dependency on `Event` — use `new window.Event(...)` or avoid in source
+- Import bridge pattern: `main.define("name", ["module X", "@variable"], (_, v) => v.import("name", _))` — NOT `(m) => m.import("name")`
+- define_cell via pairing channel + history replay causes snowball loops — prefer editing `.js` file + sync-module for stable cells
+
+### Phase 2: Notebook → Files (live) ✅ COMPLETE (2026-04-11)
+1. ✅ Implement `notebookToFiles` via `onCodeChange` (imported from runtime-sdk)
+2. ✅ Add debounce (200ms per module, Map of pending timers)
+3. ✅ Echo suppression: checks `variable._definition.__provenance?.source === "file-sync"` before writing
+4. ✅ Test: defined `testCell` via pairing channel → `.js` file updated on disk within 200ms
+5. ✅ Cleanup via `invalidation` promise (unsubscribes listener, clears timers)
+
+### Phase 3: Files → Notebook (live) ✅ COMPLETE (2026-04-11)
+1. ✅ Implement polling loop with `file.lastModified` fast path (1s interval)
+2. ✅ Implement `probeDefine` parser (fake runtime captures cell definitions from `define()`)
+3. ✅ Implement `applyModule` — matches probed cells to live runtime variables by name, applies via `variable.define()`
+4. ✅ Tag applied definitions with `tag(defn, {source: "file-sync"})` for echo suppression
+5. ✅ Delta comparison: compares disk file against `exportModuleJS(moduleId)` — only applies when there's a real difference
+6. ✅ Test: added `fileSyncTest` cell to `dom-view.js` on disk → appeared in runtime within 1s, reverted cleanly
+
+**Learnings:**
+- Must import `viewof currentModules` or use `moduleMap` directly — without it, `currentModules` is never reachable (lazy evaluation)
+- Importing `viewof currentModules` triggers module-map's full flow-queue pipeline which can timeout — better to import `moduleMap` function and call it directly
+- File-sync module must skip itself in `SKIP_MODULES` — applying its own `.js` from disk resets `viewof directory` (loses the handle)
+- First poll must compare against runtime export, not blindly apply — otherwise identical files cause spurious resyncs that break stateful modules (claude-code-pairing, etc.)
+- `main.define(name, deps, fn)` calls bypass `fakeModule.variable()` — `probeDefine` needs a `define()` method on `fakeModule` too
+- Blob URL `import()` works for loading module `.js` files dynamically in the browser
 
 ### Phase 4: Polish
 1. Hash URL parameter (`&filesync=<name>`)
