@@ -680,7 +680,6 @@ md`## TODO
 
 - **Notebook re-export handling**: detect when the notebook HTML is re-exported and reconcile
 - **Import cell validation**: verify import bridges survive round-trip correctly
-- **IndexedDB handle persistence**: auto-restore directory handle across page reloads (blocked by cross-fork conflicts on same domain)
 - **Conflict resolution**: when both disk and runtime edit the same cell simultaneously, detect and surface the conflict instead of last-write-wins`
 )};
 const _bzxfni = (G, v) => G.input(v);
@@ -692,23 +691,23 @@ export default function define(runtime, observer) {
   };
 
   $def("_title", null, ["md"], _title);
+  $def("_directory", "viewof directory", ["htl","hashParam"], _directory);
+  $def("_1qhn011", "directory", ["Generators","viewof directory"], _1qhn011);
+  $def("_disassemble", "viewof disassemble", ["directory","notebookId","syncableModules","exportModuleJS","writeFile","htl"], _disassemble);
+  $def("_yggqvy", "disassemble", ["Generators","viewof disassemble"], _yggqvy);
+  $def("_syncStatus", "syncStatus", ["directory","syncableModules","notebookToFiles","filesToNotebook","htl"], _syncStatus);
   $def("_doc_overview", null, ["md"], _doc_overview);
   $def("_doc_files", null, ["md"], _doc_files);
   $def("_notebookId", "notebookId", [], _notebookId);
-  $def("_directory", "viewof directory", ["htl","hashParam"], _directory);
-  $def("_1qhn011", "directory", ["Generators","viewof directory"], _1qhn011);
-  $def("_disassemble", "viewof disassemble", ["directory","notebookId","syncableModules","exportModuleJS","writeFile","htl"], _disassemble);  
-  $def("_yggqvy", "disassemble", ["Generators","viewof disassemble"], _yggqvy);  
-  $def("_1rp7dcr", "hashParam", [], _1rp7dcr);  
-  $def("_rllftu", "writeFile", [], _rllftu);  
-  $def("_kfxaik", "readFile", [], _kfxaik);  
-  $def("_1wmv5ml", "SKIP_MODULES", [], _1wmv5ml);  
-  $def("_zfhapq", "syncableModules", ["currentModules","SKIP_MODULES"], _zfhapq);  
-  $def("_4zqocm", "probeDefine", [], _4zqocm);  
-  $def("_notebookToFiles", "notebookToFiles", ["directory","notebookId","onCodeChange","currentModules","exportModuleJS","writeFile","invalidation"], _notebookToFiles);  
-  $def("_fileSyncLastSeen", "fileSyncLastSeen", ["directory"], _fileSyncLastSeen);  
-  $def("_filesToNotebook", "filesToNotebook", ["directory","notebookId","currentModules","fileSyncLastSeen","readFile","probeDefine","exportModuleJS","tag","getFileAttachmentsMap","runtime","invalidation"], _filesToNotebook);  
-  $def("_syncStatus", "syncStatus", ["directory","syncableModules","notebookToFiles","filesToNotebook","htl"], _syncStatus);
+  $def("_1rp7dcr", "hashParam", [], _1rp7dcr);
+  $def("_rllftu", "writeFile", [], _rllftu);
+  $def("_kfxaik", "readFile", [], _kfxaik);
+  $def("_1wmv5ml", "SKIP_MODULES", [], _1wmv5ml);
+  $def("_zfhapq", "syncableModules", ["currentModules","SKIP_MODULES"], _zfhapq);
+  $def("_4zqocm", "probeDefine", [], _4zqocm);
+  $def("_notebookToFiles", "notebookToFiles", ["directory","notebookId","onCodeChange","currentModules","exportModuleJS","writeFile","invalidation"], _notebookToFiles);
+  $def("_fileSyncLastSeen", "fileSyncLastSeen", ["directory"], _fileSyncLastSeen);
+  $def("_filesToNotebook", "filesToNotebook", ["directory","notebookId","currentModules","fileSyncLastSeen","readFile","probeDefine","exportModuleJS","tag","getFileAttachmentsMap","runtime","invalidation"], _filesToNotebook);
   $def("_doc_technical", null, ["md"], _doc_technical);
   $def("_doc_todo", null, ["md"], _doc_todo);
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
