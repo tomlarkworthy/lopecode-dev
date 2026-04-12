@@ -595,7 +595,7 @@ const _1h4qqn4 = function _advance(decompress) {
                 instLen = 4;
             }
             const d = decode(inst);
-            d.len = instLen;
+            d.len = instLen; // override decode's default
             execute(d, cpu, mem, memRead, memWrite);
             if (cpu.wfi) {
                 // Fast-forward mtime to mtimecmp — skip idle cycles
@@ -669,6 +669,8 @@ const _10ymqgw = function _plic_state(){return(
 )};
 const _1d3xnb6 = function _decode()
 {
+    // Reuse a single object to avoid allocation per instruction
+    const d = { inst: 0, opcode: 0, rd: 0, funct3: 0, rs1: 0, rs2: 0, funct7: 0, imm: 0, type: 'I', len: 4 };
     return inst => {
         const opcode = inst & 127;
         const rd = inst >>> 7 & 31;
@@ -676,7 +678,6 @@ const _1d3xnb6 = function _decode()
         const rs1 = inst >>> 15 & 31;
         const rs2 = inst >>> 20 & 31;
         const funct7 = inst >>> 25 & 127;
-        // Immediate decoding per format
         let imm = 0;
         const type = opcode === 55 || opcode === 23 ? 'U' : opcode === 111 ? 'J' : opcode === 99 ? 'B' : opcode === 35 || opcode === 39 ? 'S' : opcode === 51 || opcode === 83 || opcode === 67 || opcode === 71 || opcode === 75 || opcode === 79 ? 'R' : 'I';
         switch (type) {
@@ -699,21 +700,25 @@ const _1d3xnb6 = function _decode()
             imm = 0;
             break;
         }
-        return {
-            inst,
-            opcode,
-            rd,
-            funct3,
-            rs1,
-            rs2,
-            funct7,
-            imm,
-            type
-        };
+        d.inst = inst;
+        d.opcode = opcode;
+        d.rd = rd;
+        d.funct3 = funct3;
+        d.rs1 = rs1;
+        d.rs2 = rs2;
+        d.funct7 = funct7;
+        d.imm = imm;
+        d.type = type;
+        return d;
     };
 };
-const _sgo4nt = function _execute(trap) {
+const _sgo4nt = function _execute(trap, translate) {
     const _trap = trap;
+    // Shared buffers for FP bit-casting — avoids allocation per FP instruction
+    const _fpBuf4 = new ArrayBuffer(4);
+    const _fpDv4 = new DataView(_fpBuf4);
+    const _fpBuf8 = new ArrayBuffer(8);
+    const _fpDv8 = new DataView(_fpBuf8);
     return (d, cpu, mem, memRead, memWrite) => {
         const x = cpu.x;
         const rs1v = x[d.rs1], rs2v = x[d.rs2];
@@ -911,8 +916,11 @@ const _sgo4nt = function _execute(trap) {
                     } else if (d.imm === 1) {
                         _trap(cpu, 3, cpu.pc);
                         nextPC = cpu.pc;
-                    } else if (d.inst === 273678451 || d.inst >>> 25 === 9) {
+                    } else if (d.inst === 273678451) {
                         cpu.wfi = true;
+                    } else if (d.inst >>> 25 === 9) {
+                        // SFENCE.VMA — flush TLB
+                        if (translate.flush) translate.flush();
                     }
                 } else {
                     if (csr === 21) {
@@ -971,9 +979,8 @@ const _sgo4nt = function _execute(trap) {
                         nextPC = cpu.pc;
                         break;
                     }
-                    const buf = new ArrayBuffer(4);
-                    new DataView(buf).setUint32(0, bits, true);
-                    cpu.f[d.rd] = new DataView(buf).getFloat32(0, true);
+                    _fpDv4.setUint32(0, bits, true);
+                    cpu.f[d.rd] = _fpDv4.getFloat32(0, true);
                 } else if (d.funct3 === 3) {
                     const lo = memRead(cpu, mem, addr, 4) >>> 0;
                     if (cpu.pc !== startPC) {
@@ -985,11 +992,9 @@ const _sgo4nt = function _execute(trap) {
                         nextPC = cpu.pc;
                         break;
                     }
-                    const buf = new ArrayBuffer(8);
-                    const dv = new DataView(buf);
-                    dv.setUint32(0, lo, true);
-                    dv.setUint32(4, hi, true);
-                    cpu.f[d.rd] = dv.getFloat64(0, true);
+                    _fpDv8.setUint32(0, lo, true);
+                    _fpDv8.setUint32(4, hi, true);
+                    cpu.f[d.rd] = _fpDv8.getFloat64(0, true);
                 }
                 cpu.csrs.set(768, (cpu.csrs.get(768) || 0) | 3 << 13);
                 break;
@@ -1001,23 +1006,20 @@ const _sgo4nt = function _execute(trap) {
                 }
                 const addr = rs1v + d.imm | 0;
                 if (d.funct3 === 2) {
-                    const buf = new ArrayBuffer(4);
-                    new DataView(buf).setFloat32(0, cpu.f[d.rs2], true);
-                    memWrite(cpu, mem, addr, 4, new DataView(buf).getUint32(0, true));
+                    _fpDv4.setFloat32(0, cpu.f[d.rs2], true);
+                    memWrite(cpu, mem, addr, 4, _fpDv4.getUint32(0, true));
                     if (cpu.pc !== startPC) {
                         nextPC = cpu.pc;
                         break;
                     }
                 } else if (d.funct3 === 3) {
-                    const buf = new ArrayBuffer(8);
-                    new DataView(buf).setFloat64(0, cpu.f[d.rs2], true);
-                    const dv = new DataView(buf);
-                    memWrite(cpu, mem, addr, 4, dv.getUint32(0, true));
+                    _fpDv8.setFloat64(0, cpu.f[d.rs2], true);
+                    memWrite(cpu, mem, addr, 4, _fpDv8.getUint32(0, true));
                     if (cpu.pc !== startPC) {
                         nextPC = cpu.pc;
                         break;
                     }
-                    memWrite(cpu, mem, addr + 4, 4, dv.getUint32(4, true));
+                    memWrite(cpu, mem, addr + 4, 4, _fpDv8.getUint32(4, true));
                     if (cpu.pc !== startPC) {
                         nextPC = cpu.pc;
                         break;
@@ -1102,12 +1104,10 @@ const _sgo4nt = function _execute(trap) {
                     f[frd] = Math.sqrt(f[frs1]);
                     break;
                 case 16: {
-                        const buf = new ArrayBuffer(4);
-                        const dv = new DataView(buf);
-                        dv.setFloat32(0, f[frs1], true);
-                        const a = dv.getUint32(0, true);
-                        dv.setFloat32(0, f[frs2], true);
-                        const b = dv.getUint32(0, true);
+                        _fpDv4.setFloat32(0, f[frs1], true);
+                        const a = _fpDv4.getUint32(0, true);
+                        _fpDv4.setFloat32(0, f[frs2], true);
+                        const b = _fpDv4.getUint32(0, true);
                         let r;
                         if (d.funct3 === 0)
                             r = a & 2147483647 | b & 2147483648;
@@ -1115,17 +1115,15 @@ const _sgo4nt = function _execute(trap) {
                             r = a & 2147483647 | ~b & 2147483648;
                         else
                             r = a & 2147483647 | (a ^ b) & 2147483648;
-                        dv.setUint32(0, r, true);
-                        f[frd] = dv.getFloat32(0, true);
+                        _fpDv4.setUint32(0, r, true);
+                        f[frd] = _fpDv4.getFloat32(0, true);
                         break;
                     }
                 case 17: {
-                        const buf = new ArrayBuffer(8);
-                        const dv = new DataView(buf);
-                        dv.setFloat64(0, f[frs1], true);
-                        const alo = dv.getUint32(0, true), ahi = dv.getUint32(4, true);
-                        dv.setFloat64(0, f[frs2], true);
-                        const bhi = dv.getUint32(4, true);
+                        _fpDv8.setFloat64(0, f[frs1], true);
+                        const alo = _fpDv8.getUint32(0, true), ahi = _fpDv8.getUint32(4, true);
+                        _fpDv8.setFloat64(0, f[frs2], true);
+                        const bhi = _fpDv8.getUint32(4, true);
                         let rhi;
                         if (d.funct3 === 0)
                             rhi = ahi & 2147483647 | bhi & 2147483648;
@@ -1133,9 +1131,9 @@ const _sgo4nt = function _execute(trap) {
                             rhi = ahi & 2147483647 | ~bhi & 2147483648;
                         else
                             rhi = ahi & 2147483647 | (ahi ^ bhi) & 2147483648;
-                        dv.setUint32(0, alo, true);
-                        dv.setUint32(4, rhi, true);
-                        f[frd] = dv.getFloat64(0, true);
+                        _fpDv8.setUint32(0, alo, true);
+                        _fpDv8.setUint32(4, rhi, true);
+                        f[frd] = _fpDv8.getFloat64(0, true);
                         break;
                     }
                 case 20: {
@@ -1204,14 +1202,11 @@ const _sgo4nt = function _execute(trap) {
                     break;
                 case 112: {
                         if (d.funct3 === 0) {
-                            const buf = new ArrayBuffer(4);
-                            new DataView(buf).setFloat32(0, f[frs1], true);
-                            x[d.rd] = new DataView(buf).getInt32(0, true);
+                            _fpDv4.setFloat32(0, f[frs1], true);
+                            x[d.rd] = _fpDv4.getInt32(0, true);
                         } else {
-                            const v = Math.fround(f[frs1]);
-                            const buf = new ArrayBuffer(4);
-                            new DataView(buf).setFloat32(0, v, true);
-                            const bits = new DataView(buf).getUint32(0, true);
+                            _fpDv4.setFloat32(0, Math.fround(f[frs1]), true);
+                            const bits = _fpDv4.getUint32(0, true);
                             const sign = bits >> 31, exp = bits >> 23 & 255, mant = bits & 8388607;
                             let cls = 0;
                             if (exp === 255 && mant)
@@ -1230,11 +1225,9 @@ const _sgo4nt = function _execute(trap) {
                     }
                 case 113: {
                         if (d.funct3 === 1) {
-                            const v = f[frs1];
-                            const buf = new ArrayBuffer(8);
-                            new DataView(buf).setFloat64(0, v, true);
-                            const lo = new DataView(buf).getUint32(0, true);
-                            const hi = new DataView(buf).getUint32(4, true);
+                            _fpDv8.setFloat64(0, f[frs1], true);
+                            const lo = _fpDv8.getUint32(0, true);
+                            const hi = _fpDv8.getUint32(4, true);
                             const sign = hi >> 31, exp = hi >> 20 & 2047, mantHi = hi & 1048575;
                             let cls = 0;
                             if (exp === 2047 && (mantHi || lo))
@@ -1252,9 +1245,8 @@ const _sgo4nt = function _execute(trap) {
                         break;
                     }
                 case 120: {
-                        const buf = new ArrayBuffer(4);
-                        new DataView(buf).setInt32(0, rs1v, true);
-                        f[frd] = new DataView(buf).getFloat32(0, true);
+                        _fpDv4.setInt32(0, rs1v, true);
+                        f[frd] = _fpDv4.getFloat32(0, true);
                         break;
                     }
                 default:
@@ -1337,181 +1329,123 @@ const _1yb74p8 = function _trap()
 const _c256r5 = function _translate()
 {
     const RAM_BASE = 2147483648;
+    // Reusable result objects — avoid allocation per translate call
+    const _ok = { pa: 0, ok: true, fault: 0 };
+    const _fail = { pa: 0, ok: false, fault: 0 };
+    // TLB: direct-mapped, 256 entries, tagged by (vpn | accessType<<20 | priv<<22)
+    const TLB_SIZE = 256;
+    const TLB_MASK = TLB_SIZE - 1;
+    const tlbTag = new Int32Array(TLB_SIZE).fill(-1);
+    const tlbPA = new Int32Array(TLB_SIZE); // physical page base (pa & ~0xFFF)
+    let memDv = null;
     const updatePTE = (mem, pteAddr, newPte) => {
         const off = (pteAddr - RAM_BASE) >>> 0;
         if (off + 4 <= mem.length) {
-            const v = new DataView(mem.buffer, off, 4);
-            v.setUint32(0, newPte, true);
+            if (!memDv || memDv.buffer !== mem.buffer) memDv = new DataView(mem.buffer);
+            memDv.setUint32(off, newPte, true);
         }
     };
-    return (cpu, mem, vaddr, accessType, memReadRaw) => {
-        // accessType: 0=fetch, 1=load, 2=store
-        // Fault codes: 12=inst page fault, 13=load page fault, 15=store page fault
-        const pageFault = [
-            12,
-            13,
-            15
-        ][accessType];
+    const fn = (cpu, mem, vaddr, accessType, memReadRaw) => {
         const satp = cpu.csrs.get(384) || 0;
         const mode = satp >>> 31 & 1;
-        if (cpu.priv === 3 || mode === 0)
-            return {
-                pa: vaddr,
-                ok: true
-            };
+        if (cpu.priv === 3 || mode === 0) {
+            _ok.pa = vaddr;
+            return _ok;
+        }
+        const vpn = vaddr >>> 12;
+        const offset = vaddr & 4095;
+        // TLB lookup
+        const tag = (vpn | (accessType << 20) | (cpu.priv << 22)) | 0;
+        const idx = vpn & TLB_MASK;
+        if (tlbTag[idx] === tag) {
+            _ok.pa = tlbPA[idx] | offset;
+            return _ok;
+        }
+        // TLB miss — full page table walk
+        const pageFault = accessType === 0 ? 12 : accessType === 1 ? 13 : 15;
         const ppn = satp & 4194303;
         let ptBase = ppn << 12;
         const vpn1 = vaddr >>> 22 & 1023;
         const vpn0 = vaddr >>> 12 & 1023;
-        const offset = vaddr & 4095;
-        // Level 1: read root PTE
         const pte1Addr = ptBase + vpn1 * 4;
         const pte1 = memReadRaw(mem, pte1Addr, 4) >>> 0;
-        if (!(pte1 & 1))
-            return {
-                pa: 0,
-                ok: false,
-                fault: pageFault
-            };
-        // V=0
+        if (!(pte1 & 1)) { _fail.fault = pageFault; return _fail; }
         const r1 = pte1 >> 1 & 1, w1 = pte1 >> 2 & 1, x1 = pte1 >> 3 & 1;
         if (r1 || x1) {
-            // Superpage (4MB) leaf at level 1
-            if (accessType === 0 && !x1)
-                return {
-                    pa: 0,
-                    ok: false,
-                    fault: 12
-                };
-            if (accessType === 1 && !r1)
-                return {
-                    pa: 0,
-                    ok: false,
-                    fault: 13
-                };
-            if (accessType === 2 && !w1)
-                return {
-                    pa: 0,
-                    ok: false,
-                    fault: 15
-                };
+            if (accessType === 0 && !x1) { _fail.fault = 12; return _fail; }
+            if (accessType === 1 && !r1) { _fail.fault = 13; return _fail; }
+            if (accessType === 2 && !w1) { _fail.fault = 15; return _fail; }
             const u1 = pte1 >> 4 & 1;
-            if (cpu.priv === 0 && !u1)
-                return {
-                    pa: 0,
-                    ok: false,
-                    fault: pageFault
-                };
+            if (cpu.priv === 0 && !u1) { _fail.fault = pageFault; return _fail; }
             if (cpu.priv === 1 && u1) {
                 const _ms = cpu.csrs.get(768) || 0;
-                if (!(_ms & 1 << 18))
-                    return {
-                        pa: 0,
-                        ok: false,
-                        fault: pageFault
-                    };    // SUM
+                if (!(_ms & 1 << 18)) { _fail.fault = pageFault; return _fail; }
             }
-            // Misaligned superpage: PPN[0] must be 0
-            if (pte1 >> 10 & 1023)
-                return {
-                    pa: 0,
-                    ok: false,
-                    fault: pageFault
-                };
-            // Hardware A/D bit management
+            if (pte1 >> 10 & 1023) { _fail.fault = pageFault; return _fail; }
             if (!((pte1 >> 6) & 1) || (accessType === 2 && !((pte1 >> 7) & 1))) {
                 updatePTE(mem, pte1Addr, pte1 | (1 << 6) | (accessType === 2 ? (1 << 7) : 0));
             }
             const ppn1 = pte1 >>> 20 & 4095;
             const pa = ppn1 << 22 | vpn0 << 12 | offset;
-            return {
-                pa,
-                ok: true
-            };
+            // Cache in TLB
+            tlbTag[idx] = tag;
+            tlbPA[idx] = pa & ~0xFFF;
+            _ok.pa = pa;
+            return _ok;
         }
-        // Non-leaf: walk to level 0
         const ptBase0 = (pte1 >>> 10 & 4194303) << 12;
         const pte0Addr = ptBase0 + vpn0 * 4;
         const pte0 = memReadRaw(mem, pte0Addr, 4) >>> 0;
-        if (!(pte0 & 1))
-            return {
-                pa: 0,
-                ok: false,
-                fault: pageFault
-            };
-        // V=0
+        if (!(pte0 & 1)) { _fail.fault = pageFault; return _fail; }
         const r0 = pte0 >> 1 & 1, w0 = pte0 >> 2 & 1, x0 = pte0 >> 3 & 1;
-        if (!r0 && !x0)
-            return {
-                pa: 0,
-                ok: false,
-                fault: pageFault
-            };
-        // Non-leaf at level 0
-        if (accessType === 0 && !x0)
-            return {
-                pa: 0,
-                ok: false,
-                fault: 12
-            };
-        if (accessType === 1 && !r0)
-            return {
-                pa: 0,
-                ok: false,
-                fault: 13
-            };
-        if (accessType === 2 && !w0)
-            return {
-                pa: 0,
-                ok: false,
-                fault: 15
-            };
+        if (!r0 && !x0) { _fail.fault = pageFault; return _fail; }
+        if (accessType === 0 && !x0) { _fail.fault = 12; return _fail; }
+        if (accessType === 1 && !r0) { _fail.fault = 13; return _fail; }
+        if (accessType === 2 && !w0) { _fail.fault = 15; return _fail; }
         const u0 = pte0 >> 4 & 1;
-        if (cpu.priv === 0 && !u0)
-            return {
-                pa: 0,
-                ok: false,
-                fault: pageFault
-            };
+        if (cpu.priv === 0 && !u0) { _fail.fault = pageFault; return _fail; }
         if (cpu.priv === 1 && u0) {
             const _ms0 = cpu.csrs.get(768) || 0;
-            if (!(_ms0 & 1 << 18))
-                return {
-                    pa: 0,
-                    ok: false,
-                    fault: pageFault
-                };    // SUM
+            if (!(_ms0 & 1 << 18)) { _fail.fault = pageFault; return _fail; }
         }
-        // Hardware A/D bit management
         if (!((pte0 >> 6) & 1) || (accessType === 2 && !((pte0 >> 7) & 1))) {
             updatePTE(mem, pte0Addr, pte0 | (1 << 6) | (accessType === 2 ? (1 << 7) : 0));
         }
         const ppn_full = pte0 >>> 10 & 4194303;
         const pa = ppn_full << 12 | offset;
-        return {
-            pa,
-            ok: true
-        };
+        // Cache in TLB
+        tlbTag[idx] = tag;
+        tlbPA[idx] = pa & ~0xFFF;
+        _ok.pa = pa;
+        return _ok;
+    };
+    fn.flush = () => { tlbTag.fill(-1); };
+    return fn;
+};
+const _7m3vc = function _memReadRaw(RAM_BASE){
+    // Reuse a single DataView over the full buffer — avoids allocation per read
+    let cachedView = null;
+    let cachedBuffer = null;
+    return (mem, addr, size) => {
+        const offset = addr - RAM_BASE >>> 0;
+        if (offset + size > mem.length)
+            return 0;
+        if (cachedBuffer !== mem.buffer) {
+            cachedView = new DataView(mem.buffer);
+            cachedBuffer = mem.buffer;
+        }
+        switch (size) {
+        case 1:
+            return cachedView.getInt8(offset);
+        case 2:
+            return cachedView.getInt16(offset, true);
+        case 4:
+            return cachedView.getInt32(offset, true);
+        default:
+            return 0;
+        }
     };
 };
-const _7m3vc = function _memReadRaw(RAM_BASE){return(
-(mem, addr, size) => {
-    const offset = addr - RAM_BASE >>> 0;
-    if (offset + size > mem.length)
-        return 0;
-    const view = new DataView(mem.buffer, offset, size);
-    switch (size) {
-    case 1:
-        return view.getInt8(0);
-    case 2:
-        return view.getInt16(0, true);
-    case 4:
-        return view.getInt32(0, true);
-    default:
-        return 0;
-    }
-}
-)};
 const _rcs98h = function _memRead(uart_state,plic_state,translate,memReadRaw,trap,UART_BASE,PLIC_BASE,CLINT_BASE,clint)
 {
     const uart = uart_state;
@@ -1620,7 +1554,7 @@ const _19sxnxs = function _memWrite(uart_state,plic_state,translate,memReadRaw,t
 {
     const uart = uart_state;
     const plic = plic_state;
-    // let storeFaultLog = window._storeFaultLog = []; // DEBUG: commented out for performance
+    let ramView = null; // Reused DataView for RAM writes
     return (cpu, mem, addr, size, val) => {
         const t = translate(cpu, mem, addr, 2, memReadRaw);
         if (!t.ok) {
@@ -1757,16 +1691,16 @@ const _19sxnxs = function _memWrite(uart_state,plic_state,translate,memReadRaw,t
         const offset = pa - RAM_BASE >>> 0;
         if (offset + size > mem.length)
             return;
-        const view = new DataView(mem.buffer, offset, size);
+        if (!ramView || ramView.buffer !== mem.buffer) ramView = new DataView(mem.buffer);
         switch (size) {
         case 1:
-            view.setInt8(0, val);
+            ramView.setInt8(offset, val);
             break;
         case 2:
-            view.setInt16(0, val, true);
+            ramView.setInt16(offset, val, true);
             break;
         case 4:
-            view.setInt32(0, val, true);
+            ramView.setInt32(offset, val, true);
             break;
         }
     };
@@ -2888,7 +2822,7 @@ export default function define(runtime, observer) {
   $def("_fc76lw", "_uart_buffer", [], _fc76lw);  
   $def("_10ymqgw", "plic_state", [], _10ymqgw);  
   $def("_1d3xnb6", "decode", [], _1d3xnb6);  
-  $def("_sgo4nt", "execute", ["trap"], _sgo4nt);  
+  $def("_sgo4nt", "execute", ["trap","translate"], _sgo4nt);
   $def("_1yb74p8", "trap", [], _1yb74p8);  
   $def("_c256r5", "translate", [], _c256r5);  
   $def("_7m3vc", "memReadRaw", ["RAM_BASE"], _7m3vc);  
