@@ -7,7 +7,7 @@
  * This file provides those builtins so BusyBox (and musl libc) can link.
  *
  * WHAT'S HERE:
- * - 64-bit integer division/modulo (rv32 has no 64-bit divide instruction)
+ * - 64-bit integer division/modulo/shifts (rv32 has no 64-bit instructions)
  * - Double-precision (binary64) arithmetic via integer bit manipulation
  * - Single-precision (binary32) int conversions and multiply
  * - Quad-precision (binary128) add/subtract/multiply/divide with full
@@ -29,10 +29,12 @@
  * 1. Switch emulator to rv64 — eliminates this file entirely. rv64 lp64d
  *    has full toolchain support (prebuilt libgcc/compiler-rt). The cost is
  *    rewriting the JS emulator for 64-bit registers (BigInt or hi/lo pairs).
- * 2. Cross-compile with GCC instead of clang — GCC ships libgcc for rv32
- *    ilp32d which includes all quad-precision builtins.
- * 3. Build LLVM compiler-rt from source for rv32 ilp32d — the real
- *    implementations live in compiler-rt/lib/builtins/fp_mul_impl.inc etc.
+ * 2. Build GCC's libgcc from riscv-gnu-toolchain — GCC's soft-fp library
+ *    uses manual multi-word arithmetic (no __int128) so it works on rv32.
+ *    Requires building the full GCC cross-toolchain (~15 min).
+ * 3. LLVM compiler-rt does NOT work for quad-precision on rv32 — clang
+ *    doesn't support __int128 on rv32, so all tf (128-bit) builtins
+ *    compile to empty objects. Only non-quad builtins are usable.
  *
  * All double-precision functions use integer arithmetic only — no FPU
  * instructions emitted, safe for soft-float bootstrap.
@@ -88,6 +90,46 @@ int64_t __moddi3(int64_t a, int64_t b) {
     if (b < 0) b = -b;
     int64_t r = (int64_t)__umoddi3((uint64_t)a, (uint64_t)b);
     return neg ? -r : r;
+}
+
+/* === 64-bit shift builtins === */
+/* rv32 has no 64-bit shift instructions; the compiler emits calls to these */
+
+uint64_t __lshrdi3(uint64_t a, int b) {
+    if (b == 0) return a;
+    if (b >= 64) return 0;
+    uint32_t lo = (uint32_t)a;
+    uint32_t hi = (uint32_t)(a >> 32);
+    if (b >= 32) return (uint64_t)(hi >> (b - 32));
+    uint32_t new_hi = hi >> b;
+    uint32_t new_lo = (lo >> b) | (hi << (32 - b));
+    return ((uint64_t)new_hi << 32) | new_lo;
+}
+
+int64_t __ashrdi3(int64_t a, int b) {
+    if (b == 0) return a;
+    uint32_t lo = (uint32_t)(uint64_t)a;
+    int32_t hi = (int32_t)((uint64_t)a >> 32);
+    if (b >= 64) return (int64_t)(hi >> 31);
+    if (b >= 32) {
+        int32_t new_lo = hi >> (b - 32);
+        int32_t new_hi = hi >> 31;
+        return ((uint64_t)(uint32_t)new_hi << 32) | (uint32_t)new_lo;
+    }
+    int32_t new_hi = hi >> b;
+    uint32_t new_lo = (lo >> b) | ((uint32_t)hi << (32 - b));
+    return ((uint64_t)(uint32_t)new_hi << 32) | new_lo;
+}
+
+uint64_t __ashldi3(uint64_t a, int b) {
+    if (b == 0) return a;
+    if (b >= 64) return 0;
+    uint32_t lo = (uint32_t)a;
+    uint32_t hi = (uint32_t)(a >> 32);
+    if (b >= 32) return (uint64_t)(lo << (b - 32)) << 32;
+    uint32_t new_hi = (hi << b) | (lo >> (32 - b));
+    uint32_t new_lo = lo << b;
+    return ((uint64_t)new_hi << 32) | new_lo;
 }
 
 /* === Double-precision float (IEEE 754 binary64) via integer ops === */
@@ -784,11 +826,6 @@ double __divdf3(double a, double b) {
 
 /* Negation */
 double __negdf2(double a) { du u = {a}; u.u ^= (1ULL << 63); return u.d; }
-
-/* === 64-bit shifts === */
-int64_t __ashldi3(int64_t a, int b) { return (uint64_t)a << b; }
-int64_t __ashrdi3(int64_t a, int b) { return a >> b; }
-uint64_t __lshrdi3(uint64_t a, int b) { return a >> b; }
 
 /* === double -> int64 === */
 int64_t __fixdfdi(double a) {

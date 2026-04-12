@@ -99,7 +99,11 @@ make ARCH=riscv CROSS_COMPILE=rv32- defconfig
 sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
 sed -i 's|CONFIG_CROSS_COMPILER_PREFIX=""|CONFIG_CROSS_COMPILER_PREFIX="rv32-"|' .config
 # Use clang's -fuse-ld=lld and link with musl
-# Build support library (64-bit integer division for rv32)
+# Build support library — softfloat.c provides builtins that no standard
+# library ships for rv32 ilp32d: quad-precision (128-bit long double) ops,
+# 64-bit integer division/shifts, and double/single float fallbacks.
+# compiler-rt can't help here — clang doesn't support __int128 on rv32,
+# so all quad-precision implementations compile to empty objects.
 echo "--- Building soft-float library ---"
 rv32-gcc -O2 -c -o /tmp/softfloat.o /src/softfloat.c
 llvm-ar rcs ${SYSROOT}/lib/libsoftfloat.a /tmp/softfloat.o
