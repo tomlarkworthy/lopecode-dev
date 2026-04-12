@@ -157,7 +157,7 @@ const _12tjadh = function _continuous_run(terminal_display,uart_state,_uart_buff
     let running = false;
     let rafId = null;
     let cyclesPerFrame = 50000;
-    const TARGET_MS = 12;
+    const TARGET_MS = 15;
     const pause = () => {
         running = false;
         if (rafId)
@@ -488,7 +488,8 @@ const _1h4qqn4 = function _advance(decompress) {
     return (cpu, mem, clint, tickTimer, memRead, memWrite, execute, decode, plic, uart, rx, n) => {
         const batch = Math.max(1000, Math.min(n | 0, 5000000));
         for (let i = 0; i < batch && !cpu.halted; i++) {
-            tickTimer(cpu, clint, plic, uart, rx);
+            if ((i & 1023) === 0) tickTimer(cpu, clint, plic, uart, rx, 1024, false);
+            else tickTimer(cpu, clint, plic, uart, rx, 0, true);
             const savedPC = cpu.pc;
             const raw = memRead(cpu, mem, cpu.pc, 4, 0) >>> 0;
             if (cpu.pc !== savedPC)
@@ -1634,41 +1635,41 @@ const _cqhb58 = function _checkPLIC()
 const _1jid5rm = function _tickTimer(checkPLIC,trap)
 {
     let prevMtimecmpLo = -1, prevMtimecmpHi = -1;
-    let csrUpdateCounter = 0;
-    return (cpu, clint, plic, uart, rx) => {
-        clint.mtime_lo = clint.mtime_lo + 1 | 0;
-        if (clint.mtime_lo === 0)
-            clint.mtime_hi = clint.mtime_hi + 1 | 0;
-        if ((++csrUpdateCounter & 63) === 0) {
+    return (cpu, clint, plic, uart, rx, ticks, quickCheck) => {
+        if (!quickCheck) {
+            // Full tick: advance mtime, check PLIC, check timer
+            const prev = clint.mtime_lo >>> 0;
+            clint.mtime_lo = (clint.mtime_lo + ticks) | 0;
+            if ((clint.mtime_lo >>> 0) < prev)
+                clint.mtime_hi = clint.mtime_hi + 1 | 0;
             cpu.csrs[3073] = clint.mtime_lo;
             cpu.csrs[3201] = clint.mtime_hi;
             cpu.csrs[3072] = cpu.cycle | 0;
             cpu.csrs[3200] = 0;
-        }
-        if (clint.mtimecmp_lo !== prevMtimecmpLo || clint.mtimecmp_hi !== prevMtimecmpHi) {
-            cpu.csrs[836] = (cpu.csrs[836]) & ~32;
-            prevMtimecmpLo = clint.mtimecmp_lo;
-            prevMtimecmpHi = clint.mtimecmp_hi;
-        }
-        // Delegate PLIC handling
-        if (plic && uart && rx) {
-            checkPLIC(cpu, plic, uart, rx);
-        }
-        // Timer interrupt
-        const timerPending = clint.mtime_hi >>> 0 > clint.mtimecmp_hi >>> 0 || clint.mtime_hi >>> 0 === clint.mtimecmp_hi >>> 0 && clint.mtime_lo >>> 0 >= clint.mtimecmp_lo >>> 0;
-        if (timerPending) {
-            const mip = cpu.csrs[836];
-            cpu.csrs[836] = mip | 128;
-            if (!(mip & 32)) {
-                cpu.csrs[836] = (cpu.csrs[836]) | 32;
-                clint.mtimecmp_lo = clint.mtime_lo + 100000 | 0;
-                clint.mtimecmp_hi = clint.mtime_hi;
-                if (clint.mtimecmp_lo >>> 0 < clint.mtime_lo >>> 0)
-                    clint.mtimecmp_hi++;
+            if (clint.mtimecmp_lo !== prevMtimecmpLo || clint.mtimecmp_hi !== prevMtimecmpHi) {
+                cpu.csrs[836] = (cpu.csrs[836]) & ~32;
                 prevMtimecmpLo = clint.mtimecmp_lo;
                 prevMtimecmpHi = clint.mtimecmp_hi;
             }
+            if (plic && uart && rx) {
+                checkPLIC(cpu, plic, uart, rx);
+            }
+            const timerPending = clint.mtime_hi >>> 0 > clint.mtimecmp_hi >>> 0 || clint.mtime_hi >>> 0 === clint.mtimecmp_hi >>> 0 && clint.mtime_lo >>> 0 >= clint.mtimecmp_lo >>> 0;
+            if (timerPending) {
+                const mip = cpu.csrs[836];
+                cpu.csrs[836] = mip | 128;
+                if (!(mip & 32)) {
+                    cpu.csrs[836] = (cpu.csrs[836]) | 32;
+                    clint.mtimecmp_lo = clint.mtime_lo + 100000 | 0;
+                    clint.mtimecmp_hi = clint.mtime_hi;
+                    if (clint.mtimecmp_lo >>> 0 < clint.mtime_lo >>> 0)
+                        clint.mtimecmp_hi++;
+                    prevMtimecmpLo = clint.mtimecmp_lo;
+                    prevMtimecmpHi = clint.mtimecmp_hi;
+                }
+            }
         }
+        // Fast interrupt dispatch check — runs every instruction
         const newMip = cpu.csrs[836];
         const sie = cpu.csrs[260];
         const _msSie = cpu.csrs[768];
