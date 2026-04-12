@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Building BusyBox for lopecode RISC-V SBC (rv32ima, static, musl+clang) ==="
+echo "=== Building BusyBox for lopecode RISC-V SBC (rv32imafdc, static, musl+clang) ==="
 
 apt-get update -qq
 apt-get install -y -qq clang lld llvm binutils-riscv64-linux-gnu gcc make wget xz-utils cpio bzip2 file bc flex bison libssl-dev rsync
@@ -15,15 +15,16 @@ for tool in llvm-ar llvm-ranlib llvm-nm llvm-objdump llvm-readelf llvm-strip; do
 done
 
 BUSYBOX_VERSION=1.36.1
-ARCH_FLAGS="--target=riscv32-linux-musl -march=rv32ima -mabi=ilp32"
+ARCH_FLAGS="--target=riscv32-linux-musl -march=rv32imafdc -mabi=ilp32d"
 MUSL_VERSION=1.2.5
 SYSROOT=/opt/musl-rv32
 
 cd /src
 
 # Step 1: Build musl libc using clang targeting rv32ima
+rm -rf ${SYSROOT}  # Force rebuild for new ABI
 if [ ! -f ${SYSROOT}/lib/libc.a ]; then
-    echo "--- Building musl libc for rv32ima/ilp32 (via clang) ---"
+    echo "--- Building musl libc for rv32imafdc/ilp32d (via clang) ---"
     if [ ! -f musl-${MUSL_VERSION}.tar.gz ]; then
         wget -q https://musl.libc.org/releases/musl-${MUSL_VERSION}.tar.gz
     fi
@@ -69,7 +70,7 @@ fi
 GCC_INTERNAL=$(clang ${ARCH_FLAGS} -print-resource-dir)/include
 cat > /usr/local/bin/rv32-gcc << WRAPPER
 #!/bin/bash
-exec clang --target=riscv32-linux-musl -march=rv32ima -mabi=ilp32 \\
+exec clang --target=riscv32-linux-musl -march=rv32imafdc -mabi=ilp32d \\
     --sysroot=${SYSROOT} \\
     -nostdinc \\
     -isystem ${SYSROOT}/include \\
@@ -98,7 +99,7 @@ make ARCH=riscv CROSS_COMPILE=rv32- defconfig
 sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
 sed -i 's|CONFIG_CROSS_COMPILER_PREFIX=""|CONFIG_CROSS_COMPILER_PREFIX="rv32-"|' .config
 # Use clang's -fuse-ld=lld and link with musl
-# Build soft-float library for rv32ima/ilp32
+# Build support library (64-bit integer division for rv32)
 echo "--- Building soft-float library ---"
 rv32-gcc -O2 -c -o /tmp/softfloat.o /src/softfloat.c
 llvm-ar rcs ${SYSROOT}/lib/libsoftfloat.a /tmp/softfloat.o
@@ -110,9 +111,19 @@ echo "" | rv32-gcc -x c -c -o ${SYSROOT}/lib/crtend.o -
 
 # -nodefaultlibs: keep crt from sysroot, skip -lgcc
 # Put -lc in LDFLAGS (not LDLIBS) since busybox filters LDLIBS through a link test
-sed -i "s|CONFIG_EXTRA_LDFLAGS=\"\"|CONFIG_EXTRA_LDFLAGS=\"-fuse-ld=lld -nodefaultlibs -static -L${SYSROOT}/lib -Wl,--start-group -lc -lsoftfloat -Wl,--end-group\"|" .config
+sed -i "s|CONFIG_EXTRA_LDFLAGS=\"\"|CONFIG_EXTRA_LDFLAGS=\"-fuse-ld=lld --sysroot=${SYSROOT} -B${SYSROOT}/lib -nodefaultlibs -static -L${SYSROOT}/lib -Wl,--start-group -lc -lsoftfloat -Wl,--end-group\"|" .config
 # Disable hwclock
 sed -i 's/CONFIG_HWCLOCK=y/# CONFIG_HWCLOCK is not set/' .config
+# Enable PREFER_APPLETS so ash runs applets in-process (no exec).
+sed -i 's/# CONFIG_FEATURE_PREFER_APPLETS is not set/CONFIG_FEATURE_PREFER_APPLETS=y/' .config
+sed -i 's/# CONFIG_FEATURE_SH_STANDALONE is not set/CONFIG_FEATURE_SH_STANDALONE=y/' .config
+# Disable BB_GLOBAL_CONST — clang on RISC-V caches the old (NULL)
+# ptr_to_globals value in a register despite BusyBox's inline-asm
+# barrier workaround. Removing 'const' forces the compiler to always
+# reload ptr_to_globals from memory after SET_PTR_TO_GLOBALS.
+# See include/libbb.h line 379 — BusyBox documents this flag for
+# exactly this class of "weird arches or toolchains" issue.
+sed -i 's|CONFIG_EXTRA_CFLAGS=""|CONFIG_EXTRA_CFLAGS="-DBB_GLOBAL_CONST="|' .config
 
 yes "" | make ARCH=riscv oldconfig > /dev/null 2>&1
 

@@ -18,14 +18,14 @@ make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- olddefconfig
 scripts/config --set-str INITRAMFS_SOURCE "/src/initramfs-busybox.cpio"
 make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- olddefconfig
 
-# Disable C extension (our emulator is rv32ima only)
-sed -i 's/CONFIG_RISCV_ISA_C=y/# CONFIG_RISCV_ISA_C is not set/' .config
+# Enable C extension (emulator supports rv32imafdc)
+sed -i 's/# CONFIG_RISCV_ISA_C is not set/CONFIG_RISCV_ISA_C=y/' .config
 
-if grep -q "CONFIG_RISCV_ISA_C=y" .config; then
-    echo "ERROR: CONFIG_RISCV_ISA_C is still enabled!"
+if ! grep -q "CONFIG_RISCV_ISA_C=y" .config; then
+    echo "ERROR: CONFIG_RISCV_ISA_C is not enabled!"
     exit 1
 fi
-echo "Verified: CONFIG_RISCV_ISA_C is disabled"
+echo "Verified: CONFIG_RISCV_ISA_C is enabled"
 
 echo "--- Cleaning previous build ---"
 make ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- clean || true
