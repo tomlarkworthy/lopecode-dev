@@ -469,104 +469,11 @@ const _ezjmx9 = function _cpu(){return(
     x: new Int32Array(32),
     pc: 2147483648,
     priv: 3,
-    csrs: new Map([
-        [
-            768,
-            0
-        ],
-        [
-            769,
-            1075056897
-        ],
-        [
-            770,
-            0
-        ],
-        [
-            771,
-            0
-        ],
-        [
-            772,
-            0
-        ],
-        [
-            773,
-            0
-        ],
-        [
-            832,
-            0
-        ],
-        [
-            833,
-            0
-        ],
-        [
-            834,
-            0
-        ],
-        [
-            835,
-            0
-        ],
-        [
-            836,
-            0
-        ],
-        [
-            256,
-            0
-        ],
-        [
-            260,
-            0
-        ],
-        [
-            261,
-            0
-        ],
-        [
-            320,
-            0
-        ],
-        [
-            321,
-            0
-        ],
-        [
-            322,
-            0
-        ],
-        [
-            323,
-            0
-        ],
-        [
-            324,
-            0
-        ],
-        [
-            384,
-            0
-        ],
-        [
-            3857,
-            0
-        ],
-        [
-            3858,
-            0
-        ],
-        [
-            3859,
-            0
-        ],
-        [
-            3860,
-            0
-        ]
-    ]),
+    csrs: (() => {
+        const a = new Int32Array(4096);
+        a[769] = 1075056897; // misa
+        return a;
+    })(),
     cycle: 0,
     halted: false,
     lr_addr: -1,
@@ -897,19 +804,19 @@ const _sgo4nt = function _execute(trap, translate) {
                 const csr = d.imm & 4095;
                 if (d.funct3 === 0) {
                     if (d.inst === 807403635) {
-                        const mstatus = cpu.csrs.get(768) || 0;
+                        const mstatus = cpu.csrs[768];
                         const mpie = mstatus >> 7 & 1;
                         const mpp = mstatus >> 11 & 3;
-                        cpu.csrs.set(768, mstatus & ~6280 | mpie << 3 | 1 << 7 | 0 << 11);
+                        cpu.csrs[768] = mstatus & ~6280 | mpie << 3 | 1 << 7 | 0 << 11;
                         cpu.priv = mpp;
-                        nextPC = cpu.csrs.get(833) || 0;
+                        nextPC = cpu.csrs[833];
                     } else if (d.inst === 270532723) {
-                        const mstatus = cpu.csrs.get(768) || 0;
+                        const mstatus = cpu.csrs[768];
                         const spie = mstatus >> 5 & 1;
                         const spp = mstatus >> 8 & 1;
-                        cpu.csrs.set(768, mstatus & ~290 | spie << 1 | 1 << 5 | 0 << 8);
+                        cpu.csrs[768] = mstatus & ~290 | spie << 1 | 1 << 5 | 0 << 8;
                         cpu.priv = spp;
-                        nextPC = cpu.csrs.get(321) || 0;
+                        nextPC = cpu.csrs[321];
                     } else if (d.imm === 0) {
                         _trap(cpu, cpu.priv === 0 ? 8 : cpu.priv === 1 ? 9 : 11, 0);
                         nextPC = cpu.pc;
@@ -934,9 +841,9 @@ const _sgo4nt = function _execute(trap, translate) {
                             const SSTATUS_MASK = 909602;
                             let csrVal;
                             if (csr === 256) {
-                                csrVal = (cpu.csrs.get(768) || 0) & SSTATUS_MASK;
+                                csrVal = (cpu.csrs[768]) & SSTATUS_MASK;
                             } else {
-                                csrVal = cpu.csrs.get(csr) || 0;
+                                csrVal = cpu.csrs[csr];
                             }
                             const wval = d.funct3 & 4 ? d.rs1 : rs1v;
                             let newVal;
@@ -952,12 +859,12 @@ const _sgo4nt = function _execute(trap, translate) {
                             }
                             if (newVal !== undefined) {
                                 if (csr === 256) {
-                                    const ms = cpu.csrs.get(768) || 0;
-                                    cpu.csrs.set(768, ms & ~SSTATUS_MASK | newVal & SSTATUS_MASK);
+                                    const ms = cpu.csrs[768];
+                                    cpu.csrs[768] = ms & ~SSTATUS_MASK | newVal & SSTATUS_MASK;
                                 } else if (csr === 768) {
-                                    cpu.csrs.set(768, newVal);
+                                    cpu.csrs[768] = newVal;
                                 } else {
-                                    cpu.csrs.set(csr, newVal);
+                                    cpu.csrs[csr] = newVal;
                                 }
                             }
                         }
@@ -968,9 +875,9 @@ const _sgo4nt = function _execute(trap, translate) {
         case 15:
             break;
         case 7: {
-                const ms = cpu.csrs.get(768) || 0;
+                const ms = cpu.csrs[768];
                 if ((ms >> 13 & 3) === 0) {
-                    cpu.csrs.set(768, ms | 1 << 13);
+                    cpu.csrs[768] = ms | 1 << 13;
                 }
                 const addr = rs1v + d.imm | 0;
                 if (d.funct3 === 2) {
@@ -996,13 +903,13 @@ const _sgo4nt = function _execute(trap, translate) {
                     _fpDv8.setUint32(4, hi, true);
                     cpu.f[d.rd] = _fpDv8.getFloat64(0, true);
                 }
-                cpu.csrs.set(768, (cpu.csrs.get(768) || 0) | 3 << 13);
+                cpu.csrs[768] = (cpu.csrs[768]) | 3 << 13;
                 break;
             }
         case 39: {
-                const ms = cpu.csrs.get(768) || 0;
+                const ms = cpu.csrs[768];
                 if ((ms >> 13 & 3) === 0) {
-                    cpu.csrs.set(768, ms | 1 << 13);
+                    cpu.csrs[768] = ms | 1 << 13;
                 }
                 const addr = rs1v + d.imm | 0;
                 if (d.funct3 === 2) {
@@ -1025,16 +932,16 @@ const _sgo4nt = function _execute(trap, translate) {
                         break;
                     }
                 }
-                cpu.csrs.set(768, (cpu.csrs.get(768) || 0) | 3 << 13);
+                cpu.csrs[768] = (cpu.csrs[768]) | 3 << 13;
                 break;
             }
         case 67:
         case 71:
         case 75:
         case 79: {
-                const ms = cpu.csrs.get(768) || 0;
+                const ms = cpu.csrs[768];
                 if ((ms >> 13 & 3) === 0) {
-                    cpu.csrs.set(768, ms | 1 << 13);
+                    cpu.csrs[768] = ms | 1 << 13;
                 }
                 const fmt = d.funct7 & 3;
                 const rs3 = d.funct7 >> 2;
@@ -1061,13 +968,13 @@ const _sgo4nt = function _execute(trap, translate) {
                     break;
                 }
                 f[d.rd] = fmt === 0 ? Math.fround(r) : r;
-                cpu.csrs.set(768, (cpu.csrs.get(768) || 0) | 3 << 13);
+                cpu.csrs[768] = (cpu.csrs[768]) | 3 << 13;
                 break;
             }
         case 83: {
-                const ms = cpu.csrs.get(768) || 0;
+                const ms = cpu.csrs[768];
                 if ((ms >> 13 & 3) === 0) {
-                    cpu.csrs.set(768, ms | 1 << 13);
+                    cpu.csrs[768] = ms | 1 << 13;
                 }
                 const f = cpu.f;
                 const frd = d.rd, frs1 = d.rs1, frs2 = d.rs2;
@@ -1254,7 +1161,7 @@ const _sgo4nt = function _execute(trap, translate) {
                     nextPC = cpu.pc;
                     break;
                 }
-                cpu.csrs.set(768, (cpu.csrs.get(768) || 0) | 3 << 13);
+                cpu.csrs[768] = (cpu.csrs[768]) | 3 << 13;
                 break;
             }
         default:
@@ -1285,42 +1192,42 @@ const _1yb74p8 = function _trap()
         // Check delegation: should this trap go to S-mode?
         // Traps from M-mode always stay in M-mode
         // Traps from S/U mode are delegated if the corresponding bit is set in medeleg/mideleg
-        const delegToS = cpu.priv < 3 && (isInterrupt ? (cpu.csrs.get(771) || 0) >>> excCode & 1    // mideleg
- : (cpu.csrs.get(770) || 0) >>> excCode & 1    // medeleg
+        const delegToS = cpu.priv < 3 && (isInterrupt ? (cpu.csrs[771]) >>> excCode & 1    // mideleg
+ : (cpu.csrs[770]) >>> excCode & 1    // medeleg
 );
         if (delegToS) {
             // S-mode trap
-            cpu.csrs.set(321, cpu.pc);
+            cpu.csrs[321] = cpu.pc;
             // sepc
-            cpu.csrs.set(322, cause);
+            cpu.csrs[322] = cause;
             // scause
-            cpu.csrs.set(323, tval || 0);
+            cpu.csrs[323] = tval || 0;
             // stval
             // Update mstatus (sstatus is a view): save SIE→SPIE, save priv→SPP, clear SIE
-            const mstatus = cpu.csrs.get(768) || 0;
+            const mstatus = cpu.csrs[768];
             const sie = mstatus >> 1 & 1;
-            cpu.csrs.set(768, mstatus & ~290 | sie << 5 | cpu.priv << 8);
+            cpu.csrs[768] = mstatus & ~290 | sie << 5 | cpu.priv << 8;
             cpu.priv = 1;
             // Enter S-mode
-            const stvec = cpu.csrs.get(261) || 0;
+            const stvec = cpu.csrs[261];
             const mode = stvec & 3;
             cpu.pc = mode === 0 ? stvec & ~3 : (stvec & ~3) + excCode * 4;
         } else {
             // M-mode trap
-            cpu.csrs.set(833, cpu.pc);
+            cpu.csrs[833] = cpu.pc;
             // mepc
-            cpu.csrs.set(834, cause);
+            cpu.csrs[834] = cause;
             // mcause
-            cpu.csrs.set(835, tval || 0);
+            cpu.csrs[835] = tval || 0;
             // mtval
             // Update mstatus: save MIE (bit 3) to MPIE (bit 7), save priv to MPP (bits 12:11), clear MIE
-            const mstatus = cpu.csrs.get(768) || 0;
+            const mstatus = cpu.csrs[768];
             const mie = mstatus >> 3 & 1;
-            cpu.csrs.set(768, mstatus & ~6280 | mie << 7 | cpu.priv << 11);
+            cpu.csrs[768] = mstatus & ~6280 | mie << 7 | cpu.priv << 11;
             // MPP, MPIE, MIE=0
             cpu.priv = 3;
             // Enter M-mode
-            const mtvec = cpu.csrs.get(773) || 0;
+            const mtvec = cpu.csrs[773];
             const mode = mtvec & 3;
             cpu.pc = mode === 0 ? mtvec & ~3 : (mtvec & ~3) + excCode * 4;
         }
@@ -1346,7 +1253,7 @@ const _c256r5 = function _translate()
         }
     };
     const fn = (cpu, mem, vaddr, accessType, memReadRaw) => {
-        const satp = cpu.csrs.get(384) || 0;
+        const satp = cpu.csrs[384];
         const mode = satp >>> 31 & 1;
         if (cpu.priv === 3 || mode === 0) {
             _ok.pa = vaddr;
@@ -1378,7 +1285,7 @@ const _c256r5 = function _translate()
             const u1 = pte1 >> 4 & 1;
             if (cpu.priv === 0 && !u1) { _fail.fault = pageFault; return _fail; }
             if (cpu.priv === 1 && u1) {
-                const _ms = cpu.csrs.get(768) || 0;
+                const _ms = cpu.csrs[768];
                 if (!(_ms & 1 << 18)) { _fail.fault = pageFault; return _fail; }
             }
             if (pte1 >> 10 & 1023) { _fail.fault = pageFault; return _fail; }
@@ -1405,7 +1312,7 @@ const _c256r5 = function _translate()
         const u0 = pte0 >> 4 & 1;
         if (cpu.priv === 0 && !u0) { _fail.fault = pageFault; return _fail; }
         if (cpu.priv === 1 && u0) {
-            const _ms0 = cpu.csrs.get(768) || 0;
+            const _ms0 = cpu.csrs[768];
             if (!(_ms0 & 1 << 18)) { _fail.fault = pageFault; return _fail; }
         }
         if (!((pte0 >> 6) & 1) || (accessType === 2 && !((pte0 >> 7) & 1))) {
@@ -1560,7 +1467,7 @@ const _19sxnxs = function _memWrite(uart_state,plic_state,translate,memReadRaw,t
         if (!t.ok) {
             /* DEBUG: store fault PTE walk dump — commented out for performance
             if (t.fault === 15 && storeFaultLog.length < 200) {
-                const satp = cpu.csrs.get(384) || 0;
+                const satp = cpu.csrs[384];
                 const ppn = satp & 0x3FFFFF;
                 const ptBase = ppn << 12;
                 const vpn1 = (addr >>> 22) & 0x3FF;
@@ -1719,9 +1626,9 @@ const _cqhb58 = function _checkPLIC()
                 hasInt = true;
         }
         if (hasInt)
-            cpu.csrs.set(836, (cpu.csrs.get(836) || 0) | 512);
+            cpu.csrs[836] = (cpu.csrs[836]) | 512;
         else
-            cpu.csrs.set(836, (cpu.csrs.get(836) || 0) & ~512);
+            cpu.csrs[836] = (cpu.csrs[836]) & ~512;
     };
 };
 const _1jid5rm = function _tickTimer(checkPLIC,trap)
@@ -1733,13 +1640,13 @@ const _1jid5rm = function _tickTimer(checkPLIC,trap)
         if (clint.mtime_lo === 0)
             clint.mtime_hi = clint.mtime_hi + 1 | 0;
         if ((++csrUpdateCounter & 63) === 0) {
-            cpu.csrs.set(3073, clint.mtime_lo);
-            cpu.csrs.set(3201, clint.mtime_hi);
-            cpu.csrs.set(3072, cpu.cycle | 0);
-            cpu.csrs.set(3200, 0);
+            cpu.csrs[3073] = clint.mtime_lo;
+            cpu.csrs[3201] = clint.mtime_hi;
+            cpu.csrs[3072] = cpu.cycle | 0;
+            cpu.csrs[3200] = 0;
         }
         if (clint.mtimecmp_lo !== prevMtimecmpLo || clint.mtimecmp_hi !== prevMtimecmpHi) {
-            cpu.csrs.set(836, (cpu.csrs.get(836) || 0) & ~32);
+            cpu.csrs[836] = (cpu.csrs[836]) & ~32;
             prevMtimecmpLo = clint.mtimecmp_lo;
             prevMtimecmpHi = clint.mtimecmp_hi;
         }
@@ -1750,10 +1657,10 @@ const _1jid5rm = function _tickTimer(checkPLIC,trap)
         // Timer interrupt
         const timerPending = clint.mtime_hi >>> 0 > clint.mtimecmp_hi >>> 0 || clint.mtime_hi >>> 0 === clint.mtimecmp_hi >>> 0 && clint.mtime_lo >>> 0 >= clint.mtimecmp_lo >>> 0;
         if (timerPending) {
-            const mip = cpu.csrs.get(836) || 0;
-            cpu.csrs.set(836, mip | 128);
+            const mip = cpu.csrs[836];
+            cpu.csrs[836] = mip | 128;
             if (!(mip & 32)) {
-                cpu.csrs.set(836, (cpu.csrs.get(836) || 0) | 32);
+                cpu.csrs[836] = (cpu.csrs[836]) | 32;
                 clint.mtimecmp_lo = clint.mtime_lo + 100000 | 0;
                 clint.mtimecmp_hi = clint.mtime_hi;
                 if (clint.mtimecmp_lo >>> 0 < clint.mtime_lo >>> 0)
@@ -1762,9 +1669,9 @@ const _1jid5rm = function _tickTimer(checkPLIC,trap)
                 prevMtimecmpHi = clint.mtimecmp_hi;
             }
         }
-        const newMip = cpu.csrs.get(836) || 0;
-        const sie = cpu.csrs.get(260) || 0;
-        const _msSie = cpu.csrs.get(768) || 0;
+        const newMip = cpu.csrs[836];
+        const sie = cpu.csrs[260];
+        const _msSie = cpu.csrs[768];
         const sieGlobal = _msSie >> 1 & 1;
         const canFireS = cpu.priv < 1 || cpu.priv === 1 && sieGlobal;
         if (!canFireS)
@@ -1774,8 +1681,8 @@ const _1jid5rm = function _tickTimer(checkPLIC,trap)
             return true;
         }
         if (newMip & 32 && sie & 32) {
-            cpu.csrs.set(3073, clint.mtime_lo);
-            cpu.csrs.set(3201, clint.mtime_hi);
+            cpu.csrs[3073] = clint.mtime_lo;
+            cpu.csrs[3201] = clint.mtime_hi;
             trap(cpu, 2147483648 | 5 | 0, 0);
             return true;
         }
@@ -1841,7 +1748,7 @@ const _1i5bxuy = function _buildDTB(INITRD_ADDR,initramfs,MEMORY_SIZE) {
         propStr('compatible', 'riscv-lopecode');
         propStr('model', 'lopecode-sbc');
         beginNode('chosen');
-        propStr('bootargs', 'earlycon=sbi console=ttyS0');
+        propStr('bootargs', 'earlycon=sbi console=ttyS0 8250.nr_uarts=1');
         propStr('stdout-path', '/soc/serial@10000000');
         propU32('linux,initrd-start', INITRD_ADDR);
         propU32('linux,initrd-end', initrdEnd);
@@ -2038,116 +1945,8 @@ const _1co3qd5 = function _initSystem(cpu,RAM_BASE,DTB_ADDR,mem,firmware_bytes,d
         _cpu.x = new Int32Array(32);
         _cpu.pc = _RAM_BASE;
         _cpu.priv = 3;
-        _cpu.csrs = new Map([
-            [
-                768,
-                0
-            ],
-            [
-                769,
-                MISA
-            ],
-            [
-                770,
-                0
-            ],
-            [
-                771,
-                0
-            ],
-            [
-                772,
-                0
-            ],
-            [
-                773,
-                0
-            ],
-            [
-                832,
-                0
-            ],
-            [
-                833,
-                0
-            ],
-            [
-                834,
-                0
-            ],
-            [
-                835,
-                0
-            ],
-            [
-                836,
-                0
-            ],
-            [
-                256,
-                0
-            ],
-            [
-                260,
-                0
-            ],
-            [
-                261,
-                0
-            ],
-            [
-                320,
-                0
-            ],
-            [
-                321,
-                0
-            ],
-            [
-                322,
-                0
-            ],
-            [
-                323,
-                0
-            ],
-            [
-                324,
-                0
-            ],
-            [
-                384,
-                0
-            ],
-            [
-                3857,
-                0
-            ],
-            [
-                3858,
-                0
-            ],
-            [
-                3859,
-                0
-            ],
-            [
-                3860,
-                0
-            ],
-            [
-                1,
-                0
-            ],
-            [
-                2,
-                0
-            ],
-            [
-                3,
-                0
-            ]
-        ]);
+        _cpu.csrs = new Int32Array(4096);
+        _cpu.csrs[769] = MISA;
         _cpu.f = new Float64Array(32);
         _cpu.x[10] = 0;
         _cpu.x[11] = _DTB_ADDR;
