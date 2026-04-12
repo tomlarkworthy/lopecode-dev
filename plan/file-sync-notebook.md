@@ -328,12 +328,41 @@ This is simpler than a custom `lastWriteSource` flag system and integrates clean
 - `main.define(name, deps, fn)` calls bypass `fakeModule.variable()` — `probeDefine` needs a `define()` method on `fakeModule` too
 - Blob URL `import()` works for loading module `.js` files dynamically in the browser
 
-### Phase 4: Polish
-1. Hash URL parameter (`&filesync=<name>`)
-2. IndexedDB handle persistence + auto-restore
-3. Sync status UI
-4. File attachment polling (bidirectional)
-5. Handle edge cases: module added/removed, notebook re-exported
+### Phase 4: Polish — IN PROGRESS (2026-04-12)
+1. ✅ Hash URL parameter (`&filesync=<name>`) — written to URL hash on first directory pick, shows hint on reload
+2. ~~IndexedDB handle persistence~~ — rejected (conflicts when multiple forks of same page share a domain)
+3. ✅ Sync status UI — `syncStatus` cell shows directory, module count, both directions' status
+4. File attachment polling (bidirectional) — not yet implemented
+5. Handle edge cases: module added/removed, notebook re-exported — not yet
+6. **Cell creation and deletion** — IN PROGRESS (2026-04-12)
+   - **Create**: When a pid from the `.js` file isn't found in `nameToVars`, creates a new variable. Uses `__ojs_observer(name)` for observed cells (renders to DOM), `mod.variable()` for hidden cells. Registers pid and name in `existingVars` for future lookups.
+   - **Delete**: After processing all cells, iterates `nameToVars` for pid-indexed entries not seen in the `.js` file. Calls `variable.delete()` and removes from map. Skips `"module "` prefixed entries (import bridges).
+   - **viewof/mutable pairs**: Handled naturally — both entries have their own pids via `$def`, so both are created/deleted together.
+   - **Import bridges**: No pid (use `main.define()` not `$def`), so they're immutable — only change on full reload.
+   - **`__ojs_observer`**: Runtime builtin, added as dependency of `filesToNotebook`. Factory function: `__ojs_observer(name)` returns an observer for rendering.
+   - **Deletion safety**: `knownFilePids` map tracks pids seen from `.js` files per module. First apply records pids (no deletions). Subsequent applies only delete pids that were in a previous probeDefine but are now absent. Variables without pids (implicits, import bridges) are never in `knownFilePids`, so they're never touched. No special-case guards needed.
+   - **Observer strategy**: Create all new cells WITHOUT observer (`mod.variable()`). Lopepage's visualizer auto-discovers new variables via `runtime_variables` → `liveCellMap` → `syncers` and renders them in the correct panel. Using `__ojs_observer` renders cells outside the lopepage frame.
+   - **Status**: ✅ Tested 2026-04-12. Create + delete cycle: exactly 2 history entries, no collateral, stable.
+
+**Bug fixes completed (2026-04-12):**
+- Fixed `applyModule` skipping anonymous cells: removed `if (!cell.name) continue` since pid-first lookup handles null-name cells too
+- All cell types tested: anonymous visual (title), named (SKIP_MODULES), viewof (disassemble), generator bridges (skipped by diff check)
+- probeDefine null-arg fix: `(typeof args[0] === 'string' || args[0] === null) ? args.shift() : null`
+- pid-first lookup with warning on miss (never creates new variables)
+- `redefinedSelf` timer fix: clears old pollTimer when filesToNotebook is redefined
+- **Removed `SKIP_MODULES`/`syncableModules` from reactive deps** of `notebookToFiles` and `filesToNotebook` — computed inline from `currentModules` instead. Prevents both cells from restarting (and cancelling pending writes / resetting poll state) when SKIP_MODULES changes.
+- **Added `fileSyncLastSeen` cell** — a stable `Map` that survives `filesToNotebook` restarts. Depends only on `directory` (resets when directory changes). Prevents the poller from reverting runtime changes by fast-path skipping files whose `lastModified` hasn't changed.
+- **`fileSyncLastSeen` must reference `directory`** in function body (`void directory`) — Observable compiler strips unused params from dependency arrays on recompile.
+- **No comments inside `return()` expressions** — the exporter serializes `return(// comment ...)` as `return; // comment ...` which breaks the function (returns undefined).
+
+**Known remaining issues:**
+- **Brief transient revert on notebook→files**: Analyzed 2026-04-12 — largely mitigated by `fileSyncLastSeen`. The fast-path skip (`lastModified` unchanged) prevents the poller from seeing stale disk content during the 200ms debounce window. Only triggers if an external process writes to the same `.js` file during that window.
+- **Two-way sync conflict**: Editing disk AND notebook simultaneously for the same module causes oscillation. The system eventually settles but may produce unexpected intermediate states. Fix: shared `syncLock` map (future work).
+- **Import cells not validated**: `probeDefine` captures import cells (`{type: 'import', ...}`) and `applyModule` skips them. Need to verify that import bridges (`main.define("module @x/y", ...)` + `main.define("imported", ...)`) survive round-trip correctly — i.e., the exporter serializes them and the poller's diff check doesn't flag them as deltas.
+
+**Working sync directory:** `test-sync/` in project root
+**Source of truth for runtime changes:** `test-sync/@tomlarkworthy/file-sync.js`
+**Sync to HTML:** `bun tools/channel/sync-module.ts --module @tomlarkworthy/file-sync --source test-sync/@tomlarkworthy/file-sync.js --target lopebooks/notebooks/@tomlarkworthy_file-sync.html`
 
 ## Agent Workflow (End Goal)
 
