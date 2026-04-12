@@ -147,6 +147,7 @@ bun test tests/channel/lopecode-channel.test.ts
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
 7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
 8. **After editing module `.js` files** - Sync to the target notebook with `bun tools/channel/sync-module.ts --module @name --source file.js --target notebook.html`, then tell the user to hard reload (Cmd+Shift+R)
+9. **Prefer imports over private APIs** — Never access private runtime properties (`mod._runtime`, `variable._module`) or internal builtins (`__ojs_runtime`) when the same value is available as an import. Use `@tomlarkworthy/runtime-sdk` for `runtime`, `main`, `onCodeChange`, `importShim`. Use `@tomlarkworthy/fileattachments` for `getFileAttachmentsMap`. Imports are stable, private APIs break.
 10. **Blank notebook (theme but no content)?** - Check the `bootconf.json` script in the HTML. An empty `"mains": []` means no modules are booted. Fix by adding lopepage and the main module name (e.g. `["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"]`)
 11. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
    - Observable runtime lazy evaluation (cells only compute when observed)

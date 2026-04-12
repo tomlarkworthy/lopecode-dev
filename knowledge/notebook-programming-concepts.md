@@ -617,6 +617,22 @@ Instead of the explicit pattern used in lopecode:
 ```
 When serializing these variables, the closure variables `e` and `i` are lost. Detect them by checking for 1 input `@variable` + definition containing `.import(`, then reconstruct the import by searching `moduleNames` for a module whose `_scope` contains the variable name.
 
+### Import bridge naming — `v.import()` controls the variable name
+
+**Critical:** `v.import("foo", _)` always creates a variable named `"foo"`, regardless of the first argument to `main.define()`. This means:
+
+```js
+// The variable is named "runtime", NOT "runtime_"
+main.define("runtime_", ["module @tomlarkworthy/runtime-sdk", "@variable"],
+  (_, v) => v.import("runtime", _));
+
+// So other cells must depend on "runtime", not "runtime_"
+$def("myCell", "myCell", ["runtime"], _myCell);
+// The function parameter can be anything — it's positional
+```
+
+If you need a different local name to avoid shadowing, rename the **function parameter** (positional), not the `main.define()` name or the dependency string.
+
 ### `history.replaceState` — not available in Observable iframe
 
 Observable notebooks run in a sandboxed iframe where `history.replaceState` throws. Wrap calls in try/catch.
