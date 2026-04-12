@@ -90,10 +90,10 @@ const _mt1 = function _mode_timeline() {
             for (let y = 0; y < H; y++) {
                 const off = (y * W + x) * 4;
                 const inBar = y >= (H - barH);
-                px[off] = inBar ? sr : 0;
-                px[off + 1] = inBar ? sg : 0;
-                px[off + 2] = inBar ? sb : 0;
-                px[off + 3] = inBar ? 255 : 0;
+                px[off] = inBar ? sr : 17;
+                px[off + 1] = inBar ? sg : 17;
+                px[off + 2] = inBar ? sb : 17;
+                px[off + 3] = 255;
             }
         }
         ctx.putImageData(imgData, 0, 0);
