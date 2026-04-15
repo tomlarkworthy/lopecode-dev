@@ -213,6 +213,46 @@ From there, define cells:
 - `tinyemu_cpu_sample = () => ({ pc: Module._te_cpu_get_pc(cpu_ptr), priv: Module._te_cpu_get_priv(cpu_ptr), ic: Module._te_cpu_get_insn_counter(cpu_ptr) })`
 - adapter that feeds `mode_timeline.sample()` at rAF cadence.
 
+## Session 4 (2026-04-15) — serving + emcc legacy globals
+
+**Key finding: file:// won't work.** Lopecode's global `fetch` override treats
+every `file://` URL as a file attachment ID (`id = url.slice(7)`). Assets that
+aren't registered as attachments get `Response { status: 404 }`. XHR is also
+hooked for `file://`. Native browser fetch of `file://` is also blocked by
+Chrome regardless. → Serve the notebook over **http://127.0.0.1:8089** instead:
+
+```
+cd lopebooks/notebooks && python3 -m http.server 8089 --bind 127.0.0.1
+```
+
+Open with `http://127.0.0.1:8089/@tomlarkworthy_linux-emu.html#...`. Now the
+`tinyemu-assets/*.{js,wasm,bin,cfg}` siblings resolve cleanly, and
+lopecode's fetch override falls through to native fetch for absolute http URLs.
+
+**Modern emcc incompatibilities in `js/lib.js`:**
+
+1. `Pointer_stringify` → `UTF8ToString` (5 sites). Fixed in tree.
+2. `Browser` and `Runtime` globals no longer auto-exported. Stubs injected
+   into `tinyemu_globals_stub` cell (Browser: wgetRequests/fbuf_table/handle
+   allocator; Runtime: `dynCall` that indirects through `window.__te_wasmTable`).
+3. `tinyemu_module` now captures `wasmTable` from the glue's closure and
+   stashes at `window.__te_wasmTable` so `Runtime.dynCall` can reach it.
+
+All three patches baked into notebook HTML (tinyemu_globals_stub, tinyemu_module,
+tinyemu_vm cells) so they survive reloads.
+
+**Current boot status**: Module instantiates, runtime initialized, `_get_ram_ptr`
+etc. all exported. `vm_start` throw-site with Browser patched was about to be
+verified when MCP disconnected. Next resume: reload via http://127.0.0.1:8089,
+check tinyemu_debug_log for post-Browser-shim progress.
+
+**Still-open: Runtime.dynCall via old `viiii` signatures.** If fs_wget callbacks
+fire (for blk.txt manifest), they call `Runtime.dynCall('viiii', onload,
+[handle, arg, buffer, byteLength])`. My stub dispatches via
+`wasmTable.get(ptr)(...args)` which should work but is untested. May still need
+more lib.js surgery or a source-level replacement of `Runtime.dynCall` with
+direct wasmTable access.
+
 ## Useful paths
 
 - Notebook HTML: `lopebooks/notebooks/@tomlarkworthy_linux-emu.html`
