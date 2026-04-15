@@ -13,3 +13,6 @@
 [submodule "vendor/observable-stdlib"]
 	path = vendor/observable-stdlib
 	url = https://github.com/observablehq/stdlib
+[submodule "vendor/notebook-kit"]
+	path = vendor/notebook-kit
+	url = https://github.com/observablehq/notebook-kit.git
