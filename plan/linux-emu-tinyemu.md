@@ -253,6 +253,46 @@ fire (for blk.txt manifest), they call `Runtime.dynCall('viiii', onload,
 more lib.js surgery or a source-level replacement of `Runtime.dynCall` with
 direct wasmTable access.
 
+## Session 5 (2026-04-15) — MODULARIZE build + full boot verified
+
+Modern emcc's glue is an IIFE with top-level `async function` statements that
+can't be wrapped in `new Function(...)` (SyntaxError: "Async function
+statements must have a name"). Fix: rebuild with
+`-sMODULARIZE=1 -sEXPORT_NAME=TinyEMU`, giving a factory that takes a module
+config and returns the promise. Also added `wasmTable`, `UTF8ToString` to
+`EXPORTED_RUNTIME_METHODS` so the ASSERTIONS-trap getter doesn't throw.
+
+Rewrote `tinyemu_module` cell to call the factory directly (no more
+`new Function`, no more `onRuntimeInitialized` dance — just
+`await factory(config)`).
+
+**Result: full boot to `~ #` shell prompt, interactive stdin works:**
+
+```
+~ # uname -a
+Linux localhost 4.15.0-00049-ga3b1e7a-dirty #11 ... riscv64 GNU/Linux
+~ #
+```
+
+`_get_ram_ptr`, `_get_ram_size`, `_get_cpu_state`,
+`_te_cpu_get_pc/priv/regs/insn_counter` all live. `tinyemu_mode_timeline`
+fills its 600-sample ring at rAF cadence.
+
+**Timing wrinkle fixed:** `vm_start()` returns before `machine_init` async
+chain completes, so `_get_cpu_state()` can briefly return 0. `tinyemu_cpu_ptr`
+now polls (50ms × 200) until nonzero.
+
+## Remaining work
+
+- FileAttachment conversion (task #1): currently requires the HTTP server on
+  8089. Embedding the wasm as a file attachment would let the notebook run
+  over `file://` again, but needs care — the glue's `locateFile()` must
+  produce a URL that lopecode's fetch override can serve from an embedded
+  attachment. Deferred.
+- Worker + virtio (task #9): move the VM to a Web Worker and host-side
+  virtio net/blk. Needs SAB (`-sSHARED_MEMORY=1`), COOP/COEP headers, and
+  a larger redesign. Deferred.
+
 ## Useful paths
 
 - Notebook HTML: `lopebooks/notebooks/@tomlarkworthy_linux-emu.html`
