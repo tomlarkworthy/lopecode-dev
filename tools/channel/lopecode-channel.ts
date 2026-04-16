@@ -48,6 +48,10 @@ type PendingCommand = {
 const pendingCommands = new Map<string, PendingCommand>();
 let commandSeq = 0;
 
+// Dynamic tools registered by notebooks (notebook URL → tool descriptors)
+type DynamicTool = { name: string; description: string; inputSchema: any; notebookUrl: string };
+const dynamicTools = new Map<string, DynamicTool[]>(); // notebook URL → tools
+
 function nextCommandId(): string {
   return `cmd-${Date.now()}-${++commandSeq}`;
 }
@@ -58,7 +62,7 @@ const mcp = new Server(
   {
     capabilities: {
       experimental: { "claude/channel": {} },
-      tools: {},
+      tools: { listChanged: true },
     },
     instructions: `You are connected to Lopecode notebooks via the lopecode channel.
 
@@ -611,6 +615,12 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["name"],
       },
     },
+    // Append dynamic tools from connected notebooks
+    ...Array.from(dynamicTools.values()).flat().map(t => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
   ],
 }));
 
@@ -751,8 +761,29 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "unwatch";
         params = { name: args.name, module: args.module || null };
         break;
-      default:
+      default: {
+        // Check if it's a dynamic tool registered by a notebook
+        const dynTool = Array.from(dynamicTools.values()).flat().find(t => t.name === req.params.name);
+        if (dynTool) {
+          const dynWs = pairedConnections.get(dynTool.notebookUrl);
+          if (!dynWs) {
+            return { content: [{ type: "text", text: `Notebook providing tool "${req.params.name}" is disconnected` }], isError: true };
+          }
+          const dynResult = await sendCommand(dynWs, "call-tool", { name: req.params.name, arguments: args });
+          if (!dynResult.ok) {
+            return { content: [{ type: "text", text: `Error: ${dynResult.error}` }], isError: true };
+          }
+          // Dynamic tool handlers return MCP-format content directly
+          if (dynResult.result?.content) {
+            return { content: dynResult.result.content };
+          }
+          const dynText = typeof dynResult.result === "string"
+            ? dynResult.result
+            : JSON.stringify(dynResult.result, null, 2);
+          return { content: [{ type: "text", text: dynText }] };
+        }
         return { content: [{ type: "text", text: `Unknown tool: ${req.params.name}` }], isError: true };
+      }
     }
 
     const result = await sendCommand(target.ws, action, params, timeout);
@@ -832,6 +863,34 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
         },
       });
       process.stderr.write(`lopecode-channel: paired ${url}\n`);
+
+      // If pair message includes tools, register them
+      if (msg.tools && Array.isArray(msg.tools)) {
+        const tools: DynamicTool[] = msg.tools.map((t: any) => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema || { type: "object", properties: {} },
+          notebookUrl: url,
+        }));
+        dynamicTools.set(url, tools);
+        process.stderr.write(`lopecode-channel: registered ${tools.length} dynamic tool(s) from ${url}: ${tools.map(t => t.name).join(", ")}\n`);
+        void mcp.notification({ method: "notifications/tools/list_changed", params: {} });
+      }
+      break;
+    }
+
+    case "register-tools": {
+      const notebookUrl = wsBySocket.get(ws);
+      if (!notebookUrl) return;
+      const tools: DynamicTool[] = (msg.tools || []).map((t: any) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema || { type: "object", properties: {} },
+        notebookUrl,
+      }));
+      dynamicTools.set(notebookUrl, tools);
+      process.stderr.write(`lopecode-channel: re-registered ${tools.length} dynamic tool(s) from ${notebookUrl}\n`);
+      void mcp.notification({ method: "notifications/tools/list_changed", params: {} });
       break;
     }
 
@@ -963,9 +1022,14 @@ function handleWsClose(ws: ServerWebSocket<unknown>) {
   const url = wsBySocket.get(ws);
   if (url) {
     const meta = connectionMeta.get(ws);
+    const hadDynamicTools = dynamicTools.has(url);
+    dynamicTools.delete(url);
     pairedConnections.delete(url);
     connectionMeta.delete(ws);
     wsBySocket.delete(ws);
+    if (hadDynamicTools) {
+      void mcp.notification({ method: "notifications/tools/list_changed", params: {} });
+    }
     void mcp.notification({
       method: "notifications/claude/channel",
       params: {
@@ -1198,6 +1262,9 @@ const server = Bun.serve({
       return new Response(JSON.stringify({
         paired: pairedConnections.size,
         pending: pendingConnections.size,
+        dynamicTools: Object.fromEntries(
+          Array.from(dynamicTools.entries()).map(([url, tools]) => [url, tools.map(t => t.name)])
+        ),
       }), { headers: { "content-type": "application/json" } });
     }
 
@@ -1212,6 +1279,45 @@ const server = Bun.serve({
         return new Response("ok", { status: 200 });
       } catch (e) {
         return new Response("bad request", { status: 400 });
+      }
+    }
+    // CORS fetch proxy for TinyEMU networking (Workers can't fetch cross-origin from blob: URLs)
+    if (url.pathname === "/proxy") {
+      if (req.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Accept, User-Agent",
+            "Access-Control-Max-Age": "86400",
+          },
+        });
+      }
+      const targetUrl = url.searchParams.get("url");
+      if (!targetUrl) return new Response("missing url param", { status: 400 });
+      try {
+        const method = req.method;
+        const headers: Record<string, string> = {};
+        for (const key of ["accept", "content-type", "user-agent"]) {
+          const val = req.headers.get(key);
+          if (val) headers[key] = val;
+        }
+        const resp = await fetch(targetUrl, { method, headers });
+        const body = await resp.arrayBuffer();
+        return new Response(body, {
+          status: resp.status,
+          statusText: resp.statusText,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": resp.headers.get("content-type") || "application/octet-stream",
+          },
+        });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ error: e.message }), {
+          status: 502,
+          headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+        });
       }
     }
     return new Response("not found", { status: 404 });
