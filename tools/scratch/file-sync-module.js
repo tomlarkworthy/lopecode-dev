@@ -45,33 +45,140 @@ Each notebook gets its own subdirectory named by \`location.hostname\` (the doma
 const _notebookId = function _notebookId(){return(
 location.hostname || location.pathname.split("/").pop().replace(/\.html$/, "")
 )};
-const _directory = function _directory(htl, hashParam)
+const _directory = function _directory(htl, hashParam, notebookId)
 {
-  const label = hashParam ? "Pick directory for: " + hashParam : "Pick sync directory";
-  const container = htl.html`<div><button style="padding: 8px 16px; font-size: 14px; cursor: pointer;">${label}</button></div>`;
-  const btn = container.querySelector("button");
+  const IDB_NAME = "lopecode-file-sync";
+  const STORE = "handles";
+  const key = notebookId;
+
+  const openDB = () => new Promise((resolve, reject) => {
+    const req = window.indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  const idbGet = async () => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const r = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  };
+  const idbPut = async (handle) => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(handle, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  };
+  const idbDelete = async () => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  };
+
+  const container = htl.html`<div>
+    <button class="main" style="padding: 8px 16px; font-size: 14px; cursor: pointer;">Loading\u2026</button>
+    <button class="forget" style="padding: 4px 8px; font-size: 12px; cursor: pointer; margin-left: 4px; display: none;">Forget</button>
+  </div>`;
+  const btn = container.querySelector(".main");
+  const forget = container.querySelector(".forget");
   container.value = null;
-  btn.onclick = async () => {
+
+  const emit = () => container.dispatchEvent(new window.Event("input", { bubbles: true }));
+  const pickLabel = () => hashParam ? "Pick directory for: " + hashParam : "Pick sync directory";
+
+  const setSyncing = (handle) => {
+    container.value = handle;
+    btn.textContent = "\u25CF Syncing: " + handle.name;
+    btn.style.background = "#d4edda";
+    btn.onclick = null;
+    forget.style.display = "";
+    if (!hashParam) {
+      const param = "filesync=" + encodeURIComponent(handle.name);
+      const h = location.hash;
+      history.replaceState(null, "", h ? h + "&" + param : "#" + param);
+    }
+    emit();
+  };
+
+  const setPickMode = () => {
+    container.value = null;
+    btn.textContent = pickLabel();
+    btn.style.background = "";
+    btn.onclick = pickNew;
+    forget.style.display = "none";
+    emit();
+  };
+
+  const setReconnectMode = (handle) => {
+    btn.textContent = "\u21BB Reconnect: " + handle.name;
+    btn.style.background = "#fff3cd";
+    forget.style.display = "";
+    btn.onclick = async () => {
+      try {
+        const result = await handle.requestPermission({ mode: "readwrite" });
+        if (result === "granted") setSyncing(handle);
+        else setPickMode();
+      } catch (e) {
+        setPickMode();
+      }
+    };
+  };
+
+  async function pickNew() {
     try {
       const handle = await window.showDirectoryPicker({ mode: "readwrite" });
-      container.value = handle;
-      btn.textContent = "\u25CF Syncing: " + handle.name;
-      btn.style.background = "#d4edda";
-      // Write &filesync=<name> into the URL hash if not already present
-      if (!hashParam) {
-        const param = "filesync=" + encodeURIComponent(handle.name);
-        const h = location.hash;
-        history.replaceState(null, "", h ? h + "&" + param : "#" + param);
-      }
-      container.dispatchEvent(new window.Event("input", { bubbles: true }));
+      await idbPut(handle).catch(() => {});
+      setSyncing(handle);
     } catch (e) {
       if (e.name !== "AbortError") throw e;
     }
+  }
+
+  forget.onclick = async () => {
+    await idbDelete().catch(() => {});
+    setPickMode();
   };
+
+  (async () => {
+    const saved = await idbGet().catch(() => null);
+    if (saved) {
+      const perm = await saved.queryPermission({ mode: "readwrite" }).catch(() => "denied");
+      if (perm === "granted") setSyncing(saved);
+      else setReconnectMode(saved);
+    } else {
+      setPickMode();
+    }
+  })();
+
   return container;
 };
 const _1qhn011 = (G, v) => G.input(v);
-const _disassemble = function _disassemble(directory, notebookId, syncableModules, exportModuleJS, writeFile, htl)
+const _syncEnabled = function _syncEnabled(htl, notebookId)
+{
+  const KEY = "lopecode-file-sync:syncEnabled:" + notebookId;
+  const initial = window.localStorage.getItem(KEY) === "1";
+  const container = htl.html`<label style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;font-size:13px;cursor:pointer;"><input type="checkbox"> Sync enabled</label>`;
+  const cb = container.querySelector("input");
+  cb.checked = initial;
+  container.value = initial;
+  cb.onchange = () => {
+    container.value = cb.checked;
+    window.localStorage.setItem(KEY, cb.checked ? "1" : "0");
+    container.dispatchEvent(new window.Event("input", { bubbles: true }));
+  };
+  return container;
+};
+const _syncEnabledVal = (G, v) => G.input(v);
+const _disassemble = function _disassemble(directory, notebookId, syncableModules, exportModuleJS, writeFile, readFile, hashSource, manifestWriter, htl)
 {
   const container = htl.html`<div>
     <button style="padding: 8px 16px; font-size: 14px; cursor: pointer;" disabled>Disassemble to disk</button>
@@ -93,6 +200,10 @@ const _disassemble = function _disassemble(directory, notebookId, syncableModule
     btn.disabled = true;
     btn.textContent = "Disassembling...";
     let ok = 0, fail = 0;
+    const manifestUpdates = {};
+
+    await manifestWriter(directory, prefix, null, readFile, writeFile);
+    log("cleared manifest");
 
     for (const moduleId of syncableModules) {
       try {
@@ -102,6 +213,7 @@ const _disassemble = function _disassemble(directory, notebookId, syncableModule
         const fileAttachments = result.fileAttachments;
         const path = prefix + moduleId + ".js";
         await writeFile(directory, path, source);
+        manifestUpdates[moduleId] = hashSource(source);
         log("  wrote " + path + " (" + source.length + " bytes)");
 
         if (fileAttachments && fileAttachments.size) {
@@ -122,6 +234,13 @@ const _disassemble = function _disassemble(directory, notebookId, syncableModule
         log("  FAILED: " + moduleId + " - " + e.message);
         fail++;
       }
+    }
+
+    try {
+      await manifestWriter(directory, prefix, manifestUpdates, readFile, writeFile);
+      log("wrote manifest (" + Object.keys(manifestUpdates).length + " modules)");
+    } catch (e) {
+      log("manifest write FAILED: " + e.message);
     }
 
     try {
@@ -178,6 +297,98 @@ const _1wmv5ml = function _SKIP_MODULES() {return (new Set([
     'bootloader',
     'builtin'
 ]));};
+const _hashSource = function _hashSource(){return(
+(s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+)};
+const _manifestWriter = function _manifestWriter(){return(
+(() => {
+  let lock = Promise.resolve();
+  return (directory, prefix, updates, readFile, writeFile) => {
+    lock = lock.then(async () => {
+      let manifest;
+      try {
+        const file = await readFile(directory, prefix + ".file-sync.json");
+        manifest = JSON.parse(await file.text());
+      } catch (e) {
+        manifest = null;
+      }
+      if (!manifest || typeof manifest !== "object") manifest = {};
+      if (!manifest.modules) manifest.modules = {};
+      if (updates === null) {
+        manifest.modules = {};
+      } else {
+        for (const [k, v] of Object.entries(updates)) {
+          if (v === null) delete manifest.modules[k];
+          else manifest.modules[k] = v;
+        }
+      }
+      manifest.lastUpdated = Date.now();
+      await writeFile(directory, prefix + ".file-sync.json", JSON.stringify(manifest, null, 2));
+    }).catch((e) => console.error("[file-sync] manifest write failed:", e));
+    return lock;
+  };
+})()
+)};
+const _syncArmed = function _syncArmed(directory, syncEnabled, notebookId, currentModules, exportModuleJS, readFile, hashSource, viewof_syncEnabled)
+{
+  const disableToggle = (reason) => {
+    console.warn("[file-sync] auto-disabled: " + reason);
+    const KEY = "lopecode-file-sync:syncEnabled:" + notebookId;
+    window.localStorage.setItem(KEY, "0");
+    if (viewof_syncEnabled && viewof_syncEnabled.querySelector) {
+      const cb = viewof_syncEnabled.querySelector("input");
+      if (cb && cb.checked) {
+        cb.checked = false;
+        viewof_syncEnabled.value = false;
+        viewof_syncEnabled.dispatchEvent(new window.Event("input", { bubbles: true }));
+      }
+    }
+  };
+
+  if (!directory) return Promise.resolve({ armed: false, reason: "No directory" });
+  if (!syncEnabled) return Promise.resolve({ armed: false, reason: "Sync disabled" });
+
+  const prefix = notebookId + "/";
+
+  return (async () => {
+    let manifest;
+    try {
+      const file = await readFile(directory, prefix + ".file-sync.json");
+      manifest = JSON.parse(await file.text());
+    } catch (e) {
+      manifest = null;
+    }
+
+    if (!manifest || !manifest.modules || Object.keys(manifest.modules).length === 0) {
+      disableToggle("no manifest \u2014 run Disassemble to initialize");
+      return { armed: false, reason: "No manifest \u2014 click Disassemble" };
+    }
+
+    for (const [moduleId, expectedHash] of Object.entries(manifest.modules)) {
+      let result;
+      try {
+        result = await exportModuleJS(moduleId);
+      } catch (e) {
+        disableToggle("cannot export " + moduleId);
+        return { armed: false, reason: "Export failed: " + moduleId };
+      }
+      const actualHash = hashSource(result.source);
+      if (actualHash !== expectedHash) {
+        disableToggle("runtime drift on " + moduleId);
+        return { armed: false, reason: "Runtime drift: " + moduleId };
+      }
+    }
+
+    return { armed: true };
+  })();
+};
 const _zfhapq = function _syncableModules(currentModules, SKIP_MODULES){return(
 (() => {
   const result = [];
@@ -227,9 +438,10 @@ function probeDefine(defineFn) {
   return cells;
 }
 )};
-const _notebookToFiles = function _notebookToFiles(directory, notebookId, onCodeChange, currentModules, exportModuleJS, writeFile, invalidation)
+const _notebookToFiles = function _notebookToFiles(directory, syncArmed, notebookId, onCodeChange, currentModules, exportModuleJS, writeFile, readFile, hashSource, manifestWriter, invalidation)
 {
   if (!directory) return "Waiting for directory...";
+  if (!syncArmed || !syncArmed.armed) return "Sync inactive: " + (syncArmed && syncArmed.reason || "unknown");
 
   // Compute syncable modules inline — avoid depending on syncableModules/SKIP_MODULES reactively,
   // which would restart this cell (cancelling pending writes) every time SKIP_MODULES changes.
@@ -256,6 +468,7 @@ const _notebookToFiles = function _notebookToFiles(directory, notebookId, onCode
     try {
       const result = await exportModuleJS(moduleId);
       await writeFile(directory, prefix + moduleId + ".js", result.source);
+      await manifestWriter(directory, prefix, { [moduleId]: hashSource(result.source) }, readFile, writeFile);
       console.log("[file-sync] wrote " + prefix + moduleId + ".js (" + result.source.length + " bytes)");
 
       // Also write file attachments
@@ -306,9 +519,10 @@ const _fileSyncLastSeen = function _fileSyncLastSeen(directory){
   void directory;
   return new window.Map();
 };
-const _filesToNotebook = function _filesToNotebook(directory, notebookId, currentModules, fileSyncLastSeen, readFile, probeDefine, exportModuleJS, tag, getFileAttachmentsMap, runtime_, invalidation)
+const _filesToNotebook = function _filesToNotebook(directory, syncArmed, notebookId, currentModules, fileSyncLastSeen, readFile, writeFile, probeDefine, exportModuleJS, tag, getFileAttachmentsMap, runtime_, hashSource, manifestWriter, invalidation)
 {
   if (!directory) return "Waiting for directory...";
+  if (!syncArmed || !syncArmed.armed) return "Sync inactive: " + (syncArmed && syncArmed.reason || "unknown");
 
   // Compute syncable modules inline — avoid depending on syncableModules/SKIP_MODULES reactively,
   // which would restart this cell every time SKIP_MODULES changes.
@@ -461,6 +675,12 @@ const _filesToNotebook = function _filesToNotebook(directory, notebookId, curren
               if (typeof mod.default === "function") {
                 applyModule(moduleId, mod.default);
                 console.log("[file-sync] applied " + moduleId + " from disk");
+                try {
+                  const after = await exportModuleJS(moduleId);
+                  await manifestWriter(directory, prefix, { [moduleId]: hashSource(after.source) }, readFile, writeFile);
+                } catch (e) {
+                  await manifestWriter(directory, prefix, { [moduleId]: hashSource(diskText) }, readFile, writeFile);
+                }
               }
             } finally {
               window.URL.revokeObjectURL(url);
@@ -585,6 +805,11 @@ const _filesToNotebook = function _filesToNotebook(directory, notebookId, curren
             nameToVars.set(moduleId, vars);
 
             console.log("[file-sync] added new module from disk: " + moduleId);
+            try {
+              await manifestWriter(directory, prefix, { [moduleId]: hashSource(diskText) }, readFile, writeFile);
+            } catch (e) {
+              console.error("[file-sync] manifest update for new module failed:", e);
+            }
           }
         } finally {
           window.URL.revokeObjectURL(url);
@@ -615,6 +840,11 @@ const _filesToNotebook = function _filesToNotebook(directory, notebookId, curren
         if (idx !== -1) syncableModules.splice(idx, 1);
         syncableSet.delete(moduleId);
         console.log("[file-sync] removed module: " + moduleId);
+        try {
+          await manifestWriter(directory, prefix, { [moduleId]: null }, readFile, writeFile);
+        } catch (e) {
+          console.error("[file-sync] manifest remove failed:", e);
+        }
       }
     }
     knownDiskModules = diskModules;
@@ -691,9 +921,11 @@ export default function define(runtime, observer) {
   };
 
   $def("_title", null, ["md"], _title);
-  $def("_directory", "viewof directory", ["htl","hashParam"], _directory);
+  $def("_directory", "viewof directory", ["htl","hashParam","notebookId"], _directory);
   $def("_1qhn011", "directory", ["Generators","viewof directory"], _1qhn011);
-  $def("_disassemble", "viewof disassemble", ["directory","notebookId","syncableModules","exportModuleJS","writeFile","htl"], _disassemble);
+  $def("_syncEnabled", "viewof syncEnabled", ["htl","notebookId"], _syncEnabled);
+  $def("_syncEnabledVal", "syncEnabled", ["Generators","viewof syncEnabled"], _syncEnabledVal);
+  $def("_disassemble", "viewof disassemble", ["directory","notebookId","syncableModules","exportModuleJS","writeFile","readFile","hashSource","manifestWriter","htl"], _disassemble);
   $def("_yggqvy", "disassemble", ["Generators","viewof disassemble"], _yggqvy);
   $def("_syncStatus", "syncStatus", ["directory","syncableModules","notebookToFiles","filesToNotebook","htl"], _syncStatus);
   $def("_doc_overview", null, ["md"], _doc_overview);
@@ -705,9 +937,12 @@ export default function define(runtime, observer) {
   $def("_1wmv5ml", "SKIP_MODULES", [], _1wmv5ml);
   $def("_zfhapq", "syncableModules", ["currentModules","SKIP_MODULES"], _zfhapq);
   $def("_4zqocm", "probeDefine", [], _4zqocm);
-  $def("_notebookToFiles", "notebookToFiles", ["directory","notebookId","onCodeChange","currentModules","exportModuleJS","writeFile","invalidation"], _notebookToFiles);
+  $def("_hashSource", "hashSource", [], _hashSource);
+  $def("_manifestWriter", "manifestWriter", [], _manifestWriter);
+  $def("_syncArmed", "syncArmed", ["directory","syncEnabled","notebookId","currentModules","exportModuleJS","readFile","hashSource","viewof syncEnabled"], _syncArmed);
+  $def("_notebookToFiles", "notebookToFiles", ["directory","syncArmed","notebookId","onCodeChange","currentModules","exportModuleJS","writeFile","readFile","hashSource","manifestWriter","invalidation"], _notebookToFiles);
   $def("_fileSyncLastSeen", "fileSyncLastSeen", ["directory"], _fileSyncLastSeen);
-  $def("_filesToNotebook", "filesToNotebook", ["directory","notebookId","currentModules","fileSyncLastSeen","readFile","probeDefine","exportModuleJS","tag","getFileAttachmentsMap","runtime","invalidation"], _filesToNotebook);
+  $def("_filesToNotebook", "filesToNotebook", ["directory","syncArmed","notebookId","currentModules","fileSyncLastSeen","readFile","writeFile","probeDefine","exportModuleJS","tag","getFileAttachmentsMap","runtime","hashSource","manifestWriter","invalidation"], _filesToNotebook);
   $def("_doc_technical", null, ["md"], _doc_technical);
   $def("_doc_todo", null, ["md"], _doc_todo);
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
