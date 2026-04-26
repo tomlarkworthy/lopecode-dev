@@ -372,6 +372,7 @@ async function main() {
       const specStr = execFileSync('bun', ['tools/lope-reader.ts', outputPath, '--compute-imports'], {
         encoding: 'utf-8',
         timeout: 60000,
+        maxBuffer: 100 * 1024 * 1024,
       });
       const specObj = JSON.parse(specStr);
       specObj["observablehq.com"] = sourceUrl;

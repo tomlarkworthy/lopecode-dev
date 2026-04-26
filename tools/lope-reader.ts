@@ -310,8 +310,11 @@ async function main(): Promise<void> {
   let extract: ExtractFn | undefined;
   let dispose: (() => void) | undefined;
   if (options.computeImports && !options.getModule) {
-    console.log = console.info = () => {};
-    console.warn = () => {};
+    // The toolchain notebook keeps running in the background even after
+    // waitForVariable resolves and writes to console.{log,info,warn,error}.
+    // Mute all of them for the rest of the process so spec output stays clean
+    // and the parent's execFileSync buffer doesn't overflow.
+    console.log = console.info = console.warn = console.error = () => {};
     const r = await loadExtractModuleInfo();
     extract = r.extract;
     dispose = r.dispose;
