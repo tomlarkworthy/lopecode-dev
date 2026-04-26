@@ -6,10 +6,11 @@ This repository is designed for agentic development of **lopecode** - a modular,
 
 ### What is Lopecode?
 
-Lopecode notebooks are single HTML files (1-3MB each) that contain:
-- **Embedded dependencies** (`<script type="lope-file">`) - gzipped, base64-encoded libraries
-- **Modules** (`<script type="lope-module">`) - Observable notebook code with cell definitions
-- **Bootloader** - JavaScript that initializes the Observable runtime with importmaps
+Lopecode notebooks are single HTML files (1-3MB each). Everything inside is stored uniformly as `<script type="text/plain">` blocks with an `id`, a `data-mime`, and an optional `data-encoding="base64"`. Resolved at runtime via `window.lopecode.contentSync(id)`. By convention:
+- **Modules** — `id="@user/module-name"`, `data-mime="application/javascript"`. The Observable notebook source compiled to a `define()` function.
+- **File attachments** — `id="@user/module-name/path.ext"` (or legacy `id="file://name"`), MIME-typed (gzipped libs, CSS, images, JSON state, etc.).
+- **Bootconf** — `id="bootconf.json"`, JSON config driving `mains` and the default hash layout.
+- **Bootloader** — a `<script>` (executable) at the top that initializes the Observable runtime and importmaps.
 
 Work primarily involves authoring new notebooks by composing existing modules differently.
 

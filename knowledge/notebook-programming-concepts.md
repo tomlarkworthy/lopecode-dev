@@ -224,7 +224,7 @@ Some tests may timeout in headless mode:
 
 ### Module Structure
 
-Each notebook contains multiple modules in `<script type="lope-module">` tags:
+Each notebook contains multiple modules, stored as `<script id="@user/module-name" type="text/plain" data-mime="application/javascript">` blocks (the same uniform file format used for all attachments — see `how-file-attachments-work.md`). The script body is the compiled `define()` function:
 
 ```javascript
 // Module definition structure
@@ -427,7 +427,7 @@ Lopepage is the multi-notebook UI system that allows multiple modules to be disp
 ### What is a Lopepage?
 
 A lopepage is an HTML file that:
-1. Contains multiple `<script type="lope-module">` blocks (Observable modules)
+1. Contains multiple modules, stored as `<script id="@user/module-name" type="text/plain" data-mime="application/javascript">` blocks
 2. Uses `@tomlarkworthy/lopepage` to render a dynamic multi-panel UI
 3. Controls which modules are visible via the URL hash fragment
 
