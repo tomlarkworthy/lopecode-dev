@@ -54,6 +54,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/bulk-exporting-lopebooks.md` | Bulk export, QC, smoke testing |
 | `knowledge/pushing-cells-to-observablehq.md` | Pushing cell changes back to Observable |
 | `knowledge/live-collaboration-with-claude-code-pairing.md` | Claude Code pairing: setup, user journeys, MCP tools, distribution |
+| `knowledge/development-of-pairing-channel-and-claude-plugin.md` | Channel server architecture, dynamic MCP tools, reactive decoupling patterns |
 | `knowledge/how-file-attachments-work.md` | File attachment internals |
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |

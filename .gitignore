@@ -34,3 +34,12 @@ tools/screenshots/
 
 # Channel server runtime files
 tools/channel/.lopecode-port
+
+# RISC-V build tree (kernel sources, tarballs, binaries)
+tools/scratch/riscv/*
+
+# File-sync workspace (per-notebook synced cell sources)
+test-sync/
+
+# Claude Code runtime locks
+.claude/scheduled_tasks.lock

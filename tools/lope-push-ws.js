@@ -178,8 +178,10 @@ function parseVariableGroups(content) {
     cellFunctions.set(funcName, fullFn);
   }
 
+  // Collect all defines with their source position so we can sort by order
+  const allDefinesWithPos = [];
+
   const defineRegex = /main\.variable\(observer\(([^)]*)\)\)\.define\(([^;]+)\);/g;
-  const allDefines = [];
   while ((match = defineRegex.exec(content)) !== null) {
     const observerArg = match[1].trim();
     const defineBody = match[2].trim();
@@ -213,7 +215,7 @@ function parseVariableGroups(content) {
     }
 
     if (definition) {
-      allDefines.push({ _name: varName, _definition: definition, _inputs: inputs });
+      allDefinesWithPos.push({ _name: varName, _definition: definition, _inputs: inputs, _pos: match.index });
     }
   }
 
@@ -227,9 +229,13 @@ function parseVariableGroups(content) {
       .filter(s => s);
     const definition = cellFunctions.get(funcRefName);
     if (definition) {
-      allDefines.push({ _name: varName, _definition: definition, _inputs: inputs });
+      allDefinesWithPos.push({ _name: varName, _definition: definition, _inputs: inputs, _pos: match.index });
     }
   }
+
+  // Sort by source position so viewof generators and $def entries interleave correctly
+  allDefinesWithPos.sort((a, b) => a._pos - b._pos);
+  const allDefines = allDefinesWithPos;
 
   const importRegex = /main\.define\("([^"]+)",\s*\["module\s+([^"]+)",\s*"@variable"\],\s*\([^)]+\)\s*=>\s*v\.import\(([^)]+)\)/g;
   const importsByModule = new Map();
@@ -253,7 +259,10 @@ function parseVariableGroups(content) {
     importsByModule.get(moduleName).push({ local: localName, remote: remoteName });
   }
 
-  const grouped = new Map();
+  // Track grouped cells (viewof/mutable) with a placeholder in groups
+  // so they appear at the position of their first occurrence, not at the end.
+  const grouped = new Map();        // key -> array of variables
+  const groupPlaceholder = new Map(); // key -> index in groups array
 
   for (const v of allDefines) {
     const name = v._name;
@@ -264,13 +273,21 @@ function parseVariableGroups(content) {
 
     if (v._inputs.includes(`viewof ${name}`)) {
       const key = `viewof ${name}`;
-      if (!grouped.has(key)) grouped.set(key, []);
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+        groupPlaceholder.set(key, groups.length);
+        groups.push(null); // placeholder
+      }
       grouped.get(key).push(v);
       continue;
     }
 
     if (name.startsWith('viewof ')) {
-      if (!grouped.has(name)) grouped.set(name, []);
+      if (!grouped.has(name)) {
+        grouped.set(name, []);
+        groupPlaceholder.set(name, groups.length);
+        groups.push(null); // placeholder
+      }
       grouped.get(name).unshift(v);
       continue;
     }
@@ -278,20 +295,32 @@ function parseVariableGroups(content) {
     if (name.startsWith('initial ')) {
       const baseName = name.replace(/^initial /, '');
       const key = `mutable ${baseName}`;
-      if (!grouped.has(key)) grouped.set(key, []);
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+        groupPlaceholder.set(key, groups.length);
+        groups.push(null); // placeholder
+      }
       grouped.get(key).unshift(v);
       continue;
     }
 
     if (name.startsWith('mutable ')) {
-      if (!grouped.has(name)) grouped.set(name, []);
+      if (!grouped.has(name)) {
+        grouped.set(name, []);
+        groupPlaceholder.set(name, groups.length);
+        groups.push(null); // placeholder
+      }
       grouped.get(name).push(v);
       continue;
     }
 
     if (v._inputs.includes(`mutable ${name}`)) {
       const key = `mutable ${name}`;
-      if (!grouped.has(key)) grouped.set(key, []);
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+        groupPlaceholder.set(key, groups.length);
+        groups.push(null); // placeholder
+      }
       grouped.get(key).push(v);
       continue;
     }
@@ -299,8 +328,10 @@ function parseVariableGroups(content) {
     groups.push([v]);
   }
 
-  for (const [, group] of grouped) {
-    groups.push(group);
+  // Replace placeholders with actual grouped cells
+  for (const [key, group] of grouped) {
+    const idx = groupPlaceholder.get(key);
+    groups[idx] = group;
   }
 
   const preformatted = [];

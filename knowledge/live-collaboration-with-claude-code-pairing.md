@@ -134,6 +134,16 @@ These are the tools Claude sees. Each is a thin wrapper that sends a command to 
 | `delete_module` | Remove a module and all its variables | `name` |
 | `export_notebook` | Save notebook in place (persists all runtime cells to HTML) | `notebook_id?` |
 | `fork_notebook` | Self-serialize to sibling HTML file | `suffix?` |
+| `setup_file_sync` | **Dynamic tool** — enable file sync to edit modules as `.js` files on disk | — |
+
+### Dynamic MCP tools
+
+Notebooks can declare MCP tools that Claude Code discovers at runtime. These appear in Claude's tool list alongside the static tools above. See `knowledge/development-of-pairing-channel-and-claude-plugin.md` for full architecture details.
+
+Currently registered dynamic tools:
+- **`setup_file_sync`** — declared by `@tomlarkworthy/file-sync`, returns sync status and auto-watches `syncStatus`
+
+Dynamic tools are registered during the WebSocket pair handshake and updated via `register-tools` messages. The channel server emits `notifications/tools/list_changed` so Claude refreshes its tool list. Tool calls are routed back to the originating notebook's handler.
 
 ### Reactive tool behavior
 
@@ -450,6 +460,7 @@ tools/channel/
 - **Delete module support** — implement `delete_module` MCP tool + runtime-sdk `deleteModule` function
 - **Marketplace submission** — submit plugin to Claude's marketplace or self-host
 - **Hash param preservation** — fix bootloader hash mangling ([#140](https://github.com/tomlarkworthy/lopecode/issues/140))
+- **File-sync "defined more than once" bug** — when file-sync applies a module containing import bridges, `filesToNotebook` can hit duplicate definitions. See `plan/claude-pairing-notebook-file-sync.md` Step 6
 
 ## Development
 
