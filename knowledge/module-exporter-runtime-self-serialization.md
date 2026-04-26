@@ -42,7 +42,7 @@ Each `<script>` block holds content used to serve internal network requests loca
 | Version | Status | File | Load-bearing for |
 |---|---|---|---|
 | `@tomlarkworthy/exporter` (v1) | Retired | (purged from repo) | Older notebook re-exports |
-| `@tomlarkworthy/exporter-2` | Production | `lopecode/notebooks/@tomlarkworthy_exporter-2.html` | Every entry in `tools/depmap.json`; pairing-channel `export_notebook` / `fork_notebook` |
+| `@tomlarkworthy/exporter-2` | Production | `lopecode/notebooks/@tomlarkworthy_exporter-2.html` | Bundled into nearly every notebook (query `kb_contains_module` in the structured kb); pairing-channel `export_notebook` / `fork_notebook` |
 | `@tomlarkworthy/exporter-3` | Published-but-not-load-bearing | `lopecode/notebooks/@tomlarkworthy_exporter-3.html` (Apr 6) | The exporter-3 notebook itself |
 | `@tomlarkworthy/exporter-3` (staging) | Development | `lopebooks/notebooks/@tomlarkworthy_exporter-3.html` (Apr 11) | Adds `exportModuleJS` for file-sync work; not yet promoted to lopecode/ |
 
@@ -208,7 +208,7 @@ This pulls the module's published version from Observable, which uses whatever e
 2. **Migrate dependent notebooks.** On Observable, edit each notebook's import of `@tomlarkworthy/exporter-2` → `@tomlarkworthy/exporter-3`. Then `bulk-jumpgate` to re-export them. This produces large diffs (per the format-diff section above).
 3. **Update the channel server docstrings** (`tools/channel/lopecode-channel.ts` lines 153, 213, 560).
 4. **Update knowledge-doc cross-references** (this doc, plus `live-collaboration-with-claude-code-pairing.md` lines 168, 187, 197, 325, 355, 427).
-5. **Verify `tools/depmap.json`** regenerates with `@tomlarkworthy_exporter-3` rather than `_exporter-2`.
+5. **Verify per-notebook `*.json` specs** regenerate with `@tomlarkworthy/exporter-3` rather than `-2` in their `modules` keys (the structured kb's `kb_contains_module` view will then surface the swap automatically).
 
 Best done as one campaign — the format diffs make piecemeal review noisy.
 
@@ -226,7 +226,7 @@ Primary (live source code):
 - `lopecode-dev/lopecode/notebooks/@tomlarkworthy_exporter-3.html` (Apr 6) — published exporter-3
 - `lopecode-dev/lopebooks/notebooks/@tomlarkworthy_exporter-3.html` (Apr 11) — staging exporter-3 with `exportModuleJS`
 - `lopecode-dev/plan/file-sync-notebook.md` — file-sync motivation, `exportModuleJS` spec
-- `lopecode-dev/tools/depmap.json` — confirms exporter-2 is currently load-bearing
+- `lopecode-dev/{lopecode,lopebooks}/notebooks/@*.json` — per-notebook specs; `modules` keys confirm exporter-2 is currently load-bearing (queryable via `kb_contains_module`)
 - `lopecode-dev/knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md:160` — exporter v1 retirement
 - `lopecode-dev/knowledge/bulk-exporting-lopebooks.md:49` — references "exporter v1"
 - `lopecode-dev/tools/channel/lopecode-channel.ts:153,213,560` — pairing-channel docstrings still referencing v2
