@@ -35,17 +35,20 @@ That's it. No data — the data is in `content.json` and per-notebook `*.json` f
 | `publishedAt` | module slug | URL on tomlarkworthy.github.io | `content.json[*].url` |
 | `containsModule` | notebook id (`@tomlarkworthy_exporter-3`) | module slug | per-notebook `*.json`, `modules` keys |
 | `repoLocation` | notebook id | file path within repo | `lopecode/notebooks/<id>.html` and/or `lopebooks/notebooks/<id>.html` (whichever exist) |
+| `dependsOn` | composite `<notebook id>::<module slug>` | imported module slug | per-notebook `*.json`, `modules.<slug>.dependsOn` |
+| `dependedBy` | composite `<notebook id>::<module slug>` | dependent module slug | per-notebook `*.json`, `modules.<slug>.dependedBy` (reverse edge, scoped to modules in this notebook) |
 
-### Two subject namespaces
+### Subject namespaces
 
-The kb has two different identity conventions for related entities:
+Three identity conventions for related entities:
 
-- **Module slug** — `@tomlarkworthy/exporter-3` (slash form). Identifies a module as published on Observable.
-- **Notebook id** — `@tomlarkworthy_exporter-3` (underscore form). Identifies an HTML artifact in this repo. Derived from the slug by replacing `/` with `_`.
+- **Module slug** — `@tomlarkworthy/exporter-3` (slash form). Identifies a module as published on Observable. Used by `observableUrl`, `publishedAt`.
+- **Notebook id** — `@tomlarkworthy_exporter-3` (underscore form). Identifies an HTML artifact in this repo. Derived from the slug by replacing `/` with `_`. Used by `containsModule`, `repoLocation`.
+- **Composite `<notebook id>::<module slug>`** — for `dependsOn`/`dependedBy`. Dependencies are per-(notebook, module) because two notebooks may bundle different versions of the same module with different deps.
 
 The `containsModule` predicate is the bridge: its subject is a notebook id, its object is a module slug. To find *everything* about a thing called "exporter-3," query both forms, or pivot through `containsModule`.
 
-The asymmetry is intrinsic to lopecode's design (modules and notebooks have different lifecycles even when they share a name); the kb surfaces it rather than papering over it.
+The slug/id asymmetry is intrinsic to lopecode's design (modules and notebooks have different lifecycles even when they share a name); the kb surfaces it rather than papering over it.
 
 **Vocabulary is closed by design.** Adding a new predicate requires editing both `kb/views.sql` and this table. This is on purpose — open vocabularies degrade fast (`supersedes` vs `replaces` vs `supercedes` typo). If you find yourself wanting a free-form predicate, that's a signal it belongs in mempalace's KG, not here.
 
@@ -101,9 +104,29 @@ GROUP BY subject HAVING COUNT(*) > 1;
 -- Observable URL given a module slug
 SELECT object FROM kb_triples
 WHERE subject = '@tomlarkworthy/exporter-3' AND predicate = 'observableUrl';
+
+-- What does atlas's main module import (within the atlas notebook)?
+SELECT object FROM kb_triples
+WHERE subject = '@tomlarkworthy_atlas::@tomlarkworthy/atlas' AND predicate = 'dependsOn';
+
+-- Inverse: what depends on @tomlarkworthy/runtime-sdk inside the atlas notebook?
+SELECT object FROM kb_triples
+WHERE subject = '@tomlarkworthy_atlas::@tomlarkworthy/runtime-sdk' AND predicate = 'dependedBy';
+
+-- Notebooks where a module bundles different dependencies than elsewhere
+-- (signals version drift)
+WITH per_notebook AS (
+  SELECT
+    split_part(subject, '::', 1) AS notebook,
+    split_part(subject, '::', 2) AS module,
+    object
+  FROM kb_triples WHERE predicate = 'dependsOn'
+)
+SELECT module, COUNT(DISTINCT notebook || '|' || object) - COUNT(DISTINCT object) AS drift
+FROM per_notebook GROUP BY module HAVING drift > 0;
 ```
 
-DuckDB also supports recursive CTEs, useful if you later add transitive predicates (e.g. `imports` — see *Open items* below).
+DuckDB also supports recursive CTEs, useful for transitive closures (e.g. all modules that transitively depend on `@tomlarkworthy/runtime-sdk`).
 
 ## Maintenance
 
@@ -136,9 +159,16 @@ The direction is `kb` → mempalace, never reversed. mempalace becomes a queryab
 
 If you don't use mempalace, this section is irrelevant; DuckDB queries are sufficient.
 
+## How `dependsOn`/`dependedBy` are computed
+
+Each `main.define("module @x/y", async () => runtime.module(...))` line in a module's serialized source declares an inter-module reference. The exporter has already resolved every notebook-import to this canonical form at export time, so static parsing is robust here even though it isn't for live, un-exported notebooks.
+
+`tools/lope-reader.ts --compute-imports` boots `@tomlarkworthy/observablejs-toolchain` once via `lope-runtime.js` (~3s), pulls `extractModuleInfo` (the function `@tomlarkworthy/module-map` uses to name modules from a runtime scope), and applies it to each loader body. `dependedBy` is the inverse, computed locally per notebook over its own module set.
+
+`lope-jumpgate.js` and `lope-bulk-jumpgate.js` pass `--compute-imports` automatically; bulk export runs lope-reader in `--manifest --compute-imports` mode for a single toolchain boot across the batch.
+
 ## Open items
 
-1. **Module → module imports edges** are not in any committed JSON. They live in compiled `lope-file` blocks inside the `*.html` notebooks (the `main.define("module @author/X", ...)` lines, decoded by `tools/lope-reader.ts --get-module`). The robust resolver lives in `@tomlarkworthy/module-map` — it uses live-runtime introspection (DOM `.observablehq--import` scraping plus a `Map.prototype.has` interception trick) rather than static parsing. A static regex would mis-resolve notebook-import-style edges. To add an `imports` predicate, drive `module-map` via Playwright (`tools/lope-browser-runner.ts`) over a covering set of notebooks and write a committed `tools/imports.json` cache.
-2. **`mainModule` predicate** (which modules a notebook boots, from `bootconf.mains`) is straightforward to add now that per-notebook `*.json` files are committed and the views read them. Spec carries `bootconf.mains`; just add a `kb_main_module` view that unnests it.
-3. **Mempalace sync script** — if/when adopted, lives at `tools/kb-sync-mempalace.ts` and gets its own short knowledge doc.
-4. **Recursive submodule init.** This repo has nested submodules (`lopecode/`, `lopebooks/`, `vendor/*`). To run any query that touches notebooks from a fresh clone, run `git submodule update --init --recursive` first so the per-notebook `.json` files exist on disk for `read_json_objects()` to find.
+1. **`mainModule` predicate** (which modules a notebook boots, from `bootconf.mains`) is straightforward to add — spec carries `bootconf.mains`; just add a `kb_main_module` view that unnests it.
+2. **Mempalace sync script** — if/when adopted, lives at `tools/kb-sync-mempalace.ts` and gets its own short knowledge doc.
+3. **Recursive submodule init.** This repo has nested submodules (`lopecode/`, `lopebooks/`, `vendor/*`). To run any query that touches notebooks from a fresh clone, run `git submodule update --init --recursive` first so the per-notebook `.json` files exist on disk for `read_json_objects()` to find.

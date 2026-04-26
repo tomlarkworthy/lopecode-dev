@@ -67,10 +67,51 @@ SELECT
   file AS object
 FROM glob(['lopecode/notebooks/*.html', 'lopebooks/notebooks/*.html']);
 
+-- (notebook::module) → dependsOn → imported_module
+-- Subject is the composite form because dependencies are per-(notebook, module):
+-- two notebooks may bundle different versions of the same module with different
+-- dependency sets. Mirrors @tomlarkworthy/module-map's per-runtime view.
+CREATE OR REPLACE VIEW kb_depends_on AS
+WITH per_module AS (
+  SELECT
+    json_extract_string(spec, '$.notebook') AS notebook,
+    UNNEST(json_keys(json_extract(spec, '$.modules'))) AS module,
+    spec
+  FROM notebook_specs
+), edges AS (
+  SELECT
+    notebook || '::' || module AS subject,
+    UNNEST(from_json(json_extract(spec, '$.modules."' || module || '".dependsOn'), '["VARCHAR"]')) AS object
+  FROM per_module
+  WHERE json_extract(spec, '$.modules."' || module || '".dependsOn') IS NOT NULL
+)
+SELECT DISTINCT subject, 'dependsOn' AS predicate, object FROM edges;
+
+-- (notebook::module) → dependedBy → dependent_module
+-- Reverse edge of dependsOn, scoped to modules within the same notebook
+-- (lope-reader.ts only emits dependedBy for modules that exist in the spec).
+CREATE OR REPLACE VIEW kb_depended_by AS
+WITH per_module AS (
+  SELECT
+    json_extract_string(spec, '$.notebook') AS notebook,
+    UNNEST(json_keys(json_extract(spec, '$.modules'))) AS module,
+    spec
+  FROM notebook_specs
+), edges AS (
+  SELECT
+    notebook || '::' || module AS subject,
+    UNNEST(from_json(json_extract(spec, '$.modules."' || module || '".dependedBy'), '["VARCHAR"]')) AS object
+  FROM per_module
+  WHERE json_extract(spec, '$.modules."' || module || '".dependedBy') IS NOT NULL
+)
+SELECT DISTINCT subject, 'dependedBy' AS predicate, object FROM edges;
+
 -- ---------- Unified triple view (the main query surface) ----------
 
 CREATE OR REPLACE VIEW kb_triples AS
   SELECT * FROM kb_observable_url
   UNION ALL SELECT * FROM kb_published_at
   UNION ALL SELECT * FROM kb_contains_module
-  UNION ALL SELECT * FROM kb_repo_location;
+  UNION ALL SELECT * FROM kb_repo_location
+  UNION ALL SELECT * FROM kb_depends_on
+  UNION ALL SELECT * FROM kb_depended_by;
