@@ -16,7 +16,10 @@ if ! command -v safehouse &>/dev/null; then
     exit 1
 fi
 
-ENV_PASS="METADEV,METADEV_CORRELATION_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_REGION,AWS_DEFAULT_REGION,AWS_SESSION_EXPIRATION,AWS_CREDENTIAL_EXPIRATION,AWS_VAULT,ANTHROPIC_API_KEY,ANTHROPIC_BASE_URL,DISABLE_AUTOUPDATER,CLAUDE_CONFIG_DIR"
+ENV_PASS="METADEV,METADEV_CORRELATION_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_REGION,AWS_DEFAULT_REGION,AWS_SESSION_EXPIRATION,AWS_CREDENTIAL_EXPIRATION,AWS_VAULT,ANTHROPIC_API_KEY,ANTHROPIC_BASE_URL,DISABLE_AUTOUPDATER,CLAUDE_CONFIG_DIR,MEMPALACE_EMBEDDING_DEVICE"
+
+# Pre-create dirs the sandbox will mount; safehouse refuses to mount nonexistent paths.
+mkdir -p ~/.mempalace ~/.cache/chroma
 
 SAFEHOUSE_ARGS=(
     --env-pass="$ENV_PASS"
@@ -25,6 +28,7 @@ SAFEHOUSE_ARGS=(
     --add-dirs-ro=~/.orbstack
     --add-dirs-ro=/Applications/OrbStack.app
     --add-dirs-ro=~/.local
+    --add-dirs-ro=~/.duckdb
     --add-dirs-ro=~/Library/Application\ Support/pypoetry
     --add-dirs-ro=~/.ssh
     --add-dirs-ro=~/.zshrc
@@ -32,6 +36,8 @@ SAFEHOUSE_ARGS=(
     --add-dirs=~/.claude-personal
     --add-dirs=~/.aws-sam
     --add-dirs=~/.mavenrc
+    --add-dirs=~/.mempalace
+    --add-dirs=~/.cache/chroma
     --enable=docker,shell-init,process-control,electron,chromium-full
 )
 
