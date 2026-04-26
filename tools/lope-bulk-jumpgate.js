@@ -277,22 +277,28 @@ if (downloadPromises.length > 0) {
   await Promise.all(downloadPromises);
 }
 
-// Generate .json specs for each exported HTML
+// Generate .json specs for all exported HTMLs in a single pass.
+// --compute-imports needs to boot @tomlarkworthy/observablejs-toolchain via
+// lope-runtime (~3s); manifest mode amortizes that boot across the whole batch.
 const htmlFiles = downloadedFiles.filter(f => f.endsWith('.html'));
 const lopeReaderPath = resolve(__dirname, 'lope-reader.ts');
-for (const f of htmlFiles) {
-  const htmlPath = resolve(outputDir, f);
-  const jsonPath = htmlPath.replace(/\.html$/, '.json');
-  try {
-    const spec_output = execFileSync('bun', [lopeReaderPath, htmlPath], {
-      encoding: 'utf-8',
-      timeout: 30000,
-    });
-    fs.writeFileSync(jsonPath, spec_output);
+try {
+  const manifestStr = execFileSync(
+    'bun',
+    [lopeReaderPath, '--manifest', outputDir, '--compute-imports'],
+    { encoding: 'utf-8', timeout: 600000, maxBuffer: 100 * 1024 * 1024 },
+  );
+  const specs = new Map(JSON.parse(manifestStr).map((s) => [s.notebook, s]));
+  for (const f of htmlFiles) {
+    const notebookId = f.replace(/\.html$/, '');
+    const spec = specs.get(notebookId);
+    if (!spec) { log(`Warning: no spec generated for ${f}`); continue; }
+    const jsonPath = resolve(outputDir, f).replace(/\.html$/, '.json');
+    fs.writeFileSync(jsonPath, JSON.stringify(spec, null, 2) + '\n');
     log(`Spec: ${f.replace('.html', '.json')}`);
-  } catch (e) {
-    log(`Warning: failed to generate spec for ${f}: ${e.message}`);
   }
+} catch (e) {
+  log(`Warning: failed to generate specs: ${e.message}`);
 }
 
 // Summary

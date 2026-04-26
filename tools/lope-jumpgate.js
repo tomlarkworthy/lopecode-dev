@@ -369,9 +369,9 @@ async function main() {
     // Generate .json spec alongside the HTML
     const jsonPath = outputPath.replace(/\.html$/, '.json');
     try {
-      const specStr = execFileSync('bun', ['tools/lope-reader.ts', outputPath], {
+      const specStr = execFileSync('bun', ['tools/lope-reader.ts', outputPath, '--compute-imports'], {
         encoding: 'utf-8',
-        timeout: 30000,
+        timeout: 60000,
       });
       const specObj = JSON.parse(specStr);
       specObj["observablehq.com"] = sourceUrl;
