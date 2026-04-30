@@ -4,7 +4,8 @@ Status: draft / exploratory. Refining a sketch authored without knowledge of the
 
 ## Milestones
 
-- **2026-04-26 — First light.** First lopebook published to atproto via the v0 lopejack prototype (then named lopefeed): `at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/dev.lope.bundle/3mkg4yuxhir27` (under the original `dev.lope.bundle` lexicon, since renamed to `dev.lopecode.bundle`). App-password auth, content-addressed file table, single-record bundle. Round-trip publish path proven end-to-end against a real PDS.
+- **2026-04-26 — First light.** First lopebook published to atproto via the v0 prototype (then named lopefeed): `at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/dev.lope.bundle/3mkg4yuxhir27` (under the original `dev.lope.bundle` lexicon, since renamed to `dev.lopecode.bundle`). App-password auth, content-addressed file table, single-record bundle. Round-trip publish path proven end-to-end against a real PDS.
+- **2026-04-30 — v0 shipped.** `@tomlarkworthy/at-write` (publisher) + `@tomlarkworthy/at-read` (reader) + `@tomlarkworthy/atproto` (headline + shared helpers), all in `lopecode/notebooks/atproto.html`. at-read renders bundles in a sandboxed iframe (`allow-scripts`, opaque origin) using exporter-3's pure `lopebook(blocks, …)` template — same composition code as the export pipeline. Token refresh (401 + 400 ExpiredToken), CID delta uploads, IndexedDB cache, plc.directory + did:web resolve.
 
 ## Goal
 
@@ -295,38 +296,6 @@ Store both the PDS-returned blob ref *and* the locally-computed `sha256` (or ful
 - No importShim rewrite — existing `@user/notebook` resolution stays exactly as it is. The fetched bundle runs because it has the same script-tag structure as a normal lopebook.
 
 This MVP fits inside the long-term lexicon plan: the v0 `files[]` shape is the same shape `moduleVersion.files[]` wants. Splitting one bundle into per-module records later is a refactor of the *publishing* code, not a re-encoding of stored bytes — every blob already in the repo stays exactly where it is.
-
-## Lopejack v0 — refinements after first light
-
-The first publish (2026-04-26) surfaced four rough edges in the v0 implementation worth addressing before adding any new feature. They are bundled here because each on its own is a small change but together they sharpen the data model:
-
-### 1. Bundle is pure content — reader owns the bootloader
-
-The "everything inside a lopebook is a file" framing has one exception: the inline executable scripts at the top of the HTML (`networking_script`, the `<script type="module">` runtime/inspector loader, the `<script type="module" id="main">` bootstrap). These aren't `data-mime` blocks; they're the runtime, not content. The first cut of `reconstructHtml` worked around this by snapshotting `document.documentElement.outerHTML` and stripping data-mime + iframe elements via DOMParser — which works only because the *viewing* lopejack page is itself a lopebook, and which made every fetched bundle implicitly recursive.
-
-The clean model: **bundles store only data-mime files. The reader owns the runtime.** Lopejack imports `networking_script` from `@tomlarkworthy/exporter-3` (already its own cell in exporter), composes a small static template with the file table and a hardcoded `<script type="module" id="main">` bootstrap (~10 lines, mirroring `lopebook` in exporter-3), and renders. No `document.outerHTML` borrow, no DOMParser stripping, no recursion risk.
-
-Consequence: published bundles become genuinely self-contained content (the file table includes gzipped runtime, inspector, es-module-shims, the bootloader module, all user modules, and bootconf — that's everything the boot template needs to resolve). Lopejack stops needing to be a lopebook itself to render fetched bundles.
-
-Caveat to "everything is a file": the inline boot scripts are a fixed ~1KB of platform code, not user content. Spec wording should reflect this — *"everything except a tiny inline bootstrap is a file."*
-
-### 2. Drop `resolvePds` from the fetch path
-
-For *publishing* we must write to the user's actual PDS, so we resolve handle → DID → plc.directory → PDS endpoint. For *fetching*, no — `public.api.bsky.app` proxies `com.atproto.repo.getRecord` and `com.atproto.sync.getBlob` for any DID. `resolvePds` becomes login-only; fetch loses a network hop and a dependency on plc.directory being reachable.
-
-### 3. Extract one `xrpc` helper
-
-Five fetch sites (resolveHandle, plc.directory, createSession, uploadBlob, createRecord, getRecord, getBlob) repeat the same scaffolding: build the URL, optionally add `Authorization: Bearer ${session.accessJwt}`, check `if (!r.ok) throw new Error(...)`, parse JSON. One `xrpc({pds, method, body, session?})` helper folds these into one-liners and is the natural place to land **token refresh** (refresh-on-401, retrying once with a new accessJwt from the refresh JWT). atproto access tokens expire in ~2h; without this, long sessions silently break on next publish.
-
-### 4. Smaller dedup wins
-
-- `URL.createObjectURL` for the download blob in `fetchedView` leaks on every re-fetch — `URL.revokeObjectURL` on cleanup.
-- Sequential 75-blob upload is slow on first publish (10–20s). Cap at 4–8 concurrent.
-- `resolvePds` and `extractFiles` are top-level cells but feel like utilities. Move them into `utils` to flatten the cell graph.
-
-### Net
-
-Reconstruct cell drops from ~50 lines to ~25, the `bootShell` cell goes away entirely, the recursive-iframe class of bug becomes structurally impossible, and the model lines up with the spec's "bundle = content, runtime = reader" story.
 
 ## v1 ideas
 
