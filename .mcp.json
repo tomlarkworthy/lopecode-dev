@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "lopecode": {
-      "command": "bun",
-      "args": ["run", "tools/channel/lopecode-channel.ts"]
+      "command": "/bin/sh",
+      "args": ["-c", "exec bun run tools/channel/lopecode-channel.ts 2>>/tmp/lopecode-channel.log"]
+    },
+    "mempalace": {
+      "command": "/Users/tom.larkworthy/.local/share/uv/tools/mempalace/bin/mempalace-mcp"
     }
   }
 }
