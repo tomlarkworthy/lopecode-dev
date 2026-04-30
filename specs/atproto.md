@@ -297,67 +297,65 @@ Store both the PDS-returned blob ref *and* the locally-computed `sha256` (or ful
 
 This MVP fits inside the long-term lexicon plan: the v0 `files[]` shape is the same shape `moduleVersion.files[]` wants. Splitting one bundle into per-module records later is a refactor of the *publishing* code, not a re-encoding of stored bytes — every blob already in the repo stays exactly where it is.
 
-## v1 ideas
+## v1 plan
 
-A grab-bag of architectural directions worth committing to in spec before they get overrun by ad-hoc decisions. None of these block v0 → v1; they shape the lexicon and service surface we'll commit to.
+v0 proved publish/fetch/render between two endpoints holding the same `at://` URI. v1 makes a published lopebook **shareable, discoverable, and visible to the existing Bluesky social graph** — without inventing a parallel social network.
 
-### Namespace: `com.lopecode.*`
+### What v1 delivers
 
-We own `lopecode.com`. v0 uses `dev.lopecode.bundle` (the `dev.*` convention for in-flight lexicons). The settled namespace is `com.lopecode.*`. Migration: leave existing `dev.lopecode.bundle` records on chain (read-only legacy), publish new records under the settled name once schema is stable.
+1. Settled `com.lopecode.bundle` lexicon (we own lopecode.com).
+2. Public preview URL per record (`lopecode.com/r/:did/:rkey`).
+3. Public profile page per author (`lopecode.com/@:handle`) listing their bundles.
+4. Companion Bluesky post on every publish — bundle appears in the author's Bluesky timeline + reachable by Bluesky followers.
+5. Custom Bluesky feed (`app.bsky.feed.generator`) surfacing recent lopecode bundles for browse/discovery.
+6. `site.standard.document` sidecar so bundles surface in the standard.site reader ecosystem (a long-form publishing community lexicon).
 
-### Hybrid: canonical custom records + Bluesky for reach
+Out of scope: module/moduleVersion split, capability enforcement, custom non-Bluesky notifications, OAuth.
 
-Don't try to make Bluesky AppView render lopecode records natively. Pattern:
+### Records written per publish
 
-1. The canonical object graph (modules, apps, versions, watches, patches) lives in custom `com.lopecode.*` records on user PDSes.
-2. Social reach (announcements, discussion, follow-the-author, search) is delegated to companion `app.bsky.feed.post` records that link to a preview URL via `app.bsky.embed.external`, or to the canonical record via `app.bsky.embed.record`.
-3. A small derived-view service indexes our custom records (Jetstream → SQLite to start; Tap or Contrail when full-history sync matters) and exposes module/app pages, dependency graph, watch-based notifications, and feed generators.
-
-Sidecar discipline (per [the official threadgate pattern](https://docs.bsky.app/blog/posts/wishful-fields)): when extending Bluesky-adjacent metadata, write a separate record in our namespace, not custom fields on `app.bsky.*` records.
-
-### standard.site as the editorial substrate
-
-[`site.standard.*`](https://standard.site) is a community lexicon family for long-form publishing — `publication` (a blog), `document` (an article), `graph.subscription` (follow a publication), and `bskyPostRef` for linking documents to a Bluesky discussion thread. The `document.content` field is an explicit open union, designed for extension.
-
-Lopecode notebooks are computational blogging — that's a clean fit. Shape:
-
-- `site.standard.document` carries the editorial shell: title, slug, publication, optional `bskyPostRef`.
-- A custom content union member (e.g. `com.lopecode.runtime`) holds the runtime metadata: file manifest, capabilities, deps.
-- PDS blobs hold the actual scripts (same content-addressed model as today's `dev.lopecode.bundle/files[]`).
-- standard.site clients render "document with unknown content" gracefully; lopecode clients render the runnable thing.
-
-Cost: editorial metadata splits from runtime metadata. Publish and fetch both rewrite. Worth committing to the *direction* now; defer migration until we have a few real notebooks and standard.site's schema feels stable.
-
-### Capability metadata
-
-Auth scopes answer "may this app write my repo" — not "what may this bundle do when rendered." A bundle that runs in someone else's iframe is a different trust question. Declare runtime capabilities on the version record:
-
-```
-capabilities: {
-  networkAccess: false,
-  allowedOrigins: ["https://api.example.com"],
-  readsBlobs: true,
-  writesStorage: false,
-  usesEval: false,
-  requiresUserGesture: true
-}
-```
-
-Reader (at-read or any other) enforces these at the network/import boundary; user sees a permission summary before the iframe boots. This is application-layer policy, not protocol — but it's the right place to enforce sandbox behavior, and the right place to put it is on the same record that ships the code.
-
-### Indexer / view service options
-
-| Option | Strength | When |
+| Record | Owner | Purpose |
 |---|---|---|
-| Jetstream + Worker/DO + Queue + D1 | Cheap, Cloudflare-native, latest-only | Discovery feeds, release streams |
-| [Contrail](https://contrail.community) | Collection declarations, typed XRPC, watches; pre-alpha | Quickest path to a small view API |
-| [Tap](https://github.com/bluesky-social/tap) | Official sync/backfill, full-history correctness | Dependency graph, when historical completeness matters |
+| `com.lopecode.bundle` | author's PDS | canonical artifact (renamed from v0's `dev.lopecode.bundle`; same `files[]` shape) |
+| `app.bsky.feed.post` | author's PDS | companion post — `app.bsky.embed.external` linking to `lopecode.com/r/:did/:rkey`. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
+| `site.standard.document` | author's PDS | editorial sidecar — `bskyPostRef` to the companion post, `content` union member `com.lopecode.runtime` referencing the bundle's `at://` URI. Drives reach into the standard.site ecosystem. |
 
-Decision rule: if you need historical completeness or dependency-graph correctness, Tap or Contrail-with-backfill. If you only need live release streams + light discovery, Jetstream is enough.
+Three writes per publish (small, parallel). The bundle is canonical; the other two are sidecars.
 
-### Notifications
+### Server components
 
-Bluesky's native notification system covers Bluesky-visible activity (posts, replies, likes, follows, mentions). It does not cover module/app watches, dependency-update alerts, or anything tied to a non-`app.bsky.*` record. Those live in our derived-view service — fed by `com.lopecode.graph.watch` records on user PDSes and computed by the indexer.
+Two static surfaces (no per-user state) and two dynamic ones (one indexer, one feed generator):
+
+| # | What | How |
+|---|---|---|
+| 1 | **Preview gateway** `lopecode.com/r/:did/:rkey` | Static HTML; loads at-read with the URI prefilled. Used as the target for `app.bsky.embed.external`. |
+| 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID → `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Pure client-side, no server state. |
+| 3 | **Indexer** | Cloudflare Worker subscribed to [Jetstream](https://github.com/bluesky-social/jetstream); writes `com.lopecode.bundle` events into D1. Filtered upstream so cost is small. |
+| 4 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Reads from the indexer's D1; ranks by recency. Registered as a published feed under the lopecode.com DID. |
+
+That's it. Nothing else needs to live server-side for v1.
+
+### Lexicon migration
+
+- v0's `dev.lopecode.bundle` records stay on chain and remain readable by at-read.
+- at-write v1 publishes to `com.lopecode.bundle`. Same `files[]` shape; the rename is the only schema change.
+- at-read accepts both collection names during the overlap window.
+
+### Sidecar discipline
+
+Following [the official threadgate / Bluesky-extension guidance](https://docs.bsky.app/blog/posts/wishful-fields): never extend `app.bsky.*` records with custom fields. Always write a separate record in our namespace alongside. Same `rkey` convention where it makes sense, so a fetcher can predict the sidecar URI.
+
+### Trade-offs
+
+- **Three writes per publish.** Each is small and parallel. Failure mode: bundle record can land while companion post or document fails — at-write should retry the sidecars but not block the bundle (canonical artifact is what matters).
+- **Bluesky reach depends on a working preview gateway.** If `lopecode.com/r/...` is down, the embed card breaks. Mitigation: preview gateway is pure static + at-read in an iframe, so it has the same uptime as Cloudflare Pages.
+- **Custom feed visibility depends on registration.** Feed generator must be published (its URI registered with `app.bsky.feed.generator` record) and discoverable; until users explicitly subscribe, only feed-curators see it.
+
+### Open v1 questions
+
+- **Capability metadata**: declare on `com.lopecode.bundle` (`{networkAccess, allowedOrigins, usesEval, ...}`)? Reader sandbox is currently blanket `allow-scripts`; capability declarations let us surface a permission summary before the iframe boots. Reasonable to land in v1; small at-read change.
+- **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile` with a per-author standard.site `publication` record carrying lopecode-specific bits.
+- **Comments**: Bluesky replies on the companion post are the v1 answer. A per-bundle thread root that's *not* a Bluesky post is a v2 concern.
 
 ## Bootstrap plan (after v0)
 
