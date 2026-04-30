@@ -415,6 +415,11 @@ function extractCellName(source) {
   if (!source) return null;
   const m = source.match(/^(viewof\s+\w+|mutable\s+\w+|\w+)\s*=/);
   if (m) return m[1];
+  // Observable also names cells from function/class declarations
+  const fn = source.match(/^(?:async\s+)?function\s*\*?\s+(\w+)\s*\(/);
+  if (fn) return fn[1];
+  const cls = source.match(/^class\s+(\w+)\b/);
+  if (cls) return cls[1];
   if (source.startsWith('import ')) return source.trim();
   return null;
 }
