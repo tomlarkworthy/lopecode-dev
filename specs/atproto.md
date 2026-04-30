@@ -328,6 +328,68 @@ Five fetch sites (resolveHandle, plc.directory, createSession, uploadBlob, creat
 
 Reconstruct cell drops from ~50 lines to ~25, the `bootShell` cell goes away entirely, the recursive-iframe class of bug becomes structurally impossible, and the model lines up with the spec's "bundle = content, runtime = reader" story.
 
+## v1 ideas
+
+A grab-bag of architectural directions worth committing to in spec before they get overrun by ad-hoc decisions. None of these block v0 → v1; they shape the lexicon and service surface we'll commit to.
+
+### Namespace: `com.lopecode.*`
+
+We own `lopecode.com`. v0 uses `dev.lopecode.bundle` (the `dev.*` convention for in-flight lexicons). The settled namespace is `com.lopecode.*`. Migration: leave existing `dev.lopecode.bundle` records on chain (read-only legacy), publish new records under the settled name once schema is stable.
+
+### Hybrid: canonical custom records + Bluesky for reach
+
+Don't try to make Bluesky AppView render lopecode records natively. Pattern:
+
+1. The canonical object graph (modules, apps, versions, watches, patches) lives in custom `com.lopecode.*` records on user PDSes.
+2. Social reach (announcements, discussion, follow-the-author, search) is delegated to companion `app.bsky.feed.post` records that link to a preview URL via `app.bsky.embed.external`, or to the canonical record via `app.bsky.embed.record`.
+3. A small derived-view service indexes our custom records (Jetstream → SQLite to start; Tap or Contrail when full-history sync matters) and exposes module/app pages, dependency graph, watch-based notifications, and feed generators.
+
+Sidecar discipline (per [the official threadgate pattern](https://docs.bsky.app/blog/posts/wishful-fields)): when extending Bluesky-adjacent metadata, write a separate record in our namespace, not custom fields on `app.bsky.*` records.
+
+### standard.site as the editorial substrate
+
+[`site.standard.*`](https://standard.site) is a community lexicon family for long-form publishing — `publication` (a blog), `document` (an article), `graph.subscription` (follow a publication), and `bskyPostRef` for linking documents to a Bluesky discussion thread. The `document.content` field is an explicit open union, designed for extension.
+
+Lopecode notebooks are computational blogging — that's a clean fit. Shape:
+
+- `site.standard.document` carries the editorial shell: title, slug, publication, optional `bskyPostRef`.
+- A custom content union member (e.g. `com.lopecode.runtime`) holds the runtime metadata: file manifest, capabilities, deps.
+- PDS blobs hold the actual scripts (same content-addressed model as today's `dev.lopecode.bundle/files[]`).
+- standard.site clients render "document with unknown content" gracefully; lopecode clients render the runnable thing.
+
+Cost: editorial metadata splits from runtime metadata. Publish and fetch both rewrite. Worth committing to the *direction* now; defer migration until we have a few real notebooks and standard.site's schema feels stable.
+
+### Capability metadata
+
+Auth scopes answer "may this app write my repo" — not "what may this bundle do when rendered." A bundle that runs in someone else's iframe is a different trust question. Declare runtime capabilities on the version record:
+
+```
+capabilities: {
+  networkAccess: false,
+  allowedOrigins: ["https://api.example.com"],
+  readsBlobs: true,
+  writesStorage: false,
+  usesEval: false,
+  requiresUserGesture: true
+}
+```
+
+Reader (at-read or any other) enforces these at the network/import boundary; user sees a permission summary before the iframe boots. This is application-layer policy, not protocol — but it's the right place to enforce sandbox behavior, and the right place to put it is on the same record that ships the code.
+
+### Indexer / view service options
+
+| Option | Strength | When |
+|---|---|---|
+| Jetstream + Worker/DO + Queue + D1 | Cheap, Cloudflare-native, latest-only | Discovery feeds, release streams |
+| [Contrail](https://contrail.community) | Collection declarations, typed XRPC, watches; pre-alpha | Quickest path to a small view API |
+| [Tap](https://github.com/bluesky-social/tap) | Official sync/backfill, full-history correctness | Dependency graph, when historical completeness matters |
+
+Decision rule: if you need historical completeness or dependency-graph correctness, Tap or Contrail-with-backfill. If you only need live release streams + light discovery, Jetstream is enough.
+
+### Notifications
+
+Bluesky's native notification system covers Bluesky-visible activity (posts, replies, likes, follows, mentions). It does not cover module/app watches, dependency-update alerts, or anything tied to a non-`app.bsky.*` record. Those live in our derived-view service — fed by `com.lopecode.graph.watch` records on user PDSes and computed by the indexer.
+
 ## Bootstrap plan (after v0)
 
 **Phase 0 — substrate**
@@ -358,7 +420,7 @@ Reconstruct cell drops from ~50 lines to ~25, the `bootShell` cell goes away ent
 - **Dependency upgrade UX.** When `@a/b` publishes a new `moduleVersion`, what triggers the update in apps that depend on it? Automatic floating heads (against the rule above) vs. notify-and-let-author-bump?
 - **Cell-level records.** Worth introducing now (cleaner pairing-channel mapping, finer-grained discussion) or strictly deferred?
 - **Single-file export storage.** Is `derivedExport` a blob on the version record, a separate `app.lopecode.export` record, or recomputed on demand by the asset gateway?
-- **`dev` vs `app` namespace.** v0 settled on `dev.lopecode.bundle` (experimental lexicon namespace per atproto convention). Long-term lexicons in this doc use `app.lopecode.*` per the same convention; lock the boundary between `dev` (in-flight) and `app` (stable) before the first `app.lopecode.*` record is written.
+- **`dev` vs `com` namespace.** v0 settled on `dev.lopecode.bundle` (experimental lexicon namespace per atproto convention). The settled v1 namespace is `com.lopecode.*` (we own `lopecode.com`). Lock the boundary between `dev` (in-flight) and `com` (stable) before the first `com.lopecode.*` record is written. Older `app.lopecode.*` references in this doc are historical and to be replaced.
 
 ## The core insight (preserved from the sketch)
 
