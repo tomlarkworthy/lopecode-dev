@@ -208,7 +208,7 @@ v0 proved publish/fetch/render between two endpoints holding the same `at://` UR
 ### What v1 delivers
 
 1. Settled `com.lopecode.bundle` lexicon (we own lopecode.com).
-2. Public preview URL per record (`lopecode.com/r/:did/:rkey`).
+2. Public web proxy per author at `did-….lopecode.com/r/:rkey` (with a flat `lopecode.com/r/:did/:rkey` redirect for embed-card compatibility).
 3. Public profile page per author (`lopecode.com/@:handle`) listing their bundles.
 4. Companion Bluesky post on every publish — bundle appears in the author's Bluesky timeline + reachable by Bluesky followers.
 5. Custom Bluesky feed (`app.bsky.feed.generator`) surfacing recent lopecode bundles for browse/discovery.
@@ -221,7 +221,7 @@ Out of scope: module/moduleVersion split, capability enforcement, custom non-Blu
 | Record | Owner | Purpose |
 |---|---|---|
 | `com.lopecode.bundle` | author's PDS | canonical artifact — the file table the user just published. Renamed from v0's `dev.lopecode.bundle`; same `files[]` shape. |
-| `app.bsky.feed.post` | author's PDS | companion post — `app.bsky.embed.external` linking to `lopecode.com/r/:did/:rkey`. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
+| `app.bsky.feed.post` | author's PDS | companion post — `app.bsky.embed.external` linking to `https://did-….lopecode.com/r/:rkey`. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
 | `site.standard.document` | author's PDS | editorial sidecar — `bskyPostRef` to the companion post, `content` union member `com.lopecode.runtime` referencing the bundle's `at://` URI. Drives reach into the standard.site ecosystem. |
 
 Three writes per publish (small, parallel). The bundle is canonical; the other two are sidecars. After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.bundle/:rkey)` so the bundle is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
@@ -230,7 +230,8 @@ Three writes per publish (small, parallel). The bundle is canonical; the other t
 
 We own `lopecode.com`. Stand it up on Cloudflare:
 
-- **Cloudflare Pages** for static surfaces (preview gateway, profile pages, OAuth client metadata + callback page).
+- **Cloudflare Pages** for static surfaces (profile pages, OAuth client metadata + callback page).
+- **Cloudflare Worker on `*.lopecode.com`** for the web proxy — wildcard subdomain per encoded DID, serves bundles at their own origin.
 - **[Contrail](https://github.com/flo-bit/contrail)** for the indexer/view layer — collection declarations, Jetstream ingestion + backfill, typed XRPC, all running on Workers + D1. Vendored as `vendor/contrail` so the deploy is reproducible from a known-good commit.
 - A small **feed-generator Worker** that calls Contrail's typed read endpoint and signs the response.
 - **DNS TXT** record `_atproto.lopecode.com` for atproto-side identity (lexicon publication, feed-generator DID).
@@ -250,22 +251,25 @@ Source lives in [tomlarkworthy/lopecode.com](https://github.com/tomlarkworthy/lo
 
 ```
 lopecode.com/
-├── pages/                       # Cloudflare Pages app
-│   ├── public/                  # static assets served at the apex
-│   │   ├── r/[[...slug]].html   # /r/:did/:rkey preview gateway
+├── pages/                       # Cloudflare Pages app (apex lopecode.com)
+│   ├── public/
 │   │   ├── @[handle].html       # /@:handle profile page
+│   │   ├── r/index.html         # legacy /r/:did/:rkey URL — 302 to did-….lopecode.com
 │   │   └── oauth/
 │   │       ├── client.json      # atproto OAuth client metadata
 │   │       └── callback.html    # postMessages tokens to the opener
-│   └── _routes.json             # Pages routing config
+│   └── _routes.json
+├── workers/
+│   ├── proxy/                   # web proxy: wildcard *.lopecode.com
+│   │   ├── src/index.ts         # decode Host → DID, fetch bundle, serve HTML
+│   │   └── wrangler.toml        # route: *.lopecode.com/*
+│   └── feed/                    # app.bsky.feed.generator
+│       ├── src/index.ts         # getFeedSkeleton + describeFeedGenerator
+│       └── wrangler.toml        # route: feed.lopecode.com
 ├── contrail/                    # Contrail collection declarations + config
 │   ├── src/contrail.config.ts   # collections + feeds (see "Contrail config" below)
 │   ├── src/worker.ts            # createWorker(config, { lexicons })
 │   └── wrangler.jsonc           # D1 binding + cron */1 * * * *
-├── workers/
-│   └── feed/                    # app.bsky.feed.generator
-│       ├── src/index.ts         # getFeedSkeleton + describeFeedGenerator
-│       └── wrangler.toml        # calls Contrail XRPC and reshapes
 ├── lexicons/                    # com.lopecode.* lexicon JSONs (canonical)
 │   └── com.lopecode.bundle.json
 ├── package.json                 # workspace root, bun
@@ -327,13 +331,28 @@ Three static surfaces (no per-user state) and two dynamic ones:
 
 | # | What | How |
 |---|---|---|
-| 1 | **Preview gateway** `lopecode.com/r/:did/:rkey` | Static HTML; loads at-read with the URI prefilled. Target for `app.bsky.embed.external`. |
+| 1 | **Web proxy** `did-plc-….lopecode.com/r/:rkey` (with `lopecode.com/r/:did/:rkey` redirecting to it) | Wildcard-subdomain Worker; resolves DID → bundle, serves it directly at a per-DID origin. **Top-level navigation, no sandbox.** This is the surface for non-atmosphere visitors arriving via Bluesky embed cards / plain web links / RSS — the bundle behaves like a normal webpage (storage, bookmarks, real fetch). Distinct from the in-notebook reader, which stays sandboxed. |
 | 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID, then either `com.atproto.repo.listRecords` directly or Contrail's `listBundlesByDid` XRPC. Pure client-side, no server state. |
 | 3 | **OAuth surface** `lopecode.com/oauth/client.json`, `/oauth/callback` | Static metadata + a callback page that postMessages tokens to the originating notebook. See "Auth" below. |
 | 4 | **Indexer** | [Contrail](https://github.com/flo-bit/contrail) on Workers + D1, vendored at `vendor/contrail`. One `contrail.config.ts` declares `com.lopecode.bundle` (recency + FTS title search) and a `timeline` feed over `app.bsky.graph.follow`. Contrail handles Jetstream + backfill + typed XRPC. |
 | 5 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Wraps Contrail: a *new-bundles* feed (recency `listRecords`) and a *personalized* feed (Contrail's `getFeed?actor=…` for the viewer). Both signed and registered under the lopecode.com DID. |
 
 That's it. Nothing else needs to live server-side for v1.
+
+### Two read surfaces
+
+A bundle is read in one of two contexts, each with its own origin model and its own threat shape:
+
+| | In-notebook reader | Web proxy |
+|---|---|---|
+| Where | `at-read` inside any lopecode notebook | `did-plc-….lopecode.com/r/:rkey` |
+| Audience | Atmosphere-native — surfing across many bundles | Non-atmosphere visitors landing via Bluesky / RSS / plain web |
+| Iframe origin | `blob:null/...` (built locally) | per-DID subdomain on `lopecode.com` |
+| Sandbox | `allow-scripts` (no storage, blocks UX hijacking) | none (it's a top-level navigation, not embedded) |
+| Storage | none — surfing only, not committing to run | works — bundle is a "real tool" for the visitor |
+| Fetches via | direct PDS / AppView | Worker resolves the bundle, serves the HTML |
+
+The web proxy is bootstrap infrastructure for the open web. Atmosphere-native users never need to hit it; their surfing happens in-notebook against PDSes directly.
 
 ### Auth
 
@@ -357,7 +376,7 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 ### Trade-offs
 
 - **Three writes per publish.** Each is small and parallel. Failure mode: bundle record can land while companion post or document fails — at-write should retry the sidecars but not block the bundle (canonical artifact is what matters).
-- **Bluesky reach depends on a working preview gateway.** If `lopecode.com/r/...` is down, the embed card breaks. Mitigation: preview gateway is pure static + at-read in an iframe, so it has the same uptime as Cloudflare Pages.
+- **Bluesky reach depends on a working web proxy.** If `*.lopecode.com` is down, embed cards break for non-atmosphere visitors. Atmosphere users are unaffected — the in-notebook reader doesn't go through `lopecode.com` at all.
 - **Custom feed visibility depends on registration.** Feed generator must be published (its URI registered with `app.bsky.feed.generator` record) and discoverable; until users explicitly subscribe, only feed-curators see it.
 
 ### Open v1 questions
@@ -391,7 +410,7 @@ Each `<item>`:
 
 `Cache-Control: public, max-age=300` so feed readers don't hammer Contrail. ~30 lines of Worker code per endpoint; one shared XML serializer.
 
-Worth doing once v1's preview gateway and indexer are stable. No new records, no new auth, no new lexicon — pure derived view over what v1 already produces.
+Worth doing once v1's web proxy and indexer are stable. No new records, no new auth, no new lexicon — pure derived view over what v1 already produces.
 
 ## Core insight
 
