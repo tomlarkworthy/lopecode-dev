@@ -28,11 +28,9 @@ The single most important primitive to pin down: **everything inside a lopecode 
 
 ## The pivot we are actually proposing
 
-This is not "add atproto on top." It is a substrate swap, and Observable's current role disappears entirely:
-
-> **Today: ObservableHQ.com is the canonical source of truth.** `lopecode/notebooks/*.html` and `lopebooks/notebooks/*.html` are derived bundles produced by jumpgate. Workflow is: edit on Observable → re-export via jumpgate → commit the HTML.
+This is not "add atproto on top." It is another transmission mediuem, Observable, local-file, static site and now atproto all can carry the same notebook code.
 >
-> **Proposed: lopecode is file-first and standalone, optionally distributed via atproto** (or another substrate). Authoring happens against local HTML files or PDS-backed records. Observable plays no role post-migration — no sync-back, no jumpgate, no Observable-as-truth. The pairing channel and a lopecode-native editor become the authoring surfaces.
+> **Proposed: lopecode is file-first and standalone, optionally distributed via atproto** (or another substrate). Authoring happens against local HTML files or PDS-backed records. 
 
 Two distribution modes coexist post-migration:
 
@@ -365,6 +363,33 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 - **Capability metadata**: declare on `com.lopecode.notebook` (`{networkAccess, allowedOrigins, usesEval, ...}`)? Reader sandbox is currently blanket `allow-scripts`; capability declarations let us surface a permission summary before the iframe boots. Reasonable to land in v1; small at-read change.
 - **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile` with a per-author standard.site `publication` record carrying lopecode-specific bits.
 - **Comments**: Bluesky replies on the companion post are the v1 answer. A per-bundle thread root that's *not* a Bluesky post is a v2 concern.
+
+## v1.1: RSS bridge
+
+After v1 ships, expose RSS feeds for "follow without joining atproto." Universal substrate — every feed reader supports it, every blog ecosystem expects it, no protocol negotiation.
+
+Two endpoints, both Cloudflare Workers wrapping Contrail:
+
+| Endpoint | Source |
+|---|---|
+| `lopecode.com/feed.xml` | Contrail `listRecords?sort=-createdAt&limit=50` — global recency feed |
+| `lopecode.com/@:handle/feed.xml` | resolves handle → DID, then Contrail `listRecords?did=…&sort=-createdAt` — one author's notebooks |
+
+Each `<item>`:
+
+```xml
+<item>
+  <title>{notebook.title}</title>
+  <link>https://lopecode.com/r/{did}/{rkey}</link>
+  <guid isPermaLink="false">at://{did}/com.lopecode.notebook/{rkey}</guid>
+  <pubDate>{notebook.createdAt}</pubDate>
+  <description>{site.standard.document.summary || ""}</description>
+</item>
+```
+
+`Cache-Control: public, max-age=300` so feed readers don't hammer Contrail. ~30 lines of Worker code per endpoint; one shared XML serializer.
+
+Worth doing once v1's preview gateway and indexer are stable. No new records, no new auth, no new lexicon — pure derived view over what v1 already produces.
 
 ## Core insight
 
