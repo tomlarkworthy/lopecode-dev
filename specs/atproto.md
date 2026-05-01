@@ -43,108 +43,53 @@ The substrate-swap part of this document covers mode 2. Mode 1 is preserved as a
 
 ## Object model
 
-### Module is the social unit, not the app
+### One record type: `com.lopecode.notebook`
 
-A lopecode module is reusable across many compositions. People follow, fork, version, and depend on **modules**. Apps are compositions over modules. Note that in current practice many notebooks are *both* — a notebook can be imported as a library and also opened standalone via lopepage; we should not require authors to declare upfront which it is.
-
-### Lineage vs version
-
-Two-record-types-per-thing pattern:
-
-- **Lineage record** (`com.lopecode.module`, `com.lopecode.app`) — stable mutable record that names a thing, its current head, and social metadata (title, description, tags, maintainers, fork-of). What people follow and fork.
-- **Version record** (`com.lopecode.moduleVersion`, `com.lopecode.appVersion`) — immutable snapshot. What other versions depend on. What runs.
-
-This separation is important because dependencies must pin to immutable versions for reproducibility, but the social graph operates on mutable lineages.
+A lopecode notebook is the unit of publication. Each publish writes one immutable record; the `rkey` is the version. Whether a notebook is used as a library (someone imports a module from inside it) or as a standalone app (booted via lopepage) is a *consumption* choice, not a *publish* choice — same record either way.
 
 ### Granularity
 
-Because lopecode already represents everything as files, the mapping to atproto is mostly mechanical:
+Because lopecode already represents everything as files, the mapping to atproto is direct:
 
-- **One `lope` file → one atproto blob.** Identity, MIME, and bytes round-trip directly. Module source (`@user/name`, `application/javascript`), module-scoped attachments (`@user/name/path.ext`, any MIME), and bootconf are all just blobs.
-- **A `moduleVersion` record holds the file table** — `[{id, blob, mime, encoding, sha256}]` — plus the metadata the runtime needs to resolve imports and capabilities. The compiled `define()` body is *one* of those files (the one with `id="@user/name"`); we don't need a separate `cells[]` field unless we want cell-level structure for diff/UI, which a static analysis pass on the file body can produce on demand.
-- **An `appVersion` record holds bootconf + the moduleVersion refs that compose the app** — equivalent to today's `bootconf.json` + the set of modules in the HTML.
+- **One `<script id data-mime>` block → one atproto blob.** Identity (`id`), MIME, and bytes round-trip with no transformation. Modules (`@user/name`, `application/javascript`), module-scoped attachments (`@user/name/path.ext`, any MIME), and bootconf are all just blobs.
+- **A notebook record holds the file table** — `[{id, encoding, blob}]`, where `blob` is an atproto blob ref carrying CID + mimeType + size. This is the same shape v0 already ships.
 
-A possible refinement (defer): `com.lopecode.cell` records for cell-level diff/discussion. Natural fit for the pairing channel's `define_cell` granularity. Not needed for v0 — cell structure can be derived from the module source on read.
+That's the entire object model for v1.
 
-## Lexicons (initial set)
+## Lexicon: `com.lopecode.notebook` (immutable)
 
-### `com.lopecode.module` (lineage, mutable)
-- `title`, `description`, `tags[]`
-- `maintainers[]` (DIDs)
-- `forkedFrom?` (strong ref to another `com.lopecode.module`)
-- `head?` (strong ref to current `com.lopecode.moduleVersion`)
-- `legacyName?` (e.g. `@tomlarkworthy/foo`, for migration aliasing)
+| Field | Type | Meaning |
+|---|---|---|
+| `$type` | string | always `"com.lopecode.notebook"` |
+| `title` | string | human title (default: from exporter-3's `notebook_title`) |
+| `files` | array | one entry per `<script id data-mime>` block |
+| `createdAt` | datetime | ISO 8601 |
 
-### `com.lopecode.moduleVersion` (immutable)
-- `module` (strong ref to lineage)
-- `parents[]` (prior versions; usually one, `[]` for genesis)
-- `files[]` — `[{id, blob, mime, encoding, sha256}]`. `id="@user/name"` with `mime="application/javascript"` is the module source itself; other entries are module-scoped attachments. Mirrors today's in-HTML script-tag table 1:1.
-- `imports[]` — declared dependencies on other module versions: `[{alias, module, version, cells?: string[]}]`. Drives the importShim's resolution.
-- `entrypoints?` — names of cells intended for external import (informational; auto-derivable).
-- `capabilities` — see "Capability model"
-- `changelog?`
-- `derivedExport?` — optional CID of an exported single-file HTML for cheap delivery
+Each `files[]` entry:
 
-### `com.lopecode.app` (lineage, mutable)
-Same shape as `com.lopecode.module` but for compositions.
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | script tag id, e.g. `@user/module`, `@user/module/asset.png`, `bootconf.json` |
+| `encoding` | string | `"text"` or `"base64"` from `data-encoding` |
+| `blob` | blob | atproto blob ref — CID (v1 raw + sha-256), mimeType, size |
 
-### `com.lopecode.appVersion` (immutable)
-- `app` (strong ref to lineage)
-- `parents[]`
-- `modules[]` — `[{alias, module, version}]`, the moduleVersion refs that make up the composition. The subset listed in bootconf `mains` boot eagerly; the rest are reachable via import.
-- `bootconf` — `{mains[], hash, headless, ...}` matching today's `bootconf.json` shape
-- `files[]` — app-local files (icons, app-specific assets) in the same `[{id, blob, mime, encoding, sha256}]` shape as moduleVersion
-- `derivedExport?` — CID of single-file HTML
+Identical to v0's `dev.lopecode.bundle` shape. The rename is the only schema change.
 
-### Deferred
-- `com.lopecode.patch` — proposed change to a moduleVersion. Not needed until forks-with-merge become real; the bot was right to defer.
-- `com.lopecode.cell` — per-cell records. Only if cell-level discussion/diff becomes a UX requirement.
+## Deferred (v2+)
 
-## Identity migration
+The early sketch had four lexicons (`module` + `moduleVersion` + `app` + `appVersion`) for cross-notebook module reuse with mutable lineages and immutable versions. v1 doesn't need any of that — every publish is a fresh record, every `at://` URI is a stable address, dependencies are resolved at *publish time* by inlining (the file table is the transitive closure).
 
-This is concrete enough that it needs to be called out:
+Three things that would justify revisiting:
 
-- Today's namespace is `@user/notebook`. ATProto identity is `did:plc:.../com.lopecode.module/<rkey>`.
-- Existing notebooks and their inter-module imports (`import {x} from "@tomlarkworthy/foo"`) need a resolution path that doesn't break overnight.
-- Proposal: `com.lopecode.module` carries `legacyName`; the runtime's import resolver checks `legacyName` first when seeing `@tomlarkworthy/foo`, then falls back to whatever the lineage's current head is. After migration, the import shim can be rewritten to use atproto refs directly.
+- **Cross-notebook module reuse** — if many notebooks want to import the same module without duplicating its bytes. Then: split modules into their own records, addressed by CID; notebooks reference them.
+- **Mutable "follow this thing across versions"** — if users want to subscribe to a notebook's updates, not just one rkey. Then: a separate lineage record (`com.lopecode.line`?) with a `head` ref. For now, "follow the author on Bluesky" covers this socially.
+- **Per-cell records** — for cell-level diff / discussion / live editing. Natural fit for the pairing channel's `define_cell` granularity. Defer until UX demands it.
 
-This means **the import shim has to change**. Today `importShim` resolves `@user/notebook` against a lookup table populated at boot. Tomorrow it has to resolve module+version refs to either an embedded define or a fetched blob.
+Until then, the simpler model wins: one notebook per publish, addressed by `at://{did}/com.lopecode.notebook/{rkey}`.
 
-## Dependency resolution at runtime
+## Capability model (deferred)
 
-The Observable runtime currently imports modules eagerly via `mains` or lazily via `import` statements inside cells. With versioned dependencies, resolution becomes:
-
-1. Look up the alias in the current module version's `imports[]`.
-2. Resolve to a specific moduleVersion CID.
-3. If the moduleVersion's `cells`/`cellsBlob` is available locally (embedded in the bundle), execute its `define()`.
-4. Otherwise fetch the blob from a runtime gateway (see "Asset gateway" below) and execute.
-5. Fail closed if capabilities don't permit fetching, or if hash verification fails.
-
-A bundle (single-file HTML export) embeds the transitive closure of moduleVersions and files at export time, so it stays portable and offline-runnable. The reader-without-bundle case fetches lazily.
-
-## Capability model
-
-Lopecode already intercepts `fetch`, `XMLHttpRequest`, and ES module imports via `lopecode-internal-networking.md`. That's the lever. Each `moduleVersion` declares:
-
-- `network: { fetch?: ["allowlist..."], "*"?: false }`
-- `storage: { localStorage?: bool, indexedDB?: bool }`
-- `dom: { topLevel?: bool, iframe?: bool }`
-- `publish: { atproto?: bool }` — can this module write to the user's PDS?
-- `embed: { allowedParents?: string[] }`
-
-Reader defaults: no ambient publish, no top-level fetch, no parent DOM. Capabilities are explicitly granted per-module by the running app or by user prompt. Versioned: a new moduleVersion that *expands* capabilities surfaces a "capability change" event in the dependency-update feed and requires explicit re-grant.
-
-This is one of the more important parts of the design: without it, a remixable code-sharing fabric is also a malware substrate.
-
-## Social model
-
-### Primitives
-- publish module / version, fork module, publish app / version, follow person / module / app, comment on lineage or version, lineage browse, dependency / dependents browse, remix (= fork + repoint).
-
-### Graphs the indexer maintains
-- follow, fork, dependency (forward), dependents (reverse), module-to-app usage, version-adoption-over-time.
-
-The bot's "three feeds" sketch (home / dependency-updates / discovery) is fine but speculative; concrete UI shape is out of scope for v0 and will fall out of what the indexer makes cheap.
+Untrusted bundles need to declare what they intend to do — `network: { fetch: [...] }`, `storage`, `dom`, `publish`, `embed` — so at-read can enforce a permission summary before booting the iframe. Today's at-read uses a blanket `sandbox="allow-scripts"`; capability metadata makes that a fine-grained ask. Worth landing in v1 as a small at-read change once the field is decided. Open question is in "v1 plan" below.
 
 ## Bluesky reuse
 
@@ -167,38 +112,16 @@ Realistic reuse picture:
 
 We do **not** build a full AppView, a custom relay, or a custom client at start. Indexer + read API + asset gateway is the v0 server footprint.
 
-## Reader as a lopecode document
-
-The reader/editor itself should be a lopecode notebook — dogfooding, self-hosting, remixable. This is *already true*: the bootloader, lopepage, exporter, and editor are all notebook modules today. What changes is that the reader needs new modules for atproto auth, PDS writes, and an importShim that resolves atproto refs.
-
-Keep three roles distinct:
-- **reader source** (the editable notebook lineage)
-- **reader pinned snapshot** (a specific moduleVersion the platform recommends)
-- **reader portable export** (the single-file HTML that runs offline)
-
-Don't bootstrap from the mutable head — pin to a known-good snapshot.
-
 ## What we have today that maps cleanly
 
 | Spec concept | Existing piece |
 |---|---|
-| Single-file export | `@tomlarkworthy/exporter` (`module-exporter-runtime-self-serialization.md`) |
+| Single-file export | `@tomlarkworthy/exporter-3` |
 | Multi-module composition | `@tomlarkworthy/lopepage` + bootconf hash DSL |
 | Live cell edit (authoring surface) | Pairing channel + MCP tools |
-| Files → blobs (uniform mapping) | `<script id="..." type="text/plain" data-mime data-encoding>` ↔ atproto blob |
-| Module source as a file | `<script id="@user/name" data-mime="application/javascript">` ↔ blob in `moduleVersion.files[]` |
+| Files → blobs (uniform mapping) | `<script id="..." type="text/plain" data-mime data-encoding>` ↔ atproto blob in `notebook.files[]` |
 | Network/import interception | `knowledge/lopecode-internal-networking.md` |
-| Bluesky read example | `@tomlarkworthy/atproto-comments` (read-only thread fetch — proof the runtime can talk to ATProto APIs) |
-| Module identity | Currently `@user/notebook` — needs `legacyName` aliasing for migration |
-
-## What is genuinely new
-
-- atproto OAuth + PDS write path inside the runtime (capability-gated)
-- importShim resolution against `(did, lexicon, rkey, version)` instead of `@user/notebook`
-- a "publish to PDS" flow that walks the in-HTML file table and writes each file as a blob, then composes the moduleVersion/appVersion record. This is the substrate-mode replacement for jumpgate; jumpgate itself goes away.
-- the indexer + read API
-- asset gateway
-- capability declaration + enforcement (foundation exists, surface API doesn't)
+| Reader is itself a lopecode notebook | `@tomlarkworthy/at-read` runs in the same iframe pattern it serves to readers |
 
 ## v0 MVP: a single notebook that publishes and reads lopebooks by DID
 
@@ -216,29 +139,11 @@ App passwords are the file://-friendly path:
 
 Tradeoff: app passwords carry broader scope than fine-grained OAuth scopes will eventually offer. Acceptable for v0; migrate when OAuth infra is worth standing up.
 
-### Lexicon: `dev.lopecode.bundle` only
+### Lexicon: `dev.lopecode.bundle`
 
-Skip the four-lexicon model for v0. One record type:
+One record type. `files[]` shape: `{id, encoding, blob}` — atproto blob ref carries CID + mimeType + size.
 
-```
-{
-  $type: "dev.lopecode.bundle",
-  name: "blank-notebook",
-  title: "Blank notebook",
-  description?: "...",
-  files: [
-    { id: "@tomlarkworthy/blank-notebook", mime: "application/javascript", encoding: "text", blob: <ref>, sha256: "..." },
-    { id: "@tomlarkworthy/blank-notebook/preview.png", mime: "image/png", encoding: "base64", blob: <ref>, sha256: "..." },
-    { id: "bootconf.json", mime: "application/json", encoding: "text", blob: <ref>, sha256: "..." },
-    ...
-  ],
-  createdAt: "..."
-}
-```
-
-The `files[]` shape is identical to what we want long-term in `moduleVersion`/`appVersion` (`{id, mime, encoding, blob, sha256}`). When we eventually split into per-module records, this v0 lexicon either gets retired or kept as a "whole-notebook snapshot" alongside.
-
-Reference shape: `at://{did}/dev.lopecode.bundle/{rkey}` is the addressable identity.
+Reference shape: `at://{did}/dev.lopecode.bundle/{rkey}` is the addressable identity. (v1 renames the collection to `com.lopecode.notebook`; the field shape doesn't change.)
 
 ### Content-addressed publish
 
@@ -287,15 +192,14 @@ Store both the PDS-returned blob ref *and* the locally-computed `sha256` (or ful
 
 ### What v0 deliberately does not do
 
-- No indexer, no read API, no asset gateway. Direct PDS access only. Discoverability = "share an `at://` URI."
-- No `module` / `moduleVersion` / `app` / `appVersion` split. Whole-notebook snapshots only.
-- No capability declaration. Whatever the bundle was authored to do, runs.
+- No indexer, no read API. Direct PDS access only. Discoverability = "share an `at://` URI."
+- No capability declaration. Whatever the notebook was authored to do, runs (within `sandbox="allow-scripts"`).
 - No OAuth.
-- No fork lineage, no `parents[]`. Republish creates a new record with a new rkey.
+- No fork lineage. Republish creates a new record with a new rkey.
 - No companion Bluesky post.
-- No importShim rewrite — existing `@user/notebook` resolution stays exactly as it is. The fetched bundle runs because it has the same script-tag structure as a normal lopebook.
+- No importShim rewrite — existing `@user/notebook` resolution stays exactly as it is. The fetched notebook runs because it has the same script-tag structure as a normal lopebook.
 
-This MVP fits inside the long-term lexicon plan: the v0 `files[]` shape is the same shape `moduleVersion.files[]` wants. Splitting one bundle into per-module records later is a refactor of the *publishing* code, not a re-encoding of stored bytes — every blob already in the repo stays exactly where it is.
+v0's `files[]` shape carries forward verbatim into v1's `com.lopecode.notebook` — only the collection name changes.
 
 ## v1 plan
 
@@ -462,42 +366,9 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 - **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile` with a per-author standard.site `publication` record carrying lopecode-specific bits.
 - **Comments**: Bluesky replies on the companion post are the v1 answer. A per-bundle thread root that's *not* a Bluesky post is a v2 concern.
 
-## Bootstrap plan (after v0)
+## Core insight
 
-**Phase 0 — substrate**
-1. Lock the four lexicons (`com.lopecode.module`, `com.lopecode.moduleVersion`, `com.lopecode.app`, `com.lopecode.appVersion`).
-2. Stand up an indexer (Jetstream / Tap → SQLite) and a read API for module/version/app/appVersion lookup, dependency, dependents.
-3. Stand up an asset gateway (`/blob/:did/:cid`).
-
-**Phase 1 — write path**
-4. atproto OAuth + PDS write helpers as a lopecode module.
-5. A "publish module version" flow that walks the running notebook's file table and writes the `com.lopecode.moduleVersion` record. Reuses the v0 publish code; just splits files into per-module groups.
-6. A "publish app version" flow that snapshots a composition (bootconf + module refs + app-local files).
-
-**Phase 2 — runtime resolution**
-7. Rewrite importShim to resolve atproto refs, with `legacyName` fallback for `@user/notebook`.
-8. Capability declaration on moduleVersion, capability enforcement at the network/import boundary.
-
-**Phase 3 — social**
-9. Module/app pages (overview, versions, dependencies, dependents, forks, discussion).
-10. Follows, comments, fork lineage.
-11. Optional Bluesky companion posts and custom feed generator.
-
-**Defer until justified**
-- patches, merges, cell-level records, full AppView, custom relay, full moderation stack, ambitious live-collab on top of pairing channel.
-
-## Open questions
-
-- **Migration of existing notebooks.** Concrete plan to mint lineages for current `@tomlarkworthy/*` modules and pre-populate v0 from current head. One-off script over the existing HTML bundles vs. lazy on-demand mint at first publish? Either way, this is a one-way migration — Observable is not in the loop afterward.
-- **Dependency upgrade UX.** When `@a/b` publishes a new `moduleVersion`, what triggers the update in apps that depend on it? Automatic floating heads (against the rule above) vs. notify-and-let-author-bump?
-- **Cell-level records.** Worth introducing now (cleaner pairing-channel mapping, finer-grained discussion) or strictly deferred?
-- **Single-file export storage.** Is `derivedExport` a blob on the version record, a separate `com.lopecode.export` record, or recomputed on demand by the asset gateway?
-- **`dev` vs `com` namespace.** v0 settled on `dev.lopecode.bundle` (experimental lexicon namespace per atproto convention). The settled v1 namespace is `com.lopecode.*` (we own `lopecode.com`). Lock the boundary between `dev` (in-flight) and `com` (stable) before the first `com.lopecode.*` record is written. Older `com.lopecode.*` references in this doc are historical and to be replaced.
-
-## The core insight (preserved from the sketch)
-
-- **modules** are the reusable social building blocks
-- **apps** are compositions over modules, not "apps that own code"
-- **exports** are derived portable artifacts, not the canonical source of truth
+- **a notebook** is the unit of publication; whether it's used as a library or an app is a consumption choice, not a publish choice
+- **exports** (single-file HTML) are derived portable artifacts, not canonical
 - **ATProto** is the data + identity substrate; not web hosting
-- **the social experience** emerges from indexing, lineage, feeds, and dependency-aware UI — not from Bluesky understanding our records natively
+- **the social experience** emerges from indexing, feeds, and the existing Bluesky follow graph — not from Bluesky understanding our records natively
