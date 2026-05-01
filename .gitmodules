@@ -16,3 +16,9 @@
 [submodule "vendor/notebook-kit"]
 	path = vendor/notebook-kit
 	url = https://github.com/observablehq/notebook-kit.git
+[submodule "vendor/mempalace"]
+	path = vendor/mempalace
+	url = https://github.com/mempalace/mempalace
+[submodule "lopecode.com"]
+	path = lopecode.com
+	url = git@github.com:tomlarkworthy/lopecode.com.git
