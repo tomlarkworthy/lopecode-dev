@@ -331,6 +331,45 @@ We own `lopecode.com`. Stand it up on Cloudflare:
 - **D1** for the indexer's tiny database (recent bundles by DID, recent bundles overall).
 - **DNS TXT** record `_atproto.lopecode.com` for atproto-side identity (lexicon publication, feed-generator DID).
 
+#### Repository
+
+Source lives in [tomlarkworthy/lopecode.com](https://github.com/tomlarkworthy/lopecode.com), wired into this repo as the `lopecode.com/` submodule. Layout:
+
+```
+lopecode.com/
+├── pages/                       # Cloudflare Pages app
+│   ├── public/                  # static assets served at the apex
+│   │   ├── r/[[...slug]].html   # /r/:did/:rkey preview gateway
+│   │   ├── @[handle].html       # /@:handle profile page
+│   │   └── oauth/
+│   │       ├── client.json      # atproto OAuth client metadata
+│   │       └── callback.html    # postMessages tokens to the opener
+│   └── _routes.json             # Pages routing config
+├── workers/
+│   ├── indexer/                 # Jetstream → D1
+│   │   ├── src/index.ts
+│   │   └── wrangler.toml
+│   └── feed/                    # app.bsky.feed.generator
+│       ├── src/index.ts         # getFeedSkeleton + describeFeedGenerator
+│       └── wrangler.toml
+├── lexicons/                    # com.lopecode.* lexicon JSONs (canonical)
+│   └── com.lopecode.bundle.json
+├── schema/
+│   └── 0001_init.sql            # D1 migration
+├── package.json                 # workspace root, bun
+└── README.md
+```
+
+Deployment:
+
+- **Pages** (`pages/`) → `lopecode.com` apex via Cloudflare Pages, deployed on push to `main`.
+- **Workers** (`workers/indexer`, `workers/feed`) → `wrangler deploy` with bindings in `wrangler.toml`. Routes:
+  - `feed.lopecode.com` → feed-generator worker
+  - indexer is internal (no public route); it's a `[[scheduled]]` / Jetstream-listener Worker writing to D1.
+- **D1**: one database `lopecode-feed`, accessed via `D1_DATABASE` binding from both workers (feed reads, indexer writes).
+- **Secrets**: feed-generator signing key in `wrangler secret`. The OAuth surface needs no secret — `client.json` is public; the callback only handles a public-client flow.
+- **DNS**: `lopecode.com` → Pages; `feed.lopecode.com` → Worker; `_atproto.lopecode.com` TXT for atproto identity.
+
 ### Server components
 
 Three static surfaces (no per-user state) and two dynamic ones:
