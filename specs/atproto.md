@@ -56,24 +56,123 @@ Because lopecode already represents everything as files, the mapping to atproto 
 
 That's the entire object model for v1.
 
-## Lexicon: `com.lopecode.bundle` (immutable)
+## Schemas (v1)
 
-| Field | Type | Meaning |
-|---|---|---|
-| `$type` | string | always `"com.lopecode.bundle"` |
-| `title` | string | human title (default: from exporter-3's `notebook_title`) |
-| `files` | array | one entry per `<script id data-mime>` block |
-| `createdAt` | datetime | ISO 8601 |
+Three records are written to the author's PDS per publish: the canonical bundle, a companion Bluesky post, and a standard.site document sidecar. The bundle is what makes the publish a publish; the other two are reach.
 
-Each `files[]` entry:
+### `com.lopecode.bundle` (canonical, immutable)
 
-| Field | Type | Meaning |
-|---|---|---|
-| `id` | string | script tag id, e.g. `@user/module`, `@user/module/asset.png`, `bootconf.json` |
-| `encoding` | string | `"text"` or `"base64"` from `data-encoding` |
-| `blob` | blob | atproto blob ref — CID (v1 raw + sha-256), mimeType, size |
+The lexicon JSON we publish under `_lexicon.lopecode.com`:
 
-Identical to v0's `dev.lopecode.bundle` shape. The rename is the only schema change.
+```json
+{
+  "lexicon": 1,
+  "id": "com.lopecode.bundle",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["title", "files", "createdAt"],
+        "properties": {
+          "title":     { "type": "string", "maxLength": 200 },
+          "files":     { "type": "array", "items": { "type": "ref", "ref": "#fileEntry" } },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "fileEntry": {
+      "type": "object",
+      "required": ["id", "encoding", "blob"],
+      "properties": {
+        "id":       { "type": "string", "maxLength": 1000, "description": "Script tag id, e.g. `@user/module`, `@user/module/asset.png`, `bootconf.json`" },
+        "encoding": { "type": "string", "enum": ["text", "base64"] },
+        "blob":     { "type": "blob",   "description": "atproto blob ref — CID (v1 raw + sha-256), mimeType, size" }
+      }
+    }
+  }
+}
+```
+
+`title` defaults to exporter-3's `notebook_title`. `files[]` is one entry per `<script id data-mime>` block in the running runtime; `encoding` mirrors `data-encoding`; the blob's `mimeType` mirrors `data-mime`. Identical to v0's `dev.lopecode.bundle` shape — the rename is the only schema change.
+
+### `app.bsky.feed.post` (companion, sidecar)
+
+What at-write writes after a successful `createRecord`:
+
+```jsonc
+{
+  "$type": "app.bsky.feed.post",
+  "text": "Published: <title>",
+  "embed": {
+    "$type": "app.bsky.embed.external",
+    "external": {
+      "uri":         "https://did-<encoded-did>.lopecode.com/r/<rkey>",
+      "title":       "<bundle.title>",
+      "description": "<first 200 chars of any user-supplied summary, or empty>"
+    }
+  },
+  "createdAt": "<bundle.createdAt>"
+}
+```
+
+Standard `app.bsky.feed.post` — no extension fields. `embed.external.uri` is the per-DID web-proxy URL, so the embed card is bookmarkable as a real webpage. The `text` is short and deliberately boring; the embed card carries the actual hook. Replies, likes, reposts on this post are the v1 comments/reactions surface for free.
+
+### `site.standard.document` (editorial, sidecar)
+
+Brings bundles into the standard.site reader ecosystem. The shape mirrors what standard.site readers already render:
+
+```jsonc
+{
+  "$type":       "site.standard.document",
+  "title":       "<bundle.title>",
+  "publication": "<at-uri of author's site.standard.publication, if they have one>",
+  "createdAt":   "<bundle.createdAt>",
+  "bskyPostRef": {                         // links discussion to the companion Bluesky post
+    "uri": "at://<did>/app.bsky.feed.post/<post-rkey>",
+    "cid": "<companion-post-cid>"
+  },
+  "content": [
+    {
+      "$type":  "com.lopecode.runtime",
+      "bundle": {                          // strong ref to the canonical bundle record
+        "uri": "at://<did>/com.lopecode.bundle/<bundle-rkey>",
+        "cid": "<bundle-cid>"
+      }
+    }
+  ]
+}
+```
+
+`content` is standard.site's open union — `com.lopecode.runtime` is our extension member, and we publish its lexicon under `_lexicon.lopecode.com` too:
+
+```json
+{
+  "lexicon": 1,
+  "id": "com.lopecode.runtime",
+  "defs": {
+    "main": {
+      "type": "object",
+      "required": ["bundle"],
+      "properties": {
+        "bundle": { "type": "ref", "ref": "com.atproto.repo.strongRef" }
+      }
+    }
+  }
+}
+```
+
+standard.site clients render this as "document with unknown content type"; lopecode-aware clients dereference the bundle and render the runnable thing.
+
+### Sidecar rkey convention
+
+All three records share a TID-style rkey from the bundle's record. at-write does:
+
+1. `createRecord` for the bundle → PDS returns the rkey.
+2. Reuse that same rkey for the companion post and the document sidecar.
+
+That makes the relationships predictable: given a bundle URI, a fetcher can compute the sidecar URIs without an index. Failure mode: if the post or document fails, the bundle still lands; the sidecars can be retried out-of-band against the known rkey.
 
 ## Deferred (v2+)
 
@@ -218,13 +317,17 @@ Out of scope: module/moduleVersion split, capability enforcement, custom non-Blu
 
 ### Records written per publish
 
-| Record | Owner | Purpose |
-|---|---|---|
-| `com.lopecode.bundle` | author's PDS | canonical artifact — the file table the user just published. Renamed from v0's `dev.lopecode.bundle`; same `files[]` shape. |
-| `app.bsky.feed.post` | author's PDS | companion post — `app.bsky.embed.external` linking to `https://did-….lopecode.com/r/:rkey`. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
-| `site.standard.document` | author's PDS | editorial sidecar — `bskyPostRef` to the companion post, `content` union member `com.lopecode.runtime` referencing the bundle's `at://` URI. Drives reach into the standard.site ecosystem. |
+Three records, all to the author's PDS (small, parallel writes). Full shapes are in [Schemas (v1)](#schemas-v1):
 
-Three writes per publish (small, parallel). The bundle is canonical; the other two are sidecars. After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.bundle/:rkey)` so the bundle is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
+| Record | Purpose |
+|---|---|
+| `com.lopecode.bundle` | Canonical artifact — the file table the user just published. |
+| `app.bsky.feed.post` | Companion post linking to the per-DID web-proxy URL. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
+| `site.standard.document` | Editorial sidecar with `bskyPostRef` to the companion post and `content[com.lopecode.runtime]` referencing the bundle. Drives reach into the standard.site ecosystem. |
+
+The bundle is canonical; the other two are sidecars. All three share the bundle's rkey, so the sidecar URIs are derivable from the bundle URI.
+
+After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.bundle/:rkey)` so the bundle is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
 
 ### `lopecode.com` on Cloudflare
 
