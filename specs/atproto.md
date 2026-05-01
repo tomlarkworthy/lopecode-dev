@@ -41,24 +41,26 @@ The substrate-swap part of this document covers mode 2. Mode 1 is preserved as a
 
 ## Object model
 
-### One record type: `com.lopecode.notebook`
+### One record type: `com.lopecode.bundle`
 
-A lopecode notebook is the unit of publication. Each publish writes one immutable record; the `rkey` is the version. Whether a notebook is used as a library (someone imports a module from inside it) or as a standalone app (booted via lopepage) is a *consumption* choice, not a *publish* choice — same record either way.
+A *bundle* is the protocol-level unit: a file table + bootloader entry. A *notebook* is one UX over a bundle (lopepage as the userspace shell — a multi-module layout with cells and inputs). Bundles can boot into other UXes too: a single-page app, a CLI-style tool, a game. Schema is the bundle, not the notebook.
+
+Each publish writes one immutable bundle record; the `rkey` is the version. Whether the bundle is consumed as a library (someone imports a module from inside it) or as a standalone runnable thing (booted via whatever userspace shell its bootconf points at) is a *consumption* choice, not a *publish* choice — same record either way.
 
 ### Granularity
 
 Because lopecode already represents everything as files, the mapping to atproto is direct:
 
 - **One `<script id data-mime>` block → one atproto blob.** Identity (`id`), MIME, and bytes round-trip with no transformation. Modules (`@user/name`, `application/javascript`), module-scoped attachments (`@user/name/path.ext`, any MIME), and bootconf are all just blobs.
-- **A notebook record holds the file table** — `[{id, encoding, blob}]`, where `blob` is an atproto blob ref carrying CID + mimeType + size. This is the same shape v0 already ships.
+- **A bundle record holds the file table** — `[{id, encoding, blob}]`, where `blob` is an atproto blob ref carrying CID + mimeType + size. This is the same shape v0 already ships.
 
 That's the entire object model for v1.
 
-## Lexicon: `com.lopecode.notebook` (immutable)
+## Lexicon: `com.lopecode.bundle` (immutable)
 
 | Field | Type | Meaning |
 |---|---|---|
-| `$type` | string | always `"com.lopecode.notebook"` |
+| `$type` | string | always `"com.lopecode.bundle"` |
 | `title` | string | human title (default: from exporter-3's `notebook_title`) |
 | `files` | array | one entry per `<script id data-mime>` block |
 | `createdAt` | datetime | ISO 8601 |
@@ -83,7 +85,7 @@ Three things that would justify revisiting:
 - **Mutable "follow this thing across versions"** — if users want to subscribe to a notebook's updates, not just one rkey. Then: a separate lineage record (`com.lopecode.line`?) with a `head` ref. For now, "follow the author on Bluesky" covers this socially.
 - **Per-cell records** — for cell-level diff / discussion / live editing. Natural fit for the pairing channel's `define_cell` granularity. Defer until UX demands it.
 
-Until then, the simpler model wins: one notebook per publish, addressed by `at://{did}/com.lopecode.notebook/{rkey}`.
+Until then, the simpler model wins: one notebook per publish, addressed by `at://{did}/com.lopecode.bundle/{rkey}`.
 
 ## Capability model (deferred)
 
@@ -141,7 +143,7 @@ Tradeoff: app passwords carry broader scope than fine-grained OAuth scopes will 
 
 One record type. `files[]` shape: `{id, encoding, blob}` — atproto blob ref carries CID + mimeType + size.
 
-Reference shape: `at://{did}/dev.lopecode.bundle/{rkey}` is the addressable identity. (v1 renames the collection to `com.lopecode.notebook`; the field shape doesn't change.)
+Reference shape: `at://{did}/dev.lopecode.bundle/{rkey}` is the addressable identity. (v1 renames the collection to `com.lopecode.bundle`; the field shape doesn't change.)
 
 ### Content-addressed publish
 
@@ -197,7 +199,7 @@ Store both the PDS-returned blob ref *and* the locally-computed `sha256` (or ful
 - No companion Bluesky post.
 - No importShim rewrite — existing `@user/notebook` resolution stays exactly as it is. The fetched notebook runs because it has the same script-tag structure as a normal lopebook.
 
-v0's `files[]` shape carries forward verbatim into v1's `com.lopecode.notebook` — only the collection name changes.
+v0's `files[]` shape carries forward verbatim into v1's `com.lopecode.bundle` — only the collection name changes.
 
 ## v1 plan
 
@@ -205,7 +207,7 @@ v0 proved publish/fetch/render between two endpoints holding the same `at://` UR
 
 ### What v1 delivers
 
-1. Settled `com.lopecode.notebook` lexicon (we own lopecode.com).
+1. Settled `com.lopecode.bundle` lexicon (we own lopecode.com).
 2. Public preview URL per record (`lopecode.com/r/:did/:rkey`).
 3. Public profile page per author (`lopecode.com/@:handle`) listing their bundles.
 4. Companion Bluesky post on every publish — bundle appears in the author's Bluesky timeline + reachable by Bluesky followers.
@@ -218,11 +220,11 @@ Out of scope: module/moduleVersion split, capability enforcement, custom non-Blu
 
 | Record | Owner | Purpose |
 |---|---|---|
-| `com.lopecode.notebook` | author's PDS | canonical artifact — the published notebook itself. Renamed from v0's `dev.lopecode.bundle`; same `files[]` shape. |
+| `com.lopecode.bundle` | author's PDS | canonical artifact — the file table the user just published. Renamed from v0's `dev.lopecode.bundle`; same `files[]` shape. |
 | `app.bsky.feed.post` | author's PDS | companion post — `app.bsky.embed.external` linking to `lopecode.com/r/:did/:rkey`. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
 | `site.standard.document` | author's PDS | editorial sidecar — `bskyPostRef` to the companion post, `content` union member `com.lopecode.runtime` referencing the bundle's `at://` URI. Drives reach into the standard.site ecosystem. |
 
-Three writes per publish (small, parallel). The notebook record is canonical; the other two are sidecars. After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.notebook/:rkey)` so the notebook is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
+Three writes per publish (small, parallel). The bundle is canonical; the other two are sidecars. After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.bundle/:rkey)` so the bundle is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
 
 ### `lopecode.com` on Cloudflare
 
@@ -265,7 +267,7 @@ lopecode.com/
 │       ├── src/index.ts         # getFeedSkeleton + describeFeedGenerator
 │       └── wrangler.toml        # calls Contrail XRPC and reshapes
 ├── lexicons/                    # com.lopecode.* lexicon JSONs (canonical)
-│   └── com.lopecode.notebook.json
+│   └── com.lopecode.bundle.json
 ├── package.json                 # workspace root, bun
 └── README.md
 ```
@@ -282,7 +284,7 @@ export const config: ContrailConfig = {
   namespace: "com.lopecode",
   collections: {
     bundle: {
-      collection: "com.lopecode.notebook",
+      collection: "com.lopecode.bundle",
       queryable: { createdAt: { type: "range" } },  // ?createdAtMin=...
       searchable: ["title"],                         // FTS5 on D1
     },
@@ -300,7 +302,7 @@ export const config: ContrailConfig = {
 
 What this gives us out of the box:
 
-- `GET /xrpc/com.lopecode.notebook.listRecords?sort=-createdAt&limit=50` — recency feed of every published notebook. Powers the global "what's new" view.
+- `GET /xrpc/com.lopecode.bundle.listRecords?sort=-createdAt&limit=50` — recency feed of every published bundle. Powers the global "what's new" view.
 - `?search=foo` — FTS5 title search across the whole network.
 - `?did=did:plc:...` — bundles by a specific author. Powers `lopecode.com/@:handle`.
 - `GET /xrpc/com.lopecode.getFeed?feed=timeline&actor=<did>` — bundles by people the viewer follows on Bluesky, fanned out at write time. Reuses existing `app.bsky.graph.follow` records — users don't need to follow lopecode authors twice.
@@ -328,7 +330,7 @@ Three static surfaces (no per-user state) and two dynamic ones:
 | 1 | **Preview gateway** `lopecode.com/r/:did/:rkey` | Static HTML; loads at-read with the URI prefilled. Target for `app.bsky.embed.external`. |
 | 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID, then either `com.atproto.repo.listRecords` directly or Contrail's `listBundlesByDid` XRPC. Pure client-side, no server state. |
 | 3 | **OAuth surface** `lopecode.com/oauth/client.json`, `/oauth/callback` | Static metadata + a callback page that postMessages tokens to the originating notebook. See "Auth" below. |
-| 4 | **Indexer** | [Contrail](https://github.com/flo-bit/contrail) on Workers + D1, vendored at `vendor/contrail`. One `contrail.config.ts` declares `com.lopecode.notebook` (recency + FTS title search) and a `timeline` feed over `app.bsky.graph.follow`. Contrail handles Jetstream + backfill + typed XRPC. |
+| 4 | **Indexer** | [Contrail](https://github.com/flo-bit/contrail) on Workers + D1, vendored at `vendor/contrail`. One `contrail.config.ts` declares `com.lopecode.bundle` (recency + FTS title search) and a `timeline` feed over `app.bsky.graph.follow`. Contrail handles Jetstream + backfill + typed XRPC. |
 | 5 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Wraps Contrail: a *new-bundles* feed (recency `listRecords`) and a *personalized* feed (Contrail's `getFeed?actor=…` for the viewer). Both signed and registered under the lopecode.com DID. |
 
 That's it. Nothing else needs to live server-side for v1.
@@ -346,7 +348,7 @@ Either auth path produces the same session shape (`{accessJwt, refreshJwt, did, 
 
 ### Lexicon migration
 
-v0's handful of `dev.lopecode.bundle` records on chain are abandoned in place — no migration. They were experiments. v1 publishes to `com.lopecode.notebook` (same `files[]` shape; the rename is the only schema change). at-read can keep accepting `dev.lopecode.bundle` for posterity if the historical records matter, but the discovery feed only indexes `com.lopecode.notebook`.
+v0's handful of `dev.lopecode.bundle` records on chain are abandoned in place — no migration. They were experiments. v1 publishes to `com.lopecode.bundle` (same `files[]` shape; the rename is the only schema change). at-read can keep accepting `dev.lopecode.bundle` for posterity if the historical records matter, but the discovery feed only indexes `com.lopecode.bundle`.
 
 ### Sidecar discipline
 
@@ -360,7 +362,7 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 
 ### Open v1 questions
 
-- **Capability metadata**: declare on `com.lopecode.notebook` (`{networkAccess, allowedOrigins, usesEval, ...}`)? Reader sandbox is currently blanket `allow-scripts`; capability declarations let us surface a permission summary before the iframe boots. Reasonable to land in v1; small at-read change.
+- **Capability metadata**: declare on `com.lopecode.bundle` (`{networkAccess, allowedOrigins, usesEval, ...}`)? Reader sandbox is currently blanket `allow-scripts`; capability declarations let us surface a permission summary before the iframe boots. Reasonable to land in v1; small at-read change.
 - **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile` with a per-author standard.site `publication` record carrying lopecode-specific bits.
 - **Comments**: Bluesky replies on the companion post are the v1 answer. A per-bundle thread root that's *not* a Bluesky post is a v2 concern.
 
@@ -381,7 +383,7 @@ Each `<item>`:
 <item>
   <title>{notebook.title}</title>
   <link>https://lopecode.com/r/{did}/{rkey}</link>
-  <guid isPermaLink="false">at://{did}/com.lopecode.notebook/{rkey}</guid>
+  <guid isPermaLink="false">at://{did}/com.lopecode.bundle/{rkey}</guid>
   <pubDate>{notebook.createdAt}</pubDate>
   <description>{site.standard.document.summary || ""}</description>
 </item>
