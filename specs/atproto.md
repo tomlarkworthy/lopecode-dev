@@ -523,6 +523,15 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 - **Capability metadata**: declare on `com.lopecode.bundle` (`{networkAccess, allowedOrigins, usesEval, ...}`)? Reader sandbox is currently blanket `allow-scripts`; capability declarations let us surface a permission summary before the iframe boots. Reasonable to land in v1; small at-read change.
 - **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile` with a per-author standard.site `publication` record carrying lopecode-specific bits.
 - **Comments**: Bluesky replies on the companion post are the v1 answer. A per-bundle thread root that's *not* a Bluesky post is a v2 concern.
+- **File provenance** (idea, needs more thought): today a file's `name` (`@user/module`) is convention only — bytes have no owner, the bundle's signing DID just attests "I publish these `(name, CID)` pairs." Anyone can publish a file called `@tomlarkworthy/atproto` containing arbitrary bytes; nothing in the system stops it. A `provenance` field on each manifest entry could point at a canonical publishing event:
+
+  ```json
+  { "name": "@tomlarkworthy/atproto",
+    "blob": { "$link": "bafy_X" },
+    "provenance": "at://did:plc:tomlark/com.lopecode.bundle/abc" }
+  ```
+
+  Resolution: fetch that bundle, confirm the DID's signature, confirm the named entry there has the same CID. That cryptographically traces the bytes back to tomlark's repo. Forks would inherit `provenance` for unchanged files and drop (or replace) it for modified ones, giving "unbroken chain back to original publisher" as a verifiable property when present and a visible "modified by Bob" warning when absent. Open: whether to bake this into v1's `com.lopecode.bundle` lexicon, defer to a v2 with cross-notebook module reuse, or skip in favour of a pure social/reputation model.
 
 ## v1.1: RSS bridge
 
