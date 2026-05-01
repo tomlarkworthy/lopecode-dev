@@ -412,6 +412,42 @@ Each `<item>`:
 
 Worth doing once v1's web proxy and indexer are stable. No new records, no new auth, no new lexicon — pure derived view over what v1 already produces.
 
+## Next steps
+
+Bottom-up order. Each step independently shippable; earlier steps unblock later ones.
+
+**Foundation**
+
+1. **Rename `dev.lopecode.bundle` → `com.lopecode.bundle`** in at-write and at-read. v0 records stay abandoned in place. Single commit on `lopecode/`.
+
+**lopecode.com infra**
+
+2. **Stand up the Cloudflare project**: zone for `lopecode.com`, DNS, Universal SSL for `*.lopecode.com`, Pages skeleton with a single landing page. Wire `lopecode.com/` repo build → Pages on push. No app code yet.
+3. **Web proxy Worker** at `*.lopecode.com/r/:rkey`. Decode `Host` → DID → fetch bundle from PDS → serve composed HTML inline. Verify a published v1 bundle is visitable + bookmarkable from a clean browser. (DID encoding: `did:plc:abc` → `did-plc-abc.lopecode.com`; confirm DNS label limits hold for `did:web` cases.)
+4. **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads — no Contrail yet.
+
+**Sharing**
+
+5. **Companion `app.bsky.feed.post` on publish** in at-write. After `createRecord` succeeds, write a Bluesky post with `app.bsky.embed.external` pointing at the per-DID web-proxy URL.
+6. **`site.standard.document` sidecar** in at-write. Same publish flow, parallel write. Gets bundles into the standard.site reader ecosystem.
+
+**OAuth**
+
+7. **`lopecode.com/oauth/client.json` + `/oauth/callback`**. Static metadata + callback page that postMessages tokens back. at-write gains an "OAuth login" button alongside the app-password flow.
+
+**Discovery**
+
+8. **Contrail indexer** at `contrail.lopecode.com`. Vendor `vendor/contrail`'s npm, write `contrail.config.ts` for `com.lopecode.bundle` + `app.bsky.graph.follow`. `pnpm contrail backfill --remote` once for history; cron `ingest()` keeps it fresh.
+9. **`notify(uri)` in at-write** after `createRecord`. Fires off-thread; instant feed visibility.
+10. **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Optional polish.
+11. **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
+
+**v1.1**
+
+12. RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
+
+Steps 1–4 are independently testable end-to-end and gate everything else. After step 4 we have v0+rename plus a real shareable URL; meaningful by itself. Steps 5–11 add Bluesky reach, Contrail-driven discovery, and OAuth/notify polish.
+
 ## Core insight
 
 - **a notebook** is the unit of publication; whether it's used as a library or an app is a consumption choice, not a publish choice
