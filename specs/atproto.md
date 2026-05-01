@@ -416,37 +416,40 @@ Worth doing once v1's web proxy and indexer are stable. No new records, no new a
 
 Bottom-up order. Each step independently shippable; earlier steps unblock later ones.
 
+The lopecode-rendered pages already exist on GitHub Pages (`tomlarkworthy.github.io/lopecode/notebooks/atproto.html`), so the v1 sharing flow doesn't need new infra. The bundled at-read on that page can prefill from a URL hash and render any `at://` URI. That's the v1 bootstrap target for embed cards, OAuth client metadata, and RSS-from-static-files. `lopecode.com` is later polish: a real domain, per-DID origins, Worker-driven dynamic surfaces.
+
 **Foundation**
 
 1. **Rename `dev.lopecode.bundle` → `com.lopecode.bundle`** in at-write and at-read. v0 records stay abandoned in place. Single commit on `lopecode/`.
+2. **at-read prefills from URL hash.** A URL like `…/atproto.html#at=at://did/com.lopecode.bundle/rkey` should auto-load that bundle. Tiny bootloader change. Now any at-read deployment is usable as an embed-card target.
 
-**lopecode.com infra**
+**Sharing (no new domain needed)**
 
-2. **Stand up the Cloudflare project**: zone for `lopecode.com`, DNS, Universal SSL for `*.lopecode.com`, Pages skeleton with a single landing page. Wire `lopecode.com/` repo build → Pages on push. No app code yet.
-3. **Web proxy Worker** at `*.lopecode.com/r/:rkey`. Decode `Host` → DID → fetch bundle from PDS → serve composed HTML inline. Verify a published v1 bundle is visitable + bookmarkable from a clean browser. (DID encoding: `did:plc:abc` → `did-plc-abc.lopecode.com`; confirm DNS label limits hold for `did:web` cases.)
-4. **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads — no Contrail yet.
+3. **Companion `app.bsky.feed.post` on publish** in at-write. After `createRecord` succeeds, write a Bluesky post with `app.bsky.embed.external` linking to the GitHub Pages at-read URL with the bundle's `at://` URI in the hash.
+4. **`site.standard.document` sidecar** in at-write. Same publish flow, parallel write. Gets bundles into the standard.site reader ecosystem.
 
-**Sharing**
+**OAuth (still GitHub Pages)**
 
-5. **Companion `app.bsky.feed.post` on publish** in at-write. After `createRecord` succeeds, write a Bluesky post with `app.bsky.embed.external` pointing at the per-DID web-proxy URL.
-6. **`site.standard.document` sidecar** in at-write. Same publish flow, parallel write. Gets bundles into the standard.site reader ecosystem.
+5. **`tomlarkworthy.github.io/lopecode/oauth/client.json` + callback HTML.** atproto OAuth only requires a stable HTTPS URL — GitHub Pages qualifies. Notebook opens a popup, OAuth runs, callback `postMessage`s tokens back. at-write gains an OAuth button alongside app passwords.
 
-**OAuth**
+**lopecode.com (when DNS lands)**
 
-7. **`lopecode.com/oauth/client.json` + `/oauth/callback`**. Static metadata + callback page that postMessages tokens back. at-write gains an "OAuth login" button alongside the app-password flow.
+6. **Stand up the Cloudflare project**: zone for `lopecode.com`, DNS, Universal SSL for `*.lopecode.com`, Pages skeleton wired to the `lopecode.com/` submodule. *Then* migrate the OAuth client metadata + callback off GitHub Pages onto a stable `oauth.lopecode.com` (or apex path) so the OAuth `client_id` doesn't depend on GitHub.
+7. **Web proxy Worker** at `*.lopecode.com/r/:rkey`. Decode `Host` → DID → fetch bundle → serve composed HTML at a per-DID origin. Bookmarkable, storage works, real `app.bsky.embed.external` target. Companion-post embed links migrate from GitHub Pages to per-DID URLs. (DID encoding: `did:plc:abc` → `did-plc-abc.lopecode.com`; confirm DNS label limits hold for `did:web` cases.)
+8. **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads.
 
 **Discovery**
 
-8. **Contrail indexer** at `contrail.lopecode.com`. Vendor `vendor/contrail`'s npm, write `contrail.config.ts` for `com.lopecode.bundle` + `app.bsky.graph.follow`. `pnpm contrail backfill --remote` once for history; cron `ingest()` keeps it fresh.
-9. **`notify(uri)` in at-write** after `createRecord`. Fires off-thread; instant feed visibility.
-10. **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Optional polish.
-11. **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
+9. **Contrail indexer** at `contrail.lopecode.com`. Vendor `vendor/contrail`'s npm, write `contrail.config.ts` for `com.lopecode.bundle` + `app.bsky.graph.follow`. `pnpm contrail backfill --remote` once for history; cron `ingest()` keeps it fresh.
+10. **`notify(uri)` in at-write** after `createRecord`. Fires off-thread; instant feed visibility.
+11. **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Polish.
+12. **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
 
 **v1.1**
 
-12. RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
+13. RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
 
-Steps 1–4 are independently testable end-to-end and gate everything else. After step 4 we have v0+rename plus a real shareable URL; meaningful by itself. Steps 5–11 add Bluesky reach, Contrail-driven discovery, and OAuth/notify polish.
+Steps 1–5 land entirely on GitHub Pages — meaningful v1 sharing without owning a domain. Steps 6–12 are when `lopecode.com` is set up: per-DID origins, profile page, Contrail-driven discovery.
 
 ## Core insight
 
