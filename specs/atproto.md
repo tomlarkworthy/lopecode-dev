@@ -174,6 +174,42 @@ All three records share a TID-style rkey from the bundle's record. at-write does
 
 That makes the relationships predictable: given a bundle URI, a fetcher can compute the sidecar URIs without an index. Failure mode: if the post or document fails, the bundle still lands; the sidecars can be retried out-of-band against the known rkey.
 
+## How bundles attach to authors
+
+There is no registration step. The author's **DID is the link**, baked into every bundle URI: `at://<did>/com.lopecode.bundle/<rkey>`. Whoever owns the repo at that DID is the author, by atproto construction.
+
+To list one author's bundles, the standard atproto XRPC suffices:
+
+```
+GET <pds>/xrpc/com.atproto.repo.listRecords
+  ?repo=<did>
+  &collection=com.lopecode.bundle
+  &limit=50
+```
+
+No auth needed (records are public-readable). That's what `lopecode.com/@:handle` does:
+
+1. Resolve handle → DID via `com.atproto.identity.resolveHandle`.
+2. `listRecords` for the bundle collection (against the user's PDS, or via `public.api.bsky.app` which proxies for any DID).
+3. Render the list.
+
+After Contrail lands (next-steps step 9), the profile page swaps the direct `listRecords` for Contrail's typed XRPC — same answer, with full-text search and recency-sort built in.
+
+### What bundles deliberately don't have
+
+- **No `author` field on the record.** The DID owning the repo is the author. Adding one would invite forgery.
+- **No explicit "profile" record they register against.** v1 derives the profile entirely from "this DID's `listRecords`."
+- **No `publication` field on the bundle itself.** The `site.standard.document` sidecar can reference a `site.standard.publication` if the author has one — that's how the standard.site reader ecosystem groups documents into a "blog." Not the bundle's concern.
+
+### When curation becomes a feature
+
+If we eventually want pinned bundles, an "about" page, or an author-curated subset of their notebooks, that's a separate record:
+
+- A small `com.lopecode.profile` (mutable, single rkey `self`) listing pinned bundle refs and any human-curated metadata; or
+- Just a `site.standard.publication` per author, with their `site.standard.document` sidecars listing into it.
+
+Either way, it's an *additive* layer over the listRecords-derived view. Listed in [Open v1 questions](#open-v1-questions).
+
 ## Deferred (v2+)
 
 The early sketch had four lexicons (`module` + `moduleVersion` + `app` + `appVersion`) for cross-notebook module reuse with mutable lineages and immutable versions. v1 doesn't need any of that — every publish is a fresh record, every `at://` URI is a stable address, dependencies are resolved at *publish time* by inlining (the file table is the transitive closure).
