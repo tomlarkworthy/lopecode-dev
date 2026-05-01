@@ -51,8 +51,8 @@ A lopecode module is reusable across many compositions. People follow, fork, ver
 
 Two-record-types-per-thing pattern:
 
-- **Lineage record** (`app.lopecode.module`, `app.lopecode.app`) — stable mutable record that names a thing, its current head, and social metadata (title, description, tags, maintainers, fork-of). What people follow and fork.
-- **Version record** (`app.lopecode.moduleVersion`, `app.lopecode.appVersion`) — immutable snapshot. What other versions depend on. What runs.
+- **Lineage record** (`com.lopecode.module`, `com.lopecode.app`) — stable mutable record that names a thing, its current head, and social metadata (title, description, tags, maintainers, fork-of). What people follow and fork.
+- **Version record** (`com.lopecode.moduleVersion`, `com.lopecode.appVersion`) — immutable snapshot. What other versions depend on. What runs.
 
 This separation is important because dependencies must pin to immutable versions for reproducibility, but the social graph operates on mutable lineages.
 
@@ -64,18 +64,18 @@ Because lopecode already represents everything as files, the mapping to atproto 
 - **A `moduleVersion` record holds the file table** — `[{id, blob, mime, encoding, sha256}]` — plus the metadata the runtime needs to resolve imports and capabilities. The compiled `define()` body is *one* of those files (the one with `id="@user/name"`); we don't need a separate `cells[]` field unless we want cell-level structure for diff/UI, which a static analysis pass on the file body can produce on demand.
 - **An `appVersion` record holds bootconf + the moduleVersion refs that compose the app** — equivalent to today's `bootconf.json` + the set of modules in the HTML.
 
-A possible refinement (defer): `app.lopecode.cell` records for cell-level diff/discussion. Natural fit for the pairing channel's `define_cell` granularity. Not needed for v0 — cell structure can be derived from the module source on read.
+A possible refinement (defer): `com.lopecode.cell` records for cell-level diff/discussion. Natural fit for the pairing channel's `define_cell` granularity. Not needed for v0 — cell structure can be derived from the module source on read.
 
 ## Lexicons (initial set)
 
-### `app.lopecode.module` (lineage, mutable)
+### `com.lopecode.module` (lineage, mutable)
 - `title`, `description`, `tags[]`
 - `maintainers[]` (DIDs)
-- `forkedFrom?` (strong ref to another `app.lopecode.module`)
-- `head?` (strong ref to current `app.lopecode.moduleVersion`)
+- `forkedFrom?` (strong ref to another `com.lopecode.module`)
+- `head?` (strong ref to current `com.lopecode.moduleVersion`)
 - `legacyName?` (e.g. `@tomlarkworthy/foo`, for migration aliasing)
 
-### `app.lopecode.moduleVersion` (immutable)
+### `com.lopecode.moduleVersion` (immutable)
 - `module` (strong ref to lineage)
 - `parents[]` (prior versions; usually one, `[]` for genesis)
 - `files[]` — `[{id, blob, mime, encoding, sha256}]`. `id="@user/name"` with `mime="application/javascript"` is the module source itself; other entries are module-scoped attachments. Mirrors today's in-HTML script-tag table 1:1.
@@ -85,10 +85,10 @@ A possible refinement (defer): `app.lopecode.cell` records for cell-level diff/d
 - `changelog?`
 - `derivedExport?` — optional CID of an exported single-file HTML for cheap delivery
 
-### `app.lopecode.app` (lineage, mutable)
-Same shape as `app.lopecode.module` but for compositions.
+### `com.lopecode.app` (lineage, mutable)
+Same shape as `com.lopecode.module` but for compositions.
 
-### `app.lopecode.appVersion` (immutable)
+### `com.lopecode.appVersion` (immutable)
 - `app` (strong ref to lineage)
 - `parents[]`
 - `modules[]` — `[{alias, module, version}]`, the moduleVersion refs that make up the composition. The subset listed in bootconf `mains` boot eagerly; the rest are reachable via import.
@@ -97,16 +97,16 @@ Same shape as `app.lopecode.module` but for compositions.
 - `derivedExport?` — CID of single-file HTML
 
 ### Deferred
-- `app.lopecode.patch` — proposed change to a moduleVersion. Not needed until forks-with-merge become real; the bot was right to defer.
-- `app.lopecode.cell` — per-cell records. Only if cell-level discussion/diff becomes a UX requirement.
+- `com.lopecode.patch` — proposed change to a moduleVersion. Not needed until forks-with-merge become real; the bot was right to defer.
+- `com.lopecode.cell` — per-cell records. Only if cell-level discussion/diff becomes a UX requirement.
 
 ## Identity migration
 
 This is concrete enough that it needs to be called out:
 
-- Today's namespace is `@user/notebook`. ATProto identity is `did:plc:.../app.lopecode.module/<rkey>`.
+- Today's namespace is `@user/notebook`. ATProto identity is `did:plc:.../com.lopecode.module/<rkey>`.
 - Existing notebooks and their inter-module imports (`import {x} from "@tomlarkworthy/foo"`) need a resolution path that doesn't break overnight.
-- Proposal: `app.lopecode.module` carries `legacyName`; the runtime's import resolver checks `legacyName` first when seeing `@tomlarkworthy/foo`, then falls back to whatever the lineage's current head is. After migration, the import shim can be rewritten to use atproto refs directly.
+- Proposal: `com.lopecode.module` carries `legacyName`; the runtime's import resolver checks `legacyName` first when seeing `@tomlarkworthy/foo`, then falls back to whatever the lineage's current head is. After migration, the import shim can be rewritten to use atproto refs directly.
 
 This means **the import shim has to change**. Today `importShim` resolves `@user/notebook` against a lookup table populated at boot. Tomorrow it has to resolve module+version refs to either an embedded define or a fetched blob.
 
@@ -152,14 +152,14 @@ Realistic reuse picture:
 
 **Free**: identity, handles, OAuth, PDS writes, blobs, account follows, posts/likes/replies, custom feed generators.
 
-**Not free**: Bluesky clients won't render `app.lopecode.*` lexicons natively; "follow this module" and "dependency update" semantics live in our app, not theirs.
+**Not free**: Bluesky clients won't render `com.lopecode.*` lexicons natively; "follow this module" and "dependency update" semantics live in our app, not theirs.
 
 **Bridge strategy**: when a user publishes/forks/upgrades, optionally also create an `app.bsky.feed.post` linking back to the lopecode object. Custom feed generators can rank these. This gets us into the Bluesky follow graph and existing client UX without requiring Bluesky to understand our records.
 
 ## Services
 
 1. **Web app / auth** — OAuth login, session, PDS writes, blob upload. Could be served from a thin worker.
-2. **Indexer** — consume firehose / Tap / Jetstream filtered to `app.lopecode.*` (and optionally relevant `app.bsky.*` for the bridge). Compute the graphs above into Postgres or SQLite.
+2. **Indexer** — consume firehose / Tap / Jetstream filtered to `com.lopecode.*` (and optionally relevant `app.bsky.*` for the bridge). Compute the graphs above into Postgres or SQLite.
 3. **Read API** — hydrate module/app/version pages, dependency trees, feeds, search. The "social brain" read side.
 4. **Asset gateway / runtime bridge** — serve module bundles and blobs over HTTPS for the runtime importShim. ATProto blobs aren't browser-ready by themselves; this is where the Leaflet-thread point lands. A small CDN-fronted worker that resolves `did + cid → bytes` is enough for v0.
 5. *(optional)* **Bluesky bridge worker** — emit companion posts on publish events.
@@ -322,18 +322,39 @@ Out of scope: module/moduleVersion split, capability enforcement, custom non-Blu
 
 Three writes per publish (small, parallel). The bundle is canonical; the other two are sidecars.
 
+### `lopecode.com` on Cloudflare
+
+We own `lopecode.com`. Stand it up on Cloudflare:
+
+- **Cloudflare Pages** for static surfaces (preview gateway, profile pages, OAuth client metadata + callback page).
+- **Cloudflare Workers** for the dynamic surfaces (indexer, feed generator).
+- **D1** for the indexer's tiny database (recent bundles by DID, recent bundles overall).
+- **DNS TXT** record `_atproto.lopecode.com` for atproto-side identity (lexicon publication, feed-generator DID).
+
 ### Server components
 
-Two static surfaces (no per-user state) and two dynamic ones (one indexer, one feed generator):
+Three static surfaces (no per-user state) and two dynamic ones:
 
 | # | What | How |
 |---|---|---|
-| 1 | **Preview gateway** `lopecode.com/r/:did/:rkey` | Static HTML; loads at-read with the URI prefilled. Used as the target for `app.bsky.embed.external`. |
+| 1 | **Preview gateway** `lopecode.com/r/:did/:rkey` | Static HTML; loads at-read with the URI prefilled. Target for `app.bsky.embed.external`. |
 | 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID → `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Pure client-side, no server state. |
-| 3 | **Indexer** | Cloudflare Worker subscribed to [Jetstream](https://github.com/bluesky-social/jetstream); writes `com.lopecode.bundle` events into D1. Filtered upstream so cost is small. |
-| 4 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Reads from the indexer's D1; ranks by recency. Registered as a published feed under the lopecode.com DID. |
+| 3 | **OAuth surface** `lopecode.com/oauth/client.json`, `/oauth/callback` | Static metadata + a callback page that postMessages tokens to the originating notebook. See "Auth" below. |
+| 4 | **Indexer** | Cloudflare Worker subscribed to [Jetstream](https://github.com/bluesky-social/jetstream); writes `com.lopecode.bundle` events into D1. Filtered upstream so cost is small. |
+| 5 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Reads from the indexer's D1; ranks by recency. Registered as a published feed under the lopecode.com DID. |
 
 That's it. Nothing else needs to live server-side for v1.
+
+### Auth
+
+atproto OAuth requires a fetchable `client_metadata.json` whose URL matches the registered `client_id`. `file://` and `blob:` origins (where lopecode notebooks run) aren't fetchable, so the PDS can't validate them as OAuth clients. The notebook itself can never participate in the OAuth dance.
+
+Two-tier model:
+
+- **v0 / fallback: app passwords.** at-write already works this way; documented limitation. Keep this path forever — it works offline, no `lopecode.com` dependency.
+- **v1: OAuth via `lopecode.com`.** Hosted `client_metadata.json` at `https://lopecode.com/oauth/client.json`. The notebook opens a popup at `https://lopecode.com/oauth/start?…`; that page runs the full atproto OAuth flow against the user's PDS, lands at `https://lopecode.com/oauth/callback`, and `postMessage`s the resulting access/refresh JWTs back to the opener. The notebook stores them in `localStorage` (same shape as the app-password session today). Token refresh remains the notebook's job. The lopecode.com side is stateless — it's a relay, not a session store.
+
+Either auth path produces the same session shape (`{accessJwt, refreshJwt, did, pds}`); at-write's xrpc helper doesn't care which one minted it.
 
 ### Lexicon migration
 
@@ -360,13 +381,13 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 ## Bootstrap plan (after v0)
 
 **Phase 0 — substrate**
-1. Lock the four lexicons (`app.lopecode.module`, `app.lopecode.moduleVersion`, `app.lopecode.app`, `app.lopecode.appVersion`).
+1. Lock the four lexicons (`com.lopecode.module`, `com.lopecode.moduleVersion`, `com.lopecode.app`, `com.lopecode.appVersion`).
 2. Stand up an indexer (Jetstream / Tap → SQLite) and a read API for module/version/app/appVersion lookup, dependency, dependents.
 3. Stand up an asset gateway (`/blob/:did/:cid`).
 
 **Phase 1 — write path**
 4. atproto OAuth + PDS write helpers as a lopecode module.
-5. A "publish module version" flow that walks the running notebook's file table and writes the `app.lopecode.moduleVersion` record. Reuses the v0 publish code; just splits files into per-module groups.
+5. A "publish module version" flow that walks the running notebook's file table and writes the `com.lopecode.moduleVersion` record. Reuses the v0 publish code; just splits files into per-module groups.
 6. A "publish app version" flow that snapshots a composition (bootconf + module refs + app-local files).
 
 **Phase 2 — runtime resolution**
@@ -386,8 +407,8 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 - **Migration of existing notebooks.** Concrete plan to mint lineages for current `@tomlarkworthy/*` modules and pre-populate v0 from current head. One-off script over the existing HTML bundles vs. lazy on-demand mint at first publish? Either way, this is a one-way migration — Observable is not in the loop afterward.
 - **Dependency upgrade UX.** When `@a/b` publishes a new `moduleVersion`, what triggers the update in apps that depend on it? Automatic floating heads (against the rule above) vs. notify-and-let-author-bump?
 - **Cell-level records.** Worth introducing now (cleaner pairing-channel mapping, finer-grained discussion) or strictly deferred?
-- **Single-file export storage.** Is `derivedExport` a blob on the version record, a separate `app.lopecode.export` record, or recomputed on demand by the asset gateway?
-- **`dev` vs `com` namespace.** v0 settled on `dev.lopecode.bundle` (experimental lexicon namespace per atproto convention). The settled v1 namespace is `com.lopecode.*` (we own `lopecode.com`). Lock the boundary between `dev` (in-flight) and `com` (stable) before the first `com.lopecode.*` record is written. Older `app.lopecode.*` references in this doc are historical and to be replaced.
+- **Single-file export storage.** Is `derivedExport` a blob on the version record, a separate `com.lopecode.export` record, or recomputed on demand by the asset gateway?
+- **`dev` vs `com` namespace.** v0 settled on `dev.lopecode.bundle` (experimental lexicon namespace per atproto convention). The settled v1 namespace is `com.lopecode.*` (we own `lopecode.com`). Lock the boundary between `dev` (in-flight) and `com` (stable) before the first `com.lopecode.*` record is written. Older `com.lopecode.*` references in this doc are historical and to be replaced.
 
 ## The core insight (preserved from the sketch)
 
