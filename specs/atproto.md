@@ -327,9 +327,18 @@ Three writes per publish (small, parallel). The bundle is canonical; the other t
 We own `lopecode.com`. Stand it up on Cloudflare:
 
 - **Cloudflare Pages** for static surfaces (preview gateway, profile pages, OAuth client metadata + callback page).
-- **Cloudflare Workers** for the dynamic surfaces (indexer, feed generator).
-- **D1** for the indexer's tiny database (recent bundles by DID, recent bundles overall).
+- **[Contrail](https://github.com/flo-bit/contrail)** for the indexer/view layer — collection declarations, Jetstream ingestion + backfill, typed XRPC, all running on Workers + D1. Vendored as `vendor/contrail` so the deploy is reproducible from a known-good commit.
+- A small **feed-generator Worker** that calls Contrail's typed read endpoint and signs the response.
 - **DNS TXT** record `_atproto.lopecode.com` for atproto-side identity (lexicon publication, feed-generator DID).
+
+Why Contrail rather than rolling our own Jetstream listener:
+
+- Handles subscription, cursor, retry, backfill, and collection filtering — we'd otherwise hand-write ~150 lines of Worker code for the same.
+- Generates typed XRPC endpoints from collection declarations; profile-page enrichment (`listBundlesByDid`) and any future read views (dependency graph, watches) fall out without extra services.
+- Backfill matters: raw Jetstream is forward-only, so a freshly stood-up indexer can't see any bundles published before it started. Contrail walks history.
+- Cloudflare-native (Workers + D1) — same target we wanted anyway.
+
+Trade-off: Contrail is pre-alpha; pin a known-good commit. If it ever goes away we re-implement against raw Jetstream — the lexicon and the feed-generator interface don't change.
 
 #### Repository
 
@@ -345,17 +354,15 @@ lopecode.com/
 │   │       ├── client.json      # atproto OAuth client metadata
 │   │       └── callback.html    # postMessages tokens to the opener
 │   └── _routes.json             # Pages routing config
+├── contrail/                    # Contrail collection declarations + config
+│   ├── contrail.toml            # collections to ingest (com.lopecode.bundle)
+│   └── wrangler.toml            # Contrail's Worker + D1 bindings
 ├── workers/
-│   ├── indexer/                 # Jetstream → D1
-│   │   ├── src/index.ts
-│   │   └── wrangler.toml
 │   └── feed/                    # app.bsky.feed.generator
 │       ├── src/index.ts         # getFeedSkeleton + describeFeedGenerator
-│       └── wrangler.toml
+│       └── wrangler.toml        # calls Contrail XRPC for ranked recency
 ├── lexicons/                    # com.lopecode.* lexicon JSONs (canonical)
 │   └── com.lopecode.bundle.json
-├── schema/
-│   └── 0001_init.sql            # D1 migration
 ├── package.json                 # workspace root, bun
 └── README.md
 ```
@@ -363,11 +370,9 @@ lopecode.com/
 Deployment:
 
 - **Pages** (`pages/`) → `lopecode.com` apex via Cloudflare Pages, deployed on push to `main`.
-- **Workers** (`workers/indexer`, `workers/feed`) → `wrangler deploy` with bindings in `wrangler.toml`. Routes:
-  - `feed.lopecode.com` → feed-generator worker
-  - indexer is internal (no public route); it's a `[[scheduled]]` / Jetstream-listener Worker writing to D1.
-- **D1**: one database `lopecode-feed`, accessed via `D1_DATABASE` binding from both workers (feed reads, indexer writes).
-- **Secrets**: feed-generator signing key in `wrangler secret`. The OAuth surface needs no secret — `client.json` is public; the callback only handles a public-client flow.
+- **Contrail** (`contrail/`) → `wrangler deploy` from `vendor/contrail` (pinned in this repo) using our `contrail.toml`. Owns its own D1; we never write SQL by hand.
+- **Feed Worker** (`workers/feed`) → `wrangler deploy`. Public route `feed.lopecode.com`. Calls Contrail's XRPC for `listBundles` and signs the feed-skeleton response with a per-feed key.
+- **Secrets**: feed-generator signing key in `wrangler secret`. The OAuth surface needs no secret — `client.json` is public; the callback handles a public-client flow.
 - **DNS**: `lopecode.com` → Pages; `feed.lopecode.com` → Worker; `_atproto.lopecode.com` TXT for atproto identity.
 
 ### Server components
@@ -377,10 +382,10 @@ Three static surfaces (no per-user state) and two dynamic ones:
 | # | What | How |
 |---|---|---|
 | 1 | **Preview gateway** `lopecode.com/r/:did/:rkey` | Static HTML; loads at-read with the URI prefilled. Target for `app.bsky.embed.external`. |
-| 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID → `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Pure client-side, no server state. |
+| 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID, then either `com.atproto.repo.listRecords` directly or Contrail's `listBundlesByDid` XRPC. Pure client-side, no server state. |
 | 3 | **OAuth surface** `lopecode.com/oauth/client.json`, `/oauth/callback` | Static metadata + a callback page that postMessages tokens to the originating notebook. See "Auth" below. |
-| 4 | **Indexer** | Cloudflare Worker subscribed to [Jetstream](https://github.com/bluesky-social/jetstream); writes `com.lopecode.bundle` events into D1. Filtered upstream so cost is small. |
-| 5 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Reads from the indexer's D1; ranks by recency. Registered as a published feed under the lopecode.com DID. |
+| 4 | **Indexer** | [Contrail](https://github.com/flo-bit/contrail) on Workers + D1, vendored at `vendor/contrail`. Declares `com.lopecode.bundle`; Contrail handles Jetstream subscription, backfill, and exposes typed XRPC reads. |
+| 5 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Calls Contrail for ranked recency; signs the response. Registered as a published feed under the lopecode.com DID. |
 
 That's it. Nothing else needs to live server-side for v1.
 

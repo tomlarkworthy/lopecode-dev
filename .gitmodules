@@ -22,3 +22,6 @@
 [submodule "lopecode.com"]
 	path = lopecode.com
 	url = git@github.com:tomlarkworthy/lopecode.com.git
+[submodule "vendor/contrail"]
+	path = vendor/contrail
+	url = https://github.com/flo-bit/contrail
