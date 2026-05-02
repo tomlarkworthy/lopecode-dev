@@ -6,6 +6,7 @@ Status: draft / exploratory. Refining a sketch authored without knowledge of the
 
 - **2026-04-26 — First light.** First lopebook published to atproto via the v0 prototype (then named lopefeed): `at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/dev.lope.bundle/3mkg4yuxhir27` (under the original `dev.lope.bundle` lexicon, since renamed to `dev.lopecode.bundle`). App-password auth, content-addressed file table, single-record bundle. Round-trip publish path proven end-to-end against a real PDS.
 - **2026-04-30 — v0 shipped.** `@tomlarkworthy/at-write` (publisher) + `@tomlarkworthy/at-read` (reader) + `@tomlarkworthy/atproto` (headline + shared helpers), all in `lopecode/notebooks/atproto.html`. at-read renders bundles in a sandboxed iframe (`allow-scripts`, opaque origin) using exporter-3's pure `lopebook(blocks, …)` template — same composition code as the export pipeline. Token refresh (401 + 400 ExpiredToken), CID delta uploads, IndexedDB cache, plc.directory + did:web resolve.
+- **2026-05-02 — v1 web proxy live.** `lopecode.com` running on Cloudflare: apex Worker routes `*.lopecode.com/*`; `did-*-*.lopecode.com/r/:rkey` serves composed HTML at the per-DID origin (no iframe, no GitHub-Pages framing) via the `lopecode-render` service-bound Worker. Render path uses exporter-3's `lopebook` cell with the bundle's files emitted directly as `<script>` blocks — bundle is the byte-output of exporter-3's serializer, so re-running the full `book` pipeline was the wrong shape; `lopebook` is the chrome wrapper and that's the right seam. atproto blobs cached at the edge (CIDs are immutable). Contrail indexer at `contrail.lopecode.com` (D1-backed, jetstream cron) drives the homepage feed; on-demand backfill via `?actor=`. Skipped the spec's "Step 4 MVP" (302 to GitHub Pages) — went straight to the upgraded inline-render version.
 
 ## Goal
 
@@ -345,7 +346,7 @@ v0 proved publish/fetch/render between two endpoints holding the same `at://` UR
 1. Settled `com.lopecode.bundle` lexicon (we own lopecode.com).
 2. Public web proxy per author at `did-….lopecode.com/r/:rkey` (with a flat `lopecode.com/r/:did/:rkey` redirect for embed-card compatibility).
 3. Public profile page per author (`lopecode.com/@:handle`) listing their bundles.
-4. Companion Bluesky post on every publish — bundle appears in the author's Bluesky timeline + reachable by Bluesky followers.
+4. Companion Bluesky post available on publish (opt-in via "Share to Bluesky") — bundle appears in the author's Bluesky timeline + reachable by Bluesky followers.
 5. Custom Bluesky feed (`app.bsky.feed.generator`) surfacing recent lopecode bundles for browse/discovery.
 6. `site.standard.document` sidecar so bundles surface in the standard.site reader ecosystem (a long-form publishing community lexicon).
 
@@ -353,15 +354,15 @@ Out of scope: module/moduleVersion split, capability enforcement, custom non-Blu
 
 ### Records written per publish
 
-Three records, all to the author's PDS (small, parallel writes). Full shapes are in [Schemas (v1)](#schemas-v1):
+Up to three records, all to the author's PDS. Full shapes are in [Schemas (v1)](#schemas-v1):
 
-| Record | Purpose |
-|---|---|
-| `com.lopecode.bundle` | Canonical artifact — the file table the user just published. |
-| `app.bsky.feed.post` | Companion post linking to the per-DID web-proxy URL. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
-| `site.standard.document` | Editorial sidecar with `bskyPostRef` to the companion post and `content[com.lopecode.runtime]` referencing the bundle. Drives reach into the standard.site ecosystem. |
+| Record | Trigger | Purpose |
+|---|---|---|
+| `com.lopecode.bundle` | always | Canonical artifact — the file table the user just published. |
+| `app.bsky.feed.post` | opt-in ("Share to Bluesky") | Companion post linking to the per-DID web-proxy URL. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
+| `site.standard.document` | (planned, opt-in) | Editorial sidecar with `bskyPostRef` to the companion post and `content[com.lopecode.runtime]` referencing the bundle. Drives reach into the standard.site ecosystem. |
 
-The bundle is canonical; the other two are sidecars. All three share the bundle's rkey, so the sidecar URIs are derivable from the bundle URI.
+The bundle is canonical; the other two are sidecars. All three share the bundle's rkey, so the sidecar URIs are derivable from the bundle URI. Opt-in design: drafts and experiments shouldn't auto-spam the author's followers.
 
 After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.bundle/:rkey)` so the bundle is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
 
@@ -562,39 +563,39 @@ Worth doing once v1's web proxy and indexer are stable. No new records, no new a
 
 ## Next steps
 
-Bottom-up order. Each step independently shippable; earlier steps unblock later ones.
+Bottom-up order. Each step independently shippable; earlier steps unblock later ones. Status as of 2026-05-02 — ✅ shipped, ☐ outstanding.
 
-Public links go through `lopecode.com` from day one. Even if the rendering host is initially trivial (a Worker that wraps GitHub Pages' at-read), the *URL* people share on Bluesky / RSS / plain web is `lopecode.com`. That decouples the public address from where it's actually served, and gives Bluesky embed cards a stable, branded host. GitHub Pages stays the existing canonical at-read deployment; the web proxy just routes through it.
+Public links go through `lopecode.com` from day one, so the *URL* people share on Bluesky / RSS / plain web is stable and branded regardless of where rendering actually happens.
 
 **Foundation**
 
-1. **Rename `dev.lopecode.bundle` → `com.lopecode.bundle`** in at-write and at-read. v0 records stay abandoned in place. Single commit on `lopecode/`.
-2. **at-read prefills from URL hash.** A URL like `…/atproto.html#at=at://did/com.lopecode.bundle/rkey` should auto-load that bundle. Tiny bootloader change; needed by the web proxy's minimum-viable shape (step 4) and any other host that wants to deep-link into a bundle.
+1. ✅ **Rename `dev.lopecode.bundle` → `com.lopecode.bundle`** in at-write and at-read. v0 records abandoned in place.
+2. ✅ **at-read prefills from URL hash.** `…/atproto.html#at=at://did/com.lopecode.bundle/rkey` auto-loads.
 
 **lopecode.com infra (gates all sharing)**
 
-3. **Stand up the Cloudflare project**: zone for `lopecode.com`, DNS, Universal SSL for `*.lopecode.com`, Pages skeleton wired to the `lopecode.com/` submodule.
-4. **Web proxy Worker** at `*.lopecode.com/r/:rkey`. Decode `Host` → DID. Minimum viable: 302 redirect to the canonical at-read URL on GitHub Pages with the `at://` URI in the hash. Bundle still renders; visitors land via `lopecode.com`. Later upgrade: serve composed HTML inline at the per-DID origin so storage works and the Bundle is bookmarkable as a real webpage. (DID encoding: `did:plc:abc` → `did-plc-abc.lopecode.com`; confirm DNS label limits hold for `did:web` cases.)
-5. **OAuth surface** at `lopecode.com/oauth/client.json` + `/oauth/callback`. Static metadata + callback page that postMessages tokens back. at-write gains an "OAuth login" button alongside the app-password flow. atproto's `client_id` is then the lopecode.com URL, stable across any rendering-host changes.
+3. ✅ **Cloudflare project stood up**: zone, DNS (wildcard `*` AAAA), Universal SSL for `*.lopecode.com`, Pages skeleton wired to the `lopecode.com/` submodule, apex Worker on the wildcard route forwarding by Host.
+4. ✅ **Web proxy Worker** at `*.lopecode.com/r/:rkey`. Apex Worker decodes `Host` → DID, forwards to the `lopecode-render` Worker via service binding. Render Worker resolves the PDS, fetches the bundle record + blobs, and serves composed HTML at the per-DID origin (top-level navigation, no sandbox, real storage, bookmarkable). Skipped the planned 302-to-GitHub-Pages MVP; went straight to inline render. Render path drives exporter-3's `lopebook` cell with bundle files emitted directly as `<script>` blocks — re-running the full `book` pipeline against bundle bytes is the wrong shape (bundle is `book`'s output, not its input). DID encoding: `did:plc:abc` → `did-plc-abc.lopecode.com`. atproto blobs cached at the edge (`cf.cacheTtl: 31536000`) since CIDs are immutable; system modules share CIDs across every bundle so this also warms cross-bundle. First-render ~7s (cold blobs), repeat ~700ms.
+5. ☐ **OAuth surface** at `lopecode.com/oauth/client.json` + `/oauth/callback`. Static metadata + callback page that postMessages tokens back. at-write gains an "OAuth login" button alongside the app-password flow. atproto's `client_id` is then the lopecode.com URL, stable across any rendering-host changes.
 
 **Sharing**
 
-6. **Companion `app.bsky.feed.post` on publish** in at-write. After `createRecord` succeeds, write a Bluesky post with `app.bsky.embed.external` linking to the per-DID lopecode.com URL.
-7. **`site.standard.document` sidecar** in at-write. Same publish flow, parallel write. Gets bundles into the standard.site reader ecosystem.
+6. ✅ **Companion `app.bsky.feed.post` on publish** in at-write. After `createRecord` succeeds, the success card surfaces a "Share to Bluesky" panel (textarea pre-filled with title + per-DID lopecode.com URL); clicking writes an `app.bsky.feed.post` with `app.bsky.embed.external` pointing at `https://did-…lopecode.com/r/:rkey` and sharing the bundle's rkey. Opt-in rather than automatic by design — not every bundle deserves a public post (drafts, experiments).
+7. ☐ **`site.standard.document` sidecar** in at-write. Same publish flow, parallel write. Gets bundles into the standard.site reader ecosystem.
 
 **Profile + discovery**
 
-8. **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads.
-9. **Contrail indexer** at `contrail.lopecode.com`. Vendor `vendor/contrail`'s npm, write `contrail.config.ts` for `com.lopecode.bundle` + `app.bsky.graph.follow`. `pnpm contrail backfill --remote` once for history; cron `ingest()` keeps it fresh.
-10. **`notify(uri)` in at-write** after `createRecord`. Fires off-thread; instant feed visibility.
-11. **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Polish.
-12. **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
+8. ✅ **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads.
+9. ✅ **Contrail indexer** at `contrail.lopecode.com`. `vendor/contrail` npm, `contrail.config.ts` declares `com.lopecode.bundle` + `app.bsky.graph.follow`, D1-backed (`lopecode-contrail`), 1-minute jetstream cron, on-demand backfill via `?actor=`. Reached via service binding from the apex (custom-domain precedence is unreliable under wildcard routes). Homepage feed renders from contrail's `listRecords` XRPC.
+10. ☐ **`notify(uri)` in at-write** after `createRecord`. Fires off-thread; instant feed visibility instead of up-to-60s lag.
+11. ☐ **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Polish.
+12. ☐ **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
 
 **v1.1**
 
-13. RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
+13. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
 
-Steps 1–5 are the gating set: rename, hash-prefill, lopecode.com is live with at minimum a redirect-style web proxy, and OAuth has a stable public client_id. After that, sharing (6–7), profile, and discovery (8–12) follow without further DNS work.
+Steps 1–4 (web proxy infra) and 6 (opt-in Bluesky share) are done. OAuth (5) is the next foundation gap. After that, 7 (standard.document sidecar) and 10–12 (notify + Contrail polish + feed generator) close out discovery.
 
 ## Core insight
 
