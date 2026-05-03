@@ -56,6 +56,79 @@ function nextCommandId(): string {
   return `cmd-${Date.now()}-${++commandSeq}`;
 }
 
+// --- QA browser (Playwright-driven Chromium for visual QA) ---
+// Single-page model: one browser, one page, used by all qa_* tools.
+type PwBrowser = import("playwright").Browser;
+type PwPage = import("playwright").Page;
+let qaBrowser: PwBrowser | null = null;
+let qaPage: PwPage | null = null;
+type QaConsoleEntry = { ts: number; type: string; text: string; location?: string };
+type QaErrorEntry = { ts: number; message: string; stack?: string };
+type QaFailedRequest = { ts: number; url: string; method: string; failure: string };
+const qaConsole: QaConsoleEntry[] = [];
+const qaErrors: QaErrorEntry[] = [];
+const qaFailedRequests: QaFailedRequest[] = [];
+const QA_BUFFER_LIMIT = 1000; // ring-buffer cap per stream
+
+function pushBounded<T>(arr: T[], item: T) {
+  arr.push(item);
+  if (arr.length > QA_BUFFER_LIMIT) arr.shift();
+}
+
+// Default permissions auto-granted to QA browser contexts.
+// Notebooks commonly use the clipboard (e.g. cellsToClipboard); without grants
+// Chromium pops a permission prompt that the agent can't dismiss, so the
+// interaction silently fails. Auto-grant the cheap, low-risk ones; let callers
+// override via the qa_open_notebook `permissions` arg.
+const DEFAULT_QA_PERMISSIONS: string[] = ["clipboard-read", "clipboard-write"];
+
+async function ensureQaBrowser(opts: {
+  headless?: boolean;
+  viewport?: { width: number; height: number };
+  permissions?: string[];
+} = {}): Promise<PwPage> {
+  if (qaPage && !qaPage.isClosed()) return qaPage;
+  const { chromium } = await import("playwright");
+  qaBrowser = await chromium.launch({ headless: opts.headless ?? false });
+  const ctx = await qaBrowser.newContext({ viewport: opts.viewport ?? { width: 1280, height: 800 } });
+  const perms = opts.permissions ?? DEFAULT_QA_PERMISSIONS;
+  if (perms.length) {
+    try { await ctx.grantPermissions(perms); }
+    catch (e: any) { process.stderr.write(`lopecode-channel: grantPermissions failed: ${e?.message ?? e}\n`); }
+  }
+  const page = await ctx.newPage();
+  page.on("console", (m) => {
+    const loc = m.location();
+    pushBounded(qaConsole, {
+      ts: Date.now(),
+      type: m.type(),
+      text: m.text(),
+      location: loc.url ? `${loc.url}:${loc.lineNumber}:${loc.columnNumber}` : undefined,
+    });
+  });
+  page.on("pageerror", (e) => pushBounded(qaErrors, { ts: Date.now(), message: e.message, stack: e.stack }));
+  page.on("requestfailed", (r) => pushBounded(qaFailedRequests, {
+    ts: Date.now(),
+    url: r.url(),
+    method: r.method(),
+    failure: r.failure()?.errorText ?? "",
+  }));
+  page.on("close", () => {
+    if (qaPage === page) qaPage = null;
+  });
+  qaPage = page;
+  return page;
+}
+
+async function closeQaBrowser(): Promise<void> {
+  const b = qaBrowser;
+  qaPage = null;
+  qaBrowser = null;
+  if (b) {
+    try { await b.close(); } catch { /* ignore */ }
+  }
+}
+
 // --- MCP Server ---
 const mcp = new Server(
   { name: "lopecode", version: "1.0.0" },
@@ -151,6 +224,19 @@ Use run_tests to execute all test_* cells.
 - define_variable: Low-level escape hatch with explicit function string + inputs array. Use when you need precise control over variable names and inputs that the compiler might mangle.
 - export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads. ALWAYS export before pushing to Observable.
 - fork_notebook: Forks the notebook into a new browser tab via exporter-2.
+
+### QA tips (qa_click, qa_type)
+- Coordinates aren't stable across clicks. Observable cells re-layout reactively, so a button you clicked at (x,y) may have moved or scrolled out of view by the next interaction. Don't reuse coordinates from an earlier click or from a screenshot taken before any DOM mutation.
+- Re-query before each interaction: use \`eval_code\` to find the element, scroll it into view, and read its rect, then click the returned coords. Example:
+  \`\`\`
+  eval_code: \`(() => {
+    const btn = [...document.querySelectorAll("button")].find(b => b.textContent.includes("➕"));
+    btn.scrollIntoView({block: "center"});
+    const r = btn.getBoundingClientRect();
+    return {x: r.x + r.width/2, y: r.y + r.height/2};
+  })()\`
+  \`\`\`
+- If \`qa_screenshot\` times out shortly after \`qa_open_notebook\`, the page is still loading; wait or call \`qa_console_logs\` first (it doesn't block on render).
 
 ## High-level cell patterns (define_cell)
 
@@ -615,6 +701,131 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["name"],
       },
     },
+    // QA tools: Playwright-driven Chromium for visual notebook QA.
+    // Single browser, single page. qa_open_notebook launches it; subsequent qa_* tools act on it.
+    // The same window pairs back via cc=TOKEN, so list_cells/get_variable/watch_variable
+    // also work against this browser.
+    {
+      name: "qa_open_notebook",
+      description: "Launch a Playwright-driven Chromium and navigate to the notebook URL. Pass the same file:// URL with #...&cc=TOKEN you would use for open_url. Subsequent qa_* tools act on this page; the page also pairs back so introspection tools (list_cells, get_variable, watch_variable) target it. Headed by default so you can see what Claude sees. Default permissions ['clipboard-read','clipboard-write'] are auto-granted (override via permissions arg; pass [] to grant nothing).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "Full notebook URL including hash fragment and cc=TOKEN" },
+          headless: { type: "boolean", description: "Run headless (default: false)" },
+          width: { type: "number", description: "Viewport width (default: 1280)" },
+          height: { type: "number", description: "Viewport height (default: 800)" },
+          wait_until: { type: "string", description: "Playwright load state: load|domcontentloaded|networkidle (default: load)" },
+          permissions: {
+            type: "array",
+            items: { type: "string" },
+            description: "Browser permissions to auto-grant (e.g. ['clipboard-read','clipboard-write','geolocation','notifications','microphone','camera','midi']). Defaults to ['clipboard-read','clipboard-write']. Pass [] to grant nothing.",
+          },
+        },
+        required: ["url"],
+      },
+    },
+    {
+      name: "qa_screenshot",
+      description: "Capture a screenshot of the QA browser via CDP framebuffer (no DOM walk; ~30ms). Returns an inline image content block. Defaults to JPEG quality 60 for compactness.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          full_page: { type: "boolean", description: "Capture entire scrollable page (default: false)" },
+          format: { type: "string", description: "jpeg|png (default: jpeg)" },
+          quality: { type: "number", description: "JPEG quality 1-100 (default: 60)" },
+          clip: {
+            type: "object",
+            description: "Region to capture",
+            properties: {
+              x: { type: "number" }, y: { type: "number" },
+              width: { type: "number" }, height: { type: "number" },
+            },
+            required: ["x", "y", "width", "height"],
+          },
+        },
+      },
+    },
+    {
+      name: "qa_click",
+      description: "Click at viewport coordinates on the QA browser.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          x: { type: "number" },
+          y: { type: "number" },
+          button: { type: "string", description: "left|right|middle (default: left)" },
+          click_count: { type: "number", description: "1=single, 2=double (default: 1)" },
+        },
+        required: ["x", "y"],
+      },
+    },
+    {
+      name: "qa_type",
+      description: "Type literal text into the focused element.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+          delay: { type: "number", description: "Per-keystroke delay in ms (default: 0)" },
+        },
+        required: ["text"],
+      },
+    },
+    {
+      name: "qa_press",
+      description: "Press a single key or key combo (e.g. 'Enter', 'Tab', 'Escape', 'Meta+R', 'Control+A').",
+      inputSchema: {
+        type: "object",
+        properties: { key: { type: "string" } },
+        required: ["key"],
+      },
+    },
+    {
+      name: "qa_scroll",
+      description: "Scroll the page by (dx, dy) pixels via mouse wheel.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          dx: { type: "number", description: "Horizontal delta" },
+          dy: { type: "number", description: "Vertical delta" },
+        },
+        required: ["dx", "dy"],
+      },
+    },
+    {
+      name: "qa_viewport",
+      description: "Resize the QA browser viewport.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          width: { type: "number" },
+          height: { type: "number" },
+        },
+        required: ["width", "height"],
+      },
+    },
+    {
+      name: "qa_console_logs",
+      description: "Drain captured console messages, page errors, and failed network requests from the QA browser. The QA agent's primary 'is anything broken' signal — runtime errors usually surface here without affecting the screenshot. Returns JSON.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          since: { type: "number", description: "Only return entries with ts > this epoch ms (default: 0)" },
+          clear: { type: "boolean", description: "Clear buffers after returning (default: true)" },
+          types: {
+            type: "array",
+            items: { type: "string" },
+            description: "Filter console types (e.g. ['error','warning']). Empty = all.",
+          },
+        },
+      },
+    },
+    {
+      name: "qa_close",
+      description: "Close the QA browser and release resources.",
+      inputSchema: { type: "object", properties: {} },
+    },
     // Append dynamic tools from connected notebooks
     ...Array.from(dynamicTools.values()).flat().map(t => ({
       name: t.name,
@@ -672,6 +883,122 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         return { content: [{ type: "text", text: msg }], isError: true };
       }
       return { content: [{ type: "text", text: `Opened (${cmd[0].split("/").pop()}): ${url}` }] };
+    }
+
+    // --- QA tools (Playwright-driven Chromium, single-page) ---
+    if (req.params.name?.startsWith("qa_")) {
+      try {
+        if (req.params.name === "qa_open_notebook") {
+          const url = args.url as string;
+          if (!url) return { content: [{ type: "text", text: "url is required" }], isError: true };
+          const page = await ensureQaBrowser({
+            headless: (args.headless as boolean) ?? false,
+            viewport: {
+              width: (args.width as number) ?? 1280,
+              height: (args.height as number) ?? 800,
+            },
+            permissions: Array.isArray(args.permissions) ? (args.permissions as string[]) : undefined,
+          });
+          const waitUntil = (args.wait_until as "load" | "domcontentloaded" | "networkidle") ?? "load";
+          await page.goto(url, { waitUntil });
+          return { content: [{ type: "text", text: `Opened in QA browser: ${url}` }] };
+        }
+
+        if (req.params.name === "qa_close") {
+          await closeQaBrowser();
+          qaConsole.length = 0;
+          qaErrors.length = 0;
+          qaFailedRequests.length = 0;
+          return { content: [{ type: "text", text: "QA browser closed" }] };
+        }
+
+        // All remaining qa_* tools require an open page
+        if (!qaPage || qaPage.isClosed()) {
+          return { content: [{ type: "text", text: "No QA page open. Call qa_open_notebook first." }], isError: true };
+        }
+        const page = qaPage;
+
+        if (req.params.name === "qa_screenshot") {
+          const format = ((args.format as string) ?? "jpeg").toLowerCase() === "png" ? "png" : "jpeg";
+          const quality = format === "jpeg" ? ((args.quality as number) ?? 60) : undefined;
+          const clip = args.clip as { x: number; y: number; width: number; height: number } | undefined;
+          const buf = await page.screenshot({
+            type: format,
+            quality,
+            fullPage: (args.full_page as boolean) ?? false,
+            clip,
+          });
+          return {
+            content: [{
+              type: "image",
+              data: buf.toString("base64"),
+              mimeType: format === "png" ? "image/png" : "image/jpeg",
+            }],
+          };
+        }
+
+        if (req.params.name === "qa_click") {
+          const x = args.x as number, y = args.y as number;
+          if (typeof x !== "number" || typeof y !== "number") {
+            return { content: [{ type: "text", text: "x and y are required numbers" }], isError: true };
+          }
+          await page.mouse.click(x, y, {
+            button: (args.button as "left" | "right" | "middle") ?? "left",
+            clickCount: (args.click_count as number) ?? 1,
+          });
+          return { content: [{ type: "text", text: `clicked (${x},${y})` }] };
+        }
+
+        if (req.params.name === "qa_type") {
+          const text = args.text as string;
+          await page.keyboard.type(text, { delay: (args.delay as number) ?? 0 });
+          return { content: [{ type: "text", text: `typed ${text.length} chars` }] };
+        }
+
+        if (req.params.name === "qa_press") {
+          const key = args.key as string;
+          if (!key) return { content: [{ type: "text", text: "key is required" }], isError: true };
+          await page.keyboard.press(key);
+          return { content: [{ type: "text", text: `pressed ${key}` }] };
+        }
+
+        if (req.params.name === "qa_scroll") {
+          await page.mouse.wheel((args.dx as number) ?? 0, (args.dy as number) ?? 0);
+          return { content: [{ type: "text", text: `scrolled (${args.dx},${args.dy})` }] };
+        }
+
+        if (req.params.name === "qa_viewport") {
+          await page.setViewportSize({
+            width: args.width as number,
+            height: args.height as number,
+          });
+          return { content: [{ type: "text", text: `viewport ${args.width}x${args.height}` }] };
+        }
+
+        if (req.params.name === "qa_console_logs") {
+          const since = (args.since as number) ?? 0;
+          const clear = (args.clear as boolean) ?? true;
+          const typeFilter = args.types as string[] | undefined;
+          const console_ = qaConsole.filter(e => e.ts > since && (!typeFilter?.length || typeFilter.includes(e.type)));
+          const errors = qaErrors.filter(e => e.ts > since);
+          const failed_requests = qaFailedRequests.filter(e => e.ts > since);
+          if (clear) {
+            qaConsole.length = 0;
+            qaErrors.length = 0;
+            qaFailedRequests.length = 0;
+          }
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({ console: console_, errors, failed_requests, now: Date.now() }, null, 2),
+            }],
+          };
+        }
+      } catch (e: any) {
+        const msg = e?.message ?? String(e);
+        process.stderr.write(`lopecode-channel: ${req.params.name} error: ${msg}\n`);
+        return { content: [{ type: "text", text: `${req.params.name} failed: ${msg}` }], isError: true };
+      }
     }
 
     const notebookId = args.notebook_id as string | undefined;

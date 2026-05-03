@@ -36,5 +36,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.52.0"
   }
 }
