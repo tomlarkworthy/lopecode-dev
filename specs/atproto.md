@@ -7,6 +7,35 @@ Status: draft / exploratory. Refining a sketch authored without knowledge of the
 - **2026-04-26 — First light.** First lopebook published to atproto via the v0 prototype (then named lopefeed): `at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/dev.lope.bundle/3mkg4yuxhir27` (under the original `dev.lope.bundle` lexicon, since renamed to `dev.lopecode.bundle`). App-password auth, content-addressed file table, single-record bundle. Round-trip publish path proven end-to-end against a real PDS.
 - **2026-04-30 — v0 shipped.** `@tomlarkworthy/at-write` (publisher) + `@tomlarkworthy/at-read` (reader) + `@tomlarkworthy/atproto` (headline + shared helpers), all in `lopecode/notebooks/atproto.html`. at-read renders bundles in a sandboxed iframe (`allow-scripts`, opaque origin) using exporter-3's pure `lopebook(blocks, …)` template — same composition code as the export pipeline. Token refresh (401 + 400 ExpiredToken), CID delta uploads, IndexedDB cache, plc.directory + did:web resolve.
 - **2026-05-02 — v1 web proxy live.** `lopecode.com` running on Cloudflare: apex Worker routes `*.lopecode.com/*`; `did-*-*.lopecode.com/r/:rkey` serves composed HTML at the per-DID origin (no iframe, no GitHub-Pages framing) via the `lopecode-render` service-bound Worker. Render path uses exporter-3's `lopebook` cell with the bundle's files emitted directly as `<script>` blocks — bundle is the byte-output of exporter-3's serializer, so re-running the full `book` pipeline was the wrong shape; `lopebook` is the chrome wrapper and that's the right seam. atproto blobs cached at the edge (CIDs are immutable). Contrail indexer at `contrail.lopecode.com` (D1-backed, jetstream cron) drives the homepage feed; on-demand backfill via `?actor=`. Skipped the spec's "Step 4 MVP" (302 to GitHub Pages) — went straight to the upgraded inline-render version.
+- **2026-05-03 — OAuth + notify.** OAuth surface complete (`lopecode.com/oauth/{client.json,callback.html,relay/<state>}`); `@tomlarkworthy/atproto-login` runs PAR + PKCE + DPoP against the user's PDS, persists DPoP-bound `{accessJwt, refreshJwt, did, pds, dpopKey}` in IndexedDB. at-write fires fire-and-forget `notifyOfUpdate` to Contrail after every publish — bundles indexed within seconds rather than waiting for the 60s jetstream cron.
+
+## Design references
+
+The social-layer surfaces (feed, profile, in-notebook panel) are designed in a Claude Design hub. The user picked the locked-in directions in chat:
+
+- **Hub bundle**: `https://api.anthropic.com/v1/design/h/s70n11mn7t3G9AdZ76hUYQ?open_file=Lopecode+Social+Layer.html`
+- **Local extracted copy**: `/tmp/design-hub/lopecode/` (README + project + chats)
+- **Locked-in surfaces** (after iterating, killed four other variants):
+  - **The Edition** (`feed-c.jsx`) — discovery feed, click-to-load previews (bundles can be megabytes), companion-bsky thread on the right rail.
+  - **Ledger** (`profile.jsx::ProfileVariantB`) — profile page as a dense table with sparkline-per-row + publish-cadence histogram strip on top.
+  - **Inbox** (`panel.jsx::PanelVariantA`) — dockable in-notebook panel for cross-atmosphere activity.
+- **Design tokens** (`shared.jsx`): cream/dark/neutral aesthetic toggle; cream is the lopecode default. Colors: `paper #f5efe5`, `ink #1a1814`, `accent #c54f2b`. Type: Source Serif 4 (serif), Inter Tight (sans), JetBrains Mono (mono). Reusable primitives: `Panel`, `MonoLabel`, `Hash`, `Handle`, `RunnablePreview`, `Sparkline`, `ModuleStar`, `TickRow`.
+
+The design medium is React/HTML/CSS; **lopecode-side implementation is a re-render in the host runtime, not a copy of the prototype's structure**. Match the visual output, the tokens, and the composition; rebuild the components with htl/Inputs/lopepage chrome rather than React. The chats are the source of truth for *intent*; the JSX is the source of truth for *visual*.
+
+### The pivot the design forces
+
+Originally these surfaces were specced as **lopecode.com infra**: a static HTML profile page (step 8, ✅), a Cloudflare-Worker feed generator (step 12). The chat reframes them as **lopecode notebooks** themselves — published to atproto like any other bundle, dogfooding the system. Three modules:
+
+| Module | Role | Where it runs |
+|---|---|---|
+| `@tomlarkworthy/edition` | The Edition discovery feed | as a notebook; `lopecode.com/` apex Worker can serve it as the homepage |
+| `@tomlarkworthy/ledger` | Ledger profile page | as a notebook; `lopecode.com/@:handle` can resolve handle → DID and open it with that DID in the hash |
+| `@tomlarkworthy/inbox` | Cross-atmosphere activity panel | dockable inside any lopecode notebook (drop into lopepage's S25 slot alongside other modules) |
+
+Data source for all three is **Contrail** (`contrail.lopecode.com/xrpc/com.lopecode.bundle.listRecords`, `?did=`, `?search=`, etc.). They never re-implement the indexer; they just call it.
+
+Note: the Bluesky-side `app.bsky.feed.generator` Worker (a *separate* concern — for showing a "lopecode" feed *inside Bluesky clients*) stays as planned step 12, but it's now downstream of the notebook surfaces and can wait until the in-lopecode discovery story is real.
 
 ## Goal
 
@@ -472,12 +501,14 @@ Three static surfaces (no per-user state) and two dynamic ones:
 | # | What | How |
 |---|---|---|
 | 1 | **Web proxy** `did-plc-….lopecode.com/r/:rkey` (with `lopecode.com/r/:did/:rkey` redirecting to it) | Wildcard-subdomain Worker; resolves DID → bundle, serves it directly at a per-DID origin. **Top-level navigation, no sandbox.** This is the surface for non-atmosphere visitors arriving via Bluesky embed cards / plain web links / RSS — the bundle behaves like a normal webpage (storage, bookmarks, real fetch). Distinct from the in-notebook reader, which stays sandboxed. |
-| 2 | **Profile page** `lopecode.com/@:handle` | Static HTML; resolves handle → DID, then either `com.atproto.repo.listRecords` directly or Contrail's `listBundlesByDid` XRPC. Pure client-side, no server state. |
-| 3 | **OAuth surface** `lopecode.com/oauth/client.json`, `/oauth/callback` | Static metadata + a callback page that postMessages tokens to the originating notebook. See "Auth" below. |
+| 2 | **Profile page** `lopecode.com/@:handle` | v1 ships a static-HTML stub (handle → DID → direct `listRecords`). Long-term: apex Worker resolves the handle and opens the **Ledger** notebook (`@tomlarkworthy/ledger`) with `?did=` in the hash. See [Design references](#design-references). |
+| 3 | **OAuth surface** `lopecode.com/oauth/client.json`, `/oauth/callback`, `/oauth/relay/<state>` | Static client metadata + callback page that POSTs to the server-side relay (Cloudflare Cache API, 5-min TTL, delete-on-read, keyed by `state`). The notebook polls the relay. See [Auth](#auth). |
 | 4 | **Indexer** | [Contrail](https://github.com/flo-bit/contrail) on Workers + D1, vendored at `vendor/contrail`. One `contrail.config.ts` declares `com.lopecode.bundle` (recency + FTS title search) and a `timeline` feed over `app.bsky.graph.follow`. Contrail handles Jetstream + backfill + typed XRPC. |
-| 5 | **Feed generator** | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). Wraps Contrail: a *new-bundles* feed (recency `listRecords`) and a *personalized* feed (Contrail's `getFeed?actor=…` for the viewer). Both signed and registered under the lopecode.com DID. |
+| 5 | **Bluesky feed generator** at `feed.lopecode.com` | Cloudflare Worker implementing the `app.bsky.feed.generator` XRPCs (`getFeedSkeleton`, `describeFeedGenerator`). For showing a "lopecode" feed *inside Bluesky clients* — distinct from the in-lopecode discovery feed (the **Edition** notebook, see [Design references](#design-references)), which is what most lopecode users see. |
 
 That's it. Nothing else needs to live server-side for v1.
+
+The lopecode-side discovery + profile + activity-panel surfaces (the Edition, the Ledger, the Inbox) are themselves notebooks — published on atproto, served via the same web-proxy path everything else uses. They appear under [Design references](#design-references) and as steps 11–13 of [Next steps](#next-steps).
 
 ### Two read surfaces
 
@@ -585,17 +616,22 @@ Public links go through `lopecode.com` from day one, so the *URL* people share o
 
 **Profile + discovery**
 
-8. ✅ **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads.
-9. ✅ **Contrail indexer** at `contrail.lopecode.com`. `vendor/contrail` npm, `contrail.config.ts` declares `com.lopecode.bundle` + `app.bsky.graph.follow`, D1-backed (`lopecode-contrail`), 1-minute jetstream cron, on-demand backfill via `?actor=`. Reached via service binding from the apex (custom-domain precedence is unreliable under wildcard routes). Homepage feed renders from contrail's `listRecords` XRPC.
+8. ✅ **Profile page (v1, static HTML stub)** at `lopecode.com/@:handle`. Client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Holds the URL until the Ledger notebook (step 11) replaces it.
+9. ✅ **Contrail indexer** at `contrail.lopecode.com`. `vendor/contrail` npm, `contrail.config.ts` declares `com.lopecode.bundle` + `app.bsky.graph.follow`, D1-backed (`lopecode-contrail`), 1-minute jetstream cron, on-demand backfill via `?actor=`. Reached via service binding from the apex (custom-domain precedence is unreliable under wildcard routes).
 10. ✅ **`notify(uri)` in at-write** after `createRecord`. Fire-and-forget `POST https://contrail.lopecode.com/xrpc/com.lopecode.notifyOfUpdate` with `{uri: created.uri}`; failures are silent (jetstream cron is the safety net). Verified end-to-end: bundle `3mkwwfbzfzd2w` was queryable in Contrail within seconds of publish, well under the 60s cron interval.
-11. ☐ **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Polish.
-12. ☐ **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
+
+**Social layer (notebooks, per [Design references](#design-references))**
+
+11. ☐ **Ledger profile notebook** — `@tomlarkworthy/ledger`. Reads `?did=…` (or resolves `?handle=…`) from the page hash, calls Contrail's `com.lopecode.bundle.listRecords?did=…&sort=-createdAt`, renders the dense-table layout from `profile.jsx::ProfileVariantB`: identity strip + module starburst, stat ribbon, publish-cadence histogram, ledger table (rkey · files · size · modules · imports · forks · bsky stats · sparkline). Apex Worker rewrites `lopecode.com/@:handle` → resolves handle → opens the Ledger bundle with `?did=` in the hash.
+12. ☐ **Edition feed notebook** — `@tomlarkworthy/edition`. Reads from Contrail's `listRecords?sort=-createdAt&limit=…` (and `?actor=` for personalized). Renders the editorial layout from `feed-c.jsx`: marginalia gutter (rkey/CID/file count), serif headline + summary, click-to-load preview affordance (deferred fetch — bundles are MB-sized), companion-bsky thread on the right rail. Apex Worker serves it as the homepage.
+13. ☐ **Inbox panel notebook** — `@tomlarkworthy/inbox`. A panel module that drops into any lopepage layout slot (S25 alongside other modules). Reads Contrail's recency feed for `app.bsky.graph.follow` targets; sub-tabs for *feed*, *mentions*, *forks*, *publish*. Per `panel.jsx::PanelVariantA`.
+14. ☐ **Bluesky `app.bsky.feed.generator` Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator` so a "lopecode" feed appears natively *inside* Bluesky clients. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Registered as an `app.bsky.feed.generator` record under the `lopecode.com` DID. Downstream of 11–13 — the in-lopecode discovery story should land first.
 
 **v1.1**
 
-13. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
+15. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
 
-Steps 1–6, 8, 9, 10 are done. The remaining gaps are 7 (standard.document sidecar), 11 (profile→Contrail switch), 12 (feed generator) for v1 discovery, then 13 (RSS bridge) for v1.1.
+Steps 1–6, 8, 9, 10 are done. The remaining v1 work is 7 (standard.document sidecar) plus the social-layer notebooks 11 (Ledger), 12 (Edition), 13 (Inbox), then the Bluesky feed generator 14, then RSS 15 in v1.1. The "static HTML profile" at step 8 is a placeholder until the Ledger notebook (11) replaces it; same goes for the homepage being served by the Edition notebook (12).
 
 ## Core insight
 
