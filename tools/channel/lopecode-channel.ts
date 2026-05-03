@@ -13,8 +13,9 @@ import {
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerWebSocket } from "bun";
-import { join, dirname, basename, resolve } from "path";
-import { mkdirSync, writeFileSync, readdirSync, statSync, watchFile, unwatchFile } from "fs";
+import { join, dirname, basename, resolve, sep as pathSep } from "path";
+import { mkdirSync, writeFileSync, readdirSync, statSync, watchFile, unwatchFile, readFileSync as fsReadFileSync } from "fs";
+import { mkdir as fsMkdir, readdir as fsReaddir, readFile as fsReadFile, writeFile as fsWriteFile, stat as fsStat, rm as fsRm, utimes as fsUtimes } from "fs/promises";
 import { homedir } from "os";
 
 // --- Configuration ---
@@ -86,6 +87,7 @@ async function ensureQaBrowser(opts: {
   headless?: boolean;
   viewport?: { width: number; height: number };
   permissions?: string[];
+  fakefsRoot?: string;
 } = {}): Promise<PwPage> {
   if (qaPage && !qaPage.isClosed()) return qaPage;
   const { chromium } = await import("playwright");
@@ -97,6 +99,19 @@ async function ensureQaBrowser(opts: {
     catch (e: any) { process.stderr.write(`lopecode-channel: grantPermissions failed: ${e?.message ?? e}\n`); }
   }
   const page = await ctx.newPage();
+
+  if (opts.fakefsRoot) {
+    const rootAbs = resolve(opts.fakefsRoot);
+    await fsMkdir(rootAbs, { recursive: true });
+    currentFakefsRoot = rootAbs;
+    const initScript = fsReadFileSync(join(import.meta.dir, "fakefs-init.js"), "utf8");
+    const cfg = { port: PORT, token: PAIRING_TOKEN, rootName: basename(rootAbs) };
+    await ctx.addInitScript({ content: `window.__lopecode_fakefs = ${JSON.stringify(cfg)};\n${initScript}` });
+    process.stderr.write(`lopecode-channel: fakefs root = ${rootAbs}\n`);
+  } else {
+    currentFakefsRoot = null;
+  }
+
   page.on("console", (m) => {
     const loc = m.location();
     pushBounded(qaConsole, {
@@ -124,6 +139,7 @@ async function closeQaBrowser(): Promise<void> {
   const b = qaBrowser;
   qaPage = null;
   qaBrowser = null;
+  currentFakefsRoot = null;
   if (b) {
     try { await b.close(); } catch { /* ignore */ }
   }
@@ -721,6 +737,10 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
             items: { type: "string" },
             description: "Browser permissions to auto-grant (e.g. ['clipboard-read','clipboard-write','geolocation','notifications','microphone','camera','midi']). Defaults to ['clipboard-read','clipboard-write']. Pass [] to grant nothing.",
           },
+          fakefs_root: {
+            type: "string",
+            description: "Absolute path to use as a sandbox root. When set, window.showDirectoryPicker is replaced with a synthetic FileSystemDirectoryHandle whose ops are proxied to the channel server (sandboxed under this root). Lets file-sync work without an OS picker dialog. Created if missing.",
+          },
         },
         required: ["url"],
       },
@@ -898,6 +918,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
               height: (args.height as number) ?? 800,
             },
             permissions: Array.isArray(args.permissions) ? (args.permissions as string[]) : undefined,
+            fakefsRoot: typeof args.fakefs_root === "string" ? (args.fakefs_root as string) : undefined,
           });
           const waitUntil = (args.wait_until as "load" | "domcontentloaded" | "networkidle") ?? "load";
           await page.goto(url, { waitUntil });
@@ -1151,6 +1172,83 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
   }
 });
 
+// --- Fake-FS proxy (for QA browser, replaces showDirectoryPicker) ---
+// When qa_open_notebook is called with fakefs_root, the page's
+// window.showDirectoryPicker is replaced with a synthetic handle whose ops are
+// proxied here. We sandbox every op under the configured root so the page
+// can't read/write outside it.
+let currentFakefsRoot: string | null = null;     // absolute path, or null when disabled
+const fakefsBindings = new Map<ServerWebSocket<unknown>, string>(); // ws → sandbox absolute path
+
+function resolveSandbox(root: string, rel: string): string {
+  // Treat empty path as the sandbox root itself.
+  const target = resolve(root, rel || ".");
+  const rootWithSep = root.endsWith(pathSep) ? root : root + pathSep;
+  if (target !== root && !target.startsWith(rootWithSep)) {
+    throw new Error(`path '${rel}' escapes sandbox`);
+  }
+  return target;
+}
+
+async function handleFsOp(root: string, op: string, args: any): Promise<any> {
+  const rel = String(args?.path ?? "");
+  const abs = resolveSandbox(root, rel);
+  switch (op) {
+    case "stat": {
+      try {
+        const s = await fsStat(abs);
+        return { kind: s.isDirectory() ? "directory" : s.isFile() ? "file" : "other", lastModified: s.mtimeMs, size: s.size };
+      } catch (e: any) {
+        if (e?.code === "ENOENT") return null;
+        throw e;
+      }
+    }
+    case "list": {
+      const entries = await fsReaddir(abs, { withFileTypes: true });
+      return entries.map((e) => ({
+        name: e.name,
+        kind: e.isDirectory() ? "directory" : e.isFile() ? "file" : "other",
+      }));
+    }
+    case "mkdir": {
+      await fsMkdir(abs, { recursive: true });
+      return { ok: true };
+    }
+    case "touch": {
+      // Ensure parent exists; create empty file if missing; otherwise no-op.
+      await fsMkdir(dirname(abs), { recursive: true });
+      try {
+        await fsStat(abs);
+      } catch (e: any) {
+        if (e?.code === "ENOENT") {
+          await fsWriteFile(abs, new Uint8Array(0));
+        } else {
+          throw e;
+        }
+      }
+      return { ok: true };
+    }
+    case "read": {
+      const data = await fsReadFile(abs);
+      const s = await fsStat(abs);
+      return { dataB64: data.toString("base64"), lastModified: s.mtimeMs, type: "" };
+    }
+    case "write": {
+      await fsMkdir(dirname(abs), { recursive: true });
+      const dataB64 = String(args?.dataB64 ?? "");
+      await fsWriteFile(abs, Buffer.from(dataB64, "base64"));
+      return { ok: true };
+    }
+    case "remove": {
+      const recursive = !!args?.recursive;
+      await fsRm(abs, { recursive, force: true });
+      return { ok: true };
+    }
+    default:
+      throw new Error(`unknown fs op '${op}'`);
+  }
+}
+
 // --- WebSocket Server ---
 function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
   let msg: any;
@@ -1161,6 +1259,32 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
   }
 
   switch (msg.type) {
+    case "fs-pair": {
+      if (msg.token !== PAIRING_TOKEN) {
+        ws.send(JSON.stringify({ type: "fs-pair-failed", reason: "Invalid pairing token" }));
+        return;
+      }
+      if (!currentFakefsRoot) {
+        ws.send(JSON.stringify({ type: "fs-pair-failed", reason: "fakefs not enabled for this session" }));
+        return;
+      }
+      pendingConnections.delete(ws);
+      fakefsBindings.set(ws, currentFakefsRoot);
+      ws.send(JSON.stringify({ type: "fs-paired" }));
+      process.stderr.write(`lopecode-channel: fs-paired ws → ${currentFakefsRoot}\n`);
+      return;
+    }
+    case "fs-request": {
+      const root = fakefsBindings.get(ws);
+      if (!root) {
+        ws.send(JSON.stringify({ type: "fs-response", id: msg.id, ok: false, error: "fs-pair required" }));
+        return;
+      }
+      handleFsOp(root, msg.op, msg.args)
+        .then((result) => ws.send(JSON.stringify({ type: "fs-response", id: msg.id, ok: true, result })))
+        .catch((err) => ws.send(JSON.stringify({ type: "fs-response", id: msg.id, ok: false, error: String(err?.message ?? err) })));
+      return;
+    }
     case "pair": {
       if (msg.token !== PAIRING_TOKEN) {
         ws.send(JSON.stringify({ type: "pair-failed", reason: "Invalid pairing token" }));
@@ -1346,6 +1470,7 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
 
 function handleWsClose(ws: ServerWebSocket<unknown>) {
   pendingConnections.delete(ws);
+  fakefsBindings.delete(ws);
   const url = wsBySocket.get(ws);
   if (url) {
     const meta = connectionMeta.get(ws);
