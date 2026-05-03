@@ -587,7 +587,7 @@ Public links go through `lopecode.com` from day one, so the *URL* people share o
 
 8. ✅ **Profile page** at `lopecode.com/@:handle`. Static HTML; client-side handle→DID + `com.atproto.repo.listRecords?collection=com.lopecode.bundle`. Direct PDS reads.
 9. ✅ **Contrail indexer** at `contrail.lopecode.com`. `vendor/contrail` npm, `contrail.config.ts` declares `com.lopecode.bundle` + `app.bsky.graph.follow`, D1-backed (`lopecode-contrail`), 1-minute jetstream cron, on-demand backfill via `?actor=`. Reached via service binding from the apex (custom-domain precedence is unreliable under wildcard routes). Homepage feed renders from contrail's `listRecords` XRPC.
-10. ☐ **`notify(uri)` in at-write** after `createRecord`. Fires off-thread; instant feed visibility instead of up-to-60s lag.
+10. ✅ **`notify(uri)` in at-write** after `createRecord`. Fire-and-forget `POST https://contrail.lopecode.com/xrpc/com.lopecode.notifyOfUpdate` with `{uri: created.uri}`; failures are silent (jetstream cron is the safety net). Verified end-to-end: bundle `3mkwwfbzfzd2w` was queryable in Contrail within seconds of publish, well under the 60s cron interval.
 11. ☐ **Profile page switch** from direct `listRecords` to Contrail's typed XRPC. Polish.
 12. ☐ **Feed-generator Worker** at `feed.lopecode.com`. Implements `getFeedSkeleton` + `describeFeedGenerator`. Wraps Contrail's `listRecords` (recency) and `getFeed?actor=…` (personalized). Both registered as `app.bsky.feed.generator` records under the `lopecode.com` DID.
 
@@ -595,7 +595,7 @@ Public links go through `lopecode.com` from day one, so the *URL* people share o
 
 13. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
 
-Steps 1–6, 8, 9 are done. The remaining gaps are 7 (standard.document sidecar) and 10–12 (notify + Contrail polish + feed generator) for v1 discovery, then 13 (RSS bridge) for v1.1.
+Steps 1–6, 8, 9, 10 are done. The remaining gaps are 7 (standard.document sidecar), 11 (profile→Contrail switch), 12 (feed generator) for v1 discovery, then 13 (RSS bridge) for v1.1.
 
 ## Core insight
 
