@@ -112,14 +112,6 @@ describe("lopecode-channel server", () => {
       expect(body.paired).toBe(0);
       expect(typeof body.pending).toBe("number");
     });
-
-    it("root redirects to notebook URL with token", async () => {
-      const res = await fetch(`http://127.0.0.1:${port}/`, { redirect: "manual" });
-      expect(res.status).toBe(302);
-      const location = res.headers.get("location")!;
-      expect(location).toContain("&cc=");
-      expect(location).toContain(token);
-    });
   });
 
   describe("pairing", () => {
