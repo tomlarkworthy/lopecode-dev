@@ -22,6 +22,12 @@ import { homedir } from "os";
 const REQUESTED_PORT = Number(process.env.LOPECODE_PORT ?? 0); // 0 = OS picks a free port
 let PORT = REQUESTED_PORT;
 
+// Shared default fakefs root: every channel session writes file-sync output here unless
+// the caller passes an explicit `fakefs_root`. Parallel bug-fix sessions share this directory
+// (per-notebook subdirs are keyed by notebook ID, so collisions only happen when two sessions
+// target the same notebook — coordinate manually in that case).
+const DEFAULT_FAKEFS_ROOT = process.env.LOPECODE_FAKEFS_ROOT ?? join(homedir(), ".cache/lopecode-fakefs");
+
 // --- Pairing token (generated after port binding) ---
 function generateToken(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1
@@ -100,16 +106,16 @@ async function ensureQaBrowser(opts: {
   }
   const page = await ctx.newPage();
 
-  if (opts.fakefsRoot) {
-    const rootAbs = resolve(opts.fakefsRoot);
+  // fakefs root: caller's value wins; otherwise fall back to the shared default. We always
+  // wire fakefs (even if caller didn't ask) so file-sync can disassemble without an OS dialog.
+  {
+    const rootAbs = resolve(opts.fakefsRoot ?? DEFAULT_FAKEFS_ROOT);
     await fsMkdir(rootAbs, { recursive: true });
     currentFakefsRoot = rootAbs;
     const initScript = fsReadFileSync(join(import.meta.dir, "fakefs-init.js"), "utf8");
     const cfg = { port: PORT, token: PAIRING_TOKEN, rootName: basename(rootAbs) };
     await ctx.addInitScript({ content: `window.__lopecode_fakefs = ${JSON.stringify(cfg)};\n${initScript}` });
-    process.stderr.write(`lopecode-channel: fakefs root = ${rootAbs}\n`);
-  } else {
-    currentFakefsRoot = null;
+    process.stderr.write(`lopecode-channel: fakefs root = ${rootAbs}${opts.fakefsRoot ? "" : " (default)"}\n`);
   }
 
   page.on("console", (m) => {

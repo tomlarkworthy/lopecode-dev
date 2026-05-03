@@ -115,6 +115,11 @@ Options:
     }
   }
 
+  if (options.cells && options.noDelete) {
+    console.error('Error: --cells already does in-place modify; combining with --no-delete inserts duplicates instead of replacing. Drop --no-delete.');
+    process.exit(1);
+  }
+
   return options;
 }
 

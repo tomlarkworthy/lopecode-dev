@@ -90,6 +90,14 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 | `--login` | Open browser for manual login |
 | `--headed` | Show browser (for `--login`) |
 
+### Gotchas with `--cells`
+
+`--cells X,Y` triggers `replaceCellsViaWS` — an in-place `modify_node` for every name match. Three quiet failure modes:
+
+1. **New cells (not yet on target) are silently skipped** — the script prints `Warning: cell "X" not found in target notebook — skipping` and moves on. To add a brand-new cell, fall through to the WS protocol directly (`insert_node` with `node_id = newVersion`, see "WebSocket Editing Protocol" above).
+2. **Imports match by exact text.** A changed import line — e.g. extending an existing `import { a, b } from "@user/x"` to `import { a, b, c } from "@user/x"` — does **not** match the existing import on Observable, so it's silently skipped. Modify the existing import cell directly via `modify_node` keyed on its current `node.id`.
+3. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
+
 ## Decompilation (Compiled → Observable Source)
 
 The `@tomlarkworthy/observablejs-toolchain` module provides `decompile()` which converts compiled runtime variable definitions back to Observable source.

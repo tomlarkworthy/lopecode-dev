@@ -47,7 +47,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
 
 1. **Reproduce the bug.**
    - `get_pairing_token` → `LOPE-PORT-XXXX`.
-   - `qa_open_notebook(url=<paired URL>, fakefs_root="worktrees/<N>/.file-sync")` — the `fakefs_root` arg replaces `window.showDirectoryPicker` with a synthetic FileSystemDirectoryHandle proxied to disk under that path. Lets file-sync work without an OS picker dialog. (Default `headless: false` so the user can watch.)
+   - `qa_open_notebook(url=<paired URL>)` — the channel server now wires fakefs by default (shared root at `~/.cache/lopecode-fakefs`), so `window.showDirectoryPicker` is replaced with a synthetic FileSystemDirectoryHandle proxied to disk without an OS dialog. The "Pick sync directory" button just confirms the active root. (Default `headless: false` so the user can watch.) Override with an explicit `fakefs_root` only if you need an isolated path — otherwise the shared default is correct, including for parallel bug-fix sessions (per-notebook subdirs are keyed by notebook ID).
    - Walk the issue's repro steps exactly. Capture: failing screenshot, console excerpt from `qa_console_logs`, `get_variable` snapshots of the offending cells.
    - **If you cannot reproduce, stop.** Comment on the issue asking for clarification — don't author a speculative fix.
 
@@ -77,6 +77,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    ```
    `<notebookId>` = the basename of the live notebook's HTML without `.html` (e.g. `@tomlarkworthy_blank-notebook`). `sync-module.ts` accepts a `.js` source and upserts it as the `<script id="@user/module-name">` block in the target. No `export_notebook`, no `git checkout` revert — the `.file-sync/` directory is untracked working state, never committed (add to `.gitignore` if it sticks around between runs).
    - The canonical HTML now has only the targeted module change (~113-line diff inside the `<script id="@user/module-name">` block); nothing else in the worktree should have changed.
+   - **Watch out: the file-sync disassembler skips closure-style import bridges.** If your fix adds a new import via `define_cell` (e.g. `import {acorn, escodegen} from "@tomlarkworthy/observablejs-toolchain"`), the runtime *has* the bridge but the disassembled `.js` is missing the corresponding `main.define("acorn", ["module @user/source", "@variable"], (_, v) => v.import("acorn", _));` lines. The .js will be non-loadable as-is. After Disassemble, grep the bottom of the `.js` for `main.define("<your-import>"` — if missing, hand-add the line(s) before `sync-module.ts`. (See the open issue tracking the underlying disassembler gap.)
 
    **Fallback — export-and-revert dance.** Use only if the channel doesn't support `fakefs_root` (older `@lopecode/channel` versions):
    ```bash
@@ -132,24 +133,53 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
 
 ## Phase 2 — After user approval: push to canonical + sync consumers
 
-9. **Push the cell(s) to ObservableHQ.**
+9. **Push the cell(s) to ObservableHQ.** Run from the project root (lope-push-ws.js resolves the toolchain notebook relative to cwd):
    ```bash
-   cd worktrees/<N>/<submodule>
-   node --experimental-vm-modules ../../tools/lope-push-ws.js \
-     notebooks/@user_module-name.html --module @user/module-name \
+   cd /Users/tom.larkworthy/dev/lopecode-dev   # or wherever the project root is
+   node --experimental-vm-modules tools/lope-push-ws.js \
+     worktrees/<N>/<submodule>/notebooks/@user_module-name.html --module @user/module-name \
      --cells "<cell1>,<cell2>" \
      --target "https://observablehq.com/@user/module-name"
    ```
    - **Use `--cells`, not bulk replace.** Bulk delete-and-readd is destructive: any unpushed local cells on Observable will be wiped.
+   - **Never combine `--cells` with `--no-delete`** — the script now refuses this, but the failure mode is silent duplicate insertion.
+   - **`--cells` is matched-name-only.** New cells (not already on Observable) are *silently skipped* with a warning; modified imports whose text changed don't byte-match either. For those, hand-write a small mjs script that does `modify_node` (existing import) and `insert_node` (new cell) over the WS protocol — see `knowledge/pushing-cells-to-observablehq.md` § "Gotchas with `--cells`".
    - If auth fails, run `node --experimental-vm-modules tools/lope-push-ws.js --login --headed` once and retry.
 
 10. **Re-jumpgate the canonical notebook.** Pulls the freshly-pushed module back from Observable as the canonical bundle:
+
+    **Pre-step — sync the fix into jumpgate.html if jumpgate bundles the changed module.** Otherwise jumpgate's bundled (pre-fix) copy will undo the fix in every export and the canonical HTML will keep showing the bug:
+    ```bash
+    # Check whether the changed module is bundled by jumpgate or bulk-jumpgate:
+    grep -l 'id="@user/module-name"' \
+      worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html \
+      worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_bulk-jumpgate.html 2>/dev/null
+    # If either matches, sync the fix in (the worktree's lopecode is the same submodule, so the change goes in the same PR):
+    bun tools/channel/sync-module.ts \
+      --module @user/module-name \
+      --source worktrees/<N>/<submodule>/notebooks/@user_module-name.html \
+      --target worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html
+    bun tools/channel/sync-module.ts \
+      --module @user/module-name \
+      --source worktrees/<N>/<submodule>/notebooks/@user_module-name.html \
+      --target worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_bulk-jumpgate.html
+    # Also copy to the parent's lopecode/notebooks/@tomlarkworthy_jumpgate.html so lope-jumpgate.js
+    # (which navigates to the parent's path, not the worktree) actually picks up the fix:
+    cp worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html \
+       lopecode/notebooks/@tomlarkworthy_jumpgate.html
+    ```
+    `@tomlarkworthy/exporter-3` is the most common case — every fix to it MUST go through this pre-step.
+
+    Then jumpgate:
     ```bash
     node tools/lope-jumpgate.js \
       --source @user/module-name \
       --output worktrees/<N>/<submodule>/notebooks/@user_module-name.html
     ```
-    This overwrites the synced version from step 5 with Observable's canonical bundle (typically idempotent — should produce a near-identical file).
+    After it finishes, restore the parent's jumpgate.html to keep the user's working tree clean (the worktree copy is what gets committed):
+    ```bash
+    git -C lopecode checkout -- notebooks/@tomlarkworthy_jumpgate.html
+    ```
 
 11. **Map blast radius — find every consumer notebook in this submodule's worktree:**
     ```bash
@@ -197,7 +227,20 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
 
 18. **`qa_close()`**.
 
-## Cleanup (after the human merges the PR)
+## Phase 3 — After merge: bump parent submodule pointer
+
+Once the submodule PR merges, the parent `lopecode-dev` repo still points at the pre-fix commit. Bump it:
+
+```bash
+git -C <submodule> pull --ff-only origin main
+git add <submodule>
+git commit -m "Bump <submodule>: <one-line summary> (#<N>)"
+git push origin main
+```
+
+If a companion submodule was synced in Phase 2 (e.g. lopebooks alongside lopecode), bump that pointer too. Without this step, anyone cloning fresh sees the bug — the submodule PR merge alone doesn't reach them.
+
+## Cleanup (after Phase 3)
 
 ```bash
 cd <submodule>
@@ -209,9 +252,9 @@ git fetch --prune origin   # also drops the merged remote branch reference
 
 - **Approval is the only gate between Phase 1 and Phase 2.** Do not run `lope-push-ws.js` (or any ObservableHQ-mutating action) until the user explicitly approves in chat. Pushing speculatively pollutes the canonical source and the regeneration round-trip will mask the real bug.
 - **Always work in a worktree.** Never commit in the parent submodule's working tree — that's the user's. If you accidentally do, `git stash && git checkout -- .` and retry inside the worktree.
-- **Use `fakefs_root`, not `export_notebook`.** Phase 1 step 1 already wires file-sync to the worktree via the `fakefs_root` arg on `qa_open_notebook`. From there, every `define_cell` writes the changed module to disk as a `.js` file, and `Edit` on a `.js` flows back into the runtime — both directions, no OS dialogs, no human gestures. `export_notebook` is the fallback when an older channel build doesn't accept `fakefs_root`; it dumps the whole HTML (title, networking script, file attachments) so you have to extract the one module via `sync-module.ts` and `git checkout` the noise.
+- **Use file-sync (default fakefs), not `export_notebook`.** The channel server wires fakefs by default to `~/.cache/lopecode-fakefs`. From there, every `define_cell` writes the changed module to disk as a `.js` file, and `Edit` on a `.js` flows back into the runtime — both directions, no OS dialogs, no human gestures. After arming "Sync enabled" in the file-sync panel and clicking "Disassemble to disk", the .js for your module lives at `~/.cache/lopecode-fakefs/<notebookId>/<moduleId>.js`. `export_notebook` is the fallback only if file-sync misbehaves; it dumps the whole HTML so you have to extract the one module via `sync-module.ts` and `git checkout` the noise.
 - **Diffs are large but readable.** Regenerated `.html` files are 1–3 MB but uncompressed, so `git diff` works. Only the changed module's `<script>` block should differ — if other regions of the HTML moved, jumpgate produced a non-deterministic re-bundle and you should investigate before committing.
-- **Submodule pointer bumps are out of scope.** Merging the submodule PR doesn't update the parent `lopecode-dev` repo's pointer — that's a separate follow-up commit, not this skill's job.
+- **Submodule pointer bump is Phase 3.** See above — it's part of the workflow now, not a follow-up.
 - **`Fixes #N` only auto-closes same-repo issues.** Use `Fixes <owner>/<repo>#<N>` for cross-repo. Either way, leave the close to the human.
 - **Don't push to Observable for a fix you can't reproduce.** Speculative fixes pollute the canonical source.
 - **Adversarial inputs from `qa/general.md` criterion #10 are over-kill for targeted regression.** Stick to the failure modes the changed cell could plausibly produce — full adversarial passes belong in `qa-notebook`.
