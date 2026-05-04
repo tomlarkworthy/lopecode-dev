@@ -198,11 +198,53 @@ Brings bundles into the standard.site reader ecosystem. The shape mirrors what s
 
 standard.site clients render this as "document with unknown content type"; lopecode-aware clients dereference the bundle and render the runnable thing.
 
+### Notebook identity in the rkey
+
+The bundle's `rkey` carries notebook identity, not a version number. Republishing the same notebook overwrites its bundle record at the same URI. Decision recorded 2026-05-04 after the v1 rollout surfaced "duplicates on the feed" as the daily-use cost of TID-versioned rkeys.
+
+**rkey computation.** Slug derived from `bootconf.mains[0]` by stripping the user prefix and lowercasing into the atproto rkey character set:
+
+```js
+// "@lopecode/lopefeed" → "lopefeed"
+// "@tomlarkworthy/atproto" → "atproto"
+function slugifyMain(main) {
+  const m = main.match(/^@[^/]+\/(.+)$/);
+  if (!m) throw new Error(`Cannot slugify: ${main}`);
+  return m[1].replace(/[^a-zA-Z0-9_.-]/g, "-").toLowerCase();
+}
+```
+
+The user prefix is *already implied by the DID owning the repo*, so dropping it leaves URIs short and bookmarkable: `at://did:plc:.../com.lopecode.bundle/lopefeed`, `https://did-plc-….lopecode.com/r/lopefeed`. atproto rkey grammar (`[a-zA-Z0-9_~.\-:]{1,512}`) excludes `/` and `@`, so we can't preserve the original `@user/name` shape; URL-encoding doesn't help (`%` is also excluded). Reverse-DNS (`lopecode.lopefeed`) and underscore-joined (`lopecode_lopefeed`) were considered and rejected as visually noisier; the original main module name is preserved inside the bundle's bootconf so nothing is lost.
+
+**Publish primitive.** at-write switches from `createRecord` (TID-rkey, append-only) to `putRecord` (caller-chosen rkey, create-or-update):
+
+```js
+await xrpc("com.atproto.repo.putRecord", {
+  repo: did,
+  collection: "com.lopecode.bundle",
+  rkey: slugifyMain(bootconf.mains[0]),
+  record: { /* bundle value */ },
+  swapRecord: existingCid  // CAS — protects against concurrent edits
+});
+```
+
+`swapRecord` is atproto's CAS — protects against two clients overwriting each other's edits. First publish omits it; subsequent publishes pass the existing record's CID.
+
+**Companion post.** The shared-rkey convention still holds: companion `app.bsky.feed.post` shares the bundle's rkey. Re-Sharing the same notebook now *replaces* the existing companion post (`putRecord` against `app.bsky.feed.post/{slug}`) rather than minting a new one. Same for `site.standard.document` when it ships.
+
+**Edit-after-publish.** Putting a metadata-only update (e.g. tweaking `title` while keeping `files[]` unchanged) is just another `putRecord` against the same rkey. No republish. The "Manage Publishes" UI surfaces this as an Edit button per bundle.
+
+**Delete.** `deleteRecord` against any owned rkey. The "Manage Publishes" UI surfaces this as a Delete button. Note: blob CIDs are reference-counted by the PDS; deleting a record decrements the refs but doesn't necessarily un-pin the blobs (other records or the listBlobs ceiling can keep them alive). Acceptable — bytes are content-addressed, durability is a feature.
+
+**Collision case.** Two notebooks with the same suffix (e.g. you import `@d3/foo` and also publish your own `@tomlarkworthy/foo`) would slug to the same rkey. Detect at publish time and force the user to disambiguate (rename one, or fall back to reverse-DNS for that publish). Rare in practice; deferred until it actually happens.
+
+**Migration.** Existing TID-rkey bundles in users' repos remain valid records — atproto records persist until `deleteRecord`. The "Manage Publishes" UI is the cleanup surface: list, identify duplicates, delete the orphans. New publishes from this point forward use slug rkeys. Worker-side rkey pins (`LOPEFEED_RKEY`, `LEDGER_RKEY`) become permanent constants once each notebook republishes under its slug — no more rkey bumps to promote new builds.
+
 ### Sidecar rkey convention
 
-All three records share a TID-style rkey from the bundle's record. at-write does:
+All three records share the bundle's slug rkey:
 
-1. `createRecord` for the bundle → PDS returns the rkey.
+1. `putRecord` for the bundle at `rkey = slugifyMain(bootconf.mains[0])`.
 2. Reuse that same rkey for the companion post and the document sidecar.
 
 That makes the relationships predictable: given a bundle URI, a fetcher can compute the sidecar URIs without an index. Failure mode: if the post or document fails, the bundle still lands; the sidecars can be retried out-of-band against the known rkey.
@@ -245,15 +287,15 @@ Either way, it's an *additive* layer over the listRecords-derived view. Listed i
 
 ## Deferred (v2+)
 
-The early sketch had four lexicons (`module` + `moduleVersion` + `app` + `appVersion`) for cross-notebook module reuse with mutable lineages and immutable versions. v1 doesn't need any of that — every publish is a fresh record, every `at://` URI is a stable address, dependencies are resolved at *publish time* by inlining (the file table is the transitive closure).
+The early sketch had four lexicons (`module` + `moduleVersion` + `app` + `appVersion`) for cross-notebook module reuse with mutable lineages and immutable versions. v1 doesn't need any of that — bundles are addressed by `at://{did}/com.lopecode.bundle/{slug}`, mutable per notebook id (see [Notebook identity in the rkey](#notebook-identity-in-the-rkey)), and dependencies are resolved at *publish time* by inlining (the file table is the transitive closure).
 
 Three things that would justify revisiting:
 
 - **Cross-notebook module reuse** — if many notebooks want to import the same module without duplicating its bytes. Then: split modules into their own records, addressed by CID; notebooks reference them.
-- **Mutable "follow this thing across versions"** — if users want to subscribe to a notebook's updates, not just one rkey. Then: a separate lineage record (`com.lopecode.line`?) with a `head` ref. For now, "follow the author on Bluesky" covers this socially.
+- **Versioned snapshots / "follow across versions"** — bundles are now mutable per slug (republish overwrites), so the historical version-set is no longer enumerable from `listRecords`. If we eventually want subscribe-to-updates or "show all versions of this notebook" UX, add a separate lineage record (`com.lopecode.line`?) with a `head` ref pointing at the current bundle and a history array (or a parallel snapshot collection with TID rkeys). Additive, not replacing. For now, "follow the author on Bluesky" covers this socially; the deleted-version bytes still exist in atproto blob storage if anyone kept the CIDs.
 - **Per-cell records** — for cell-level diff / discussion / live editing. Natural fit for the pairing channel's `define_cell` granularity. Defer until UX demands it.
 
-Until then, the simpler model wins: one notebook per publish, addressed by `at://{did}/com.lopecode.bundle/{rkey}`.
+Until then, the simpler model wins: one notebook per slug, addressed by `at://{did}/com.lopecode.bundle/{slug}`, overwritten in place on republish.
 
 ## Capability model (deferred)
 
@@ -634,9 +676,16 @@ Public links go through `lopecode.com` from day one, so the *URL* people share o
 
 **v1.1**
 
-15. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
+**Notebook identity (decided 2026-05-04, see [Notebook identity in the rkey](#notebook-identity-in-the-rkey))**
 
-Steps 1–6, 8, 9, 10, 11, 12, 14 are done. The remaining v1 work is 7 (standard.document sidecar) plus the social-layer notebook 13 (Inbox), then RSS 15 in v1.1. The "static HTML profile" at step 8 has been superseded by the Ledger notebook (11); the homepage is served by the Lopefeed notebook (12); the Bluesky-side discovery feed is live but sparsely populated until companion-post coverage improves (see step 14's deferred post-on-traction path).
+15. ☐ **Manage Publishes UI** in `atproto.html`. Lists `listRecords` of the logged-in user's `com.lopecode.bundle` records (title, createdAt, rkey, file count). Per-row buttons: *Edit metadata* (`putRecord` against same rkey with edited title/etc), *Delete* (`deleteRecord`). Solves the "duplicates on the feed" problem today by giving a cleanup surface; also unlocks edit-after-publish without touching the publish flow. Zero schema changes.
+16. ☐ **at-write switches to `putRecord` with slug rkey**. `rkey = slugifyMain(bootconf.mains[0])` (e.g. `@lopecode/lopefeed` → `lopefeed`). Republishing the same notebook overwrites the bundle record at the same URI; companion `app.bsky.feed.post` follows the shared-rkey convention so re-Share replaces the post. `swapRecord` (CAS) protects against concurrent edits. Existing TID-rkey bundles remain valid records, cleaned up via step 15. Worker-side rkey pins (`LOPEFEED_RKEY`, `LEDGER_RKEY` in `lopecode.com/src/worker.js`) become permanent constants — no more rkey bumps to promote new builds.
+
+**v1.1**
+
+17. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
+
+Steps 1–6, 8, 9, 10, 11, 12, 14 are done. Remaining v1 work: 7 (standard.document sidecar), 13 (Inbox), 15 (Manage Publishes UI), 16 (slug-rkey publish flow); then 17 (RSS) for v1.1. Steps 15+16 should ship together — the cleanup UI lets users dedupe their existing TID-rkey bundles before the publish primitive switches over, so the transition is gradual. The "static HTML profile" at step 8 has been superseded by the Ledger notebook (11); the homepage is served by the Lopefeed notebook (12); the Bluesky-side discovery feed is live but sparsely populated until companion-post coverage improves (see step 14's deferred post-on-traction path).
 
 ## Core insight
 
