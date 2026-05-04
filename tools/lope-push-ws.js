@@ -156,30 +156,33 @@ function parseVariableGroups(content) {
   const seen = new Set();
 
   const cellFunctions = new Map();
-  const cellRegex = /const\s+(_[a-zA-Z0-9_]+)\s*=\s*(?:async\s+)?function\*?\s+/g;
+  // Observable's compiler emits cell function definitions in two forms:
+  //   const _N = [async] function[*] inner(...) { ... }   ← group 1 = const name
+  //   [async] function[*] _N(...) { ... }                  ← group 5 = bare name (must start with _)
+  const cellRegex = /(?:const\s+(_[a-zA-Z0-9_]+)\s*=\s*(async\s+)?function(\*)?\s+[a-zA-Z0-9_]+\s*\(([^)]*)\)\s*\{|(async\s+)?function(\*)?\s+(_[a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{)/g;
   let match;
   while ((match = cellRegex.exec(content)) !== null) {
-    const funcName = match[1];
-    const headerMatch = content.slice(match.index).match(
-      /const\s+(_[a-zA-Z0-9_]+)\s*=\s*(async\s+)?function(\*)?\s+[a-zA-Z0-9_]+\s*\(([^)]*)\)\s*\{/
-    );
-    if (!headerMatch) continue;
+    const isConstForm = !!match[1];
+    const funcName = isConstForm ? match[1] : match[7];
+    const isAsync = isConstForm ? !!match[2] : !!match[5];
 
-    const isAsync = !!headerMatch[2];
-    const isGenerator = !!headerMatch[3];
-    const params = headerMatch[4];
-
-    const bodyStart = match.index + headerMatch[0].length;
+    const headerEnd = match.index + match[0].length;
     let braceCount = 1;
-    let endIndex = bodyStart;
+    let endIndex = headerEnd;
     while (braceCount > 0 && endIndex < content.length) {
       if (content[endIndex] === '{') braceCount++;
       else if (content[endIndex] === '}') braceCount--;
       endIndex++;
     }
 
-    const fnStart = isAsync ? headerMatch[0].indexOf('async') : headerMatch[0].indexOf('function');
-    const fullFn = content.slice(match.index + fnStart, endIndex);
+    let fnStart;
+    if (isConstForm) {
+      const keyword = isAsync ? 'async' : 'function';
+      fnStart = match.index + match[0].indexOf(keyword);
+    } else {
+      fnStart = match.index;
+    }
+    const fullFn = content.slice(fnStart, endIndex);
     cellFunctions.set(funcName, fullFn);
   }
 
@@ -966,4 +969,8 @@ async function main() {
   }
 }
 
-main();
+export { parseVariableGroups, parseNotebook };
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
