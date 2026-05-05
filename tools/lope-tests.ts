@@ -4,23 +4,27 @@
  *
  * Test execution is observation-driven: we attach observers to each test_*
  * variable and resolve when all settle. No fixed wait; the only timing fallback
- * is a per-test safety timeout (default 60s) for cells that never settle.
+ * is a per-test safety timeout (default 10s) for cells that never settle.
  *
  * Boot still needs the runtime's normal settle loop because modules register
  * async — that's unavoidable. Once boot is done we switch to pure observation.
+ *
+ * Reports are emitted in CTRF (Common Test Report Format) — https://ctrf.io/
+ * Lopecode-specific fields (cell value preview, original "timeout" state) live
+ * under each test's `extra` block and the top-level `extra.lopecode`.
  *
  * Usage:
  *   bun tools/lope-tests.ts <notebook.html> [options]
  *
  * Options:
  *   --filter <substr>   Only run tests whose name includes <substr>
- *   --report <path>     Write JSON report (for regression diffing)
- *   --baseline <path>   Compare against a previous report; exit 1 on regression
+ *   --report <path>     Write CTRF JSON report (for regression diffing)
+ *   --baseline <path>   Compare against a previous CTRF report; exit 1 on regression
  *   --timeout <ms>      Per-test safety timeout (default 10000)
  *   --verbose           Forward runtime debug logs
  *
  * Exit codes:
- *   0 - All tests passed (or only previously-failing tests still failing when --baseline given)
+ *   0 - All tests passed and (when --baseline given) no regressions
  *   1 - Tests failed/timed out, or regression detected vs --baseline
  *   2 - Could not load notebook or no tests found
  */
@@ -28,6 +32,7 @@
 import { loadNotebook } from "./lope-runtime.js";
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import { resolve } from "path";
+import { randomUUID } from "crypto";
 
 interface Args {
   notebook: string;
@@ -38,27 +43,59 @@ interface Args {
   verbose: boolean;
 }
 
+type LopecodeState = "passed" | "failed" | "timeout";
+
 interface TestResult {
   name: string;
   module: string;
-  state: "passed" | "failed" | "timeout";
+  state: LopecodeState;
   durationMs: number;
   value?: string;
   error?: string;
 }
 
-interface Report {
-  notebook: string;
-  timestamp: string;
-  durationMs: number;
-  summary: { total: number; passed: number; failed: number; timeout: number };
-  tests: TestResult[];
+type CtrfStatus = "passed" | "failed" | "skipped" | "pending" | "other";
+
+interface CtrfTest {
+  name: string;
+  status: CtrfStatus;
+  duration: number;
+  suite?: string;
+  message?: string;
+  extra?: Record<string, unknown>;
 }
+
+interface CtrfReport {
+  reportFormat: "CTRF";
+  specVersion: string;
+  reportId: string;
+  timestamp: string;
+  generatedBy: string;
+  results: {
+    tool: { name: string; version: string };
+    summary: {
+      tests: number;
+      passed: number;
+      failed: number;
+      skipped: number;
+      pending: number;
+      other: number;
+      start: number;
+      stop: number;
+    };
+    tests: CtrfTest[];
+    extra?: Record<string, unknown>;
+  };
+}
+
+const TOOL_NAME = "lope-tests";
+const TOOL_VERSION = "0.1.0";
+const CTRF_SPEC_VERSION = "0.0.0";
 
 const USAGE = `Usage: bun tools/lope-tests.ts <notebook.html> [options]
   --filter <s>     Only tests whose name contains <s>
-  --report <f>     Write JSON report to <f>
-  --baseline <f>   Compare to baseline; exit 1 on regression
+  --report <f>     Write CTRF JSON report to <f>
+  --baseline <f>   Compare to baseline CTRF report; exit 1 on regression
   --timeout <ms>   Per-test safety timeout (default 10000)
   --verbose        Print runtime logs`;
 
@@ -185,23 +222,70 @@ const summary = {
   failed: results.filter((r) => r.state === "failed").length,
   timeout: results.filter((r) => r.state === "timeout").length,
 };
-const elapsed = Date.now() - start;
+const stop = Date.now();
+const elapsed = stop - start;
 console.log(
   `\nTests: ${summary.passed} passed, ${summary.failed} failed, ${summary.timeout} timed out, ${summary.total} total`
 );
 console.log(`Time:  ${(elapsed / 1000).toFixed(2)}s`);
 
-const report: Report = {
-  notebook: resolve(args.notebook),
-  timestamp: new Date().toISOString(),
-  durationMs: elapsed,
-  summary,
-  tests: results,
-};
+function toCtrf(): CtrfReport {
+  const tests: CtrfTest[] = results.map((r) => {
+    // CTRF status enum doesn't have "timeout"; map to "failed" and preserve
+    // the original lopecode state under `extra` for fidelity.
+    const status: CtrfStatus = r.state === "passed" ? "passed" : "failed";
+    const extra: Record<string, unknown> = { lopecodeState: r.state };
+    if (r.value !== undefined) extra.value = r.value;
+    const test: CtrfTest = {
+      name: r.name,
+      status,
+      duration: r.durationMs,
+      suite: r.module,
+      extra,
+    };
+    if (r.state === "timeout") test.message = `Timed out after ${r.durationMs}ms`;
+    else if (r.error) test.message = r.error;
+    return test;
+  });
+
+  return {
+    reportFormat: "CTRF",
+    specVersion: CTRF_SPEC_VERSION,
+    reportId: randomUUID(),
+    timestamp: new Date(start).toISOString(),
+    generatedBy: TOOL_NAME,
+    results: {
+      tool: { name: TOOL_NAME, version: TOOL_VERSION },
+      summary: {
+        tests: summary.total,
+        passed: summary.passed,
+        failed: summary.failed + summary.timeout,
+        skipped: 0,
+        pending: 0,
+        other: 0,
+        start,
+        stop,
+      },
+      tests,
+      extra: {
+        lopecode: {
+          notebook: resolve(args.notebook),
+          timeoutMs: args.timeout,
+          counts: summary,
+        },
+      },
+    },
+  };
+}
 
 if (args.report) {
+  const report = toCtrf();
   writeFileSync(args.report, JSON.stringify(report, null, 2));
-  console.log(`Wrote report: ${args.report}`);
+  console.log(`Wrote CTRF report: ${args.report}`);
+}
+
+function passedKey(t: CtrfTest): string {
+  return `${t.suite ?? "<main>"}#${t.name}`;
 }
 
 let regressed = false;
@@ -210,21 +294,28 @@ if (args.baseline) {
     console.error(`Baseline not found: ${args.baseline}`);
     process.exit(2);
   }
-  const baseline: Report = JSON.parse(readFileSync(args.baseline, "utf8"));
-  const baseStates = new Map(baseline.tests.map((t) => [`${t.module}#${t.name}`, t.state]));
-  const nowStates = new Map(results.map((t) => [`${t.module}#${t.name}`, t.state]));
+  const raw = JSON.parse(readFileSync(args.baseline, "utf8"));
+  if (raw?.reportFormat !== "CTRF" || !raw?.results?.tests) {
+    console.error(`Baseline is not a CTRF report: ${args.baseline}`);
+    process.exit(2);
+  }
+  const baselineTests: CtrfTest[] = raw.results.tests;
+  const currentReport = toCtrf();
+  const currentTests = currentReport.results.tests;
+
+  const basePassed = new Map(baselineTests.map((t) => [passedKey(t), t.status === "passed"]));
+  const nowPassed = new Map(currentTests.map((t) => [passedKey(t), t.status === "passed"]));
 
   const regressions: string[] = [];
   const recoveries: string[] = [];
   const added: string[] = [];
   const removed: string[] = [];
-  for (const [k, prev] of baseStates) {
-    const curr = nowStates.get(k);
-    if (!curr) removed.push(k);
-    else if (prev === "passed" && curr !== "passed") regressions.push(`${k} (${prev} → ${curr})`);
-    else if (prev !== "passed" && curr === "passed") recoveries.push(`${k} (${prev} → passed)`);
+  for (const [k, prev] of basePassed) {
+    if (!nowPassed.has(k)) removed.push(k);
+    else if (prev && !nowPassed.get(k)) regressions.push(k);
+    else if (!prev && nowPassed.get(k)) recoveries.push(k);
   }
-  for (const k of nowStates.keys()) if (!baseStates.has(k)) added.push(k);
+  for (const k of nowPassed.keys()) if (!basePassed.has(k)) added.push(k);
 
   console.log("\n=== regression check ===");
   console.log(`regressions: ${regressions.length}`);
