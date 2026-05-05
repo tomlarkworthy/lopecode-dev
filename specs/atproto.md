@@ -12,6 +12,8 @@ Status: draft / exploratory. Refining a sketch authored without knowledge of the
 - **2026-05-03 — Lopefeed homepage + PDS-direct downloads.** `@lopecode/lopefeed` standalone notebook (`lopecode/notebooks/lopefeed.html`) is the discovery feed (the design's "Edition") and is now served as the homepage at `lopecode.com/` via the apex Worker's `LOPEFEED_RKEY` pin. Editorial layout drives off Contrail's recency `listRecords`; per-bundle download buttons fetch the bundle **directly from the publisher's PDS** (plc.directory → `getRecord` → `getBlob` per-CID → `composeBundle()` reassembles the `<script id data-mime>` table + lopebook chrome client-side) — the lopecode.com render Worker is bypassed entirely for downloads, so authors' PDSes serve their own bytes and the central infra only renders. The shared download primitives (`composeBundle`, IndexedDB cache `idb`) were hoisted from `@tomlarkworthy/at-read` into `@tomlarkworthy/atproto`; at-read re-exports from atproto, lopefeed depends only on atproto.
 - **2026-05-03 — Bluesky feed generator live.** `lopecode.com/feed/` Worker on `feed.lopecode.com` (service-binding-only; `did:web:feed.lopecode.com` resolved via `/.well-known/did.json`). Skeleton derives companion-post URIs from Contrail bundle URIs via the shared-rkey convention. Feed-generator record at `at://did:plc:a5yddar7vebmgjithmy4skj6/app.bsky.feed.generator/lopecode` under the `@trendingnotebooks.bsky.social` curatorial account. AppView reports `isOnline: true, isValid: true`; pinnable at `https://bsky.app/profile/trendingnotebooks.bsky.social/feed/lopecode`. Sparse for now (only one author has clicked Share); deferred next move is post-on-traction reposting via the bot — see step 14.
 - **2026-05-04 — slug-rkey publish.** `@tomlarkworthy/at-write` switches from `createRecord` (TID rkey) to `putRecord` with `rkey = slugifyMain(bootconf.mains[0])` (`@tomlarkworthy/atproto` → `atproto`, `@lopecode/ledger` → `ledger`, etc.). `getRecord` precheck supplies `swapRecord` for CAS so concurrent edits can't silently overwrite. Companion `app.bsky.feed.post` shares the slug rkey and also uses `putRecord`, so re-Share replaces the prior post instead of minting duplicates. Share-text default trimmed to `"{title} published as a com.lopecode.bundle"` (URL is in the embed card already). Synced into all three self-publishing notebooks (atproto, ledger, lopefeed). Step 16 complete; step 15 (Manage Publishes UI for cleaning up legacy TID-rkey records) is now the cleanup surface for pre-existing duplicates.
+- **2026-05-05 — identity is the title, not the main.** The 2026-05-04 rkey-from-`bootconf.mains[0]` rule fused publication identity with view-target choice — opening `@tomlarkworthy/atproto.html` against a different "main" view (e.g. `@tomlarkworthy/malleable`) still slugged to `atproto`, overwriting the wrong bundle. Switched at-write to `rkey = slugifyTitle(title)` (`utils.slugifyTitle` NFKD-strips non-ASCII, collapses non-rkey chars to `-`, trims, lowercases, caps at 64 chars). The bundle's identity is now its human-meaningful title; renaming a title creates a new record (cleanup via `deleteBundle`), composing modules differently under the same title is a republish (overwrite). Same `swapRecord` CAS protects against concurrent edits. Also: shipped `deleteBundle({session, xrpc, rkey})` library function in at-write — bare `com.atproto.repo.deleteRecord` against `com.lopecode.bundle/{rkey}`, no companion-post handling, no UI yet (step 15's manage surface will use this).
+- **2026-05-05 — render Worker ETag/304.** Slug rkeys made `did-{}.lopecode.com/r/{rkey}` URLs stable across republishes, so the prior `cache-control: max-age=300` would let republishes go stale for up to 5 minutes per edge/browser. Switched to `cache-control: public, max-age=0, must-revalidate` with `ETag = record.cid` (and the per-blob CID for `?file=`). Revalidation is one cheap getRecord round-trip — match → `304 Not Modified` with no body, no blob fetches, no render. Mismatch → full render. Same shape applied to `?file=` downloads. The apex Worker's `proxyBundle` already passed request headers through and relayed status/headers, so 304 propagates from `lopecode.com/@:handle` and `lopecode.com/` without changes.
 
 ## Design references
 
@@ -201,21 +203,28 @@ standard.site clients render this as "document with unknown content type"; lopec
 
 ### Notebook identity in the rkey
 
-The bundle's `rkey` carries notebook identity, not a version number. Republishing the same notebook overwrites its bundle record at the same URI. Decision recorded 2026-05-04 after the v1 rollout surfaced "duplicates on the feed" as the daily-use cost of TID-versioned rkeys.
+The bundle's `rkey` carries notebook identity, not a version number. Republishing the same notebook overwrites its bundle record at the same URI. Decision recorded 2026-05-04 after the v1 rollout surfaced "duplicates on the feed" as the daily-use cost of TID-versioned rkeys; the identity rule was revised on 2026-05-05 from "main module slug" to "title slug" because a notebook's main is "what view to open" and a notebook's title is "what this thing IS" — composing the same modules under a different title is a different work.
 
-**rkey computation.** Slug derived from `bootconf.mains[0]` by stripping the user prefix and lowercasing into the atproto rkey character set:
+**rkey computation.** Slug derived from the human title and folded into the atproto rkey character set. NFKD-strip non-ASCII so emojis don't survive, collapse non-rkey chars to `-`, trim, lowercase, cap at 64 chars:
 
 ```js
-// "@lopecode/lopefeed" → "lopefeed"
-// "@tomlarkworthy/atproto" → "atproto"
-function slugifyMain(main) {
-  const m = main.match(/^@[^/]+\/(.+)$/);
-  if (!m) throw new Error(`Cannot slugify: ${main}`);
-  return m[1].replace(/[^a-zA-Z0-9_.-]/g, "-").toLowerCase();
+// "atproto"          → "atproto"
+// "Hello, world!"    → "hello-world"
+// "✨ Notebook v2"   → "notebook-v2"
+function slugifyTitle(title) {
+  const slug = String(title)
+    .normalize("NFKD")
+    .replace(/[^\x00-\x7F]/g, "")
+    .replace(/[^a-zA-Z0-9_.-]+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "")
+    .toLowerCase()
+    .slice(0, 64);
+  if (!slug) throw new Error(`Cannot slugify title: ${JSON.stringify(title)}`);
+  return slug;
 }
 ```
 
-The user prefix is *already implied by the DID owning the repo*, so dropping it leaves URIs short and bookmarkable: `at://did:plc:.../com.lopecode.bundle/lopefeed`, `https://did-plc-….lopecode.com/r/lopefeed`. atproto rkey grammar (`[a-zA-Z0-9_~.\-:]{1,512}`) excludes `/` and `@`, so we can't preserve the original `@user/name` shape; URL-encoding doesn't help (`%` is also excluded). Reverse-DNS (`lopecode.lopefeed`) and underscore-joined (`lopecode_lopefeed`) were considered and rejected as visually noisier; the original main module name is preserved inside the bundle's bootconf so nothing is lost.
+The author DID is *already implied by the repo owning the record*, so a slug-only rkey leaves URIs short and bookmarkable: `at://did:plc:.../com.lopecode.bundle/lopefeed`, `https://did-plc-….lopecode.com/r/lopefeed`. atproto rkey grammar (`[a-zA-Z0-9_~.\-:]{1,512}`) excludes `/` and `@`, so we can't preserve the original `@user/name` shape; URL-encoding doesn't help (`%` is also excluded). The earlier "slugify `bootconf.mains[0]`" rule (2026-05-04) was rejected on 2026-05-05 because main is a view choice, not an identity. The original main is still present in the bundle's bootconf so nothing is lost.
 
 **Publish primitive.** at-write switches from `createRecord` (TID-rkey, append-only) to `putRecord` (caller-chosen rkey, create-or-update):
 
@@ -223,7 +232,7 @@ The user prefix is *already implied by the DID owning the repo*, so dropping it 
 await xrpc("com.atproto.repo.putRecord", {
   repo: did,
   collection: "com.lopecode.bundle",
-  rkey: slugifyMain(bootconf.mains[0]),
+  rkey: slugifyTitle(title),
   record: { /* bundle value */ },
   swapRecord: existingCid  // CAS — protects against concurrent edits
 });
@@ -233,11 +242,11 @@ await xrpc("com.atproto.repo.putRecord", {
 
 **Companion post.** The shared-rkey convention still holds: companion `app.bsky.feed.post` shares the bundle's rkey. Re-Sharing the same notebook now *replaces* the existing companion post (`putRecord` against `app.bsky.feed.post/{slug}`) rather than minting a new one. Same for `site.standard.document` when it ships.
 
-**Edit-after-publish.** Putting a metadata-only update (e.g. tweaking `title` while keeping `files[]` unchanged) is just another `putRecord` against the same rkey. No republish. The "Manage Publishes" UI surfaces this as an Edit button per bundle.
+**Edit-after-publish.** A title-only edit *moves* the bundle to a new rkey (`slugifyTitle` is a pure function of title) — the old record is left behind. That's the right shape for a rename, but means the cleanup surface is load-bearing: the "Manage Publishes" UI is also where you delete the orphan after renaming. A purely structural metadata update (e.g. swapping `files[]` while keeping the title) is a republish at the same rkey under CAS — overwrite, not duplicate.
 
-**Delete.** `deleteRecord` against any owned rkey. The "Manage Publishes" UI surfaces this as a Delete button. Note: blob CIDs are reference-counted by the PDS; deleting a record decrements the refs but doesn't necessarily un-pin the blobs (other records or the listBlobs ceiling can keep them alive). Acceptable — bytes are content-addressed, durability is a feature.
+**Delete.** Bare `deleteRecord` against any owned rkey, exposed today as the `deleteBundle({session, xrpc, rkey})` library function in at-write (no companion-post handling — the companion post follows the shared-rkey convention so it can be deleted with the same rkey via `app.bsky.feed.post`, but the call sites stay separate). The "Manage Publishes" UI will surface this as a Delete button per bundle. Note: blob CIDs are reference-counted by the PDS; deleting a record decrements the refs but doesn't necessarily un-pin the blobs (other records or the listBlobs ceiling can keep them alive). Acceptable — bytes are content-addressed, durability is a feature.
 
-**Collision case.** Two notebooks with the same suffix (e.g. you import `@d3/foo` and also publish your own `@tomlarkworthy/foo`) would slug to the same rkey. Detect at publish time and force the user to disambiguate (rename one, or fall back to reverse-DNS for that publish). Rare in practice; deferred until it actually happens.
+**Collision case.** Two bundles under the same DID with the same title slug to the same rkey. Under the current code this is a silent overwrite (putRecord without swapRecord on the second publish, since `getRecord` returns the existing record's CID and the user goes ahead). Acceptable for now: same DID, same title, almost always same intent. If it becomes a footgun the manage UI is where to surface "you have two bundles slug-colliding, rename one."
 
 **Migration.** Existing TID-rkey bundles in users' repos remain valid records — atproto records persist until `deleteRecord`. The "Manage Publishes" UI is the cleanup surface: list, identify duplicates, delete the orphans. New publishes from this point forward use slug rkeys. Worker-side rkey pins (`LOPEFEED_RKEY`, `LEDGER_RKEY`) become permanent constants once each notebook republishes under its slug — no more rkey bumps to promote new builds.
 
@@ -245,7 +254,7 @@ await xrpc("com.atproto.repo.putRecord", {
 
 All three records share the bundle's slug rkey:
 
-1. `putRecord` for the bundle at `rkey = slugifyMain(bootconf.mains[0])`.
+1. `putRecord` for the bundle at `rkey = slugifyTitle(title)`.
 2. Reuse that same rkey for the companion post and the document sidecar.
 
 That makes the relationships predictable: given a bundle URI, a fetcher can compute the sidecar URIs without an index. Failure mode: if the post or document fails, the bundle still lands; the sidecars can be retried out-of-band against the known rkey.
@@ -677,16 +686,17 @@ Public links go through `lopecode.com` from day one, so the *URL* people share o
 
 **v1.1**
 
-**Notebook identity (decided 2026-05-04, see [Notebook identity in the rkey](#notebook-identity-in-the-rkey))**
+**Notebook identity (decided 2026-05-04, revised 2026-05-05, see [Notebook identity in the rkey](#notebook-identity-in-the-rkey))**
 
-15. ☐ **Manage Publishes UI** in `atproto.html`. Lists `listRecords` of the logged-in user's `com.lopecode.bundle` records (title, createdAt, rkey, file count). Per-row buttons: *Edit metadata* (`putRecord` against same rkey with edited title/etc), *Delete* (`deleteRecord`). Solves the "duplicates on the feed" problem today by giving a cleanup surface; also unlocks edit-after-publish without touching the publish flow. Zero schema changes. Now urgent: with step 16 shipped, every author who used at-write before 2026-05-04 has TID-rkey legacy bundles still on the feed alongside their new slug-rkey publishes — this is the dedupe surface.
-16. ✅ **at-write switches to `putRecord` with slug rkey** (2026-05-04). `rkey = slugifyMain(bootconf.mains[0])` (e.g. `@lopecode/lopefeed` → `lopefeed`). Republishing the same notebook overwrites the bundle record at the same URI; companion `app.bsky.feed.post` follows the shared-rkey convention so re-Share replaces the post. `swapRecord` (CAS) protects against concurrent edits. Existing TID-rkey bundles remain valid records, cleaned up via step 15. Worker-side rkey pins (`LOPEFEED_RKEY`, `LEDGER_RKEY` in `lopecode.com/src/worker.js`) become permanent constants once each notebook republishes under its slug — no more rkey bumps to promote new builds.
+15. ◐ **Manage Publishes UI** in `atproto.html`. Lists `listRecords` of the logged-in user's `com.lopecode.bundle` records (title, createdAt, rkey, file count). Per-row buttons: *Edit metadata* (`putRecord` against same rkey with edited title/etc), *Delete* (`deleteRecord`). Solves the "duplicates on the feed" problem today by giving a cleanup surface; also unlocks edit-after-publish without touching the publish flow. Zero schema changes. **2026-05-05 progress:** the underlying `deleteBundle({session, xrpc, rkey})` library function shipped in `@tomlarkworthy/at-write` (no UI surface yet) — the manage panel just needs to wire `listRecords` + per-row `deleteBundle` + an Edit-title flow. With step 16 shipped, every author who used at-write before 2026-05-04 has TID-rkey legacy bundles on the feed alongside their slug-rkey publishes; renaming a title under the 2026-05-05 identity rule also leaves a slug-rkey orphan — both are cleaned up here.
+16. ✅ **at-write switches to `putRecord` with slug rkey** (2026-05-04, revised 2026-05-05). `rkey = slugifyTitle(title)` — bundle identity is its human title (`"malleable"` → `malleable`, `"Hello, world!"` → `hello-world`), not its main module. Republishing the same notebook (same title) overwrites the bundle record at the same URI; companion `app.bsky.feed.post` follows the shared-rkey convention so re-Share replaces the post. `swapRecord` (CAS) protects against concurrent edits. Original 2026-05-04 rule was `slugifyMain(bootconf.mains[0])`, revised when opening a notebook against a different main (e.g. `@tomlarkworthy/atproto.html` viewing `@tomlarkworthy/malleable`) overwrote the wrong bundle — main is "what view to open," title is "what this thing IS." Existing TID-rkey bundles remain valid records, cleaned up via step 15. Worker-side rkey pins (`LOPEFEED_RKEY`, `LEDGER_RKEY` in `lopecode.com/src/worker.js`) become permanent constants once each notebook republishes under its slug — no more rkey bumps to promote new builds.
+16a. ✅ **Render Worker ETag/304** (2026-05-05). Slug rkeys made `did-{}.lopecode.com/r/{rkey}` URLs stable across republishes — without revalidation, the prior `max-age=300` would have served stale builds for 5 minutes per edge after every publish. Switched the render Worker to `cache-control: public, max-age=0, must-revalidate` with `ETag = record.cid`, and per-blob CID for `?file=`. Revalidation cost is one cheap getRecord call.
 
 **v1.1**
 
 17. ☐ RSS bridge at `lopecode.com/feed.xml` and `lopecode.com/@:handle/feed.xml` — see [v1.1 RSS bridge](#v11-rss-bridge).
 
-Steps 1–6, 8, 9, 10, 11, 12, 14, 16 are done. Remaining v1 work: 7 (standard.document sidecar), 13 (Inbox), 15 (Manage Publishes UI); then 17 (RSS) for v1.1. Step 15 was specced to ship with 16 but didn't — 16 went out alone, so the legacy TID-rkey records authors created pre-2026-05-04 still appear on the feed alongside their new slug-rkey publishes until 15 ships. The "static HTML profile" at step 8 has been superseded by the Ledger notebook (11); the homepage is served by the Lopefeed notebook (12); the Bluesky-side discovery feed is live but sparsely populated until companion-post coverage improves (see step 14's deferred post-on-traction path).
+Steps 1–6, 8, 9, 10, 11, 12, 14, 16, 16a are done. Remaining v1 work: 7 (standard.document sidecar), 13 (Inbox), 15 (Manage Publishes UI — `deleteBundle` library function shipped 2026-05-05, UI still outstanding); then 17 (RSS) for v1.1. Step 15 is now load-bearing for two cleanup classes: pre-2026-05-04 TID-rkey legacy records, and slug-rkey orphans from title renames under the 2026-05-05 identity rule. The "static HTML profile" at step 8 has been superseded by the Ledger notebook (11); the homepage is served by the Lopefeed notebook (12); the Bluesky-side discovery feed is live but sparsely populated until companion-post coverage improves (see step 14's deferred post-on-traction path).
 
 ## Core insight
 
