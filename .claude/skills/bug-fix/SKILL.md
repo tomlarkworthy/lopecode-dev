@@ -20,6 +20,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
 ## Phase 0 — Read the issue and set up worktrees
 
 1. **Read the issue.** `gh issue view <URL>` — title, body, labels, comments, linked PRs. Note explicit repro steps and any named module/notebook.
+   - **The title is the primary symptom; the body often describes related-but-different artifacts.** Before proposing a fix, verify your reproduction surfaces the exact behavior named in the title — not just the body's anecdote. If you can only reproduce the body, ask the user to clarify rather than shipping a fix that misses the title (e.g. on #163 the title was "⬇ drops most clicks" but the body focused on a 600 px visual jump — they share a root cause but a body-only fix would have left half the bug unfixed).
 2. **Identify the canonical module.** Most bugs trace to a single Observable module. If the issue names it ("in editor-5"), you're done. Otherwise:
    - `grep -l "<symptom keyword>" lopecode/notebooks/*.html lopebooks/notebooks/*.html`
    - `bun tools/lope-reader.ts <suspect.html>` to list modules; `--get-module @user/foo` to read source.
@@ -144,7 +145,9 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    - **Use `--cells`, not bulk replace.** Bulk delete-and-readd is destructive: any unpushed local cells on Observable will be wiped.
    - **Never combine `--cells` with `--no-delete`** — the script now refuses this, but the failure mode is silent duplicate insertion.
    - **`--cells` is matched-name-only.** New cells (not already on Observable) are *silently skipped* with a warning; modified imports whose text changed don't byte-match either. For those, hand-write a small mjs script that does `modify_node` (existing import) and `insert_node` (new cell) over the WS protocol — see `knowledge/pushing-cells-to-observablehq.md` § "Gotchas with `--cells`".
-   - If auth fails, run `node --experimental-vm-modules tools/lope-push-ws.js --login --headed` once and retry.
+   - **Renaming a cell needs `insert_node` + `remove_node`, not `--cells`.** If the fix renames a cell (e.g. version-pinned name like `_inputs_0_11_0` → `_inputs_0_12_0`), `--cells` can't express the operation: it `modify_node`s the old name (still on Observable, body changes) and silently skips the new one (not yet on Observable, gets warned-and-dropped). Result: the rename half-applies, the bootloader still defines the old cell, and consumers break. Use a custom WS script that issues `insert_node` for the new name first, then `remove_node` for the old. Sequence the ops in dependency order: insert the new producer, modify any consumers (so they reference the new name), then remove the old producer last so dependents never see a missing dep mid-push.
+   - **lope-push-ws.js doesn't parse `function _name(...)` declarations** ([lopecode-dev#18](https://github.com/tomlarkworthy/lopecode-dev/issues/18)). Its decompiler regex matches `const _name = function ...` only. The `@tomlarkworthy/bootloader` module uses bare `function _name` — running `--module @tomlarkworthy/bootloader` errors with "No variables extracted from module". For bootloader edits, skip lope-push-ws entirely and use a custom WS script (template: `worktrees/<N>/.fix-staging/push-bootloader.mjs` shape — `insert_node`/`modify_node`/`remove_node` ops over the documented WS protocol).
+   - If auth fails: see `knowledge/pushing-cells-to-observablehq.md` § "Auth fragility" — the bundled `--login --headed` flow is unreliable (headless Playwright wipes HttpOnly `T`/`I` cookies). Workaround: paste cookies from devtools into `worktrees/<N>/.fix-staging/observable-cookies.json` and read them directly in your push script.
 
 10. **Re-jumpgate the canonical notebook.** Pulls the freshly-pushed module back from Observable as the canonical bundle:
 
@@ -207,7 +210,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
     - Drain `qa_console_logs` after each interaction.
     - **If anything regresses, stop.** `git checkout` the affected HTMLs in the worktree and consider whether to revert the Observable push (usually yes — push the prior version back). Iterate from Phase 1 step 4.
 
-14. **Verify each consumer notebook briefly.** Open each in `qa_open_notebook` (`headless: true` is fine for batch) and exercise the one feature most likely to depend on the changed module. Skip a consumer only if it imports the module purely for a doc example that doesn't surface the changed behavior.
+14. **Verify consumer notebooks — calibrate effort to risk.** When consumer changes are pure `tools/channel/sync-module.ts` `<script>`-block swaps with no rebuild step, the canonical-bundle verification from step 13 is sufficient — `sync-module` is mechanical and well-tested. Skip per-consumer browser QA unless the changed module's API surface, imports, or dependency graph shifted (e.g. added a new import bridge, renamed an exported cell). If browser QA flakes (channel disconnects, navigation timeouts), don't burn time re-opening — the canonical regenerated bundle is the source of truth and consumer copies are byte-identical at the `<script id="@user/module">` block. The user *will* notice 30+ minutes of fruitless browser-restart loops; bias toward shipping.
 
 15. **Commit + push the regenerated bundle and consumer syncs to the PR branch.**
     ```bash

@@ -640,3 +640,38 @@ Observable notebooks run in a sandboxed iframe where `history.replaceState` thro
 ### Task-dependent cells on Observable
 
 Exporter cells like `module_specs`, `report`, `book` depend on `task` (a flowQueue) and have no value until the user triggers an export/fork. When debugging on Observable, use cells that depend on live runtime values or use `eval_code` instead of creating cells that depend on the export pipeline.
+
+### Reactive chain settling — use `setTimeout`, not `requestAnimationFrame`
+
+When code mutates `runtime._variables` (or any reactive source) and needs to **observe the resulting DOM update**, the chain looks like: variable mutation → `runtime_variables` Generator → `maintain_live_cell_map` → `liveCellMap` → `syncers` (visualizer) → DOM `insertBefore`. This whole chain runs on **macrotasks**, taking ~500ms in headless Playwright.
+
+`await new Promise(r => requestAnimationFrame(r))` does **not** drive this scheduler — 60 raf frames can pass with no DOM change while a single `setTimeout(25)` catches the update at ~500ms. Always poll with setTimeout when waiting for runtime-driven DOM reorders:
+
+```js
+let postY = preY;
+for (let i = 0; i < 30 && postY === preY; i++) {
+  await new Promise(r => setTimeout(r, 50));
+  if (!dom.isConnected) break;
+  postY = dom.getBoundingClientRect().top;
+}
+```
+
+### `flowQueue` invariant — every command must `resolve()` within `timeout_ms`
+
+`@tomlarkworthy/flow-queue` has a default `timeout_ms = 1000`. A `command_processor` cell driven by a flowQueue **MUST** reach `viewof X.resolve(result)` (or `reject`) within that window for **every** branch — including no-ops and error paths. If the body throws (e.g. `lookupCellByIndex(-1).variables[0]` at a boundary) or falls through with `result === undefined`, the queue rejects with a Timeout, **and every subsequent click/send queues behind a stuck command** for the next ~1s. From the user's perspective this looks like "clicks are being dropped."
+
+Pattern: wrap each branch in guards that always fall through to `result = true`, and put the resolve at the bottom unconditionally:
+
+```js
+} else if (command.command == 'moveCell') {
+    const targetCell = lookupCellByIndex(...);
+    if (targetCell) { /* do the work */ }
+    result = true;  // boundary is a silent no-op, NOT a TypeError
+}
+if (result) {
+    command.processed = true;
+    viewof command.resolve(result);
+}
+```
+
+This was the root cause of [lopecode#163](https://github.com/tomlarkworthy/lopecode/issues/163)'s "⬇ drops most clicks" symptom — original code crashed at boundaries, the exception escaped before `resolve()`, and clicks queued behind the timeout.

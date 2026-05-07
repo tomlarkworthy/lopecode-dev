@@ -510,3 +510,21 @@ Publishing is automated via GitHub Actions (`.github/workflows/publish-channel.y
 4. Push the tag: `git push origin channel-v0.1.4`
 
 CI runs version sync check and integration tests before `npm publish`.
+
+## Gotchas
+
+### `qa_open_notebook` fails with `EPERM` creating `~/.cache/lopecode-fakefs`
+
+The default `fakefs_root` is `~/.cache/lopecode-fakefs`, but in sandboxed runs (e.g. `metadev` / safehouse) the home `.cache` directory is read-only. First-time `qa_open_notebook` errors with:
+
+```
+qa_open_notebook failed: EPERM: operation not permitted, mkdir '/Users/<you>/.cache/lopecode-fakefs'
+```
+
+Workaround: pass `fakefs_root` set to a project-tree path that is writable in the sandbox:
+
+```
+fakefs_root: "/Users/<you>/dev/lopecode-dev/worktrees/<N>/.fakefs"
+```
+
+This works for bug-fix sessions because the worktree is always writable. The skill's note about a "shared default" only applies outside the sandbox.
