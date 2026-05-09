@@ -178,6 +178,12 @@ Always use file:// paths to local notebooks, never GitHub Pages URLs. The open_u
 
 If channels are not enabled, tell the user to restart with: claude --channels server:lopecode
 
+## Headless pairing (no foreground browser)
+
+If the user wants pairing without a visible browser window ("pair without a browser", "/pair-headless", "background pairing host"), use the \`pair-headless\` skill instead of open_url. It launches \`tools/headless-pairing-host.ts\` (Playwright headless Chromium) which holds the page open with no UI. Headless Chromium reports document.visibilityState = "visible" so the runtime is not throttled.
+
+For non-QA flows that also need file-sync (write-to-disk), call \`enable_fakefs(path?)\` first to authorise the channel-side fs-pair handshake (defaults to /tmp/lopecode-fakefs). Then arrange for the page to inject \`tools/channel/fakefs-init.js\` to proxy showDirectoryPicker; the headless host does this automatically when given --fakefs-root. The skill orchestrates the whole flow.
+
 ## Observable Cell Syntax
 
 Cells use Observable JavaScript. The define_cell tool accepts this syntax directly.
@@ -259,6 +265,14 @@ Use run_tests to execute all test_* cells.
   })()\`
   \`\`\`
 - If \`qa_screenshot\` times out shortly after \`qa_open_notebook\`, the page is still loading; wait or call \`qa_console_logs\` first (it doesn't block on render).
+
+## File-sync mirror tree
+
+When a notebook is loaded with \`?filesync=...\`, every \`<sync-target>/<author>/*.js\` file is auto-imported into the runtime as a module. Don't put backups, scratch copies, or unrelated drafts in that tree — \`@tomlarkworthy/at-write.live-fork.bak.js\` next to \`at-write.js\` will be loaded as module \`@tomlarkworthy/at-write.live-fork.bak\` and wired into the dependency graph. Keep working backups outside the synced tree (e.g. under \`tools/staging/\`).
+
+## Channel signal vs. noise
+
+Channel \`variable_update\` and \`history\` events arrive as system reminders. They're ambient signal — most are routine (hash, currentModules, rerun history) and don't need a text response. Reply only when the event represents new information for an in-flight diagnosis (e.g. you were watching a variable and it changed) or when the user asks something. Don't acknowledge passive events with "Standing by." or similar — that just clutters the transcript.
 
 ## High-level cell patterns (define_cell)
 

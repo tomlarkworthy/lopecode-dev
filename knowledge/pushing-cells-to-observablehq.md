@@ -31,31 +31,31 @@ The bundled flow is `node tools/lope-push-ws.js --login --headed` (interactive l
 
 #### Workaround — JSON-file cookie path
 
-Bypass Playwright entirely. Paste the live cookies from a regular logged-in browser session and load them from a gitignored JSON file:
+Bypass Playwright entirely. Paste the live cookies from a regular logged-in browser session into a gitignored JSON file, then point `lope-push-ws.js` at it via `--cookies-file`.
 
-```js
-// worktrees/<N>/.fix-staging/observable-cookies.json
+**Canonical path:** `tools/.observable-cookies.json` — already gitignored via `tools/*.json` in `.gitignore`. Use this path so successive sessions find the cookies in the same spot.
+
+```json
+// tools/.observable-cookies.json
 {
   "T": "<paste from devtools → Application → Cookies → observablehq.com>",
   "I": "<paste from devtools → Application → Cookies → observablehq.com>"
 }
 ```
 
-In your push script (custom WS or a forked lope-push-ws):
+Run the push with the flag:
 
-```js
-import { readFileSync } from "node:fs";
-function getCookies() {
-  const c = JSON.parse(readFileSync("worktrees/<N>/.fix-staging/observable-cookies.json", "utf8"));
-  if (!c.T || !c.I) throw new Error("missing T or I");
-  return c;
-}
-// use cookies.T / cookies.I in WS Headers and REST fetch as before
+```sh
+node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> \
+  --module @user/name \
+  --target https://observablehq.com/@user/name \
+  --cookies-file tools/.observable-cookies.json \
+  --cells <cellName>
 ```
 
-When asking the user to paste cookies: tell them to open devtools (Cmd+Opt+I) → Application tab → Storage → Cookies → `https://observablehq.com` → copy the **Value** column for `T` and `I`. They expire in days, not a long-term secret.
+`--cookies-file` short-circuits `extractCookies()` — the script reads the JSON, validates auth via `https://api.observablehq.com/user`, and proceeds. No Playwright profile needed.
 
-The `.fix-staging/` directory is bug-fix scratch space and shouldn't be committed; if it persists, add to `.gitignore`.
+When asking the user to paste cookies: tell them to open devtools (Cmd+Opt+I) → Application tab → Storage → Cookies → `https://observablehq.com` → copy the **Value** column for `T` and `I`. They expire in days (T ~2, I ~9), not a long-term secret.
 
 ### Message Types
 
@@ -122,6 +122,7 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 | `--verbose` | Show WS message details |
 | `--timeout <ms>` | Max wait time (default: 30000) |
 | `--profile <path>` | Browser profile for cookie storage (default: `~/.claude/lope-push-browser-profile`) |
+| `--cookies-file <path>` | Read T/I cookies from a JSON file instead of Playwright (recommended; see "Workaround" above) |
 | `--login` | Open browser for manual login |
 | `--headed` | Show browser (for `--login`) |
 
@@ -172,6 +173,57 @@ main.variable(observer("linkTo")).define("linkTo", ["isOnObservableCom","URLSear
 
 - **Import decompilation needs live module refs** — `decompile()` can't reconstruct `import {x} from "@author/notebook"` from static data alone. Handle imports via static analysis of `main.define("name", ["module @author/pkg", "@variable"], ...)` patterns.
 - Runs in a browser (needs Playwright) since it depends on bundled acorn/escodegen from the notebook
+
+## Adding new dependencies to a cell (round-trip-safe)
+
+When you need an existing cell to also depend on, say, `currentSession`, the runtime resolves deps from a `$def(..., [depNames], fn)` array — but Observable's parser resolves them from the cell *expression's* free identifiers when the cell is recompiled (e.g. on push). The two views can diverge. If they do, the cell breaks the next time it's pushed.
+
+### Antipattern: closure-renamed parameters
+
+```js
+// _publisher imports `xrpc` and `loginWidget` as cell deps but renames them
+// in the function signature so the inner arrow can have params with the
+// "real" names.
+function _publisher(..., currentSession, defaultXrpc, defaultLoginWidget) {
+  return (({session = currentSession, xrpc = defaultXrpc, ...} = {}) => { ... });
+}
+```
+
+Looks fine at runtime. But the cell *expression* — what Observable sees on push — references `defaultXrpc` and `defaultLoginWidget` as free identifiers. There are no cells by those names, so the recompiled version drops them from the dep list and the closure breaks.
+
+### Fix A: IIFE wrap that explicitly names the deps
+
+```js
+publisher = ((cs, xrpcRef, lwRef) => ({
+  session = cs,
+  xrpc = xrpcRef,
+  defaultTitle,
+  loginWidget: loginWidgetFn = lwRef
+} = {}) => {
+  // body unchanged — uses session/xrpc/loginWidgetFn as before
+})(currentSession, xrpc, loginWidget)
+```
+
+The IIFE's call site (`(currentSession, xrpc, loginWidget)`) makes those names free identifiers in the cell expression, so Observable picks them up as deps. The body keeps its original parameter names — no rename churn.
+
+### Fix B: shadowed-default destructure
+
+```js
+publisher = ({
+  session = currentSession,
+  xrpc: callXrpc = xrpc,            // alias to avoid the param `xrpc` shadowing itself
+  defaultTitle,
+  loginWidget: loginWidgetFn = loginWidget
+} = {}) => {
+  // body must use callXrpc instead of xrpc
+}
+```
+
+Cleaner if you can stomach the body-wide rename. The alias `xrpc: callXrpc = xrpc` works because the LHS introduces `callXrpc` and the default `= xrpc` resolves to the outer cell.
+
+### Why file-sync alone isn't enough
+
+`file-sync` patches the cell function source live, but the runtime's $def deps array is set at module load. Editing the function signature on disk shows up in the runtime's cell source, but the runtime keeps the old inputs list. Use `tools/channel/sync-module.ts` to bake the updated module (with new `$def` deps) into the HTML, then reload — that's what makes the new deps actually wire up.
 
 ## Navigation Timeouts
 
