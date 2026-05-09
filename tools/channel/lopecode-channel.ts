@@ -26,7 +26,7 @@ let PORT = REQUESTED_PORT;
 // the caller passes an explicit `fakefs_root`. Parallel bug-fix sessions share this directory
 // (per-notebook subdirs are keyed by notebook ID, so collisions only happen when two sessions
 // target the same notebook — coordinate manually in that case).
-const DEFAULT_FAKEFS_ROOT = process.env.LOPECODE_FAKEFS_ROOT ?? join(homedir(), ".cache/lopecode-fakefs");
+const DEFAULT_FAKEFS_ROOT = process.env.LOPECODE_FAKEFS_ROOT ?? "/tmp/lopecode-fakefs";
 
 // --- Pairing token (generated after port binding) ---
 function generateToken(): string {
@@ -524,6 +524,19 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "enable_fakefs",
+      description: "Enable the channel's synthetic FileSystemDirectoryHandle (fakefs) for the current session, sandboxed under the given root. Required for `file-sync` to work in non-QA flows (e.g. the headless pairing host) where `showDirectoryPicker` cannot prompt the user. The page must inject `tools/channel/fakefs-init.js` to replace `window.showDirectoryPicker`. Returns the resolved absolute root path.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "Absolute or relative path to use as the fakefs sandbox root. Defaults to /tmp/lopecode-fakefs (override with LOPECODE_FAKEFS_ROOT env var). Created if missing.",
+          },
+        },
+      },
+    },
+    {
       name: "reply",
       description: "Send a markdown message to a notebook's chat widget.",
       inputSchema: {
@@ -867,6 +880,24 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
     // get_pairing_token needs no notebook connection
     if (req.params.name === "get_pairing_token") {
       return { content: [{ type: "text", text: PAIRING_TOKEN }] };
+    }
+
+    // enable_fakefs: set currentFakefsRoot so subsequent fs-pair messages succeed.
+    // Used by the headless pairing host (and any non-QA flow) to authorise file-sync.
+    if (req.params.name === "enable_fakefs") {
+      const reqPath = typeof args.path === "string" ? (args.path as string) : undefined;
+      const rootAbs = resolve(reqPath ?? DEFAULT_FAKEFS_ROOT);
+      await fsMkdir(rootAbs, { recursive: true });
+      currentFakefsRoot = rootAbs;
+      process.stderr.write(`lopecode-channel: enable_fakefs → ${rootAbs}${reqPath ? "" : " (default)"}\n`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ ok: true, root: rootAbs, port: PORT, token: PAIRING_TOKEN }),
+          },
+        ],
+      };
     }
 
     // open_url: launch a URL in the browser, preserving hash fragments

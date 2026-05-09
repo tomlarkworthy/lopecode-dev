@@ -358,6 +358,11 @@ These must work reliably end-to-end.
 ### 1. Initial connection (CLI-first)
 User says "open a lopecode notebook". Claude gets the token, constructs a `file://` URL to a local notebook with `&cc=TOKEN` in the hash, and uses the `open_url` MCP tool to open it (preserving the hash fragment). Notebook auto-connects with chat panel visible. No manual token paste.
 
+### 1b. Headless pairing (no foreground browser)
+User says "pair without a browser" or `/pair-headless <notebook>`. The `pair-headless` skill (under `.claude/skills/pair-headless/`) gets the token and spawns `tools/headless-pairing-host.ts` as a background Bun process. That script launches Playwright headless Chromium, opens the same `file://` URL with `&cc=TOKEN`, and holds the page open. Headless Chromium reports `document.visibilityState === "visible"` regardless of any windowing state, so the runtime's `requestAnimationFrame` scheduler is not throttled — the runtime keeps ticking with no visible UI.
+
+The host writes a PID file at `/tmp/lope-headless-<TOKEN>.pid` and self-terminates when the pairing WebSocket to the channel server closes (channel down → host gone, no leak). `/pair-stop` reads the PID file and SIGTERMs the host. Use this when running long automated authoring sessions where keeping a foreground tab is disruptive; keep the headed flow (1) for visual debugging.
+
 ### 2. Initial connection (notebook-first)
 User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--dangerously-load-development-channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
 
