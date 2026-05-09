@@ -11,7 +11,7 @@
  * Options:
  *   --source <name>      Observable notebook shorthand (required)
  *   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
- *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
+ *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
  *   --output <path>      Where to write the exported HTML (required)
  *   --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
  *   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec)
@@ -36,7 +36,7 @@ function parseArgs(argv) {
   const options = {
     source: null,
     frame: '@tomlarkworthy/lopepage',
-    jumpgate: 'lopecode/notebooks/@tomlarkworthy_jumpgate.html',
+    jumpgate: 'lopecode/notebooks/jumpgates.html',
     output: null,
     hash: null,
     theme: null,
@@ -79,7 +79,7 @@ Options:
                        in one bundle (--source @a/b --source @a/c, or --source @a/b,@a/c).
                        The first source is the primary (used for filename, title, default hash).
   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
-  --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
+  --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
   --output <path>      Where to write the exported HTML (required)
   --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec or none)

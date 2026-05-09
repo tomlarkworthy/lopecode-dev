@@ -47,7 +47,7 @@ node tools/lope-jumpgate.js \
 |-----|---------|-------------|
 | `--source <name>` | (required) | Observable notebook shorthand |
 | `--frame <name>` | `@tomlarkworthy/lopepage` | Frame notebook shorthand |
-| `--jumpgate <path>` | `lopecode/notebooks/@tomlarkworthy_jumpgate.html` | Path to jumpgate HTML |
+| `--jumpgate <path>` | `lopecode/notebooks/jumpgates.html` | Path to jumpgate HTML |
 | `--output <path>` | (required) | Where to write the exported HTML |
 | `--hash <hash>` | existing spec or side-panel | Hash for bootconf (e.g. `#view=@author/notebook`) |
 | `--theme <name>` | existing spec or none | Theme name (e.g. `near-midnight`) |
@@ -81,7 +81,7 @@ Examples:
 
 ### Bulk Export with lope-bulk-jumpgate.js
 
-`tools/lope-bulk-jumpgate.js` exports multiple notebooks in one run. It drives the `@tomlarkworthy/bulk-jumpgate` notebook headlessly via Playwright — each notebook gets its own fresh runtime that's disposed after export, keeping memory bounded.
+`tools/lope-bulk-jumpgate.js` exports multiple notebooks in one run. It drives the `@tomlarkworthy/bulk-jumpgate` module (embedded in `lopecode/notebooks/jumpgates.html` alongside `@tomlarkworthy/jumpgate`) headlessly via Playwright — each notebook gets its own fresh runtime that's disposed after export, keeping memory bounded.
 
 ```bash
 # Export from a spec file
@@ -100,7 +100,7 @@ node tools/lope-bulk-jumpgate.js --spec export_spec.json --output ./exported --v
 |-----|---------|-------------|
 | `--spec <path\|json>` | (required) | Export spec: path to JSON file, or inline JSON string |
 | `--output <dir>` | (required) | Output directory for exported HTML files |
-| `--bulk-jumpgate <path>` | `lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html` | Path to bulk-jumpgate notebook |
+| `--bulk-jumpgate <path>` | `lopecode/notebooks/jumpgates.html` | Path to bundle containing the bulk-jumpgate module |
 | `--timeout <ms>` | `600000` | Max wait for entire export (10 min) |
 | `--headed` | false | Show browser window |
 | `--verbose` | false | Show browser console logs |

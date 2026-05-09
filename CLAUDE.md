@@ -35,7 +35,8 @@ lopecode-dev/
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.ts          # Fast static analysis (no browser, Bun)
 │   ├── lope-browser-runner.ts          # One-off runtime execution (Playwright)
-│   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright)
+│   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright); drives lopecode/notebooks/jumpgates.html
+│   ├── lope-bulk-jumpgate.js   # Bulk export driver; drives lopecode/notebooks/jumpgates.html
 │   ├── channel/                 # Claude Code <-> notebook channel (Bun + MCP)
 │   ├── staging/                 # Bulk export staging artifacts
 │   └── screenshots/             # Test screenshots

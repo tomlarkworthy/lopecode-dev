@@ -12,7 +12,7 @@
  * Options:
  *   --spec <path|json>   Export spec: path to JSON file, or inline JSON string (required)
  *   --output <dir>       Output directory for exported HTML files (required)
- *   --bulk-jumpgate <path>    Path to bulk-jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html)
+ *   --bulk-jumpgate <path>    Path to bulk-jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
  *   --timeout <ms>       Max wait for entire export (default: 600000 = 10 min)
  *   --headed             Show browser window
  *   --verbose            Show browser console logs
@@ -56,7 +56,7 @@ function parseArgs(argv) {
   const options = {
     spec: null,
     output: null,
-    bulkJumpgate: resolve(projectRoot, 'lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html'),
+    bulkJumpgate: resolve(projectRoot, 'lopecode/notebooks/jumpgates.html'),
     timeout: 600000,
     headed: false,
     verbose: false,
@@ -86,7 +86,7 @@ Usage:
 Options:
   --spec <path|json>   Export spec JSON file or inline JSON (required)
   --output <dir>       Output directory (required)
-  --bulk-jumpgate <path>    Bulk-jumpgate notebook path (default: lopecode/notebooks/@tomlarkworthy_bulk-jumpgate.html)
+  --bulk-jumpgate <path>    Bulk-jumpgate notebook path (default: lopecode/notebooks/jumpgates.html)
   --timeout <ms>       Max wait time (default: 600000)
   --headed             Show browser
   --verbose            Show browser console
