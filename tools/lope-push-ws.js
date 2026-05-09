@@ -82,6 +82,8 @@ function parseArgs(argv) {
       options.timeout = parseInt(args[++i], 10);
     } else if (arg === '--profile' && args[i + 1]) {
       options.profile = args[++i];
+    } else if (arg === '--cookies-file' && args[i + 1]) {
+      options.cookiesFile = args[++i];
     } else if (arg === '--login') {
       options.login = true;
     } else if (arg === '--headed') {
@@ -435,6 +437,33 @@ function extractCellName(source) {
 // --- Cookie extraction ---
 
 async function extractCookies(options) {
+  // Cookie-file shortcut: bypasses Playwright entirely. Per
+  // knowledge/pushing-cells-to-observablehq.md, headless Playwright
+  // cookie extraction is unreliable (Observable's anti-bot wipes the
+  // HttpOnly T/I cookies on probe). Pasting from devtools into a JSON
+  // file is the recommended workaround.
+  if (options.cookiesFile) {
+    const raw = fs.readFileSync(options.cookiesFile, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!parsed.T || !parsed.I) {
+      throw new Error(`${options.cookiesFile}: missing 'T' or 'I' field`);
+    }
+    const resp = await fetch('https://api.observablehq.com/user', {
+      headers: {
+        'Cookie': `I=${parsed.I}; T=${parsed.T}`,
+        'Origin': 'https://observablehq.com',
+      },
+    });
+    const user = await resp.json();
+    if (!user?.login) {
+      throw new Error(
+        `Cookies in ${options.cookiesFile} did not authenticate (user API returned ${JSON.stringify(user)}). They may have expired — re-paste from devtools.`
+      );
+    }
+    log(`Authenticated as ${user.login} (cookies-file)`);
+    return { T: parsed.T, I: parsed.I };
+  }
+
   if (!fs.existsSync(options.profile)) {
     throw new Error(
       `Browser profile not found: ${options.profile}\n` +
@@ -861,15 +890,20 @@ async function main() {
     process.exit(1);
   }
 
-  // Fall back to spec file's observablehq.com field if no --target
+  // Fall back to spec file's upstreams map if no --target.
+  // Schema: upstreams[host][module] = url. Legacy: top-level "observablehq.com" string.
   if (!options.target && !options.dryRun) {
     const specPath = notebookPath.replace(/\.html$/, '.json');
     if (fs.existsSync(specPath)) {
       try {
         const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
-        if (spec["observablehq.com"]) {
+        const moduleUrl = spec?.upstreams?.["observablehq.com"]?.[options.module];
+        if (moduleUrl) {
+          options.target = moduleUrl;
+          log(`Using target from spec upstreams[observablehq.com][${options.module}]: ${options.target}`);
+        } else if (spec["observablehq.com"]) {
           options.target = spec["observablehq.com"];
-          log(`Using target from spec: ${options.target}`);
+          log(`Using target from spec (legacy field): ${options.target}`);
         }
       } catch (e) {}
     }

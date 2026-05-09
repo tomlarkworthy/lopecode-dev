@@ -418,13 +418,13 @@ async function main() {
         maxBuffer: 100 * 1024 * 1024,
       });
       const specObj = JSON.parse(specStr);
-      specObj["observablehq.com"] = primarySourceUrl;
-      if (sourceUrls.length > 1) {
-        specObj.primaries = sourceUrls.map((url, i) => ({
-          module: sourceNotebooks[i],
-          observableUrl: url,
-        }));
-      }
+      // upstreams: { host -> { module -> url } } — multi-source friendly schema
+      // replacing the single-string `observablehq.com` field.
+      specObj.upstreams = {
+        "observablehq.com": Object.fromEntries(
+          sourceNotebooks.map((module, i) => [module, sourceUrls[i]]),
+        ),
+      };
       if (theme && specObj.bootconf) {
         specObj.bootconf.theme = theme;
       }

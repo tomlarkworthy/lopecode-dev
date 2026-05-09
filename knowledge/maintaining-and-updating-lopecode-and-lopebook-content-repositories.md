@@ -55,7 +55,7 @@ node tools/lope-jumpgate.js \
 | `--headed` | false | Show browser for debugging |
 | `--verbose` | false | Show browser console logs |
 
-Jumpgate also writes the source Observable URL to the `.json` spec file as `"observablehq.com"`. This is read by `lope-push-ws.js` as a default `--target`, so pushes don't need an explicit URL after the first jumpgate.
+Jumpgate writes per-module upstream URLs to the `.json` spec file as `"upstreams"`, a `host → module → url` map (currently only `observablehq.com` is populated). For the single-source case the map has one entry; for multi-source bundles it records every primary. `lope-push-ws.js` reads `upstreams["observablehq.com"][--module]` as a default `--target`, so pushes don't need an explicit URL after the first jumpgate. Older specs that only have a top-level `"observablehq.com"` string are still honored as a fallback.
 
 Alongside the URL, jumpgate records `"observable_version"` (monotonic integer from Observable's `version`) and `"observable_update_time"` (ISO timestamp from `update_time`). These are the local "last-known-good" pointers for drift detection — `bun tools/probe-staleness.ts` walks every spec, fetches the current document via `https://api.observablehq.com/document/<author>/<slug>` in parallel, and reports any local version that's behind the remote. Specs missing these fields (older exports) show as `unknown:` until re-jumpgated.
 

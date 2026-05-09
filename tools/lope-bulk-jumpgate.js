@@ -116,6 +116,19 @@ function log(msg) {
   process.stderr.write(`[lope-bulk-jumpgate] ${msg}\n`);
 }
 
+async function fetchObservableMetadata(observableUrl) {
+  const prefix = 'https://observablehq.com/';
+  if (!observableUrl.startsWith(prefix)) return null;
+  const apiUrl = 'https://api.observablehq.com/document/' + observableUrl.slice(prefix.length);
+  const res = await fetch(apiUrl, { headers: { accept: 'application/json' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${apiUrl}`);
+  const body = await res.json();
+  return {
+    observable_version: typeof body.version === 'number' ? body.version : null,
+    observable_update_time: body.update_time ?? null,
+  };
+}
+
 // --- Main ---
 
 const options = parseArgs(process.argv);
@@ -289,14 +302,36 @@ try {
     { encoding: 'utf-8', timeout: 600000, maxBuffer: 100 * 1024 * 1024 },
   );
   const specs = new Map(JSON.parse(manifestStr).map((s) => [s.notebook, s]));
-  for (const f of htmlFiles) {
+  const enrichTasks = htmlFiles.map((f) => async () => {
     const notebookId = f.replace(/\.html$/, '');
     const spec = specs.get(notebookId);
-    if (!spec) { log(`Warning: no spec generated for ${f}`); continue; }
+    if (!spec) { log(`Warning: no spec generated for ${f}`); return; }
     const jsonPath = resolve(outputDir, f).replace(/\.html$/, '.json');
+    if (spec.title && spec.title.startsWith('@')) {
+      const sourceUrl = `https://observablehq.com/${spec.title}`;
+      spec.upstreams = { "observablehq.com": { [spec.title]: sourceUrl } };
+      try {
+        const meta = await fetchObservableMetadata(sourceUrl);
+        if (meta) {
+          if (meta.observable_version != null) spec.observable_version = meta.observable_version;
+          if (meta.observable_update_time) spec.observable_update_time = meta.observable_update_time;
+        }
+      } catch (e) {
+        log(`Warning: metadata fetch failed for ${spec.title}: ${e.message}`);
+      }
+    }
     fs.writeFileSync(jsonPath, JSON.stringify(spec, null, 2) + '\n');
     log(`Spec: ${f.replace('.html', '.json')}`);
-  }
+  });
+  // Run with bounded concurrency to avoid hammering api.observablehq.com.
+  const concurrency = 8;
+  let cursor = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, enrichTasks.length) }, async () => {
+    while (cursor < enrichTasks.length) {
+      const idx = cursor++;
+      await enrichTasks[idx]();
+    }
+  }));
 } catch (e) {
   log(`Warning: failed to generate specs: ${e.message}`);
 }

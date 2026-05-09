@@ -91,7 +91,7 @@ The `.fix-staging/` directory is bug-fix scratch space and shouldn't be committe
 ## Tool: lope-push-ws.js (Preferred)
 
 ```bash
-# Push all cells (auto-reads target from spec file's "observablehq.com" field)
+# Push all cells (auto-reads target from spec file's upstreams["observablehq.com"][module])
 node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @tomlarkworthy/testing
 
 # Push all cells (explicit target)
@@ -115,7 +115,7 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 | Option | Description |
 |--------|-------------|
 | `--module <name>` | Module to extract cells from (required) |
-| `--target <url>` | Observable notebook URL to push to (reads from spec `"observablehq.com"` field if omitted) |
+| `--target <url>` | Observable notebook URL to push to (reads from spec `upstreams["observablehq.com"][--module]` if omitted; falls back to legacy top-level `"observablehq.com"` field) |
 | `--cells <names>` | Comma-separated cell names to push (default: all) |
 | `--no-delete` | Skip deleting old cells |
 | `--dry-run` | List cells that would be pushed without pushing |
