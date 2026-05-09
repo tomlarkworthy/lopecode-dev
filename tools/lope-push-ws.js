@@ -19,11 +19,14 @@
  *   --verbose           Show detailed WS messages
  *   --timeout <ms>      Max wait time (default: 30000)
  *   --profile <path>    Browser profile directory for cookie extraction
+ *   --cookies-file <path>  Read T/I cookies from JSON file (bypasses Playwright; recommended)
  *   --login             Open browser for manual login
  *   --headed            Show browser (for --login)
  *
  * Authentication:
- *   Uses cookies from the Playwright browser profile (~/.claude/lope-push-browser-profile).
+ *   Preferred: --cookies-file tools/.observable-cookies.json (gitignored). See
+ *   knowledge/pushing-cells-to-observablehq.md for the cookie-paste workflow.
+ *   Legacy: cookies from the Playwright browser profile (~/.claude/lope-push-browser-profile).
  *   Log in first with: node tools/lope-push-ws.js --login --headed
  *
  * Exit Codes:
@@ -108,6 +111,7 @@ Options:
   --verbose           Show detailed WS messages
   --timeout <ms>      Max wait time (default: 30000)
   --profile <path>    Browser profile for persistent login
+  --cookies-file <path>  Read T/I cookies from JSON instead of Playwright (recommended; see knowledge/pushing-cells-to-observablehq.md)
   --login             Open browser for manual login
   --headed            Show browser (for --login)
       `);

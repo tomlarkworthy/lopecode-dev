@@ -431,6 +431,7 @@ Use `currentModules` watch (auto-watched on connect) for module list with depend
 - **eval is synchronous** — async code in `eval_code` won't return resolved values
 - **Activity feed (implemented)** — Claude's tool calls are streamed to the chat via a `PostToolUse` hook that POSTs to the channel server's `/tool-activity` endpoint. Consecutive tool calls are grouped into collapsible `<details>` elements. The hook script (`tools/channel/post-tool-hook.sh`) discovers the server port via `tools/channel/.lopecode-port`.
 - **Hash mangling** — bootloader may overwrite custom hash params on load (see [issue #140](https://github.com/tomlarkworthy/lopecode/issues/140))
+- **Programmatic file-sync activation needs `@tomlarkworthy/file-sync` in the layout** — the `viewof directory` cell renders the picker `<button>` only when something observes it. If file-sync isn't a pane in the lopepage layout, the cell is unreachable, the DOM is never built, and clicking the picker (even via fakefs) is impossible. The headless host works around this by auto-amending the layout when `--fakefs-root` is set; do the same in any other automation that drives file-sync without a human.
 
 ## Distribution via Claude Marketplace
 

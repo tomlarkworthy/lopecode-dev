@@ -153,7 +153,8 @@ bun test tests/channel/lopecode-channel.test.ts
 9. **Prefer imports over private APIs** — Never access private runtime properties (`mod._runtime`, `variable._module`) or internal builtins (`__ojs_runtime`) when the same value is available as an import. Use `@tomlarkworthy/runtime-sdk` for `runtime`, `main`, `onCodeChange`, `importShim`. Use `@tomlarkworthy/fileattachments` for `getFileAttachmentsMap`. Imports are stable, private APIs break.
 10. **Blank notebook (theme but no content)?** - Check the `bootconf.json` script in the HTML. An empty `"mains": []` means no modules are booted. Fix by adding lopepage and the main module name (e.g. `["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"]`)
 11. **Use `git -C <path>` instead of `cd <path> && git ...`** - Chained `cd` commands silently leave you in the wrong directory if any earlier command fails (the `&&` short-circuits but the shell's cwd is already changed). `git -C <submodule> status` is unambiguous and stateless. Same applies to running tools across both `lopecode/` and `lopebooks/` submodules in one session.
-12. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
+12. **Channel server is sandboxed (safehouse) — don't write to `~/...`** - The channel server runs under safehouse and cannot create files under the user's home directory (`~/.cache`, `~/Library`, etc. → `EPERM`). For runtime artifacts a backend tool needs to write (fakefs roots, lock files, caches), default to `/tmp/...`. Tip 7 still applies to *Claude's* test/working files — those go in `tools/` to avoid permission prompts. The two rules don't conflict because they apply to different processes.
+13. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
    - Observable runtime lazy evaluation (cells only compute when observed)
    - Lopepage hash URL DSL for multi-module layouts
    - Natural test observation via `latest_state` Map

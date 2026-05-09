@@ -125,6 +125,38 @@ directory → fileSyncTools → mcpToolsUpdater → viewof mcpTools.value
 
 When file-sync applies the pairing module from disk, it updates `cc_command_handlers` (which depends on `cc_handle_call_tool`), which triggers `cc_ws` to reconnect. The connection recovers immediately. This is acceptable for now — fixing it would require decoupling `cc_command_handlers` from `cc_ws` with another `viewof` layer.
 
+## Watchdog Patterns for Out-of-Process Hosts
+
+When a process *outside* the channel server (e.g. `tools/headless-pairing-host.ts`) wants to detect "channel gone" by watching the page's WebSockets, two things bite:
+
+**The page opens multiple WebSockets to the same channel port.** During pairing the page typically opens:
+- The pairing WS (sends `{type:"pair", token, url, …}` → receives `{type:"paired"}`)
+- Per-feature WSes — currently file-sync's fakefs (sends `{type:"fs-pair", token}` → receives `{type:"fs-paired"}`)
+
+A watchdog that exits on *any* close-event matching the channel URL will false-fire. With fakefs in particular, the page often opens a transient fs-pair WS during page bootstrap that gets closed (or replaced) before the pairing module's WS comes up. If the watchdog isn't gated, the host shuts down before pairing has even started.
+
+**Pattern:** track every channel-port WebSocket the page opens (via `page.on("websocket", ws => …)`), and arm shutdown only after observing a `framereceived` payload containing `"type":"paired"`. After arming, exit when *all* tracked WSes have closed (not just one).
+
+```ts
+const liveWses = new Set();
+let pairingArmed = false;
+page.on("websocket", (ws) => {
+  if (!ws.url().includes(`:${channelPort}`)) return;
+  liveWses.add(ws);
+  ws.on("framereceived", (f) => {
+    if (typeof f.payload === "string" && f.payload.includes('"type":"paired"')) {
+      pairingArmed = true;
+    }
+  });
+  ws.on("close", () => {
+    liveWses.delete(ws);
+    if (pairingArmed && liveWses.size === 0) shutdown("ws-close");
+  });
+});
+```
+
+When debugging, log `framesent`/`framereceived` payloads in verbose mode — the WS-level message order (pair → fs-pair → paired → fs-paired → variable-update) is the cheapest way to see exactly where a handshake is failing.
+
 ## Channel Server Internals
 
 ### Dynamic tool storage

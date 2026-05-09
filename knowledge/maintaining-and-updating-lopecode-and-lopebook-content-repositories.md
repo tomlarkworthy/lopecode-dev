@@ -280,3 +280,24 @@ bun tools/lope-reader.ts lopecode/notebooks/NOTEBOOK.html
 # Run tests if the notebook has any
 bun tools/lope-browser-runner.ts lopecode/notebooks/NOTEBOOK.html --run-tests
 ```
+
+## Diagnosing notebook .html diffs
+
+A re-jumpgated `.html` often shows a huge diff (hundreds → thousands of lines) that is almost entirely **bundler/stdlib boot-cell churn** — `htl`, `d3`, `marked`, `lodash`, `stdlib`, `inputs`, `define_builtins`, `boot`, etc. These are NOT pushable to ObservableHQ; they're emitted by the jumpgate bundler from upstream library versions, and ObservableHQ stores cells, not bundles. Don't try to push them.
+
+To find the *actual* cell-level changes in a single module's source, diff the lope-reader output for that module across both versions:
+
+```bash
+# Old version (HEAD)
+git -C lopecode show HEAD:notebooks/X.html > /tmp/X-OLD.html
+bun tools/lope-reader.ts /tmp/X-OLD.html --get-module @user/mod > /tmp/X-OLD.cells.js
+
+# New version (working tree)
+bun tools/lope-reader.ts lopecode/notebooks/X.html --get-module @user/mod > /tmp/X-NEW.cells.js
+
+diff -u /tmp/X-OLD.cells.js /tmp/X-NEW.cells.js
+```
+
+The diff that comes out of *that* is what you'd actually push via `lope-push-ws.js --cells <name1>,<name2>`. If the per-module diff is empty, the .html change is pure bundler noise — `git checkout` the file or just don't push.
+
+Quick heuristic from the raw HTML diff: cell names like `_htl_*`, `_d3_*`, `_marked_*`, `_lodash*`, `_stdlib*`, `_inputs_*`, `_define_builtins`, `_boot`, `_library` are bundler-internal. Module-author cells (yours) are everything else.
