@@ -22,6 +22,41 @@ Two cookies are required (both from `observablehq.com`):
 - **`T` cookie** — Session token sent in the WS `hello` message. Expires ~2 days.
 - **`Origin: https://observablehq.com`** header is required for cookie-based auth to return roles/sharing from the REST API.
 
+#### Auth fragility — Playwright cookie extraction is unreliable
+
+The bundled flow is `node tools/lope-push-ws.js --login --headed` (interactive login → cookies saved in `~/.claude/lope-push-browser-profile/`), then subsequent invocations launch headless Playwright and read cookies. **This breaks at runtime** in two ways:
+
+1. **Headless Playwright triggers Observable's anti-bot.** When `extractCookies()` navigates `chromium.launchPersistentContext(..., { headless: true })` to `https://observablehq.com/`, the response wipes the HttpOnly `T` and `I` rows from disk. After one probe the cookie store is empty (only `_ga` etc remain). Repeat logins won't fix it — the next headless probe wipes them again.
+2. **Skipping navigation doesn't help either.** Even reading cookies straight from the persistent context (no `page.goto`) returns only the visible cookies — `T` and `I` are HttpOnly and Playwright Chromium-headless misses them.
+
+#### Workaround — JSON-file cookie path
+
+Bypass Playwright entirely. Paste the live cookies from a regular logged-in browser session and load them from a gitignored JSON file:
+
+```js
+// worktrees/<N>/.fix-staging/observable-cookies.json
+{
+  "T": "<paste from devtools → Application → Cookies → observablehq.com>",
+  "I": "<paste from devtools → Application → Cookies → observablehq.com>"
+}
+```
+
+In your push script (custom WS or a forked lope-push-ws):
+
+```js
+import { readFileSync } from "node:fs";
+function getCookies() {
+  const c = JSON.parse(readFileSync("worktrees/<N>/.fix-staging/observable-cookies.json", "utf8"));
+  if (!c.T || !c.I) throw new Error("missing T or I");
+  return c;
+}
+// use cookies.T / cookies.I in WS Headers and REST fetch as before
+```
+
+When asking the user to paste cookies: tell them to open devtools (Cmd+Opt+I) → Application tab → Storage → Cookies → `https://observablehq.com` → copy the **Value** column for `T` and `I`. They expire in days, not a long-term secret.
+
+The `.fix-staging/` directory is bug-fix scratch space and shouldn't be committed; if it persists, add to `.gitignore`.
+
 ### Message Types
 
 **Client → Server:**
