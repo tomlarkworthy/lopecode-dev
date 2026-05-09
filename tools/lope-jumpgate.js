@@ -48,7 +48,8 @@ function parseArgs(argv) {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--source' && args[i + 1]) {
-      options.source = args[++i];
+      const next = args[++i];
+      options.source = options.source ? `${options.source},${next}` : next;
     } else if (arg === '--frame' && args[i + 1]) {
       options.frame = args[++i];
     } else if (arg === '--jumpgate' && args[i + 1]) {
@@ -73,7 +74,10 @@ Usage:
   node tools/lope-jumpgate.js --source <name> --output <path> [options]
 
 Options:
-  --source <name>      Observable notebook shorthand, e.g. @tomlarkworthy/exporter-2 (required)
+  --source <name>      Observable notebook shorthand, e.g. @tomlarkworthy/exporter-2 (required).
+                       Repeat --source or comma-separate to embed multiple primaries
+                       in one bundle (--source @a/b --source @a/c, or --source @a/b,@a/c).
+                       The first source is the primary (used for filename, title, default hash).
   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/@tomlarkworthy_jumpgate.html)
   --output <path>      Where to write the exported HTML (required)
@@ -107,6 +111,19 @@ function log(msg) {
   process.stderr.write(`[lope-jumpgate] ${msg}\n`);
 }
 
+async function fetchObservableMetadata(observableUrl) {
+  const prefix = 'https://observablehq.com/';
+  if (!observableUrl.startsWith(prefix)) return null;
+  const apiUrl = 'https://api.observablehq.com/document/' + observableUrl.slice(prefix.length);
+  const res = await fetch(apiUrl, { headers: { accept: 'application/json' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${apiUrl}`);
+  const body = await res.json();
+  return {
+    observable_version: typeof body.version === 'number' ? body.version : null,
+    observable_update_time: body.update_time ?? null,
+  };
+}
+
 // --- Main ---
 
 async function main() {
@@ -134,9 +151,16 @@ async function main() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const sourceUrl = toFullUrl(options.source);
+  const sources = options.source.split(',').map(s => s.trim()).filter(Boolean);
+  if (sources.length === 0) {
+    console.error('Error: --source is required');
+    process.exit(1);
+  }
+  const sourceUrls = sources.map(toFullUrl);
+  const sourceNotebooks = sources.map(toNotebookName);
+  const primarySourceUrl = sourceUrls[0];
+  const primaryNotebook = sourceNotebooks[0];
   const frameUrl = toFullUrl(options.frame);
-  const sourceNotebook = toNotebookName(options.source);
 
   // Resolve hash and theme: --flag > existing spec > defaults
   let hash = options.hash;
@@ -159,18 +183,18 @@ async function main() {
   }
   if (!hash) {
     hash = `#view=${encodeURI(
-      `R100(S70(${sourceNotebook}),S30(@tomlarkworthy/module-selection))`
+      `R100(S70(${primaryNotebook}),S30(@tomlarkworthy/module-selection))`
     )}`;
   }
 
-  // Build export_state JSON
+  // Build export_state JSON — title/filename always tracks the primary
   const exportState = JSON.stringify({
-    title: sourceNotebook,
+    title: primaryNotebook,
     hash,
     ...(theme ? { theme } : {}),
   });
 
-  log(`Source: ${sourceUrl}`);
+  log(`Source${sources.length > 1 ? `s (${sources.length})` : ''}: ${sourceUrls.join(', ')}`);
   log(`Frame: ${frameUrl}`);
   log(`Jumpgate: ${jumpgatePath}`);
   log(`Output: ${outputPath}`);
@@ -198,7 +222,7 @@ async function main() {
     // Pre-set localStorage for frame (localStorageView reads from localStorage)
     // and override urlQueryFieldView via window.rEPseDFzXFSPYkNz
     const queryParams = new URLSearchParams({
-      source: sourceUrl,
+      source: sourceUrls.join(','),
       load_source: 'true',
       export_state: exportState,
     });
@@ -354,14 +378,33 @@ async function main() {
       process.exit(1);
     }
 
-    // Click download button and capture the file
-    log('Downloading exported file...');
-    const [download] = await Promise.all([
-      page.waitForEvent('download', { timeout: 30000 }),
-      page.click('button:has-text("download")', { timeout: 10000 }),
-    ]);
+    // Read exported source directly from the runtime — avoids brittle button
+    // locators that match multiple panels in lopepage layouts.
+    log('Reading exported source from runtime...');
+    const exportedSource = await page.evaluate(() => {
+      const runtime = window.__ojs_runtime;
+      const allModules = [runtime];
+      if (runtime.mains) {
+        for (const mod of runtime.mains.values()) {
+          allModules.push(mod);
+        }
+      }
+      for (const mod of allModules) {
+        if (!mod._variables) continue;
+        for (const v of mod._variables) {
+          if (v._name === 'exported' && v._value && v._value.source) {
+            return v._value.source;
+          }
+        }
+      }
+      return null;
+    });
 
-    await download.saveAs(outputPath);
+    if (!exportedSource) {
+      throw new Error('Could not read exported.source from runtime');
+    }
+
+    fs.writeFileSync(outputPath, exportedSource);
 
     const fileSize = fs.statSync(outputPath).size;
     log(`Saved: ${outputPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
@@ -375,9 +418,25 @@ async function main() {
         maxBuffer: 100 * 1024 * 1024,
       });
       const specObj = JSON.parse(specStr);
-      specObj["observablehq.com"] = sourceUrl;
+      specObj["observablehq.com"] = primarySourceUrl;
+      if (sourceUrls.length > 1) {
+        specObj.primaries = sourceUrls.map((url, i) => ({
+          module: sourceNotebooks[i],
+          observableUrl: url,
+        }));
+      }
       if (theme && specObj.bootconf) {
         specObj.bootconf.theme = theme;
+      }
+      try {
+        const meta = await fetchObservableMetadata(primarySourceUrl);
+        if (meta) {
+          if (meta.observable_version != null) specObj.observable_version = meta.observable_version;
+          if (meta.observable_update_time) specObj.observable_update_time = meta.observable_update_time;
+          log(`Observable v${meta.observable_version} @ ${meta.observable_update_time}`);
+        }
+      } catch (e) {
+        log(`Warning: failed to fetch Observable metadata: ${e.message}`);
       }
       fs.writeFileSync(jsonPath, JSON.stringify(specObj, null, 2) + '\n');
       log(`Spec: ${jsonPath}`);
