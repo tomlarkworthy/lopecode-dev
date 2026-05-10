@@ -3,12 +3,80 @@ md`# @observablehq/lezer
 
 https://github.com/observablehq/lezer/blob/f8c6ad8354e88c26a0275eb9526d4c0e4fe6f9a4/dist/index.es.js`
 )};
-const _njiwcy = async function _lr() {
-    return await import('https://cdn.jsdelivr.net/npm/@lezer/lr@1.4.2/+esm');
+const _build_recipe = function _build_recipe(md){return(
+md`## Vendored libraries
+
+\`lr\` and \`lezerhighlight\` are loaded from local file attachments
+(\`lezer-lr-bundled.js.gz\`, \`lezer-highlight-bundled.js.gz\`) so the
+notebook works offline. Below is the recipe to regenerate them.
+
+### Recipe
+
+Run with \`bun\` ≥ 1.3:
+
+\`\`\`bash
+mkdir -p /tmp/lezer-build && cd /tmp/lezer-build
+cat > package.json <<'EOF'
+{
+  "name": "lezer-bundle",
+  "private": true,
+  "dependencies": {
+    "@lezer/lr": "1.4.2",
+    "@lezer/highlight": "1.2.1"
+  }
+}
+EOF
+echo "export * from '@lezer/lr';"        > entry-lr.js
+echo "export * from '@lezer/highlight';" > entry-highlight.js
+bun install
+bun build entry-lr.js        --target=browser --format=esm --minify --outfile=lezer-lr-bundled.js
+bun build entry-highlight.js --target=browser --format=esm --minify --outfile=lezer-highlight-bundled.js
+gzip -f lezer-lr-bundled.js lezer-highlight-bundled.js
+\`\`\`
+
+This produces \`lezer-lr-bundled.js.gz\` (~15 KB) and
+\`lezer-highlight-bundled.js.gz\` (~9 KB).
+
+### Why \`bun build\`
+
+The unmodified \`+esm\` builds on jsDelivr import \`@lezer/common\` from a
+relative \`/npm/...\` URL, which breaks under \`file://\`. \`bun build\`
+inlines that dependency so each output is fully self-contained — no
+external imports remain and no third-party source is modified.
+
+### Updating
+
+To bump versions, change the package.json deps and re-run the recipe.
+Then re-attach the resulting \`.js.gz\` files to this notebook
+(notebook menu → Attachments → drag-and-drop, replacing the existing
+attachments of the same name).`
+)};
+const _njiwcy = async function _lr(unzip, FileAttachment) {
+    const blob = await unzip(FileAttachment('lezer-lr-bundled.js.gz'));
+    const objectURL = URL.createObjectURL(new Blob([blob], { type: 'application/javascript' }));
+    try {
+        return await import(objectURL);
+    } finally {
+        URL.revokeObjectURL(objectURL);
+    }
 };
-const _11u4iwr = function _lezerhighlight() {
-    return import('https://cdn.jsdelivr.net/npm/@lezer/highlight@1.2.1/+esm');
+const _11u4iwr = async function _lezerhighlight(unzip, FileAttachment) {
+    const blob = await unzip(FileAttachment('lezer-highlight-bundled.js.gz'));
+    const objectURL = URL.createObjectURL(new Blob([blob], { type: 'application/javascript' }));
+    try {
+        return await import(objectURL);
+    } finally {
+        URL.revokeObjectURL(objectURL);
+    }
 };
+const _unzip_lezer = function _unzip(Response, DecompressionStream){return(
+async (attachment) => {
+  const response = await new Response(
+    (await attachment.stream()).pipeThrough(new DecompressionStream("gzip"))
+  );
+  return response.blob();
+}
+)};
 const _104y7ux = function _observable_lezer_parser(lezerhighlight,lr)
 {
   const { styleTags, tags } = lezerhighlight;
@@ -355,11 +423,27 @@ export default function define(runtime, observer) {
   const $def = (pid, name, deps, fn) => {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
+  const fileAttachments = new Map(["lezer-lr-bundled.js.gz","lezer-highlight-bundled.js.gz"].map((name) => {
+    const module_name = "@tomlarkworthy/observablehq-lezer";
+    const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
+    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
+    return [name, {url: blob_url, mimeType: mime}]
+  }));
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
 
-  $def("_o1w380", null, ["md"], _o1w380);  
-  $def("_njiwcy", "lr", [], _njiwcy);  
-  $def("_11u4iwr", "lezerhighlight", [], _11u4iwr);  
+  $def("_o1w380", null, ["md"], _o1w380);
+  $def("_build_recipe", null, ["md"], _build_recipe);
+  $def("_njiwcy", "lr", ["unzip","FileAttachment"], _njiwcy);
+  $def("_11u4iwr", "lezerhighlight", ["unzip","FileAttachment"], _11u4iwr);  
+  $def("_unzip_lezer", "unzip", ["Response","DecompressionStream"], _unzip_lezer);  
   $def("_104y7ux", "observable_lezer_parser", ["lezerhighlight","lr"], _104y7ux);  
-  $def("_usuk4", null, ["md"], _usuk4);
+  $def("_usuk4", null, ["md"], _usuk4);  
+  main.define("module @tomlarkworthy/codemirror-6-v2", async () => runtime.module((await import("/@tomlarkworthy/codemirror-6-v2.js?v=4")).default));  
+  main.define("codemirror", ["module @tomlarkworthy/codemirror-6-v2", "@variable"], (_, v) => v.import("codemirror", _));  
+  main.define("EditorView", ["module @tomlarkworthy/codemirror-6-v2", "@variable"], (_, v) => v.import("EditorView", _));  
+  main.define("EditorState", ["module @tomlarkworthy/codemirror-6-v2", "@variable"], (_, v) => v.import("EditorState", _));  
+  main.define("myDefaultTheme", ["module @tomlarkworthy/codemirror-6-v2", "@variable"], (_, v) => v.import("myDefaultTheme", _));  
+  main.define("module @tomlarkworthy/editor-5", async () => runtime.module((await import("/@tomlarkworthy/editor-5.js?v=4")).default));  
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
   return main;
 }

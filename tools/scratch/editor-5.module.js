@@ -797,42 +797,293 @@ new Map()
 const _mxwoc4 = function _cellIdFacet(codemirror){return(
 codemirror.Facet.define({ combine: (v) => v[0] })
 )};
-const _xljfx5 = function _editor_manager(editedCell,EditorState,decompiled,cellIdFacet,EditorView,states,codemirror,compile_and_update,code_editor_view,javascriptPlugin,myDefaultTheme)
-{
-  console.log("editor_manager start");
-  const key = editedCell.variables[0];
-  const state = EditorState.create({
-    doc: decompiled,
-    extensions: [
-      cellIdFacet.of(key),
-      EditorView.updateListener.of((update) => {
-        const key = update.state.facet(cellIdFacet);
-        states.set(key, update.state);
-      }),
-      codemirror.keymap.of([
-        codemirror.indentWithTab,
-        {
-          key: "Shift-Enter",
-          run: (view) => {
-            compile_and_update(
-              code_editor_view.state.doc.toString(),
-              editedCell.variables,
-              editedCell
-            );
-            return true;
-          }
-        }
-      ]),
-      codemirror.EditorView.lineWrapping,
-      javascriptPlugin.javascript(),
-      codemirror.basicSetup,
-      myDefaultTheme
-    ]
-  });
+const _1hihn84 = function _anonymous(md) {return (md`## LSP Integration
 
-  code_editor_view.setState(state);
-  states.set(key, state);
-  console.log("editor_manager stop");
+Observable JS lezer parser, runtime-aware autocomplete, parse-error squiggles. Plumbed into the cell editor below.`);};
+const _6ywxcn = function _observableJS_language(codemirror,observable_lezer_parser) {return (codemirror.LRLanguage.define({
+    name: 'observable-javascript',
+    parser: observable_lezer_parser.configure({
+        props: [
+            codemirror.indentNodeProp.add({
+                Block: codemirror.delimitedIndent({ closing: '}' }),
+                ArrowFunction: codemirror.continuedIndent({ except: /^\s*({|case|default)/ })
+            }),
+            codemirror.foldNodeProp.add({ 'Block ObjectExpression ArrayExpression': codemirror.foldInside })
+        ]
+    }),
+    languageData: {
+        commentTokens: {
+            line: '//',
+            block: {
+                open: '/*',
+                close: '*/'
+            }
+        },
+        indentOnInput: /^\s*[)\]}]$/,
+        closeBrackets: {
+            brackets: [
+                '(',
+                '[',
+                '{',
+                '\'',
+                '"',
+                '`'
+            ]
+        },
+        wordChars: '$_'
+    }
+}));};
+const _z5xs8n = function _observableJS_highlightStyle(codemirror,lezerhighlight) {return (codemirror.HighlightStyle.define([
+    {
+        tag: lezerhighlight.tags.keyword,
+        color: '#c678dd'
+    },
+    {
+        tag: lezerhighlight.tags.string,
+        color: '#98c379'
+    },
+    {
+        tag: lezerhighlight.tags.number,
+        color: '#d19a66'
+    },
+    {
+        tag: lezerhighlight.tags.comment,
+        color: '#5c6370',
+        fontStyle: 'italic'
+    },
+    {
+        tag: lezerhighlight.tags.function(lezerhighlight.tags.variableName),
+        color: '#61afef'
+    },
+    {
+        tag: lezerhighlight.tags.variableName,
+        color: '#e06c75'
+    },
+    {
+        tag: lezerhighlight.tags.propertyName,
+        color: '#abb2bf'
+    },
+    {
+        tag: lezerhighlight.tags.operator,
+        color: '#56b6c2'
+    }
+]));};
+const _oyo3b5 = function _observableJS_lint(codemirror) {return ([
+    codemirror.lintGutter(),
+    codemirror.linter(view => {
+        const {state} = view;
+        const tree = codemirror.syntaxTree(state);
+        const seen = new Set();
+        const diagnostics = [];
+        tree.iterate({
+            enter: ({type, from, to}) => {
+                if (!type.isError)
+                    return;
+                const end = to > from ? to : Math.min(from + 1, state.doc.length);
+                const key = from + ':' + end;
+                if (seen.has(key))
+                    return;
+                seen.add(key);
+                diagnostics.push({
+                    from,
+                    to: end,
+                    severity: 'error',
+                    message: 'Syntax error'
+                });
+            }
+        });
+        return diagnostics;
+    }, { delay: 250 }),
+    codemirror.keymap.of(codemirror.lintKeymap ?? []),
+    codemirror.EditorView.baseTheme({
+        '.cm-lintRange': {
+            textDecorationThickness: '2px',
+            textUnderlineOffset: '3px'
+        },
+        '.cm-lintRange.cm-lintRange-error': { textDecoration: 'underline wavy #e11' },
+        '.cm-tooltip.cm-tooltip-lint': { fontSize: '12px' }
+    })
+]);};
+const _xljfx5 = function _editor_manager(editedCell,globalThis,codemirror,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,observableJS_language,observableJS_highlightStyle,myDefaultTheme) {
+    const variable = editedCell.variables[0];
+    const key = variable;
+    const mod = variable && variable._module;
+    const builtin = mod?._runtime?._builtin?._scope;
+    const isInternal = n => n.startsWith('module @') || n.startsWith('@variable') || n.startsWith('__ojs_');
+    const isPrivate = n => n.startsWith('_') || /^(webkit|moz|ms)[A-Z]/.test(n);
+    const valueOf = v => {
+        try {
+            return v?._value;
+        } catch {
+            return undefined;
+        }
+    };
+    const lookup = n => {
+        if (mod?._scope?.has(n))
+            return valueOf(mod._scope.get(n));
+        if (builtin?.has(n))
+            return valueOf(builtin.get(n));
+        try {
+            return globalThis[n];
+        } catch {
+            return undefined;
+        }
+    };
+    const allNames = () => {
+        const out = new Set();
+        for (const n of mod?._scope?.keys() ?? [])
+            if (!isInternal(n))
+                out.add(n);
+        for (const n of builtin?.keys() ?? [])
+            if (!isInternal(n))
+                out.add(n);
+        for (const n of Object.getOwnPropertyNames(globalThis))
+            if (!isPrivate(n))
+                out.add(n);
+        return out;
+    };
+    const isNoise = n => n.startsWith('_') || [
+        'prototype',
+        'constructor',
+        'caller',
+        'callee',
+        'arguments',
+        'name',
+        'length'
+    ].includes(n);
+    const stopAt = new Set([
+        Object.prototype,
+        Function.prototype,
+        Array.prototype
+    ]);
+    const propsOf = obj => {
+        const out = [];
+        const seen = new Set();
+        for (let o = obj, d = 0; o && d < 4; o = Object.getPrototypeOf(o), d++) {
+            if (d > 0 && stopAt.has(o))
+                break;
+            for (const n of Object.getOwnPropertyNames(o)) {
+                if (seen.has(n) || isNoise(n))
+                    continue;
+                seen.add(n);
+                const desc = Object.getOwnPropertyDescriptor(o, n);
+                out.push({
+                    label: n,
+                    type: typeof desc?.value === 'function' ? 'function' : 'property'
+                });
+            }
+        }
+        return out;
+    };
+    const classify = v => {
+        if (typeof v === 'function')
+            return /^\s*class\b/.test(Function.prototype.toString.call(v)) ? 'class' : 'function';
+        return v === null ? 'null' : typeof v === 'object' ? 'variable' : typeof v;
+    };
+    const completionSource = cx => {
+        for (let n = codemirror.syntaxTree(cx.state).resolve(cx.pos, -1); n; n = n.parent) {
+            if (/String|Template|Comment/.test(n.name))
+                return null;
+        }
+        const before = cx.state.sliceDoc(cx.state.doc.lineAt(cx.pos).from, cx.pos);
+        const m = before.match(/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$\d]*)*)$/);
+        if (!m)
+            return null;
+        const chain = m[1].split('.');
+        const prefix = chain[chain.length - 1] ?? '';
+        const from = cx.pos - prefix.length;
+        if (!cx.explicit && prefix.length === 0 && chain.length === 1)
+            return null;
+        let options;
+        if (chain.length > 1) {
+            let base = lookup(chain[0]);
+            for (let i = 1; i < chain.length - 1; i++) {
+                try {
+                    base = base?.[chain[i]];
+                } catch {
+                    return null;
+                }
+                if (base == null)
+                    return null;
+            }
+            if (base == null)
+                return null;
+            options = propsOf(base).filter(o => o.label.startsWith(prefix));
+        } else {
+            options = [];
+            for (const n of allNames()) {
+                if (!n.startsWith(prefix) || isNoise(n))
+                    continue;
+                options.push({
+                    label: n,
+                    type: classify(lookup(n))
+                });
+            }
+        }
+        options.sort((a, b) => a.label.localeCompare(b.label));
+        return options.length ? {
+            from,
+            to: cx.pos,
+            options
+        } : null;
+    };
+    const lintSource = view => {
+        const seen = new Set();
+        const diags = [];
+        codemirror.syntaxTree(view.state).iterate({
+            enter: ({type, from, to}) => {
+                if (!type.isError)
+                    return;
+                const end = to > from ? to : Math.min(from + 1, view.state.doc.length);
+                const k = from + ':' + end;
+                if (seen.has(k))
+                    return;
+                seen.add(k);
+                diags.push({
+                    from,
+                    to: end,
+                    severity: 'error',
+                    message: 'Syntax error'
+                });
+            }
+        });
+        return diags;
+    };
+    const state = EditorState.create({
+        doc: decompiled,
+        extensions: [
+            cellIdFacet.of(key),
+            EditorView.updateListener.of(u => states.set(u.state.facet(cellIdFacet), u.state)),
+            codemirror.keymap.of([
+                codemirror.indentWithTab,
+                {
+                    key: 'Shift-Enter',
+                    run: () => (compile_and_update(code_editor_view.state.doc.toString(), editedCell.variables, editedCell), true)
+                }
+            ]),
+            codemirror.EditorView.lineWrapping,
+            observableJS_language,
+            codemirror.syntaxHighlighting(observableJS_highlightStyle),
+            codemirror.autocompletion({
+                override: [
+                    codemirror.localCompletionSource,
+                    completionSource
+                ]
+            }),
+            codemirror.lintGutter(),
+            codemirror.linter(lintSource, { delay: 250 }),
+            codemirror.EditorView.baseTheme({
+                '.cm-lintRange.cm-lintRange-error': {
+                    textDecoration: 'underline wavy #e11',
+                    textUnderlineOffset: '3px'
+                }
+            }),
+            codemirror.basicSetup,
+            myDefaultTheme
+        ]
+    });
+    code_editor_view.setState(state);
+    states.set(key, state);
 };
 const _65mlp5 = function _divToCell(){return(
 (entries, div) => {
@@ -1370,7 +1621,11 @@ export default function define(runtime, observer) {
   $def("_1jadxoe", null, ["md"], _1jadxoe);  
   $def("_m873d1", "states", [], _m873d1);  
   $def("_mxwoc4", "cellIdFacet", ["codemirror"], _mxwoc4);  
-  $def("_xljfx5", "editor_manager", ["editedCell","EditorState","decompiled","cellIdFacet","EditorView","states","codemirror","compile_and_update","code_editor_view","javascriptPlugin","myDefaultTheme"], _xljfx5);  
+  $def("_1hihn84", null, ["md"], _1hihn84);  
+  $def("_6ywxcn", "observableJS_language", ["codemirror","observable_lezer_parser"], _6ywxcn);  
+  $def("_z5xs8n", "observableJS_highlightStyle", ["codemirror","lezerhighlight"], _z5xs8n);  
+  $def("_oyo3b5", "observableJS_lint", ["codemirror"], _oyo3b5);  
+  $def("_xljfx5", "editor_manager", ["editedCell","globalThis","codemirror","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","observableJS_language","observableJS_highlightStyle","myDefaultTheme"], _xljfx5);  
   $def("_65mlp5", "divToCell", [], _65mlp5);  
   $def("_1jt3c14", null, ["md"], _1jt3c14);  
   $def("_jh2ad1", "editor_refresh_from_runtime", ["editedCell","decompile","code_editor_view","replaceCodeMirrorDoc","queueMicrotask","onCodeChange","invalidation"], _jh2ad1);  
@@ -1450,6 +1705,9 @@ export default function define(runtime, observer) {
   main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));  
   main.define("extractNotebookAndCell", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("extractNotebookAndCell", _));  
   main.define("navHref", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("navHref", _));  
-  main.define("cellsToClipboard", ["module @tomlarkworthy/cells-to-clipboard", "@variable"], (_, v) => v.import("cellsToClipboard", _));
+  main.define("cellsToClipboard", ["module @tomlarkworthy/cells-to-clipboard", "@variable"], (_, v) => v.import("cellsToClipboard", _));  
+  main.define("module @tomlarkworthy/observablehq-lezer", async () => runtime.module((await import("/@tomlarkworthy/observablehq-lezer.js?v=4")).default));  
+  main.define("observable_lezer_parser", ["module @tomlarkworthy/observablehq-lezer", "@variable"], (_, v) => v.import("observable_lezer_parser", _));  
+  main.define("lezerhighlight", ["module @tomlarkworthy/observablehq-lezer", "@variable"], (_, v) => v.import("lezerhighlight", _));
   return main;
 }
