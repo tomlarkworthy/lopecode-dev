@@ -83,6 +83,15 @@ function extractModuleContent(html: string, moduleId: string): string | null {
   return m ? m[1].replace(/^\n/, "").replace(/\n$/, "") : null;
 }
 
+function extractAttachmentBlocks(html: string, moduleId: string): { id: string; block: string }[] {
+  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`<script\\s+id="(${escaped}/[^"]+)"[^>]*>[\\s\\S]*?</script>`, "g");
+  const out: { id: string; block: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) out.push({ id: m[1], block: m[0] });
+  return out;
+}
+
 function readModuleSource(
   sourcePath: string,
   moduleId: string
@@ -107,6 +116,20 @@ function readModuleSource(
   }
 }
 
+function upsertBlock(html: string, blockId: string, block: string): { html: string; action: "updated" | "inserted" } {
+  const escaped = blockId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`);
+  const existing = html.match(re);
+  if (existing) {
+    const idx = html.indexOf(existing[0]);
+    return { html: html.slice(0, idx) + block + html.slice(idx + existing[0].length), action: "updated" };
+  }
+  const marker = "<!-- Bootloader -->";
+  const idx = html.lastIndexOf(marker);
+  if (idx === -1) throw new Error("Could not find '<!-- Bootloader -->' marker in HTML");
+  return { html: html.slice(0, idx) + block + "\n\n" + html.slice(idx), action: "inserted" };
+}
+
 function inject(
   sourcePath: string,
   targetPath: string,
@@ -115,31 +138,22 @@ function inject(
   let html = readFileSync(targetPath, "utf8");
   const { content, isJs } = readModuleSource(sourcePath, moduleId);
 
-  // Build the script block
-  const scriptBlock = `<script id="${moduleId}"\n  type="text/plain"\n  data-mime="application/javascript"\n>\n${content}\n</script>`;
+  // Module script block
+  const moduleBlock = `<script id="${moduleId}"\n  type="text/plain"\n  data-mime="application/javascript"\n>\n${content}\n</script>`;
+  const modR = upsertBlock(html, moduleId, moduleBlock);
+  html = modR.html;
+  console.log(`${modR.action === "updated" ? "Updated existing" : "Inserted new"} ${moduleId} module`);
 
-  // Check if module already exists in target
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const scriptPattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
-  );
-  const existing = html.match(scriptPattern);
-
-  if (existing) {
-    // Replace in-place using indexOf+slice (avoids $ interpretation in String.replace)
-    const idx = html.indexOf(existing[0]);
-    html = html.slice(0, idx) + scriptBlock + html.slice(idx + existing[0].length);
-    console.log(`Updated existing ${moduleId} module`);
-  } else {
-    // Insert before bootloader
-    const bootconfMarker = "<!-- Bootloader -->";
-    const bootconfIdx = html.lastIndexOf(bootconfMarker);
-    if (bootconfIdx === -1) {
-      console.error("Could not find '<!-- Bootloader -->' marker in HTML");
-      process.exit(1);
+  // File-attachment script blocks (only when source is an HTML notebook)
+  if (!isJs && extname(sourcePath).toLowerCase() === ".html") {
+    const srcHtml = readFileSync(sourcePath, "utf8");
+    const attachments = extractAttachmentBlocks(srcHtml, moduleId);
+    for (const att of attachments) {
+      const r = upsertBlock(html, att.id, att.block);
+      html = r.html;
+      console.log(`  ${r.action === "updated" ? "updated" : "inserted"} attachment ${att.id}`);
     }
-    html = html.slice(0, bootconfIdx) + scriptBlock + "\n\n" + html.slice(bootconfIdx);
-    console.log(`Inserted new ${moduleId} module`);
+    if (attachments.length === 0) console.log(`  (no file attachments for ${moduleId})`);
   }
 
   writeFileSync(targetPath, html);
