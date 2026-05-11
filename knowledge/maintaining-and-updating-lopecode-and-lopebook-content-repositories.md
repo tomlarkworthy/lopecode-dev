@@ -149,6 +149,89 @@ git push
 cd ..
 ```
 
+### Mass-fix Workflow: One Module → All Consumer Notebooks
+
+When fixing a shared module (e.g., the bootloader, file-sync, editor-5) you need to land the same change in every notebook that embeds that module as a `<script id="@author/module">` block. Five phases, in order:
+
+**1. Edit and verify locally.** Edit the cell via the pairing channel or by syncing a `.js` source into one canary notebook. Reload and confirm the fix works in the browser.
+
+**2. Open a PR on the lopecode submodule for human review.** The PR should contain *only* the surgical edit to the canonical notebook (e.g., `lopecode/notebooks/@tomlarkworthy_bootloader.html` if the module ships in the bootloader). The mass-sync churn comes later.
+
+```bash
+git -C lopecode checkout -b fix-foo
+git -C lopecode add notebooks/@tomlarkworthy_bootloader.html
+git -C lopecode commit -m "..."
+git -C lopecode push -u origin fix-foo
+cd lopecode && gh pr create --title "..." --body "..." && cd ..
+```
+
+**3. After PR merge, push the cell back to ObservableHQ** (Observable is the source of truth — see `knowledge/pushing-cells-to-observablehq.md`):
+
+```bash
+node --experimental-vm-modules tools/lope-push-ws.js \
+  lopecode/notebooks/@tomlarkworthy_bootloader.html \
+  --module @tomlarkworthy/bootloader \
+  --cookies-file tools/.observable-cookies.json \
+  --cells inputs
+```
+
+The decompilation phase prints one `error loading module module @tomlarkworthy/X RuntimeError: Module status must not be unlinked or linking` per transitive import. These are **non-fatal** — wait for `Push complete!`.
+
+**4. Re-jumpgate the canonical notebook.** This canonicalises the artifact against ObservableHQ so downstream syncs use a real export, not your hand-patched HTML:
+
+```bash
+node tools/lope-jumpgate.js \
+  --source @tomlarkworthy/bootloader \
+  --output lopecode/notebooks/@tomlarkworthy_bootloader.html
+```
+
+The diff will be enormous (often 10-20k lines for a 6-line semantic change — Observable reorders things on export). **Trust `grep -c` of your marker string**, not the line count. Verify by reading the cell body in the new file, not the diff.
+
+**5. Bulk-sync to all consumers.** `tools/channel/sync-module.ts` accepts repeatable `--target` flags and glob patterns. It byte-preserves the source's `<script>` tag, so re-syncs against an unchanged source produce zero diff:
+
+```bash
+bun tools/channel/sync-module.ts \
+  --module @tomlarkworthy/bootloader \
+  --source lopecode/notebooks/@tomlarkworthy_bootloader.html \
+  --target "lopecode/notebooks/*.html" \
+  --target "lopebooks/notebooks/*.html"
+```
+
+The source path is auto-excluded from glob expansion, so it never overwrites itself. Output is `updated=N inserted=M unchanged=K failed=L (T targets)`.
+
+**6. Commit + push the mass changes**, then bump submodule pointers in the outer repo:
+
+```bash
+git -C lopecode commit -am "Sync <module> fix into N consumer notebooks" && git -C lopecode push origin main
+git -C lopebooks commit -am "Sync <module> fix into N consumer notebooks" && git -C lopebooks push origin main
+# Outer repo: update submodule pointers without checking out the submodules
+git update-index --cacheinfo 160000,<lopecode-sha>,lopecode
+git update-index --cacheinfo 160000,<lopebooks-sha>,lopebooks
+git commit -m "Bump submodules: <module> fix" && git push origin main
+```
+
+#### Gotcha: lopebooks may be on a detached HEAD
+
+The lopebooks submodule often sits at a detached HEAD that's one commit ahead of `main` (in-progress work from another session). Attach to main *without* disturbing the working tree:
+
+```bash
+git -C lopebooks update-ref refs/heads/main HEAD
+git -C lopebooks symbolic-ref HEAD refs/heads/main
+```
+
+Don't `git checkout main` — that overwrites your synced notebooks with the old `main` content.
+
+#### Gotcha: pre-push divergence recovery
+
+If `git push origin main` is rejected because someone else (or another worktree) pushed in the meantime:
+
+1. `git -C <submodule> reset --hard origin/main` — drop your local commit and adopt theirs.
+2. Recover any *new* files from your dropped commit via the reflog: `git -C <submodule> show <reflog-sha>:path/to/new-file.html > path/to/new-file.html`.
+3. Re-run the bulk sync (step 5) — it's idempotent against the canonical source.
+4. Re-commit and push.
+
+The bulk sync is safe to re-run because `sync-module.ts` byte-compares the existing script block against the source's; identical blocks are skipped (`unchanged=N`).
+
 ### Replacing a Notebook (e.g., exporter → exporter-2)
 
 ```bash

@@ -5,32 +5,39 @@
  * Usage:
  *   bun tools/channel/sync-module.ts --module @author/name --source src --target dest.html
  *   bun tools/channel/sync-module.ts --module @author/name --source src --target dest.html --watch
+ *   bun tools/channel/sync-module.ts --module @author/name --source src --target a.html --target b.html
+ *   bun tools/channel/sync-module.ts --module @author/name --source src --target "lopebooks/notebooks/*.html"
  *
  * Source can be:
  *   - A .js file containing the module's define() function
  *   - A .html notebook file containing a <script id="@author/name"> block
  *
  * If source is a .js file that doesn't exist, extracts the module from target first,
- * creating the .js file as a starting point for editing.
+ * creating the .js file as a starting point for editing. (Single-target mode only.)
  *
- * Target must be an .html notebook file.
+ * Target must be an .html notebook file. `--target` can be passed multiple times
+ * and accepts glob patterns (expanded via Bun.Glob, so quoted globs work too).
+ * The source file is auto-excluded from any glob expansion so it never overwrites itself.
  *
  * This:
  * 1. Reads module content from source (.js file or .html <script> block)
  * 2. If the module <script> already exists in target, replaces its content (upsert)
  * 3. If not, inserts it before the bootloader marker
- * 4. Ensures the module is in bootconf.json mains
- * 5. Updates the hash URL to include the module in the layout
+ *
+ * In multi-target mode `--watch` is disallowed and the per-target "Wrote ..." log
+ * is collapsed to one line per target plus a final `updated=N unchanged=M failed=K`
+ * summary.
  */
 
-import { readFileSync, writeFileSync, existsSync, watch } from "fs";
+import { readFileSync, writeFileSync, existsSync, watch, statSync } from "fs";
 import { resolve, extname } from "path";
+import { Glob } from "bun";
 
 function parseArgs() {
   const args = process.argv.slice(2);
   let moduleName = "";
   let sourcePath = "";
-  let targetPath = "";
+  const rawTargets: string[] = [];
   let watchMode = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -42,7 +49,7 @@ function parseArgs() {
         sourcePath = args[++i];
         break;
       case "--target":
-        targetPath = args[++i];
+        rawTargets.push(args[++i]);
         break;
       case "--watch":
         watchMode = true;
@@ -50,9 +57,9 @@ function parseArgs() {
     }
   }
 
-  if (!moduleName || !sourcePath || !targetPath) {
+  if (!moduleName || !sourcePath || rawTargets.length === 0) {
     console.error(
-      "Usage: bun tools/channel/sync-module.ts --module <@author/name> --source <file> --target <notebook.html> [--watch]"
+      "Usage: bun tools/channel/sync-module.ts --module <@author/name> --source <file> --target <notebook.html> [--target <more>...] [--watch]"
     );
     process.exit(1);
   }
@@ -60,12 +67,33 @@ function parseArgs() {
   return {
     moduleName,
     sourcePath: resolve(sourcePath),
-    targetPath: resolve(targetPath),
+    rawTargets,
     watchMode,
   };
 }
 
-function extractModuleFromHtml(html: string, moduleId: string): string | null {
+function expandTargets(rawTargets: string[], sourcePath: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of rawTargets) {
+    const matches: string[] = [];
+    if (/[*?[\]]/.test(raw)) {
+      const glob = new Glob(raw);
+      for (const match of glob.scanSync(".")) matches.push(resolve(match));
+    } else {
+      matches.push(resolve(raw));
+    }
+    for (const m of matches) {
+      if (m === sourcePath) continue; // don't sync source onto itself
+      if (seen.has(m)) continue;
+      seen.add(m);
+      out.push(m);
+    }
+  }
+  return out;
+}
+
+function extractModuleScriptTag(html: string, moduleId: string): string | null {
   const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(
     `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
@@ -83,82 +111,68 @@ function extractModuleContent(html: string, moduleId: string): string | null {
   return m ? m[1].replace(/^\n/, "").replace(/\n$/, "") : null;
 }
 
-function extractAttachmentBlocks(html: string, moduleId: string): { id: string; block: string }[] {
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`<script\\s+id="(${escaped}/[^"]+)"[^>]*>[\\s\\S]*?</script>`, "g");
-  const out: { id: string; block: string }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html))) out.push({ id: m[1], block: m[0] });
-  return out;
-}
-
-function readModuleSource(
-  sourcePath: string,
-  moduleId: string
-): { content: string; isJs: boolean } {
+/**
+ * Read the source and return the literal `<script>...</script>` block to
+ * splice into targets. For .html sources we preserve the source's script tag
+ * byte-exact (no wrapper rebuild) so re-syncs against an unchanged source
+ * produce zero diff. For .js sources we wrap in the canonical template.
+ */
+function readSourceScriptBlock(sourcePath: string, moduleId: string): string {
   const ext = extname(sourcePath).toLowerCase();
 
   if (ext === ".js" || ext === ".ts") {
-    return { content: readFileSync(sourcePath, "utf8"), isJs: true };
+    return buildScriptBlock(moduleId, readFileSync(sourcePath, "utf8"));
   } else if (ext === ".html") {
     const html = readFileSync(sourcePath, "utf8");
-    const content = extractModuleContent(html, moduleId);
-    if (!content) {
-      console.error(
-        `Module ${moduleId} not found in ${sourcePath}`
-      );
+    const block = extractModuleScriptTag(html, moduleId);
+    if (!block) {
+      console.error(`Module ${moduleId} not found in ${sourcePath}`);
       process.exit(1);
     }
-    return { content, isJs: false };
+    return block;
   } else {
     console.error(`Unsupported source file type: ${ext}`);
     process.exit(1);
   }
 }
 
-function upsertBlock(html: string, blockId: string, block: string): { html: string; action: "updated" | "inserted" } {
-  const escaped = blockId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`);
-  const existing = html.match(re);
-  if (existing) {
-    const idx = html.indexOf(existing[0]);
-    return { html: html.slice(0, idx) + block + html.slice(idx + existing[0].length), action: "updated" };
-  }
-  const marker = "<!-- Bootloader -->";
-  const idx = html.lastIndexOf(marker);
-  if (idx === -1) throw new Error("Could not find '<!-- Bootloader -->' marker in HTML");
-  return { html: html.slice(0, idx) + block + "\n\n" + html.slice(idx), action: "inserted" };
-}
+type InjectResult = "updated" | "inserted" | "unchanged";
 
 function inject(
-  sourcePath: string,
+  scriptBlock: string,
   targetPath: string,
   moduleId: string
-): void {
+): InjectResult {
   let html = readFileSync(targetPath, "utf8");
-  const { content, isJs } = readModuleSource(sourcePath, moduleId);
 
-  // Module script block
-  const moduleBlock = `<script id="${moduleId}"\n  type="text/plain"\n  data-mime="application/javascript"\n>\n${content}\n</script>`;
-  const modR = upsertBlock(html, moduleId, moduleBlock);
-  html = modR.html;
-  console.log(`${modR.action === "updated" ? "Updated existing" : "Inserted new"} ${moduleId} module`);
+  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const scriptPattern = new RegExp(
+    `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
+  );
+  const existing = html.match(scriptPattern);
 
-  // File-attachment script blocks (only when source is an HTML notebook)
-  if (!isJs && extname(sourcePath).toLowerCase() === ".html") {
-    const srcHtml = readFileSync(sourcePath, "utf8");
-    const attachments = extractAttachmentBlocks(srcHtml, moduleId);
-    for (const att of attachments) {
-      const r = upsertBlock(html, att.id, att.block);
-      html = r.html;
-      console.log(`  ${r.action === "updated" ? "updated" : "inserted"} attachment ${att.id}`);
+  let next: string;
+  let kind: InjectResult;
+  if (existing) {
+    if (existing[0] === scriptBlock) return "unchanged";
+    const idx = html.indexOf(existing[0]);
+    next = html.slice(0, idx) + scriptBlock + html.slice(idx + existing[0].length);
+    kind = "updated";
+  } else {
+    const bootconfMarker = "<!-- Bootloader -->";
+    const bootconfIdx = html.lastIndexOf(bootconfMarker);
+    if (bootconfIdx === -1) {
+      throw new Error("Could not find '<!-- Bootloader -->' marker in HTML");
     }
-    if (attachments.length === 0) console.log(`  (no file attachments for ${moduleId})`);
+    next = html.slice(0, bootconfIdx) + scriptBlock + "\n\n" + html.slice(bootconfIdx);
+    kind = "inserted";
   }
+  writeFileSync(targetPath, next);
+  return kind;
+}
 
-  writeFileSync(targetPath, html);
-  const size = (html.length / 1024 / 1024).toFixed(2);
-  console.log(`Wrote ${targetPath} (${size} MB)`);
+function buildScriptBlock(moduleId: string, content: string): string {
+  return `<script id="${moduleId}"\n  type="text/plain"\n  data-mime="application/javascript"\n>\n${content}\n</script>`;
 }
 
 function extractToJs(targetPath: string, moduleId: string, jsPath: string): void {
@@ -172,20 +186,81 @@ function extractToJs(targetPath: string, moduleId: string, jsPath: string): void
   console.log(`Extracted ${moduleId} from ${targetPath} → ${jsPath}`);
 }
 
-// CLI
-const { moduleName, sourcePath, targetPath, watchMode } = parseArgs();
+function syncAll(
+  sourcePath: string,
+  targetPaths: string[],
+  moduleId: string,
+  verbose: boolean
+): void {
+  const scriptBlock = readSourceScriptBlock(sourcePath, moduleId);
 
-// If source is .js and doesn't exist, extract from target first
-const sourceExt = extname(sourcePath).toLowerCase();
-if ((sourceExt === ".js" || sourceExt === ".ts") && !existsSync(sourcePath)) {
-  console.log(`Source ${sourcePath} not found — extracting from target`);
-  extractToJs(targetPath, moduleName, sourcePath);
+  if (targetPaths.length === 1) {
+    const t = targetPaths[0];
+    const result = inject(scriptBlock, t, moduleId);
+    if (result === "unchanged") {
+      console.log(`Unchanged ${moduleId} in ${t} (already byte-exact)`);
+      return;
+    }
+    const size = (statSync(t).size / 1024 / 1024).toFixed(2);
+    console.log(
+      result === "updated"
+        ? `Updated existing ${moduleId} module`
+        : `Inserted new ${moduleId} module`
+    );
+    console.log(`Wrote ${t} (${size} MB)`);
+    return;
+  }
+
+  let updated = 0, inserted = 0, unchanged = 0, failed = 0;
+  for (const target of targetPaths) {
+    try {
+      const r = inject(scriptBlock, target, moduleId);
+      if (r === "updated") updated++;
+      else if (r === "inserted") inserted++;
+      else unchanged++;
+      if (verbose) console.log(`${r.padEnd(9)} ${target}`);
+    } catch (e: any) {
+      failed++;
+      console.error(`FAIL ${target}: ${e.message}`);
+    }
+  }
+  console.log(
+    `Done. updated=${updated} inserted=${inserted} unchanged=${unchanged} failed=${failed} (${targetPaths.length} targets)`
+  );
 }
 
-// Initial injection
-inject(sourcePath, targetPath, moduleName);
+// CLI
+const { moduleName, sourcePath, rawTargets, watchMode } = parseArgs();
+const targetPaths = expandTargets(rawTargets, sourcePath);
+
+if (targetPaths.length === 0) {
+  console.error("No targets matched (after excluding source). Nothing to do.");
+  process.exit(1);
+}
+
+if (watchMode && targetPaths.length > 1) {
+  console.error("--watch is only supported with a single target.");
+  process.exit(1);
+}
+
+// If source is .js and doesn't exist, extract from target first (single-target only).
+const sourceExt = extname(sourcePath).toLowerCase();
+if ((sourceExt === ".js" || sourceExt === ".ts") && !existsSync(sourcePath)) {
+  if (targetPaths.length !== 1) {
+    console.error(
+      `Source ${sourcePath} not found and multiple targets given — refusing to guess which to extract from.`
+    );
+    process.exit(1);
+  }
+  console.log(`Source ${sourcePath} not found — extracting from target`);
+  extractToJs(targetPaths[0], moduleName, sourcePath);
+}
+
+// Initial sync
+syncAll(sourcePath, targetPaths, moduleName, process.env.VERBOSE === "1");
 
 if (watchMode) {
+  const target = targetPaths[0];
   console.log(`Watching ${sourcePath} for changes...`);
   let debounce: ReturnType<typeof setTimeout> | null = null;
   watch(sourcePath, () => {
@@ -195,7 +270,7 @@ if (watchMode) {
         `\n${new Date().toLocaleTimeString()} — source changed, re-injecting...`
       );
       try {
-        inject(sourcePath, targetPath, moduleName);
+        syncAll(sourcePath, [target], moduleName, false);
       } catch (e: any) {
         console.error("Injection failed:", e.message);
       }
