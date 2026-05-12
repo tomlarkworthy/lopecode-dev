@@ -4,6 +4,10 @@
 
 This repository is designed for agentic development of **lopecode** - a modular, self-serializing notebook system built on the Observable reactive runtime. Cells declare dependencies and automatically recompute when upstream values change — the runtime handles scheduling, not the programmer.
 
+## The Lopecode Project
+
+The aim of Lopecode is to make interactive digatal knowledge creation easier. Easier to author (through bundled authoring tooling), easier to disseminate (via single files with no special runtime, and multiple ways of sharing them (atproto, static file hosting, slack)).
+
 ### What is Lopecode?
 
 Lopecode notebooks are single HTML files (1-3MB each). Everything inside is stored uniformly as `<script type="text/plain">` blocks with an `id`, a `data-mime`, and an optional `data-encoding="base64"`. Resolved at runtime via `window.lopecode.contentSync(id)`. By convention:
@@ -20,7 +24,7 @@ The preferred harness is `./metadev`, which uses [safehouse](https://github.com/
 
 ### Source of Truth
 
-**ObservableHQ.com is the canonical source code.** The HTML files in `lopecode/notebooks/` and `lopebooks/notebooks/` are generated artifacts bundled from Observable via jumpgate. When a module changes, update it on ObservableHQ first, then regenerate the affected HTML files. See `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` for the full workflow.
+**ObservableHQ.com is a replica** The HTML files in `lopecode/notebooks/` and `lopebooks/notebooks/` are content respositories for core and user notebooks. When a module changes, sync the changes to ObservableHQ. See `knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` for the full workflow.
 
 ### File Structure
 
@@ -128,6 +132,7 @@ Since re-exporting is a human-driven process, agents should:
 | `@tomlarkworthy/exporter` | Self-serialization to HTML |
 | `@tomlarkworthy/lopepage` | Multi-notebook UI layout |
 | `@tomlarkworthy/editor-5` | CodeMirror-based code editor (latest) |
+| `@tomlarkworthy/observablehq-lezer` | Vendored Observable-JS lezer parser used by editor-5. Built from the dormant [observablehq/lezer](https://github.com/observablehq/lezer) (last commit 2022); grammar does **not** support `?.[` / `?.(` (optional-chain computed-access / optional call) — these render as red squiggles via the lint extension. Migration tracked in issue #23. |
 | `@tomlarkworthy/view` | Composite views and reactive forms |
 | `@tomlarkworthy/testing` | Reactive unit testing |
 | `@tomlarkworthy/robocoop` | AI collaboration features |
@@ -149,7 +154,7 @@ bun test tests/channel/lopecode-channel.test.ts
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
 7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
-8. **After editing module `.js` files** - Sync to the target notebook with `bun tools/channel/sync-module.ts --module @name --source file.js --target notebook.html`, then tell the user to hard reload (Cmd+Shift+R)
+8. **After editing module `.js` files** - Sync to the target notebook with `bun tools/channel/sync-module.ts --module @name --source file.js --target notebook.html`, then tell the user to hard reload (Cmd+Shift+R). `--target` can be passed multiple times or given a quoted glob (e.g. `--target "lopebooks/notebooks/*.html"`); the source is auto-excluded so it never overwrites itself. Sync-module only handles the module `<script>` block — if the module owns file attachments and the target lacks them, re-jumpgate that target.
 9. **Prefer imports over private APIs** — Never access private runtime properties (`mod._runtime`, `variable._module`) or internal builtins (`__ojs_runtime`) when the same value is available as an import. Use `@tomlarkworthy/runtime-sdk` for `runtime`, `main`, `onCodeChange`, `importShim`. Use `@tomlarkworthy/fileattachments` for `getFileAttachmentsMap`. Imports are stable, private APIs break.
 10. **Blank notebook (theme but no content)?** - Check the `bootconf.json` script in the HTML. An empty `"mains": []` means no modules are booted. Fix by adding lopepage and the main module name (e.g. `["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"]`)
 11. **Use `git -C <path>` instead of `cd <path> && git ...`** - Chained `cd` commands silently leave you in the wrong directory if any earlier command fails (the `&&` short-circuits but the shell's cwd is already changed). `git -C <submodule> status` is unambiguous and stateless. Same applies to running tools across both `lopecode/` and `lopebooks/` submodules in one session.
