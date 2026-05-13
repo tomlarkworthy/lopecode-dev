@@ -25,3 +25,6 @@
 [submodule "vendor/contrail"]
 	path = vendor/contrail
 	url = https://github.com/flo-bit/contrail
+[submodule "vendor/golden-layout"]
+	path = vendor/golden-layout
+	url = https://github.com/golden-layout/golden-layout.git

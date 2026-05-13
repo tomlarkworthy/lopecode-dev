@@ -813,49 +813,77 @@ async function replaceCellsViaWS(conn, existingNodes, decompiled, options) {
 
   // Match cells
   const matches = [];
+  const inserts = [];
   for (const [name, source] of replacements) {
     const existing = existingByName.get(name);
     if (existing) {
       matches.push({ name, nodeId: existing.id, newSource: source, oldSource: existing.value });
     } else {
-      log(`Warning: cell "${name}" not found in target notebook — skipping`);
+      inserts.push({ name, newSource: source });
     }
   }
 
-  if (matches.length === 0) {
+  if (matches.length === 0 && inserts.length === 0) {
     log('No matching cells found for replacement.');
     log(`Looked for: ${[...replacements.keys()].join(', ')}`);
     log(`Found in target: ${existingNodes.filter(n => extractCellName(n.value)).map(n => extractCellName(n.value)).join(', ')}`);
     return;
   }
 
-  log(`Replacing ${matches.length} cell(s): ${matches.map(m => m.name).join(', ')}`);
-
-  for (const { name, nodeId, newSource, oldSource } of matches) {
-    if (newSource === oldSource) {
-      log(`  "${name}" — unchanged, skipping`);
-      continue;
+  if (matches.length > 0) {
+    log(`Replacing ${matches.length} cell(s): ${matches.map(m => m.name).join(', ')}`);
+    for (const { name, nodeId, newSource, oldSource } of matches) {
+      if (newSource === oldSource) {
+        log(`  "${name}" — unchanged, skipping`);
+        continue;
+      }
+      const newVersion = version + 1;
+      log(`  "${name}" (node ${nodeId}) — updating...`);
+      conn.send({
+        type: 'save',
+        events: [{
+          version: newVersion,
+          type: 'modify_node',
+          node_id: nodeId,
+          new_node_value: newSource,
+        }],
+        edits: [],
+        version,
+        subversion,
+      });
+      const confirm = await waitForConfirm(conn.ws, newVersion, options);
+      version = confirm.version;
+      subversion = confirm.subversion;
     }
+  }
 
-    const newVersion = version + 1;
-    log(`  "${name}" (node ${nodeId}) — updating...`);
-
-    conn.send({
-      type: 'save',
-      events: [{
-        version: newVersion,
-        type: 'modify_node',
-        node_id: nodeId,
-        new_node_value: newSource,
-      }],
-      edits: [],
-      version,
-      subversion,
-    });
-
-    const confirm = await waitForConfirm(conn.ws, newVersion, options);
-    version = confirm.version;
-    subversion = confirm.subversion;
+  if (inserts.length > 0) {
+    log(`Inserting ${inserts.length} new cell(s): ${inserts.map(i => i.name).join(', ')}`);
+    for (const { name, newSource } of inserts) {
+      const newVersion = version + 1;
+      const nodeId = newVersion;
+      log(`  "${name}" — inserting at end (node ${nodeId})...`);
+      conn.send({
+        type: 'save',
+        events: [{
+          version: newVersion,
+          type: 'insert_node',
+          node_id: nodeId,
+          new_next_node_id: null,
+          new_node_value: newSource,
+          new_node_pinned: false,
+          new_node_mode: 'js',
+          new_node_data: null,
+          new_node_name: null,
+        }],
+        edits: [],
+        version,
+        subversion,
+      });
+      const confirm = await waitForConfirm(conn.ws, newVersion, options);
+      version = confirm.version;
+      subversion = confirm.subversion;
+    }
   }
 }
 
