@@ -169,7 +169,7 @@ When the user asks to start/open a lopecode notebook, or start a pairing/collabo
 1. Call get_pairing_token to get the token (format: LOPE-PORT-XXXX)
 2. Find the local notebook HTML file (e.g. lopecode/notebooks/@tomlarkworthy_blank-notebook.html or lopebooks/notebooks/...)
 3. Construct a file:// URL with the hash layout and cc=TOKEN parameter:
-   file:///absolute/path/to/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&open=@tomlarkworthy/claude-code-pairing&cc=TOKEN
+   file:///absolute/path/to/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
 4. Use the open_url tool to open it (this preserves hash fragments on file:// URLs — the macOS open command strips them)
 5. Wait for the connected notification
 6. Send a welcome message via reply
