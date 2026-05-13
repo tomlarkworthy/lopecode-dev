@@ -245,12 +245,17 @@ Use run_tests to execute all test_* cells.
 ## Tool guidance
 
 - define_cell: PRIMARY tool for creating content. Accepts Observable source, compiles via toolchain. Use for almost everything.
-- eval_code: For throwaway/ephemeral actions. Lost on reload. NEVER use define_cell for one-off side effects. Common uses:
+- update_cell: Replace an existing cell's source in place. Targets a single variable by \`pid\` (preferred — survives renames) or \`name\`. Preserves position in the runtime variable Set (display order) and reuses an anonymous cell's identity instead of appending a duplicate. Use this for editing markdown/anonymous cells that \`define_cell\` would otherwise duplicate.
+- delete_cell: Remove a single cell by \`pid\` or \`name\`. Use this for anonymous cells (markdown, tests, broken cells) that \`delete_variable\` can't target.
+- list_cells: Includes anonymous cells by default — each entry has a \`pid\` (the addressable identifier for \`update_cell\`/\`delete_cell\`).
+- eval_code: For throwaway/ephemeral actions. Lost on reload. NEVER use define_cell for one-off side effects. Code body runs inside an async IIFE — use \`return\` to send a value back, and you can use top-level \`await\` and \`await import(...)\`. Common uses:
   - Reload the page: \`location.reload()\` — use after sync-module to pick up changes, or to fix broken runtime state
-  - DOM inspection: \`document.querySelector('.foo')?.textContent\`
-  - Debugging: \`runtime._variables.size\`
+  - DOM inspection: \`return document.querySelector('.foo')?.textContent\`
+  - Debugging: \`return runtime._variables.size\`
 - define_variable: Low-level escape hatch with explicit function string + inputs array. Use when you need precise control over variable names and inputs that the compiler might mangle.
-- export_notebook: Persists all runtime state to the HTML file. Call after defining cells so they survive reloads. ALWAYS export before pushing to Observable.
+- run_tests: Run \`test_*\` variables and return pass/fail/timeout results. Prefer this over inspecting \`viewof suite\` internals with \`eval_code\` after a \`define_cell\` that adds a test.
+- export_notebook: Persists ALL runtime state to the HTML file — re-serializes every embedded module, producing large incidental diffs. Use export_module for scoped, single-module edits where you don't want every other module's <script> rewritten.
+- export_module: Surgically writes one module's compiled \`<script>\` block back to disk, leaving the other modules byte-identical. Preferred for bug-fix or feature commits scoped to a single module — keeps the git diff focused.
 - fork_notebook: Forks the notebook into a new browser tab via exporter-2.
 
 ### QA tips (qa_click, qa_type)
@@ -626,6 +631,36 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "delete_cell",
+      description:
+        "Delete a cell by its pid or name. Use this for anonymous cells (markdown, tests, broken cells) that delete_variable can't address — those don't have a name.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          pid: { type: "string", description: "Cell pid, e.g. '_1ahuxfa' (preferred — addresses anonymous cells)" },
+          name: { type: "string", description: "Cell name (for named variables; alternative to pid)" },
+          module: { type: "string", description: "Module name (optional, narrows the search)" },
+        },
+      },
+    },
+    {
+      name: "update_cell",
+      description:
+        "Replace an existing cell's source in place. Targets the cell by pid (preferred) or name; compiles via the Observable toolchain and redefines in place, preserving position in the runtime variable Set. Use for editing markdown/anonymous cells that define_cell would otherwise duplicate.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          pid: { type: "string", description: "Cell pid, e.g. '_1ahuxfa' (preferred — survives renames and addresses anonymous cells)" },
+          name: { type: "string", description: "Cell name (for named variables; alternative to pid)" },
+          source: { type: "string", description: "New Observable source code for the cell" },
+          module: { type: "string", description: "Module name (optional, narrows the search when using --name)" },
+        },
+        required: ["source"],
+      },
+    },
+    {
       name: "list_variables",
       description: "List all named variables in the runtime (or a specific module).",
       inputSchema: {
@@ -682,12 +717,25 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "export_notebook",
-      description: "Export/save the notebook in place. Serializes the current runtime state (all modules, cells, file attachments) back to the HTML file, overwriting it. Use this to persist cells created via define_cell.",
+      description: "Export/save the notebook in place. Serializes the current runtime state (all modules, cells, file attachments) back to the HTML file, overwriting it. Use this to persist cells created via define_cell. NOTE: rewrites every embedded module's <script> block — use export_module for single-module changes if you want a focused diff.",
       inputSchema: {
         type: "object",
         properties: {
           notebook_id: { type: "string" },
         },
+      },
+    },
+    {
+      name: "export_module",
+      description:
+        "Surgically write a single module's compiled <script> block back to disk, leaving every other embedded module byte-identical. Use this for scoped commits (bug fixes, feature adds) where export_notebook would produce a noisy multi-module diff.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          notebook_id: { type: "string" },
+          module: { type: "string", description: "Module name to export, e.g. '@author/name'" },
+        },
+        required: ["module"],
       },
     },
     {
@@ -1117,6 +1165,19 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "delete-variable";
         params = { name: args.name, module: args.module || null };
         break;
+      case "delete_cell":
+        action = "delete-cell";
+        params = { pid: args.pid || null, name: args.name || null, module: args.module || null };
+        break;
+      case "update_cell":
+        action = "update-cell";
+        params = {
+          pid: args.pid || null,
+          name: args.name || null,
+          source: args.source,
+          module: args.module || null,
+        };
+        break;
       case "list_variables":
         action = "list-variables";
         params = { module: args.module || null };
@@ -1132,7 +1193,10 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         break;
       case "eval_code":
         action = "eval";
-        params = { code: args.code };
+        // Wrap user code in an async IIFE so top-level `return`, `await`, and
+        // `await import(...)` work without callers having to add their own
+        // IIFE. The notebook handler awaits the resulting Promise.
+        params = { code: `(async () => { ${args.code as string} })()` };
         break;
       case "fork_notebook":
         action = "fork";
@@ -1143,6 +1207,11 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         action = "fork";
         timeout = 120000;
         params = { _save_in_place: true };
+        break;
+      case "export_module":
+        action = "export-module";
+        timeout = 120000;
+        params = { module: args.module, _save_module_in_place: true };
         break;
       case "create_module":
         action = "create-module";
@@ -1210,6 +1279,32 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
       await Bun.write(originalPath, htmlStr);
       return { content: [{ type: "text", text: `Exported to ${originalPath} (${(htmlStr.length / 1024 / 1024).toFixed(2)} MB)` }] };
+    }
+
+    // export_module: splice a single module's <script> body into the existing HTML.
+    if (params._save_module_in_place && result.result?.scriptBody) {
+      const originalUrl = target.url.split("#")[0].split("?")[0];
+      let originalPath: string;
+      if (originalUrl.startsWith("file://")) {
+        originalPath = decodeURIComponent(originalUrl.replace("file://", ""));
+      } else {
+        originalPath = originalUrl;
+      }
+      const moduleName: string = result.result.moduleName || (params.module as string);
+      const newBody: string = result.result.scriptBody;
+      const existing = await Bun.file(originalPath).text();
+      // Match <script id="<module>" ... > ... </script> (single occurrence)
+      const escName = moduleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(
+        `(<script[^>]*\\bid="${escName}"[^>]*>)([\\s\\S]*?)(</script>)`,
+      );
+      if (!re.test(existing)) {
+        return { content: [{ type: "text", text: `export_module: <script id="${moduleName}"> not found in ${originalPath}` }], isError: true };
+      }
+      const updated = existing.replace(re, (_m, open, _old, close) => `${open}\n${newBody}\n${close}`);
+      await Bun.write(originalPath, updated);
+      const delta = updated.length - existing.length;
+      return { content: [{ type: "text", text: `export_module: wrote @${moduleName} into ${originalPath} (${delta >= 0 ? "+" : ""}${delta} bytes)` }] };
     }
 
     // Return result as formatted text
