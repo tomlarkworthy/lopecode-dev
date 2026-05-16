@@ -100,10 +100,18 @@ function runQuery(): Row[] {
 }
 
 function buildEntry(row: Row): SpecEntry {
-  if (row.is_multi) {
-    return { sources: row.sources, filename: `${row.notebook}.html` };
-  }
-  return { name: row.sources[0] };
+  // The short {name} form lets bulk-jumpgate derive the output filename from
+  // the source via the @author/name → @author_name.html convention. Only safe
+  // when the on-disk filename actually follows that convention; otherwise the
+  // export lands at a different path than what the repo already tracks (e.g.
+  // ledger.html on disk vs @tomlarkworthy_ledger.html from the convention).
+  // For any mismatch — multi-source bundles AND single-source notebooks with
+  // custom names — fall back to the explicit {sources, filename} form.
+  const filename = `${row.notebook}.html`;
+  const conventional = row.sources.length === 1
+    && row.sources[0].replace('/', '_') + '.html' === filename;
+  if (conventional) return { name: row.sources[0] };
+  return { sources: row.sources, filename };
 }
 
 function buildSpec(entries: SpecEntry[]): Spec {
