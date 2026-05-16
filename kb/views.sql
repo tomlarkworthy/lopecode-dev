@@ -27,9 +27,14 @@ SELECT entry.* FROM (
 -- read_json_objects keeps each file as a single JSON value, which avoids the
 -- schema-union explosion that read_json_auto would produce across heterogeneous
 -- notebooks (different module key sets).
+--
+-- The glob is `*.json` (not `@*.json`) so it picks up custom-named bundles
+-- like `atproto.json`, `jumpgates.json`, `ledger.json`, `lopefeed.json` —
+-- multi-source bundles where the filename doesn't start with `@`. Filename
+-- determinism (only spec files live next to .html files) keeps the union safe.
 CREATE OR REPLACE VIEW notebook_specs AS
 SELECT json::JSON AS spec FROM read_json_objects(
-  ['lopecode/notebooks/@*.json', 'lopebooks/notebooks/@*.json']
+  ['lopecode/notebooks/*.json', 'lopebooks/notebooks/*.json']
 );
 
 -- ---------- Triple-shaped views (one per predicate) ----------
@@ -106,6 +111,41 @@ WITH per_module AS (
 )
 SELECT DISTINCT subject, 'dependedBy' AS predicate, object FROM edges;
 
+-- notebook → upstream → module
+-- A module that this notebook bundles as a primary authored source (rather
+-- than a transitive dep). Derived from the per-notebook spec's `upstreams`
+-- map, which is keyed by host then module. We currently only surface the
+-- `observablehq.com` host, but the view is shaped so additional hosts could
+-- be unioned in without changing the predicate.
+--
+-- For multi-source bundles (e.g. atproto, jumpgates) this yields one triple
+-- per source. For single-source notebooks it yields exactly one triple.
+--
+-- Two on-disk shapes exist and are normalized here:
+--   * new schema: { "upstreams": { "observablehq.com": { "@a/b": "<url>" } } }
+--   * legacy:     { "observablehq.com": "<url>" }                  (single-source only)
+-- Legacy entries derive the module slug by stripping the host prefix from the URL.
+CREATE OR REPLACE VIEW kb_upstream AS
+WITH new_form AS (
+  SELECT
+    json_extract_string(spec, '$.notebook') AS notebook,
+    UNNEST(json_keys(json_extract(spec, '$.upstreams."observablehq.com"'))) AS module
+  FROM notebook_specs
+  WHERE json_extract(spec, '$.upstreams."observablehq.com"') IS NOT NULL
+), legacy_form AS (
+  SELECT
+    json_extract_string(spec, '$.notebook') AS notebook,
+    regexp_replace(
+      json_extract_string(spec, '$."observablehq.com"'),
+      '^https://observablehq\.com/', ''
+    ) AS module
+  FROM notebook_specs
+  WHERE json_extract(spec, '$."observablehq.com"') IS NOT NULL
+    AND json_extract(spec, '$.upstreams') IS NULL
+)
+SELECT DISTINCT notebook AS subject, 'upstream' AS predicate, module AS object
+FROM (SELECT * FROM new_form UNION ALL SELECT * FROM legacy_form);
+
 -- ---------- Unified triple view (the main query surface) ----------
 
 CREATE OR REPLACE VIEW kb_triples AS
@@ -114,4 +154,5 @@ CREATE OR REPLACE VIEW kb_triples AS
   UNION ALL SELECT * FROM kb_contains_module
   UNION ALL SELECT * FROM kb_repo_location
   UNION ALL SELECT * FROM kb_depends_on
-  UNION ALL SELECT * FROM kb_depended_by;
+  UNION ALL SELECT * FROM kb_depended_by
+  UNION ALL SELECT * FROM kb_upstream;
