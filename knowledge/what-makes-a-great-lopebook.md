@@ -68,6 +68,9 @@ Lopebooks are literate programs — the prose matters as much as the code. Each 
 - Use markdown cells to narrate the flow, not just as section headers
 - Name cells descriptively — `populationByYear` not `data2`
 
+**Theme aware UI:**
+- Uses theme variables or colors picked from @tomlarkworthy/themes
+
 ### 6. Progressive Disclosure
 
 Don't overwhelm the reader. Reveal complexity gradually.
@@ -150,5 +153,6 @@ Before adding a notebook to lopebooks:
 - [ ] Degrades gracefully if server features are unavailable
 - [ ] No stale/dead content (TODOs, commented-out experiments)
 - [ ] Name is self-describing
+- [ ] UI elements use theme variables
 - [ ] Interactive inputs have meaningful defaults
 - [ ] Has `test_*` cells covering critical functionality

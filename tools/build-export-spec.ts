@@ -68,7 +68,7 @@ function runQuery(): Row[] {
       SELECT subject AS notebook, list(object ORDER BY object) AS sources
       FROM kb_upstream GROUP BY subject
       UNION ALL
-      SELECT subject AS notebook,
+      SELECT DISTINCT subject AS notebook,
              [regexp_replace(subject, '^(@[^_]+)_(.+)$', '\\1/\\2')] AS sources
       FROM kb_repo_location
       WHERE subject NOT IN (SELECT subject FROM kb_upstream)

@@ -164,3 +164,4 @@ bun test tests/channel/lopecode-channel.test.ts
    - Lopepage hash URL DSL for multi-module layouts
    - Natural test observation via `latest_state` Map
    - How to force cell computation with `_reachable` and `_computeNow()`
+14. **Writing style** - Terse and factual, do not use hyperbole, metaphors or similes in public facing documentation.
