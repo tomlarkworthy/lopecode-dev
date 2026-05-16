@@ -35,6 +35,8 @@ That's it. No data — the data is in `content.json` and per-notebook `*.json` f
 | `publishedAt` | module slug | URL on tomlarkworthy.github.io | `content.json[*].url` |
 | `containsModule` | notebook id (`@tomlarkworthy_exporter-3`) | module slug | per-notebook `*.json`, `modules` keys |
 | `repoLocation` | notebook id | file path within repo | `lopecode/notebooks/<id>.html` and/or `lopebooks/notebooks/<id>.html` (whichever exist) |
+| `globalFile` | notebook id | filename | per-notebook `*.json`, top-level `files` array. Attachments not owned by any module (shared CSS, etc.). |
+| `moduleFile` | composite `<notebook id>::<module slug>` | filename | per-notebook `*.json`, `modules.<slug>.files`. Bare filename, no module prefix; the on-disk `<script>` id is conventionally `<slug>/<filename>`. |
 | `dependsOn` | composite `<notebook id>::<module slug>` | imported module slug | per-notebook `*.json`, `modules.<slug>.dependsOn` |
 | `dependedBy` | composite `<notebook id>::<module slug>` | dependent module slug | per-notebook `*.json`, `modules.<slug>.dependedBy` (reverse edge, scoped to modules in this notebook) |
 | `upstream` | notebook id | module slug | per-notebook `*.json`, `upstreams["observablehq.com"]` keys (new schema) or top-level `"observablehq.com"` URL (legacy). A module that this notebook bundles as a primary authored source — distinct from `containsModule`, which also surfaces transitive deps. Single-source notebooks yield one triple; multi-source bundles (e.g. `atproto`, `jumpgates`) yield one per primary. |

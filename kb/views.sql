@@ -72,6 +72,44 @@ SELECT
   file AS object
 FROM glob(['lopecode/notebooks/*.html', 'lopebooks/notebooks/*.html']);
 
+-- notebook → globalFile → filename
+-- File attachments declared at the spec's top level with no module owner
+-- (e.g. shared CSS like syntax.css). Module-scoped attachments are surfaced
+-- separately via kb_module_file, mirroring the spec's two-level shape.
+CREATE OR REPLACE VIEW kb_global_file AS
+WITH files AS (
+  SELECT
+    json_extract_string(spec, '$.notebook') AS notebook,
+    UNNEST(from_json(json_extract(spec, '$.files'), '["VARCHAR"]')) AS file
+  FROM notebook_specs
+  WHERE json_extract(spec, '$.files') IS NOT NULL
+)
+SELECT DISTINCT notebook AS subject, 'globalFile' AS predicate, file AS object
+FROM files;
+
+-- (notebook::module) → moduleFile → filename
+-- File attachments owned by a specific module — gzipped vendored libs,
+-- per-module JSON state, images, etc. Composite subject mirrors
+-- dependsOn/dependedBy: the same module may bundle different attachments in
+-- different notebooks. Filenames are bare (no module prefix), matching the
+-- spec's `modules.<slug>.files` array; the on-disk <script> id is
+-- conventionally `<slug>/<filename>`.
+CREATE OR REPLACE VIEW kb_module_file AS
+WITH per_module AS (
+  SELECT
+    json_extract_string(spec, '$.notebook') AS notebook,
+    UNNEST(json_keys(json_extract(spec, '$.modules'))) AS module,
+    spec
+  FROM notebook_specs
+), edges AS (
+  SELECT
+    notebook || '::' || module AS subject,
+    UNNEST(from_json(json_extract(spec, '$.modules."' || module || '".files'), '["VARCHAR"]')) AS object
+  FROM per_module
+  WHERE json_extract(spec, '$.modules."' || module || '".files') IS NOT NULL
+)
+SELECT DISTINCT subject, 'moduleFile' AS predicate, object FROM edges;
+
 -- (notebook::module) → dependsOn → imported_module
 -- Subject is the composite form because dependencies are per-(notebook, module):
 -- two notebooks may bundle different versions of the same module with different
@@ -153,6 +191,8 @@ CREATE OR REPLACE VIEW kb_triples AS
   UNION ALL SELECT * FROM kb_published_at
   UNION ALL SELECT * FROM kb_contains_module
   UNION ALL SELECT * FROM kb_repo_location
+  UNION ALL SELECT * FROM kb_global_file
+  UNION ALL SELECT * FROM kb_module_file
   UNION ALL SELECT * FROM kb_depends_on
   UNION ALL SELECT * FROM kb_depended_by
   UNION ALL SELECT * FROM kb_upstream;
