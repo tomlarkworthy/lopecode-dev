@@ -960,7 +960,7 @@ async function main() {
   }
 
   const moduleContent = modules.get(options.module).content;
-  const { groups: variableGroupsRaw, preformatted: importCells } = parseVariableGroups(moduleContent);
+  let { groups: variableGroupsRaw, preformatted: importCells } = parseVariableGroups(moduleContent);
   let variableGroups = variableGroupsRaw;
 
   if (variableGroups.length === 0 && importCells.length === 0) {
@@ -983,6 +983,19 @@ async function main() {
       console.error(`Error: No variable groups matched --cells filter: ${options.cells.join(', ')}`);
       console.error('Tip: use --dry-run without --cells to see all available cell names');
       process.exit(1);
+    }
+
+    // Imports are matched by byte-exact text in replaceCellsViaWS, which is
+    // brittle: Observable reformats `import { ... }` whitespace, so the
+    // local single-line decompile rarely byte-matches the existing
+    // multi-line form on Observable. Mismatched imports get classified as
+    // new and `insert_node`'d alongside the original, producing duplicate
+    // imports of the same symbols. When the caller opted into a narrow
+    // --cells update, drop imports entirely — they should already exist on
+    // Observable from previous pushes.
+    if (importCells.length > 0) {
+      log(`Dropping ${importCells.length} import(s) (--cells is for narrow updates; rerun without it to refresh imports)`);
+      importCells = [];
     }
   }
 
