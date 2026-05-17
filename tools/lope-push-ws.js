@@ -716,7 +716,11 @@ async function pushViaWS(decompiled, targetUrl, options) {
 
     if (options.cells && !options.noDelete) {
       // --- In-place cell replacement mode ---
-      await replaceCellsViaWS(conn, existingNodes, decompiled, options);
+      const finalState = await replaceCellsViaWS(conn, existingNodes, decompiled, options);
+      if (finalState) {
+        version = finalState.version;
+        subversion = finalState.subversion;
+      }
     } else {
       // --- Full replace mode ---
       // 1. Insert new cells
@@ -827,7 +831,7 @@ async function replaceCellsViaWS(conn, existingNodes, decompiled, options) {
     log('No matching cells found for replacement.');
     log(`Looked for: ${[...replacements.keys()].join(', ')}`);
     log(`Found in target: ${existingNodes.filter(n => extractCellName(n.value)).map(n => extractCellName(n.value)).join(', ')}`);
-    return;
+    return { version, subversion };
   }
 
   if (matches.length > 0) {
@@ -885,6 +889,8 @@ async function replaceCellsViaWS(conn, existingNodes, decompiled, options) {
       subversion = confirm.subversion;
     }
   }
+
+  return { version, subversion };
 }
 
 // --- Main ---

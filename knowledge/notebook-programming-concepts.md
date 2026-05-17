@@ -367,6 +367,25 @@ viewof slider = Inputs.range([0, 100])
 // - "slider" = the current value
 ```
 
+#### Driving a viewof from headless / `eval_code`
+
+The reactive link from `viewof X` to `X` is wired by `Generators.input(element)`, which listens for `"input"` events on the element. To programmatically flip a viewof from `eval_code` (or any headless DOM context):
+
+```javascript
+const v = document.querySelector(/* the viewof element */);
+v.value = newValue;
+v.dispatchEvent(new Event("input", { bubbles: true }));
+```
+
+**Two common mistakes:**
+
+- Dispatching `"change"` instead of `"input"`. HTML form controls fire `change` on commit and `input` on every keystroke/toggle; Observable wires only `input`, so a synthetic `change` doesn't propagate to downstream cells. Use `input`.
+- Setting `inputElement.checked = true` on a checkbox without dispatching anything. The DOM updates but no event fires, so the reactive chain doesn't update.
+
+For checkbox-style viewofs the `value` is a boolean; for ranges/selects it's the obvious primitive; for `Inputs.input([])`-style reactive arrays it's the array. Set whatever the cell's downstream consumers expect, then dispatch `input`.
+
+This is the reliable way to arm UI toggles like `Sync enabled` in `@tomlarkworthy/file-sync` without screen-coordinate clicks, which can miss small checkbox hit-targets.
+
 ### Mutable Pattern
 
 For cells that can be imperatively updated:

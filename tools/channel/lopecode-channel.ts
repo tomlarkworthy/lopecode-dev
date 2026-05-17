@@ -248,7 +248,7 @@ Use run_tests to execute all test_* cells.
 - update_cell: Replace an existing cell's source in place. Targets a single variable by \`pid\` (preferred — survives renames) or \`name\`. Preserves position in the runtime variable Set (display order) and reuses an anonymous cell's identity instead of appending a duplicate. Use this for editing markdown/anonymous cells that \`define_cell\` would otherwise duplicate.
 - delete_cell: Remove a single cell by \`pid\` or \`name\`. Use this for anonymous cells (markdown, tests, broken cells) that \`delete_variable\` can't target.
 - list_cells: Includes anonymous cells by default — each entry has a \`pid\` (the addressable identifier for \`update_cell\`/\`delete_cell\`).
-- eval_code: For throwaway/ephemeral actions. Lost on reload. NEVER use define_cell for one-off side effects. Code body runs inside an async IIFE — use \`return\` to send a value back, and you can use top-level \`await\` and \`await import(...)\`. Common uses:
+- eval_code: For throwaway/ephemeral actions. Lost on reload. NEVER use define_cell for one-off side effects. Code body runs inside an async IIFE; you can use top-level \`await\` and \`await import(...)\`. Single-expression bodies (no semicolons, no leading statement keyword) are auto-\`return\`ed — \`1+1\` and \`document.querySelector('.x')\` work directly. Statement-style bodies need an explicit \`return\`. Common uses:
   - Reload the page: \`location.reload()\` — use after sync-module to pick up changes, or to fix broken runtime state
   - DOM inspection: \`return document.querySelector('.foo')?.textContent\`
   - Debugging: \`return runtime._variables.size\`
@@ -1191,13 +1191,40 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         timeout = (args.timeout as number) || 30000;
         params = { filter: args.filter || null, timeout };
         break;
-      case "eval_code":
+      case "eval_code": {
         action = "eval";
         // Wrap user code in an async IIFE so top-level `return`, `await`, and
         // `await import(...)` work without callers having to add their own
         // IIFE. The notebook handler awaits the resulting Promise.
-        params = { code: `(async () => { ${args.code as string} })()` };
+        //
+        // Auto-return single-expression bodies: callers frequently pass an
+        // expression like `1+1` or `document.querySelector('.x')` and expect
+        // the value back; without an explicit `return` the IIFE evaluates &
+        // discards it. We detect "looks like a single expression" by the
+        // absence of any unquoted/uncommented semicolon and the absence of a
+        // leading statement keyword/brace, and wrap with `return (...)`.
+        const code = (args.code as string) || "";
+        const trimmed = code.trim();
+        // Strip string literals, template literals, and comments before
+        // checking for semicolons — these would otherwise produce false
+        // negatives (e.g. `"a;b"` has a semicolon inside a string).
+        const stripped = trimmed
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/\/\/[^\n]*/g, "")
+          .replace(/"(?:\\.|[^"\\])*"/g, '""')
+          .replace(/'(?:\\.|[^'\\])*'/g, "''")
+          .replace(/`(?:\\.|[^`\\])*`/g, "``");
+        const hasSemicolons = /;/.test(stripped.replace(/;\s*$/, ""));
+        const statementStart =
+          /^\s*(?:return|throw|let|const|var|if|for|while|do|switch|try|function|class|import|export|async\s+function|\{)/.test(
+            trimmed
+          );
+        const looksLikeExpression =
+          trimmed.length > 0 && !hasSemicolons && !statementStart;
+        const body = looksLikeExpression ? `return (${trimmed});` : code;
+        params = { code: `(async () => { ${body} })()` };
         break;
+      }
       case "fork_notebook":
         action = "fork";
         timeout = 120000;

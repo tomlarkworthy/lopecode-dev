@@ -128,11 +128,12 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 
 ### Gotchas with `--cells`
 
-`--cells X,Y` triggers `replaceCellsViaWS` — an in-place `modify_node` for every name match. Three quiet failure modes:
+`--cells X,Y` triggers `replaceCellsViaWS` — an in-place `modify_node` for every existing name match, plus an `insert_node` for any named cell that isn't yet on Observable. Things to know:
 
-1. **New cells (not yet on target) are silently skipped** — the script prints `Warning: cell "X" not found in target notebook — skipping` and moves on. To add a brand-new cell, fall through to the WS protocol directly (`insert_node` with `node_id = newVersion`, see "WebSocket Editing Protocol" above).
-2. **Imports match by exact text.** A changed import line — e.g. extending an existing `import { a, b } from "@user/x"` to `import { a, b, c } from "@user/x"` — does **not** match the existing import on Observable, so it's silently skipped. Modify the existing import cell directly via `modify_node` keyed on its current `node.id`.
-3. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
+1. **New named cells are inserted at the end.** `replaceCellsViaWS` matches by cell name and `insert_node`s any name from `--cells` that isn't already on the target. No special handling needed — `--cells "newCell,existingCell"` just works.
+2. **Imports are dropped when `--cells` is set.** Import statements are matched by byte-exact text, but Observable reformats whitespace (e.g. a local single-line decompile vs. a multi-line stored form). A mismatched import gets classified as new and `insert_node`'d, producing duplicate imports of the same symbols. To avoid that, the tool now skips all imports when `--cells` is in use (and logs `Dropping N import(s)`). Imports the caller wants to change should already exist on the target from earlier pushes; if they really need to change, rerun without `--cells` to refresh the whole module.
+3. **Manual import edits via raw WS.** If you actually do need to add or modify a single import statement, write a one-off mjs script that calls `modify_node` (existing import) or `insert_node` (new import) keyed on the import's `node.id` from the REST API. See "WebSocket Editing Protocol" above.
+4. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
 
 ## Decompilation (Compiled → Observable Source)
 
