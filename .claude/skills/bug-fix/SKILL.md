@@ -1,26 +1,35 @@
 ---
 name: bug-fix
-description: Use when the user asks to "fix this issue", "fix bug X", "/bug-fix <URL>", or hands over a GitHub issue URL for a lopecode/lopebooks bug. Two-phase: (Phase 1) sets up isolated git worktrees off latest `main`, reproduces the bug in Playwright Chromium, diagnoses it, authors the fix on the live runtime, captures the proposed change in the worktree, and opens a DRAFT PR with that single-file diff for human review — then STOPS. (Phase 2, after user approves in chat) pushes the cell to ObservableHQ via `lope-push-ws.js`, regenerates the canonical HTML via `lope-jumpgate.js`, propagates the module into every consumer notebook via `sync-module.ts`, runs targeted regression QA, and finalizes the PR. The issue is left OPEN until the human merges; `Fixes #N` auto-closes it on merge.
-version: 0.3.0
+description: Use when the user asks to "fix this issue", "fix bug X", "/bug-fix <URL>", "/bug-fix <description>", or hands over either a GitHub issue URL or a free-form bug description for a lopecode/lopebooks bug. Two-phase: (Phase 1) sets up isolated git worktrees off latest `main`, reproduces the bug in Playwright Chromium, diagnoses it, authors the fix on the live runtime, captures the proposed change in the worktree, and opens a DRAFT PR with that single-file diff for human review — then STOPS. (Phase 2, after user approves in chat) pushes the cell to ObservableHQ via `lope-push-ws.js`, regenerates the canonical HTML via `lope-jumpgate.js`, propagates the module into every consumer notebook via `sync-module.ts`, runs targeted regression QA, and finalizes the PR. When an issue is supplied it is left OPEN until the human merges; `Fixes #N` auto-closes it on merge. When no issue is supplied, no issue is opened — the PR alone tracks the fix.
+version: 0.4.0
 ---
 
-# Fix a Lopecode Bug from a GitHub Issue
+# Fix a Lopecode Bug
 
-A **two-phase** bug-fix:
+A **two-phase** bug-fix, driven by **either** a GitHub issue URL **or** a free-form description from the user:
 
 - **Phase 1 (pre-approval, no destructive actions):** Set up isolated git worktrees off the latest `main`, reproduce the bug, author the fix on the live runtime, capture the proposed cell into the worktree's canonical HTML, and open a **draft** PR with that single-file diff. Then **STOP** and ask the user to approve.
 - **Phase 2 (after the user approves in chat):** Push the cell to ObservableHQ, re-jumpgate the canonical HTML, sync the regenerated module into every consumer notebook, run targeted regression QA, push the additional commits to the PR branch, and mark the PR ready for review.
 
-The issue stays OPEN until the human merges — `Fixes #N` in the PR closes it on merge.
+If the bug came from a GitHub issue, it stays OPEN until the human merges — `Fixes #N` in the PR closes it on merge. If the bug came from a description, no issue is opened; the PR alone tracks the work.
 
 ## When to use
 
-User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomlarkworthy/lopebooks#N`) and asks for a fix. **One bug-fix at a time per session** — the channel is single-page and the workflow rewrites HTML files that don't compose well in parallel. **Do not invoke this skill for QA-only requests** — use `qa-notebook` for those.
+User provides **either** a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomlarkworthy/lopebooks#N`) **or** a free-form bug description and asks for a fix. **One bug-fix at a time per session** — the channel is single-page and the workflow rewrites HTML files that don't compose well in parallel. **Do not invoke this skill for QA-only requests** — use `qa-notebook` for those.
 
-## Phase 0 — Read the issue and set up worktrees
+### `<id>` and `<slug>` conventions
 
-1. **Read the issue.** `gh issue view <URL>` — title, body, labels, comments, linked PRs. Note explicit repro steps and any named module/notebook.
-   - **The title is the primary symptom; the body often describes related-but-different artifacts.** Before proposing a fix, verify your reproduction surfaces the exact behavior named in the title — not just the body's anecdote. If you can only reproduce the body, ask the user to clarify rather than shipping a fix that misses the title (e.g. on #163 the title was "⬇ drops most clicks" but the body focused on a 600 px visual jump — they share a root cause but a body-only fix would have left half the bug unfixed).
+Many steps below reference `<id>` and `<slug>` placeholders. Pick them once at the start of Phase 0 and reuse them for worktree paths, branch names, PR titles, and staging files:
+
+- **Issue-driven:** `<id>` = the issue number (e.g. `163`); `<slug>` = short kebab-case label derived from the issue title (e.g. `drag-drops-clicks`). Branch name: `fix/issue-<id>-<slug>` (preserved for backwards compatibility with existing worktrees).
+- **Description-driven:** `<id>` = the same `<slug>` (no separate number); branch name: `fix/<slug>`. Pick a short, descriptive kebab-case slug from the user's description and confirm it with them in one line if it's ambiguous. Worktree path is `worktrees/<slug>/<submodule>/`.
+
+## Phase 0 — Understand the bug and set up worktrees
+
+1. **Capture the bug report.**
+   - **Issue-driven:** `gh issue view <URL>` — title, body, labels, comments, linked PRs. Note explicit repro steps and any named module/notebook.
+     - **The title is the primary symptom; the body often describes related-but-different artifacts.** Before proposing a fix, verify your reproduction surfaces the exact behavior named in the title — not just the body's anecdote. If you can only reproduce the body, ask the user to clarify rather than shipping a fix that misses the title (e.g. on #163 the title was "⬇ drops most clicks" but the body focused on a 600 px visual jump — they share a root cause but a body-only fix would have left half the bug unfixed).
+   - **Description-driven:** transcribe the user's description into a one-line symptom (becomes the working bug title) and an ordered list of repro steps as you understand them. If repro steps are missing or ambiguous, ask the user to clarify **before** opening any worktrees — speculative repro on a vague description usually wastes a Phase 1 cycle. Once you have a working title, pick `<slug>` from it and confirm with the user if non-obvious.
 2. **Identify the canonical module.** Most bugs trace to a single Observable module. If the issue names it ("in editor-5"), you're done. Otherwise:
    - `grep -l "<symptom keyword>" lopecode/notebooks/*.html lopebooks/notebooks/*.html`
    - `bun tools/lope-reader.ts <suspect.html>` to list modules; `--get-module @user/foo` to read source.
@@ -33,24 +42,27 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    ```bash
    cd <submodule>                       # lopecode or lopebooks
    git fetch origin
-   git worktree add -B fix/issue-<N>-<slug> ../worktrees/<N>/<submodule> origin/main
+   # Issue-driven:
+   git worktree add -B fix/issue-<id>-<slug> ../worktrees/<id>/<submodule> origin/main
+   # Description-driven:
+   git worktree add -B fix/<slug> ../worktrees/<slug>/<submodule> origin/main
    ```
-   - Creates `<repo-root>/worktrees/<N>/<submodule>/` with branch `fix/issue-<N>-<slug>` checked out at `origin/main`.
+   - Creates `<repo-root>/worktrees/<id>/<submodule>/` with the fix branch checked out at `origin/main`.
    - **All edits, git operations, and tool calls (qa_open_notebook URLs, sync-module --source/--target, etc.) from now on use the worktree path.** Never write into the parent submodule's working tree — that has the user's in-flight work.
 
 ### Why worktrees?
 
 - Isolates the fix from any in-flight work in the parent submodule (avoids the contamination from pre-existing local changes accidentally getting bundled into the PR).
 - Lets the user keep using the parent checkout while the fix is in review.
-- Cleanup is one command after merge: `git worktree remove worktrees/<N>/<submodule>`.
+- Cleanup is one command after merge: `git worktree remove worktrees/<id>/<submodule>`.
 
 ## Phase 1 — Reproduce, diagnose, propose (no destructive pushes)
 
 1. **Reproduce the bug.**
    - `get_pairing_token` → `LOPE-PORT-XXXX`.
    - `qa_open_notebook(url=<paired URL>)` — the channel server now wires fakefs by default (shared root at `~/.cache/lopecode-fakefs`), so `window.showDirectoryPicker` is replaced with a synthetic FileSystemDirectoryHandle proxied to disk without an OS dialog. The "Pick sync directory" button just confirms the active root. (Default `headless: false` so the user can watch.) Override with an explicit `fakefs_root` only if you need an isolated path — otherwise the shared default is correct, including for parallel bug-fix sessions (per-notebook subdirs are keyed by notebook ID).
-   - Walk the issue's repro steps exactly. Capture: failing screenshot, console excerpt from `qa_console_logs`, `get_variable` snapshots of the offending cells.
-   - **If you cannot reproduce, stop.** Comment on the issue asking for clarification — don't author a speculative fix.
+   - Walk the repro steps exactly (from the issue body or the user's description). Capture: failing screenshot, console excerpt from `qa_console_logs`, `get_variable` snapshots of the offending cells.
+   - **If you cannot reproduce, stop.** Issue-driven: comment on the issue asking for clarification. Description-driven: ask the user directly in chat. Either way — don't author a speculative fix.
 
 2. **Diagnose.** Use `list_cells`, `get_variable`, `eval_code` to narrow to a specific cell or set of cells. State the root cause in one sentence — that becomes the PR title.
 
@@ -62,19 +74,19 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
      const cb = document.querySelector('input[type="checkbox"]');
      if (!cb.checked) cb.click();
    ```
-   Verify with `get_variable("syncArmed", module="@tomlarkworthy/file-sync")` → `{armed: true}`. From here every `define_cell` on the changed module auto-writes its `.js` to `worktrees/<N>/.file-sync/<notebookId>/<moduleId>.js`, and direct `Edit`/`Write` on those `.js` files flows back into the runtime within ~1s.
+   Verify with `get_variable("syncArmed", module="@tomlarkworthy/file-sync")` → `{armed: true}`. From here every `define_cell` on the changed module auto-writes its `.js` to `worktrees/<id>/.file-sync/<notebookId>/<moduleId>.js`, and direct `Edit`/`Write` on those `.js` files flows back into the runtime within ~1s.
 
 4. **Author the fix.** Two equally good styles:
    - **Edit on disk** — once any `.js` exists for the target module under `<fakefs_root>/<notebookId>/`, use the `Edit` tool to surgically patch it. file-sync's poller picks it up and applies via `tag({source: "file-sync"})` so re-edits don't bounce. If the target module hasn't materialized yet, do one trivial `define_cell` first to seed it (or click the "Disassemble to disk" button to dump everything).
    - **Live edit via `define_cell`** — pass the full new cell source. file-sync writes it to disk on each change.
-   Re-run the issue's repro steps; confirm the bug is gone. Drain `qa_console_logs` — confirm no new errors. **Iterate until the live runtime is clean.**
+   Re-run the repro steps; confirm the bug is gone. Drain `qa_console_logs` — confirm no new errors. **Iterate until the live runtime is clean.**
 
 5. **Capture the fix into the worktree's canonical HTML.** One command:
    ```bash
    bun tools/channel/sync-module.ts \
      --module @user/module-name \
-     --source worktrees/<N>/.file-sync/<notebookId>/@user/module-name.js \
-     --target worktrees/<N>/<submodule>/notebooks/@user_module-name.html
+     --source worktrees/<id>/.file-sync/<notebookId>/@user/module-name.js \
+     --target worktrees/<id>/<submodule>/notebooks/@user_module-name.html
    ```
    `<notebookId>` = the basename of the live notebook's HTML without `.html` (e.g. `@tomlarkworthy_blank-notebook`). `sync-module.ts` accepts a `.js` source and upserts it as the `<script id="@user/module-name">` block in the target. No `export_notebook`, no `git checkout` revert — the `.file-sync/` directory is untracked working state, never committed (add to `.gitignore` if it sticks around between runs).
    - The canonical HTML now has only the targeted module change (~113-line diff inside the `<script id="@user/module-name">` block); nothing else in the worktree should have changed.
@@ -91,22 +103,45 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    # b) Copy ONLY the changed module's <script> block from live notebook into the canonical HTML
    bun tools/channel/sync-module.ts \
      --module @user/module-name \
-     --source worktrees/<N>/<submodule>/notebooks/<live-notebook>.html \
-     --target worktrees/<N>/<submodule>/notebooks/@user_module-name.html
+     --source worktrees/<id>/<submodule>/notebooks/<live-notebook>.html \
+     --target worktrees/<id>/<submodule>/notebooks/@user_module-name.html
    # c) Revert the live-notebook's unrelated edits
-   git -C worktrees/<N>/<submodule> checkout notebooks/<live-notebook>.html
+   git -C worktrees/<id>/<submodule> checkout notebooks/<live-notebook>.html
    ```
 
-6. **Open a DRAFT PR with that single-file change.**
+6. **Open a DRAFT PR with that single-file change.** Commit message, branch name, and PR title differ by mode — issue-driven includes `(#<id>)` and `Fixes #<id>`; description-driven uses the slug alone and omits the `Fixes` line.
    ```bash
-   cd worktrees/<N>/<submodule>
+   cd worktrees/<id>/<submodule>
    git add notebooks/@user_module-name.html
-   git commit -m "Fix: <one-line root cause> (#<N>) [proposal — awaiting approval]"
-   git push -u origin fix/issue-<N>-<slug>
-   gh pr create --draft --title "Fix: <root cause> (#<N>)" --body "$(cat <<'EOF'
-   Fixes #<N>.
+   # Issue-driven commit + push:
+   git commit -m "Fix: <one-line root cause> (#<id>) [proposal — awaiting approval]"
+   git push -u origin fix/issue-<id>-<slug>
+   # Description-driven commit + push:
+   git commit -m "Fix: <one-line root cause> [proposal — awaiting approval]"
+   git push -u origin fix/<slug>
+   # Issue-driven PR:
+   gh pr create --draft --title "Fix: <root cause> (#<id>)" --body "$(cat <<'EOF'
+   Fixes #<id>.
 
    **This PR is a proposal** — the canonical HTML has been updated with the new cell, but ObservableHQ has not been pushed and consumer notebooks have not been re-synced yet. After approval, those steps will run and additional commits will be pushed to this branch.
+
+   ## Root cause
+   <one-paragraph explanation>
+
+   ## Fix
+   <what changed and why — quote the new cell snippet inline if it's small>
+
+   ## Targeted QA (live runtime)
+   - <controls re-verified, ✅ each>
+   - Console: clean
+   EOF
+   )"
+   # Description-driven PR (no Fixes line — there's no issue to close):
+   gh pr create --draft --title "Fix: <root cause>" --body "$(cat <<'EOF'
+   **This PR is a proposal** — the canonical HTML has been updated with the new cell, but ObservableHQ has not been pushed and consumer notebooks have not been re-synced yet. After approval, those steps will run and additional commits will be pushed to this branch.
+
+   ## Reported symptom
+   <quote or paraphrase the user's description>
 
    ## Root cause
    <one-paragraph explanation>
@@ -122,9 +157,9 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    ```
    The PR diff is one file, ~113–200 lines. Easy to review.
 
-7. **Comment on the issue with the PR URL.**
+7. **Comment on the issue with the PR URL (issue-driven only — skip for description-driven).**
    ```bash
-   gh issue comment <N> --body "Proposal up for review (DRAFT): <pr-url>"
+   gh issue comment <id> --body "Proposal up for review (DRAFT): <pr-url>"
    ```
 
 8. **STOP.** Tell the user explicitly:
@@ -138,7 +173,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    ```bash
    cd /Users/tom.larkworthy/dev/lopecode-dev   # or wherever the project root is
    node --experimental-vm-modules tools/lope-push-ws.js \
-     worktrees/<N>/<submodule>/notebooks/@user_module-name.html --module @user/module-name \
+     worktrees/<id>/<submodule>/notebooks/@user_module-name.html --module @user/module-name \
      --cells "<cell1>,<cell2>" \
      --target "https://observablehq.com/@user/module-name"
    ```
@@ -146,8 +181,8 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
    - **Never combine `--cells` with `--no-delete`** — the script now refuses this, but the failure mode is silent duplicate insertion.
    - **`--cells` is matched-name-only.** New cells (not already on Observable) are *silently skipped* with a warning; modified imports whose text changed don't byte-match either. For those, hand-write a small mjs script that does `modify_node` (existing import) and `insert_node` (new cell) over the WS protocol — see `knowledge/pushing-cells-to-observablehq.md` § "Gotchas with `--cells`".
    - **Renaming a cell needs `insert_node` + `remove_node`, not `--cells`.** If the fix renames a cell (e.g. version-pinned name like `_inputs_0_11_0` → `_inputs_0_12_0`), `--cells` can't express the operation: it `modify_node`s the old name (still on Observable, body changes) and silently skips the new one (not yet on Observable, gets warned-and-dropped). Result: the rename half-applies, the bootloader still defines the old cell, and consumers break. Use a custom WS script that issues `insert_node` for the new name first, then `remove_node` for the old. Sequence the ops in dependency order: insert the new producer, modify any consumers (so they reference the new name), then remove the old producer last so dependents never see a missing dep mid-push.
-   - **lope-push-ws.js doesn't parse `function _name(...)` declarations** ([lopecode-dev#18](https://github.com/tomlarkworthy/lopecode-dev/issues/18)). Its decompiler regex matches `const _name = function ...` only. The `@tomlarkworthy/bootloader` module uses bare `function _name` — running `--module @tomlarkworthy/bootloader` errors with "No variables extracted from module". For bootloader edits, skip lope-push-ws entirely and use a custom WS script (template: `worktrees/<N>/.fix-staging/push-bootloader.mjs` shape — `insert_node`/`modify_node`/`remove_node` ops over the documented WS protocol).
-   - If auth fails: see `knowledge/pushing-cells-to-observablehq.md` § "Auth fragility" — the bundled `--login --headed` flow is unreliable (headless Playwright wipes HttpOnly `T`/`I` cookies). Workaround: paste cookies from devtools into `worktrees/<N>/.fix-staging/observable-cookies.json` and read them directly in your push script.
+   - **lope-push-ws.js doesn't parse `function _name(...)` declarations** ([lopecode-dev#18](https://github.com/tomlarkworthy/lopecode-dev/issues/18)). Its decompiler regex matches `const _name = function ...` only. The `@tomlarkworthy/bootloader` module uses bare `function _name` — running `--module @tomlarkworthy/bootloader` errors with "No variables extracted from module". For bootloader edits, skip lope-push-ws entirely and use a custom WS script (template: `worktrees/<id>/.fix-staging/push-bootloader.mjs` shape — `insert_node`/`modify_node`/`remove_node` ops over the documented WS protocol).
+   - If auth fails: see `knowledge/pushing-cells-to-observablehq.md` § "Auth fragility" — the bundled `--login --headed` flow is unreliable (headless Playwright wipes HttpOnly `T`/`I` cookies). Workaround: paste cookies from devtools into `worktrees/<id>/.fix-staging/observable-cookies.json` and read them directly in your push script.
 
 10. **Re-jumpgate the canonical notebook.** Pulls the freshly-pushed module back from Observable as the canonical bundle:
 
@@ -155,20 +190,20 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
     ```bash
     # Check whether the changed module is bundled by jumpgate or bulk-jumpgate:
     grep -l 'id="@user/module-name"' \
-      worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html \
-      worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_bulk-jumpgate.html 2>/dev/null
+      worktrees/<id>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html \
+      worktrees/<id>/<submodule>/notebooks/@tomlarkworthy_bulk-jumpgate.html 2>/dev/null
     # If either matches, sync the fix in (the worktree's lopecode is the same submodule, so the change goes in the same PR):
     bun tools/channel/sync-module.ts \
       --module @user/module-name \
-      --source worktrees/<N>/<submodule>/notebooks/@user_module-name.html \
-      --target worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html
+      --source worktrees/<id>/<submodule>/notebooks/@user_module-name.html \
+      --target worktrees/<id>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html
     bun tools/channel/sync-module.ts \
       --module @user/module-name \
-      --source worktrees/<N>/<submodule>/notebooks/@user_module-name.html \
-      --target worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_bulk-jumpgate.html
+      --source worktrees/<id>/<submodule>/notebooks/@user_module-name.html \
+      --target worktrees/<id>/<submodule>/notebooks/@tomlarkworthy_bulk-jumpgate.html
     # Also copy to the parent's lopecode/notebooks/@tomlarkworthy_jumpgate.html so lope-jumpgate.js
     # (which navigates to the parent's path, not the worktree) actually picks up the fix:
-    cp worktrees/<N>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html \
+    cp worktrees/<id>/<submodule>/notebooks/@tomlarkworthy_jumpgate.html \
        lopecode/notebooks/@tomlarkworthy_jumpgate.html
     ```
     `@tomlarkworthy/exporter-3` is the most common case — every fix to it MUST go through this pre-step.
@@ -177,7 +212,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
     ```bash
     node tools/lope-jumpgate.js \
       --source @user/module-name \
-      --output worktrees/<N>/<submodule>/notebooks/@user_module-name.html
+      --output worktrees/<id>/<submodule>/notebooks/@user_module-name.html
     ```
     After it finishes, restore the parent's jumpgate.html to keep the user's working tree clean (the worktree copy is what gets committed):
     ```bash
@@ -186,8 +221,8 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
 
 11. **Map blast radius — find every consumer notebook in this submodule's worktree:**
     ```bash
-    grep -l "@user/module-name" worktrees/<N>/<submodule>/notebooks/*.html \
-      | grep -v "@user_module-name.html$" > /tmp/consumers-<N>.txt
+    grep -l "@user/module-name" worktrees/<id>/<submodule>/notebooks/*.html \
+      | grep -v "@user_module-name.html$" > /tmp/consumers-<id>.txt
     ```
     If consumers exist in the *other* submodule too (lopecode vs lopebooks), repeat Phase 0 step 6 to create that worktree, then map blast radius there too.
 
@@ -196,14 +231,14 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
     while IFS= read -r f; do
       bun tools/channel/sync-module.ts \
         --module @user/module-name \
-        --source worktrees/<N>/<canonical-submodule>/notebooks/@user_module-name.html \
+        --source worktrees/<id>/<canonical-submodule>/notebooks/@user_module-name.html \
         --target "$f"
-    done < /tmp/consumers-<N>.txt
+    done < /tmp/consumers-<id>.txt
     ```
     `sync-module.ts` reads the `<script id="@user/module-name">` block from the canonical HTML and upserts it into each consumer. If a consumer doesn't actually bundle the module (false-positive grep match), `sync-module.ts` skips it gracefully.
 
 13. **Targeted QA — only the impacted features.** Reload the canonical worktree notebook clean (no live edits) and walk:
-    - The exact controls/cells named in the issue → confirm fix.
+    - The exact controls/cells named in the issue or description → confirm fix.
     - **Direct downstream cells** — every cell whose `inputs` (per `list_cells`) include the changed cell.
     - **Shared-state neighbours** — controls that share mutables, file attachments, or `localStorage` keys.
     - The relevant happy-path + adversarial inputs from `qa/general.md` for the affected surface only.
@@ -214,10 +249,11 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
 
 15. **Commit + push the regenerated bundle and consumer syncs to the PR branch.**
     ```bash
-    cd worktrees/<N>/<submodule>
+    cd worktrees/<id>/<submodule>
     git add notebooks/
     git commit -m "Push to ObservableHQ + sync into consumers"
-    git push origin fix/issue-<N>-<slug>
+    # Issue-driven: branch is fix/issue-<id>-<slug>. Description-driven: branch is fix/<slug>.
+    git push origin <branch>
     ```
     If consumers exist in another submodule, do the same in its worktree and **open a separate companion PR** there (one PR per submodule).
 
@@ -226,7 +262,7 @@ User provides a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomla
     gh pr ready <num>
     ```
 
-17. **Update the issue comment** with confirmation that ObservableHQ + all consumers are synced and the PR is ready.
+17. **Update the issue comment** with confirmation that ObservableHQ + all consumers are synced and the PR is ready. **Issue-driven only — for description-driven fixes, skip this step (the PR description carries the same information).**
 
 18. **`qa_close()`**.
 
@@ -237,7 +273,7 @@ Once the submodule PR merges, the parent `lopecode-dev` repo still points at the
 ```bash
 git -C <submodule> pull --ff-only origin main
 git add <submodule>
-git commit -m "Bump <submodule>: <one-line summary> (#<N>)"
+git commit -m "Bump <submodule>: <one-line summary> (#<id>)"   # issue-driven; drop the `(#<id>)` suffix for description-driven fixes
 git push origin main
 ```
 
@@ -247,7 +283,7 @@ If a companion submodule was synced in Phase 2 (e.g. lopebooks alongside lopecod
 
 ```bash
 cd <submodule>
-git worktree remove worktrees/<N>/<submodule>
+git worktree remove worktrees/<id>/<submodule>
 git fetch --prune origin   # also drops the merged remote branch reference
 ```
 
@@ -258,8 +294,8 @@ git fetch --prune origin   # also drops the merged remote branch reference
 - **Use file-sync (default fakefs), not `export_notebook`.** The channel server wires fakefs by default to `~/.cache/lopecode-fakefs`. From there, every `define_cell` writes the changed module to disk as a `.js` file, and `Edit` on a `.js` flows back into the runtime — both directions, no OS dialogs, no human gestures. After arming "Sync enabled" in the file-sync panel and clicking "Disassemble to disk", the .js for your module lives at `~/.cache/lopecode-fakefs/<notebookId>/<moduleId>.js`. `export_notebook` is the fallback only if file-sync misbehaves; it dumps the whole HTML so you have to extract the one module via `sync-module.ts` and `git checkout` the noise.
 - **Diffs are large but readable.** Regenerated `.html` files are 1–3 MB but uncompressed, so `git diff` works. Only the changed module's `<script>` block should differ — if other regions of the HTML moved, jumpgate produced a non-deterministic re-bundle and you should investigate before committing.
 - **Submodule pointer bump is Phase 3.** See above — it's part of the workflow now, not a follow-up.
-- **`Fixes #N` only auto-closes same-repo issues.** Use `Fixes <owner>/<repo>#<N>` for cross-repo. Either way, leave the close to the human.
-- **Don't push to Observable for a fix you can't reproduce.** Speculative fixes pollute the canonical source.
+- **`Fixes #N` only auto-closes same-repo issues** (issue-driven mode only — description-driven PRs have no issue to close). Use `Fixes <owner>/<repo>#<N>` for cross-repo. Either way, leave the close to the human.
+- **Don't push to Observable for a fix you can't reproduce.** Speculative fixes pollute the canonical source. This applies equally to issue-driven and description-driven fixes — vague descriptions are the most common path into a speculative fix.
 - **Adversarial inputs from `qa/general.md` criterion #10 are over-kill for targeted regression.** Stick to the failure modes the changed cell could plausibly produce — full adversarial passes belong in `qa-notebook`.
 - **One browser, one notebook.** Don't navigate the QA browser to a different URL mid-session; close and re-open. The pairing breaks on navigation.
 - **If `sync-module.ts` reports the consumer doesn't have the module's `<script>` block, that consumer doesn't actually bundle it** (false-positive grep match — e.g. the module name appears only in a comment). Skip it.
