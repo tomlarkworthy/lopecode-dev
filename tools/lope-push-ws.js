@@ -427,14 +427,28 @@ async function decompileVariables(variableGroups, options) {
 
 function extractCellName(source) {
   if (!source) return null;
-  const m = source.match(/^(viewof\s+\w+|mutable\s+\w+|\w+)\s*=/);
+  // Strip leading line- and block-comments + whitespace so cells whose
+  // source begins with section banners (e.g. `// --- DSL Parser ---\n`)
+  // still match the name patterns below. Without this, a comment-prefixed
+  // cell like `// hdr\nfunction foo(){...}` returns null and a subsequent
+  // `--cells foo` push inserts a duplicate at the end of the notebook
+  // instead of replacing the existing cell.
+  let body = source;
+  while (true) {
+    const before = body;
+    body = body.replace(/^\s+/, '');
+    body = body.replace(/^\/\/[^\n]*\n?/, '');
+    body = body.replace(/^\/\*[\s\S]*?\*\//, '');
+    if (body === before) break;
+  }
+  if (body.startsWith('import ')) return body.trim();
+  const m = body.match(/^(viewof\s+\w+|mutable\s+\w+|\w+)\s*=/);
   if (m) return m[1];
   // Observable also names cells from function/class declarations
-  const fn = source.match(/^(?:async\s+)?function\s*\*?\s+(\w+)\s*\(/);
+  const fn = body.match(/^(?:async\s+)?function\s*\*?\s+(\w+)\s*\(/);
   if (fn) return fn[1];
-  const cls = source.match(/^class\s+(\w+)\b/);
+  const cls = body.match(/^class\s+(\w+)\b/);
   if (cls) return cls[1];
-  if (source.startsWith('import ')) return source.trim();
   return null;
 }
 
@@ -1054,7 +1068,7 @@ async function main() {
   }
 }
 
-export { parseVariableGroups, parseNotebook };
+export { parseVariableGroups, parseNotebook, extractCellName };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main();
