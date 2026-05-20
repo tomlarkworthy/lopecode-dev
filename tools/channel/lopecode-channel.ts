@@ -1201,20 +1201,36 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         // expression like `1+1` or `document.querySelector('.x')` and expect
         // the value back; without an explicit `return` the IIFE evaluates &
         // discards it. We detect "looks like a single expression" by the
-        // absence of any unquoted/uncommented semicolon and the absence of a
-        // leading statement keyword/brace, and wrap with `return (...)`.
+        // absence of any unquoted/uncommented semicolon at the top level
+        // and the absence of a leading statement keyword, then wrap with
+        // `return (...)`. Semicolons inside balanced parens or braces
+        // (function bodies, IIFE-wrapped expressions, object literals) are
+        // ignored — they don't disqualify the whole thing from being an
+        // expression.
         const code = (args.code as string) || "";
         const trimmed = code.trim();
-        // Strip string literals, template literals, and comments before
-        // checking for semicolons — these would otherwise produce false
-        // negatives (e.g. `"a;b"` has a semicolon inside a string).
         const stripped = trimmed
           .replace(/\/\*[\s\S]*?\*\//g, "")
           .replace(/\/\/[^\n]*/g, "")
           .replace(/"(?:\\.|[^"\\])*"/g, '""')
           .replace(/'(?:\\.|[^'\\])*'/g, "''")
           .replace(/`(?:\\.|[^`\\])*`/g, "``");
-        const hasSemicolons = /;/.test(stripped.replace(/;\s*$/, ""));
+        // Drop everything inside balanced () or {} so semicolons in
+        // function bodies / IIFE wrappers don't trigger statement mode.
+        let topLevel = "";
+        let depth = 0;
+        for (const ch of stripped) {
+          if (ch === "(" || ch === "{") {
+            depth++;
+            continue;
+          }
+          if (ch === ")" || ch === "}") {
+            depth = Math.max(0, depth - 1);
+            continue;
+          }
+          if (depth === 0) topLevel += ch;
+        }
+        const hasSemicolons = /;/.test(topLevel.replace(/;\s*$/, ""));
         const statementStart =
           /^\s*(?:return|throw|let|const|var|if|for|while|do|switch|try|function|class|import|export|async\s+function|\{)/.test(
             trimmed
