@@ -75,6 +75,31 @@ type QaFailedRequest = { ts: number; url: string; method: string; failure: strin
 const qaConsole: QaConsoleEntry[] = [];
 const qaErrors: QaErrorEntry[] = [];
 const qaFailedRequests: QaFailedRequest[] = [];
+
+// Patterns dropped from qa_console_logs by default. Each was observed >5x per
+// QA session and never carries diagnostic signal. To see all logs anyway pass
+// include_noise: true; never expand this list without confirming the pattern
+// is genuinely silent under failure conditions too.
+const QA_DEFAULT_NOISE = [
+  /^keepalive: dynamic observe /,
+  /^selectVariable Variable/,
+  /^notebookImports$/,
+  /^notebookImportVariables$/,
+  /^notebookImportMatches$/,
+  /^pageImportMatch$/,
+  /^resolve_modules$/,
+  /^generate summary$/,
+  /^submit_summary$/,
+  /^module_definition_variables$/,
+  /^modules$/,
+  /^creating visualizer$/,
+  /^code_editor(_view)?$/,
+  /^Loading codemirror from blob:/,
+  /^jest\/expect version /,
+  /^\[lopecode fakefs\] /,
+  /^responding /,
+  /^background job$/,
+];
 const QA_BUFFER_LIMIT = 1000; // ring-buffer cap per stream
 
 function pushBounded<T>(arr: T[], item: T) {
@@ -105,6 +130,25 @@ async function ensureQaBrowser(opts: {
     catch (e: any) { process.stderr.write(`lopecode-channel: grantPermissions failed: ${e?.message ?? e}\n`); }
   }
   const page = await ctx.newPage();
+
+  // Playwright launches Chromium with CDP `Debugger` domain enabled, so any
+  // `debugger;` on the runtime hot path pauses the page indefinitely — qa_*
+  // tools time out at 30s and the channel emits `disconnected`. Normal Chrome
+  // treats `debugger;` as a no-op without DevTools attached, so the QA agent
+  // hits hangs that the user can never reproduce. We enable Debugger on our
+  // own CDP session, set skip-all-pauses, AND register a paused-handler that
+  // immediately resumes — belt-and-suspenders, since Playwright's parallel
+  // CDP session may not honor a skip flag set on ours.
+  try {
+    const cdp = await ctx.newCDPSession(page);
+    cdp.on("Debugger.paused" as any, () => {
+      cdp.send("Debugger.resume", { terminateOnResume: false } as any).catch(() => {});
+    });
+    await cdp.send("Debugger.enable");
+    await cdp.send("Debugger.setSkipAllPauses", { skip: true });
+  } catch (e: any) {
+    process.stderr.write(`lopecode-channel: CDP debugger-skip failed: ${e?.message ?? e}\n`);
+  }
 
   // fakefs root: caller's value wins; otherwise fall back to the shared default. We always
   // wire fakefs (even if caller didn't ask) so file-sync can disassemble without an OS dialog.
@@ -475,6 +519,7 @@ $def("_ui", "ui", ["viewof myToggle"], _ui);
 - **Hidden cells (main.variable().define)** don't render but ARE included in exports
 - **viewof value is extracted by Generators.input()** which reads .value on each "input" event
 - **After syncing module .js to notebook HTML**, always export_notebook before pushing to Observable (export captures hidden cells that lope-push-ws otherwise misses from the raw module JS)
+- **Pushing to ObservableHQ:** prefer \`node --experimental-vm-modules tools/lope-push-ws.js <notebook.html> --module @user/x --cells "a,b" --target <url> --cookies-file <path>\` with a \`{"T": "<hex>", "I": "<jwt>"}\` JSON file pasted from devtools (Application → Cookies → \`.observablehq.com\`). The browser-profile auth path is unreliable (headless Playwright wipes HttpOnly cookies); a stale \`I\` will surface its expiration date in the error message so you know which cookie to refresh.
 - **Two observers cannot share a DOM element** — if viewof returns an element AND another cell appends it, they fight. Use viewof for the element source; the consuming cell depends on "viewof X" to receive it.
 - **Cells re-evaluate when dependencies change** — a cell depending on a value (e.g. voiceEnabled boolean) re-runs on every toggle. A cell depending on viewof (the DOM element) only evaluates once.
 
@@ -908,7 +953,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "qa_console_logs",
-      description: "Drain captured console messages, page errors, and failed network requests from the QA browser. The QA agent's primary 'is anything broken' signal — runtime errors usually surface here without affecting the screenshot. Returns JSON.",
+      description: "Drain captured console messages, page errors, and failed network requests from the QA browser. The QA agent's primary 'is anything broken' signal — runtime errors usually surface here without affecting the screenshot. By default, drops known noisy boot chatter from @tomlarkworthy/runtime-sdk, @tomlarkworthy/module-map, @tomlarkworthy/editor-5, the lopecode bootloader, and fakefs init (~90% of typical log volume). Pass `include_noise: true` to see everything, or `exclude_patterns` for additional regex filters. Returns JSON; a `dropped_noise` count is included so you know how much was filtered.",
       inputSchema: {
         type: "object",
         properties: {
@@ -918,6 +963,15 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "array",
             items: { type: "string" },
             description: "Filter console types (e.g. ['error','warning']). Empty = all.",
+          },
+          include_noise: {
+            type: "boolean",
+            description: "Disable the default boot-chatter filter and return every console entry (default: false).",
+          },
+          exclude_patterns: {
+            type: "array",
+            items: { type: "string" },
+            description: "Additional regex patterns (matched against console text); entries matching any are dropped.",
           },
         },
       },
@@ -1099,7 +1153,22 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           const since = (args.since as number) ?? 0;
           const clear = (args.clear as boolean) ?? true;
           const typeFilter = args.types as string[] | undefined;
-          const console_ = qaConsole.filter(e => e.ts > since && (!typeFilter?.length || typeFilter.includes(e.type)));
+          const includeNoise = (args.include_noise as boolean) ?? false;
+          const extraExcludes = (args.exclude_patterns as string[] | undefined) ?? [];
+          const noiseRegexes: RegExp[] = [];
+          if (!includeNoise) noiseRegexes.push(...QA_DEFAULT_NOISE);
+          for (const p of extraExcludes) {
+            try { noiseRegexes.push(new RegExp(p)); }
+            catch { /* skip malformed user pattern */ }
+          }
+          const isNoise = (text: string) => noiseRegexes.some(r => r.test(text));
+          let dropped_noise = 0;
+          const console_ = qaConsole.filter(e => {
+            if (e.ts <= since) return false;
+            if (typeFilter?.length && !typeFilter.includes(e.type)) return false;
+            if (isNoise(e.text)) { dropped_noise++; return false; }
+            return true;
+          });
           const errors = qaErrors.filter(e => e.ts > since);
           const failed_requests = qaFailedRequests.filter(e => e.ts > since);
           if (clear) {
@@ -1110,7 +1179,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           return {
             content: [{
               type: "text",
-              text: JSON.stringify({ console: console_, errors, failed_requests, now: Date.now() }, null, 2),
+              text: JSON.stringify({ console: console_, errors, failed_requests, dropped_noise, now: Date.now() }, null, 2),
             }],
           };
         }
