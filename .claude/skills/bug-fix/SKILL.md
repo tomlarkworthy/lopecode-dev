@@ -40,14 +40,14 @@ Many steps below reference `<id>` and `<slug>` placeholders. Pick them once at t
    - `maintaining-and-updating-lopecode-and-lopebook-content-repositories.md` — `lope-jumpgate.js`, file-naming convention, sync-module workflow.
 6. **Create a fresh worktree off latest `origin/main` for each submodule the fix may touch.** Start with the submodule that holds the canonical notebook for the affected module; add the other if blast-radius mapping reveals consumers there.
    ```bash
-   cd <submodule>                       # lopecode or lopebooks
-   git fetch origin
+   git -C <submodule> fetch origin   # <submodule> = lopecode or lopebooks
    # Issue-driven:
-   git worktree add -B fix/issue-<id>-<slug> ../worktrees/<id>/<submodule> origin/main
+   git -C <submodule> worktree add -B fix/issue-<id>-<slug> ../worktrees/<id>/<submodule> origin/main 2>&1 | grep -v '^Updating files:' | tail -3
    # Description-driven:
-   git worktree add -B fix/<slug> ../worktrees/<slug>/<submodule> origin/main
+   git -C <submodule> worktree add -B fix/<slug> ../worktrees/<slug>/<submodule> origin/main 2>&1 | grep -v '^Updating files:' | tail -3
    ```
    - Creates `<repo-root>/worktrees/<id>/<submodule>/` with the fix branch checked out at `origin/main`.
+   - The `grep -v '^Updating files:'` filter trims the per-file progress spam (1800+ lines for lopebooks). The relevant lines — the new branch name and the `HEAD is now at` confirmation — survive in `tail -3`.
    - **All edits, git operations, and tool calls (qa_open_notebook URLs, sync-module --source/--target, etc.) from now on use the worktree path.** Never write into the parent submodule's working tree — that has the user's in-flight work.
 
 ### Why worktrees?
@@ -179,10 +179,10 @@ Many steps below reference `<id>` and `<slug>` placeholders. Pick them once at t
    ```
    - **Use `--cells`, not bulk replace.** Bulk delete-and-readd is destructive: any unpushed local cells on Observable will be wiped.
    - **Never combine `--cells` with `--no-delete`** — the script now refuses this, but the failure mode is silent duplicate insertion.
-   - **`--cells` is matched-name-only.** New cells (not already on Observable) are *silently skipped* with a warning; modified imports whose text changed don't byte-match either. For those, hand-write a small mjs script that does `modify_node` (existing import) and `insert_node` (new cell) over the WS protocol — see `knowledge/pushing-cells-to-observablehq.md` § "Gotchas with `--cells`".
-   - **Renaming a cell needs `insert_node` + `remove_node`, not `--cells`.** If the fix renames a cell (e.g. version-pinned name like `_inputs_0_11_0` → `_inputs_0_12_0`), `--cells` can't express the operation: it `modify_node`s the old name (still on Observable, body changes) and silently skips the new one (not yet on Observable, gets warned-and-dropped). Result: the rename half-applies, the bootloader still defines the old cell, and consumers break. Use a custom WS script that issues `insert_node` for the new name first, then `remove_node` for the old. Sequence the ops in dependency order: insert the new producer, modify any consumers (so they reference the new name), then remove the old producer last so dependents never see a missing dep mid-push.
+   - **`--cells` handles both modify *and* insert.** Pass a comma list of every cell you want pushed — existing names are `modify_node`'d in place, names that aren't on Observable yet are `insert_node`'d at the end. So a fix + a batch of new test cells is one `--cells "fix,test1,test2,..."` call. Imports are dropped when `--cells` is set (intentional, to avoid duplicate-import issues from whitespace-mismatched byte compares); see `knowledge/pushing-cells-to-observablehq.md` § "Gotchas with `--cells`".
+   - **Renaming a cell needs dependency-ordering, not `--cells`.** If the fix renames a cell (e.g. version-pinned name like `_inputs_0_11_0` → `_inputs_0_12_0`), `--cells` will both `modify_node` the old name and `insert_node` the new name — but it doesn't sequence consumers correctly, so consumers may transiently reference a missing dep. Use a custom WS script that issues `insert_node` for the new name first, modifies consumers to reference it, then `remove_node`s the old producer last.
    - **lope-push-ws.js doesn't parse `function _name(...)` declarations** ([lopecode-dev#18](https://github.com/tomlarkworthy/lopecode-dev/issues/18)). Its decompiler regex matches `const _name = function ...` only. The `@tomlarkworthy/bootloader` module uses bare `function _name` — running `--module @tomlarkworthy/bootloader` errors with "No variables extracted from module". For bootloader edits, skip lope-push-ws entirely and use a custom WS script (template: `worktrees/<id>/.fix-staging/push-bootloader.mjs` shape — `insert_node`/`modify_node`/`remove_node` ops over the documented WS protocol).
-   - If auth fails: see `knowledge/pushing-cells-to-observablehq.md` § "Auth fragility" — the bundled `--login --headed` flow is unreliable (headless Playwright wipes HttpOnly `T`/`I` cookies). Workaround: paste cookies from devtools into `worktrees/<id>/.fix-staging/observable-cookies.json` and read them directly in your push script.
+   - **Cookies-file is the canonical auth path.** Pass `--cookies-file tools/.observable-cookies.json` to `lope-push-ws.js`. The file is `{"T": "<value>", "I": "<value>"}` (object — NOT an array of cookie objects). Pasted from devtools → Application → Cookies → observablehq.com. The script does a fast-fail auth probe before any decompile, so an expired cookie surfaces in ~1s. If you find legacy `worktrees/<id>/.fix-staging/observable-cookies.json` files (older JSON-array format from previous bug-fix runs), ignore them; re-paste fresh ones into the canonical location. To convert legacy: `jq '{T: (map(select(.name=="T"))[0].value), I: (map(select(.name=="I"))[0].value)}' old.json > tools/.observable-cookies.json`. If auth still fails: see `knowledge/pushing-cells-to-observablehq.md` § "Auth fragility" (the bundled `--login --headed` flow is unreliable because headless Playwright wipes HttpOnly `T`/`I` cookies).
 
 10. **Re-jumpgate the canonical notebook.** Pulls the freshly-pushed module back from Observable as the canonical bundle:
 
@@ -262,24 +262,20 @@ Many steps below reference `<id>` and `<slug>` placeholders. Pick them once at t
     gh pr ready <num>
     ```
 
-17. **Update the issue comment** with confirmation that ObservableHQ + all consumers are synced and the PR is ready. **Issue-driven only — for description-driven fixes, skip this step (the PR description carries the same information).**
+17. **Merge.** Use `gh pr merge <num> --repo <owner>/<repo> --squash --admin`. If GitHub returns HTTP 500 (or `gh` repeats `GraphQL: Something went wrong while executing your query`) on a *large* sync PR (lopebooks consumer syncs are commonly 78K+ insertions across 155 files), retry the lopebooks side via:
+    1. `git -C worktrees/<id>/lopebooks fetch origin main`
+    2. `git -C worktrees/<id>/lopebooks reset --hard origin/main` (discards stale base; conflicts on consumer-syncs would be identical changes anyway since they all sync the same module)
+    3. Re-run the `sync-module.ts --module @user/module --source <canonical> --target "worktrees/<id>/lopebooks/notebooks/*.html"` command from step 12
+    4. Re-commit + `git push --force-with-lease`
+    5. Retry `gh pr merge` — the fresh diff (only the post-rebase delta) is small enough for GitHub's merge endpoint to accept.
 
-18. **`qa_close()`**.
+    The root cause is server-side: GitHub 5xx's the merge API when the squashed diff payload exceeds some internal limit. Rebasing onto fresh main shrinks the diff to just the genuinely new content. Verify with `gh pr view <num> --json state` — expect `MERGED`.
 
-## Phase 3 — After merge: bump parent submodule pointer
+18. **Update the issue comment** with confirmation that ObservableHQ + all consumers are synced and the PR is ready. **Issue-driven only — for description-driven fixes, skip this step (the PR description carries the same information).**
 
-Once the submodule PR merges, the parent `lopecode-dev` repo still points at the pre-fix commit. Bump it:
+19. **`qa_close()`**.
 
-```bash
-git -C <submodule> pull --ff-only origin main
-git add <submodule>
-git commit -m "Bump <submodule>: <one-line summary> (#<id>)"   # issue-driven; drop the `(#<id>)` suffix for description-driven fixes
-git push origin main
-```
-
-If a companion submodule was synced in Phase 2 (e.g. lopebooks alongside lopecode), bump that pointer too. Without this step, anyone cloning fresh sees the bug — the submodule PR merge alone doesn't reach them.
-
-## Cleanup (after Phase 3)
+## Cleanup (after merge)
 
 ```bash
 cd <submodule>
@@ -293,7 +289,6 @@ git fetch --prune origin   # also drops the merged remote branch reference
 - **Always work in a worktree.** Never commit in the parent submodule's working tree — that's the user's. If you accidentally do, `git stash && git checkout -- .` and retry inside the worktree.
 - **Use file-sync (default fakefs), not `export_notebook`.** The channel server wires fakefs by default to `~/.cache/lopecode-fakefs`. From there, every `define_cell` writes the changed module to disk as a `.js` file, and `Edit` on a `.js` flows back into the runtime — both directions, no OS dialogs, no human gestures. After arming "Sync enabled" in the file-sync panel and clicking "Disassemble to disk", the .js for your module lives at `~/.cache/lopecode-fakefs/<notebookId>/<moduleId>.js`. `export_notebook` is the fallback only if file-sync misbehaves; it dumps the whole HTML so you have to extract the one module via `sync-module.ts` and `git checkout` the noise.
 - **Diffs are large but readable.** Regenerated `.html` files are 1–3 MB but uncompressed, so `git diff` works. Only the changed module's `<script>` block should differ — if other regions of the HTML moved, jumpgate produced a non-deterministic re-bundle and you should investigate before committing.
-- **Submodule pointer bump is Phase 3.** See above — it's part of the workflow now, not a follow-up.
 - **`Fixes #N` only auto-closes same-repo issues** (issue-driven mode only — description-driven PRs have no issue to close). Use `Fixes <owner>/<repo>#<N>` for cross-repo. Either way, leave the close to the human.
 - **Don't push to Observable for a fix you can't reproduce.** Speculative fixes pollute the canonical source. This applies equally to issue-driven and description-driven fixes — vague descriptions are the most common path into a speculative fix.
 - **Adversarial inputs from `qa/general.md` criterion #10 are over-kill for targeted regression.** Stick to the failure modes the changed cell could plausibly produce — full adversarial passes belong in `qa-notebook`.

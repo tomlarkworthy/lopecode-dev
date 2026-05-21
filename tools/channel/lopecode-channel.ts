@@ -705,7 +705,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "eval_code",
-      description: "Evaluate JavaScript code in the notebook's browser context. Use for throwaway/ephemeral actions. Example: reload the page with `location.reload()` to pick up changes after sync-module or to fix a broken runtime state.",
+      description: "Evaluate JavaScript code in the notebook's browser context. **Statement bodies need explicit `return`** — single-expression bodies (no semicolons, no leading statement keyword like `const`/`let`/`if`/`for`) are auto-returned, but anything that looks like a statement runs as an async IIFE body where the implicit completion value is `undefined`. Use `return foo` (or wrap the whole body in `(() => { ... })()`) to get a value back. Use for throwaway/ephemeral actions; example: `location.reload()` to pick up changes after sync-module.",
       inputSchema: {
         type: "object",
         properties: {

@@ -454,6 +454,17 @@ function extractCellName(source) {
 
 // --- Cookie extraction ---
 
+function decodeICookieExpiration(iValue) {
+  try {
+    const middle = iValue.split('.')[0];
+    const json = Buffer.from(middle, 'base64').toString('utf8');
+    const payload = JSON.parse(json);
+    return typeof payload.expiration === 'number' ? payload.expiration : null;
+  } catch {
+    return null;
+  }
+}
+
 async function extractCookies(options) {
   // Cookie-file shortcut: bypasses Playwright entirely. Per
   // knowledge/pushing-cells-to-observablehq.md, headless Playwright
@@ -466,6 +477,16 @@ async function extractCookies(options) {
     if (!parsed.T || !parsed.I) {
       throw new Error(`${options.cookiesFile}: missing 'T' or 'I' field`);
     }
+    // The I cookie is a JWT with a base64url-encoded JSON payload that
+    // includes an `expiration` field (epoch ms). Surface staleness BEFORE
+    // hitting the API so the user knows exactly which cookie to refresh.
+    const iExpiry = decodeICookieExpiration(parsed.I);
+    if (iExpiry && iExpiry < Date.now()) {
+      throw new Error(
+        `${options.cookiesFile}: I cookie expired on ${new Date(iExpiry).toISOString()} ` +
+        `(${Math.round((Date.now() - iExpiry) / 86400000)} day(s) ago). Refresh I from devtools.`
+      );
+    }
     const resp = await fetch('https://api.observablehq.com/user', {
       headers: {
         'Cookie': `I=${parsed.I}; T=${parsed.T}`,
@@ -474,8 +495,12 @@ async function extractCookies(options) {
     });
     const user = await resp.json();
     if (!user?.login) {
+      const iDesc = iExpiry
+        ? `I expires ${new Date(iExpiry).toISOString()} (not stale)`
+        : 'I payload not decodable';
       throw new Error(
-        `Cookies in ${options.cookiesFile} did not authenticate (user API returned ${JSON.stringify(user)}). They may have expired — re-paste from devtools.`
+        `Cookies in ${options.cookiesFile} did not authenticate (user API returned ${JSON.stringify(user)}). ` +
+        `${iDesc}; T may be stale — re-paste both from devtools.`
       );
     }
     log(`Authenticated as ${user.login} (cookies-file)`);
@@ -940,6 +965,15 @@ async function main() {
   if (!fs.existsSync(notebookPath)) {
     console.error(`Error: Notebook not found: ${notebookPath}`);
     process.exit(1);
+  }
+
+  // Fast-fail auth probe — happens BEFORE Playwright spin-up + decompile (~30s
+  // each), so a stale cookies file fails in ~1s instead of after wasted setup.
+  // Only runs in real (non-dry-run) flows that have a --cookies-file; the
+  // browser-profile cookie path keeps its later validation in pushViaWS().
+  if (options.cookiesFile && !options.dryRun) {
+    log('Validating cookies before decompile (fast-fail)...');
+    await extractCookies(options);
   }
 
   // Fall back to spec file's upstreams map if no --target.
