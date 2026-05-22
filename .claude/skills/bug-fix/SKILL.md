@@ -1,7 +1,7 @@
 ---
 name: bug-fix
 description: Use when the user asks to "fix this issue", "fix bug X", "/bug-fix <URL>", "/bug-fix <description>", or hands over either a GitHub issue URL or a free-form bug description for a lopecode/lopebooks bug. Two-phase: (Phase 1) sets up isolated git worktrees off latest `main`, reproduces the bug in Playwright Chromium, diagnoses it, authors the fix on the live runtime, captures the proposed change in the worktree, and opens a DRAFT PR with that single-file diff for human review — then STOPS. (Phase 2, after user approves in chat) pushes the cell to ObservableHQ via `lope-push-ws.js`, regenerates the canonical HTML via `lope-jumpgate.js`, propagates the module into every consumer notebook via `sync-module.ts`, runs targeted regression QA, and finalizes the PR. When an issue is supplied it is left OPEN until the human merges; `Fixes #N` auto-closes it on merge. When no issue is supplied, no issue is opened — the PR alone tracks the fix.
-version: 0.4.0
+version: 0.5.0
 ---
 
 # Fix a Lopecode Bug
@@ -271,9 +271,21 @@ Many steps below reference `<id>` and `<slug>` placeholders. Pick them once at t
 
     The root cause is server-side: GitHub 5xx's the merge API when the squashed diff payload exceeds some internal limit. Rebasing onto fresh main shrinks the diff to just the genuinely new content. Verify with `gh pr view <num> --json state` — expect `MERGED`.
 
-18. **Update the issue comment** with confirmation that ObservableHQ + all consumers are synced and the PR is ready. **Issue-driven only — for description-driven fixes, skip this step (the PR description carries the same information).**
+18. **Fast-forward the user's local submodule and verify the fix is on disk.** A merged PR only lives on GitHub — the user's primary `<submodule>/` working tree still points at the pre-fix `HEAD`, so when they re-open the notebook from disk the bug is still there. For each submodule touched by the fix:
+    ```bash
+    git -C <submodule> fetch origin
+    git -C <submodule> status --porcelain   # check for uncommitted local edits BEFORE moving HEAD
+    ```
+    - **If the working tree is clean:** `git -C <submodule> merge --ff-only origin/main`. If it's not fast-forwardable, surface that and stop — the user has local commits that need rebasing.
+    - **If there are uncommitted local edits:** do NOT pull silently. Show the user `git -C <submodule> diff --stat` and ask whether to stash+pull+pop, discard, or pause. The bug-fix skill must never overwrite in-flight work in the parent submodule.
 
-19. **`qa_close()`**.
+    After the fast-forward, grep the on-disk canonical HTML for a string unique to the fix (a new identifier, a renamed function, the removed buggy call — whichever was the visible change in the PR diff). Confirm the post-fix code is present. If the grep returns the pre-fix code instead, jumpgate or sync-module silently missed the file; investigate before declaring done.
+
+    **Parent-repo submodule pointer:** the parent (`lopecode-dev`) pins `lopebooks` / `lopecode` at a specific commit. After fast-forwarding the submodule, `git -C <parent> status` will show `modified: <submodule> (new commits)`. **Do not auto-commit this bump** — the parent repo may already have unrelated in-flight changes (`git status` in the parent is the source of truth). Tell the user the pointer is now stale and offer to stage just the submodule bump (`git add <submodule> && git commit -m "Bump <submodule>: <fix summary> (#<pr-num>)"`) when they're ready. Without this, anyone running `git submodule update` will roll the user back to the pre-fix commit.
+
+19. **Update the issue comment** with confirmation that ObservableHQ + all consumers are synced and the PR is ready. **Issue-driven only — for description-driven fixes, skip this step (the PR description carries the same information).**
+
+20. **`qa_close()`**.
 
 ## Cleanup (after merge)
 
