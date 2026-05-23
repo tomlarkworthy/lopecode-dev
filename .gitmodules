@@ -28,3 +28,12 @@
 [submodule "vendor/golden-layout"]
 	path = vendor/golden-layout
 	url = https://github.com/golden-layout/golden-layout.git
+[submodule "vendor/feeling-of-computing"]
+	path = vendor/feeling-of-computing
+	url = https://github.com/marianoguerra/Feeling-of-Computing
+[submodule "vendor/colibri-social"]
+	path = vendor/colibri-social
+	url = https://github.com/colibri-social/colibri.social
+[submodule "vendor/foc-wiki"]
+	path = vendor/foc-wiki
+	url = https://github.com/feelingofcomputing/wiki
