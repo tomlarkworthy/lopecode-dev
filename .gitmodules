@@ -37,3 +37,6 @@
 [submodule "vendor/foc-wiki"]
 	path = vendor/foc-wiki
 	url = https://github.com/feelingofcomputing/wiki
+[submodule "lopecode-videos"]
+	path = lopecode-videos
+	url = https://github.com/tomlarkworthy/lopecode-videos
