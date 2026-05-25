@@ -121,6 +121,11 @@ async function ensureQaBrowser(opts: {
   fakefsRoot?: string;
 } = {}): Promise<PwPage> {
   if (qaPage && !qaPage.isClosed()) return qaPage;
+  // The page is gone but a browser may still be alive — e.g. it was closed out
+  // from under us (window closed, crash) without the close handler reaching it.
+  // Launching without tearing it down orphans that window, so the next qa_close
+  // (which only closes the current qaBrowser) can never reach it.
+  if (qaBrowser) await closeQaBrowser();
   const { chromium } = await import("playwright");
   qaBrowser = await chromium.launch({ headless: opts.headless ?? false });
   const ctx = await qaBrowser.newContext({ viewport: opts.viewport ?? { width: 1280, height: 800 } });
@@ -130,25 +135,6 @@ async function ensureQaBrowser(opts: {
     catch (e: any) { process.stderr.write(`lopecode-channel: grantPermissions failed: ${e?.message ?? e}\n`); }
   }
   const page = await ctx.newPage();
-
-  // Playwright launches Chromium with CDP `Debugger` domain enabled, so any
-  // `debugger;` on the runtime hot path pauses the page indefinitely — qa_*
-  // tools time out at 30s and the channel emits `disconnected`. Normal Chrome
-  // treats `debugger;` as a no-op without DevTools attached, so the QA agent
-  // hits hangs that the user can never reproduce. We enable Debugger on our
-  // own CDP session, set skip-all-pauses, AND register a paused-handler that
-  // immediately resumes — belt-and-suspenders, since Playwright's parallel
-  // CDP session may not honor a skip flag set on ours.
-  try {
-    const cdp = await ctx.newCDPSession(page);
-    cdp.on("Debugger.paused" as any, () => {
-      cdp.send("Debugger.resume", { terminateOnResume: false } as any).catch(() => {});
-    });
-    await cdp.send("Debugger.enable");
-    await cdp.send("Debugger.setSkipAllPauses", { skip: true });
-  } catch (e: any) {
-    process.stderr.write(`lopecode-channel: CDP debugger-skip failed: ${e?.message ?? e}\n`);
-  }
 
   // fakefs root: caller's value wins; otherwise fall back to the shared default. We always
   // wire fakefs (even if caller didn't ask) so file-sync can disassemble without an OS dialog.
@@ -179,7 +165,16 @@ async function ensureQaBrowser(opts: {
     failure: r.failure()?.errorText ?? "",
   }));
   page.on("close", () => {
-    if (qaPage === page) qaPage = null;
+    if (qaPage !== page) return;
+    qaPage = null;
+    // Single-page model: a dead page means the browser is done. Tear it down
+    // now so a stale window can't linger and the next open starts clean.
+    // (Fires during closeQaBrowser too, but that already nulled qaPage so the
+    // guard above no-ops — no double close.)
+    const b = qaBrowser;
+    qaBrowser = null;
+    currentFakefsRoot = null;
+    if (b) b.close().catch(() => {});
   });
   qaPage = page;
   return page;
