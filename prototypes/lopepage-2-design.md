@@ -55,8 +55,9 @@ its URL. `open=@mod#cell` sets a leaf's `cell` to a deep-link pid.
 
 ## Docking
 
-Each tab carries a close `×` that runs `lp2_ops.removeLeaf(root, module)` and commits (`normalize`
-collapses an emptied stack or single-child split).
+Each tab carries a close `×` that writes a `close=<module>` URL intent (via `linkTo`);
+`lp2_syncFromUrl` consumes it with `lp2_ops.removeLeaf` (`normalize` collapses an emptied stack or
+single-child split). Closing thus goes through the same intent path as `open`.
 
 A tab is `draggable`. On `dragstart` it sets `window.__lp2_drag = {module}` and calls `lp2_dragOut`.
 Each stack body has a drop overlay: `dragover` highlights the region under the pointer — the inner
@@ -79,16 +80,16 @@ the browser's native `overflow-anchor`, so the anchor is maintained in JS.
 `lp2_syncToUrl` serialises the model back; `lp2_setHash` writes via `history.replaceState`
 (no `hashchange`).
 
-`view=` is the layout DSL and is lopepage-2's to own. `open=@mod[#cell]` is a one-shot intent:
-`lp2_syncFromUrl` overlays the module into the first stack (merging into the live layout when there
-is no `view=`, setting a leaf's deep-link `cell` when `#cell` is present), and `lp2_syncToUrl` drops
-it once the layout reflects it. Invariants:
+`view=` is the layout DSL and is lopepage-2's to own. `open=@mod[#cell]` and `close=@mod` are
+one-shot intents applied by `lp2_syncFromUrl` (overlay a module into the first stack / remove a
+module), merging into the live layout when there is no `view=`; `lp2_syncToUrl` drops them once the
+layout reflects them. Invariants:
 
 - `lp2_syncToUrl` writes only when the model round-trips:
   `serialize(parse(serialize(model))) === serialize(model)`.
 - Writing is gated on `window.__lp2_owns_hash`, set only while lopepage-2 is the mounted page.
-- Only `view=` and the intents it consumes (`open`) are managed; every other hash param (e.g.
-  `cc=`) is preserved verbatim — a decoupled module cannot assume it owns them.
+- Only `view=` and the intents it consumes (`open`, `close`) are managed; every other hash param
+  (e.g. `cc=`) is preserved verbatim — a decoupled module cannot assume it owns them.
 - `replaceState` is silent and the read path is driven by `hashchange`, so a write does not
   re-trigger a read.
 

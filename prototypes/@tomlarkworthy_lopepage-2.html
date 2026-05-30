@@ -14030,8 +14030,8 @@ const _nr5449 = function _lp2_renderNode() {return (ctx => {
                 close.addEventListener('mousedown', ev => ev.stopPropagation());
                 close.addEventListener('click', ev => {
                     ev.stopPropagation();
-                    const { root } = ctx.ops.removeLeaf(ctx.getRoot(), leaf.module);
-                    ctx.commit(root);
+                    // route through the URL intent system: close=<module>
+                    location.hash = ctx.linkTo({ close: leaf.module }, { baseURI: location.href });
                 });
                 tab.appendChild(close);
                 tabsEl.appendChild(tab);
@@ -14354,7 +14354,7 @@ const _xewyzb = function _lp2_dragOut() {return ((moduleName, dataTransfer) => {
         mime
     };
 });};
-const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_anchor,$0,Event,lp2_getPane,lp2_dragOut,lp2_ops,lp2_paneRegistry,lp2_renderNode) {
+const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_anchor,$0,Event,lp2_getPane,lp2_dragOut,lp2_ops,lp2_paneRegistry,lp2_renderNode,linkTo) {
     const host = lp2_host;
     lp2Model;
     lp2_installAnchor;
@@ -14369,7 +14369,8 @@ const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_ancho
         dragOut: lp2_dragOut,
         ops: lp2_ops,
         commit,
-        getRoot: () => lp2Model
+        getRoot: () => lp2Model,
+        linkTo
     };
     const rerender = () => {
         const saved = new Map();
@@ -14402,7 +14403,7 @@ const _17biy5y = function _lp2_doc_hash(md) {return (md`### Hash ownership
 
 \`lp2_hash\` observes \`location.hash\`. \`lp2_syncFromUrl\` parses it into the model when it changes externally; \`lp2_syncToUrl\` serialises the model back. \`lp2_setHash\` writes via \`history.replaceState\`, which updates the URL without firing \`hashchange\`.
 
-\`view=\` is the layout (the \`R\`/\`S\`/\`C\` DSL) and is lopepage-2's to own. \`open=@mod[#cell]\` is a one-shot intent: \`lp2_syncFromUrl\` overlays the module into the layout — merging into the live layout when there is no \`view=\`, setting a leaf's deep-link \`cell\` when \`#cell\` is given — and \`lp2_syncToUrl\` drops it once the layout reflects it.
+\`view=\` is the layout (the \`R\`/\`S\`/\`C\` DSL) and is lopepage-2's to own. \`open=@mod[#cell]\` and \`close=@mod\` are one-shot intents: \`lp2_syncFromUrl\` overlays a module into the layout (setting a leaf's deep-link \`cell\` when \`#cell\` is given) or removes one — merging into the live layout when there is no \`view=\` — and \`lp2_syncToUrl\` drops the intent once the layout reflects it. The tab close \`×\` writes \`close=\` via \`linkTo\`, so closing exercises the same path.
 
 Invariants:
 
@@ -14431,12 +14432,12 @@ const _iy41xa = function _lp2_setHash(location,history) {return (newHash => {
         }
     }
 });};
-const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serializeDSL,Event) {
+const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serializeDSL,Event,lp2_ops) {
     const el = $0;
     // element ref (NOT value) -> only re-runs on hash change, no loop
     const hash = lp2_hash;
     // re-run on external hashchange / initial load
-    let view = null, open = null;
+    let view = null, open = null, close = null;
     for (const part of String(hash).replace(/^#/, '').split('&').filter(Boolean)) {
         const eq = part.indexOf('=');
         const key = eq >= 0 ? part.slice(0, eq) : part;
@@ -14445,12 +14446,14 @@ const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serialize
             view = decodeURIComponent(val);
         else if (key === 'open')
             open = decodeURIComponent(val);
+        else if (key === 'close')
+            close = decodeURIComponent(val);
         // every other param (cc=, and anything other modules own) is ignored here
     }
-    if (!view && !open)
+    if (!view && !open && !close)
         return { status: 'skipped' };
     // base model: parse view= when present, else clone the live layout so
-    // `open` overlays into it rather than replacing it
+    // `open` / `close` apply to it rather than replacing it
     let model;
     try {
         model = view ? lp2_parseDSL(view) : JSON.parse(JSON.stringify(el.value));
@@ -14511,10 +14514,19 @@ const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serialize
             openApplied = true;
         }
     }
+    // apply the one-shot close=@mod intent (remove the leaf, collapse via normalize)
+    let closeApplied = false;
+    if (close) {
+        const r = lp2_ops.removeLeaf(model, close);
+        if (r.leaf) {
+            model = r.root;
+            closeApplied = true;
+        }
+    }
     const reser = lp2_serializeDSL(model);
     // republish when the layout changed, or when open set active/cell on an
     // already-present module (active is not serialized, so compare by intent)
-    const applied = openApplied || reser !== lp2_serializeDSL(el.value);
+    const applied = openApplied || closeApplied || reser !== lp2_serializeDSL(el.value);
     if (applied) {
         el.value = model;
         el.dispatchEvent(new Event('input'));
@@ -14523,7 +14535,9 @@ const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serialize
         status: 'ok',
         view,
         open,
+        close,
         openApplied,
+        closeApplied,
         reser,
         applied
     };
@@ -14671,12 +14685,12 @@ export default function define(runtime, observer) {
   $def("_nr5449", "lp2_renderNode", [], _nr5449);  
   $def("_jume09", "lp2_ops", [], _jume09);  
   $def("_xewyzb", "lp2_dragOut", [], _xewyzb);  
-  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode"], _mmsmhu);  
+  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode","linkTo"], _mmsmhu);
   $def("_1mscs6b", "lp2_probe", ["lp2_view","lp2_paneRegistry"], _1mscs6b);  
   $def("_17biy5y", "lp2_doc_hash", ["md"], _17biy5y);  
   $def("_acwav8", "lp2_hash", ["Generators","location"], _acwav8);  
   $def("_iy41xa", "lp2_setHash", ["location","history"], _iy41xa);  
-  $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event"], _tx6ac0);  
+  $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event","lp2_ops"], _tx6ac0);
   $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);  
   $def("_ixjzc7", "lp2_doc_mount", ["md"], _ixjzc7);  
   $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","commandPaletteStyles","commandPaletteOverlay"], _1qy9hpm);
@@ -14703,6 +14717,8 @@ export default function define(runtime, observer) {
   main.define("change_listener", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("change_listener", _));
   main.define("commit_history", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("commit_history", _));
   main.define("replay_git", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("replay_git", _));
+  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));
+  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));
   return main;
 }
 </script>
