@@ -14221,6 +14221,12 @@ const _jume09 = function _lp2_ops() {
         rec(root);
         return res;
     };
+    // is `target` reachable from root?
+    const contains = (root, target) => {
+        if (root === target)
+            return true;
+        return (root.children || []).some(c => contains(c, target));
+    };
     // remove first leaf with `module`; returns {root, leaf}
     const removeLeaf = (root, module) => {
         const host = findHost(root, module);
@@ -14273,8 +14279,12 @@ const _jume09 = function _lp2_ops() {
     };
     // perform a full move: remove dragged module, then drop beside target
     const move = (root, module, targetStack, side) => {
-        // guard: dragging the lone tab of the target onto itself
-        if (targetStack.t === 'stack' && targetStack.tabs.length === 1 && targetStack.tabs[0].module === module && side === 'center')
+        const host = findHost(root, module);
+        if (!host)
+            return root;
+        // dragging a tab within its own stack: a lone tab has nowhere to go;
+        // a centre-drop onto its own stack is a no-op
+        if (host.stack === targetStack && (host.stack.tabs.length === 1 || side === 'center'))
             return root;
         const {
             root: r2,
@@ -14282,13 +14292,19 @@ const _jume09 = function _lp2_ops() {
         } = removeLeaf(root, module);
         if (!leaf)
             return root;
-        // targetStack may have been collapsed away; if so, fall back to making it the root
+        // the target stack object is mutated in place, so it survives removal unless it
+        // was the host and got emptied (guarded above); confirm it is still in the tree
+        if (!contains(r2, targetStack)) {
+            // target collapsed away: drop the leaf back into whatever remains as the root
+            return dropBeside(r2, r2, leaf, side);
+        }
         return dropBeside(r2, targetStack, leaf, side);
     };
     return {
         replaceNode,
         normalize,
         findHost,
+        contains,
         removeLeaf,
         dropBeside,
         move
