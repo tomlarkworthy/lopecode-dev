@@ -13639,7 +13639,7 @@ It rests on three mechanisms, each described in its own section:
 2. **Persistent-id scroll anchoring** — when a pane's content resizes after load, the cell at the viewport top is held in place by its \`pid\`.
 3. **A layout tree** reconciled to DOM and round-tripped through the \`#view=\` DSL under loop-protected hash ownership.
 
-Dependencies: [\`runtime-sdk\`](https://observablehq.com/@tomlarkworthy/runtime-sdk) (\`persistentId\`, \`runtime\`), [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) (cell rendering), [\`module-map\`](https://observablehq.com/@tomlarkworthy/module-map) (\`currentModules\`), [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) (\`apply_theme\`), [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) (\`cc_chat\`).`);};
+Dependencies: [\`runtime-sdk\`](https://observablehq.com/@tomlarkworthy/runtime-sdk) (\`persistentId\`, \`runtime\`), [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) (cell rendering), [\`module-map\`](https://observablehq.com/@tomlarkworthy/module-map) (\`currentModules\`), [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) (\`apply_theme\`). Two orthogonal feature modules are composed by import and kept reachable from \`lp2_background_jobs\`: [\`command-palette\`](https://observablehq.com/@tomlarkworthy/command-palette) (⌘K) and [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) (\`cc_chat\`).`);};
 const _1bg9e0n = function _lp2_doc_model(md) {return (md`### Layout model and DSL
 
 The layout is a single tree. \`viewof lp2Model\` holds it as reactive state. A node is one of:
@@ -14373,10 +14373,13 @@ const _17biy5y = function _lp2_doc_hash(md) {return (md`### Hash ownership
 
 \`lp2_hash\` observes \`location.hash\`. \`lp2_syncFromUrl\` parses it into the model when it changes externally; \`lp2_syncToUrl\` serialises the model back. \`lp2_setHash\` writes via \`history.replaceState\`, which updates the URL without firing \`hashchange\`.
 
+\`view=\` is the layout (the \`R\`/\`S\`/\`C\` DSL) and is lopepage-2's to own. \`open=@mod[#cell]\` is a one-shot intent: \`lp2_syncFromUrl\` overlays the module into the layout — merging into the live layout when there is no \`view=\`, setting a leaf's deep-link \`cell\` when \`#cell\` is given — and \`lp2_syncToUrl\` drops it once the layout reflects it.
+
 Invariants:
 
 - \`lp2_syncToUrl\` writes only when the model round-trips: \`serialize(parse(serialize(model))) === serialize(model)\`. A layout that does not round-trip never reaches the URL.
 - Writing is gated on \`window.__lp2_owns_hash\`, set only while lopepage-2 is the mounted page, so the URL is left untouched when the module is imported as a dependency.
+- Only \`view=\` and the intents it consumes (\`open\`) are managed; every other hash param (e.g. \`cc=\`) is preserved verbatim, because a decoupled module cannot assume it owns them.
 - Because \`replaceState\` is silent and the read path is driven by \`hashchange\`, a write does not re-trigger a read.`);};
 const _acwav8 = function _lp2_hash(Generators,location) {return (Generators.observe(notify => {
     const update = () => notify(location.hash);
@@ -14404,32 +14407,95 @@ const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serialize
     // element ref (NOT value) -> only re-runs on hash change, no loop
     const hash = lp2_hash;
     // re-run on external hashchange / initial load
-    const view = (String(hash).match(/(?:[#&]|^)view=([^&]*)/) || [])[1];
-    if (!view)
+    let view = null, open = null;
+    for (const part of String(hash).replace(/^#/, '').split('&').filter(Boolean)) {
+        const eq = part.indexOf('=');
+        const key = eq >= 0 ? part.slice(0, eq) : part;
+        const val = eq >= 0 ? part.slice(eq + 1) : '';
+        if (key === 'view')
+            view = decodeURIComponent(val);
+        else if (key === 'open')
+            open = decodeURIComponent(val);
+        // every other param (cc=, and anything other modules own) is ignored here
+    }
+    if (!view && !open)
         return { status: 'skipped' };
-    let model, reser;
+    // base model: parse view= when present, else clone the live layout so
+    // `open` overlays into it rather than replacing it
+    let model;
     try {
-        model = lp2_parseDSL(view);
-        reser = lp2_serializeDSL(model);
+        model = view ? lp2_parseDSL(view) : JSON.parse(JSON.stringify(el.value));
     } catch (e) {
         return {
             status: 'error',
             error: String(e)
         };
     }
-    const decoded = decodeURIComponent(view);
-    const roundTrips = reser === decoded;
-    // loop-protection signal
-    const applied = reser !== lp2_serializeDSL(el.value);
+    // apply the one-shot open=@mod[#cell] intent
+    let openApplied = false;
+    if (open) {
+        const [modRaw, cellRaw] = open.split('#');
+        const module = (modRaw || '').trim();
+        const cell = (cellRaw || '').trim() || null;
+        if (module) {
+            const findLeaf = n => {
+                if (!n)
+                    return null;
+                if (n.t === 'stack') {
+                    for (const leaf of n.tabs || [])
+                        if (leaf.module === module)
+                            return { stack: n, leaf };
+                    return null;
+                }
+                for (const c of n.children || []) {
+                    const f = findLeaf(c);
+                    if (f)
+                        return f;
+                }
+                return null;
+            };
+            const firstStack = n => {
+                if (!n)
+                    return null;
+                if (n.t === 'stack')
+                    return n;
+                for (const c of n.children || []) {
+                    const f = firstStack(c);
+                    if (f)
+                        return f;
+                }
+                return null;
+            };
+            const found = findLeaf(model);
+            if (found) {
+                if (cell)
+                    found.leaf.cell = cell;
+                found.stack.active = found.stack.tabs.indexOf(found.leaf);
+            } else {
+                let st = firstStack(model);
+                if (!st)
+                    model = st = { t: 'stack', active: 0, tabs: [] };
+                st.tabs = st.tabs || [];
+                st.tabs.push(cell ? { module, cell } : { module });
+                st.active = st.tabs.length - 1;
+            }
+            openApplied = true;
+        }
+    }
+    const reser = lp2_serializeDSL(model);
+    // republish when the layout changed, or when open set active/cell on an
+    // already-present module (active is not serialized, so compare by intent)
+    const applied = openApplied || reser !== lp2_serializeDSL(el.value);
     if (applied) {
         el.value = model;
         el.dispatchEvent(new Event('input'));
     }
     return {
         status: 'ok',
-        view: decoded,
+        view,
+        open,
+        openApplied,
         reser,
-        roundTrips,
         applied
     };
 };
@@ -14491,12 +14557,14 @@ const _12m57w2 = function _lp2_syncToUrl(lp2Model,lp2_serializeDSL,lp2_parseDSL,
         dsl
     };
 };
-const _ixjzc7 = function _lp2_doc_mount(md) {return (md`### Page mount, theme, and pairing
+const _ixjzc7 = function _lp2_doc_mount(md) {return (md`### Page mount, theme, and orthogonal features
 
-\`lp2_page\` builds the fullscreen \`#lopepage-2\` container, adopts the [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) stylesheets via \`apply_theme\`, and mounts the [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) \`cc_chat\` widget in a floating dock. Mounting \`cc_chat\` makes its connection cell reachable, so the pairing channel connects while lopepage-2 is the page.
+\`lp2_page\` builds the fullscreen \`#lopepage-2\` container, adopts the [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) stylesheets via \`apply_theme\`, and appends the [\`command-palette\`](https://observablehq.com/@tomlarkworthy/command-palette) chrome (\`commandPaletteStyles\` + the hidden \`commandPaletteOverlay\`) so ⌘K has a node to reveal.
 
-\`lp2_append_to_body\` is the keystone cell: reachable only when lopepage-2 is booted as a main, it appends the page to \`document.body\` and sets \`window.__lp2_owns_hash\`. With \`bootconf.headless\` set, the runtime observes this cell as the page's single output.`);};
-const _1qy9hpm = function _lp2_page(apply_theme,lp2_host,cc_chat) {
+\`lp2_background_jobs\` holds references to the main-loop cells of orthogonal feature modules so the runtime instantiates them while lopepage-2 is the page: \`commandPaletteKeybinding\` (installs the ⌘K listener) and \`cc_chat\` (opens the [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) connection). These modules are composed by import, not added to \`mains\`.
+
+\`lp2_append_to_body\` is the keystone cell: reachable only when lopepage-2 is booted as a main, it appends the page to \`document.body\`, references \`lp2_background_jobs\`, and sets \`window.__lp2_owns_hash\`. With \`bootconf.headless\` set, the runtime observes this cell as the page's single output.`);};
+const _1qy9hpm = function _lp2_page(apply_theme,lp2_host,commandPaletteStyles,commandPaletteOverlay) {
     apply_theme;
     // adopt theme stylesheets into the document
     const root = document.createElement('div');
@@ -14515,25 +14583,30 @@ const _1qy9hpm = function _lp2_page(apply_theme,lp2_host,cc_chat) {
         '#lopepage-2 .lope-viz .observablehq{position:relative;min-height:17px;}',
         '#lopepage-2 .lope-viz .observablehq:not(.observablehq--running):empty::after{content:\'<detached>\';font-style:oblique;opacity:.5;}',
         '#lopepage-2 .lp2-tabs button:hover{background:rgba(0,0,0,.06);}',
-        '#lopepage-2 .lp2-splitter:hover{background:#bbb;}',
-        '#lopepage-2 .lp2-chat{position:fixed;right:12px;bottom:12px;width:340px;max-height:50vh;overflow:auto;z-index:10;background:var(--theme-background-a,#fff);border:1px solid rgba(0,0,0,.15);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);}'
+        '#lopepage-2 .lp2-splitter:hover{background:#bbb;}'
     ].join('\n');
     root.appendChild(style);
     root.appendChild(lp2_host);
-    // mount the pairing chat: makes cc_ws reachable so the channel connects
-    const chatDock = document.createElement('div');
-    chatDock.className = 'lp2-chat';
-    chatDock.appendChild(cc_chat);
-    root.appendChild(chatDock);
+    // command-palette chrome: a <style> and a fixed overlay, hidden until ⌘K
+    root.appendChild(commandPaletteStyles);
+    root.appendChild(commandPaletteOverlay);
     return root;
 };
-const _1lin1z3 = function _lp2_append_to_body(lp2_view,lp2_syncFromUrl,lp2_syncToUrl,lp2_page) {
+const _lp2bgj0 = function _lp2_background_jobs(commandPaletteKeybinding,cc_chat) {
+    // hold references so these orthogonal features' main-loop cells instantiate
+    commandPaletteKeybinding; // installs the ⌘K keydown listener
+    cc_chat;                  // instantiates the pairing connection
+    return 'background jobs: command-palette, claude-code-pairing';
+};
+const _1lin1z3 = function _lp2_append_to_body(lp2_view,lp2_syncFromUrl,lp2_syncToUrl,lp2_page,lp2_background_jobs) {
     lp2_view;
     // ensure the layout renders into the host
     lp2_syncFromUrl;
     // keep hash -> model live
     lp2_syncToUrl;
     // keep model -> hash live (dormant until armed below)
+    lp2_background_jobs;
+    // activate orthogonal features (⌘K palette, pairing) while lopepage-2 is the page
     window.__lp2_owns_hash = true;
     // arm hash ownership; only reachable when lopepage-2 is the page
     const page = lp2_page;
@@ -14556,8 +14629,12 @@ export default function define(runtime, observer) {
   main.define("visualizer", ["module @tomlarkworthy/visualizer", "@variable"], (_, v) => v.import("visualizer", _));  
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
   main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));  
-  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));  
-  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));  
+  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));
+  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));
+  main.define("module @tomlarkworthy/command-palette", async () => runtime.module((await import("/@tomlarkworthy/command-palette.js?v=4")).default));
+  main.define("commandPaletteKeybinding", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteKeybinding", _));
+  main.define("commandPaletteOverlay", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteOverlay", _));
+  main.define("commandPaletteStyles", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteStyles", _));
   main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
   main.define("apply_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("apply_theme", _));  
   main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));  
@@ -14588,8 +14665,9 @@ export default function define(runtime, observer) {
   $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event"], _tx6ac0);  
   $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);  
   $def("_ixjzc7", "lp2_doc_mount", ["md"], _ixjzc7);  
-  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","cc_chat"], _1qy9hpm);  
-  $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page"], _1lin1z3);
+  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","commandPaletteStyles","commandPaletteOverlay"], _1qy9hpm);
+  $def("_lp2bgj0", "lp2_background_jobs", ["commandPaletteKeybinding","cc_chat"], _lp2bgj0);
+  $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page","lp2_background_jobs"], _1lin1z3);
   return main;
 }
 </script>

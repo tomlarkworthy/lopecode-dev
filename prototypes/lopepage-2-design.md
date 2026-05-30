@@ -50,7 +50,8 @@ its URL. `open=@mod#cell` sets a leaf's `cell` to a deep-link pid.
 5. **lp2_dragOut** — writes the module `.js` source to the drag `DataTransfer`
    (`application/javascript` + `DownloadURL`), filename derived from the module name.
 6. **lp2_hash / lp2_setHash / lp2_syncFromUrl / lp2_syncToUrl** — URL ownership (see below).
-7. **lp2_page / lp2_append_to_body** — page mount, theme, pairing (see below).
+7. **lp2_page / lp2_background_jobs / lp2_append_to_body** — page mount, theme, orthogonal
+   features (see below).
 
 ## Docking
 
@@ -73,22 +74,35 @@ the browser's native `overflow-anchor`, so the anchor is maintained in JS.
 
 `lp2_hash` observes `location.hash`. `lp2_syncFromUrl` parses it into the model on external change;
 `lp2_syncToUrl` serialises the model back; `lp2_setHash` writes via `history.replaceState`
-(no `hashchange`). Invariants:
+(no `hashchange`).
+
+`view=` is the layout DSL and is lopepage-2's to own. `open=@mod[#cell]` is a one-shot intent:
+`lp2_syncFromUrl` overlays the module into the first stack (merging into the live layout when there
+is no `view=`, setting a leaf's deep-link `cell` when `#cell` is present), and `lp2_syncToUrl` drops
+it once the layout reflects it. Invariants:
 
 - `lp2_syncToUrl` writes only when the model round-trips:
   `serialize(parse(serialize(model))) === serialize(model)`.
 - Writing is gated on `window.__lp2_owns_hash`, set only while lopepage-2 is the mounted page.
+- Only `view=` and the intents it consumes (`open`) are managed; every other hash param (e.g.
+  `cc=`) is preserved verbatim — a decoupled module cannot assume it owns them.
 - `replaceState` is silent and the read path is driven by `hashchange`, so a write does not
   re-trigger a read.
 
-## Page mount, theme, pairing
+## Page mount, theme, orthogonal features
 
 `lp2_page` builds the fullscreen `#lopepage-2` container, adopts the `@tomlarkworthy/themes`
-stylesheets via `apply_theme`, and mounts the `@tomlarkworthy/claude-code-pairing` `cc_chat` widget
-in a floating dock — which makes its connection cell reachable, so the pairing channel connects
-while lopepage-2 is the page. `lp2_append_to_body` is the keystone: reachable only when lopepage-2
-is booted as a main, it appends the page to `document.body` and sets `window.__lp2_owns_hash`. With
-`bootconf.headless` set, the runtime observes this cell as the page's single output.
+stylesheets via `apply_theme`, and appends the `@tomlarkworthy/command-palette` chrome
+(`commandPaletteStyles` + the hidden `commandPaletteOverlay`) so ⌘K has a node to reveal.
+
+Orthogonal features are composed by import, not added to `mains`. `lp2_background_jobs` holds bare
+references to their main-loop cells so the runtime instantiates them while lopepage-2 is the page:
+`commandPaletteKeybinding` (the ⌘K keydown listener) and `cc_chat` (which opens the
+`@tomlarkworthy/claude-code-pairing` connection).
+
+`lp2_append_to_body` is the keystone: reachable only when lopepage-2 is booted as a main, it appends
+the page to `document.body`, references `lp2_background_jobs`, and sets `window.__lp2_owns_hash`.
+With `bootconf.headless` set, the runtime observes this cell as the page's single output.
 
 ## Dependencies
 
@@ -98,5 +112,7 @@ is booted as a main, it appends the page to `document.body` and sets `window.__l
   every cell node carries a `.variable` backref used for pids.
 - [`@tomlarkworthy/module-map`](https://observablehq.com/@tomlarkworthy/module-map) — `currentModules`.
 - [`@tomlarkworthy/themes`](https://observablehq.com/@tomlarkworthy/themes) — `apply_theme`.
+- [`@tomlarkworthy/command-palette`](https://observablehq.com/@tomlarkworthy/command-palette) —
+  `commandPaletteStyles`, `commandPaletteOverlay`, `commandPaletteKeybinding` (⌘K).
 - [`@tomlarkworthy/claude-code-pairing`](https://observablehq.com/@tomlarkworthy/claude-code-pairing)
   — `cc_chat`.
