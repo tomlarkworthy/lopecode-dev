@@ -1,8 +1,14 @@
 // @tomlarkworthy/lopepage-2 — prototype cells (Observable source).
 // Authored live via the pairing channel on prototypes/@tomlarkworthy_lopepage-2.html.
 // Durable record so the prototype survives the browser session. Each block is one cell.
-// Status: immortal panes + split/stack reconcile + single-shot scroll restore PROVEN.
-// TODO: pid {pid,offset} anchor for content-load reflow / deep-link; URL DSL; drag; tabs polish.
+//
+// PROVEN:
+//  - immortal panes + split/stack reconcile
+//  - single-shot scroll restore across layout edits (content height stable -> exact, no rAF loop)
+//  - pid {pid,offset} anchor + ResizeObserver re-pin for content-load reflow
+//    (content loaded ABOVE the viewport: anchored cell drift = 0, no jump)
+// TODO: URL #view= DSL round-trip (#5); pointer-drag rearrange + drag-out-to-.js (#6);
+//       splitter resize-drag; QA across a real URL change (#7).
 
 // ── imports ────────────────────────────────────────────────────────────────
 import {runtime, main, persistentId} from "@tomlarkworthy/runtime-sdk"
@@ -18,9 +24,67 @@ lp2_moduleByName = {
   return (name) => byName.get(name);
 }
 
+// ── pid scroll anchoring helpers ─────────────────────────────────────────────
+// Anchor = the cell at the top of the viewport + pixels into it: {pid, offset}.
+// pid comes from persistentId(node.variable) — every viz cell node carries a
+// `.variable` backref, so NO visualizer edit is needed. Restoring by pid keeps the
+// anchored cell pinned even when content above it changes height (set scrollTop to
+// the cell's *current* offsetTop + offset).
+lp2_anchor = {
+  const cellNodes = (paneEl) => [...paneEl.querySelectorAll(".observablehq[cell]")];
+  const pidOf = (node) => { try { return node.variable ? persistentId(node.variable) : null; } catch (e) { return null; } };
+  const capture = (paneEl) => {
+    const top = paneEl.scrollTop;
+    if (top <= 0) return null;
+    for (const node of cellNodes(paneEl)) {
+      const nTop = node.offsetTop, nBot = nTop + node.offsetHeight;
+      if (nBot > top + 1) {
+        const pid = pidOf(node);
+        if (pid) return { pid, offset: top - nTop };
+      }
+    }
+    return null;
+  };
+  const restore = (paneEl, anchor) => {
+    if (!anchor || !anchor.pid) return false;
+    const node = cellNodes(paneEl).find((n) => pidOf(n) === anchor.pid);
+    if (!node) return false;
+    paneEl.scrollTop = node.offsetTop + anchor.offset;
+    return true;
+  };
+  return { cellNodes, pidOf, capture, restore };
+}
+
+// Per-pane: rAF-debounced scroll capture + ResizeObserver re-pin on reflow.
+// `__lp2_pinning` guards our own programmatic scrollTop writes from the listener.
+lp2_installAnchor = (entry) => {
+  const el = entry.el;
+  if (el.__lp2_anchor_bound) return;
+  el.__lp2_anchor_bound = true;
+  const A = lp2_anchor;
+  let raf = 0;
+  el.addEventListener("scroll", () => {
+    if (el.__lp2_pinning) return;
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; entry.anchor = A.capture(el); });
+  }, { passive: true });
+  const content = el.querySelector(".lope-viz") || el.firstElementChild;
+  if (content && window.ResizeObserver) {
+    const ro = new ResizeObserver(() => {
+      if (!entry.anchor) return;
+      el.__lp2_pinning = true;
+      A.restore(el, entry.anchor);
+      requestAnimationFrame(() => { el.__lp2_pinning = false; });
+    });
+    ro.observe(content);
+    entry.ro = ro;
+  }
+}
+
 // ── immortal pane registry ───────────────────────────────────────────────────
 // One scroll <div> per module, cached forever. Layout edits reuse this element;
-// it is never recreated, so cell computation / viz DOM persist.
+// it is never recreated, so cell computation / viz DOM persist (and content height
+// stays stable across a layout-only change).
 lp2_paneRegistry = new Map()
 
 lp2_getPane = (moduleName) => {
@@ -42,12 +106,13 @@ lp2_getPane = (moduleName) => {
       }
     });
     el.appendChild(viz);
-    entry = { el, viz, moduleName };
+    entry = { el, viz, moduleName, anchor: null };
   } else {
     el.textContent = "module not found: " + moduleName;
-    entry = { el, viz: null, moduleName };
+    entry = { el, viz: null, moduleName, anchor: null };
   }
   lp2_paneRegistry.set(moduleName, entry);
+  lp2_installAnchor(entry);
   return entry;
 }
 
@@ -117,20 +182,28 @@ lp2_renderNode = (rerender) => {
   return make;
 }
 
-// ── reactive view: capture scroll, rebuild tree (reusing panes), restore ──────
-// The restore is SINGLE-SHOT and exact: immortal panes keep content height stable
-// across a layout-only edit, so the captured scrollTop is still valid after reparent.
+// ── reactive view: anchor-capture, rebuild tree (reusing panes), anchor-restore ─
+// Restore is single-shot and exact: immortal panes keep content height stable across
+// a layout-only edit, so the captured anchor/scrollTop is still valid after reparent.
 // (Replaces fix_scroll's 6-frame rAF retry loop + reflow timers.)
 lp2_view = {
   const host = lp2_host;
   lp2Model;
+  lp2_installAnchor; lp2_anchor;
   const rerender = () => {
     const saved = new Map();
-    for (const [name, entry] of lp2_paneRegistry) saved.set(name, entry.el.scrollTop);
+    for (const [name, entry] of lp2_paneRegistry) {
+      lp2_installAnchor(entry);
+      const anc = lp2_anchor.capture(entry.el);
+      saved.set(name, anc || { raw: entry.el.scrollTop });
+    }
     host.replaceChildren(lp2_renderNode(rerender)(lp2Model));
-    for (const [name, top] of saved) {
+    for (const [name, anc] of saved) {
       const entry = lp2_paneRegistry.get(name);
-      if (entry && entry.el.isConnected && top) entry.el.scrollTop = top;
+      if (!entry || !entry.el.isConnected) continue;
+      if (anc.pid) { if (!lp2_anchor.restore(entry.el, anc) && anc.raw) entry.el.scrollTop = anc.raw; }
+      else if (anc.raw) entry.el.scrollTop = anc.raw;
+      entry.anchor = anc.pid ? anc : entry.anchor;
     }
   };
   rerender();
