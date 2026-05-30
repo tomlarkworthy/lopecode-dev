@@ -14279,7 +14279,20 @@ const _1vlnnyw = function _lp2_host() {
     });
     return host;
 };
-const _nr5449 = function _lp2_renderNode(lp2_getPane,lp2_dragOut) {return (rerender => {
+const _nr5449 = function _lp2_renderNode() {return (ctx => {
+    const sideOf = (ev, el) => {
+        const r = el.getBoundingClientRect();
+        const x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height;
+        if (x > 0.3 && x < 0.7 && y > 0.3 && y < 0.7)
+            return 'center';
+        const d = {
+            left: x,
+            right: 1 - x,
+            top: y,
+            bottom: 1 - y
+        };
+        return Object.keys(d).reduce((a, b) => d[b] < d[a] ? b : a);
+    };
     const make = node => {
         if (!node)
             return document.createTextNode('');
@@ -14313,32 +14326,117 @@ const _nr5449 = function _lp2_renderNode(lp2_getPane,lp2_dragOut) {return (reren
             });
             const active = node.active || 0;
             (node.tabs || []).forEach((leaf, i) => {
-                const pane = lp2_getPane(leaf.module).el;
+                const pane = ctx.getPane(leaf.module).el;
                 pane.style.display = i === active ? 'block' : 'none';
                 pane.style.flex = '1 1 auto';
                 body.appendChild(pane);
                 const tab = document.createElement('button');
                 tab.textContent = leaf.module.split('/').pop();
-                tab.title = leaf.module + '  (drag out to save as .js)';
+                tab.title = leaf.module + '  (drag to a pane edge to dock, or out to save as .js)';
                 Object.assign(tab.style, {
                     border: 'none',
                     padding: '4px 8px',
-                    cursor: 'pointer',
+                    cursor: 'grab',
                     fontSize: '11px',
                     background: i === active ? '#fff' : 'transparent'
                 });
                 tab.onclick = () => {
                     node.active = i;
-                    rerender();
+                    ctx.commit(ctx.getRoot());
                 };
                 tab.draggable = true;
                 tab.addEventListener('dragstart', ev => {
+                    window.__lp2_drag = { module: leaf.module };
                     try {
-                        lp2_dragOut(leaf.module, ev.dataTransfer);
+                        ev.dataTransfer.setData('application/x-lp2-leaf', leaf.module);
+                    } catch (_) {
+                    }
+                    try {
+                        ctx.dragOut(leaf.module, ev.dataTransfer);
                     } catch (_) {
                     }
                 });
+                tab.addEventListener('dragend', () => {
+                    window.__lp2_drag = null;
+                });
                 tabsEl.appendChild(tab);
+            });
+            const zone = document.createElement('div');
+            Object.assign(zone.style, {
+                position: 'absolute',
+                pointerEvents: 'none',
+                display: 'none',
+                background: 'rgba(40,120,255,.18)',
+                outline: '2px solid rgba(40,120,255,.6)',
+                outlineOffset: '-2px',
+                zIndex: 5,
+                boxSizing: 'border-box'
+            });
+            body.appendChild(zone);
+            const showZone = side => {
+                const f = {
+                    left: [
+                        '0',
+                        '0',
+                        '50%',
+                        '100%'
+                    ],
+                    right: [
+                        '50%',
+                        '0',
+                        '50%',
+                        '100%'
+                    ],
+                    top: [
+                        '0',
+                        '0',
+                        '100%',
+                        '50%'
+                    ],
+                    bottom: [
+                        '0',
+                        '50%',
+                        '100%',
+                        '50%'
+                    ],
+                    center: [
+                        '15%',
+                        '15%',
+                        '70%',
+                        '70%'
+                    ]
+                }[side];
+                Object.assign(zone.style, {
+                    display: 'block',
+                    left: f[0],
+                    top: f[1],
+                    width: f[2],
+                    height: f[3]
+                });
+            };
+            body.addEventListener('dragover', ev => {
+                if (!window.__lp2_drag)
+                    return;
+                ev.preventDefault();
+                try {
+                    ev.dataTransfer.dropEffect = 'copy';
+                } catch (_) {
+                }
+                showZone(sideOf(ev, body));
+            });
+            body.addEventListener('dragleave', ev => {
+                if (ev.target === body)
+                    zone.style.display = 'none';
+            });
+            body.addEventListener('drop', ev => {
+                if (!window.__lp2_drag)
+                    return;
+                ev.preventDefault();
+                const side = sideOf(ev, body);
+                zone.style.display = 'none';
+                const m = window.__lp2_drag.module;
+                window.__lp2_drag = null;
+                ctx.commit(ctx.ops.move(ctx.getRoot(), m, node, side));
             });
             wrap.append(tabsEl, body);
             return wrap;
@@ -14399,7 +14497,7 @@ const _nr5449 = function _lp2_renderNode(lp2_getPane,lp2_dragOut) {return (reren
                         const onUp = () => {
                             document.removeEventListener('pointermove', onMove);
                             document.removeEventListener('pointerup', onUp);
-                            rerender();
+                            ctx.commit(ctx.getRoot());
                         };
                         document.addEventListener('pointermove', onMove);
                         document.addEventListener('pointerup', onUp);
@@ -14413,11 +14511,23 @@ const _nr5449 = function _lp2_renderNode(lp2_getPane,lp2_dragOut) {return (reren
     };
     return make;
 });};
-const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_anchor,lp2_paneRegistry,lp2_renderNode) {
+const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_anchor,$0,Event,lp2_getPane,lp2_dragOut,lp2_ops,lp2_paneRegistry,lp2_renderNode) {
     const host = lp2_host;
     lp2Model;
     lp2_installAnchor;
     lp2_anchor;
+    const vmEl = $0;
+    const commit = newRoot => {
+        vmEl.value = newRoot;
+        vmEl.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const ctx = {
+        getPane: lp2_getPane,
+        dragOut: lp2_dragOut,
+        ops: lp2_ops,
+        commit,
+        getRoot: () => lp2Model
+    };
     const rerender = () => {
         const saved = new Map();
         for (const [name, entry] of lp2_paneRegistry) {
@@ -14425,7 +14535,7 @@ const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_ancho
             const anc = lp2_anchor.capture(entry.el);
             saved.set(name, anc || { raw: entry.el.scrollTop });
         }
-        host.replaceChildren(lp2_renderNode(rerender)(lp2Model));
+        host.replaceChildren(lp2_renderNode(ctx)(lp2Model));
         for (const [name, anc] of saved) {
             const entry = lp2_paneRegistry.get(name);
             if (!entry || !entry.el.isConnected)
@@ -14797,6 +14907,134 @@ const _1lin1z3 = function _lp2_append_to_body(lp2_view,lp2_syncFromUrl,lp2_syncT
         document.body.appendChild(page);
     return 'lopepage-2 mounted';
 };
+const _jume09 = function _lp2_ops() {
+    // pure-ish surgery on the live layout tree; mutate then commit() to republish
+    const replaceNode = (root, oldRef, newNode) => {
+        if (root === oldRef)
+            return newNode;
+        const rec = n => {
+            if (!n || !n.children)
+                return;
+            for (let i = 0; i < n.children.length; i++) {
+                if (n.children[i] === oldRef) {
+                    n.children[i] = newNode;
+                    return true;
+                }
+                if (rec(n.children[i]))
+                    return true;
+            }
+            return false;
+        };
+        rec(root);
+        return root;
+    };
+    // collapse empty stacks and single-child splits; returns cleaned node or null
+    const normalize = node => {
+        if (!node)
+            return null;
+        if (node.t === 'stack')
+            return node.tabs && node.tabs.length ? node : null;
+        const kids = (node.children || []).map(normalize).filter(Boolean);
+        if (kids.length === 0)
+            return null;
+        if (kids.length === 1)
+            return kids[0];
+        node.children = kids;
+        node.sizes = kids.map(() => Math.round(100 / kids.length));
+        return node;
+    };
+    // find the stack holding `module`; returns {stack, tabIndex} or null
+    const findHost = (root, module) => {
+        let res = null;
+        const rec = n => {
+            if (!n || res)
+                return;
+            if (n.t === 'stack') {
+                const ti = (n.tabs || []).findIndex(l => l.module === module);
+                if (ti >= 0)
+                    res = {
+                        stack: n,
+                        tabIndex: ti
+                    };
+            } else
+                (n.children || []).forEach(rec);
+        };
+        rec(root);
+        return res;
+    };
+    // remove first leaf with `module`; returns {root, leaf}
+    const removeLeaf = (root, module) => {
+        const host = findHost(root, module);
+        if (!host)
+            return {
+                root,
+                leaf: null
+            };
+        const [leaf] = host.stack.tabs.splice(host.tabIndex, 1);
+        if (host.stack.active >= host.stack.tabs.length)
+            host.stack.active = Math.max(0, host.stack.tabs.length - 1);
+        return {
+            root: normalize(root) || {
+                t: 'stack',
+                active: 0,
+                tabs: []
+            },
+            leaf
+        };
+    };
+    // drop `leaf` relative to `targetStack`: side = left|right|top|bottom|center
+    const dropBeside = (root, targetStack, leaf, side) => {
+        if (side === 'center') {
+            targetStack.tabs.push(leaf);
+            targetStack.active = targetStack.tabs.length - 1;
+            return root;
+        }
+        const orient = side === 'left' || side === 'right' ? 'row' : 'col';
+        const newStack = {
+            t: 'stack',
+            active: 0,
+            tabs: [leaf]
+        };
+        const order = side === 'left' || side === 'top' ? [
+            newStack,
+            targetStack
+        ] : [
+            targetStack,
+            newStack
+        ];
+        const repl = {
+            t: orient,
+            sizes: [
+                50,
+                50
+            ],
+            children: order
+        };
+        return replaceNode(root, targetStack, repl);
+    };
+    // perform a full move: remove dragged module, then drop beside target
+    const move = (root, module, targetStack, side) => {
+        // guard: dragging the lone tab of the target onto itself
+        if (targetStack.t === 'stack' && targetStack.tabs.length === 1 && targetStack.tabs[0].module === module && side === 'center')
+            return root;
+        const {
+            root: r2,
+            leaf
+        } = removeLeaf(root, module);
+        if (!leaf)
+            return root;
+        // targetStack may have been collapsed away; if so, fall back to making it the root
+        return dropBeside(r2, targetStack, leaf, side);
+    };
+    return {
+        replaceNode,
+        normalize,
+        findHost,
+        removeLeaf,
+        dropBeside,
+        move
+    };
+};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -14819,18 +15057,18 @@ export default function define(runtime, observer) {
   $def("_yitkz2", "viewof lp2Model", ["Inputs"], _yitkz2);  
   $def("_1ow4sob", "lp2Model", ["Generators","viewof lp2Model"], _1ow4sob);  
   $def("_1vlnnyw", "lp2_host", [], _1vlnnyw);  
-  $def("_nr5449", "lp2_renderNode", ["lp2_getPane","lp2_dragOut"], _nr5449);  
-  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","lp2_paneRegistry","lp2_renderNode"], _mmsmhu);  
+  $def("_nr5449", "lp2_renderNode", [], _nr5449);  
+  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode"], _mmsmhu);  
   $def("_1mscs6b", "lp2_probe", ["lp2_view","lp2_paneRegistry"], _1mscs6b);  
   $def("_gk3skb", "lp2_anchor", ["persistentId"], _gk3skb);  
   $def("_rrgemy", "lp2_installAnchor", ["lp2_anchor","ResizeObserver"], _rrgemy);  
   $def("_15yplkp", "lp2_parseDSL", [], _15yplkp);  
   $def("_wwgbz0", "lp2_serializeDSL", [], _wwgbz0);  
   $def("_xewyzb", "lp2_dragOut", [], _xewyzb);  
-  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));
-  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));
-  main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));
-  main.define("apply_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("apply_theme", _));
+  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));  
+  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));  
+  main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
+  main.define("apply_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("apply_theme", _));  
   main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));  
   main.define("module @tomlarkworthy/golden-layout-2-6-0", async () => runtime.module((await import("/@tomlarkworthy/golden-layout-2-6-0.js?v=4")).default));  
   main.define("base_css", ["module @tomlarkworthy/golden-layout-2-6-0", "@variable"], (_, v) => v.import("base_css", _));  
@@ -14839,10 +15077,12 @@ export default function define(runtime, observer) {
   $def("_iy41xa", "lp2_setHash", ["location","history"], _iy41xa);  
   $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event"], _tx6ac0);  
   $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);  
-  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","cc_chat"], _1qy9hpm);
-  $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page"], _1lin1z3);
+  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","cc_chat"], _1qy9hpm);  
+  $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page"], _1lin1z3);  
+  $def("_jume09", "lp2_ops", [], _jume09);
   return main;
-}</script>
+}
+</script>
 
 <script id="@tomlarkworthy/lopepage-urls" 
   type="text/plain"
