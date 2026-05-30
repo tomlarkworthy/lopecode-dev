@@ -2,13 +2,22 @@
 // Authored live via the pairing channel on prototypes/@tomlarkworthy_lopepage-2.html.
 // Durable record so the prototype survives the browser session. Each block is one cell.
 //
-// PROVEN:
-//  - immortal panes + split/stack reconcile
+// PROVEN (all via live eval against the running prototype):
+//  - immortal panes (one cached scroll-div per module, reused across layout edits)
+//  - row/col/stack reconcile with resizable splitters (drag divider -> sizes 50/50 -> 59/41)
 //  - single-shot scroll restore across layout edits (content height stable -> exact, no rAF loop)
 //  - pid {pid,offset} anchor + ResizeObserver re-pin for content-load reflow
-//    (content loaded ABOVE the viewport: anchored cell drift = 0, no jump)
-// TODO: URL #view= DSL round-trip (#5); pointer-drag rearrange + drag-out-to-.js (#6);
-//       splitter resize-drag; QA across a real URL change (#7).
+//    (content injected ABOVE viewport -> anchored cell drift = 0, no jump)
+//  - #view= DSL round-trip; layout change via DSL string preserves scrollTop 700->700
+//  - rearrange model-op (collapse two stacks into tabs) preserves scrollTop 400->400
+//  - drag-out: contentSync(module) -> {bytes,mime}; DataTransfer text + Chrome DownloadURL
+//
+// NOTE: native overflow-anchor is SUPPRESSED by our own programmatic scrollTop writes
+//       (verified: native-only drift = 500), so the JS re-pin is required, not optional.
+//
+// REMAINING: pane drag-rearrange drop-zone UI (the model-op underneath is proven); wire the
+//            tab drag-out grip vs pointer-rearrange per [[feedback_gl_tab_html5_drag_needs_grip]];
+//            hashchange<->model glue (deferred — old lopepage owns location.hash in this fork).
 
 // ── imports ────────────────────────────────────────────────────────────────
 import {runtime, main, persistentId} from "@tomlarkworthy/runtime-sdk"
@@ -26,10 +35,9 @@ lp2_moduleByName = {
 
 // ── pid scroll anchoring helpers ─────────────────────────────────────────────
 // Anchor = the cell at the top of the viewport + pixels into it: {pid, offset}.
-// pid comes from persistentId(node.variable) — every viz cell node carries a
-// `.variable` backref, so NO visualizer edit is needed. Restoring by pid keeps the
-// anchored cell pinned even when content above it changes height (set scrollTop to
-// the cell's *current* offsetTop + offset).
+// pid = persistentId(node.variable) — every viz cell node carries a `.variable` backref,
+// so NO visualizer edit is needed. Restoring by pid keeps the anchored cell pinned even
+// when content above it changes height (scrollTop = the cell's *current* offsetTop + offset).
 lp2_anchor = {
   const cellNodes = (paneEl) => [...paneEl.querySelectorAll(".observablehq[cell]")];
   const pidOf = (node) => { try { return node.variable ? persistentId(node.variable) : null; } catch (e) { return null; } };
@@ -56,7 +64,8 @@ lp2_anchor = {
 }
 
 // Per-pane: rAF-debounced scroll capture + ResizeObserver re-pin on reflow.
-// `__lp2_pinning` guards our own programmatic scrollTop writes from the listener.
+// `__lp2_pinning` guards our own programmatic scrollTop writes from the scroll listener.
+// ResizeObserver runs after layout, before paint -> correction lands in the reflow's frame.
 lp2_installAnchor = (entry) => {
   const el = entry.el;
   if (el.__lp2_anchor_bound) return;
@@ -82,9 +91,9 @@ lp2_installAnchor = (entry) => {
 }
 
 // ── immortal pane registry ───────────────────────────────────────────────────
-// One scroll <div> per module, cached forever. Layout edits reuse this element;
-// it is never recreated, so cell computation / viz DOM persist (and content height
-// stays stable across a layout-only change).
+// One scroll <div> per module, cached forever. Layout edits reuse this element; it is never
+// recreated, so cell computation / viz DOM persist (content height stays stable across a
+// layout-only change). Reparenting still resets native scrollTop, hence the anchor restore.
 lp2_paneRegistry = new Map()
 
 lp2_getPane = (moduleName) => {
@@ -118,8 +127,7 @@ lp2_getPane = (moduleName) => {
 
 // ── #view= DSL ⇄ model (round-trips; scroll survives an applied DSL change) ───
 // R=row, C=col, S=stack; number = weight within parent. Leaf = @scope/name or d/<hex>,
-// optional #cell deep-link. Weight lives on parent.sizes[i] in the model. Hash wiring
-// (hashchange -> parse -> setModel; model -> serialize -> setHash) is the remaining glue.
+// optional #cell deep-link. Weight lives on parent.sizes[i] in the model.
 lp2_parseDSL = (input) => {
   if (!input) return null;
   input = String(input);
@@ -170,7 +178,7 @@ lp2_serializeDSL = (root) => {
   return s(root, 100);
 }
 
-// ── layout model (⇄ #view= R/S/C DSL via lp2_parseDSL / lp2_serializeDSL) ─────
+// ── layout model ─────────────────────────────────────────────────────────────
 viewof lp2Model = Inputs.input({
   t: "row",
   sizes: [50, 50],
@@ -188,7 +196,20 @@ lp2_host = {
   return host;
 }
 
-// ── recursive reconcile: LayoutNode -> DOM (panes reused from registry) ───────
+// ── drag-out: write a module's .js source to a DataTransfer (text + Chrome DownloadURL) ─
+lp2_dragOut = (moduleName, dataTransfer) => {
+  const res = window.lopecode.contentSync(moduleName);
+  const text = res && res.bytes ? new TextDecoder().decode(res.bytes) : "";
+  const mime = (res && res.mime) || "application/javascript";
+  const fname = moduleName.replace(/^@/, "").replace(/\//g, "_") + ".js";
+  dataTransfer.setData("text/plain", text);
+  dataTransfer.setData("application/javascript", text);
+  dataTransfer.setData("DownloadURL", mime + ":" + fname + ":data:" + mime + ";base64," + btoa(unescape(encodeURIComponent(text))));
+  dataTransfer.effectAllowed = "copy";
+  return { fname, len: text.length, mime };
+}
+
+// ── recursive reconcile: LayoutNode -> DOM (panes reused; splitters; drag-out tabs) ──
 lp2_renderNode = (rerender) => {
   const make = (node) => {
     if (!node) return document.createTextNode("");
@@ -209,9 +230,11 @@ lp2_renderNode = (rerender) => {
         body.appendChild(pane);
         const tab = document.createElement("button");
         tab.textContent = leaf.module.split("/").pop();
-        tab.title = leaf.module;
+        tab.title = leaf.module + "  (drag out to save as .js)";
         Object.assign(tab.style, { border: "none", padding: "4px 8px", cursor: "pointer", fontSize: "11px", background: i === active ? "#fff" : "transparent" });
         tab.onclick = () => { node.active = i; rerender(); };
+        tab.draggable = true;
+        tab.addEventListener("dragstart", (ev) => { try { lp2_dragOut(leaf.module, ev.dataTransfer); } catch (_) {} });
         tabsEl.appendChild(tab);
       });
       wrap.append(tabsEl, body);
@@ -222,12 +245,37 @@ lp2_renderNode = (rerender) => {
       const wrap = document.createElement("div");
       Object.assign(wrap.style, { display: "flex", flexDirection: row ? "row" : "column", minWidth: 0, minHeight: 0, height: "100%", width: "100%" });
       const kids = node.children || [];
+      if (!node.sizes || node.sizes.length !== kids.length) node.sizes = kids.map(() => Math.round(100 / kids.length));
+      const slots = [];
       kids.forEach((child, i) => {
         const slot = document.createElement("div");
-        const basis = (node.sizes && node.sizes[i]) || (100 / kids.length);
-        Object.assign(slot.style, { flex: basis + " 1 0", minWidth: 0, minHeight: 0, display: "flex", overflow: "hidden" });
+        Object.assign(slot.style, { flex: node.sizes[i] + " 1 0", minWidth: 0, minHeight: 0, display: "flex", overflow: "hidden" });
         slot.appendChild(make(child));
         wrap.appendChild(slot);
+        slots.push(slot);
+        if (i < kids.length - 1) {
+          const sp = document.createElement("div");
+          sp.className = "lp2-splitter";
+          Object.assign(sp.style, { flex: "0 0 6px", cursor: row ? "col-resize" : "row-resize", background: "#ddd", flexShrink: 0 });
+          sp.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            try { sp.setPointerCapture(e.pointerId); } catch (_) {}
+            const startPos = row ? e.clientX : e.clientY;
+            const wrapSize = row ? wrap.clientWidth : wrap.clientHeight;
+            const s0 = node.sizes[i], s1 = node.sizes[i + 1], total = s0 + s1;
+            const onMove = (ev) => {
+              const delta = ((row ? ev.clientX : ev.clientY) - startPos) / wrapSize * 100;
+              let n0 = Math.max(5, Math.min(total - 5, s0 + delta));
+              node.sizes[i] = n0; node.sizes[i + 1] = total - n0;
+              slots[i].style.flex = node.sizes[i] + " 1 0";
+              slots[i + 1].style.flex = node.sizes[i + 1] + " 1 0";
+            };
+            const onUp = () => { document.removeEventListener("pointermove", onMove); document.removeEventListener("pointerup", onUp); rerender(); };
+            document.addEventListener("pointermove", onMove);
+            document.addEventListener("pointerup", onUp);
+          });
+          wrap.appendChild(sp);
+        }
       });
       return wrap;
     }
@@ -237,9 +285,9 @@ lp2_renderNode = (rerender) => {
 }
 
 // ── reactive view: anchor-capture, rebuild tree (reusing panes), anchor-restore ─
-// Restore is single-shot and exact: immortal panes keep content height stable across
-// a layout-only edit, so the captured anchor/scrollTop is still valid after reparent.
-// (Replaces fix_scroll's 6-frame rAF retry loop + reflow timers.)
+// Restore is single-shot and exact: immortal panes keep content height stable across a
+// layout-only edit, so the captured anchor/scrollTop is still valid after reparent.
+// (Replaces lopepage's fix_scroll 6-frame rAF retry loop + reflow timers.)
 lp2_view = {
   const host = lp2_host;
   lp2Model;
