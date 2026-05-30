@@ -14015,6 +14015,25 @@ const _nr5449 = function _lp2_renderNode() {return (ctx => {
                         window.__lp2_dropZone = null;
                     }
                 });
+                const close = document.createElement('span');
+                close.textContent = '×';
+                close.title = 'Close';
+                Object.assign(close.style, {
+                    marginLeft: '6px',
+                    opacity: '.45',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                });
+                close.onmouseenter = () => close.style.opacity = '1';
+                close.onmouseleave = () => close.style.opacity = '.45';
+                // don't let a grab on × start a tab drag or activate the tab
+                close.addEventListener('mousedown', ev => ev.stopPropagation());
+                close.addEventListener('click', ev => {
+                    ev.stopPropagation();
+                    const { root } = ctx.ops.removeLeaf(ctx.getRoot(), leaf.module);
+                    ctx.commit(root);
+                });
+                tab.appendChild(close);
                 tabsEl.appendChild(tab);
             });
             const zone = document.createElement('div');

@@ -55,6 +55,9 @@ its URL. `open=@mod#cell` sets a leaf's `cell` to a deep-link pid.
 
 ## Docking
 
+Each tab carries a close `×` that runs `lp2_ops.removeLeaf(root, module)` and commits (`normalize`
+collapses an emptied stack or single-child split).
+
 A tab is `draggable`. On `dragstart` it sets `window.__lp2_drag = {module}` and calls `lp2_dragOut`.
 Each stack body has a drop overlay: `dragover` highlights the region under the pointer — the inner
 box is *centre* (merge into the stack), otherwise the nearest edge is *left/right/top/bottom* (split).
