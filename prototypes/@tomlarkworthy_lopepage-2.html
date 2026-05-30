@@ -13629,6 +13629,159 @@ export default function define(runtime, observer) {
 const _463kso = function _lp2_title(md) {return (md`# lopepage-2 (prototype)
 
 Own-the-DOM layout. Immortal panes + pid scroll anchoring. No GoldenLayout.`);};
+const _1f1jsit = function _lp2_doc_overview(md) {return (md`## lopepage-2
+
+A layout engine for lopecode notebooks. It tiles modules into resizable splits and tabbed stacks, serialises the layout to the URL hash, and preserves scroll position across layout changes. It owns its DOM directly.
+
+It rests on three mechanisms, each described in its own section:
+
+1. **Immortal panes** — one scroll container per module, created once and reparented on layout change, so \`scrollTop\` is retained.
+2. **Persistent-id scroll anchoring** — when a pane's content resizes after load, the cell at the viewport top is held in place by its \`pid\`.
+3. **A layout tree** reconciled to DOM and round-tripped through the \`#view=\` DSL under loop-protected hash ownership.
+
+Dependencies: [\`runtime-sdk\`](https://observablehq.com/@tomlarkworthy/runtime-sdk) (\`persistentId\`, \`runtime\`), [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) (cell rendering), [\`module-map\`](https://observablehq.com/@tomlarkworthy/module-map) (\`currentModules\`), [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) (\`apply_theme\`), [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) (\`cc_chat\`).`);};
+const _1bg9e0n = function _lp2_doc_model(md) {return (md`### Layout model and DSL
+
+The layout is a single tree. \`viewof lp2Model\` holds it as reactive state. A node is one of:
+
+- \`{t:'row'|'col', sizes:[..%], children:[node]}\` — a split; \`sizes\` are percentages summing to 100, one per child.
+- \`{t:'stack', active:int, tabs:[{module}]}\` — a tabbed pane; \`active\` indexes \`tabs\`.
+
+There is always exactly one root node. \`lp2_parseDSL\` and \`lp2_serializeDSL\` convert the tree to and from the \`#view=\` \`R\`/\`C\`/\`S\` weighted DSL, the same grammar the rest of lopecode uses, so a layout is fully described by its URL.`);};
+const _yitkz2 = function _lp2Model(Inputs) {return (Inputs.input({
+    t: 'row',
+    sizes: [
+        50,
+        50
+    ],
+    children: [
+        {
+            t: 'stack',
+            active: 0,
+            tabs: [{ module: '@tomlarkworthy/runtime-sdk' }]
+        },
+        {
+            t: 'stack',
+            active: 0,
+            tabs: [{ module: '@tomlarkworthy/visualizer' }]
+        }
+    ]
+}));};
+const _1ow4sob = (G, _) => G.input(_);
+const _15yplkp = function _lp2_parseDSL() {return (input => {
+    if (!input)
+        return null;
+    input = String(input);
+    if (input.startsWith('#'))
+        input = input.slice(1);
+    const mView = input.match(/(?:^|&)view=([^&]*)/);
+    if (mView)
+        input = mView[1];
+    let i = 0;
+    const num = () => {
+        const s = i;
+        while (i < input.length && input[i] >= '0' && input[i] <= '9')
+            i++;
+        return s < i ? parseInt(input.slice(s, i), 10) : null;
+    };
+    const moduleName = () => {
+        const s = i;
+        while (i < input.length && !',)#'.includes(input[i]))
+            i++;
+        return input.slice(s, i);
+    };
+    const parseLeaf = () => {
+        const weight = num();
+        const module = moduleName();
+        let cell;
+        if (input[i] === '#') {
+            i++;
+            const s = i;
+            while (i < input.length && !',)'.includes(input[i]))
+                i++;
+            cell = input.slice(s, i);
+        }
+        return {
+            node: {
+                module,
+                ...cell ? { cell } : {}
+            },
+            weight
+        };
+    };
+    const parseItem = () => {
+        const c = input[i];
+        return c === 'R' || c === 'C' || c === 'S' ? parseGroup() : parseLeaf();
+    };
+    const parseList = isStack => {
+        const items = [];
+        while (i < input.length && input[i] !== ')') {
+            items.push(isStack ? parseLeaf() : parseItem());
+            if (input[i] === ',')
+                i++;
+        }
+        return items;
+    };
+    const parseGroup = () => {
+        const type = input[i++];
+        const weight = num();
+        let items = [];
+        if (input[i] === '(') {
+            i++;
+            items = parseList(type === 'S');
+            if (input[i] === ')')
+                i++;
+        }
+        if (type === 'S')
+            return {
+                node: {
+                    t: 'stack',
+                    active: 0,
+                    tabs: items.map(it => it.node)
+                },
+                weight
+            };
+        const children = items.map(it => it.node);
+        const sizes = items.map(it => it.weight != null ? it.weight : Math.round(100 / items.length));
+        return {
+            node: {
+                t: type === 'R' ? 'row' : 'col',
+                children,
+                sizes
+            },
+            weight
+        };
+    };
+    const r = parseItem();
+    return r ? r.node : null;
+});};
+const _wwgbz0 = function _lp2_serializeDSL() {return (root => {
+    const s = (node, weight) => {
+        const w = weight != null ? weight : 100;
+        if (!node)
+            return '';
+        if (node.t === 'stack') {
+            const tabs = (node.tabs || []).map(l => l.module + (l.cell ? '#' + l.cell : '')).join(',');
+            return `S${ w }(${ tabs })`;
+        }
+        if (node.t === 'row' || node.t === 'col') {
+            const n = node.children || [];
+            const kids = n.map((c, idx) => s(c, node.sizes && node.sizes[idx] != null ? node.sizes[idx] : Math.round(100 / n.length))).join(',');
+            return `${ node.t === 'row' ? 'R' : 'C' }${ w }(${ kids })`;
+        }
+        return (node.module || '') + (node.cell ? '#' + node.cell : '');
+    };
+    return s(root, 100);
+});};
+const _1k5l25n = function _lp2_doc_panes(md) {return (md`### Immortal panes
+
+\`lp2_paneRegistry\` is a \`Map\` from module name to a single scroll \`<div>\` that hosts that module's [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) render. \`lp2_getPane\` builds the pane on first request and returns the cached element thereafter. \`lp2_moduleByName\` resolves a module name to its runtime module via \`currentModules\` from [\`module-map\`](https://observablehq.com/@tomlarkworthy/module-map).
+
+Invariants:
+
+- One pane element per module name, for the lifetime of the page.
+- A layout change reparents the cached element; it is never recreated, so its rendered content and DOM state are preserved.
+- A layout-only change does not alter a pane's content height, so capturing \`scrollTop\` before the reparent and restoring it after is exact.`);};
 const _14blb09 = function _lp2_moduleByName(currentModules) {
     const byName = new Map();
     for (const [mod, info] of currentModules) {
@@ -13686,26 +13839,90 @@ const _1my8sg4 = function _lp2_getPane(lp2_paneRegistry,lp2_moduleByName,visuali
     lp2_installAnchor(entry);
     return entry;
 });};
-const _yitkz2 = function _lp2Model(Inputs) {return (Inputs.input({
-    t: 'row',
-    sizes: [
-        50,
-        50
-    ],
-    children: [
-        {
-            t: 'stack',
-            active: 0,
-            tabs: [{ module: '@tomlarkworthy/runtime-sdk' }]
-        },
-        {
-            t: 'stack',
-            active: 0,
-            tabs: [{ module: '@tomlarkworthy/visualizer' }]
+const _onwldx = function _lp2_doc_scroll(md) {return (md`### Scroll anchoring
+
+When a pane's content changes height after mount (async cells, images), the anchor keeps the viewport stable. \`lp2_anchor\` records the cell at the viewport top as \`{pid, offset}\`, where \`pid\` is \`persistentId(node.variable)\` from [\`runtime-sdk\`](https://observablehq.com/@tomlarkworthy/runtime-sdk). Every visualizer cell node carries a \`.variable\` backref, so the pid is read without modifying the visualizer.
+
+\`lp2_installAnchor\` attaches a \`ResizeObserver\` to the pane content and re-applies the anchor (\`scrollTop = node.offsetTop + offset\`) on each callback. The observer fires after layout and before paint, so the correction lands in the same frame. A programmatic \`scrollTop\` write disables the browser's native \`overflow-anchor\`, so the anchor is maintained in JS.`);};
+const _gk3skb = function _lp2_anchor(persistentId) {
+    const cellNodes = paneEl => [...paneEl.querySelectorAll('.observablehq[cell]')];
+    const pidOf = node => {
+        try {
+            return node.variable ? persistentId(node.variable) : null;
+        } catch (e) {
+            return null;
         }
-    ]
-}));};
-const _1ow4sob = (G, _) => G.input(_);
+    };
+    const capture = paneEl => {
+        const top = paneEl.scrollTop;
+        if (top <= 0)
+            return null;
+        for (const node of cellNodes(paneEl)) {
+            const nTop = node.offsetTop, nBot = nTop + node.offsetHeight;
+            if (nBot > top + 1) {
+                const pid = pidOf(node);
+                if (pid)
+                    return {
+                        pid,
+                        offset: top - nTop
+                    };
+            }
+        }
+        return null;
+    };
+    const restore = (paneEl, anchor) => {
+        if (!anchor || !anchor.pid)
+            return false;
+        const node = cellNodes(paneEl).find(n => pidOf(n) === anchor.pid);
+        if (!node)
+            return false;
+        paneEl.scrollTop = node.offsetTop + anchor.offset;
+        return true;
+    };
+    return {
+        cellNodes,
+        pidOf,
+        capture,
+        restore
+    };
+};
+const _rrgemy = function _lp2_installAnchor(lp2_anchor,ResizeObserver) {return (entry => {
+    const el = entry.el;
+    if (el.__lp2_anchor_bound)
+        return;
+    el.__lp2_anchor_bound = true;
+    const A = lp2_anchor;
+    let raf = 0;
+    el.addEventListener('scroll', () => {
+        if (el.__lp2_pinning)
+            return;
+        if (raf)
+            return;
+        raf = requestAnimationFrame(() => {
+            raf = 0;
+            entry.anchor = A.capture(el);
+        });
+    }, { passive: true });
+    const content = el.querySelector('.lope-viz') || el.firstElementChild;
+    if (content && window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            if (!entry.anchor)
+                return;
+            el.__lp2_pinning = true;
+            A.restore(el, entry.anchor);
+            requestAnimationFrame(() => {
+                el.__lp2_pinning = false;
+            });
+        });
+        ro.observe(content);
+        entry.ro = ro;
+    }
+});};
+const _1umgiau = function _lp2_doc_layout(md) {return (md`### Layout rendering and docking
+
+\`lp2_renderNode\` reconciles the model tree to DOM: rows and cols are flexbox with draggable splitters that write percentages back to \`node.sizes\`; a stack is a tab header plus the active pane. \`lp2_view\` runs the render together with the scroll capture/restore, and exposes \`commit(newRoot)\`, which republishes the model through the \`lp2Model\` viewof. Every structural change therefore re-renders and round-trips to the URL through one path.
+
+\`lp2_ops\` holds the tree operations: \`findHost\`, \`removeLeaf\`, \`dropBeside\`, \`normalize\`, and \`move\`. \`normalize\` collapses emptied stacks and single-child splits, so the tree stays minimal. Dragging a tab onto a pane's edge splits it (left/right/top/bottom); onto its centre merges into that stack. \`lp2_dragOut\` writes the module's \`.js\` source to the drag \`DataTransfer\`, so the same drag can drop the module out to the filesystem.`);};
 const _1vlnnyw = function _lp2_host() {
     const host = document.createElement('div');
     host.className = 'lp2-host';
@@ -13949,402 +14166,6 @@ const _nr5449 = function _lp2_renderNode() {return (ctx => {
     };
     return make;
 });};
-const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_anchor,$0,Event,lp2_getPane,lp2_dragOut,lp2_ops,lp2_paneRegistry,lp2_renderNode) {
-    const host = lp2_host;
-    lp2Model;
-    lp2_installAnchor;
-    lp2_anchor;
-    const vmEl = $0;
-    const commit = newRoot => {
-        vmEl.value = newRoot;
-        vmEl.dispatchEvent(new Event('input', { bubbles: true }));
-    };
-    const ctx = {
-        getPane: lp2_getPane,
-        dragOut: lp2_dragOut,
-        ops: lp2_ops,
-        commit,
-        getRoot: () => lp2Model
-    };
-    const rerender = () => {
-        const saved = new Map();
-        for (const [name, entry] of lp2_paneRegistry) {
-            lp2_installAnchor(entry);
-            const anc = lp2_anchor.capture(entry.el);
-            saved.set(name, anc || { raw: entry.el.scrollTop });
-        }
-        host.replaceChildren(lp2_renderNode(ctx)(lp2Model));
-        for (const [name, anc] of saved) {
-            const entry = lp2_paneRegistry.get(name);
-            if (!entry || !entry.el.isConnected)
-                continue;
-            if (anc.pid) {
-                if (!lp2_anchor.restore(entry.el, anc) && anc.raw)
-                    entry.el.scrollTop = anc.raw;
-            } else if (anc.raw)
-                entry.el.scrollTop = anc.raw;
-            entry.anchor = anc.pid ? anc : entry.anchor;
-        }
-    };
-    rerender();
-    return host;
-};
-const _1mscs6b = function _lp2_probe(lp2_view,lp2_paneRegistry) {
-    lp2_view;
-    return 'lp2 mounted, panes=' + lp2_paneRegistry.size;
-};
-const _gk3skb = function _lp2_anchor(persistentId) {
-    const cellNodes = paneEl => [...paneEl.querySelectorAll('.observablehq[cell]')];
-    const pidOf = node => {
-        try {
-            return node.variable ? persistentId(node.variable) : null;
-        } catch (e) {
-            return null;
-        }
-    };
-    const capture = paneEl => {
-        const top = paneEl.scrollTop;
-        if (top <= 0)
-            return null;
-        for (const node of cellNodes(paneEl)) {
-            const nTop = node.offsetTop, nBot = nTop + node.offsetHeight;
-            if (nBot > top + 1) {
-                const pid = pidOf(node);
-                if (pid)
-                    return {
-                        pid,
-                        offset: top - nTop
-                    };
-            }
-        }
-        return null;
-    };
-    const restore = (paneEl, anchor) => {
-        if (!anchor || !anchor.pid)
-            return false;
-        const node = cellNodes(paneEl).find(n => pidOf(n) === anchor.pid);
-        if (!node)
-            return false;
-        paneEl.scrollTop = node.offsetTop + anchor.offset;
-        return true;
-    };
-    return {
-        cellNodes,
-        pidOf,
-        capture,
-        restore
-    };
-};
-const _rrgemy = function _lp2_installAnchor(lp2_anchor,ResizeObserver) {return (entry => {
-    const el = entry.el;
-    if (el.__lp2_anchor_bound)
-        return;
-    el.__lp2_anchor_bound = true;
-    const A = lp2_anchor;
-    let raf = 0;
-    el.addEventListener('scroll', () => {
-        if (el.__lp2_pinning)
-            return;
-        if (raf)
-            return;
-        raf = requestAnimationFrame(() => {
-            raf = 0;
-            entry.anchor = A.capture(el);
-        });
-    }, { passive: true });
-    const content = el.querySelector('.lope-viz') || el.firstElementChild;
-    if (content && window.ResizeObserver) {
-        const ro = new ResizeObserver(() => {
-            if (!entry.anchor)
-                return;
-            el.__lp2_pinning = true;
-            A.restore(el, entry.anchor);
-            requestAnimationFrame(() => {
-                el.__lp2_pinning = false;
-            });
-        });
-        ro.observe(content);
-        entry.ro = ro;
-    }
-});};
-const _15yplkp = function _lp2_parseDSL() {return (input => {
-    if (!input)
-        return null;
-    input = String(input);
-    if (input.startsWith('#'))
-        input = input.slice(1);
-    const mView = input.match(/(?:^|&)view=([^&]*)/);
-    if (mView)
-        input = mView[1];
-    let i = 0;
-    const num = () => {
-        const s = i;
-        while (i < input.length && input[i] >= '0' && input[i] <= '9')
-            i++;
-        return s < i ? parseInt(input.slice(s, i), 10) : null;
-    };
-    const moduleName = () => {
-        const s = i;
-        while (i < input.length && !',)#'.includes(input[i]))
-            i++;
-        return input.slice(s, i);
-    };
-    const parseLeaf = () => {
-        const weight = num();
-        const module = moduleName();
-        let cell;
-        if (input[i] === '#') {
-            i++;
-            const s = i;
-            while (i < input.length && !',)'.includes(input[i]))
-                i++;
-            cell = input.slice(s, i);
-        }
-        return {
-            node: {
-                module,
-                ...cell ? { cell } : {}
-            },
-            weight
-        };
-    };
-    const parseItem = () => {
-        const c = input[i];
-        return c === 'R' || c === 'C' || c === 'S' ? parseGroup() : parseLeaf();
-    };
-    const parseList = isStack => {
-        const items = [];
-        while (i < input.length && input[i] !== ')') {
-            items.push(isStack ? parseLeaf() : parseItem());
-            if (input[i] === ',')
-                i++;
-        }
-        return items;
-    };
-    const parseGroup = () => {
-        const type = input[i++];
-        const weight = num();
-        let items = [];
-        if (input[i] === '(') {
-            i++;
-            items = parseList(type === 'S');
-            if (input[i] === ')')
-                i++;
-        }
-        if (type === 'S')
-            return {
-                node: {
-                    t: 'stack',
-                    active: 0,
-                    tabs: items.map(it => it.node)
-                },
-                weight
-            };
-        const children = items.map(it => it.node);
-        const sizes = items.map(it => it.weight != null ? it.weight : Math.round(100 / items.length));
-        return {
-            node: {
-                t: type === 'R' ? 'row' : 'col',
-                children,
-                sizes
-            },
-            weight
-        };
-    };
-    const r = parseItem();
-    return r ? r.node : null;
-});};
-const _wwgbz0 = function _lp2_serializeDSL() {return (root => {
-    const s = (node, weight) => {
-        const w = weight != null ? weight : 100;
-        if (!node)
-            return '';
-        if (node.t === 'stack') {
-            const tabs = (node.tabs || []).map(l => l.module + (l.cell ? '#' + l.cell : '')).join(',');
-            return `S${ w }(${ tabs })`;
-        }
-        if (node.t === 'row' || node.t === 'col') {
-            const n = node.children || [];
-            const kids = n.map((c, idx) => s(c, node.sizes && node.sizes[idx] != null ? node.sizes[idx] : Math.round(100 / n.length))).join(',');
-            return `${ node.t === 'row' ? 'R' : 'C' }${ w }(${ kids })`;
-        }
-        return (node.module || '') + (node.cell ? '#' + node.cell : '');
-    };
-    return s(root, 100);
-});};
-const _xewyzb = function _lp2_dragOut() {return ((moduleName, dataTransfer) => {
-    const res = window.lopecode.contentSync(moduleName);
-    const text = res && res.bytes ? new TextDecoder().decode(res.bytes) : '';
-    const mime = res && res.mime || 'application/javascript';
-    const fname = moduleName.replace(/^@/, '').replace(/\//g, '_') + '.js';
-    dataTransfer.setData('text/plain', text);
-    dataTransfer.setData('application/javascript', text);
-    dataTransfer.setData('DownloadURL', mime + ':' + fname + ':data:' + mime + ';base64,' + btoa(unescape(encodeURIComponent(text))));
-    dataTransfer.effectAllowed = 'copy';
-    return {
-        fname,
-        len: text.length,
-        mime
-    };
-});};
-const _acwav8 = function _lp2_hash(Generators,location) {return (Generators.observe(notify => {
-    const update = () => notify(location.hash);
-    update();
-    window.addEventListener('hashchange', update);
-    return () => window.removeEventListener('hashchange', update);
-}));};
-const _iy41xa = function _lp2_setHash(location,history) {return (newHash => {
-    const h = newHash.startsWith('#') ? newHash : '#' + newHash;
-    const href = location.pathname + location.search + h;
-    try {
-        history.replaceState(null, '', href);
-        return true;
-    } catch (e) {
-        try {
-            location.hash = h;
-            return true;
-        } catch (e2) {
-            return false;
-        }
-    }
-});};
-const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serializeDSL,Event) {
-    const el = $0;
-    // element ref (NOT value) -> only re-runs on hash change, no loop
-    const hash = lp2_hash;
-    // re-run on external hashchange / initial load
-    const view = (String(hash).match(/(?:[#&]|^)view=([^&]*)/) || [])[1];
-    if (!view)
-        return { status: 'skipped' };
-    let model, reser;
-    try {
-        model = lp2_parseDSL(view);
-        reser = lp2_serializeDSL(model);
-    } catch (e) {
-        return {
-            status: 'error',
-            error: String(e)
-        };
-    }
-    const decoded = decodeURIComponent(view);
-    const roundTrips = reser === decoded;
-    // loop-protection signal
-    const applied = reser !== lp2_serializeDSL(el.value);
-    if (applied) {
-        el.value = model;
-        el.dispatchEvent(new Event('input'));
-    }
-    return {
-        status: 'ok',
-        view: decoded,
-        reser,
-        roundTrips,
-        applied
-    };
-};
-const _12m57w2 = function _lp2_syncToUrl(lp2Model,lp2_serializeDSL,lp2_parseDSL,location,lp2_setHash) {
-    const model = lp2Model;
-    // re-run on model change
-    if (!window.__lp2_owns_hash)
-        return { status: 'dormant' };
-    // armed only when lopepage-2 is the page
-    let dsl;
-    try {
-        dsl = lp2_serializeDSL(model);
-    } catch (e) {
-        return {
-            status: 'serialize-failed',
-            error: String(e)
-        };
-    }
-    // loop protection: only write if the DSL round-trips stably
-    let ok = false;
-    try {
-        ok = lp2_serializeDSL(lp2_parseDSL(dsl)) === dsl;
-    } catch (e) {
-        ok = false;
-    }
-    if (!ok)
-        return {
-            status: 'blocked-roundtrip',
-            dsl
-        };
-    // preserve unknown params (cc=...), strip one-shot intents
-    const raw = String(location.hash || '').replace(/^#/, '');
-    const intents = new Set([
-        'open',
-        'close',
-        'focus',
-        'from'
-    ]);
-    const extra = [];
-    let currentView = null;
-    for (const part of raw.split('&').filter(Boolean)) {
-        const eq = part.indexOf('=');
-        const key = eq >= 0 ? part.slice(0, eq) : part;
-        if (key === 'view')
-            currentView = decodeURIComponent(part.slice(eq + 1));
-        else if (!intents.has(key))
-            extra.push(part);
-    }
-    const newHash = '#view=' + dsl + (extra.length ? '&' + extra.join('&') : '');
-    if (newHash !== location.hash) {
-        lp2_setHash(newHash);
-        return {
-            status: 'written',
-            dsl
-        };
-    }
-    return {
-        status: 'no-change',
-        dsl
-    };
-};
-const _1qy9hpm = function _lp2_page(apply_theme,lp2_host,cc_chat) {
-    apply_theme;
-    // adopt theme stylesheets into the document
-    const root = document.createElement('div');
-    root.id = 'lopepage-2';
-    Object.assign(root.style, {
-        position: 'fixed',
-        inset: '0',
-        height: '100vh',
-        width: '100vw',
-        overflow: 'hidden',
-        background: 'var(--theme-background-a, #fff)'
-    });
-    const style = document.createElement('style');
-    style.textContent = [
-        'html,body{margin:0;padding:0;max-width:100vw;}',
-        '#lopepage-2 .lope-viz .observablehq{position:relative;min-height:17px;}',
-        '#lopepage-2 .lope-viz .observablehq:not(.observablehq--running):empty::after{content:\'<detached>\';font-style:oblique;opacity:.5;}',
-        '#lopepage-2 .lp2-tabs button:hover{background:rgba(0,0,0,.06);}',
-        '#lopepage-2 .lp2-splitter:hover{background:#bbb;}',
-        '#lopepage-2 .lp2-chat{position:fixed;right:12px;bottom:12px;width:340px;max-height:50vh;overflow:auto;z-index:10;background:var(--theme-background-a,#fff);border:1px solid rgba(0,0,0,.15);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);}'
-    ].join('\n');
-    root.appendChild(style);
-    root.appendChild(lp2_host);
-    // mount the pairing chat: makes cc_ws reachable so the channel connects
-    const chatDock = document.createElement('div');
-    chatDock.className = 'lp2-chat';
-    chatDock.appendChild(cc_chat);
-    root.appendChild(chatDock);
-    return root;
-};
-const _1lin1z3 = function _lp2_append_to_body(lp2_view,lp2_syncFromUrl,lp2_syncToUrl,lp2_page) {
-    lp2_view;
-    // ensure the layout renders into the host
-    lp2_syncFromUrl;
-    // keep hash -> model live
-    lp2_syncToUrl;
-    // keep model -> hash live (dormant until armed below)
-    window.__lp2_owns_hash = true;
-    // arm hash ownership; only reachable when lopepage-2 is the page
-    const page = lp2_page;
-    if (!page.isConnected)
-        document.body.appendChild(page);
-    return 'lopepage-2 mounted';
-};
 const _jume09 = function _lp2_ops() {
     // pure-ish surgery on the live layout tree; mutate then commit() to republish
     const replaceNode = (root, oldRef, newNode) => {
@@ -14473,42 +14294,237 @@ const _jume09 = function _lp2_ops() {
         move
     };
 };
-const _1f1jsit = function _lp2_doc_overview(md) {return (md`## lopepage-2
-
-A layout engine for lopecode notebooks that owns its DOM instead of delegating to GoldenLayout. It tiles modules into resizable splits and tabbed stacks, serialises the layout to the URL hash, and preserves scroll position across layout changes.
-
-The design rests on three ideas, each developed in its own section below:
-
-1. **Immortal panes** — one scroll container per module, created once and reparented (never recreated) on layout change, so \`scrollTop\` survives for free.
-2. **Persistent-id scroll anchoring** — for the case panes resize *after* load, the cell at the viewport top is pinned by its \`pid\`, not by pixel offset.
-3. **A plain layout tree** reconciled to DOM, round-tripped through the \`#view=\` DSL with loop-protected hash ownership.`);};
-const _1bg9e0n = function _lp2_doc_model(md) {return (md`### Layout model and DSL
-
-The layout is a plain tree. \`viewof lp2Model\` holds it as reactive state:
-
-- \`{t:'row'|'col', sizes:[..%], children:[node]}\` — a split.
-- \`{t:'stack', active:int, tabs:[{module}]}\` — a tabbed pane.
-
-\`lp2_parseDSL\` / \`lp2_serializeDSL\` convert it to and from the existing \`#view=\` \`R\`/\`C\`/\`S\` weighted DSL, so layouts remain shareable as URLs and compatible with the rest of lopecode.`);};
-const _1k5l25n = function _lp2_doc_panes(md) {return (md`### Immortal panes
-
-\`lp2_paneRegistry\` maps a module name to a single scroll \`<div>\` hosting that module's \`visualizer\` render. \`lp2_getPane\` builds the pane lazily and caches it. Layout changes reparent the cached element; they never recreate it. Because the element survives, its rendered content and DOM state survive — and because a layout-only change does not alter content height, a single capture-then-restore of \`scrollTop\` around the reparent is exact, with no retry loop.
-
-\`lp2_moduleByName\` resolves a module name to its runtime module via \`currentModules\`.`);};
-const _onwldx = function _lp2_doc_scroll(md) {return (md`### Scroll anchoring
-
-Reparenting keeps height stable, but content that loads *after* mount (images, async cells) does change height. \`lp2_anchor\` records the cell at the viewport top as \`{pid, offset}\`, where \`pid\` is the cell's persistent id (\`persistentId(node.variable)\` — every visualizer cell node already carries a \`.variable\` backref, so the shared visualizer needs no change). \`lp2_installAnchor\` re-pins that anchor on every \`ResizeObserver\` callback, which fires after layout and before paint, so the correction lands in the same frame with no flicker. A programmatic \`scrollTop\` write suppresses the browser's native \`overflow-anchor\`, so this JS re-pin is mandatory, not redundant.`);};
-const _1umgiau = function _lp2_doc_layout(md) {return (md`### Layout rendering and docking
-
-\`lp2_renderNode\` reconciles the model tree to DOM: rows/cols are flexbox with draggable splitters that write back to \`node.sizes\`; stacks are a tab header plus the active pane. \`lp2_view\` runs the render and the scroll capture/restore, and exposes \`commit(newRoot)\`, which republishes the model through the \`lp2Model\` viewof — so any structural change re-renders and round-trips to the URL in one step.
-
-Docking uses \`lp2_ops\`, a set of pure tree operations (\`findHost\`, \`removeLeaf\`, \`dropBeside\`, \`normalize\`, \`move\`) that splice a leaf out and drop it beside a target, collapsing emptied stacks and single-child splits. Dragging a tab onto a pane's edge splits (left/right/top/bottom) or merges (centre); the same drag also writes the module \`.js\` to the \`DataTransfer\` (\`lp2_dragOut\`) so it can be dropped out to the OS as a file.`);};
+const _xewyzb = function _lp2_dragOut() {return ((moduleName, dataTransfer) => {
+    const res = window.lopecode.contentSync(moduleName);
+    const text = res && res.bytes ? new TextDecoder().decode(res.bytes) : '';
+    const mime = res && res.mime || 'application/javascript';
+    const fname = moduleName.replace(/^@/, '').replace(/\//g, '_') + '.js';
+    dataTransfer.setData('text/plain', text);
+    dataTransfer.setData('application/javascript', text);
+    dataTransfer.setData('DownloadURL', mime + ':' + fname + ':data:' + mime + ';base64,' + btoa(unescape(encodeURIComponent(text))));
+    dataTransfer.effectAllowed = 'copy';
+    return {
+        fname,
+        len: text.length,
+        mime
+    };
+});};
+const _mmsmhu = function _lp2_view(lp2_host,lp2Model,lp2_installAnchor,lp2_anchor,$0,Event,lp2_getPane,lp2_dragOut,lp2_ops,lp2_paneRegistry,lp2_renderNode) {
+    const host = lp2_host;
+    lp2Model;
+    lp2_installAnchor;
+    lp2_anchor;
+    const vmEl = $0;
+    const commit = newRoot => {
+        vmEl.value = newRoot;
+        vmEl.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const ctx = {
+        getPane: lp2_getPane,
+        dragOut: lp2_dragOut,
+        ops: lp2_ops,
+        commit,
+        getRoot: () => lp2Model
+    };
+    const rerender = () => {
+        const saved = new Map();
+        for (const [name, entry] of lp2_paneRegistry) {
+            lp2_installAnchor(entry);
+            const anc = lp2_anchor.capture(entry.el);
+            saved.set(name, anc || { raw: entry.el.scrollTop });
+        }
+        host.replaceChildren(lp2_renderNode(ctx)(lp2Model));
+        for (const [name, anc] of saved) {
+            const entry = lp2_paneRegistry.get(name);
+            if (!entry || !entry.el.isConnected)
+                continue;
+            if (anc.pid) {
+                if (!lp2_anchor.restore(entry.el, anc) && anc.raw)
+                    entry.el.scrollTop = anc.raw;
+            } else if (anc.raw)
+                entry.el.scrollTop = anc.raw;
+            entry.anchor = anc.pid ? anc : entry.anchor;
+        }
+    };
+    rerender();
+    return host;
+};
+const _1mscs6b = function _lp2_probe(lp2_view,lp2_paneRegistry) {
+    lp2_view;
+    return 'lp2 mounted, panes=' + lp2_paneRegistry.size;
+};
 const _17biy5y = function _lp2_doc_hash(md) {return (md`### Hash ownership
 
-\`lp2_hash\` observes \`location.hash\`. \`lp2_syncFromUrl\` parses it into the model on external change; \`lp2_syncToUrl\` serialises the model back. \`lp2_setHash\` writes via \`history.replaceState\` (silent — no \`hashchange\`), which breaks the feedback loop. \`lp2_syncToUrl\` writes only when the layout serialises back to an identical string (\`serialize(parse(serialize(model))) === serialize(model)\`), so a layout that cannot round-trip never corrupts the URL. Writing is gated on \`window.__lp2_owns_hash\`, armed only when lopepage-2 is actually the page (see below), so it stays dormant when imported as a dependency.`);};
+\`lp2_hash\` observes \`location.hash\`. \`lp2_syncFromUrl\` parses it into the model when it changes externally; \`lp2_syncToUrl\` serialises the model back. \`lp2_setHash\` writes via \`history.replaceState\`, which updates the URL without firing \`hashchange\`.
+
+Invariants:
+
+- \`lp2_syncToUrl\` writes only when the model round-trips: \`serialize(parse(serialize(model))) === serialize(model)\`. A layout that does not round-trip never reaches the URL.
+- Writing is gated on \`window.__lp2_owns_hash\`, set only while lopepage-2 is the mounted page, so the URL is left untouched when the module is imported as a dependency.
+- Because \`replaceState\` is silent and the read path is driven by \`hashchange\`, a write does not re-trigger a read.`);};
+const _acwav8 = function _lp2_hash(Generators,location) {return (Generators.observe(notify => {
+    const update = () => notify(location.hash);
+    update();
+    window.addEventListener('hashchange', update);
+    return () => window.removeEventListener('hashchange', update);
+}));};
+const _iy41xa = function _lp2_setHash(location,history) {return (newHash => {
+    const h = newHash.startsWith('#') ? newHash : '#' + newHash;
+    const href = location.pathname + location.search + h;
+    try {
+        history.replaceState(null, '', href);
+        return true;
+    } catch (e) {
+        try {
+            location.hash = h;
+            return true;
+        } catch (e2) {
+            return false;
+        }
+    }
+});};
+const _tx6ac0 = function _lp2_syncFromUrl($0,lp2_hash,lp2_parseDSL,lp2_serializeDSL,Event) {
+    const el = $0;
+    // element ref (NOT value) -> only re-runs on hash change, no loop
+    const hash = lp2_hash;
+    // re-run on external hashchange / initial load
+    const view = (String(hash).match(/(?:[#&]|^)view=([^&]*)/) || [])[1];
+    if (!view)
+        return { status: 'skipped' };
+    let model, reser;
+    try {
+        model = lp2_parseDSL(view);
+        reser = lp2_serializeDSL(model);
+    } catch (e) {
+        return {
+            status: 'error',
+            error: String(e)
+        };
+    }
+    const decoded = decodeURIComponent(view);
+    const roundTrips = reser === decoded;
+    // loop-protection signal
+    const applied = reser !== lp2_serializeDSL(el.value);
+    if (applied) {
+        el.value = model;
+        el.dispatchEvent(new Event('input'));
+    }
+    return {
+        status: 'ok',
+        view: decoded,
+        reser,
+        roundTrips,
+        applied
+    };
+};
+const _12m57w2 = function _lp2_syncToUrl(lp2Model,lp2_serializeDSL,lp2_parseDSL,location,lp2_setHash) {
+    const model = lp2Model;
+    // re-run on model change
+    if (!window.__lp2_owns_hash)
+        return { status: 'dormant' };
+    // armed only when lopepage-2 is the page
+    let dsl;
+    try {
+        dsl = lp2_serializeDSL(model);
+    } catch (e) {
+        return {
+            status: 'serialize-failed',
+            error: String(e)
+        };
+    }
+    // loop protection: only write if the DSL round-trips stably
+    let ok = false;
+    try {
+        ok = lp2_serializeDSL(lp2_parseDSL(dsl)) === dsl;
+    } catch (e) {
+        ok = false;
+    }
+    if (!ok)
+        return {
+            status: 'blocked-roundtrip',
+            dsl
+        };
+    // preserve unknown params (cc=...), strip one-shot intents
+    const raw = String(location.hash || '').replace(/^#/, '');
+    const intents = new Set([
+        'open',
+        'close',
+        'focus',
+        'from'
+    ]);
+    const extra = [];
+    let currentView = null;
+    for (const part of raw.split('&').filter(Boolean)) {
+        const eq = part.indexOf('=');
+        const key = eq >= 0 ? part.slice(0, eq) : part;
+        if (key === 'view')
+            currentView = decodeURIComponent(part.slice(eq + 1));
+        else if (!intents.has(key))
+            extra.push(part);
+    }
+    const newHash = '#view=' + dsl + (extra.length ? '&' + extra.join('&') : '');
+    if (newHash !== location.hash) {
+        lp2_setHash(newHash);
+        return {
+            status: 'written',
+            dsl
+        };
+    }
+    return {
+        status: 'no-change',
+        dsl
+    };
+};
 const _ixjzc7 = function _lp2_doc_mount(md) {return (md`### Page mount, theme, and pairing
 
-\`lp2_page\` builds the fullscreen \`#lopepage-2\` container, adopts the \`@tomlarkworthy/themes\` stylesheets via \`apply_theme\`, and mounts the \`@tomlarkworthy/claude-code-pairing\` chat in a floating dock — which also makes the pairing socket reachable, so the channel connects whenever lopepage-2 is the page. \`lp2_append_to_body\` is the keystone: reachable only when lopepage-2 is booted as a main, it appends the page to \`document.body\` and arms hash ownership. Booting headless (\`bootconf.headless\`) means the runtime observes this cell as the sole output.`);};
+\`lp2_page\` builds the fullscreen \`#lopepage-2\` container, adopts the [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) stylesheets via \`apply_theme\`, and mounts the [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) \`cc_chat\` widget in a floating dock. Mounting \`cc_chat\` makes its connection cell reachable, so the pairing channel connects while lopepage-2 is the page.
+
+\`lp2_append_to_body\` is the keystone cell: reachable only when lopepage-2 is booted as a main, it appends the page to \`document.body\` and sets \`window.__lp2_owns_hash\`. With \`bootconf.headless\` set, the runtime observes this cell as the page's single output.`);};
+const _1qy9hpm = function _lp2_page(apply_theme,lp2_host,cc_chat) {
+    apply_theme;
+    // adopt theme stylesheets into the document
+    const root = document.createElement('div');
+    root.id = 'lopepage-2';
+    Object.assign(root.style, {
+        position: 'fixed',
+        inset: '0',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        background: 'var(--theme-background-a, #fff)'
+    });
+    const style = document.createElement('style');
+    style.textContent = [
+        'html,body{margin:0;padding:0;max-width:100vw;}',
+        '#lopepage-2 .lope-viz .observablehq{position:relative;min-height:17px;}',
+        '#lopepage-2 .lope-viz .observablehq:not(.observablehq--running):empty::after{content:\'<detached>\';font-style:oblique;opacity:.5;}',
+        '#lopepage-2 .lp2-tabs button:hover{background:rgba(0,0,0,.06);}',
+        '#lopepage-2 .lp2-splitter:hover{background:#bbb;}',
+        '#lopepage-2 .lp2-chat{position:fixed;right:12px;bottom:12px;width:340px;max-height:50vh;overflow:auto;z-index:10;background:var(--theme-background-a,#fff);border:1px solid rgba(0,0,0,.15);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);}'
+    ].join('\n');
+    root.appendChild(style);
+    root.appendChild(lp2_host);
+    // mount the pairing chat: makes cc_ws reachable so the channel connects
+    const chatDock = document.createElement('div');
+    chatDock.className = 'lp2-chat';
+    chatDock.appendChild(cc_chat);
+    root.appendChild(chatDock);
+    return root;
+};
+const _1lin1z3 = function _lp2_append_to_body(lp2_view,lp2_syncFromUrl,lp2_syncToUrl,lp2_page) {
+    lp2_view;
+    // ensure the layout renders into the host
+    lp2_syncFromUrl;
+    // keep hash -> model live
+    lp2_syncToUrl;
+    // keep model -> hash live (dormant until armed below)
+    window.__lp2_owns_hash = true;
+    // arm hash ownership; only reachable when lopepage-2 is the page
+    const page = lp2_page;
+    if (!page.isConnected)
+        document.body.appendChild(page);
+    return 'lopepage-2 mounted';
+};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -14516,62 +14532,47 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
-  // ===== imports (plumbing) =====
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
-  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
-  main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));
-  main.define("persistentId", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("persistentId", _));
-  main.define("module @tomlarkworthy/visualizer", async () => runtime.module((await import("/@tomlarkworthy/visualizer.js?v=4")).default));
-  main.define("visualizer", ["module @tomlarkworthy/visualizer", "@variable"], (_, v) => v.import("visualizer", _));
-  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
-  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
-  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));
-  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));
-  main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));
-  main.define("apply_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("apply_theme", _));
-  main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));
-
-  // ===== Overview =====
-  $def("_463kso", "lp2_title", ["md"], _463kso);
-  $def("_1f1jsit", "lp2_doc_overview", ["md"], _1f1jsit);
-
-  // ===== Layout model and DSL =====
-  $def("_1bg9e0n", "lp2_doc_model", ["md"], _1bg9e0n);
-  $def("_yitkz2", "viewof lp2Model", ["Inputs"], _yitkz2);
-  $def("_1ow4sob", "lp2Model", ["Generators","viewof lp2Model"], _1ow4sob);
-  $def("_15yplkp", "lp2_parseDSL", [], _15yplkp);
-  $def("_wwgbz0", "lp2_serializeDSL", [], _wwgbz0);
-
-  // ===== Immortal panes =====
-  $def("_1k5l25n", "lp2_doc_panes", ["md"], _1k5l25n);
-  $def("_14blb09", "lp2_moduleByName", ["currentModules"], _14blb09);
-  $def("_13iu1y2", "lp2_paneRegistry", [], _13iu1y2);
-  $def("_1my8sg4", "lp2_getPane", ["lp2_paneRegistry","lp2_moduleByName","visualizer","runtime","lp2_installAnchor"], _1my8sg4);
-
-  // ===== Scroll anchoring =====
-  $def("_onwldx", "lp2_doc_scroll", ["md"], _onwldx);
-  $def("_gk3skb", "lp2_anchor", ["persistentId"], _gk3skb);
-  $def("_rrgemy", "lp2_installAnchor", ["lp2_anchor","ResizeObserver"], _rrgemy);
-
-  // ===== Layout rendering and docking =====
-  $def("_1umgiau", "lp2_doc_layout", ["md"], _1umgiau);
-  $def("_1vlnnyw", "lp2_host", [], _1vlnnyw);
-  $def("_nr5449", "lp2_renderNode", [], _nr5449);
-  $def("_jume09", "lp2_ops", [], _jume09);
-  $def("_xewyzb", "lp2_dragOut", [], _xewyzb);
-  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode"], _mmsmhu);
-  $def("_1mscs6b", "lp2_probe", ["lp2_view","lp2_paneRegistry"], _1mscs6b);
-
-  // ===== Hash ownership =====
-  $def("_17biy5y", "lp2_doc_hash", ["md"], _17biy5y);
-  $def("_acwav8", "lp2_hash", ["Generators","location"], _acwav8);
-  $def("_iy41xa", "lp2_setHash", ["location","history"], _iy41xa);
-  $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event"], _tx6ac0);
-  $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);
-
-  // ===== Page mount, theme, and pairing =====
-  $def("_ixjzc7", "lp2_doc_mount", ["md"], _ixjzc7);
-  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","cc_chat"], _1qy9hpm);
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
+  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
+  main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));  
+  main.define("persistentId", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("persistentId", _));  
+  main.define("module @tomlarkworthy/visualizer", async () => runtime.module((await import("/@tomlarkworthy/visualizer.js?v=4")).default));  
+  main.define("visualizer", ["module @tomlarkworthy/visualizer", "@variable"], (_, v) => v.import("visualizer", _));  
+  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
+  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));  
+  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));  
+  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));  
+  main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
+  main.define("apply_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("apply_theme", _));  
+  main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));  
+  $def("_463kso", "lp2_title", ["md"], _463kso);  
+  $def("_1f1jsit", "lp2_doc_overview", ["md"], _1f1jsit);  
+  $def("_1bg9e0n", "lp2_doc_model", ["md"], _1bg9e0n);  
+  $def("_yitkz2", "viewof lp2Model", ["Inputs"], _yitkz2);  
+  $def("_1ow4sob", "lp2Model", ["Generators","viewof lp2Model"], _1ow4sob);  
+  $def("_15yplkp", "lp2_parseDSL", [], _15yplkp);  
+  $def("_wwgbz0", "lp2_serializeDSL", [], _wwgbz0);  
+  $def("_1k5l25n", "lp2_doc_panes", ["md"], _1k5l25n);  
+  $def("_14blb09", "lp2_moduleByName", ["currentModules"], _14blb09);  
+  $def("_13iu1y2", "lp2_paneRegistry", [], _13iu1y2);  
+  $def("_1my8sg4", "lp2_getPane", ["lp2_paneRegistry","lp2_moduleByName","visualizer","runtime","lp2_installAnchor"], _1my8sg4);  
+  $def("_onwldx", "lp2_doc_scroll", ["md"], _onwldx);  
+  $def("_gk3skb", "lp2_anchor", ["persistentId"], _gk3skb);  
+  $def("_rrgemy", "lp2_installAnchor", ["lp2_anchor","ResizeObserver"], _rrgemy);  
+  $def("_1umgiau", "lp2_doc_layout", ["md"], _1umgiau);  
+  $def("_1vlnnyw", "lp2_host", [], _1vlnnyw);  
+  $def("_nr5449", "lp2_renderNode", [], _nr5449);  
+  $def("_jume09", "lp2_ops", [], _jume09);  
+  $def("_xewyzb", "lp2_dragOut", [], _xewyzb);  
+  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode"], _mmsmhu);  
+  $def("_1mscs6b", "lp2_probe", ["lp2_view","lp2_paneRegistry"], _1mscs6b);  
+  $def("_17biy5y", "lp2_doc_hash", ["md"], _17biy5y);  
+  $def("_acwav8", "lp2_hash", ["Generators","location"], _acwav8);  
+  $def("_iy41xa", "lp2_setHash", ["location","history"], _iy41xa);  
+  $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event"], _tx6ac0);  
+  $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);  
+  $def("_ixjzc7", "lp2_doc_mount", ["md"], _ixjzc7);  
+  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","cc_chat"], _1qy9hpm);  
   $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page"], _1lin1z3);
   return main;
 }

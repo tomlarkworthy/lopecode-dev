@@ -1,82 +1,102 @@
 # lopepage-2 design
 
-Goal: replace lopepage's GoldenLayout + scroll scar-tissue with a smaller, readable, reliable
-layout engine that owns its DOM. Panes are created once and never destroyed on a URL change —
-only moved / shown / hidden / resized — so `scrollTop` persists for free. Persistent cell ids
-(`variable.pid`) give content-relative scroll anchoring for the one case that remains: content
-that resizes after load.
-
-## Why the old one is complex
-
-- GoldenLayout destroys/recreates container DOM on view change → `scrollTop` lost.
-- Scroll cache keyed by **module name + pixel scrollTop** → meaningless after relayout/resize.
-- `fix_scroll` 6-frame rAF retry loop + `__reflowUntil` timer + multi-pass resize restore =
-  polling that fights the browser's own scroll anchoring (every programmatic `scrollTop=` write
-  cancels the browser's anchor selection).
-- ~50% of the module is GL glue + scroll preservation + URL sync.
+A layout engine for lopecode notebooks. It tiles modules into resizable splits and tabbed
+stacks, serialises the layout to the URL hash, and preserves scroll position across layout
+changes. It owns its DOM directly.
 
 ## Core principles
 
-1. **Own the DOM.** No GL. Layout is a plain DOM tree we reconcile against a layout model.
-2. **Panes are immortal.** One scroll-container `<div>` per pane, cached by stable key. Layout
-   changes reparent / reorder / hide it; never recreate it. → scroll survives layout + URL changes
-   with zero code.
-3. **Anchor by pid, not pixels.** For content-load reflow we keep the cell the user is looking at
-   pinned. `overflow-anchor: auto` is the baseline; a single `ResizeObserver` per pane corrects
-   the chosen anchor when needed. No rAF loop, no timers.
+1. **Own the DOM.** Layout is a plain DOM tree reconciled against a layout model.
+2. **Panes are immortal.** One scroll-container `<div>` per module, cached by name. Layout
+   changes reparent / reorder / hide it; it is never recreated. `scrollTop` is retained across
+   layout and URL changes.
+3. **Anchor by pid.** When content resizes after load, the cell at the viewport top is held in
+   place by its persistent id. A `ResizeObserver` re-applies the anchor; the correction lands in
+   the same frame.
 
 ## Data model
 
 ```
 LayoutNode =
-  | { t:'row',   sizes:[..fr], children:[LayoutNode] }   // horizontal split (R)
-  | { t:'col',   sizes:[..fr], children:[LayoutNode] }   // vertical split   (C)
-  | { t:'stack', active:int,   tabs:[Leaf] }             // tabbed pane      (S)
-Leaf = { module:'@user/mod', cell?:pid }                 // cell = deep-link anchor pid
+  | { t:'row',   sizes:[..%], children:[LayoutNode] }   // horizontal split (R)
+  | { t:'col',   sizes:[..%], children:[LayoutNode] }   // vertical split   (C)
+  | { t:'stack', active:int,  tabs:[Leaf] }             // tabbed pane      (S)
+Leaf = { module:'@user/mod', cell?:pid }                // cell = deep-link anchor pid
 ```
 
-Single reactive `viewof layoutModel = Inputs.input(tree)`. URL `#view=` <-> tree via the existing
-`parseViewDSL` / `serializeGoldenDSL` (adapted to this shape — they already speak R/S/C + weights).
-The DSL `open=@mod#cell` deep-link sets a leaf's `cell` to a pid.
+There is always exactly one root node. `sizes` are percentages summing to 100, one per child;
+`active` indexes `tabs`. `viewof lp2Model = Inputs.input(tree)` holds it as reactive state.
+`lp2_parseDSL` / `lp2_serializeDSL` convert the tree to and from the `#view=` `R`/`S`/`C`
+weighted DSL — the grammar shared with the rest of lopecode — so a layout is fully described by
+its URL. `open=@mod#cell` sets a leaf's `cell` to a deep-link pid.
 
-## Modules / cells (build order)
+## Cells
 
-1. **paneRegistry** — `Map<key, {el, viz, anchor}>`. `getPane(moduleName)` lazily builds a scroll
-   `<div>` containing the cached `visualizer(runtime,{module})` node; returns the immortal element.
-2. **layout render** — pure reconcile `LayoutNode -> DOM`. Rows/cols = flexbox with `flex-basis`
-   from `sizes`; splitter `<div>`s between children adjust sizes (pointer drag) → write back to
-   model → URL. Stacks = tab header + show active pane (`display:none` the rest; Chrome retains
-   scrollTop across `display:none`).
-3. **scroll anchoring** —
-   - visualizer change: tag each cell node with `pid` (see below).
-   - on scroll (rAF-debounced): anchor = topmost cell whose bottom > container top;
-     store `{pid, offset: scrollTop - node.offsetTop}` on the pane.
-   - `ResizeObserver` on content root: if change not user-driven, set
-     `scrollTop = nodeByPid(pid).offsetTop + offset` once. Pins the anchor through reflow.
-   - deep-link: `open=@mod#pid` scrolls that pid to top once on mount.
-4. **tabs** — header chips, click → set active, drag chip to reorder / move between stacks.
-5. **drag-rearrange** — pointer-drag a tab; drop zones split a pane (left/right/top/bottom) or
-   merge into a stack. Mutates model → re-render (panes survive).
-6. **drag-out-to-.js** — reuse existing grip: `dragstart` writes the module `.js` source as a file
-   to `DataTransfer` (`application/javascript`), filename = module name.
+1. **lp2_paneRegistry / lp2_getPane** — `Map<module, {el, …}>`. `getPane(name)` builds a scroll
+   `<div>` hosting the cached `visualizer(runtime,{module})` node on first request and returns the
+   same element thereafter. `lp2_moduleByName` resolves a name to its runtime module via
+   `currentModules`.
+2. **lp2_renderNode / lp2_view** — `renderNode` reconciles `LayoutNode -> DOM`: rows/cols are
+   flexbox with draggable splitters that write percentages to `node.sizes`; stacks are a tab header
+   plus the active pane (others `display:none`, which retains their `scrollTop`). `lp2_view` runs the
+   render with scroll capture/restore and exposes `commit(newRoot)`, which republishes the model
+   through the `lp2Model` viewof, so a structural change re-renders and round-trips to the URL on one
+   path.
+3. **lp2_anchor / lp2_installAnchor** — anchor = `{pid, offset}` for the cell at the viewport top,
+   `pid = persistentId(node.variable)`. `installAnchor` re-applies it on each `ResizeObserver`
+   callback.
+4. **lp2_ops** — pure tree operations (`findHost`, `removeLeaf`, `dropBeside`, `normalize`, `move`).
+   `normalize` collapses emptied stacks and single-child splits.
+5. **lp2_dragOut** — writes the module `.js` source to the drag `DataTransfer`
+   (`application/javascript` + `DownloadURL`), filename derived from the module name.
+6. **lp2_hash / lp2_setHash / lp2_syncFromUrl / lp2_syncToUrl** — URL ownership (see below).
+7. **lp2_page / lp2_append_to_body** — page mount, theme, pairing (see below).
 
-## Visualizer change (minimal)
+## Docking
 
-`@tomlarkworthy/visualizer` `inspectors` cell currently sets `node.setAttribute('cell', v._name)`.
-Add `node.setAttribute('pid', persistentId(v))` (from `@tomlarkworthy/runtime-sdk`). `persistentId`
-computes from name+definition, no value needed, safe at inspector-creation time. This is the only
-edit outside the new module. (Prototype may fork visualizer as `visualizer-2` to avoid touching the
-shared module until proven.)
+A tab is `draggable`. On `dragstart` it sets `window.__lp2_drag = {module}` and calls `lp2_dragOut`.
+Each stack body has a drop overlay: `dragover` highlights the region under the pointer — the inner
+box is *centre* (merge into the stack), otherwise the nearest edge is *left/right/top/bottom* (split).
+`drop` runs `lp2_ops.move(root, module, targetStack, side)` and commits. A drop outside the browser
+receives the `.js` file instead.
 
-## pid caveat
+## Scroll anchoring
 
-`pid = hash(name + definition)`, so editing a cell changes its pid. Irrelevant for anchoring: the
-anchor is whatever sits at the viewport top (rarely the cell being edited), and content-load
-reflows don't change definitions. Restore falls back to nearest surviving pid if an anchor's pid
-vanished.
+A layout-only change reparents a pane without altering its content height, so capturing `scrollTop`
+before the reparent and restoring it after is exact. Content that resizes after load (async cells,
+images) is handled by the pid anchor: `lp2_installAnchor` attaches a `ResizeObserver` to the pane
+content and sets `scrollTop = node.offsetTop + offset` on each callback. The observer fires after
+layout and before paint, so the correction is same-frame. A programmatic `scrollTop` write disables
+the browser's native `overflow-anchor`, so the anchor is maintained in JS.
 
-## Out of scope for first prototype
+## Hash ownership
 
-Popout windows (GL never had them here either). Mobile-keyboard resize special-casing (the immortal
--pane model should make it moot). Command palette and other lopepage features are inherited from the
-forked notebook and left untouched.
+`lp2_hash` observes `location.hash`. `lp2_syncFromUrl` parses it into the model on external change;
+`lp2_syncToUrl` serialises the model back; `lp2_setHash` writes via `history.replaceState`
+(no `hashchange`). Invariants:
+
+- `lp2_syncToUrl` writes only when the model round-trips:
+  `serialize(parse(serialize(model))) === serialize(model)`.
+- Writing is gated on `window.__lp2_owns_hash`, set only while lopepage-2 is the mounted page.
+- `replaceState` is silent and the read path is driven by `hashchange`, so a write does not
+  re-trigger a read.
+
+## Page mount, theme, pairing
+
+`lp2_page` builds the fullscreen `#lopepage-2` container, adopts the `@tomlarkworthy/themes`
+stylesheets via `apply_theme`, and mounts the `@tomlarkworthy/claude-code-pairing` `cc_chat` widget
+in a floating dock — which makes its connection cell reachable, so the pairing channel connects
+while lopepage-2 is the page. `lp2_append_to_body` is the keystone: reachable only when lopepage-2
+is booted as a main, it appends the page to `document.body` and sets `window.__lp2_owns_hash`. With
+`bootconf.headless` set, the runtime observes this cell as the page's single output.
+
+## Dependencies
+
+- [`@tomlarkworthy/runtime-sdk`](https://observablehq.com/@tomlarkworthy/runtime-sdk) — `runtime`,
+  `persistentId`.
+- [`@tomlarkworthy/visualizer`](https://observablehq.com/@tomlarkworthy/visualizer) — cell rendering;
+  every cell node carries a `.variable` backref used for pids.
+- [`@tomlarkworthy/module-map`](https://observablehq.com/@tomlarkworthy/module-map) — `currentModules`.
+- [`@tomlarkworthy/themes`](https://observablehq.com/@tomlarkworthy/themes) — `apply_theme`.
+- [`@tomlarkworthy/claude-code-pairing`](https://observablehq.com/@tomlarkworthy/claude-code-pairing)
+  — `cc_chat`.
