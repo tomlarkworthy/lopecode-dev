@@ -116,7 +116,61 @@ lp2_getPane = (moduleName) => {
   return entry;
 }
 
-// ── layout model (⇄ #view= R/S/C DSL, not yet wired) ─────────────────────────
+// ── #view= DSL ⇄ model (round-trips; scroll survives an applied DSL change) ───
+// R=row, C=col, S=stack; number = weight within parent. Leaf = @scope/name or d/<hex>,
+// optional #cell deep-link. Weight lives on parent.sizes[i] in the model. Hash wiring
+// (hashchange -> parse -> setModel; model -> serialize -> setHash) is the remaining glue.
+lp2_parseDSL = (input) => {
+  if (!input) return null;
+  input = String(input);
+  if (input.startsWith("#")) input = input.slice(1);
+  const mView = input.match(/(?:^|&)view=([^&]*)/);
+  if (mView) input = mView[1];
+  let i = 0;
+  const num = () => { const s = i; while (i < input.length && input[i] >= "0" && input[i] <= "9") i++; return s < i ? parseInt(input.slice(s, i), 10) : null; };
+  const moduleName = () => { const s = i; while (i < input.length && !",)#".includes(input[i])) i++; return input.slice(s, i); };
+  const parseLeaf = () => {
+    const weight = num();
+    const module = moduleName();
+    let cell;
+    if (input[i] === "#") { i++; const s = i; while (i < input.length && !",)".includes(input[i])) i++; cell = input.slice(s, i); }
+    return { node: { module, ...(cell ? { cell } : {}) }, weight };
+  };
+  const parseItem = () => { const c = input[i]; return (c === "R" || c === "C" || c === "S") ? parseGroup() : parseLeaf(); };
+  const parseList = (isStack) => { const items = []; while (i < input.length && input[i] !== ")") { items.push(isStack ? parseLeaf() : parseItem()); if (input[i] === ",") i++; } return items; };
+  const parseGroup = () => {
+    const type = input[i++];
+    const weight = num();
+    let items = [];
+    if (input[i] === "(") { i++; items = parseList(type === "S"); if (input[i] === ")") i++; }
+    if (type === "S") return { node: { t: "stack", active: 0, tabs: items.map((it) => it.node) }, weight };
+    const children = items.map((it) => it.node);
+    const sizes = items.map((it) => it.weight != null ? it.weight : Math.round(100 / items.length));
+    return { node: { t: type === "R" ? "row" : "col", children, sizes }, weight };
+  };
+  const r = parseItem();
+  return r ? r.node : null;
+}
+
+lp2_serializeDSL = (root) => {
+  const s = (node, weight) => {
+    const w = weight != null ? weight : 100;
+    if (!node) return "";
+    if (node.t === "stack") {
+      const tabs = (node.tabs || []).map((l) => l.module + (l.cell ? ("#" + l.cell) : "")).join(",");
+      return `S${w}(${tabs})`;
+    }
+    if (node.t === "row" || node.t === "col") {
+      const n = node.children || [];
+      const kids = n.map((c, idx) => s(c, (node.sizes && node.sizes[idx] != null) ? node.sizes[idx] : Math.round(100 / n.length))).join(",");
+      return `${node.t === "row" ? "R" : "C"}${w}(${kids})`;
+    }
+    return (node.module || "") + (node.cell ? ("#" + node.cell) : "");
+  };
+  return s(root, 100);
+}
+
+// ── layout model (⇄ #view= R/S/C DSL via lp2_parseDSL / lp2_serializeDSL) ─────
 viewof lp2Model = Inputs.input({
   t: "row",
   sizes: [50, 50],
