@@ -102,9 +102,10 @@ stylesheets via `apply_theme`, and appends the `@tomlarkworthy/command-palette` 
 Orthogonal features are composed by import, not added to `mains`. `lp2_background_jobs` holds bare
 references to their main-loop cells so the runtime instantiates them while lopepage-2 is the page:
 `commandPaletteKeybinding` (the ⌘K keydown listener), `cc_chat` (which opens the
-`@tomlarkworthy/claude-code-pairing` connection), and `change_listener` / `commit_history` /
+`@tomlarkworthy/claude-code-pairing` connection), `change_listener` / `commit_history` /
 `replay_git` (`@tomlarkworthy/local-change-history`, which records cell edits and replays them on
-load — the source pairing reads to stream edits).
+load — the source pairing reads to stream edits), and `auto_attach` (`@tomlarkworthy/editor-5`,
+which attaches CodeMirror editors to rendered cells for inline editing).
 
 `lp2_append_to_body` is the keystone: reachable only when lopepage-2 is booted as a main, it appends
 the page to `document.body`, references `lp2_background_jobs`, and sets `window.__lp2_owns_hash`.
@@ -124,3 +125,5 @@ With `bootconf.headless` set, the runtime observes this cell as the page's singl
   — `cc_chat`.
 - [`@tomlarkworthy/local-change-history`](https://observablehq.com/@tomlarkworthy/local-change-history)
   — `change_listener`, `commit_history`, `replay_git` (edit recording/replay).
+- [`@tomlarkworthy/editor-5`](https://observablehq.com/@tomlarkworthy/editor-5) — `auto_attach`
+  (attaches CodeMirror editors to rendered cells for inline editing).
