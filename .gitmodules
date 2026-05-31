@@ -40,3 +40,6 @@
 [submodule "lopecode-videos"]
 	path = lopecode-videos
 	url = https://github.com/tomlarkworthy/lopecode-videos
+[submodule "vendor/slack-sync"]
+	path = vendor/slack-sync
+	url = https://github.com/tomlarkworthy/slack-sync.git
