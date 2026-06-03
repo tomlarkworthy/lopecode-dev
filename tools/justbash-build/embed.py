@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Embed the vendored just-bash gzip bundle into the justbash notebook engine module,
-following the @tomlarkworthy/acorn-8-11-3 FileAttachment pattern. CDN import kept as fallback."""
+following the @tomlarkworthy/acorn-8-11-3 FileAttachment pattern. Fully offline: no CDN fallback."""
 import base64, sys, pathlib
 
 HTML = pathlib.Path("lopebooks/notebooks/@tomlarkworthy_justbash.html")
@@ -21,20 +21,16 @@ att_block = (
 )
 html = html.replace(engine_open, att_block + engine_open, 1)
 
-# 2) Replace the justBashModule cell body: gunzip the FileAttachment, import the blob; CDN fallback.
+# 2) Replace the justBashModule cell body: gunzip the embedded FileAttachment, import the blob.
 old_fn = ("const _1d8rbf6 = function _justBashModule(importShim) {\n"
           "    return import('https://esm.sh/just-bash@3.0.1/browser');\n"
           "};")
 assert html.count(old_fn) == 1, f"justBashModule fn anchor count={html.count(old_fn)}"
 new_fn = ("const _1d8rbf6 = async function _justBashModule(FileAttachment) {\n"
-          "    try {\n"
-          "        const att = FileAttachment('just-bash.browser.js.gz');\n"
-          "        const buf = await new Response((await att.stream()).pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();\n"
-          "        const url = URL.createObjectURL(new Blob([buf], { type: 'text/javascript' }));\n"
-          "        return await import(url);\n"
-          "    } catch (e) {\n"
-          "        return await import('https://esm.sh/just-bash@3.0.1/browser');\n"
-          "    }\n"
+          "    const att = FileAttachment('just-bash.browser.js.gz');\n"
+          "    const buf = await new Response((await att.stream()).pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();\n"
+          "    const url = URL.createObjectURL(new Blob([buf], { type: 'text/javascript' }));\n"
+          "    return await import(url);\n"
           "};")
 html = html.replace(old_fn, new_fn, 1)
 

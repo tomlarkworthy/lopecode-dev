@@ -43,3 +43,6 @@
 [submodule "vendor/slack-sync"]
 	path = vendor/slack-sync
 	url = https://github.com/tomlarkworthy/slack-sync.git
+[submodule "vendor/paseo"]
+	path = vendor/paseo
+	url = https://github.com/getpaseo/paseo
