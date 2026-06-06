@@ -13852,8 +13852,8 @@ const _nr5449 = function _lp2_renderNode() {return (ctx => {
                 display: 'flex',
                 gap: '2px',
                 flex: '0 0 auto',
-                background: '#f0f0f0',
-                borderBottom: '1px solid #ccc',
+                background: 'var(--theme-background-b)',
+                borderBottom: '1px solid var(--theme-foreground-fainter)',
                 overflow: 'hidden'
             });
             const body = document.createElement('div');
@@ -13877,7 +13877,8 @@ const _nr5449 = function _lp2_renderNode() {return (ctx => {
                     padding: '4px 8px',
                     cursor: 'grab',
                     fontSize: '11px',
-                    background: i === active ? '#fff' : 'transparent'
+                    background: i === active ? 'var(--theme-background-a)' : 'transparent',
+                    color: i === active ? 'var(--theme-foreground)' : 'var(--theme-foreground-faint)'
                 });
                 tab.onclick = () => {
                     node.active = i;
