@@ -117,7 +117,9 @@ With `bootconf.headless` set, the runtime observes this cell as the page's singl
   `persistentId`.
 - [`@tomlarkworthy/visualizer`](https://observablehq.com/@tomlarkworthy/visualizer) — cell rendering;
   every cell node carries a `.variable` backref used for pids.
-- [`@tomlarkworthy/module-map`](https://observablehq.com/@tomlarkworthy/module-map) — `currentModules`.
+- [`@tomlarkworthy/modules`](https://observablehq.com/@tomlarkworthy/modules) — `currentModules`, an async
+  generator that yields a cumulative module map as modules resolve (faster than `module-map`, which blocks
+  until every module has loaded).
 - [`@tomlarkworthy/themes`](https://observablehq.com/@tomlarkworthy/themes) — `apply_theme`.
 - [`@tomlarkworthy/command-palette`](https://observablehq.com/@tomlarkworthy/command-palette) —
   `commandPaletteStyles`, `commandPaletteOverlay`, `commandPaletteKeybinding` (⌘K).

@@ -11061,119 +11061,6 @@ export default function define(runtime, observer) {
   $def("_1fs0h4q", null, ["suite","flowQueue","testing"], _1fs0h4q);
   return main;
 }</script>
-<script id="@tomlarkworthy/import-notebook" 
-  type="text/plain"
-  data-mime="application/javascript"
->
-const _1iogq99 = function _1(md){return(
-md`# Programmatic \`importNotebook\`
-
-\`importNotebook\` is a programmatic version of \`import\`. After an export, the import becomes "baked in" and offline-first.
-
-
-Issues:-
-- Observable dependancy resolution can miss, leading to new modules which look similar but are not the same
-- Would be better to import to an isolated module, reserialize, and depend on that.
-- By the time the module is running we lost import map magic though.
-- Maybe esModuleShim can help import a module but hook the resolution. Also supports dynamic import maps.`
-)};
-const _1n7w35r = function _2(runtime){return(
-runtime._modules
-)};
-const _1kixzlo = function _3(importNotebook)
-{
-  importNotebook("@tomlarkworthy/exporter-2", [
-    {
-      imported: "exporter",
-      /* optional */ local: "exporter2"
-    }
-  ]);
-};
-const _1w278sp = function _4(md){return(
-md`The following cell demonstrate the imported cell works. Also, its the exporter dependancy so you can see that the import continues to work after export, and even offline.`
-)};
-const _1phzazj = function _5(exporter2){return(
-exporter2()
-)};
-const _1g7x12j = function _importNotebook(runtime,resolutions_key,main,md){return(
-async (notebook, specifiers = []) => {
-  runtime;
-  let fn;
-  const importKeyword = window.importShim ? "importShim" : "import";
-  for (const url of [
-    notebook,
-    `https://api.observablehq.com/${notebook}.js?v=4&${resolutions_key}`
-  ]) {
-    try {
-      fn = eval(
-        `async () => runtime.module((await ${importKeyword}("${url}")).default)`
-      );
-      await fn();
-      break;
-    } catch {}
-  }
-  if (!fn) throw `Can't resolve ${notebook}`;
-
-  const module_variable = `module ${notebook}`;
-
-  if (!main._scope.has(module_variable)) {
-    main.define(module_variable, fn);
-  }
-
-  for (let { imported, local = null } of specifiers) {
-    if (!local) local = imported;
-    if (!main._scope.has(local)) {
-      main.define(local, [module_variable, "@variable"], (_, v) =>
-        v.import(imported, local, _)
-      );
-    } else {
-      main.redefine(local, [module_variable, "@variable"], (_, v) =>
-        v.import(imported, local, _)
-      );
-    }
-  }
-
-  return md`~~~js
-importNotebook("${notebook}", ${JSON.stringify(specifiers)})
-~~~`;
-}
-)};
-const _huzc31 = function _resolutions_key(isOnObservableCom,runtime)
-{
-  if (isOnObservableCom()) {
-    for (let v of runtime._variables) {
-      let match;
-      if (
-        v._value?._scope &&
-        (match = /(resolutions=[a-f0-9]+@\d+)/.exec(v._definition.toString()))
-      ) {
-        return match[1];
-      }
-    }
-  }
-};
-
-export default function define(runtime, observer) {
-  const main = runtime.module();
-  const $def = (pid, name, deps, fn) => {
-    main.variable(observer(name)).define(name, deps, fn).pid = pid;
-  };
-
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
-  $def("_1iogq99", null, ["md"], _1iogq99);  
-  $def("_1n7w35r", null, ["runtime"], _1n7w35r);  
-  $def("_1kixzlo", null, ["importNotebook"], _1kixzlo);  
-  $def("_1w278sp", null, ["md"], _1w278sp);  
-  $def("_1phzazj", null, ["exporter2"], _1phzazj);  
-  $def("_1g7x12j", "importNotebook", ["runtime","resolutions_key","main","md"], _1g7x12j);  
-  $def("_huzc31", "resolutions_key", ["isOnObservableCom","runtime"], _huzc31);  
-  main.define("keepalive", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("keepalive", _));  
-  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
-  main.define("isOnObservableCom", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("isOnObservableCom", _));  
-  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
-  main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));
-  return main;
-}</script>
 <script id="@tomlarkworthy/inspector/inspector-5%401.0.1.js.gz" 
   type="text/plain"
   data-encoding="base64"
@@ -13636,7 +13523,7 @@ It rests on three mechanisms, each described in its own section:
 2. **Persistent-id scroll anchoring** — when a pane's content resizes after load, the cell at the viewport top is held in place by its \`pid\`.
 3. **A layout tree** reconciled to DOM and round-tripped through the \`#view=\` DSL under loop-protected hash ownership.
 
-Dependencies: [\`runtime-sdk\`](https://observablehq.com/@tomlarkworthy/runtime-sdk) (\`persistentId\`, \`runtime\`), [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) (cell rendering), [\`module-map\`](https://observablehq.com/@tomlarkworthy/module-map) (\`currentModules\`), [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) (\`apply_theme\`). Four orthogonal feature modules are composed by import and kept reachable from \`lp2_background_jobs\`: [\`command-palette\`](https://observablehq.com/@tomlarkworthy/command-palette) (⌘K), [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) (\`cc_chat\`), [\`local-change-history\`](https://observablehq.com/@tomlarkworthy/local-change-history) (edit recording/replay), and [\`editor-5\`](https://observablehq.com/@tomlarkworthy/editor-5) (\`auto_attach\` — inline cell editing).`);};
+Dependencies: [\`runtime-sdk\`](https://observablehq.com/@tomlarkworthy/runtime-sdk) (\`persistentId\`, \`runtime\`), [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) (cell rendering), [\`modules\`](https://observablehq.com/@tomlarkworthy/modules) (\`currentModules\` — incremental module discovery), [\`themes\`](https://observablehq.com/@tomlarkworthy/themes) (\`apply_theme\`). Four orthogonal feature modules are composed by import and kept reachable from \`lp2_background_jobs\`: [\`command-palette\`](https://observablehq.com/@tomlarkworthy/command-palette) (⌘K), [\`claude-code-pairing\`](https://observablehq.com/@tomlarkworthy/claude-code-pairing) (\`cc_chat\`), [\`local-change-history\`](https://observablehq.com/@tomlarkworthy/local-change-history) (edit recording/replay), and [\`editor-5\`](https://observablehq.com/@tomlarkworthy/editor-5) (\`auto_attach\` — inline cell editing).`);};
 const _1bg9e0n = function _lp2_doc_model(md) {return (md`### Layout model and DSL
 
 The layout is a single tree. \`viewof lp2Model\` holds it as reactive state. A node is one of:
@@ -13772,7 +13659,7 @@ const _wwgbz0 = function _lp2_serializeDSL() {return (root => {
 });};
 const _1k5l25n = function _lp2_doc_panes(md) {return (md`### Immortal panes
 
-\`lp2_paneRegistry\` is a \`Map\` from module name to a single scroll \`<div>\` that hosts that module's [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) render. \`lp2_getPane\` builds the pane on first request and returns the cached element thereafter. \`lp2_moduleByName\` resolves a module name to its runtime module via \`currentModules\` from [\`module-map\`](https://observablehq.com/@tomlarkworthy/module-map).
+\`lp2_paneRegistry\` is a \`Map\` from module name to a single scroll \`<div>\` that hosts that module's [\`visualizer\`](https://observablehq.com/@tomlarkworthy/visualizer) render. \`lp2_getPane\` builds the pane on first request and returns the cached element thereafter. \`lp2_moduleByName\` resolves a module name to its runtime module via \`currentModules\` from [\`modules\`](https://observablehq.com/@tomlarkworthy/modules), an async generator that yields a cumulative module map as modules resolve.
 
 Invariants:
 
@@ -14686,45 +14573,44 @@ export default function define(runtime, observer) {
   $def("_nr5449", "lp2_renderNode", [], _nr5449);  
   $def("_jume09", "lp2_ops", [], _jume09);  
   $def("_xewyzb", "lp2_dragOut", [], _xewyzb);  
-  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode","linkTo"], _mmsmhu);
+  $def("_mmsmhu", "lp2_view", ["lp2_host","lp2Model","lp2_installAnchor","lp2_anchor","viewof lp2Model","Event","lp2_getPane","lp2_dragOut","lp2_ops","lp2_paneRegistry","lp2_renderNode","linkTo"], _mmsmhu);  
   $def("_1mscs6b", "lp2_probe", ["lp2_view","lp2_paneRegistry"], _1mscs6b);  
   $def("_17biy5y", "lp2_doc_hash", ["md"], _17biy5y);  
   $def("_acwav8", "lp2_hash", ["Generators","location"], _acwav8);  
   $def("_iy41xa", "lp2_setHash", ["location","history"], _iy41xa);  
-  $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event","lp2_ops"], _tx6ac0);
+  $def("_tx6ac0", "lp2_syncFromUrl", ["viewof lp2Model","lp2_hash","lp2_parseDSL","lp2_serializeDSL","Event","lp2_ops"], _tx6ac0);  
   $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);  
   $def("_ixjzc7", "lp2_doc_mount", ["md"], _ixjzc7);  
-  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","commandPaletteStyles","commandPaletteOverlay"], _1qy9hpm);
-  $def("_lp2bgj0", "lp2_background_jobs", ["commandPaletteKeybinding","cc_chat","change_listener","commit_history","replay_git","auto_attach"], _lp2bgj0);
-  $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page","lp2_background_jobs"], _1lin1z3);
+  $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","commandPaletteStyles","commandPaletteOverlay"], _1qy9hpm);  
+  $def("_lp2bgj0", "lp2_background_jobs", ["commandPaletteKeybinding","cc_chat","change_listener","commit_history","replay_git","auto_attach"], _lp2bgj0);  
+  $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page","lp2_background_jobs"], _1lin1z3);  
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
   main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));  
   main.define("persistentId", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("persistentId", _));  
   main.define("module @tomlarkworthy/visualizer", async () => runtime.module((await import("/@tomlarkworthy/visualizer.js?v=4")).default));  
   main.define("visualizer", ["module @tomlarkworthy/visualizer", "@variable"], (_, v) => v.import("visualizer", _));  
-  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
-  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));  
-  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));
-  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));
-  main.define("module @tomlarkworthy/command-palette", async () => runtime.module((await import("/@tomlarkworthy/command-palette.js?v=4")).default));
-  main.define("commandPaletteKeybinding", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteKeybinding", _));
-  main.define("commandPaletteOverlay", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteOverlay", _));
-  main.define("commandPaletteStyles", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteStyles", _));
+  main.define("currentModules", ["module @tomlarkworthy/modules", "@variable"], (_, v) => v.import("currentModules", _));  
+  main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));  
+  main.define("cc_chat", ["module @tomlarkworthy/claude-code-pairing", "@variable"], (_, v) => v.import("cc_chat", _));  
+  main.define("module @tomlarkworthy/command-palette", async () => runtime.module((await import("/@tomlarkworthy/command-palette.js?v=4")).default));  
+  main.define("commandPaletteKeybinding", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteKeybinding", _));  
+  main.define("commandPaletteOverlay", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteOverlay", _));  
+  main.define("commandPaletteStyles", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteStyles", _));  
   main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
   main.define("apply_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("apply_theme", _));  
-  main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));
-  main.define("module @tomlarkworthy/local-change-history", async () => runtime.module((await import("/@tomlarkworthy/local-change-history.js?v=4")).default));
-  main.define("change_listener", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("change_listener", _));
-  main.define("commit_history", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("commit_history", _));
-  main.define("replay_git", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("replay_git", _));
-  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));
-  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));
-  main.define("module @tomlarkworthy/editor-5", async () => runtime.module((await import("/@tomlarkworthy/editor-5.js?v=4")).default));
-  main.define("auto_attach", ["module @tomlarkworthy/editor-5", "@variable"], (_, v) => v.import("auto_attach", _));
+  main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));  
+  main.define("module @tomlarkworthy/local-change-history", async () => runtime.module((await import("/@tomlarkworthy/local-change-history.js?v=4")).default));  
+  main.define("change_listener", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("change_listener", _));  
+  main.define("commit_history", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("commit_history", _));  
+  main.define("replay_git", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("replay_git", _));  
+  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));  
+  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));  
+  main.define("module @tomlarkworthy/editor-5", async () => runtime.module((await import("/@tomlarkworthy/editor-5.js?v=4")).default));  
+  main.define("auto_attach", ["module @tomlarkworthy/editor-5", "@variable"], (_, v) => v.import("auto_attach", _));  
+  main.define("module @tomlarkworthy/modules", async () => runtime.module((await import("/@tomlarkworthy/modules.js?v=4")).default));
   return main;
-}
-</script>
+}</script>
 
 <script id="@tomlarkworthy/lopepage-urls" 
   type="text/plain"
@@ -16112,214 +15998,398 @@ export default function define(runtime, observer) {
   return main;
 }</script>
 
-<script id="@tomlarkworthy/module-selection" 
+<script id="@tomlarkworthy/modules" 
   type="text/plain"
   data-mime="application/javascript"
 >
-const _1umhlcn = function _1(md){return(
-md`# Explorer: Module Selector`
-)};
-const _b6n8js = function _2(visualizeModules){return(
-visualizeModules()
-)};
-const _1y97u4c = function _selected_modules(persistedAttachments,hash,getHashModules,currentModules,Inputs,html,linkTo)
-{
-  persistedAttachments; // load persisted modules as well
-  hash; // recompute if hash changes
-  const hashModules = getHashModules();
-  const modules = [...currentModules.values()].map((m) => ({
-    ...m,
-    cell: hashModules.get(m.name)?.cell
-  }));
-  return Inputs.table(modules, {
-    rows: Infinity,
-    sort: "name",
-    columns: ["name" /*, "cell"*/],
-    required: false,
-    value: modules.filter((m) => hashModules.get(m.name)),
-    format: {
-      name: (name) => html`<a href="${linkTo(name)}">${name}</a>`
-    }
-  });
-};
-const _1j5tq63 = (G, _) => G.input(_);
-const _yiedgc = function _4(currentModules){return(
-currentModules.values()
-)};
-const _y5ux30 = function _create_module(Inputs){return(
-Inputs.text({
-  label: "create module",
-  width: "400px",
-  submit: "create",
-  placeholder: "@user/scratch",
-  width: "400px",
-  pattern: "^@[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
-})
-)};
-const _1ll7bx3 = (G, _) => G.input(_);
-const _1vrx9jk = function _additional_module(Inputs){return(
-Inputs.text({
-  label: "load module",
-  placeholder: "@tomlarkworthy/debugger",
-  width: "400px",
-  pattern: "^@[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$",
-  submit: "import"
-})
-)};
-const _3ukf68 = (G, _) => G.input(_);
-const _au41oe = function _remove_module(Inputs,currentModules){return(
-Inputs.select([null, currentModules.values()], {
-  label: "remove module",
-  width: "400px",
-  format: (module) => module?.name
-})
-)};
-const _1iasv3r = (G, _) => G.input(_);
-const _hj6sn = function _9(md){return(
-md`## Additional Modules
+const _s7bl1p = function _1(md){return(
+md`# Modules
 
-Extra modules for dynamic loading are named as a JSON list in file attachment \`additionalModules.json\``
+\`modules(options?)\` is an async generator that yields a **cumulative \`Map\`** (module → \`{name, title, module, variable}\`) of every fully-formed record known so far, growing as modules resolve. 
+
+It's an effecient alternative to [moduleMap](https://observablehq.com/@tomlarkworthy/module-map) that blocks until all modules are loaded.
+`
 )};
-const _17w9o9j = function _notebookModule(thisModule){return(
+const _1eaa9lr = function _currentModules(modules){return(
+modules()
+)};
+const _jwv3dv = function _modules(runtime,observeVariable,moduleTitle)
+{
+  const _runtime = runtime;
+  // default: the current runtime
+  return function modules({runtime = _runtime, titleTimeoutMs = 2000, rescanMs = 1000, load = true} = {}) {
+    if (!runtime || !runtime._variables)
+      throw 'Invalid runtime passed to modules';
+    return async function* () {
+      const records = new Map();
+      // module -> fully-formed record (title resolved before it lands here)
+      const watchers = new Map();
+      // module -> cancel fn (stops its title watch)
+      const peeking = new Map();
+      // unresolved `module X` variable -> stop fn (its force-load observer)
+      let pending = false, wake = null, dirty = true;
+      const bump = () => {
+        pending = true;
+        if (wake) {
+          const w = wake;
+          wake = null;
+          w();
+        }
+      };
+      const touch = () => {
+        dirty = true;
+        bump();
+      };
+      // Live candidate modules: Map<module, {name, variable?, title?}>. Side effect: force-loads
+      // unresolved `module X` variables via observe (which marks them reachable) so their modules
+      // become resolvable on a later scan.
+      const scan = () => {
+        const out = new Map();
+        const put = (m, r) => {
+          if (m && !out.has(m))
+            out.set(m, r);
+        };
+        const builtin = runtime._builtin, bootloader = runtime.bootloader;
+        if (builtin)
+          put(builtin, {
+            name: 'builtin',
+            title: 'Standard library'
+          });
+        if (bootloader)
+          put(bootloader, {
+            name: 'bootloader',
+            title: 'Bootloader'
+          });
+        for (const [name, mod] of runtime.mains || new Map())
+          put(mod, { name });
+        // main modules: variable-graph roots — own variables but aren't imported (nor builtin/
+        // bootloader). Catches the top-level main of a plain runtime where runtime.mains is empty.
+        const imported = new Set((runtime._modules || new Map()).values());
+        const owners = new Set();
+        for (const v of runtime._variables)
+          if (v._module)
+            owners.add(v._module);
+        for (const m of owners)
+          if (m !== builtin && m !== bootloader && !imported.has(m))
+            put(m, { name: 'main' });
+        // imported modules carried by `module X` variables
+        for (const v of runtime._variables) {
+          if (!v._name || !v._name.startsWith('module ') || v._name.startsWith('module <unknown'))
+            continue;
+          const mod = v._value;
+          if (mod && typeof mod === 'object')
+            put(mod, {
+              name: v._name.slice(7),
+              variable: v
+            });
+          else if (load && !peeking.has(v))
+            peeking.set(v, observeVariable(v, {
+              fulfilled: bump,
+              error: bump
+            }));
+        }
+        return out;
+      };
+      // Reconcile the snapshot with the live runtime each scan.
+      const reconcile = () => {
+        const cand = scan();
+        // DELETE: drop modules no longer present; cancel their title watcher.
+        for (const m of [...watchers.keys()]) {
+          if (!cand.has(m)) {
+            const cancel = watchers.get(m);
+            watchers.delete(m);
+            if (records.delete(m))
+              touch();
+            try {
+              cancel();
+            } catch (e) {
+            }
+          }
+        }
+        // CREATE: start a persistent title watch for each new module. The module enters `records`
+        // only once its title resolves (or the timeout fires). Later title changes update in place.
+        for (const [m, c] of cand) {
+          if (watchers.has(m))
+            continue;
+          if (c.title != null) {
+            // static title (builtin / bootloader)
+            records.set(m, {
+              name: c.name,
+              title: c.title,
+              module: m,
+              variable: c.variable
+            });
+            watchers.set(m, () => {
+            });
+            touch();
+            continue;
+          }
+          const apply = title => {
+            if (!watchers.has(m))
+              return;
+            // module was pruned -> ignore late title callbacks
+            const t = title ?? c.name;
+            const prev = records.get(m);
+            if (!prev) {
+              records.set(m, {
+                name: c.name,
+                title: t,
+                module: m,
+                variable: c.variable
+              });
+              touch();
+            } else if (prev.title !== t) {
+              records.set(m, {
+                ...prev,
+                title: t
+              });
+              touch();
+            }
+          };
+          const cancel = moduleTitle(m, apply);
+          watchers.set(m, () => {
+            try {
+              cancel();
+            } catch (e) {
+            }
+          });
+          // title never resolved within the budget -> show the name so the module isn't withheld.
+          setTimeout(() => {
+            if (watchers.has(m) && !records.has(m))
+              apply(null);
+          }, titleTimeoutMs);
+        }
+      };
+      let stopped = false;
+      (async () => {
+        while (!stopped) {
+          try {
+            reconcile();
+          } catch (e) {
+          }
+          await new Promise(r => setTimeout(r, rescanMs));
+        }
+      })();
+      try {
+        while (true) {
+          pending = false;
+          if (dirty) {
+            dirty = false;
+            yield new Map(records);
+          }
+          // cumulative snapshot
+          if (!pending)
+            await new Promise(resolve => {
+              wake = resolve;
+              if (pending) {
+                wake = null;
+                resolve();
+              }
+            });
+        }
+      } finally {
+        stopped = true;
+        for (const cancel of watchers.values()) {
+          try {
+            cancel();
+          } catch (e) {
+          }
+        }
+        for (const stop of peeking.values()) {
+          try {
+            stop();
+          } catch (e) {
+          }
+        }
+      }
+    }();
+  };
+};
+const _up9atj = function _moduleTitle(observeVariable)
+{
+  return function moduleTitle(module, onTitle) {
+    // Observes a module's title-defining cell and calls onTitle(title|null) on every change.
+    // Returns a cancel fn. The fixed observe() forces a lazy title cell to compute (and replays
+    // the current value on attach), so no in-module forcing helper is needed — works for named
+    // and anonymous cells alike, even in a fresh runtime nothing else observes.
+    const rt = module._runtime;
+    const candidates = [...rt._variables].filter(v => {
+      if (!v || v._module !== module || !v._definition || v._type != 1)
+        return false;
+      const n = v._name;
+      if (typeof n === 'string' && (n.startsWith('dynamic observe ') || n.startsWith('module ')))
+        return false;
+      return true;
+    });
+    if (candidates.length === 0) {
+      onTitle(null);
+      return () => {
+      };
+    }
+    const first = candidates.reduce((a, b) => (a._id ?? Infinity) <= (b._id ?? Infinity) ? a : b);
+    const extract = v => {
+      if (v == null)
+        return null;
+      if (typeof v === 'string')
+        return v.trim() || null;
+      if (v.tagName) {
+        if (v.tagName == 'H1')
+          return v.textContent;
+        const h1 = v.querySelector?.('h1');
+        if (h1)
+          return (h1.textContent ?? '').trim() || null;
+        return null;
+      }
+      if (v.textContent)
+        return (v.textContent ?? '').trim() || null;
+      return null;
+    };
+    const stop = observeVariable(first, {
+      fulfilled: value => onTitle(extract(value)),
+      error: () => onTitle('Err')
+    });
+    return () => {
+      try {
+        stop();
+      } catch (e) {
+      }
+    };
+  };
+};
+const _qpensj = function _5(Inputs,currentModules){return(
+Inputs.table([...currentModules.values()], {
+  columns: [
+    'name',
+    'title'
+  ],
+  format: { name: x => x }
+})
+)};
+const _1x0q6zt = function _7(md){return(
+md`## Tests`
+)};
+const _e0sbyj = function _8(tests,modulesModule){return(
+tests({
+  filter: (t) => t.variable._module == modulesModule
+})
+)};
+const _p3rq3v = function _modulesModule(thisModule){return(
 thisModule()
 )};
-const _1f136ll = (G, _) => G.input(_);
-const _ngwjdv = async function _persistedAttachments(getFileAttachments,notebookModule,importNotebook)
+const _16g1ab = (G, _) => G.input(_);
+const _cayyvt = function _testRuntime(Runtime){return(
+new Runtime()
+)};
+const _1j4p6g3 = function _testModulesLatest(modules,testRuntime){return(
+modules({
+  runtime: testRuntime
+})
+)};
+const _1oq6y7s = function _newModule(testRuntime)
 {
-  const attachments = getFileAttachments(notebookModule);
-  if (attachments.has("additionalModules.json")) {
-    const extras = new Set(
-      await attachments.get("additionalModules.json").json()
-    );
-    await Promise.all(
-      [...extras].map(async (notebook) => await importNotebook(notebook, []))
-    );
-    return extras;
-  } else return new Set();
+  const m = testRuntime.module();
+  m.variable().define("greeting", [], () => {
+    const div = document.createElement("div");
+    div.innerHTML = "<h1>New Module</h1>";
+    return div;
+  });
+  return m;
 };
-const _1huqss5 = function _additionalModules(persistedAttachments){return(
-persistedAttachments || new Set()
-)};
-const _a2tw23 = function _addModuleAndPersist(additionalModules,setFileAttachment,jsonFileAttachment,notebookModule){return(
-function addModuleAndPersist(name) {
-  additionalModules.add(name);
-  setFileAttachment(
-    jsonFileAttachment("additionalModules.json", [...additionalModules]),
-    notebookModule
-  );
-}
-)};
-const _vk2l4w = function _removeModuleAndPersist(additionalModules,setFileAttachment,jsonFileAttachment,notebookModule){return(
-(name) => {
-  additionalModules.delete(name);
-  setFileAttachment(
-    jsonFileAttachment("additionalModules.json", [...additionalModules]),
-    notebookModule
-  );
-}
-)};
-const _iz3nhl = function _createModule($0,invalidation,create_module,notebookModule,addModuleAndPersist)
+const _1li1bty = function _test_detectsBuiltin(testModulesLatest)
 {
-  const input = $0.querySelector("input");
-  const report = () => $0.reportValidity();
-  input.addEventListener("input", report);
-  invalidation.then(() => input.removeEventListener("input", report));
-
-  if (create_module && create_module !== "") {
-    const runtime = notebookModule._runtime;
-    const moduleSource = `export default function define(runtime, observer) {
-      const main = runtime.module();
-      main.variable(observer()).define(["md"], (md) => md\`# Untitled\`);
-    }`;
-    const blob = new Blob([moduleSource], { type: "text/javascript" });
-    const url = URL.createObjectURL(blob);
-    const variableSource = `async () => "${create_module}" && runtime.module((await import("${url}")).default)`;
-    let definition;
-    eval("definition = " + variableSource);
-    const moduleVariable = notebookModule.define(
-      `module ${create_module}`,
-      [],
-      definition
-    );
-    addModuleAndPersist(create_module);
-    return moduleVariable;
-  }
+  if (![...testModulesLatest.values()].find((m) => m.name == "builtin"))
+    throw Error();
+  return "ok";
 };
-const _qq8c6a = async function _addModule($0,invalidation,additional_module,additionalModules,importNotebook,addModuleAndPersist)
+const _vr1kp6 = function _test_detectsNewModule(testModulesLatest,newModule)
 {
-  const input = $0.querySelector("input");
-  const report = () => $0.reportValidity();
-  input.addEventListener("input", report);
-  invalidation.then(() => input.removeEventListener("input", report));
-  if (
-    additional_module &&
-    additional_module !== "" &&
-    !additionalModules.has(additional_module)
-  ) {
-    await importNotebook(additional_module, []);
-    addModuleAndPersist(additional_module);
-  }
+  const rec = testModulesLatest.get(newModule);
+  if (!rec) throw Error("newModule not detected yet");
+  if (rec.title !== "New Module")
+    throw Error(
+      "expected title 'New Module', got " + JSON.stringify(rec.title)
+    );
+  return "ok";
 };
-const _7048bu = function _removeModule(remove_module,removeModuleAndPersist)
+const _1p0sqk = async function _test_reflectsDelete(Runtime,modules)
 {
-  if (remove_module) {
-    removeModuleAndPersist(remove_module);
-    const variables = [...remove_module.module._runtime._variables].filter(
-      (v) =>
-        v._module == remove_module.module ||
-        v._name == `module ${remove_module.name}`
-    );
-    const entry = [...remove_module.module._runtime._modules.entries()].find(
-      ([key, value]) => value == remove_module.module
-    );
-
-    if (entry) {
-      const [define, module] = entry;
-      remove_module.module._runtime._modules.delete(define);
-    }
-
-    variables.forEach((v) => v.delete());
-    return remove_module;
-  }
-};
-const _krx5v2 = function _20(moduleMap){return(
-moduleMap()
-)};
-const _1y8y9do = function _21(md){return(
-md`## URL encoding`
-)};
-const _1tr0cuo = function _getHashModules(URLSearchParams,location,listModules){return(
-() => {
-  const hashParams = new URLSearchParams(location.hash.slice(1));
-  const view = hashParams.get("view");
-  const open = hashParams.get("open");
-
-  const base = (() => {
-    try {
-      const m = listModules(view);
-      return m instanceof Map ? m : new Map(m);
-    } catch (err) {
-      return new Map();
-    }
+  const rt = new Runtime();
+  const gen = modules({
+    runtime: rt,
+    rescanMs: 100,
+    titleTimeoutMs: 500
+  });
+  let snap = new Map();
+  (async () => {
+    for await (const s of gen) snap = s;
   })();
-
-  if (open) {
-    const [title, cell] = String(open).split("#");
-    if (title) base.set(title, { title, cell: cell || null });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const waitFor = async (pred, ms = 3000) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < ms) {
+      if (pred()) return true;
+      await wait(50);
+    }
+    return false;
+  };
+  try {
+    const m = rt.module();
+    m.variable().define("title", [], () => {
+      const d = document.createElement("div");
+      d.innerHTML = "<h1>Temp</h1>";
+      return d;
+    });
+    if (!(await waitFor(() => snap.has(m))))
+      throw Error("create not reflected");
+    for (const v of [...rt._variables]) if (v._module === m) v.delete();
+    if (!(await waitFor(() => !snap.has(m))))
+      throw Error("delete not reflected");
+    return "ok";
+  } finally {
+    if (gen.return) gen.return();
   }
-
-  return new Map(base);
-}
-)};
-const _lru2lz = function _25(md){return(
-md`## Model`
-)};
-const _wcovkr = function _26(md){return(
-md`## Background Tasks`
-)};
-const _a3xgg4 = function _navigator_jobs(updateNotebookImports,submit_summary,$0,currentModules)
+};
+const _1315qaf = async function _test_reflectsTitleUpdate(Runtime,modules)
 {
-  updateNotebookImports, submit_summary, $0, currentModules;
+  const rt = new Runtime();
+  const gen = modules({
+    runtime: rt,
+    rescanMs: 100,
+    titleTimeoutMs: 500
+  });
+  let snap = new Map();
+  (async () => {
+    for await (const s of gen) snap = s;
+  })();
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const waitFor = async (pred, ms = 3000) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < ms) {
+      if (pred()) return true;
+      await wait(50);
+    }
+    return false;
+  };
+  try {
+    const m = rt.module();
+    const tv = m.variable().define("title", [], () => {
+      const d = document.createElement("div");
+      d.innerHTML = "<h1>First</h1>";
+      return d;
+    });
+    if (!(await waitFor(() => snap.get(m)?.title === "First")))
+      throw Error("initial title not detected");
+    tv.define("title", [], () => {
+      const d = document.createElement("div");
+      d.innerHTML = "<h1>Second</h1>";
+      return d;
+    });
+    if (!(await waitFor(() => snap.get(m)?.title === "Second")))
+      throw Error("title update not reflected");
+    return "ok";
+  } finally {
+    if (gen.return) gen.return();
+  }
 };
 
 export default function define(runtime, observer) {
@@ -16328,60 +16398,30 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
-  main.define("module @tomlarkworthy/observablejs-toolchain", async () => runtime.module((await import("/@tomlarkworthy/observablejs-toolchain.js?v=4")).default));  
-  main.define("module @tomlarkworthy/import-notebook", async () => runtime.module((await import("/@tomlarkworthy/import-notebook.js?v=4")).default));  
-  main.define("module @tomlarkworthy/fileattachments", async () => runtime.module((await import("/@tomlarkworthy/fileattachments.js?v=4")).default));  
-  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));  
-  main.define("module d/57d79353bac56631@44", async () => runtime.module((await import("/d/57d79353bac56631@44.js?v=4")).default));  
-  main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
-  $def("_1umhlcn", null, ["md"], _1umhlcn);  
-  $def("_b6n8js", null, ["visualizeModules"], _b6n8js);  
-  $def("_1y97u4c", "viewof selected_modules", ["persistedAttachments","hash","getHashModules","currentModules","Inputs","html","linkTo"], _1y97u4c);  
-  $def("_1j5tq63", "selected_modules", ["Generators","viewof selected_modules"], _1j5tq63);  
-  $def("_yiedgc", null, ["currentModules"], _yiedgc);  
-  $def("_y5ux30", "viewof create_module", ["Inputs"], _y5ux30);  
-  $def("_1ll7bx3", "create_module", ["Generators","viewof create_module"], _1ll7bx3);  
-  $def("_1vrx9jk", "viewof additional_module", ["Inputs"], _1vrx9jk);  
-  $def("_3ukf68", "additional_module", ["Generators","viewof additional_module"], _3ukf68);  
-  $def("_au41oe", "viewof remove_module", ["Inputs","currentModules"], _au41oe);  
-  $def("_1iasv3r", "remove_module", ["Generators","viewof remove_module"], _1iasv3r);  
-  main.define("cellMap", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("cellMap", _));  
-  $def("_hj6sn", null, ["md"], _hj6sn);  
-  $def("_17w9o9j", "viewof notebookModule", ["thisModule"], _17w9o9j);  
-  $def("_1f136ll", "notebookModule", ["Generators","viewof notebookModule"], _1f136ll);  
-  main.define("importNotebook", ["module @tomlarkworthy/import-notebook", "@variable"], (_, v) => v.import("importNotebook", _));  
-  main.define("jsonFileAttachment", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("jsonFileAttachment", _));  
-  main.define("setFileAttachment", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("setFileAttachment", _));  
-  main.define("removeFileAttachment", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("removeFileAttachment", _));  
-  main.define("getFileAttachments", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("getFileAttachments", _));  
-  $def("_ngwjdv", "persistedAttachments", ["getFileAttachments","notebookModule","importNotebook"], _ngwjdv);  
-  $def("_1huqss5", "additionalModules", ["persistedAttachments"], _1huqss5);  
-  $def("_a2tw23", "addModuleAndPersist", ["additionalModules","setFileAttachment","jsonFileAttachment","notebookModule"], _a2tw23);  
-  $def("_vk2l4w", "removeModuleAndPersist", ["additionalModules","setFileAttachment","jsonFileAttachment","notebookModule"], _vk2l4w);  
-  $def("_iz3nhl", "createModule", ["viewof create_module","invalidation","create_module","notebookModule","addModuleAndPersist"], _iz3nhl);  
-  $def("_qq8c6a", "addModule", ["viewof additional_module","invalidation","additional_module","additionalModules","importNotebook","addModuleAndPersist"], _qq8c6a);  
-  $def("_7048bu", "removeModule", ["remove_module","removeModuleAndPersist"], _7048bu);  
-  $def("_krx5v2", null, ["moduleMap"], _krx5v2);  
-  $def("_1y8y9do", null, ["md"], _1y8y9do);  
-  main.define("parseGoldenDSL", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("parseGoldenDSL", _));  
-  main.define("listModules", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("listModules", _));  
-  main.define("serializeGoldenDSL", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("serializeGoldenDSL", _));  
-  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));  
-  main.define("updateNotebookImports", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("updateNotebookImports", _));  
-  $def("_1tr0cuo", "getHashModules", ["URLSearchParams","location","listModules"], _1tr0cuo);  
-  main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));  
-  $def("_lru2lz", null, ["md"], _lru2lz);  
-  $def("_wcovkr", null, ["md"], _wcovkr);  
-  $def("_a3xgg4", "navigator_jobs", ["updateNotebookImports","submit_summary","viewof currentModules","currentModules"], _a3xgg4);  
-  main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));  
-  main.define("submit_summary", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("submit_summary", _));  
-  main.define("viewof currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("viewof currentModules", _));  
-  main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));  
-  main.define("visualizeModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("visualizeModules", _));  
-  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
+  main.define("module @tomlarkworthy/tests", async () => runtime.module((await import("/@tomlarkworthy/tests.js?v=4")).default));  
+  main.define("module @tomlarkworthy/observable-runtime-v6", async () => runtime.module((await import("/@tomlarkworthy/observable-runtime-v6.js?v=4")).default));  
+  $def("_s7bl1p", null, ["md"], _s7bl1p);  
+  $def("_1eaa9lr", "currentModules", ["modules"], _1eaa9lr);  
+  $def("_jwv3dv", "modules", ["runtime","observeVariable","moduleTitle"], _jwv3dv);  
+  $def("_up9atj", "moduleTitle", ["observeVariable"], _up9atj);  
+  $def("_qpensj", null, ["Inputs","currentModules"], _qpensj);  
+  main.define("observeVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", "observeVariable", _));  
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
-  main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));
+  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
+  $def("_1x0q6zt", null, ["md"], _1x0q6zt);  
+  $def("_e0sbyj", null, ["tests","modulesModule"], _e0sbyj);  
+  main.define("tests", ["module @tomlarkworthy/tests", "@variable"], (_, v) => v.import("tests", _));  
+  main.define("Runtime", ["module @tomlarkworthy/observable-runtime-v6", "@variable"], (_, v) => v.import("Runtime", _));  
+  $def("_p3rq3v", "viewof modulesModule", ["thisModule"], _p3rq3v);  
+  $def("_16g1ab", "modulesModule", ["Generators","viewof modulesModule"], _16g1ab);  
+  $def("_cayyvt", "testRuntime", ["Runtime"], _cayyvt);  
+  $def("_1j4p6g3", "testModulesLatest", ["modules","testRuntime"], _1j4p6g3);  
+  $def("_1oq6y7s", "newModule", ["testRuntime"], _1oq6y7s);  
+  $def("_1li1bty", "test_detectsBuiltin", ["testModulesLatest"], _1li1bty);  
+  $def("_vr1kp6", "test_detectsNewModule", ["testModulesLatest","newModule"], _vr1kp6);  
+  $def("_1p0sqk", "test_reflectsDelete", ["Runtime","modules"], _1p0sqk);  
+  $def("_1315qaf", "test_reflectsTitleUpdate", ["Runtime","modules"], _1315qaf);
   return main;
 }</script>
 <script id="@tomlarkworthy/observable-runtime/runtime.js.gz" 
@@ -26379,7 +26419,7 @@ export default function define(runtime, observer) {
 >
 {
   "mains": ["@tomlarkworthy/lopepage-2"],
-  "hash": "#view=R100(S50(@tomlarkworthy/runtime-sdk),S50(@tomlarkworthy/visualizer))",
+  "hash": "#view=R100(S50(@tomlarkworthy/lopepage-2),S50(@tomlarkworthy/module-map))&cc=LOPE-50313-JBQS",
   "headless": true
 }
 </script>
