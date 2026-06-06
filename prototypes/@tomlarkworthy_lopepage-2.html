@@ -13513,7 +13513,7 @@ export default function define(runtime, observer) {
   type="text/plain"
   data-mime="application/javascript"
 >
-const _1f1jsit = function _lp2_doc_overview(md) {return (md`## lopepage-2
+const _1f1jsit = function _lp2_doc_overview(md) {return (md`# Lopepage-2: Multi-notebook layout
 
 A layout engine for lopecode notebooks. It tiles modules into resizable splits and tabbed stacks, serialises the layout to the URL hash, and preserves scroll position across layout changes. It owns its DOM directly.
 
@@ -13690,35 +13690,39 @@ const _1my8sg4 = function _lp2_getPane(lp2_paneRegistry,lp2_moduleByName,visuali
         overflowAnchor: 'auto'
     });
     const mod = lp2_moduleByName(moduleName);
-    if (mod) {
-        const viz = visualizer(runtime, {
-            invalidation: new Promise(() => {
-            }),
-            module: mod,
-            filter: (cell_name, variables) => {
-                if (variables?.[0]?._type !== 1)
-                    return false;
-                if (typeof cell_name === 'string' && cell_name.startsWith('dynamic '))
-                    return false;
-                return true;
-            }
-        });
-        el.appendChild(viz);
-        entry = {
-            el,
-            viz,
-            moduleName,
-            anchor: null
-        };
-    } else {
-        el.textContent = 'module not found: ' + moduleName;
-        entry = {
+    if (!mod) {
+        // Module not in the (incrementally-populated) map yet. Return a transient placeholder
+        // WITHOUT caching, so a later render retries once the module resolves. Caching here would
+        // freeze the pane on "not found" forever (panes are immortal).
+        el.textContent = 'loading ' + moduleName + '\u2026';
+        el.style.cssText += ';display:flex;align-items:center;justify-content:center;color:var(--theme-foreground-faint);font:12px var(--monospace,monospace)';
+        return {
             el,
             viz: null,
             moduleName,
-            anchor: null
+            anchor: null,
+            transient: true
         };
     }
+    const viz = visualizer(runtime, {
+        invalidation: new Promise(() => {
+        }),
+        module: mod,
+        filter: (cell_name, variables) => {
+            if (variables?.[0]?._type !== 1)
+                return false;
+            if (typeof cell_name === 'string' && cell_name.startsWith('dynamic '))
+                return false;
+            return true;
+        }
+    });
+    el.appendChild(viz);
+    entry = {
+        el,
+        viz,
+        moduleName,
+        anchor: null
+    };
     lp2_paneRegistry.set(moduleName, entry);
     lp2_installAnchor(entry);
     return entry;
@@ -26420,7 +26424,7 @@ export default function define(runtime, observer) {
 >
 {
   "mains": ["@tomlarkworthy/lopepage-2"],
-  "hash": "#view=R100(S50(@tomlarkworthy/lopepage-2),S50(@tomlarkworthy/module-map))&cc=LOPE-50313-JBQS",
+  "hash": "#view=S100(@tomlarkworthy/lopepage-2)&cc=LOPE-50313-JBQS",
   "headless": true
 }
 </script>
