@@ -13666,14 +13666,7 @@ Invariants:
 - One pane element per module name, for the lifetime of the page.
 - A layout change reparents the cached element; it is never recreated, so its rendered content and DOM state are preserved.
 - A layout-only change does not alter a pane's content height, so capturing \`scrollTop\` before the reparent and restoring it after is exact.`);};
-const _14blb09 = function _lp2_moduleByName(currentModules) {
-    const byName = new Map();
-    for (const [mod, info] of currentModules) {
-        if (info?.name)
-            byName.set(info.name, info.module ?? mod);
-    }
-    return name => byName.get(name);
-};
+const _14blb09 = function _lp2_moduleByName(lp2_watchedModules) {return (name => lp2_watchedModules && lp2_watchedModules.get ? lp2_watchedModules.get(name) : undefined);};
 const _13iu1y2 = function _lp2_paneRegistry() {return (new Map());};
 const _1my8sg4 = function _lp2_getPane(lp2_paneRegistry,lp2_moduleByName,visualizer,runtime,lp2_installAnchor) {return (moduleName => {
     let entry = lp2_paneRegistry.get(moduleName);
@@ -14275,15 +14268,23 @@ const _1qy9hpm = function _lp2_page(apply_theme,lp2_host,commandPaletteStyles,co
     root.appendChild(commandPaletteOverlay);
     return root;
 };
-const _lp2bgj0 = function _lp2_background_jobs(commandPaletteKeybinding,cc_chat,change_listener,commit_history,replay_git,auto_attach) {
+const _lp2bgj0 = function _lp2_background_jobs(commandPaletteKeybinding,cc_chat,change_listener,commit_history,replay_git,auto_attach,lp2_watchModules) {
     // hold references so these orthogonal features' main-loop cells instantiate
-    commandPaletteKeybinding; // installs the ⌘K keydown listener
-    cc_chat;                  // instantiates the pairing connection
-    change_listener;          // records cell edits into local-change-history
-    commit_history;           // commits runtime edit history
-    replay_git;               // replays git commits on load
-    auto_attach;              // attaches editor-5 CodeMirror editors to rendered cells
-    return 'background jobs: command-palette, claude-code-pairing, local-change-history, editor-5';
+    commandPaletteKeybinding;
+    // installs the ⌘K keydown listener
+    cc_chat;
+    // instantiates the pairing connection
+    change_listener;
+    // records cell edits into local-change-history
+    commit_history;
+    // commits runtime edit history
+    replay_git;
+    // replays git commits on load
+    auto_attach;
+    // attaches editor-5 CodeMirror editors to rendered cells
+    lp2_watchModules;
+    // keeps the layout-relevant module watcher running
+    return 'background jobs: command-palette, claude-code-pairing, local-change-history, editor-5, module-watcher';
 };
 const _1lin1z3 = function _lp2_append_to_body(lp2_view,lp2_syncFromUrl,lp2_syncToUrl,lp2_page,lp2_background_jobs) {
     lp2_view;
@@ -14570,6 +14571,47 @@ const _1x891fh = function _lp2_renderSplit(lp2_splitter) {return ((node, ctx, ma
     });
     return wrap;
 });};
+const _ddfwvv = function _lp2_watchedModules(Inputs) {return (Inputs.input(new Map()));};
+const _1hxhexc = (G, _) => G.input(_);
+const _ogqgop = function _lp2_watchModules(lp2Model,currentModules,$0,Event) {
+    // Collect the module names the current layout actually references.
+    const names = new Set();
+    const walk = n => {
+        if (!n)
+            return;
+        if (n.t === 'stack')
+            (n.tabs || []).forEach(leaf => leaf?.module && names.add(leaf.module));
+        else
+            (n.children || []).forEach(walk);
+    };
+    walk(lp2Model);
+    // Resolve those names against the (churning) currentModules map.
+    const byName = new Map();
+    for (const [mod, info] of currentModules)
+        if (info?.name)
+            byName.set(info.name, info.module ?? mod);
+    const next = new Map();
+    for (const name of names) {
+        const m = byName.get(name);
+        if (m)
+            next.set(name, m);
+    }
+    // Only republish when the relevant resolved set actually changed — this is what
+    // decouples the repaint from raw currentModules churn.
+    const prev = $0.value;
+    let changed = !(prev instanceof Map) || prev.size !== next.size;
+    if (!changed)
+        for (const [k, v] of next)
+            if (prev.get(k) !== v) {
+                changed = true;
+                break;
+            }
+    if (changed) {
+        $0.value = next;
+        $0.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    return `watch ${ names.size } / resolved ${ next.size }${ changed ? ' (updated)' : '' }`;
+};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -14584,7 +14626,7 @@ export default function define(runtime, observer) {
   $def("_15yplkp", "lp2_parseDSL", [], _15yplkp);  
   $def("_wwgbz0", "lp2_serializeDSL", [], _wwgbz0);  
   $def("_1k5l25n", "lp2_doc_panes", ["md"], _1k5l25n);  
-  $def("_14blb09", "lp2_moduleByName", ["currentModules"], _14blb09);  
+  $def("_14blb09", "lp2_moduleByName", ["lp2_watchedModules"], _14blb09);  
   $def("_13iu1y2", "lp2_paneRegistry", [], _13iu1y2);  
   $def("_1my8sg4", "lp2_getPane", ["lp2_paneRegistry","lp2_moduleByName","visualizer","runtime","lp2_installAnchor"], _1my8sg4);  
   $def("_onwldx", "lp2_doc_scroll", ["md"], _onwldx);  
@@ -14604,7 +14646,7 @@ export default function define(runtime, observer) {
   $def("_12m57w2", "lp2_syncToUrl", ["lp2Model","lp2_serializeDSL","lp2_parseDSL","location","lp2_setHash"], _12m57w2);  
   $def("_ixjzc7", "lp2_doc_mount", ["md"], _ixjzc7);  
   $def("_1qy9hpm", "lp2_page", ["apply_theme","lp2_host","commandPaletteStyles","commandPaletteOverlay"], _1qy9hpm);  
-  $def("_lp2bgj0", "lp2_background_jobs", ["commandPaletteKeybinding","cc_chat","change_listener","commit_history","replay_git","auto_attach"], _lp2bgj0);  
+  $def("_lp2bgj0", "lp2_background_jobs", ["commandPaletteKeybinding","cc_chat","change_listener","commit_history","replay_git","auto_attach","lp2_watchModules"], _lp2bgj0);  
   $def("_1lin1z3", "lp2_append_to_body", ["lp2_view","lp2_syncFromUrl","lp2_syncToUrl","lp2_page","lp2_background_jobs"], _1lin1z3);  
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
@@ -14635,9 +14677,13 @@ export default function define(runtime, observer) {
   $def("_dklue3", "lp2_dropZone", [], _dklue3);  
   $def("_711f6r", "lp2_splitter", [], _711f6r);  
   $def("_16linze", "lp2_renderStack", ["lp2_renderTab","lp2_dropZone"], _16linze);  
-  $def("_1x891fh", "lp2_renderSplit", ["lp2_splitter"], _1x891fh);
+  $def("_1x891fh", "lp2_renderSplit", ["lp2_splitter"], _1x891fh);  
+  $def("_ddfwvv", "viewof lp2_watchedModules", ["Inputs"], _ddfwvv);  
+  $def("_1hxhexc", "lp2_watchedModules", ["Generators","viewof lp2_watchedModules"], _1hxhexc);  
+  $def("_ogqgop", "lp2_watchModules", ["lp2Model","currentModules","viewof lp2_watchedModules","Event"], _ogqgop);
   return main;
-}</script>
+}
+</script>
 
 <script id="@tomlarkworthy/lopepage-urls" 
   type="text/plain"
