@@ -21,13 +21,20 @@ independently of this session (closing or continuing this one doesn't affect it)
 
 `fork.sh` in this skill directory wraps the CLI and waits for the *Remote
 Control active* line before returning:
-- fresh: `claude --remote-control "<name>"`
-- fork:  `claude --resume "$CLAUDE_CODE_SESSION_ID" --fork-session --remote-control "<name>"`
+- fresh: `claude --dangerously-skip-permissions --remote-control "<name>"`
+- fork:  `claude --resume "$CLAUDE_CODE_SESSION_ID" --fork-session --dangerously-skip-permissions --remote-control "<name>"`
 
 It's launched detached behind a PTY (`script(1)`) so the interactive TUI renders
 without a real terminal, and reuses the current `CLAUDE_CONFIG_DIR` (here
 `~/.claude-personal`) so it finds the same Remote Control credentials (and, for
 fork mode, the session history).
+
+**Prompts / sandbox.** `--dangerously-skip-permissions` stops the child blocking
+on permission prompts when driven remotely. It's safe because the child is a
+descendant of this session and inherits its safehouse/metadev sandbox (a detached
+grandchild can't escape the Seatbelt jail), keeping it after this session exits.
+We deliberately do NOT nest `metadev`/`safehouse` — a nested sandbox boots slowly
+and stalls on the PTY's unanswered terminal queries.
 
 ## Steps
 
