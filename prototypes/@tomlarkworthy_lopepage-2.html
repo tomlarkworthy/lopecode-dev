@@ -13668,10 +13668,17 @@ Invariants:
 - A layout-only change does not alter a pane's content height, so capturing \`scrollTop\` before the reparent and restoring it after is exact.`);};
 const _14blb09 = function _lp2_moduleByName(lp2_watchedModules) {return (name => lp2_watchedModules && lp2_watchedModules.get ? lp2_watchedModules.get(name) : undefined);};
 const _13iu1y2 = function _lp2_paneRegistry() {return (new Map());};
-const _1my8sg4 = function _lp2_getPane(lp2_paneRegistry,lp2_moduleByName,visualizer,runtime,lp2_installAnchor) {return (moduleName => {
+const _1my8sg4 = function _lp2_getPane(lp2_scrollToCell,lp2_paneRegistry,lp2_moduleByName,visualizer,runtime,lp2_installAnchor) {return ((moduleName, deepLinkCell) => {
+    const applyDeepLink = entry => {
+        if (deepLinkCell && !entry.transient && entry.deepLink !== deepLinkCell) {
+            entry.deepLink = deepLinkCell;
+            lp2_scrollToCell(entry, deepLinkCell);
+        }
+        return entry;
+    };
     let entry = lp2_paneRegistry.get(moduleName);
     if (entry)
-        return entry;
+        return applyDeepLink(entry);
     const el = document.createElement('div');
     el.className = 'lp2-pane';
     el.dataset.module = moduleName;
@@ -13718,7 +13725,7 @@ const _1my8sg4 = function _lp2_getPane(lp2_paneRegistry,lp2_moduleByName,visuali
     };
     lp2_paneRegistry.set(moduleName, entry);
     lp2_installAnchor(entry);
-    return entry;
+    return applyDeepLink(entry);
 });};
 const _onwldx = function _lp2_doc_scroll(md) {return (md`### Scroll anchoring
 
@@ -14529,7 +14536,7 @@ const _16linze = function _lp2_renderStack(lp2_renderTab,lp2_dropZone) {return (
     });
     const active = node.active || 0;
     (node.tabs || []).forEach((leaf, i) => {
-        const pane = ctx.getPane(leaf.module).el;
+        const pane = ctx.getPane(leaf.module, leaf.cell).el;
         pane.style.display = i === active ? 'block' : 'none';
         pane.style.flex = '1 1 auto';
         body.appendChild(pane);
@@ -14612,6 +14619,51 @@ const _ogqgop = function _lp2_watchModules(lp2Model,currentModules,$0,Event) {
     }
     return `watch ${ names.size } / resolved ${ next.size }${ changed ? ' (updated)' : '' }`;
 };
+const _nvzaz2 = function _lp2_scrollToCell(lp2_anchor) {return ((entry, cellName) => {
+    // One-shot deep-link: scroll the pane so `cellName` (a variable name, e.g. from @mod#cell) sits at
+    // the top, then seed the pane's pid anchor so the ResizeObserver re-pins it through later reflow.
+    // Right after a reparent the immortal pane's content is momentarily short, which clamps scrollTop
+    // back to 0, so retry until the scroll lands — or until content height settles (target is genuinely
+    // past the last full page, so we can only scroll as far as it goes).
+    if (!cellName || !entry || entry.transient)
+        return;
+    let tries = 0, lastSH = -1, stable = 0;
+    const attempt = () => {
+        const el = entry.el;
+        const again = () => {
+            if (tries++ < 60)
+                window.setTimeout(attempt, 80);
+        };
+        if (!el || !el.isConnected || !el.clientHeight)
+            return again();
+        const node = lp2_anchor.cellNodes(el).find(n => n.getAttribute('cell') === cellName);
+        if (!node)
+            return again();
+        const targetTop = node.offsetTop;
+        el.__lp2_pinning = true;
+        el.scrollTop = targetTop;
+        const pid = lp2_anchor.pidOf(node);
+        if (pid)
+            entry.anchor = {
+                pid,
+                offset: 0
+            };
+        window.requestAnimationFrame(() => {
+            el.__lp2_pinning = false;
+        });
+        if (Math.abs(el.scrollTop - targetTop) <= 2)
+            return;
+        if (el.scrollHeight === lastSH) {
+            if (++stable >= 3)
+                return;
+        } else {
+            stable = 0;
+            lastSH = el.scrollHeight;
+        }
+        return again();
+    };
+    attempt();
+});};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -14628,7 +14680,7 @@ export default function define(runtime, observer) {
   $def("_1k5l25n", "lp2_doc_panes", ["md"], _1k5l25n);  
   $def("_14blb09", "lp2_moduleByName", ["lp2_watchedModules"], _14blb09);  
   $def("_13iu1y2", "lp2_paneRegistry", [], _13iu1y2);  
-  $def("_1my8sg4", "lp2_getPane", ["lp2_paneRegistry","lp2_moduleByName","visualizer","runtime","lp2_installAnchor"], _1my8sg4);  
+  $def("_1my8sg4", "lp2_getPane", ["lp2_scrollToCell","lp2_paneRegistry","lp2_moduleByName","visualizer","runtime","lp2_installAnchor"], _1my8sg4);  
   $def("_onwldx", "lp2_doc_scroll", ["md"], _onwldx);  
   $def("_gk3skb", "lp2_anchor", ["persistentId"], _gk3skb);  
   $def("_rrgemy", "lp2_installAnchor", ["lp2_anchor","ResizeObserver"], _rrgemy);  
@@ -14680,7 +14732,8 @@ export default function define(runtime, observer) {
   $def("_1x891fh", "lp2_renderSplit", ["lp2_splitter"], _1x891fh);  
   $def("_ddfwvv", "viewof lp2_watchedModules", ["Inputs"], _ddfwvv);  
   $def("_1hxhexc", "lp2_watchedModules", ["Generators","viewof lp2_watchedModules"], _1hxhexc);  
-  $def("_ogqgop", "lp2_watchModules", ["lp2Model","currentModules","viewof lp2_watchedModules","Event"], _ogqgop);
+  $def("_ogqgop", "lp2_watchModules", ["lp2Model","currentModules","viewof lp2_watchedModules","Event"], _ogqgop);  
+  $def("_nvzaz2", "lp2_scrollToCell", ["lp2_anchor"], _nvzaz2);
   return main;
 }
 </script>
