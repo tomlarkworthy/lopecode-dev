@@ -21,12 +21,15 @@
  *
  * This:
  * 1. Reads module content from source (.js file or .html <script> block)
- * 2. If the module <script> already exists in target, replaces its content (upsert)
- * 3. If not, inserts it before the bootloader marker
+ * 2. If the module <script> already exists in target, replaces its content (update-only)
+ * 3. If not, the target is SKIPPED unless `--insert-ok` is passed. This avoids
+ *    accidentally adding the module to false-positive grep targets (notebooks that
+ *    only mention the module name in a comment or config). Pass --insert-ok when
+ *    you genuinely want to add the module to a notebook that doesn't yet bundle it.
  *
  * In multi-target mode `--watch` is disallowed and the per-target "Wrote ..." log
- * is collapsed to one line per target plus a final `updated=N unchanged=M failed=K`
- * summary.
+ * is collapsed to one line per target plus a final
+ * `updated=N inserted=M unchanged=O skipped=P failed=K` summary.
  */
 
 import { readFileSync, writeFileSync, existsSync, watch, statSync } from "fs";
@@ -39,6 +42,7 @@ function parseArgs() {
   let sourcePath = "";
   const rawTargets: string[] = [];
   let watchMode = false;
+  let insertOk = false;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -54,12 +58,18 @@ function parseArgs() {
       case "--watch":
         watchMode = true;
         break;
+      case "--insert-ok":
+        insertOk = true;
+        break;
     }
   }
 
   if (!moduleName || !sourcePath || rawTargets.length === 0) {
     console.error(
-      "Usage: bun tools/channel/sync-module.ts --module <@author/name> --source <file> --target <notebook.html> [--target <more>...] [--watch]"
+      "Usage: bun tools/channel/sync-module.ts --module <@author/name> --source <file> --target <notebook.html> [--target <more>...] [--watch] [--insert-ok]\n" +
+      "  --insert-ok  Allow inserting the module into targets that don't yet bundle it.\n" +
+      "               Default: skip such targets (avoids accidentally adding a module to\n" +
+      "               notebooks that grep-positive only because they mention the name)."
     );
     process.exit(1);
   }
@@ -69,6 +79,7 @@ function parseArgs() {
     sourcePath: resolve(sourcePath),
     rawTargets,
     watchMode,
+    insertOk,
   };
 }
 
@@ -93,7 +104,7 @@ function expandTargets(rawTargets: string[], sourcePath: string): string[] {
   return out;
 }
 
-function extractModuleScriptTag(html: string, moduleId: string): string | null {
+export function extractModuleScriptTag(html: string, moduleId: string): string | null {
   const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(
     `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
@@ -102,7 +113,7 @@ function extractModuleScriptTag(html: string, moduleId: string): string | null {
   return m ? m[0] : null;
 }
 
-function extractModuleContent(html: string, moduleId: string): string | null {
+export function extractModuleContent(html: string, moduleId: string): string | null {
   const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(
     `<script\\s+id="${escaped}"[^>]*>([\\s\\S]*?)</script>`
@@ -136,12 +147,13 @@ function readSourceScriptBlock(sourcePath: string, moduleId: string): string {
   }
 }
 
-type InjectResult = "updated" | "inserted" | "unchanged";
+export type InjectResult = "updated" | "inserted" | "unchanged" | "skipped";
 
-function inject(
+export function inject(
   scriptBlock: string,
   targetPath: string,
-  moduleId: string
+  moduleId: string,
+  insertOk: boolean
 ): InjectResult {
   let html = readFileSync(targetPath, "utf8");
 
@@ -159,6 +171,7 @@ function inject(
     next = html.slice(0, idx) + scriptBlock + html.slice(idx + existing[0].length);
     kind = "updated";
   } else {
+    if (!insertOk) return "skipped";
     const bootconfMarker = "<!-- Bootloader -->";
     const bootconfIdx = html.lastIndexOf(bootconfMarker);
     if (bootconfIdx === -1) {
@@ -171,8 +184,11 @@ function inject(
   return kind;
 }
 
-function buildScriptBlock(moduleId: string, content: string): string {
-  return `<script id="${moduleId}"\n  type="text/plain"\n  data-mime="application/javascript"\n>\n${content}\n</script>`;
+export function buildScriptBlock(moduleId: string, content: string): string {
+  // Match the exporter/jumpgate output byte-exact (trailing space after the id
+  // quote; newline after '>' but none before '</script>') so re-injecting an
+  // unchanged module produces zero diff. `content` is stored without a trailing newline.
+  return `<script id="${moduleId}" \n  type="text/plain"\n  data-mime="application/javascript"\n>\n${content}</script>`;
 }
 
 function extractToJs(targetPath: string, moduleId: string, jsPath: string): void {
@@ -190,15 +206,20 @@ function syncAll(
   sourcePath: string,
   targetPaths: string[],
   moduleId: string,
-  verbose: boolean
+  verbose: boolean,
+  insertOk: boolean
 ): void {
   const scriptBlock = readSourceScriptBlock(sourcePath, moduleId);
 
   if (targetPaths.length === 1) {
     const t = targetPaths[0];
-    const result = inject(scriptBlock, t, moduleId);
+    const result = inject(scriptBlock, t, moduleId, insertOk);
     if (result === "unchanged") {
       console.log(`Unchanged ${moduleId} in ${t} (already byte-exact)`);
+      return;
+    }
+    if (result === "skipped") {
+      console.log(`Skipped ${t}: no <script id="${moduleId}"> block (pass --insert-ok to add the module to this target)`);
       return;
     }
     const size = (statSync(t).size / 1024 / 1024).toFixed(2);
@@ -211,12 +232,13 @@ function syncAll(
     return;
   }
 
-  let updated = 0, inserted = 0, unchanged = 0, failed = 0;
+  let updated = 0, inserted = 0, unchanged = 0, skipped = 0, failed = 0;
   for (const target of targetPaths) {
     try {
-      const r = inject(scriptBlock, target, moduleId);
+      const r = inject(scriptBlock, target, moduleId, insertOk);
       if (r === "updated") updated++;
       else if (r === "inserted") inserted++;
+      else if (r === "skipped") skipped++;
       else unchanged++;
       if (verbose) console.log(`${r.padEnd(9)} ${target}`);
     } catch (e: any) {
@@ -225,12 +247,14 @@ function syncAll(
     }
   }
   console.log(
-    `Done. updated=${updated} inserted=${inserted} unchanged=${unchanged} failed=${failed} (${targetPaths.length} targets)`
+    `Done. updated=${updated} inserted=${inserted} unchanged=${unchanged} skipped=${skipped} failed=${failed} (${targetPaths.length} targets)` +
+    (skipped > 0 && !insertOk ? ` — ${skipped} target(s) lacked the <script id="${moduleId}"> block; pass --insert-ok to add it.` : "")
   );
 }
 
 // CLI
-const { moduleName, sourcePath, rawTargets, watchMode } = parseArgs();
+if (import.meta.main) {
+const { moduleName, sourcePath, rawTargets, watchMode, insertOk } = parseArgs();
 const targetPaths = expandTargets(rawTargets, sourcePath);
 
 if (targetPaths.length === 0) {
@@ -257,7 +281,7 @@ if ((sourceExt === ".js" || sourceExt === ".ts") && !existsSync(sourcePath)) {
 }
 
 // Initial sync
-syncAll(sourcePath, targetPaths, moduleName, process.env.VERBOSE === "1");
+syncAll(sourcePath, targetPaths, moduleName, process.env.VERBOSE === "1", insertOk);
 
 if (watchMode) {
   const target = targetPaths[0];
@@ -270,10 +294,11 @@ if (watchMode) {
         `\n${new Date().toLocaleTimeString()} — source changed, re-injecting...`
       );
       try {
-        syncAll(sourcePath, [target], moduleName, false);
+        syncAll(sourcePath, [target], moduleName, false, insertOk);
       } catch (e: any) {
         console.error("Injection failed:", e.message);
       }
     }, 200);
   });
+}
 }
