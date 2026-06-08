@@ -1,35 +1,28 @@
 --- a/exporter-3.js (current)
 +++ b/exporter-3.js (streaming)
-@@ -966,7 +966,27 @@
+@@ -966,7 +966,20 @@
      return fileMap;
  }
  )};
 -const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shims,runtime_gz,inspector_gz,module_specs,lopemodule,lopebook){return(
 +const _strmord = function _streamingModuleOrder(){return(
 +(mainNames, specByName) => {
-+  // DFS from the bootconf-declared mains over the import graph so a notebook's own modules (and
-+  // their transitive deps) stream first, ahead of unrelated modules. Each module's FileAttachment
-+  // blocks already precede its source (see lopemodule), so a module is never defined before its
-+  // attachments have arrived. Modules unreachable from any main keep a stable trailing order.
-+  const order = [];
-+  const seen = new Set();
-+  const visit = (name) => {
-+    const spec = specByName.get(name);
-+    if (!spec || seen.has(name)) return;
-+    seen.add(name);
-+    order.push(name);
-+    for (const dep of spec.imports || []) visit(dep);
-+  };
-+  for (const name of mainNames) visit(name);
-+  for (const name of specByName.keys()) if (!seen.has(name)) { seen.add(name); order.push(name); }
-+  return order;
++  // Deterministic, churn-free order: bootconf-declared mains first so a notebook's own page/entry
++  // modules stream before anything else, then every other module — each group sorted alphabetically.
++  // Order depends only on the set of module names (not on the import graph), so re-exporting an
++  // unchanged notebook produces byte-identical block order. Each module's FileAttachment blocks
++  // already precede its source (see lopemodule), so define-time contentSync never misses.
++  const mains = new Set(mainNames.filter((n) => specByName.has(n)));
++  const lead = [...mains].sort();
++  const rest = [...specByName.keys()].filter((n) => !mains.has(n)).sort();
++  return [...lead, ...rest];
 +}
 +)};
 +const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shims,runtime_gz,inspector_gz,module_specs,lopemodule,lopebook,streamingModuleOrder){return(
  (async () => {
    const cssBlocks = task.options.style.map(([url, content]) => inlineModule(url, content, { mime: 'text/css' })).join('\n');
    const cssUrls = task.options.style.map(([url]) => url);
-@@ -975,7 +995,8 @@
+@@ -975,7 +988,8 @@
      inlineGzipModule('@observablehq/runtime@6.0.0', runtime_gz),
      inlineGzipModule('@observablehq/inspector@5.0.1', inspector_gz)
    ].join('\n');
@@ -39,7 +32,7 @@
    const bootloader = task.options.bootloader || '@tomlarkworthy/bootloader';
    const bootconfBlock = `<script id="bootconf.json"
          type="text/plain"
-@@ -1319,6 +1340,81 @@
+@@ -1319,6 +1333,78 @@
      expect(normalize('/d/57d79353bac56631.js?v=4')).toBe('d/57d79353bac56631');
      expect(normalize('/@tomlarkworthy/fileattachments.js?v=4&resolutions=4b0160c7af70b609@8453')).toBe('@tomlarkworthy/fileattachments');
      expect(normalize('https://api.observablehq.com/@tomlarkworthy/jest-expect-standalone.js?v=4&resolutions=03dda470c56b93ff@8390')).toBe('@tomlarkworthy/jest-expect-standalone');
@@ -81,18 +74,16 @@
 +};
 +const _strmtest3 = function _test_streaming_order_prioritizes_mains(expect,streamingModuleOrder)
 +{
-+    // app (a main) imports lib; junk is unrelated and must sort after the main's subtree
-+    const specByName = new Map([
-+        ["@u/app", { url: "@u/app", imports: ["@u/lib"] }],
-+        ["@u/lib", { url: "@u/lib", imports: [] }],
-+        ["@u/junk", { url: "@u/junk", imports: [] }]
-+    ]);
-+    const order = streamingModuleOrder(["@u/app"], specByName);
-+    expect(order[0]).toBe("@u/app");
-+    expect(order.indexOf("@u/lib")).toBeLessThan(order.indexOf("@u/junk"));
-+    expect(order.length).toBe(3);                 // every module appears
-+    expect(new Set(order).size).toBe(3);          // exactly once
-+    expect(streamingModuleOrder(["@u/missing"], specByName).length).toBe(3); // unknown main, no crash
++    const mk = (names) => new Map(names.map((n) => [n, { url: n, imports: [] }]));
++    const specByName = mk(["@u/app", "@u/lib", "@u/junk"]);
++    // single main leads, then everything else alphabetically (imports are ignored)
++    expect(streamingModuleOrder(["@u/app"], specByName).join(",")).toBe("@u/app,@u/junk,@u/lib");
++    // multiple mains are themselves alphabetical and still lead
++    expect(streamingModuleOrder(["@u/lib", "@u/app"], specByName).join(",")).toBe("@u/app,@u/lib,@u/junk");
++    // deterministic: independent of specByName insertion order
++    expect(streamingModuleOrder(["@u/app"], mk(["@u/junk", "@u/lib", "@u/app"])).join(",")).toBe("@u/app,@u/junk,@u/lib");
++    // unknown main is ignored; every module still present exactly once
++    expect(streamingModuleOrder(["@u/missing"], specByName).join(",")).toBe("@u/app,@u/junk,@u/lib");
 +    return "ok";
 +};
 +const _strmtest4 = function _test_streaming_order_runtime(expect,Runtime,streamingModuleOrder)
@@ -115,13 +106,12 @@
 +        specByName.set(name, { url: name, imports });
 +    }
 +    const order = streamingModuleOrder(["@u/app"], specByName);
-+    expect(order[0]).toBe("@u/app");                                          // main first
-+    expect(order.indexOf("@u/lib")).toBeLessThan(order.indexOf("@u/junk"));    // its dep beats unrelated
++    expect(order.join(",")).toBe("@u/app,@u/junk,@u/lib");   // main first, then the rest alphabetically
 +    return "ok";
  };
  const _1vgrzwk = function _isNotebook(){return(
  id => /^(@[^/]+\/[^/]+|d\/[a-f0-9]{16})$/.test(id)
-@@ -1328,6 +1424,22 @@
+@@ -1328,6 +1414,22 @@
    const normalize = ${ normalize.toString() };
    const isNotebook = ${ isNotebook.toString() };
  
@@ -144,7 +134,7 @@
    const b64ToBytes = (b64) => {
      const bin = atob(b64);
      const out = new Uint8Array(bin.length);
-@@ -1376,6 +1488,7 @@
+@@ -1376,6 +1478,7 @@
  
    // Async bytes for global fetch/XHR/blob URLs
    async function dvfBytes(id) {
@@ -152,7 +142,7 @@
      const el = document.getElementById(id);
      if (!el) return { status: 404 };
  
-@@ -1407,7 +1520,11 @@
+@@ -1407,7 +1510,11 @@
      return { status: 422 };
    }
  
@@ -165,7 +155,7 @@
    window.esmsInitOptions = {
      shimMode: true,
      resolve(id, parentUrl, defaultResolve) {
-@@ -1418,12 +1535,14 @@
+@@ -1418,12 +1525,14 @@
          if (el.href) return el.href;
          return \`file://\${id}\`;
        }
@@ -181,7 +171,7 @@
          const el = document.getElementById(id);
          if (!el) return { type: "js", source: "throw new Error('DVF 404')" };
          const enc = (el.getAttribute("data-encoding") || "text").toLowerCase();
-@@ -1436,12 +1555,13 @@
+@@ -1436,12 +1545,13 @@
        }
        return defaultSourceHook(url, fetchOpts, parent);
      },
@@ -197,7 +187,7 @@
      }
    };
  
-@@ -1577,10 +1697,9 @@
+@@ -1577,10 +1687,9 @@
  <script id="networking_script">${ networking_script }
  </scr\ipt>
  
@@ -211,7 +201,7 @@
      const script = document.createElement('script');
      script.textContent = src;
      document.head.appendChild(script);
-@@ -1596,7 +1715,12 @@
+@@ -1596,7 +1705,12 @@
    const observer = Inspector.into(document.body);
    const {default: define} = await importShim(${ JSON.stringify(bootloader) });
    runtime.bootloader = runtime.module(define, () => ({}));
@@ -224,7 +214,7 @@
  </body>
  </html>`;
      };
-@@ -1747,7 +1871,8 @@
+@@ -1747,7 +1861,8 @@
    $def("_1y5e5x8", "module_specs", ["task","included_modules","TRACE_MODULE","task_runtime","isModuleVar","isDynamicVar","getFileAttachments","main","generate_module_source","moduleNames"], _1y5e5x8);  
    $def("_1r3eg9r", "findImports", [], _1r3eg9r);  
    $def("_ipv4ft", "getFileAttachments", [], _ipv4ft);  
@@ -234,7 +224,7 @@
    $def("_18javdl", null, ["Inputs","module_specs"], _18javdl);  
    $def("_1gb47v", null, ["md"], _1gb47v);  
    $def("_5m8hbe", "report", ["DOMParser","book"], _5m8hbe);  
-@@ -1768,7 +1893,11 @@
+@@ -1768,7 +1883,11 @@
    $def("_3naqgd", "inlineModule", [], _3naqgd);  
    $def("_19eucuj", "inlineGzipModule", [], _19eucuj);  
    $def("_bwex58", "normalize", [], _bwex58);  
@@ -247,7 +237,7 @@
    $def("_1vgrzwk", "isNotebook", [], _1vgrzwk);  
    $def("_1pcnq22", "networking_script", ["normalize","isNotebook"], _1pcnq22);  
    $def("_lq8bhb", "lopebook", ["diskDataUrl","networking_script"], _lq8bhb);  
-@@ -1815,7 +1944,8 @@
+@@ -1815,7 +1934,8 @@
    main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));  
    main.define("id", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("id", _));  
    main.define("importShim", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("importShim", _));  

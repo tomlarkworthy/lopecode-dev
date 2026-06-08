@@ -968,22 +968,15 @@ module => {
 )};
 const _strmord = function _streamingModuleOrder(){return(
 (mainNames, specByName) => {
-  // DFS from the bootconf-declared mains over the import graph so a notebook's own modules (and
-  // their transitive deps) stream first, ahead of unrelated modules. Each module's FileAttachment
-  // blocks already precede its source (see lopemodule), so a module is never defined before its
-  // attachments have arrived. Modules unreachable from any main keep a stable trailing order.
-  const order = [];
-  const seen = new Set();
-  const visit = (name) => {
-    const spec = specByName.get(name);
-    if (!spec || seen.has(name)) return;
-    seen.add(name);
-    order.push(name);
-    for (const dep of spec.imports || []) visit(dep);
-  };
-  for (const name of mainNames) visit(name);
-  for (const name of specByName.keys()) if (!seen.has(name)) { seen.add(name); order.push(name); }
-  return order;
+  // Deterministic, churn-free order: bootconf-declared mains first so a notebook's own page/entry
+  // modules stream before anything else, then every other module — each group sorted alphabetically.
+  // Order depends only on the set of module names (not on the import graph), so re-exporting an
+  // unchanged notebook produces byte-identical block order. Each module's FileAttachment blocks
+  // already precede its source (see lopemodule), so define-time contentSync never misses.
+  const mains = new Set(mainNames.filter((n) => specByName.has(n)));
+  const lead = [...mains].sort();
+  const rest = [...specByName.keys()].filter((n) => !mains.has(n)).sort();
+  return [...lead, ...rest];
 }
 )};
 const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shims,runtime_gz,inspector_gz,module_specs,lopemodule,lopebook,streamingModuleOrder){return(
@@ -1378,18 +1371,16 @@ const _strmtest2 = function _test_lopebook_main_at_top_with_sentinel(expect,lope
 };
 const _strmtest3 = function _test_streaming_order_prioritizes_mains(expect,streamingModuleOrder)
 {
-    // app (a main) imports lib; junk is unrelated and must sort after the main's subtree
-    const specByName = new Map([
-        ["@u/app", { url: "@u/app", imports: ["@u/lib"] }],
-        ["@u/lib", { url: "@u/lib", imports: [] }],
-        ["@u/junk", { url: "@u/junk", imports: [] }]
-    ]);
-    const order = streamingModuleOrder(["@u/app"], specByName);
-    expect(order[0]).toBe("@u/app");
-    expect(order.indexOf("@u/lib")).toBeLessThan(order.indexOf("@u/junk"));
-    expect(order.length).toBe(3);                 // every module appears
-    expect(new Set(order).size).toBe(3);          // exactly once
-    expect(streamingModuleOrder(["@u/missing"], specByName).length).toBe(3); // unknown main, no crash
+    const mk = (names) => new Map(names.map((n) => [n, { url: n, imports: [] }]));
+    const specByName = mk(["@u/app", "@u/lib", "@u/junk"]);
+    // single main leads, then everything else alphabetically (imports are ignored)
+    expect(streamingModuleOrder(["@u/app"], specByName).join(",")).toBe("@u/app,@u/junk,@u/lib");
+    // multiple mains are themselves alphabetical and still lead
+    expect(streamingModuleOrder(["@u/lib", "@u/app"], specByName).join(",")).toBe("@u/app,@u/lib,@u/junk");
+    // deterministic: independent of specByName insertion order
+    expect(streamingModuleOrder(["@u/app"], mk(["@u/junk", "@u/lib", "@u/app"])).join(",")).toBe("@u/app,@u/junk,@u/lib");
+    // unknown main is ignored; every module still present exactly once
+    expect(streamingModuleOrder(["@u/missing"], specByName).join(",")).toBe("@u/app,@u/junk,@u/lib");
     return "ok";
 };
 const _strmtest4 = function _test_streaming_order_runtime(expect,Runtime,streamingModuleOrder)
@@ -1412,8 +1403,7 @@ const _strmtest4 = function _test_streaming_order_runtime(expect,Runtime,streami
         specByName.set(name, { url: name, imports });
     }
     const order = streamingModuleOrder(["@u/app"], specByName);
-    expect(order[0]).toBe("@u/app");                                          // main first
-    expect(order.indexOf("@u/lib")).toBeLessThan(order.indexOf("@u/junk"));    // its dep beats unrelated
+    expect(order.join(",")).toBe("@u/app,@u/junk,@u/lib");   // main first, then the rest alphabetically
     return "ok";
 };
 const _1vgrzwk = function _isNotebook(){return(

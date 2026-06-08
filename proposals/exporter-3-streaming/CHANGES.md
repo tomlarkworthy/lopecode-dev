@@ -25,10 +25,11 @@ stream rather than after).
      blocks, marking the end of the stream.
 
 3. **`book` — bootconf-prioritized module order** via new pure helper `streamingModuleOrder(mains, specByName)`:
-   DFS from the `bootconf.json` mains over the import graph so a notebook's own modules + their
-   transitive deps stream first; unrelated modules keep a stable trailing order. (`lopemodule` already
-   emits a module's FileAttachment blocks *before* its source, so a module is never defined before its
-   attachments have arrived — the invariant that lets `main` move to the top safely.)
+   the `bootconf.json` mains first, then every other module — **each group sorted alphabetically**.
+   Order depends only on the set of module names, not on the import graph, so re-exporting an unchanged
+   notebook yields byte-identical block order (no diff churn). (`lopemodule` already emits a module's
+   FileAttachment blocks *before* its source, so a module is never defined before its attachments have
+   arrived — the invariant that lets `main` move to the top safely.)
 
 ## Tests (new `test_*` cells, run by the existing exporter-3 test harness)
 
@@ -36,10 +37,10 @@ stream rather than after).
   `__waitForId`, async `dvfBytes`/`fetch`/`source`, and the local-resolve streaming branch.
 - `test_lopebook_main_at_top_with_sentinel` — asserts main is a classic script before the blocks,
   the sentinel is after them, and the bootstrap awaits `.then(r => r.text())`.
-- `test_streaming_order_prioritizes_mains` — pure-logic ordering test (mains+deps first, every module
-  once, unknown main doesn't crash).
-- `test_streaming_order_runtime` — builds a real `new Runtime()`, wires `module @x` import bridges,
-  derives specs the way `module_specs` does, and asserts the ordering. (Pattern: `@tomlarkworthy/modules`.)
+- `test_streaming_order_prioritizes_mains` — pure-logic ordering test: mains-first then alphabetical,
+  multiple mains alphabetical, order independent of insertion order, unknown main ignored.
+- `test_streaming_order_runtime` — builds a real `new Runtime()`, derives specs the way `module_specs`
+  does, and asserts the deterministic order. (Pattern: `@tomlarkworthy/modules`.)
 
 Standalone run (no browser), from this directory: `node run-tests.mjs` (cells 1–3) and
 `node run-test4.mjs` (the Runtime cell, against `@observablehq/runtime@6.0.0` in `runtime6.mjs`). All pass.
