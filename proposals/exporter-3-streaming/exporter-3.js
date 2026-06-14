@@ -1344,18 +1344,25 @@ const _strmtest1 = function _test_networking_script_is_streaming(expect,networki
     // timer throttling when a fork opens via window.open into an unfocused blob: tab
     expect(src.includes("new MutationObserver")).toBe(true);
     expect(src.includes("await new Promise((r) => setTimeout")).toBe(false);
-    // DOMContentLoaded/load clear the streaming flag even if the inline sentinel never runs
-    expect(/addEventListener\("DOMContentLoaded", __endStreaming/.test(src)).toBe(true);
-    expect(/window\.addEventListener\("load", __endStreaming/.test(src)).toBe(true);
-    // dvfBytes (global fetch / XHR / blob path) waits for the block to stream in
-    expect(/async function dvfBytes\(id\) \{\s*await __waitForId\(id\);/.test(src)).toBe(true);
+    // DOMContentLoaded/load clear the streaming flag even if the inline sentinel never runs.
+    // String checks, not regex literals: the push decompiler can't round-trip regex literals.
+    expect(src.includes('addEventListener("DOMContentLoaded", __endStreaming')).toBe(true);
+    expect(src.includes('window.addEventListener("load", __endStreaming')).toBe(true);
+    // dvfBytes (global fetch / XHR / blob path) waits for the block to stream in.
+    // Keep braces balanced everywhere in this cell (even in strings and comments): the
+    // module source extractor counts braces literally, so a stray open brace makes this
+    // cell's _definition run past its end and decompile/push silently drops it.
+    expect(src.includes("async function dvfBytes(id)")).toBe(true);
+    expect(src.includes("await __waitForId(id);")).toBe(true);
     // es-module-shims fetch + source hooks are async and wait (es-module-shims awaits both)
     expect(src.includes("async fetch(url, options, parent)")).toBe(true);
     expect(src.includes("async source(url, fetchOpts, parent, defaultSourceHook)")).toBe(true);
-    expect(/async fetch\(url, options, parent\) \{[\s\S]*?await __waitForId\(id\);/.test(src)).toBe(true);
+    const fetchIdx = src.indexOf("async fetch(url, options, parent)");
+    expect(fetchIdx).toBeGreaterThan(-1);
+    expect(src.indexOf("await __waitForId(id);", fetchIdx)).toBeGreaterThan(fetchIdx);
     // resolve stays synchronous (es-module-shims does not await it) but keeps streaming notebook
     // ids local instead of rewriting them to the remote observablehq API
-    expect(/\n {4}resolve\(id, parentUrl, defaultResolve\) \{/.test(src)).toBe(true);
+    expect(src.includes("\n    resolve(id, parentUrl, defaultResolve)")).toBe(true);
     expect(src.includes("if (window.__lopeStreaming && isNotebook(id)) return")).toBe(true);
     return "ok";
 };
