@@ -11,6 +11,13 @@ stream rather than after).
    - Adds `window.__lopeStreaming` + `__waitForId(id)`: blocks until a block's `<script>` is fully
      parsed (`el.nextSibling != null`), bounded by the streaming flag so an absent id still 404s
      instead of hanging.
+   - `__waitForId` is **event-driven** — a `MutationObserver` on the document resolves the wait when
+     the parser inserts the block (and `DOMContentLoaded`/`load` clear `__lopeStreaming`). It does
+     **not** `setTimeout`-poll: Safari throttles timers in background/unfocused tabs, and a *fork*
+     opens via `window.open` into a tab that is often not foregrounded, so a poll loop stalls there
+     (a foreground `file://` download works, a backgrounded `blob:` fork hangs). MutationObserver
+     fires on parser insertions regardless of timer throttling. The end-of-document sentinel remains
+     a redundant fast-path.
    - `dvfBytes`, the es-module-shims `fetch` and `source` hooks all `await __waitForId` — es-module-shims
      awaits both hooks (`c = await fetchHook(...)`, `await (sourceHook||default)(...)`), so a block a
      boot import needs can stream in late.
@@ -34,7 +41,8 @@ stream rather than after).
 ## Tests (new `test_*` cells, run by the existing exporter-3 test harness)
 
 - `test_networking_script_is_streaming` — asserts the generated interceptor has the streaming gate,
-  `__waitForId`, async `dvfBytes`/`fetch`/`source`, and the local-resolve streaming branch.
+  `__waitForId`, the `MutationObserver` (and no `setTimeout` poll), `DOMContentLoaded`/`load` flag
+  clearing, async `dvfBytes`/`fetch`/`source`, and the local-resolve streaming branch.
 - `test_lopebook_main_at_top_with_sentinel` — asserts main is a classic script before the blocks,
   the sentinel is after them, and the bootstrap awaits `.then(r => r.text())`.
 - `test_streaming_order_prioritizes_mains` — pure-logic ordering test: mains-first then alphabetical,

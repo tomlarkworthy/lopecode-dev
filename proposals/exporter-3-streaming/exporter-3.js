@@ -1339,7 +1339,14 @@ const _strmtest1 = function _test_networking_script_is_streaming(expect,networki
     const src = networking_script;
     // the streaming gate + waiting helper
     expect(src.includes("window.__lopeStreaming = true")).toBe(true);
-    expect(src.includes("async function __waitForId")).toBe(true);
+    expect(src.includes("function __waitForId")).toBe(true);
+    // event-driven (MutationObserver), not a setTimeout poll: robust to Safari background-tab
+    // timer throttling when a fork opens via window.open into an unfocused blob: tab
+    expect(src.includes("new MutationObserver")).toBe(true);
+    expect(src.includes("await new Promise((r) => setTimeout")).toBe(false);
+    // DOMContentLoaded/load clear the streaming flag even if the inline sentinel never runs
+    expect(/addEventListener\("DOMContentLoaded", __endStreaming/.test(src)).toBe(true);
+    expect(/window\.addEventListener\("load", __endStreaming/.test(src)).toBe(true);
     // dvfBytes (global fetch / XHR / blob path) waits for the block to stream in
     expect(/async function dvfBytes\(id\) \{\s*await __waitForId\(id\);/.test(src)).toBe(true);
     // es-module-shims fetch + source hooks are async and wait (es-module-shims awaits both)
@@ -1418,16 +1425,44 @@ const _1pcnq22 = function _networking_script(normalize,isNotebook){return(
   // main runs from the TOP of the document, before the whole file has finished downloading, so a
   // block a boot import needs may not have streamed in yet. __waitForId blocks until the block's
   // <script> is fully parsed (el.nextSibling is non-null only after its </scr\\ipt> is seen),
-  // bounded by window.__lopeStreaming, which the end-of-document sentinel flips to false once the
-  // document is fully downloaded (so a genuinely-absent id still resolves to a 404 rather than hang).
+  // bounded by window.__lopeStreaming, which flips to false once the document is fully parsed (so a
+  // genuinely-absent id resolves to a 404 rather than hanging).
+  //
+  // The wait is event-driven (MutationObserver + DOMContentLoaded/load), NOT a setTimeout poll:
+  // Safari throttles timers in background/unfocused tabs, and a fork opens via window.open into a
+  // tab that is often not foregrounded, so a poll loop stalls there (works in a foreground file://
+  // download but hangs in a backgrounded blob: fork). MutationObserver fires on the parser's node
+  // insertions regardless of timer throttling. The end-of-document sentinel stays as a redundant
+  // fast-path; DOMContentLoaded/load clear the flag even if that inline script never runs.
   window.__lopeStreaming = true;
+  function __endStreaming() { window.__lopeStreaming = false; }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", __endStreaming, { once: true });
+    window.addEventListener("load", __endStreaming, { once: true });
+  } else {
+    __endStreaming();
+  }
   function __isComplete(el) { return !!el && (el.nextSibling != null || !window.__lopeStreaming); }
-  async function __waitForId(id) {
-    let el = document.getElementById(id);
-    while (window.__lopeStreaming && !__isComplete(el)) {
-      await new Promise((r) => setTimeout(r, 16));
-      el = document.getElementById(id);
-    }
+  function __waitForId(id) {
+    if (__isComplete(document.getElementById(id)) || !window.__lopeStreaming) return Promise.resolve();
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        mo.disconnect();
+        document.removeEventListener("DOMContentLoaded", onEnd);
+        window.removeEventListener("load", onEnd);
+        resolve();
+      };
+      const check = () => { if (__isComplete(document.getElementById(id)) || !window.__lopeStreaming) finish(); };
+      const onEnd = () => { __endStreaming(); finish(); };
+      const mo = new MutationObserver(check);
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+      document.addEventListener("DOMContentLoaded", onEnd);
+      window.addEventListener("load", onEnd);
+      check();
+    });
   }
 
   const b64ToBytes = (b64) => {

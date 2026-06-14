@@ -32,7 +32,7 @@
    const bootloader = task.options.bootloader || '@tomlarkworthy/bootloader';
    const bootconfBlock = `<script id="bootconf.json"
          type="text/plain"
-@@ -1319,6 +1333,78 @@
+@@ -1319,7 +1333,86 @@
      expect(normalize('/d/57d79353bac56631.js?v=4')).toBe('d/57d79353bac56631');
      expect(normalize('/@tomlarkworthy/fileattachments.js?v=4&resolutions=4b0160c7af70b609@8453')).toBe('@tomlarkworthy/fileattachments');
      expect(normalize('https://api.observablehq.com/@tomlarkworthy/jest-expect-standalone.js?v=4&resolutions=03dda470c56b93ff@8390')).toBe('@tomlarkworthy/jest-expect-standalone');
@@ -42,7 +42,14 @@
 +    const src = networking_script;
 +    // the streaming gate + waiting helper
 +    expect(src.includes("window.__lopeStreaming = true")).toBe(true);
-+    expect(src.includes("async function __waitForId")).toBe(true);
++    expect(src.includes("function __waitForId")).toBe(true);
++    // event-driven (MutationObserver), not a setTimeout poll: robust to Safari background-tab
++    // timer throttling when a fork opens via window.open into an unfocused blob: tab
++    expect(src.includes("new MutationObserver")).toBe(true);
++    expect(src.includes("await new Promise((r) => setTimeout")).toBe(false);
++    // DOMContentLoaded/load clear the streaming flag even if the inline sentinel never runs
++    expect(/addEventListener\("DOMContentLoaded", __endStreaming/.test(src)).toBe(true);
++    expect(/window\.addEventListener\("load", __endStreaming/.test(src)).toBe(true);
 +    // dvfBytes (global fetch / XHR / blob path) waits for the block to stream in
 +    expect(/async function dvfBytes\(id\) \{\s*await __waitForId\(id\);/.test(src)).toBe(true);
 +    // es-module-shims fetch + source hooks are async and wait (es-module-shims awaits both)
@@ -71,7 +78,7 @@
 +    // bootstrap awaits the now-async fetch hook before reading .text()
 +    expect(html.includes('.fetch("file://es-module-shims@2.6.2").then(r => r.text())')).toBe(true);
 +    return "ok";
-+};
+ };
 +const _strmtest3 = function _test_streaming_order_prioritizes_mains(expect,streamingModuleOrder)
 +{
 +    const mk = (names) => new Map(names.map((n) => [n, { url: n, imports: [] }]));
@@ -108,33 +115,62 @@
 +    const order = streamingModuleOrder(["@u/app"], specByName);
 +    expect(order.join(",")).toBe("@u/app,@u/junk,@u/lib");   // main first, then the rest alphabetically
 +    return "ok";
- };
++};
  const _1vgrzwk = function _isNotebook(){return(
  id => /^(@[^/]+\/[^/]+|d\/[a-f0-9]{16})$/.test(id)
-@@ -1328,6 +1414,22 @@
+ )};
+@@ -1327,6 +1420,50 @@
+ `
    const normalize = ${ normalize.toString() };
    const isNotebook = ${ isNotebook.toString() };
- 
++
 +  // --- streaming gate ---
 +  // main runs from the TOP of the document, before the whole file has finished downloading, so a
 +  // block a boot import needs may not have streamed in yet. __waitForId blocks until the block's
 +  // <script> is fully parsed (el.nextSibling is non-null only after its </scr\\ipt> is seen),
-+  // bounded by window.__lopeStreaming, which the end-of-document sentinel flips to false once the
-+  // document is fully downloaded (so a genuinely-absent id still resolves to a 404 rather than hang).
++  // bounded by window.__lopeStreaming, which flips to false once the document is fully parsed (so a
++  // genuinely-absent id resolves to a 404 rather than hanging).
++  //
++  // The wait is event-driven (MutationObserver + DOMContentLoaded/load), NOT a setTimeout poll:
++  // Safari throttles timers in background/unfocused tabs, and a fork opens via window.open into a
++  // tab that is often not foregrounded, so a poll loop stalls there (works in a foreground file://
++  // download but hangs in a backgrounded blob: fork). MutationObserver fires on the parser's node
++  // insertions regardless of timer throttling. The end-of-document sentinel stays as a redundant
++  // fast-path; DOMContentLoaded/load clear the flag even if that inline script never runs.
 +  window.__lopeStreaming = true;
-+  function __isComplete(el) { return !!el && (el.nextSibling != null || !window.__lopeStreaming); }
-+  async function __waitForId(id) {
-+    let el = document.getElementById(id);
-+    while (window.__lopeStreaming && !__isComplete(el)) {
-+      await new Promise((r) => setTimeout(r, 16));
-+      el = document.getElementById(id);
-+    }
++  function __endStreaming() { window.__lopeStreaming = false; }
++  if (document.readyState === "loading") {
++    document.addEventListener("DOMContentLoaded", __endStreaming, { once: true });
++    window.addEventListener("load", __endStreaming, { once: true });
++  } else {
++    __endStreaming();
 +  }
-+
++  function __isComplete(el) { return !!el && (el.nextSibling != null || !window.__lopeStreaming); }
++  function __waitForId(id) {
++    if (__isComplete(document.getElementById(id)) || !window.__lopeStreaming) return Promise.resolve();
++    return new Promise((resolve) => {
++      let done = false;
++      const finish = () => {
++        if (done) return;
++        done = true;
++        mo.disconnect();
++        document.removeEventListener("DOMContentLoaded", onEnd);
++        window.removeEventListener("load", onEnd);
++        resolve();
++      };
++      const check = () => { if (__isComplete(document.getElementById(id)) || !window.__lopeStreaming) finish(); };
++      const onEnd = () => { __endStreaming(); finish(); };
++      const mo = new MutationObserver(check);
++      mo.observe(document.documentElement, { childList: true, subtree: true });
++      document.addEventListener("DOMContentLoaded", onEnd);
++      window.addEventListener("load", onEnd);
++      check();
++    });
++  }
+ 
    const b64ToBytes = (b64) => {
      const bin = atob(b64);
-     const out = new Uint8Array(bin.length);
-@@ -1376,6 +1478,7 @@
+@@ -1376,6 +1513,7 @@
  
    // Async bytes for global fetch/XHR/blob URLs
    async function dvfBytes(id) {
@@ -142,7 +178,7 @@
      const el = document.getElementById(id);
      if (!el) return { status: 404 };
  
-@@ -1407,7 +1510,11 @@
+@@ -1407,7 +1545,11 @@
      return { status: 422 };
    }
  
@@ -155,7 +191,7 @@
    window.esmsInitOptions = {
      shimMode: true,
      resolve(id, parentUrl, defaultResolve) {
-@@ -1418,12 +1525,14 @@
+@@ -1418,12 +1560,14 @@
          if (el.href) return el.href;
          return \`file://\${id}\`;
        }
@@ -171,7 +207,7 @@
          const el = document.getElementById(id);
          if (!el) return { type: "js", source: "throw new Error('DVF 404')" };
          const enc = (el.getAttribute("data-encoding") || "text").toLowerCase();
-@@ -1436,12 +1545,13 @@
+@@ -1436,12 +1580,13 @@
        }
        return defaultSourceHook(url, fetchOpts, parent);
      },
@@ -187,12 +223,13 @@
      }
    };
  
-@@ -1577,10 +1687,9 @@
+@@ -1576,11 +1721,10 @@
+ <body>
  <script id="networking_script">${ networking_script }
  </scr\ipt>
- 
--${ blocks }
 -
+-${ blocks }
+ 
 -<script type="module" id="main">
 -  await window.esmsInitOptions.fetch("file://es-module-shims@2.6.2").text().then(src => {
 +<script id="main">
@@ -201,7 +238,7 @@
      const script = document.createElement('script');
      script.textContent = src;
      document.head.appendChild(script);
-@@ -1596,7 +1705,12 @@
+@@ -1596,7 +1740,12 @@
    const observer = Inspector.into(document.body);
    const {default: define} = await importShim(${ JSON.stringify(bootloader) });
    runtime.bootloader = runtime.module(define, () => ({}));
@@ -214,7 +251,7 @@
  </body>
  </html>`;
      };
-@@ -1747,7 +1861,8 @@
+@@ -1747,7 +1896,8 @@
    $def("_1y5e5x8", "module_specs", ["task","included_modules","TRACE_MODULE","task_runtime","isModuleVar","isDynamicVar","getFileAttachments","main","generate_module_source","moduleNames"], _1y5e5x8);  
    $def("_1r3eg9r", "findImports", [], _1r3eg9r);  
    $def("_ipv4ft", "getFileAttachments", [], _ipv4ft);  
@@ -224,7 +261,7 @@
    $def("_18javdl", null, ["Inputs","module_specs"], _18javdl);  
    $def("_1gb47v", null, ["md"], _1gb47v);  
    $def("_5m8hbe", "report", ["DOMParser","book"], _5m8hbe);  
-@@ -1768,7 +1883,11 @@
+@@ -1768,7 +1918,11 @@
    $def("_3naqgd", "inlineModule", [], _3naqgd);  
    $def("_19eucuj", "inlineGzipModule", [], _19eucuj);  
    $def("_bwex58", "normalize", [], _bwex58);  
@@ -237,7 +274,7 @@
    $def("_1vgrzwk", "isNotebook", [], _1vgrzwk);  
    $def("_1pcnq22", "networking_script", ["normalize","isNotebook"], _1pcnq22);  
    $def("_lq8bhb", "lopebook", ["diskDataUrl","networking_script"], _lq8bhb);  
-@@ -1815,7 +1934,8 @@
+@@ -1815,7 +1969,8 @@
    main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));  
    main.define("id", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("id", _));  
    main.define("importShim", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("importShim", _));  
