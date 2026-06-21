@@ -19,6 +19,8 @@ tools/node_modules/
 # Debug artifacts
 tools/*.png
 tools/*.json
+tools/*.env
+tools/**/.env
 tools/tmp-export/
 
 # Bulk export / smoke test artifacts
