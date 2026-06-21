@@ -1,13 +1,30 @@
-// @tomlarkworthy/robocoop-4 — the chat facade (the visible right-hand pane).
+// @tomlarkworthy/robocoop-4 — the self-contained app: agent terminal ABOVE the chat facade.
 //
-// One imperative cell: a collapsible credentials/model/prompt strip, a scrolling chat transcript,
-// and a message input. It drives the imported `session` (from -engine) and renders session.messages
-// (which persist across turns). Built once with its own listeners — it does NOT re-run per keystroke;
-// it only re-runs when the session is rebuilt (i.e. the API key changed → a fresh conversation).
-// The terminal lives in the @tomlarkworthy/justbash pane beside this one.
+// agentTerminal renders the SAME shell the agent drives (window.justbash.shells.agent) so you watch
+// its bash session live, in this module, right above the conversation. The facade cell is the chat:
+// a collapsible credentials/model/prompt strip, a scrolling transcript (talk only), and an input.
+// It drives the imported `session` (from -engine); the LLM's bash work shows in the terminal, not chat.
 //
-// Imports (all plain-named — never `viewof X`, which editor-5 mangles): session, keyView, modelView,
-// promptView (from -engine). keyView/modelView/promptView are the actual view ELEMENTS to embed.
+// Imports: terminal (from justbash-terminal); session, keyView, modelView, promptView (from -engine,
+// all plain-named — never `viewof X`, which editor-5 mangles).
+
+// agentTerminal — the agent's live shell, embedded. Mounts when window.justbash is ready (the
+// justbash module publishes it); browser-only.
+const _agentTerminal = function _agentTerminal(html, terminal){
+  const root = html`<div style="border:1px solid #30363d;border-radius:8px;max-height:35vh;overflow:auto;margin-bottom:8px"></div>`;
+  let tries = 0; // bounded retry: give up after ~6s so node CI / non-justbash hosts don't leak a timer
+  const mount = () => {
+    if (!window.justbash || !window.justbash.shells || !window.justbash.shells.agent) {
+      if (tries++ < 40) { setTimeout(mount, 150); return; }
+      root.textContent = "agent shell unavailable (window.justbash not present)";
+      return;
+    }
+    root.innerHTML = "";
+    root.append(terminal(window.justbash.shells.agent, { title: "agent — live shell (the LLM's session)" }));
+  };
+  mount();
+  return root;
+};
 
 const _facade = function _facade(html, md, session, $key, $model, $prompt){
   const C = {
@@ -27,7 +44,9 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   root.append(cfg);
 
   // ── transcript ───────────────────────────────────────────────────────────
-  const log = html`<div style="flex:1;min-height:0;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px"></div>`;
+  // flex:1 + min-height:0 scrolls when the pane bounds us; max-height is a fallback so the log
+  // scrolls (and the input bar stays reachable) even when lopepage gives the cell an unbounded height.
+  const log = html`<div style="flex:1 1 0;min-height:0;max-height:60vh;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px"></div>`;
   root.append(log);
 
   const bubble = (side, bgc, node) => {
@@ -105,6 +124,13 @@ export default function define(runtime, observer) {
   main.define("modelView", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("modelView", _));
   main.define("promptView", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("promptView", _));
 
+  // terminal widget for the embedded agent shell.
+  main.define("module @tomlarkworthy/justbash-terminal", async () =>
+    runtime.module((await import("/@tomlarkworthy/justbash-terminal.js?v=4")).default));
+  main.define("terminal", ["module @tomlarkworthy/justbash-terminal", "@variable"], (_, v) => v.import("terminal", _));
+
+  // agent terminal first, chat below — same module, stacked in the pane.
+  $def("rc4_agentTerminal", null, ["html", "terminal"], _agentTerminal);
   $def("rc4_facade", null, ["html", "md", "session", "keyView", "modelView", "promptView"], _facade);
   return main;
 }

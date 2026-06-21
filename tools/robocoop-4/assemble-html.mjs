@@ -26,7 +26,7 @@ const RC4_MAINS = [
 ];
 // Flat layout only — lopepage parses the view once at boot and rejects nested S(S(),S()) groups.
 const HASH =
-  '#view=R100(S50(@tomlarkworthy/justbash),S25(@tomlarkworthy/robocoop-4),S25(@tomlarkworthy/robocoop-4-hostbridge))';
+  '#view=R100(S40(@tomlarkworthy/justbash),S45(@tomlarkworthy/robocoop-4),S15(@tomlarkworthy/robocoop-4-hostbridge))';
 
 // Anchor on the bootloader marker so we patch the REAL bootconf, not the templated one inside
 // the exporter's source (which contains ${...} and isn't valid JSON).
