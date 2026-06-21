@@ -156,7 +156,7 @@ const _defineTool = function _defineTool(){return(
 const _doc_createBashTool = function _doc_createBashTool(md){return(
 md`### \`createBashTool()\`
 The single \`bash\` tool. Its only environment seam is \`ctx.runCommand(command)\` (node binds an
-InMemoryFs session; the browser binds \`window.justbash.exec\`). Output is rendered via
+InMemoryFs session; the notebook binds the agent shell's \`rc4_agentShell.run\`). Output is rendered via
 [\`formatResult\`](#); a non-zero exit is normal tool output, not a throw.`
 )};
 const _createBashTool = function _createBashTool(defineTool, formatResult){return(
@@ -233,7 +233,7 @@ const _doc_createOpenRouterClient = function _doc_createOpenRouterClient(md){ret
 md`### \`createOpenRouterClient({apiKey, fetch, referer, title, defaultModel})\`
 OpenRouter chat-completions client (OpenAI wire format). Non-streaming today (\`stream:false\`);
 returns \`{message, finish_reason, raw}\` with the assistant message **verbatim** incl. any
-\`tool_calls\`. Pluggable \`fetch\`/key so the browser passes \`window.fetch\`.`
+\`tool_calls\`. \`fetch\`/key are pluggable; \`fetch\` defaults to \`globalThis.fetch\`.`
 )};
 const _createOpenRouterClient = function _createOpenRouterClient(){
   return function createOpenRouterClient({

@@ -16,8 +16,9 @@ const TARGET = join(ROOT, 'lopebooks', 'notebooks', '@tomlarkworthy_robocoop-4.h
 
 let html = readFileSync(BASE, 'utf8');
 
-// Patch the live bootconf.json block (title / mains / hash). -core and -tools are imported (not
-// laid out), so they don't go in mains; the laid-out modules do.
+// Patch the live bootconf.json block (title / mains / hash). robocoop-4 is self-contained — it owns
+// its own just-bash workspace via the engine — so we DROP the justbash app + filesync from the base
+// mains and boot only lopepage + the rc4 modules. -core/-tools are imported (not laid out).
 const RC4_MAINS = [
   '@tomlarkworthy/robocoop-4-engine',
   '@tomlarkworthy/robocoop-4-hostbridge',
@@ -26,7 +27,7 @@ const RC4_MAINS = [
 ];
 // Flat layout only — lopepage parses the view once at boot and rejects nested S(S(),S()) groups.
 const HASH =
-  '#view=R100(S40(@tomlarkworthy/justbash),S45(@tomlarkworthy/robocoop-4),S15(@tomlarkworthy/robocoop-4-hostbridge))';
+  '#view=R100(S75(@tomlarkworthy/robocoop-4),S25(@tomlarkworthy/robocoop-4-hostbridge))';
 
 // Anchor on the bootloader marker so we patch the REAL bootconf, not the templated one inside
 // the exporter's source (which contains ${...} and isn't valid JSON).
@@ -35,7 +36,8 @@ const m = html.match(bootRe);
 if (!m) throw new Error('bootconf.json block not found');
 const conf = JSON.parse(m[2]);
 conf.title = 'robocoop-4';
-conf.mains = [...new Set([...(conf.mains || []), ...RC4_MAINS])];
+// Self-contained: boot only lopepage + the rc4 modules (drop justbash app / filesync from the base).
+conf.mains = ['@tomlarkworthy/lopepage', ...RC4_MAINS];
 conf.hash = HASH;
 html = html.replace(bootRe, m[1] + JSON.stringify(conf, null, 2) + m[3]);
 

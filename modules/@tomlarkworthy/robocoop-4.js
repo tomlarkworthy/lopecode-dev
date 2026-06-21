@@ -1,28 +1,17 @@
 // @tomlarkworthy/robocoop-4 — the self-contained app: agent terminal ABOVE the chat facade.
 //
-// agentTerminal renders the SAME shell the agent drives (window.justbash.shells.agent) so you watch
-// its bash session live, in this module, right above the conversation. The facade cell is the chat:
-// a collapsible credentials/model/prompt strip, a scrolling transcript (talk only), and an input.
+// agentTerminal renders the SAME shell the agent drives (rc4_agentShell, imported from -engine) so you
+// watch its bash session live, in this module, right above the conversation. The facade cell is the
+// chat: a collapsible credentials/model/prompt strip, a scrolling transcript (talk only), and an input.
 // It drives the imported `session` (from -engine); the LLM's bash work shows in the terminal, not chat.
 //
-// Imports: terminal (from justbash-terminal); session, keyView, modelView, promptView (from -engine,
-// all plain-named — never `viewof X`, which editor-5 mangles).
+// Imports: terminal (justbash-terminal); session, keyView, modelView, promptView, rc4_agentShell
+// (-engine, view aliases plain-named — never `viewof X`, which editor-5 mangles). No window globals.
 
-// agentTerminal — the agent's live shell, embedded. Mounts when window.justbash is ready (the
-// justbash module publishes it); browser-only.
-const _agentTerminal = function _agentTerminal(html, terminal){
+// agentTerminal — the agent's live shell, embedded (renders the engine's rc4_agentShell directly).
+const _agentTerminal = function _agentTerminal(html, terminal, rc4_agentShell){
   const root = html`<div style="border:1px solid #30363d;border-radius:8px;max-height:35vh;overflow:auto;margin-bottom:8px"></div>`;
-  let tries = 0; // bounded retry: give up after ~6s so node CI / non-justbash hosts don't leak a timer
-  const mount = () => {
-    if (!window.justbash || !window.justbash.shells || !window.justbash.shells.agent) {
-      if (tries++ < 40) { setTimeout(mount, 150); return; }
-      root.textContent = "agent shell unavailable (window.justbash not present)";
-      return;
-    }
-    root.innerHTML = "";
-    root.append(terminal(window.justbash.shells.agent, { title: "agent — live shell (the LLM's session)" }));
-  };
-  mount();
+  root.append(terminal(rc4_agentShell, { title: "agent — live shell (the LLM's session)" }));
   return root;
 };
 
@@ -123,6 +112,7 @@ export default function define(runtime, observer) {
   main.define("keyView", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("keyView", _));
   main.define("modelView", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("modelView", _));
   main.define("promptView", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("promptView", _));
+  main.define("rc4_agentShell", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("rc4_agentShell", _));
 
   // terminal widget for the embedded agent shell.
   main.define("module @tomlarkworthy/justbash-terminal", async () =>
@@ -130,7 +120,7 @@ export default function define(runtime, observer) {
   main.define("terminal", ["module @tomlarkworthy/justbash-terminal", "@variable"], (_, v) => v.import("terminal", _));
 
   // agent terminal first, chat below — same module, stacked in the pane.
-  $def("rc4_agentTerminal", null, ["html", "terminal"], _agentTerminal);
+  $def("rc4_agentTerminal", null, ["html", "terminal", "rc4_agentShell"], _agentTerminal);
   $def("rc4_facade", null, ["html", "md", "session", "keyView", "modelView", "promptView"], _facade);
   return main;
 }

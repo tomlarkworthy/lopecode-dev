@@ -4,19 +4,20 @@
 // own modules (projected into /notebook/<moduleId>.js):
 //   host_sync  — project the live runtime's modules into the project fs (run before reading/editing).
 //   host_apply — apply edits made to /notebook/<id>.js back into the live runtime.
-// The bridge is created lazily on first use, so this is harmless if window.justbash isn't ready yet.
-// A notebook that wants robocoop-4 WITHOUT self-editing simply omits this module.
+// The bridge takes the agent's workspace fs (rc4_workspace, from -engine) and the live runtime
+// (from @tomlarkworthy/runtime-sdk) by injection — no window/globalThis. A notebook that wants
+// robocoop-4 WITHOUT self-editing simply omits this module.
 //
 // createHostBridge is browser-only (it pokes the live Observable runtime) — node CI skips it; only
 // its pure parseModuleFile is unit-testable off-runtime. Imports defineTool from -core.
 
 const _doc_createHostBridge = function _doc_createHostBridge(md){return(
-md`### \`createHostBridge({fs})\`  *(browser-only)*
+md`### \`createHostBridge({fs, getRuntime})\`  *(browser-only)*
 Bidirectional bridge between the LIVE host notebook and the agent's fs. **observe** \`syncHost()\`:
 project each module's cells to \`/notebook/<id>.js\` as readable, pid-tagged source. **manipulate**
 \`applyModule(id, text)\`: parse an edited file and create/update variables in the live runtime
-(adapted from justbash-filesync jbApply). Structural both ways; rebuilds fns via \`eval\`. Reaches the
-runtime via \`globalThis.__ojs_runtime\`, so it is exercised only in the browser, not node CI.`
+(adapted from justbash-filesync jbApply). Structural both ways; rebuilds fns via \`eval\`. The runtime
+is injected via \`getRuntime\` (from runtime-sdk here), so it is exercised only in the browser, not node CI.`
 )};
 const _createHostBridge = function _createHostBridge(){
   const VENDOR = /golden-layout|codemirror|acorn|escodegen|jszip|lightning-fs|isomorphic-git|jest-expect|inspector|observable-runtime|observablehq-lezer|spectral-layout|module-map/;
@@ -164,13 +165,11 @@ const _createHostBridge = function _createHostBridge(){
   };
 };
 
-const _hostTools = function _hostTools(html, registerTool, defineTool, createHostBridge){
+const _hostTools = function _hostTools(html, registerTool, defineTool, createHostBridge, rc4_workspace, runtime){
   let bridge = null;
   const getBridge = () => {
     if (bridge) return bridge;
-    if (!window.justbash || !window.justbash.workspace)
-      throw new Error("window.justbash not ready — open this in a justbash notebook");
-    bridge = createHostBridge({ fs: window.justbash.workspace.fs });
+    bridge = createHostBridge({ fs: rc4_workspace.fs, getRuntime: () => runtime });
     return bridge;
   };
 
@@ -214,8 +213,16 @@ export default function define(runtime, observer) {
     runtime.module((await import("/@tomlarkworthy/robocoop-4-core.js?v=4")).default));
   main.define("defineTool", ["module @tomlarkworthy/robocoop-4-core", "@variable"], (_, v) => v.import("defineTool", _));
 
+  // The agent's workspace fs comes from -engine (no window.justbash); the live runtime from runtime-sdk.
+  main.define("module @tomlarkworthy/robocoop-4-engine", async () =>
+    runtime.module((await import("/@tomlarkworthy/robocoop-4-engine.js?v=4")).default));
+  main.define("rc4_workspace", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("rc4_workspace", _));
+  main.define("module @tomlarkworthy/runtime-sdk", async () =>
+    runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
+  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
+
   $def("rc4h_doc_createHostBridge", null, ["md"], _doc_createHostBridge);
   $def("rc4h_createHostBridge", "createHostBridge", [], _createHostBridge);
-  $def("rc4h_tools", null, ["html", "registerTool", "defineTool", "createHostBridge"], _hostTools);
+  $def("rc4h_tools", null, ["html", "registerTool", "defineTool", "createHostBridge", "rc4_workspace", "runtime"], _hostTools);
   return main;
 }

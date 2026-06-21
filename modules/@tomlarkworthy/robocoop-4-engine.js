@@ -1,15 +1,25 @@
-// @tomlarkworthy/robocoop-4-engine — the persistent agent session + its config inputs.
+// @tomlarkworthy/robocoop-4-engine — the persistent agent session + its workspace + config inputs.
 //
-// Builds an OpenRouter client from the key and a createAgentSession (imported from -core) wired to
-// the LIVE registry, model picker and editable system prompt via PROVIDERS — so changing the model,
-// editing the prompt, or registering a tool never recreates the session (the conversation survives).
-// runCommand is the only env seam: cmd => window.justbash.exec(cmd) (the justbash module publishes it).
+// Self-contained: owns its own just-bash workspace + agent shell (no window.justbash global). Builds
+// an OpenRouter client from the key and a createAgentSession (imported from -core) wired to the LIVE
+// registry, model picker and editable system prompt via PROVIDERS — so changing the model, editing
+// the prompt, or registering a tool never recreates the session (the conversation survives). The
+// only env seam is runCommand = cmd => rc4_agentShell.run(cmd) (the embedded shell, imported by deps).
 //
 // Other notebooks import this module to drive or extend robocoop-4.
 // Exports: viewof OPENROUTER_API_KEY, OPENROUTER_API_KEY, openrouter_models, viewof model, model,
-//          viewof rc4_systemPrompt, rc4_systemPrompt, client, session.
+//          viewof rc4_systemPrompt, rc4_systemPrompt, rc4_workspace, rc4_agentShell, client, session.
 
 const _seed = () => 1;
+
+// rc4_workspace — the agent's in-memory project fs (one InMemoryFs). rc4_agentShell is the session
+// the agent drives; the embedded terminal (in the app module) renders it. No window globals.
+const _rc4_workspace = function _rc4_workspace(createWorkspace){
+  return createWorkspace({ "/notebook/README.md": "# robocoop-4 workspace\n\nModules live at /notebook/<moduleId>.js\n" });
+};
+const _rc4_agentShell = function _rc4_agentShell(rc4_workspace){
+  return rc4_workspace.spawn({ cwd: "/notebook", label: "agent" });
+};
 
 const _OPENROUTER_API_KEY = function _OPENROUTER_API_KEY(Inputs, localStorageView){
   return Inputs.bind(
@@ -47,9 +57,9 @@ const _rc4_systemPrompt = function _rc4_systemPrompt(Inputs, systemPrompt, compo
 const _client = function _client(OPENROUTER_API_KEY, createOpenRouterClient){
   const key = String(OPENROUTER_API_KEY || "").trim();
   if (!key) return null;
+  // fetch defaults to the core's globalThis.fetch — no window.* in the notebook layer.
   return createOpenRouterClient({
     apiKey: key,
-    fetch: window.fetch.bind(window),
     referer: "https://lopecode.com",
     title: "robocoop-4"
   });
@@ -64,7 +74,7 @@ const _promptView = function _promptView($0){ return $0; };
 // The persistent session. Depends on the view ELEMENTS (stable) + client, so it is rebuilt only
 // when the key changes. Model / prompt / tools are read live through providers. toolsView is the
 // imported registry element (plain-named to survive editor round-trips).
-const _session = function _session(toolsView, $model, $prompt, client, createAgentSession){
+const _session = function _session(toolsView, $model, $prompt, client, createAgentSession, rc4_agentShell){
   if (!client) {
     return {
       messages: [],
@@ -77,7 +87,7 @@ const _session = function _session(toolsView, $model, $prompt, client, createAge
     toolsProvider: () => (Array.isArray(toolsView.value) ? toolsView.value : []),
     modelProvider: () => $model.value,
     systemPromptProvider: () => $prompt.value,
-    runCommand: (cmd) => window.justbash.exec(cmd)
+    runCommand: (cmd) => rc4_agentShell.run(cmd)
   });
 };
 
@@ -88,11 +98,17 @@ export default function define(runtime, observer) {
   };
 
   $def("rc4e_seed", "__seed", [], _seed);
+  $def("rc4e_workspace", "rc4_workspace", ["createWorkspace"], _rc4_workspace);
+  $def("rc4e_agentShell", "rc4_agentShell", ["rc4_workspace"], _rc4_agentShell);
 
   // Imports
   main.define("module @tomlarkworthy/local-storage-view", async () =>
     runtime.module((await import("/@tomlarkworthy/local-storage-view.js?v=4")).default));
   main.define("localStorageView", ["module @tomlarkworthy/local-storage-view", "@variable"], (_, v) => v.import("localStorageView", _));
+  // just-bash workspace (owned here — no window.justbash).
+  main.define("module @tomlarkworthy/justbash-session", async () =>
+    runtime.module((await import("/@tomlarkworthy/justbash-session.js?v=4")).default));
+  main.define("createWorkspace", ["module @tomlarkworthy/justbash-session", "@variable"], (_, v) => v.import("createWorkspace", _));
   main.define("module @tomlarkworthy/robocoop-4-tools", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-tools.js?v=4")).default));
   main.define("toolsView", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("toolsView", _));
@@ -120,6 +136,6 @@ export default function define(runtime, observer) {
   $def("rc4e_promptView", "promptView", ["viewof rc4_systemPrompt"], _promptView);
 
   $def("rc4e_client", "client", ["OPENROUTER_API_KEY", "createOpenRouterClient"], _client);
-  $def("rc4e_session", "session", ["toolsView", "viewof model", "viewof rc4_systemPrompt", "client", "createAgentSession"], _session);
+  $def("rc4e_session", "session", ["toolsView", "viewof model", "viewof rc4_systemPrompt", "client", "createAgentSession", "rc4_agentShell"], _session);
   return main;
 }
