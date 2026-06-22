@@ -104,15 +104,29 @@ async function main(argv) {
   try {
     for (const evalDef of evals) {
       let snapshot;
-      try {
-        snapshot = await driver.runQuestion(evalDef);
-      } catch (err) {
-        // Driver-level failure: synthesize a failed snapshot so scoring still produces a row.
-        snapshot = {
-          ok: false, error: String(err && err.message ? err.message : err),
-          question: evalDef.question, model, durationMs: 0, steps: 0, finishReason: null,
-          conversation: [], toolCalls: [], files: {}, modules: {}, errors: [], console: [],
-        };
+      // Transient failures (empty turn, network "Failed to fetch", boot/timeout race) are NOT eval
+      // signal — retry up to 3 attempts before accepting a failed run.
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          snapshot = await driver.runQuestion(evalDef);
+        } catch (err) {
+          // Driver-level failure: synthesize a failed snapshot so scoring still produces a row.
+          snapshot = {
+            ok: false, error: String(err && err.message ? err.message : err),
+            question: evalDef.question, model, durationMs: 0, steps: 0, finishReason: null,
+            conversation: [], toolCalls: [], files: {}, modules: {}, errors: [], console: [],
+          };
+        }
+        if (snapshot.ok !== false) break;
+        // Quota/credit/auth errors (402/401/429-daily) won't clear on retry — fail fast.
+        if (/\b(402|401)\b|insufficient|requires more credits|daily limit|quota/i.test(snapshot.error || "")) {
+          console.log(`  ✗ ${evalDef.id} non-retryable: ${String(snapshot.error).slice(0, 120)}`);
+          break;
+        }
+        if (attempt < MAX_ATTEMPTS) {
+          console.log(`  … ${evalDef.id} transient (${String(snapshot.error).slice(0, 120)}); retry ${attempt + 1}/${MAX_ATTEMPTS}`);
+        }
       }
       const scored = scoreEval(evalDef, snapshot);
       scoredAll.push(scored);

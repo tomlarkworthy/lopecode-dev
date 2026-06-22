@@ -67,6 +67,68 @@ function stripModuleSyntax(src) {
     .replace(/^\s*export\s+(default\s+)?/gm, "");
 }
 
+// Given a regex match `m` positioned at `function …(params){`, return {params, body} by brace-matching.
+function fnParamsBody(text, m) {
+  const params = m[1].split(",").map((s) => s.trim().split("=")[0].trim()).filter(Boolean);
+  let i = m.index + m[0].length - 1, depth = 0;
+  const start = i;
+  for (; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") { depth--; if (depth === 0) { i++; break; } }
+  }
+  return { params, body: text.slice(start + 1, i - 1) };
+}
+
+// Extract a named cell as an evaluable {params, body} from a workspace module file. Handles BOTH shapes
+// the agent produces: (1) the PROJECTED host_sync format — `// ⟦cell⟧ … name=<n> inputs=a,b` header then
+// a body that is either a `function …(){…}` or a raw expression (tolerant of marker glyph variants);
+// (2) the compiled lopecode form `function name(params){…}`. Returns null when the named cell isn't found.
+function extractCell(text, name) {
+  const markerRe = /\/\/[ \t]*[⟦⦅[][ \t]*cell[ \t]*[⟧⦆\]][ \t]*/g;
+  if (markerRe.test(text)) {
+    for (const chunk of text.split(markerRe).slice(1)) {
+      const nl = chunk.indexOf("\n");
+      const header = nl >= 0 ? chunk.slice(0, nl) : chunk;
+      const body = (nl >= 0 ? chunk.slice(nl + 1) : "").replace(/\s+$/, "");
+      const hm = header.match(/name=(\S+)/);
+      if (!hm || hm[1] !== name) continue;
+      const fm = body.match(/^\s*(?:async\s+)?function\s+_?\w*\s*\(([^)]*)\)\s*\{/);
+      if (fm) return fnParamsBody(body, fm);
+      const im = header.match(/inputs=(\S*)/);
+      const inputs = im && im[1] ? im[1].split(",").filter(Boolean) : [];
+      // A projected body is the cell's source. Per Observable convention a leading `{` is a STATEMENT
+      // block (its own `return`), not an object literal — so use it as the function body directly.
+      // Anything else is an expression → wrap in `return (...)`.
+      const stripped = body.replace(/^\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/\s*)*/, "").trim();
+      if (stripped.startsWith("{")) {
+        const open = body.indexOf("{"), close = body.lastIndexOf("}");
+        return { params: inputs, body: body.slice(open + 1, close) };
+      }
+      return { params: inputs, body: "return (\n" + body + "\n);" };
+    }
+    return null; // marker present but this cell not found
+  }
+  const m = new RegExp("function\\s+_?" + escapeRe(name) + "\\b\\s*\\(([^)]*)\\)\\s*\\{").exec(text);
+  return m ? fnParamsBody(text, m) : null;
+}
+
+// Minimal stand-ins for runtime-provided libraries so a cell that uses them can be evaluated in node
+// (we only need the methods the eval prompts exercise). Keyed by the cell's input parameter name.
+const LIB_STUBS = {
+  d3: {
+    sum: (a) => a.reduce((x, y) => x + (+y), 0),
+    max: (a) => Math.max(...a),
+    min: (a) => Math.min(...a),
+    mean: (a) => a.reduce((x, y) => x + y, 0) / a.length,
+  },
+};
+
+const deepEq = (a, b) =>
+  (a && typeof a === "object") || (b && typeof b === "object")
+    ? JSON.stringify(a) === JSON.stringify(b)
+    : String(a) === String(b);
+
 // --- criteria ---------------------------------------------------------------
 
 export const CRITERIA = {
@@ -222,6 +284,29 @@ export const CRITERIA = {
       : ok(`${args.module} has no variables in error`);
   },
 
+  // Deterministically compile+run a named cell FROM THE WORKSPACE FILE and check its return value.
+  // Independent of host_apply / the live runtime (robocoop-2's scoring approach), so it isn't flaky
+  // when the agent writes correct code but doesn't deploy it. Synchronous cells only; injects
+  // LIB_STUBS for known library params (e.g. d3) and `inputs` for the rest.
+  cell_evaluates(snapshot, args) {
+    const text = args.file != null ? snapshot.files?.[args.file] : null;
+    if (text == null) return fail(`file ${args.file} not found for cell_evaluates`);
+    const cell = extractCell(text, args.name);
+    if (!cell) return fail(`cell ${args.name} not found in ${args.file} (expected function ${args.name}(...){...})`);
+    let fn;
+    try { fn = new Function(...cell.params, cell.body); }
+    catch (e) { return fail(`cell ${args.name} does not compile: ${e.message}`); }
+    const provided = args.inputs || {};
+    const callArgs = cell.params.map((p) => (p in provided ? provided[p] : LIB_STUBS[p]));
+    let result;
+    try { result = fn(...callArgs); }
+    catch (e) { return fail(`cell ${args.name} threw: ${e.message}`); }
+    if (result && typeof result.then === "function") return fail(`cell ${args.name} is async; cell_evaluates supports sync cells only`);
+    return deepEq(result, args.equals)
+      ? ok(`${args.name} evaluates to ${JSON.stringify(args.equals)}`)
+      : fail(`${args.name} evaluated to ${JSON.stringify(result)}, expected ${JSON.stringify(args.equals)}`);
+  },
+
   variable_equals(snapshot, args) {
     const v = findVariable(snapshot, args.module, args.name);
     if (!v) return fail(`${args.module}:${args.name} not found`);
@@ -239,6 +324,18 @@ export const CRITERIA = {
     return svg
       ? ok(`${args.module}:${args.name} renders svg`)
       : fail(`${args.module}:${args.name} is not svg (${v.valueType})`);
+  },
+
+  // The variable's live value is a DOM element (UI construction actually rendered, not just source).
+  renders_element(snapshot, args) {
+    const v = findVariable(snapshot, args.module, args.name);
+    if (!v) return fail(`${args.module}:${args.name} not found`);
+    if (v.hasError) return fail(`${args.module}:${args.name} error: ${v.error}`);
+    const isEl = /Element$/.test(v.valueType || "") ||
+      /^\s*</.test(String(v.valuePreview ?? ""));
+    return isEl
+      ? ok(`${args.module}:${args.name} rendered a DOM element (${v.valueType})`)
+      : fail(`${args.module}:${args.name} is not an element (${v.valueType})`);
   },
 
   uses_plot(snapshot, args) {

@@ -50,7 +50,8 @@ Append an object to `EVALS` in `evals.mjs`:
 ```js
 {
   id: "my-eval",
-  category: "coding", // module-lifecycle | documentation | doc-comprehension | plot | coding | code-quality | bash-tools | hallucination
+  category: "coding", // module-lifecycle | documentation | doc-comprehension | plot | coding | code-quality |
+                      // bash-tools | hallucination | ui | dataflow | doc-lookup | library | debugging | comprehension
   question: "…",      // sent verbatim to the agent; say exactly WHERE to put the result
   setup: { files: { "/notebook/@user/seed.js": "…" } }, // optional: seeded into the workspace fs first
   criteria: [
@@ -85,8 +86,10 @@ A "target" resolves a string to check: prefer `file` (looks up `snapshot.files[p
 | `module_absent` | `id` | live module absent |
 | `variable_defined` | `module, name` | named variable present |
 | `variable_no_error` | `module, name?` | variable (or all in module) has no error |
-| `variable_equals` | `module, name, equals` | `String(valuePreview) === String(equals)` |
+| `variable_equals` | `module, name, equals` | `String(valuePreview) === String(equals)` (live runtime) |
+| `cell_evaluates` | `file, name, equals, inputs?` | compile+run the named cell FROM THE FILE in node and check its return (deterministic, no host_apply; sync cells only; injects `d3` stub + `inputs` for params) |
 | `renders_svg` | `module, name` | variable isSvg or preview includes `<svg` |
+| `renders_element` | `module, name` | variable's live value is a DOM element (UI actually rendered) |
 | `uses_plot` | `module?,var?,file?` | source references `Plot.` |
 | `no_runtime_errors` | — | `snapshot.errors` empty |
 | `tool_used` | `name, minTimes?` | ≥ minTimes (default 1) tool calls of `name` |

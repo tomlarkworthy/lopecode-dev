@@ -283,6 +283,14 @@ export async function createDriver({
             }
           }
 
+          // An empty turn (no assistant messages at all) means the session never ran — a transient
+          // boot/key/network race, NOT a legitimate "agent did nothing". Flag it so the run is retried
+          // and criteria short-circuit to run-failed rather than scoring a misleading partial.
+          if (result.ok && result.conversation.length === 0) {
+            result.ok = false;
+            result.error = "empty turn: session produced no messages (transient)";
+          }
+
           // --- files via rc4_workspace.snapshot() ---
           result.files = {};
           const ws = findValue("rc4_workspace");
@@ -300,25 +308,36 @@ export async function createDriver({
           }
 
           // --- force-compute lazy cells so values are readable. Newly host_applied cells are LAZY:
-          // their _value stays undefined until something observes them. Scope to eval-relevant modules
-          // (@user/* and robocoop-4*) so we don't trigger heavy compute across the whole library. ---
+          // their _value stays undefined until something observes them, and the reactive recompute
+          // settles on a MACROTASK — so reading v._value right after value(n) races and reads undefined.
+          // Fix (robocoop-2 pattern): fire value(n) for every eval-relevant cell, let the scheduler run
+          // (macrotask settle), then AWAIT each variable's _promise so _value reflects the result.
+          // Scope to @user/* and robocoop-4* so we don't compute the whole library. ---
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const isEvalVar = (id, n) =>
+            id && (id.startsWith("@user/") || id.includes("robocoop-4")) &&
+            n && !n.startsWith("module ") && n !== "@variable";
           {
             const idMapF = buildModuleIdMap();
-            const jobs = [];
             for (const { v, moduleObj } of allVariables()) {
               const id = idMapF.get(moduleObj) || moduleObj._name; // _name: newly createModule'd modules
-              if (!id || !(id.startsWith("@user/") || id.includes("robocoop-4"))) continue;
-              const n = v._name;
-              if (!n || n.startsWith("module ") || n === "@variable") continue;
-              if (v._value !== undefined || (v._error !== undefined && v._error !== null)) continue;
+              if (!isEvalVar(id, v._name)) continue;
+              if (v._value !== undefined || (v._error != null)) continue;
               if (typeof moduleObj.value === "function") {
-                jobs.push(Promise.race([
-                  Promise.resolve(moduleObj.value(n)).catch(() => {}),
-                  new Promise((r) => setTimeout(r, 4000)),
-                ]));
+                try { Promise.resolve(moduleObj.value(v._name)).catch(() => {}); } catch {}
               }
             }
-            if (jobs.length) { try { await Promise.all(jobs); } catch {} await new Promise((r) => setTimeout(r, 60)); }
+            // let the reactive chain run (macrotask), then await the settled promises.
+            await sleep(400);
+            const waits = [];
+            for (const { v, moduleObj } of allVariables()) {
+              const id = idMapF.get(moduleObj) || moduleObj._name;
+              if (!isEvalVar(id, v._name)) continue;
+              if (v._promise && typeof v._promise.then === "function") {
+                waits.push(Promise.race([v._promise.catch(() => {}), sleep(4000)]));
+              }
+            }
+            if (waits.length) { try { await Promise.all(waits); } catch {} await sleep(150); }
           }
 
           // --- live modules + variables ---
@@ -334,7 +353,12 @@ export async function createDriver({
             let source = "";
             try { source = v._definition ? String(v._definition) : ""; } catch { source = ""; }
             const hasError = v._error !== undefined && v._error !== null;
-            const value = v._value;
+            let value = v._value;
+            // eval-relevant cell still unsettled? await its promise to get the resolved value.
+            if (value === undefined && !hasError && isEvalVar(id, name) && v._promise && typeof v._promise.then === "function") {
+              try { value = await Promise.race([v._promise, sleep(2000).then(() => v._value)]); }
+              catch { value = v._value; }
+            }
             const isSvg = isSvgValue(value);
             result.modules[id].variables.push({
               name,
