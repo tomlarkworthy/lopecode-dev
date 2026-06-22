@@ -54,6 +54,8 @@ const RC4_MAINS = [
   '@tomlarkworthy/robocoop-4-hostbridge',
   '@tomlarkworthy/robocoop-4',
   '@tomlarkworthy/robocoop-4-tests', // booted (not in the view) so test_rc4_* cells exist for node CI
+  '@tomlarkworthy/inputs-reference', // booted (not in the view) so host_sync projects it → the agent
+                                     // can look up Inputs API docs (e.g. Inputs.toggle options) by grep
 ];
 // Flat layout only — lopepage parses the view once at boot and rejects nested S(S(),S()) groups.
 const HASH =
