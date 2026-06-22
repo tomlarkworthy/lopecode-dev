@@ -306,7 +306,7 @@ export async function createDriver({
             const idMapF = buildModuleIdMap();
             const jobs = [];
             for (const { v, moduleObj } of allVariables()) {
-              const id = idMapF.get(moduleObj);
+              const id = idMapF.get(moduleObj) || moduleObj._name; // _name: newly createModule'd modules
               if (!id || !(id.startsWith("@user/") || id.includes("robocoop-4"))) continue;
               const n = v._name;
               if (!n || n.startsWith("module ") || n === "@variable") continue;
@@ -326,7 +326,7 @@ export async function createDriver({
           result.modules = {};
           result.errors = [];
           for (const { v, moduleObj } of allVariables()) {
-            const id = idMap.get(moduleObj);
+            const id = idMap.get(moduleObj) || moduleObj._name; // _name: newly createModule'd modules
             if (!id) continue; // skip modules we cannot name (builtins / imports)
             if (!result.modules[id]) result.modules[id] = { variables: [] };
 
