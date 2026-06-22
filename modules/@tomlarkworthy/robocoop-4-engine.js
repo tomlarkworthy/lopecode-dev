@@ -106,9 +106,9 @@ export default function define(runtime, observer) {
     runtime.module((await import("/@tomlarkworthy/local-storage-view.js?v=4")).default));
   main.define("localStorageView", ["module @tomlarkworthy/local-storage-view", "@variable"], (_, v) => v.import("localStorageView", _));
   // just-bash workspace (owned here — no window.justbash).
-  main.define("module @tomlarkworthy/justbash-session", async () =>
-    runtime.module((await import("/@tomlarkworthy/justbash-session.js?v=4")).default));
-  main.define("createWorkspace", ["module @tomlarkworthy/justbash-session", "@variable"], (_, v) => v.import("createWorkspace", _));
+  main.define("module @tomlarkworthy/robocoop-4-bash-session", async () =>
+    runtime.module((await import("/@tomlarkworthy/robocoop-4-bash-session.js?v=4")).default));
+  main.define("createWorkspace", ["module @tomlarkworthy/robocoop-4-bash-session", "@variable"], (_, v) => v.import("createWorkspace", _));
   main.define("module @tomlarkworthy/robocoop-4-tools", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-tools.js?v=4")).default));
   main.define("toolsView", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("toolsView", _));

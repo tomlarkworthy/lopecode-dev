@@ -5,7 +5,7 @@
 // chat: a collapsible credentials/model/prompt strip, a scrolling transcript (talk only), and an input.
 // It drives the imported `session` (from -engine); the LLM's bash work shows in the terminal, not chat.
 //
-// Imports: terminal (justbash-terminal); session, keyView, modelView, promptView, rc4_agentShell
+// Imports: terminal (robocoop-4-bash-terminal); session, keyView, modelView, promptView, rc4_agentShell
 // (-engine, view aliases plain-named — never `viewof X`, which editor-5 mangles). No window globals.
 
 // agentTerminal — the agent's live shell, embedded (renders the engine's rc4_agentShell directly).
@@ -115,9 +115,9 @@ export default function define(runtime, observer) {
   main.define("rc4_agentShell", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("rc4_agentShell", _));
 
   // terminal widget for the embedded agent shell.
-  main.define("module @tomlarkworthy/justbash-terminal", async () =>
-    runtime.module((await import("/@tomlarkworthy/justbash-terminal.js?v=4")).default));
-  main.define("terminal", ["module @tomlarkworthy/justbash-terminal", "@variable"], (_, v) => v.import("terminal", _));
+  main.define("module @tomlarkworthy/robocoop-4-bash-terminal", async () =>
+    runtime.module((await import("/@tomlarkworthy/robocoop-4-bash-terminal.js?v=4")).default));
+  main.define("terminal", ["module @tomlarkworthy/robocoop-4-bash-terminal", "@variable"], (_, v) => v.import("terminal", _));
 
   // agent terminal first, chat below — same module, stacked in the pane.
   $def("rc4_agentTerminal", null, ["html", "terminal", "rc4_agentShell"], _agentTerminal);

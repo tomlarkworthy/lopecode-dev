@@ -134,9 +134,9 @@ export default function define(runtime, observer) {
     main.define(n, ["module @tomlarkworthy/robocoop-4-core", "@variable"], (_, v) => v.import(n, _));
   }
   // Real just-bash workspace for the fs test.
-  main.define("module @tomlarkworthy/justbash-session", async () =>
-    runtime.module((await import("/@tomlarkworthy/justbash-session.js?v=4")).default));
-  main.define("createWorkspace", ["module @tomlarkworthy/justbash-session", "@variable"], (_, v) => v.import("createWorkspace", _));
+  main.define("module @tomlarkworthy/robocoop-4-bash-session", async () =>
+    runtime.module((await import("/@tomlarkworthy/robocoop-4-bash-session.js?v=4")).default));
+  main.define("createWorkspace", ["module @tomlarkworthy/robocoop-4-bash-session", "@variable"], (_, v) => v.import("createWorkspace", _));
 
   $def("rc4ts_assert", "rc4_assert", [], _rc4_assert);
   $def("rc4ts_recordClient", "rc4_recordClient", ["createScriptedClient"], _rc4_recordClient);
