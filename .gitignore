@@ -22,6 +22,7 @@ tools/*.json
 tools/*.env
 tools/**/.env
 tools/tmp-export/
+tools/robocoop-4/eval/live/results/
 
 # Bulk export / smoke test artifacts
 candidate-*
