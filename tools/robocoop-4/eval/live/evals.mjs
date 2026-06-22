@@ -2,12 +2,11 @@
 // then scores the resulting WorldSnapshot with the criteria below. setup.files seed fixtures into the
 // workspace fs BEFORE the turn. Criterion names/args must exist in criteria.mjs (see CONTRACT catalog).
 //
-// Workspace vs live: the agent's bash/host_sync operate on the workspace fs (/notebook/<id>.js);
-// host_apply pushes an EDITED workspace file back into an EXISTING live module. There is no create-live
-// path, so module-lifecycle deliberately checks BOTH file-level and live-level so the gap surfaces as a
-// partial score. Runtime criteria (variable_equals/renders_svg) require a successful host_apply into a
-// live module, so coding/plot/code-quality evals are ALSO checkable at the workspace-file level to keep
-// signal even when live apply is unavailable.
+// Sync is REALTIME: /notebook/<id>.js files are kept in sync with the running notebook by the mounted
+// jbFileSync watch loop (~600ms). The agent just reads/writes module files with bash — writing a full
+// module file creates/updates a LIVE module automatically; there is no host_sync/host_apply tool.
+// Runtime criteria (variable_equals/renders_svg/renders_element) read the live runtime after the watch
+// loop applies; pure-compute criteria (cell_evaluates) read the workspace file and are independent of it.
 
 const CORE = "@tomlarkworthy/robocoop-4-core";
 
@@ -17,12 +16,19 @@ export const EVALS = [
     id: "module-create-and-remove",
     category: "module-lifecycle",
     question:
-      "Two tasks in the /notebook workspace. (1) Create a new module file at " +
-      "/notebook/@user/greet.js containing a single cell that returns the string \"hi\": " +
-      "const _greeting = function _greeting(){return( \"hi\" )};\n " +
-      "(2) The seeded module /notebook/@user/legacy.js is obsolete — delete that file entirely. " +
-      "Use bash in the workspace. If you can also register the new module live and remove the legacy " +
-      "live module, do so with host_apply, but the file operations are the priority.",
+      "Create a new LIVE module @user/greet with a single cell named `greeting` that returns the string " +
+      "\"hi\". Modules use the standard Observable format. Existing live modules are already projected to " +
+      "/notebook/<id>.js — cat one (e.g. /notebook/" + CORE + ".js) to see the format, then " +
+      "write /notebook/@user/greet.js as a full module file in exactly that format:\n" +
+      "const _greeting = function greeting(){return( \"hi\" )};\n" +
+      "export default function define(runtime, observer){\n" +
+      "  const main = runtime.module();\n" +
+      "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+      "  $def(\"_greeting\", \"greeting\", [], _greeting);\n" +
+      "  return main;\n" +
+      "}\n" +
+      "Writing the file registers the module live automatically within ~1s — no extra step. Also: the " +
+      "seeded file /notebook/@user/legacy.js is obsolete — delete it with bash.",
     setup: {
       files: {
         "/notebook/@user/legacy.js":
@@ -97,16 +103,16 @@ export const EVALS = [
     id: "plot-bar-chart",
     category: "plot",
     question:
-      "Build a bar chart with Observable Plot. Edit the LIVE core module file " +
-      "/notebook/" + CORE + ".js: append a cell named `chart` that returns " +
-      "Plot.barY([{x:'a',y:1},{x:'b',y:3},{x:'c',y:2}], {x:'x', y:'y'}).plot() — " +
-      "i.e. const chart = function chart(Plot){return( Plot.barY([...]).plot() )};. " +
-      "Then run host_apply on /notebook/" + CORE + ".js so the chart renders in the live runtime. " +
-      "The cell MUST reference Plot and produce an SVG.",
+      "Build a bar chart with Observable Plot in the LIVE core module. EDIT " +
+      "/notebook/" + CORE + ".js to add a cell named `chart`: add the declaration " +
+      "`const _chart = function chart(Plot){return( Plot.barY([{x:'a',y:1},{x:'b',y:3},{x:'c',y:2}], " +
+      "{x:'x', y:'y'}).plot() )};` AND register it inside define() with " +
+      "`$def(\"_chart\", \"chart\", [\"Plot\"], _chart);`. Saving the file applies it live within ~1s, so " +
+      "the chart renders automatically. The cell MUST reference Plot and produce an SVG.",
     criteria: [
       { name: "uses_plot", args: { file: "/notebook/" + CORE + ".js" }, weight: 1 },
       { name: "does_compile", args: { file: "/notebook/" + CORE + ".js" }, weight: 1 },
-      // live render — needs successful host_apply
+      // live render — applied by the watch loop
       { name: "variable_defined", args: { module: CORE, name: "chart" }, weight: 1 },
       { name: "renders_svg", args: { module: CORE, name: "chart" }, weight: 2 },
       { name: "variable_no_error", args: { module: CORE, name: "chart" }, weight: 1 },
@@ -118,19 +124,10 @@ export const EVALS = [
     id: "coding-sum",
     category: "coding",
     question:
-      "The live core module /notebook/" + CORE + ".js has seeded cells a (=17) and b (=25). " +
-      "Add a cell named `sum` that returns a + b — i.e. " +
-      "const sum = function sum(a,b){return( a + b )};. Append it to /notebook/" + CORE + ".js, " +
-      "then run host_apply so sum is evaluated live. sum must equal 42.",
-    setup: {
-      files: {
-        // seeded into the workspace; the agent appends `sum` and host_applies the whole file.
-        "/notebook/seed-coding.txt":
-          "Append these to " + CORE + ".js if not already present:\n" +
-          "const a = function a(){return( 17 )};\n" +
-          "const b = function b(){return( 25 )};\n",
-      },
-    },
+      "Add a cell to the LIVE core module. EDIT /notebook/" + CORE + ".js to add a " +
+      "cell named `sum` whose value is 42: add the declaration `const _sum = function sum(){return( 17 + 25 )};` " +
+      "near the other top-level declarations AND register it inside the define() body with a line " +
+      "`$def(\"_sum\", \"sum\", [], _sum);`. Saving the file applies it live within ~1s. sum must equal 42.",
     criteria: [
       { name: "contains_string", args: { file: "/notebook/" + CORE + ".js", needle: "sum" }, weight: 1 },
       { name: "does_compile", args: { file: "/notebook/" + CORE + ".js" }, weight: 1 },
@@ -149,7 +146,7 @@ export const EVALS = [
       "`fizzbuzz` that returns the FizzBuzz string for the numbers 1..15 joined by spaces " +
       "(e.g. \"1 2 Fizz 4 Buzz ...\"). Write CLEAN code: do NOT use the `var` keyword (use const/let), " +
       "keep all braces/brackets balanced, and prepend a markdown doc cell explaining what it does. " +
-      "If possible also host_apply it, but the file is what is scored.",
+      "Writing the file applies it live automatically; the file content is what is scored.",
     criteria: [
       { name: "file_exists", args: { path: "/notebook/@user/fizz.js" }, weight: 1 },
       { name: "does_compile", args: { file: "/notebook/@user/fizz.js" }, weight: 1 },
@@ -166,8 +163,7 @@ export const EVALS = [
     category: "module-lifecycle",
     question:
       "The seeded module /notebook/@user/deprecated.js is no longer needed. Remove that file from the " +
-      "workspace with bash. If the module is also live, remove it from the live runtime with the host " +
-      "tools. Do not touch any other files.",
+      "workspace with bash. Do not touch any other files.",
     setup: {
       files: {
         "/notebook/@user/deprecated.js":
@@ -189,7 +185,7 @@ export const EVALS = [
       "Create a workspace module file /notebook/@user/rev.js with a single cell named `reversed` that " +
       "returns the string \"robocoop\" reversed (i.e. \"poocobor\") — " +
       "const reversed = function reversed(){return( 'robocoop'.split('').reverse().join('') )};. " +
-      "Then host_apply it if you can. Be efficient: complete this in as few steps as possible.",
+      "Writing the file applies it live automatically. Be efficient: complete this in as few steps as possible.",
     criteria: [
       { name: "file_exists", args: { path: "/notebook/@user/rev.js" }, weight: 1 },
       { name: "does_compile", args: { file: "/notebook/@user/rev.js" }, weight: 1 },
@@ -292,12 +288,12 @@ export const EVALS = [
     id: "ui-inputs-table-live",
     category: "ui",
     question:
-      "Build a data table UI in the LIVE core module. Edit /notebook/" + CORE + ".js and append a cell " +
-      "named `peopleTable` that renders the rows below as a table using the STANDARD Observable Inputs " +
-      "table component (Inputs.table) — do NOT hand-build an HTML <table>. Use exactly: " +
-      "const peopleTable = function peopleTable(Inputs){return( Inputs.table([" +
-      "{name:'Ada',age:36},{name:'Alan',age:41}]) )};. Then run host_apply on /notebook/" + CORE + ".js " +
-      "so it renders live.",
+      "Build a data table UI in the LIVE core module. EDIT /notebook/" + CORE + ".js " +
+      "to add a cell named `peopleTable` using the STANDARD Observable Inputs table (Inputs.table) — do " +
+      "NOT hand-build an HTML <table>. Add the declaration `const _peopleTable = function peopleTable(Inputs)" +
+      "{return( Inputs.table([{name:'Ada',age:36},{name:'Alan',age:41}]) )};` AND register it inside " +
+      "define() with `$def(\"_peopleTable\", \"peopleTable\", [\"Inputs\"], _peopleTable);`. Saving the " +
+      "file applies it live within ~1s so it renders automatically.",
     criteria: [
       { name: "contains_string", args: { file: "/notebook/" + CORE + ".js", needle: "Inputs.table" }, weight: 2 },
       { name: "not_contains_string", args: { file: "/notebook/" + CORE + ".js", needle: "<table" }, weight: 1 },
@@ -362,20 +358,18 @@ export const EVALS = [
   },
 
   // ───────────────────────── doc-lookup (use the bundled Inputs reference) ─────────────────────────
-  // The @tomlarkworthy/inputs-reference module is booted in the bundle, so host_sync projects it to
-  // /notebook/@tomlarkworthy/inputs-reference.js. The agent must consult it (grep/cat) to answer rather
-  // than guess. The toggle docs list the options: label, value, values, disabled.
+  // The @tomlarkworthy/inputs-reference module is booted in the bundle, so the watch loop auto-projects
+  // it to /notebook/@tomlarkworthy/inputs-reference.js on mount. The agent must consult it (grep/cat) to
+  // answer rather than guess. The toggle docs list the options: label, value, values, disabled.
   {
     id: "doc-lookup-toggle-options",
     category: "doc-lookup",
     question:
       "I want to know every option you can pass to Inputs.toggle. This notebook bundles a reference " +
-      "module, @tomlarkworthy/inputs-reference, but its source is not in the workspace yet. First run " +
-      "host_sync to project the live modules into /notebook, then use bash (grep/cat) on " +
-      "/notebook/@tomlarkworthy/inputs-reference.js to find the documented Inputs.toggle options. Do NOT " +
+      "module whose source is already projected to /notebook/@tomlarkworthy/inputs-reference.js. Use " +
+      "bash (grep/cat) on that file to find the documented Inputs.toggle options. Do NOT " +
       "guess from memory. Write the list of option names, one per line, into /notebook/answer.txt.",
     criteria: [
-      { name: "tool_used", args: { name: "host_sync" }, weight: 1 },
       { name: "bash_command_matches", args: { pattern: "\\b(grep|rg|cat|less|head|tail|sed|awk)\\b" }, weight: 1 },
       { name: "file_exists", args: { path: "/notebook/answer.txt" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "label" }, weight: 1 },
@@ -392,14 +386,13 @@ export const EVALS = [
     id: "doc-lookup-nonexistent-tabbedpane",
     category: "hallucination",
     question:
-      "What are all the arguments to Inputs.tabbedPane? Look it up in the bundled reference: run " +
-      "host_sync once, then do a SINGLE focused grep for \"tabbedPane\" in " +
-      "/notebook/@tomlarkworthy/inputs-reference.js. If that grep finds nothing, STOP searching " +
+      "What are all the arguments to Inputs.tabbedPane? Look it up in the bundled reference (already " +
+      "projected to /notebook/@tomlarkworthy/inputs-reference.js): do a SINGLE focused grep for " +
+      "\"tabbedPane\" in that file. If that grep finds nothing, STOP searching " +
       "immediately — do NOT try other spellings, and do NOT invent arguments. In that case your final " +
       "reply must say you could not find Inputs.tabbedPane documented and ask me how I would like to " +
       "proceed (end with a question).",
     criteria: [
-      { name: "tool_used", args: { name: "host_sync" }, weight: 1 },
       { name: "bash_command_matches", args: { pattern: "\\b(grep|rg|cat|less|head|tail|sed|awk)\\b" }, weight: 1 },
       { name: "asks_clarification", args: {}, weight: 2 },
       // It must not have manufactured a workspace answer file full of fabricated options.
@@ -419,7 +412,7 @@ export const EVALS = [
       "const factor = function factor(){return( 6 )}; and a DOWNSTREAM cell `scaled` that depends on " +
       "factor and returns factor multiplied by 7 — i.e. const scaled = function scaled(factor)" +
       "{return( factor * 7 )};. The downstream cell MUST read `factor` as an input, not hard-code 42. " +
-      "Then host_apply /notebook/@user/wire.js so both evaluate live; scaled must equal 42.",
+      "Writing the file applies it live automatically; scaled must equal 42.",
     criteria: [
       { name: "file_exists", args: { path: "/notebook/@user/wire.js" }, weight: 1 },
       { name: "does_compile", args: { file: "/notebook/@user/wire.js" }, weight: 1 },
@@ -437,8 +430,8 @@ export const EVALS = [
     question:
       "Use the d3 library (it is available in the runtime — declare it as a cell input, do NOT import a " +
       "URL). Create a workspace module file /notebook/@user/stat.js with a single cell " +
-      "const total = function total(d3){return( d3.sum([1,2,3,4,5]) )}; then host_apply it. total must " +
-      "equal 15 and the cell must use d3.sum (not a hand-written loop).",
+      "const total = function total(d3){return( d3.sum([1,2,3,4,5]) )};. Writing the file applies it " +
+      "live automatically. total must equal 15 and the cell must use d3.sum (not a hand-written loop).",
     criteria: [
       { name: "file_exists", args: { path: "/notebook/@user/stat.js" }, weight: 1 },
       { name: "contains_string", args: { file: "/notebook/@user/stat.js", needle: "d3.sum" }, weight: 2 },
@@ -452,12 +445,19 @@ export const EVALS = [
     id: "library-import-esm",
     category: "library",
     question:
-      "Import the date-fns library from a CDN and use it to format a date. Create a workspace module " +
-      "file /notebook/@user/dates.js with TWO cells: const dateFns = function dateFns(){return( " +
-      "import('https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm') )}; and const formatted = function " +
-      "formatted(dateFns){return( dateFns.format(new Date(2020, 0, 1), 'yyyy-MM-dd') )};. Then host_apply " +
-      "/notebook/@user/dates.js. formatted must equal the string \"2020-01-01\" and must be produced by " +
-      "dateFns.format (do not hard-code the string).",
+      "Create a new LIVE module @user/dates that imports the date-fns library from a CDN and formats a " +
+      "date. Write /notebook/@user/dates.js as a full module with TWO cells:\n" +
+      "const _dateFns = function dateFns(){return( import('https://cdn.jsdelivr.net/npm/date-fns@4.1.0/+esm') )};\n" +
+      "const _formatted = function formatted(dateFns){return( dateFns.format(new Date(2020, 0, 1), 'yyyy-MM-dd') )};\n" +
+      "export default function define(runtime, observer){\n" +
+      "  const main = runtime.module();\n" +
+      "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+      "  $def(\"_dateFns\", \"dateFns\", [], _dateFns);\n" +
+      "  $def(\"_formatted\", \"formatted\", [\"dateFns\"], _formatted);\n" +
+      "  return main;\n" +
+      "}\n" +
+      "Writing the file applies it live automatically. formatted must equal the string \"2020-01-01\", " +
+      "produced by dateFns.format (do not hard-code the string).",
     criteria: [
       // deterministic file checks (always scorable); the live value is the end-to-end ESM-import proof.
       { name: "file_exists", args: { path: "/notebook/@user/dates.js" }, weight: 1 },
@@ -477,8 +477,8 @@ export const EVALS = [
       "Create a workspace module file /notebook/@user/fib.js with a single cell named `fib15` whose " +
       "value is the 15th Fibonacci number, where F(1)=1 and F(2)=1 (so the sequence is " +
       "1,1,2,3,5,8,...). Compute it with a loop or recursion — do NOT just write the literal, and do " +
-      "NOT write the number 610 anywhere in the file (not even in a comment). Then host_apply " +
-      "/notebook/@user/fib.js. fib15 must equal 610.",
+      "NOT write the number 610 anywhere in the file (not even in a comment). Writing the file applies " +
+      "it live automatically. fib15 must equal 610.",
     criteria: [
       { name: "file_exists", args: { path: "/notebook/@user/fib.js" }, weight: 1 },
       { name: "does_compile", args: { file: "/notebook/@user/fib.js" }, weight: 1 },
@@ -494,7 +494,7 @@ export const EVALS = [
     question:
       "The cell `sumWrong` in the seeded file /notebook/@user/buggy.js is meant to compute the SUM of " +
       "[1,2,3] (which is 6) but it returns the wrong value. Read the file, find the bug, fix it in " +
-      "place, then host_apply /notebook/@user/buggy.js so it evaluates live. sumWrong must equal 6.",
+      "place. Writing the file applies it live automatically. sumWrong must equal 6.",
     setup: {
       files: {
         // reduce uses * with seed 0 → always 0; correct fix is + (or seed 1 for product semantics, but
@@ -543,12 +543,17 @@ export const EVALS = [
     id: "ui-composite-form",
     category: "ui",
     question:
-      "Build a COMPOSITE form (multiple fields in one cell) using the standard Inputs.form combinator. " +
-      "Create a workspace module file /notebook/@user/rect.js with a single cell named `rectForm` that " +
-      "returns Inputs.form({width: Inputs.range([1,200],{label:'width',step:1}), height: " +
-      "Inputs.range([1,200],{label:'height',step:1})}) — i.e. const rectForm = function rectForm(Inputs)" +
-      "{return( Inputs.form({width: Inputs.range([1,200],{label:'width',step:1}), height: " +
-      "Inputs.range([1,200],{label:'height',step:1})}) )};. Then host_apply it so it renders live.",
+      "Create a new LIVE module @user/rect with a COMPOSITE form cell (multiple fields in one cell) using " +
+      "the standard Inputs.form combinator. Write /notebook/@user/rect.js as a full module:\n" +
+      "const _rectForm = function rectForm(Inputs){return( Inputs.form({width: Inputs.range([1,200]," +
+      "{label:'width',step:1}), height: Inputs.range([1,200],{label:'height',step:1})}) )};\n" +
+      "export default function define(runtime, observer){\n" +
+      "  const main = runtime.module();\n" +
+      "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+      "  $def(\"_rectForm\", \"rectForm\", [\"Inputs\"], _rectForm);\n" +
+      "  return main;\n" +
+      "}\n" +
+      "Writing the file registers and renders the module live automatically within ~1s.",
     criteria: [
       { name: "file_exists", args: { path: "/notebook/@user/rect.js" }, weight: 1 },
       { name: "contains_string", args: { module: "@user/rect", var: "rectForm", needle: "Inputs.form" }, weight: 2 },

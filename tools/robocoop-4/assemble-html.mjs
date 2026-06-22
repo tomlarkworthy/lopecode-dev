@@ -31,11 +31,13 @@ html = html.replace(ATT_OLD, ATT_NEW);
 
 // 2. Strip the original justbash-family module blocks — they are superseded by the robocoop-4-bash*
 //    modules (synced in stage 2) and nothing booted imports them. Keeps the artifact unambiguous.
+// NOTE: justbash-filesync is KEPT — the host bridge reuses its jbApply factory (pure, no deps, so it
+// does NOT pull the renamed just-bash trio). exporter-3 / file-sync / module-map / observablejs-toolchain
+// are already in the base and are NOT stripped (the bridge reuses exportModuleJS + probeDefine).
 const STRIP = [
   '@tomlarkworthy/just-bash',
   '@tomlarkworthy/justbash-session',
   '@tomlarkworthy/justbash-terminal',
-  '@tomlarkworthy/justbash-filesync',
   '@tomlarkworthy/justbash',
 ];
 for (const id of STRIP) {
@@ -54,8 +56,8 @@ const RC4_MAINS = [
   '@tomlarkworthy/robocoop-4-hostbridge',
   '@tomlarkworthy/robocoop-4',
   '@tomlarkworthy/robocoop-4-tests', // booted (not in the view) so test_rc4_* cells exist for node CI
-  '@tomlarkworthy/inputs-reference', // booted (not in the view) so host_sync projects it → the agent
-                                     // can look up Inputs API docs (e.g. Inputs.toggle options) by grep
+  '@tomlarkworthy/inputs-reference', // booted (not in the view) so the watch loop auto-projects it →
+                                     // the agent can look up Inputs API docs (e.g. Inputs.toggle) by grep
 ];
 // Flat layout only — lopepage parses the view once at boot and rejects nested S(S(),S()) groups.
 const HASH =

@@ -317,6 +317,10 @@ export async function createDriver({
           const isEvalVar = (id, n) =>
             id && (id.startsWith("@user/") || id.includes("robocoop-4")) &&
             n && !n.startsWith("module ") && n !== "@variable";
+          // Sync is REALTIME (jbFileSync watch loop, ~600ms poll): a module file the agent wrote during
+          // the turn is applied to the live runtime a beat later. Wait a couple of poll cycles so newly
+          // created/edited modules are live before we force-compute and snapshot.
+          await sleep(2000);
           {
             const idMapF = buildModuleIdMap();
             for (const { v, moduleObj } of allVariables()) {
