@@ -121,8 +121,36 @@ const LIB_STUBS = {
     max: (a) => Math.max(...a),
     min: (a) => Math.min(...a),
     mean: (a) => a.reduce((x, y) => x + y, 0) / a.length,
+    extent: (a) => [Math.min(...a), Math.max(...a)],
+    median: (a) => { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; },
   },
 };
+
+// Evaluate a named cell from a module file, resolving its inputs the way the runtime would: an explicitly
+// provided input wins; then a library stub; then a SIBLING cell of that name in the same file (recursively,
+// with a cycle guard) — so an agent that decomposes work into reactive cells (e.g. `scores` + `topThree`)
+// is graded correctly instead of penalised. Returns { value } or { error }. Sync cells only.
+function resolveCellValue(text, name, inputs = {}, seen = new Set()) {
+  if (seen.has(name)) return { error: `dependency cycle at ${name}` };
+  seen.add(name);
+  const cell = extractCell(text, name);
+  if (!cell) return { error: `cell ${name} not found` };
+  let fn;
+  try { fn = new Function(...cell.params, cell.body); }
+  catch (e) { return { error: `cell ${name} does not compile: ${e.message}` }; }
+  const callArgs = [];
+  for (const p of cell.params) {
+    if (p in inputs) { callArgs.push(inputs[p]); continue; }
+    if (p in LIB_STUBS) { callArgs.push(LIB_STUBS[p]); continue; }
+    const sib = resolveCellValue(text, p, inputs, new Set(seen));
+    callArgs.push(sib.error ? undefined : sib.value);
+  }
+  let value;
+  try { value = fn(...callArgs); }
+  catch (e) { return { error: `cell ${name} threw: ${e.message}` }; }
+  if (value && typeof value.then === "function") return { error: `cell ${name} is async; sync only` };
+  return { value };
+}
 
 const deepEq = (a, b) =>
   (a && typeof a === "object") || (b && typeof b === "object")
@@ -291,20 +319,75 @@ export const CRITERIA = {
   cell_evaluates(snapshot, args) {
     const text = args.file != null ? snapshot.files?.[args.file] : null;
     if (text == null) return fail(`file ${args.file} not found for cell_evaluates`);
-    const cell = extractCell(text, args.name);
-    if (!cell) return fail(`cell ${args.name} not found in ${args.file} (expected function ${args.name}(...){...})`);
-    let fn;
-    try { fn = new Function(...cell.params, cell.body); }
-    catch (e) { return fail(`cell ${args.name} does not compile: ${e.message}`); }
-    const provided = args.inputs || {};
-    const callArgs = cell.params.map((p) => (p in provided ? provided[p] : LIB_STUBS[p]));
-    let result;
-    try { result = fn(...callArgs); }
-    catch (e) { return fail(`cell ${args.name} threw: ${e.message}`); }
-    if (result && typeof result.then === "function") return fail(`cell ${args.name} is async; cell_evaluates supports sync cells only`);
-    return deepEq(result, args.equals)
+    // Resolves intra-module cell deps from the file (rewards reactive decomposition); explicit
+    // args.inputs still override (e.g. to prove a derived cell isn't a constant by feeding two values).
+    const r = resolveCellValue(text, args.name, args.inputs || {});
+    if (r.error) return fail(r.error + ` (in ${args.file})`);
+    return deepEq(r.value, args.equals)
       ? ok(`${args.name} evaluates to ${JSON.stringify(args.equals)}`)
-      : fail(`${args.name} evaluated to ${JSON.stringify(result)}, expected ${JSON.stringify(args.equals)}`);
+      : fail(`${args.name} evaluated to ${JSON.stringify(r.value)}, expected ${JSON.stringify(args.equals)}`);
+  },
+
+  // Compile a cell whose VALUE is a function (e.g. `const nthPrime = function nthPrime(){return( n => … )}`)
+  // and call it with each {args, equals} case. Strong anti-hardcode: the agent must implement the general
+  // function, not memorise one output. Sync only; injects LIB_STUBS for any extra params.
+  cell_fn_evaluates(snapshot, args) {
+    const text = args.file != null ? snapshot.files?.[args.file] : null;
+    if (text == null) return fail(`file ${args.file} not found for cell_fn_evaluates`);
+    const cell = extractCell(text, args.name);
+    if (!cell) return fail(`cell ${args.name} not found in ${args.file}`);
+    let outer;
+    try { outer = new Function(...cell.params, cell.body); }
+    catch (e) { return fail(`cell ${args.name} does not compile: ${e.message}`); }
+    let fn;
+    try { fn = outer(...cell.params.map((p) => LIB_STUBS[p])); }
+    catch (e) { return fail(`cell ${args.name} threw building the fn: ${e.message}`); }
+    if (typeof fn !== "function") return fail(`cell ${args.name} is not a function (${typeof fn})`);
+    for (const c of args.cases || []) {
+      let got;
+      try { got = fn(...(c.args || [])); }
+      catch (e) { return fail(`${args.name}(${JSON.stringify(c.args)}) threw: ${e.message}`); }
+      if (!deepEq(got, c.equals))
+        return fail(`${args.name}(${JSON.stringify(c.args)}) = ${JSON.stringify(got)}, expected ${JSON.stringify(c.equals)}`);
+    }
+    return ok(`${args.name} satisfies ${(args.cases || []).length} case(s)`);
+  },
+
+  // A live variable's RENDERED output (valuePreview = outerHTML for DOM, else stringified value) contains
+  // a substring. Use to check that an edit to an EXISTING live module actually took effect in the runtime
+  // (e.g. exporter-3's title now renders the new text), not just that the source file changed.
+  live_value_contains(snapshot, args) {
+    const v = findVariable(snapshot, args.module, args.name);
+    if (!v) return fail(`${args.module}:${args.name} not found live`);
+    if (v.hasError) return fail(`${args.module}:${args.name} error: ${v.error}`);
+    const hay = String(v.valuePreview ?? "");
+    return hay.includes(String(args.needle))
+      ? ok(`${args.module}:${args.name} live value contains "${args.needle}"`)
+      : fail(`${args.module}:${args.name} live value lacks "${args.needle}" (${hay.slice(0, 80)})`);
+  },
+
+  // ANY live variable's SOURCE (_definition) in the module contains the needle. jbApply rewrites
+  // _definition on apply, so this proves the edit reached the LIVE runtime — distinct from a file-only
+  // write (the clobber-safety would leave the agent's file edited even if apply failed). Anonymous-cell
+  // safe (no name needed).
+  module_source_contains(snapshot, args) {
+    const mod = snapshot.modules?.[args.module];
+    if (!mod) return fail(`module ${args.module} not found live`);
+    const hit = mod.variables.some((v) => String(v.source ?? "").includes(String(args.needle)));
+    return hit
+      ? ok(`${args.module} live source contains "${args.needle}"`)
+      : fail(`${args.module} live source lacks "${args.needle}" (edit not applied to runtime?)`);
+  },
+
+  // ANY live variable in the module renders/contains the needle. For editing existing modules whose
+  // target cell is anonymous (md titles, display cells) and so can't be addressed by name.
+  module_renders_contains(snapshot, args) {
+    const mod = snapshot.modules?.[args.module];
+    if (!mod) return fail(`module ${args.module} not found live`);
+    const hit = mod.variables.some((v) => !v.hasError && String(v.valuePreview ?? "").includes(String(args.needle)));
+    return hit
+      ? ok(`${args.module} renders "${args.needle}" somewhere`)
+      : fail(`${args.module} renders nothing containing "${args.needle}"`);
   },
 
   variable_equals(snapshot, args) {

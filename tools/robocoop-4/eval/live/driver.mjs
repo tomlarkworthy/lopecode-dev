@@ -165,10 +165,19 @@ export async function createDriver({
         }, evalDef.setup.files);
       }
 
+      // Modules referenced by this eval's criteria — force-compute their (possibly lazy) vars so live
+      // checks on EXISTING modules (e.g. editing @tomlarkworthy/exporter-3's title) read real values.
+      const targetModules = [];
+      for (const c of evalDef?.criteria || []) {
+        const a = c?.args || {};
+        if (a.module) targetModules.push(a.module);
+        if (a.id) targetModules.push(a.id);
+      }
+
       // Step 6: send the question (raced against timeout) and build the WorldSnapshot — all in-page so
       // we have synchronous access to live runtime values.
       const snapshot = await page.evaluate(
-        async ({ question, model, timeoutMs }) => {
+        async ({ question, model, timeoutMs, targetModules }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -314,9 +323,10 @@ export async function createDriver({
           // (macrotask settle), then AWAIT each variable's _promise so _value reflects the result.
           // Scope to @user/* and robocoop-4* so we don't compute the whole library. ---
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const targetSet = new Set(targetModules || []);
           const isEvalVar = (id, n) =>
-            id && (id.startsWith("@user/") || id.includes("robocoop-4")) &&
-            n && !n.startsWith("module ") && n !== "@variable";
+            id && (id.startsWith("@user/") || id.includes("robocoop-4") || targetSet.has(id)) &&
+            n && !String(n).startsWith("module ") && n !== "@variable";
           // Sync is REALTIME (jbFileSync watch loop, ~600ms poll): a module file the agent wrote during
           // the turn is applied to the live runtime a beat later. Wait a couple of poll cycles so newly
           // created/edited modules are live before we force-compute and snapshot.
@@ -380,7 +390,7 @@ export async function createDriver({
 
           return result;
         },
-        { question, model, timeoutMs },
+        { question, model, timeoutMs, targetModules },
       );
 
       snapshot.console = consoleEvents;

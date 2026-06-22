@@ -1,0 +1,15 @@
+import { chromium } from "playwright";
+const nb = process.argv[2];
+const layout = "R100(S75(@tomlarkworthy/robocoop-4),S25(@tomlarkworthy/robocoop-4-hostbridge))";
+const b = await chromium.launch({ headless: true });
+const p = await (await b.newContext()).newPage();
+const errs = [];
+p.on("console", (m) => { if (m.type() === "error") errs.push(m.text().slice(0, 160)); });
+p.on("pageerror", (e) => errs.push("PAGEERROR " + e.message.slice(0, 160)));
+await p.addInitScript(() => { try { localStorage.setItem("OPENROUTER_API_KEY", "sk-x"); localStorage.setItem("robocoop4_model", "x"); } catch {} });
+await p.goto(`file://${nb}#view=${layout}`, { waitUntil: "load", timeout: 30000 });
+await p.waitForFunction(() => globalThis.__ojs_runtime?.mains?.size > 0, { timeout: 30000 });
+await p.waitForTimeout(6000);
+console.log("clean-boot console errors:", errs.length);
+errs.forEach((e) => console.log("  •", e));
+await b.close();

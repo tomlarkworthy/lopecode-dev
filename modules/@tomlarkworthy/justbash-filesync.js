@@ -233,8 +233,12 @@ const _4bge96 = function _jbApply() {
     //  - assigns a fresh pid to a pid-less new cell (a hand-written cell), matching by name on re-apply
     //    so edits update rather than duplicate;
     //  - skips structural import plumbing (module @x / @variable wiring) emitted by exportModuleJS.
+    // Structural = runtime plumbing emitted by exportModuleJS (module imports + @variable wiring), NOT
+    // user cells. Anonymous cells (name == null: md headers, expression/display cells) are the MAJORITY
+    // of a notebook and ARE editable — match them by pid, never skip them. (The old `!name` clause here
+    // silently dropped every anonymous-cell edit and let re-projection clobber it.)
     const isStructural = (name, inputs) =>
-        !name || name.startsWith('module ') || name === '@variable' || (inputs || []).includes('@variable');
+        (name && name.startsWith('module ')) || name === '@variable' || (inputs || []).includes('@variable');
     let pidSeq = 0;
     const genPid = () => '_jb' + (pidSeq++).toString(36) + Math.floor(Math.random() * 1e6).toString(36);
     return function makeApply({ currentModules, runtime, probeDefine, createModule } = {}) {
@@ -441,7 +445,11 @@ const _3hostsync = function _jbFileSync(fsDirectoryHandle, readFile, writeFile, 
                         if (typeof m.default !== 'function') { log('⚠ ' + id + ': no default export define()'); continue; }
                         const r = apply(id, m.default);
                         log(new Date().toLocaleTimeString() + ' ⤵ ' + id + ' (' + (r.changes || 0) + (r.applied ? '' : ' — ' + r.reason) + ')');
-                        if (r.applied) { try { await project(id); } catch (e) {} } // re-project so disk == canonical (idempotent)
+                        // Re-project (disk == canonical) ONLY when a change actually landed. Re-projecting
+                        // after a 0-change apply would overwrite the agent's edited file with the unchanged
+                        // live source — silent data loss. If the file differs but nothing applied, leave it.
+                        if (r.applied && r.changes > 0) { try { await project(id); } catch (e) {} }
+                        else if (r.applied && r.changes === 0) { log('  ⚠ ' + id + ': file differs but 0 cells applied — left as-is'); }
                     } catch (e) { log('⚠ ' + id + ': ' + (e && e.message || e)); }
                     finally { URL.revokeObjectURL(url); }
                 }
