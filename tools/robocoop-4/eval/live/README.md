@@ -50,7 +50,7 @@ Append an object to `EVALS` in `evals.mjs`:
 ```js
 {
   id: "my-eval",
-  category: "coding", // module-lifecycle | documentation | doc-comprehension | plot | coding | code-quality
+  category: "coding", // module-lifecycle | documentation | doc-comprehension | plot | coding | code-quality | bash-tools | hallucination
   question: "…",      // sent verbatim to the agent; say exactly WHERE to put the result
   setup: { files: { "/notebook/@user/seed.js": "…" } }, // optional: seeded into the workspace fs first
   criteria: [
@@ -91,6 +91,8 @@ A "target" resolves a string to check: prefer `file` (looks up `snapshot.files[p
 | `no_runtime_errors` | — | `snapshot.errors` empty |
 | `tool_used` | `name, minTimes?` | ≥ minTimes (default 1) tool calls of `name` |
 | `tool_not_used` | `name` | zero tool calls of `name` |
+| `bash_command_matches` | `pattern, flags?, minTimes?` | ≥ minTimes bash calls whose command matches the regex (assert sed/grep/… was used) |
+| `asks_clarification` | — | the final assistant reply contains `?` (anti-hallucination: ask, don't fabricate) |
 | `max_steps` | `n` | `snapshot.steps` ≤ n |
 
 If `snapshot.ok === false` (driver/timeout failure), every criterion scores 0 with feedback

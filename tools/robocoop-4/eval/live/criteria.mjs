@@ -276,6 +276,30 @@ export const CRITERIA = {
       ? ok(`steps ${snapshot.steps} <= ${args.n}`)
       : fail(`steps ${snapshot.steps} > ${args.n}`);
   },
+
+  // A bash tool-call whose command matches the regex `pattern` ran at least `minTimes`. The agent's
+  // only tool is `bash`, so this is how we assert a specific shell capability (sed, grep, …) was used.
+  bash_command_matches(snapshot, args) {
+    const re = new RegExp(args.pattern, args.flags || "");
+    const min = args.minTimes ?? 1;
+    const cmds = (snapshot.toolCalls || [])
+      .filter((c) => c.name === "bash")
+      .map((c) => (c.arguments && (c.arguments.command ?? c.arguments.raw)) || "");
+    const n = cmds.filter((cmd) => re.test(cmd)).length;
+    return n >= min
+      ? ok(`${n} bash command(s) match /${args.pattern}/ (need ${min})`)
+      : fail(`no bash command matched /${args.pattern}/ (ran: ${cmds.map((c) => c.slice(0, 30)).join(" | ") || "none"})`);
+  },
+
+  // The agent asked a clarifying question instead of fabricating: its LAST assistant message contains
+  // a "?". Anti-hallucination check for impossible/under-specified prompts.
+  asks_clarification(snapshot) {
+    const asst = (snapshot.conversation || []).filter((m) => m.role === "assistant" && typeof m.content === "string" && m.content.trim());
+    const last = asst.length ? asst[asst.length - 1].content : "";
+    return /\?/.test(last)
+      ? ok(`final reply asks a clarifying question`)
+      : fail(`final reply has no clarifying question ("?"): ${JSON.stringify(last.slice(0, 80))}`);
+  },
 };
 
 function escapeRe(s) {

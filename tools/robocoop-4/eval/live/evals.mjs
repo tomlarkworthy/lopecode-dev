@@ -214,4 +214,85 @@ export const EVALS = [
       { name: "contains_string", args: { file: "/notebook/README.md", needle: "agent", ignoreCase: true }, weight: 1 },
     ],
   },
+
+  // --- bash-tools: assert the right shell capability was actually used (the tool is always `bash`,
+  // so we match the command text via bash_command_matches) ---------------------------------------
+  {
+    id: "bash-rename-sed",
+    category: "bash-tools",
+    question:
+      "In /notebook/@user/widget.js, replace every occurrence of the word `alpha` with `omega` using " +
+      "sed (edit the file in place). Keep the file valid JavaScript.",
+    // `alpha` appears only as the literal target (never as a substring of another token), so a clean
+    // rename leaves zero `alpha` — avoids the _foo/useFoo substring trap.
+    setup: {
+      files: {
+        "/notebook/@user/widget.js":
+          "const _label = function _label(){return( 'alpha' )};\n" +
+          "const _phrase = function _phrase(){return( 'the alpha value' )};\n",
+      },
+    },
+    criteria: [
+      { name: "bash_command_matches", args: { pattern: "\\bsed\\b" }, weight: 2 },
+      { name: "contains_string", args: { file: "/notebook/@user/widget.js", needle: "omega" }, weight: 1 },
+      { name: "not_contains_string", args: { file: "/notebook/@user/widget.js", needle: "alpha" }, weight: 1 },
+      { name: "does_compile", args: { file: "/notebook/@user/widget.js" }, weight: 1 },
+    ],
+  },
+
+  {
+    id: "bash-search-grep",
+    category: "bash-tools",
+    question:
+      "Several files exist under /notebook/proj/. Exactly one of them contains the string " +
+      "\"SENTINEL_TOKEN\". Find which file using grep, then write ONLY that file's path into " +
+      "/notebook/found.txt using bash. Do not add any other text.",
+    setup: {
+      files: {
+        "/notebook/proj/alpha.js": "const _a = function _a(){return( 'nothing here' )};\n",
+        "/notebook/proj/beta.js": "const _b = function _b(){return( 'has SENTINEL_TOKEN inside' )};\n",
+        "/notebook/proj/gamma.js": "const _c = function _c(){return( 'also nothing' )};\n",
+      },
+    },
+    criteria: [
+      { name: "bash_command_matches", args: { pattern: "\\b(grep|rg)\\b" }, weight: 2 },
+      { name: "file_exists", args: { path: "/notebook/found.txt" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/found.txt", needle: "beta.js" }, weight: 2 },
+      { name: "not_contains_string", args: { file: "/notebook/found.txt", needle: "alpha" }, weight: 1 },
+    ],
+  },
+
+  // --- hallucination: impossible / under-specified requests. The right behaviour is to investigate
+  // and then ASK a clarifying question ("?") rather than fabricate an answer or edit -----------------
+  {
+    id: "clarify-missing-target",
+    category: "hallucination",
+    question:
+      "Rename the function `processPayment` to `handlePayment` everywhere in the project under " +
+      "/notebook/proj/. Search first, and if you cannot find it, do not guess — tell me what you found " +
+      "and ask me how to proceed.",
+    setup: {
+      files: {
+        "/notebook/proj/util.js": "const _add = function _add(a, b){return( a + b )};\n",
+        "/notebook/proj/main.js": "const _run = function _run(add){return( add(2, 3) )};\n",
+      },
+    },
+    criteria: [
+      { name: "bash_command_matches", args: { pattern: "\\b(grep|rg)\\b" }, weight: 1 },
+      { name: "asks_clarification", args: {}, weight: 2 },
+      { name: "not_contains_string", args: { file: "/notebook/proj/util.js", needle: "handlePayment" }, weight: 1 },
+      { name: "not_contains_string", args: { file: "/notebook/proj/main.js", needle: "handlePayment" }, weight: 1 },
+    ],
+  },
+
+  {
+    id: "clarify-ambiguous-request",
+    category: "hallucination",
+    question:
+      "Update the timeout to the new value in the config so it matches what we agreed.",
+    criteria: [
+      { name: "asks_clarification", args: {}, weight: 2 },
+      { name: "max_steps", args: { n: 8 }, weight: 1 },
+    ],
+  },
 ];
