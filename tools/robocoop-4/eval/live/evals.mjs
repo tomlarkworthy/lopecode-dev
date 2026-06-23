@@ -410,6 +410,82 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── self-knowledge (understand its own architecture) ─────────────────────────
+  // The agent runs inside a lopecode microkernel notebook and is itself a set of modules. These check it can
+  // INVESTIGATE and answer deep questions about how it and the notebook are built — via bash on its own
+  // source (/notebook), and via read_content for the raw content blocks that are NOT projected module files
+  // (bootconf, the bootloader, the bundled runtime/stdlib, file-attachment bytes). No fact here is in the
+  // system prompt verbatim — each must be discovered with the tools.
+  {
+    id: "self-modules-roles",
+    category: "self-knowledge",
+    question:
+      "You are implemented as several Observable modules in this notebook. Investigate your own source and " +
+      "write to /notebook/answer.txt: (1) the module that implements your core agent tool-use loop, (2) the " +
+      "module that provides your bash shell, and (3) where that shell's code is actually loaded from.",
+    criteria: [
+      { name: "bash_command_matches", args: { pattern: "robocoop-4" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "robocoop-4-core" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "robocoop-4-bash" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "attach", ignoreCase: true }, weight: 1 },
+    ],
+  },
+  {
+    id: "self-boot-mains",
+    category: "self-knowledge",
+    // bootconf.json is a kernel content block, NOT a /notebook module file — only read_content reaches it.
+    question:
+      "Read this notebook's own boot configuration — the kernel config block, not a module file — and write the " +
+      "exact list of modules it boots at startup (its `mains`), one per line, to /notebook/answer.txt.",
+    criteria: [
+      { name: "tool_used", args: { name: "read_content" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/lopepage" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/robocoop-4-engine" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/inputs-reference" }, weight: 1 },
+    ],
+  },
+  {
+    id: "self-decode-attachment",
+    category: "self-knowledge",
+    // Requires read_content to fetch + gunzip a binary file-attachment block (no /notebook file holds it).
+    question:
+      "Your bash shell is loaded by decompressing a gzipped file attachment bundled in this notebook. Find that " +
+      "attachment's content id, decode it, and write to /notebook/answer.txt: the attachment's id, and what kind " +
+      "of code it decompresses to (name the language and one concrete detail you observed in the decompressed content).",
+    criteria: [
+      { name: "tool_used", args: { name: "read_content" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "just-bash.browser.js.gz" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "javascript", ignoreCase: true }, weight: 1 },
+    ],
+  },
+  {
+    id: "self-runtime-version",
+    category: "self-knowledge",
+    // The Observable runtime is bundled as a content block (id "@observablehq/runtime@6.0.0"), not a /notebook
+    // module — finding its version proves the notebook is self-contained AND requires read_content.
+    question:
+      "Which version of the Observable runtime does this notebook bundle? It is part of the notebook file, not " +
+      "something you can see by listing module files. Find it with your tools and write just the version number " +
+      "to /notebook/answer.txt.",
+    criteria: [
+      { name: "tool_used", args: { name: "read_content" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "6.0.0" }, weight: 2 },
+    ],
+  },
+  {
+    id: "self-live-edit-mechanism",
+    category: "self-knowledge",
+    question:
+      "Explain how a change you make to a file under /notebook/ becomes live in the running notebook. Investigate " +
+      "your own source, identify the module responsible, and describe the mechanism in one or two sentences. " +
+      "Write your answer to /notebook/answer.txt.",
+    criteria: [
+      { name: "bash_command_matches", args: { pattern: "hostbridge|filesync|file-sync" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "sync", ignoreCase: true }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "live", ignoreCase: true }, weight: 1 },
+    ],
+  },
+
   // ───────────────────────── refusal / clarification (don't fabricate) ─────────────────────────
   {
     id: "clarify-missing-symbol",
