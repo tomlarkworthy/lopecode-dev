@@ -53,6 +53,15 @@ for (const [from, to] of repoint) {
   html = html.replace(re, (_m, v) => 'import("' + to + (v || '') + '")');
   if (html !== before) console.log('  repointed ' + from + ' -> ' + to);
 }
+// The repoint changes import URLs but not the Observable variable NAME. justbash-filesync still registers the
+// bash module as the variable `module @tomlarkworthy/just-bash`, and all_module_files (@tomlarkworthy/
+// fileattachments) reads these names — so the bash attachment would surface under the OLD name, inconsistent
+// with /notebook + currentModules (robocoop-4-bash). Rename the variable too so the module has ONE name.
+{
+  const before = html;
+  html = html.replace(/"module @tomlarkworthy\/just-bash"/g, '"module @tomlarkworthy/robocoop-4-bash"');
+  if (html !== before) console.log('  renamed variable: module @tomlarkworthy/just-bash -> robocoop-4-bash');
+}
 writeFileSync(TARGET, html);
 
 console.log('[4/4] mirror to lopecode');

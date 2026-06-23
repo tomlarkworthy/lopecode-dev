@@ -420,9 +420,10 @@ export const EVALS = [
     id: "self-modules-roles",
     category: "self-knowledge",
     question:
-      "You are implemented as several Observable modules in this notebook. Investigate your own source and " +
-      "write to /notebook/answer.txt: (1) the module that implements your core agent tool-use loop, (2) the " +
-      "module that provides your bash shell, and (3) where that shell's code is actually loaded from.",
+      "You are implemented as several Observable modules in this notebook, each with a documented role (read " +
+      "their names and header/doc cells — don't reverse-engineer the internals). Write to /notebook/answer.txt: " +
+      "(1) the module that is your agent core, (2) the module that provides your bash shell, and (3) where that " +
+      "shell's code is actually loaded from.",
     criteria: [
       { name: "bash_command_matches", args: { pattern: "robocoop-4" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "robocoop-4-core" }, weight: 1 },
