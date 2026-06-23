@@ -306,6 +306,110 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── value inspection (REQUIRE the value tools) ─────────────────────────
+  // These can't be answered from source alone (or only tediously), and the prompt asks for the LIVE
+  // value/error — so a full score needs the agent to actually USE inspect_value / list_values.
+  {
+    id: "inspect-runtime-error",
+    category: "value-inspection",
+    question:
+      "The cell `amount` in @user/invoice is showing nothing — it seems to be failing at runtime. Use your " +
+      "tools to find the exact runtime error it produces, and write that error message into /notebook/answer.txt.",
+    setup: {
+      files: {
+        "/notebook/@user/invoice.js":
+          // basePrice is undefined at runtime -> ReferenceError, NOT visible by reading source alone
+          "const _amount = function amount(){ return basePrice * 1.2; };\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_amount\", \"amount\", [], _amount);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "tool_used", args: { name: "inspect_value" }, weight: 2 },
+      { name: "file_exists", args: { path: "/notebook/answer.txt" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "basePrice" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "not defined" }, weight: 1 },
+    ],
+  },
+  {
+    id: "inspect-live-value",
+    category: "value-inspection",
+    question:
+      "@user/report has a cell `total`. Use your tools to check what it currently evaluates to in the running " +
+      "notebook, and write just that number into /notebook/answer.txt.",
+    setup: {
+      files: {
+        "/notebook/@user/report.js":
+          "const _data = function data(){ return Array.from({length: 100}, (_, i) => i + 1); };\n" +
+          "const _total = function total(data){ return data.reduce((a, b) => a + b, 0); };\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_data\", \"data\", [], _data);\n  $def(\"_total\", \"total\", [\"data\"], _total);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "tool_used", args: { name: "inspect_value" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "5050" }, weight: 2 },
+    ],
+  },
+  {
+    id: "inspect-survey-largest",
+    category: "value-inspection",
+    question:
+      "Survey the live values of the cells in @user/dashboard and tell me which cell currently holds the " +
+      "largest number. Write that cell's name into /notebook/answer.txt.",
+    setup: {
+      files: {
+        "/notebook/@user/dashboard.js":
+          "const _visitors = function visitors(){ return 1240; };\n" +
+          "const _signups = function signups(){ return 318; };\n" +
+          "const _revenue = function revenue(){ return 9875; };\n" +
+          "const _bounce = function bounce(){ return 47; };\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_visitors\", \"visitors\", [], _visitors);\n  $def(\"_signups\", \"signups\", [], _signups);\n" +
+          "  $def(\"_revenue\", \"revenue\", [], _revenue);\n  $def(\"_bounce\", \"bounce\", [], _bounce);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      // either list_values or repeated inspect_value is a valid way to survey — reward the survey tool,
+      // but the outcome (correct cell) is the main signal and works with either approach.
+      { name: "tool_used", args: { name: "list_values" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "revenue" }, weight: 2 },
+      { name: "not_contains_string", args: { file: "/notebook/answer.txt", needle: "visitors" }, weight: 1 },
+    ],
+  },
+
+  {
+    id: "inspect-anonymous-cell",
+    category: "value-inspection",
+    question:
+      "@user/vault has an unnamed (anonymous) cell — its source declares `const _secret = …` and registers " +
+      "it with no name. Find what that cell currently evaluates to and write just the number into " +
+      "/notebook/answer.txt.",
+    // The anonymous cell folds a rolling hash over 1..100 — opaque to read, so the agent must inspect the
+    // live runtime value (by pid; it has no name to reference) rather than computing it from source.
+    setup: {
+      files: {
+        "/notebook/@user/vault.js":
+          "const _secret = function _secret(){ return Array.from({length: 100}, (_, i) => i + 1).reduce((a, b) => (a * 31 + b) % 1000000007, 7); };\n" +
+          "const _label = function label(){ return 'the answer'; };\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_secret\", null, [], _secret);\n  $def(\"_label\", \"label\", [], _label);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "tool_used", args: { name: "inspect_value" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "791704969" }, weight: 2 },
+    ],
+  },
+
   // ───────────────────────── refusal / clarification (don't fabricate) ─────────────────────────
   {
     id: "clarify-missing-symbol",
