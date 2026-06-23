@@ -308,6 +308,9 @@ export async function createDriver({
               const snap = await ws.snapshot();
               if (snap && typeof snap === "object") {
                 for (const [path, contents] of Object.entries(snap)) {
+                  // /content is the raw block mirror (megabytes of attachment/library bytes) — for the agent
+                  // to read during the run, never needed for grading. Skip it so snapshots stay small.
+                  if (path.startsWith("/content/")) continue;
                   if (typeof contents === "string") result.files[path] = contents;
                 }
               }

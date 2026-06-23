@@ -413,9 +413,9 @@ export const EVALS = [
   // ───────────────────────── self-knowledge (understand its own architecture) ─────────────────────────
   // The agent runs inside a lopecode microkernel notebook and is itself a set of modules. These check it can
   // INVESTIGATE and answer deep questions about how it and the notebook are built — via bash on its own
-  // source (/notebook), and via read_content for the raw content blocks that are NOT projected module files
-  // (bootconf, the bootloader, the bundled runtime/stdlib, file-attachment bytes). No fact here is in the
-  // system prompt verbatim — each must be discovered with the tools.
+  // source (/notebook) and the raw content blocks mirrored to /content (bootconf, bootloader, libraries,
+  // file-attachment bytes), and via eval_js to transform raw ingredients in userspace (decompress a gzipped
+  // attachment with FileAttachment + DecompressionStream). No fact here is in the system prompt verbatim.
   {
     id: "self-modules-roles",
     category: "self-knowledge",
@@ -433,12 +433,13 @@ export const EVALS = [
   {
     id: "self-boot-mains",
     category: "self-knowledge",
-    // bootconf.json is a kernel content block, NOT a /notebook module file — only read_content reaches it.
+    // bootconf.json is a raw content block mirrored to /content (not an editable /notebook module).
     question:
-      "Read this notebook's own boot configuration — the kernel config block, not a module file — and write the " +
-      "exact list of modules it boots at startup (its `mains`), one per line, to /notebook/answer.txt.",
+      "Read this notebook's own boot configuration — it's a raw content block in your filesystem, not a module " +
+      "you can edit — and write the exact list of modules it boots at startup (its `mains`), one per line, to " +
+      "/notebook/answer.txt.",
     criteria: [
-      { name: "tool_used", args: { name: "read_content" }, weight: 2 },
+      { name: "bash_command_matches", args: { pattern: "/content/bootconf" }, weight: 2 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/lopepage" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/robocoop-4-engine" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/inputs-reference" }, weight: 1 },
@@ -447,28 +448,29 @@ export const EVALS = [
   {
     id: "self-decode-attachment",
     category: "self-knowledge",
-    // Requires read_content to fetch + gunzip a binary file-attachment block (no /notebook file holds it).
+    // The shell can't gunzip (browser build) — the agent must fashion code: eval_js with FileAttachment +
+    // DecompressionStream. The exact decompressed size only comes from actually decoding it.
     question:
-      "Your bash shell is loaded by decompressing a gzipped file attachment bundled in this notebook. Find that " +
-      "attachment's content id, decode it, and write to /notebook/answer.txt: the attachment's id, and what kind " +
-      "of code it decompresses to (name the language and one concrete detail you observed in the decompressed content).",
+      "Your bash shell is loaded from a gzipped file attachment bundled in this notebook. Find that attachment " +
+      "in your filesystem, decompress it (the shell can't gunzip — you'll need to run code in userspace), and " +
+      "write to /notebook/answer.txt: the attachment's id, and the exact byte length (digits only) of the " +
+      "DECOMPRESSED bundle.",
     criteria: [
-      { name: "tool_used", args: { name: "read_content" }, weight: 2 },
-      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "just-bash.browser.js.gz" }, weight: 2 },
-      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "javascript", ignoreCase: true }, weight: 1 },
+      { name: "tool_used", args: { name: "eval_js" }, weight: 2 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "just-bash.browser.js.gz" }, weight: 1 },
+      { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "1142930" }, weight: 2 },
     ],
   },
   {
     id: "self-runtime-version",
     category: "self-knowledge",
-    // The Observable runtime is bundled as a content block (id "@observablehq/runtime@6.0.0"), not a /notebook
-    // module — finding its version proves the notebook is self-contained AND requires read_content.
+    // The Observable runtime is bundled as a content block (id "@observablehq/runtime@6.0.0") mirrored to
+    // /content — finding its version proves the notebook is self-contained, runtime bundled not fetched.
     question:
-      "Which version of the Observable runtime does this notebook bundle? It is part of the notebook file, not " +
-      "something you can see by listing module files. Find it with your tools and write just the version number " +
-      "to /notebook/answer.txt.",
+      "Which version of the Observable runtime does this notebook bundle? It's a raw content block in your " +
+      "filesystem, not an editable module. Find it and write just the version number to /notebook/answer.txt.",
     criteria: [
-      { name: "tool_used", args: { name: "read_content" }, weight: 2 },
+      { name: "bash_command_matches", args: { pattern: "/content" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "6.0.0" }, weight: 2 },
     ],
   },

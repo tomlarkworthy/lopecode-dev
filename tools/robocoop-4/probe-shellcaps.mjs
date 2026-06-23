@@ -1,4 +1,4 @@
-// Verify read_content registers and reads/enumerates/decodes microkernel content blocks.
+// What can the agent's bash shell actually do? List commands; test node/base64/gunzip/od.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -17,19 +17,18 @@ const out = await page.evaluate(async () => {
   function allVars() { const o = []; const s = new Set(); for (const m of reg.mains.values()) { const rt = m?._runtime; if (!rt || s.has(rt)) continue; s.add(rt); for (const v of rt._variables) o.push(v); } return o; }
   const find = (n) => allVars().find((v) => v._name === n);
   const force = async (n) => { const v = find(n); if (v?._module?.value) { try { v._module.value(n).catch(() => {}); } catch {} await sleep(250); if (v._promise?.then) { try { await Promise.race([v._promise.catch(() => {}), sleep(2500)]); } catch {} } } return v?._value; };
-  await force("rc4_workspace");
-  const viewEl = find("viewof rc4_tools")?._value;
-  const tools = (viewEl && Array.isArray(viewEl.value)) ? viewEl.value : [];
-  const r = { toolIds: tools.map((t) => t.id) };
-  const rc = tools.find((t) => t.id === "read_content");
-  if (!rc) return r;
-  r.list = (await rc.execute({}, {})).output.slice(0, 700);
-  r.bootconf = (await rc.execute({ id: "bootconf.json" }, {})).output;
-  const bashRes = await rc.execute({ id: "@tomlarkworthy/robocoop-4-bash/just-bash.browser.js.gz" }, {});
-  r.bashHead = bashRes.output.slice(0, 260);
-  r.bashMeta = bashRes.metadata;
-  r.bootloaderHead = (await rc.execute({ id: "@tomlarkworthy/bootloader" }, {})).output.slice(0, 200);
-  r.missing = (await rc.execute({ id: "nope/does-not-exist" }, {})).output.slice(0, 120);
+  const sh = await force("rc4_agentShell");
+  const r = {};
+  if (!sh) return { err: "no rc4_agentShell" };
+  const run = async (c) => { const res = await sh.run(c); return ((res.stdout || "") + (res.stderr ? " ERR:" + res.stderr : "") + (res.exitCode ? " [exit " + res.exitCode + "]" : "")).slice(0, 220); };
+  r.help = await run("help");
+  r.node = await run("node -e 'console.log(1+1)'");
+  r.nodeVer = await run("node --version");
+  r.base64 = await run("echo hi | base64");
+  r.gunzip = await run("gunzip --help");
+  r.zcat = await run("zcat --help");
+  r.od = await run("printf 'AB' | od -An -tx1");
+  r.xxd = await run("printf 'AB' | xxd");
   return r;
 });
 console.log(JSON.stringify(out, null, 2));
