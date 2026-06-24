@@ -251,7 +251,113 @@ const _attachmentMirror = function _attachmentMirror(all_module_files, rc4_works
   return all_module_files.length;
 };
 
-const _hostSetup = function _hostSetup(jbFileSync, rc4_workspace, currentModules, runtime, createModule, invalidation, valueTools, mirrorBlocks, registerTool, unregisterTool){
+// Claude-Code-familiar file tools over the agent's virtual fs, WITH COMPILE FEEDBACK. read_file/write_file/
+// edit_file mirror Claude Code's Read/Write/Edit argument shapes (file_path,offset,limit / file_path,content /
+// file_path,old_string,new_string,replace_all). Replacement is LITERAL (not regex), so no sed-escaping traps.
+// For a live module (/notebook/<id>.js), write_file and edit_file APPLY the result synchronously (reusing the
+// same probeDefine + jbApply machinery as jbFileSync) and report whether it compiled and how many cells
+// changed — the agent learns in the SAME turn instead of editing blind and waiting for the async watch loop.
+// A compile error leaves the live runtime on its last-good version (nothing applied); the file keeps the draft
+// so the agent can re-edit. After a successful change the module is re-projected (canonical form + pids).
+// Browser-only (needs window.importShim + the live runtime).
+const _editTools = function _editTools(defineTool, rc4_workspace, currentModules, runtime, createModule, exportModuleJS, probeDefine, jbApply){
+  const fs = rc4_workspace.fs;
+  const dec = (raw) => (typeof raw === 'string' ? raw : new TextDecoder().decode(raw));
+  const readText = async (p) => dec(await fs.readFile(p));
+  const writeText = (p, s) => fs.writeFile(p, new TextEncoder().encode(String(s ?? '')));
+  const apply = jbApply({ currentModules, runtime, probeDefine, createModule });
+
+  // Apply a just-written /notebook module; returns {ok,msg} or null when the path is not a live module file.
+  const applyModuleFile = async (path) => {
+    const m = /^\/notebook\/(.+)\.js$/.exec(path);
+    if (!m) return null;
+    const id = m[1];
+    let src;
+    try { src = await readText(path); } catch (e) { return { ok: false, msg: 'could not read back ' + path }; }
+    if (!/export\s+default/.test(src)) return { ok: false, msg: 'written, but not an importable module (no `export default`) — not applied' };
+    if (!window.importShim) return { ok: false, msg: 'written, but importShim is unavailable — not applied' };
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    try {
+      const mod = await window.importShim(url, 'file://@tomlarkworthy/robocoop-4-hostbridge');
+      if (typeof mod.default !== 'function') return { ok: false, msg: 'written, but no default export define() — not applied' };
+      const r = apply(id, mod.default);
+      if (!r.applied) return { ok: false, msg: 'written, but not applied: ' + (r.reason || 'unknown') };
+      if (r.changes > 0) { try { const ex = await exportModuleJS(id); await writeText(path, ex.source); } catch (e) {} }
+      const n = r.changes || 0;
+      return { ok: true, msg: 'applied live (' + n + ' cell' + (n === 1 ? '' : 's') + ' changed)' };
+    } catch (e) {
+      return { ok: false, msg: 'written, but FAILED TO COMPILE: ' + (e && e.message || e) + ' — live runtime unchanged; fix and re-edit' };
+    } finally { URL.revokeObjectURL(url); }
+  };
+
+  const read_file = defineTool({
+    id: 'read_file',
+    description: 'Read a file from the virtual filesystem, returned with line numbers (cat -n style). Use ' +
+      'offset/limit for large files. Mirrors Claude Code\'s Read.',
+    parameters: { type: 'object', additionalProperties: false, required: ['file_path'], properties: {
+      file_path: { type: 'string', description: 'Absolute path, e.g. /notebook/@user/mod.js or /content/bootconf.json.' },
+      offset: { type: 'number', description: '1-based line to start from (optional).' },
+      limit: { type: 'number', description: 'Maximum lines to read (optional; default 2000).' },
+    } },
+    execute: async ({ file_path, offset, limit }) => {
+      let text;
+      try { text = await readText(file_path); } catch (e) { return { output: 'ERROR: cannot read ' + file_path + ': ' + (e && e.message || e) }; }
+      const lines = text.split('\n');
+      const start = Math.max(0, offset ? offset - 1 : 0);
+      const end = Math.min(lines.length, start + (limit || 2000));
+      const body = lines.slice(start, end)
+        .map((l, i) => String(start + i + 1).padStart(6) + '\t' + (l.length > 2000 ? l.slice(0, 2000) + '… [line truncated]' : l))
+        .join('\n');
+      return { output: body || '(empty file)' };
+    },
+  });
+
+  const write_file = defineTool({
+    id: 'write_file',
+    description: 'Create or overwrite a file in the virtual filesystem. Mirrors Claude Code\'s Write. Writing a ' +
+      'live /notebook/<id>.js module APPLIES it and reports whether it compiled.',
+    parameters: { type: 'object', additionalProperties: false, required: ['file_path', 'content'], properties: {
+      file_path: { type: 'string', description: 'Absolute path.' },
+      content: { type: 'string', description: 'Full file contents.' },
+    } },
+    execute: async ({ file_path, content }) => {
+      try { await writeText(file_path, content); } catch (e) { return { output: 'ERROR: cannot write ' + file_path + ': ' + (e && e.message || e) }; }
+      const applied = await applyModuleFile(file_path);
+      return { output: 'Wrote ' + file_path + (applied ? ' — ' + applied.msg : '') };
+    },
+  });
+
+  const edit_file = defineTool({
+    id: 'edit_file',
+    description: 'Replace an exact, literal string in a file. Mirrors Claude Code\'s Edit: old_string must appear ' +
+      'exactly once (include surrounding context) unless replace_all is true. Editing a live /notebook/<id>.js ' +
+      'module APPLIES the result and reports whether it compiled, in this same turn.',
+    parameters: { type: 'object', additionalProperties: false, required: ['file_path', 'old_string', 'new_string'], properties: {
+      file_path: { type: 'string', description: 'Absolute path.' },
+      old_string: { type: 'string', description: 'Exact text to replace (include enough context to be unique).' },
+      new_string: { type: 'string', description: 'Replacement text.' },
+      replace_all: { type: 'boolean', description: 'Replace every occurrence (default false).' },
+    } },
+    execute: async ({ file_path, old_string, new_string, replace_all }) => {
+      let text;
+      try { text = await readText(file_path); } catch (e) { return { output: 'ERROR: cannot read ' + file_path + ': ' + (e && e.message || e) }; }
+      if (old_string === new_string) return { output: 'ERROR: old_string and new_string are identical.' };
+      const parts = text.split(old_string);
+      const count = parts.length - 1;
+      if (count === 0) return { output: 'ERROR: old_string not found in ' + file_path + '.' };
+      if (count > 1 && !replace_all) return { output: 'ERROR: old_string is not unique (' + count + ' matches). Add more surrounding context, or set replace_all:true.' };
+      const updated = replace_all ? parts.join(new_string) : parts[0] + new_string + parts.slice(1).join(old_string);
+      try { await writeText(file_path, updated); } catch (e) { return { output: 'ERROR: cannot write ' + file_path + ': ' + (e && e.message || e) }; }
+      const applied = await applyModuleFile(file_path);
+      const n = replace_all ? count : 1;
+      return { output: 'Edited ' + file_path + ' (' + n + ' replacement' + (n === 1 ? '' : 's') + ')' + (applied ? ' — ' + applied.msg : '') };
+    },
+  });
+
+  return [read_file, write_file, edit_file];
+};
+
+const _hostSetup = function _hostSetup(jbFileSync, rc4_workspace, currentModules, runtime, createModule, invalidation, valueTools, editTools, mirrorBlocks, registerTool, unregisterTool){
   // realtime self-edit
   const status = jbFileSync({ fs: rc4_workspace.fs, currentModules, runtime, createModule, notebookId: 'notebook', invalidation });
   // one-shot mirror of the static blocks (config/bootloader/libraries), after jbFileSync projects the modules
@@ -265,18 +371,20 @@ const _hostSetup = function _hostSetup(jbFileSync, rc4_workspace, currentModules
     }
     if (!cancelled) { try { await mirrorBlocks(rc4_workspace.fs); } catch (e) {} }
   })();
-  // value- and eval tools, registered through the plugin registry
-  valueTools.forEach((t) => registerTool(t));
-  invalidation.then(() => valueTools.forEach((t) => unregisterTool(t.id)));
+  // value/eval tools + Claude-Code-style file tools, registered through the plugin registry
+  const tools = [...valueTools, ...editTools];
+  tools.forEach((t) => registerTool(t));
+  invalidation.then(() => tools.forEach((t) => unregisterTool(t.id)));
   return status;
 };
 
-const _hostMount = function _hostMount(html, hostSetup, attachmentMirror, valueTools){
+const _hostMount = function _hostMount(html, hostSetup, attachmentMirror, valueTools, editTools){
   // hostSetup (jbFileSync + tools + static mirror) is stable; attachmentMirror recomputes on attachment
   // changes — embedding both here keeps attachmentMirror reachable without re-running hostSetup.
+  const ids = [...valueTools, ...editTools].map((t) => t.id).join(', ');
   return html`<div style="font:12px ui-monospace,Menlo,monospace;color:#7ee787;display:flex;flex-direction:column;gap:6px">
-    <div>● host integration active — self-edit + value inspection + eval</div>
-    <div style="color:#8b949e">tools: ${valueTools.map((t) => t.id).join(', ')} · /notebook = editable modules, /content = raw blocks (${attachmentMirror} attachments)</div>
+    <div>● host integration active — self-edit + value inspection + eval + file tools</div>
+    <div style="color:#8b949e">tools: ${ids} · /notebook = editable modules, /content = raw blocks (${attachmentMirror} attachments)</div>
     ${hostSetup}
   </div>`;
 };
@@ -292,6 +400,16 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/justbash-filesync", async () =>
     runtime.module((await import("/@tomlarkworthy/justbash-filesync.js?v=4")).default));
   main.define("jbFileSync", ["module @tomlarkworthy/justbash-filesync", "@variable"], (_, v) => v.import("jbFileSync", _));
+  main.define("jbApply", ["module @tomlarkworthy/justbash-filesync", "@variable"], (_, v) => v.import("jbApply", _));
+
+  // Compile/apply machinery for the file tools (same primitives jbFileSync uses): probeDefine decompiles a
+  // module's define() into cells, exportModuleJS re-serialises the live module (to re-project after a change).
+  main.define("module @tomlarkworthy/exporter-3", async () =>
+    runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));
+  main.define("exportModuleJS", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("exportModuleJS", _));
+  main.define("module @tomlarkworthy/file-sync", async () =>
+    runtime.module((await import("/@tomlarkworthy/file-sync.js?v=4")).default));
+  main.define("probeDefine", ["module @tomlarkworthy/file-sync", "@variable"], (_, v) => v.import("probeDefine", _));
 
   main.define("module @tomlarkworthy/robocoop-4-engine", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-engine.js?v=4")).default));
@@ -329,9 +447,10 @@ export default function define(runtime, observer) {
 
   $def("rc4h_doc_hostbridge", null, ["md"], _doc_hostbridge);
   $def("rc4h_value_tools", "valueTools", ["defineTool", "summarizeJS", "currentModules", "runtime", "observe"], _valueTools);
+  $def("rc4h_edit_tools", "editTools", ["defineTool", "rc4_workspace", "currentModules", "runtime", "createModule", "exportModuleJS", "probeDefine", "jbApply"], _editTools);
   $def("rc4h_mirror_blocks", "mirrorBlocks", [], _mirrorBlocks);
   $def("rc4h_attachment_mirror", "attachmentMirror", ["all_module_files", "rc4_workspace", "invalidation"], _attachmentMirror);
-  $def("rc4h_setup", "hostSetup", ["jbFileSync", "rc4_workspace", "currentModules", "runtime", "createModule", "invalidation", "valueTools", "mirrorBlocks", "registerTool", "unregisterTool"], _hostSetup);
-  $def("rc4h_mount", null, ["html", "hostSetup", "attachmentMirror", "valueTools"], _hostMount);
+  $def("rc4h_setup", "hostSetup", ["jbFileSync", "rc4_workspace", "currentModules", "runtime", "createModule", "invalidation", "valueTools", "editTools", "mirrorBlocks", "registerTool", "unregisterTool"], _hostSetup);
+  $def("rc4h_mount", null, ["html", "hostSetup", "attachmentMirror", "valueTools", "editTools"], _hostMount);
   return main;
 }
