@@ -1,0 +1,209 @@
+{
+  "slug": "robocoop-4",
+  "nextId": 15,
+  "rounds": 4,
+  "emptyStreak": 0,
+  "items": [
+    {
+      "id": "B1",
+      "axis": "functional",
+      "title": "Agent errors fail silently in chat UI (no error bubble on 402/throw)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4.js"
+      ],
+      "value": 4,
+      "evidence": "6 facade submits hit OpenRouter 402; input cleared + Send re-enabled but no errors[] bubble (#2d0f0f) rendered and no assistant reply. Success turns render fine -> defect is the error-render path.",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "Fix present in source (facade renders errors[] as #2d0f0f bubble, lines 66-109; commit 481a7f4) AND covered by test_rc4_session_surfaces_client_error (green). Live-402 repro NOT performed (B2 removes the 402 trigger; no-key path is a different branch). Grounded by the passing unit test, not a plausibility judgment.",
+      "created": "0"
+    },
+    {
+      "id": "B2",
+      "axis": "performance",
+      "title": "Engine omits max_tokens -> provider reserves full 32k -> 402 on budget-limited keys",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-engine.js",
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 4,
+      "evidence": "OpenRouter 402: 'requested up to 32000 tokens, can only afford 13734'. core chat() only sends max_tokens when !=null; engine never sets it. Set a sane default (e.g. 8k).",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "Engine now defaults max_tokens=8192 via createAgentSession; passed to client.chat. Grounded: 12/12 rc4 tests green + live sonnet Space Invaders build ran 10 steps with no 402.",
+      "created": "0"
+    },
+    {
+      "id": "B3",
+      "axis": "functional",
+      "title": "Agent run hard-freezes the notebook (main thread blocked; even 1+1 eval times out)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 5,
+      "evidence": "llama-3.3-70b climate-report run: after writing the file, channel went fully unresponsive for 6+ min; trivial eval(1+1) times out -> synchronous wedge, not slow serialization. maxStepsPerTurn=20 did not recover it.",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "VERIFIED LIVE 2026-06-24: reloaded fixed HTML; eval(1+1)=2 instant, runtime emitting updates, page responsive (was dead 6+min). Only inert //commented debuggers remain. Freeze fixed.",
+      "created": "0"
+    },
+    {
+      "id": "B4",
+      "axis": "code",
+      "title": "_valueTools is a CC-80 mega-cell (MI 11) — split inspect_value/list_values/eval_js into per-tool function cells",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 4,
+      "evidence": "code-metrics: MI 11, CC 80, LOC 202, H.Vol 11006 — worst cell in the notebook; classic dispatch-on-type mega-cell (flatten to thin dispatcher + per-branch cells)",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "1"
+    },
+    {
+      "id": "B5",
+      "axis": "code",
+      "title": "_editTools CC 42 / MI 26 — extract per-edit-op helpers",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 3,
+      "evidence": "code-metrics: MI 26, CC 42, LOC 90",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "1"
+    },
+    {
+      "id": "B6",
+      "axis": "code",
+      "title": "_createAgentSession MI 19 / CC 50 — the send() loop; consider extracting the per-step tool-dispatch body",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 3,
+      "evidence": "code-metrics: MI 19, CC 50, LOC 161 — load-bearing, refactor carefully (one change at a time)",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "1"
+    },
+    {
+      "id": "B7",
+      "axis": "performance",
+      "title": "No OpenRouter prompt caching: 8.4KB system prompt + full history re-billed every step",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js",
+        "modules/@tomlarkworthy/robocoop-4-engine.js"
+      ],
+      "value": 5,
+      "evidence": "createOpenRouterClient.chat sends no cache_control; systemPrompt ~2k tok re-sent uncached x20 steps/turn. Add anthropic cache_control breakpoint after system msg (~90% input saving on cached prefix).",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "OpenRouter client adds ephemeral cache_control on the static system prompt for anthropic/claude models (volatile notices left uncached). Grounded: tests green + build ran multi-step without error; cache_control verified present in loaded client source.",
+      "created": "2"
+    },
+    {
+      "id": "B8",
+      "axis": "performance",
+      "title": "Chat render() wipes log.innerHTML + re-parses every md bubble on every step callback (O(n2))",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4.js"
+      ],
+      "value": 4,
+      "evidence": "_facade render() does log.innerHTML='' then re-runs md`` over EVERY prior msg; wired to onText+onToolCall+onToolResult+onFinish -> 20-step turn re-parses whole transcript ~20x. Terminal is incremental; chat is not.",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "2"
+    },
+    {
+      "id": "B9",
+      "axis": "functional",
+      "title": "summarizeJS renders strings via DOM inspector -> agent sees quoted/escaped/mid-elided values not raw text",
+      "files": [
+        "modules/@tomlarkworthy/summarizejs.js",
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 4,
+      "evidence": "summarizeJS routes every value through Observable inspect() DOM renderer; top-level strings come back quote-wrapped+inspector-truncated. Defeats hostbridge's documented eval_js DecompressionStream attachment-read workflow. Fix: bypass inspect() for typeof string.",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "2"
+    },
+    {
+      "id": "B10",
+      "axis": "code-quality",
+      "title": "Delete dead validateParameters cell in core (44 LOC, exported but never called)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 3,
+      "evidence": "_validateParameters (67-110)+doc (62-66) ~44 LOC; defineTool does zero schema validation, no rc4-4 module imports it. Doc header mislabels it 'defineTool: validateParameters'.",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "Deleted dead validateParameters + doc +  from core (~50 LOC). Safe: not called by defineTool, not imported by any rc4 module. Verified 14/14 tests green.",
+      "created": "2"
+    },
+    {
+      "id": "B11",
+      "axis": "performance",
+      "title": "list_values force-computes up to 40 cells serially with 5s timeout each (worst ~200s stall)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 3,
+      "evidence": "list_values.execute awaits readVar in sequential for-loop over up to 40 cells; readVar 5s/cell timeout. Promise.all them (independent) or cap concurrency.",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "2"
+    },
+    {
+      "id": "B12",
+      "axis": "functional",
+      "title": "Agent burns ~5 steps reading a freshly-created module's exported value via ad-hoc eval_js (Object.keys(this)) instead of inspect_value/list_values",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js",
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 4,
+      "evidence": "Space-invaders live probe (sonnet, 10 steps): after writing the module the agent spent steps 4-9 on eval_js attempts ('access the canvas through the proper Observable variable', Object.keys(this)) to read its own 'viewof game' value. Doesn't reach for inspect_value/list_values; system prompt lacks the read-a-module-value idiom. Wastes tokens (A3/A6).",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "Prompt fix in systemPrompt (core.js): point agent at inspect_value/list_values to read a just-created cell. VERIFIED LIVE (sonnet): create+read task used write_file->inspect_value->task_complete (6 steps), no eval_js/Object.keys. Grounded by actual tool_call sequence.",
+      "created": "2"
+    },
+    {
+      "id": "B13",
+      "axis": "functional",
+      "title": "Agent loop gives no 'thinking'/progress signal while a turn runs (user can't tell it's working)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4.js"
+      ],
+      "value": 4,
+      "evidence": "Rubric #14: during a multi-step turn the chat shows nothing until the turn finishes/streams; a long Sonnet build ran 70s+ with no visible busy/thinking indicator. Reactive notebooks must give fast visible feedback — surface a per-step 'thinking'/tool-running signal in the facade.",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "4"
+    },
+    {
+      "id": "B14",
+      "axis": "functional",
+      "title": "Agent-created module isn't surfaced — user must hunt a lookup menu to see it",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4.js",
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 4,
+      "evidence": "Rubric #14: after the agent write_file's a new @user/x module it compiles live but does NOT appear where the user is looking (not added to the view/lopepage); the user has to find it via a module lookup menu. A created artifact should surface in place (auto-add to view, or a 'created @x — open it' affordance).",
+      "status": "open",
+      "attempts": 0,
+      "note": "",
+      "created": "4"
+    }
+  ]
+}

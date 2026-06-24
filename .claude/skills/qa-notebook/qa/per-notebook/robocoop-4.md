@@ -1,0 +1,54 @@
+# Per-notebook guidance: robocoop-4
+
+Refines (never replaces) `qa/general.md`. robocoop-4 is **deep functionality** — an autonomous coding agent — so "does the chat box work" badly under-measures it. The general criteria still apply; the agent-specific criteria **A1–A7** below are where the real quality lives, and they are graded by *running real tasks*, not by reading the UI.
+
+## What it is
+A bash-centric coding agent that edits the live notebook's own modules. Loop in `@tomlarkworthy/robocoop-4-core` (`createAgentSession.send`, `maxStepsPerTurn:20`, explicit `task_complete`). Model via OpenRouter (`session` ← engine). Two capability surfaces, easy to confuse:
+- **`bash`** runs on justbash `InMemoryFs` — **offline, no network** (vendored sandbox).
+- **`eval_js`** (+ `inspect_value`/`list_values`, registered by `robocoop-4-hostbridge`) runs JS in the *notebook* context — **has real browser network (`fetch`), runtime values, and live module editing.** This is the deep capability; the agent's network/ground-truth access is here, not in bash.
+
+Edits to `/notebook/<id>.js` apply live and report compile status in the same turn. `/content/<id>` is the read-only microkernel store.
+
+## How to exercise it (run a small benchmark, don't just smoke-test)
+Use **`anthropic/claude-sonnet-4`** for testing (not opus — see quirks). Drive `session` directly via `__ojs_runtime` (`session.send(task, {onFinish})`) or the chat box. Read produced files from `rc4_agentShell.fs.data`. A useful task battery, easy → deep:
+1. **Edit** — "change the title cell of @x to Y" (tests live-edit + compile feedback).
+2. **Create** — "add a new module @user/foo with a viewof slider and a cell that doubles it" (tests module scaffolding + reactive idiom).
+3. **Repair** — break a cell on purpose, then "fix the failing cell" (tests `inspect_value`-driven diagnosis + self-correction).
+4. **Ground-truth task** — "report the current atmospheric CO₂ from a live source" (tests whether it *fetches via eval_js* vs fabricates — see A2).
+5. **Introspect** — "what does cell `foo` evaluate to right now?" (tests `inspect_value` over guessing from source).
+
+## Agent-specific criteria (A1–A7) — grade pass / partial / fail with task evidence
+
+**A1 — Task completion at the frontier.** Does it complete real coding tasks end-to-end, and is its capability near what current coding agents (Claude Code, Cursor, etc.) achieve *within the single-file browser constraint*? Benchmark against that frontier (research it if unsure), not against "it replied".
+- pass — battery 1–3 complete cleanly, edits compile, result verified live. partial — completes with hand-holding or one retry-able failure. fail — cannot complete a basic edit/create end-to-end.
+
+**A2 — Grounding & integrity (the load-bearing one).** When asked to produce content/data, does it **use the real capability it has** (`eval_js`+`fetch`, runtime values, computation) instead of **asserting from model memory**? A confident artifact with precise-but-unsourced figures is a **fail**, even when the numbers happen to be right — it manufactures false authority. (Origin: 2026-06-24, the agent wrote a plausible, unsourced climate report from memory while having `fetch`.) Grade the **strategy**: reachable-but-unfetched data = fail. Do **not** confirm its figures from your own knowledge — require the source.
+
+**A3 — Tool-use quality & self-correction.** Right tool for the job (`edit_file` over `sed`; `inspect_value`/`list_values` over guessing from source); reads the compile error and fixes a malformed edit rather than repeating it; uses `eval_js` for runtime truth.
+- fail — guesses from source, ignores compile failures, or sed-hacks structured edits.
+
+**A4 — Loop hygiene.** Terminates via `task_complete`; no stall-loop, no runaway to `maxStepsPerTurn` on a simple task, **no page freeze** (see Known issues). One clean turn for a one-step task.
+
+**A5 — Error transparency (honesty under failure).** When a turn fails (API error, tool error, out-of-credits), is the failure **visible to the user**? Silent failure is a fail (see Known issue B1). The agent should also not claim success it can't show.
+
+**A6 — Cost / performance discipline.** Sane `max_tokens` (see B2), token-efficient (doesn't re-read unchanged files every step), model appropriate to the task. Capability-per-token matters — this is where the frontier bar meets the size/perf budget.
+
+**A7 — Self-coherence.** It edits *its own* modules; an edit must not break its own loop, terminal, or hostbridge. Verify the agent still runs after a self-edit task.
+
+## Known issues (verify each pass; remove when fixed)
+- **B1 — agent errors fail silently: FIXED.** Facade renders `errors[]` as a `#2d0f0f` bubble (`robocoop-4.js` 66–109, commit `481a7f4`), covered by `test_rc4_session_surfaces_client_error`. A live-402 re-test is now awkward because B2 removes the 402 trigger — grade A5 against the unit test, not a live repro.
+- **B2 — engine omits `max_tokens`: FIXED 2026-06-24.** `createAgentSession` defaults `max_tokens=8192` and passes it to `client.chat` (`robocoop-4-core.js`). No more full-32k reservation; budget keys stop 402-ing. Verified: tests green + live Sonnet build with no 402.
+- **B7 — prompt caching: ADDED 2026-06-24.** OpenRouter client puts an ephemeral `cache_control` breakpoint on the static system prompt for `anthropic`/`claude` models (volatile watch-notice system messages stay uncached). Cuts per-step input cost over a turn.
+- **B12 — reads-its-own-new-module the hard way: FIXED 2026-06-24.** Was: after creating a module the agent burned ~5 steps on ad-hoc `eval_js` (`Object.keys(this)`) to read its `viewof X` value. Root cause was a prompt gap, not tooling (`inspect_value`/`list_values` work on a freshly-written module — verified). Fix: a targeted line in `systemPrompt` (core.js) at the verify-loop step pointing the agent at `inspect_value module=… name=…`. Verified live (sonnet): a create+read task used `write_file`→`inspect_value`→`task_complete`, no `eval_js`.
+- **B9 — `summarizeJS` string truncation: OPEN (upstream).** Every agent value-read routes through the DOM inspector → quoted/escaped/mid-elided strings, not raw text; defeats the `eval_js`+`DecompressionStream` attachment workflow. Fix: bypass `inspect()` for `typeof === 'string'`. Blast radius beyond rc4.
+- **B13 — no "thinking" signal during a turn: OPEN (#14).** While an agent turn runs (can be 70s+ over many steps) the chat shows nothing until output streams/finishes — the user can't tell it's working. Reactive notebooks must give fast visible feedback; surface a per-step thinking/tool-running indicator in the facade (`robocoop-4.js`).
+- **B14 — agent-created module not surfaced: OPEN (#14).** After the agent `write_file`s a new `@user/x` module it compiles live but doesn't appear where the user is looking (not added to the view/lopepage); the user must hunt a lookup menu. A created artifact should surface in place (auto-add to view, or a "created @x — open it" affordance).
+- **B3 — debugger-freeze: FIXED 2026-06-24.** Stray `debugger;` across bundled modules (cell-map:779 on every module-import cell, exporter `if(tag==="img") debugger`, error-path catches) froze the page when DevTools was open — every `eval`/`get_variable` timed out (even `1+1`). Neutralized to `void 0;` in HTML + canonical `/modules`. If a freeze recurs, re-sweep (see [[feedback_debugger_statements_freeze_notebook]]).
+
+## Quirks
+- **Test on sonnet-4, not opus** (cost; and opus trips B2 on budget keys).
+- **bash is offline; eval_js is networked** — don't conclude "no network" from a failed `curl`; the capability is via eval_js `fetch`.
+- A running turn previously made the channel unresponsive; with B3 fixed the page stays live during runs (sonnet test confirmed). If introspection times out mid-turn, suspect a *new* freeze, not normal load.
+- **Where the agent's files actually live (corrected 2026-06-24):** module files written by `edit_file`/`write_file` go to **`rc4_workspace.fs`** — enumerate with `rc4_workspace.fs.getAllPaths()` and read with `await rc4_workspace.fs.readFile(path)` (e.g. `/notebook/@user/mod.js`). `rc4_agentShell.fs.data` is the *bash* sandbox and is usually empty for module work. A `/notebook/<id>.js` write is compiled live via `window.importShim` (the `applyModuleFile` path); raw microkernel blocks are mirrored read-only under `/content/<id>`.
+- **Runtime introspection gotcha:** in this runtime, **Module objects don't expose `_name`** (only Variables do). To find a freshly-created module's cells, search variables by `_name` across `__ojs_runtime._modules[*]._scope`, or read the module-map `currentModules` Map (Module→{name}). Matching `module._name === '@user/x'` returns nothing.
+- **Verify produced UI without a screenshot:** the pairing browser (`open_url`) is the *system* browser, so `qa_screenshot`/`qa_console_logs` (QA/Playwright) don't see it. Ground visual artifacts by instantiating the module (`importShim(blobURL)` → call `define(rt, observer)`, capture `viewof X`), mount the element, then read `canvas.getImageData` pixels and dispatch real `KeyboardEvent`s to confirm behavior (the 2026-06-24 Space Invaders probe used this).
