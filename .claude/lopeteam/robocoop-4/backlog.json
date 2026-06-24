@@ -1,8 +1,8 @@
 {
   "slug": "robocoop-4",
-  "nextId": 24,
-  "rounds": 11,
-  "emptyStreak": 1,
+  "nextId": 26,
+  "rounds": 12,
+  "emptyStreak": 0,
   "items": [
     {
       "id": "B1",
@@ -331,6 +331,34 @@
       "attempts": 0,
       "note": "PARK/low-impact: model select is in collapsed-by-default <details>; catalog fetch usually <1s, 8s is worst-case fallback only; not user-visible on boot.",
       "created": "9"
+    },
+    {
+      "id": "B24",
+      "axis": "functional",
+      "title": "talk-only transcript shows nothing when a turn ends with no final assistant text (user left staring at own msg)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4.js"
+      ],
+      "value": 5,
+      "evidence": "live gemini run: 24 steps, transcript = only the user bubble; turn ended, no outcome shown",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "facade outcome bubble (why+steps+tally); verified live render + complement",
+      "created": "11"
+    },
+    {
+      "id": "B25",
+      "axis": "functional",
+      "title": "weak models over-explore + emit code as chat instead of write_file; never call task_complete",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 4,
+      "evidence": "gemini-3.5-flash: read_file×8/bash×3 no write_file; pasted playSnare code in reply",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "prompt nudges: build-over-explore + code-in-reply-does-nothing + always task_complete; marginal help on 3.5-flash (model-limited)",
+      "created": "11"
     }
   ]
 }

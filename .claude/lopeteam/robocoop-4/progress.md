@@ -65,3 +65,8 @@ Applied (human-gated /lopeteam-reflect, all approved):
 - accepted: 0
 - emptyStreak: 1
 - note: B6 parked (extraction would worsen coupling); no other open items
+
+## Round 12
+- accepted: 2
+- emptyStreak: 0
+- note: UX: never-silent turn outcome (verified) + build-over-explore/no-code-as-chat/always-complete prompt nudges; gemini-3.5-flash remains weak builder (model-limited)
