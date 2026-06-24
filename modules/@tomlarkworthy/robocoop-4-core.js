@@ -316,6 +316,7 @@ const _createAgentSession = function _createAgentSession(truncate){
     completeToolName = null,
     stallNudgeLimit = 0,
     nudgeMessage,
+    noticesProvider,
   } = {}) {
     if (!client || typeof client.chat !== 'function')
       throw new Error('createAgentSession requires a client with a chat() method');
@@ -375,6 +376,16 @@ const _createAgentSession = function _createAgentSession(truncate){
       for (step = 0; step < maxStepsPerTurn; step++) {
         if (abortController.signal.aborted) { finishReason = 'aborted'; break; }
         callbacks.onStep?.(step, messages);
+
+        // Stream out-of-band notices (e.g. watched-variable changes) into the conversation before the model
+        // turn, so live value changes reach the model automatically without it polling.
+        if (noticesProvider) {
+          let notices; try { notices = noticesProvider(); } catch (e) { notices = null; }
+          if (notices && notices.length) {
+            messages.push({ role: 'system', content: 'Watch updates (live values changed since your last step):\n' + notices.join('\n') });
+            callbacks.onNotice?.(notices);
+          }
+        }
 
         const live = getTools() ?? [];
         const wire = completeSpec ? [...live.map(toWireTool), completeSpec] : live.map(toWireTool);
@@ -580,6 +591,9 @@ You can study every aspect of yourself; INVESTIGATE rather than guess. Your tool
   module (exact literal replacement); writing/editing a live /notebook module applies it and reports whether
   it compiled.
 - inspect_value / list_values — the live runtime VALUE (or error) of any cell.
+- watch_variable / unwatch_variable — keep watching a cell: after you watch it, any change to its live value is
+  STREAMED to you automatically (as "Watch updates") without re-inspecting. Watch a downstream cell, make an
+  edit, and you will see the new value on your next step.
 - eval_js — run native JavaScript scoped to a module, for transforms bash can't do. The module's builtins
   (FileAttachment, md, html, Inputs, Plot, d3, Generators) and cells are in scope, and so are browser globals
   (DecompressionStream, window, document). This is how you DECODE an attachment: a gzipped attachment at

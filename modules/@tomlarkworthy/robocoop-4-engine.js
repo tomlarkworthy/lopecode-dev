@@ -74,7 +74,7 @@ const _promptView = function _promptView($0){ return $0; };
 // The persistent session. Depends on the view ELEMENTS (stable) + client, so it is rebuilt only
 // when the key changes. Model / prompt / tools are read live through providers. toolsView is the
 // imported registry element (plain-named to survive editor round-trips).
-const _session = function _session(toolsView, $model, $prompt, client, createAgentSession, rc4_agentShell){
+const _session = function _session(toolsView, $model, $prompt, client, createAgentSession, rc4_agentShell, rc4_watchBus){
   if (!client) {
     return {
       messages: [],
@@ -88,6 +88,8 @@ const _session = function _session(toolsView, $model, $prompt, client, createAge
     modelProvider: () => $model.value,
     systemPromptProvider: () => $prompt.value,
     runCommand: (cmd) => rc4_agentShell.run(cmd),
+    // watched-variable changes stream into the loop: drained at the top of each step and injected as context
+    noticesProvider: () => rc4_watchBus.drain(),
     // explicit-completion loop: end on task_complete, not on bare text; nudge a stalled turn before giving up
     completeToolName: 'task_complete',
     stallNudgeLimit: 2,
@@ -116,6 +118,7 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/robocoop-4-tools", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-tools.js?v=4")).default));
   main.define("toolsView", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("toolsView", _));
+  main.define("rc4_watchBus", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("rc4_watchBus", _));
 
   // Core logic imported from the literate core (was window.__rc4core).
   main.define("module @tomlarkworthy/robocoop-4-core", async () =>
@@ -140,6 +143,6 @@ export default function define(runtime, observer) {
   $def("rc4e_promptView", "promptView", ["viewof rc4_systemPrompt"], _promptView);
 
   $def("rc4e_client", "client", ["OPENROUTER_API_KEY", "createOpenRouterClient"], _client);
-  $def("rc4e_session", "session", ["toolsView", "viewof model", "viewof rc4_systemPrompt", "client", "createAgentSession", "rc4_agentShell"], _session);
+  $def("rc4e_session", "session", ["toolsView", "viewof model", "viewof rc4_systemPrompt", "client", "createAgentSession", "rc4_agentShell", "rc4_watchBus"], _session);
   return main;
 }

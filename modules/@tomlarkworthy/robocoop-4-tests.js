@@ -133,6 +133,18 @@ const _test_rc4_session_nudge_fallback = async function _test_rc4_session_nudge_
   return "ok";
 };
 
+// Watch streaming: noticesProvider is drained at the top of each step and injected as a system message, so
+// out-of-band updates (e.g. watched-variable changes) reach the model automatically.
+const _test_rc4_session_watch_notices = async function _test_rc4_session_watch_notices(rc4_assert, createAgentSession, createScriptedClient, rc4_simpleTool){
+  let queued = ["@user/m:total = 99"];                 // a pending watch update, delivered once
+  const noticesProvider = () => { const out = queued; queued = []; return out; };
+  const client = createScriptedClient([{tool_calls:[{id:"t1",name:"noop",arguments:{}}]},{content:"done"}]);
+  const s = createAgentSession({ client, tools:[rc4_simpleTool("noop","N")], model:"m", noticesProvider });
+  await s.send("go");
+  rc4_assert(s.messages.some(m=>m.role==="system"&&/Watch updates/.test(m.content)&&/@user\/m:total = 99/.test(m.content)), "watch notice streamed into the loop");
+  return "ok";
+};
+
 // fs test: real just-bash workspace + bash tool. The scripted client sed-renames a seeded module.
 const _test_rc4_fs_rename = async function _test_rc4_fs_rename(rc4_assert, createAgentSession, createScriptedClient, createBashTool, createWorkspace){
   const ws = createWorkspace({ "/notebook/@user/mod.js": "const _x = function _x(){return( foo )};\n" });
@@ -181,6 +193,7 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_abort", "test_rc4_session_abort", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_abort);
   $def("rc4ts_t_complete_nudge", "test_rc4_session_complete_and_nudge", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_complete_and_nudge);
   $def("rc4ts_t_nudge_fallback", "test_rc4_session_nudge_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_nudge_fallback);
+  $def("rc4ts_t_watch_notices", "test_rc4_session_watch_notices", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_watch_notices);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);
 
   return main;

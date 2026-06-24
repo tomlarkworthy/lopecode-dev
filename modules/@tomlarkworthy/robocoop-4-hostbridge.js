@@ -33,7 +33,7 @@ microkernel content blocks (config, bootloader, libraries, file-attachment bytes
 // (its value); `mutable y` → `initial y`, `mutable y`, `y`. So these tools address a cell by pid (always
 // works, incl. anonymous) or by variable name (convenient when it has one), and force-compute by VARIABLE
 // OBJECT via runtime-sdk observe (so anonymous/unobserved cells compute too — `mod.value(name)` can't).
-const _valueTools = function _valueTools(defineTool, summarizeJS, currentModules, runtime, observe){
+const _valueTools = function _valueTools(defineTool, summarizeJS, currentModules, runtime, observe, rc4_watchBus){
   const resolveModule = (id) => {
     for (const [, info] of currentModules) if (info && info.name === id) return info.module;
     if (runtime.mains && runtime.mains.has(id)) return runtime.mains.get(id);
@@ -187,7 +187,75 @@ const _valueTools = function _valueTools(defineTool, summarizeJS, currentModules
     },
   });
 
-  return [inspect_value, list_values, eval_js];
+  // WATCHES: attach a persistent observer to a cell; every time it recomputes to a new value, the change is
+  // pushed to rc4_watchBus, which the agent session drains each step and injects — so a watched value STREAMS
+  // to the model on change, no re-inspecting. Same pid/name addressing as inspect_value. Disposed (observer
+  // torn down) on unwatch via the invalidation promise.
+  const oneLine = (s) => String(s).replace(/\s+/g, ' ').trim();
+  const watchKey = (module, pid, name) => module + ':' + (pid || name);
+  const watch_variable = defineTool({
+    id: 'watch_variable',
+    description:
+      'Watch a cell\'s LIVE value. After this, whenever the cell recomputes to a NEW value, the change is ' +
+      'streamed to you automatically on your next step — you do not call inspect_value again. Identify the cell ' +
+      'by `pid` (works for any cell, incl. anonymous) or `name`. Returns the current value now; later changes ' +
+      'arrive as "Watch updates". Especially useful after an edit, to see downstream reactive cells update. ' +
+      'Use unwatch_variable to stop.',
+    parameters: {
+      type: 'object',
+      properties: {
+        module: { type: 'string', description: 'Module id, e.g. "@user/stats".' },
+        pid: { type: 'string', description: 'The cell pid (preferred; required for anonymous cells).' },
+        name: { type: 'string', description: 'A variable name (when the cell has one).' },
+      },
+      required: ['module'],
+      additionalProperties: false,
+    },
+    execute: async ({ module, pid, name }) => {
+      const mod = resolveModule(module);
+      if (!mod) return { title: 'watch_variable', output: 'Module not found: ' + module };
+      if (!pid && !name) return { title: 'watch_variable', output: 'Give a pid or a name (see list_values ' + module + ').' };
+      const v = varsOf(mod).find((x) => (pid ? x.pid === pid : x._name === name));
+      if (!v) return { title: 'watch_variable', output: (pid ? 'No cell with pid ' + pid : 'No variable named ' + name) + ' in ' + module + '.' };
+      const id = watchKey(module, pid, name);
+      const tag = module + ':' + (name || pid);
+      if (rc4_watchBus.has(id)) return { title: 'watch_variable', output: 'Already watching ' + tag + '.' };
+      const base = await readVar(mod, v);
+      const baseText = base.error ? '⚠ ' + base.error : oneLine(summary(base.value, 400));
+      let stop; const inv = new Promise((r) => { stop = r; });
+      try {
+        observe(v, {
+          fulfilled: (val) => rc4_watchBus.record(id, oneLine(summary(val, 400))),
+          rejected: (err) => rc4_watchBus.record(id, '⚠ ' + ((err && err.message) || String(err))),
+          pending: () => {},
+        }, { invalidation: inv });
+        nudge(mod);
+      } catch (e) { return { title: 'watch_variable', output: 'Could not observe ' + tag + ': ' + ((e && e.message) || e) }; }
+      rc4_watchBus.register(id, tag, stop, baseText);
+      return { title: 'watch ' + tag, output: 'Watching ' + tag + ' — current value: ' + baseText + '. Changes will stream to you automatically; unwatch_variable to stop.' };
+    },
+  });
+
+  const unwatch_variable = defineTool({
+    id: 'unwatch_variable',
+    description: 'Stop watching a cell previously passed to watch_variable (same module + pid/name).',
+    parameters: {
+      type: 'object',
+      properties: {
+        module: { type: 'string', description: 'Module id.' },
+        pid: { type: 'string', description: 'The cell pid used when watching.' },
+        name: { type: 'string', description: 'The variable name used when watching.' },
+      },
+      required: ['module'],
+      additionalProperties: false,
+    },
+    execute: async ({ module, pid, name }) => {
+      const tag = module + ':' + (name || pid);
+      return { title: 'unwatch_variable', output: rc4_watchBus.remove(watchKey(module, pid, name)) ? 'Stopped watching ' + tag + '.' : 'Not watching ' + tag + '.' };
+    },
+  });
+
+  return [inspect_value, list_values, eval_js, watch_variable, unwatch_variable];
 };
 
 // One-shot mirror of the STATIC raw content blocks into the fs as bytes. A lopecode notebook is one HTML file
@@ -378,13 +446,32 @@ const _hostSetup = function _hostSetup(jbFileSync, rc4_workspace, currentModules
   return status;
 };
 
-const _hostMount = function _hostMount(html, hostSetup, attachmentMirror, valueTools, editTools){
+// Live table of the agent's active watches (the human-facing view of what the agent is streaming). Polls the
+// shared bus once a second; cleared on invalidation. Mirrors the claude-code-pairing watch table.
+const _watchTable = function _watchTable(html, rc4_watchBus, invalidation){
+  const wrap = html`<div></div>`;
+  const render = () => {
+    const list = rc4_watchBus.list();
+    if (!list.length) { wrap.replaceChildren(html`<div style="font:11px ui-monospace,Menlo,monospace;color:#6e7681">no active watches</div>`); return; }
+    wrap.replaceChildren(html`<table style="font:11px ui-monospace,Menlo,monospace;border-collapse:collapse;width:100%">
+      <thead><tr><th style="text-align:left;color:#6e7681;font-weight:400">watch</th><th style="text-align:left;color:#6e7681;font-weight:400">value</th></tr></thead>
+      <tbody>${list.map((w) => html`<tr><td style="padding-right:8px;color:#7ee787;white-space:nowrap">${w.label}</td><td style="color:#c9d1d9">${String(w.last ?? '').slice(0, 80)}</td></tr>`)}</tbody>
+    </table>`);
+  };
+  render();
+  const t = setInterval(render, 1000);
+  invalidation.then(() => clearInterval(t));
+  return wrap;
+};
+
+const _hostMount = function _hostMount(html, hostSetup, attachmentMirror, valueTools, editTools, watchTable){
   // hostSetup (jbFileSync + tools + static mirror) is stable; attachmentMirror recomputes on attachment
   // changes — embedding both here keeps attachmentMirror reachable without re-running hostSetup.
   const ids = [...valueTools, ...editTools].map((t) => t.id).join(', ');
   return html`<div style="font:12px ui-monospace,Menlo,monospace;color:#7ee787;display:flex;flex-direction:column;gap:6px">
-    <div>● host integration active — self-edit + value inspection + eval + file tools</div>
+    <div>● host integration active — self-edit + value inspection + eval + file tools + watches</div>
     <div style="color:#8b949e">tools: ${ids} · /notebook = editable modules, /content = raw blocks (${attachmentMirror} attachments)</div>
+    ${watchTable}
     ${hostSetup}
   </div>`;
 };
@@ -435,6 +522,7 @@ export default function define(runtime, observer) {
     runtime.module((await import("/@tomlarkworthy/robocoop-4-tools.js?v=4")).default));
   main.define("registerTool", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("registerTool", _));
   main.define("unregisterTool", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("unregisterTool", _));
+  main.define("rc4_watchBus", ["module @tomlarkworthy/robocoop-4-tools", "@variable"], (_, v) => v.import("rc4_watchBus", _));
 
   main.define("module @tomlarkworthy/summarizejs", async () =>
     runtime.module((await import("/@tomlarkworthy/summarizejs.js?v=4")).default));
@@ -446,11 +534,12 @@ export default function define(runtime, observer) {
   main.define("all_module_files", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("all_module_files", _));
 
   $def("rc4h_doc_hostbridge", null, ["md"], _doc_hostbridge);
-  $def("rc4h_value_tools", "valueTools", ["defineTool", "summarizeJS", "currentModules", "runtime", "observe"], _valueTools);
+  $def("rc4h_value_tools", "valueTools", ["defineTool", "summarizeJS", "currentModules", "runtime", "observe", "rc4_watchBus"], _valueTools);
   $def("rc4h_edit_tools", "editTools", ["defineTool", "rc4_workspace", "currentModules", "runtime", "createModule", "exportModuleJS", "probeDefine", "jbApply"], _editTools);
   $def("rc4h_mirror_blocks", "mirrorBlocks", [], _mirrorBlocks);
   $def("rc4h_attachment_mirror", "attachmentMirror", ["all_module_files", "rc4_workspace", "invalidation"], _attachmentMirror);
   $def("rc4h_setup", "hostSetup", ["jbFileSync", "rc4_workspace", "currentModules", "runtime", "createModule", "invalidation", "valueTools", "editTools", "mirrorBlocks", "registerTool", "unregisterTool"], _hostSetup);
-  $def("rc4h_mount", null, ["html", "hostSetup", "attachmentMirror", "valueTools", "editTools"], _hostMount);
+  $def("rc4h_watch_table", "watchTable", ["html", "rc4_watchBus", "invalidation"], _watchTable);
+  $def("rc4h_mount", null, ["html", "hostSetup", "attachmentMirror", "valueTools", "editTools", "watchTable"], _hostMount);
   return main;
 }
