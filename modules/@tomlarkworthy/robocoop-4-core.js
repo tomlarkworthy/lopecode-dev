@@ -356,7 +356,11 @@ const _createAgentSession = function _createAgentSession(truncate){
     function abort() { currentAbort?.abort(); }
     function reset() { messages.length = 0; }
 
-    async function send(userText, callbacks = {}) {
+    // `input` is a string, or { text, images } where images is an array of data/URL strings — the user turn
+    // is sent as OpenAI multimodal content parts so a vision model can SEE attached screenshots/images.
+    async function send(input, callbacks = {}) {
+      let userText = input, images = null;
+      if (input && typeof input === 'object' && !Array.isArray(input)) { userText = input.text ?? null; images = input.images || null; }
       const abortController = new AbortController();
       currentAbort = abortController;
       let metadata = {};
