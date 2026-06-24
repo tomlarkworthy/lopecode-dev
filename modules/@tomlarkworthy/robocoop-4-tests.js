@@ -186,6 +186,24 @@ const _test_rc4_session_malformed_fallback = async function _test_rc4_session_ma
   return "ok";
 };
 
+// Missing tool_call_id repair: a provider may emit a tool_call with no id. The loop must synthesize a stable
+// id AND stamp it onto the assistant call, so the assistant message and its tool result share one id (a tool
+// message with undefined tool_call_id is dropped from the wire JSON and desyncs history on strict providers).
+const _test_rc4_session_missing_call_id = async function _test_rc4_session_missing_call_id(rc4_assert, createAgentSession, createScriptedClient, rc4_simpleTool){
+  const client = createScriptedClient([
+    { tool_calls:[{ id:null, name:"noop", arguments:{} }] },   // provider omits the id
+    { content:"done", finish_reason:"stop" }
+  ]);
+  const s = createAgentSession({ client, tools:[rc4_simpleTool("noop","N")], model:"m" });
+  await s.send("go");
+  const asst = s.messages.find(m=>m.role==="assistant"&&Array.isArray(m.tool_calls));
+  const id = asst.tool_calls[0].id;
+  rc4_assert(typeof id==="string"&&id.length>0, "assistant tool_call got a synthesized id");
+  const toolMsg = s.messages.find(m=>m.role==="tool");
+  rc4_assert(toolMsg.tool_call_id===id, "tool result tool_call_id matches the synthesized assistant call id");
+  return "ok";
+};
+
 // Visual prompting: send({text, images}) builds an OpenAI multimodal user message so a vision model sees it.
 const _test_rc4_session_send_images = async function _test_rc4_session_send_images(rc4_assert, createAgentSession, createScriptedClient){
   const client = createScriptedClient([{ content: "ok", finish_reason: "stop" }]);
@@ -265,6 +283,7 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_client_error", "test_rc4_session_surfaces_client_error", ["rc4_assert","createAgentSession","rc4_simpleTool"], _test_rc4_session_surfaces_client_error);
   $def("rc4ts_t_malformed_recovers", "test_rc4_session_malformed_recovers", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_malformed_recovers);
   $def("rc4ts_t_malformed_fallback", "test_rc4_session_malformed_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_malformed_fallback);
+  $def("rc4ts_t_missing_call_id", "test_rc4_session_missing_call_id", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_missing_call_id);
   $def("rc4ts_t_send_images", "test_rc4_session_send_images", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_send_images);
   $def("rc4ts_t_attach_image", "test_rc4_session_attach_image_tool", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_attach_image_tool);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);

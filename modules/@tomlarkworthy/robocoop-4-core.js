@@ -157,14 +157,18 @@ const _createScriptedClient = function _createScriptedClient(){return(
       const step = steps[i++];
       const message = { role: 'assistant', content: step.content ?? null };
       if (step.tool_calls) {
-        message.tool_calls = step.tool_calls.map((tc, idx) => ({
-          id: tc.id ?? 'call_' + (i - 1) + '_' + idx,
-          type: 'function',
-          function: {
-            name: tc.name,
-            arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments ?? {}),
-          },
-        }));
+        message.tool_calls = step.tool_calls.map((tc, idx) => {
+          const c = {
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments ?? {}),
+            },
+          };
+          // tc.id === null → emit a call with NO id (simulate a provider that omits ids); else default one.
+          if (tc.id !== null) c.id = tc.id ?? 'call_' + (i - 1) + '_' + idx;
+          return c;
+        });
       }
       return {
         message,
@@ -410,8 +414,13 @@ const _createAgentSession = function _createAgentSession(truncate){
 
         let completed = false;
         let completeSummary = null;
-        for (const call of calls) {
-          const callId = call.id;
+        for (let ci = 0; ci < calls.length; ci++) {
+          const call = calls[ci];
+          // Some providers omit tool_call ids. A tool result with no/undefined tool_call_id violates the
+          // OpenAI wire format (JSON.stringify drops the undefined key) and desyncs history → stricter
+          // providers 400 on the next turn. Repair the id ON the call object (same ref we already pushed in
+          // the assistant message) so the assistant call AND its tool result share one stable id.
+          const callId = call.id || (call.id = 'call_' + step + '_' + ci);
           const name = call?.function?.name;
           let args;
           try {
