@@ -30,3 +30,8 @@ Applied (human-gated /lopeteam-reflect, all approved):
 - **`performance.md` / `functional.md` / `SKILL.md`:** route critics to #13/#14; trimmed stale "pending #12/#13" notes; updated axis→criteria mapping.
 - **New backlog B13/B14** (the two #14 violations the user named): agent loop shows no "thinking" signal; agent-created module not surfaced (user hunts a lookup menu).
 - **Rubric #15 Dataflow rerunnability** (user-stated invariant): recomputing any cell/subset must not move the program to a consequentially different state; out-of-model effects (timers, listeners, subscriptions, observers, global/external mutation) torn down via the cell's `invalidation` promise; randoms/time fine; don't mutate inputs in place. Encoded in `general.md` #15, the **code-quality** critic (check-first, value 4–5), and an applier **reject-gate**. Mapping: code-quality ← #6,#7,#15.
+
+## Round 5
+- accepted: 1
+- emptyStreak: 0
+- note: DAW frontier probe (sonnet): A1 core PASS + #15 PASS unprompted (grounded); fixed B13 live status line; logged B15 (no drive-UI-module affordance)
