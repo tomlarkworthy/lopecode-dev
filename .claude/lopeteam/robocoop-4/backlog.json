@@ -1,7 +1,7 @@
 {
   "slug": "robocoop-4",
-  "nextId": 16,
-  "rounds": 7,
+  "nextId": 18,
+  "rounds": 8,
   "emptyStreak": 0,
   "items": [
     {
@@ -219,6 +219,34 @@
       "attempts": 0,
       "note": "core systemPrompt: new visual module auto-surfaces + verify via inspect_value/list_values not eval_js. Live verified: create task used write_file->inspect_value->inspect_value->list_values->task_complete, 0 eval_js (vs DAW probe's 5)",
       "created": "4"
+    },
+    {
+      "id": "B16",
+      "axis": "robustness",
+      "title": "Truncated tool-call poisons whole session (provider 400 'Unterminated string' on every later turn)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 5,
+      "evidence": "mimo-v2.5 DAW run: write_file args truncated at max_tokens=8192 (30924 chars, unterminated); loop catches local parse but keeps malformed tool_calls in history; replaying it -> Xiaomi/DigitalOcean upstream 400. Sanitizing args to {} -> HTTP 200 (validated live). Affects any model that writes a big file.",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "Verified live + node CI green: repair truncated tool_call args + recover",
+      "created": "7"
+    },
+    {
+      "id": "B17",
+      "axis": "functional",
+      "title": "No recovery guidance when a tool call is truncated by the token budget — model can't reach the DAW frontier",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 4,
+      "evidence": "On truncation the error msg just says 'could not parse'; model not told to build large modules incrementally (skeleton + edit_file). mimo one-shots a ~13KB module and truncates.",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "Verified live: mimo followed incremental-build guidance, produced 10.6KB live audio-daw (0 errored cells)",
+      "created": "7"
     }
   ]
 }

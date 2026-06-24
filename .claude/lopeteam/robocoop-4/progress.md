@@ -45,3 +45,8 @@ Applied (human-gated /lopeteam-reflect, all approved):
 - accepted: 1
 - emptyStreak: 0
 - note: B8 memoized chat render (no O(n2) md re-parse); verified live via DOM node stability
+
+## Round 8
+- accepted: 1
+- emptyStreak: 0
+- note: mimo-v2.5 DAW: root-caused provider-400 session-death to max_tokens-truncated write_file poisoning history; fixed (repair+recover); verified live + node CI.
