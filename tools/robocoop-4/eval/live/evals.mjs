@@ -172,6 +172,24 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── network access (fetch, NOT curl) ─────────────────────────
+  // The just-bash shell has no real network, so the only way to land the payload in a cell is eval_js/cell
+  // fetch — curl/wget can't, and the token can't be guessed. setup.routes fulfills the sentinel URL.
+  {
+    id: "net-fetch-json",
+    category: "network",
+    question:
+      "Add a cell `apiUser` to a new module @user/net whose value is the JSON object returned by " +
+      "GET https://eval.test/user.json. I want the live parsed object as the cell value.",
+    setup: { routes: [{ url: "https://eval.test/user.json", body: { user: "Grace Hopper", token: "qzx-7741" } }] },
+    criteria: [
+      { name: "does_compile", args: { file: "/notebook/@user/net.js" }, weight: 1 },
+      { name: "module_exists", args: { id: "@user/net" }, weight: 1 },
+      { name: "live_value_contains", args: { module: "@user/net", name: "apiUser", needle: "Grace Hopper" }, weight: 2 },
+      { name: "live_value_contains", args: { module: "@user/net", name: "apiUser", needle: "qzx-7741" }, weight: 1 },
+    ],
+  },
+
   // ───────────────────────── editing an EXISTING module (file + live runtime) ─────────────────────────
   {
     id: "edit-exporter-title",

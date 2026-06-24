@@ -39,6 +39,20 @@ export async function createDriver({
     let page;
     try {
       const context = await browser.newContext();
+
+      // setup.routes — deterministic network fixtures. The just-bash shell has NO real network, so a
+      // network task can only succeed via eval_js/cell fetch; these routes fulfill the sentinel URL with a
+      // known payload so the OUTCOME (the fetched value living in a cell) is reproducible and curl can't pass.
+      if (evalDef?.setup?.routes) {
+        for (const r of evalDef.setup.routes) {
+          await context.route(r.url, (route) => route.fulfill({
+            status: r.status ?? 200,
+            contentType: r.contentType ?? "application/json",
+            body: typeof r.body === "string" ? r.body : JSON.stringify(r.body),
+          }));
+        }
+      }
+
       page = await context.newPage();
 
       // Capture errors/warnings for the whole lifetime of this page (step 5).
