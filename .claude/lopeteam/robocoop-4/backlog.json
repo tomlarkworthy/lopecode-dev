@@ -1,8 +1,8 @@
 {
   "slug": "robocoop-4",
-  "nextId": 18,
-  "rounds": 8,
-  "emptyStreak": 0,
+  "nextId": 24,
+  "rounds": 11,
+  "emptyStreak": 1,
   "items": [
     {
       "id": "B1",
@@ -56,9 +56,9 @@
       ],
       "value": 4,
       "evidence": "code-metrics: MI 11, CC 80, LOC 202, H.Vol 11006 — worst cell in the notebook; classic dispatch-on-type mega-cell (flatten to thin dispatcher + per-branch cells)",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "shared _cellHelpers dedup; MI 11->12; verified live",
       "created": "1"
     },
     {
@@ -70,9 +70,9 @@
       ],
       "value": 3,
       "evidence": "code-metrics: MI 26, CC 42, LOC 90",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "shared _cellHelpers; dup removed; verified all tools live",
       "created": "1"
     },
     {
@@ -84,9 +84,9 @@
       ],
       "value": 3,
       "evidence": "code-metrics: MI 19, CC 50, LOC 161 — load-bearing, refactor carefully (one change at a time)",
-      "status": "open",
+      "status": "rejected",
       "attempts": 0,
-      "note": "",
+      "note": "PARK: dispatch body is cohesive with loop-local state (step/byId/messages/callbacks/completeSpec/truncate/ctx/pendingImages). Within-cell nested fn doesn't move cell CC; separate-cell extraction needs ~10 params (couples worse). Not a clear improvement.",
       "created": "1"
     },
     {
@@ -128,9 +128,9 @@
       ],
       "value": 4,
       "evidence": "summarizeJS routes every value through Observable inspect() DOM renderer; top-level strings come back quote-wrapped+inspector-truncated. Defeats hostbridge's documented eval_js DecompressionStream attachment-read workflow. Fix: bypass inspect() for typeof string.",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "raw strings in inspect/list/watch; verified 347-char cell full+unescaped",
       "created": "2"
     },
     {
@@ -156,9 +156,9 @@
       ],
       "value": 3,
       "evidence": "list_values.execute awaits readVar in sequential for-loop over up to 40 cells; readVar 5s/cell timeout. Promise.all them (independent) or cap concurrency.",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "Promise.all; verified live 12ms/37 cells",
       "created": "2"
     },
     {
@@ -247,6 +247,90 @@
       "attempts": 0,
       "note": "Verified live: mimo followed incremental-build guidance, produced 10.6KB live audio-daw (0 errored cells)",
       "created": "7"
+    },
+    {
+      "id": "B18",
+      "axis": "functional",
+      "title": "Gemini MALFORMED_FUNCTION_CALL empty-turn poisons history + stalls session",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 5,
+      "evidence": "finish_reason error/native MALFORMED, content null, 0 tokens; null msg pushed to history + only generic stall nudge",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "shipped+pushed, node CI green",
+      "created": "8"
+    },
+    {
+      "id": "B19",
+      "axis": "robustness",
+      "title": "auto force-compute + watch agent-written cells on apply (surface lazy runtime errors)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-hostbridge.js"
+      ],
+      "value": 5,
+      "evidence": "compile-clean cell can still throw at runtime when observed; agent declared done over broken currentStep",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "shipped+pushed, node CI green",
+      "created": "8"
+    },
+    {
+      "id": "B20",
+      "axis": "robustness",
+      "title": "_facade leaks event listeners (no invalidation cleanup) -> rerun stacks handlers",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4.js"
+      ],
+      "value": 5,
+      "evidence": "addEventListener on attach/fileInput/ta/root (paste/drag/drop/click/keydown) with no invalidation param; #15 rerun-divergence",
+      "status": "rejected",
+      "attempts": 0,
+      "note": "FALSE POSITIVE: all listeners on cell's own ephemeral DOM (root/ta/send/attach/fileInput), none on window/document/session; rerun detaches+GCs them. No persistent effect => no invalidation needed (#15).",
+      "created": "9"
+    },
+    {
+      "id": "B21",
+      "axis": "functional",
+      "title": "tool_call_id: call.id used raw -> missing id yields tool msg with no tool_call_id, desyncs history on strict providers",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 4,
+      "evidence": "core.js callId=call.id; JSON omits undefined -> OpenAI spec violation; no test for null id",
+      "status": "accepted",
+      "attempts": 0,
+      "note": "synthesize+stamp call id; node CI 17 cells green",
+      "created": "9"
+    },
+    {
+      "id": "B22",
+      "axis": "performance",
+      "title": "tool list re-serialized (toWireTool) every step with no memoization",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-core.js"
+      ],
+      "value": 3,
+      "evidence": "core.js:366 maps live.map(toWireTool) each iteration; unchanged tools -> redundant work each of up to 40 steps",
+      "status": "rejected",
+      "attempts": 0,
+      "note": "PARK/premature opt: toWireTool maps ~10 tools (microseconds), dwarfed by per-step API round-trip (seconds); memo code is net bloat vs lean-per-ms bar.",
+      "created": "9"
+    },
+    {
+      "id": "B23",
+      "axis": "functional",
+      "title": "model catalog 8s fetch shows no 'loading models' feedback on boot (#14)",
+      "files": [
+        "modules/@tomlarkworthy/robocoop-4-engine.js"
+      ],
+      "value": 3,
+      "evidence": "engine _openrouter_models 8s race; select renders only after resolve; no pending placeholder",
+      "status": "rejected",
+      "attempts": 0,
+      "note": "PARK/low-impact: model select is in collapsed-by-default <details>; catalog fetch usually <1s, 8s is worst-case fallback only; not user-visible on boot.",
+      "created": "9"
     }
   ]
 }

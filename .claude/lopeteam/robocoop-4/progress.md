@@ -50,3 +50,18 @@ Applied (human-gated /lopeteam-reflect, all approved):
 - accepted: 1
 - emptyStreak: 0
 - note: mimo-v2.5 DAW: root-caused provider-400 session-death to max_tokens-truncated write_file poisoning history; fixed (repair+recover); verified live + node CI.
+
+## Round 9
+- accepted: 6
+- emptyStreak: 0
+- note: gemini malformed-call recovery, auto-watch+#16, list_values+probe concurrency, raw-string inspect, shared cell-helpers dedup
+
+## Round 10
+- accepted: 1
+- emptyStreak: 0
+- note: B21 tool_call_id; B20 false-positive rejected (+lesson); B22/B23 parked as premature/low-impact
+
+## Round 11
+- accepted: 0
+- emptyStreak: 1
+- note: B6 parked (extraction would worsen coupling); no other open items
