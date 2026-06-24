@@ -145,6 +145,17 @@ const _test_rc4_session_watch_notices = async function _test_rc4_session_watch_n
   return "ok";
 };
 
+// A client.chat failure (e.g. OpenRouter 402 out-of-credits) must PROPAGATE out of send() so the UI can
+// surface it — silent swallowing makes the agent look broken.
+const _test_rc4_session_surfaces_client_error = async function _test_rc4_session_surfaces_client_error(rc4_assert, createAgentSession, rc4_simpleTool){
+  const client = { async chat(){ throw new Error("OpenRouter 402: This request requires more credits"); } };
+  const s = createAgentSession({ client, tools:[rc4_simpleTool("noop","N")], model:"m" });
+  let caught = null;
+  try { await s.send("go"); } catch (e) { caught = e; }
+  rc4_assert(caught && /402: This request requires more credits/.test(caught.message), "client.chat error propagates out of send()");
+  return "ok";
+};
+
 // fs test: real just-bash workspace + bash tool. The scripted client sed-renames a seeded module.
 const _test_rc4_fs_rename = async function _test_rc4_fs_rename(rc4_assert, createAgentSession, createScriptedClient, createBashTool, createWorkspace){
   const ws = createWorkspace({ "/notebook/@user/mod.js": "const _x = function _x(){return( foo )};\n" });
@@ -194,6 +205,7 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_complete_nudge", "test_rc4_session_complete_and_nudge", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_complete_and_nudge);
   $def("rc4ts_t_nudge_fallback", "test_rc4_session_nudge_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_nudge_fallback);
   $def("rc4ts_t_watch_notices", "test_rc4_session_watch_notices", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_watch_notices);
+  $def("rc4ts_t_client_error", "test_rc4_session_surfaces_client_error", ["rc4_assert","createAgentSession","rc4_simpleTool"], _test_rc4_session_surfaces_client_error);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);
 
   return main;

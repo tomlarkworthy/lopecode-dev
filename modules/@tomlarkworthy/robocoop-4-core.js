@@ -269,7 +269,9 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error('OpenRouter ' + res.status + ': ' + text);
+        let detail = text;
+        try { const j = JSON.parse(text); detail = j?.error?.message || text; } catch {}
+        throw new Error('OpenRouter ' + res.status + ': ' + detail);
       }
       const data = await res.json();
       const choice = data.choices?.[0];

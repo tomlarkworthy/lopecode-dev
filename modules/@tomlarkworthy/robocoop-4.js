@@ -63,6 +63,7 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   // Talk-only transcript: human messages + assistant TEXT replies. The LLM's bash work (tool calls
   // and their output) is its terminal SESSION — it streams into the agent terminal pane, not here.
   let busy = false;
+  const errors = [];   // surfaced agent failures (e.g. OpenRouter 402); part of render state so they persist
   const render = () => {
     log.innerHTML = "";
     for (const m of session.messages) {
@@ -72,6 +73,13 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
         let node; try { node = md`${String(m.content)}`; } catch { node = document.createTextNode(String(m.content)); }
         log.append(bubble("left", C.asst, node));
       }
+    }
+    for (const er of errors) {
+      const d = document.createElement("div");
+      d.style.cssText = "color:" + C.err + ";background:#2d0f0f;border:1px solid " + C.err +
+        ";border-radius:8px;padding:6px 10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere";
+      d.textContent = "⚠ agent error — " + er;
+      log.append(d);
     }
     if (busy) {
       const w = document.createElement("div");
@@ -93,14 +101,12 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   const submit = async () => {
     const text = ta.value.trim();
     if (!text || busy) return;
-    busy = true; ta.value = ""; send.disabled = true;
+    busy = true; ta.value = ""; send.disabled = true; errors.length = 0;
     render(); // show the user bubble immediately is handled by session.send pushing the user msg
     try {
       await session.send(text, { onText: render, onToolCall: render, onToolResult: render, onFinish: render });
     } catch (err) {
-      const e = document.createElement("div");
-      e.style.cssText = "color:" + C.err; e.textContent = "error: " + (err && err.message ? err.message : err);
-      log.append(e);
+      errors.push(err && err.message ? err.message : String(err));
     } finally {
       busy = false; send.disabled = false; render(); ta.focus();
     }
