@@ -130,9 +130,20 @@ The dataflow graph is a computation: recomputing any cell — or any subset of c
 - **partial** — one effect lacks cleanup but its impact is bounded (e.g. a single idempotent listener), OR one cell mutates an input in place where a derived value would do.
 - **fail** — a rerun duplicates timers/listeners/subscriptions, leaks a resource (socket/worker/observer), or compounds shared state so recomputing a subset diverges.
 
+### 16. No errored cells (force-computed)
+
+Every cell in every booted module computes without throwing. This is distinct from #11: a cell can be in an **error state** (`variable._error`) without ever logging to the console, and the error is **lazy** — an unobserved cell does not run, so it does not error until something observes it. A passive scan of `_error` therefore **under-reports**: a `viewof`/display cell that throws (e.g. a wrong API like a non-existent `Generators.interval`) reads as "fine" until its pane renders. You MUST **force-compute** before scoring: either observe every named cell (`get_variable`/`watch_variable` per cell, or `run_tests`) so the runtime actually evaluates them, or open every module's pane. Then collect the cells whose value is an error.
+
+- **pass** — after force-computing every cell of every booted module, zero are in an error state.
+- **partial** — one isolated cell errors but the headline flow is unaffected and it is clearly non-load-bearing.
+- **fail** — any load-bearing cell errors, or multiple cells error, once force-computed.
+
+Detection snippet (run via `eval_code`): iterate `__ojs_runtime._variables`, force each named cell (`mod.value(name)` / observe), then report any with `_error`. Do **not** report "0 errored cells" from a non-forcing `_error` scan — that is the classic false-pass (a `currentStep` cell using a non-existent `Generators` method passed a passive scan, then threw the moment its DAW pane rendered).
+
 ## How to use this file
 
 1. Read it once at the start of every QA pass.
-2. Score 1–15 from the evidence collected during your matrix execution.
+2. Score 1–16 from the evidence collected during your matrix execution.
 3. Cite evidence for each non-pass; vague "looks broken" lines are not acceptable.
-4. Note any per-notebook overrides in `qa/per-notebook/<slug>.md` — that file refines (never replaces) these general criteria.
+4. **Force-compute before claiming no errors (#16):** lazy/unobserved cells don't error until observed, so a passive `_error` scan false-passes. Observe/open every cell first.
+5. Note any per-notebook overrides in `qa/per-notebook/<slug>.md` — that file refines (never replaces) these general criteria.

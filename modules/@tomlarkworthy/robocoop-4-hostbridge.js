@@ -328,12 +328,68 @@ const _attachmentMirror = function _attachmentMirror(all_module_files, rc4_works
 // A compile error leaves the live runtime on its last-good version (nothing applied); the file keeps the draft
 // so the agent can re-edit. After a successful change the module is re-projected (canonical form + pids).
 // Browser-only (needs window.importShim + the live runtime).
-const _editTools = function _editTools(defineTool, rc4_workspace, currentModules, runtime, createModule, exportModuleJS, probeDefine, jbApply){
+const _editTools = function _editTools(defineTool, rc4_workspace, currentModules, runtime, createModule, exportModuleJS, probeDefine, jbApply, observe, summarizeJS, rc4_watchBus){
   const fs = rc4_workspace.fs;
   const dec = (raw) => (typeof raw === 'string' ? raw : new TextDecoder().decode(raw));
   const readText = async (p) => dec(await fs.readFile(p));
   const writeText = (p, s) => fs.writeFile(p, new TextEncoder().encode(String(s ?? '')));
   const apply = jbApply({ currentModules, runtime, probeDefine, createModule });
+
+  // ── runtime-status probe + auto-watch (so the agent can't write blind) ───────────────────────────────
+  // A module that COMPILES can still ERROR at runtime — and the error is LAZY: a cell only throws when it is
+  // OBSERVED (e.g. a `Generators.interval` typo errors only when the cell renders). So after an apply we
+  // force-compute the module's named cells, report any runtime errors (and a value summary) in the SAME tool
+  // result, and register a persistent watch on each (reusing rc4_watchBus, deduped) so later changes/errors
+  // stream into the loop automatically. Net: the agent is always shown whether what it wrote works or errors.
+  const resolveModule = (id) => { for (const [, info] of currentModules) if (info && info.name === id) return info.module; return null; };
+  const varsOf = (mod) => [...runtime._variables].filter((v) => v._module === mod);
+  const isStructural = (v) => !v.pid && (!v._name || String(v._name).startsWith('module ') || v._name === '@variable' || String(v._name).startsWith('initial '));
+  const oneLine = (s) => String(s).replace(/\s+/g, ' ').trim();
+  const summ = (val) => { try { return oneLine(summarizeJS(val, { max_size: 200 })); } catch (e) { return oneLine(String(val)); } };
+  const watchKey = (module, pid, name) => module + ':' + (pid || name);
+  // Force compute one cell, resolve to {value} or {error}; bounded so a stuck cell can't hang the turn.
+  const readVar = (mod, v) => new Promise((resolve) => {
+    let done = false; const finish = (r) => { if (!done) { done = true; resolve(r); } };
+    if (v._error != null) return finish({ error: (v._error && v._error.message) || String(v._error) });
+    if (v._value !== undefined) return finish({ value: v._value });
+    if (v._name) Promise.resolve().then(() => mod.value(v._name)).then((value) => finish({ value }), (error) => finish({ error: (error && error.message) || String(error) }));
+    else { try { mod.value((varsOf(mod).find((x) => x._name && !isStructural(x)) || {})._name).catch(() => {}); } catch (e) {} }
+    setTimeout(() => finish({ pending: true }), 4000);
+  });
+  // Force-compute + auto-watch every named cell of `id`; returns [{name, error?, value?}]. Best-effort.
+  const probeAndWatch = async (id) => {
+    const mod = resolveModule(id); if (!mod) return null;
+    const cells = varsOf(mod).filter((v) => v._name && v.pid && !isStructural(v)).slice(0, 24);
+    const out = [];
+    for (const v of cells) {
+      const base = await readVar(mod, v);
+      const baseText = base.error ? '⚠ ' + base.error : summ(base.value);
+      out.push({ name: v._name, error: base.error, value: base.error ? undefined : baseText });
+      const wid = watchKey(id, v.pid, v._name);
+      if (!rc4_watchBus.has(wid)) {
+        let stop; const inv = new Promise((r) => { stop = r; });
+        try {
+          observe(v, {
+            fulfilled: (val) => rc4_watchBus.record(wid, summ(val)),
+            rejected: (err) => rc4_watchBus.record(wid, '⚠ ' + ((err && err.message) || String(err))),
+            pending: () => {},
+          }, { invalidation: inv });
+          rc4_watchBus.register(wid, id + ':' + v._name, stop, baseText);
+        } catch (e) {}
+      }
+    }
+    return out;
+  };
+  // Render the probe into a one-line status appended to the apply message.
+  const probeStatus = (probe) => {
+    if (!probe || !probe.length) return '';
+    const errored = probe.filter((r) => r.error);
+    const okCount = probe.length - errored.length;
+    if (errored.length) return ' · ⚠ ' + errored.length + ' cell' + (errored.length === 1 ? '' : 's') +
+      ' ERRORING at runtime — ' + errored.map((e) => e.name + ': ' + e.error).join('; ') +
+      ' — FIX before task_complete (a compile-clean cell can still error when observed)';
+    return ' · ✓ all ' + okCount + ' cell' + (okCount === 1 ? '' : 's') + ' compute with no runtime error (auto-watched; changes stream to you)';
+  };
 
   // Is module `id` already live? (module-map Map is keyed Module->{name}; modules don't expose _name.)
   const moduleExists = (id) => {
@@ -378,7 +434,10 @@ const _editTools = function _editTools(defineTool, rc4_workspace, currentModules
       const n = r.changes || 0;
       // a brand-new module with a display cell → surface it in the shared view (B14)
       const surfaced = wasNew && /\bviewof\s|\bmd`|\bhtml`/.test(src) && surfaceInView(id);
-      return { ok: true, msg: 'applied live (' + n + ' cell' + (n === 1 ? '' : 's') + ' changed)' + (surfaced ? ' · opened in the shared view so the human can see it' : '') };
+      // force-compute the cells + auto-watch them, so a lazy runtime error (compile-clean but throws on
+      // observe) is reported in THIS turn and future changes stream — the agent never writes blind.
+      let status = ''; try { status = probeStatus(await probeAndWatch(id)); } catch (e) {}
+      return { ok: true, msg: 'applied live (' + n + ' cell' + (n === 1 ? '' : 's') + ' changed)' + (surfaced ? ' · opened in the shared view so the human can see it' : '') + status };
     } catch (e) {
       return { ok: false, msg: 'written, but FAILED TO COMPILE: ' + (e && e.message || e) + ' — live runtime unchanged; fix and re-edit' };
     } finally { URL.revokeObjectURL(url); }
@@ -590,7 +649,7 @@ export default function define(runtime, observer) {
 
   $def("rc4h_doc_hostbridge", null, ["md"], _doc_hostbridge);
   $def("rc4h_value_tools", "valueTools", ["defineTool", "summarizeJS", "currentModules", "runtime", "observe", "rc4_watchBus"], _valueTools);
-  $def("rc4h_edit_tools", "editTools", ["defineTool", "rc4_workspace", "currentModules", "runtime", "createModule", "exportModuleJS", "probeDefine", "jbApply"], _editTools);
+  $def("rc4h_edit_tools", "editTools", ["defineTool", "rc4_workspace", "currentModules", "runtime", "createModule", "exportModuleJS", "probeDefine", "jbApply", "observe", "summarizeJS", "rc4_watchBus"], _editTools);
   $def("rc4h_mirror_blocks", "mirrorBlocks", [], _mirrorBlocks);
   $def("rc4h_attachment_mirror", "attachmentMirror", ["all_module_files", "rc4_workspace", "invalidation"], _attachmentMirror);
   $def("rc4h_setup", "hostSetup", ["jbFileSync", "rc4_workspace", "currentModules", "runtime", "createModule", "invalidation", "valueTools", "editTools", "mirrorBlocks", "registerTool", "unregisterTool"], _hostSetup);

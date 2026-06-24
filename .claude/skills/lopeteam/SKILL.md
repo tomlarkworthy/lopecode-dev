@@ -30,7 +30,7 @@ So the four axes are a **joint optimization**, not four independent checklists: 
 - **Team state** (this skill): `.claude/lopeteam/<slug>/` via `tools/lopeteam-state.ts` — `backlog.json`, `lessons.md`, `progress.md`. `<slug>` = notebook basename (e.g. `editor-5` for `@tomlarkworthy_editor-5.html`).
 - **Rubrics + reports** (shared with qa-notebook): `.claude/skills/qa-notebook/qa/` — `general.md` (14 universal criteria), `per-notebook/<slug>.md`, `reports/`. Critics score against these.
 
-Axis → criteria mapping: functional ← #1–5, #8, #9, #14 · code-quality ← #6, #7, #15 · robustness (shared) ← #10, #11 · aesthetics ← #12, #14 (role prompt for subjective polish) · performance ← #13, #14. (#14 = responsive, visible feedback — reactive/spatio-visual, no silent long ops, created artifacts surface in place. #15 = dataflow rerunnability — recomputing any cell/subset leaves the program consequentially-equivalent; out-of-model effects torn down via the invalidation promise.)
+Axis → criteria mapping: functional ← #1–5, #8, #9, #14, #16 · code-quality ← #6, #7, #15 · robustness (shared) ← #10, #11, #16 · aesthetics ← #12, #14 (role prompt for subjective polish) · performance ← #13, #14. (#14 = responsive, visible feedback — reactive/spatio-visual, no silent long ops, created artifacts surface in place. #15 = dataflow rerunnability — recomputing any cell/subset leaves the program consequentially-equivalent; out-of-model effects torn down via the invalidation promise. #16 = no errored cells, FORCE-COMPUTED — a passive `_error` scan false-passes because unobserved cells haven't run; observe every cell, or open every pane, before claiming zero errors.)
 
 ## Procedure
 

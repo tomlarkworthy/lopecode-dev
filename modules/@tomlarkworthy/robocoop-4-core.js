@@ -535,7 +535,12 @@ TOOLS & METHOD
 To change a module, PREFER edit_file (an exact, literal string replacement — no regex/escaping) over bash
 sed. When you write or edit a /notebook module, the tool APPLIES it to the live runtime and tells you in the
 SAME turn whether it COMPILED and how many cells changed; if it reports "FAILED TO COMPILE", your edit is
-malformed — read the error, fix it, and re-edit (the live runtime is left untouched until it compiles). Use
+malformed — read the error, fix it, and re-edit (the live runtime is left untouched until it compiles). The
+apply also FORCE-COMPUTES the module's cells and reports their RUNTIME status: a module can compile yet a cell
+still ERROR when it runs (the error is lazy — it surfaces only when the cell is observed, e.g. a wrong API
+like a non-existent Generators method). If the result says "N cells ERRORING at runtime", treat it like a
+compile failure: fix that cell and re-apply — do NOT call task_complete while any cell errors. Your written
+cells are auto-watched, so later value changes or errors stream to you as "Watch updates". Use
 read_file to read with line numbers, write_file to create a file or a whole new module. Use bash for shell
 work — ls, grep, find, running commands — and for raw bytes (od/wc/base64). exitCode != 0 is normal output,
 not a crash. Prefer standard-library building blocks over hand-rolled DOM/loops (Inputs.table over a hand-built
