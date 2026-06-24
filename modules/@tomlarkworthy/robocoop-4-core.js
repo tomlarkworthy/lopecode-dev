@@ -256,9 +256,15 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
       return h;
     };
     async function chat({ model = defaultModel, messages, tools, tool_choice = 'auto', temperature, max_tokens, signal } = {}) {
+      // Cache the large static system prefix on Anthropic models (OpenRouter forwards cache_control).
+      // Only messages[0] (the stable system prompt) gets a breakpoint — volatile system "notices" stay uncached.
+      let outMessages = messages;
+      if (/anthropic|claude/i.test(model || '') && messages?.[0]?.role === 'system' && typeof messages[0].content === 'string') {
+        outMessages = [{ ...messages[0], content: [{ type: 'text', text: messages[0].content, cache_control: { type: 'ephemeral' } }] }, ...messages.slice(1)];
+      }
       const body = {
         model,
-        messages,
+        messages: outMessages,
         stream: false,
         ...(tools && tools.length ? { tools, tool_choice } : {}),
         ...(temperature != null ? { temperature } : {}),
@@ -312,6 +318,7 @@ const _createAgentSession = function _createAgentSession(truncate){
     model,
     modelProvider,
     maxStepsPerTurn = 12,
+    maxTokens = 8192,
     toolChoice = 'auto',
     toolOutputLimit = 8000,
     runCommand,
@@ -393,7 +400,7 @@ const _createAgentSession = function _createAgentSession(truncate){
         const wire = completeSpec ? [...live.map(toWireTool), completeSpec] : live.map(toWireTool);
         const byId = new Map(live.map((t) => [t.id, t]));
 
-        const res = await client.chat({ model: getModel(), messages, tools: wire, tool_choice: toolChoice, signal: abortController.signal });
+        const res = await client.chat({ model: getModel(), messages, tools: wire, tool_choice: toolChoice, max_tokens: maxTokens, signal: abortController.signal });
         const msg = res?.message;
         if (!msg) throw new Error('client.chat returned no message');
 
