@@ -113,9 +113,9 @@
       ],
       "value": 4,
       "evidence": "_facade render() does log.innerHTML='' then re-runs md`` over EVERY prior msg; wired to onText+onToolCall+onToolResult+onFinish -> 20-step turn re-parses whole transcript ~20x. Terminal is incremental; chat is not.",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "Memoized render: bubbles md-parsed once per content change (WeakMap by msg identity), reconciled via replaceChildren. Verified live: user bubble is the SAME node across a full turn's renders (was recreated every render); chat renders correctly; node CI green",
       "created": "2"
     },
     {
