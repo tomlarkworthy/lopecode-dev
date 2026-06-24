@@ -200,9 +200,9 @@
       ],
       "value": 4,
       "evidence": "Rubric #14: after the agent write_file's a new @user/x module it compiles live but does NOT appear where the user is looking (not added to the view/lopepage); the user has to find it via a module lookup menu. A created artifact should surface in place (auto-add to view, or a 'created @x — open it' affordance).",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "applyModuleFile surfaces a new visual module via open= intent; verified live (tabs 2->3, agent pane preserved, module merged into view=); node CI green",
       "created": "4"
     },
     {
