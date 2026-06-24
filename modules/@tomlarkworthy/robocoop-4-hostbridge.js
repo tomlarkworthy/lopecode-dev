@@ -357,14 +357,14 @@ const _editTools = function _editTools(defineTool, rc4_workspace, currentModules
     setTimeout(() => finish({ pending: true }), 4000);
   });
   // Force-compute + auto-watch every named cell of `id`; returns [{name, error?, value?}]. Best-effort.
+  // Cells are probed CONCURRENTLY (readVar has its own per-cell timeout) so a module with several pending
+  // cells settles in ~one timeout, not the sum — a write must never stall the agent on a serial wait.
   const probeAndWatch = async (id) => {
     const mod = resolveModule(id); if (!mod) return null;
     const cells = varsOf(mod).filter((v) => v._name && v.pid && !isStructural(v)).slice(0, 24);
-    const out = [];
-    for (const v of cells) {
+    return Promise.all(cells.map(async (v) => {
       const base = await readVar(mod, v);
       const baseText = base.error ? '⚠ ' + base.error : summ(base.value);
-      out.push({ name: v._name, error: base.error, value: base.error ? undefined : baseText });
       const wid = watchKey(id, v.pid, v._name);
       if (!rc4_watchBus.has(wid)) {
         let stop; const inv = new Promise((r) => { stop = r; });
@@ -377,8 +377,8 @@ const _editTools = function _editTools(defineTool, rc4_workspace, currentModules
           rc4_watchBus.register(wid, id + ':' + v._name, stop, baseText);
         } catch (e) {}
       }
-    }
-    return out;
+      return { name: v._name, error: base.error, value: base.error ? undefined : baseText };
+    }));
   };
   // Render the probe into a one-line status appended to the apply message.
   const probeStatus = (probe) => {

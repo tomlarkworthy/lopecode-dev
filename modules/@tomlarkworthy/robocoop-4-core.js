@@ -169,6 +169,7 @@ const _createScriptedClient = function _createScriptedClient(){return(
       return {
         message,
         finish_reason: step.finish_reason ?? (step.tool_calls ? 'tool_calls' : 'stop'),
+        native_finish_reason: step.native_finish_reason,
         raw: { scripted: true, index: i - 1 },
       };
     }
@@ -230,7 +231,7 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
       const data = await res.json();
       const choice = data.choices?.[0];
       if (!choice) throw new Error('OpenRouter: no choices in response: ' + JSON.stringify(data));
-      return { message: choice.message, finish_reason: choice.finish_reason, raw: data };
+      return { message: choice.message, finish_reason: choice.finish_reason, native_finish_reason: choice.native_finish_reason, raw: data };
     }
     return { chat };
   };
@@ -272,6 +273,7 @@ const _createAgentSession = function _createAgentSession(truncate){
     runCommand,
     completeToolName = null,
     stallNudgeLimit = 0,
+    malformedRetryLimit = 4,
     nudgeMessage,
     noticesProvider,
   } = {}) {
@@ -343,6 +345,7 @@ const _createAgentSession = function _createAgentSession(truncate){
       let finishReason = null;
       let step = 0;
       let stalls = 0;
+      let malformed = 0;
       const startLen = messages.length;
 
       for (step = 0; step < maxStepsPerTurn; step++) {
@@ -366,6 +369,25 @@ const _createAgentSession = function _createAgentSession(truncate){
         const res = await client.chat({ model: getModel(), messages, tools: wire, tool_choice: toolChoice, max_tokens: maxTokens, signal: abortController.signal });
         const msg = res?.message;
         if (!msg) throw new Error('client.chat returned no message');
+
+        // Some providers (notably Gemini) reject the model's OWN tool call upstream and return an EMPTY
+        // assistant turn: finish_reason 'error' / native_finish_reason 'MALFORMED_FUNCTION_CALL', content
+        // null, no tool_calls, 0 tokens. Pushing that null-content message would poison later turns (like a
+        // truncated call) and it conveys nothing. Drop it, give a TARGETED nudge (the generic stall nudge
+        // doesn't name the real fault), and retry the step — these are usually transient and cost 0 tokens.
+        const noContent = !msg.content && !(Array.isArray(msg.tool_calls) && msg.tool_calls.length);
+        const isMalformed = noContent && (res.finish_reason === 'error' || res.native_finish_reason === 'MALFORMED_FUNCTION_CALL');
+        if (isMalformed) {
+          if (malformed < malformedRetryLimit && step < maxStepsPerTurn - 1) {
+            malformed++;
+            messages.push({ role: 'system', content: 'Your previous reply was rejected by the provider as a malformed function call — it produced no valid tool call and no text. Emit exactly ONE tool call with strictly valid JSON arguments (every string closed, no trailing commas, no comments), or reply with plain text. Keep the call small.' });
+            callbacks.onMalformed?.(malformed);
+            continue;
+          }
+          finishReason = 'error';
+          callbacks.onFinish?.({ messages, finishReason });
+          break;
+        }
 
         messages.push(msg);
         if (msg.content) callbacks.onText?.(msg.content);

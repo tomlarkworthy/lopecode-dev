@@ -156,6 +156,36 @@ const _test_rc4_session_surfaces_client_error = async function _test_rc4_session
   return "ok";
 };
 
+// Malformed-tool-call recovery: a provider (e.g. Gemini) can reject the model's OWN tool call upstream and
+// return an EMPTY assistant turn (finish_reason 'error' / native 'MALFORMED_FUNCTION_CALL', content null, no
+// tool_calls). That null message must NOT be pushed to history (it poisons later turns); instead the step is
+// retried with a targeted nudge, and the loop recovers.
+const _test_rc4_session_malformed_recovers = async function _test_rc4_session_malformed_recovers(rc4_assert, createAgentSession, createScriptedClient, rc4_simpleTool){
+  const client = createScriptedClient([
+    { finish_reason:"error", native_finish_reason:"MALFORMED_FUNCTION_CALL" },   // provider-rejected, empty turn
+    { tool_calls:[{ id:"r1", name:"noop", arguments:{} }] },                     // model recovers, acts
+    { content:"done", finish_reason:"stop" }
+  ]);
+  const s = createAgentSession({ client, tools:[rc4_simpleTool("noop","N")], model:"m" });
+  const r = await s.send("go");
+  rc4_assert(!s.messages.some(m=>m.role==="assistant"&&m.content==null&&!m.tool_calls), "null-content malformed turn was NOT pushed to history");
+  rc4_assert(s.messages.some(m=>m.role==="system"&&/malformed function call/.test(m.content)), "a targeted malformed nudge was injected");
+  rc4_assert(s.messages.some(m=>m.role==="tool"&&m.content==="N"), "loop recovered and ran the real tool");
+  return "ok";
+};
+
+// Malformed fallback: if a provider keeps returning malformed/empty turns, the loop terminates (finishReason
+// 'error') after malformedRetryLimit retries instead of spinning to the step cap.
+const _test_rc4_session_malformed_fallback = async function _test_rc4_session_malformed_fallback(rc4_assert, createAgentSession, createScriptedClient){
+  const bad = { finish_reason:"error", native_finish_reason:"MALFORMED_FUNCTION_CALL" };
+  const client = createScriptedClient([bad,bad,bad,bad,bad,bad]);
+  const s = createAgentSession({ client, tools:[], model:"m", malformedRetryLimit:2 });
+  const r = await s.send("go");
+  rc4_assert(r.finishReason==="error", "terminates with finishReason error after the retry limit");
+  rc4_assert(r.steps<=4, "did not run to the step cap: " + r.steps);
+  return "ok";
+};
+
 // Visual prompting: send({text, images}) builds an OpenAI multimodal user message so a vision model sees it.
 const _test_rc4_session_send_images = async function _test_rc4_session_send_images(rc4_assert, createAgentSession, createScriptedClient){
   const client = createScriptedClient([{ content: "ok", finish_reason: "stop" }]);
@@ -233,6 +263,8 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_nudge_fallback", "test_rc4_session_nudge_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_nudge_fallback);
   $def("rc4ts_t_watch_notices", "test_rc4_session_watch_notices", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_watch_notices);
   $def("rc4ts_t_client_error", "test_rc4_session_surfaces_client_error", ["rc4_assert","createAgentSession","rc4_simpleTool"], _test_rc4_session_surfaces_client_error);
+  $def("rc4ts_t_malformed_recovers", "test_rc4_session_malformed_recovers", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_malformed_recovers);
+  $def("rc4ts_t_malformed_fallback", "test_rc4_session_malformed_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_malformed_fallback);
   $def("rc4ts_t_send_images", "test_rc4_session_send_images", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_send_images);
   $def("rc4ts_t_attach_image", "test_rc4_session_attach_image_tool", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_attach_image_tool);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);
