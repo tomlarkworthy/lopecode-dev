@@ -276,7 +276,11 @@ const _4bge96 = function _jbApply() {
                 seenPids.add(pid);
                 const existing = existingVars.get('__pid__' + pid) || (cell.name && existingVars.get(cell.name));
                 if (!existing) {
-                    const v = mod.variable();
+                    // Empty observer ({} = the () => ({}) factory) so a pane's visualizer can render the cell;
+                    // mod.variable() (unobserved) lets the apply-time probe own it → element parented outside any
+                    // pane → inspector shows the collapsed-object form instead of mounting it (blank).
+                    const ojsObs = (typeof window !== 'undefined' && window.__ojs_observer) || null;
+                    const v = mod.variable(ojsObs ? ojsObs(cell.name) : {});
                     v.define(cell.name, cell.inputs, cell.definition);
                     v.pid = pid;
                     existingVars.set('__pid__' + pid, v);
