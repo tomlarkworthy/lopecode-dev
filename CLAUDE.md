@@ -38,6 +38,7 @@ lopecode-dev/
 │   ├── lope-runtime.js         # Core library: loadNotebook() -> LopecodeExecution
 │   ├── tools.js                # Shared Observable runtime utilities
 │   ├── lope-reader.ts          # Fast static analysis (no browser, Bun)
+│   ├── notebook-import.ts      # Import one module's cells into a node script (headless runtime, no copy)
 │   ├── lope-browser-runner.ts          # One-off runtime execution (Playwright)
 │   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright); drives lopecode/notebooks/jumpgates.html
 │   ├── lope-bulk-jumpgate.js   # Bulk export driver; drives lopecode/notebooks/jumpgates.html
@@ -65,12 +66,14 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
 | `knowledge/what-makes-a-great-lopebook.md` | Quality criteria and best practices for lopebook content |
+| `knowledge/js-toolchain-notebook-kit-2-cells.md` | Notebook Kit 2.0 cell compile/decompile (`@tomlarkworthy/js-toolchain`): invertability, multi-out cell model, import handling, ts mode |
 
 ### Which Tool to Use
 
 | Task | Tool | Speed |
 |------|------|-------|
 | List modules, read module source | `lope-reader.ts` | Instant |
+| Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
 | Check file attachments, generate manifest | `lope-reader.ts` | Instant |
 | One-off test run, get computed values | `lope-browser-runner.ts` | ~10s startup |
 | Iterative development, pair programming | Pairing channel + MCP tools | Real-time |
@@ -165,3 +168,8 @@ bun test tests/channel/lopecode-channel.test.ts
    - Natural test observation via `latest_state` Map
    - How to force cell computation with `_reachable` and `_computeNow()`
 14. **Writing style** - Terse and factual, do not use hyperbole, metaphors or similes in public facing documentation.
+15. **Be terse in comments** - Default to no comment. When one is warranted (non-obvious *why*), keep it to one short line.
+16. **Never copy notebook code into scripts — import it.** When a node/bun tool needs logic that already lives in a notebook module (a metric, a parser, a formula, a transform), do **not** reimplement or copy it — that copy silently drifts from the canonical source (observed: a hand-copied `code-metrics` formula diverged on cyclomatic complexity). Reuse the real cell instead. Three paths, lightest first:
+   - **One module's cells/functions** → `bun tools/notebook-import.ts` (`importNotebookModule(jsPath, { overrides })`) — loads the module into a headless `@observablehq/runtime`, `await m.value("cellName")` returns the cell's value (a function cell gives you a reusable function; a data cell gives computed data). `overrides` inject deps a cell needs (a `require`-based or browser-only builtin, or a feeder input). No browser, no DOM. See `tools/code-metrics-cli.ts` for a worked example (it feeds `allCells` and reads the real `metricsRows`).
+   - **A whole notebook** (needs importmap / file attachments) → `tools/lope-runtime.js` `loadNotebook()`.
+   - **Full browser fidelity** (real DOM/APIs) → drive it in Playwright like `tools/lope-jumpgate.js` and read `__ojs_runtime` cell values via `page.evaluate`.

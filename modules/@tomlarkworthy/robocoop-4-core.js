@@ -364,12 +364,16 @@ const _createAgentSession = function _createAgentSession(truncate){
       const abortController = new AbortController();
       currentAbort = abortController;
       let metadata = {};
+      const pendingImages = [];
       const ctx = {
         callId: null,
         abort: abortController.signal,
         runCommand,
         metadata: (u) => { metadata = { ...metadata, ...u }; },
         getMetadata: () => metadata,
+        // A tool (e.g. view_image) calls this to feed an image into the conversation; queued here and pushed
+        // as a user image-message after the current tool batch, so the model sees it on the next step.
+        attachImage: (url) => { if (url) pendingImages.push(url); },
       };
 
       const sp = getSystemPrompt();
@@ -379,7 +383,14 @@ const _createAgentSession = function _createAgentSession(truncate){
         else messages.unshift(m);
       }
 
-      if (userText != null) messages.push({ role: 'user', content: String(userText) });
+      if (images && images.length) {
+        const parts = [];
+        if (userText != null) parts.push({ type: 'text', text: String(userText) });
+        for (const url of images) if (url) parts.push({ type: 'image_url', image_url: { url } });
+        if (parts.length) messages.push({ role: 'user', content: parts });
+      } else if (userText != null) {
+        messages.push({ role: 'user', content: String(userText) });
+      }
 
       let finishReason = null;
       let step = 0;
@@ -468,6 +479,13 @@ const _createAgentSession = function _createAgentSession(truncate){
           output = truncate(output, toolOutputLimit);
           callbacks.onToolResult?.(callId, output);
           messages.push({ role: 'tool', tool_call_id: callId, content: output });
+        }
+
+        // A tool fed image(s) in via ctx.attachImage — deliver them as a user image-message so the model
+        // sees them next step (tool-role content can't reliably carry images across providers).
+        if (pendingImages.length) {
+          messages.push({ role: 'user', content: pendingImages.map((url) => ({ type: 'image_url', image_url: { url } })) });
+          pendingImages.length = 0;
         }
 
         if (completed) {

@@ -8,6 +8,8 @@
     "run-notebook": "bun lope-browser-runner.ts"
   },
   "dependencies": {
+    "@observablehq/runtime": "^6.0.0",
+    "acorn-walk": "^8.3.5",
     "cheerio": "^1.2.0",
     "fake-indexeddb": "^6.2.5",
     "glob": "^11.0.0",
