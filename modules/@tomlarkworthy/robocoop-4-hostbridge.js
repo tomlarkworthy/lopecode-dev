@@ -422,7 +422,36 @@ const _editTools = function _editTools(defineTool, rc4_workspace, currentModules
     },
   });
 
-  return [read_file, write_file, edit_file];
+  // view_image — load an image file (screenshot or image FileAttachment) into your OWN view. Feeds it to the
+  // model via ctx.attachImage so a vision model can SEE it on the next step (tool text can't carry images).
+  const IMG_MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp' };
+  const view_image = defineTool({
+    id: 'view_image',
+    description: 'Load an IMAGE from the filesystem so you can SEE it — a screenshot or an image FileAttachment ' +
+      '(images live under /content/<module>/<file>; `ls /content` to find them). Pass the image file_path; the ' +
+      'image becomes visible to you on your NEXT step (describe or act on it then). Needs a vision model (the ' +
+      'chooser only lists vision+tool models).',
+    parameters: { type: 'object', additionalProperties: false, required: ['file_path'], properties: {
+      file_path: { type: 'string', description: 'Absolute path to an image, e.g. /content/@user/mod/shot.png.' },
+    } },
+    execute: async ({ file_path }, ctx) => {
+      const mime = IMG_MIME[(file_path.split('.').pop() || '').toLowerCase()];
+      if (!mime) return { title: 'view_image', output: 'Not a recognized image type (.png/.jpg/.jpeg/.gif/.webp/.svg/.bmp): ' + file_path };
+      if (!ctx || typeof ctx.attachImage !== 'function') return { title: 'view_image', output: 'Image viewing is unavailable in this context.' };
+      let bytes;
+      try { bytes = await fs.readFile(file_path); } catch (e) { return { title: 'view_image', output: 'Cannot read ' + file_path + ': ' + (e && e.message || e) }; }
+      if (typeof bytes === 'string') bytes = new TextEncoder().encode(bytes);
+      const len = bytes.byteLength ?? bytes.length ?? 0;
+      let url;
+      try {
+        url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error); fr.readAsDataURL(new Blob([bytes], { type: mime })); });
+      } catch (e) { return { title: 'view_image', output: 'Could not encode ' + file_path + ': ' + (e && e.message || e) }; }
+      ctx.attachImage(url);
+      return { title: 'view ' + file_path, output: 'Loaded ' + file_path + ' (' + Math.round(len / 1024) + ' KB, ' + mime + ') — the image is now visible to you; describe or use it on your next step.' };
+    },
+  });
+
+  return [read_file, write_file, edit_file, view_image];
 };
 
 const _hostSetup = function _hostSetup(jbFileSync, rc4_workspace, currentModules, runtime, createModule, invalidation, valueTools, editTools, mirrorBlocks, registerTool, unregisterTool){

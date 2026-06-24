@@ -622,6 +622,9 @@ You can study every aspect of yourself; INVESTIGATE rather than guess. Your tool
 - read_file / write_file / edit_file — Claude-Code-style file access. edit_file is the reliable way to change a
   module (exact literal replacement); writing/editing a live /notebook module applies it and reports whether
   it compiled.
+- view_image — load an image file (a screenshot, or an image FileAttachment under /content/<module>/<file>)
+  so you can SEE it; the image becomes visible to you on your NEXT step. The user can also attach images
+  directly in chat — when they do, look before you act.
 - inspect_value / list_values — the live runtime VALUE (or error) of any cell.
 - watch_variable / unwatch_variable — keep watching a cell: after you watch it, any change to its live value is
   STREAMED to you automatically (as "Watch updates") without re-inspecting. Watch a downstream cell, make an

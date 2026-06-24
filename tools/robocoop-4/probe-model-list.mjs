@@ -6,9 +6,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const notebookPath = join(here, "..", "..", "lopebooks", "notebooks", "@tomlarkworthy_robocoop-4.html");
 const layout = "S100(@tomlarkworthy/robocoop-4)";
 const catalog = { data: [
-  { id: "zeta/tool-model", supported_parameters: ["tools", "temperature"] },
-  { id: "alpha/tool-model", supported_parameters: ["tools"] },
-  { id: "beta/no-tools", supported_parameters: ["temperature"] },
+  { id: "zeta/vision-tool", supported_parameters: ["tools", "temperature"], architecture: { input_modalities: ["text", "image"] } },
+  { id: "alpha/vision-tool", supported_parameters: ["tools"], architecture: { input_modalities: ["text", "image"] } },
+  { id: "gamma/tool-no-vision", supported_parameters: ["tools"], architecture: { input_modalities: ["text"] } },
+  { id: "beta/no-tools", supported_parameters: ["temperature"], architecture: { input_modalities: ["text", "image"] } },
 ] };
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext();
@@ -31,7 +32,8 @@ const out = await page.evaluate(async () => {
   const sel = document.querySelector(".rc4-settings select");
   return {
     count: list.length,
-    hasToolModels: list.includes("zeta/tool-model") && list.includes("alpha/tool-model"),
+    hasVisionToolModels: list.includes("zeta/vision-tool") && list.includes("alpha/vision-tool"),
+    droppedToolOnlyNoVision: !list.includes("gamma/tool-no-vision"),
     droppedNonTool: !list.includes("beta/no-tools"),
     fallbackMerged: list.includes("anthropic/claude-sonnet-4"),
     sorted: JSON.stringify(list) === JSON.stringify([...list].sort()),

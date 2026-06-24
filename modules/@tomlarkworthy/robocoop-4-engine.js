@@ -28,9 +28,11 @@ const _OPENROUTER_API_KEY = function _OPENROUTER_API_KEY(Inputs, localStorageVie
   );
 };
 
-// Model list, populated live from OpenRouter's public catalog (no key needed). Filtered to TOOL-CAPABLE
-// models (robocoop-4 can't run without tool calls), sorted. Falls back to a curated list if the catalog is
-// unreachable/slow (8s cap) — the fallback is also merged in so the stored default stays selectable.
+// Model list, populated live from OpenRouter's public catalog (no key needed). robocoop-4 needs TOOL calls,
+// and we want to prompt it VISUALLY (screenshots/images), so the list is filtered to models that support BOTH
+// tools and image input. Sorted; the curated fallback (all tool+vision) is merged in so the stored default
+// stays selectable; falls back to the curated list if the catalog is unreachable/slow (8s cap). Graceful
+// widening: tool+vision → tool-only → all, so the chooser is never empty.
 const _openrouter_models = function _openrouter_models(){
   const FALLBACK = [
     "anthropic/claude-sonnet-4",
@@ -38,15 +40,17 @@ const _openrouter_models = function _openrouter_models(){
     "anthropic/claude-3.5-sonnet",
     "openai/gpt-4.1",
     "openai/gpt-4o",
-    "google/gemini-2.5-pro",
-    "meta-llama/llama-3.3-70b-instruct"
+    "google/gemini-2.5-pro"
   ];
+  const hasTools = (m) => Array.isArray(m.supported_parameters) && m.supported_parameters.includes("tools");
+  const hasVision = (m) => Array.isArray(m.architecture && m.architecture.input_modalities) && m.architecture.input_modalities.includes("image");
   const fetched = window.fetch("https://openrouter.ai/api/v1/models")
     .then((r) => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
     .then((j) => {
       const models = (j.data || []).filter((m) => m && m.id);
-      const toolCapable = models.filter((m) => Array.isArray(m.supported_parameters) && m.supported_parameters.includes("tools"));
-      const use = toolCapable.length ? toolCapable : models;
+      const toolVision = models.filter((m) => hasTools(m) && hasVision(m));
+      const toolOnly = models.filter(hasTools);
+      const use = toolVision.length ? toolVision : (toolOnly.length ? toolOnly : models);
       const ids = new Set(use.map((m) => m.id));
       for (const f of FALLBACK) ids.add(f);
       return [...ids].sort();

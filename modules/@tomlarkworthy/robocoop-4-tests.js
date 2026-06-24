@@ -156,6 +156,33 @@ const _test_rc4_session_surfaces_client_error = async function _test_rc4_session
   return "ok";
 };
 
+// Visual prompting: send({text, images}) builds an OpenAI multimodal user message so a vision model sees it.
+const _test_rc4_session_send_images = async function _test_rc4_session_send_images(rc4_assert, createAgentSession, createScriptedClient){
+  const client = createScriptedClient([{ content: "ok", finish_reason: "stop" }]);
+  const s = createAgentSession({ client, tools: [], model: "m" });
+  await s.send({ text: "what is this", images: ["data:image/png;base64,iVBOR"] });
+  const u = s.messages.find((m) => m.role === "user");
+  rc4_assert(Array.isArray(u.content), "user content is a parts array when images are attached");
+  rc4_assert(u.content.some((p) => p.type === "text" && /what is this/.test(p.text)), "text part present");
+  rc4_assert(u.content.some((p) => p.type === "image_url" && /data:image/.test(p.image_url.url)), "image part present");
+  return "ok";
+};
+
+// A tool calling ctx.attachImage feeds an image into the conversation as a user image-message (view_image path).
+const _test_rc4_session_attach_image_tool = async function _test_rc4_session_attach_image_tool(rc4_assert, createAgentSession, createScriptedClient){
+  const viewer = { id: "viewer", description: "view", parameters: { type: "object", properties: {} }, execute: async (a, ctx) => { ctx.attachImage("data:image/png;base64,ZZZ"); return { output: "loaded" }; } };
+  const client = createScriptedClient([
+    { tool_calls: [{ id: "t1", name: "viewer", arguments: {} }] },
+    { content: "I see it", finish_reason: "stop" },
+  ]);
+  const s = createAgentSession({ client, tools: [viewer], model: "m" });
+  await s.send("look at the asset");
+  const imgMsg = s.messages.find((m) => m.role === "user" && Array.isArray(m.content) && m.content.some((p) => p.type === "image_url"));
+  rc4_assert(imgMsg, "tool-attached image delivered as a user image-message");
+  rc4_assert(/ZZZ/.test(imgMsg.content[0].image_url.url), "correct image url injected by the tool");
+  return "ok";
+};
+
 // fs test: real just-bash workspace + bash tool. The scripted client sed-renames a seeded module.
 const _test_rc4_fs_rename = async function _test_rc4_fs_rename(rc4_assert, createAgentSession, createScriptedClient, createBashTool, createWorkspace){
   const ws = createWorkspace({ "/notebook/@user/mod.js": "const _x = function _x(){return( foo )};\n" });
@@ -206,6 +233,8 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_nudge_fallback", "test_rc4_session_nudge_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_nudge_fallback);
   $def("rc4ts_t_watch_notices", "test_rc4_session_watch_notices", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_watch_notices);
   $def("rc4ts_t_client_error", "test_rc4_session_surfaces_client_error", ["rc4_assert","createAgentSession","rc4_simpleTool"], _test_rc4_session_surfaces_client_error);
+  $def("rc4ts_t_send_images", "test_rc4_session_send_images", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_send_images);
+  $def("rc4ts_t_attach_image", "test_rc4_session_attach_image_tool", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_attach_image_tool);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);
 
   return main;
