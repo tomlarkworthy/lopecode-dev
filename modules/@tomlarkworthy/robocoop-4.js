@@ -83,6 +83,25 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   };
   let busy = false;
   const errors = [];   // surfaced agent failures (e.g. OpenRouter 402); part of render state so they persist
+  let lastOutcome = null;   // a turn-end summary shown when the agent stops WITHOUT a final reply (so it's never silent)
+
+  // The transcript is talk-only, so a turn that ends on tool work with no closing assistant text would leave
+  // the user staring at their own message with no idea what happened. Summarize the outcome: why it ended +
+  // how many steps + a tally of what it did. 'completed' already shows the task_complete summary, so skip it.
+  const summarizeTurn = (r) => {
+    if (!r || r.finishReason === "completed") return null;
+    const tally = {};
+    for (const m of (r.turnMessages || []))
+      if (m.role === "assistant" && Array.isArray(m.tool_calls))
+        for (const tc of m.tool_calls) { const n = tc.function?.name || "tool"; tally[n] = (tally[n] || 0) + 1; }
+    const acts = Object.entries(tally).map(([n, c]) => n + "×" + c).join(", ");
+    const why = r.finishReason === "max_steps" ? "reached the step limit"
+      : r.finishReason === "aborted" ? "was stopped"
+      : r.finishReason === "error" ? "hit a provider error"
+      : "ended without calling task_complete";
+    return "⏹ Agent " + why + " · " + r.steps + " step" + (r.steps === 1 ? "" : "s")
+      + (acts ? " · " + acts : "") + ". No final reply — say “continue” to resume or “finish up”.";
+  };
 
   // Live per-step status — a cheap, persistent line so a running turn is never silent (#14). Updated
   // directly (textContent), NOT through the heavy render() that wipes+re-parses every bubble (so tool
@@ -130,6 +149,12 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
       d.style.cssText = "color:" + C.err + ";background:#2d0f0f;border:1px solid " + C.err +
         ";border-radius:8px;padding:6px 10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere";
       d.textContent = "⚠ agent error — " + er;
+      desired.push(d);
+    }
+    if (lastOutcome) {
+      const d = document.createElement("div");
+      d.style.cssText = "color:" + C.muted + ";font-size:12px;font-style:italic;text-align:center;padding:4px 10px";
+      d.textContent = lastOutcome;
       desired.push(d);
     }
     log.replaceChildren(...desired);
@@ -185,7 +210,7 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
     const text = ta.value.trim();
     if ((!text && !pendingImages.length) || busy) return;
     const images = pendingImages.splice(0);   // take and clear the staged images
-    busy = true; ta.value = ""; send.disabled = true; errors.length = 0; stepN = 0; renderThumbs();
+    busy = true; ta.value = ""; send.disabled = true; errors.length = 0; lastOutcome = null; stepN = 0; renderThumbs();
     setStatus("● thinking…");
     try {
       const input = images.length ? { text: text || null, images } : text;
@@ -201,7 +226,10 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
         onFinish: render
       });
       render();
-      await p;
+      const result = await p;
+      // If the turn produced no closing assistant text, show why it ended so the user is never left guessing.
+      const last = session.messages[session.messages.length - 1];
+      if (!(last && last.role === "assistant" && last.content)) lastOutcome = summarizeTurn(result);
     } catch (err) {
       errors.push(err && err.message ? err.message : String(err));
     } finally {

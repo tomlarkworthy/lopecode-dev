@@ -644,8 +644,17 @@ runs in the MAIN module, which has NOT imported your new module, so referencing 
 with its module id, never an eval_js probe.
 Preserve the module format exactly. If a request is impossible or
 ambiguous, say so and ask rather than guessing. Take a concrete action — a tool call — on EVERY turn; never
-just describe what you are about to do and stop. When the task is fully done (or you have finished answering),
-call the \`task_complete\` tool with a short summary; that is how you end your turn.`
+just describe what you are about to do and stop.
+Writing code in your REPLY does nothing — your messages are never executed. The ONLY way to create or change
+anything is to call write_file / edit_file with the actual module source. Never paste a code block into your
+reply as a substitute for a tool call; if you catch yourself about to show code, call write_file with it instead.
+You have a LIMITED step budget per turn, so don't over-explore: read AT MOST one or two relevant examples, then
+START WRITING the module — build a small compiling skeleton first, then add cells one at a time. Prefer building
+over more reading.
+ALWAYS end your turn by calling \`task_complete\` with a short summary — even if you ran out of steps, got stuck,
+or only partially finished: say what you built, what's left, and any blocker. NEVER stop silently (a turn that
+ends with no task_complete leaves the user staring at a blank reply with no idea what happened). When the task
+is fully done (or you have finished answering), call \`task_complete\`; that is how you end your turn.`
 )};
 const _composeFooter = function _composeFooter(){return(
   function composeFooter({ workdir = '/notebook', model } = {}) {
