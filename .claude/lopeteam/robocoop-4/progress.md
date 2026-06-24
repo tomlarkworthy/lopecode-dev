@@ -40,3 +40,8 @@ Applied (human-gated /lopeteam-reflect, all approved):
 - accepted: 2
 - emptyStreak: 0
 - note: Shared-surface vision: B14 (agent-created visual module auto-surfaces in lopepage view, non-destructive) + B15 (prompt: verify own module via inspect_value not eval_js). Both live-verified on sonnet.
+
+## Round 7
+- accepted: 1
+- emptyStreak: 0
+- note: B8 memoized chat render (no O(n2) md re-parse); verified live via DOM node stability
