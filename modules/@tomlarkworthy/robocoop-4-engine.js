@@ -87,7 +87,11 @@ const _session = function _session(toolsView, $model, $prompt, client, createAge
     toolsProvider: () => (Array.isArray(toolsView.value) ? toolsView.value : []),
     modelProvider: () => $model.value,
     systemPromptProvider: () => $prompt.value,
-    runCommand: (cmd) => rc4_agentShell.run(cmd)
+    runCommand: (cmd) => rc4_agentShell.run(cmd),
+    // explicit-completion loop: end on task_complete, not on bare text; nudge a stalled turn before giving up
+    completeToolName: 'task_complete',
+    stallNudgeLimit: 2,
+    maxStepsPerTurn: 20
   });
 };
 

@@ -103,6 +103,36 @@ const _test_rc4_session_abort = async function _test_rc4_session_abort(rc4_asser
   return "ok";
 };
 
+// Explicit-completion + nudge: a bare-text stall is NOT terminal — it is nudged; a real tool resets the
+// stall counter; task_complete ends the turn with finishReason "completed" and a visible summary.
+const _test_rc4_session_complete_and_nudge = async function _test_rc4_session_complete_and_nudge(rc4_assert, createAgentSession, createScriptedClient, rc4_simpleTool){
+  const client = createScriptedClient([
+    { content:"let me think about this" },                                   // bare text → nudge, not done
+    { tool_calls:[{ id:"t1", name:"noop", arguments:{} }] },                 // real action → stalls reset
+    { tool_calls:[{ id:"c1", name:"task_complete", arguments:{ summary:"all done" } }] }
+  ]);
+  const s = createAgentSession({ client, tools:[rc4_simpleTool("noop","N")], model:"m",
+    completeToolName:"task_complete", stallNudgeLimit:1 });
+  const r = await s.send("go");
+  rc4_assert(r.finishReason==="completed", "ends via task_complete, finishReason completed");
+  rc4_assert(s.messages.some(m=>m.role==="system"&&/without calling a tool/.test(m.content)), "bare turn was nudged");
+  rc4_assert(s.messages.some(m=>m.role==="tool"&&m.content==="N"), "real tool ran after the nudge");
+  rc4_assert(s.messages.some(m=>m.role==="tool"&&m.tool_call_id==="c1"&&m.content==="ok"), "task_complete got a tool reply");
+  rc4_assert(s.messages.some(m=>m.role==="assistant"&&m.content==="all done"), "summary surfaced as final message");
+  return "ok";
+};
+
+// Soft fallback: a model that keeps narrating without acting still terminates after stallNudgeLimit nudges.
+const _test_rc4_session_nudge_fallback = async function _test_rc4_session_nudge_fallback(rc4_assert, createAgentSession, createScriptedClient){
+  const client = createScriptedClient([{content:"a"},{content:"b"},{content:"c"},{content:"d"}]);
+  const s = createAgentSession({ client, tools:[], model:"m", completeToolName:"task_complete", stallNudgeLimit:1 });
+  const r = await s.send("go");
+  rc4_assert(r.finishReason==="stop", "falls back to stop, no infinite loop");
+  rc4_assert(s.messages.filter(m=>m.role==="system").length===1, "exactly one nudge before giving up");
+  rc4_assert(r.steps<=3, "terminated promptly (≤3 steps), not run to the cap: " + r.steps);
+  return "ok";
+};
+
 // fs test: real just-bash workspace + bash tool. The scripted client sed-renames a seeded module.
 const _test_rc4_fs_rename = async function _test_rc4_fs_rename(rc4_assert, createAgentSession, createScriptedClient, createBashTool, createWorkspace){
   const ws = createWorkspace({ "/notebook/@user/mod.js": "const _x = function _x(){return( foo )};\n" });
@@ -149,6 +179,8 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_livetool", "test_rc4_session_live_tool_add", ["rc4_assert","createAgentSession","rc4_recordClient","rc4_simpleTool"], _test_rc4_session_live_tool_add);
   $def("rc4ts_t_unknown", "test_rc4_session_unknown_tool", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_unknown_tool);
   $def("rc4ts_t_abort", "test_rc4_session_abort", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_abort);
+  $def("rc4ts_t_complete_nudge", "test_rc4_session_complete_and_nudge", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_complete_and_nudge);
+  $def("rc4ts_t_nudge_fallback", "test_rc4_session_nudge_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_nudge_fallback);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);
 
   return main;

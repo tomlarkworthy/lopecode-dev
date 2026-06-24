@@ -13,6 +13,10 @@ const notebookPath = join(here, "..", "..", "lopebooks", "notebooks", "@tomlarkw
 const driver = await createDriver({ notebookPath, apiKey: process.env.OPENROUTER_API_KEY, model: "anthropic/claude-sonnet-4", timeoutMs: 180000 });
 try {
   const snap = await driver.runQuestion(evalDef);
+  console.log("finishReason:", snap.finishReason, " steps:", snap.steps);
+  const tcNames = (snap.conversation || []).flatMap((m) => Array.isArray(m.tool_calls) ? m.tool_calls.map((c) => c.function?.name) : []);
+  console.log("tool_call names in convo:", JSON.stringify(tcNames));
+  console.log("used task_complete:", tcNames.includes("task_complete"));
   console.log("=== toolCalls (" + (snap.toolCalls || []).length + ") ===");
   for (const c of snap.toolCalls || []) {
     const a = c.arguments || {};

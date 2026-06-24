@@ -313,6 +313,9 @@ const _createAgentSession = function _createAgentSession(truncate){
     toolChoice = 'auto',
     toolOutputLimit = 8000,
     runCommand,
+    completeToolName = null,
+    stallNudgeLimit = 0,
+    nudgeMessage,
   } = {}) {
     if (!client || typeof client.chat !== 'function')
       throw new Error('createAgentSession requires a client with a chat() method');
@@ -320,6 +323,22 @@ const _createAgentSession = function _createAgentSession(truncate){
     const getTools = toolsProvider ?? (() => tools ?? []);
     const getSystemPrompt = systemPromptProvider ?? (() => systemPrompt ?? null);
     const getModel = modelProvider ?? (() => model);
+
+    // Explicit-completion protocol (opt-in). When completeToolName is set, the loop stops on that tool call
+    // (not on bare text), so the model can no longer end a turn by narrating; a bare-text turn is treated as a
+    // STALL and nudged. The nudge is bounded by stallNudgeLimit so a model that refuses to act still terminates.
+    const completeSpec = completeToolName ? {
+      type: 'function',
+      function: {
+        name: completeToolName,
+        description: 'Call this ONLY when the task is fully complete (or you have finished answering) to end ' +
+          'your turn. Put your short summary or final answer in `summary`.',
+        parameters: { type: 'object', properties: { summary: { type: 'string', description: 'Short summary / final answer shown to the user.' } }, required: [] },
+      },
+    } : null;
+    const nudge = nudgeMessage ?? ('You ended your turn without calling a tool. If the task is complete, call ' +
+      (completeToolName || 'the completion tool') + ' with a short summary. Otherwise keep going — call a tool ' +
+      'to take the next concrete step; do not just describe what you will do.');
 
     const messages = [];
     let currentAbort = null;
@@ -350,6 +369,7 @@ const _createAgentSession = function _createAgentSession(truncate){
 
       let finishReason = null;
       let step = 0;
+      let stalls = 0;
       const startLen = messages.length;
 
       for (step = 0; step < maxStepsPerTurn; step++) {
@@ -357,7 +377,7 @@ const _createAgentSession = function _createAgentSession(truncate){
         callbacks.onStep?.(step, messages);
 
         const live = getTools() ?? [];
-        const wire = live.map(toWireTool);
+        const wire = completeSpec ? [...live.map(toWireTool), completeSpec] : live.map(toWireTool);
         const byId = new Map(live.map((t) => [t.id, t]));
 
         const res = await client.chat({ model: getModel(), messages, tools: wire, tool_choice: toolChoice, signal: abortController.signal });
@@ -369,11 +389,22 @@ const _createAgentSession = function _createAgentSession(truncate){
 
         const calls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
         if (calls.length === 0) {
+          // No action taken. With the completion protocol, a bare-text turn is a STALL, not "done": nudge the
+          // model to either act or call task_complete, up to stallNudgeLimit consecutive times, then fall back
+          // to stopping (so a model that refuses to act can't loop forever).
+          if (completeSpec && stalls < stallNudgeLimit && (res.finish_reason ?? 'stop') !== 'length' && step < maxStepsPerTurn - 1) {
+            stalls++;
+            messages.push({ role: 'system', content: nudge });
+            callbacks.onNudge?.(stalls, nudge);
+            continue;
+          }
           finishReason = res.finish_reason ?? 'stop';
           callbacks.onFinish?.({ messages, finishReason });
           break;
         }
 
+        let completed = false;
+        let completeSummary = null;
         for (const call of calls) {
           const callId = call.id;
           const name = call?.function?.name;
@@ -385,6 +416,14 @@ const _createAgentSession = function _createAgentSession(truncate){
             const content = 'ERROR: could not parse tool arguments as JSON: ' + String(call?.function?.arguments);
             messages.push({ role: 'tool', tool_call_id: callId, content });
             callbacks.onToolResult?.(callId, content);
+            continue;
+          }
+          // completion signal — reply to satisfy the tool_call, capture the summary, end after this batch
+          if (completeSpec && name === completeToolName) {
+            completed = true;
+            completeSummary = typeof args.summary === 'string' ? args.summary : null;
+            messages.push({ role: 'tool', tool_call_id: callId, content: 'ok' });
+            callbacks.onToolResult?.(callId, 'ok');
             continue;
           }
           const tool = byId.get(name);
@@ -407,6 +446,15 @@ const _createAgentSession = function _createAgentSession(truncate){
           messages.push({ role: 'tool', tool_call_id: callId, content: output });
         }
 
+        if (completed) {
+          // ensure a visible final message if the model put its answer only in the summary arg
+          if (completeSummary && !msg.content) messages.push({ role: 'assistant', content: completeSummary });
+          finishReason = 'completed';
+          callbacks.onFinish?.({ messages, finishReason });
+          break;
+        }
+
+        stalls = 0; // a real tool ran → progress; reset the stall counter
         if (step === maxStepsPerTurn - 1) finishReason = 'max_steps';
       }
 
@@ -533,7 +581,9 @@ You can study every aspect of yourself; INVESTIGATE rather than guess. Your tool
 
 Work incrementally: inspect before editing, make the change, then RE-READ (and where possible reason about
 the value) to confirm it is correct. Preserve the module format exactly. If a request is impossible or
-ambiguous, say so and ask rather than guessing. When the task is done, stop and summarize.`
+ambiguous, say so and ask rather than guessing. Take a concrete action — a tool call — on EVERY turn; never
+just describe what you are about to do and stop. When the task is fully done (or you have finished answering),
+call the \`task_complete\` tool with a short summary; that is how you end your turn.`
 )};
 const _composeFooter = function _composeFooter(){return(
   function composeFooter({ workdir = '/notebook', model } = {}) {
