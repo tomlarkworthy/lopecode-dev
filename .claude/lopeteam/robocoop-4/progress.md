@@ -35,3 +35,8 @@ Applied (human-gated /lopeteam-reflect, all approved):
 - accepted: 1
 - emptyStreak: 0
 - note: DAW frontier probe (sonnet): A1 core PASS + #15 PASS unprompted (grounded); fixed B13 live status line; logged B15 (no drive-UI-module affordance)
+
+## Round 6
+- accepted: 2
+- emptyStreak: 0
+- note: Shared-surface vision: B14 (agent-created visual module auto-surfaces in lopepage view, non-destructive) + B15 (prompt: verify own module via inspect_value not eval_js). Both live-verified on sonnet.
