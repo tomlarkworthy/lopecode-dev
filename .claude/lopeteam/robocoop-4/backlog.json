@@ -215,9 +215,9 @@
       ],
       "value": 3,
       "evidence": "DAW probe 2026-06-24: after write_file+inspect_value the agent spent 5/13 steps spawning eval_js cells referencing 'daw' to click-play/verify; they can't resolve because the new module isn't imported into main. inspect_value reads a static value but there's no affordance to instantiate+drive a created viewof module (click, read resulting state). Relates to B14 (surfacing the module would also give a live drivable instance).",
-      "status": "open",
+      "status": "accepted",
       "attempts": 0,
-      "note": "",
+      "note": "core systemPrompt: new visual module auto-surfaces + verify via inspect_value/list_values not eval_js. Live verified: create task used write_file->inspect_value->inspect_value->list_values->task_complete, 0 eval_js (vs DAW probe's 5)",
       "created": "4"
     }
   ]
