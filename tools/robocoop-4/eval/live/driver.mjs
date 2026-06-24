@@ -158,6 +158,45 @@ export async function createDriver({
         return partial;
       }
 
+      // Step 3 (c): WAIT for `session` to be ready (exposes send()) before sending. `session` depends on
+      // `viewof model`, whose <select> options now come from a LIVE OpenRouter catalog fetch (up to ~8s), so
+      // it settles noticeably after `client`. Observe it + poll until send() exists — kills the prior
+      // "session unavailable" boot race (which produced misleading steps=0 / 0-score evals).
+      const sessionReady = await page.evaluate(
+        async ({ pollMs, maxMs }) => {
+          const reg = globalThis.__ojs_runtime;
+          const allVars = () => {
+            const out = []; const seen = new Set();
+            for (const m of reg.mains.values()) {
+              const rt = m && m._runtime;
+              if (!rt || seen.has(rt)) continue;
+              seen.add(rt);
+              for (const v of rt._variables) out.push(v);
+            }
+            return out;
+          };
+          const byName = (n) => allVars().find((v) => v._name === n);
+          const ready = () => { const s = byName("session"); return !!(s && s._value && typeof s._value.send === "function"); };
+          const deadline = Date.now() + maxMs;
+          while (Date.now() < deadline) {
+            if (ready()) return true;
+            for (const n of ["viewof model", "session"]) {
+              const v = byName(n);
+              try { if (v && v._module && typeof v._module.value === "function") v._module.value(n).catch(() => {}); } catch {}
+            }
+            await new Promise((r) => setTimeout(r, pollMs));
+          }
+          return ready();
+        },
+        { pollMs: 250, maxMs: 30000 },
+      );
+
+      if (!sessionReady) {
+        partial.error = "session did not initialize (no session.send after client ready)";
+        partial.console = consoleEvents;
+        return partial;
+      }
+
       // Step 4: seed workspace files (if any) before sending.
       if (evalDef?.setup?.files && Object.keys(evalDef.setup.files).length) {
         await page.evaluate(async (files) => {
