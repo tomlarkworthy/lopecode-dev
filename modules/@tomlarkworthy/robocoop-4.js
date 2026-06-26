@@ -190,9 +190,21 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   const fileInput = html`<input type="file" accept="image/*" multiple style="display:none">`;
   const attach = html`<button title="Attach image" style="background:${C.tool};color:${C.fg};border:1px solid ${C.border};border-radius:8px;padding:0 12px;cursor:pointer">📎</button>`;
   const send = html`<button style="background:${C.user};color:#fff;border:0;border-radius:8px;padding:0 14px;cursor:pointer">Send</button>`;
+  const stop = html`<button title="Stop the agent (end this turn)" style="display:none;background:${C.err};color:#fff;border:0;border-radius:8px;padding:0 14px;cursor:pointer">Stop</button>`;
+  const newchat = html`<button title="New chat — clear the conversation history (your built modules stay)" style="background:${C.tool};color:${C.fg};border:1px solid ${C.border};border-radius:8px;padding:0 10px;cursor:pointer">⟲</button>`;
   const bar = html`<div style="display:flex;gap:8px;padding:10px;border-top:1px solid ${C.border}"></div>`;
-  bar.append(attach, ta, send, fileInput);
-  root.append(thumbs, statusEl, bar);
+  bar.append(newchat, attach, ta, send, stop, fileInput);
+  // Active-model line: makes a mid-conversation model switch visibly take effect (#14).
+  const modelEl = document.createElement("div");
+  modelEl.style.cssText = "color:" + C.muted + ";font-size:11px;padding:0 10px 4px;text-align:right";
+  const refreshModel = () => { modelEl.textContent = "model: " + ($model.value || "—"); };
+  refreshModel();
+  // Switching the picker mid-turn interrupts the in-flight call so the new model drives the very next step.
+  $model.addEventListener("input", () => {
+    refreshModel();
+    if (busy) { session.interrupt?.(); setStatus("↪ switching model → " + ($model.value || "") + " · step " + stepN); }
+  });
+  root.append(thumbs, statusEl, modelEl, bar);
 
   attach.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", async () => { for (const f of fileInput.files) await addImageFile(f); fileInput.value = ""; });
@@ -208,12 +220,24 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
 
   const submit = async () => {
     const text = ta.value.trim();
-    if ((!text && !pendingImages.length) || busy) return;
+    if (!text && !pendingImages.length) return;
     const images = pendingImages.splice(0);   // take and clear the staged images
-    busy = true; ta.value = ""; send.disabled = true; errors.length = 0; lastOutcome = null; stepN = 0; renderThumbs();
+    const input = images.length ? { text: text || null, images } : text;
+
+    // STEERING: if a turn is already running, inject this as a redirect into the live conversation (aborts the
+    // in-flight model call so the agent reads it on the next step) rather than blocking. The send()'s own
+    // onSteer callback renders the injected bubble; nothing new is started here.
+    if (busy) {
+      session.steer?.(input);
+      ta.value = ""; renderThumbs();
+      setStatus("↪ steering… · step " + stepN);
+      ta.focus();
+      return;
+    }
+
+    busy = true; ta.value = ""; send.textContent = "Steer"; stop.style.display = ""; errors.length = 0; lastOutcome = null; stepN = 0; renderThumbs();
     setStatus("● thinking…");
     try {
-      const input = images.length ? { text: text || null, images } : text;
       // send() pushes the user message synchronously before its first await, so kicking it off and rendering
       // immediately shows the user's bubble (and any attached image) right away, not only once the agent replies.
       // Tool/step events update the cheap statusEl (not render) so the live signal costs nothing; render() only
@@ -222,6 +246,8 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
         onStep: (i) => { stepN = (i | 0) + 1; setStatus("● thinking… · step " + stepN); },
         onToolCall: (callId, name, args) => setStatus("⚙ " + toolLabel(name, args) + " · step " + stepN),
         onToolResult: () => setStatus("● thinking… · step " + stepN),
+        onSteer: render,   // a steered user message was injected into the running turn → show its bubble
+        onInterrupt: () => setStatus("↪ redirecting… · step " + stepN),
         onText: render,
         onFinish: render
       });
@@ -233,10 +259,18 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
     } catch (err) {
       errors.push(err && err.message ? err.message : String(err));
     } finally {
-      busy = false; send.disabled = false; setStatus(""); render(); ta.focus();
+      busy = false; send.textContent = "Send"; stop.style.display = "none"; setStatus(""); render(); ta.focus();
     }
   };
   send.addEventListener("click", submit);
+  stop.addEventListener("click", () => { if (busy) { session.abort?.(); setStatus("⏹ stopping…"); } });
+  // New chat: abort any running turn, then wipe the LLM conversation history. The agent's workspace (the
+  // modules/files it has built) is separate and is NOT touched — only the chat context is reset.
+  newchat.addEventListener("click", () => {
+    if (busy) session.abort?.();
+    session.reset?.();
+    errors.length = 0; lastOutcome = null; stepN = 0; setStatus(""); render(); ta.focus();
+  });
   ta.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); submit(); } });
 
   return root;

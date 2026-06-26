@@ -249,7 +249,11 @@ chat). Tools, model and system prompt are re-read from their PROVIDERS at the to
 so a notebook can register a new tool mid-conversation and it is offered on the next model turn with
 no restart. Loop invariants: assistant turns appended verbatim, exactly one \`{role:'tool'}\` reply
 per \`tool_calls[]\` entry, defensive JSON arg parse, central [\`truncate\`](#) of tool output.
-Returns \`{messages, send, abort, reset}\`.`
+
+LIVE CONTROL: \`steer(input)\` injects a user message into the RUNNING turn and aborts the in-flight model
+call so it is read on the next step (the model is re-read each step, so switching the model picker mid-turn
+applies on the next call); \`interrupt()\` aborts the in-flight call without injecting (used to apply a model
+switch immediately); \`abort()\` hard-stops the whole turn. Returns \`{messages, send, abort, reset, interrupt, steer}\`.`
 )};
 const _createAgentSession = function _createAgentSession(truncate){
   function toWireTool(t) {
@@ -306,15 +310,33 @@ const _createAgentSession = function _createAgentSession(truncate){
 
     const messages = [];
     let currentAbort = null;
+    let stepAbort = null;          // aborts ONLY the in-flight model call (steer / model-switch), not the turn
+    const steerQueue = [];         // user messages enqueued mid-turn via steer(); drained at the top of each step
 
-    function abort() { currentAbort?.abort(); }
-    function reset() { messages.length = 0; }
+    function abort() { currentAbort?.abort(); }          // hard stop: end the whole turn
+    function interrupt() { stepAbort?.abort(); }         // soft: drop the in-flight call, redo the step (re-reads model)
+    // Normalise a send/steer input (string | {text, images}) to one OpenAI user message, or null if empty.
+    function buildUserMessage(input) {
+      let userText = input, images = null;
+      if (input && typeof input === 'object' && !Array.isArray(input)) { userText = input.text ?? null; images = input.images || null; }
+      if (images && images.length) {
+        const parts = [];
+        if (userText != null) parts.push({ type: 'text', text: String(userText) });
+        for (const url of images) if (url) parts.push({ type: 'image_url', image_url: { url } });
+        return parts.length ? { role: 'user', content: parts } : null;
+      }
+      return userText != null ? { role: 'user', content: String(userText) } : null;
+    }
+    // steer(input): queue a user message for the RUNNING turn and interrupt the in-flight call so it is read
+    // on the very next step (the discarded call's partial response is dropped, the model is re-read). If idle,
+    // the message waits and is consumed at the start of the next send().
+    function steer(input) { const m = buildUserMessage(input); if (m) { steerQueue.push(m); interrupt(); } }
+    function reset() { messages.length = 0; steerQueue.length = 0; }
 
     // `input` is a string, or { text, images } where images is an array of data/URL strings — the user turn
     // is sent as OpenAI multimodal content parts so a vision model can SEE attached screenshots/images.
     async function send(input, callbacks = {}) {
-      let userText = input, images = null;
-      if (input && typeof input === 'object' && !Array.isArray(input)) { userText = input.text ?? null; images = input.images || null; }
+      const um = buildUserMessage(input);
       const abortController = new AbortController();
       currentAbort = abortController;
       let metadata = {};
@@ -337,14 +359,7 @@ const _createAgentSession = function _createAgentSession(truncate){
         else messages.unshift(m);
       }
 
-      if (images && images.length) {
-        const parts = [];
-        if (userText != null) parts.push({ type: 'text', text: String(userText) });
-        for (const url of images) if (url) parts.push({ type: 'image_url', image_url: { url } });
-        if (parts.length) messages.push({ role: 'user', content: parts });
-      } else if (userText != null) {
-        messages.push({ role: 'user', content: String(userText) });
-      }
+      if (um) messages.push(um);
 
       let finishReason = null;
       let step = 0;
@@ -366,11 +381,35 @@ const _createAgentSession = function _createAgentSession(truncate){
           }
         }
 
+        // Steering: inject any user messages enqueued via steer() during this turn BEFORE the model call, so
+        // the running agent reads new instructions (or a redirect) on this step, with the latest model.
+        if (steerQueue.length) {
+          for (const sm of steerQueue.splice(0)) { messages.push(sm); callbacks.onSteer?.(sm); }
+        }
+
         const live = getTools() ?? [];
         const wire = completeSpec ? [...live.map(toWireTool), completeSpec] : live.map(toWireTool);
         const byId = new Map(live.map((t) => [t.id, t]));
 
-        const res = await client.chat({ model: getModel(), messages, tools: wire, tool_choice: toolChoice, max_tokens: maxTokens, signal: abortController.signal });
+        // Per-step abort: steer()/interrupt() abort ONLY this in-flight model call so we can loop, re-read the
+        // (possibly switched) model and drain any steer message; the turn-level abort() still stops for good.
+        const stepController = new AbortController();
+        stepAbort = stepController;
+        if (abortController.signal.aborted) stepController.abort();
+        const linkTurnAbort = () => stepController.abort();
+        abortController.signal.addEventListener('abort', linkTurnAbort, { once: true });
+        let res;
+        try {
+          res = await client.chat({ model: getModel(), messages, tools: wire, tool_choice: toolChoice, max_tokens: maxTokens, signal: stepController.signal });
+        } catch (e) {
+          abortController.signal.removeEventListener('abort', linkTurnAbort);
+          stepAbort = null;
+          if (abortController.signal.aborted) { finishReason = 'aborted'; break; }   // hard stop
+          if (stepController.signal.aborted) { callbacks.onInterrupt?.(step); continue; }  // steer / model-switch → redo step
+          throw e;   // genuine network / provider error
+        }
+        abortController.signal.removeEventListener('abort', linkTurnAbort);
+        stepAbort = null;
         const msg = res?.message;
         if (!msg) throw new Error('client.chat returned no message');
 
@@ -496,7 +535,7 @@ const _createAgentSession = function _createAgentSession(truncate){
       };
     }
 
-    return { messages, send, abort, reset };
+    return { messages, send, abort, reset, interrupt, steer };
   };
 };
 
