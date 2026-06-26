@@ -197,7 +197,13 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   // Active-model line: makes a mid-conversation model switch visibly take effect (#14).
   const modelEl = document.createElement("div");
   modelEl.style.cssText = "color:" + C.muted + ";font-size:11px;padding:0 10px 4px;text-align:right";
-  const refreshModel = () => { modelEl.textContent = "model: " + ($model.value || "—"); };
+  // Show the selected option's LABEL (which carries the "⚠ no vision" tag from the picker's format) so the
+  // always-visible line warns too, not just the collapsed dropdown.
+  const refreshModel = () => {
+    const sel = $model.querySelector?.("select");
+    const label = sel?.selectedOptions?.[0]?.textContent?.trim() || $model.value || "—";
+    modelEl.textContent = "model: " + label;
+  };
   refreshModel();
   // Switching the picker mid-turn interrupts the in-flight call so the new model drives the very next step.
   $model.addEventListener("input", () => {
