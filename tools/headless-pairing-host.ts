@@ -91,6 +91,22 @@ async function main() {
   });
   const context = await browser.newContext();
 
+  // Seed localStorage from env BEFORE any page script runs, so notebooks that read credentials at
+  // boot (e.g. robocoop-4 reads OPENROUTER_API_KEY / robocoop4_model via local-storage-view) come up
+  // already wired. The key only ever lives in this process's memory + the init-script content; it is
+  // never printed. Set OPENROUTER_API_KEY (and optionally OPENROUTER_MODEL) in the environment.
+  {
+    const seeds: Record<string, string> = {};
+    if (process.env.OPENROUTER_API_KEY) seeds.OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    if (process.env.OPENROUTER_MODEL) seeds.robocoop4_model = process.env.OPENROUTER_MODEL;
+    if (Object.keys(seeds).length) {
+      await context.addInitScript({
+        content: `try{const s=${JSON.stringify(seeds)};for(const k in s)localStorage.setItem(k,s[k]);}catch{}`,
+      });
+      console.error(`[headless-pairing] localStorage seeded: ${Object.keys(seeds).join(", ")}`);
+    }
+  }
+
   // If --fakefs-root is set, inject the same init script the channel uses for QA pages so
   // window.showDirectoryPicker is replaced with a synthetic handle proxied to the channel.
   // The caller must have called the `enable_fakefs` MCP tool to authorise the channel side
