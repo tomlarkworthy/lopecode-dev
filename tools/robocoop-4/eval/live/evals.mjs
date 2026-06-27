@@ -190,6 +190,60 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── imports (the point of self-reprogramming agents) ─────────────────────────
+  // Two kinds the agent MUST be able to do to write functioning programs:
+  //   1. cross-module imports — pull a cell from another notebook module it authored
+  //   2. external ESM imports — pull a library off a CDN (CommonJS won't load; it must find the ESM form)
+  // Graded on the LIVE value, so the import has to actually wire up in the runtime (apply path), and on the
+  // FILE source, so the import has to be durable (survives re-export), not an ephemeral eval_js poke.
+  {
+    id: "import-cross-module",
+    category: "imports",
+    question:
+      "Create two SEPARATE modules. First @user/mathlib with a cell `triple` that is the function n => n * 3. " +
+      "Then @user/calc which IMPORTS triple from @user/mathlib (import it — do NOT redefine the function in " +
+      "@user/calc) and uses it to define a cell `result` equal to triple(14). @user/calc.result must be 42, " +
+      "computed through the imported function.",
+    criteria: [
+      { name: "module_exists", args: { id: "@user/mathlib" }, weight: 1 },
+      { name: "module_exists", args: { id: "@user/calc" }, weight: 1 },
+      // the @user/calc file must reference @user/mathlib — i.e. it genuinely imports rather than re-implements
+      { name: "contains_string", args: { file: "/notebook/@user/calc.js", needle: "@user/mathlib" }, weight: 2 },
+      { name: "variable_no_error", args: { module: "@user/calc", name: "result" }, weight: 1 },
+      { name: "variable_equals", args: { module: "@user/calc", name: "result", equals: 42 }, weight: 3 },
+    ],
+  },
+  {
+    id: "import-esm-md5",
+    category: "imports",
+    question:
+      "Add a cell `digest` to a new module @user/hashing whose value is the MD5 hex digest of the string " +
+      '"abc". Use a third-party hashing library imported as an ES module from a CDN (e.g. esm.sh) — ' +
+      "CommonJS-only packages do not load in the browser, so pick the ESM form. The value must be the " +
+      "32-character lowercase hex string.",
+    criteria: [
+      { name: "module_exists", args: { id: "@user/hashing" }, weight: 1 },
+      { name: "contains_string", args: { file: "/notebook/@user/hashing.js", needle: "import(" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/hashing", name: "digest" }, weight: 1 },
+      // md5("abc") — effectively impossible to hand-fake, so this proves the library actually loaded + ran
+      { name: "variable_equals", args: { module: "@user/hashing", name: "digest", equals: "900150983cd24fb0d6963f7d28e17f72" }, weight: 3 },
+    ],
+  },
+  {
+    id: "import-esm-util",
+    category: "imports",
+    question:
+      "Add a cell `kebab` to a new module @user/strutil whose value is the string 'Hello World FOO' converted " +
+      "to kebab-case (lowercase words joined by hyphens). Use a general-purpose utility library imported as an " +
+      "ES module from a CDN — do not hand-roll the conversion. Expected value: \"hello-world-foo\".",
+    criteria: [
+      { name: "module_exists", args: { id: "@user/strutil" }, weight: 1 },
+      { name: "contains_string", args: { file: "/notebook/@user/strutil.js", needle: "import(" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/strutil", name: "kebab" }, weight: 1 },
+      { name: "variable_equals", args: { module: "@user/strutil", name: "kebab", equals: "hello-world-foo" }, weight: 2 },
+    ],
+  },
+
   // ───────────────────────── editing an EXISTING module (file + live runtime) ─────────────────────────
   {
     id: "edit-exporter-title",
