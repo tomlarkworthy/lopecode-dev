@@ -52,7 +52,7 @@ const _cellHelpers = function _cellHelpers(currentModules, runtime){
 };
 
 const _valueTools = function _valueTools(defineTool, summarizeJS, currentModules, runtime, observe, rc4_watchBus, cellHelpers){
-  const { resolveModule, varsOf, isStructural, label } = cellHelpers;
+  const { resolveModule, varsOf, isStructural, label, oneLine, watchKey } = cellHelpers;
   // Kick the runtime's compute scheduler (an idle runtime won't compute a freshly-reachable var on its
   // own): asking for any named cell's value via the official API schedules a compute pass.
   const nudge = (mod) => { const s = varsOf(mod).find((x) => x._name && !isStructural(x)); if (s) { try { mod.value(s._name).catch(() => {}); } catch (e) {} } };
@@ -212,9 +212,7 @@ const _valueTools = function _valueTools(defineTool, summarizeJS, currentModules
   // WATCHES: attach a persistent observer to a cell; every time it recomputes to a new value, the change is
   // pushed to rc4_watchBus, which the agent session drains each step and injects — so a watched value STREAMS
   // to the model on change, no re-inspecting. Same pid/name addressing as inspect_value. Disposed (observer
-  // torn down) on unwatch via the invalidation promise.
-  const oneLine = (s) => String(s).replace(/\s+/g, ' ').trim();
-  const watchKey = (module, pid, name) => module + ':' + (pid || name);
+  // torn down) on unwatch via the invalidation promise. (oneLine/watchKey come from cellHelpers.)
   const watch_variable = defineTool({
     id: 'watch_variable',
     description:
@@ -369,6 +367,9 @@ const _editTools = function _editTools(defineTool, rc4_workspace, currentModules
     try { return oneLine(summarizeJS(val, { max_size: 200 })); } catch (e) { return oneLine(String(val)); }
   };
   // Force compute one cell, resolve to {value} or {error}; bounded so a stuck cell can't hang the turn.
+  // Deliberately distinct from _valueTools.readVar: this is the EDIT-TIME probe — a tighter 4s budget (the
+  // agent must get its turn back) and a {pending} (not {error}) timeout, since a still-computing cell after a
+  // write isn't a failure. Anonymous cells aren't observed here (probeAndWatch only probes named pid cells).
   const readVar = (mod, v) => new Promise((resolve) => {
     let done = false; const finish = (r) => { if (!done) { done = true; resolve(r); } };
     if (v._error != null) return finish({ error: (v._error && v._error.message) || String(v._error) });

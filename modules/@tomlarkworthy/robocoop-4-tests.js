@@ -34,6 +34,43 @@ const _rc4_simpleTool = function _rc4_simpleTool(defineTool){return(
   }
 )};
 
+// rc4_abortableClient — a scripted client whose chat() stays in flight across a macrotask and REJECTS with an
+// AbortError if its signal aborts. Records {model, lastUser} per call. `waitInFlight()` resolves the moment a
+// chat call is entered, so steer()/interrupt() tests can interrupt an in-flight call deterministically (no
+// timing race). A step is consumed only when a call RESOLVES, so an aborted call costs no step.
+const _rc4_abortableClient = function _rc4_abortableClient(){return(
+  function rc4_abortableClient(steps){
+    let i = 0; const calls = []; let announce = () => {};
+    const arm = () => new Promise((r) => { announce = r; });
+    let entered = arm();
+    const lastUser = (ms) => { for (let k = ms.length - 1; k >= 0; k--) if (ms[k].role === "user") return typeof ms[k].content === "string" ? ms[k].content : "[parts]"; return null; };
+    const abortErr = () => { const e = new Error("aborted"); e.name = "AbortError"; return e; };
+    return {
+      calls,
+      waitInFlight: () => entered,
+      chat: async ({ model, messages, signal }) => {
+        calls.push({ model, lastUser: lastUser(messages) });
+        announce(); entered = arm();
+        await new Promise((res, rej) => {
+          if (signal && signal.aborted) return rej(abortErr());
+          const t = setTimeout(res, 30);
+          if (signal) signal.addEventListener("abort", () => { clearTimeout(t); rej(abortErr()); }, { once: true });
+        });
+        const step = steps[i++] || { finish_reason: "stop", message: { role: "assistant", content: "done" } };
+        return { message: step.message, finish_reason: step.finish_reason };
+      },
+    };
+  }
+)};
+
+// rc4_complete — build a scripted task_complete tool-call turn (ends a turn with a summary).
+const _rc4_complete = function _rc4_complete(){return(
+  function rc4_complete(summary){
+    return { finish_reason:"tool_calls", message:{ role:"assistant", content:null,
+      tool_calls:[{ id:"c1", type:"function", function:{ name:"task_complete", arguments:JSON.stringify({ summary }) } }] } };
+  }
+)};
+
 const _test_rc4_truncate = function _test_rc4_truncate(rc4_assert, truncate){
   rc4_assert(truncate("abc", 0) === "abc", "no limit passes through");
   const big = truncate("x".repeat(100), 20);
@@ -100,6 +137,41 @@ const _test_rc4_session_abort = async function _test_rc4_session_abort(rc4_asser
   const r = await s.send("go", { onToolResult: () => s.abort() });
   rc4_assert(r.finishReason==="aborted", "abort stops the loop");
   rc4_assert(!s.messages.some(m=>m.content==="should-not-reach"), "no further model turn");
+  return "ok";
+};
+
+// Steering: steer(input) injects a user message into the RUNNING turn and aborts the in-flight model call so
+// it is read on the very next step; the discarded (aborted) call's response is dropped and costs no step.
+const _test_rc4_session_steer = async function _test_rc4_session_steer(rc4_assert, createAgentSession, rc4_abortableClient, rc4_complete){
+  const client = rc4_abortableClient([rc4_complete("did Y")]);   // the first RESOLVED call ends the turn
+  const s = createAgentSession({ client, tools:[], model:"m", completeToolName:"task_complete" });
+  const inflight = client.waitInFlight();   // capture BEFORE send (send runs chat synchronously)
+  const p = s.send("do X");
+  await inflight;                     // first chat (do X) is in flight
+  s.steer("do Y");                    // abort it + queue the redirect
+  const r = await p;
+  rc4_assert(r.finishReason==="completed", "turn completes after steer");
+  rc4_assert(client.calls.length===2, "aborted call + redo = 2 calls, got " + client.calls.length);
+  rc4_assert(client.calls[0].lastUser==="do X", "first call saw the original prompt");
+  rc4_assert(client.calls[1].lastUser==="do Y", "redo call saw the steer message");
+  rc4_assert(s.messages.some(m=>m.role==="user"&&m.content==="do Y"), "steer message is in history");
+  return "ok";
+};
+
+// Mid-conversation model switch: changing the modelProvider value + interrupt() aborts the in-flight call so
+// the switched model drives the very next step (conversation preserved).
+const _test_rc4_session_model_switch = async function _test_rc4_session_model_switch(rc4_assert, createAgentSession, rc4_abortableClient, rc4_complete){
+  const state = { model:"model-A" };
+  const client = rc4_abortableClient([rc4_complete("ok")]);
+  const s = createAgentSession({ client, tools:[], modelProvider:()=>state.model, completeToolName:"task_complete" });
+  const inflight = client.waitInFlight();   // capture BEFORE send
+  const p = s.send("task");
+  await inflight;
+  state.model = "model-B"; s.interrupt();    // user picks a new model + apply it now
+  const r = await p;
+  rc4_assert(r.finishReason==="completed", "completes after model switch");
+  rc4_assert(client.calls[0].model==="model-A", "first call used the old model");
+  rc4_assert(client.calls[1].model==="model-B", "redo used the switched model");
   return "ok";
 };
 
@@ -269,6 +341,8 @@ export default function define(runtime, observer) {
   $def("rc4ts_assert", "rc4_assert", [], _rc4_assert);
   $def("rc4ts_recordClient", "rc4_recordClient", ["createScriptedClient"], _rc4_recordClient);
   $def("rc4ts_simpleTool", "rc4_simpleTool", ["defineTool"], _rc4_simpleTool);
+  $def("rc4ts_abortableClient", "rc4_abortableClient", [], _rc4_abortableClient);
+  $def("rc4ts_complete", "rc4_complete", [], _rc4_complete);
 
   $def("rc4ts_t_truncate", "test_rc4_truncate", ["rc4_assert","truncate"], _test_rc4_truncate);
   $def("rc4ts_t_formatResult", "test_rc4_formatResult", ["rc4_assert","formatResult"], _test_rc4_formatResult);
@@ -277,6 +351,8 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_livetool", "test_rc4_session_live_tool_add", ["rc4_assert","createAgentSession","rc4_recordClient","rc4_simpleTool"], _test_rc4_session_live_tool_add);
   $def("rc4ts_t_unknown", "test_rc4_session_unknown_tool", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_unknown_tool);
   $def("rc4ts_t_abort", "test_rc4_session_abort", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_abort);
+  $def("rc4ts_t_steer", "test_rc4_session_steer", ["rc4_assert","createAgentSession","rc4_abortableClient","rc4_complete"], _test_rc4_session_steer);
+  $def("rc4ts_t_model_switch", "test_rc4_session_model_switch", ["rc4_assert","createAgentSession","rc4_abortableClient","rc4_complete"], _test_rc4_session_model_switch);
   $def("rc4ts_t_complete_nudge", "test_rc4_session_complete_and_nudge", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_complete_and_nudge);
   $def("rc4ts_t_nudge_fallback", "test_rc4_session_nudge_fallback", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_nudge_fallback);
   $def("rc4ts_t_watch_notices", "test_rc4_session_watch_notices", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_watch_notices);

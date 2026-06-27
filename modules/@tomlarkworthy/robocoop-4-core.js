@@ -219,6 +219,8 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
         model,
         messages: outMessages,
         stream: false,
+        // ask OpenRouter to return token counts AND the actual USD cost of the call in `usage`.
+        usage: { include: true },
         ...(tools && tools.length ? { tools, tool_choice } : {}),
         ...(temperature != null ? { temperature } : {}),
         ...(max_tokens != null ? { max_tokens } : {})
@@ -235,7 +237,7 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
       const data = await res.json();
       const choice = data.choices?.[0];
       if (!choice) throw new Error('OpenRouter: no choices in response: ' + JSON.stringify(data));
-      return { message: choice.message, finish_reason: choice.finish_reason, native_finish_reason: choice.native_finish_reason, raw: data };
+      return { message: choice.message, finish_reason: choice.finish_reason, native_finish_reason: choice.native_finish_reason, usage: data.usage, raw: data };
     }
     return { chat };
   };
@@ -310,6 +312,9 @@ const _createAgentSession = function _createAgentSession(truncate){
 
     const messages = [];
     let currentAbort = null;
+    // Cumulative token/cost usage across this session's calls (OpenRouter returns usage.cost in USD when
+    // usage.include is set). Lets the UI / evals report what a conversation actually cost.
+    const usage = { calls: 0, promptTokens: 0, completionTokens: 0, costUSD: 0 };
     let stepAbort = null;          // aborts ONLY the in-flight model call (steer / model-switch), not the turn
     const steerQueue = [];         // user messages enqueued mid-turn via steer(); drained at the top of each step
 
@@ -361,6 +366,13 @@ const _createAgentSession = function _createAgentSession(truncate){
 
       if (um) messages.push(um);
 
+      // Exactly one {role:'tool'} reply per tool_calls[] entry — the loop's core invariant. One helper so the
+      // four reply sites (truncated args, completion ack, unknown tool, normal output) can't drift apart.
+      const pushToolResult = (callId, content) => {
+        messages.push({ role: 'tool', tool_call_id: callId, content });
+        callbacks.onToolResult?.(callId, content);
+      };
+
       let finishReason = null;
       let step = 0;
       let stalls = 0;
@@ -410,6 +422,12 @@ const _createAgentSession = function _createAgentSession(truncate){
         }
         abortController.signal.removeEventListener('abort', linkTurnAbort);
         stepAbort = null;
+        if (res?.usage) {
+          usage.calls += 1;
+          usage.promptTokens += res.usage.prompt_tokens || 0;
+          usage.completionTokens += res.usage.completion_tokens || 0;
+          usage.costUSD += res.usage.cost || 0;
+        }
         const msg = res?.message;
         if (!msg) throw new Error('client.chat returned no message');
 
@@ -476,23 +494,19 @@ const _createAgentSession = function _createAgentSession(truncate){
               'large call. Build large modules incrementally: write_file a small skeleton (the define() shell ' +
               'plus one or two cells) first, then add the remaining cells one at a time with edit_file. Keep ' +
               'each tool call small.';
-            messages.push({ role: 'tool', tool_call_id: callId, content });
-            callbacks.onToolResult?.(callId, content);
+            pushToolResult(callId, content);
             continue;
           }
           // completion signal — reply to satisfy the tool_call, capture the summary, end after this batch
           if (completeSpec && name === completeToolName) {
             completed = true;
             completeSummary = typeof args.summary === 'string' ? args.summary : null;
-            messages.push({ role: 'tool', tool_call_id: callId, content: 'ok' });
-            callbacks.onToolResult?.(callId, 'ok');
+            pushToolResult(callId, 'ok');
             continue;
           }
           const tool = byId.get(name);
           if (!tool) {
-            const content = 'ERROR: unknown tool ' + String(name);
-            messages.push({ role: 'tool', tool_call_id: callId, content });
-            callbacks.onToolResult?.(callId, content);
+            pushToolResult(callId, 'ERROR: unknown tool ' + String(name));
             continue;
           }
           callbacks.onToolCall?.(callId, name, args);
@@ -503,9 +517,7 @@ const _createAgentSession = function _createAgentSession(truncate){
           } catch (e) {
             output = 'ERROR: ' + (e?.message ?? String(e));
           }
-          output = truncate(output, toolOutputLimit);
-          callbacks.onToolResult?.(callId, output);
-          messages.push({ role: 'tool', tool_call_id: callId, content: output });
+          pushToolResult(callId, truncate(output, toolOutputLimit));
         }
 
         // A tool fed image(s) in via ctx.attachImage — deliver them as a user image-message so the model
@@ -532,10 +544,11 @@ const _createAgentSession = function _createAgentSession(truncate){
         finishReason: finishReason ?? 'max_steps',
         steps: step + 1,
         turnMessages: messages.slice(startLen),
+        usage: { ...usage },
       };
     }
 
-    return { messages, send, abort, reset, interrupt, steer };
+    return { messages, send, abort, reset, interrupt, steer, usage };
   };
 };
 

@@ -19,6 +19,14 @@ describe('@tomlarkworthy/robocoop-4', () => {
     execution = await loadNotebook('lopebooks/notebooks/@tomlarkworthy_robocoop-4.html', {
       settleTimeout: 30000,
     });
+    // The test_rc4_* cells live in @tomlarkworthy/robocoop-4-tests, which the notebook does NOT boot by
+    // default (it isn't a main), so loadNotebook never instantiates it and runTests would find 0 tests.
+    // Instantiate it into the runtime here (same no-op observer factory loadNotebook uses) so its cells
+    // exist; runTests then force-observes them.
+    const ns = await execution.importShim('@tomlarkworthy/robocoop-4-tests');
+    execution.runtime.module(ns.default, () => ({}));
+    execution.runtime._computeNow?.();
+    await new Promise((r) => setTimeout(r, 500));
   });
 
   after(() => {
@@ -26,7 +34,9 @@ describe('@tomlarkworthy/robocoop-4', () => {
   });
 
   it('in-notebook test_rc4_* cells pass', async () => {
-    const results = await execution.runTests(30000, 'test_rc4_');
+    // 12s cap: every real test settles in <8s; the browser-only just-bash fs test always times out in node
+    // (it's excluded from the pass check below), so a lower cap just avoids waiting the full 30s for it.
+    const results = await execution.runTests(12000, 'test_rc4_');
     const tests = results.tests.filter((t) => t.name.startsWith('test_rc4_'));
     assert.ok(tests.length >= 7, `expected the rc4 test suite, got ${tests.length}`);
 
