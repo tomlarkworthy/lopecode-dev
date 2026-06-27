@@ -45,6 +45,25 @@ synced into the notebook HTML with `tools/channel/sync-module.ts`. They split by
   applies it to the runtime and reports compile + runtime-error status in the same turn); `/content/<id>`
   is the read-only raw microkernel (bootconf, bundled libs, file attachments).
 
+### Layout shell & serialization (a regression trap)
+
+The app runs inside the `@tomlarkworthy/lopepage-2` layout shell — it must be `bootconf.mains[0]`, with its
+source (and deps `modules` + a `themes` that exports `apply_theme`) embedded. **Re-export/rebuild is a
+mirror of `runtime.mains`, not a remote fetch.** `export_notebook` (and `exportToHTML`) serialize whatever
+modules are *booted* plus their dependency closure, from the live runtime + embedded `<script>` blocks —
+nothing comes from ObservableHQ (robocoop-4 isn't published there). So:
+
+- An export/build **preserves lopepage-2 iff it's loaded at export time.** A normal pairing export from a
+  correctly-booted notebook round-trips it fine.
+- It gets **silently dropped** only when you serialize a boot that never loaded it: opening a stale pre-fix
+  HTML and exporting, or a `lope-build`/exporter run against a bootconf that still lists `@tomlarkworthy/lopepage`.
+  That is how it regressed once (commit `e0ef730`): a full rebuild ran against a pre-migration `mains`, so
+  the output reverted to plain `lopepage` and omitted the lopepage-2 + `modules` blocks.
+- Failure mode is quiet: lopepage-2 imports `apply_theme` from `themes`; a stale `themes` lacking it makes
+  `lp2_page` throw `apply_theme is not defined` and the layout never mounts — with **no errored cell** showing.
+- Recovery: re-embed via `sync-module --insert-ok` for `lopepage-2` + `modules`, refresh `themes`, set
+  `bootconf.mains[0]` back to `@tomlarkworthy/lopepage-2`.
+
 ### Two execution worlds (and a known duplication)
 
 1. **Browser notebook** — canonical. Uses the `-core` module directly via Observable imports.
