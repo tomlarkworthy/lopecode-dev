@@ -1,77 +1,118 @@
 # robocoop-4
 
-Bash-centric, OpenRouter-gated coding agent. Core logic is DOM-free `.mjs` so the SAME code runs in
-the node eval harness (just-bash `InMemoryFs` + scripted client) and the browser notebook
-(`window.justbash` + real OpenRouter). See `DESIGN.md` for the full interface contract.
+A bash-centric, OpenRouter-gated coding agent that lives **inside a lopecode notebook** and edits
+that notebook's own modules. You chat with it; it drives a single `bash` tool (plus file / value /
+inspection tools) over an in-memory project filesystem that mirrors the live notebook, so its edits
+apply to the running runtime in ~1s.
 
-## Core surface (`index.mjs`)
+This README is the entry point. `DESIGN.md` is the original node-core design record (still accurate
+for the wire invariants and the eval harness) but predates the notebook-canonical migration — read
+this first.
 
-`createOpenRouterClient`, `createScriptedClient`, `createAgentLoop`, `createBashTool`,
-`createNodeSession`, `defineTool`/`validateParameters`, `idToPath`/`pathToId`/`listModuleFiles`,
-`formatResult`/`truncate`, `systemPrompt`/`composeFooter`.
+## Architecture: notebook-canonical
 
-## Wiring
+The **notebook modules are the source of truth.** Each is one Observable module (`modules/@tomlarkworthy/robocoop-4-*.js`),
+synced into the notebook HTML with `tools/channel/sync-module.ts`. They split by concern:
 
-The only environment-specific seam is `runCommand(command) -> {stdout, stderr, exitCode}`:
+| Module | Concern |
+|--------|---------|
+| `robocoop-4-core` | The portable, DOM-free **brain**: the tool-use loop (`createAgentSession`), `defineTool`, the bash tool, the model clients (OpenRouter + a deterministic scripted client), and the system prompt. Touches no `window`; runs verbatim in node CI. |
+| `robocoop-4-engine` | Browser **wiring**: builds the OpenRouter client from the key, owns the just-bash workspace + agent shell, and constructs the persistent `session` wired to the live model picker / editable prompt / tool registry via *providers*. Config inputs (key, model, prompt) live here. |
+| `robocoop-4-tools` | The live **tool registry** (`toolsView`, an `Inputs.input([])`) + the watch bus that streams watched-cell changes into the loop. |
+| `robocoop-4-hostbridge` | Projects the live notebook into the fs (`/notebook/<id>.js` editable modules, `/content/<id>` raw blocks) and registers the agent's file/value tools (`read_file`, `write_file`, `edit_file`, `inspect_value`, `list_values`, `eval_js`, `watch_variable`, `view_image`). |
+| `robocoop-4` | The **app UI**: the agent's live terminal above a chat facade (transcript, input bar, model/key/prompt settings, Stop / New-chat controls). |
+| `robocoop-4-bash` / `-bash-session` / `-bash-terminal` | The shell: a POSIX-ish bash over a virtual fs (just-bash), the workspace/session factory, and the terminal widget. |
+| `robocoop-4-tests` | In-notebook `test_rc4_*` cells over the core (see Testing). |
 
-- node: `createNodeSession(fs).runCommand` — one `Bash` + one `InMemoryFs`, cwd/env threaded via
-  `result.env`/`result.env.PWD` (just-bash `exec` is stateless except the fs).
-- browser: `runCommand = cmd => window.justbash.exec(cmd)` (in `notebookAdapter.mjs`, the only file
-  touching `window`).
+### Core concepts
 
-```js
-import { createAgentLoop } from './agentLoop.mjs';
-import { createBashTool } from './bashTool.mjs';
-import { createNodeSession } from './nodeSession.mjs';
-import { createScriptedClient } from './scriptedClient.mjs';
-import { systemPrompt } from './systemPrompt.mjs';
+- **Portable core.** `robocoop-4-core` is DOM-free so the exact same loop runs in the browser and in
+  node CI. The only environment seam is `runCommand(cmd) -> {stdout, stderr, exitCode}` (browser binds
+  the agent shell; node binds an `InMemoryFs` session).
+- **Provider pattern (the key idea).** `createAgentSession` re-reads its tools, model, and system
+  prompt from *provider functions* at the top of **every step** — not once at construction. That is
+  what lets the notebook register a new tool, edit the prompt, or switch the model mid-conversation
+  with the conversation surviving (the session object is never rebuilt).
+- **Completion protocol.** The loop ends on an explicit `task_complete` tool call, not on bare text.
+  A bare-text turn is a *stall* (nudged up to `stallNudgeLimit`); a provider-rejected empty turn is
+  *malformed* (dropped + retried up to `malformedRetryLimit`). Tool output is centrally head+tail
+  truncated so a 1 MB `cat` can't blow the context.
+- **Live control.** `session` exposes `send(input)`, `steer(input)` (inject a user message + abort the
+  in-flight call so it's read on the next step — the basis of mid-turn steering and model switching),
+  `interrupt()` (abort the in-flight call only, e.g. to apply a model switch now), `abort()` (hard-stop
+  the turn), and `reset()` (New-chat — clears history, keeps the workspace).
+- **fs ↔ notebook projection.** `/notebook/<id>.js` are the agent's editable live modules (writing one
+  applies it to the runtime and reports compile + runtime-error status in the same turn); `/content/<id>`
+  is the read-only raw microkernel (bootconf, bundled libs, file attachments).
 
-const session = createNodeSession(fs);
-const loop = createAgentLoop({
-  client: createScriptedClient(steps),   // or createOpenRouterClient({apiKey, fetch})
-  tools: [createBashTool()],
-  systemPrompt,
-  runCommand: session.runCommand,
-});
-const { messages, finishReason, steps } = await loop.run(userPrompt);
+### Two execution worlds (and a known duplication)
+
+1. **Browser notebook** — canonical. Uses the `-core` module directly via Observable imports.
+2. **Node eval harness** (`tools/robocoop-4/eval/`) — a *parallel ESM copy* of the portable core lives
+   as `agentSession.mjs` / `agentLoop.mjs` / `openrouter.mjs` / `systemPrompt.mjs` / `render.mjs` /
+   `defineTool.mjs` / `bashTool.mjs`. **These duplicate the `-core` cells and can drift** (e.g. the node
+   copy currently lacks `steer`/`interrupt`). They persist only because the harness runs under node and
+   `@observablehq/runtime` isn't a node dependency. **Recommended consolidation:** run the harness under
+   `bun` and import the canonical core via `tools/notebook-import.ts` (proven in node CI), then delete the
+   `.mjs` copies. Until then, changes to the loop must be mirrored in both, or made in `-core` only if the
+   harness doesn't need them.
+
+The node **unit tests**, by contrast, already run the canonical `-core` (see below) — only the *eval
+harness* uses the `.mjs` copy.
+
+## How to extend
+
+**Add an agent tool** — define it with `defineTool({id, description, parameters, execute})` and register
+it on the live registry. In the notebook, push it onto `toolsView` (the `Inputs.input([])` in
+`robocoop-4-tools`); the running session offers it on the very next step (provider pattern). Built-in
+tools live in `robocoop-4-core` (bash) and `robocoop-4-hostbridge` (file/value tools) — copy one as a
+template. Keep `parameters` an explicit JSON Schema with per-field descriptions (the model relies on them).
+
+**Add a config input** (e.g. a temperature knob) — in `robocoop-4-engine`: add a `viewof X` cell, expose
+its value, add a plain-named alias (`const _xView = ($0) => $0` — works around editor-5 mangling `viewof`
+imports), import the alias in `robocoop-4` (the app), and read it in `_session` via a provider
+(`xProvider: () => $x.value`). Mirror the existing `model` / `rc4_systemPrompt` wiring.
+
+**Add a test** — add a `test_rc4_*` cell to `robocoop-4-tests` (throw to fail) using the helpers there:
+`rc4_assert`, `createScriptedClient` (canned turns), `rc4_abortableClient` (interruptible — for
+steer/interrupt/model-switch), `rc4_simpleTool`. Register it in the module's `define()` block. Node CI
+picks it up automatically.
+
+## Testing
+
+In-notebook `test_rc4_*` cells are canonical; node CI boots the shipped HTML and runs them:
+
+```bash
+node --experimental-vm-modules --test tests/notebooks/robocoop-4.test.js
 ```
 
-Live modules are one `.js` file each at `/notebook/<moduleId>.js` (`fsmap.mjs` owns the codec and
-the `/notebook` system-path filter — the single chokepoint every grader routes through).
+The test instantiates the (non-booted) `robocoop-4-tests` module so `runTests('test_rc4_')` discovers
+the cells. The browser-only just-bash fs test is excluded in node.
 
-## Eval harness
+## Eval harness (separate from unit tests)
 
-Per task: seed a fresh `InMemoryFs`, build the node session + bash tool + a fresh agent loop, run
-the prompt, then run `task.assert(fs)` (programmatic post-state assertions — no LLM judge). Fails
-loudly if a task has no `assert`. Grading primitives: `fileContains`, `fileLacksIdentifier`,
-`parsesWithoutSyntaxError`, `fileExists`, `fileAbsent`.
-
-Default mode uses a deterministic SCRIPTED client that replays each task's recorded tool-call
-commands — no API key, no network. `--real` (with `OPENROUTER_API_KEY`) uses the live OpenRouter
-client.
+The eval harness grades whether the agent can accomplish notebook-edit *tasks* (programmatic post-state
+assertions, no LLM judge) — distinct from the unit tests, which check loop invariants. It currently uses
+the `.mjs` core copy (see duplication note above).
 
 ```bash
 # no-network self-test + scripted task eval
 node tools/robocoop-4/eval/run-eval.mjs
-
-# single task, verbose tool trace
+# single task, verbose
 node tools/robocoop-4/eval/run-eval.mjs --only rename-identifier -v
-
 # live model
 OPENROUTER_API_KEY=... node tools/robocoop-4/eval/run-eval.mjs --real --model anthropic/claude-sonnet-4
 ```
 
-Flags: `--only <id>`, `--verbose`/`-v`, `--model <id>`, `--real`, `--no-self-test`.
-Exit code is `0` only when the self-test and every selected task pass.
+## Syncing module edits to the notebook
 
-## No-network self-test
+After editing a `modules/@tomlarkworthy/robocoop-4-*.js` file:
 
-`eval/selfTest.mjs` drives the loop with a scripted client over a 2-step bash transcript and asserts
-the loop invariants fire: verbatim assistant append (incl `tool_calls`), `function.arguments` as a
-JSON string, exactly one tool reply per `tool_call_id`, defensive `JSON.parse` of malformed args, and
-central head+tail output truncation.
-
-Dependencies: node built-ins + just-bash only (imported from
-`tools/justbash-build/node_modules/just-bash` by absolute path, since cwd resets between harness bash
-calls).
+```bash
+bun tools/channel/sync-module.ts --module @tomlarkworthy/robocoop-4-core \
+  --source modules/@tomlarkworthy/robocoop-4-core.js \
+  --target lopebooks/notebooks/@tomlarkworthy_robocoop-4.html \
+  --target lopecode/notebooks/@tomlarkworthy_robocoop-4.html
 ```
+
+Then hard-reload the notebook (Cmd+Shift+R). Local files only — do not push robocoop-4 to ObservableHQ.

@@ -1,10 +1,23 @@
 # robocoop-4 — Design
 
-A bash-centric, OpenRouter-gated coding agent whose core logic is DOM-free `.mjs` so the
-SAME code runs in (a) the node eval harness (just-bash `InMemoryFs` + scripted client) and
-(b) the browser notebook (`window.justbash` + real OpenRouter). robocoop-4 replaces
-robocoop-3's two layers: the model gateway (now OpenRouter only) and the manipulation
-surface (now a single `bash` tool over a virtual fs instead of Observable-variable tools).
+> **Status: original node-core design record. Superseded for architecture by `README.md`** — read
+> that first. This document is still accurate for the **wire invariants** (§"Core invariants"), the
+> **bash tool / OpenRouter client / loop** contracts, and the **eval harness fs model**, which the node
+> harness still follows. What changed since it was written:
+> - **Notebook-canonical.** The portable core now lives in the `robocoop-4-core` notebook *module*, not
+>   the `.mjs` files; the browser uses that module directly (not `window.justbash` / `notebookAdapter.mjs`).
+>   The `tools/robocoop-4/*.mjs` are now a parallel ESM copy used only by the eval harness (see README's
+>   "Two execution worlds" — they can drift and are slated for consolidation via `notebook-import`).
+> - **Browser shell seam** is `rc4_agentShell.run(cmd)` (owned by `robocoop-4-engine`), not `window.justbash`.
+> - **New since this doc:** the provider pattern (live tools/model/prompt re-read per step), the explicit
+>   `task_complete` completion protocol + stall/malformed recovery, watch/notices streaming, the
+>   live-control API (`steer`/`interrupt`/`abort`/`reset`), and the tool+vision model picker.
+
+A bash-centric, OpenRouter-gated coding agent whose core logic is DOM-free so the SAME code runs in
+(a) the node eval harness (just-bash `InMemoryFs` + scripted client) and (b) the browser notebook
+(real OpenRouter). robocoop-4 replaces robocoop-3's two layers: the model gateway (now OpenRouter only)
+and the manipulation surface (now a single `bash` tool over a virtual fs instead of Observable-variable
+tools).
 
 ## Spine and grafts
 
