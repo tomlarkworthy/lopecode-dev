@@ -16,7 +16,7 @@ synced into the notebook HTML with `tools/channel/sync-module.ts`. They split by
 
 | Module | Concern |
 |--------|---------|
-| `robocoop-4-core` | The portable, DOM-free **brain**: the tool-use loop (`createAgentSession`), `defineTool`, the bash tool, the model clients (OpenRouter + a deterministic scripted client), and the system prompt. Touches no `window`; runs verbatim in node CI. |
+| `robocoop-4-core` | The portable, DOM-free **brain**: the tool-use loop (`createAgentSession`), `defineTool`, the bash tool, the model clients (OpenRouter + a deterministic scripted client), the system prompt, and the pure result formatters the UI renders with (`summarizeTurn`, `toolLabel`). Touches no `window`; runs verbatim in node CI. |
 | `robocoop-4-engine` | Browser **wiring**: builds the OpenRouter client from the key, owns the just-bash workspace + agent shell, and constructs the persistent `session` wired to the live model picker / editable prompt / tool registry via *providers*. Config inputs (key, model, prompt) live here. |
 | `robocoop-4-tools` | The live **tool registry** (`toolsView`, an `Inputs.input([])`) + the watch bus that streams watched-cell changes into the loop. |
 | `robocoop-4-hostbridge` | Projects the live notebook into the fs (`/notebook/<id>.js` editable modules, `/content/<id>` raw blocks) and registers the agent's file/value tools (`read_file`, `write_file`, `edit_file`, `inspect_value`, `list_values`, `eval_js`, `watch_variable`, `view_image`). |

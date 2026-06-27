@@ -8,9 +8,16 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadNotebook } from '../../tools/lope-runtime.js';
 
-// just-bash is a browser bundle; if it can't load under the node DOM shim, the fs test is skipped
-// here (it still runs in the browser). Pure core/session tests must all pass in node.
-const BROWSER_ONLY = new Set(['test_rc4_fs_rename']);
+// Some tests can't run under the node DOM shim and run only in the browser (in-notebook test panel):
+//   - test_rc4_fs_rename / test_rc4_hb_edit_tool_schemas: need the just-bash workspace (bundle won't load)
+//   - test_rc4_hb_value_tool_schemas: valueTools depends on the live `currentModules` module-map
+//     generator, which never yields headlessly.
+// Pure core/session tests must all pass in node.
+const BROWSER_ONLY = new Set([
+  'test_rc4_fs_rename',
+  'test_rc4_hb_edit_tool_schemas',
+  'test_rc4_hb_value_tool_schemas',
+]);
 
 describe('@tomlarkworthy/robocoop-4', () => {
   let execution;

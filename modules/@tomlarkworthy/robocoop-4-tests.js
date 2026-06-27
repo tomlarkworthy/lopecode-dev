@@ -303,6 +303,40 @@ const _test_rc4_session_attach_image_tool = async function _test_rc4_session_att
   return "ok";
 };
 
+// hostbridge value-tool schemas: the agent's value/inspection tools must keep their ids + a valid
+// wire schema (object params, required[], non-empty description, execute fn). Snapshots the set so a
+// later schema refactor (e.g. a makeTool factory) can't silently drop a tool or malform its schema.
+// BROWSER-ONLY: valueTools depends on the live `currentModules` module-map generator, which never
+// yields under the node DOM shim, so this guard runs in the in-notebook test panel, not node CI.
+const _test_rc4_hb_value_tool_schemas = function _test_rc4_hb_value_tool_schemas(rc4_assert, valueTools){
+  rc4_assert(Array.isArray(valueTools), "valueTools is an array");
+  const ids = valueTools.map((t) => t.id);
+  for (const id of ["inspect_value", "list_values", "eval_js", "watch_variable", "unwatch_variable"])
+    rc4_assert(ids.includes(id), "value tool present: " + id);
+  for (const t of valueTools) {
+    rc4_assert(typeof t.description === "string" && t.description.length > 10, t.id + " has a description");
+    rc4_assert(t.parameters && t.parameters.type === "object" && t.parameters.properties, t.id + " has object params");
+    rc4_assert(Array.isArray(t.parameters.required), t.id + " declares required[]");
+    rc4_assert(typeof t.execute === "function", t.id + " has an execute fn");
+  }
+  return "ok";
+};
+
+// hostbridge edit-tool schemas. BROWSER-ONLY: editTools needs the just-bash workspace (rc4_workspace),
+// which doesn't load under the node DOM shim — same constraint as test_rc4_fs_rename.
+const _test_rc4_hb_edit_tool_schemas = function _test_rc4_hb_edit_tool_schemas(rc4_assert, editTools){
+  rc4_assert(Array.isArray(editTools), "editTools is an array");
+  const ids = editTools.map((t) => t.id);
+  for (const id of ["read_file", "write_file", "edit_file", "view_image"])
+    rc4_assert(ids.includes(id), "edit tool present: " + id);
+  for (const t of editTools) {
+    rc4_assert(t.parameters && t.parameters.type === "object" && t.parameters.properties, t.id + " has object params");
+    rc4_assert(Array.isArray(t.parameters.required), t.id + " declares required[]");
+    rc4_assert(typeof t.execute === "function", t.id + " has an execute fn");
+  }
+  return "ok";
+};
+
 // fs test: real just-bash workspace + bash tool. The scripted client sed-renames a seeded module.
 const _test_rc4_fs_rename = async function _test_rc4_fs_rename(rc4_assert, createAgentSession, createScriptedClient, createBashTool, createWorkspace){
   const ws = createWorkspace({ "/notebook/@user/mod.js": "const _x = function _x(){return( foo )};\n" });
@@ -319,6 +353,37 @@ const _test_rc4_fs_rename = async function _test_rc4_fs_rename(rc4_assert, creat
   return "ok";
 };
 
+// summarizeTurn: null on clean completion; otherwise a reason + tool tally. Pure → node-testable.
+const _test_rc4_summarize_turn = function _test_rc4_summarize_turn(rc4_assert, summarizeTurn){
+  rc4_assert(summarizeTurn({ finishReason: "completed", steps: 3 }) === null, "completed turn → null");
+  rc4_assert(summarizeTurn(null) === null, "null result → null");
+  const s = summarizeTurn({
+    finishReason: "max_steps", steps: 2,
+    turnMessages: [
+      { role: "assistant", tool_calls: [{ function: { name: "bash" } }, { function: { name: "bash" } }] },
+      { role: "assistant", tool_calls: [{ function: { name: "read_file" } }] },
+    ],
+  });
+  rc4_assert(/reached the step limit/.test(s), "max_steps reason: " + s);
+  rc4_assert(/2 steps/.test(s), "pluralised step count: " + s);
+  rc4_assert(/bash×2/.test(s) && /read_file×1/.test(s), "tool tally: " + s);
+  rc4_assert(/was stopped/.test(summarizeTurn({ finishReason: "aborted", steps: 1 })), "aborted reason");
+  rc4_assert(/1 step\b/.test(summarizeTurn({ finishReason: "aborted", steps: 1 })), "singular step");
+  rc4_assert(/provider error/.test(summarizeTurn({ finishReason: "error", steps: 1 })), "error reason");
+  return "ok";
+};
+
+// toolLabel: short label with a basename-trimmed target hint; never throws on bad args.
+const _test_rc4_tool_label = function _test_rc4_tool_label(rc4_assert, toolLabel){
+  rc4_assert(toolLabel("write_file", { path: "/notebook/@u/m.js" }) === "write_file m.js", "path basename");
+  rc4_assert(toolLabel("inspect_value", '{"module":"foo"}') === "inspect_value foo", "json string args, module hint");
+  rc4_assert(toolLabel("inspect_value", { module: "@u/m" }) === "inspect_value m", "module hint basename-trimmed");
+  rc4_assert(toolLabel("bash", {}) === "bash", "no hint → bare name");
+  rc4_assert(toolLabel("bash", "not json") === "bash", "bad json → no throw");
+  rc4_assert(toolLabel(undefined, undefined) === "tool", "missing name → 'tool'");
+  return "ok";
+};
+
 export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => {
@@ -330,13 +395,18 @@ export default function define(runtime, observer) {
   // Imports from the literate core.
   main.define("module @tomlarkworthy/robocoop-4-core", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-core.js?v=4")).default));
-  for (const n of ["truncate","formatResult","defineTool","createBashTool","createScriptedClient","createAgentSession"]) {
+  for (const n of ["truncate","formatResult","defineTool","createBashTool","createScriptedClient","createAgentSession","summarizeTurn","toolLabel"]) {
     main.define(n, ["module @tomlarkworthy/robocoop-4-core", "@variable"], (_, v) => v.import(n, _));
   }
   // Real just-bash workspace for the fs test.
   main.define("module @tomlarkworthy/robocoop-4-bash-session", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-bash-session.js?v=4")).default));
   main.define("createWorkspace", ["module @tomlarkworthy/robocoop-4-bash-session", "@variable"], (_, v) => v.import("createWorkspace", _));
+  // hostbridge tool arrays for the schema smoke tests.
+  main.define("module @tomlarkworthy/robocoop-4-hostbridge", async () =>
+    runtime.module((await import("/@tomlarkworthy/robocoop-4-hostbridge.js?v=4")).default));
+  main.define("valueTools", ["module @tomlarkworthy/robocoop-4-hostbridge", "@variable"], (_, v) => v.import("valueTools", _));
+  main.define("editTools", ["module @tomlarkworthy/robocoop-4-hostbridge", "@variable"], (_, v) => v.import("editTools", _));
 
   $def("rc4ts_assert", "rc4_assert", [], _rc4_assert);
   $def("rc4ts_recordClient", "rc4_recordClient", ["createScriptedClient"], _rc4_recordClient);
@@ -362,7 +432,11 @@ export default function define(runtime, observer) {
   $def("rc4ts_t_missing_call_id", "test_rc4_session_missing_call_id", ["rc4_assert","createAgentSession","createScriptedClient","rc4_simpleTool"], _test_rc4_session_missing_call_id);
   $def("rc4ts_t_send_images", "test_rc4_session_send_images", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_send_images);
   $def("rc4ts_t_attach_image", "test_rc4_session_attach_image_tool", ["rc4_assert","createAgentSession","createScriptedClient"], _test_rc4_session_attach_image_tool);
+  $def("rc4ts_t_hb_value_schemas", "test_rc4_hb_value_tool_schemas", ["rc4_assert","valueTools"], _test_rc4_hb_value_tool_schemas);
+  $def("rc4ts_t_hb_edit_schemas", "test_rc4_hb_edit_tool_schemas", ["rc4_assert","editTools"], _test_rc4_hb_edit_tool_schemas);
   $def("rc4ts_t_fs_rename", "test_rc4_fs_rename", ["rc4_assert","createAgentSession","createScriptedClient","createBashTool","createWorkspace"], _test_rc4_fs_rename);
+  $def("rc4ts_t_summarize_turn", "test_rc4_summarize_turn", ["rc4_assert","summarizeTurn"], _test_rc4_summarize_turn);
+  $def("rc4ts_t_tool_label", "test_rc4_tool_label", ["rc4_assert","toolLabel"], _test_rc4_tool_label);
 
   return main;
 }

@@ -18,7 +18,7 @@ const _agentTerminal = function _agentTerminal(html, terminal, rc4_agentShell){
   return root;
 };
 
-const _facade = function _facade(html, md, session, $key, $model, $prompt){
+const _facade = function _facade(html, md, session, $key, $model, $prompt, summarizeTurn, toolLabel){
   const C = {
     bg: "#0d1117", fg: "#c9d1d9", muted: "#8b949e", border: "#30363d",
     user: "#1f6feb", asst: "#161b22", tool: "#21262d", accent: "#7ee787", err: "#ff7b72"
@@ -88,21 +88,6 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   // The transcript is talk-only, so a turn that ends on tool work with no closing assistant text would leave
   // the user staring at their own message with no idea what happened. Summarize the outcome: why it ended +
   // how many steps + a tally of what it did. 'completed' already shows the task_complete summary, so skip it.
-  const summarizeTurn = (r) => {
-    if (!r || r.finishReason === "completed") return null;
-    const tally = {};
-    for (const m of (r.turnMessages || []))
-      if (m.role === "assistant" && Array.isArray(m.tool_calls))
-        for (const tc of m.tool_calls) { const n = tc.function?.name || "tool"; tally[n] = (tally[n] || 0) + 1; }
-    const acts = Object.entries(tally).map(([n, c]) => n + "×" + c).join(", ");
-    const why = r.finishReason === "max_steps" ? "reached the step limit"
-      : r.finishReason === "aborted" ? "was stopped"
-      : r.finishReason === "error" ? "hit a provider error"
-      : "ended without calling task_complete";
-    return "⏹ Agent " + why + " · " + r.steps + " step" + (r.steps === 1 ? "" : "s")
-      + (acts ? " · " + acts : "") + ". No final reply — say “continue” to resume or “finish up”.";
-  };
-
   // Live per-step status — a cheap, persistent line so a running turn is never silent (#14). Updated
   // directly (textContent), NOT through the heavy render() that wipes+re-parses every bubble (so tool
   // events no longer trigger a full re-render). Most tools (write_file/inspect_value/eval_js) don't show
@@ -111,16 +96,6 @@ const _facade = function _facade(html, md, session, $key, $model, $prompt){
   const statusEl = document.createElement("div");
   statusEl.style.cssText = "display:none;color:" + C.accent + ";font-size:12px;font-style:italic;padding:4px 10px;border-top:1px solid " + C.border;
   const setStatus = (txt) => { statusEl.textContent = txt || ""; statusEl.style.display = txt ? "block" : "none"; };
-  // core invokes onToolCall(callId, name, args) — positional. Pull a short target hint from args.
-  const toolLabel = (name, args) => {
-    let arg = "";
-    try {
-      let a = args;
-      if (typeof a === "string") a = JSON.parse(a);
-      if (a) arg = a.path || a.file || a.name || a.id || a.module || "";
-    } catch {}
-    return arg ? name + " " + String(arg).split("/").pop() : (name || "tool");
-  };
 
   // Memoized render: md-parse each message bubble ONCE per content change (cached by message identity in a
   // WeakMap), reuse the node otherwise, then reconcile with replaceChildren (which reorders the SAME nodes,
@@ -298,6 +273,12 @@ export default function define(runtime, observer) {
   main.define("promptView", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("promptView", _));
   main.define("rc4_agentShell", ["module @tomlarkworthy/robocoop-4-engine", "@variable"], (_, v) => v.import("rc4_agentShell", _));
 
+  // Pure result formatters live in core (DOM-free, node-tested); the facade renders with them.
+  main.define("module @tomlarkworthy/robocoop-4-core", async () =>
+    runtime.module((await import("/@tomlarkworthy/robocoop-4-core.js?v=4")).default));
+  main.define("summarizeTurn", ["module @tomlarkworthy/robocoop-4-core", "@variable"], (_, v) => v.import("summarizeTurn", _));
+  main.define("toolLabel", ["module @tomlarkworthy/robocoop-4-core", "@variable"], (_, v) => v.import("toolLabel", _));
+
   // terminal widget for the embedded agent shell.
   main.define("module @tomlarkworthy/robocoop-4-bash-terminal", async () =>
     runtime.module((await import("/@tomlarkworthy/robocoop-4-bash-terminal.js?v=4")).default));
@@ -305,6 +286,6 @@ export default function define(runtime, observer) {
 
   // agent terminal first, chat below — same module, stacked in the pane.
   $def("rc4_agentTerminal", null, ["html", "terminal", "rc4_agentShell"], _agentTerminal);
-  $def("rc4_facade", null, ["html", "md", "session", "keyView", "modelView", "promptView"], _facade);
+  $def("rc4_facade", null, ["html", "md", "session", "keyView", "modelView", "promptView", "summarizeTurn", "toolLabel"], _facade);
   return main;
 }

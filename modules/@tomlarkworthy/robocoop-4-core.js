@@ -716,6 +716,46 @@ const _composeFooter = function _composeFooter(){return(
   }
 )};
 
+// ── result formatters (pure; consumed by the UI) ─────────────────────────────
+const _doc_summarizeTurn = function _doc_summarizeTurn(md){return(
+md`### \`summarizeTurn(r)\`
+Pure interpreter of a finished turn result. Returns \`null\` for a clean completion; otherwise a one-line
+"⏹ Agent …" notice explaining why the turn ended (\`max_steps\` / \`aborted\` / \`error\` / stalled) plus a
+tool tally from \`turnMessages\`. DOM-free so the UI imports it and node tests it.`
+)};
+const _summarizeTurn = function _summarizeTurn(){return(
+  function summarizeTurn(r) {
+    if (!r || r.finishReason === 'completed') return null;
+    const tally = {};
+    for (const m of (r.turnMessages || []))
+      if (m.role === 'assistant' && Array.isArray(m.tool_calls))
+        for (const tc of m.tool_calls) { const n = (tc.function && tc.function.name) || 'tool'; tally[n] = (tally[n] || 0) + 1; }
+    const acts = Object.entries(tally).map(([n, c]) => n + '×' + c).join(', ');
+    const why = r.finishReason === 'max_steps' ? 'reached the step limit'
+      : r.finishReason === 'aborted' ? 'was stopped'
+      : r.finishReason === 'error' ? 'hit a provider error'
+      : 'ended without calling task_complete';
+    return '⏹ Agent ' + why + ' · ' + r.steps + ' step' + (r.steps === 1 ? '' : 's')
+      + (acts ? ' · ' + acts : '') + '. No final reply — say “continue” to resume or “finish up”.';
+  }
+)};
+const _doc_toolLabel = function _doc_toolLabel(md){return(
+md`### \`toolLabel(name, args)\`
+Pure short label for a tool call, used in the live status line. Pulls a target hint
+(\`path\`/\`file\`/\`name\`/\`id\`/\`module\`) from \`args\` (string JSON or object), basename-trimmed. Never throws.`
+)};
+const _toolLabel = function _toolLabel(){return(
+  function toolLabel(name, args) {
+    let arg = '';
+    try {
+      let a = args;
+      if (typeof a === 'string') a = JSON.parse(a);
+      if (a) arg = a.path || a.file || a.name || a.id || a.module || '';
+    } catch (e) {}
+    return arg ? name + ' ' + String(arg).split('/').pop() : (name || 'tool');
+  }
+)};
+
 export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => {
@@ -748,6 +788,11 @@ export default function define(runtime, observer) {
   $def("rc4c_doc_systemPrompt", null, ["md"], _doc_systemPrompt);
   $def("rc4c_systemPrompt", "systemPrompt", [], _systemPrompt);
   $def("rc4c_composeFooter", "composeFooter", [], _composeFooter);
+
+  $def("rc4c_doc_summarizeTurn", null, ["md"], _doc_summarizeTurn);
+  $def("rc4c_summarizeTurn", "summarizeTurn", [], _summarizeTurn);
+  $def("rc4c_doc_toolLabel", null, ["md"], _doc_toolLabel);
+  $def("rc4c_toolLabel", "toolLabel", [], _toolLabel);
 
   return main;
 }
