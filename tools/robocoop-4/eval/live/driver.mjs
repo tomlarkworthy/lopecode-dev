@@ -176,11 +176,20 @@ export async function createDriver({
             return out;
           };
           const byName = (n) => allVars().find((v) => v._name === n);
-          const ready = () => { const s = byName("session"); return !!(s && s._value && typeof s._value.send === "function"); };
+          // Ready = session.send exists AND the hostbridge file tools are registered. Gating only on
+          // session.send sends before _hostSetup registers read_file/write_file/edit_file, so the agent's
+          // first step calls an unregistered tool ("unknown tool read_file") and wastes a step.
+          const ready = () => {
+            const s = byName("session");
+            if (!(s && s._value && typeof s._value.send === "function")) return false;
+            const tv = byName("toolsView");
+            const arr = tv && tv._value && Array.isArray(tv._value.value) ? tv._value.value : [];
+            return arr.some((t) => t && t.id === "read_file");
+          };
           const deadline = Date.now() + maxMs;
           while (Date.now() < deadline) {
             if (ready()) return true;
-            for (const n of ["viewof model", "session"]) {
+            for (const n of ["viewof model", "session", "toolsView", "hostSetup"]) {
               const v = byName(n);
               try { if (v && v._module && typeof v._module.value === "function") v._module.value(n).catch(() => {}); } catch {}
             }
@@ -309,6 +318,7 @@ export async function createDriver({
               if (turn && typeof turn === "object") {
                 if (typeof turn.steps === "number") result.steps = turn.steps;
                 if (turn.finishReason != null) result.finishReason = turn.finishReason;
+                if (turn.usage) result.usage = turn.usage;
               }
             } catch (e) {
               result.ok = false;
@@ -318,6 +328,7 @@ export async function createDriver({
             }
           }
           result.durationMs = Date.now() - startedAt;
+          if (!result.usage && session && session.usage) result.usage = { ...session.usage };  // fallback (e.g. on timeout)
 
           // --- conversation + toolCalls (build even on timeout for partial diagnostics) ---
           const messages = session && Array.isArray(session.messages) ? session.messages : [];

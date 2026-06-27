@@ -244,6 +244,79 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── document editing (the everyday "notebook helper" job) ─────────────────────────
+  // Simple prose/doc edits on a SEEDED module — the class where real use surfaces bugs that algo tasks miss.
+  // Graded on file + LIVE runtime so a "looks right" file that doesn't apply still fails.
+  {
+    id: "doc-edit-typo",
+    category: "doc-editing",
+    question: "The heading in @user/welcome reads \"Welcom to Lopecode\" — fix the typo so it reads \"Welcome to Lopecode\". Change nothing else.",
+    setup: {
+      files: {
+        "/notebook/@user/welcome.js":
+          "const _heading = function heading(md){return( md`# Welcom to Lopecode` )};\n" +
+          "export default function define(runtime, observer) {\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_heading\", \"heading\", [\"md\"], _heading);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "does_compile", args: { file: "/notebook/@user/welcome.js" }, weight: 1 },
+      { name: "contains_string", args: { file: "/notebook/@user/welcome.js", needle: "Welcome to Lopecode" }, weight: 2 },
+      { name: "not_contains_string", args: { file: "/notebook/@user/welcome.js", needle: "Welcom to" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/welcome", name: "heading" }, weight: 1 },
+      { name: "module_source_contains", args: { module: "@user/welcome", needle: "Welcome to Lopecode" }, weight: 2 },
+    ],
+  },
+  {
+    id: "doc-add-section",
+    category: "doc-editing",
+    question: "Add a new markdown cell `faq` to @user/guide with a \"## FAQ\" heading and one question-and-answer. Keep the existing intro and usage cells intact.",
+    setup: {
+      files: {
+        "/notebook/@user/guide.js":
+          "const _intro = function intro(md){return( md`# User Guide` )};\n" +
+          "const _usage = function usage(md){return( md`## Usage\\nRun the thing.` )};\n" +
+          "export default function define(runtime, observer) {\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_intro\", \"intro\", [\"md\"], _intro);\n" +
+          "  $def(\"_usage\", \"usage\", [\"md\"], _usage);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "does_compile", args: { file: "/notebook/@user/guide.js" }, weight: 1 },
+      { name: "contains_string", args: { file: "/notebook/@user/guide.js", needle: "## FAQ" }, weight: 2 },
+      { name: "contains_string", args: { file: "/notebook/@user/guide.js", needle: "## Usage" }, weight: 1 },  // existing kept
+      { name: "variable_no_error", args: { module: "@user/guide", name: "faq" }, weight: 2 },
+      { name: "variable_no_error", args: { module: "@user/guide", name: "usage" }, weight: 1 },
+    ],
+  },
+  {
+    id: "doc-add-interactive",
+    category: "doc-editing",
+    question: "The @user/dashboard module has a `scores` cell = [30, 50, 70, 90]. Add an interactive slider `viewof cutoff` (Inputs.range from 0 to 100, default 50) and a cell `passing` whose value is how many scores are >= cutoff. With the default cutoff it should be 3.",
+    setup: {
+      files: {
+        "/notebook/@user/dashboard.js":
+          "const _title = function title(md){return( md`# Dashboard` )};\n" +
+          "const _scores = function scores(){return( [30, 50, 70, 90] )};\n" +
+          "export default function define(runtime, observer) {\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_title\", \"title\", [\"md\"], _title);\n" +
+          "  $def(\"_scores\", \"scores\", [], _scores);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "does_compile", args: { file: "/notebook/@user/dashboard.js" }, weight: 1 },
+      { name: "renders_element", args: { module: "@user/dashboard", name: "viewof cutoff" }, weight: 2 },
+      { name: "variable_no_error", args: { module: "@user/dashboard", name: "passing" }, weight: 1 },
+      { name: "variable_equals", args: { module: "@user/dashboard", name: "passing", equals: 3 }, weight: 3 },
+    ],
+  },
+
   // ───────────────────────── editing an EXISTING module (file + live runtime) ─────────────────────────
   {
     id: "edit-exporter-title",
