@@ -132,6 +132,15 @@ async function main(argv) {
       scored.usage = snapshot.usage || null;   // token/cost usage for this eval (OpenRouter usage.cost in USD, incl. cachedTokens)
       scored.steps = snapshot.steps;
       scored.durationMs = snapshot.durationMs;  // wall-clock for the turn (driver-measured)
+      scored.finishReason = snapshot.finishReason ?? null;
+      // Persist the full transcript — prompt optimization (and any wander/step-count analysis) needs to see
+      // HOW the agent worked, not just the final scores. Without it the GEPA records can't reflect on actions.
+      scored.transcript = {
+        conversation: snapshot.conversation || [],
+        toolCalls: snapshot.toolCalls || [],
+        errors: snapshot.errors || [],
+        consoleEvents: snapshot.console || [],
+      };
       scoredAll.push(scored);
       gepa.push(toGepaRecord(scored, snapshot));
       console.log(
