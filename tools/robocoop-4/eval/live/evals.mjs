@@ -317,6 +317,38 @@ export const EVALS = [
     ],
   },
 
+  {
+    id: "doc-build-report",
+    category: "doc-editing",
+    question: "Make @user/sales into an interactive report. The `data` cell is [{month,revenue}]. Add: a `chart` " +
+      "cell that is a Plot bar chart of revenue by month; a `viewof month` dropdown (Inputs.select of the month " +
+      "names); a `monthRevenue` cell = the revenue for the selected month; and a `total` cell = the sum of all " +
+      "revenue. Keep the existing title, data, and note cells.",
+    setup: {
+      files: {
+        "/notebook/@user/sales.js":
+          "const _title = function title(md){return( md`# Q1 Sales` )};\n" +
+          "const _data = function data(){return( [{month:\"Jan\",revenue:120},{month:\"Feb\",revenue:150},{month:\"Mar\",revenue:90}] )};\n" +
+          "const _note = function note(md){return( md`Revenue dipped in March.` )};\n" +
+          "export default function define(runtime, observer) {\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_title\", \"title\", [\"md\"], _title);\n" +
+          "  $def(\"_data\", \"data\", [], _data);\n" +
+          "  $def(\"_note\", \"note\", [\"md\"], _note);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "does_compile", args: { file: "/notebook/@user/sales.js" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/sales", name: "chart" }, weight: 1 },
+      { name: "renders_svg", args: { module: "@user/sales", name: "chart" }, weight: 2 },
+      { name: "renders_element", args: { module: "@user/sales", name: "viewof month" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/sales", name: "monthRevenue" }, weight: 1 },
+      { name: "variable_equals", args: { module: "@user/sales", name: "total", equals: 360 }, weight: 2 },
+      { name: "variable_no_error", args: { module: "@user/sales", name: "note" }, weight: 1 },  // existing kept
+    ],
+  },
+
   // ───────────────────────── editing an EXISTING module (file + live runtime) ─────────────────────────
   {
     id: "edit-exporter-title",
