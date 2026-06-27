@@ -129,6 +129,9 @@ async function main(argv) {
         }
       }
       const scored = scoreEval(evalDef, snapshot);
+      scored.usage = snapshot.usage || null;   // token/cost usage for this eval (OpenRouter usage.cost in USD, incl. cachedTokens)
+      scored.steps = snapshot.steps;
+      scored.durationMs = snapshot.durationMs;  // wall-clock for the turn (driver-measured)
       scoredAll.push(scored);
       gepa.push(toGepaRecord(scored, snapshot));
       console.log(
@@ -147,6 +150,14 @@ async function main(argv) {
 
   const mean = scoredAll.reduce((s, e) => s + e.aggregate, 0) / scoredAll.length;
   console.log(`mean aggregate: ${mean.toFixed(2)} over ${scoredAll.length} eval(s)`);
+  const costUSD = scoredAll.reduce((s, e) => s + (e.usage?.costUSD || 0), 0);
+  const calls = scoredAll.reduce((s, e) => s + (e.usage?.calls || 0), 0);
+  const promptTok = scoredAll.reduce((s, e) => s + (e.usage?.promptTokens || 0), 0);
+  const cachedTok = scoredAll.reduce((s, e) => s + (e.usage?.cachedTokens || 0), 0);
+  const totalMs = scoredAll.reduce((s, e) => s + (e.durationMs || 0), 0);
+  const hitRate = promptTok ? ((cachedTok / promptTok) * 100).toFixed(0) : "0";
+  console.log(`suite cost: $${costUSD.toFixed(4)} over ${calls} call(s)`);
+  console.log(`prompt tokens: ${promptTok} (${cachedTok} cached, ${hitRate}% hit)  ·  wall-clock: ${(totalMs / 1000).toFixed(1)}s`);
 
   const allPass = scoredAll.every((e) => e.aggregate >= flags.failUnder);
   return allPass ? 0 : 1;
