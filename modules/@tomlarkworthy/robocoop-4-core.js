@@ -122,7 +122,7 @@ const _createBashTool = function _createBashTool(defineTool, formatResult){retur
         properties: {
           command: {
             type: 'string',
-            description: 'The bash command line to execute, e.g. "sed -n \'1,40p\' /notebook/@user/mod.js"',
+            description: 'The bash command line to execute, e.g. "sed -n \'1,40p\' /src/@user/mod.js"',
           },
         },
         required: ['command'],
@@ -487,14 +487,28 @@ const _createAgentSession = function _createAgentSession(truncate){
         if (calls.length === 0) {
           // No action taken. With the completion protocol, a bare-text turn is a STALL, not "done": nudge the
           // model to either act or call task_complete, up to stallNudgeLimit consecutive times, then fall back
-          // to stopping (so a model that refuses to act can't loop forever).
-          if (completeSpec && stalls < stallNudgeLimit && (res.finish_reason ?? 'stop') !== 'length' && step < maxStepsPerTurn - 1) {
+          // to stopping (so a model that refuses to act can't loop forever). Two flavours: (1) fr 'stop' — it
+          // narrated instead of acting; (2) fr 'length' — it burned the WHOLE token budget (typically a
+          // reasoning model over-planning) and was cut off BEFORE any tool call, so nothing ran and there is
+          // nothing to salvage; left alone it dies silently. Both are nudged (bounded), with a length-specific
+          // message that tells the over-thinker to stop planning and take ONE small concrete step. CRITICAL: the
+          // length nudge must NOT say "write a minimal skeleton" — a write_file-style model takes that literally
+          // and rewrites the WHOLE file, discarding the cells it already built (observed: 17-cell build reset to
+          // 3 cells). Steer it to ADVANCE the existing work with a small edit_file, never to restart.
+          const fr = res.finish_reason ?? 'stop';
+          if (completeSpec && stalls < stallNudgeLimit && step < maxStepsPerTurn - 1) {
             stalls++;
-            messages.push({ role: 'system', content: nudge });
-            callbacks.onNudge?.(stalls, nudge);
+            const stallMsg = fr === 'length'
+              ? 'Your reply was cut off at the token limit BEFORE you called a tool — you are over-thinking. ' +
+                'Stop planning and act in ONE small tool call now. Do NOT re-plan and do NOT write_file the whole ' +
+                'module again — that discards the cells you already built. Make the SINGLE next small change with ' +
+                'edit_file (add or fix ONE cell), then stop. Only write_file from scratch if the module is still empty.'
+              : nudge;
+            messages.push({ role: 'system', content: stallMsg });
+            callbacks.onNudge?.(stalls, stallMsg);
             continue;
           }
-          finishReason = res.finish_reason ?? 'stop';
+          finishReason = fr;
           callbacks.onFinish?.({ messages, finishReason });
           break;
         }
@@ -521,9 +535,10 @@ const _createAgentSession = function _createAgentSession(truncate){
             if (call?.function) call.function.arguments = '{}';
             const content = 'ERROR: your "' + String(name) + '" tool call was cut off — its arguments were ' +
               'truncated mid-string (you hit the per-turn output limit), so nothing ran. Do not resend such a ' +
-              'large call. Build large modules incrementally: write_file a small skeleton (the define() shell ' +
-              'plus one or two cells) first, then add the remaining cells one at a time with edit_file. Keep ' +
-              'each tool call small.';
+              'large call. If the module already exists, ADD or fix ONE cell with a small edit_file — do NOT ' +
+              'write_file the whole module again (that discards the cells you already built). Only when the ' +
+              'module does not exist yet, write_file a small compiling skeleton (define() shell + one or two ' +
+              'cells), then grow it one cell at a time with edit_file. Keep each tool call small.';
             pushToolResult(callId, content);
             continue;
           }
@@ -617,7 +632,7 @@ const _systemPrompt = function _systemPrompt(){return(
   `You are a coding agent that builds and edits Observable notebook modules through a single bash tool.
 
 NOTEBOOK MODEL
-Each live module is ONE standard Observable module file at /notebook/<moduleId>.js, kept in sync with the
+Each live module is ONE standard Observable module file you edit at /src/<moduleId>.js, kept in sync with the
 running notebook AUTOMATICALLY. A module is a set of reactive CELLS. Each cell declares its dependencies
 and recomputes when they change (like a spreadsheet). The file shape is: top-level cell declarations
 \`const _pid = function name(deps){return( EXPR )};\` (a cell whose body needs statements uses
@@ -640,11 +655,21 @@ VALUE is whatever the body RETURNS. So a cell whose value should be a FUNCTION m
 which declares a dependency on a cell named \`n\` (undefined → the value is NaN/garbage). Same for a cell whose
 value is an array/object: return it.
 
+LITERATE, DECOMPOSED STYLE
+Build the notebook AS a reactive graph, not one cell that does everything. One concern per cell, each named:
+keep independent state, each derived value, and each view in its OWN cell, so each is separately observable,
+testable and editable. Prefer many small cells to one big one — if a cell exceeds ~40 lines or builds several
+unrelated things, SPLIT it into named cells that depend on each other. Put a short \`md\` doc cell above each
+logical group (your own modules under /src are written this way — emulate them). Make each control its own
+\`viewof\` cell so other cells can react to it individually; do not hand-assemble every widget inside one \`<div>\`.
+
 LIVE EDITS — NO APPLY STEP
-The files under /notebook/ are LIVE: read them, and any change you WRITE is applied to the running notebook.
+The files under /src/ are LIVE: read them, and any change you WRITE is applied to the running notebook. Your
+/src/ file keeps your EXACT text — it is never reformatted on apply — so an edit_file old_string from your last
+write always still matches. PREFER many small edit_file changes; do NOT rewrite the whole file each time.
 - EDIT a module: change a cell's function body, or ADD a cell by writing both its
   \`const _pid = function name(deps){…}\` declaration AND a matching \`$def(...)\` line inside define().
-- CREATE a module: write a full /notebook/@user/<name>.js module file. It becomes a live module automatically.
+- CREATE a module: write a full /src/@user/<name>.js module file. It becomes a live module automatically.
   Use this EXACT skeleton (one markdown cell + one value cell) — match the \`$def\` helper character-for-character:
     const _intro = function intro(md){return( md\`# Title\` )};
     const _answer = function answer(){return( 42 )};
@@ -661,11 +686,11 @@ The files under /notebook/ are LIVE: read them, and any change you WRITE is appl
   pattern from any module that imports — grep \`main.define("module \`):
     main.define("module @user/other", async () => runtime.module((await import("@user/other")).default));
     main.define("x", ["module @user/other", "@variable"], (_, v) => v.import("x", _));
-- To find what exists, list /notebook and read a module; an existing module is the best template.
+- To find what exists, list /src and read a module; an existing module is the best template.
 
 TOOLS & METHOD
 To change a module, PREFER edit_file (an exact, literal string replacement — no regex/escaping) over bash
-sed. When you write or edit a /notebook module, the tool APPLIES it to the live runtime and tells you in the
+sed. When you write or edit a /src module, the tool APPLIES it to the live runtime and tells you in the
 SAME turn whether it COMPILED and how many cells changed; if it reports "FAILED TO COMPILE", your edit is
 malformed — read the error, fix it, and re-edit (the live runtime is left untouched until it compiles). The
 apply also FORCE-COMPUTES the module's cells and reports their RUNTIME status: a module can compile yet a cell
@@ -690,17 +715,20 @@ standard library — md, html, Inputs, Plot, d3 — from BUNDLED library code an
 MODULE (id \`@user/name\`), and every FILE ATTACHMENT (id \`@user/name/file.ext\`, e.g. a gzipped library bundle).
 So the libraries you use are not fetched from the network — they are compressed blocks in this same file.
 
-YOU are a set of these modules, all readable under /notebook/:
+YOU are a set of these modules, all readable under /src/:
 - robocoop-4-core — your "brain": the tool-use loop, the bash tool, the model clients, and this prompt.
 - robocoop-4-bash — your shell: a POSIX-ish bash + virtual filesystem, loaded by decompressing a gzipped
   FileAttachment (the just-bash bundle).
 - robocoop-4-engine — wires the model client and your persistent session over the workspace.
-- robocoop-4-hostbridge — projects the live notebook into /notebook/ (so your edits apply in ~1s) and
-  registers your value- and content-inspection tools.
+- robocoop-4-hostbridge — projects the live notebook into /src/ (your stable editable copies) and /notebook/
+  (the canonical mirror), so your edits apply in ~1s, and registers your value- and content-inspection tools.
 - robocoop-4 — the app/UI (terminal + chat); robocoop-4-tests — your self-tests.
 
-Your filesystem mirrors the notebook in two trees:
-- /notebook/<id>.js — your EDITABLE live modules (writing one applies to the runtime, as above).
+Your filesystem mirrors the notebook in three trees:
+- /src/<id>.js — your EDITABLE live modules (writing/editing one applies to the runtime, as above). These keep
+  your EXACT text and are never reformatted, so they are the surface you edit.
+- /notebook/<id>.js — the canonical, auto-formatted mirror of each module (a compile→decompile of the live
+  module). Read it to see the true applied form; do NOT edit it (it is regenerated and reformatted on apply).
 - /content/<id> — the raw, read-only microkernel ingredients that are NOT modules: bootconf.json (the boot
   config — its \`mains\` list), the bootloader, the bundled libraries, and every FILE ATTACHMENT, stored as
   its on-disk bytes (gzip attachments stay COMPRESSED). The file's presence tells you the ingredient exists;
@@ -709,13 +737,13 @@ Your filesystem mirrors the notebook in two trees:
 
 You can study every aspect of yourself; INVESTIGATE rather than guess. Your tools, by what they reveal:
 - bash — shell over the fs (ls/grep/find/cat, running commands) and raw bytes (od/wc/base64). Read your own
-  modules and the libraries they use under /notebook and /content (exporter-3 is the reference for how a
+  modules and the libraries they use under /src and /content (exporter-3 is the reference for how a
   notebook serializes itself into \`<script>\` blocks; fileattachments and runtime-sdk explain attachment
   resolution and runtime access). It is a VIRTUAL filesystem with NO network: curl/wget/nc reach nothing —
   for any network access use eval_js + fetch (see below), or define a cell that fetches.
 - read_file / write_file / edit_file — Claude-Code-style file access. edit_file is the reliable way to change a
-  module (exact literal replacement); writing/editing a live /notebook module applies it and reports whether
-  it compiled.
+  module (exact literal replacement); writing/editing a /src module applies it and reports whether it compiled.
+  /src files keep your exact bytes, so edit_file old_strings keep matching — build up a module with small edits.
 - view_image — load an image file (a screenshot, or an image FileAttachment under /content/<module>/<file>)
   so you can SEE it; the image becomes visible to you on your NEXT step. The user can also attach images
   directly in chat — when they do, look before you act.
@@ -762,7 +790,7 @@ ends with no task_complete leaves the user staring at a blank reply with no idea
 is fully done (or you have finished answering), call \`task_complete\`; that is how you end your turn.`
 )};
 const _composeFooter = function _composeFooter(){return(
-  function composeFooter({ workdir = '/notebook', model } = {}) {
+  function composeFooter({ workdir = '/src', model } = {}) {
     const lines = ['', 'Working directory: ' + workdir];
     if (model) lines.push('Model: ' + model);
     return lines.join('\n');

@@ -15,10 +15,12 @@ const _seed = () => 1;
 // rc4_workspace — the agent's in-memory project fs (one InMemoryFs). rc4_agentShell is the session
 // the agent drives; the embedded terminal (in the app module) renders it. No window globals.
 const _rc4_workspace = function _rc4_workspace(createWorkspace){
-  return createWorkspace({ "/notebook/README.md": "# robocoop-4 workspace\n\nModules live at /notebook/<moduleId>.js\n" });
+  // Seed /src (the agent's stable editing surface) so it exists before the shell spawns there; hostbridge fills
+  // it with each module's editable copy. /notebook/<id>.js is the canonical, auto-formatted mirror (read-only).
+  return createWorkspace({ "/src/README.md": "# robocoop-4 workspace\n\nEdit modules at /src/<moduleId>.js — your changes apply live and your file is NEVER reformatted (so edit_file keeps working). /notebook/<moduleId>.js is the read-only canonical mirror.\n" });
 };
 const _rc4_agentShell = function _rc4_agentShell(rc4_workspace){
-  return rc4_workspace.spawn({ cwd: "/notebook", label: "agent" });
+  return rc4_workspace.spawn({ cwd: "/src", label: "agent" });
 };
 
 const _OPENROUTER_API_KEY = function _OPENROUTER_API_KEY(Inputs, localStorageView){
@@ -78,7 +80,7 @@ const _model = function _model(Inputs, openrouter_models, openrouter_vision, loc
 
 // Editable system prompt, seeded from the core's base prompt + footer.
 const _rc4_systemPrompt = function _rc4_systemPrompt(Inputs, systemPrompt, composeFooter){
-  const base = systemPrompt + "\n\n" + composeFooter({ workdir: "/notebook", model: "" });
+  const base = systemPrompt + "\n\n" + composeFooter({ workdir: "/src", model: "" });
   return Inputs.textarea({ label: "system prompt", rows: 4, value: base, width: "100%" });
 };
 
