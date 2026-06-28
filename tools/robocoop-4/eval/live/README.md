@@ -23,7 +23,7 @@ Options:
 |------|---------|---------|
 | `--only <id>` | — | run only the eval with this id |
 | `--category <cat>` | — | run only evals in this category |
-| `--model <m>` | `$OPENROUTER_MODEL` or `anthropic/claude-sonnet-4` | OpenRouter model |
+| `--model <m>` | `$OPENROUTER_MODEL` or `xiaomi/mimo-v2.5-pro` | OpenRouter model (MIMO is the cheap default; use `anthropic/claude-sonnet-4` to sanity-check eval well-formedness) |
 | `--timeout <ms>` | 120000 | per-turn timeout |
 | `--headed` | off | show the browser window |
 | `--json <path>` | `results/latest.json` | output artifact path |
@@ -42,6 +42,26 @@ PASS/PART/FAIL  <id>  <aggregate>  steps=<n>  (<passed>/<total>)
 `PASS` = aggregate 1.0, `FAIL` = aggregate 0.0, `PART` = in between. A final `mean aggregate` line
 summarizes the run. Exit code is 0 in report mode (`--fail-under 0`), otherwise 0 iff every eval
 aggregate is ≥ `--fail-under`.
+
+## Regression gate
+
+Three categories pin core agent CAPABILITIES and must always score 1.0 (each guards a real, observed
+regression — see `.claude/skills/qa-notebook/qa/per-notebook/robocoop-4.md`):
+
+- `editor-lifecycle` — the agent edits the notebook's own cells live (modify/recompute, delete/prune, import-into-existing, viewof-render).
+- `drive-ui` — the agent OPERATES rendered UI (set an `Inputs.range` slider, type into custom HTML) via `eval_js` + `viewof_x`, no source edits.
+- `build-tool` — the agent self-extends: `registerTool(...)` a new tool, then calls it in the same turn.
+
+Run them as a hard gate (exits non-zero on any sub-1.0 eval):
+
+```bash
+for c in editor-lifecycle drive-ui build-tool; do
+  bun tools/robocoop-4/eval/live/run.mjs --category "$c" --fail-under 1 || break   # MIMO by default
+done
+```
+
+Default model is `xiaomi/mimo-v2.5-pro` (cheap, and the target). Optionally sanity-check eval
+well-formedness with `--model anthropic/claude-sonnet-4`. Both pass all three at 1.0 as of 2026-06-28.
 
 ## Adding an eval
 

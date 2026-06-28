@@ -501,6 +501,104 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── drive-ui (operate rendered UI, not author it) ─────────────────────────
+  // The agent OPERATING live UI a user built: drag/set an Inputs.range slider and type into a hand-built
+  // custom HTML field, with downstream reactive cells updating — WITHOUT editing the module source. The
+  // only tool that can touch the running runtime/DOM is eval_js, so "live value changed + no write_file/
+  // edit_file" uniquely proves the agent drove the rendered control rather than rewriting the code.
+  {
+    id: "du-slider",
+    category: "drive-ui",
+    question:
+      "The seeded module @user/thermostat has an Inputs.range slider `viewof temp` (currently 20) and a " +
+      "derived cell `fahrenheit` = temp * 9/5 + 32. WITHOUT editing the module source, DRIVE the live slider " +
+      "so its value becomes 30 — operate the rendered control / set the live input value and let it " +
+      "propagate (do not rewrite the cell). Afterwards @user/thermostat.temp must be 30 and fahrenheit must " +
+      "be 86 in the running notebook.",
+    setup: {
+      files: {
+        "/notebook/@user/thermostat.js":
+          "const _viewof_temp = function _temp(Inputs){return( Inputs.range([0, 100], {value: 20, step: 1}) )};\n" +
+          "const _temp = function temp(Generators, _v){return( Generators.input(_v) )};\n" +
+          "const _fahrenheit = function fahrenheit(temp){return( temp * 9 / 5 + 32 )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_viewof_temp\", \"viewof temp\", [\"Inputs\"], _viewof_temp);\n" +
+          "  $def(\"_temp\", \"temp\", [\"Generators\", \"viewof temp\"], _temp);\n" +
+          "  $def(\"_fahrenheit\", \"fahrenheit\", [\"temp\"], _fahrenheit);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      // the live input value actually changed (the agent operated the control)
+      { name: "variable_equals", args: { module: "@user/thermostat", name: "temp", equals: 30 }, weight: 3 },
+      // the downstream cell reactively settled to the driven value — the change propagated through the runtime
+      { name: "variable_equals", args: { module: "@user/thermostat", name: "fahrenheit", equals: 86 }, weight: 3 },
+      { name: "variable_no_error", args: { module: "@user/thermostat", name: "fahrenheit" }, weight: 1 },
+      // drove the rendered control, did NOT rewrite the cell source
+      { name: "tool_not_used", args: { name: "write_file" }, weight: 1 },
+      { name: "tool_not_used", args: { name: "edit_file" }, weight: 1 },
+    ],
+  },
+  {
+    id: "du-custom-html",
+    category: "drive-ui",
+    question:
+      "The seeded module @user/namebox renders a custom hand-built text field `viewof username` (a plain " +
+      "<input>) and a derived cell `greeting` = \"Hello, \" + (username || \"stranger\"). WITHOUT editing the " +
+      "module source, DRIVE the live UI so the field contains the text Ada (operate the rendered input and " +
+      "let it propagate). Afterwards @user/namebox.username must be Ada and greeting must be \"Hello, Ada\".",
+    setup: {
+      files: {
+        "/notebook/@user/namebox.js":
+          "const _viewof_username = function _username(html){return( html`<input type=\"text\" placeholder=\"name\">` )};\n" +
+          "const _username = function username(Generators, _v){return( Generators.input(_v) )};\n" +
+          "const _greeting = function greeting(username){return( \"Hello, \" + (username || \"stranger\") )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_viewof_username\", \"viewof username\", [\"html\"], _viewof_username);\n" +
+          "  $def(\"_username\", \"username\", [\"Generators\", \"viewof username\"], _username);\n" +
+          "  $def(\"_greeting\", \"greeting\", [\"username\"], _greeting);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      // the custom field's live value changed (the agent operated the hand-built control)
+      { name: "variable_equals", args: { module: "@user/namebox", name: "username", equals: "Ada" }, weight: 3 },
+      // downstream cell reactively recomputed from the driven input
+      { name: "variable_equals", args: { module: "@user/namebox", name: "greeting", equals: "Hello, Ada" }, weight: 3 },
+      { name: "variable_no_error", args: { module: "@user/namebox", name: "greeting" }, weight: 1 },
+      // drove the rendered control, did NOT rewrite the cell source
+      { name: "tool_not_used", args: { name: "write_file" }, weight: 1 },
+      { name: "tool_not_used", args: { name: "edit_file" }, weight: 1 },
+    ],
+  },
+
+  // ───────────────────────── build-tool (self-extend: make a new tool, then use it) ─────────────────────────
+  // The agent EXTENDING ITSELF: register a brand-new tool in the live registry, then invoke that tool to
+  // do the task. The session re-reads the tool registry every step (getTools()), so a tool registered at
+  // step N is offered at step N+1 and can be called in the SAME turn. Proof is runtime-grounded: a tool with
+  // the new id is NOT in the base registry, so `tool_used <id>` means the agent built AND called it; and the
+  // tool's RESULT message carrying the correct output proves the registered tool actually executed.
+  {
+    id: "bt-build-and-use",
+    category: "build-tool",
+    question:
+      "You can extend yourself with NEW tools at runtime. The live tool registry is the module " +
+      "@tomlarkworthy/robocoop-4-tools, which exposes a function `registerTool(tool)` — call it (e.g. via " +
+      "eval_js scoped to that module) to add a tool, and the session offers it to you on your next step. A " +
+      "tool is a plain object { id, description, parameters (a JSON-schema object), execute: async (args) => " +
+      "({ output: <string result> }) }. TASK: build and register a new tool with id `rot13` that ROT13-" +
+      "encodes its `text` string argument and returns the encoded string, then USE the rot13 tool to encode " +
+      "the text \"Lopecode\" and report the encoded value.",
+    criteria: [
+      // the new tool was registered AND invoked — neither is possible unless the agent self-extended
+      { name: "tool_used", args: { name: "rot13" }, weight: 3 },
+      // the registered tool actually executed and returned the correct encoding (ROT13("Lopecode"))
+      { name: "tool_result_contains", args: { needle: "Ybcrpbqr" }, weight: 2 },
+    ],
+  },
+
   // ───────────────────────── debugging (diagnose + fix a seeded bug) ─────────────────────────
   {
     id: "debug-average",

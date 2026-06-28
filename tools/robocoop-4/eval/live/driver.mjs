@@ -12,7 +12,7 @@ const DEFAULT_LAYOUT =
 export async function createDriver({
   notebookPath,
   apiKey,
-  model = "anthropic/claude-sonnet-4",
+  model = "xiaomi/mimo-v2.5-pro",
   layout = DEFAULT_LAYOUT,
   timeoutMs = 120000,
   headed = false,

@@ -743,10 +743,10 @@ one-by-one. Reserve inspect_value for drilling into a SINGLE specific cell (e.g.
 element you added: inspect_value module="@user/mod" name="viewof game"). Cells are addressable by name the
 instant the module compiles. Do NOT hunt for your own new cell with eval_js / Object.keys(this).
 When you write_file a NEW module that has a \`viewof\`/visual cell, it is automatically opened as a pane in the
-shared view — the human sees your creation in place immediately; you need do nothing to surface it. Your eval_js
-runs in the MAIN module, which has NOT imported your new module, so referencing its exported names inside eval_js
-(e.g. \`daw\`, \`viewof x\`) will fail to resolve — to read or verify a module you made, use inspect_value/list_values
-with its module id, never an eval_js probe.
+shared view — the human sees your creation in place immediately; you need do nothing to surface it. eval_js is
+SCOPED to the module id you pass: its value cells are in scope by name and a \`viewof x\` element as \`viewof_x\`
+(so you can drive a live control). To read or verify a cell's value, prefer inspect_value/list_values with the
+module id over an eval_js probe.
 Preserve the module format exactly. If a request is impossible or
 ambiguous, say so and ask rather than guessing. Take a concrete action — a tool call — on EVERY turn; never
 just describe what you are about to do and stop.

@@ -493,6 +493,17 @@ export const CRITERIA = {
       ? ok(`final reply asks a clarifying question`)
       : fail(`final reply has no clarifying question ("?"): ${JSON.stringify(last.slice(0, 80))}`);
   },
+
+  // A TOOL-result message (role: "tool") contains the needle. Proves a tool actually RAN and RETURNED the
+  // value — distinct from the agent narrating it in assistant text. For the build-a-tool capability this
+  // grounds "the newly-registered tool produced the correct output" in the runtime, not in self-report.
+  tool_result_contains(snapshot, args) {
+    const results = (snapshot.conversation || []).filter((m) => m.role === "tool" && typeof m.content === "string");
+    const hit = results.some((m) => m.content.includes(String(args.needle)));
+    return hit
+      ? ok(`a tool result contains "${args.needle}"`)
+      : fail(`no tool result contains "${args.needle}" (${results.length} tool result(s))`);
+  },
 };
 
 function escapeRe(s) {

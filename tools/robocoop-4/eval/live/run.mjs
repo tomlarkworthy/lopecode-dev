@@ -75,7 +75,7 @@ async function main(argv) {
     return 2;
   }
 
-  const model = flags.model || process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4';
+  const model = flags.model || process.env.OPENROUTER_MODEL || 'xiaomi/mimo-v2.5-pro';
   const notebookPath = flags.notebook
     ? resolve(flags.notebook)
     : join(repoRoot, 'lopebooks', 'notebooks', '@tomlarkworthy_robocoop-4.html');

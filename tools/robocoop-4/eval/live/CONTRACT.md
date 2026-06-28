@@ -97,7 +97,7 @@ function allVariables() {
 export async function createDriver({
   notebookPath,           // abs path to @tomlarkworthy_robocoop-4.html
   apiKey,                 // string — NEVER log it
-  model = "anthropic/claude-sonnet-4",
+  model = "xiaomi/mimo-v2.5-pro",
   layout = "R100(S75(@tomlarkworthy/robocoop-4),S25(@tomlarkworthy/robocoop-4-hostbridge))",
   timeoutMs = 120000,
   headed = false,
@@ -230,7 +230,7 @@ bun tools/robocoop-4/eval/live/run.mjs [--only <id>] [--category <cat>] [--model
 - Load `.env` the SAME way `tools/robocoop-4/eval/run-eval.mjs` does (search `tools/robocoop-4/.env`
   then repo-root `.env`; existing `process.env` wins). Require `OPENROUTER_API_KEY`.
 - Default notebook: `lopebooks/notebooks/@tomlarkworthy_robocoop-4.html` (abs-resolve).
-- Default model: `process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4"`.
+- Default model: `process.env.OPENROUTER_MODEL || "xiaomi/mimo-v2.5-pro"`.
 - `createDriver` ONCE; loop evals (filtered); per eval: `runQuestion` → `scoreEval` → print a row
   `PASS/PART/FAIL  <id>  <aggregate>  steps=<n>  (<passed>/<total>)`; collect `toGepaRecord`s.
 - Write a JSON artifact `{ model, when, evals:[…full scored…], gepa:[…records…] }` to `--json`
