@@ -6,7 +6,31 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { loadNotebook } from '../../tools/lope-runtime.js';
+
+// Bundle invariants that full re-exports silently revert (text-only, no boot). Each has bitten before:
+//   - summarizeJS clone fix (B22/B27): without it, summarizeJS(inspect) corrupts agent-built Inputs values
+//   - tick=messageChannel: runtime steps in background tabs
+//   - ocean-floor theme: the chosen dark theme
+// If a re-export drops any of these, re-sync (summarizejs) / run tools/robocoop-4/restore-rc4-customizations.ts.
+describe('@tomlarkworthy/robocoop-4 bundle invariants', () => {
+  const FILES = [
+    'lopebooks/notebooks/@tomlarkworthy_robocoop-4.html',
+    'lopecode/notebooks/@tomlarkworthy_robocoop-4.html',
+  ];
+  for (const f of FILES) {
+    it(`${f} retains re-export-fragile fixes`, () => {
+      const s = readFileSync(f, 'utf8');
+      // summarizeJS must clone before inspect (the block contains cloneNode near the fn definition)
+      const block = s.slice(s.indexOf('function summarizeJS'), s.indexOf('function summarizeJS') + 600);
+      assert.ok(s.includes('function summarizeJS'), `${f}: summarizeJS missing`);
+      assert.ok(block.includes('cloneNode'), `${f}: summarizeJS is STALE (no clone fix) — re-sync @tomlarkworthy/summarizejs`);
+      assert.ok(/"tick":\s*"messageChannel"/.test(s), `${f}: bootconf tick=messageChannel dropped`);
+      assert.ok(s.includes('theme-ocean-floor.css'), `${f}: ocean-floor theme dropped`);
+    });
+  }
+});
 
 // Some tests can't run under the node DOM shim and run only in the browser (in-notebook test panel):
 //   - test_rc4_fs_rename / test_rc4_hb_edit_tool_schemas: need the just-bash workspace (bundle won't load)
