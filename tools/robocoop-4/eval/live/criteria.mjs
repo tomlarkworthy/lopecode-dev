@@ -296,6 +296,19 @@ export const CRITERIA = {
       : fail(`${args.module}:${args.name} not defined`);
   },
 
+  // The named variable is NOT present in the (still-live) module. Proves a delete/rename edit was
+  // applied to the runtime AND the old cell was pruned — guards the F4 orphan-prune regression where
+  // removed cells kept their live variable (and kept rendering). Module must still exist, else we can't
+  // distinguish "pruned" from "whole module gone".
+  variable_absent(snapshot, args) {
+    const mod = snapshot.modules?.[args.module];
+    if (!mod) return fail(`module ${args.module} not found live (cannot confirm prune)`);
+    const v = findVariable(snapshot, args.module, args.name);
+    return v && v.name
+      ? fail(`${args.module}:${args.name} still present (orphan not pruned?)`)
+      : ok(`${args.module}:${args.name} absent`);
+  },
+
   variable_no_error(snapshot, args) {
     const mod = snapshot.modules?.[args.module];
     if (!mod) return fail(`module ${args.module} not found`);

@@ -391,6 +391,116 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── editor-lifecycle ─────────────────────────
+  // The agent interacting with the Lopecode editor itself: create / modify / delete / rewire the
+  // notebook's own cells and have the change take effect in the LIVE runtime (not just the file).
+  // Each eval pins a historically-regressed editing operation (see qa/per-notebook/robocoop-4.md B26):
+  // modify-and-recompute, delete-and-prune (F4), import-into-existing (F5), viewof-render (F6).
+  {
+    id: "el-modify-live",
+    category: "editor-lifecycle",
+    question:
+      "The seeded module @user/counter has a cell `step` = 2 and a cell `total` = step * 10. Edit the `step` " +
+      "cell so its value is 5. Keep `total` defined as step * 10 (do not hardcode total). After your edit " +
+      "@user/counter.total must be 50 in the running notebook.",
+    setup: {
+      files: {
+        "/notebook/@user/counter.js":
+          "const _step = function step(){return( 2 )};\n" +
+          "const _total = function total(step){return( step * 10 )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_step\", \"step\", [], _step);\n" +
+          "  $def(\"_total\", \"total\", [\"step\"], _total);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "variable_equals", args: { module: "@user/counter", name: "step", equals: 5 }, weight: 2 },
+      // the downstream cell recomputed in the LIVE runtime — proves the edit reached the runtime, not just the file
+      { name: "variable_equals", args: { module: "@user/counter", name: "total", equals: 50 }, weight: 3 },
+      { name: "variable_no_error", args: { module: "@user/counter", name: "total" }, weight: 1 },
+      // anti-hardcode: total is still step*10, so feeding a different step gives a different result
+      { name: "cell_evaluates", args: { file: "/notebook/@user/counter.js", name: "total", inputs: { step: 3 }, equals: 30 }, weight: 1 },
+    ],
+  },
+  {
+    id: "el-delete-prune",
+    category: "editor-lifecycle",
+    question:
+      "The seeded module @user/widget has two cells: `keep` and `obsolete`. Delete the `obsolete` cell " +
+      "entirely so it no longer exists in the module, leaving `keep` working. The string \"REMOVE_ME\" must " +
+      "not appear anywhere in the module afterwards.",
+    setup: {
+      files: {
+        "/notebook/@user/widget.js":
+          "const _keep = function keep(){return( 1 )};\n" +
+          "const _obsolete = function obsolete(){return( \"REMOVE_ME\" )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_keep\", \"keep\", [], _keep);\n" +
+          "  $def(\"_obsolete\", \"obsolete\", [], _obsolete);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "module_exists", args: { id: "@user/widget" }, weight: 1 },
+      // the deleted cell's live variable is gone — guards the F4 orphan-prune regression
+      { name: "variable_absent", args: { module: "@user/widget", name: "obsolete" }, weight: 3 },
+      { name: "variable_defined", args: { module: "@user/widget", name: "keep" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/widget", name: "keep" }, weight: 1 },
+      { name: "not_contains_string", args: { file: "/notebook/@user/widget.js", needle: "REMOVE_ME" }, weight: 1 },
+    ],
+  },
+  {
+    id: "el-import-into-existing",
+    category: "editor-lifecycle",
+    question:
+      "@user/source defines a cell `base` = 21. In the EXISTING module @user/consumer (which currently only " +
+      "has a doc cell), add an import of `base` from @user/source (import it — do NOT redefine the number), " +
+      "then add a cell `out` = base * 2. @user/consumer.out must be 42, computed through the imported value.",
+    setup: {
+      files: {
+        "/notebook/@user/source.js":
+          "const _base = function base(){return( 21 )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_base\", \"base\", [], _base);\n  return main;\n}\n",
+        "/notebook/@user/consumer.js":
+          "const _note = function note(md){return( md`# consumer` )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_note\", \"note\", [\"md\"], _note);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      { name: "module_exists", args: { id: "@user/consumer" }, weight: 1 },
+      // genuinely imports rather than re-implements
+      { name: "contains_string", args: { file: "/notebook/@user/consumer.js", needle: "@user/source" }, weight: 2 },
+      { name: "variable_no_error", args: { module: "@user/consumer", name: "out" }, weight: 1 },
+      // cross-module import added to an EXISTING module took effect live — guards the F5 import-apply regression
+      { name: "variable_equals", args: { module: "@user/consumer", name: "out", equals: 42 }, weight: 3 },
+    ],
+  },
+  {
+    id: "el-viewof-live",
+    category: "editor-lifecycle",
+    question:
+      "Create a module @user/ctrl with an interactive control `viewof n = Inputs.range([0, 100], {value: 7, " +
+      "step: 1})` and a derived cell `doubled` = n * 2. The control must actually render, and `doubled` must " +
+      "be 14 at the default value in the running notebook.",
+    criteria: [
+      { name: "module_exists", args: { id: "@user/ctrl" }, weight: 1 },
+      // the viewof mounted as a real DOM element in the live runtime — guards the F6 viewof-render regression
+      { name: "renders_element", args: { module: "@user/ctrl", name: "viewof n" }, weight: 2 },
+      { name: "variable_no_error", args: { module: "@user/ctrl", name: "doubled" }, weight: 1 },
+      // the derived cell reactively settled to the default-driven value in the live runtime
+      { name: "variable_equals", args: { module: "@user/ctrl", name: "doubled", equals: 14 }, weight: 3 },
+    ],
+  },
+
   // ───────────────────────── debugging (diagnose + fix a seeded bug) ─────────────────────────
   {
     id: "debug-average",
