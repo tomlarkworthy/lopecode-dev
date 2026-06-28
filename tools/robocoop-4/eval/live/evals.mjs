@@ -501,6 +501,77 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── src-editing (the /src stable-cache contract) ─────────────────────────
+  // /src/<id>.js is the agent's EDITABLE surface: writes/edits apply live but the file is NEVER reformatted
+  // (so edit_file old_strings keep matching); /notebook/<id>.js is the canonical auto-formatted mirror.
+  // These pin the two properties the /src cache was built to guarantee — byte-stability of /src after an
+  // apply, and reliable incremental growth via edit_file (no monolith rewrites, no failed edits).
+  {
+    id: "src-byte-stability",
+    category: "src-editing",
+    // Seeded only at /src: a distinctive top-of-file header comment that the compile→decompile round-trip
+    // DROPS (it is not part of any cell body). If apply reformatted /src, the header would vanish; the
+    // edit also proves the change reached the live runtime, and the header is gone from the /notebook mirror.
+    question:
+      "Read /src/@user/styled.js. It already defines a cell `base` = 10. Using edit_file (a small, targeted " +
+      "edit — do NOT rewrite the whole file with write_file), add ONE new cell `scaled` = base * 4 so that " +
+      "@user/styled.scaled is 40 in the running notebook. Leave everything else in the file exactly as it is.",
+    setup: {
+      files: {
+        "/src/@user/styled.js":
+          "// ===HEADER-SENTINEL-9F3A=== keep this line byte-for-byte; do not reformat\n" +
+          "const _base = function base(){return( 10 )};\n" +
+          "export default function define(runtime, observer){\n" +
+          "  const main = runtime.module();\n" +
+          "  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n" +
+          "  $def(\"_base\", \"base\", [], _base);\n  return main;\n}\n",
+      },
+    },
+    criteria: [
+      // the edit reached the live runtime through the /src apply path
+      { name: "variable_equals", args: { module: "@user/styled", name: "scaled", equals: 40 }, weight: 3 },
+      { name: "variable_no_error", args: { module: "@user/styled", name: "scaled" }, weight: 1 },
+      // BYTE-STABILITY: the header survives verbatim in /src after the apply (apply never reformats /src)
+      { name: "contains_string", args: { file: "/src/@user/styled.js", needle: "===HEADER-SENTINEL-9F3A===" }, weight: 3 },
+      // the canonical mirror was refreshed AND is the reformatted copy (the round-trip drops the header)
+      { name: "file_exists", args: { path: "/notebook/@user/styled.js" }, weight: 1 },
+      { name: "not_contains_string", args: { file: "/notebook/@user/styled.js", needle: "===HEADER-SENTINEL-9F3A===" }, weight: 1 },
+      // edited the stable file rather than rewriting it
+      { name: "tool_used", args: { name: "edit_file", minTimes: 1 }, weight: 1 },
+      { name: "tool_not_used", args: { name: "write_file" }, weight: 1 },
+      // byte-stability means the edit's old_string matched first try — no stale-edit failures
+      { name: "no_tool_result_matches", args: { pattern: "ERROR: old_string" }, weight: 1 },
+    ],
+  },
+  {
+    id: "src-incremental-build",
+    category: "src-editing",
+    // Build a small DECOMPOSED module by growing it cell-by-cell. The point is the editing PROCESS: one
+    // create then many small edit_file additions (never repeatedly rewriting the whole file), every edit
+    // landing first try because /src is byte-stable. The composed result grounds correctness in the runtime.
+    question:
+      "Create the module @user/mathkit at /src/@user/mathkit.js, then GROW it one cell at a time with " +
+      "edit_file (add each cell in its own small edit — do NOT keep rewriting the whole file). It needs four " +
+      "separate cells: `double = x => x * 2`, `triple = x => x * 3`, `square = x => x * x`, and " +
+      "`result = double(triple(square(2)))`. @user/mathkit.result must be 24 in the running notebook.",
+    criteria: [
+      { name: "module_exists", args: { id: "@user/mathkit" }, weight: 1 },
+      // the decomposed cells compose correctly in the live runtime (square 4 → triple 12 → double 24)
+      { name: "variable_equals", args: { module: "@user/mathkit", name: "result", equals: 24 }, weight: 3 },
+      { name: "variable_no_error", args: { module: "@user/mathkit", name: "result" }, weight: 1 },
+      // anti-hardcode: result is genuinely composed from the helper cells
+      { name: "cell_fn_evaluates", args: { file: "/src/@user/mathkit.js", name: "double", cases: [{ args: [5], equals: 10 }] }, weight: 1 },
+      { name: "cell_fn_evaluates", args: { file: "/src/@user/mathkit.js", name: "square", cases: [{ args: [3], equals: 9 }] }, weight: 1 },
+      // INCREMENTAL GROWTH: created once, grew with edits — not a monolith rewritten each step
+      { name: "tool_used", args: { name: "edit_file", minTimes: 3 }, weight: 2 },
+      { name: "tool_used_at_most", args: { name: "write_file", maxTimes: 1 }, weight: 2 },
+      // every incremental edit landed first try (the /src byte-stability payoff)
+      { name: "no_tool_result_matches", args: { pattern: "ERROR: old_string" }, weight: 1 },
+      // the metrics watch surfaces structure feedback on apply (the auto-watch we wired in)
+      { name: "tool_result_contains", args: { needle: "metrics:" }, weight: 1 },
+    ],
+  },
+
   // ───────────────────────── drive-ui (operate rendered UI, not author it) ─────────────────────────
   // The agent OPERATING live UI a user built: drag/set an Inputs.range slider and type into a hand-built
   // custom HTML field, with downstream reactive cells updating — WITHOUT editing the module source. The
@@ -825,7 +896,8 @@ export const EVALS = [
       "you can edit — and write the exact list of modules it boots at startup (its `mains`), one per line, to " +
       "/notebook/answer.txt.",
     criteria: [
-      { name: "bash_command_matches", args: { pattern: "/content/bootconf" }, weight: 2 },
+      // grounded the answer by reading the bootconf block — via EITHER read_file or a bash cat/grep
+      { name: "tool_call_matches", args: { pattern: "/content/bootconf" }, weight: 2 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/lopepage" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/robocoop-4-engine" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "@tomlarkworthy/inputs-reference" }, weight: 1 },

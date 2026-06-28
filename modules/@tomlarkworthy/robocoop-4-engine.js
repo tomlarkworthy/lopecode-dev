@@ -67,14 +67,21 @@ const _openrouter_models = function _openrouter_models(openrouter_catalog){ retu
 const _openrouter_vision = function _openrouter_vision(openrouter_catalog){ return openrouter_catalog.vision; };
 
 const _model = function _model(Inputs, openrouter_models, openrouter_vision, localStorageView){
+  // Bind to the persisted choice, and ALWAYS keep that choice a selectable <option> — even when the live
+  // catalog fetch timed out / returned the curated fallback that omits it. A model not in the option list
+  // (e.g. xiaomi/mimo-v2.5-pro after an 8s catalog timeout) leaves the <select> value EMPTY, so chat()
+  // sends an empty model → OpenRouter 400 "No models provided" (the first-turn race). Union fixes that.
+  const stored = localStorageView("robocoop4_model", { defaultValue: "anthropic/claude-sonnet-4" });
+  const sel = String(stored.value || "anthropic/claude-sonnet-4");
+  const options = Array.from(new Set([sel, ...openrouter_models]));
   return Inputs.bind(
-    Inputs.select(openrouter_models, {
+    Inputs.select(options, {
       label: "model",
-      value: "anthropic/claude-sonnet-4",
+      value: sel,
       // value stays the clean id; only the displayed label warns when a model can't see images.
       format: (id) => openrouter_vision.has(id) ? id : id + "  ⚠ no vision (text only)"
     }),
-    localStorageView("robocoop4_model", { defaultValue: "anthropic/claude-sonnet-4" })
+    stored
   );
 };
 

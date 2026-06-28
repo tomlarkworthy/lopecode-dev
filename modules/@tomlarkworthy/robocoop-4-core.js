@@ -223,6 +223,7 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
       return h;
     };
     async function chat({ model = defaultModel, messages, tools, tool_choice = 'auto', temperature, max_tokens, signal } = {}) {
+      if (!model) throw new Error('no model selected (the model picker is empty — wait for the model catalog to load, then pick a model)');
       // Explicit cache_control for providers that require it. Two breakpoints: the stable system prompt, and
       // a ROLLING one on the last message so the growing tool-use prefix is cached step-to-step (prompt tokens
       // dominate a long agent loop, so this is the main cost lever). Auto-cachers are left untouched. Two
@@ -321,7 +322,18 @@ const _createAgentSession = function _createAgentSession(truncate){
 
     const getTools = toolsProvider ?? (() => tools ?? []);
     const getSystemPrompt = systemPromptProvider ?? (() => systemPrompt ?? null);
-    const getModel = modelProvider ?? (() => model);
+    // Resolve the model defensively: the picker can momentarily read EMPTY (its <select> options arrive from
+    // an async catalog fetch, so a value not yet in the option list reads as ""), and sending an empty model
+    // is OpenRouter 400 "No models provided". Remember the last non-empty model and reuse it rather than send
+    // blank; the underlying provider is still re-read every step, so switching the model picker still applies.
+    const rawGetModel = modelProvider ?? (() => model);
+    let lastModel = null;
+    const getModel = () => {
+      const m = rawGetModel();
+      const s = m == null ? "" : String(m).trim();
+      if (s) { lastModel = s; return s; }
+      return lastModel;   // null only if we have NEVER seen a model; chat() surfaces that with a clear error
+    };
 
     // Explicit-completion protocol (opt-in). When completeToolName is set, the loop stops on that tool call
     // (not on bare text), so the model can no longer end a turn by narrating; a bare-text turn is treated as a

@@ -464,6 +464,17 @@ export const CRITERIA = {
       : fail(`tool ${args.name} used ${n}x`);
   },
 
+  // ≤ maxTimes calls of a tool. For the /src incremental-edit story: a well-behaved build creates a
+  // module ONCE with write_file then grows it with edit_file — so `write_file at_most 1` flags the
+  // monolith-rewrite anti-pattern (the symptom the /src stable cache was built to kill).
+  tool_used_at_most(snapshot, args) {
+    const max = args.maxTimes ?? 1;
+    const n = (snapshot.toolCalls || []).filter((c) => c.name === args.name).length;
+    return n <= max
+      ? ok(`tool ${args.name} used ${n}x (≤ ${max})`)
+      : fail(`tool ${args.name} used ${n}x (> ${max} — rewriting instead of incrementally editing?)`);
+  },
+
   max_steps(snapshot, args) {
     return snapshot.steps <= args.n
       ? ok(`steps ${snapshot.steps} <= ${args.n}`)
@@ -484,14 +495,32 @@ export const CRITERIA = {
       : fail(`no bash command matched /${args.pattern}/ (ran: ${cmds.map((c) => c.slice(0, 30)).join(" | ") || "none"})`);
   },
 
-  // The agent asked a clarifying question instead of fabricating: its LAST assistant message contains
-  // a "?". Anti-hallucination check for impossible/under-specified prompts.
+  // ANY tool call (optionally restricted to tool `name`) whose JSON-serialized arguments match the
+  // regex. Tool-agnostic version of bash_command_matches: a fact the agent must GROUND in a file can be
+  // read by the dedicated read_file tool OR by a bash cat/grep, so the grounding check shouldn't dictate
+  // the tool. e.g. {pattern:"/content/bootconf"} passes for read_file(file_path) AND bash(cat …).
+  tool_call_matches(snapshot, args) {
+    const re = new RegExp(args.pattern, args.flags || "");
+    const min = args.minTimes ?? 1;
+    const calls = (snapshot.toolCalls || []).filter((c) => !args.name || c.name === args.name);
+    const n = calls.filter((c) => re.test(JSON.stringify(c.arguments ?? {}))).length;
+    return n >= min
+      ? ok(`${n} tool call(s)${args.name ? " to " + args.name : ""} match /${args.pattern}/ (need ${min})`)
+      : fail(`no tool call${args.name ? " to " + args.name : ""} matched /${args.pattern}/ (need ${min})`);
+  },
+
+  // The agent asked a clarifying question instead of fabricating: SOME assistant message in the turn
+  // contains a "?". Anti-hallucination check for impossible/under-specified prompts. (Scans the whole
+  // turn, not just the last message: under the task_complete loop the final assistant message is always
+  // the completion summary, so the actual question is usually the penultimate message.) Pair with a
+  // "did-not-fabricate" criterion (e.g. not_contains_string of the would-be edit) so a stray mid-turn
+  // "?" can't pass an agent that then guessed anyway.
   asks_clarification(snapshot) {
     const asst = (snapshot.conversation || []).filter((m) => m.role === "assistant" && typeof m.content === "string" && m.content.trim());
-    const last = asst.length ? asst[asst.length - 1].content : "";
-    return /\?/.test(last)
-      ? ok(`final reply asks a clarifying question`)
-      : fail(`final reply has no clarifying question ("?"): ${JSON.stringify(last.slice(0, 80))}`);
+    const asked = asst.find((m) => /\?/.test(m.content));
+    return asked
+      ? ok(`asked a clarifying question: ${JSON.stringify(asked.content.slice(0, 80))}`)
+      : fail(`no assistant message asks a clarifying question ("?") across ${asst.length} message(s)`);
   },
 
   // A TOOL-result message (role: "tool") contains the needle. Proves a tool actually RAN and RETURNED the
@@ -503,6 +532,18 @@ export const CRITERIA = {
     return hit
       ? ok(`a tool result contains "${args.needle}"`)
       : fail(`no tool result contains "${args.needle}" (${results.length} tool result(s))`);
+  },
+
+  // NO tool-result message matches the regex. The /src cache exists so edit_file old_strings keep
+  // matching after an apply; the failure signal is the literal "ERROR: old_string not found" a stale
+  // edit returns. Zero such results = the agent edited a byte-stable surface and never had to rewrite.
+  no_tool_result_matches(snapshot, args) {
+    const re = new RegExp(args.pattern, args.flags || "");
+    const results = (snapshot.conversation || []).filter((m) => m.role === "tool" && typeof m.content === "string");
+    const bad = results.filter((m) => re.test(m.content));
+    return bad.length === 0
+      ? ok(`no tool result matches /${args.pattern}/`)
+      : fail(`${bad.length} tool result(s) match /${args.pattern}/ (e.g. ${JSON.stringify(bad[0].content.slice(0, 80))})`);
   },
 };
 

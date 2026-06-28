@@ -163,7 +163,7 @@ export async function createDriver({
       // it settles noticeably after `client`. Observe it + poll until send() exists — kills the prior
       // "session unavailable" boot race (which produced misleading steps=0 / 0-score evals).
       const sessionReady = await page.evaluate(
-        async ({ pollMs, maxMs }) => {
+        async ({ pollMs, maxMs, wantModel }) => {
           const reg = globalThis.__ojs_runtime;
           const allVars = () => {
             const out = []; const seen = new Set();
@@ -184,12 +184,19 @@ export async function createDriver({
             if (!(s && s._value && typeof s._value.send === "function")) return false;
             const tv = byName("toolsView");
             const arr = tv && tv._value && Array.isArray(tv._value.value) ? tv._value.value : [];
-            return arr.some((t) => t && t.id === "read_file");
+            if (!arr.some((t) => t && t.id === "read_file")) return false;
+            // The model picker must have RESOLVED to the requested model before we send. Its <select> options
+            // come from an async catalog fetch, so a value not yet in the option list reads as "" → chat sends
+            // an empty model → OpenRouter 400 "No models provided" (the first-turn race). Gate on it explicitly.
+            const mv = byName("model");
+            const me = byName("viewof model");
+            const resolved = (mv && mv._value) || (me && me._value && me._value.value);
+            return resolved === wantModel;
           };
           const deadline = Date.now() + maxMs;
           while (Date.now() < deadline) {
             if (ready()) return true;
-            for (const n of ["viewof model", "session", "toolsView", "hostSetup"]) {
+            for (const n of ["viewof model", "model", "session", "toolsView", "hostSetup"]) {
               const v = byName(n);
               try { if (v && v._module && typeof v._module.value === "function") v._module.value(n).catch(() => {}); } catch {}
             }
@@ -197,7 +204,7 @@ export async function createDriver({
           }
           return ready();
         },
-        { pollMs: 250, maxMs: 30000 },
+        { pollMs: 250, maxMs: 30000, wantModel: model },
       );
 
       if (!sessionReady) {
