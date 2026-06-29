@@ -86,16 +86,27 @@ confirming the strong form of it:**
 | **sonnet-4** | 0.94 → 0.91 | 0.857 → 0.857 | 0.98 → 0.94 |
 | **mimo-v2.5-pro** | 0.84 → **0.91** | 0.914 → 0.914 | 0.81 → **0.91** |
 
-Two things fell out, both honest. **First, the tool-shape effect is model-dependent.** On the capable model
-(sonnet) the editing surface makes essentially no difference to outcomes; on the weaker model (mimo) the
-Claude-shaped tools lift completion by **+0.075 overall and +0.10 on authoring**. That is the mechanism
-behind the dramatic MIMO result below: a weaker model leans much harder on matching the RL-overfit tool
-shape, while a strong model edits fine with `sed` too. **Second, the in-place tier came out flat for both
-models** — the prediction that it would gain most was wrong *at the level of outcomes*. Small in-place edits
-complete with `sed` as well; the `edit_file` win is in the editing *process* (first-try `old_string`
-matches, in-turn compile feedback, no whole-file rewrites), which an outcome-only suite cannot see. Which is
-itself the punchline: a completion benchmark concludes "the tools barely matter" precisely because it is
-blind to the dimension they improve — the same overfitting trap, one level up.
+Stated conservatively at n=1: **bash+sed ≈ bash+Claude-tools on this suite, for both models.** Sonnet was
+flat-to-slightly-down; mimo nudged up (+0.04 to +0.08 depending on one transient), but that is within
+single-run noise — the net of a few offsetting 0↔1 eval flips. The strong claim ("the tool signatures buy a
+big boost") does not hold here.
+
+And there is a decisive confound, which I verified rather than assumed: the AFTER-adjacent build (`01b31df`)
+has the Claude tool *signatures* but still **reformats the file on every apply** (`/notebook` apply path,
+`exportModuleJS` write-back, no byte-stable `/src` tree — that came later, in `0c8a33a`). So its `edit_file`
+`old_string` precondition is broken exactly as it was for the monolith. The A/B really compares **sed vs
+Claude-tools-with-a-broken-Edit-contract**, and on 1–3-cell tasks those are equivalent. The flat result is
+expected; the benchmark simply isn't testing the real claim — the tasks are tiny, decomposition isn't scored,
+and the AFTER build's tools degrade to rewrites anyway.
+
+So the honest, defensible thesis is the *sharp* one: it is not the tool **signatures**, it is honoring the
+full tool **contract** — file byte-stability between read and edit — and the payoff shows up only on tasks
+big enough to need incremental editing, measured as **decomposition**. Adding the bare tools (`01b31df`)
+moved the benchmark by zero; completing the contract with `/src` (`0c8a33a`) is what turned the 691-line
+monolith into 42 decomposed cells on the same model and prompt. The completion-only benchmark concluding "the
+tools barely matter" is itself the punchline — it is blind to the dimension that actually changed, the same
+overfitting trap one level up. (The clean way to settle it: a large, DAW-class build, bash-only vs the
+*current* tools+`/src` build, scored on decomposition, N≥3. See `data/ab-results.md` and `VERDICT.md`.)
 
 ## The central result: one regex unlocked latent capability
 

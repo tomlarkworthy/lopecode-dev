@@ -29,23 +29,37 @@ Median steps: SONNET 10→11, MIMO 9→8 (flat).
 
 ## What it says — and what it doesn't
 
-1. **The tool-shape effect is model-dependent.** On the capable model (sonnet) the editing surface makes ~no
-   difference to outcomes (flat, within noise). On the weaker model (mimo) the Claude-shaped tools materially
-   improve completion: **+0.075 overall, +0.10 on authoring**. This is the mechanism behind the original
-   dramatic MIMO finding — weaker models lean harder on matching the RL-overfit tool shape; a strong model
-   edits fine with sed too. The honest framing is therefore *conditional*, not universal.
+Headline, stated conservatively: **on this outcome suite, at n=1, bash+sed ≈ bash+Claude-tools for both
+models.** The strong thesis ("adopt the Claude tool signatures → big benchmark boost") is *not* supported.
+Sonnet was flat-to-slightly-down (−0.027); mimo nudged up (+0.075 after dropping the transient, +0.044 with
+it) but that delta is **within single-run noise** — it is the net of a few offsetting 0↔1 eval flips
+(`algo-roman` 0→1, `viz-revenue-bars` 0→1 vs `algo-balanced-brackets` 1→0.25, `import-cross-module`
+0.63→0.38), each from one run per cell. Do not read it as a real model-dependent effect at n=1.
 
-2. **In-place-edit OUTCOMES are flat for both models** (0.857=0.857 sonnet; 0.914=0.914 mimo). The
-   prediction that the in-place tier would improve most is **not** supported by outcome scoring. These small
-   edits (`step = 2` → `5`, delete one cell) complete via sed too; the sed→`edit_file` win is in editing
-   *process* — reliability (old_string matches first try), in-turn compile feedback, no whole-file rewrites —
-   which this outcome suite does not measure. The load-bearing process result remains the qualitative DAW
-   build (691-line monolith → 42 decomposed cells, commit `0c8a33a`), which is not in this suite.
+**The decisive confound (verified, not inferred).** The AFTER-adjacent build `01b31df` has the Claude tool
+*signatures* (`read_file`/`write_file`/`edit_file`, 10 `old_string` occurrences) but its apply path is
+`/^\/notebook/` with `exportModuleJS` **reformatting the file on every apply** — and it has **no byte-stable
+`/src` editing tree** (that arrived in `0c8a33a`, this session; the only `/src/` strings in `01b31df` are
+vendor CSS CDN URLs). So `edit_file`'s `old_string` precondition is broken there exactly as it was for the
+monolith. The A/B therefore compares **"sed" vs "Claude-tools-with-a-broken-Edit-contract"** — and on tiny
+1–3-cell tasks those are equivalent. The flat result is expected, and it does **not** test the real claim.
 
-3. **The benchmark-overfitting thread, demonstrated on ourselves.** The clean A/B confirms the suite is
-   largely blind to the dimension the tools actually improve (process/decomposition). A completion-only
-   benchmark would conclude "the tools barely matter" — the same trap one level up: rewarding a measurable
-   proxy, not the thing that matters.
+So four reasons the benchmark can't see the thesis: (1) tasks are tiny — the incremental-edit advantage only
+bites on large multi-edit builds; (2) n=1 → single 0↔1 flips dominate; (3) decomposition (the actual payoff)
+isn't scored by any of the 21 evals; (4) the AFTER build lacks the byte-stability contract, so its tools
+degrade to rewrites anyway.
+
+**The refined, defensible thesis.** It is not the tool *signatures* — it is honoring the full tool *contract*
+(file byte-stability between read and edit), and the payoff appears only on tasks big enough to need
+incremental editing, measured as **decomposition**. That version is backed by the `/src` result: same model,
+same DAW prompt → 691-line monolith → 42 decomposed cells (25 `edit_file` : 1 `write_file`), commit
+`0c8a33a`. Adding the bare tools days earlier (`01b31df`) moved the benchmark by zero; completing the
+contract is what flipped it.
+
+**What would settle it (not yet run; needs new infra).** A *large* build task (DAW-class), arms = bash-only
+vs the **current** build (tools **+** `/src`, not `01b31df`), metric = **decomposition (cell count / MI)** +
+zero-errored, **N≥3**. Prediction: completion ≈ similar, decomposition jumps hard. If decomposition is also
+flat, the refined thesis is wrong too. See `../VERDICT.md` for the full write-up.
 
 ## Caveats / to strengthen
 
