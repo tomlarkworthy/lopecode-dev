@@ -16,6 +16,7 @@ export async function createDriver({
   layout = DEFAULT_LAYOUT,
   timeoutMs = 120000,
   headed = false,
+  legacyNoToolGate = false,
 } = {}) {
   if (!notebookPath) throw new Error("createDriver requires notebookPath");
   if (!apiKey) throw new Error("createDriver requires apiKey");
@@ -117,6 +118,14 @@ export async function createDriver({
             if (!el || typeof el !== "object") return false;
             const input = el.querySelector?.("input,select,textarea");
             if (input) {
+              // A <select> silently rejects a value not among its <option>s (the model picker's options come
+              // from an async catalog that may omit the requested model — old builds, or a slow/failed fetch).
+              // The harness is forcing a config, so inject the option if missing, then select it.
+              if (input.tagName === "SELECT" && ![...input.options].some((o) => o.value === value)) {
+                const opt = input.ownerDocument.createElement("option");
+                opt.value = value; opt.textContent = value;
+                input.appendChild(opt);
+              }
               input.value = value;
               input.dispatchEvent(new Event("input", { bubbles: true }));
               input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -163,7 +172,7 @@ export async function createDriver({
       // it settles noticeably after `client`. Observe it + poll until send() exists — kills the prior
       // "session unavailable" boot race (which produced misleading steps=0 / 0-score evals).
       const sessionReady = await page.evaluate(
-        async ({ pollMs, maxMs, wantModel }) => {
+        async ({ pollMs, maxMs, wantModel, legacyNoToolGate }) => {
           const reg = globalThis.__ojs_runtime;
           const allVars = () => {
             const out = []; const seen = new Set();
@@ -182,9 +191,13 @@ export async function createDriver({
           const ready = () => {
             const s = byName("session");
             if (!(s && s._value && typeof s._value.send === "function")) return false;
-            const tv = byName("toolsView");
-            const arr = tv && tv._value && Array.isArray(tv._value.value) ? tv._value.value : [];
-            if (!arr.some((t) => t && t.id === "read_file")) return false;
+            // Default: wait for the Claude-shaped file tools to register (read_file). A legacy/foreign build
+            // that predates them (the bash-only A/B arm) never registers read_file, so skip this check there.
+            if (!legacyNoToolGate) {
+              const tv = byName("toolsView");
+              const arr = tv && tv._value && Array.isArray(tv._value.value) ? tv._value.value : [];
+              if (!arr.some((t) => t && t.id === "read_file")) return false;
+            }
             // The model picker must have RESOLVED to the requested model before we send. Its <select> options
             // come from an async catalog fetch, so a value not yet in the option list reads as "" → chat sends
             // an empty model → OpenRouter 400 "No models provided" (the first-turn race). Gate on it explicitly.
@@ -204,7 +217,7 @@ export async function createDriver({
           }
           return ready();
         },
-        { pollMs: 250, maxMs: 30000, wantModel: model },
+        { pollMs: 250, maxMs: 30000, wantModel: model, legacyNoToolGate },
       );
 
       if (!sessionReady) {

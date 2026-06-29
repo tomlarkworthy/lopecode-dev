@@ -63,9 +63,39 @@ tools improve. Two things actually changed, neither visible to that early gate:
 
 The honest, falsifiable version of the claim, then, is not "the tools doubled the score." It is: *completion
 correctness was already similar; the Claude-tool shape unlocked reliable incremental editing and decomposed
-output, a dimension the original benchmark didn't even measure.* The pinned BEFORE build
-(`data/robocoop-4_BEFORE_bash-only_9f7b205.html`, the entire 2.7 MB agent) lets anyone re-run the *current*
-44-eval benchmark against it and check — commands and caveats in `data/experiment-bash-vs-tools.md`.
+output, a dimension the original benchmark didn't even measure.*
+
+To test that properly you have to be careful about two things. First, compare the **adjacent commits**
+(`9f7b205` ↔ `01b31df`), not the old build against today's — over a year the system prompt also changed, so
+old-vs-current would confound the tools with the prompt. The adjacent pair differs essentially only in the
+editing-tool section. Second, score **only evals that generically measure editing ability** — "produce or
+modify code so a runtime value is correct," judged on outcomes — and drop every eval that rewards a specific
+tool (circular for a build that lacks it) or tests a prompt-taught fact (self-knowledge, network,
+value-inspection, doc prose, etc.). Of our 44 evals, 21 qualify; the sharpest six edit code *in place*
+(bug-fixes and live-cell edits), where the editing-tool shape bites hardest. Both adjacent builds are pinned
+in `data/`; the exact subset, run commands, and caveats are in `data/experiment-bash-vs-tools.md`. The
+prediction was explicit and falsifiable: similar completion scores, a larger Claude-tool gap on the in-place
+tier and on decomposition — and if both tiers come out flat, the strong thesis is wrong and the post should
+say so.
+
+**We ran it (n=1 per arm; full numbers in `data/ab-results.md`). The result refines the thesis rather than
+confirming the strong form of it:**
+
+| arm | overall | in-place edits | authoring |
+|-----|---------|----------------|-----------|
+| **sonnet-4** | 0.94 → 0.91 | 0.857 → 0.857 | 0.98 → 0.94 |
+| **mimo-v2.5-pro** | 0.84 → **0.91** | 0.914 → 0.914 | 0.81 → **0.91** |
+
+Two things fell out, both honest. **First, the tool-shape effect is model-dependent.** On the capable model
+(sonnet) the editing surface makes essentially no difference to outcomes; on the weaker model (mimo) the
+Claude-shaped tools lift completion by **+0.075 overall and +0.10 on authoring**. That is the mechanism
+behind the dramatic MIMO result below: a weaker model leans much harder on matching the RL-overfit tool
+shape, while a strong model edits fine with `sed` too. **Second, the in-place tier came out flat for both
+models** — the prediction that it would gain most was wrong *at the level of outcomes*. Small in-place edits
+complete with `sed` as well; the `edit_file` win is in the editing *process* (first-try `old_string`
+matches, in-turn compile feedback, no whole-file rewrites), which an outcome-only suite cannot see. Which is
+itself the punchline: a completion benchmark concludes "the tools barely matter" precisely because it is
+blind to the dimension they improve — the same overfitting trap, one level up.
 
 ## The central result: one regex unlocked latent capability
 

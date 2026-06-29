@@ -1,0 +1,577 @@
+{
+  "model": "xiaomi/mimo-v2.5-pro",
+  "when": "2026-06-29T19:30:47.818Z",
+  "evals": [
+    {
+      "id": "algo-nth-prime",
+      "category": "algorithm",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 3,
+      "total": 3,
+      "steps": 8,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_fn_evaluates",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "algo-roman",
+      "category": "algorithm",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 2,
+      "total": 2,
+      "steps": 11,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_fn_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "algo-balanced-brackets",
+      "category": "algorithm",
+      "ok": true,
+      "aggregate": 0.25,
+      "passed": 1,
+      "total": 2,
+      "steps": 8,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_fn_evaluates",
+          "score": 0,
+          "pass": false
+        }
+      ]
+    },
+    {
+      "id": "algo-word-count",
+      "category": "algorithm",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 2,
+      "total": 2,
+      "steps": 9,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_fn_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "data-parse-csv",
+      "category": "data",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 2,
+      "total": 2,
+      "steps": 8,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_fn_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "data-top-three",
+      "category": "data",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 2,
+      "total": 2,
+      "steps": 8,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "dataflow-temperature",
+      "category": "dataflow",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 5,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "uses_identifier",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "viz-revenue-bars",
+      "category": "viz",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 3,
+      "total": 3,
+      "steps": 7,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "renders_svg",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ui-people-table",
+      "category": "ui",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 3,
+      "total": 3,
+      "steps": 6,
+      "results": [
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "renders_element",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "not_contains_string",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ui-slider-square",
+      "category": "ui",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 13,
+      "results": [
+        {
+          "name": "renders_element",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "uses_identifier",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "lib-d3-extent",
+      "category": "library",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 9,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "uses_identifier",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "import-cross-module",
+      "category": "imports",
+      "ok": true,
+      "aggregate": 0.375,
+      "passed": 3,
+      "total": 5,
+      "steps": 21,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "contains_string",
+          "score": 0,
+          "pass": false
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_equals",
+          "score": 0,
+          "pass": false
+        }
+      ]
+    },
+    {
+      "id": "import-esm-md5",
+      "category": "imports",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 17,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "contains_string",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_equals",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "import-esm-util",
+      "category": "imports",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 13,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "contains_string",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_equals",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "edit-exporter-title",
+      "category": "edit-existing",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 3,
+      "total": 3,
+      "steps": 5,
+      "results": [
+        {
+          "name": "contains_string",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "not_contains_string",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "module_source_contains",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "el-modify-live",
+      "category": "editor-lifecycle",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 4,
+      "results": [
+        {
+          "name": "variable_equals",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_equals",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "el-delete-prune",
+      "category": "editor-lifecycle",
+      "ok": false,
+      "aggregate": 0,
+      "passed": 0,
+      "total": 5,
+      "steps": 0,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 0,
+          "pass": false
+        },
+        {
+          "name": "variable_absent",
+          "score": 0,
+          "pass": false
+        },
+        {
+          "name": "variable_defined",
+          "score": 0,
+          "pass": false
+        },
+        {
+          "name": "variable_no_error",
+          "score": 0,
+          "pass": false
+        },
+        {
+          "name": "not_contains_string",
+          "score": 0,
+          "pass": false
+        }
+      ]
+    },
+    {
+      "id": "el-import-into-existing",
+      "category": "editor-lifecycle",
+      "ok": true,
+      "aggregate": 0.5714285714285714,
+      "passed": 3,
+      "total": 4,
+      "steps": 21,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "contains_string",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_equals",
+          "score": 0,
+          "pass": false
+        }
+      ]
+    },
+    {
+      "id": "el-viewof-live",
+      "category": "editor-lifecycle",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 4,
+      "total": 4,
+      "steps": 13,
+      "results": [
+        {
+          "name": "module_exists",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "renders_element",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_no_error",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "variable_equals",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "debug-average",
+      "category": "debugging",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 2,
+      "total": 2,
+      "steps": 5,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "debug-off-by-one",
+      "category": "debugging",
+      "ok": true,
+      "aggregate": 1,
+      "passed": 2,
+      "total": 2,
+      "steps": 5,
+      "results": [
+        {
+          "name": "does_compile",
+          "score": 1,
+          "pass": true
+        },
+        {
+          "name": "cell_fn_evaluates",
+          "score": 1,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

@@ -44,10 +44,17 @@ The natural before/after, one hour apart in git history. Full design + reproduct
 **Honest reading:** the contemporaneous gate moved only 0.94→0.95 because those 27 evals scored task
 *completion*, not editing *quality* — there were **0** evals for incremental-editing or decomposition at that
 time. The real gain (blind sed → synchronous compile feedback; monolith → decomposed output) is on dimensions
-that benchmark didn't measure. The apples-to-apples test is to run the **current** 44-eval benchmark against
-the pinned BEFORE build (caveats: relax the driver's `read_file` ready-gate; don't score tool-presence
-criteria against a build that lacks the tool — compare on outcome + decomposition criteria). Recorded gate
-trail for context: `5a5edd8` 0.98, `9f7b205` 0.94/27, `01b31df` 0.95/27, `bbcaf70` 0.97/27.
+that benchmark didn't measure. The apples-to-apples test (design in `data/experiment-bash-vs-tools.md`):
+run a **curated editing-only subset** against BOTH **adjacent** pinned builds — `9f7b205` (sed) and
+`01b31df` (Claude tools), which differ essentially only in the editing-tool section, so the variable is
+isolated (old-build-vs-current would confound the tools with a year of prompt evolution). The subset is the
+**21 of 44 evals that generically measure editing** (`data/editing-eval-subset.json`): drop any eval scored
+by tool-presence criteria (circular) or testing a prompt-taught fact (self-knowledge, network,
+value-inspection, doc prose). Sharpest sub-tier = the **6 in-place edits** (bug-fixes + live-cell edits).
+Caveats: relax the driver's `read_file` ready-gate for both runs; score outcome + decomposition only.
+Recorded gate trail for context: `5a5edd8` 0.98, `9f7b205` 0.94/27, `01b31df` 0.95/27, `bbcaf70` 0.97/27.
+Both adjacent builds pinned: `data/robocoop-4_BEFORE_bash-only_9f7b205.html` (0 `old_string`),
+`data/robocoop-4_AFTER_claude-tools_01b31df.html` (10 `old_string`).
 
 ---
 

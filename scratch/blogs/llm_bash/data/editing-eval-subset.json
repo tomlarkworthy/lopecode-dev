@@ -1,0 +1,33 @@
+{
+  "fair": [
+    "algo-nth-prime",
+    "algo-roman",
+    "algo-balanced-brackets",
+    "algo-word-count",
+    "data-parse-csv",
+    "data-top-three",
+    "dataflow-temperature",
+    "debug-average",
+    "debug-off-by-one",
+    "edit-exporter-title",
+    "el-modify-live",
+    "el-delete-prune",
+    "el-import-into-existing",
+    "el-viewof-live",
+    "import-cross-module",
+    "import-esm-md5",
+    "import-esm-util",
+    "lib-d3-extent",
+    "ui-people-table",
+    "ui-slider-square",
+    "viz-revenue-bars"
+  ],
+  "inPlace": [
+    "debug-average",
+    "debug-off-by-one",
+    "edit-exporter-title",
+    "el-modify-live",
+    "el-delete-prune",
+    "el-import-into-existing"
+  ]
+}

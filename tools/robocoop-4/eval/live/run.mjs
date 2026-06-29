@@ -39,13 +39,14 @@ loadEnv();
 
 function parseArgs(argv) {
   const flags = {
-    only: null, category: null, model: null, timeout: null,
-    headed: false, json: null, failUnder: 0, notebook: null,
+    only: null, ids: null, category: null, model: null, timeout: null,
+    headed: false, json: null, failUnder: 0, notebook: null, legacyNoToolGate: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
       case '--only': flags.only = argv[++i]; break;
+      case '--ids': flags.ids = argv[++i].split(',').map((s) => s.trim()).filter(Boolean); break;
       case '--category': flags.category = argv[++i]; break;
       case '--model': flags.model = argv[++i]; break;
       case '--timeout': flags.timeout = Number(argv[++i]); break;
@@ -53,6 +54,11 @@ function parseArgs(argv) {
       case '--json': flags.json = argv[++i]; break;
       case '--fail-under': flags.failUnder = Number(argv[++i]); break;
       case '--notebook': flags.notebook = argv[++i]; break;
+      // For historical/foreign builds that predate the Claude-shaped file tools (e.g. the bash-only
+      // BEFORE build in the A/B): don't wait for read_file to register before sending — that build has
+      // no such tool, so the default gate would time out. Outcome criteria still apply; tool-presence
+      // criteria (tool_used edit_file …) are expected to score 0 by construction.
+      case '--legacy-no-tool-gate': flags.legacyNoToolGate = true; break;
       default: console.error(`unknown flag: ${a}`); process.exit(2);
     }
   }
@@ -85,6 +91,7 @@ async function main(argv) {
 
   let evals = EVALS;
   if (flags.only) evals = evals.filter((e) => e.id === flags.only);
+  if (flags.ids) evals = evals.filter((e) => flags.ids.includes(e.id));
   if (flags.category) evals = evals.filter((e) => e.category === flags.category);
   if (evals.length === 0) {
     console.error('no evals matched the given filters');
@@ -95,7 +102,7 @@ async function main(argv) {
   console.log(`notebook: ${notebookPath}`);
   console.log(`evals:    ${evals.length}\n`);
 
-  const driverOpts = { notebookPath, apiKey, model, headed: flags.headed };
+  const driverOpts = { notebookPath, apiKey, model, headed: flags.headed, legacyNoToolGate: flags.legacyNoToolGate };
   if (flags.timeout) driverOpts.timeoutMs = flags.timeout;
   const driver = await createDriver(driverOpts);
 
