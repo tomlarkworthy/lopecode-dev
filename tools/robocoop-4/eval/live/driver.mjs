@@ -259,7 +259,7 @@ export async function createDriver({
       // Step 6: send the question (raced against timeout) and build the WorldSnapshot — all in-page so
       // we have synchronous access to live runtime values.
       const snapshot = await page.evaluate(
-        async ({ question, model, timeoutMs, targetModules }) => {
+        async ({ question, model, timeoutMs, targetModules, followups }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -334,12 +334,22 @@ export async function createDriver({
               timer = setTimeout(() => rej(new Error("session.send timed out after " + timeoutMs + "ms")), timeoutMs);
             });
             try {
-              const turn = await Promise.race([session.send(question), timeout]);
-              if (turn && typeof turn === "object") {
-                if (typeof turn.steps === "number") result.steps = turn.steps;
-                if (turn.finishReason != null) result.finishReason = turn.finishReason;
-                if (turn.usage) result.usage = turn.usage;
+              // Multi-turn: send the question then each followup as a SEPARATE turn on the same session, so a
+              // "build then adjust" eval edits code written by a prior turn (the byte-stability stress point).
+              // Snapshot is taken after the final turn; steps/usage accumulate across turns.
+              const prompts = [question, ...(followups || [])];
+              let acc = 0, lastFinish = null, usage = null;
+              for (const p of prompts) {
+                const turn = await Promise.race([session.send(p), timeout]);
+                if (turn && typeof turn === "object") {
+                  if (typeof turn.steps === "number") acc += turn.steps;
+                  if (turn.finishReason != null) lastFinish = turn.finishReason;
+                  if (turn.usage) usage = turn.usage;
+                }
               }
+              result.steps = acc;
+              if (lastFinish != null) result.finishReason = lastFinish;
+              if (usage) result.usage = usage;
             } catch (e) {
               result.ok = false;
               result.error = e?.message ?? String(e);
@@ -477,7 +487,7 @@ export async function createDriver({
 
           return result;
         },
-        { question, model, timeoutMs, targetModules },
+        { question, model, timeoutMs, targetModules, followups: evalDef.followups || [] },
       );
 
       snapshot.console = consoleEvents;

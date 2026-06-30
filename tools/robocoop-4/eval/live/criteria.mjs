@@ -449,6 +449,33 @@ export const CRITERIA = {
       : ok(`no runtime errors`);
   },
 
+  // DECOMPOSITION: the live module has at least N distinct named cells. Rewards keeping logic in separate
+  // reactive cells; a build that collapsed everything into one mega-cell fails. (Skips anonymous + the
+  // synthetic `module …` import vars.)
+  module_min_cells(snapshot, args) {
+    const mod = snapshot.modules?.[args.id];
+    if (!mod) return fail(`module ${args.id} not found live`);
+    const n = mod.variables.filter((v) => v.name && !v.name.startsWith("module ")).length;
+    return n >= args.n
+      ? ok(`${args.id} has ${n} cells (need ${args.n})`)
+      : fail(`${args.id} has ${n} cells (need ${args.n}) — collapsed/monolithic?`);
+  },
+
+  // ANTI-MONOLITH: no single cell's source exceeds maxLoc lines. One 200-line cell = rewrite-the-world
+  // editing; small cells = incremental decomposition.
+  max_cell_loc(snapshot, args) {
+    const mod = snapshot.modules?.[args.id];
+    if (!mod) return fail(`module ${args.id} not found live`);
+    let worst = 0, who = "";
+    for (const v of mod.variables) {
+      const loc = String(v.source || "").split("\n").length;
+      if (loc > worst) { worst = loc; who = v.name || "(anon)"; }
+    }
+    return worst <= args.maxLoc
+      ? ok(`largest cell ${who} = ${worst} loc (≤ ${args.maxLoc})`)
+      : fail(`cell ${who} = ${worst} loc (> ${args.maxLoc}) — monolithic`);
+  },
+
   tool_used(snapshot, args) {
     const min = args.minTimes ?? 1;
     const n = (snapshot.toolCalls || []).filter((c) => c.name === args.name).length;

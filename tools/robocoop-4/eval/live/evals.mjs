@@ -572,6 +572,44 @@ export const EVALS = [
     ],
   },
 
+  // ───────────────────────── long-edit (build one thing, then adjust it into another) ─────────────────────────
+  // The discriminating editing test that short one-shot builds can't capture: build artifact A, then in a
+  // SECOND turn transform it into B by editing existing cells. The followup turn's edits operate on code the
+  // first turn wrote — the byte-stability stress point (a build that reformats on apply breaks the next
+  // edit_file old_string and rewrites the whole file). Scored on the dimensions a rewrite degrades:
+  // transform-correctness, PRESERVATION of the phase-1 cells, and DECOMPOSITION (separate small cells).
+  {
+    id: "long-store-to-checkout",
+    category: "long-edit",
+    question:
+      "Create module @user/store with these SEPARATE reactive cells: viewof price = Inputs.range([0, 1000], " +
+      "{value: 100, step: 1}); viewof qty = Inputs.range([1, 20], {value: 3, step: 1}); subtotal = price * qty; " +
+      "and a markdown cell `summary` that shows the subtotal. @user/store.subtotal must be 300 at the defaults.",
+    followups: [
+      "Now ADAPT @user/store into a checkout. Add viewof taxPct = Inputs.range([0, 30], {value: 10, step: 1}) " +
+      "and viewof discountPct = Inputs.range([0, 50], {value: 0, step: 1}). Keep price, qty and subtotal exactly " +
+      "as they are. Add tax = subtotal * taxPct / 100 and total = subtotal + tax - subtotal * discountPct / 100. " +
+      "Update the summary cell to show the total. At the defaults @user/store.total must be 330. Make small " +
+      "targeted edits and keep each value in its own cell.",
+    ],
+    criteria: [
+      // transform outcome, computed through the preserved chain (subtotal 300 → +10% tax → 330)
+      { name: "variable_equals", args: { module: "@user/store", name: "total", equals: 330 }, weight: 3 },
+      { name: "variable_no_error", args: { module: "@user/store", name: "total" }, weight: 1 },
+      { name: "variable_no_error", args: { module: "@user/store", name: "tax" }, weight: 1 },
+      // PRESERVATION — phase-1 work survived the phase-2 edits (a lossy rewrite would drop/break these)
+      { name: "variable_equals", args: { module: "@user/store", name: "subtotal", equals: 300 }, weight: 2 },
+      { name: "variable_defined", args: { module: "@user/store", name: "price" }, weight: 1 },
+      { name: "variable_defined", args: { module: "@user/store", name: "qty" }, weight: 1 },
+      // the newly-added control mounted live; the summary reflects the new total
+      { name: "renders_element", args: { module: "@user/store", name: "viewof taxPct" }, weight: 1 },
+      { name: "module_renders_contains", args: { module: "@user/store", needle: "330" }, weight: 1 },
+      // DECOMPOSITION — kept as separate small reactive cells, not collapsed into a mega-cell
+      { name: "module_min_cells", args: { id: "@user/store", n: 6 }, weight: 2 },
+      { name: "max_cell_loc", args: { id: "@user/store", maxLoc: 12 }, weight: 1 },
+    ],
+  },
+
   // ───────────────────────── drive-ui (operate rendered UI, not author it) ─────────────────────────
   // The agent OPERATING live UI a user built: drag/set an Inputs.range slider and type into a hand-built
   // custom HTML field, with downstream reactive cells updating — WITHOUT editing the module source. The
