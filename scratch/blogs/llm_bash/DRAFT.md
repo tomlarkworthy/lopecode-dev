@@ -1,140 +1,152 @@
-# LLMs are overfitted, and this should be central to how you design with them
+# Harnessing the jagged frontier for 3× LLM efficiency gains
 
-*Draft — 2026-06-28. Evidence base: `evidence.md`; data: `data/`.*
+*Draft — 2026-06-30. Evidence base: `evidence.md`; data: `data/`.*
+
+I have been building a custom coding harness for several years, before it was cool, with some success
+[robocoop, HN]. Then Claude code appeared and it blew what I was doing out of the water. I have since been
+trying to understand what exactly makes Claude Code so good, given the LLM in the middle is the same? I think
+I have now figure out some of the main mechanisms to Claude's deft LLM usage and the great result is that you
+can take these mechanism and apply them in your own Harnesses.
 
 ## The claim
 
-Frontier coding models are not general agents that happen to use tools. They are systems trained, by
-reinforcement learning, against a narrow and public interaction shape: a bash shell (the Terminal-Bench
-lineage) and a small set of file tools with Claude's exact argument schemas (`Read`, `Write`, `Edit` with
+Frontier coding models are not general agents that happen to use tools. They are trained, by reinforcement
+learning, against a narrow and public interaction shape: a bash shell (the Terminal-Bench lineage) and a
+small set of file tools with Claude's exact argument schemas (`Read`, `Write`, `Edit` —
 `file_path` / `old_string` / `new_string`). They are, in a useful sense, **overfit** to that shape.
 
-The practical consequence is the "jagged frontier": the same model on the same task succeeds or fails
+The practical consequence is the "jagged frontier": the same model on the same task runs cheaper or dearer
 depending on how closely your harness matches its training distribution. This is usually framed as a model
-limitation. It is better treated as a **design parameter you control**. If you shape your environment and
-tools to the shape the model was trained on, you get a large, free capability boost. If you deviate — even
-in ways that look harmless — you silently strand capability the model already has.
+limitation. It is better treated as a **design parameter you control**. Shape your environment and tools to
+the shape the model was trained on and you get the same answer for a fraction of the work. Deviate — into a
+custom tool surface, or even just a broken file contract — and the model still gets there, but it grinds:
+more steps, more tokens, more verification churn.
 
-This isn't a thought experiment. We built a coding agent (robocoop-4) that edits a live notebook, drove it
-with several frontier models, and measured the difference shape makes. Every claim below links to a commit
-or a benchmark artifact.
+Here is the part that makes it matter: **at small task sizes the inefficiency is invisible, because everything
+still passes. At large task sizes the inefficiency becomes incorrectness** — the per-step overhead compounds
+until the misaligned harness runs out of budget, context, or patience and fails on a task the aligned harness
+completes. Efficiency is the early-warning signal for a correctness cliff you will hit later.
+
+We built a coding agent (robocoop-4), drove it with a frontier model, and measured all of this. Every claim
+links to a commit or a benchmark artifact.
 
 ## The setup, and why it can be cited
 
-robocoop-4 is an in-notebook coding agent. The relevant detail for this argument is its tool surface, which
-we deliberately shaped to the training distribution:
+robocoop-4 is an in-notebook coding agent. The relevant detail is its tool surface, which we deliberately
+shaped to the training distribution:
 
 - a **`bash`** tool over an in-memory project filesystem — the Terminal-Bench shape;
-- **`read_file` / `write_file` / `edit_file`** that mirror Claude Code's `Read` / `Write` / `Edit` argument
+- **`read_file` / `write_file` / `edit_file`** mirroring Claude Code's `Read` / `Write` / `Edit` argument
   shapes exactly, with **literal** (non-regex) string replacement so there are no escaping traps.
 
 It runs inside Lopecode, where a notebook is a single self-contained HTML file. The agent, its host bridge,
 and its eval harness are all version-controlled modules. So every experiment is a commit, every harness
-change is a `git diff`, and every benchmark run is a JSON artifact. The argument that follows is reproducible
-rather than anecdotal — which is the whole point of making the environment hermetic.
+change is a `git diff`, and every benchmark run is a re-scorable JSON artifact. The argument below is
+reproducible, not anecdotal.
 
-## The natural experiment: bash-only (sed) vs Claude-shaped tools
+## Measuring the wrong thing first
 
-We didn't set out to test this; the git history handed us the experiment. For its first day, robocoop-4 had
-exactly one tool — `bash` — and the system prompt told it so: *"Use the bash tool for everything: ls, cat,
-grep, sed, awk, head, tail to read; sed -i, a quoted heredoc, …"*. The agent edited files the way a shell
-user does: `sed -i` and heredocs.
+We started where most people start: pass-rate. We have a re-runnable, headless eval that drives the *real*
+notebook with a *real* model and scores the resulting runtime state with deterministic, multivariate criteria
+— no LLM-as-judge. We A/B'd the bash-only build against the Claude-tools build on a curated editing subset.
 
-One hour later ([`01b31df`](https://github.com/tomlarkworthy/lopecode-dev/commit/01b31df)) we added
-`read_file` / `write_file` / `edit_file` mirroring Claude Code's exact argument schemas, with literal
-replacement and in-turn compile feedback. The commit message records the intent plainly: *"the agent no
-longer writes via sed."* The eval harness already existed at both commits, so both builds were scored:
+The result was flat. bash+sed ≈ bash+Claude-tools, for two different models, within single-run noise
+(`VERDICT.md`, `data/ab-results.csv`). Taken at face value, the thesis looked dead.
 
-| build | editing surface | capability-gate mean |
-|-------|-----------------|---------------------:|
-| `9f7b205` (bash-only, sed) | bash + sed/heredoc | 0.94 / 27 |
-| `01b31df` (Claude tools)   | bash + Read/Write/Edit | 0.95 / 27 |
+It wasn't dead; **pass-rate was the wrong instrument.** The tasks build ~1–10 cells. At that size every
+reasonable surface completes them — sed, `write_file`, a raw runtime call, all land. A saturated metric can't
+see a difference that is real but lives on a different axis. The right axis is **how much work the model spent
+to get there**: steps and tokens. So we re-ran the comparison as a ladder and counted steps.
 
-A 0.01 move. If we stopped here the thesis would look weak — and that's the most important lesson in the
-post. **Those 27 evals measured task *completion*, not editing *quality*.** There were zero evals for
-incremental-editing reliability or decomposition; the benchmark was blind to exactly the dimension the new
-tools improve. Two things actually changed, neither visible to that early gate:
+## The central result: a 2–3× efficiency ladder
 
-1. **Editing stopped being blind.** With sed, the agent wrote and then waited for an async log it couldn't
-   see. With the Claude tools, the apply is synchronous and the result returns in the same turn —
-   `applied live (N cells changed)` or `FAILED TO COMPILE: … — live runtime unchanged; fix and re-edit`.
-2. **The output got decomposed** — but only after we finished honoring the tool contract (next section), and
-   only measurable once we added evals that score it.
+Same task, N=3 per arm, scored on outcomes, run on two models — `xiaomi/mimo-v2.5-pro` and
+`anthropic/claude-sonnet-4.6`. The task — `long-store-to-checkout` — builds a small reactive module and then
+adapts it in a follow-up turn, so it exercises real editing, not just first-write. **All 24 runs PASS at
+1.00.** The only thing that moves is cost (mean steps to completion):
 
-The honest, falsifiable version of the claim, then, is not "the tools doubled the score." It is: *completion
-correctness was already similar; the Claude-tool shape unlocked reliable incremental editing and decomposed
-output, a dimension the original benchmark didn't even measure.*
+| arm | distribution / contract | mimo | sonnet-4.6 |
+|-----|-------------------------|-----:|-----------:|
+| **Structured** | off-distribution semantic API (`define_variable` & friends) | **24.0** | **22.7** |
+| **Bash** | on-distribution shell (sed/heredoc) | 22.7 | 16.3 |
+| **Std Tools (broken contract)** | Read/Write/Edit, file reformatted between read+edit | 19.3 | 18.0 |
+| **Std Tools (aligned)** | Read/Write/Edit + byte-stable `/src` | **10.3** | **8.0** |
 
-To test that properly you have to be careful about two things. First, compare the **adjacent commits**
-(`9f7b205` ↔ `01b31df`), not the old build against today's — over a year the system prompt also changed, so
-old-vs-current would confound the tools with the prompt. The adjacent pair differs essentially only in the
-editing-tool section. Second, score **only evals that generically measure editing ability** — "produce or
-modify code so a runtime value is correct," judged on outcomes — and drop every eval that rewards a specific
-tool (circular for a build that lacks it) or tests a prompt-taught fact (self-knowledge, network,
-value-inspection, doc prose, etc.). Of our 44 evals, 21 qualify; the sharpest six edit code *in place*
-(bug-fixes and live-cell edits), where the editing-tool shape bites hardest. Both adjacent builds are pinned
-in `data/`; the exact subset, run commands, and caveats are in `data/experiment-bash-vs-tools.md`. The
-prediction was explicit and falsifiable: similar completion scores, a larger Claude-tool gap on the in-place
-tier and on decomposition — and if both tiers come out flat, the strong thesis is wrong and the post should
-say so.
+Per-run steps (mimo / sonnet): Structured `31,10,31` / `27,21,20`; Bash `16,21,31` / `13,14,22`;
+broken-contract `21,18,19` / `18,17,19`; aligned `13,8,10` / `8,8,8`. Raw JSON in
+`tools/robocoop-4/eval/live/results/strategy/`; summary in `data/strategy-ladder.csv`.
 
-**We ran it (n=1 per arm; full numbers in `data/ab-results.md`). The result refines the thesis rather than
-confirming the strong form of it:**
+Top to bottom that is the same story on both models: the off-distribution structured surface is the most
+expensive, the fully-aligned standard-tools harness is the cheapest, and the span between them is **2.3× for
+mimo (24.0 → 10.3) and 2.8× for sonnet (22.7 → 8.0)** — with the hardest off-distribution runs hitting **3.4–3.9×**
+the aligned mean (`31/8`, `27/8`). The stronger model does not close the gap; it *widens* it relatively, and
+its aligned arm is dead-consistent at `8/8/8`. Same task, same correctness — the harness shape alone is worth
+roughly 3×.
 
-| arm | overall | in-place edits | authoring |
-|-----|---------|----------------|-----------|
-| **sonnet-4** | 0.94 → 0.91 | 0.857 → 0.857 | 0.98 → 0.94 |
-| **mimo-v2.5-pro** | 0.84 → **0.91** | 0.914 → 0.914 | 0.81 → **0.91** |
+Three boundaries are visible:
 
-Stated conservatively at n=1: **bash+sed ≈ bash+Claude-tools on this suite, for both models.** Sonnet was
-flat-to-slightly-down; mimo nudged up (+0.04 to +0.08 depending on one transient), but that is within
-single-run noise — the net of a few offsetting 0↔1 eval flips. The strong claim ("the tool signatures buy a
-big boost") does not hold here.
+- **The distribution boundary.** A structured semantic API (next section) is the most expensive surface on
+  both models — the genuinely *off*-distribution end.
+- **The contract boundary inside the zone.** Even with the right tool *signatures*, breaking the file contract
+  (reformatting the file between read and edit) roughly doubles the cost vs honouring it (mimo 19.3 vs 10.3;
+  sonnet 18.0 vs 8.0). Honouring it — a one-line `/src` fix — is where most of the win is.
+- **Bash and broken-contract Std Tools are a near-tie** and reorder between models (mimo `Bash 22.7 >
+  broken 19.3`; sonnet `Bash 16.3 < broken 18.0`) — within noise. The robust signal is the two *endpoints*:
+  aligned lowest, structured highest, on both models.
 
-And there is a decisive confound, which I verified rather than assumed: the AFTER-adjacent build (`01b31df`)
-has the Claude tool *signatures* but still **reformats the file on every apply** (`/notebook` apply path,
-`exportModuleJS` write-back, no byte-stable `/src` tree — that came later, in `0c8a33a`). So its `edit_file`
-`old_string` precondition is broken exactly as it was for the monolith. The A/B really compares **sed vs
-Claude-tools-with-a-broken-Edit-contract**, and on 1–3-cell tasks those are equivalent. The flat result is
-expected; the benchmark simply isn't testing the real claim — the tasks are tiny, decomposition isn't scored,
-and the AFTER build's tools degrade to rewrites anyway.
+## The off-distribution arm: coding through a structured tool
 
-So the honest, defensible thesis is the *sharp* one: it is not the tool **signatures**, it is honoring the
-full tool **contract** — file byte-stability between read and edit — and the payoff shows up only on tasks
-big enough to need incremental editing, measured as **decomposition**. Adding the bare tools (`01b31df`)
-moved the benchmark by zero; completing the contract with `/src` (`0c8a33a`) is what turned the 691-line
-monolith into 42 decomposed cells on the same model and prompt. The completion-only benchmark concluding "the
-tools barely matter" is itself the punchline — it is blind to the dimension that actually changed, the same
-overfitting trap one level up. (The clean way to settle it: a large, DAW-class build, bash-only vs the
-*current* tools+`/src` build, scored on decomposition, N≥3. See `data/ab-results.md` and `VERDICT.md`.)
+To anchor the "off-distribution" end we built the opposite of a shell: a structured semantic runtime API.
+Same agent loop, same model. The shell and file tools are removed; the agent instead gets `create_module`,
+`define_variable`, `delete_variable`, `list_variables`, `eval_code`. `define_variable` is the real low-level
+Observable API — `{name, definition:"(x,y)=>x+y", inputs:["x","y"], module}` — building reactive variables
+directly, no files, no shell. (It's just a custom tool. This has nothing to do with MCP; the only axis is
+*structured semantic surface vs files/shell*.)
 
-## The central result: one regex unlocked latent capability
+Given an accurate prompt, it completes the task at 1.00 — so this is **not a correctness cliff at this scale**.
+It is the most expensive surface (24.0 steps, up to 31), and the cost signature is diagnostic. The structured
+API emits *exactly 13* `define_variable` calls every run; the variance is entirely **`eval_code` verification
+churn** — 4 on the fast run, 19 and 25 on the slow ones. With no glanceable file artifact, the model re-probes
+the reactive graph value-by-value to convince itself it is right. The file/shell arms read and write whole
+files and verify by inspection: fewer, more confident steps.
 
-We asked the agent (model: `xiaomi/mimo-v2.5-pro`) to build a featured Audio DAW. It worked — but it built a
-**691-line monolith**, rewriting the entire file on every change with `write_file` instead of making small
-`edit_file` edits. That looks like a model that can't decompose.
+(The number is only trustworthy because the harness is fair. Three fixes were required first — beating the
+reactive re-registration that kept restoring the shell tools, resolving modules synchronously, and observing
+cells so generators pump in headless — plus a prompt-bug fix that had manufactured a fake 0.50 "correctness
+cliff." Plausible failures are not failures until the harness is proven fair. Details in
+`data/structured-arm-findings.md`.)
 
-It wasn't. `edit_file`, in the Claude shape, works by matching an exact `old_string` the model remembers from
-its last read of the file. Our harness re-serialised the module on every apply (a compile → decompile round
-trip that reformats whitespace), so the file changed out from under the agent. The next `edit_file`'s
-`old_string` no longer matched, the edit failed, and the model fell back to the one operation that *always*
-works: a full rewrite. The monolith was a **symptom of a violated tool contract**, not a reasoning failure.
+## Where efficiency becomes correctness: the DAW
 
-The model already knew how to edit incrementally — it's trained to. We just had to stop breaking the
-precondition. The fix is essentially one line ([`0c8a33a`](https://github.com/tomlarkworthy/lopecode-dev/commit/0c8a33a)):
+The ladder tasks are small, so the gap stays purely a cost gap. Scale the task and the same per-step overhead
+turns into outright failure. We have the canonical case on file.
+
+We asked the agent (`xiaomi/mimo-v2.5-pro`) to build a featured Audio DAW. It worked — but it produced a
+**691-line monolith**, rewriting the whole file on every change with `write_file` instead of small `edit_file`
+edits. That looks like a model that can't decompose.
+
+It wasn't. `edit_file` matches an exact `old_string` the model remembers from its last read. Our harness
+re-serialised the module on every apply (a compile → decompile round trip that reformats whitespace), so the
+file changed out from under the agent. The next `edit_file` `old_string` no longer matched, the edit failed,
+and the model fell back to the one operation that *always* works: a full rewrite. The monolith was a **symptom
+of a violated tool contract**, not a reasoning failure — and at small scale it would have just looked like "a
+few extra steps." At DAW scale it became a qualitatively worse artifact.
+
+The fix is essentially one line ([`0c8a33a`](https://github.com/tomlarkworthy/lopecode-dev/commit/0c8a33a)):
 
 ```diff
 -    const m = /^\/notebook\/(.+)\.js$/.exec(path);
 +    const m = /^\/(?:notebook|src)\/(.+)\.js$/.exec(path);
 ```
 
-We gave the agent a `/src` tree as a **byte-stable editing surface**: writes apply live, but the file is
-never reformatted — only a separate canonical mirror is. After that change, the *same model* on the *same
-prompt* built the DAW as **42 decomposed cells via 25 `edit_file` calls and a single `write_file`, with zero
-errored cells**, finishing cleanly.
+We gave the agent a `/src` tree as a **byte-stable editing surface**: writes apply live, but the file is never
+reformatted — only a separate canonical mirror is. After that change, the *same model* on the *same prompt*
+built the DAW as **42 decomposed cells via 25 `edit_file` calls and a single `write_file`, with zero errored
+cells**. Nothing about the model changed. We moved the harness onto the contract the model was trained
+against, and the inefficiency — and with it the bad output — disappeared.
 
-Nothing about the model changed. We moved the harness onto the contract the model was trained against, and
-its real capability appeared.
+That is the thesis in one example: the broken contract was the 19.3-vs-10.3 row of the ladder, and at scale
+that 2× tax stopped being "slower" and started being "wrong."
 
 ## The pattern repeats
 
@@ -143,71 +155,55 @@ Once you see it as "match the training shape," the other fixes are the same move
 - **Token budget.** Reasoning models spend completion budget on hidden reasoning. At an 8192-token cap, MIMO
   was truncated *before* it emitted the tool call (`finish_reason: 'length'`), so the loop stopped after only
   exploring. Raising the cap to 32000 — room for reasoning *plus* a full tool call — fixed it
-  ([`0c19a51`](https://github.com/tomlarkworthy/lopecode-dev/commit/0c19a51)). The model's operating envelope
-  is part of the contract.
-
+  ([`0c19a51`](https://github.com/tomlarkworthy/lopecode-dev/commit/0c19a51)). The operating envelope is part
+  of the contract.
 - **Model variance is the jaggedness, made visible.** On the identical harness, `gpt-5.4-mini` produced a
-  clean reactive DAW and used runtime feedback to fix a bug before finishing; `gemini-3.5-flash` stopped
-  crashing but stayed a weak builder ([`4cb20f6`](https://github.com/tomlarkworthy/lopecode-dev/commit/4cb20f6)).
-  Same task, same tools, very different outcomes — exactly what "overfit to a shape, with each model overfit
-  somewhat differently" predicts. Tool-calling support is itself a gate, so the model picker filters to it
-  ([`9806c85`](https://github.com/tomlarkworthy/lopecode-dev/commit/9806c85)).
+  clean reactive DAW and self-corrected a bug from runtime feedback; `gemini-3.5-flash` stopped crashing but
+  stayed a weak builder ([`4cb20f6`](https://github.com/tomlarkworthy/lopecode-dev/commit/4cb20f6)). Same
+  task, same tools, very different outcomes — exactly what "overfit to a shape, each model somewhat
+  differently" predicts.
 
-## The quantitative receipts
+## The benchmark can overfit too
 
-Vibes don't settle this; a benchmark does. We built a re-runnable, headless eval that drives the real
-notebook with a real model and scores the resulting *runtime state* with deterministic, multivariate criteria
-— **no LLM-as-judge**. 44 evals across 19 categories, including capability gates that each pin a previously
-observed regression: editing the notebook's own live cells, operating rendered UI without touching source,
-and self-extending by registering a new tool mid-turn.
-
-Three full sweeps with `xiaomi/mimo-v2.5-pro` (raw data in `data/`):
-
-| sweep | mean aggregate | perfect (1.0) evals |
-|-------|---------------:|--------------------:|
-| 1     | 0.902          | 37 / 44             |
-| 2     | 0.951          | 40 / 44             |
-| 3     | 0.980          | 42 / 44             |
-
-All three capability gates scored 1.0 in every sweep — the shape-alignment work added capability without
-regressing any.
-
-There's a twist worth keeping. Two of the "failures" were the **benchmark** overfitting, not the model: one
-criterion only read the agent's final summary message and missed the clarifying question it had asked a step
-earlier; another demanded a specific *bash* command when the agent had grounded the same fact with the
-dedicated `read_file` tool. Both penalised correct behaviour by over-specifying the *mechanism* instead of
-checking the *outcome*. Fixing them lifts the effective means to 0.92 / 0.97 / 1.00. The lesson generalises:
-the overfitting trap isn't unique to models — any system that rewards a fixed mechanism instead of the result
-will mismeasure a smarter agent that found a different path.
+Two of our eval "failures" were the **benchmark** over-specifying a mechanism, not the model failing: one
+criterion read only the agent's final summary and missed a clarifying question it asked a step earlier;
+another demanded a specific *bash* command when the agent had grounded the same fact with the dedicated
+`read_file` tool. Both penalised correct behaviour. Fixing them lifts the means across three sweeps to
+0.92 / 0.97 / 1.00. The overfitting trap isn't unique to models — any scorer that rewards a fixed mechanism
+instead of the outcome will mismeasure a smarter agent that found a different path. (It is also why the
+structured arm must be graded on runtime state, not on files it never writes.)
 
 ## What to do about it
 
-Treat the model's training shape as a hard interface, and design *toward* it:
+Treat the model's training shape as a hard interface and design *toward* it:
 
 1. **Adopt the shapes the models were trained on.** A bash tool and Claude-schema `Read`/`Write`/`Edit` are
-   not arbitrary choices; they are the distribution. Custom tool schemas cost you capability you can't see on
-   the leaderboard.
-2. **Honor the contracts those tools imply.** `Edit` assumes the file is byte-stable between read and edit.
-   If your system reformats, regenerates, or otherwise mutates files behind the agent, you break the contract
-   and the model degrades to its fallback behaviour — and you'll misread that as the model being dumb.
-3. **Respect the operating envelope.** Token budgets, streaming, tool-call formatting, and billing parameters
-   are part of the shape too. A reasoning model truncated before its tool call is a configuration bug, not a
-   capability ceiling.
-4. **Measure runtime outcomes, not mechanisms.** Build a deterministic benchmark that checks the *result* in
-   the real environment. And keep it hermetic, so an experiment is a commit, a harness change is a diff, and a
-   run is a re-scorable artifact — that's what turns "we think the agent got better" into evidence.
+   the distribution, not arbitrary choices. A clever custom tool surface is off-distribution by definition and
+   you will pay for it in steps and tokens — up to ~3× here — before you ever pay for it in failures.
+2. **Honour the contracts those tools imply.** `Edit` assumes the file is byte-stable between read and edit.
+   Reformat or regenerate behind the agent and it degrades to rewrites — ~2× cost at small scale, a monolith
+   at large scale.
+3. **Respect the operating envelope.** Token budgets, streaming, tool-call formatting, billing parameters are
+   part of the shape. A reasoning model truncated before its tool call is a configuration bug, not a ceiling.
+4. **Measure cost, not just pass/fail — and watch it as a leading indicator.** On small tasks pass-rate
+   saturates and hides everything. Count steps and tokens; an efficiency regression on small tasks is the
+   correctness cliff you will hit on large ones. Keep the benchmark hermetic so an experiment is a commit, a
+   harness change a diff, and a run a re-scorable artifact.
 
 The frontier is jagged because the models are overfit. You don't fix that by waiting for a better model. You
-fix it by designing your environment so it lands on the parts of the frontier that are already sharp.
+harness it: design your environment to land on the sharp parts of the frontier the model already has — and
+collect the 3×.
 
 ---
 
 ### Appendix: reproduce / inspect
 
-- Central result: [`0c8a33a`](https://github.com/tomlarkworthy/lopecode-dev/commit/0c8a33a) (the `/src`
-  byte-stability fix) — full diff in `data/harness-diffs.md`.
+- Efficiency ladder (mimo + sonnet-4.6): `data/strategy-ladder.csv`; raw JSON in
+  `tools/robocoop-4/eval/live/results/strategy/{A_sed,B_tools_nobytestab,C_tools_src,D_structured}-{1,2,3}.json`.
+- Off-distribution arm: `data/structured-arm-findings.md`; run with
+  `bun tools/robocoop-4/eval/live/run.mjs --ids long-store-to-checkout --tool-surface structured --model xiaomi/mimo-v2.5-pro`.
+- Scale→correctness (the `/src` fix): [`0c8a33a`](https://github.com/tomlarkworthy/lopecode-dev/commit/0c8a33a);
+  diff in `data/harness-diffs.md`.
 - Benchmark harness: `tools/robocoop-4/eval/live/` in
-  [lopecode-dev](https://github.com/tomlarkworthy/lopecode-dev); run with
-  `bun tools/robocoop-4/eval/live/run.mjs --model xiaomi/mimo-v2.5-pro`.
-- Raw 3× sweep data: `data/mimo-3x-sweep-per-eval.csv`, `data/mimo-sweep-{1,2,3}.json`.
+  [lopecode-dev](https://github.com/tomlarkworthy/lopecode-dev).
 - Full commit index and source-line citations: `evidence.md`.

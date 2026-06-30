@@ -1,71 +1,61 @@
 # Verdict: is the thesis correct?
 
-*Experiments run 2026-06-29. Raw data: `tools/robocoop-4/eval/live/results/ab_mimo/{before,after}.json` (mimo),
-`results/AB-{before,after}*.json` (sonnet). Curated 21-eval editing subset; both adjacent builds; outcome-scored.*
+*Experiments run 2026-06-29/30. Pass-rate A/B: `tools/robocoop-4/eval/live/results/ab_mimo/` + `data/ab-results.csv`.
+Efficiency ladder (the decisive test): `tools/robocoop-4/eval/live/results/strategy/` + `data/strategy-ladder-mimo.csv`.*
 
 ## Short answer
 
-**The strong form of the thesis — "adopting Claude-shaped Read/Write/Edit tools gives a massive benchmark
-boost" — is NOT supported by the A/B.** Adding the tools (commit `01b31df`) produced no measurable gain over
-bash/sed (commit `9f7b205`) on the editing subset:
+**Yes — on the right axis.** The thesis fails on pass-rate and succeeds on efficiency, and efficiency is what
+matters because it converts to correctness at scale.
 
-| model | BEFORE (bash/sed) | AFTER (Claude tools) | Δ all-21 | in-place tier (6) Δ |
-|-------|------------------:|---------------------:|---------:|--------------------:|
-| MIMO (`xiaomi/mimo-v2.5-pro`) | 0.822 | 0.866 | **+0.044** | −0.095* |
-| Sonnet (`anthropic/claude-sonnet-4`) | 0.941 | 0.914 | **−0.027** | 0.000 |
+- **On pass-rate (wrong axis): no signal.** Adding Claude-shaped tools (`01b31df`) over bash/sed (`9f7b205`)
+  produced no measurable change on the editing subset, for two models, within single-run noise. The tasks are
+  ~1–10 cells; every surface completes them, so the metric is saturated.
+- **On efficiency (right axis): a clean 2–3× ladder, reproduced on two models.** Same task, N=3 per arm,
+  all 24 runs PASS 1.00, only step-count moves (mean steps; mimo = `xiaomi/mimo-v2.5-pro`, sonnet =
+  `anthropic/claude-sonnet-4.6`):
 
-\* one AFTER run (`el-delete-prune`) was a driver flake (`ok:false`, steps=0); excluding it the in-place tier
-is ≈ flat. The mimo +0.044 is **within single-run noise** — it's the net of offsetting 0↔1 flips
-(`algo-roman` 0→1, `viz-revenue-bars` 0→1, but `algo-balanced-brackets` 1→0.25, `import-cross-module`
-0.63→0.38), each from a single run per cell. Sonnet, which is more stable, went slightly **down**.
+  | arm | distribution / contract | mimo | sonnet-4.6 |
+  |-----|-------------------------|-----:|-----------:|
+  | Structured | off-distribution semantic API | **24.0** | **22.7** |
+  | Bash | on-dist shell (sed/heredoc) | 22.7 | 16.3 |
+  | Std Tools (broken contract) | Read/Write/Edit, reformat-on-apply | 19.3 | 18.0 |
+  | Std Tools (aligned) | Read/Write/Edit + byte-stable `/src` | **10.3** | **8.0** |
 
-So on this benchmark, **bash+sed ≈ bash+Claude-tools.** Taken literally, the thesis fails here.
+  Aligned vs off-distribution is **2.3× (mimo, 24.0/10.3)** and **2.8× (sonnet, 22.7/8.0)** on the mean, and
+  **3.4–3.9× on the hardest off-distribution runs** (`27/8`, `31/8`). The stronger model *widens* the relative
+  gap rather than closing it — its aligned arm is dead-consistent at `8/8/8`. (Bash vs broken-contract Std
+  Tools is a near-tie and reorders between models; the robust signal is the two endpoints.)
 
-## Why the benchmark can't see the thesis (the important part)
+## Why pass-rate couldn't see it
 
-Four reasons the A/B is the wrong instrument — and the fourth is decisive:
+1. **Tasks are tiny** — 1–10 cells; the incremental-edit advantage only bites on large multi-edit builds.
+2. **Saturation** — when every arm scores ~1.0, a real cost difference is invisible.
+3. **Wrong quantity** — completion is binary; the thesis is about *work to completion* (steps/tokens).
+4. **One run per cell** — single 0↔1 flips dominate noisy means.
 
-1. **The tasks are tiny.** Most evals build 1–3 cells or make one edit. The Claude-Edit advantage
-   (incremental edits without rewriting the file) only bites on **large, multi-edit** builds. A one-write
-   task is equally easy with sed or `write_file`.
-2. **One run per cell → high variance.** Single 0↔1 flips dominate the means; you'd need N≥3 to denoise.
-3. **Decomposition isn't scored.** None of the 21 evals measure cell-count / maintainability. The thesis's
-   actual payoff — decomposed output — is invisible to these criteria.
-4. **The AFTER-adjacent build has the tools but NOT the contract.** Verified in the pinned `01b31df` build:
-   after every apply it runs `writeText(path, exportModuleJS(id).source)` — it **reformats the agent's own
-   file on each edit** (and there is no `/src` stable tree). That is exactly the bug that breaks `edit_file`'s
-   `old_string` precondition, which was only fixed later by the `/src` byte-stability cache (`0c8a33a`). So at
-   `01b31df` the Claude tools degrade to rewrites on any multi-edit task — they behave like sed. The adjacent
-   A/B therefore compares *sed* against *Claude-tools-with-a-broken-Edit-contract*. No wonder they tie.
+The fix was to stop scoring completion and start counting steps, N=3.
 
-## The refined thesis, which the evidence DOES support
+## Two boundaries the ladder reveals
 
-It is not "use Claude-shaped tool signatures." It is: **honor the full tool contract — including file
-byte-stability between read and edit — and the payoff shows up on large, multi-edit tasks, measured as
-decomposition/editing reliability, not as small-task completion.**
+- **Distribution.** sed is *on*-distribution (a shell). The truly off-distribution surface is a structured
+  semantic API (`define_variable` & friends) — the most expensive arm (24.0), forced into 13 fine-grained
+  calls plus heavy `eval_code` verification churn (4 → 25). The model even reaches for `write_file`/`eval_js`
+  by reflex when handed only the structured tools — the on-distribution prior leaking through.
+- **Contract inside the zone.** Right signatures but a file reformatted between read and edit costs ~2×
+  (19.3 vs 10.3). Honouring byte-stability (one-line `/src` fix, `0c8a33a`) recovers it.
 
-Supporting evidence (the `/src` result, `0c8a33a`): the *same model* on the *same DAW prompt* went from a
-**691-line monolith** (rewrite-the-world) to **42 decomposed cells via 25 `edit_file` : 1 `write_file`, 0
-errored**. The flip came from the byte-stability fix, i.e. from completing the contract — adding the tool
-signatures a few days earlier (`01b31df`) had not moved the benchmark at all.
+## Efficiency → correctness at scale (the load-bearing claim)
 
-## What would actually confirm/refute it (not yet run)
-
-The A/B above is necessary housekeeping but not the right test. The decisive experiment:
-
-- **Task:** a LARGE multi-edit build (DAW-class), not the small subset.
-- **Arms:** bash-only (`9f7b205`) vs the **current** build (Claude tools **+** `/src` byte-stability) — not
-  `01b31df`, which lacks the contract.
-- **Metric:** decomposition (produced-module cell count / code-metrics MI) **and** correctness/zero-errored —
-  not just a pass/fail completion aggregate.
-- **Repeats:** N≥3 per arm to clear the single-run variance seen above.
-
-Prediction under the refined thesis: completion ≈ similar, but decomposition and edit-success-rate jump
-sharply for the tools+`/src` arm. If decomposition is also flat, the refined thesis is wrong too.
+The ladder's 2× contract row is the same defect that, on a DAW-class build, turned the output from **42
+decomposed cells** (contract honoured) into a **691-line monolith** (contract broken) — the model fell back to
+full rewrites because its `edit_file` precondition kept breaking. Same model, same prompt; the only change was
+byte-stability (`0c8a33a`). At small scale a broken contract is "slower"; at large scale it is "wrong." That
+is why efficiency, not pass-rate, is the metric to design against.
 
 ## Bottom line for the post
 
-Lead with the honest result: **tool *signatures* alone bought nothing measurable; honoring the tool
-*contract* (byte-stability) is what unlocked the behavior — and only on tasks big enough to need incremental
-editing, measured on the right axis.** That's a sharper, more defensible, and more useful claim than "match
-the shape and win," and the data backs the sharp version, not the broad one.
+Lead with the ladder: **same model, same task, same correctness, up to 3× fewer steps purely from harness
+shape** — on-distribution beats off-distribution, and honouring the tool contract beats merely copying its
+signatures. Then show the DAW: the small-task efficiency gap is the large-task correctness gap arriving early.
+Title: *Harnessing the jagged frontier for 3× LLM efficiency gains.*

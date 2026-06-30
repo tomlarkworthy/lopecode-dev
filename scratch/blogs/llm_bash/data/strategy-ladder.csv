@@ -1,0 +1,7 @@
+# long-store-to-checkout, N=3, all 24 runs PASS 1.00. Cells = steps per run; means in *_mean.
+# Order: most off-distribution -> most aligned.
+arm,distribution_contract,mimo_r1,mimo_r2,mimo_r3,mimo_mean,sonnet46_r1,sonnet46_r2,sonnet46_r3,sonnet46_mean
+Structured,off-distribution semantic API (create_module/define_variable/...),31,10,31,24.0,27,21,20,22.7
+Bash,on-distribution shell (sed/heredoc),16,21,31,22.7,13,14,22,16.3
+Std Tools (broken contract),Read/Write/Edit; file reformatted between read+edit,21,18,19,19.3,18,17,19,18.0
+Std Tools (aligned),Read/Write/Edit + byte-stable /src,13,8,10,10.3,8,8,8,8.0
