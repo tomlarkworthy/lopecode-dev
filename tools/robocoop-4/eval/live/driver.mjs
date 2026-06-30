@@ -9,6 +9,36 @@ import { chromium } from "playwright";
 const DEFAULT_LAYOUT =
   "R100(S75(@tomlarkworthy/robocoop-4),S25(@tomlarkworthy/robocoop-4-hostbridge))";
 
+// Off-distribution "structured runtime API" arm: the agent builds/edits notebook modules ONLY through
+// a semantic variable API (create_module / define_variable / delete_variable / list_variables / eval_code)
+// — no shell, no files, no Read/Write/Edit. This prompt REPLACES the bash/Claude-tools prompt so the agent
+// isn't fighting instructions for tools it no longer has. Same Observable conventions, different surface.
+const STRUCTURED_SYSTEM_PROMPT = `You are a coding agent that builds and edits Observable-runtime notebook modules.
+
+You have NO shell and NO file access. You change the live notebook ONLY through these tools:
+- create_module({name}) — create a module, e.g. "@user/store", BEFORE defining variables into it.
+- define_variable({name, definition, inputs, module}) — define (or REDEFINE, to update) one reactive
+  variable. \`definition\` is a function-string whose params are the \`inputs\` array, e.g.
+  define_variable({name:"subtotal", definition:"(price,qty)=>price*qty", inputs:["price","qty"], module:"@user/store"}).
+- delete_variable({name, module}) — remove a variable.
+- list_variables({module}) — list variable names in a module (use to inspect current state).
+- eval_code({code}) — evaluate JS in the page to read values / verify (e.g. read a cell's computed value).
+
+Observable conventions:
+- One variable per define_variable call; variables recompute reactively from their \`inputs\`.
+- To update a variable, call define_variable again with the same name (it redefines in place).
+- The \`inputs\` array and the function PARAMETERS line up 1:1, in order. The body can ONLY reference its
+  parameters — there are NO globals. To use a builtin (html, md, Inputs, Generators, d3) OR another cell you
+  MUST list it in \`inputs\` AND accept it as a parameter; a name in the body but missing from \`inputs\` is
+  undefined and the cell silently never resolves.
+- An interactive input is TWO variables:
+  (1) element: define_variable({name:"viewof qty", definition:"(Inputs)=>Inputs.range([1,20],{value:3,step:1})", inputs:["Inputs"]})
+  (2) value:   define_variable({name:"qty", definition:"(Generators,$)=>Generators.input($)", inputs:["Generators","viewof qty"]})
+- A display cell returns a DOM node, e.g. definition:"(html,total)=>html\`<div>Total: \${total}</div>\`", inputs:["html","total"].
+- Builtins (html, md, Inputs, Generators, d3, …) are injected ONLY when named in \`inputs\`.
+
+Work step by step. Verify with list_variables / eval_code. When done, call task_complete with a short summary.`;
+
 export async function createDriver({
   notebookPath,
   apiKey,
@@ -17,6 +47,7 @@ export async function createDriver({
   timeoutMs = 120000,
   headed = false,
   legacyNoToolGate = false,
+  toolSurface = null,
 } = {}) {
   if (!notebookPath) throw new Error("createDriver requires notebookPath");
   if (!apiKey) throw new Error("createDriver requires apiKey");
@@ -226,6 +257,162 @@ export async function createDriver({
         return partial;
       }
 
+      // Step 3.5 (OFF-DISTRIBUTION ARM): swap the agent's tool surface to the structured runtime API.
+      // Removes bash + Read/Write/Edit (the on-distribution shape models are RL'd on) and exposes ONLY the
+      // semantic variable tools, reusing the REAL @tomlarkworthy/claude-code-pairing handlers (so define_variable
+      // here IS the production define_variable — same realize/observer/module-resolution, not a re-impl). Also
+      // swaps the system prompt to match the new surface. The session re-reads tools+prompt live each step.
+      if (toolSurface === "structured") {
+        const swapped = await page.evaluate(
+          async ({ structuredPrompt, model }) => {
+            const reg = globalThis.__ojs_runtime;
+            const allVars = () => {
+              const out = []; const seen = new Set();
+              for (const m of reg.mains.values()) {
+                const rt = m && m._runtime;
+                if (!rt || seen.has(rt)) continue;
+                seen.add(rt);
+                for (const v of rt._variables) out.push(v);
+              }
+              return out;
+            };
+            const byName = (n) => { const v = allVars().find((x) => x._name === n); return v && v._value; };
+            const runtime = byName("runtime") || reg;
+            const createModule = byName("createModule");
+            const createAgentSession = byName("createAgentSession");
+            const client = byName("client");
+            const observe = byName("observe"); // runtime-sdk: forces compute + persistent observation
+            if (!createModule || !createAgentSession || !client)
+              return { ok: false, error: "missing runtime hooks (createModule/createAgentSession/client)" };
+            const ojsObs = (typeof window.__ojs_observer === "function") ? window.__ojs_observer : null;
+            // Resolve a module by name DIRECTLY from runtime.mains (synchronous + authoritative — avoids the
+            // reactive `currentModules` lag that makes a create→define back-to-back race "module not found").
+            const findMod = (name) => {
+              if (!name) return null;
+              if (runtime.mains && runtime.mains.has(name)) return runtime.mains.get(name);
+              return null;
+            };
+            // Tool surface = the structured runtime API (own impl, same semantics as the pairing handlers:
+            // realize-by-eval → variable(observer).define; redefine in place when the name already exists).
+            const tools = [
+              {
+                id: "create_module",
+                description: "Create a notebook module (e.g. \"@user/store\") so variables can be defined into it.",
+                parameters: { type: "object", properties: { name: { type: "string", description: "Module name, e.g. @user/store" } }, required: ["name"] },
+                execute: async (a) => {
+                  if (!a.name) return { output: "Error: name required" };
+                  if (findMod(a.name)) return { output: JSON.stringify({ success: true, name: a.name, note: "already exists" }) };
+                  try { createModule(a.name, runtime); return { output: JSON.stringify({ success: true, name: a.name }) }; }
+                  catch (e) { return { output: "Error: " + (e && e.message || e) }; }
+                },
+              },
+              {
+                id: "define_variable",
+                description: "Define or redefine one reactive variable from a function-string + its inputs.",
+                parameters: { type: "object", properties: {
+                  name: { type: "string" },
+                  definition: { type: "string", description: "function string, e.g. (x,y)=>x+y" },
+                  inputs: { type: "array", items: { type: "string" }, description: "dependency variable names" },
+                  module: { type: "string", description: "target module name" },
+                }, required: ["name", "definition"] },
+                execute: async (a) => {
+                  let inputs = a.inputs;
+                  if (typeof inputs === "string") { try { inputs = JSON.parse(inputs); } catch { inputs = []; } }
+                  if (!Array.isArray(inputs)) inputs = [];
+                  const mod = findMod(a.module);
+                  if (!mod) return { output: "Error: Module not found: " + (a.module || "(none)") + " — call create_module first" };
+                  let fn;
+                  try { fn = (0, eval)("(" + a.definition + ")"); } catch (e) { return { output: "Error: bad definition: " + (e && e.message || e) }; }
+                  if (typeof fn !== "function") return { output: "Error: definition must evaluate to a function" };
+                  try {
+                    const existing = mod._scope && mod._scope.get(a.name);
+                    if (existing) existing.define(a.name, inputs, fn);
+                    else mod.variable(ojsObs ? ojsObs(a.name) : {}).define(a.name, inputs, fn);
+                    // Persistently OBSERVE the cell — same as the hostbridge's probeAndWatch does for file-edited
+                    // cells. Without this, `Generators.input(viewof x)` cells never pump in headless (no inspector),
+                    // so price/qty/subtotal/total stay undefined and grade wrong — an unfair harness gap, not a
+                    // model failure. observe() forces compute + keeps the generator advancing.
+                    if (observe) {
+                      const nv = mod._scope && mod._scope.get(a.name);
+                      if (nv) { try { observe(nv, { fulfilled() {}, rejected() {}, pending() {} }, { invalidation: new Promise(() => {}) }); } catch {} }
+                    }
+                    return { output: JSON.stringify({ success: true, name: a.name, module: a.module }) };
+                  } catch (e) { return { output: "Error: define failed: " + (e && e.message || e) }; }
+                },
+              },
+              {
+                id: "delete_variable",
+                description: "Delete a variable by name from a module.",
+                parameters: { type: "object", properties: { name: { type: "string" }, module: { type: "string" } }, required: ["name"] },
+                execute: async (a) => {
+                  const mod = findMod(a.module);
+                  if (!mod) return { output: "Error: Module not found: " + (a.module || "(none)") };
+                  const v = mod._scope && mod._scope.get(a.name);
+                  if (!v) return { output: "Error: Variable not found: " + a.name };
+                  try { v.delete(); return { output: JSON.stringify({ success: true, name: a.name }) }; }
+                  catch (e) { return { output: "Error: " + (e && e.message || e) }; }
+                },
+              },
+              {
+                id: "list_variables",
+                description: "List variable names in a module.",
+                parameters: { type: "object", properties: { module: { type: "string" } }, required: [] },
+                execute: async (a) => {
+                  const mod = findMod(a.module);
+                  if (!mod) return { output: "Error: Module not found: " + (a.module || "(none)") };
+                  const names = [];
+                  if (mod._scope) for (const [n, v] of mod._scope) names.push({ name: n, hasValue: v._value !== undefined, hasError: v._error !== undefined });
+                  names.sort((x, y) => x.name.localeCompare(y.name));
+                  return { output: JSON.stringify(names) };
+                },
+              },
+              {
+                id: "eval_code",
+                description: "Evaluate JavaScript in the page to read values / verify state. Use `return` for a value.",
+                parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] },
+                execute: async (a) => {
+                  try {
+                    const fn = new Function("return (async () => { " + String(a.code || "") + " })()");
+                    const v = await fn();
+                    return { output: typeof v === "string" ? v : JSON.stringify(v) };
+                  } catch (e) { return { output: "Error: " + (e && e.message || e) }; }
+                },
+              },
+            ];
+            // Build a DEDICATED agent session whose toolsProvider is the structured set — bypassing the live
+            // toolsView registry entirely. Why not just rewrite the registry: tool registration is REACTIVE
+            // (the hostbridge's _hostSetup depends on `currentModules`, so the agent's own create_module/
+            // define_variable recompute it and RE-REGISTER bash/Read/Write/Edit), and the registry element's
+            // `value` is a non-configurable getter/setter, so it can be neither locked nor reliably overwritten.
+            // A separate session with a fixed toolsProvider + matching prompt is race-free and exact. The driver
+            // sends through window.__rc4_structured_session instead of the engine's `session`.
+            const FIXED = tools;
+            const customSession = createAgentSession({
+              client,
+              toolsProvider: () => FIXED,
+              modelProvider: () => model,
+              systemPromptProvider: () => structuredPrompt,
+              // No shell in this arm; bash isn't in FIXED so this is never called, but the session expects it.
+              runCommand: () => ({ stdout: "", stderr: "no shell in structured arm", exitCode: 1 }),
+              noticesProvider: () => [],
+              completeToolName: "task_complete",
+              stallNudgeLimit: 2,
+              maxStepsPerTurn: 40,
+              maxTokens: 32000,
+            });
+            window.__rc4_structured_session = customSession;
+            return { ok: true, toolIds: FIXED.map((t) => t.id) };
+          },
+          { structuredPrompt: STRUCTURED_SYSTEM_PROMPT, model },
+        );
+        if (!swapped || !swapped.ok) {
+          partial.error = "structured tool-surface swap failed: " + (swapped?.error || "unknown");
+          partial.console = consoleEvents;
+          return partial;
+        }
+        console.log(`  [structured] dedicated session tools: ${swapped.toolIds.join(",")}`);
+      }
+
       // Step 4: seed workspace files (if any) before sending.
       if (evalDef?.setup?.files && Object.keys(evalDef.setup.files).length) {
         await page.evaluate(async (files) => {
@@ -259,7 +446,7 @@ export async function createDriver({
       // Step 6: send the question (raced against timeout) and build the WorldSnapshot — all in-page so
       // we have synchronous access to live runtime values.
       const snapshot = await page.evaluate(
-        async ({ question, model, timeoutMs, targetModules, followups }) => {
+        async ({ question, model, timeoutMs, targetModules, followups, useStructuredSession }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -324,7 +511,9 @@ export async function createDriver({
           const result = { ok: true, error: null, question, model, durationMs: 0, steps: 0, finishReason: null };
 
           // --- send the question, raced against the timeout ---
-          const session = findValue("session");
+          // Structured arm: send through the dedicated session (fixed structured toolsProvider), not the
+          // engine's `session` (whose registry the hostbridge keeps re-populating with bash/file tools).
+          const session = (useStructuredSession && window.__rc4_structured_session) || findValue("session");
           if (!session || typeof session.send !== "function") {
             result.ok = false;
             result.error = "session unavailable or has no send()";
@@ -487,7 +676,7 @@ export async function createDriver({
 
           return result;
         },
-        { question, model, timeoutMs, targetModules, followups: evalDef.followups || [] },
+        { question, model, timeoutMs, targetModules, followups: evalDef.followups || [], useStructuredSession: toolSurface === "structured" },
       );
 
       snapshot.console = consoleEvents;

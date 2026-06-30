@@ -41,6 +41,7 @@ function parseArgs(argv) {
   const flags = {
     only: null, ids: null, category: null, model: null, timeout: null,
     headed: false, json: null, failUnder: 0, notebook: null, legacyNoToolGate: false,
+    toolSurface: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -59,6 +60,10 @@ function parseArgs(argv) {
       // no such tool, so the default gate would time out. Outcome criteria still apply; tool-presence
       // criteria (tool_used edit_file …) are expected to score 0 by construction.
       case '--legacy-no-tool-gate': flags.legacyNoToolGate = true; break;
+      // Off-distribution arm: replace bash + Read/Write/Edit with the structured runtime API
+      // (create_module/define_variable/delete_variable/list_variables/eval_code). Measures the on- vs
+      // off-distribution "cliff". Tool-presence criteria for bash/edit_file will score 0 by construction.
+      case '--tool-surface': flags.toolSurface = argv[++i]; break;
       default: console.error(`unknown flag: ${a}`); process.exit(2);
     }
   }
@@ -102,7 +107,8 @@ async function main(argv) {
   console.log(`notebook: ${notebookPath}`);
   console.log(`evals:    ${evals.length}\n`);
 
-  const driverOpts = { notebookPath, apiKey, model, headed: flags.headed, legacyNoToolGate: flags.legacyNoToolGate };
+  const driverOpts = { notebookPath, apiKey, model, headed: flags.headed, legacyNoToolGate: flags.legacyNoToolGate, toolSurface: flags.toolSurface };
+  if (flags.toolSurface) console.log(`surface:  ${flags.toolSurface} (off-distribution)`);
   if (flags.timeout) driverOpts.timeoutMs = flags.timeout;
   const driver = await createDriver(driverOpts);
 
