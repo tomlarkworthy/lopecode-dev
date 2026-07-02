@@ -78,6 +78,7 @@ const _core = async function _core(CORE_BASE){
 // ════════════════════════════════════════════════════════════════════════════
 
 // viewof OPENROUTER_API_KEY — persisted to localStorage, never logged or sent to the fs.
+// Leave blank to run in demo mode (MiMo via the shared rate-limited gateway; see demoMode).
 // Observable source:
 //   viewof OPENROUTER_API_KEY = Inputs.bind(Inputs.password({...}), localStorageView("OPENROUTER_API_KEY"))
 const _OPENROUTER_API_KEY = function _OPENROUTER_API_KEY(Inputs,localStorageView){return(
@@ -85,25 +86,49 @@ const _OPENROUTER_API_KEY = function _OPENROUTER_API_KEY(Inputs,localStorageView
     Inputs.password({
       width: "100%",
       label: "OPENROUTER_API_KEY",
-      placeholder: "paste your OpenRouter key (sk-or-...) here"
+      placeholder: "leave blank for demo mode, or paste your OpenRouter key (sk-or-...)"
     }),
     localStorageView("OPENROUTER_API_KEY")
   )
 )};
 
-// openrouter_models — provider-namespaced ids (a bare id 404s). Re-verify against openrouter.ai/models.
+// demoMode — true when the user has NOT supplied their own key. In demo mode the agent runs
+// through the shared gateway (which injects a key server-side, allows MiMo only, and enforces a
+// per-IP daily USD budget), so the notebook works out-of-the-box with no signup.
 // Observable source:
-//   openrouter_models = ["anthropic/claude-sonnet-4", ...]
-const _openrouter_models = function _openrouter_models(){return(
-  [
-    "anthropic/claude-sonnet-4",
-    "anthropic/claude-opus-4",
-    "anthropic/claude-3.5-sonnet",
-    "openai/gpt-4.1",
-    "openai/gpt-4o",
-    "google/gemini-2.5-pro",
-    "meta-llama/llama-3.3-70b-instruct"
-  ]
+//   demoMode = !(OPENROUTER_API_KEY || "").trim()
+const _demoMode = function _demoMode(OPENROUTER_API_KEY){return(
+  !(OPENROUTER_API_KEY || "").trim()
+)};
+
+// DEMO_GATEWAY_URL — base URL of the shared openrouter-gateway Worker (MiMo-only, metered).
+// Observable source:
+//   DEMO_GATEWAY_URL = "https://openrouter-gateway.endpointservices.workers.dev/v1"
+const _DEMO_GATEWAY_URL = function _DEMO_GATEWAY_URL(){return(
+  "https://openrouter-gateway.endpointservices.workers.dev/v1"
+)};
+
+// openrouter_models — provider-namespaced ids (a bare id 404s). Re-verify against openrouter.ai/models.
+// In demo mode only the MiMo ids the gateway key permits are offered; with your own key, the full list.
+// Observable source:
+//   openrouter_models = demoMode ? ["xiaomi/mimo-v2.5-pro", ...] : ["anthropic/claude-sonnet-4", ...]
+const _openrouter_models = function _openrouter_models(demoMode){return(
+  demoMode
+    ? [
+        "xiaomi/mimo-v2.5-pro",
+        "xiaomi/mimo-v2.5"
+      ]
+    : [
+        "anthropic/claude-sonnet-4",
+        "anthropic/claude-opus-4",
+        "anthropic/claude-3.5-sonnet",
+        "openai/gpt-4.1",
+        "openai/gpt-4o",
+        "google/gemini-2.5-pro",
+        "meta-llama/llama-3.3-70b-instruct",
+        "xiaomi/mimo-v2.5-pro",
+        "xiaomi/mimo-v2.5"
+      ]
 )};
 
 // viewof model — model picker, persisted.
@@ -117,6 +142,25 @@ const _model = function _model(Inputs,openrouter_models,localStorageView){return
     }),
     localStorageView("robocoop4_model", { defaultValue: "anthropic/claude-sonnet-4" })
   )
+)};
+
+// agentConfig — resolves the provider endpoint + credential from demoMode. Demo mode targets the
+// shared gateway (no apiKey — it injects one server-side); with a key, direct OpenRouter.
+// Observable source:
+//   agentConfig = demoMode ? { baseUrl: DEMO_GATEWAY_URL } : { baseUrl: "https://openrouter.ai/api/v1", apiKey: OPENROUTER_API_KEY.trim() }
+const _agentConfig = function _agentConfig(demoMode,DEMO_GATEWAY_URL,OPENROUTER_API_KEY){return(
+  demoMode
+    ? { baseUrl: DEMO_GATEWAY_URL }
+    : { baseUrl: "https://openrouter.ai/api/v1", apiKey: OPENROUTER_API_KEY.trim() }
+)};
+
+// providerStatus — one-line banner so the active provider is always visible (fast visible feedback).
+// Observable source:
+//   providerStatus = md`...`
+const _providerStatus = function _providerStatus(demoMode,md){return(
+  demoMode
+    ? md`> 🎮 **Demo mode** — running MiMo through the shared gateway (rate-limited, ~$0.50/day). Add your OpenRouter key above to unlock all models.`
+    : md`> 🔑 **Your key** — calling OpenRouter directly.`
 )};
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -203,12 +247,13 @@ const _fullSystemPrompt = function _fullSystemPrompt(core,workdir,model){return(
 //   mkdir -p the /notebook prefix before first ls, and returns a thin run().
 // We depend on justbashBridge so window.justbash exists before the runner is built.
 // Observable source:
-//   runner = core.createNotebookRunner({ apiKey: OPENROUTER_API_KEY, model, systemPrompt: fullSystemPrompt, workdir, justbashBridge })
-const _runner = function _runner(core,OPENROUTER_API_KEY,model,fullSystemPrompt,workdir,justbashBridge){
+//   runner = core.createNotebookRunner({ ...agentConfig, model, systemPrompt: fullSystemPrompt, workdir, justbashBridge })
+const _runner = function _runner(core,agentConfig,model,fullSystemPrompt,workdir,justbashBridge){
   // justbashBridge is referenced only to order this cell after the bridge publishes window.justbash.
   void justbashBridge;
   return core.createNotebookRunner({
-    apiKey: OPENROUTER_API_KEY,
+    apiKey: agentConfig.apiKey,      // undefined in demo mode — gateway injects the key
+    baseUrl: agentConfig.baseUrl,
     model,
     systemPrompt: fullSystemPrompt,
     workdir
@@ -325,9 +370,13 @@ export default function define(runtime, observer) {
 
   $def("rc4_OPENROUTER_API_KEY", "viewof OPENROUTER_API_KEY", ["Inputs", "localStorageView"], _OPENROUTER_API_KEY);
   main.variable(observer("OPENROUTER_API_KEY")).define("OPENROUTER_API_KEY", ["Generators", "viewof OPENROUTER_API_KEY"], (G, _) => G.input(_));
-  $def("rc4_openrouter_models", "openrouter_models", [], _openrouter_models);
+  $def("rc4_demoMode", "demoMode", ["OPENROUTER_API_KEY"], _demoMode);
+  $def("rc4_DEMO_GATEWAY_URL", "DEMO_GATEWAY_URL", [], _DEMO_GATEWAY_URL);
+  $def("rc4_openrouter_models", "openrouter_models", ["demoMode"], _openrouter_models);
   $def("rc4_model", "viewof model", ["Inputs", "openrouter_models", "localStorageView"], _model);
   main.variable(observer("model")).define("model", ["Generators", "viewof model"], (G, _) => G.input(_));
+  $def("rc4_agentConfig", "agentConfig", ["demoMode", "DEMO_GATEWAY_URL", "OPENROUTER_API_KEY"], _agentConfig);
+  $def("rc4_providerStatus", "providerStatus", ["demoMode", "md"], _providerStatus);
 
   $def("rc4_workspace", "workspace", ["createWorkspace"], _workspace);
   $def("rc4_userShell", "userShell", ["workspace"], _userShell);
@@ -337,7 +386,7 @@ export default function define(runtime, observer) {
 
   $def("rc4_workdir", "workdir", [], _workdir);
   $def("rc4_fullSystemPrompt", "fullSystemPrompt", ["core", "workdir", "model"], _fullSystemPrompt);
-  $def("rc4_runner", "runner", ["core", "OPENROUTER_API_KEY", "model", "fullSystemPrompt", "workdir", "justbashBridge"], _runner);
+  $def("rc4_runner", "runner", ["core", "agentConfig", "model", "fullSystemPrompt", "workdir", "justbashBridge"], _runner);
 
   $def("rc4_prompt", "viewof prompt", ["Inputs"], _prompt);
   main.variable(observer("prompt")).define("prompt", ["Generators", "viewof prompt"], (G, _) => G.input(_));

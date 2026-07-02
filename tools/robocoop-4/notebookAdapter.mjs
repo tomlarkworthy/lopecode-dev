@@ -8,6 +8,7 @@ import { createBashTool } from './bashTool.mjs';
 
 export function createNotebookRunner({
   apiKey,
+  baseUrl,        // omit for direct OpenRouter; set to the demo gateway when the user has no key
   model,
   systemPrompt,
   workdir = '/notebook',
@@ -22,6 +23,7 @@ export function createNotebookRunner({
 
   const client = createOpenRouterClient({
     apiKey,
+    ...(baseUrl ? { baseUrl } : {}),
     defaultModel: model,
     fetch: globalThis.fetch.bind(globalThis),
     title: 'robocoop-4',
