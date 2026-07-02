@@ -64,17 +64,42 @@ function nextCommandId(): string {
 }
 
 // --- QA browser (Playwright-driven Chromium for visual QA) ---
-// Single-page model: one browser, one page, used by all qa_* tools.
+// Multi-session model: each named session owns one browser, one page, and its
+// own log buffers. All qa_* tools take an optional `session` (default
+// "default"), so parallel QA runs (subagents, two notebooks) don't collide.
 type PwBrowser = import("playwright").Browser;
 type PwPage = import("playwright").Page;
-let qaBrowser: PwBrowser | null = null;
-let qaPage: PwPage | null = null;
 type QaConsoleEntry = { ts: number; type: string; text: string; location?: string };
 type QaErrorEntry = { ts: number; message: string; stack?: string };
 type QaFailedRequest = { ts: number; url: string; method: string; failure: string };
-const qaConsole: QaConsoleEntry[] = [];
-const qaErrors: QaErrorEntry[] = [];
-const qaFailedRequests: QaFailedRequest[] = [];
+type QaSession = {
+  browser: PwBrowser;
+  page: PwPage;
+  console: QaConsoleEntry[];
+  errors: QaErrorEntry[];
+  failedRequests: QaFailedRequest[];
+};
+const DEFAULT_QA_SESSION = "default";
+const qaSessions = new Map<string, QaSession>();
+// In-flight launches. ensureQaSession awaits between the liveness check and the
+// map assignment; without this mutex two concurrent qa_open_notebook calls both
+// launch and the loser's browser is orphaned — a window qa_close can never reach.
+const qaLaunching = new Map<string, Promise<QaSession>>();
+// Per-session open serialization: two concurrent qa_open_notebook calls on the
+// same session would otherwise race page.goto on one page and the loser gets
+// net::ERR_ABORTED. Chain them instead; last caller's URL wins the final state.
+const qaOpenChains = new Map<string, Promise<unknown>>();
+
+function serializeQaOpen<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  const prev = qaOpenChains.get(name) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  qaOpenChains.set(name, next.catch(() => {}));
+  return next;
+}
+
+function qaSessionName(args: Record<string, unknown>): string {
+  return typeof args.session === "string" && args.session ? (args.session as string) : DEFAULT_QA_SESSION;
+}
 
 // Patterns dropped from qa_console_logs by default. Each was observed >5x per
 // QA session and never carries diagnostic signal. To see all logs anyway pass
@@ -114,21 +139,36 @@ function pushBounded<T>(arr: T[], item: T) {
 // override via the qa_open_notebook `permissions` arg.
 const DEFAULT_QA_PERMISSIONS: string[] = ["clipboard-read", "clipboard-write"];
 
-async function ensureQaBrowser(opts: {
+type QaLaunchOpts = {
   headless?: boolean;
   viewport?: { width: number; height: number };
   permissions?: string[];
   fakefsRoot?: string;
-} = {}): Promise<PwPage> {
-  if (qaPage && !qaPage.isClosed()) return qaPage;
+};
+
+async function ensureQaSession(name: string, opts: QaLaunchOpts = {}): Promise<QaSession> {
+  const inflight = qaLaunching.get(name);
+  if (inflight) return inflight;
+  const existing = qaSessions.get(name);
+  if (existing && !existing.page.isClosed()) return existing;
   // The page is gone but a browser may still be alive — e.g. it was closed out
   // from under us (window closed, crash) without the close handler reaching it.
   // Launching without tearing it down orphans that window, so the next qa_close
-  // (which only closes the current qaBrowser) can never reach it.
-  if (qaBrowser) await closeQaBrowser();
+  // (which only closes tracked sessions) could never reach it.
+  if (existing) await closeQaSession(name);
+  const launch = launchQaSession(name, opts);
+  qaLaunching.set(name, launch);
+  try {
+    return await launch;
+  } finally {
+    qaLaunching.delete(name);
+  }
+}
+
+async function launchQaSession(name: string, opts: QaLaunchOpts): Promise<QaSession> {
   const { chromium } = await import("playwright");
-  qaBrowser = await chromium.launch({ headless: opts.headless ?? false });
-  const ctx = await qaBrowser.newContext({ viewport: opts.viewport ?? { width: 1280, height: 800 } });
+  const browser = await chromium.launch({ headless: opts.headless ?? false });
+  const ctx = await browser.newContext({ viewport: opts.viewport ?? { width: 1280, height: 800 } });
   const perms = opts.permissions ?? DEFAULT_QA_PERMISSIONS;
   if (perms.length) {
     try { await ctx.grantPermissions(perms); }
@@ -148,46 +188,59 @@ async function ensureQaBrowser(opts: {
     process.stderr.write(`lopecode-channel: fakefs root = ${rootAbs}${opts.fakefsRoot ? "" : " (default)"}\n`);
   }
 
+  const session: QaSession = { browser, page, console: [], errors: [], failedRequests: [] };
   page.on("console", (m) => {
     const loc = m.location();
-    pushBounded(qaConsole, {
+    pushBounded(session.console, {
       ts: Date.now(),
       type: m.type(),
       text: m.text(),
       location: loc.url ? `${loc.url}:${loc.lineNumber}:${loc.columnNumber}` : undefined,
     });
   });
-  page.on("pageerror", (e) => pushBounded(qaErrors, { ts: Date.now(), message: e.message, stack: e.stack }));
-  page.on("requestfailed", (r) => pushBounded(qaFailedRequests, {
+  page.on("pageerror", (e) => pushBounded(session.errors, { ts: Date.now(), message: e.message, stack: e.stack }));
+  page.on("requestfailed", (r) => pushBounded(session.failedRequests, {
     ts: Date.now(),
     url: r.url(),
     method: r.method(),
     failure: r.failure()?.errorText ?? "",
   }));
   page.on("close", () => {
-    if (qaPage !== page) return;
-    qaPage = null;
-    // Single-page model: a dead page means the browser is done. Tear it down
+    // One page per session: a dead page means the session is done. Tear it down
     // now so a stale window can't linger and the next open starts clean.
-    // (Fires during closeQaBrowser too, but that already nulled qaPage so the
-    // guard above no-ops — no double close.)
-    const b = qaBrowser;
-    qaBrowser = null;
-    currentFakefsRoot = null;
-    if (b) b.close().catch(() => {});
+    // (Fires during closeQaSession too, but that already removed the session so
+    // the guard below no-ops — no double close.)
+    if (qaSessions.get(name) !== session) return;
+    qaSessions.delete(name);
+    if (qaSessions.size === 0) currentFakefsRoot = null;
+    session.browser.close().catch(() => {});
   });
-  qaPage = page;
-  return page;
+  qaSessions.set(name, session);
+  return session;
 }
 
-async function closeQaBrowser(): Promise<void> {
-  const b = qaBrowser;
-  qaPage = null;
-  qaBrowser = null;
-  currentFakefsRoot = null;
-  if (b) {
-    try { await b.close(); } catch { /* ignore */ }
-  }
+// browser.close() can hang indefinitely when the renderer is wedged (e.g.
+// paused on a `debugger;` statement). Never let that hang the MCP call.
+const QA_CLOSE_TIMEOUT_MS = 10_000;
+
+async function closeBrowserGuarded(b: PwBrowser, label: string): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = await Promise.race([
+    b.close().then(() => false, () => false),
+    new Promise<boolean>((res) => { timer = setTimeout(() => res(true), QA_CLOSE_TIMEOUT_MS); }),
+  ]);
+  clearTimeout(timer);
+  if (timedOut) process.stderr.write(`lopecode-channel: ${label}: browser.close() timed out after ${QA_CLOSE_TIMEOUT_MS}ms\n`);
+  return !timedOut;
+}
+
+// Returns false if the browser didn't confirm closing within the timeout.
+async function closeQaSession(name: string): Promise<boolean> {
+  const s = qaSessions.get(name);
+  if (!s) return true;
+  qaSessions.delete(name);
+  if (qaSessions.size === 0) currentFakefsRoot = null;
+  return closeBrowserGuarded(s.browser, `qa session '${name}'`);
 }
 
 // --- MCP Server ---
@@ -309,6 +362,8 @@ Use run_tests to execute all test_* cells.
   })()\`
   \`\`\`
 - If \`qa_screenshot\` times out shortly after \`qa_open_notebook\`, the page is still loading; wait or call \`qa_console_logs\` first (it doesn't block on render).
+- Parallel QA: every qa_* tool takes an optional \`session\` name (default 'default'). Distinct sessions are fully independent browsers with their own log buffers — use them to QA two notebooks (or two states of one notebook) side by side. \`qa_close\` with no args closes all sessions.
+- Re-opening a URL in an existing session always does a full document reload (via an about:blank hop), so edits to the HTML on disk are picked up — no need to qa_close first.
 
 ## File-sync mirror tree
 
@@ -839,16 +894,18 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     // QA tools: Playwright-driven Chromium for visual notebook QA.
-    // Single browser, single page. qa_open_notebook launches it; subsequent qa_* tools act on it.
-    // The same window pairs back via cc=TOKEN, so list_cells/get_variable/watch_variable
-    // also work against this browser.
+    // One browser + one page per named session (default "default"); pass `session`
+    // to run several independent QA browsers in parallel.
+    // Each window pairs back via cc=TOKEN, so list_cells/get_variable/watch_variable
+    // also work against these browsers.
     {
       name: "qa_open_notebook",
-      description: "Launch a Playwright-driven Chromium and navigate to the notebook URL. Pass the same file:// URL with #...&cc=TOKEN you would use for open_url. Subsequent qa_* tools act on this page; the page also pairs back so introspection tools (list_cells, get_variable, watch_variable) target it. Headed by default so you can see what Claude sees. Default permissions ['clipboard-read','clipboard-write'] are auto-granted (override via permissions arg; pass [] to grant nothing).",
+      description: "Launch a Playwright-driven Chromium and navigate to the notebook URL. Pass the same file:// URL with #...&cc=TOKEN you would use for open_url. Subsequent qa_* tools act on this page; the page also pairs back so introspection tools (list_cells, get_variable, watch_variable) target it. Headed by default so you can see what Claude sees. Default permissions ['clipboard-read','clipboard-write'] are auto-granted (override via permissions arg; pass [] to grant nothing). Re-opening a URL always performs a full document reload (fresh fetch from disk). Pass a distinct `session` to open a second, independent browser in parallel.",
       inputSchema: {
         type: "object",
         properties: {
           url: { type: "string", description: "Full notebook URL including hash fragment and cc=TOKEN" },
+          session: { type: "string", description: "QA session name (default 'default'). Each session is an independent browser window; use distinct names for parallel QA." },
           headless: { type: "boolean", description: "Run headless (default: false)" },
           width: { type: "number", description: "Viewport width (default: 1280)" },
           height: { type: "number", description: "Viewport height (default: 800)" },
@@ -872,6 +929,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
           full_page: { type: "boolean", description: "Capture entire scrollable page (default: false)" },
           format: { type: "string", description: "jpeg|png (default: jpeg)" },
           quality: { type: "number", description: "JPEG quality 1-100 (default: 60)" },
@@ -893,6 +951,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
           x: { type: "number" },
           y: { type: "number" },
           button: { type: "string", description: "left|right|middle (default: left)" },
@@ -907,6 +966,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
           text: { type: "string" },
           delay: { type: "number", description: "Per-keystroke delay in ms (default: 0)" },
         },
@@ -918,7 +978,10 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       description: "Press a single key or key combo (e.g. 'Enter', 'Tab', 'Escape', 'Meta+R', 'Control+A').",
       inputSchema: {
         type: "object",
-        properties: { key: { type: "string" } },
+        properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
+          key: { type: "string" },
+        },
         required: ["key"],
       },
     },
@@ -928,6 +991,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
           dx: { type: "number", description: "Horizontal delta" },
           dy: { type: "number", description: "Vertical delta" },
         },
@@ -940,6 +1004,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
           width: { type: "number" },
           height: { type: "number" },
         },
@@ -952,6 +1017,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
+          session: { type: "string", description: "QA session name (default 'default')" },
           since: { type: "number", description: "Only return entries with ts > this epoch ms (default: 0)" },
           clear: { type: "boolean", description: "Clear buffers after returning (default: true)" },
           types: {
@@ -973,8 +1039,13 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "qa_close",
-      description: "Close the QA browser and release resources.",
-      inputSchema: { type: "object", properties: {} },
+      description: "Close a QA browser session and release its resources. With no `session`, closes ALL open QA sessions.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          session: { type: "string", description: "QA session to close. Omit to close all sessions." },
+        },
+      },
     },
     // Append dynamic tools from connected notebooks
     ...Array.from(dynamicTools.values()).flat().map(t => ({
@@ -1053,39 +1124,53 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       return { content: [{ type: "text", text: `Opened (${cmd[0].split("/").pop()}): ${url}` }] };
     }
 
-    // --- QA tools (Playwright-driven Chromium, single-page) ---
+    // --- QA tools (Playwright-driven Chromium, one page per named session) ---
     if (req.params.name?.startsWith("qa_")) {
+      const sessionName = qaSessionName(args);
       try {
         if (req.params.name === "qa_open_notebook") {
           const url = args.url as string;
           if (!url) return { content: [{ type: "text", text: "url is required" }], isError: true };
-          const page = await ensureQaBrowser({
-            headless: (args.headless as boolean) ?? false,
-            viewport: {
-              width: (args.width as number) ?? 1280,
-              height: (args.height as number) ?? 800,
-            },
-            permissions: Array.isArray(args.permissions) ? (args.permissions as string[]) : undefined,
-            fakefsRoot: typeof args.fakefs_root === "string" ? (args.fakefs_root as string) : undefined,
+          return await serializeQaOpen(sessionName, async () => {
+            const session = await ensureQaSession(sessionName, {
+              headless: (args.headless as boolean) ?? false,
+              viewport: {
+                width: (args.width as number) ?? 1280,
+                height: (args.height as number) ?? 800,
+              },
+              permissions: Array.isArray(args.permissions) ? (args.permissions as string[]) : undefined,
+              fakefsRoot: typeof args.fakefs_root === "string" ? (args.fakefs_root as string) : undefined,
+            });
+            const waitUntil = (args.wait_until as "load" | "domcontentloaded" | "networkidle") ?? "load";
+            const page = session.page;
+            // QA URLs carry a #hash, and goto() to a URL that differs only in the
+            // fragment (or is identical) is a same-document navigation — the HTML
+            // is never refetched, so a re-open serves the previous render. Hop
+            // through about:blank to force a full document load from disk.
+            if (page.url() !== "about:blank") await page.goto("about:blank");
+            await page.goto(url, { waitUntil });
+            return { content: [{ type: "text", text: `Opened in QA browser (session '${sessionName}'): ${url}` }] };
           });
-          const waitUntil = (args.wait_until as "load" | "domcontentloaded" | "networkidle") ?? "load";
-          await page.goto(url, { waitUntil });
-          return { content: [{ type: "text", text: `Opened in QA browser: ${url}` }] };
         }
 
         if (req.params.name === "qa_close") {
-          await closeQaBrowser();
-          qaConsole.length = 0;
-          qaErrors.length = 0;
-          qaFailedRequests.length = 0;
-          return { content: [{ type: "text", text: "QA browser closed" }] };
+          const names = typeof args.session === "string" && args.session
+            ? [args.session as string]
+            : [...qaSessions.keys()];
+          if (names.length === 0) return { content: [{ type: "text", text: "No QA sessions open." }] };
+          const results = await Promise.all(names.map(async (n) => ({ n, clean: await closeQaSession(n) })));
+          const msgs = results.map(r => r.clean
+            ? `closed '${r.n}'`
+            : `'${r.n}' close timed out after ${QA_CLOSE_TIMEOUT_MS}ms — window may linger (a wedged renderer, e.g. a debugger; pause, blocks close; kill Chromium manually if it persists)`);
+          return { content: [{ type: "text", text: `QA: ${msgs.join("; ")}` }] };
         }
 
-        // All remaining qa_* tools require an open page
-        if (!qaPage || qaPage.isClosed()) {
-          return { content: [{ type: "text", text: "No QA page open. Call qa_open_notebook first." }], isError: true };
+        // All remaining qa_* tools require an open page in the session
+        const session = qaSessions.get(sessionName);
+        if (!session || session.page.isClosed()) {
+          return { content: [{ type: "text", text: `No QA page open for session '${sessionName}'. Call qa_open_notebook first.` }], isError: true };
         }
-        const page = qaPage;
+        const page = session.page;
 
         if (req.params.name === "qa_screenshot") {
           const format = ((args.format as string) ?? "jpeg").toLowerCase() === "png" ? "png" : "jpeg";
@@ -1158,18 +1243,18 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           }
           const isNoise = (text: string) => noiseRegexes.some(r => r.test(text));
           let dropped_noise = 0;
-          const console_ = qaConsole.filter(e => {
+          const console_ = session.console.filter(e => {
             if (e.ts <= since) return false;
             if (typeFilter?.length && !typeFilter.includes(e.type)) return false;
             if (isNoise(e.text)) { dropped_noise++; return false; }
             return true;
           });
-          const errors = qaErrors.filter(e => e.ts > since);
-          const failed_requests = qaFailedRequests.filter(e => e.ts > since);
+          const errors = session.errors.filter(e => e.ts > since);
+          const failed_requests = session.failedRequests.filter(e => e.ts > since);
           if (clear) {
-            qaConsole.length = 0;
-            qaErrors.length = 0;
-            qaFailedRequests.length = 0;
+            session.console.length = 0;
+            session.errors.length = 0;
+            session.failedRequests.length = 0;
           }
           return {
             content: [{

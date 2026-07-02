@@ -78,6 +78,6 @@ Improving the *agents themselves* is a separate, human-gated step: `/lopeteam-re
 
 ## Notes
 
-- One notebook per run — the channel is single-page. To work two notebooks, run two sessions.
+- One notebook per run — the workflow's state dir, reports, and HTML rewrites are scoped to one target. (The QA browser itself is no longer a constraint: `qa_*` tools take a `session` name for parallel independent browsers.)
 - Close any QA browser before a `sync-module` rewrite of the same file (avoids the connect/disconnect thrash).
 - Keep critic output terse and evidence-backed; cap the backlog so the team doesn't manufacture low-value busywork (value < 2 items are noted in the report, not worked).

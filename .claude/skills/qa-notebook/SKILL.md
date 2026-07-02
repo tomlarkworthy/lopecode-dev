@@ -10,7 +10,7 @@ A QA pass: open the notebook in a Playwright-driven Chromium, evaluate it agains
 
 ## When to use
 
-User asks to QA, smoke-test, exercise, or hunt bugs in a specific notebook HTML file. **Run multiple QA passes in parallel by spawning separate Claude Code sessions** (each with its own channel + browser). Don't try to QA two notebooks from one session — the channel is single-page.
+User asks to QA, smoke-test, exercise, or hunt bugs in a specific notebook HTML file. **Parallel QA within one session works**: every `qa_*` tool takes an optional `session` name (default `default`); distinct sessions are fully independent browsers with their own console-log buffers. Give each notebook (or each subagent) its own session name. `qa_close` with no args closes all sessions; `qa_close(session)` closes one. Re-opening a URL always does a full document reload (edits on disk are picked up — no need to `qa_close` first).
 
 ## Before you start: load the criteria
 

@@ -15,7 +15,7 @@ If the bug came from a GitHub issue, it stays OPEN until the human merges — `F
 
 ## When to use
 
-User provides **either** a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomlarkworthy/lopebooks#N`) **or** a free-form bug description and asks for a fix. **One bug-fix at a time per session** — the channel is single-page and the workflow rewrites HTML files that don't compose well in parallel. **Do not invoke this skill for QA-only requests** — use `qa-notebook` for those.
+User provides **either** a GitHub issue URL (typically `tomlarkworthy/lopecode#N` or `tomlarkworthy/lopebooks#N`) **or** a free-form bug description and asks for a fix. **One bug-fix at a time per session** — the workflow rewrites HTML files that don't compose well in parallel. (The QA browser is no longer the bottleneck: `qa_*` tools take a `session` name for parallel independent browsers.) **Do not invoke this skill for QA-only requests** — use `qa-notebook` for those.
 
 ### `<id>` and `<slug>` conventions
 
