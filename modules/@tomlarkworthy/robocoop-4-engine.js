@@ -131,17 +131,25 @@ const _openrouter_catalog = function _openrouter_catalog(){
   const timed = new Promise((res) => window.setTimeout(() => res(fb()), 5000));
   return Promise.race([fetched, timed]);
 };
-const _openrouter_models = function _openrouter_models(openrouter_catalog){ return openrouter_catalog.ids; };
+// Demo mode: no personal key ⇒ route through the shared MiMo gateway (see _client). The gateway key
+// permits only MiMo, so the picker (and thus the effective model) is constrained to MiMo ids.
+const _demoMode = function _demoMode(OPENROUTER_API_KEY){ return !String(OPENROUTER_API_KEY || "").trim(); };
+const _openrouter_models = function _openrouter_models(openrouter_catalog, demoMode){
+  return demoMode ? ["xiaomi/mimo-v2.5-pro", "xiaomi/mimo-v2.5"] : openrouter_catalog.ids;
+};
 const _openrouter_vision = function _openrouter_vision(openrouter_catalog){ return openrouter_catalog.vision; };
 
-const _model = function _model(Inputs, openrouter_models, openrouter_vision, localStorageView){
+const _model = function _model(Inputs, openrouter_models, openrouter_vision, localStorageView, demoMode){
   // Bind to the persisted choice, and ALWAYS keep that choice a selectable <option> — even when the live
   // catalog fetch timed out / returned the curated fallback that omits it. A model not in the option list
   // (e.g. xiaomi/mimo-v2.5-pro after an 8s catalog timeout) leaves the <select> value EMPTY, so chat()
   // sends an empty model → OpenRouter 400 "No models provided" (the first-turn race). Union fixes that.
   const stored = localStorageView("robocoop4_model", { defaultValue: "anthropic/claude-sonnet-4" });
-  const sel = String(stored.value || "anthropic/claude-sonnet-4");
-  const options = Array.from(new Set([sel, ...openrouter_models]));
+  let sel = String(stored.value || "anthropic/claude-sonnet-4");
+  // Demo mode reaches only MiMo (gateway guardrail); coerce any other stored choice, and DON'T union it in
+  // (a stale sonnet choice would 404 through the gateway).
+  if (demoMode && !openrouter_models.includes(sel)) sel = openrouter_models[0];
+  const options = demoMode ? openrouter_models.slice() : Array.from(new Set([sel, ...openrouter_models]));
   return Inputs.bind(
     Inputs.select(options, {
       label: "model",
@@ -159,11 +167,16 @@ const _rc4_systemPrompt = function _rc4_systemPrompt(Inputs, systemPrompt, compo
   return Inputs.textarea({ label: "system prompt", rows: 4, value: base, width: "100%" });
 };
 
-// OpenRouter client; null until a key is present (session handles the null case).
+// OpenRouter client. With a personal key, calls OpenRouter directly. With no key (DEMO MODE) it routes
+// through the shared rate-limited gateway, which injects a key server-side and permits only MiMo — so the
+// notebook works out-of-the-box with no signup. fetch defaults to the core's globalThis.fetch.
 const _client = function _client(OPENROUTER_API_KEY, createOpenRouterClient){
   const key = String(OPENROUTER_API_KEY || "").trim();
-  if (!key) return null;
-  // fetch defaults to the core's globalThis.fetch — no window.* in the notebook layer.
+  if (!key) return createOpenRouterClient({
+    baseUrl: "https://openrouter-gateway.endpointservices.workers.dev/v1",
+    referer: "https://lopecode.com",
+    title: "robocoop-4"
+  });
   return createOpenRouterClient({
     apiKey: key,
     referer: "https://lopecode.com",
@@ -241,10 +254,11 @@ export default function define(runtime, observer) {
   $def("rc4e_key_view", "viewof OPENROUTER_API_KEY", ["Inputs", "localStorageView"], _OPENROUTER_API_KEY);
   main.variable(observer("OPENROUTER_API_KEY")).define("OPENROUTER_API_KEY", ["Generators", "viewof OPENROUTER_API_KEY"], (G, _) => G.input(_));
 
+  $def("rc4e_demoMode", "demoMode", ["OPENROUTER_API_KEY"], _demoMode);
   $def("rc4e_catalog", "openrouter_catalog", [], _openrouter_catalog);
-  $def("rc4e_models", "openrouter_models", ["openrouter_catalog"], _openrouter_models);
+  $def("rc4e_models", "openrouter_models", ["openrouter_catalog", "demoMode"], _openrouter_models);
   $def("rc4e_vision", "openrouter_vision", ["openrouter_catalog"], _openrouter_vision);
-  $def("rc4e_model_view", "viewof model", ["Inputs", "openrouter_models", "openrouter_vision", "localStorageView"], _model);
+  $def("rc4e_model_view", "viewof model", ["Inputs", "openrouter_models", "openrouter_vision", "localStorageView", "demoMode"], _model);
   main.variable(observer("model")).define("model", ["Generators", "viewof model"], (G, _) => G.input(_));
 
   $def("rc4e_prompt_view", "viewof rc4_systemPrompt", ["Inputs", "systemPrompt", "composeFooter"], _rc4_systemPrompt);
