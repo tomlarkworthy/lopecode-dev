@@ -46,3 +46,7 @@ test-sync/
 
 # Claude Code runtime locks
 .claude/scheduled_tasks.lock
+
+# robocoop-4 eval transcripts / sweep results (hold full conversations; key-prone — keep untracked)
+tools/robocoop-4/eval/live/results/
+scratch/blogs/**/data/*sweep*.json

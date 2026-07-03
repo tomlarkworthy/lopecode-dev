@@ -167,7 +167,13 @@ async function main(argv) {
 
   const out = { model, when: new Date().toISOString(), evals: scoredAll, gepa };
   mkdirSync(dirname(jsonPath), { recursive: true });
-  writeFileSync(jsonPath, JSON.stringify(out, null, 2));
+  // Transcripts/console can echo the key; redact any OpenRouter token before persisting.
+  const redact = (s) => {
+    let r = s.replace(/sk-or-[A-Za-z0-9-]{8,}/g, "sk-or-REDACTED");
+    if (apiKey) r = r.split(apiKey).join("sk-or-REDACTED");
+    return r;
+  };
+  writeFileSync(jsonPath, redact(JSON.stringify(out, null, 2)));
   console.log(`\nwrote ${jsonPath}`);
 
   const mean = scoredAll.reduce((s, e) => s + e.aggregate, 0) / scoredAll.length;
