@@ -286,6 +286,6 @@ export default function define(runtime, observer) {
 
   // agent terminal first, chat below — same module, stacked in the pane.
   $def("rc4_agentTerminal", null, ["html", "terminal", "rc4_agentShell"], _agentTerminal);
-  $def("rc4_facade", null, ["html", "md", "session", "keyView", "modelView", "promptView", "summarizeTurn", "toolLabel"], _facade);
+  $def("rc4_facade", "robocoop_4", ["html", "md", "session", "keyView", "modelView", "promptView", "summarizeTurn", "toolLabel"], _facade);
   return main;
 }
