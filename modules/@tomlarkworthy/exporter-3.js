@@ -1034,7 +1034,7 @@ body .inputs-3a86ea-table thead th {
     blocks,
     cssUrls,
     bootloader,
-    title: task.options.title || 'Lopecode notebook',
+    title: task.options.title || (typeof document !== 'undefined' && document.title) || 'Lopecode notebook',
     description: task.options.description,
     image: task.options.image,
     head: task.options.head
