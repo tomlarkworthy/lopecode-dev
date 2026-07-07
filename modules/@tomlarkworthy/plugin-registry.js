@@ -157,16 +157,18 @@ const _pr14 = function _testsHeader(md){return(
 md`## Tests
 
 Async assertions over a fresh \`createPlugins()\`. The full suite runs headlessly in
-\`tests/notebooks/plugin-registry.test.js\`. Each pumps a \`get\` Generator via \`await gen.next().value\`.`
+\`tests/notebooks/plugin-registry.test.js\`. Each pumps a \`get\` Generator via \`await (await gen.next()).value\`
+— the double \`await\` works under both the legacy runtime (\`observe\` is a sync iterator of promises) and
+Observable 2.0 (\`observe\` is an async generator, so \`gen.next()\` is itself a promise).`
 )};
 
 const _pr15 = function _test_get_reflects_add(createPlugins){return(
 (async () => {
   const p = createPlugins();
   const gen = p.get("x");
-  if ((await gen.next().value).length !== 0) throw new Error("new set should start empty");
+  if ((await (await gen.next()).value).length !== 0) throw new Error("new set should start empty");
   p.add("x", 1);
-  const after = await gen.next().value;
+  const after = await (await gen.next()).value;
   if (after.length !== 1 || after[0] !== 1) throw new Error("get did not reflect the add");
   gen.return();
   return "✅ get(name) yields the named set and updates on add";
@@ -177,11 +179,11 @@ const _pr16 = function _test_multi_provider_and_convergence(createPlugins){retur
 (async () => {
   const p = createPlugins();
   const a = p.get("x"), b = p.get("x");   // two independent consumers
-  await a.next().value; await b.next().value;
+  await (await a.next()).value; await (await b.next()).value;
   p.add("x", "one");                       // provider 1
   p.add("x", "two");                       // provider 2
-  const va = (await a.next().value).slice().sort().join(",");
-  const vb = (await b.next().value).slice().sort().join(",");
+  const va = (await (await a.next()).value).slice().sort().join(",");
+  const vb = (await (await b.next()).value).slice().sort().join(",");
   if (va !== "one,two" || vb !== "one,two") throw new Error("consumers did not converge to the full set");
   a.return(); b.return();
   return "✅ multiple providers accumulate; all consumers converge";
@@ -192,13 +194,13 @@ const _pr17 = function _test_remove_and_names_isolated(createPlugins){return(
 (async () => {
   const p = createPlugins();
   const gx = p.get("x"), gy = p.get("y");
-  await gx.next().value; await gy.next().value;
+  await (await gx.next()).value; await (await gy.next()).value;
   const remove = p.add("x", 1);
   p.add("y", 2);
-  if ((await gx.next().value).join() !== "1") throw new Error("x set wrong");
-  if ((await gy.next().value).join() !== "2") throw new Error("names are not isolated");
+  if ((await (await gx.next()).value).join() !== "1") throw new Error("x set wrong");
+  if ((await (await gy.next()).value).join() !== "2") throw new Error("names are not isolated");
   remove();
-  if ((await gx.next().value).length !== 0) throw new Error("remove() did not take the value out");
+  if ((await (await gx.next()).value).length !== 0) throw new Error("remove() did not take the value out");
   gx.return(); gy.return();
   return "✅ remove() works and names are isolated";
 })()
@@ -210,11 +212,11 @@ const _pr18 = function _test_invalidation_and_no_leak(createPlugins){return(
   let settle;
   p.add("x", 1, { invalidation: new Promise(r => (settle = r)) });
   const gen = p.get("x");
-  if ((await gen.next().value).length !== 1) throw new Error("value should be present before invalidation");
+  if ((await (await gen.next()).value).length !== 1) throw new Error("value should be present before invalidation");
   if (p.listenerCount("x") !== 1) throw new Error("get should have registered a listener");
   settle();
   await Promise.resolve(); await Promise.resolve();
-  if ((await gen.next().value).length !== 0) throw new Error("invalidation did not remove the value");
+  if ((await (await gen.next()).value).length !== 0) throw new Error("invalidation did not remove the value");
   gen.return();
   if (p.listenerCount("x") !== 0) throw new Error("disposing the Generator leaked a listener");
   return "✅ {invalidation} auto-removes and get() leaks no listeners";
