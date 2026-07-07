@@ -77,6 +77,9 @@ function parseArgs(argv) {
       options.module = args[++i];
     } else if (arg === '--cells' && args[i + 1]) {
       options.cells = args[++i].split(',').map(s => s.trim()).filter(Boolean);
+    } else if (arg === '--cells-match-body' && args[i + 1]) {
+      if (!options.cellsMatchBody) options.cellsMatchBody = [];
+      options.cellsMatchBody.push(args[++i]);
     } else if (arg === '--no-delete') {
       options.noDelete = true;
     } else if (arg === '--target' && args[i + 1]) {
@@ -106,6 +109,10 @@ Options:
   --module <name>     Module to extract cells from (required)
   --target <url>      Observable notebook URL or ID to push to (required)
   --cells <names>     Comma-separated cell names to push (default: all)
+  --cells-match-body <substring>
+                      Modify the one existing cell whose body contains <substring>, using the one
+                      decompiled cell that also contains it. Use for anonymous cells (no name).
+                      Repeat the flag to push several. Modify-only — never inserts.
   --no-delete         Skip deleting old cells
   --dry-run           List cells that would be pushed without pushing
   --verbose           Show detailed WS messages
@@ -121,8 +128,8 @@ Options:
     }
   }
 
-  if (options.cells && options.noDelete) {
-    console.error('Error: --cells already does in-place modify; combining with --no-delete inserts duplicates instead of replacing. Drop --no-delete.');
+  if ((options.cells || options.cellsMatchBody) && options.noDelete) {
+    console.error('Error: --cells / --cells-match-body already do in-place modify; combining with --no-delete inserts duplicates instead of replacing. Drop --no-delete.');
     process.exit(1);
   }
 
@@ -157,46 +164,75 @@ function parseNotebook(html) {
   return modules;
 }
 
-function parseVariableGroups(content) {
+function parseVariableGroups(content, acorn) {
   const groups = [];
   const seen = new Set();
 
   const cellFunctions = new Map();
-  // Observable's compiler emits cell function definitions in two forms:
-  //   const _N = [async] function[*] inner(...) { ... }   ← group 1 = const name
-  //   [async] function[*] _N(...) { ... }                  ← group 5 = bare name (must start with _)
-  const cellRegex = /(?:const\s+(_[a-zA-Z0-9_]+)\s*=\s*(async\s+)?function(\*)?\s+[a-zA-Z0-9_]+\s*\(([^)]*)\)\s*\{|(async\s+)?function(\*)?\s+(_[a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{)/g;
   let match;
-  while ((match = cellRegex.exec(content)) !== null) {
-    const isConstForm = !!match[1];
-    const funcName = isConstForm ? match[1] : match[7];
-    const isAsync = isConstForm ? !!match[2] : !!match[5];
-
-    const headerEnd = match.index + match[0].length;
-    let braceCount = 1;
-    let endIndex = headerEnd;
-    while (braceCount > 0 && endIndex < content.length) {
-      if (content[endIndex] === '{') braceCount++;
-      else if (content[endIndex] === '}') braceCount--;
-      endIndex++;
+  // Observable's compiler emits cell function definitions in two forms:
+  //   const _N = [async] function[*] inner(...) { ... }
+  //   [async] function[*] _N(...) { ... }                 (bare name, starts with _)
+  // Split them off with the SAME acorn the toolchain decompiler parses with, taking
+  // each cell function's exact AST source range. This replaces brace-counting, which
+  // miscounts a `{`/`}` inside a string, regex char-class or comment and merges the
+  // cell with the ones after it — the merged blob then fails to decompile and the cell
+  // is silently dropped. Using the decompiler's own acorn also guarantees the split and
+  // the decompile agree (a cell one parser accepts can't be dropped by the other).
+  // The define/$def/import registrations below are found by regex. They must scan CODE only:
+  // a doc/prompt cell that is a template literal (e.g. the engine `systemPrompt`) can contain
+  // EXAMPLE `main.define("module @user/other", ...)` text, which the import regex would otherwise
+  // reconstruct into a real (broken) import cell. `scanContent` blanks template-literal chunks and
+  // comment interiors (positions preserved) so only real code matches; plain-quoted string args of
+  // genuine registrations stay intact.
+  let scanContent = content;
+  if (acorn) {
+    const comments = [], tokens = [];
+    let ast;
+    const opts = (t) => ({ ecmaVersion: 'latest', sourceType: t, onComment: comments, onToken: tokens });
+    try { ast = acorn.parse(content, opts('module')); }
+    catch (e) { comments.length = 0; tokens.length = 0; ast = acorn.parse(content, opts('script')); }
+    for (const node of ast.body) {
+      if (node.type === 'VariableDeclaration') {
+        for (const d of node.declarations) {
+          if (d.id && d.id.type === 'Identifier' && d.id.name.startsWith('_') && d.init &&
+              (d.init.type === 'FunctionExpression' || d.init.type === 'ArrowFunctionExpression')) {
+            cellFunctions.set(d.id.name, content.slice(d.init.start, d.init.end));
+          }
+        }
+      } else if (node.type === 'FunctionDeclaration' && node.id && node.id.name.startsWith('_')) {
+        cellFunctions.set(node.id.name, content.slice(node.start, node.end));
+      }
     }
-
-    let fnStart;
-    if (isConstForm) {
-      const keyword = isAsync ? 'async' : 'function';
-      fnStart = match.index + match[0].indexOf(keyword);
-    } else {
-      fnStart = match.index;
+    const buf = content.split('');
+    const blank = (s, e) => { for (let i = s; i < e; i++) if (buf[i] !== '\n' && buf[i] !== '\r') buf[i] = ' '; };
+    for (const c of comments) blank(c.start, c.end);
+    for (const t of tokens) if (t.type === acorn.tokTypes.template) blank(t.start, t.end);
+    scanContent = buf.join('');
+  } else {
+    // Fallback for callers that don't supply acorn: original regex + naive brace scan.
+    const cellRegex = /(?:const\s+(_[a-zA-Z0-9_]+)\s*=\s*(async\s+)?function(\*)?\s+[a-zA-Z0-9_]+\s*\(([^)]*)\)\s*\{|(async\s+)?function(\*)?\s+(_[a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{)/g;
+    while ((match = cellRegex.exec(content)) !== null) {
+      const isConstForm = !!match[1];
+      const funcName = isConstForm ? match[1] : match[7];
+      const isAsync = isConstForm ? !!match[2] : !!match[5];
+      const headerEnd = match.index + match[0].length;
+      let braceCount = 1, endIndex = headerEnd;
+      while (braceCount > 0 && endIndex < content.length) {
+        if (content[endIndex] === '{') braceCount++;
+        else if (content[endIndex] === '}') braceCount--;
+        endIndex++;
+      }
+      const fnStart = isConstForm ? match.index + match[0].indexOf(isAsync ? 'async' : 'function') : match.index;
+      cellFunctions.set(funcName, content.slice(fnStart, endIndex));
     }
-    const fullFn = content.slice(fnStart, endIndex);
-    cellFunctions.set(funcName, fullFn);
   }
 
   // Collect all defines with their source position so we can sort by order
   const allDefinesWithPos = [];
 
   const defineRegex = /main\.variable\(observer\(([^)]*)\)\)\.define\(([^;]+)\);/g;
-  while ((match = defineRegex.exec(content)) !== null) {
+  while ((match = defineRegex.exec(scanContent)) !== null) {
     const observerArg = match[1].trim();
     const defineBody = match[2].trim();
 
@@ -234,7 +270,7 @@ function parseVariableGroups(content) {
   }
 
   const defRegex = /\$def\("([^"]+)",\s*(?:"([^"]*)"|null),\s*\[([^\]]*)\],\s*(_[a-zA-Z0-9_]+)\)/g;
-  while ((match = defRegex.exec(content)) !== null) {
+  while ((match = defRegex.exec(scanContent)) !== null) {
     const varName = match[2] ?? null;
     const inputsStr = match[3];
     const funcRefName = match[4];
@@ -254,7 +290,7 @@ function parseVariableGroups(content) {
   const importRegex = /main\.define\("([^"]+)",\s*\["module\s+([^"]+)",\s*"@variable"\],\s*\([^)]+\)\s*=>\s*v\.import\(([^)]+)\)/g;
   const importsByModule = new Map();
 
-  while ((match = importRegex.exec(content)) !== null) {
+  while ((match = importRegex.exec(scanContent)) !== null) {
     const localName = match[1];
     const moduleName = match[2];
     const importArgs = match[3];
@@ -373,18 +409,19 @@ function parseVariableGroups(content) {
   return { groups, preformatted };
 }
 
-async function decompileVariables(variableGroups, options) {
+// Load the toolchain notebook once and expose the pieces the push needs: `decompile`
+// (compiled cell → Observable source) and `acorn` (the same parser decompile uses, so
+// the cell splitter and the decompiler agree). Caller must invoke dispose().
+async function loadToolchain(options) {
   const toolchainNotebook = path.resolve('lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html');
   if (!fs.existsSync(toolchainNotebook)) {
     throw new Error(`Toolchain notebook not found: ${toolchainNotebook}`);
   }
 
-  log('Loading toolchain for decompilation (Node runtime)...');
+  log('Loading toolchain (Node runtime)...');
 
   const rejectionHandler = (reason) => {
-    if (options.verbose) {
-      console.error(`[suppressed rejection] ${reason}`);
-    }
+    if (options.verbose) console.error(`[suppressed rejection] ${reason}`);
   };
   process.on('unhandledRejection', rejectionHandler);
 
@@ -396,33 +433,35 @@ async function decompileVariables(variableGroups, options) {
     hash: '#view=R100(S100(@tomlarkworthy/observablejs-toolchain))',
   });
 
-  try {
-    log('Waiting for decompile function...');
-    const result = await execution.waitForVariable('decompile', 30000);
-    const decompile = result.value;
-    if (!decompile || typeof decompile !== 'function') {
-      throw new Error(`decompile function not ready in toolchain (got ${typeof decompile})`);
-    }
-
-    log(`Decompiling ${variableGroups.length} cell groups...`);
-
-    const results = [];
-    for (const group of variableGroups) {
-      try {
-        const source = await decompile(group);
-        results.push(source);
-      } catch (e) {
-        if (options.verbose) {
-          log(`Warning: failed to decompile: ${e.message}`);
-        }
-      }
-    }
-
-    return results;
-  } finally {
+  const decompile = (await execution.waitForVariable('decompile', 30000)).value;
+  if (!decompile || typeof decompile !== 'function') {
     execution.dispose();
     process.removeListener('unhandledRejection', rejectionHandler);
+    throw new Error(`decompile function not ready in toolchain (got ${typeof decompile})`);
   }
+  const acorn = (await execution.waitForVariable('acorn', 30000)).value;
+
+  return {
+    decompile,
+    acorn,
+    dispose() {
+      execution.dispose();
+      process.removeListener('unhandledRejection', rejectionHandler);
+    },
+  };
+}
+
+async function decompileVariables(variableGroups, decompile, options) {
+  log(`Decompiling ${variableGroups.length} cell groups...`);
+  const results = [];
+  for (const group of variableGroups) {
+    try {
+      results.push(await decompile(group));
+    } catch (e) {
+      if (options.verbose) log(`Warning: failed to decompile: ${e.message}`);
+    }
+  }
+  return results;
 }
 
 function extractCellName(source) {
@@ -753,7 +792,7 @@ async function pushViaWS(decompiled, targetUrl, options) {
   try {
     let { version, subversion } = conn;
 
-    if (options.cells && !options.noDelete) {
+    if ((options.cells || options.cellsMatchBody) && !options.noDelete) {
       // --- In-place cell replacement mode ---
       const finalState = await replaceCellsViaWS(conn, existingNodes, decompiled, options);
       if (finalState) {
@@ -857,18 +896,43 @@ async function replaceCellsViaWS(conn, existingNodes, decompiled, options) {
   // Match cells
   const matches = [];
   const inserts = [];
-  for (const [name, source] of replacements) {
-    const existing = existingByName.get(name);
-    if (existing) {
-      matches.push({ name, nodeId: existing.id, newSource: source, oldSource: existing.value });
-    } else {
-      inserts.push({ name, newSource: source });
+  if (options.cells) {
+    for (const [name, source] of replacements) {
+      const existing = existingByName.get(name);
+      if (existing) {
+        matches.push({ name, nodeId: existing.id, newSource: source, oldSource: existing.value });
+      } else {
+        inserts.push({ name, newSource: source });
+      }
+    }
+  }
+
+  // Body-substring matches — for anonymous cells with no parsable name.
+  // Requires exactly one match in decompiled AND in existing; modify_node only (never insert).
+  if (options.cellsMatchBody) {
+    for (const substr of options.cellsMatchBody) {
+      const newCandidates = decompiled.filter(s => s.includes(substr));
+      if (newCandidates.length === 0) {
+        throw new Error(`--cells-match-body "${substr}": no decompiled cell contains this substring`);
+      }
+      if (newCandidates.length > 1) {
+        throw new Error(`--cells-match-body "${substr}": ${newCandidates.length} decompiled cells contain this substring; refine the substring`);
+      }
+      const oldCandidates = existingNodes.filter(n => typeof n.value === 'string' && n.value.includes(substr));
+      if (oldCandidates.length === 0) {
+        throw new Error(`--cells-match-body "${substr}": no existing node contains this substring (already pushed? wrong notebook?)`);
+      }
+      if (oldCandidates.length > 1) {
+        throw new Error(`--cells-match-body "${substr}": ${oldCandidates.length} existing nodes contain this substring; refine the substring`);
+      }
+      const label = `body:${substr.length > 30 ? substr.slice(0, 30) + '…' : substr}`;
+      matches.push({ name: label, nodeId: oldCandidates[0].id, newSource: newCandidates[0], oldSource: oldCandidates[0].value });
     }
   }
 
   if (matches.length === 0 && inserts.length === 0) {
     log('No matching cells found for replacement.');
-    log(`Looked for: ${[...replacements.keys()].join(', ')}`);
+    if (options.cells) log(`Looked for: ${[...replacements.keys()].join(', ')}`);
     log(`Found in target: ${existingNodes.filter(n => extractCellName(n.value)).map(n => extractCellName(n.value)).join(', ')}`);
     return { version, subversion };
   }
@@ -1014,7 +1078,10 @@ async function main() {
   }
 
   const moduleContent = modules.get(options.module).content;
-  let { groups: variableGroupsRaw, preformatted: importCells } = parseVariableGroups(moduleContent);
+  // Load the toolchain up front so its acorn splits the module (see parseVariableGroups)
+  // and its decompile turns the cells back into source — one runtime, one parser.
+  const toolchain = await loadToolchain(options);
+  let { groups: variableGroupsRaw, preformatted: importCells } = parseVariableGroups(moduleContent, toolchain.acorn);
   let variableGroups = variableGroupsRaw;
 
   if (variableGroups.length === 0 && importCells.length === 0) {
@@ -1053,8 +1120,9 @@ async function main() {
     }
   }
 
-  // Decompile variable groups using the toolchain
-  const decompiled = await decompileVariables(variableGroups, options);
+  // Decompile variable groups using the same toolchain instance, then release it.
+  const decompiled = await decompileVariables(variableGroups, toolchain.decompile, options);
+  toolchain.dispose();
 
   // Combine decompiled cells + pre-formatted import statements
   // No sacrificial cell needed — WS inserts are precise
