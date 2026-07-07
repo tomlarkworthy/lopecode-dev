@@ -794,7 +794,7 @@ export const EVALS = [
       "files under /notebook — search them and write just the module id (e.g. @tomlarkworthy/something) into " +
       "/notebook/answer.txt.",
     criteria: [
-      { name: "bash_command_matches", args: { pattern: "\\b(grep|rg)\\b" }, weight: 1 },
+      { name: "tool_call_matches", args: { name: "bash", pattern: "\\b(grep|rg)\\b" }, weight: 1 },
       { name: "file_exists", args: { path: "/notebook/answer.txt" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "exporter-3" }, weight: 2 },
     ],
@@ -919,7 +919,7 @@ export const EVALS = [
       "(1) the module that is your agent core, (2) the module that provides your bash shell, and (3) where that " +
       "shell's code is actually loaded from.",
     criteria: [
-      { name: "bash_command_matches", args: { pattern: "robocoop-4" }, weight: 1 },
+      { name: "tool_call_matches", args: { name: "bash", pattern: "robocoop-4" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "robocoop-4-core" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "robocoop-4-bash" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "attach", ignoreCase: true }, weight: 1 },
@@ -966,7 +966,7 @@ export const EVALS = [
       "Which version of the Observable runtime does this notebook bundle? It's a raw content block in your " +
       "filesystem, not an editable module. Find it and write just the version number to /notebook/answer.txt.",
     criteria: [
-      { name: "bash_command_matches", args: { pattern: "/content" }, weight: 1 },
+      { name: "tool_call_matches", args: { name: "bash", pattern: "/content" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "6.0.0" }, weight: 2 },
     ],
   },
@@ -978,7 +978,7 @@ export const EVALS = [
       "your own source, identify the module responsible, and describe the mechanism in one or two sentences. " +
       "Write your answer to /notebook/answer.txt.",
     criteria: [
-      { name: "bash_command_matches", args: { pattern: "hostbridge|filesync|file-sync" }, weight: 1 },
+      { name: "tool_call_matches", args: { name: "bash", pattern: "hostbridge|filesync|file-sync" }, weight: 1 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "sync", ignoreCase: true }, weight: 2 },
       { name: "answer_contains", args: { file: "/notebook/answer.txt", needle: "live", ignoreCase: true }, weight: 1 },
     ],
@@ -1003,7 +1003,7 @@ export const EVALS = [
       },
     },
     criteria: [
-      { name: "bash_command_matches", args: { pattern: "\\b(grep|rg)\\b" }, weight: 1 },
+      { name: "tool_call_matches", args: { name: "bash", pattern: "\\b(grep|rg)\\b" }, weight: 1 },
       { name: "asks_clarification", args: {}, weight: 2 },
       { name: "not_contains_string", args: { file: "/notebook/@user/shop.js", needle: "fulfilOrder" }, weight: 1 },
     ],

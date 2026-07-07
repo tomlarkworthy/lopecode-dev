@@ -1,0 +1,5 @@
+# jumpgate round-trip test bundle (duplicate of the canonical lopebooks build)
+jumpgate-test.html
+jumpgate-test.json
+# eval run snapshots
+eval/results/

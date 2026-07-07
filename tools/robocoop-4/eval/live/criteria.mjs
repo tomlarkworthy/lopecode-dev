@@ -72,8 +72,20 @@ function fnParamsBody(text, m) {
   const params = m[1].split(",").map((s) => s.trim().split("=")[0].trim()).filter(Boolean);
   let i = m.index + m[0].length - 1, depth = 0;
   const start = i;
+  // Brace scan must skip strings and comments: a brace INSIDE a string literal (e.g. a bracket-pair
+  // map `{ "}": "{" }`) otherwise closes the scan early and the truncated body fails to compile.
   for (; i < text.length; i++) {
     const ch = text[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const q = ch;
+      for (i++; i < text.length; i++) {
+        if (text[i] === "\\") { i++; continue; }
+        if (text[i] === q) break;
+      }
+      continue;
+    }
+    if (ch === "/" && text[i + 1] === "/") { while (i < text.length && text[i] !== "\n") i++; continue; }
+    if (ch === "/" && text[i + 1] === "*") { i += 2; while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++; i++; continue; }
     if (ch === "{") depth++;
     else if (ch === "}") { depth--; if (depth === 0) { i++; break; } }
   }
@@ -508,24 +520,10 @@ export const CRITERIA = {
       : fail(`steps ${snapshot.steps} > ${args.n}`);
   },
 
-  // A bash tool-call whose command matches the regex `pattern` ran at least `minTimes`. The agent's
-  // only tool is `bash`, so this is how we assert a specific shell capability (sed, grep, …) was used.
-  bash_command_matches(snapshot, args) {
-    const re = new RegExp(args.pattern, args.flags || "");
-    const min = args.minTimes ?? 1;
-    const cmds = (snapshot.toolCalls || [])
-      .filter((c) => c.name === "bash")
-      .map((c) => (c.arguments && (c.arguments.command ?? c.arguments.raw)) || "");
-    const n = cmds.filter((cmd) => re.test(cmd)).length;
-    return n >= min
-      ? ok(`${n} bash command(s) match /${args.pattern}/ (need ${min})`)
-      : fail(`no bash command matched /${args.pattern}/ (ran: ${cmds.map((c) => c.slice(0, 30)).join(" | ") || "none"})`);
-  },
-
   // ANY tool call (optionally restricted to tool `name`) whose JSON-serialized arguments match the
-  // regex. Tool-agnostic version of bash_command_matches: a fact the agent must GROUND in a file can be
-  // read by the dedicated read_file tool OR by a bash cat/grep, so the grounding check shouldn't dictate
-  // the tool. e.g. {pattern:"/content/bootconf"} passes for read_file(file_path) AND bash(cat …).
+  // regex. With {name:"bash"} this asserts a specific shell capability ran (sed, grep, …); unrestricted,
+  // a fact the agent must GROUND in a file can be read by ANY tool — e.g. {pattern:"/content/bootconf"}
+  // passes for read_file(file_path) AND bash(cat …).
   tool_call_matches(snapshot, args) {
     const re = new RegExp(args.pattern, args.flags || "");
     const min = args.minTimes ?? 1;
