@@ -19,7 +19,7 @@
 // Browser-only (drives the live runtime); node CI skips it.
 
 const _doc = function _doc(md){return(
-md`### robocoop-5 srctools
+md`# robocoop-5 srctools
 File tools over a virtual /src (byte-stable, stored on each module's compiled define function as \`.src\`),
 /notebook (canonical decompile, synthesized per read) and /content (raw blocks + attachments, read direct).
 No shell, no filesystem, no sync loop. Tools register through \`@tomlarkworthy/robocoop-5-tools\`.`
@@ -51,7 +51,7 @@ const _rc5_store = function _rc5_store(){
 };
 
 // ── the virtual path space ───────────────────────────────────────────────────────────────────────────
-const _pathLib = function _pathLib(currentModules, runtime, rc5_store, all_module_files, exportModuleJS){
+const _pathLib = function _pathLib(currentModules, runtime, rc5_store, all_module_files, exportModuleJS, importShim){
   const isStyle = (id) => /^https?:\/\//.test(id) || /\.css$/.test(id);
   const isAttachment = (id) => /^@?[^/]+\/[^/]+\/.+/.test(id) || /^file:/.test(id);
   const moduleIds = () => {
@@ -86,16 +86,14 @@ const _pathLib = function _pathLib(currentModules, runtime, rc5_store, all_modul
   };
   // Seed /src for a live module the agent has not touched yet: the canonical export becomes the stable
   // copy. Best-effort compile so the source rides on a real define fn ("the function IS the store");
-  // if importShim is unavailable a placeholder fn carries it.
+  // importShim falls back to native import() off lopecode, so this compiles on Observable too.
   const seedSrc = async (id) => {
     const ex = await exportModuleJS(id);            // throws if module unknown
     let fn = function pendingDefine(){};
     try {
-      if (window.importShim) {
-        const url = URL.createObjectURL(new Blob([ex.source], { type: 'text/javascript' }));
-        try { const mod = await window.importShim(url, 'file://@tomlarkworthy/robocoop-5-srctools'); if (typeof mod.default === 'function') fn = mod.default; }
-        finally { URL.revokeObjectURL(url); }
-      }
+      const url = URL.createObjectURL(new Blob([ex.source], { type: 'text/javascript' }));
+      try { const mod = await importShim(url, 'file://@tomlarkworthy/robocoop-5-srctools'); if (typeof mod.default === 'function') fn = mod.default; }
+      finally { URL.revokeObjectURL(url); }
     } catch (e) {}
     fn.src = ex.source;
     rc5_store.srcFns.set(id, fn);
@@ -144,7 +142,7 @@ const _pathLib = function _pathLib(currentModules, runtime, rc5_store, all_modul
 };
 
 // ── compile + apply (the jbApply/probeDefine machinery, fs-free) ─────────────────────────────────────
-const _applyLib = function _applyLib(jbApply, probeDefine, createModule, currentModules, runtime, exportModuleJS, observe, summarizeJS, rc5_watchBus, cellHelpers, rc5_store){
+const _applyLib = function _applyLib(jbApply, probeDefine, createModule, currentModules, runtime, exportModuleJS, observe, summarizeJS, rc5_watchBus, cellHelpers, rc5_store, importShim){
   const apply = jbApply({ currentModules, runtime, probeDefine, createModule });
   const { resolveModule, varsOf, isStructural, oneLine, watchKey } = cellHelpers;
 
@@ -202,7 +200,7 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
   let cmModPromise = null;
   const getCmMod = () => {
     if (!cmModPromise) cmModPromise = (async () => {
-      const mod = await window.importShim('/@tomlarkworthy/code-metrics.js?v=4', 'file://@tomlarkworthy/robocoop-5-srctools');
+      const mod = await importShim('/@tomlarkworthy/code-metrics.js?v=4', 'file://@tomlarkworthy/robocoop-5-srctools');
       return runtime.module(mod.default);
     })().catch((e) => { cmModPromise = null; throw e; });
     return cmModPromise;
@@ -262,11 +260,10 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
       rc5_store.srcFns.set(id, holder);
     };
     if (!/export\s+default/.test(src)) { keepDraft(); return { ok: false, msg: 'written, but not an importable module (no `export default`) — not applied' }; }
-    if (!window.importShim) { keepDraft(); return { ok: false, msg: 'written, but importShim is unavailable — not applied' }; }
     const wasNew = !moduleExists(id);
     const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
     try {
-      const mod = await window.importShim(url, 'file://@tomlarkworthy/robocoop-5-srctools');
+      const mod = await importShim(url, 'file://@tomlarkworthy/robocoop-5-srctools');
       if (typeof mod.default !== 'function') { keepDraft(); return { ok: false, msg: 'written, but no default export define() — not applied' }; }
       const r = apply(id, mod.default);
       if (!r.applied) { keepDraft(); return { ok: false, msg: 'written, but not applied: ' + (r.reason || 'unknown') }; }
@@ -761,6 +758,7 @@ export default function define(runtime, observer) {
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
   main.define("createModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("createModule", _));
   main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
+  main.define("importShim", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("importShim", _));
 
   main.define("module @tomlarkworthy/module-map", async () =>
     runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
@@ -788,8 +786,8 @@ export default function define(runtime, observer) {
   $def("rc5s_doc", null, ["md"], _doc);
   $def("rc5s_cell_helpers", "cellHelpers", ["currentModules", "runtime"], _cellHelpers);
   $def("rc5s_store", "rc5_store", [], _rc5_store);
-  $def("rc5s_path_lib", "pathLib", ["currentModules", "runtime", "rc5_store", "all_module_files", "exportModuleJS"], _pathLib);
-  $def("rc5s_apply_lib", "applyLib", ["jbApply", "probeDefine", "createModule", "currentModules", "runtime", "exportModuleJS", "observe", "summarizeJS", "rc5_watchBus", "cellHelpers", "rc5_store"], _applyLib);
+  $def("rc5s_path_lib", "pathLib", ["currentModules", "runtime", "rc5_store", "all_module_files", "exportModuleJS", "importShim"], _pathLib);
+  $def("rc5s_apply_lib", "applyLib", ["jbApply", "probeDefine", "createModule", "currentModules", "runtime", "exportModuleJS", "observe", "summarizeJS", "rc5_watchBus", "cellHelpers", "rc5_store", "importShim"], _applyLib);
   $def("rc5s_value_tools", "valueTools", ["defineTool", "summarizeJS", "currentModules", "runtime", "observe", "rc5_watchBus", "cellHelpers"], _valueTools);
   $def("rc5s_file_tools", "fileTools", ["defineTool", "rc5_store", "pathLib", "applyLib", "all_module_files"], _fileTools);
   $def("rc5s_host", "rc5_host", ["rc5_store", "pathLib", "applyLib", "exportModuleJS"], _rc5_host);
