@@ -464,7 +464,7 @@ const _gzzwmc = function _syncableModules(currentModules,SKIP_MODULES){return(
 // Lives here next to probeDefine (its decompile counterpart). Includes the F7 plumbing-upsert fix:
 // import loaders/bindings are updated when the file's version differs, so a once-broken import can be
 // FIXED by editing the file (the justbash-filesync copy predates this and is create-only).
-const _jbApply = function _jbApply() {
+const _jbApply = function _jbApply(importShim) {
     // Pure factory so any notebook can reuse it over its own runtime/fs. Build with
     // jbApply({ currentModules, runtime, probeDefine, createModule, obj_observer }) -> applyModule(moduleId, defineFn).
     // The file is canonical: applyModule makes the live module MATCH the file — creating/updating user
@@ -533,7 +533,7 @@ const _jbApply = function _jbApply() {
                     const path = importPath(defn);
                     const key = child ? 'live:' + spec : (path ? 'path:' + path : null);
                     if (key == null) return;
-                    const make = child ? () => child : async () => runtime.module((await window.importShim(path)).default);
+                    const make = child ? () => child : async () => runtime.module((await importShim(path)).default);
                     const existing = existingByName.get(loaderName);
                     if (existing) {
                         if (existing._jbKey !== undefined && existing._jbKey !== key) { existing.define(loaderName, [], make); existing._jbKey = key; changes++; }
@@ -897,7 +897,7 @@ const _1bf1rb4 = function _fileSyncLastSeen(directory)
     void directory;
     return new window.Map();
 };
-const _43mwl9 = function _filesToNotebook(directory, syncArmed, currentModules, fileSyncLastSeen, notebookId, runtime, probeDefine, tag, readFile, exportModuleJS, manifestWriter, hashSource, writeFile, getFileAttachmentsMap, invalidation) {
+const _43mwl9 = function _filesToNotebook(directory, syncArmed, currentModules, fileSyncLastSeen, notebookId, runtime, probeDefine, tag, readFile, exportModuleJS, manifestWriter, hashSource, writeFile, getFileAttachmentsMap, invalidation, importShim) {
     if (!directory)
         return 'Waiting for directory...';
     if (!syncArmed || !syncArmed.armed)
@@ -1061,7 +1061,7 @@ const _43mwl9 = function _filesToNotebook(directory, syncArmed, currentModules, 
                         const blob = new window.Blob([diskText], { type: 'text/javascript' });
                         const url = window.URL.createObjectURL(blob);
                         try {
-                            const mod = await window.importShim(url, 'file://@tomlarkworthy/file-sync');
+                            const mod = await importShim(url, 'file://@tomlarkworthy/file-sync');
                             if (typeof mod.default === 'function') {
                                 applyModule(moduleId, mod.default);
                                 console.log('[file-sync] applied ' + moduleId + ' from disk');
@@ -1168,7 +1168,7 @@ const _43mwl9 = function _filesToNotebook(directory, syncArmed, currentModules, 
                 const blob = new window.Blob([diskText], { type: 'text/javascript' });
                 const url = window.URL.createObjectURL(blob);
                 try {
-                    const imported = await window.importShim(url, 'file://@tomlarkworthy/file-sync');
+                    const imported = await importShim(url, 'file://@tomlarkworthy/file-sync');
                     if (typeof imported.default === 'function') {
                         const newMod = runtime.module(imported.default, () => null);
                         runtime.mains.set(moduleId, newMod);
@@ -1309,13 +1309,13 @@ export default function define(runtime, observer) {
   $def("_3ysbyb", "SKIP_MODULES", [], _3ysbyb);  
   $def("_gzzwmc", "syncableModules", ["currentModules","SKIP_MODULES"], _gzzwmc);  
   $def("_vxwmfh", "probeDefine", [], _vxwmfh);  
-  $def("_jbApply", "jbApply", [], _jbApply);  
+  $def("_jbApply", "jbApply", ["importShim"], _jbApply);
   $def("_7ajapw", "hashSource", [], _7ajapw);  
   $def("_ujgc0c", "manifestWriter", [], _ujgc0c);  
   $def("_1cy7bqk", "syncArmed", ["notebookId","viewof syncEnabled","directory","syncEnabled","readFile","exportModuleJS","hashSource"], _1cy7bqk);  
   $def("_3zm0bx", "notebookToFiles", ["directory","syncArmed","currentModules","notebookId","exportModuleJS","writeFile","manifestWriter","hashSource","readFile","onCodeChange","invalidation"], _3zm0bx);  
   $def("_1bf1rb4", "fileSyncLastSeen", ["directory"], _1bf1rb4);  
-  $def("_43mwl9", "filesToNotebook", ["directory","syncArmed","currentModules","fileSyncLastSeen","notebookId","runtime","probeDefine","tag","readFile","exportModuleJS","manifestWriter","hashSource","writeFile","getFileAttachmentsMap","invalidation"], _43mwl9);  
+  $def("_43mwl9", "filesToNotebook", ["directory","syncArmed","currentModules","fileSyncLastSeen","notebookId","runtime","probeDefine","tag","readFile","exportModuleJS","manifestWriter","hashSource","writeFile","getFileAttachmentsMap","invalidation","importShim"], _43mwl9);
   $def("_1b4kluo", null, ["md"], _1b4kluo);  
   $def("_1h2nj16", null, ["md"], _1h2nj16);  
   main.define("viewof currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("viewof currentModules", _));  
