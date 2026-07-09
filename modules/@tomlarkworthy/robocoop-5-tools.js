@@ -1,52 +1,78 @@
 // @tomlarkworthy/robocoop-5-tools — the live, pluggable tool registry (robocoop-5).
 //
-// Same seam as robocoop-4-tools but seeded EMPTY: robocoop-5 has no bash tool; the srctools module
-// registers the file/search/value tools at mount. `viewof rc5_tools` is a reactive array of tool
-// objects (the idiomatic Inputs.input([]) pattern). The engine's session reads it LIVE on every step,
-// so a tool registered here mid-conversation is offered to the model on the next turn — no restart.
-// Tools are core tool objects: { id, description, parameters, execute }.
+// Backed by @tomlarkworthy/plugin-registry: tools live in the shared `plugins` set named "rc5-tools".
+// ANY notebook can `import {plugins}` and `plugins.add("rc5-tools", tool)` to offer the agent a tool —
+// no import of this module required (N providers ↔ 1 consumer, the engine). This module keeps the
+// id-keyed `registerTool`/`unregisterTool` convenience API (replace-by-id) over that bus, plus a stable
+// `toolsView` the engine reads live each step, so a tool registered mid-conversation is offered on the
+// next turn — no restart. Tools are core tool objects: { id, description, parameters, execute }.
 //
-// Exports: viewof rc5_tools, rc5_tools, registerTool, unregisterTool, toolsView, rc5_watchBus.
+// Exports: registerTool, unregisterTool, toolsView, rc5_tools, rc5_watchBus.
 
 const _seed = () => 1;
 
 const _title = function _title(md){return(
 md`### robocoop-5 tools
-Live registry. \`registerTool(tool)\` from any cell/notebook adds a tool mid-conversation. No bash —
-the default surface is Claude-Code-style file tools + grep/glob, registered by robocoop-5-srctools.`
+Live registry over [\`@tomlarkworthy/plugin-registry\`](https://observablehq.com/@tomlarkworthy/plugin-registry)
+(set name \`"rc5-tools"\`). \`registerTool(tool)\` from any cell/notebook adds a tool mid-conversation, or
+\`plugins.add("rc5-tools", tool)\` directly. No bash — the default surface is Claude-Code-style file tools +
+grep/glob, registered by robocoop-5-srctools.`
 )};
 
-// viewof rc5_tools — reactive array of tool objects, seeded empty (srctools populates it).
-const _rc5_tools = function _rc5_tools(Inputs){
-  return Inputs.input([]);
+// rc5_toolMgr — id-keyed adapter over the shared plugins bus. Holds a tool.id→remove() map so
+// re-registering an id replaces (rather than duplicates) the prior value in the "rc5-tools" set.
+const _rc5_toolMgr = function _rc5_toolMgr(plugins){
+  const handles = new Map();   // tool.id -> remove()
+  return {
+    register(tool){
+      if (!tool || !tool.id) throw new Error("registerTool: tool needs an id");
+      const prev = handles.get(tool.id);
+      if (prev) prev();                                  // replace-by-id
+      handles.set(tool.id, plugins.add("rc5-tools", tool));
+      return tool;
+    },
+    unregister(id){
+      const remove = handles.get(id);
+      if (remove) { remove(); handles.delete(id); }
+    },
+  };
 };
 
-// registerTool(tool) — add (or replace by id) a tool in the live registry, firing the input event
-// so dependents (the session's toolsProvider) see it immediately. $0 = viewof rc5_tools element.
-const _registerTool = function _registerTool($0){
-  return function registerTool(tool){
-    if (!tool || !tool.id) throw new Error("registerTool: tool needs an id");
-    const el = $0;
-    const cur = Array.isArray(el.value) ? el.value : [];
-    el.value = cur.filter(t => t.id !== tool.id).concat([tool]);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    return tool;
-  };
+// registerTool(tool) — add (or replace by id) a tool in the live registry. Fires through plugins so every
+// consumer (the engine's toolsProvider) sees it immediately.
+const _registerTool = function _registerTool(rc5_toolMgr){
+  return (tool) => rc5_toolMgr.register(tool);
 };
 
 // unregisterTool(id) — remove a tool by id from the live registry.
-const _unregisterTool = function _unregisterTool($0){
-  return function unregisterTool(id){
-    const el = $0;
-    const cur = Array.isArray(el.value) ? el.value : [];
-    el.value = cur.filter(t => t.id !== id);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-  };
+const _unregisterTool = function _unregisterTool(rc5_toolMgr){
+  return (id) => rc5_toolMgr.unregister(id);
 };
 
-// toolsView — plain-named alias of the viewof element, so other modules can read the live registry
-// WITHOUT importing a `viewof`-named symbol (editor-5 mangles `viewof X` imports → bare `viewof`).
-const _toolsView = function _toolsView($0){ return $0; };
+// rc5_tools — reactive array of the current tool set (re-yields on every add/remove). Drives the status
+// readout; a generator cell, so dependents recompute on change.
+const _rc5_tools = function _rc5_tools(plugins){
+  return plugins.get("rc5-tools");
+};
+
+// toolsView — a STABLE handle whose `.value` tracks the live "rc5-tools" set. The engine's session is
+// created once (depends on this stable object) and reads `toolsView.value` synchronously each step, so
+// tool changes never recreate the session. Kept current by a subscription to plugins.get; the double
+// await reads both Generators.observe protocols (legacy sync-iter-of-promises and 2.0 async-gen).
+const _toolsView = function _toolsView(plugins, invalidation){
+  const view = { value: [] };
+  const gen = plugins.get("rc5-tools");
+  let live = true;
+  (async () => {
+    while (live) {
+      const step = await gen.next();
+      if (step.done) break;
+      view.value = (await step.value) ?? [];
+    }
+  })();
+  invalidation.then(() => { live = false; try { gen.return && gen.return(); } catch (e) {} });
+  return view;
+};
 
 // rc5_watchBus — shared buffer for variable WATCHES. The watch tools attach observers to cells and push
 // value-CHANGE events here; the engine's agent session drains them at the top of every step and injects
@@ -82,13 +108,17 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
+  main.define("module @tomlarkworthy/plugin-registry", async () =>
+    runtime.module((await import("/@tomlarkworthy/plugin-registry.js?v=4")).default));
+  main.define("plugins", ["module @tomlarkworthy/plugin-registry", "@variable"], (_, v) => v.import("plugins", _));
+
   $def("rc5t_seed", "__seed", [], _seed);
   $def("rc5t_title", null, ["md"], _title);
-  $def("rc5t_tools_view", "viewof rc5_tools", ["Inputs"], _rc5_tools);
-  main.variable(observer("rc5_tools")).define("rc5_tools", ["Generators", "viewof rc5_tools"], (G, _) => G.input(_));
-  $def("rc5t_register", "registerTool", ["viewof rc5_tools"], _registerTool);
-  $def("rc5t_unregister", "unregisterTool", ["viewof rc5_tools"], _unregisterTool);
-  $def("rc5t_toolsView", "toolsView", ["viewof rc5_tools"], _toolsView);
+  $def("rc5t_tool_mgr", "rc5_toolMgr", ["plugins"], _rc5_toolMgr);
+  $def("rc5t_register", "registerTool", ["rc5_toolMgr"], _registerTool);
+  $def("rc5t_unregister", "unregisterTool", ["rc5_toolMgr"], _unregisterTool);
+  $def("rc5t_tools", "rc5_tools", ["plugins"], _rc5_tools);
+  $def("rc5t_toolsView", "toolsView", ["plugins", "invalidation"], _toolsView);
   $def("rc5t_watch_bus", "rc5_watchBus", [], _rc5_watchBus);
   $def("rc5t_status", null, ["html", "rc5_tools"], _status);
   return main;

@@ -1287,34 +1287,31 @@ const _td27y7 = function _lp2_scrollToCell(lp2_anchor)
 const _1mnud0c = function _lp2_doc_menu(md){return(
 md`### Burger menu (plugin registry)
 
-A hamburger button docked at the left of the top-left tab bar opens a menu of pluggable items. \`viewof lp2MenuItems\` is the registry: a reactive array of \`{id, label, svg, action, children, order}\`. \`svg\` is an SVG string, an \`Element\`, or a function returning one; \`children\` nests a submenu; lower \`order\` sorts first.
+A hamburger button docked at the left of the top-left tab bar opens a menu of pluggable items. The registry is the [\`@tomlarkworthy/plugin-registry\`](https://observablehq.com/@tomlarkworthy/plugin-registry) set named \`"lp2-menu"\`; \`lp2MenuItems\` is \`plugins.get("lp2-menu")\`, a reactive array of \`{id, label, svg, action, children, order}\`. \`svg\` is an SVG string, an \`Element\`, or a function returning one; \`children\` nests a submenu; lower \`order\` sorts first.
 
-Plugins (this module's defaults, or any other notebook) register through \`lp2_registerMenuItem(item)\`, which upserts by \`id\` and returns a disposer — call it from \`invalidation\` so a re-run replaces rather than duplicates. Registration republishes only \`lp2MenuItems\`, and only \`lp2_menu_sync\` depends on it, so adding an item repopulates the popover in place — the layout, panes, and scroll state are untouched.
+Plugins (this module's defaults, or any other notebook) register through \`lp2_registerMenuItem(item)\` — an id-keyed wrapper over \`plugins.add("lp2-menu", item)\` that replaces by \`id\` and returns a disposer (call it from \`invalidation\` so a re-run replaces rather than duplicates). Any notebook can equally \`plugins.add("lp2-menu", item)\` directly without importing lopepage-2. Only \`lp2_menu_sync\` consumes \`lp2MenuItems\`, so adding an item repopulates the popover in place — the layout, panes, and scroll state are untouched.
 
 The button and popover are built once by \`lp2_burger\` (immortal, like panes) and reparented into the current top-left tab bar on each layout render. \`lp2_menu_defaults\` registers the built-ins: **Download** and **Fork** via [\`exporter-3\`](https://observablehq.com/@tomlarkworthy/exporter-3)'s \`downloadAnchor\`/\`forkAnchor\`, which serialise every booted main.`
 )};
-const _v3n2r8 = function _lp2MenuItems(Inputs){return(
-Inputs.input([])
+const _8wq5dn = function _lp2MenuItems(plugins){return(
+plugins.get("lp2-menu")
 )};
-const _8wq5dn = (G, _) => G.input(_);
-const _p9krt2 = function _lp2_registerMenuItem($0,Event){return(
-item => {
-  if (!item || !item.id)
-    throw new Error('menu item needs an id');
-  const el = $0;
-  const publish = items => {
-    el.value = items;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
+const _p9krt2 = function _lp2_registerMenuItem(plugins){
+  // id-keyed adapter over the shared plugins bus (set name "lp2-menu"): re-registering an id replaces
+  // the prior value; the returned disposer removes only if this exact registration is still current.
+  const handles = new Map();   // id -> remove()
+  return item => {
+    if (!item || !item.id)
+      throw new Error('menu item needs an id');
+    const prev = handles.get(item.id);
+    if (prev) prev();                              // replace-by-id
+    const remove = plugins.add("lp2-menu", item);
+    handles.set(item.id, remove);
+    return () => {
+      if (handles.get(item.id) === remove) { remove(); handles.delete(item.id); }
+    };
   };
-  publish((el.value || []).filter(it => it.id !== item.id).concat([item]));
-  return () => {
-    const cur = el.value || [];
-    // only remove if this exact registration is still current (a re-register superseded us otherwise)
-    if (cur.includes(item))
-      publish(cur.filter(it => it !== item));
-  };
-}
-)};
+};
 const _6tghw4 = function _lp2_burger(invalidation)
 {
   const button = document.createElement('button');
@@ -1512,7 +1509,9 @@ export default function define(runtime, observer) {
 
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
   main.define("module @tomlarkworthy/visualizer", async () => runtime.module((await import("/@tomlarkworthy/visualizer.js?v=4")).default));  
-  main.define("module @tomlarkworthy/modules", async () => runtime.module((await import("/@tomlarkworthy/modules.js?v=4")).default));  
+  main.define("module @tomlarkworthy/modules", async () => runtime.module((await import("/@tomlarkworthy/modules.js?v=4")).default));
+  main.define("module @tomlarkworthy/plugin-registry", async () => runtime.module((await import("/@tomlarkworthy/plugin-registry.js?v=4")).default));
+  main.define("plugins", ["module @tomlarkworthy/plugin-registry", "@variable"], (_, v) => v.import("plugins", _));
   main.define("module @tomlarkworthy/claude-code-pairing", async () => runtime.module((await import("/@tomlarkworthy/claude-code-pairing.js?v=4")).default));  
   main.define("module @tomlarkworthy/command-palette", async () => runtime.module((await import("/@tomlarkworthy/command-palette.js?v=4")).default));  
   main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
@@ -1579,9 +1578,8 @@ export default function define(runtime, observer) {
   $def("_16ptruj", "lp2_watchModules", ["lp2Model","currentModules","viewof lp2_watchedModules","Event"], _16ptruj);  
   $def("_td27y7", "lp2_scrollToCell", ["lp2_anchor"], _td27y7);
   $def("_1mnud0c", "lp2_doc_menu", ["md"], _1mnud0c);
-  $def("_v3n2r8", "viewof lp2MenuItems", ["Inputs"], _v3n2r8);
-  $def("_8wq5dn", "lp2MenuItems", ["Generators","viewof lp2MenuItems"], _8wq5dn);
-  $def("_p9krt2", "lp2_registerMenuItem", ["viewof lp2MenuItems","Event"], _p9krt2);
+  $def("_8wq5dn", "lp2MenuItems", ["plugins"], _8wq5dn);
+  $def("_p9krt2", "lp2_registerMenuItem", ["plugins"], _p9krt2);
   $def("_6tghw4", "lp2_burger", ["invalidation"], _6tghw4);
   $def("_2xf9jm", "lp2_menu_sync", ["lp2_burger","lp2MenuItems"], _2xf9jm);
   $def("_hs74kp", "lp2_menu_defaults", ["lp2_registerMenuItem","disk_svg","downloadAnchor","forkAnchor","invalidation"], _hs74kp);
