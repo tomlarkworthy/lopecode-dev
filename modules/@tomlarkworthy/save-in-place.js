@@ -4,7 +4,7 @@ md`# Save in place
 A lopepage-2 menu plugin that writes the current notebook back to its own file on
 disk via the File System Access API, instead of downloading a fresh copy.
 
-It carries its own dependencies — [\`exporter-3\`](https://observablehq.com/@tomlarkworthy/exporter-3) (\`exportToHTML\`) for the bytes and the FSA/IndexedDB handle machinery here — and composes into lopepage-2 purely by registering a menu item through \`lp2_registerMenuItem\`. lopepage-2 itself gains no dependency on this module; a notebook opts in by adding \`@tomlarkworthy/save-in-place\` to its bootconf \`mains\`.
+It carries its own dependencies — [\`exporter-3\`](https://observablehq.com/@tomlarkworthy/exporter-3) (\`exportToHTML\`) for the bytes and the FSA/IndexedDB handle machinery here — and composes into lopepage-2 purely by \`plugins.add("lp2-menu", …)\` on the shared [\`@tomlarkworthy/plugin-registry\`](https://observablehq.com/@tomlarkworthy/plugin-registry) bus. It imports NEITHER lopepage-2 (they meet only at the \`"lp2-menu"\` name) nor anything lopepage-specific; a notebook opts in by adding \`@tomlarkworthy/save-in-place\` to its bootconf \`mains\`.
 
 Mechanics:
 
@@ -78,7 +78,8 @@ const _sip0tst = function _sip_toast()
         borderRadius: '5px',
         font: '12px var(--sans-serif, sans-serif)',
         boxShadow: '0 3px 12px rgba(0,0,0,.22)',
-        border: '1px solid var(--theme-foreground-fainter)',
+        border: '1px solid var(--theme-foreground-faint, rgba(128,128,128,.3))',
+        borderLeft: '3px solid transparent',
         maxWidth: '60vw',
         pointerEvents: 'none'
       });
@@ -90,14 +91,17 @@ const _sip0tst = function _sip_toast()
     }
     const paint = (text, k) => {
       el.textContent = text;
-      const bg = {
-        ok: 'var(--theme-green, #d4edda)',
-        err: 'var(--theme-red, #f8d7da)',
-        busy: 'var(--theme-background-b, #eee)',
-        muted: 'var(--theme-background-b, #eee)'
+      // solid themed surface + themed foreground = guaranteed contrast in any theme;
+      // status is carried by the left-border accent, not the background tint
+      const accent = {
+        ok: 'var(--theme-green, #3fb950)',
+        err: 'var(--theme-error, var(--theme-red, #e5534b))',
+        busy: 'var(--theme-foreground-focus, #6cb0ff)',
+        muted: 'var(--theme-foreground-muted, #888)'
       };
-      el.style.background = bg[k] || bg.busy;
+      el.style.background = 'var(--theme-background-raised, var(--theme-background-b, #fff))';
       el.style.color = 'var(--theme-foreground, #000)';
+      el.style.borderLeftColor = accent[k] || accent.busy;
       el.style.opacity = '1';
     };
     const hide = ms => {
@@ -200,9 +204,11 @@ const _sip0sav = function _sip_save(exportToHTML,sip_handleStore,sip_toast,locat
   };
   return save;
 };
-const _sip0reg = function _sip_register(lp2_registerMenuItem,sip_svg,sip_save,invalidation)
+const _sip0reg = function _sip_register(plugins,sip_svg,sip_save,invalidation)
 {
-  const dispose = lp2_registerMenuItem({
+  // Register straight onto the shared plugin-registry "lp2-menu" set — no import of lopepage-2.
+  // {invalidation} auto-removes the item if this cell re-runs.
+  plugins.add("lp2-menu", {
     id: 'save-in-place',
     order: 5,
     label: 'Save in place',
@@ -210,8 +216,7 @@ const _sip0reg = function _sip_register(lp2_registerMenuItem,sip_svg,sip_save,in
     action: () => {
       sip_save();
     }
-  });
-  invalidation.then(() => dispose());
+  }, { invalidation });
   return 'registered: save-in-place';
 };
 
@@ -222,16 +227,17 @@ export default function define(runtime, observer) {
   };
 
   main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));
-  main.define("module @tomlarkworthy/lopepage-2", async () => runtime.module((await import("/@tomlarkworthy/lopepage-2.js?v=4")).default));
+  main.define("module @tomlarkworthy/plugin-registry", async () => runtime.module((await import("/@tomlarkworthy/plugin-registry.js?v=4")).default));
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
   $def("_sip0doc", "sip_doc", ["md"], _sip0doc);
   $def("_sip0nid", "sip_notebookId", ["location"], _sip0nid);
   $def("_sip0hst", "sip_handleStore", ["sip_notebookId"], _sip0hst);
   $def("_sip0tst", "sip_toast", [], _sip0tst);
   $def("_sip0svg", "sip_svg", [], _sip0svg);
   $def("_sip0sav", "sip_save", ["exportToHTML", "sip_handleStore", "sip_toast", "location", "runtime"], _sip0sav);
-  $def("_sip0reg", "sip_register", ["lp2_registerMenuItem", "sip_svg", "sip_save", "invalidation"], _sip0reg);
+  $def("_sip0reg", "sip_register", ["plugins", "sip_svg", "sip_save", "invalidation"], _sip0reg);
   main.define("exportToHTML", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("exportToHTML", _));
-  main.define("lp2_registerMenuItem", ["module @tomlarkworthy/lopepage-2", "@variable"], (_, v) => v.import("lp2_registerMenuItem", _));
-  main.define("runtime", ["module @tomlarkworthy/lopepage-2", "@variable"], (_, v) => v.import("runtime", _));
+  main.define("plugins", ["module @tomlarkworthy/plugin-registry", "@variable"], (_, v) => v.import("plugins", _));
+  main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));
   return main;
 }
