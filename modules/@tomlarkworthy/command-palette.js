@@ -7,41 +7,28 @@ Plugin-driven command palette. Press **Cmd+K** (Mac) or **Ctrl+K** to open, or p
 import {commandPaletteOverlay, commandPaletteStyles, commandPaletteKeybinding} from "@tomlarkworthy/command-palette"
 \`\`\`
 
-## Registering a plugin
+## Registering a command provider
 
-A plugin is a function \`(query: string) => Command[]\` where \`Command = {label, href, hint?, module?, badge?, snippet?, score?}\`. Plugins run on every keystroke; results are merged and sorted by \`score\` (descending).
+A provider is a function \`(query: string) => Command[]\` where \`Command = {label, href, hint?, module?, badge?, snippet?, score?}\`. Providers run on every keystroke; results are merged and sorted by \`score\` (descending).
+
+Providers register on the shared [\`@tomlarkworthy/plugin-registry\`](https://observablehq.com/@tomlarkworthy/plugin-registry) set named \`"lopecode_commands"\` — no import of this notebook needed, so any notebook can extend the palette:
 
 \`\`\`js
-import {viewof commands as commandsView} from "@tomlarkworthy/command-palette"
+import {plugins} from "@tomlarkworthy/plugin-registry"
 {
-  const myPlugin = (q) => [{label: "Hello " + q, href: "#" + q, score: 100}];
-  const unregister = commandsView.addCommand(myPlugin);
-  invalidation.then(unregister);
+  const provider = (q) => [{label: "Hello " + q, href: "#" + q, score: 100}];
+  plugins.add("lopecode_commands", provider, {invalidation});
 }
 \`\`\`
 
-## Built-in plugins
+## Built-in providers
 
 - **Module finder** — type a module name to open it.
 - **Cell search** — type to find cells across all loaded modules.`
 )};
-const _1eng7wy = function _commands(Inputs,Event)
-{
-    const input = Inputs.input([]);
-    input.addCommand = function (plugin) {
-        input.value.push(plugin);
-        input.dispatchEvent(new Event('input'));
-        return () => {
-            const i = input.value.indexOf(plugin);
-            if (i >= 0) {
-                input.value.splice(i, 1);
-                input.dispatchEvent(new Event('input'));
-            }
-        };
-    };
-    return input;
-};
-const _7bve6u = (G, _) => G.input(_);
+const _cpprov = function _commandProviders(plugins){return(
+plugins.get("lopecode_commands")
+)};
 const _bpk8h7 = function _searchIndex(liveCellMap,modules){return(
 (() => {
     const index = [];
@@ -193,11 +180,11 @@ const _1ptnr90 = function _commandPaletteStyles(theme_assets,htl)
 }
 </style>`;
 };
-const _fomuvm = function _commandPaletteOverlay($0,Node,invalidation)
+const _fomuvm = function _commandPaletteOverlay(Node,invalidation)
 {
-    const $commands = $0;
     let selectedIdx = 0;
     let results = [];
+    let providers = [];
     const overlay = document.createElement('div');
     overlay.className = 'command-palette-overlay';
     overlay.hidden = true;
@@ -215,15 +202,14 @@ const _fomuvm = function _commandPaletteOverlay($0,Node,invalidation)
     function search(query) {
         if (!query || query.length < 1)
             return [];
-        const plugins = $commands.value || [];
         let all = [];
-        for (const plugin of plugins) {
+        for (const provider of providers) {
             try {
-                const out = plugin(query);
+                const out = provider(query);
                 if (Array.isArray(out))
                     all = all.concat(out);
             } catch (e) {
-                console.error('[command-palette] plugin error:', e);
+                console.error('[command-palette] provider error:', e);
             }
         }
         all.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
@@ -343,12 +329,29 @@ const _fomuvm = function _commandPaletteOverlay($0,Node,invalidation)
     overlay._openPalette = open;
     overlay._closePalette = close;
     overlay._isOpen = () => !overlay.hidden;
+    // Stable setter fed by command_provider_sync; re-searches live if the palette is open.
+    overlay._setProviders = arr => {
+        providers = arr || [];
+        if (!overlay.hidden) {
+            results = search(input.value);
+            selectedIdx = 0;
+            render();
+        }
+    };
     return overlay;
 };
-const _mqy6k9 = function _commandPaletteKeybinding(cellSearchPlugin,moduleFinderPlugin,commandPaletteOverlay,invalidation)
+const _cpsync = function _command_provider_sync(commandPaletteOverlay,commandProviders)
+{
+  // Push the current provider set (from the "lopecode_commands" bus) into the stable overlay,
+  // so the overlay is built once yet always searches the live set. Recomputes on every add/remove.
+  commandPaletteOverlay._setProviders(commandProviders);
+  return `command providers: ${commandProviders.length}`;
+};
+const _mqy6k9 = function _commandPaletteKeybinding(cellSearchPlugin,moduleFinderPlugin,command_provider_sync,commandPaletteOverlay,invalidation)
 {
   cellSearchPlugin;
   moduleFinderPlugin;
+  command_provider_sync;
   const handler = (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
@@ -366,7 +369,7 @@ const _mqy6k9 = function _commandPaletteKeybinding(cellSearchPlugin,moduleFinder
   );
   return null;
 };
-const _k261kj = function _cellSearchPlugin(searchIndex,linkTo,$0,invalidation)
+const _k261kj = function _cellSearchPlugin(searchIndex,linkTo,plugins,invalidation)
 {
   const plugin = (query) => {
     if (!query || query.length < 1) return [];
@@ -443,11 +446,10 @@ const _k261kj = function _cellSearchPlugin(searchIndex,linkTo,$0,invalidation)
     }
     return out;
   };
-  const unregister = $0.addCommand(plugin);
-  invalidation.then(unregister);
+  plugins.add("lopecode_commands", plugin, { invalidation });
   return "cell-search plugin registered";
 };
-const _lq3msy = function _moduleFinderPlugin(currentModules,linkTo,$0,invalidation)
+const _lq3msy = function _moduleFinderPlugin(currentModules,linkTo,plugins,invalidation)
 {
   // Use the REACTIVE module set (module-map currentModules), not cell-map's one-shot `modules` snapshot,
   // so modules created live (e.g. by robocoop-4) are immediately findable. This cell recomputes whenever
@@ -474,8 +476,7 @@ const _lq3msy = function _moduleFinderPlugin(currentModules,linkTo,$0,invalidati
     }
     return out;
   };
-  const unregister = $0.addCommand(plugin);
-  invalidation.then(unregister);
+  plugins.add("lopecode_commands", plugin, { invalidation });
   return "module-finder plugin registered";
 };
 const _cp0reg = function _cp_menu_register(plugins,commandPaletteOverlay,invalidation)
@@ -503,15 +504,15 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/cell-map", async () => runtime.module((await import("/@tomlarkworthy/cell-map.js?v=4")).default));  
   main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));  
   main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
-  $def("_13upker", null, ["md"], _13upker);  
-  $def("_1eng7wy", "viewof commands", ["Inputs","Event"], _1eng7wy);  
-  $def("_7bve6u", "commands", ["Generators","viewof commands"], _7bve6u);  
-  $def("_bpk8h7", "searchIndex", ["liveCellMap","modules"], _bpk8h7);  
-  $def("_1ptnr90", "commandPaletteStyles", ["theme_assets","htl"], _1ptnr90);  
-  $def("_fomuvm", "commandPaletteOverlay", ["viewof commands","Node","invalidation"], _fomuvm);  
-  $def("_mqy6k9", "commandPaletteKeybinding", ["cellSearchPlugin","moduleFinderPlugin","commandPaletteOverlay","invalidation"], _mqy6k9);  
-  $def("_k261kj", "cellSearchPlugin", ["searchIndex","linkTo","viewof commands","invalidation"], _k261kj);
-  $def("_lq3msy", "moduleFinderPlugin", ["currentModules","linkTo","viewof commands","invalidation"], _lq3msy);
+  $def("_13upker", null, ["md"], _13upker);
+  $def("_cpprov", "commandProviders", ["plugins"], _cpprov);
+  $def("_bpk8h7", "searchIndex", ["liveCellMap","modules"], _bpk8h7);
+  $def("_1ptnr90", "commandPaletteStyles", ["theme_assets","htl"], _1ptnr90);
+  $def("_fomuvm", "commandPaletteOverlay", ["Node","invalidation"], _fomuvm);
+  $def("_cpsync", "command_provider_sync", ["commandPaletteOverlay","commandProviders"], _cpsync);
+  $def("_mqy6k9", "commandPaletteKeybinding", ["cellSearchPlugin","moduleFinderPlugin","command_provider_sync","commandPaletteOverlay","invalidation"], _mqy6k9);
+  $def("_k261kj", "cellSearchPlugin", ["searchIndex","linkTo","plugins","invalidation"], _k261kj);
+  $def("_lq3msy", "moduleFinderPlugin", ["currentModules","linkTo","plugins","invalidation"], _lq3msy);
   $def("_cp0reg", "cp_menu_register", ["plugins","commandPaletteOverlay","invalidation"], _cp0reg);
   main.define("module @tomlarkworthy/plugin-registry", async () => runtime.module((await import("/@tomlarkworthy/plugin-registry.js?v=4")).default));
   main.define("plugins", ["module @tomlarkworthy/plugin-registry", "@variable"], (_, v) => v.import("plugins", _));
