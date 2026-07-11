@@ -1,7 +1,7 @@
 const _13upker = function _1(md){return(
 md`# Command Palette
 
-Plugin-driven command palette. Press **Cmd+K** (Mac) or **Ctrl+K** to open.
+Plugin-driven command palette. Press **Cmd+K** (Mac) or **Ctrl+K** to open, or pick **Command palette** from the lopepage-2 burger menu (registered on the shared \`"lp2-menu"\` plugin bus).
 
 \`\`\`js
 import {commandPaletteOverlay, commandPaletteStyles, commandPaletteKeybinding} from "@tomlarkworthy/command-palette"
@@ -478,6 +478,21 @@ const _lq3msy = function _moduleFinderPlugin(currentModules,linkTo,$0,invalidati
   invalidation.then(unregister);
   return "module-finder plugin registered";
 };
+const _cp0reg = function _cp_menu_register(plugins,commandPaletteOverlay,invalidation)
+{
+  // Surface the palette in the lopepage-2 burger menu so it's discoverable without knowing the
+  // Cmd/Ctrl+K shortcut. Registers straight onto the shared plugin-registry "lp2-menu" set — no
+  // import of lopepage-2; a notebook opts in by adding both modules to its bootconf mains.
+  const isMac = /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent || '');
+  plugins.add("lp2-menu", {
+    id: 'command-palette',
+    order: 3,
+    label: 'Command palette  ' + (isMac ? '⌘K' : 'Ctrl+K'),
+    svg: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2 14 14"/></svg>',
+    action: () => commandPaletteOverlay._openPalette()
+  }, { invalidation });
+  return 'registered: command-palette menu item';
+};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -495,8 +510,11 @@ export default function define(runtime, observer) {
   $def("_1ptnr90", "commandPaletteStyles", ["theme_assets","htl"], _1ptnr90);  
   $def("_fomuvm", "commandPaletteOverlay", ["viewof commands","Node","invalidation"], _fomuvm);  
   $def("_mqy6k9", "commandPaletteKeybinding", ["cellSearchPlugin","moduleFinderPlugin","commandPaletteOverlay","invalidation"], _mqy6k9);  
-  $def("_k261kj", "cellSearchPlugin", ["searchIndex","linkTo","viewof commands","invalidation"], _k261kj);  
+  $def("_k261kj", "cellSearchPlugin", ["searchIndex","linkTo","viewof commands","invalidation"], _k261kj);
   $def("_lq3msy", "moduleFinderPlugin", ["currentModules","linkTo","viewof commands","invalidation"], _lq3msy);
+  $def("_cp0reg", "cp_menu_register", ["plugins","commandPaletteOverlay","invalidation"], _cp0reg);
+  main.define("module @tomlarkworthy/plugin-registry", async () => runtime.module((await import("/@tomlarkworthy/plugin-registry.js?v=4")).default));
+  main.define("plugins", ["module @tomlarkworthy/plugin-registry", "@variable"], (_, v) => v.import("plugins", _));
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
   main.define("currentModules", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("currentModules", _));
   main.define("viewof liveCellMap", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("viewof liveCellMap", _));  
