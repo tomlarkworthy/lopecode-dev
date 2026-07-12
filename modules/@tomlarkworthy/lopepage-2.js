@@ -1428,6 +1428,16 @@ const _2xf9jm = function _lp2_menu_sync(lp2_burger,lp2MenuItems)
   const addItems = (arr, depth, container) => {
     for (const item of bySort(arr)) {
       count++;
+      if (item.element) {
+        // full-HTML item: the plugin owns its DOM, state and events; we only place it.
+        // pass a live node to keep state across menu rebuilds (reparented, not recreated).
+        const el = typeof item.element === 'function' ? item.element() : item.element;
+        if (el) {
+          el.style.paddingLeft = 10 + depth * 16 + 'px';
+          container.appendChild(el);
+        }
+        continue;
+      }
       const btn = document.createElement('button');
       btn.className = 'lp2-menu-item';
       btn.style.paddingLeft = 10 + depth * 16 + 'px';
@@ -1477,8 +1487,9 @@ const _2xf9jm = function _lp2_menu_sync(lp2_burger,lp2MenuItems)
   }
   return `menu: ${ count } item${ count === 1 ? '' : 's' }`;
 };
-const _hs74kp = function _lp2_menu_defaults(lp2_registerMenuItem,disk_svg,downloadAnchor,forkAnchor,invalidation)
+const _hs74kp = function _lp2_menu_defaults(lp2_registerMenuItem,disk_svg,downloadAnchor,forkAnchor,invalidation,$0)
 {
+  const $attachToggle = $0;   // viewof attachContextManu (editor-5): drives inline-editor attach/detach
   // built-in items, registered through the same plugin path any other notebook uses;
   // the anchors carry exporter-3's export behaviour, so acting = clicking a fresh one
   const disposers = [
@@ -1497,8 +1508,40 @@ const _hs74kp = function _lp2_menu_defaults(lp2_registerMenuItem,disk_svg,downlo
       action: () => forkAnchor({}, 'fork').click()
     })
   ];
-  invalidation.then(() => disposers.forEach(d => d()));
-  return 'menu defaults: download, fork';
+  // Edit-mode toggle: a full-HTML menu item (the `element` contract). It drives
+  // editor-5's `attachContextManu` view directly — off detaches all inline editors
+  // for a clean reading view. The node is immortal and owns its own state, so
+  // toggling never re-registers and the menu never rebuilds/reorders.
+  const row = document.createElement('label');
+  row.className = 'lp2-menu-item';
+  Object.assign(row.style, {
+    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+    padding: '6px 10px', borderRadius: '3px', cursor: 'pointer', font: 'inherit'
+  });
+  row.addEventListener('mouseenter', () => row.style.background = 'rgba(128,128,128,.15)');
+  row.addEventListener('mouseleave', () => row.style.background = 'transparent');
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.checked = !!$attachToggle.value;
+  Object.assign(box.style, { flex: '0 0 16px', margin: '0', cursor: 'pointer' });
+  const lbl = document.createElement('span');
+  lbl.textContent = 'Edit mode';
+  lbl.style.flex = '1 1 auto';
+  row.append(box, lbl);
+  const set = on => {
+    if (!!$attachToggle.value === on) return;
+    $attachToggle.value = on;
+    $attachToggle.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  box.addEventListener('change', () => set(box.checked));
+  const onExt = () => { box.checked = !!$attachToggle.value; };   // reflect external changes in place
+  $attachToggle.addEventListener('input', onExt);
+  disposers.push(lp2_registerMenuItem({ id: 'edit-mode', order: 15, element: row }));
+  invalidation.then(() => {
+    $attachToggle.removeEventListener('input', onExt);
+    disposers.forEach(d => d());
+  });
+  return 'menu defaults: download, edit-mode, fork';
 };
 
 export default function define(runtime, observer) {
@@ -1565,6 +1608,7 @@ export default function define(runtime, observer) {
   main.define("replay_git", ["module @tomlarkworthy/local-change-history", "@variable"], (_, v) => v.import("replay_git", _));  
   main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));  
   main.define("auto_attach", ["module @tomlarkworthy/editor-5", "@variable"], (_, v) => v.import("auto_attach", _));
+  main.define("viewof attachContextManu", ["module @tomlarkworthy/editor-5", "@variable"], (_, v) => v.import("viewof attachContextManu", _));
   main.define("disk_svg", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("disk_svg", _));
   main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));
   main.define("forkAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("forkAnchor", _));
@@ -1582,6 +1626,6 @@ export default function define(runtime, observer) {
   $def("_p9krt2", "lp2_registerMenuItem", ["plugins"], _p9krt2);
   $def("_6tghw4", "lp2_burger", ["invalidation"], _6tghw4);
   $def("_2xf9jm", "lp2_menu_sync", ["lp2_burger","lp2MenuItems"], _2xf9jm);
-  $def("_hs74kp", "lp2_menu_defaults", ["lp2_registerMenuItem","disk_svg","downloadAnchor","forkAnchor","invalidation"], _hs74kp);
+  $def("_hs74kp", "lp2_menu_defaults", ["lp2_registerMenuItem","disk_svg","downloadAnchor","forkAnchor","invalidation","viewof attachContextManu"], _hs74kp);
   return main;
 }
