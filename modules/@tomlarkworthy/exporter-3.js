@@ -109,12 +109,19 @@ fill => html`<svg ${ fill ? `fill="${ fill }" ` : '' }width="50px" height="50px"
 const _ibwdcx = function _11(md){return(
 md`## Implementation`
 )};
-const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,variable,domView,view,disk_svg,Inputs,createShowable,top120List,themes,$0,bindOneWay){return(
+const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,variable,domView,view,disk_svg,Inputs,themes,$0,linkTo){return(
 ({handler = actionHandler, style = css, output = out => {
-    }, notebook_url = '', debug = false} = {}) => {
+    }, debug = false} = {}) => {
     keepalive(exporter_module, 'futureExportedState');
     const handlerVar = variable(handler);
     const feedback = domView();
+    // prerender defaults ON; only an explicit "prerender": false in bootconf turns it off
+    let prerenderDefault = true;
+    try {
+        const conf = JSON.parse(new window.TextDecoder().decode(window.lopecode.contentSync('bootconf.json').bytes));
+        if (conf.prerender === false) prerenderDefault = false;
+    } catch (e) {
+    }
     const options = {
         style,
         output,
@@ -130,30 +137,48 @@ const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,v
             throw e;
         }
     };
-    const ui = view`<div class="moldbook-exporter" style="max-width: 520px;">
+    const ui = view`<div class="moldbook-exporter" style="max-width: 440px;">
     <style>
       .moldbook-exporter {
-        margin: 10px;
+        margin: 4px;
+        padding: 6px 8px;
         background: var(--theme-background-alt);
         fill: var(--theme-foreground);
+        color: var(--theme-foreground);
         border-radius: 6px;
       }
+      .moldbook-exporter .disk-image svg { width: 38px; height: 38px; display: block; }
       .moldbook-exporter button {
         background: var(--theme-foreground-focus);
         color: var(--theme-background);
-        height: 20px;
+        height: 22px;
         border-radius: 3px;
       }
-      .moldbook-exporter input[type=text] {
-        width: 100%;
-      }
+      .moldbook-exporter input[type=text] { width: 100%; }
       .moldbook-exporter form {
         width: auto;
         background: var(--theme-background);
         color: var(--theme-foreground);
       }
-      .moldbook-exporter .moldbook-alt {
-        color: var(--theme-foreground-focus);
+      .moldbook-exporter a.moldbook-target { color: var(--theme-foreground-focus); font-weight: 600; text-decoration: none; }
+      .moldbook-exporter a.moldbook-target:hover { text-decoration: underline; }
+      .moldbook-exporter summary.moldbook-topline {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        cursor: pointer;
+        user-select: none;
+        list-style: none;
+      }
+      .moldbook-exporter summary.moldbook-topline::-webkit-details-marker { display: none; }
+      .moldbook-exporter .moldbook-options-hint { color: var(--theme-foreground-focus); opacity: 0.85; font-size: 13px; }
+      .moldbook-exporter .moldbook-options-hint::before { content: '▸'; margin-right: 3px; }
+      .moldbook-exporter details[open] .moldbook-options-hint::before { content: '▾'; }
+      .moldbook-exporter .moldbook-advanced-body {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 6px 2px 2px;
       }
       @keyframes spin {
         from { transform: rotateY(0deg); }
@@ -172,73 +197,50 @@ const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,v
         'handler',
         handlerVar
     ] }
-    <div style="display: flex;">
+    <div style="display: flex; align-items: flex-start; gap: 8px;">
       <div class="disk-image">${ disk_svg() }</div>
-      <div style="width: 100%">
-        <div class="moldbook-alt">
-          <span style="display: flex; align-items: center; margin-left: 5px;">
-            fork
-            <div style="flex-grow:1"></div>
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+        <details class="moldbook-options">
+          <summary class="moldbook-topline">
+            <a class="moldbook-target" href="${ linkTo('@tomlarkworthy/exporter-3') }">fork notebook</a>
+            <span style="flex: 1"></span>
+            <span class="moldbook-options-hint">options</span>
+          </summary>
+          <div class="moldbook-advanced-body">
             ${ [
-        'source',
-        Inputs.select([
-            'this notebook',
-            'a notebook url',
-            'the top 100'
-        ])
+        'prerender',
+        Inputs.toggle({ label: 'prerender', value: prerenderDefault })
     ] }
-          </span>
-          ${ [
-        'notebook_url',
-        createShowable(Inputs.text({
-            value: notebook_url,
-            placeholder: '@tomlarkworthy/exporter'
-        }))
-    ] }
-          ${ [
-        'top_100',
-        createShowable(Inputs.select(top120List))
-    ] }
-        </div>
-        <div class="moldbook-dark">
-          <div>
-            <div style="display: flex; gap: 5px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
-              <div style="flex-grow:1; flex-basis: 58%; flex-shrink: 2; min-width: 240px;">
-                ${ [
-        'bootloader',
-        Inputs.text({
-            value: '@tomlarkworthy/bootloader',
-            placeholder: '@tomlarkworthy/bootloader'
-        })
-    ] }
-              </div>
-              <div style="flex-grow:1; flex-basis: 28%; min-width: 150px;">
-                ${ [
+            ${ [
         'theme',
-        Inputs.bind(Inputs.select(themes), $0)
+        Inputs.bind(Inputs.select(themes, { label: 'theme' }), $0)
     ] }
-              </div>
-              ${ [
+            ${ [
+        'bootloader',
+        Inputs.text({ label: 'bootloader', value: '@tomlarkworthy/bootloader', placeholder: '@tomlarkworthy/bootloader' })
+    ] }
+          </div>
+        </details>
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+          ${ [
         'copyjs',
         Inputs.button('Copy as JS', { reduce: () => spinner('copyjs', ui.value, options) })
     ] }
-              ${ [
+          ${ [
         'blob',
         Inputs.button('Fork', { reduce: () => spinner('tab', ui.value, options) })
     ] }
-              ${ [
+          ${ [
         'html',
         Inputs.button('Download', { reduce: () => spinner('file', ui.value, options) })
     ] }
-            </div>
-          </div>
         </div>
       </div>
     </div>
     <div>${ feedback }</div>
   </div>`;
-    bindOneWay(ui.notebook_url.show, ui.source, { transform: src => src === 'a notebook url' });
-    bindOneWay(ui.top_100.show, ui.source, { transform: src => src === 'the top 100' });
+    // keep the "fork notebook" link navigable without toggling the <details>
+    ui.querySelector('.moldbook-target')?.addEventListener('click', e => e.stopPropagation());
     return ui;
 }
 )};
@@ -458,7 +460,7 @@ const _1u2ju69 = function _forkAnchor(exportAnchor){return(
 const _1a8n42w = function _downloadAnchor(exportAnchor){return(
 (attrs = {}, label = 'download', exportOpts = {}) => exportAnchor('download', attrs, label, exportOpts)
 )};
-const _r3bep4 = function _actionHandler(Inputs,getSourceModule,notebook_name,_runtime,exportToHTML,htmlToConsoleSnippet,copyTextToClipboard,view,location,getCompactISODate){return(
+const _r3bep4 = function _actionHandler(Inputs,getSourceModule,notebook_name,_runtime,exportToHTML,htmlToConsoleSnippet,copyTextToClipboard,view,location,getCompactISODate,linkTo){return(
 async (action, state, options, feedback_callback) => {
     feedback_callback(Inputs.textarea({ value: `Generating source...\n` }));
     const {notebook, module, runtime} = await getSourceModule(state);
@@ -478,6 +480,7 @@ async (action, state, options, feedback_callback) => {
         options: {
             bootloader: state.bootloader,
             title,
+            ...state.prerender != null ? { prerender: state.prerender } : null,
             ...options
         }
     });
@@ -494,6 +497,13 @@ async (action, state, options, feedback_callback) => {
         return;
     }
     const url = URL.createObjectURL(new Blob([source], { type: 'text/html' }));
+    // The report table doubles as a table of contents: the notebook's own openable
+    // modules (@user/module, not versioned npm deps or the observablehq namespace)
+    // render their `id` as a link that opens that module in the live layout via the
+    // lopepage "open" intent; everything else stays plain text.
+    const isOpenableModule = id => typeof id === 'string'
+        && /^@[^@/\s]+\/[^@/\s]+$/.test(id)
+        && !id.startsWith('@observablehq/');
     feedback_callback(view`
     <center><a href="${ url }" target="_blank">export</a></center>
     ${ Inputs.table(report.filter(f => !f.file), {
@@ -504,6 +514,16 @@ async (action, state, options, feedback_callback) => {
         width: {
             id: '80%',
             size: '20%'
+        },
+        format: {
+            id: id => {
+                if (!isOpenableModule(id)) return id;
+                const a = document.createElement('a');
+                a.textContent = id;
+                a.href = linkTo({ open: id });
+                a.style.color = 'var(--theme-foreground-focus)';
+                return a;
+            }
         },
         sort: 'size',
         reverse: true
@@ -541,6 +561,25 @@ const _k7go5d = function _exportToHTML(_runtime, cssForTheme, css, location, kee
         }
         if (options.tickDelayMs == null) {
             options.tickDelayMs = conf.tickDelayMs;
+        }
+        // Prerender flag persists in bootconf.json across re-exports (like headless/tick).
+        if (options.prerender == null) {
+            options.prerender = conf.prerender;
+        }
+        // Snapshot the live lopepage-2 DOM (only when exporting this running notebook).
+        // The snapshot keeps its id="lopepage-2" and scoped styles unchanged; book() nests
+        // it in a Declarative Shadow DOM so it is invisible to the booting runtime's
+        // document queries (otherwise duplicated editors/inputs corrupt the boot).
+        if (options.prerender && runtime === _runtime && options.prerenderHTML == null) {
+            try {
+                const src = document.getElementById('lopepage-2');
+                if (src) {
+                    const clone = src.cloneNode(true);
+                    clone.querySelectorAll('script').forEach(s => s.remove());
+                    options.prerenderHTML = clone.outerHTML;
+                }
+            } catch (_) {
+            }
         }
         if (options.theme) {
             options.style = await cssForTheme(options.theme);
@@ -593,7 +632,8 @@ const _k7go5d = function _exportToHTML(_runtime, cssForTheme, css, location, kee
 };
 const _17k9v19 = function _getSourceModule(notebook_name, main, _runtime, importShim) {
     return async state => {
-        if (state.source == 'this notebook')
+        // source picker was removed; the exporter always serialises this notebook
+        if (!state.source || state.source == 'this notebook')
             return {
                 notebook: notebook_name,
                 module: main,
@@ -1025,6 +1065,7 @@ const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shim
   const bootloader = task.options.bootloader || '@tomlarkworthy/bootloader';
   const tickLine = task.options.tick != null ? `,\n  "tick": ${ JSON.stringify(task.options.tick) }` : '';
   const tickDelayLine = task.options.tickDelayMs != null ? `,\n  "tickDelayMs": ${ JSON.stringify(task.options.tickDelayMs) }` : '';
+  const prerenderLine = task.options.prerender ? `,\n  "prerender": true` : '';
   const bootconfBlock = `<script id="bootconf.json"
         type="text/plain"
         data-mime="application/json"
@@ -1032,9 +1073,38 @@ const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shim
 {
   "mains": ${ JSON.stringify([...task.mains.keys()]) },
   "hash": "${ task.options.hash || '' }",
-  "headless": ${ !!task.options.headless }${ tickLine }${ tickDelayLine }
+  "headless": ${ !!task.options.headless }${ tickLine }${ tickDelayLine }${ prerenderLine }
 }
 </scr` + `ipt>`;
+  // Prerender: bake the live lopepage-2 chrome+content into <body> so the page shows
+  // (styled, no JS) before boot, then a MutationObserver removes it once the real
+  // #lopepage-2 mounts. Snapshot captured in exportToHTML (browser side).
+  const themeCss = (task.options.style || []).map(([, content]) => content).join('\n');
+  // Prerender: nest the snapshot in a Declarative Shadow DOM so it renders (styled, no JS)
+  // yet is invisible to the booting runtime's document queries. Theme CSS goes OUTSIDE (so
+  // its :root custom props inherit into the shadow) and INSIDE (component rules match shadow
+  // content). The host overlay sits on top (opaque, high z-index) covering the still-booting
+  // live page, then is removed (hard swap) as soon as the live page renders its first cell.
+  const prerenderBlock = (task.options.prerender && task.options.prerenderHTML) ? [
+    `<style id="lope-prerender-style">
+${ themeCss }
+#lope-prerender { position: fixed; inset: 0; z-index: 2147483000; overflow: hidden; background: var(--theme-background, #fff); }
+</style>`,
+    `<div id="lope-prerender"><template shadowrootmode="open"><style>\n${ themeCss }\n</style>${ task.options.prerenderHTML }</template></div>`,
+    `<script id="lope-prerender-cleanup">
+(function () {
+  var pr = document.getElementById('lope-prerender');
+  if (!pr) return;
+  function drop() { if (pr && pr.parentNode) pr.remove(); }
+  // snapshot's own #lopepage-2 is inside the shadow -> this only matches the live page
+  function ready() { return !!document.querySelector('#lopepage-2 .observablehq'); }
+  if (ready()) { drop(); return; }
+  var mo = new MutationObserver(function () { if (ready()) { mo.disconnect(); drop(); } });
+  mo.observe(document.documentElement, { childList: true, subtree: true });
+  setTimeout(function () { mo.disconnect(); drop(); }, 5000); // never linger
+})();
+</scr` + `ipt>`
+  ].join('\n') : '';
   const bootloaderBlock = inlineModule(bootloader, await (await fetch(`https://api.observablehq.com/${ bootloader }.js?v=4`)).text());
   const blocks = [
     '<!-- CSS -->',
@@ -1055,6 +1125,7 @@ body .inputs-3a86ea-table thead th {
     blocks,
     cssUrls,
     bootloader,
+    bodyPrepend: prerenderBlock,
     title: task.options.title || (typeof document !== 'undefined' && document.title) || 'Lopecode notebook',
     description: task.options.description,
     image: task.options.image,
@@ -1740,7 +1811,7 @@ const _1pcnq22 = function _networking_script(normalize,isNotebook){return(
   })();`
 )};
 const _lq8bhb = function _lopebook(diskDataUrl, networking_script) {
-    return ({blocks = '', cssUrls = [], bootloader = '@tomlarkworthy/bootloader', title = 'Lopecode notebook', description, image, metas = [], head} = {}) => {
+    return ({blocks = '', cssUrls = [], bootloader = '@tomlarkworthy/bootloader', title = 'Lopecode notebook', description, image, metas = [], head, bodyPrepend = ''} = {}) => {
         const styleImports = cssUrls.map((url, i) => `  const style${ i } = await importShim(${ JSON.stringify(url) }, { with: { type: 'css' } });`).join('\n');
         const styleAdopt = cssUrls.map((_, i) => `style${ i }.default`).join(',');
         const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1763,6 +1834,7 @@ const _lq8bhb = function _lopebook(diskDataUrl, networking_script) {
   ${ head ? head : `<link rel="icon" href="${ diskDataUrl }">` }
 </head>
 <body>
+${ bodyPrepend }
 <script id="networking_script">${ networking_script }
 </scr\ipt>
 
@@ -1892,7 +1964,8 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/local-storage-view", async () => runtime.module((await import("/@tomlarkworthy/local-storage-view.js?v=4")).default));  
   main.define("module @tomlarkworthy/dom-view", async () => runtime.module((await import("/@tomlarkworthy/dom-view.js?v=4")).default));  
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
+  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));  
   main.define("module @tomlarkworthy/jest-expect-standalone", async () => runtime.module((await import("/@tomlarkworthy/jest-expect-standalone.js?v=4")).default));  
   main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
   $def("_1noor04", null, ["md"], _1noor04);  
@@ -1906,13 +1979,13 @@ export default function define(runtime, observer) {
   $def("_17bj13d", null, ["disk_svg"], _17bj13d);  
   $def("_fl78rz", "disk_svg", ["html"], _fl78rz);  
   $def("_ibwdcx", null, ["md"], _ibwdcx);  
-  $def("_4vze8h", "exporter", ["actionHandler","css","keepalive","exporter_module","variable","domView","view","disk_svg","Inputs","createShowable","top120List","themes","viewof theme_assets","bindOneWay"], _4vze8h);  
+  $def("_4vze8h", "exporter", ["actionHandler","css","keepalive","exporter_module","variable","domView","view","disk_svg","Inputs","themes","viewof theme_assets","linkTo"], _4vze8h);
   $def("_5xp8ad", "copyTextToClipboard", ["globalThis"], _5xp8ad);  
   $def("_ywlem4", "htmlToConsoleSnippet", ["utf8ToBase64"], _ywlem4);  
   $def("_1gdtxyo", "exportAnchor", ["Node","notebook_name","main","_runtime","exportToHTML","location","getCompactISODate"], _1gdtxyo);  
   $def("_1u2ju69", "forkAnchor", ["exportAnchor"], _1u2ju69);  
   $def("_1a8n42w", "downloadAnchor", ["exportAnchor"], _1a8n42w);  
-  $def("_r3bep4", "actionHandler", ["Inputs","getSourceModule","notebook_name","_runtime","exportToHTML","htmlToConsoleSnippet","copyTextToClipboard","view","location","getCompactISODate"], _r3bep4);  
+  $def("_r3bep4", "actionHandler", ["Inputs","getSourceModule","notebook_name","_runtime","exportToHTML","htmlToConsoleSnippet","copyTextToClipboard","view","location","getCompactISODate","linkTo"], _r3bep4);
   $def("_k7go5d", "exportToHTML", ["_runtime","cssForTheme","css","location","keepalive","exporter_module","viewof task"], _k7go5d);  
   $def("_17k9v19", "getSourceModule", ["notebook_name","main","_runtime","importShim"], _17k9v19);  
   $def("_6vlf2p", "createShowable", ["variable","view"], _6vlf2p);  
@@ -1997,7 +2070,8 @@ export default function define(runtime, observer) {
   main.define("escodegen", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("escodegen", _));  
   main.define("view", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("view", _));  
   main.define("variable", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("variable", _));  
-  main.define("bindOneWay", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("bindOneWay", _));  
+  main.define("bindOneWay", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("bindOneWay", _));
+  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));
   main.define("reversibleAttach", ["module @tomlarkworthy/reversible-attachment", "@variable"], (_, v) => v.import("reversibleAttach", _));  
   main.define("localStorageView", ["module @tomlarkworthy/local-storage-view", "@variable"], (_, v) => v.import("localStorageView", _));  
   main.define("domView", ["module @tomlarkworthy/dom-view", "@variable"], (_, v) => v.import("domView", _));  
