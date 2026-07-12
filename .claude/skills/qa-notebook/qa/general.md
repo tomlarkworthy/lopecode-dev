@@ -4,7 +4,7 @@ Universal criteria every notebook is scored against during a `/qa-notebook` pass
 
 Each criterion is scored **pass / partial / fail** with concrete evidence. Cite a screenshot region, `get_variable` snapshot, or console excerpt for every non-pass.
 
-## The 15 criteria
+## The 16 criteria
 
 ### 1. Clear title
 
@@ -125,6 +125,8 @@ Lopecode notebooks are **reactive and spatio-visual**: the user should always ge
 ### 15. Dataflow rerunnability
 
 The dataflow graph is a computation: recomputing any cell — or any subset of cells — leaves the program in a consequentially-equivalent state. Differing **values** on rerun are fine (randomness, `Date.now()`, time); leaked or accumulating **effects** are not. Any impure effect outside the model (timers, `addEventListener`, subscriptions, `WebSocket`/`EventSource`, `MutationObserver`/`ResizeObserver`, workers/animations, writes to a global/`window`/another module) must be torn down via the cell's **invalidation promise** (`invalidation.then(() => cleanup())`), so a recompute first undoes the prior effect.
+
+A **result-preserving cache** is an allowed exception: a bounded, localized effect that persists across reruns (memoization, a warmed lazy value) is fine **as long as the overall computation still converges to the same place**. The test is convergence, not purity — a cache that only ever *speeds up* the same result passes; a "cache" that changes the result on rerun, grows unbounded, or leaks is a fail like any other effect.
 
 - **pass** — every out-of-model effect has invalidation-driven cleanup; rerunning a cell does not stack listeners/timers/subscriptions or leak resources; cells don't mutate their inputs in place.
 - **partial** — one effect lacks cleanup but its impact is bounded (e.g. a single idempotent listener), OR one cell mutates an input in place where a derived value would do.
