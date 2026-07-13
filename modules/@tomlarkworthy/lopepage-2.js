@@ -592,9 +592,12 @@ Generators.observe(notify => {
 const _1nwbntj = function _lp2_setHash(location,history){return(
 newHash => {
   const h = newHash.startsWith('#') ? newHash : '#' + newHash;
-  const href = location.pathname + location.search + h;
+  // Bare relative fragment preserves path+search everywhere and, unlike
+  // location.pathname+search+h, does not throw on opaque origins (blob:
+  // forks), where that absolute form fails the same-origin check and drops
+  // every layout-to-URL update.
   try {
-    history.replaceState(null, '', href);
+    history.replaceState(null, '', h);
     return true;
   } catch (e) {
     try {
@@ -920,8 +923,13 @@ const _12ez53h = function _lp2_renderTab(location)
     close.addEventListener('mousedown', ev => ev.stopPropagation());
     close.addEventListener('click', ev => {
       ev.stopPropagation();
-      // route through the URL intent system: close=<module>
-      location.hash = ctx.linkTo({ close: leaf.module }, { baseURI: location.href });
+      // route through the URL intent system: close=<module>. Write via the
+      // History API + a synthetic hashchange rather than `location.hash =`,
+      // which is a silent no-op in blob: forks (fragment navigation is dropped
+      // on the opaque origin); pushState/replaceState still work there.
+      const target = ctx.linkTo({ close: leaf.module }, { baseURI: location.href });
+      window.history.pushState(null, '', target);
+      window.dispatchEvent(new window.HashChangeEvent('hashchange'));
     });
     tab.appendChild(close);
     return tab;
