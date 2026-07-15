@@ -1,21 +1,21 @@
-const p0 = function _anonymous(md) {return (md`# Source-last programming: the runtime is the source of truth`);};
+const p0 = function _anonymous(md) {return (md`# Source-last programming`);};
 const p1 = function _anonymous(md, externalLink) {return (md`*Tom Larkworthy — draft submission to ${ externalLink('LIVE 2026', 'https://liveprog.org/') }.*`);};
-const _abstract = function _abstract(md) {return (md`> **Abstract.** A business analyst in a regulated industry could not open a large CSV with Excel. We sent them an ad hoc column-trimming tool over Slack, transmitted as a single HTML file. That is self-serialization as a distribution primitive, which came from one of Lopecode's principles: the runtime is the source of truth.
+const _abstract = function _anonymous(md) {return (md`> **Abstract.** A business analyst in a regulated industry could not open a large CSV with Excel. We sent them an ad hoc column-trimming tool over Slack, transmitted as a single HTML file. That is self-serialization as a distribution primitive, which came from one of Lopecode's principles: the runtime is the source of truth.
 >
-> Most programming systems are format-first: a canonical saved representation — \\\`.ipynb\\\`, an image dump, a document schema — that the live system loads. Lopecode is *source-last*: there is no external source code or canonical serialized representation; the only canonical representation is the executing system. When source code is needed, functions are decompiled on demand from \\\`Function.prototype.toString()\\\`. Serialization becomes a projection to one of many formats: a standalone HTML file, a JavaScript IIFE or an ATProto PDS. Format-independence is a consequence of runtime-primacy. We claim runtime-primacy also leads to simpler implementations of malleability and liveness.
+> Most programming systems are format-first: a canonical saved representation — \\\`.ipynb\\\`, an image dump, a document schema that the system loads. Lopecode is *source-last*: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system. When source code is needed, functions are decompiled on demand starting from \`Function.prototype.toString()\`. Serialization becomes a projection to one of many formats: a standalone HTML file, a JavaScript IIFE or an ATProto PDS. Format-independence is a consequence of runtime-primacy. Furthermore, we claim runtime-primacy also leads to simpler implementations of malleability and liveness, by admitting a plurality of non-source based editing surfaces.
 >
 > We share three field episodes where Lopecode's format agnosticism shone: shipping a tool into a locked-down corporate environment; liberating a running program from a notebook SaaS; and freezing an AI-co-created music jam into a document shared over WhatsApp.`);};
 const s1h = function _anonymous(sec) {return (sec('ship'));};
 const s1p1 = function _anonymous(md) {return (md`A business analyst in a regulated industry, in another continent, could not open a large CSV export with their preferred tool, Excel. We knew almost nothing about their environment except that it was strict: corporate machines, no installing software, and data compliance. We built a small tool that trims columns from large CSVs, as a Lopecode notebook, and sent the single HTML file over Slack. They double-clicked it. The tool ran offline in their browser, and they were able to reexport a trimmed CSV that could be loaded by Excel.`);};
-const s1p2 = function _anonymous(md) {return (md`Nothing about the tool is interesting. What is interesting is that it is actually very hard to share a program to non-programmers in 2026. Native binaries and cloud services are not safe in corporate environments. The browser is an ideal runtime because it is sandboxed and present on every operating system. A single HTML file does not require cross-origin requests, so it can be double-clicked and it just works. The easiest way to distribute code is as a self-enclosed file that can travel on email and instant messenger.`);};
-const s1p3 = function _anonymous(md,aside) {return (md`${ aside('CSV column chooser', ['@tomlarkworthy/csv-column-chooser']) } is a copy of the actual tool shared`);};
+const s1p2 = function _anonymous(md) {return (md`Nothing about the tool is interesting. What is interesting is that it is actually very hard to share a program to non-programmers in 2026. Native binaries and cloud services are not safe in corporate environments. The browser is an ideal runtime because it is sandboxed and present on every operating system. A single HTML file does not require cross-origin requests, so it can be double-clicked and it just works. So a pragmatic option to distribute code is a self-enclosed file that can travel on email and instant messenger.`);};
+const s1p3 = function _anonymous(md,aside) {return (md`${ aside('CSV column chooser', '@tomlarkworthy/csv-column-chooser') } is a copy of the actual tool shared`);};
 const s2h = function _anonymous(sec) {return (sec('claim'));};
-const s2p1 = function _anonymous(md, aside, ref) {return (md`Most programming systems are format-first: a save format is the canonical representation, and the live system is a runtime that loads it. Jupyter loads \`.ipynb\`. Smalltalk saves and loads to its image. A browser page loads HTML. Lopecode inverts the arrangement in the pursuit of liveness and malleability. The canonical representation *is* the live runtime: a graph of modules whose cells are ordinary JavaScript functions, with dependencies declared to a reactive scheduler. When a saved form is needed it is computed from the runtime by reflection, the way a rendering is computed from a model. Because no format is canonical, the same runtime can project to several representations.
+const s2p1 = function _anonymous(md,aside,ref) {return (md`Most programming systems are format-first: a save format is the canonical representation, and the live system is a runtime that loads it. Jupyter loads \`.ipynb\`. Smalltalk saves and loads to its image. A browser page loads HTML. Lopecode inverts the arrangement in the pursuit of liveness and malleability. The canonical representation *is* the live runtime: a graph of modules containing pure JavaScript functions, executed by a reactive scheduler. When a serialized form is needed, it is computed on demand by reflection. Because no format is canonical, the same runtime can be projected to different serialized representations.
 
-Stated once, plainly: make the runtime the source of truth and serialization becomes a projection, so format-independence follows. We call the design *source-last*: source code still exists — legible, diffable, standard JavaScript — but it is recovered last, on demand, from the running system, rather than kept as the canonical artifact.
+Make the runtime the source of truth and serialization becomes a projection, so format-independence follows. We call the design *source-last*: source code still exists, but it is recovered last, on demand, from the running system, rather than maintained as the canonical artifact.
 
-The same arrangement multiplies editors as well as formats. Since the live runtime is the single thing every tool reads and writes, editing surfaces specialize and coexist: ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } edits cells as source; ${ aside('editable-md', ['@tomlarkworthy/editable-md']) } makes rendered prose directly editable — every paragraph of this essay is one of its cells; and \`sticky\` (${ ref('copy') }) is a UI lens, a slider that writes its state back into its own source. All three are userspace modules.`);};
-const s2x1 = function _anonymous(experiment, md) {return (experiment(md`**Try it.** Click any paragraph of this essay: it opens in a live markdown editor. The prose is cells, and the editor is a userspace module riding in the same file.`));};
+The same arrangement applies to program editors as well. Since the live runtime is the single thing every tool reads and writes, editing surfaces specialize and coexist: ${ aside('editor-5', '@tomlarkworthy/editor-5') } edits cells as source; ${ aside('editable-md', '@tomlarkworthy/editable-md') } makes rendered prose directly editable; and ${ aside('sticky', '@tomlarkworthy/sticky') } (${ ref('copy') }), a higher order UI lens that transforms User manipulations into function updates. All three are unprivedged userspace modules.`);};
+const s2x1 = function _anonymous(experiment,md,aside) {return (experiment(md`**Try ${ aside('editable-md', ['@tomlarkworthy/editable-md']) }.** Click any paragraph of this essay: it opens in a live markdown editor. The prose is cells, and the editor is a userspace module riding in the same file. If you open the code editor as well, you will notice that changing and committing (SHIFT + ENTER) will update the other view`));};
 const _claimDiagram = function _claimDiagram(htl) {
     const W = 720, H = 210;
     const box = (x, y, w, h, fill, stroke) => htl.svg`<rect x="${ x }" y="${ y }" width="${ w }" height="${ h }" rx="7" fill="${ fill }" stroke="${ stroke }" stroke-width="1.2"/>`;
@@ -46,57 +46,56 @@ const _claimDiagram = function _claimDiagram(htl) {
   </svg>`;
 };
 const s3h = function _anonymous(sec) {return (sec('cell'));};
-const s3p1 = function _anonymous(md,externalLink) {return (md`Here is a Lopecode program. Three cells:
+const s3p1 = function _anonymous(md,externalLink) {return (md`Here is a simple Lopecode program. Three cells:
 
 1. \`constant\` holds a number
 
-2. \`double\` holds a function
+2. \`fun\` holds a function
 
 3. \`result\` applies one to the other, implying both are dependencies.
 
-Edit \`constant\` or \`double\` and \`result\` recomputes, spreadsheet-fashion. The reactive model is Observable's — documented in ${ externalLink('JavaScript in Observable', 'https://observablehq.com/collection/@observablehq/javascript-in-observable') } — and we treat it as prior art.`);};
-const _constant = function _constant() {return (4);};
-const _double = function _double() {return (
-  (x) => x * 2
-);};
-const _result = function _result(double, constant) {return (
-  double(constant)
-);};
-const _cellSource = async function _cellSource(constant,double,result,lookupVariable,essayModule,md) {
-    constant, double, result;
+Edit \`constant\` or \`double\` and \`result\` recomputes, spreadsheet-fashion. The reactive model is Observable's ${ externalLink('JavaScript in Observable', 'https://observablehq.com/collection/@observablehq/javascript-in-observable') }`);};
+const _constant = function _constant() {return (30);};
+const _double = function _fun() {return (x => x * 2);};
+const _result = function _result(fun,constant) {return (fun(constant));};
+const _cellSource = async function _cellSource(constant,fun,result,lookupVariable,essayModule,md,cite) {
+    constant, fun, result;
     const [c, dv, rv] = await Promise.all([
         lookupVariable('constant', essayModule),
-        lookupVariable('double', essayModule),
+        lookupVariable('fun', essayModule),
         lookupVariable('result', essayModule)
     ]);
-    return md`What matters for this essay is what a cell is made of. A cell is stored as an ordinary JavaScript function *from its dependencies to its value* — the parameter names are the dependency declarations — and JavaScript functions carry their own source. The block below is not a transcript: this cell looks \`double\` and \`result\` up in the live runtime and decompiles them as it renders, so it tracks any edit you make above:
+    return md`What matters for this essay is what a cell is made of. A cell is stored as a pure JavaScript function *from its dependencies to its value*, and JavaScript functions carry their own source ${ cite('tc39tostring') }. The block below shows what happens when the live cell's definitions are stringified with \`toString\`.
 
 
 \`\`\`js
-(await lookupVariable('constant', essayModule))._definition.toString() // ⇒
-${ c._definition.toString() }
+lookupVariable('constant', ...)._definition.toString()
+  
+> ${ c._definition.toString() }
 \`\`\`
   
 \`\`\`js
-(await lookupVariable('double', essayModule))._definition.toString() // ⇒
-${ dv._definition.toString() }
+lookupVariable('constant', ...)._definition.toString()
+  
+> ${ dv._definition.toString() }
 \`\`\`
 
 \`\`\`js
-(await lookupVariable('result', essayModule))._definition.toString() // ⇒
-${ rv._definition.toString() }
+lookupVariable('constant', ...)._definition.toString()
+
+> ${ rv._definition.toString() }
 \`\`\`
 
-That one call, \`Function.prototype.toString()\`, is the reflective interface the rest of the essay builds on, and the same read the exporter performs on every cell. The runtime does not keep the text you typed anywhere; when source is needed — to edit, to test, to export — it is recovered from the executing function.
+That one call, \`Function.prototype.toString()\`, is the reflective interface Lopecode builds on. The runtime does not keep the text you typed anywhere; when source is needed to edit or to export, it is recovered from the executing function.
 
-Note also what the recovered functions do *not* contain: a closure environment. \`toString()\` cannot see captured variables — its main limitation — but a cell closes over nothing; everything it uses arrives as a parameter, so the recovered source is the complete definition.`;
+Note, recovered functions do *not* contain closure variables. \`toString()\` cannot see captured variables but due to the reactive runtime design a cell closes over nothing; everything it uses arrives as a parameter, so the recovered source is the complete definition.`;
 };
-const s3x1 = function _anonymous(experiment, md) {return (experiment(md`**Try it.** Toggle *Edit mode* in the burger menu and edit \`double\` above to \`(x) => x * 3\`. \`result\` recomputes, and the decompiled listing refreshes — both are computed from the live definition.`));};
-const s3p2 = function _anonymous(md, ref, cite) {return (md`One clarification, because a careful reader will need it later. \`toString()\` recovers the *compiled* JavaScript, not the notebook-syntax text as the author wrote it. The compiler is engineered so that this mapping inverts, and a reactive test continuously checks that every cell in the runtime decompiles. Sustaining a source-level view of executing code is ill-posed in general — optimising compilers lose the state the view needs ${ cite('kell2024source') } — and Lopecode avoids the problem by construction: cell compilation is local and unoptimised, so nothing is lost. The known failures of this property are listed in ${ ref('limits') }.`);};
+const s3x1 = function _anonymous(experiment,md,aside) {return (experiment(md`**Try it.** Ensure *Edit mode* in the burger menu is on, and click edit under \`double\` to open ${ aside('editor-5', ['@tomlarkworthy/editor-5']) }'s source editor and change the code to \`(x) => x * 3\`. Note \`result\` recomputes, and the decompiled listing refreshes.`));};
+const s3p2 = function _anonymous(md,aside,cite,ref) {return (md`\`toString()\` only recovers the low-level *compiled* JavaScript, not the high level notebook-syntax text as the author wrote it. The ${ aside('observablejs-toolchain', '@tomlarkworthy/observablejs-toolchain') } is lensed ${ cite('foster2007lenses') }, so the ill-posed problem of decompilation ${ cite('kell2024source') } is avoided by construction. The known failures of this property are listed in ${ ref('limits') }.`);};
 const s4h = function _anonymous(sec) {return (sec('modular'));};
-const s4p1 = function _anonymous(md, aside, ref) {return (md`The unit of composition is the module: a namespace of cells. A running system is a set of modules importing values from each other. Imports may be mutually recursive between modules; the cell-level dependency graph stays acyclic, which is what keeps recomputation well-defined. Modules are added ad hoc at runtime — importing one that is not yet loaded boots it — and reactivity crosses module boundaries.
+const s4p1 = function _anonymous(md,ref,aside) {return (md`The coarse unit of composition in the reactive runtime is the module, a namespace of cells. It is visualized as a notebook, and a single runtime can contain many notebooks. A running system is a set of modules importing values from each other. Imports may be mutually recursive between modules; the cell-level dependency graph stays acyclic, which is what keeps recomputation well-defined.
 
-The module graph is the primary structure of a Lopecode system; the file you are reading is one mapping of that structure, and ${ ref('mappings') } covers the others. You can inspect the live graph of this very system with ${ aside('module-map', ['@tomlarkworthy/module-map']) }.`);};
+The single HTML rendering is one mapping of that structure, and ${ ref('mappings') } covers the others. You can inspect the live module graph of this very system with ${ aside('module-map', '@tomlarkworthy/module-map') }, and the fine grained cell interdependancies with ${ aside('cell-map', '@tomlarkworthy/cell-map') }.`);};
 const s5h = function _anonymous(sec) {return (sec('copy'));};
 const s5p1 = function _anonymous(md, downloadAnchor, forkAnchor, ref) {return (md`The burger menu at the top of this pane offers *Save in place*, *Download*, *Edit mode* and *Fork*. Inline works too: download a ${ downloadAnchor({}, 'copy') } of this essay, or fork it into a fresh browser ${ forkAnchor({}, 'tab') }. Either copy carries everything — the prose, the tooling, and any edit you made to \`double\` in ${ ref('cell') } — because the exporter is a userspace module that reads the runtime it is part of. There is no build step and no server. Most of this essay is an account of what it takes for a copy to be this cheap.`);};
 const _dialView = function _dial(sticky, Inputs) {return (
@@ -195,7 +194,7 @@ const s6ch = function _anonymous(sec) {return (sec('iife'));};
 const s6cp1 = function _anonymous(md, ref) {return (md`The exporter's *Copy To JS* renders the runtime as a single immediately-invoked script expression on the clipboard. This is an unloader for the HTML mapping: pasted into any page that will execute a script, it reconstructs the whole environment inside that page, bringing a live editable runtime into an origin we do not control. The costs are set by the host — content-security policy blocks inline script on many sites, and the injected environment shares the host's origin, which is a capability and a hazard in equal measure (${ ref('limits') }).`);};
 const s7h = function _anonymous(sec) {return (sec('liberation'));};
 const s7p1 = function _anonymous(md) {return (md`The reflective interface also works on runtimes booted by someone else. ObservableHQ.com is the hosted notebook service Lopecode grew out of. Notebooks there are compiled on Observable's servers; the source of record lives in their database, and the browser only ever receives the compiled program. Observable's own export paths use privileged knowledge of that source: the embed API is a server endpoint, and the runtime export is a multi-file bundle of compiled code that needs a local webserver to open and contains no source at all. What you get is an embedding. It runs, but it carries no editors and cannot export itself again.`);};
-const s7p2 = function _anonymous(md, aside, externalLink, ref, cite) {return (md`The ${ aside('exporter', ['@tomlarkworthy/exporter-3']) } — also published on Observable as ${ externalLink('exporter-3', 'https://observablehq.com/@tomlarkworthy/exporter-3') } — takes the reflective route. Imported into any notebook on the platform, it scans the live runtime in the page, decompiles what it finds, and writes a single Lopecode HTML file. We have no access to Observable's stored source and do not need it. The difference is transitive: an artifact made by reflection contains the exporter's own machinery, so it can re-export — you can even export exporter-3 with itself. The copy is then independent of the platform. For larger extractions — several notebooks, their file attachments, a chosen UI — ${ externalLink('jumpgate', 'https://observablehq.com/@tomlarkworthy/jumpgate') } drives the same reflection with more tooling for composing arbitrary mixtures of modules; it is how the content repositories behind this essay are maintained.
+const s7p2 = function _anonymous(md,aside,externalLink,cite,ref) {return (md`The ${ aside('exporter', '@tomlarkworthy/exporter-3') } — also published on Observable as ${ externalLink('exporter-3', 'https://observablehq.com/@tomlarkworthy/exporter-3') } — takes the reflective route. Imported into any notebook on the platform, it scans the live runtime in the page, decompiles what it finds, and writes a single Lopecode HTML file. We have no access to Observable's stored source and do not need it. The difference is transitive: an artifact made by reflection contains the exporter's own machinery, so it can re-export — you can even export exporter-3 with itself. The copy is then independent of the platform. For larger extractions — several notebooks, their file attachments, a chosen UI — ${ externalLink('jumpgate', 'https://observablehq.com/@tomlarkworthy/jumpgate') } drives the same reflection with more tooling for composing arbitrary mixtures of modules; it is how the content repositories behind this essay are maintained.
 
 To be precise about scope: this liberates a *copy*; the hosted original remains. And it works because Observable is a cooperative host — live programming in territory the programmer does not control, the condition ${ cite('shank2025hostile') } examine. ${ ref('limits') } describes hosts that fight back.`);};
 const s8h = function _anonymous(sec) {return (sec('container'));};
@@ -273,6 +272,20 @@ const s14p1 = function _anonymous(md, ref) {return (md`LIVE asks three questions
 
 **Where are the limits?** ${ ref('limits') }: transient state does not round-trip, decompilation has edge cases, the moldability gradient is steep, the trust story is unsolved, adversarial hosts defend themselves, and offline-first vendoring is manual.`);};
 const refsh = function _anonymous(md) {return (md`## References`);};
+const _references = function _references(bibliography, externalLink, htl) {return (htl.html`<ol style="line-height:1.7">
+  ${ Object.entries(bibliography).map(([key, e]) => htl.html`<li id="ref-${ key }">
+    ${ e.authors } (${ e.year }). ${ externalLink(htl.html`<em>${ e.title }</em>`, e.url) }. ${ e.venue }.
+  </li>`) }
+</ol>`);};
+const _cite = function _cite(bibliography, htl) {return ((key) => {
+  const e = bibliography[key];
+  if (!e) return htl.html`<strong style="color:#c96a6a">[missing ref: ${ key }]</strong>`;
+  return htl.html`<a
+    href="#"
+    title="${ e.authors } (${ e.year }). ${ e.title }. ${ e.venue }."
+    onclick=${ (ev) => { ev.preventDefault(); document.getElementById(`ref-${ key }`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
+  >[${ e.label }]</a>`;
+});};
 const _bibliography = function _bibliography() {return ({
   edwards2019: {
     label: 'Edwards et al. 2019',
@@ -451,20 +464,6 @@ const _bibliography = function _bibliography() {return ({
     url: 'https://www.inkandswitch.com/cambria/'
   }
 });};
-const _cite = function _cite(bibliography, htl) {return ((key) => {
-  const e = bibliography[key];
-  if (!e) return htl.html`<strong style="color:#c96a6a">[missing ref: ${ key }]</strong>`;
-  return htl.html`<a
-    href="#"
-    title="${ e.authors } (${ e.year }). ${ e.title }. ${ e.venue }."
-    onclick=${ (ev) => { ev.preventDefault(); document.getElementById(`ref-${ key }`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
-  >[${ e.label }]</a>`;
-});};
-const _references = function _references(bibliography, externalLink, htl) {return (htl.html`<ol style="line-height:1.7">
-  ${ Object.entries(bibliography).map(([key, e]) => htl.html`<li id="ref-${ key }">
-    ${ e.authors } (${ e.year }). ${ externalLink(htl.html`<em>${ e.title }</em>`, e.url) }. ${ e.venue }.
-  </li>`) }
-</ol>`);};
 const _9yd8ub = function _external_link_svg(htl) {return (htl.svg`<svg
   xmlns="http://www.w3.org/2000/svg"
   width="0.9em"
@@ -492,18 +491,22 @@ const _mhp8n4 = function _externalLink(external_link_svg, htl) {return ((label, 
     title=${ title }
   >${ label }${ icon }</a>`;
 });};
-const _aside = function _aside(html) {return ((title, module_names) => {
-  const h = `#view=R100(S50(@tomlarkworthy/lopecode-live-2026),S50(${ module_names.join(",") }))`;
-  const a = html`<a href="${ h }">${ title }</a>`;
-  a.onclick = (ev) => {
-    // blob: forks drop fragment navigation on the opaque origin; the History
-    // API still works there, so route the click through it
-    ev.preventDefault();
-    window.history.pushState(null, '', h);
-    window.dispatchEvent(new window.HashChangeEvent('hashchange'));
-  };
-  return a;
-});};
+const _aside = function _aside(html) {
+    return (title, module_names) => {
+        if (!Array.isArray(module_names))
+            module_names = [module_names];
+        const h = `#view=R100(S50(@tomlarkworthy/lopecode-live-2026),S50(${ module_names.join(',') }))`;
+        const a = html`<a href="${ h }">${ title }</a>`;
+        a.onclick = ev => {
+            // blob: forks drop fragment navigation on the opaque origin; the History
+            // API still works there, so route the click through it
+            ev.preventDefault();
+            window.history.pushState(null, '', h);
+            window.dispatchEvent(new window.HashChangeEvent('hashchange'));
+        };
+        return a;
+    };
+};
 const _experiment = function _experiment(htl) {return ((content) => htl.html`<div style="
     display: flex;
     gap: 0.6em;
@@ -596,48 +599,48 @@ export default function define(runtime, observer) {
   $def("s1p2", null, ["md"], s1p2);  
   $def("s1p3", null, ["md","aside"], s1p3);  
   $def("s2h", null, ["sec"], s2h);  
-  $def("s2p1", null, ["md","aside","ref"], s2p1);
-  $def("s2x1", null, ["experiment","md"], s2x1);
-  $def("_claimDiagram", "claimDiagram", ["htl"], _claimDiagram);
+  $def("s2p1", null, ["md","aside","ref"], s2p1);  
+  $def("s2x1", null, ["experiment","md","aside"], s2x1);  
+  $def("_claimDiagram", "claimDiagram", ["htl"], _claimDiagram);  
   $def("s3h", null, ["sec"], s3h);  
   $def("s3p1", null, ["md","externalLink"], s3p1);  
   $def("_constant", "constant", [], _constant);  
-  $def("_double", "double", [], _double);  
-  $def("_result", "result", ["double","constant"], _result);  
-  $def("_cellSource", "cellSource", ["constant","double","result","lookupVariable","essayModule","md"], _cellSource);
-  $def("s3x1", null, ["experiment","md"], s3x1);
-  $def("s3p2", null, ["md","ref","cite"], s3p2);
+  $def("_double", "fun", [], _double);  
+  $def("_result", "result", ["fun","constant"], _result);  
+  $def("_cellSource", "cellSource", ["constant","fun","result","lookupVariable","essayModule","md","cite"], _cellSource);  
+  $def("s3x1", null, ["experiment","md","aside"], s3x1);  
+  $def("s3p2", null, ["md","aside","cite","ref"], s3p2);  
   $def("s4h", null, ["sec"], s4h);  
-  $def("s4p1", null, ["md","aside","ref"], s4p1);  
+  $def("s4p1", null, ["md","ref","aside"], s4p1);  
   $def("s5h", null, ["sec"], s5h);  
   $def("s5p1", null, ["md","downloadAnchor","forkAnchor","ref"], s5p1);  
   $def("_dialView", "viewof dial", ["sticky","Inputs"], _dialView);  
   $def("_dial", "dial", ["Generators","viewof dial"], _dial);  
-  $def("s5p2", null, ["md","dial","ref","cite","aside"], s5p2);
-  $def("s5x1", null, ["experiment","md"], s5x1);
-  $def("_stickyDiagram", null, ["mermaid"], _stickyDiagram);
+  $def("s5p2", null, ["md","dial","ref","cite","aside"], s5p2);  
+  $def("s5x1", null, ["experiment","md"], s5x1);  
+  $def("_stickyDiagram", null, ["mermaid"], _stickyDiagram);  
   $def("s5p3", null, ["md","cite","ref"], s5p3);  
   $def("s6h", null, ["sec"], s6h);  
   $def("s6p1", null, ["md","ref"], s6p1);  
   $def("s6bh", null, ["sec"], s6bh);  
-  $def("s6bp1", null, ["md","aside"], s6bp1);
-  $def("_containerInventory", "containerInventory", ["Inputs","md","htl"], _containerInventory);
-  $def("_ownBlockPeek", "ownBlockPeek", ["md"], _ownBlockPeek);
-  $def("s6bx1", null, ["experiment","md","ref"], s6bx1);
-  $def("s6ah", null, ["sec"], s6ah);
+  $def("s6bp1", null, ["md","aside"], s6bp1);  
+  $def("_containerInventory", "containerInventory", ["Inputs","md","htl"], _containerInventory);  
+  $def("_ownBlockPeek", "ownBlockPeek", ["md"], _ownBlockPeek);  
+  $def("s6bx1", null, ["experiment","md","ref"], s6bx1);  
+  $def("s6ah", null, ["sec"], s6ah);  
   $def("s6ap1", null, ["md","externalLink","ref","aside"], s6ap1);  
   $def("s6ch", null, ["sec"], s6ch);  
   $def("s6cp1", null, ["md","ref"], s6cp1);  
   $def("s7h", null, ["sec"], s7h);  
   $def("s7p1", null, ["md"], s7p1);  
-  $def("s7p2", null, ["md","aside","externalLink","ref","cite"], s7p2);
+  $def("s7p2", null, ["md","aside","externalLink","cite","ref"], s7p2);  
   $def("s8h", null, ["sec"], s8h);  
   $def("s8p1", null, ["md","aside","ref"], s8p1);  
   $def("s9h", null, ["sec"], s9h);  
   $def("s9p1", null, ["md","aside","ref"], s9p1);  
   $def("s9p2", null, ["md","aside","ref"], s9p2);  
   $def("s10h", null, ["sec"], s10h);  
-  $def("s10p1", null, ["md","aside","ref","cite"], s10p1);
+  $def("s10p1", null, ["md","aside","ref","cite"], s10p1);  
   $def("s11h", null, ["sec"], s11h);  
   $def("s11p1", null, ["md","cite","ref"], s11p1);  
   $def("_hourglassDiagram", "hourglassDiagram", ["htl"], _hourglassDiagram);  
@@ -649,21 +652,21 @@ export default function define(runtime, observer) {
   $def("s12p3", null, ["md","cite"], s12p3);  
   $def("s12p4", null, ["md","cite"], s12p4);  
   $def("s12p5", null, ["md","cite","ref"], s12p5);  
-  $def("s12p6", null, ["md","cite","ref"], s12p6);
-  $def("s12p7", null, ["md","cite","ref"], s12p7);
+  $def("s12p6", null, ["md","cite","ref"], s12p6);  
+  $def("s12p7", null, ["md","cite","ref"], s12p7);  
   $def("s13h", null, ["sec"], s13h);  
   $def("s13p1", null, ["md","cite","ref"], s13p1);  
   $def("s14h", null, ["sec"], s14h);  
   $def("s14p1", null, ["md","ref"], s14p1);  
   $def("refsh", null, ["md"], refsh);  
-  $def("_bibliography", "bibliography", [], _bibliography);  
-  $def("_cite", "cite", ["bibliography","htl"], _cite);  
   $def("_references", "references", ["bibliography","externalLink","htl"], _references);  
+  $def("_cite", "cite", ["bibliography","htl"], _cite);  
+  $def("_bibliography", "bibliography", [], _bibliography);  
   main.define("md", ["module @tomlarkworthy/editable-md", "@variable"], (_, v) => v.import("md", _));  
   $def("_9yd8ub", "external_link_svg", ["htl"], _9yd8ub);  
   $def("_mhp8n4", "externalLink", ["external_link_svg","htl"], _mhp8n4);  
-  $def("_aside", "aside", ["html"], _aside);
-  $def("_experiment", "experiment", ["htl"], _experiment);
+  $def("_aside", "aside", ["html"], _aside);  
+  $def("_experiment", "experiment", ["htl"], _experiment);  
   $def("_sections", "sections", [], _sections);  
   $def("_sectionIndex", "sectionIndex", ["sections"], _sectionIndex);  
   $def("_sec", "sec", ["sectionIndex"], _sec);  

@@ -46,3 +46,9 @@
 [submodule "vendor/paseo"]
 	path = vendor/paseo
 	url = https://github.com/getpaseo/paseo
+[submodule "vendor/patchwork-base"]
+	path = vendor/patchwork-base
+	url = https://github.com/inkandswitch/patchwork-base
+[submodule "vendor/patchwork-experiments"]
+	path = vendor/patchwork-experiments
+	url = https://github.com/inkandswitch/patchwork-experiments
