@@ -97,13 +97,16 @@ const s4p1 = function _anonymous(md,ref,aside) {return (md`The coarse unit of co
 
 The single HTML rendering is one mapping of that structure, and ${ ref('mappings') } covers the others. You can inspect the live module graph of this very system with ${ aside('module-map', '@tomlarkworthy/module-map') }, and the fine grained cell interdependancies with ${ aside('cell-map', '@tomlarkworthy/cell-map') }.`);};
 const s5h = function _anonymous(sec) {return (sec('copy'));};
-const s5p1 = function _anonymous(md, downloadAnchor, forkAnchor, ref) {return (md`The burger menu at the top of this pane offers *Save in place*, *Download*, *Edit mode* and *Fork*. Inline works too: download a ${ downloadAnchor({}, 'copy') } of this essay, or fork it into a fresh browser ${ forkAnchor({}, 'tab') }. Either copy carries everything — the prose, the tooling, and any edit you made to \`double\` in ${ ref('cell') } — because the exporter is a userspace module that reads the runtime it is part of. There is no build step and no server. Most of this essay is an account of what it takes for a copy to be this cheap.`);};
+const s5p1 = function _anonymous(md,downloadAnchor,forkAnchor) {return (md`The burger menu at the top of this pane offers *Save in place*, *Download*, *Edit mode* and *Fork*. Inline works too: download a ${ downloadAnchor({}, 'copy') } of this essay, or fork it into a fresh browser ${ forkAnchor({}, 'tab') }. Copies carry all code and asset changes, the prose, the tooling, and the runtime without external build steps or internet connectivity. However, runtime values are not *typically* serialized.`);};
 const _dialView = function _dial(sticky, Inputs) {return (
   sticky(Inputs.range([0, 100], { label: 'dial', step: 1, value: 50 }), 50)
 );};
 const _dial = (G, _) => G.input(_);
-const s5p2 = function _anonymous(md, dial, ref, cite, aside) {return (md`State travels the same way. The slider above is wrapped in ${ aside('sticky', ['@tomlarkworthy/sticky']) }, an imported userspace module: on each committed change it parses its own cell's definition with acorn and rewrites the persistence slot to the current value — a silent definition swap, with no recompute and no focus loss. The runtime sees an ordinary reactive value (currently ${ dial }). Set the slider, then take the download above: the copy opens where you left it. In a format-first system, remembering a control means writing to the save file. Here the cell edits itself in the live runtime, and every projection — file, fork, record — catches up at the next save. This is the quality ${ cite('horowitz2023lrc') } find missing in Observable — "this UI cannot persistently modify an underlying program" — supplied as an importable userspace module rather than a privileged platform feature.`);};
-const s5x1 = function _anonymous(experiment, md) {return (experiment(md`**Try it.** Drag the dial above, then toggle *Edit mode* in the burger menu and open the dial's cell: the second argument of \`sticky(...)\` holds the value you just set. Close the editor, drag again, reopen — the source rewrites itself on every committed change.`));};
+const s5p2 = function _anonymous(md,cite,aside) {return (md`${ cite('horowitz2023lrc') } identify that the lack of state persistence is the primary reason why Observable notebooks are not a "Live, Rich, and Composable Programming System Beyond Static Text". Lopecode is able to offer opt-in value persistence *because* there is no external source code.
+
+The slider above is wrapped in ${ aside('sticky', ['@tomlarkworthy/sticky']) }, an imported userspace function. On user manipulation, ${ aside('sticky', ['@tomlarkworthy/sticky']) } parses its containing cell's definition with ${ aside('acron', ['@tomlarkworthy/acorn-8-11-3']) } and the persistence argument to the current value. In essence, storing state in it function definition. Reflective exports then propogate that state onwards.`);};
+const s5x1 = function _anonymous(experiment,md) {return (experiment(md`**Try it.** Drag the slider above, then toggle the *cell editor*. The second argument of \`sticky(...)\` holds the value you just set. Close the editor, drag again, reopen, the source rewrites itself on every slider change.`));};
+const _lv38man = function _anonymous(md,aside) {return (md`${ aside('sticky', ['@tomlarkworthy/sticky']) } demonstrates that a single cell definitions can be interpretted in multiple languages. When viewing the source of the cell through ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } we manipulate using a bespoke higher level reactive language Observble Javascript. When sticky mutates its own container, it uses the lower level Javascript language that can be parsed with an off-the-shelf Javascript parser Acorn.`);};
 const _stickyDiagram = async function _stickyDiagram(mermaid) {
   const svg = await mermaid`sequenceDiagram
   actor U as author
@@ -613,11 +616,12 @@ export default function define(runtime, observer) {
   $def("s4h", null, ["sec"], s4h);  
   $def("s4p1", null, ["md","ref","aside"], s4p1);  
   $def("s5h", null, ["sec"], s5h);  
-  $def("s5p1", null, ["md","downloadAnchor","forkAnchor","ref"], s5p1);  
+  $def("s5p1", null, ["md","downloadAnchor","forkAnchor"], s5p1);  
   $def("_dialView", "viewof dial", ["sticky","Inputs"], _dialView);  
   $def("_dial", "dial", ["Generators","viewof dial"], _dial);  
-  $def("s5p2", null, ["md","dial","ref","cite","aside"], s5p2);  
+  $def("s5p2", "s5p2", ["md","cite","aside"], s5p2);  
   $def("s5x1", null, ["experiment","md"], s5x1);  
+  $def("_lv38man", null, ["md","aside"], _lv38man);  
   $def("_stickyDiagram", null, ["mermaid"], _stickyDiagram);  
   $def("s5p3", null, ["md","cite","ref"], s5p3);  
   $def("s6h", null, ["sec"], s6h);  
