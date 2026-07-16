@@ -100,7 +100,26 @@ function gradeFromSnapshot(p, snap) {
 const isInfra = (rec, attempt) =>
   (rec[`runError${attempt}`] && /fetch|network|empty turn|did not initialize/i.test(String(rec[`runError${attempt}`])));
 
-const driver = await createDriver({ notebookPath: notebook, apiKey: loadKey(), model, timeoutMs, headed });
+const driverOpts = { notebookPath: notebook, apiKey: loadKey(), model, timeoutMs, headed };
+let driver = await createDriver(driverOpts);
+
+// Hard deadline around every turn: a wedged page.evaluate (or a dead-but-open connection inside the
+// browser) must never freeze the run — on breach the browser is recycled and the attempt marked infra.
+const HARD_DEADLINE = timeoutMs + 180000;
+async function safeRun(evalDef) {
+  let timer;
+  const sentinel = new Promise((r) => { timer = setTimeout(() => r({ __deadline: true }), HARD_DEADLINE); });
+  const result = await Promise.race([driver.runQuestion(evalDef).catch((e) => ({ error: e.message })), sentinel]);
+  clearTimeout(timer);
+  if (result && result.__deadline) {
+    console.log(`  ..${evalDef.id} HARD DEADLINE — recycling browser`);
+    try { await driver.close(); } catch {}
+    driver = await createDriver(driverOpts);
+    return { error: `hard deadline: turn exceeded ${HARD_DEADLINE}ms`, steps: 0, files: {} };
+  }
+  return result;
+}
+
 const results = [];
 try {
   for (const p of problems) {
@@ -108,17 +127,18 @@ try {
     const rec = { slug: p.slug, pass1: false, pass2: false, steps1: 0, steps2: 0, error: null };
     try {
       const seeds1 = { "/instructions.md": p.instructions, "/stub.js": p.stub };
-      const snap1 = await driver.runQuestion({ id: p.slug + "#1", question: question1(p), setup: { files: seeds1 } });
+      const snap1 = await safeRun({ id: p.slug + "#1", question: question1(p), setup: { files: seeds1 } });
       rec.steps1 = snap1.steps ?? 0;
       rec.runError1 = snap1.error || null;
       const g1 = gradeFromSnapshot(p, snap1);
       rec.pass1 = g1.pass;
       rec.candidate1 = g1.candidate;
+      console.log(`  ..${p.slug} attempt1 ${g1.pass ? "pass" : "fail"} steps=${rec.steps1} (${Math.round((Date.now() - started) / 1000)}s)${rec.runError1 ? " runError=" + String(rec.runError1).slice(0, 60) : ""}`);
       if (g1.pass) { rec.pass2 = true; }
       else if (g1.candidate) {
         rec.testOutput1 = g1.output.slice(0, 2000);
         const seeds2 = { ...seeds1, [SOL_PATH]: g1.candidate };
-        const snap2 = await driver.runQuestion({ id: p.slug + "#2", question: question2(p, g1.output), setup: { files: seeds2 } });
+        const snap2 = await safeRun({ id: p.slug + "#2", question: question2(p, g1.output), setup: { files: seeds2 } });
         rec.steps2 = snap2.steps ?? 0;
         rec.runError2 = snap2.error || null;
         const g2 = gradeFromSnapshot(p, snap2);

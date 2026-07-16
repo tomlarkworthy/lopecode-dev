@@ -44,15 +44,40 @@ async function chat(messages) {
   for (let attempt = 0; attempt < 6; attempt++) {
     if (attempt) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt + Math.random() * 1000));
     try {
+      // STREAMING is load-bearing here: the sandbox's egress proxy kills connections idle ~200s, and a
+      // non-streaming completion looks idle for the whole generation. SSE chunks keep it alive.
+      // AbortSignal.timeout is the overall ceiling; a dead stream stalls the reader and hits it too.
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages, temperature: 0 }),
+        // default temperature: temp 0 sends reasoning models into degenerate never-ending think loops
+        body: JSON.stringify({ model, messages, max_tokens: 30000, stream: true }),
+        signal: AbortSignal.timeout(900000),
       });
       if (!res.ok) throw new Error(`openrouter ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      const data = await res.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (content == null) throw new Error("empty completion: " + JSON.stringify(data).slice(0, 200));
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "", content = "", sawChunk = false;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          try {
+            const j = JSON.parse(payload);
+            const delta = j.choices?.[0]?.delta;
+            if (delta?.content) { content += delta.content; sawChunk = true; }
+            if (delta?.reasoning != null) sawChunk = true;
+          } catch {}
+        }
+      }
+      if (!sawChunk || !content) throw new Error("empty streamed completion");
       return content;
     } catch (e) { lastErr = e; }
   }
@@ -87,6 +112,7 @@ async function worker() {
       const g1 = gradeSolution(p, cand1, { mode: "esm" });
       rec.pass1 = g1.pass;
       rec.candidate1 = cand1;
+      console.log(`  ..${p.slug} attempt1 ${g1.pass ? "pass" : "fail"} (${Math.round((Date.now() - started) / 1000)}s)`);
       if (!g1.pass) {
         messages.push({ role: "assistant", content: reply1 });
         messages.push({
