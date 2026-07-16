@@ -160,19 +160,33 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
         ...(temperature != null ? { temperature } : {}),
         ...(max_tokens != null ? { max_tokens } : {})
       };
-      const res = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST', headers: headers(), body: JSON.stringify(body), signal
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        let detail = text;
-        try { const j = JSON.parse(text); detail = j?.error?.message || text; } catch {}
-        throw new Error('OpenRouter ' + res.status + ': ' + detail);
+      // Transient failures (network drops, 429 rate limits, 5xx) are retried with exponential backoff —
+      // a single throttled request must not kill a whole agent turn. Aborts (steer/interrupt) never retry.
+      const retriable = (e) => /Failed to fetch|NetworkError|load failed|OpenRouter (408|429|5\d\d)/i.test(String(e && e.message || e));
+      let lastErr;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt + Math.random() * 1000));
+        if (signal && signal.aborted) throw (lastErr || new Error('aborted'));
+        try {
+          const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST', headers: headers(), body: JSON.stringify(body), signal
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            let detail = text;
+            try { const j = JSON.parse(text); detail = j?.error?.message || text; } catch {}
+            throw new Error('OpenRouter ' + res.status + ': ' + detail);
+          }
+          const data = await res.json();
+          const choice = data.choices?.[0];
+          if (!choice) throw new Error('OpenRouter: no choices in response: ' + JSON.stringify(data));
+          return { message: choice.message, finish_reason: choice.finish_reason, native_finish_reason: choice.native_finish_reason, usage: data.usage, raw: data };
+        } catch (e) {
+          if ((e && e.name === 'AbortError') || (signal && signal.aborted) || !retriable(e)) throw e;
+          lastErr = e;
+        }
       }
-      const data = await res.json();
-      const choice = data.choices?.[0];
-      if (!choice) throw new Error('OpenRouter: no choices in response: ' + JSON.stringify(data));
-      return { message: choice.message, finish_reason: choice.finish_reason, native_finish_reason: choice.native_finish_reason, usage: data.usage, raw: data };
+      throw lastErr;
     }
     return { chat };
   };
