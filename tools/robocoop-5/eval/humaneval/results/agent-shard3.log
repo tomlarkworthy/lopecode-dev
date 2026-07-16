@@ -1,0 +1,42 @@
+model: xiaomi/mimo-v2.5-pro  problems: 38 (offset 123)  notebook: /Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+PASS  HumanEval_126_is_sorted  steps=5 (32s)
+PASS  HumanEval_127_intersection  steps=5 (39s)
+FAIL  HumanEval_128_prod_signs  steps=5 (83s)  node:assert:149
+FAIL  HumanEval_129_minPath  steps=0 (5s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-mO1TJF/prog.cjs:2
+PASS  HumanEval_130_tri  steps=5 (39s)
+PASS  HumanEval_131_digits  steps=5 (22s)
+PASS  HumanEval_132_is_nested  steps=5 (53s)
+PASS  HumanEval_133_sum_squares  steps=4 (16s)
+PASS  HumanEval_134_check_if_last_char_is_a_letter  steps=4 (43s)
+PASS  HumanEval_135_can_arrange  steps=10 (36s)
+PASS  HumanEval_136_largest_smallest_integers  steps=5 (20s)
+PASS  HumanEval_137_compare_one  steps=5 (27s)
+PASS  HumanEval_138_is_equal_to_sum_even  steps=5 (21s)
+PASS  HumanEval_139_special_factorial  steps=4 (20s)
+FAIL  HumanEval_140_fix_spaces  steps=12 (97s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-x4vPDS/prog.cjs:2
+FAIL  HumanEval_141_file_name_check  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-sumy9b/prog.cjs:2
+FAIL  HumanEval_142_sum_squares  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-ZDFBLW/prog.cjs:2
+FAIL  HumanEval_143_words_in_sentence  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-tI2CZE/prog.cjs:2
+FAIL  HumanEval_144_simplify  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-u0Z5Qi/prog.cjs:2
+FAIL  HumanEval_145_order_by_points  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-mz1ay7/prog.cjs:2
+FAIL  HumanEval_146_specialFilter  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-rWjjOY/prog.cjs:2
+FAIL  HumanEval_147_get_max_triples  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-onOr9k/prog.cjs:2
+FAIL  HumanEval_148_bf  steps=0 (4s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-yoRsEN/prog.cjs:2
+FAIL  HumanEval_149_sorted_list_sum  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-pKWNuw/prog.cjs:2
+FAIL  HumanEval_150_x_or_y  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-1CEfHR/prog.cjs:2
+FAIL  HumanEval_151_double_the_difference  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-i733v3/prog.cjs:2
+FAIL  HumanEval_152_compare  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-CPlWRm/prog.cjs:2
+FAIL  HumanEval_153_Strongest_Extension  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-MRWYN0/prog.cjs:2
+FAIL  HumanEval_154_cycpattern_check  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-jVhJuq/prog.cjs:2
+FAIL  HumanEval_155_even_odd_count  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-ksmSAs/prog.cjs:2
+FAIL  HumanEval_156_int_to_mini_roman  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-qLbHaX/prog.cjs:2
+FAIL  HumanEval_157_right_angle_triangle  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-drywKi/prog.cjs:2
+FAIL  HumanEval_158_find_max  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-O6ToEl/prog.cjs:2
+FAIL  HumanEval_159_eat  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-R4d53K/prog.cjs:2
+FAIL  HumanEval_160_do_algebra  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-rEVjj2/prog.cjs:2
+FAIL  HumanEval_161_solve  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-C86cuy/prog.cjs:2
+FAIL  HumanEval_162_string_to_md5  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-aej6b1/prog.cjs:2
+FAIL  HumanEval_163_generate_integers  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-KPKIGK/prog.cjs:2
+
+pass@1: 12/38 = 0.316
+wrote results/agent-shard3.json

@@ -160,19 +160,76 @@ const _createOpenRouterClient = function _createOpenRouterClient(){
         ...(temperature != null ? { temperature } : {}),
         ...(max_tokens != null ? { max_tokens } : {})
       };
-      const res = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST', headers: headers(), body: JSON.stringify(body), signal
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        let detail = text;
-        try { const j = JSON.parse(text); detail = j?.error?.message || text; } catch {}
-        throw new Error('OpenRouter ' + res.status + ': ' + detail);
+      // Transient failures (network drops, 429 rate limits, 5xx) are retried with exponential backoff —
+      // a single throttled request must not kill a whole agent turn. Aborts (steer/interrupt) never retry.
+      const retriable = (e) => /Failed to fetch|NetworkError|load failed|OpenRouter (408|429|5\d\d)/i.test(String(e && e.message || e));
+      let lastErr;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt + Math.random() * 1000));
+        if (signal && signal.aborted) throw (lastErr || new Error('aborted'));
+        try {
+          // STREAMING (SSE): long generations over proxied networks die if the connection looks idle —
+          // a non-streaming completion is silent for the entire generation. Streamed deltas keep the
+          // socket alive; the message (content + tool_calls) is reassembled here so callers see the
+          // same shape as the non-streaming API.
+          const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST', headers: headers(), body: JSON.stringify({ ...body, stream: true }), signal
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            let detail = text;
+            try { const j = JSON.parse(text); detail = j?.error?.message || text; } catch {}
+            throw new Error('OpenRouter ' + res.status + ': ' + detail);
+          }
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buf = '', sawChoice = false, finish = null, native = null, usage = null;
+          const acc = { content: '', tool_calls: [] };
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let nl;
+            while ((nl = buf.indexOf('\n')) >= 0) {
+              const line = buf.slice(0, nl).trim();
+              buf = buf.slice(nl + 1);
+              if (!line.startsWith('data: ')) continue;
+              const payload = line.slice(6);
+              if (payload === '[DONE]') continue;
+              let j;
+              try { j = JSON.parse(payload); } catch { continue; }
+              const c = j.choices && j.choices[0];
+              if (c) {
+                sawChoice = true;
+                const d = c.delta || {};
+                if (typeof d.content === 'string') acc.content += d.content;
+                if (Array.isArray(d.tool_calls)) {
+                  for (const tc of d.tool_calls) {
+                    const i = tc.index ?? 0;
+                    const slot = acc.tool_calls[i] || (acc.tool_calls[i] = { id: '', type: 'function', function: { name: '', arguments: '' } });
+                    if (tc.id) slot.id = tc.id;
+                    if (tc.function && tc.function.name) slot.function.name += tc.function.name;
+                    if (tc.function && typeof tc.function.arguments === 'string') slot.function.arguments += tc.function.arguments;
+                  }
+                }
+                if (c.finish_reason) finish = c.finish_reason;
+                if (c.native_finish_reason) native = c.native_finish_reason;
+              }
+              if (j.usage) usage = j.usage;
+              if (j.error) throw new Error('OpenRouter stream error: ' + (j.error.message || JSON.stringify(j.error)));
+            }
+          }
+          if (!sawChoice) throw new Error('OpenRouter: no choices in stream');
+          const message = { role: 'assistant', content: acc.content || null };
+          const calls = acc.tool_calls.filter(Boolean);
+          if (calls.length) message.tool_calls = calls;
+          return { message, finish_reason: finish, native_finish_reason: native, usage, raw: { streamed: true } };
+        } catch (e) {
+          if ((e && e.name === 'AbortError') || (signal && signal.aborted) || !retriable(e)) throw e;
+          lastErr = e;
+        }
       }
-      const data = await res.json();
-      const choice = data.choices?.[0];
-      if (!choice) throw new Error('OpenRouter: no choices in response: ' + JSON.stringify(data));
-      return { message: choice.message, finish_reason: choice.finish_reason, native_finish_reason: choice.native_finish_reason, usage: data.usage, raw: data };
+      throw lastErr;
     }
     return { chat };
   };

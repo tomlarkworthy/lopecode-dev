@@ -1,0 +1,45 @@
+model: xiaomi/mimo-v2.5-pro  problems: 41 (offset 0)  notebook: /Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+PASS  HumanEval_0_has_close_elements  steps=5 (21s)
+PASS  HumanEval_1_separate_paren_groups  steps=6 (30s)
+PASS  HumanEval_2_truncate_number  steps=5 (26s)
+PASS  HumanEval_3_below_zero  steps=5 (20s)
+PASS  HumanEval_4_mean_absolute_deviation  steps=6 (27s)
+PASS  HumanEval_5_intersperse  steps=4 (17s)
+PASS  HumanEval_6_parse_nested_parens  steps=7 (55s)
+PASS  HumanEval_7_filter_by_substring  steps=7 (24s)
+PASS  HumanEval_8_sum_product  steps=4 (21s)
+PASS  HumanEval_9_rolling_max  steps=2 (13s)
+PASS  HumanEval_10_make_palindrome  steps=8 (32s)
+PASS  HumanEval_11_string_xor  steps=5 (24s)
+PASS  HumanEval_12_longest  steps=10 (35s)
+PASS  HumanEval_13_greatest_common_divisor  steps=5 (26s)
+PASS  HumanEval_14_all_prefixes  steps=5 (19s)
+PASS  HumanEval_15_string_sequence  steps=4 (19s)
+PASS  HumanEval_16_count_distinct_characters  steps=4 (15s)
+PASS  HumanEval_17_parse_music  steps=8 (31s)
+PASS  HumanEval_18_how_many_times  steps=5 (29s)
+PASS  HumanEval_19_sort_numbers  steps=10 (33s)
+PASS  HumanEval_20_find_closest_elements  steps=5 (24s)
+FAIL  HumanEval_21_rescale_to_unit  steps=1 (10s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-jKxNOw/prog.cjs:2
+PASS  HumanEval_22_filter_integers  steps=4 (16s)
+PASS  HumanEval_23_strlen  steps=4 (15s)
+PASS  HumanEval_24_largest_divisor  steps=5 (22s)
+PASS  HumanEval_25_factorize  steps=4 (22s)
+PASS  HumanEval_26_remove_duplicates  steps=3 (21s)
+FAIL  HumanEval_27_flip_case  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-3MpiJh/prog.cjs:2
+FAIL  HumanEval_28_concatenate  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-UhYPJh/prog.cjs:2
+FAIL  HumanEval_29_filter_by_prefix  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-PDSQaj/prog.cjs:2
+FAIL  HumanEval_30_get_positive  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-aFE73L/prog.cjs:2
+FAIL  HumanEval_31_is_prime  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-T0RjhR/prog.cjs:2
+FAIL  HumanEval_33_sort_third  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-q0SteI/prog.cjs:2
+FAIL  HumanEval_34_unique  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-W8cN6O/prog.cjs:2
+FAIL  HumanEval_35_max_element  steps=0 (4s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Szlv6x/prog.cjs:2
+FAIL  HumanEval_36_fizz_buzz  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-EaM91S/prog.cjs:2
+FAIL  HumanEval_37_sort_even  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-X0DqUI/prog.cjs:2
+FAIL  HumanEval_39_prime_fib  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-RSWVZT/prog.cjs:2
+FAIL  HumanEval_40_triples_sum_to_zero  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-QQ8heF/prog.cjs:2
+FAIL  HumanEval_41_car_race_collision  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-QaguAQ/prog.cjs:2
+FAIL  HumanEval_42_incr_list  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-H9INiL/prog.cjs:2
+
+pass@1: 26/41 = 0.634
+wrote results/agent-shard0.json
