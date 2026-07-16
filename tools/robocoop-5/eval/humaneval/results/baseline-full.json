@@ -1,0 +1,1137 @@
+{
+ "arm": "baseline",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "offset": 0,
+ "limit": 161,
+ "passed": 150,
+ "total": 161,
+ "results": [
+  {
+   "name": "HumanEval_0_has_close_elements",
+   "pass": true,
+   "error": null,
+   "candidate": "function has_close_elements(numbers, threshold) {\n    for (let i = 0; i < numbers.length; i++) {\n        for (let j = i + 1; j < numbers.length; j++) {\n            if (Math.abs(numbers[i] - numbers[j]) < threshold) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n",
+   "durationMs": 12464
+  },
+  {
+   "name": "HumanEval_1_separate_paren_groups",
+   "pass": true,
+   "error": null,
+   "candidate": "function separate_paren_groups(paren_string){\n  let result = [];\n  let current = '';\n  let depth = 0;\n  \n  for (let char of paren_string) {\n    if (char === ' ') continue;\n    \n    current += char;\n    \n    if (char === '(') {\n      depth++;\n    } else if (char === ')') {\n      depth--;\n      \n      if (depth === 0) {\n        result.push(current);\n        current = '';\n      }\n    }\n  }\n  \n  return result;\n}\n",
+   "durationMs": 14173
+  },
+  {
+   "name": "HumanEval_2_truncate_number",
+   "pass": true,
+   "error": null,
+   "candidate": "function truncate_number(number){\n  return number - Math.floor(number);\n}\n",
+   "durationMs": 12367
+  },
+  {
+   "name": "HumanEval_3_below_zero",
+   "pass": true,
+   "error": null,
+   "candidate": "function below_zero(operations){\n  let balance = 0;\n  for (let op of operations) {\n    balance += op;\n    if (balance < 0) return true;\n  }\n  return false;\n}\n",
+   "durationMs": 1037
+  },
+  {
+   "name": "HumanEval_4_mean_absolute_deviation",
+   "pass": true,
+   "error": null,
+   "candidate": "function mean_absolute_deviation(numbers){\n    const mean = numbers.reduce((sum, num) => sum + num, 0) / numbers.length;\n    const absoluteDifferences = numbers.map(num => Math.abs(num - mean));\n    return absoluteDifferences.reduce((sum, diff) => sum + diff, 0) / absoluteDifferences.length;\n}\n",
+   "durationMs": 23787
+  },
+  {
+   "name": "HumanEval_5_intersperse",
+   "pass": true,
+   "error": null,
+   "candidate": "function intersperse(numbers, delimeter) {\n  if (numbers.length === 0) {\n    return [];\n  }\n  return numbers.flatMap((num, index) => \n    index === 0 ? [num] : [delimeter, num]\n  );\n}\n",
+   "durationMs": 17462
+  },
+  {
+   "name": "HumanEval_6_parse_nested_parens",
+   "pass": true,
+   "error": null,
+   "candidate": "function parse_nested_parens(paren_string) {\n    return paren_string.split(' ').map(group => {\n        let maxDepth = 0;\n        let currentDepth = 0;\n        for (const char of group) {\n            if (char === '(') {\n                currentDepth++;\n                maxDepth = Math.max(maxDepth, currentDepth);\n            } else if (char === ')') {\n                currentDepth--;\n            }\n        }\n        return maxDepth;\n    });\n}\n",
+   "durationMs": 12921
+  },
+  {
+   "name": "HumanEval_7_filter_by_substring",
+   "pass": true,
+   "error": null,
+   "candidate": "function filter_by_substring(strings, substring){\n  return strings.filter(s => s.includes(substring));\n}\n",
+   "durationMs": 1657
+  },
+  {
+   "name": "HumanEval_8_sum_product",
+   "pass": true,
+   "error": null,
+   "candidate": "function sum_product(numbers){\n  return [numbers.reduce((a, b) => a + b, 0), numbers.reduce((a, b) => a * b, 1)];\n}\n",
+   "durationMs": 3434
+  },
+  {
+   "name": "HumanEval_9_rolling_max",
+   "pass": true,
+   "error": null,
+   "candidate": "function rolling_max(numbers) {\n    let maxSoFar = -Infinity;\n    return numbers.map(num => {\n        maxSoFar = Math.max(maxSoFar, num);\n        return maxSoFar;\n    });\n}\n",
+   "durationMs": 3179
+  },
+  {
+   "name": "HumanEval_10_make_palindrome",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-1T8a7u/prog.cjs:7\n        if (isPalindrome(suffix)) {\n        ^\n\nReferenceError: isPalindrome is not defined\n    at make_palindrome (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-1T8a7u/prog.cjs:7:9)",
+   "candidate": "function make_palindrome(string) {\n    if (string.length === 0) return \"\";\n    \n    // Find the longest palindromic suffix\n    for (let i = 0; i < string.length; i++) {\n        const suffix = string.substring(i);\n        if (isPalindrome(suffix)) {\n            const prefix = string.substring(0, i);\n            // Append reverse of prefix to make complete palindrome\n            return string + reverseString(prefix);\n        }\n    }\n    \n    // Fallback (should never reach here since single chars are palindromes)\n    return string;\n}\n\nfunction isPalindrome(str) {\n    let left = 0;\n    let right = str.length - 1;\n    while (left < right) {\n        if (str[left] !== str[right]) return false;\n        left++;\n        right--;\n    }\n    return true;\n}\n\nfunction reverseString(str) {\n    let reversed = \"\";\n    for (let i = str.length - 1; i >= 0; i--) {\n        reversed += str[i];\n    }\n    return reversed;\n}\n",
+   "durationMs": 50484
+  },
+  {
+   "name": "HumanEval_11_string_xor",
+   "pass": true,
+   "error": null,
+   "candidate": "function string_xor(a, b) {\n    let result = '';\n    const maxLen = Math.max(a.length, b.length);\n    a = a.padStart(maxLen, '0');\n    b = b.padStart(maxLen, '0');\n    \n    for (let i = 0; i < maxLen; i++) {\n        result += a[i] === b[i] ? '0' : '1';\n    }\n    \n    return result;\n}\n",
+   "durationMs": 27203
+  },
+  {
+   "name": "HumanEval_12_longest",
+   "pass": true,
+   "error": null,
+   "candidate": "function longest(strings) {\n  if (strings.length === 0) {\n    return undefined;\n  }\n  \n  let longestString = strings[0];\n  \n  for (let i = 1; i < strings.length; i++) {\n    if (strings[i].length > longestString.length) {\n      longestString = strings[i];\n    }\n  }\n  \n  return longestString;\n}\n",
+   "durationMs": 7773
+  },
+  {
+   "name": "HumanEval_13_greatest_common_divisor",
+   "pass": true,
+   "error": null,
+   "candidate": "function greatest_common_divisor(a, b){\n    a = Math.abs(a);\n    b = Math.abs(b);\n    while (b) {\n        var t = b;\n        b = a % b;\n        a = t;\n    }\n    return a;\n}\n",
+   "durationMs": 4243
+  },
+  {
+   "name": "HumanEval_14_all_prefixes",
+   "pass": true,
+   "error": null,
+   "candidate": "function all_prefixes(string) {\n  return Array.from({length: string.length}, (_, i) => string.substring(0, i + 1));\n}\n",
+   "durationMs": 2341
+  },
+  {
+   "name": "HumanEval_15_string_sequence",
+   "pass": true,
+   "error": null,
+   "candidate": "function string_sequence(n) {\n    return Array.from({length: n + 1}, (_, i) => i).join(' ');\n}\n",
+   "durationMs": 4471
+  },
+  {
+   "name": "HumanEval_16_count_distinct_characters",
+   "pass": true,
+   "error": null,
+   "candidate": "function count_distinct_characters(string){\n    return new Set(string.toLowerCase()).size;\n}\n",
+   "durationMs": 3574
+  },
+  {
+   "name": "HumanEval_17_parse_music",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function parse_music(music_string){\n  const noteMap = {\n    'o': 4,\n    'o|': 2,\n    '.|': 1\n  };\n  \n  return music_string.split(' ').map(note => noteMap[note]);\n}\n",
+   "durationMs": 18316
+  },
+  {
+   "name": "HumanEval_18_how_many_times",
+   "pass": true,
+   "error": null,
+   "candidate": "function how_many_times(string, substring) {\n  if (substring.length === 0) return 0;\n  let count = 0;\n  for (let i = 0; i <= string.length - substring.length; i++) {\n    if (string.substring(i, i + substring.length) === substring) {\n      count++;\n    }\n  }\n  return count;\n}\n",
+   "durationMs": 32056
+  },
+  {
+   "name": "HumanEval_19_sort_numbers",
+   "pass": true,
+   "error": null,
+   "candidate": "function sort_numbers(numbers) {\n  const wordToNumber = {\n    'zero': 0,\n    'one': 1,\n    'two': 2,\n    'three': 3,\n    'four': 4,\n    'five': 5,\n    'six': 6,\n    'seven': 7,\n    'eight': 8,\n    'nine': 9\n  };\n  \n  let words = numbers.trim().split(/\\s+/).filter(word => word !== '');\n  words.sort((a, b) => wordToNumber[a] - wordToNumber[b]);\n  return words.join(' ');\n}\n",
+   "durationMs": 30239
+  },
+  {
+   "name": "HumanEval_20_find_closest_elements",
+   "pass": true,
+   "error": null,
+   "candidate": "function find_closest_elements(numbers) {\n    numbers.sort((a, b) => a - b);\n    let minDiff = Infinity;\n    let closestPair = [];\n    \n    for (let i = 0; i < numbers.length - 1; i++) {\n        const diff = numbers[i + 1] - numbers[i];\n        if (diff === 0) {\n            return [numbers[i], numbers[i + 1]];\n        }\n        if (diff < minDiff) {\n            minDiff = diff;\n            closestPair = [numbers[i], numbers[i + 1]];\n        }\n    }\n    \n    return closestPair;\n}\n",
+   "durationMs": 39547
+  },
+  {
+   "name": "HumanEval_21_rescale_to_unit",
+   "pass": true,
+   "error": null,
+   "candidate": "function rescale_to_unit(numbers) {\n  const min = Math.min(...numbers);\n  const max = Math.max(...numbers);\n  const range = max - min;\n  \n  if (range === 0) {\n    return numbers.map(() => 0);\n  }\n  \n  return numbers.map(num => (num - min) / range);\n}\n",
+   "durationMs": 56755
+  },
+  {
+   "name": "HumanEval_22_filter_integers",
+   "pass": true,
+   "error": null,
+   "candidate": "function filter_integers(values) {\n    return values.filter(value => typeof value === 'number' && Number.isInteger(value));\n}\n",
+   "durationMs": 11248
+  },
+  {
+   "name": "HumanEval_23_strlen",
+   "pass": true,
+   "error": null,
+   "candidate": "function strlen(string){\n  return string.length;\n}\n",
+   "durationMs": 8605
+  },
+  {
+   "name": "HumanEval_24_largest_divisor",
+   "pass": true,
+   "error": null,
+   "candidate": "function largest_divisor(n) {\n    for (let i = n - 1; i >= 1; i--) {\n        if (n % i === 0) {\n            return i;\n        }\n    }\n    return 1;\n}\n",
+   "durationMs": 175987
+  },
+  {
+   "name": "HumanEval_25_factorize",
+   "pass": true,
+   "error": null,
+   "candidate": "function factorize(n){\n    var factors = [];\n    var divisor = 2;\n    while (n >= 2) {\n        if (n % divisor === 0) {\n            factors.push(divisor);\n            n = n / divisor;\n        } else {\n            divisor++;\n        }\n    }\n    return factors;\n}\n",
+   "durationMs": 2231
+  },
+  {
+   "name": "HumanEval_26_remove_duplicates",
+   "pass": true,
+   "error": null,
+   "candidate": "function remove_duplicates(numbers) {\n    const count = {};\n    for (const num of numbers) {\n        count[num] = (count[num] || 0) + 1;\n    }\n    return numbers.filter(num => count[num] === 1);\n}\n",
+   "durationMs": 13754
+  },
+  {
+   "name": "HumanEval_27_flip_case",
+   "pass": true,
+   "error": null,
+   "candidate": "function flip_case(string){\n  return string.split('').map(c => c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()).join('');\n}\n",
+   "durationMs": 6808
+  },
+  {
+   "name": "HumanEval_28_concatenate",
+   "pass": true,
+   "error": null,
+   "candidate": "function concatenate(strings) {\n    return strings.join('');\n}\n",
+   "durationMs": 3172
+  },
+  {
+   "name": "HumanEval_29_filter_by_prefix",
+   "pass": true,
+   "error": null,
+   "candidate": "function filter_by_prefix(strings, prefix){\n  return strings.filter(s => s.startsWith(prefix));\n}\n",
+   "durationMs": 1939
+  },
+  {
+   "name": "HumanEval_30_get_positive",
+   "pass": true,
+   "error": null,
+   "candidate": "function get_positive(l){\n  return l.filter(x => x > 0);\n}\n",
+   "durationMs": 1491
+  },
+  {
+   "name": "HumanEval_31_is_prime",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_prime(n) {\n    if (n <= 1) return false;\n    if (n <= 3) return true;\n    if (n % 2 === 0 || n % 3 === 0) return false;\n    for (let i = 5; i * i <= n; i += 6) {\n        if (n % i === 0 || n % (i + 2) === 0) return false;\n    }\n    return true;\n}\n",
+   "durationMs": 2439
+  },
+  {
+   "name": "HumanEval_33_sort_third",
+   "pass": true,
+   "error": null,
+   "candidate": "function sort_third(l) {\n    const result = [...l];\n    const divisibleByThree = [];\n    \n    for (let i = 0; i < l.length; i++) {\n        if (i % 3 === 0) {\n            divisibleByThree.push(l[i]);\n        }\n    }\n    \n    divisibleByThree.sort((a, b) => a - b);\n    \n    let sortedIndex = 0;\n    for (let i = 0; i < l.length; i++) {\n        if (i % 3 === 0) {\n            result[i] = divisibleByThree[sortedIndex];\n            sortedIndex++;\n        }\n    }\n    \n    return result;\n}\n",
+   "durationMs": 8401
+  },
+  {
+   "name": "HumanEval_34_unique",
+   "pass": true,
+   "error": null,
+   "candidate": "function unique(l){\n  return [...new Set(l)].sort((a, b) => a - b);\n}\n",
+   "durationMs": 2136
+  },
+  {
+   "name": "HumanEval_35_max_element",
+   "pass": true,
+   "error": null,
+   "candidate": "function max_element(l){\n  return Math.max(...l);\n}\n",
+   "durationMs": 732
+  },
+  {
+   "name": "HumanEval_36_fizz_buzz",
+   "pass": true,
+   "error": null,
+   "candidate": "function fizz_buzz(n){\n    let count = 0;\n    for (let i = 0; i < n; i++) {\n        if (i % 11 === 0 || i % 13 === 0) {\n            const str = i.toString();\n            for (const char of str) {\n                if (char === '7') {\n                    count++;\n                }\n            }\n        }\n    }\n    return count;\n}\n",
+   "durationMs": 54624
+  },
+  {
+   "name": "HumanEval_37_sort_even",
+   "pass": true,
+   "error": null,
+   "candidate": "function sort_even(l) {\n    const evens = l.filter((_, i) => i % 2 === 0).sort((a, b) => a - b);\n    return l.map((val, i) => (i % 2 === 0) ? evens.shift() : val);\n}\n",
+   "durationMs": 45590
+  },
+  {
+   "name": "HumanEval_39_prime_fib",
+   "pass": true,
+   "error": null,
+   "candidate": "function prime_fib(n) {\n    function isPrime(num) {\n        if (num < 2n) return false;\n        if (num === 2n) return true;\n        if (num % 2n === 0n) return false;\n        \n        for (let i = 3n; i * i <= num; i += 2n) {\n            if (num % i === 0n) return false;\n        }\n        return true;\n    }\n\n    let count = 0;\n    let a = 0n, b = 1n;\n    \n    while (count < n) {\n        let c = a + b;\n        a = b;\n        b = c;\n        \n        if (isPrime(b)) {\n            count++;\n        }\n    }\n    \n    return Number(b);\n}\n",
+   "durationMs": 122866
+  },
+  {
+   "name": "HumanEval_40_triples_sum_to_zero",
+   "pass": true,
+   "error": null,
+   "candidate": "function triples_sum_to_zero(l) {\n    if (l.length < 3) return false;\n    const arr = l.slice().sort((a, b) => a - b);\n    const n = arr.length;\n    for (let i = 0; i < n - 2; i++) {\n        if (i > 0 && arr[i] === arr[i - 1]) continue;\n        let left = i + 1;\n        let right = n - 1;\n        const target = -arr[i];\n        while (left < right) {\n            const sum = arr[left] + arr[right];\n            if (sum === target) {\n                return true;\n            } else if (sum < target) {\n                left++;\n            } else {\n                right--;\n            }\n        }\n    }\n    return false;\n}\n",
+   "durationMs": 32881
+  },
+  {
+   "name": "HumanEval_41_car_race_collision",
+   "pass": true,
+   "error": null,
+   "candidate": "function car_race_collision(n){\n  return n * n;\n}\n",
+   "durationMs": 2667
+  },
+  {
+   "name": "HumanEval_42_incr_list",
+   "pass": true,
+   "error": null,
+   "candidate": "function incr_list(l){\n  return l.map(x => x + 1);\n}\n",
+   "durationMs": 2548
+  },
+  {
+   "name": "HumanEval_43_pairs_sum_to_zero",
+   "pass": true,
+   "error": null,
+   "candidate": "function pairs_sum_to_zero(l) {\n  const seen = new Set();\n  for (let num of l) {\n    if (seen.has(-num)) {\n      return true;\n    }\n    seen.add(num);\n  }\n  return false;\n}\n",
+   "durationMs": 36824
+  },
+  {
+   "name": "HumanEval_44_change_base",
+   "pass": true,
+   "error": null,
+   "candidate": "function change_base(x, base) {\n  if (x === 0) return \"0\";\n  let result = \"\";\n  while (x > 0) {\n    result = (x % base).toString() + result;\n    x = Math.floor(x / base);\n  }\n  return result;\n}\n",
+   "durationMs": 10590
+  },
+  {
+   "name": "HumanEval_45_triangle_area",
+   "pass": true,
+   "error": null,
+   "candidate": "function triangle_area(a, h) {\n  return (a * h) / 2;\n}\n",
+   "durationMs": 2995
+  },
+  {
+   "name": "HumanEval_46_fib4",
+   "pass": true,
+   "error": null,
+   "candidate": "function fib4(n){\n    if (n < 2) return 0;\n    if (n === 2) return 2;\n    if (n === 3) return 0;\n    \n    const dp = [0, 0, 2, 0];\n    \n    for (let i = 4; i <= n; i++) {\n        const next = dp[0] + dp[1] + dp[2] + dp[3];\n        dp[0] = dp[1];\n        dp[1] = dp[2];\n        dp[2] = dp[3];\n        dp[3] = next;\n    }\n    \n    return dp[3];\n}\n",
+   "durationMs": 24169
+  },
+  {
+   "name": "HumanEval_47_median",
+   "pass": true,
+   "error": null,
+   "candidate": "function median(l) {\n    const sorted = [...l].sort((a, b) => a - b);\n    const mid = Math.floor(sorted.length / 2);\n    if (sorted.length % 2 === 0) {\n        return (sorted[mid - 1] + sorted[mid]) / 2;\n    } else {\n        return sorted[mid];\n    }\n}\n",
+   "durationMs": 4212
+  },
+  {
+   "name": "HumanEval_48_is_palindrome",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_palindrome(text){\n  return text === text.split('').reverse().join('');\n}\n",
+   "durationMs": 4537
+  },
+  {
+   "name": "HumanEval_49_modp",
+   "pass": true,
+   "error": null,
+   "candidate": "function modp(n, p) {\n  let result = 1;\n  let base = 2 % p;\n  \n  while (n > 0) {\n    if (n & 1) {\n      result = (result * base) % p;\n    }\n    base = (base * base) % p;\n    n >>= 1;\n  }\n  \n  return result;\n}\n",
+   "durationMs": 16670
+  },
+  {
+   "name": "HumanEval_51_remove_vowels",
+   "pass": true,
+   "error": null,
+   "candidate": "function remove_vowels(text) {\n  return text.replace(/[aeiouAEIOU]/g, '');\n}\n",
+   "durationMs": 18289
+  },
+  {
+   "name": "HumanEval_52_below_threshold",
+   "pass": true,
+   "error": null,
+   "candidate": "function below_threshold(l, t){\n    return l.every(num => num < t);\n}\n",
+   "durationMs": 4456
+  },
+  {
+   "name": "HumanEval_53_add",
+   "pass": true,
+   "error": null,
+   "candidate": "function add(x, y) {\n  return x + y;\n}\n",
+   "durationMs": 11034
+  },
+  {
+   "name": "HumanEval_54_same_chars",
+   "pass": true,
+   "error": null,
+   "candidate": "function same_chars(s0, s1) {\n    const getCharSet = (str) => new Set(str.split(''));\n    return getCharSet(s0).size === getCharSet(s1).size && \n           [...getCharSet(s0)].every(char => s1.includes(char));\n}\n",
+   "durationMs": 27200
+  },
+  {
+   "name": "HumanEval_55_fib",
+   "pass": true,
+   "error": null,
+   "candidate": "function fib(n){\n  if (n <= 2) return 1;\n  let a = 1, b = 1;\n  for (let i = 3; i <= n; i++) {\n    [a, b] = [b, a + b];\n  }\n  return b;\n}\n",
+   "durationMs": 1715
+  },
+  {
+   "name": "HumanEval_56_correct_bracketing",
+   "pass": true,
+   "error": null,
+   "candidate": "function correct_bracketing(brackets) {\n  let count = 0;\n  for (let i = 0; i < brackets.length; i++) {\n    if (brackets[i] === '<') {\n      count++;\n    } else {\n      count--;\n    }\n    if (count < 0) {\n      return false;\n    }\n  }\n  return count === 0;\n}\n",
+   "durationMs": 13432
+  },
+  {
+   "name": "HumanEval_57_monotonic",
+   "pass": true,
+   "error": null,
+   "candidate": "function monotonic(l) {\n    let increasing = true;\n    let decreasing = true;\n    \n    for (let i = 1; i < l.length; i++) {\n        if (l[i] < l[i - 1]) increasing = false;\n        if (l[i] > l[i - 1]) decreasing = false;\n        \n        if (!increasing && !decreasing) return false;\n    }\n    \n    return true;\n}\n",
+   "durationMs": 24979
+  },
+  {
+   "name": "HumanEval_58_common",
+   "pass": true,
+   "error": null,
+   "candidate": "function common(l1, l2){\n  const set1 = new Set(l1);\n  const commonSet = new Set();\n  \n  for (const num of l2) {\n    if (set1.has(num)) {\n      commonSet.add(num);\n    }\n  }\n  \n  return [...commonSet].sort((a, b) => a - b);\n}\n",
+   "durationMs": 28525
+  },
+  {
+   "name": "HumanEval_59_largest_prime_factor",
+   "pass": true,
+   "error": null,
+   "candidate": "function largest_prime_factor(n){\n    let largest = 1;\n    \n    // Remove all factors of 2\n    if (n % 2 === 0) {\n        largest = 2;\n        while (n % 2 === 0) {\n            n /= 2;\n        }\n    }\n    \n    // Check odd factors from 3 upwards\n    for (let i = 3; i * i <= n; i += 2) {\n        if (n % i === 0) {\n            largest = i;\n            while (n % i === 0) {\n                n /= i;\n            }\n        }\n    }\n    \n    // If n is still greater than 1, then it's a prime factor\n    if (n > 1) {\n        largest = n;\n    }\n    \n    return largest;\n}\n",
+   "durationMs": 29962
+  },
+  {
+   "name": "HumanEval_60_sum_to_n",
+   "pass": true,
+   "error": null,
+   "candidate": "function sum_to_n(n) {\n  return n * (n + 1) / 2;\n}\n",
+   "durationMs": 4323
+  },
+  {
+   "name": "HumanEval_61_correct_bracketing",
+   "pass": true,
+   "error": null,
+   "candidate": "function correct_bracketing(brackets) {\n  let count = 0;\n  for (const bracket of brackets) {\n    if (bracket === '(') {\n      count++;\n    } else {\n      count--;\n    }\n    if (count < 0) {\n      return false;\n    }\n  }\n  return count === 0;\n}\n",
+   "durationMs": 6727
+  },
+  {
+   "name": "HumanEval_62_derivative",
+   "pass": true,
+   "error": null,
+   "candidate": "function derivative(xs) {\n  return xs.slice(1).map((coeff, index) => coeff * (index + 1));\n}\n",
+   "durationMs": 39704
+  },
+  {
+   "name": "HumanEval_63_fibfib",
+   "pass": true,
+   "error": null,
+   "candidate": "function fibfib(n) {\n  if (n < 0) return undefined;\n  if (n === 0 || n === 1) return 0;\n  if (n === 2) return 1;\n\n  let a = 0, b = 0, c = 1;\n  for (let i = 3; i <= n; i++) {\n    const next = a + b + c;\n    a = b;\n    b = c;\n    c = next;\n  }\n  return c;\n}\n",
+   "durationMs": 37394
+  },
+  {
+   "name": "HumanEval_64_vowels_count",
+   "pass": true,
+   "error": null,
+   "candidate": "function vowels_count(s) {\n    const vowels = new Set('aeiou');\n    const lowerStr = s.toLowerCase();\n    let count = 0;\n\n    for (let i = 0; i < lowerStr.length; i++) {\n        if (vowels.has(lowerStr[i])) {\n            count++;\n        } else if (lowerStr[i] === 'y' && i === lowerStr.length - 1) {\n            count++;\n        }\n    }\n\n    return count;\n}\n",
+   "durationMs": 21021
+  },
+  {
+   "name": "HumanEval_65_circular_shift",
+   "pass": true,
+   "error": null,
+   "candidate": "function circular_shift(x, shift){\n    const digits = String(x);\n    const len = digits.length;\n    \n    if (shift > len) {\n        return digits.split('').reverse().join('');\n    }\n    \n    const effectiveShift = shift % len;\n    const splitIndex = len - effectiveShift;\n    return digits.slice(splitIndex) + digits.slice(0, splitIndex);\n}\n",
+   "durationMs": 23191
+  },
+  {
+   "name": "HumanEval_66_digitSum",
+   "pass": true,
+   "error": null,
+   "candidate": "function digitSum(s) {\n  let sum = 0;\n  for (let i = 0; i < s.length; i++) {\n    const char = s[i];\n    if (char >= 'A' && char <= 'Z') {\n      sum += char.charCodeAt(0);\n    }\n  }\n  return sum;\n}\n",
+   "durationMs": 10812
+  },
+  {
+   "name": "HumanEval_67_fruit_distribution",
+   "pass": true,
+   "error": null,
+   "candidate": "function fruit_distribution(s, n) {\n    const numbers = s.match(/\\d+/g).map(Number);\n    const total = numbers[0] + numbers[1];\n    return n - total;\n}\n",
+   "durationMs": 11851
+  },
+  {
+   "name": "HumanEval_68_pluck",
+   "pass": true,
+   "error": null,
+   "candidate": "function pluck(arr) {\n  let smallestEven = null;\n  let smallestIndex = null;\n  \n  for (let i = 0; i < arr.length; i++) {\n    const val = arr[i];\n    if (val % 2 === 0) {\n      if (smallestEven === null || val < smallestEven || (val === smallestEven && i < smallestIndex)) {\n        smallestEven = val;\n        smallestIndex = i;\n      }\n    }\n  }\n  \n  return smallestEven !== null ? [smallestEven, smallestIndex] : [];\n}\n",
+   "durationMs": 10332
+  },
+  {
+   "name": "HumanEval_69_search",
+   "pass": true,
+   "error": null,
+   "candidate": "function search(lst) {\n    const freq = {};\n    for (const num of lst) {\n        freq[num] = (freq[num] || 0) + 1;\n    }\n    let result = -1;\n    for (const [key, count] of Object.entries(freq)) {\n        const num = Number(key);\n        if (count >= num && num > result) {\n            result = num;\n        }\n    }\n    return result;\n}\n",
+   "durationMs": 16757
+  },
+  {
+   "name": "HumanEval_70_strange_sort_list",
+   "pass": true,
+   "error": null,
+   "candidate": "function strange_sort_list(lst) {\n    const sorted = lst.slice().sort((a, b) => a - b);\n    const result = [];\n    let left = 0;\n    let right = sorted.length - 1;\n    \n    while (left <= right) {\n        if (left === right) {\n            result.push(sorted[left]);\n            break;\n        }\n        result.push(sorted[left], sorted[right]);\n        left++;\n        right--;\n    }\n    \n    return result;\n}\n",
+   "durationMs": 22820
+  },
+  {
+   "name": "HumanEval_71_triangle_area",
+   "pass": true,
+   "error": null,
+   "candidate": "function triangle_area(a, b, c) {\n    if (a + b <= c || a + c <= b || b + c <= a) {\n        return -1;\n    }\n    let s = (a + b + c) / 2;\n    let area = Math.sqrt(s * (s - a) * (s - b) * (s - c));\n    area = Math.round(area * 100) / 100;\n    return area;\n}\n",
+   "durationMs": 31590
+  },
+  {
+   "name": "HumanEval_72_will_it_fly",
+   "pass": true,
+   "error": null,
+   "candidate": "function will_it_fly(q, w) {\n    return JSON.stringify(q) === JSON.stringify([...q].reverse()) && q.reduce((sum, num) => sum + num, 0) <= w;\n}\n",
+   "durationMs": 4008
+  },
+  {
+   "name": "HumanEval_73_smallest_change",
+   "pass": true,
+   "error": null,
+   "candidate": "function smallest_change(arr) {\n    let changes = 0;\n    const n = arr.length;\n    for (let i = 0; i < Math.floor(n / 2); i++) {\n        if (arr[i] !== arr[n - 1 - i]) {\n            changes++;\n        }\n    }\n    return changes;\n}\n",
+   "durationMs": 12440
+  },
+  {
+   "name": "HumanEval_74_total_match",
+   "pass": true,
+   "error": null,
+   "candidate": "function total_match(lst1, lst2){\n    const totalChars = (arr) => arr.reduce((sum, str) => sum + str.length, 0);\n    const total1 = totalChars(lst1);\n    const total2 = totalChars(lst2);\n    return total1 <= total2 ? lst1 : lst2;\n}\n",
+   "durationMs": 6869
+  },
+  {
+   "name": "HumanEval_75_is_multiply_prime",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_multiply_prime(a) {\n    if (a <= 1) return false;\n    \n    // Find all prime factors\n    const factors = [];\n    let n = a;\n    \n    // Check for 2 separately\n    while (n % 2 === 0) {\n        factors.push(2);\n        n /= 2;\n    }\n    \n    // Check odd numbers\n    for (let i = 3; i * i <= n; i += 2) {\n        while (n % i === 0) {\n            factors.push(i);\n            n /= i;\n        }\n    }\n    \n    // If n is prime and greater than 2\n    if (n > 2) {\n        factors.push(n);\n    }\n    \n    // Check if exactly 3 prime factors (with multiplicity)\n    return factors.length === 3;\n}\n",
+   "durationMs": 44200
+  },
+  {
+   "name": "HumanEval_76_is_simple_power",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_simple_power(x, n) {\n  if (x === 1) {\n    return n !== 0; // 1 is 0^0 is undefined, but 1 = n^0 for n != 0\n  }\n  \n  if (n === 0) {\n    return false; // 0^positive = 0, but x=1 already handled above\n  }\n  \n  if (n === 1) {\n    return x === 1; // 1^anything = 1\n  }\n  \n  // Check for negative n: x must have the same sign as n^exponent\n  if (n < 0 && x > 0) {\n    // Negative base only produces positive results for even exponents\n    // Check if x is a perfect power of |n|\n    let absBase = -n;\n    let exp = 0;\n    let power = 1;\n    while (power < x) {\n      power *= absBase;\n      exp++;\n    }\n    return power === x && exp % 2 === 0;\n  }\n  \n  if (n < 0 && x < 0) {\n    // Negative base produces negative results for odd exponents\n    let absBase = -n;\n    let exp = 0;\n    let power = 1;\n    while (-power > x) { // Check when -power matches x\n      power *= absBase;\n      exp++;\n    }\n    return -power === x && exp % 2 === 1;\n  }\n  \n  // For positive n and x\n  if (x <= 0 || n <= 0) return false;\n  \n  let power = 1;\n  while (power < x) {\n    power *= n;\n  }\n  return power === x;\n}\n",
+   "durationMs": 88808
+  },
+  {
+   "name": "HumanEval_77_iscube",
+   "pass": true,
+   "error": null,
+   "candidate": "function iscube(a) {\n  if (a === 0) return true;\n  \n  // Get the integer cube root by rounding the cube root\n  const cubeRoot = Math.round(Math.cbrt(a));\n  \n  // Check if the cube of the rounded root equals the original number\n  return cubeRoot * cubeRoot * cubeRoot === a;\n}\n",
+   "durationMs": 36131
+  },
+  {
+   "name": "HumanEval_78_hex_key",
+   "pass": true,
+   "error": null,
+   "candidate": "function hex_key(num){\n    const primeHexDigits = new Set(['2', '3', '5', '7', 'B', 'D']);\n    return [...num].filter(d => primeHexDigits.has(d)).length;\n}\n",
+   "durationMs": 14126
+  },
+  {
+   "name": "HumanEval_79_decimal_to_binary",
+   "pass": true,
+   "error": null,
+   "candidate": "function decimal_to_binary(decimal){\n  return \"db\" + decimal.toString(2) + \"db\";\n}\n",
+   "durationMs": 1111
+  },
+  {
+   "name": "HumanEval_80_is_happy",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_happy(s) {\n  if (s.length < 3) return false;\n  for (let i = 0; i <= s.length - 3; i++) {\n    if (s[i] === s[i + 1] || s[i] === s[i + 2] || s[i + 1] === s[i + 2]) {\n      return false;\n    }\n  }\n  return true;\n}\n",
+   "durationMs": 5973
+  },
+  {
+   "name": "HumanEval_81_numerical_letter_grade",
+   "pass": true,
+   "error": null,
+   "candidate": "function numerical_letter_grade(grades) {\n  return grades.map(gpa => {\n    if (gpa === 4.0) return \"A+\";\n    if (gpa > 3.7) return \"A\";\n    if (gpa > 3.3) return \"A-\";\n    if (gpa > 3.0) return \"B+\";\n    if (gpa > 2.7) return \"B\";\n    if (gpa > 2.3) return \"B-\";\n    if (gpa > 2.0) return \"C+\";\n    if (gpa > 1.7) return \"C\";\n    if (gpa > 1.3) return \"C-\";\n    if (gpa > 1.0) return \"D+\";\n    if (gpa > 0.7) return \"D\";\n    if (gpa > 0.0) return \"D-\";\n    return \"E\";\n  });\n}\n",
+   "durationMs": 47299
+  },
+  {
+   "name": "HumanEval_82_prime_length",
+   "pass": true,
+   "error": null,
+   "candidate": "function prime_length(string) {\n    let len = string.length;\n    if (len < 2) return false;\n    for (let i = 2; i <= Math.sqrt(len); i++) {\n        if (len % i === 0) {\n            return false;\n        }\n    }\n    return true;\n}\n",
+   "durationMs": 12091
+  },
+  {
+   "name": "HumanEval_83_starts_one_ends",
+   "pass": true,
+   "error": null,
+   "candidate": "function starts_one_ends(n){\n    if (n === 1) return 1;\n    return 18 * Math.pow(10, n-2);\n}\n",
+   "durationMs": 29586
+  },
+  {
+   "name": "HumanEval_84_solve",
+   "pass": true,
+   "error": null,
+   "candidate": "function solve(N) {\n    let sum = 0;\n    let num = N;\n    while (num > 0) {\n        sum += num % 10;\n        num = Math.floor(num / 10);\n    }\n    return sum.toString(2);\n}\n",
+   "durationMs": 15991
+  },
+  {
+   "name": "HumanEval_85_add",
+   "pass": true,
+   "error": null,
+   "candidate": "function add(lst) {\n  let sum = 0;\n  for (let i = 0; i < lst.length; i++) {\n    if (i % 2 !== 0 && lst[i] % 2 === 0) {\n      sum += lst[i];\n    }\n  }\n  return sum;\n}\n",
+   "durationMs": 17994
+  },
+  {
+   "name": "HumanEval_86_anti_shuffle",
+   "pass": true,
+   "error": null,
+   "candidate": "function anti_shuffle(s) {\n  return s.split(' ').map(word => \n    word.split('').sort((a, b) => a.charCodeAt(0) - b.charCodeAt(0)).join('')\n  ).join(' ');\n}\n",
+   "durationMs": 47834
+  },
+  {
+   "name": "HumanEval_87_get_row",
+   "pass": true,
+   "error": null,
+   "candidate": "function get_row(lst, x) {\n    const result = [];\n    for (let i = 0; i < lst.length; i++) {\n        for (let j = 0; j < lst[i].length; j++) {\n            if (lst[i][j] === x) {\n                result.push([i, j]);\n            }\n        }\n    }\n    result.sort((a, b) => {\n        if (a[0] !== b[0]) {\n            return a[0] - b[0];\n        }\n        return b[1] - a[1];\n    });\n    return result;\n}\n",
+   "durationMs": 10881
+  },
+  {
+   "name": "HumanEval_88_sort_array",
+   "pass": true,
+   "error": null,
+   "candidate": "function sort_array(array) {\n  if (array.length <= 1) return [...array];\n  \n  const sum = array[0] + array[array.length - 1];\n  const arr = [...array];\n  \n  if (sum % 2 !== 0) {\n    arr.sort((a, b) => a - b);\n  } else {\n    arr.sort((a, b) => b - a);\n  }\n  \n  return arr;\n}\n",
+   "durationMs": 9969
+  },
+  {
+   "name": "HumanEval_89_encrypt",
+   "pass": true,
+   "error": null,
+   "candidate": "function encrypt(s){\n  return s.split('').map(char => {\n    const shift = (char.charCodeAt(0) - 97 + 4) % 26;\n    return String.fromCharCode(shift + 97);\n  }).join('');\n}\n",
+   "durationMs": 26594
+  },
+  {
+   "name": "HumanEval_90_next_smallest",
+   "pass": true,
+   "error": null,
+   "candidate": "function next_smallest(lst){\n  if (lst.length < 2) return undefined;\n  \n  let min1 = Infinity, min2 = Infinity;\n  \n  for (const num of lst) {\n    if (num < min1) {\n      min2 = min1;\n      min1 = num;\n    } else if (num < min2 && num !== min1) {\n      min2 = num;\n    }\n  }\n  \n  return min2 === Infinity ? undefined : min2;\n}\n",
+   "durationMs": 32220
+  },
+  {
+   "name": "HumanEval_91_is_bored",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_bored(S) {\n  const sentences = S.split(/[.?!]/);\n  let count = 0;\n  \n  for (let sentence of sentences) {\n    sentence = sentence.trim();\n    if (sentence.startsWith('I ')) {\n      count++;\n    }\n  }\n  \n  return count;\n}\n",
+   "durationMs": 29816
+  },
+  {
+   "name": "HumanEval_92_any_int",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function any_int(x, y, z) {\n  if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(z)) {\n    return false;\n  }\n  return x === y + z || y === x + z || z === x + y;\n}\n",
+   "durationMs": 16614
+  },
+  {
+   "name": "HumanEval_93_encode",
+   "pass": true,
+   "error": null,
+   "candidate": "function encode(message) {\n  const vowels = 'aeiouAEIOU';\n  let result = '';\n\n  for (const char of message) {\n    if (/[a-zA-Z]/.test(char)) {\n      let encodedChar = char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase();\n\n      if (vowels.includes(char)) {\n        const code = encodedChar.charCodeAt(0);\n        const isLowerCase = encodedChar === encodedChar.toLowerCase();\n        const baseCode = isLowerCase ? 97 : 65;\n        const newCode = ((code - baseCode + 2) % 26) + baseCode;\n        encodedChar = String.fromCharCode(newCode);\n      }\n\n      result += encodedChar;\n    } else {\n      result += char;\n    }\n  }\n\n  return result;\n}\n",
+   "durationMs": 89485
+  },
+  {
+   "name": "HumanEval_94_skjkasdkd",
+   "pass": true,
+   "error": null,
+   "candidate": "function skjkasdkd(lst) {\n    function isPrime(n) {\n        if (n <= 1) return false;\n        if (n === 2) return true;\n        if (n % 2 === 0) return false;\n        for (let i = 3; i <= Math.sqrt(n); i += 2) {\n            if (n % i === 0) return false;\n        }\n        return true;\n    }\n    \n    let largestPrime = 0;\n    for (let num of lst) {\n        if (isPrime(num) && num > largestPrime) {\n            largestPrime = num;\n        }\n    }\n    \n    let sum = 0;\n    while (largestPrime > 0) {\n        sum += largestPrime % 10;\n        largestPrime = Math.floor(largestPrime / 10);\n    }\n    \n    return sum;\n}\n",
+   "durationMs": 25572
+  },
+  {
+   "name": "HumanEval_95_check_dict_case",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function check_dict_case(dict){\n  const keys = Object.keys(dict);\n  if (keys.length === 0) return false;\n  \n  return keys.every(key => typeof key === 'string' && key === key.toLowerCase()) ||\n         keys.every(key => typeof key === 'string' && key === key.toUpperCase());\n}\n",
+   "durationMs": 79130
+  },
+  {
+   "name": "HumanEval_96_count_up_to",
+   "pass": true,
+   "error": null,
+   "candidate": "function count_up_to(n){\n    if (n <= 2) return [];\n    \n    const primes = [];\n    for (let i = 2; i < n; i++) {\n        let isPrime = true;\n        for (let j = 2; j <= Math.sqrt(i); j++) {\n            if (i % j === 0) {\n                isPrime = false;\n                break;\n            }\n        }\n        if (isPrime) primes.push(i);\n    }\n    return primes;\n}\n",
+   "durationMs": 16970
+  },
+  {
+   "name": "HumanEval_97_multiply",
+   "pass": true,
+   "error": null,
+   "candidate": "function multiply(a, b){\n  return (Math.abs(a) % 10) * (Math.abs(b) % 10);\n}\n",
+   "durationMs": 16363
+  },
+  {
+   "name": "HumanEval_98_count_upper",
+   "pass": true,
+   "error": null,
+   "candidate": "function count_upper(s) {\n  let count = 0;\n  const vowels = new Set(['A', 'E', 'I', 'O', 'U']);\n  for (let i = 0; i < s.length; i += 2) {\n    if (vowels.has(s[i])) {\n      count++;\n    }\n  }\n  return count;\n}\n",
+   "durationMs": 7484
+  },
+  {
+   "name": "HumanEval_99_closest_integer",
+   "pass": true,
+   "error": null,
+   "candidate": "function closest_integer(value) {\n    const num = parseFloat(value);\n    const absNum = Math.abs(num);\n    const frac = absNum - Math.floor(absNum);\n    \n    if (Math.abs(frac - 0.5) < Number.EPSILON) {\n        return num >= 0 ? Math.ceil(num) : Math.floor(num);\n    }\n    \n    return Math.round(num);\n}\n",
+   "durationMs": 65953
+  },
+  {
+   "name": "HumanEval_100_make_a_pile",
+   "pass": true,
+   "error": null,
+   "candidate": "function make_a_pile(n) {\n  let result = [];\n  let current = n;\n  for (let i = 0; i < n; i++) {\n    result.push(current);\n    current += 2;\n  }\n  return result;\n}\n",
+   "durationMs": 27665
+  },
+  {
+   "name": "HumanEval_101_words_string",
+   "pass": true,
+   "error": null,
+   "candidate": "function words_string(s){\n    return s.split(/[\\s,]+/).filter(word => word !== '');\n}\n",
+   "durationMs": 15039
+  },
+  {
+   "name": "HumanEval_102_choose_num",
+   "pass": true,
+   "error": null,
+   "candidate": "function choose_num(x, y) {\n    if (x > y) return -1;\n    for (let i = y; i >= x; i--) {\n        if (i % 2 === 0) return i;\n    }\n    return -1;\n}\n",
+   "durationMs": 44837
+  },
+  {
+   "name": "HumanEval_103_rounded_avg",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function rounded_avg(n, m) {\n  if (n > m) return -1;\n  const sum = (n + m) * (m - n + 1) / 2;\n  const count = m - n + 1;\n  const average = Math.round(sum / count);\n  return \"0b\" + average.toString(2);\n}\n",
+   "durationMs": 11163
+  },
+  {
+   "name": "HumanEval_104_unique_digits",
+   "pass": true,
+   "error": null,
+   "candidate": "function unique_digits(x) {\n    return x.filter(num => {\n        const str = String(num);\n        for (let i = 0; i < str.length; i++) {\n            if (parseInt(str[i]) % 2 === 0) {\n                return false;\n            }\n        }\n        return true;\n    }).sort((a, b) => a - b);\n}\n",
+   "durationMs": 21968
+  },
+  {
+   "name": "HumanEval_105_by_length",
+   "pass": true,
+   "error": null,
+   "candidate": "function by_length(arr){\n  const names = [\"One\", \"Two\", \"Three\", \"Four\", \"Five\", \"Six\", \"Seven\", \"Eight\", \"Nine\"];\n  return arr\n    .filter(num => num >= 1 && num <= 9)\n    .sort((a, b) => a - b)\n    .reverse()\n    .map(num => names[num - 1]);\n}\n",
+   "durationMs": 16075
+  },
+  {
+   "name": "HumanEval_106_f",
+   "pass": true,
+   "error": null,
+   "candidate": "function f(n) {\n  const result = [];\n  let factorial = 1;\n  let sum = 0;\n  \n  for (let i = 1; i <= n; i++) {\n    factorial *= i;\n    sum += i;\n    \n    if (i % 2 === 0) {\n      result.push(factorial);\n    } else {\n      result.push(sum);\n    }\n  }\n  \n  return result;\n}\n",
+   "durationMs": 22337
+  },
+  {
+   "name": "HumanEval_107_even_odd_palindrome",
+   "pass": true,
+   "error": null,
+   "candidate": "function even_odd_palindrome(n){\n    let evenCount = 0;\n    let oddCount = 0;\n    \n    for (let i = 1; i <= n; i++) {\n        const str = i.toString();\n        if (str === str.split('').reverse().join('')) {\n            if (i % 2 === 0) {\n                evenCount++;\n            } else {\n                oddCount++;\n            }\n        }\n    }\n    \n    return [evenCount, oddCount];\n}\n",
+   "durationMs": 5221
+  },
+  {
+   "name": "HumanEval_108_count_nums",
+   "pass": true,
+   "error": null,
+   "candidate": "function count_nums(arr){\n  return arr.filter(num => {\n    let sum = 0;\n    if (num < 0) {\n      const str = num.toString();\n      sum += parseInt(str[0] + str[1]); // First digit with negative sign\n      for (let i = 2; i < str.length; i++) {\n        sum += parseInt(str[i]);\n      }\n    } else {\n      const str = num.toString();\n      for (let i = 0; i < str.length; i++) {\n        sum += parseInt(str[i]);\n      }\n    }\n    return sum > 0;\n  }).length;\n}\n",
+   "durationMs": 17915
+  },
+  {
+   "name": "HumanEval_109_move_one_ball",
+   "pass": true,
+   "error": null,
+   "candidate": "function move_one_ball(arr) {\n    if (arr.length === 0) return true;\n    \n    let count = 0;\n    for (let i = 1; i < arr.length; i++) {\n        if (arr[i] < arr[i - 1]) {\n            count++;\n        }\n    }\n    \n    if (count === 0) return true;\n    if (count > 1) return false;\n    \n    return arr[arr.length - 1] <= arr[0];\n}\n",
+   "durationMs": 42727
+  },
+  {
+   "name": "HumanEval_110_exchange",
+   "pass": true,
+   "error": null,
+   "candidate": "function exchange(lst1, lst2) {\n    let totalEvens = 0;\n    for (let num of lst1) {\n        if (num % 2 === 0) totalEvens++;\n    }\n    for (let num of lst2) {\n        if (num % 2 === 0) totalEvens++;\n    }\n    return totalEvens >= lst1.length ? \"YES\" : \"NO\";\n}\n",
+   "durationMs": 24796
+  },
+  {
+   "name": "HumanEval_111_histogram",
+   "pass": true,
+   "error": null,
+   "candidate": "function histogram(test) {\n    if (test === \"\") return {};\n    \n    const letters = test.split(\" \");\n    const counts = {};\n    let maxCount = 0;\n    \n    for (const letter of letters) {\n        counts[letter] = (counts[letter] || 0) + 1;\n        if (counts[letter] > maxCount) maxCount = counts[letter];\n    }\n    \n    const result = {};\n    for (const [letter, count] of Object.entries(counts)) {\n        if (count === maxCount) result[letter] = count;\n    }\n    \n    return result;\n}\n",
+   "durationMs": 4920
+  },
+  {
+   "name": "HumanEval_112_reverse_delete",
+   "pass": true,
+   "error": null,
+   "candidate": "function reverse_delete(s, c) {\n  const result = [...s].filter(ch => !c.includes(ch)).join('');\n  const isPalindrome = result === [...result].reverse().join('');\n  return [result, isPalindrome];\n}\n",
+   "durationMs": 5382
+  },
+  {
+   "name": "HumanEval_113_odd_count",
+   "pass": true,
+   "error": null,
+   "candidate": "function odd_count(lst) {\n  return lst.map(str => {\n    const count = [...str].filter(c => parseInt(c) % 2 === 1).length;\n    return `the number of odd elements ${count}n the str${count}ng ${count} of the ${count}nput.`;\n  });\n}\n",
+   "durationMs": 18846
+  },
+  {
+   "name": "HumanEval_114_minSubArraySum",
+   "pass": true,
+   "error": null,
+   "candidate": "function minSubArraySum(nums){\n    let minEndingHere = nums[0];\n    let minSoFar = nums[0];\n    \n    for (let i = 1; i < nums.length; i++) {\n        minEndingHere = Math.min(nums[i], minEndingHere + nums[i]);\n        minSoFar = Math.min(minSoFar, minEndingHere);\n    }\n    \n    return minSoFar;\n}\n",
+   "durationMs": 29056
+  },
+  {
+   "name": "HumanEval_115_max_fill",
+   "pass": true,
+   "error": null,
+   "candidate": "function max_fill(grid, capacity) {\n    let total = 0;\n    for (let i = 0; i < grid.length; i++) {\n        let waterUnits = 0;\n        for (let j = 0; j < grid[i].length; j++) {\n            waterUnits += grid[i][j];\n        }\n        total += Math.ceil(waterUnits / capacity);\n    }\n    return total;\n}\n",
+   "durationMs": 12199
+  },
+  {
+   "name": "HumanEval_116_sort_array",
+   "pass": true,
+   "error": null,
+   "candidate": "function sort_array(arr) {\n    return arr.sort((a, b) => {\n        const onesA = (a.toString(2).match(/1/g) || []).length;\n        const onesB = (b.toString(2).match(/1/g) || []).length;\n        if (onesA !== onesB) {\n            return onesA - onesB;\n        }\n        return a - b;\n    });\n}\n",
+   "durationMs": 45381
+  },
+  {
+   "name": "HumanEval_117_select_words",
+   "pass": true,
+   "error": null,
+   "candidate": "function select_words(s, n) {\n    if (s === '') return [];\n    \n    const words = s.split(' ');\n    const vowels = new Set(['a', 'e', 'i', 'o', 'u']);\n    \n    return words.filter(word => {\n        let consonantCount = 0;\n        for (const char of word.toLowerCase()) {\n            if (!vowels.has(char)) consonantCount++;\n        }\n        return consonantCount === n;\n    });\n}\n",
+   "durationMs": 6638
+  },
+  {
+   "name": "HumanEval_118_get_closest_vowel",
+   "pass": true,
+   "error": null,
+   "candidate": "function get_closest_vowel(word) {\n    const vowels = new Set(['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U']);\n    const consonants = new Set('bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ'.split(''));\n\n    for (let i = word.length - 2; i >= 1; i--) {\n        if (vowels.has(word[i]) && consonants.has(word[i - 1]) && consonants.has(word[i + 1])) {\n            return word[i];\n        }\n    }\n    return \"\";\n}\n",
+   "durationMs": 15729
+  },
+  {
+   "name": "HumanEval_119_match_parens",
+   "pass": true,
+   "error": null,
+   "candidate": "function match_parens(lst) {\n  const s1 = lst[0];\n  const s2 = lst[1];\n\n  function isBalanced(str) {\n    let bal = 0;\n    for (const ch of str) {\n      bal += ch === '(' ? 1 : -1;\n      if (bal < 0) return false;\n    }\n    return bal === 0;\n  }\n\n  if (isBalanced(s1 + s2) || isBalanced(s2 + s1)) {\n    return \"Yes\";\n  }\n  return \"No\";\n}\n",
+   "durationMs": 20475
+  },
+  {
+   "name": "HumanEval_120_maximum",
+   "pass": true,
+   "error": null,
+   "candidate": "function maximum(arr, k) {\n    const sorted = [...arr].sort((a, b) => a - b);\n    return sorted.slice(sorted.length - k);\n}\n",
+   "durationMs": 42638
+  },
+  {
+   "name": "HumanEval_121_solution",
+   "pass": true,
+   "error": null,
+   "candidate": "function solution(lst) {\n    return lst.reduce((sum, num, idx) => {\n        if (idx % 2 === 0 && num % 2 !== 0) {\n            return sum + num;\n        }\n        return sum;\n    }, 0);\n}\n",
+   "durationMs": 8409
+  },
+  {
+   "name": "HumanEval_122_add_elements",
+   "pass": true,
+   "error": null,
+   "candidate": "function add_elements(arr, k) {\n    let sum = 0;\n    for (let i = 0; i < k; i++) {\n        const num = arr[i];\n        const digitCount = Math.floor(Math.log10(Math.abs(num))) + 1;\n        if (digitCount <= 2) {\n            sum += num;\n        }\n    }\n    return sum;\n}\n",
+   "durationMs": 33668
+  },
+  {
+   "name": "HumanEval_123_get_odd_collatz",
+   "pass": true,
+   "error": null,
+   "candidate": "function get_odd_collatz(n) {\n  const odds = [];\n  let current = n;\n\n  while (current !== 1) {\n    if (current % 2 !== 0) {\n      odds.push(current);\n    }\n    current = current % 2 === 0 ? current / 2 : 3 * current + 1;\n  }\n  odds.push(1);\n\n  return odds.sort((a, b) => a - b);\n}\n",
+   "durationMs": 27921
+  },
+  {
+   "name": "HumanEval_124_valid_date",
+   "pass": true,
+   "error": null,
+   "candidate": "function valid_date(date) {\n    if (!date || date.length === 0) return false;\n    \n    const dateRegex = /^\\d{2}-\\d{2}-\\d{4}$/;\n    if (!dateRegex.test(date)) return false;\n    \n    const [monthStr, dayStr, yearStr] = date.split('-');\n    const month = parseInt(monthStr, 10);\n    const day = parseInt(dayStr, 10);\n    const year = parseInt(yearStr, 10);\n    \n    if (month < 1 || month > 12) return false;\n    if (day < 1) return false;\n    \n    const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n    return day <= daysInMonth[month - 1];\n}\n",
+   "durationMs": 32073
+  },
+  {
+   "name": "HumanEval_125_split_words",
+   "pass": true,
+   "error": null,
+   "candidate": "function split_words(txt) {\n  if (/\\s/.test(txt)) {\n    return txt.split(/\\s+/).filter(s => s !== \"\");\n  } else if (txt.includes(',')) {\n    return txt.split(',');\n  } else {\n    let count = 0;\n    for (let i = 0; i < txt.length; i++) {\n      const c = txt[i];\n      if (c >= 'a' && c <= 'z') {\n        const order = c.charCodeAt(0) - 'a'.charCodeAt(0);\n        if (order % 2 === 1) {\n          count++;\n        }\n      }\n    }\n    return count;\n  }\n}\n",
+   "durationMs": 26714
+  },
+  {
+   "name": "HumanEval_126_is_sorted",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_sorted(lst){\n    let freq = {};\n    for (let i = 0; i < lst.length; i++) {\n        if (i > 0 && lst[i] < lst[i - 1]) {\n            return false;\n        }\n        freq[lst[i]] = (freq[lst[i]] || 0) + 1;\n        if (freq[lst[i]] > 2) {\n            return false;\n        }\n    }\n    return true;\n}\n",
+   "durationMs": 36229
+  },
+  {
+   "name": "HumanEval_127_intersection",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function intersection(interval1, interval2) {\n  const [a1, b1] = interval1;\n  const [a2, b2] = interval2;\n\n  // Calculate intersection bounds\n  const start = Math.max(a1, a2);\n  const end = Math.min(b1, b2);\n\n  // Check if intersection exists\n  if (start > end) {\n    return \"NO\";\n  }\n\n  const length = end - start + 1;\n\n  // Check if length is prime\n  if (length <= 1) {\n    return \"NO\";\n  }\n  for (let i = 2; i * i <= length; i++) {\n    if (length % i === 0) {\n      return \"NO\";\n    }\n  }\n\n  return \"YES\";\n}\n",
+   "durationMs": 9608
+  },
+  {
+   "name": "HumanEval_128_prod_signs",
+   "pass": true,
+   "error": null,
+   "candidate": "function prod_signs(arr) {\n  if (arr.length === 0) return undefined;\n  \n  const sumMagnitudes = arr.reduce((sum, num) => sum + Math.abs(num), 0);\n  \n  const productSigns = arr.reduce((product, num) => {\n    if (num === 0) return product * 0;\n    return product * (num > 0 ? 1 : -1);\n  }, 1);\n  \n  return sumMagnitudes * productSigns;\n}\n",
+   "durationMs": 1271509
+  },
+  {
+   "name": "HumanEval_129_minPath",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-BHqMR7/prog.cjs:26\n                        if (!bestPath || lexCompare(newPath, bestPath) < 0) {\n                        ^\n\nReferenceError: lexCompare is not defined\n    at minPath (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-BHqMR7/prog.cjs:26:25)",
+   "candidate": "function minPath(grid, k) {\n    const n = grid.length;\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n    \n    // Initialize dp array: dp[r][c] = lexicographically smallest path of length 1 ending at (r,c)\n    let dp = Array.from({ length: n }, (_, r) => \n        Array.from({ length: n }, (_, c) => [grid[r][c]])\n    );\n    \n    // Build paths of increasing length\n    for (let len = 2; len <= k; len++) {\n        const newDp = Array.from({ length: n }, () => Array(n).fill(null));\n        \n        for (let r = 0; r < n; r++) {\n            for (let c = 0; c < n; c++) {\n                let bestPath = null;\n                \n                for (const [dr, dc] of directions) {\n                    const nr = r + dr;\n                    const nc = c + dc;\n                    \n                    if (nr >= 0 && nr < n && nc >= 0 && nc < n) {\n                        const neighborPath = dp[nr][nc];\n                        const newPath = [...neighborPath, grid[r][c]];\n                        \n                        if (!bestPath || lexCompare(newPath, bestPath) < 0) {\n                            bestPath = newPath;\n                        }\n                    }\n                }\n                \n                newDp[r][c] = bestPath;\n            }\n        }\n        \n        dp = newDp;\n    }\n    \n    // Find lexicographically smallest path of length k\n    let result = null;\n    for (let r = 0; r < n; r++) {\n        for (let c = 0; c < n; c++) {\n            const path = dp[r][c];\n            if (path && (!result || lexCompare(path, result) < 0)) {\n                result = path;\n            }\n        }\n    }\n    \n    return result;\n}\n\nfunction lexCompare(a, b) {\n    for (let i = 0; i < a.length; i++) {\n        if (a[i] !== b[i]) {\n            return a[i] - b[i];\n        }\n    }\n    return 0;\n}\n",
+   "durationMs": 1261647
+  },
+  {
+   "name": "HumanEval_130_tri",
+   "pass": true,
+   "error": null,
+   "candidate": "function tri(n) {\n  if (n === 0) return [1];\n  \n  const result = new Array(n + 1);\n  result[0] = 1;\n  result[1] = 3;\n  \n  for (let i = 2; i <= n; i++) {\n    if (i % 2 === 0) {\n      result[i] = 1 + i / 2;\n    } else {\n      result[i] = result[i - 1] + result[i - 2] + (1 + (i + 1) / 2);\n    }\n  }\n  \n  return result;\n}\n",
+   "durationMs": 57017
+  },
+  {
+   "name": "HumanEval_131_digits",
+   "pass": true,
+   "error": null,
+   "candidate": "function digits(n) {\n    let oddProduct = 1;\n    let hasOdd = false;\n    \n    // Convert to string to iterate through digits\n    while (n > 0) {\n        const digit = n % 10;\n        if (digit % 2 !== 0) {\n            oddProduct *= digit;\n            hasOdd = true;\n        }\n        n = Math.floor(n / 10);\n    }\n    \n    return hasOdd ? oddProduct : 0;\n}\n",
+   "durationMs": 16583
+  },
+  {
+   "name": "HumanEval_132_is_nested",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_nested(string){\n  const firstOpen = string.indexOf('[');\n  if (firstOpen === -1) return false;\n  const secondOpen = string.indexOf('[', firstOpen + 1);\n  if (secondOpen === -1) return false;\n  const firstClose = string.indexOf(']', secondOpen + 1);\n  if (firstClose === -1) return false;\n  const secondClose = string.indexOf(']', firstClose + 1);\n  return secondClose !== -1;\n}\n",
+   "durationMs": 125315
+  },
+  {
+   "name": "HumanEval_133_sum_squares",
+   "pass": true,
+   "error": null,
+   "candidate": "function sum_squares(lst){\n  return lst.reduce((sum, num) => sum + Math.ceil(num) ** 2, 0);\n}\n",
+   "durationMs": 6719
+  },
+  {
+   "name": "HumanEval_134_check_if_last_char_is_a_letter",
+   "pass": true,
+   "error": null,
+   "candidate": "function check_if_last_char_is_a_letter(txt) {\n  if (!txt) return false;\n  const lastChar = txt[txt.length - 1];\n  if (!/[a-zA-Z]/.test(lastChar)) return false;\n  const words = txt.split(/\\s+/).filter(word => word !== '');\n  return words.length > 0 && words[words.length - 1].length === 1;\n}\n",
+   "durationMs": 38421
+  },
+  {
+   "name": "HumanEval_135_can_arrange",
+   "pass": true,
+   "error": null,
+   "candidate": "function can_arrange(arr) {\n  let lastIndex = -1;\n  for (let i = 1; i < arr.length; i++) {\n    if (arr[i] < arr[i - 1]) {\n      lastIndex = i;\n    }\n  }\n  return lastIndex;\n}\n",
+   "durationMs": 6656
+  },
+  {
+   "name": "HumanEval_136_largest_smallest_integers",
+   "pass": true,
+   "error": null,
+   "candidate": "function largest_smallest_integers(lst) {\n    let largestNegative = undefined;\n    let smallestPositive = undefined;\n    \n    for (let num of lst) {\n        if (num < 0) {\n            if (largestNegative === undefined || num > largestNegative) {\n                largestNegative = num;\n            }\n        } else if (num > 0) {\n            if (smallestPositive === undefined || num < smallestPositive) {\n                smallestPositive = num;\n            }\n        }\n    }\n    \n    return [largestNegative, smallestPositive];\n}\n",
+   "durationMs": 10297
+  },
+  {
+   "name": "HumanEval_137_compare_one",
+   "pass": true,
+   "error": null,
+   "candidate": "function compare_one(a, b){\n    const parse = (val) => typeof val === 'string' ? parseFloat(val.replace(',', '.')) : val;\n    const numA = parse(a);\n    const numB = parse(b);\n    if (numA > numB) return a;\n    if (numB > numA) return b;\n    return undefined;\n}\n",
+   "durationMs": 25588
+  },
+  {
+   "name": "HumanEval_138_is_equal_to_sum_even",
+   "pass": true,
+   "error": null,
+   "candidate": "function is_equal_to_sum_even(n) {\n  return n % 2 === 0 && n >= 8;\n}\n",
+   "durationMs": 4952
+  },
+  {
+   "name": "HumanEval_139_special_factorial",
+   "pass": true,
+   "error": null,
+   "candidate": "function special_factorial(n) {\n    let result = 1;\n    for (let i = n; i >= 1; i--) {\n        let factorial = 1;\n        for (let j = i; j >= 1; j--) {\n            factorial *= j;\n        }\n        result *= factorial;\n    }\n    return result;\n}\n",
+   "durationMs": 10433
+  },
+  {
+   "name": "HumanEval_140_fix_spaces",
+   "pass": true,
+   "error": null,
+   "candidate": "function fix_spaces(text) {\n  return text.replace(/ {3,}/g, '-').replace(/ /g, '_');\n}\n",
+   "durationMs": 96832
+  },
+  {
+   "name": "HumanEval_141_file_name_check",
+   "pass": true,
+   "error": null,
+   "candidate": "function file_name_check(file_name){\n    // Check for exactly one dot\n    const dotCount = (file_name.match(/\\./g) || []).length;\n    if (dotCount !== 1) return \"No\";\n    \n    const [name, extension] = file_name.split('.');\n    \n    // Check if name part is valid\n    if (!name || name.length === 0) return \"No\";\n    if (!/^[a-zA-Z]/.test(name)) return \"No\";\n    \n    // Check if extension is valid\n    const validExtensions = ['txt', 'exe', 'dll'];\n    if (!validExtensions.includes(extension)) return \"No\";\n    \n    // Check digit count\n    const digitCount = (file_name.match(/\\d/g) || []).length;\n    if (digitCount > 3) return \"No\";\n    \n    return \"Yes\";\n}\n",
+   "durationMs": 25998
+  },
+  {
+   "name": "HumanEval_142_sum_squares",
+   "pass": true,
+   "error": null,
+   "candidate": "function sum_squares(lst) {\n    let sum = 0;\n    for (let i = 0; i < lst.length; i++) {\n        let v = lst[i];\n        if (i % 3 === 0) {\n            sum += v * v;\n        } else if (i % 4 === 0) {\n            sum += v * v * v;\n        } else {\n            sum += v;\n        }\n    }\n    return sum;\n}\n",
+   "durationMs": 18290
+  },
+  {
+   "name": "HumanEval_143_words_in_sentence",
+   "pass": true,
+   "error": null,
+   "candidate": "function words_in_sentence(sentence) {\n    const isPrime = (num) => {\n        if (num < 2) return false;\n        for (let i = 2; i * i <= num; i++) {\n            if (num % i === 0) return false;\n        }\n        return true;\n    };\n\n    const words = sentence.split(' ');\n    return words.filter(word => isPrime(word.length)).join(' ');\n}\n",
+   "durationMs": 27407
+  },
+  {
+   "name": "HumanEval_144_simplify",
+   "pass": true,
+   "error": null,
+   "candidate": "function simplify(x, n) {\n  const [xNum, xDen] = x.split('/').map(Number);\n  const [nNum, nDen] = n.split('/').map(Number);\n  \n  const productNum = xNum * nNum;\n  const productDen = xDen * nDen;\n  \n  // Simplify by dividing by GCD first to prevent potential overflow\n  const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);\n  const g = gcd(productNum, productDen);\n  \n  // If denominator becomes 1 after simplification, it's a whole number\n  return (productDen / g) === 1;\n}\n",
+   "durationMs": 41632
+  },
+  {
+   "name": "HumanEval_145_order_by_points",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function order_by_points(nums) {\n    // Helper function to compute digit sum\n    const digitSum = (n) => {\n        const absStr = Math.abs(n).toString();\n        let sum = 0;\n        for (const char of absStr) {\n            sum += parseInt(char, 10);\n        }\n        return sum;\n    };\n\n    // Create array of [originalValue, originalIndex, digitSum]\n    const withIndex = nums.map((num, idx) => [num, idx, digitSum(num)]);\n\n    // Sort by digitSum, then by original index for ties\n    withIndex.sort((a, b) => {\n        if (a[2] !== b[2]) {\n            return a[2] - b[2];\n        }\n        return a[1] - b[1];\n    });\n\n    // Extract original values in sorted order\n    return withIndex.map((item) => item[0]);\n}\n",
+   "durationMs": 82256
+  },
+  {
+   "name": "HumanEval_146_specialFilter",
+   "pass": true,
+   "error": null,
+   "candidate": "function specialFilter(nums) {\n  let count = 0;\n  for (let num of nums) {\n    if (num > 10) {\n      const str = Math.abs(num).toString();\n      const firstDigit = parseInt(str[0]);\n      const lastDigit = parseInt(str[str.length - 1]);\n      if (firstDigit % 2 !== 0 && lastDigit % 2 !== 0) {\n        count++;\n      }\n    }\n  }\n  return count;\n}\n",
+   "durationMs": 36682
+  },
+  {
+   "name": "HumanEval_147_get_max_triples",
+   "pass": true,
+   "error": null,
+   "candidate": "function get_max_triples(n) {\n    if (n < 3) return 0;\n    const count0 = Math.floor((n + 1) / 3);\n    const count1 = n - count0;\n    const comb = (m) => m >= 3 ? (m * (m - 1) * (m - 2)) / 6 : 0;\n    return comb(count0) + comb(count1);\n}\n",
+   "durationMs": 42767
+  },
+  {
+   "name": "HumanEval_148_bf",
+   "pass": true,
+   "error": null,
+   "candidate": "function bf(planet1, planet2) {\n  const planets = [\n    \"Mercury\", \"Venus\", \"Earth\", \"Mars\", \n    \"Jupiter\", \"Saturn\", \"Uranus\", \"Neptune\"\n  ];\n  \n  const i1 = planets.indexOf(planet1);\n  const i2 = planets.indexOf(planet2);\n  \n  if (i1 === -1 || i2 === -1) return [];\n  \n  const start = Math.min(i1, i2);\n  const end = Math.max(i1, i2);\n  \n  return planets.slice(start + 1, end);\n}\n",
+   "durationMs": 14956
+  },
+  {
+   "name": "HumanEval_149_sorted_list_sum",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function sorted_list_sum(lst) {\n  return lst\n    .filter(str => str.length % 2 === 0)\n    .sort((a, b) => {\n      if (a.length !== b.length) {\n        return a.length - b.length;\n      } else {\n        return a.localeCompare(b);\n      }\n    });\n}\n",
+   "durationMs": 20864
+  },
+  {
+   "name": "HumanEval_150_x_or_y",
+   "pass": true,
+   "error": null,
+   "candidate": "function x_or_y(n, x, y) {\n  if (n < 2) return y;\n  for (let i = 2; i <= Math.sqrt(n); i++) {\n    if (n % i === 0) return y;\n  }\n  return x;\n}\n",
+   "durationMs": 6847
+  },
+  {
+   "name": "HumanEval_151_double_the_difference",
+   "pass": true,
+   "error": null,
+   "candidate": "function double_the_difference(lst) {\n  if (lst.length === 0) return 0;\n  \n  return lst\n    .filter(num => num > 0 && Number.isInteger(num) && num % 2 !== 0)\n    .reduce((sum, num) => sum + num * num, 0);\n}\n",
+   "durationMs": 3787
+  },
+  {
+   "name": "HumanEval_152_compare",
+   "pass": true,
+   "error": null,
+   "candidate": "function compare(game, guess) {\n  return game.map((score, index) => Math.abs(score - guess[index]));\n}\n",
+   "durationMs": 4390
+  },
+  {
+   "name": "HumanEval_153_Strongest_Extension",
+   "pass": true,
+   "error": null,
+   "candidate": "function Strongest_Extension(class_name, extensions) {\n    let maxStrength = -Infinity;\n    let strongestExtension = extensions[0];\n    \n    extensions.forEach(ext => {\n        const caps = (ext.match(/[A-Z]/g) || []).length;\n        const lows = (ext.match(/[a-z]/g) || []).length;\n        const strength = caps - lows;\n        \n        if (strength > maxStrength) {\n            maxStrength = strength;\n            strongestExtension = ext;\n        }\n    });\n    \n    return class_name + '.' + strongestExtension;\n}\n",
+   "durationMs": 11068
+  },
+  {
+   "name": "HumanEval_154_cycpattern_check",
+   "pass": true,
+   "error": null,
+   "candidate": "function cycpattern_check(a, b) {\n    for (let i = 0; i < b.length; i++) {\n        const rotation = b.slice(i) + b.slice(0, i);\n        if (a.includes(rotation)) {\n            return true;\n        }\n    }\n    return false;\n}\n",
+   "durationMs": 8003
+  },
+  {
+   "name": "HumanEval_155_even_odd_count",
+   "pass": true,
+   "error": null,
+   "candidate": "function even_odd_count(num) {\n  const digits = Math.abs(num).toString().split('');\n  let evenCount = 0;\n  let oddCount = 0;\n  \n  for (const digit of digits) {\n    if (parseInt(digit) % 2 === 0) {\n      evenCount++;\n    } else {\n      oddCount++;\n    }\n  }\n  \n  return [evenCount, oddCount];\n}\n",
+   "durationMs": 4050
+  },
+  {
+   "name": "HumanEval_156_int_to_mini_roman",
+   "pass": true,
+   "error": null,
+   "candidate": "function int_to_mini_roman(number) {\n  const romanNumerals = [\n    [1000, 'm'],\n    [900, 'cm'],\n    [500, 'd'],\n    [400, 'cd'],\n    [100, 'c'],\n    [90, 'xc'],\n    [50, 'l'],\n    [40, 'xl'],\n    [10, 'x'],\n    [9, 'ix'],\n    [5, 'v'],\n    [4, 'iv'],\n    [1, 'i']\n  ];\n\n  let result = '';\n  \n  for (const [value, numeral] of romanNumerals) {\n    while (number >= value) {\n      result += numeral;\n      number -= value;\n    }\n  }\n  \n  return result;\n}\n",
+   "durationMs": 17030
+  },
+  {
+   "name": "HumanEval_157_right_angle_triangle",
+   "pass": true,
+   "error": null,
+   "candidate": "function right_angle_triangle(a, b, c) {\n  const sides = [a, b, c].sort((x, y) => x - y);\n  return sides[0] * sides[0] + sides[1] * sides[1] === sides[2] * sides[2];\n}\n",
+   "durationMs": 29891
+  },
+  {
+   "name": "HumanEval_158_find_max",
+   "pass": true,
+   "error": null,
+   "candidate": "function find_max(words) {\n  let maxUnique = 0;\n  let result = '';\n  \n  for (const word of words) {\n    const uniqueCount = new Set(word).size;\n    \n    if (uniqueCount > maxUnique) {\n      maxUnique = uniqueCount;\n      result = word;\n    } else if (uniqueCount === maxUnique && word < result) {\n      result = word;\n    }\n  }\n  \n  return result;\n}\n",
+   "durationMs": 10513
+  },
+  {
+   "name": "HumanEval_159_eat",
+   "pass": true,
+   "error": null,
+   "candidate": "function eat(number, need, remaining) {\n  const carrotsToEat = Math.min(need, remaining);\n  const totalEaten = number + carrotsToEat;\n  const left = remaining - carrotsToEat;\n  return [totalEaten, left];\n}\n",
+   "durationMs": 12383
+  },
+  {
+   "name": "HumanEval_160_do_algebra",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function do_algebra(operator, operand) {\n    let result = operand[0];\n    for (let i = 0; i < operator.length; i++) {\n        switch(operator[i]) {\n            case '+':\n                result += operand[i + 1];\n                break;\n            case '-':\n                result -= operand[i + 1];\n                break;\n            case '*':\n                result *= operand[i + 1];\n                break;\n            case '//':\n                result = Math.floor(result / operand[i + 1]);\n                break;\n            case '**':\n                result = Math.pow(result, operand[i + 1]);\n                break;\n        }\n    }\n    return result;\n}\n",
+   "durationMs": 48326
+  },
+  {
+   "name": "HumanEval_161_solve",
+   "pass": true,
+   "error": null,
+   "candidate": "function solve(s) {\n    // Check if the string contains any letters\n    const hasLetters = /[a-zA-Z]/.test(s);\n    \n    if (!hasLetters) {\n        // Reverse the string if no letters are present\n        return s.split('').reverse().join('');\n    }\n    \n    // Otherwise, toggle case for each letter, keep other characters unchanged\n    return s.split('').map(char => {\n        if (char >= 'a' && char <= 'z') {\n            return char.toUpperCase();\n        } else if (char >= 'A' && char <= 'Z') {\n            return char.toLowerCase();\n        }\n        return char;\n    }).join('');\n}\n",
+   "durationMs": 8063
+  },
+  {
+   "name": "HumanEval_162_string_to_md5",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-POcMst/prog.cjs:3\n    return crypto.createHash('md5').update(text).digest('hex');\n                  ^\n\nTypeError: crypto.createHash is not a function\n    at string_to_md5 (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-POcMst/prog.cjs:3:19)",
+   "candidate": "const crypto = require('crypto');\n\nfunction string_to_md5(text){\n    if (text === '') return undefined;\n    return crypto.createHash('md5').update(text).digest('hex');\n}\n",
+   "durationMs": 4252
+  },
+  {
+   "name": "HumanEval_163_generate_integers",
+   "pass": true,
+   "error": null,
+   "candidate": "function generate_integers(a, b) {\n  const low = Math.min(a, b);\n  const high = Math.max(a, b);\n  return [0, 2, 4, 6, 8].filter(digit => digit >= low && digit <= high);\n}\n",
+   "durationMs": 16394
+  }
+ ]
+}

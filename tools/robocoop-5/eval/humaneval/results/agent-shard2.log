@@ -1,0 +1,45 @@
+model: xiaomi/mimo-v2.5-pro  problems: 41 (offset 82)  notebook: /Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+PASS  HumanEval_85_add  steps=4 (16s)
+PASS  HumanEval_86_anti_shuffle  steps=7 (29s)
+PASS  HumanEval_87_get_row  steps=5 (23s)
+PASS  HumanEval_88_sort_array  steps=6 (32s)
+PASS  HumanEval_89_encrypt  steps=4 (26s)
+PASS  HumanEval_90_next_smallest  steps=9 (39s)
+PASS  HumanEval_91_is_bored  steps=3 (25s)
+FAIL  HumanEval_92_any_int  steps=6 (24s)  node:assert:149
+PASS  HumanEval_93_encode  steps=4 (30s)
+PASS  HumanEval_94_skjkasdkd  steps=5 (33s)
+PASS  HumanEval_95_check_dict_case  steps=8 (45s)
+PASS  HumanEval_96_count_up_to  steps=4 (22s)
+PASS  HumanEval_97_multiply  steps=5 (27s)
+PASS  HumanEval_98_count_upper  steps=6 (20s)
+PASS  HumanEval_99_closest_integer  steps=5 (33s)
+PASS  HumanEval_100_make_a_pile  steps=5 (25s)
+PASS  HumanEval_101_words_string  steps=4 (15s)
+PASS  HumanEval_102_choose_num  steps=5 (22s)
+PASS  HumanEval_103_rounded_avg  steps=5 (43s)
+PASS  HumanEval_104_unique_digits  steps=4 (20s)
+PASS  HumanEval_105_by_length  steps=6 (32s)
+FAIL  HumanEval_106_f  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Vgz9Zf/prog.cjs:2
+FAIL  HumanEval_107_even_odd_palindrome  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-i84zP3/prog.cjs:2
+FAIL  HumanEval_108_count_nums  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-D4YwCF/prog.cjs:2
+FAIL  HumanEval_109_move_one_ball  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-UeCkJB/prog.cjs:2
+FAIL  HumanEval_110_exchange  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-NjdtrZ/prog.cjs:2
+FAIL  HumanEval_111_histogram  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-e3g7x5/prog.cjs:2
+FAIL  HumanEval_112_reverse_delete  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-2yycsa/prog.cjs:2
+FAIL  HumanEval_113_odd_count  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-b0mELF/prog.cjs:2
+FAIL  HumanEval_114_minSubArraySum  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-sws0i0/prog.cjs:2
+FAIL  HumanEval_115_max_fill  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-TTc45U/prog.cjs:2
+FAIL  HumanEval_116_sort_array  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Lh0VLg/prog.cjs:2
+FAIL  HumanEval_117_select_words  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-rcIQDU/prog.cjs:2
+FAIL  HumanEval_118_get_closest_vowel  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-RxKanY/prog.cjs:2
+FAIL  HumanEval_119_match_parens  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-LoiB2f/prog.cjs:2
+FAIL  HumanEval_120_maximum  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-GK8EzU/prog.cjs:2
+FAIL  HumanEval_121_solution  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-4WV9e2/prog.cjs:2
+FAIL  HumanEval_122_add_elements  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Wn8jAJ/prog.cjs:2
+FAIL  HumanEval_123_get_odd_collatz  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-mNfnKj/prog.cjs:2
+FAIL  HumanEval_124_valid_date  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-KF3K1l/prog.cjs:2
+FAIL  HumanEval_125_split_words  steps=0 (4s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-YTrilh/prog.cjs:2
+
+pass@1: 20/41 = 0.488
+wrote results/agent-shard2.json
