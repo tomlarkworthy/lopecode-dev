@@ -1,0 +1,23 @@
+{
+ "arm": "agent",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "pass1": 0,
+ "pass2": 0,
+ "total": 1,
+ "results": [
+  {
+   "slug": "sum-of-multiples",
+   "pass1": false,
+   "pass2": false,
+   "steps1": 6,
+   "steps2": 0,
+   "error": "no solution file collected: hard deadline: turn exceeded 480000ms",
+   "runError1": null,
+   "candidate1": "const _sum = function sum(){return(\n  (level, bases) => {\n    const multiples = new Set();\n    for (const base of bases) {\n      for (let i = base; i < level; i += base) {\n        multiples.add(i);\n      }\n    }\n    let total = 0;\n    for (const n of multiples) total += n;\n    return total;\n  }\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_sum\", \"sum\", [], _sum);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Sum Of Multiples > no multiples within limit\n  bases is not iterable\nFAIL: Sum Of Multiples > one factor has multiples within limit\n  bases is not iterable\nFAIL: Sum Of Multiples > more than one multiple within limit\n  bases is not iterable\nFAIL: Sum Of Multiples > more than one factor with multiples within limit\n  bases is not iterable\nFAIL: Sum Of Multiples > each multiple is only counted once\n  bases is not iterable\nFAIL: Sum Of Multiples > a much larger limit\n  bases is not iterable\nFAIL: Sum Of Multiples > three factors\n  bases is not iterable\nFAIL: Sum Of Multiples > factors not relatively prime\n  bases is not iterable\nFAIL: Sum Of Multiples > some pairs of factors relatively prime and some not\n  bases is not iterable\nFAIL: Sum Of Multiples > one factor is a multiple of another\n  bases is not iterable\nFAIL: Sum Of Multiples > much larger factors\n  bases is not iterable\nFAIL: Sum Of Multiples > all numbers are multiples of 1\n  bases is not iterable\nFAIL: Sum Of Multiples > no factors means an empty sum\n  bases is not iterable\nFAIL: Sum Of Multiples > the only multiple of 0 is 0\n  bases is not iterable\nFAIL: Sum Of Multiples > the factor 0 does not affect the sum of multiples of other factors\n  bases is not iterable\nFAIL: Sum Of Multiples > solutions using include-exclude must extend to cardinality greater than 3\n  bases is not iterable\n\nTests: 16 failed, 0 skipped, 0 passed",
+   "runError2": "hard deadline: turn exceeded 480000ms",
+   "candidate2": null,
+   "durationMs": 517457
+  }
+ ]
+}
