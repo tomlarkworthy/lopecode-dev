@@ -1,0 +1,150 @@
+{
+ "arm": "baseline",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "offset": 0,
+ "limit": 20,
+ "passed": 19,
+ "total": 20,
+ "results": [
+  {
+   "name": "HumanEval_0_has_close_elements",
+   "pass": true,
+   "error": null,
+   "candidate": "function has_close_elements(numbers, threshold) {\n    for (let i = 0; i < numbers.length; i++) {\n        for (let j = i + 1; j < numbers.length; j++) {\n            if (Math.abs(numbers[i] - numbers[j]) < threshold) {\n                return true;\n            }\n        }\n    }\n    return false;\n}\n",
+   "durationMs": 4469
+  },
+  {
+   "name": "HumanEval_1_separate_paren_groups",
+   "pass": true,
+   "error": null,
+   "candidate": "function separate_paren_groups(paren_string) {\n  // Remove spaces and convert string to array of characters\n  const cleaned = paren_string.replace(/\\s/g, '');\n  const chars = [...cleaned];\n  \n  const result = [];\n  let currentGroup = '';\n  let openCount = 0;\n  \n  for (const char of chars) {\n    currentGroup += char;\n    \n    if (char === '(') {\n      openCount++;\n    } else if (char === ')') {\n      openCount--;\n      \n      // When openCount reaches 0, we have a complete balanced group\n      if (openCount === 0) {\n        result.push(currentGroup);\n        currentGroup = '';\n      }\n    }\n  }\n  \n  return result;\n}\n",
+   "durationMs": 10182
+  },
+  {
+   "name": "HumanEval_2_truncate_number",
+   "pass": true,
+   "error": null,
+   "candidate": "function truncate_number(number) {\n    return number - Math.floor(number);\n}\n",
+   "durationMs": 2632
+  },
+  {
+   "name": "HumanEval_3_below_zero",
+   "pass": true,
+   "error": null,
+   "candidate": "function below_zero(operations) {\n    let balance = 0;\n    for (const operation of operations) {\n        balance += operation;\n        if (balance < 0) {\n            return true;\n        }\n    }\n    return false;\n}\n",
+   "durationMs": 5114
+  },
+  {
+   "name": "HumanEval_4_mean_absolute_deviation",
+   "pass": true,
+   "error": null,
+   "candidate": "function mean_absolute_deviation(numbers) {\n    const mean = numbers.reduce((acc, val) => acc + val, 0) / numbers.length;\n    const absDiffs = numbers.map(num => Math.abs(num - mean));\n    return absDiffs.reduce((acc, val) => acc + val, 0) / absDiffs.length;\n}\n",
+   "durationMs": 8480
+  },
+  {
+   "name": "HumanEval_5_intersperse",
+   "pass": true,
+   "error": null,
+   "candidate": "function intersperse(numbers, delimeter){\n  if (numbers.length === 0) return [];\n  const result = [numbers[0]];\n  for (let i = 1; i < numbers.length; i++) {\n    result.push(delimeter, numbers[i]);\n  }\n  return result;\n}\n",
+   "durationMs": 3894
+  },
+  {
+   "name": "HumanEval_6_parse_nested_parens",
+   "pass": true,
+   "error": null,
+   "candidate": "function parse_nested_parens(paren_string) {\n    return paren_string.split(' ').map(group => {\n        let maxDepth = 0;\n        let currentDepth = 0;\n        for (const char of group) {\n            if (char === '(') {\n                currentDepth++;\n                maxDepth = Math.max(maxDepth, currentDepth);\n            } else if (char === ')') {\n                currentDepth--;\n            }\n        }\n        return maxDepth;\n    });\n}\n",
+   "durationMs": 4338
+  },
+  {
+   "name": "HumanEval_7_filter_by_substring",
+   "pass": true,
+   "error": null,
+   "candidate": "function filter_by_substring(strings, substring){\n  return strings.filter(s => s.includes(substring));\n}\n",
+   "durationMs": 660
+  },
+  {
+   "name": "HumanEval_8_sum_product",
+   "pass": true,
+   "error": null,
+   "candidate": "function sum_product(numbers){\n  return [numbers.reduce((a, b) => a + b, 0), numbers.reduce((a, b) => a * b, 1)];\n}\n",
+   "durationMs": 2017
+  },
+  {
+   "name": "HumanEval_9_rolling_max",
+   "pass": true,
+   "error": null,
+   "candidate": "function rolling_max(numbers) {\n    let result = [];\n    let currentMax = -Infinity;\n    \n    for (let num of numbers) {\n        currentMax = Math.max(currentMax, num);\n        result.push(currentMax);\n    }\n    \n    return result;\n}\n",
+   "durationMs": 3404
+  },
+  {
+   "name": "HumanEval_10_make_palindrome",
+   "pass": true,
+   "error": null,
+   "candidate": "function make_palindrome(string) {\n    function isPalindrome(s) {\n        return s === s.split('').reverse().join('');\n    }\n\n    if (string === \"\") return \"\";\n\n    let n = string.length;\n    for (let i = 0; i < n; i++) {\n        let suffix = string.substring(i);\n        if (isPalindrome(suffix)) {\n            let prefix = string.substring(0, i);\n            let reversedPrefix = prefix.split('').reverse().join('');\n            return string + reversedPrefix;\n        }\n    }\n    return string;\n}\n",
+   "durationMs": 46385
+  },
+  {
+   "name": "HumanEval_11_string_xor",
+   "pass": true,
+   "error": null,
+   "candidate": "function string_xor(a, b) {\n    let result = '';\n    const lenA = a.length;\n    const lenB = b.length;\n    const maxLen = Math.max(lenA, lenB);\n    \n    for (let i = 1; i <= maxLen; i++) {\n        const bitA = i <= lenA ? parseInt(a[lenA - i]) : 0;\n        const bitB = i <= lenB ? parseInt(b[lenB - i]) : 0;\n        result = (bitA ^ bitB).toString() + result;\n    }\n    \n    return result;\n}\n",
+   "durationMs": 40540
+  },
+  {
+   "name": "HumanEval_12_longest",
+   "pass": true,
+   "error": null,
+   "candidate": "function longest(strings) {\n  if (strings.length === 0) return undefined;\n  return strings.reduce((longest, current) => current.length > longest.length ? current : longest);\n}\n",
+   "durationMs": 3320
+  },
+  {
+   "name": "HumanEval_13_greatest_common_divisor",
+   "pass": true,
+   "error": null,
+   "candidate": "function greatest_common_divisor(a, b) {\n    a = Math.abs(a);\n    b = Math.abs(b);\n    while (b) {\n        [a, b] = [b, a % b];\n    }\n    return a;\n}\n",
+   "durationMs": 8764
+  },
+  {
+   "name": "HumanEval_14_all_prefixes",
+   "pass": true,
+   "error": null,
+   "candidate": "function all_prefixes(string){\n  let result = [];\n  for (let i = 1; i <= string.length; i++) {\n    result.push(string.substring(0, i));\n  }\n  return result;\n}\n",
+   "durationMs": 2521
+  },
+  {
+   "name": "HumanEval_15_string_sequence",
+   "pass": true,
+   "error": null,
+   "candidate": "function string_sequence(n) {\n    let result = [];\n    for (let i = 0; i <= n; i++) {\n        result.push(i.toString());\n    }\n    return result.join(' ');\n}\n",
+   "durationMs": 5283
+  },
+  {
+   "name": "HumanEval_16_count_distinct_characters",
+   "pass": true,
+   "error": null,
+   "candidate": "function count_distinct_characters(string){\n    return new Set(string.toLowerCase()).size;\n}\n",
+   "durationMs": 5420
+  },
+  {
+   "name": "HumanEval_17_parse_music",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "candidate": "function parse_music(music_string) {\n  return music_string.split(' ').map(note => {\n    switch(note) {\n      case 'o': return 4;\n      case 'o|': return 2;\n      case '.|': return 1;\n    }\n  });\n}\n",
+   "durationMs": 3065
+  },
+  {
+   "name": "HumanEval_18_how_many_times",
+   "pass": true,
+   "error": null,
+   "candidate": "function how_many_times(string, substring){\n  let count = 0;\n  const subLen = substring.length;\n  \n  if (subLen === 0) return 0;\n  \n  for (let i = 0; i <= string.length - subLen; i++) {\n    if (string.substring(i, i + subLen) === substring) {\n      count++;\n    }\n  }\n  \n  return count;\n}\n",
+   "durationMs": 11534
+  },
+  {
+   "name": "HumanEval_19_sort_numbers",
+   "pass": true,
+   "error": null,
+   "candidate": "function sort_numbers(numbers) {\n  const wordToNum = {\n    'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,\n    'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9\n  };\n  \n  const numToWord = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];\n  \n  return numbers.split(' ')\n    .filter(word => word in wordToNum)\n    .sort((a, b) => wordToNum[a] - wordToNum[b])\n    .map(num => numToWord[wordToNum[num]])\n    .join(' ');\n}\n",
+   "durationMs": 4149
+  }
+ ]
+}

@@ -1,0 +1,54 @@
+model: xiaomi/mimo-v2.5-pro  problems: 24  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+  ..promises attempt1 fail steps=15 (119s)
+FAIL    promises  steps=15+13 (278s)  FAIL: promises > all > resolves when given no arguments
+  ..queen-attack attempt1 pass steps=9 (76s)
+PASS@1  queen-attack  steps=9+0 (76s)
+  ..rational-numbers attempt1 fail steps=11 (62s)
+FAIL    rational-numbers  steps=11+2 (116s)  FAIL: Exponentiation of a real number to a rational number > Raise a real number
+  ..react attempt1 fail steps=10 (176s)
+FAIL    react  steps=10+18 (480s)  FAIL: React module > allows setting compute cells
+  ..rectangles attempt1 pass steps=7 (180s)
+PASS@1  rectangles  steps=7+0 (180s)
+  ..resistor-color-trio attempt1 fail steps=6 (61s)
+FAIL    resistor-color-trio  steps=6+5 (110s)  FAIL: Resistor Color Trio > Orange and orange and black
+  ..rest-api attempt1 pass steps=18 (125s)
+PASS@1  rest-api  steps=18+0 (125s)
+  ..robot-name attempt1 pass steps=13 (84s)
+PASS@1  robot-name  steps=13+0 (84s)
+  ..say attempt1 fail steps=5 (49s)
+PASS@2  say  steps=5+5 (82s)
+  ..scale-generator attempt1 pass steps=9 (303s) runError=session.send timed out after 300000ms
+PASS@1  scale-generator  steps=9+0 (303s)
+  ..simple-linked-list attempt1 fail steps=12 (124s)
+FAIL    simple-linked-list  steps=12+12 (264s)  FAIL: List class > adding an Element to an empty list sets the head Element
+  ..space-age attempt1 fail steps=8 (50s)
+FAIL    space-age  steps=8+28 (337s)  FAIL: Space Age > age on Earth
+  ..state-of-tic-tac-toe attempt1 fail steps=7 (303s) runError=session.send timed out after 300000ms
+PASS@2  state-of-tic-tac-toe  steps=7+16 (512s)
+  ..sum-of-multiples attempt1 fail steps=7 (166s)
+  ..sum-of-multiples#2 HARD DEADLINE — recycling browser
+FAIL    sum-of-multiples  steps=7+0 (646s)  no solution file collected: hard deadline: turn exceeded 480000ms
+  ..tournament attempt1 fail steps=11 (79s)
+PASS@2  tournament  steps=11+10 (276s)
+  ..transpose attempt1 fail steps=8 (188s)
+FAIL    transpose  steps=8+36 (491s)  FAIL: Transpose > empty string
+  ..triangle attempt1 pass steps=5 (36s)
+PASS@1  triangle  steps=5+0 (36s)
+  ..twelve-days attempt1 fail steps=4 (48s)
+FAIL    twelve-days  steps=4+17 (351s)  FAIL: TwelveDays > test verse first day a partridge in a pear tree
+  ..two-bucket attempt1 fail steps=5 (303s) runError=session.send timed out after 300000ms
+FAIL    two-bucket  steps=5+30 (606s)  FAIL: TwoBucket > Reachability > Not possible to reach the goal, start with buck
+  ..variable-length-quantity attempt1 fail steps=6 (49s)
+PASS@2  variable-length-quantity  steps=6+14 (189s)
+  ..word-search attempt1 fail steps=8 (85s)
+FAIL    word-search  steps=8+41 (370s)  FAIL: single line grids > Should accept an initial game grid
+  ..wordy attempt1 fail steps=5 (79s)
+PASS@2  wordy  steps=5+5 (190s)
+  ..zebra-puzzle attempt1 pass steps=6 (72s)
+PASS@1  zebra-puzzle  steps=6+0 (72s)
+  ..zipper attempt1 pass steps=8 (70s)
+PASS@1  zipper  steps=8+0 (70s)
+
+pass@1: 8/24 = 0.333
+pass@2: 13/24 = 0.542
+wrote results/agent-shard1.json

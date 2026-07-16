@@ -1,0 +1,8 @@
+model: xiaomi/mimo-v2.5-pro  problems: 1  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+  ..sum-of-multiples attempt1 fail steps=6 (37s)
+  ..sum-of-multiples#2 HARD DEADLINE — recycling browser
+FAIL    sum-of-multiples  steps=6+0 (517s)  no solution file collected: hard deadline: turn exceeded 480000ms
+
+pass@1: 0/1 = 0.000
+pass@2: 0/1 = 0.000
+wrote results/agent-retry.json

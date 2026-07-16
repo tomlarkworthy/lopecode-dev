@@ -1,0 +1,666 @@
+{
+ "arm": "agent",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "offset": 82,
+ "limit": 41,
+ "passed": 20,
+ "total": 41,
+ "results": [
+  {
+   "name": "HumanEval_85_add",
+   "pass": true,
+   "error": null,
+   "steps": 4,
+   "usage": {
+    "calls": 4,
+    "promptTokens": 29189,
+    "completionTokens": 558,
+    "cachedTokens": 27584,
+    "costUSD": 0.0012829374
+   },
+   "runError": null,
+   "candidate": "//Given a non-empty array of integers lst. add the even elements that are at odd indices..\n// Examples:\n// >>> add([4, 2, 6, 7])\n// 2\nconst _add = function add(){return(\nfunction add(lst){\n  return lst.reduce((sum, val, i) => (i % 2 === 1 && val % 2 === 0) ? sum + val : sum, 0);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_add\", \"add\", [], _add);\n  return main;\n}\n",
+   "durationMs": 16051
+  },
+  {
+   "name": "HumanEval_86_anti_shuffle",
+   "pass": true,
+   "error": null,
+   "steps": 7,
+   "usage": {
+    "calls": 7,
+    "promptTokens": 53654,
+    "completionTokens": 936,
+    "cachedTokens": 51584,
+    "costUSD": 0.0019004724
+   },
+   "runError": null,
+   "candidate": "//Write a function that takes a string and returns an ordered version of it.\n// Ordered version of string, is a string where all words (separated by space)\n// are replaced by a new word where all the characters arranged in\n// ascending order based on ascii value.\n// Note: You should keep the order of words and blank spaces in the sentence.\n// For example:\n// >>> anti_shuffle(\"Hi\")\n// \"Hi\"\n// >>> anti_shuffle(\"hello\")\n// \"ehllo\"\n// >>> anti_shuffle(\"Hello World!!!\")\n// \"Hello !!!Wdlor\"\nconst _anti_shuffle = function anti_shuffle(){return(\nfunction anti_shuffle(s){\n  return s.split(\" \").map(w => w.split(\"\").sort().join(\"\")).join(\" \");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_anti_shuffle\", \"anti_shuffle\", [], _anti_shuffle);\n  return main;\n}\n",
+   "durationMs": 28543
+  },
+  {
+   "name": "HumanEval_87_get_row",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 38739,
+    "completionTokens": 1040,
+    "cachedTokens": 36224,
+    "costUSD": 0.0021292314000000002
+   },
+   "runError": null,
+   "candidate": "//You are given a 2 dimensional data, as a nested arrays,\n// which is similar to matrix, however, unlike matrices,\n// each row may contain a different number of columns.\n// Given lst, and integer x, find integers x in the array,\n// and return array of arrays, [(x1, y1), (x2, y2) ...] such that\n// each array is a coordinate - (row, columns), starting with 0.\n// Sort coordinates initially by rows in ascending order.\n// Also, sort coordinates of the row by columns in descending order.\n// Examples:\n// >>> get_row([[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 1, 6], [1, 2, 3, 4, 5, 1]], 1)\n// [[0, 0], [1, 4], [1, 0], [2, 5], [2, 0]]\n// >>> get_row([], 1)\n// []\n// >>> get_row([[], [1], [1, 2, 3]], 3)\n// [[2, 2]]\nconst _get_row = function get_row(){return(\nfunction get_row(lst, x){\n  const coords = [];\n  for (let i = 0; i < lst.length; i++) {\n    for (let j = 0; j < lst[i].length; j++) {\n      if (lst[i][j] === x) coords.push([i, j]);\n    }\n  }\n  coords.sort((a, b) => a[0] - b[0] || b[1] - a[1]);\n  return coords;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_get_row\", \"get_row\", [], _get_row);\n  return main;\n}\n",
+   "durationMs": 23023
+  },
+  {
+   "name": "HumanEval_88_sort_array",
+   "pass": true,
+   "error": null,
+   "steps": 6,
+   "usage": {
+    "calls": 6,
+    "promptTokens": 47989,
+    "completionTokens": 1380,
+    "cachedTokens": 45056,
+    "costUSD": 0.0026386566
+   },
+   "runError": null,
+   "candidate": "//Given an array of non-negative integers, return a cojs of the given array after sorting,\n// you will sort the given array in ascending order if the sum( first index value, last index value) is odd,\n// or sort it in descending order if the sum( first index value, last index value) is even.\n// Note:\n// * don't change the given array.\n// Examples:\n// >>> sort_array([])\n// []\n// >>> sort_array([5])\n// [5]\n// >>> sort_array([2, 4, 3, 0, 1, 5])\n// [0, 1, 2, 3, 4, 5]\n// >>> sort_array([2, 4, 3, 0, 1, 5, 6])\n// [6, 5, 4, 3, 2, 1, 0]\nconst _sort_array = function sort_array(){return(\nfunction sort_array(array){\n  if (array.length === 0) return [];\n  const copy = array.slice();\n  const sum = copy[0] + copy[copy.length - 1];\n  if (sum % 2 === 1) {\n    copy.sort((a, b) => a - b);\n  } else {\n    copy.sort((a, b) => b - a);\n  }\n  return copy;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_sort_array\", \"sort_array\", [], _sort_array);\n  return main;\n}\n",
+   "durationMs": 32125
+  },
+  {
+   "name": "HumanEval_89_encrypt",
+   "pass": true,
+   "error": null,
+   "steps": 4,
+   "usage": {
+    "calls": 4,
+    "promptTokens": 30191,
+    "completionTokens": 919,
+    "cachedTokens": 28096,
+    "costUSD": 0.0018120006
+   },
+   "runError": null,
+   "candidate": "//Create a function encrypt that takes a string as an argument and\n// returns a string encrypted with the alphabet being rotated. \n// The alphabet should be rotated in a manner such that the letters \n// shift down by two multiplied to two places.\n// For example:\n// >>> encrypt(\"hi\")\n// \"lm\"\n// >>> encrypt(\"asdfghjkl\")\n// \"ewhjklnop\"\n// >>> encrypt(\"gf\")\n// \"kj\"\n// >>> encrypt(\"et\")\n// \"ix\"\nconst _encrypt = function encrypt(){return(\nfunction encrypt(s){\n  return s.split(\"\").map(c => String.fromCharCode(((c.charCodeAt(0) - 97 + 4) % 26) + 97)).join(\"\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_encrypt\", \"encrypt\", [], _encrypt);\n  return main;\n}\n",
+   "durationMs": 26440
+  },
+  {
+   "name": "HumanEval_90_next_smallest",
+   "pass": true,
+   "error": null,
+   "steps": 9,
+   "usage": {
+    "calls": 9,
+    "promptTokens": 72429,
+    "completionTokens": 1701,
+    "cachedTokens": 69568,
+    "costUSD": 0.0029748497999999997
+   },
+   "runError": null,
+   "candidate": "//You are given an array of integers.\n// Write a function next_smallest() that returns the 2nd smallest element of the array.\n// Return undefined if there is no such element.\n// >>> next_smallest([1, 2, 3, 4, 5])\n// 2\n// >>> next_smallest([5, 1, 4, 3, 2])\n// 2\n// >>> next_smallest([])\n// undefined\n// >>> next_smallest([1, 1])\n// undefined\nconst _next_smallest = function next_smallest(){return(\nfunction next_smallest(lst){\n  const sorted = [...new Set(lst)].sort((a, b) => a - b);\n  return sorted.length < 2 ? undefined : sorted[1];\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_next_smallest\", \"next_smallest\", [], _next_smallest);\n  return main;\n}\n",
+   "durationMs": 39356
+  },
+  {
+   "name": "HumanEval_91_is_bored",
+   "pass": true,
+   "error": null,
+   "steps": 3,
+   "usage": {
+    "calls": 3,
+    "promptTokens": 22320,
+    "completionTokens": 1098,
+    "cachedTokens": 20160,
+    "costUSD": 0.001967436
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//You'll be given a string of words, and your task is to count the number\n// of boredoms. A boredom is a sentence that starts with the word \"I\".\n// Sentences are delimited by '.', '?' or '!'.\n// For example:\n// >>> is_bored(\"Hello world\")\n// 0\n// >>> is_bored(\"The sky is blue. The sun is shining. I love this weather\")\n// 1\nconst _is_bored = function is_bored(){return(\nfunction is_bored(S){\n  return S.split(/[.?!]\\s*/).filter(s => {\n    const t = s.trim();\n    return t === \"I\" || t.startsWith(\"I \");\n  }).length;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_is_bored\", \"is_bored\", [], _is_bored);\n  return main;\n}\n",
+   "durationMs": 24862
+  },
+  {
+   "name": "HumanEval_92_any_int",
+   "pass": false,
+   "error": "node:assert:149\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:\n",
+   "steps": 6,
+   "usage": {
+    "calls": 6,
+    "promptTokens": 46529,
+    "completionTokens": 1037,
+    "cachedTokens": 44096,
+    "costUSD": 0.0021192906
+   },
+   "runError": null,
+   "candidate": "//Create a function that takes 3 numbers.\n// Returns true if one of the numbers is equal to the sum of the other two, and all numbers are integers.\n// Returns false in any other cases.\n// Examples\n// >>> any_int(5, 2, 7)\n// true\n// >>> any_int(3, 2, 2)\n// false\n// >>> any_int(3, -2, 1)\n// true\n// >>> any_int(3.6, -2.2, 2)\n// false\nconst _any_int = function any_int(){return(\nfunction any_int(x, y, z){\n  if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(z)) return false;\n  return x + y === z || x + z === y || y + z === x;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_any_int\", \"any_int\", [], _any_int);\n  return main;\n}\n",
+   "durationMs": 24446
+  },
+  {
+   "name": "HumanEval_93_encode",
+   "pass": true,
+   "error": null,
+   "steps": 4,
+   "usage": {
+    "calls": 4,
+    "promptTokens": 31538,
+    "completionTokens": 1575,
+    "cachedTokens": 28736,
+    "costUSD": 0.0026925695999999995
+   },
+   "runError": null,
+   "candidate": "//Write a function that takes a message, and encodes in such a \n// way that it swaps case of all letters, replaces all vowels in \n// the message with the letter that appears 2 places ahead of that \n// vowel in the english alphabet. \n// Assume only letters. \n// Examples:\n// >>> encode(\"test\")\n// \"TGST\"\n// >>> encode(\"This is a message\")\n// \"tHKS KS C MGSSCGG\"\nconst _encode = function encode(){return(\nfunction encode(message){\n  const vowels = \"aeiouAEIOU\";\n  return message.split(\"\").map(ch => {\n    let swapped = ch === ch.toUpperCase() ? ch.toLowerCase() : ch.toUpperCase();\n    if (vowels.includes(swapped)) {\n      swapped = String.fromCharCode(swapped.charCodeAt(0) + 2);\n    }\n    return swapped;\n  }).join(\"\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_encode\", \"encode\", [], _encode);\n  return main;\n}\n",
+   "durationMs": 29618
+  },
+  {
+   "name": "HumanEval_94_skjkasdkd",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 41351,
+    "completionTokens": 1768,
+    "cachedTokens": 37888,
+    "costUSD": 0.0031809618000000002
+   },
+   "runError": null,
+   "candidate": "//You are given an array of integers.\n// You need to find the largest prime value and return the sum of its digits.\n// Examples:\n// >>> skjkasdkd([0, 3, 2, 1, 3, 5, 7, 4, 5, 5, 5, 2, 181, 32, 4, 32, 3, 2, 32, 324, 4, 3])\n// 10\n// >>> skjkasdkd([1, 0, 1, 8, 2, 4597, 2, 1, 3, 40, 1, 2, 1, 2, 4, 2, 5, 1])\n// 25\n// >>> skjkasdkd([1, 3, 1, 32, 5107, 34, 83278, 109, 163, 23, 2323, 32, 30, 1, 9, 3])\n// 13\n// >>> skjkasdkd([0, 724, 32, 71, 99, 32, 6, 0, 5, 91, 83, 0, 5, 6])\n// 11\n// >>> skjkasdkd([0, 81, 12, 3, 1, 21])\n// 3\n// >>> skjkasdkd([0, 8, 1, 2, 1, 7])\n// 7\nconst _skjkasdkd = function skjkasdkd(){return(\nfunction skjkasdkd(lst){\n  function isPrime(n){\n    if(n < 2) return false;\n    if(n === 2) return true;\n    if(n % 2 === 0) return false;\n    for(let i = 3; i * i <= n; i += 2){\n      if(n % i === 0) return false;\n    }\n    return true;\n  }\n  let largest = 0;\n  for(const v of lst){\n    if(isPrime(v) && v > largest) largest = v;\n  }\n  let sum = 0;\n  for(const d of String(largest)){\n    sum += Number(d);\n  }\n  return sum;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_skjkasdkd\", \"skjkasdkd\", [], _skjkasdkd);\n  return main;\n}\n",
+   "durationMs": 33146
+  },
+  {
+   "name": "HumanEval_95_check_dict_case",
+   "pass": true,
+   "error": null,
+   "steps": 8,
+   "usage": {
+    "calls": 8,
+    "promptTokens": 68912,
+    "completionTokens": 2338,
+    "cachedTokens": 64320,
+    "costUSD": 0.004263132
+   },
+   "runError": null,
+   "candidate": "//Given an object, return true if all keys are strings in lower \n// case or all keys are strings in upper case, else return false.\n// The function should return false is the given object is empty.\n// Examples:\n// >>> check_dict_case({\"a\": \"apple\", \"b\": \"banana\"})\n// true\n// >>> check_dict_case({\"a\": \"apple\", \"A\": \"banana\", \"B\": \"banana\"})\n// false\n// >>> check_dict_case({\"a\": \"apple\", 8: \"banana\", \"a\": \"apple\"})\n// false\n// >>> check_dict_case({\"Name\": \"John\", \"Age\": \"36\", \"City\": \"Houston\"})\n// false\n// >>> check_dict_case({\"STATE\": \"NC\", \"ZIP\": \"12345\"})\n// true\nconst _check_dict_case = function check_dict_case(){return(\nfunction check_dict_case(dict){\n  const keys = Object.keys(dict);\n  if (keys.length === 0) return false;\n  const allAlpha = keys.every(k => typeof k === \"string\" && /^[a-zA-Z]+$/.test(k));\n  if (!allAlpha) return false;\n  const allLower = keys.every(k => k === k.toLowerCase());\n  const allUpper = keys.every(k => k === k.toUpperCase());\n  return allLower || allUpper;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_check_dict_case\", \"check_dict_case\", [], _check_dict_case);\n  return main;\n}\n",
+   "durationMs": 45160
+  },
+  {
+   "name": "HumanEval_96_count_up_to",
+   "pass": true,
+   "error": null,
+   "steps": 4,
+   "usage": {
+    "calls": 4,
+    "promptTokens": 30426,
+    "completionTokens": 873,
+    "cachedTokens": 28096,
+    "costUSD": 0.0018742056
+   },
+   "runError": null,
+   "candidate": "//Implement a function that takes an non-negative integer and returns an array of the first n\n// integers that are prime numbers and less than n.\n// for example:\n// >>> count_up_to(5)\n// [2, 3]\n// >>> count_up_to(11)\n// [2, 3, 5, 7]\n// >>> count_up_to(0)\n// []\n// >>> count_up_to(20)\n// [2, 3, 5, 7, 11, 13, 17, 19]\n// >>> count_up_to(1)\n// []\n// >>> count_up_to(18)\n// [2, 3, 5, 7, 11, 13, 17]\nconst _count_up_to = function count_up_to(){return(\nfunction count_up_to(n){\n  const primes = [];\n  for (let i = 2; i < n; i++) {\n    let isPrime = true;\n    for (let j = 2; j * j <= i; j++) {\n      if (i % j === 0) { isPrime = false; break; }\n    }\n    if (isPrime) primes.push(i);\n  }\n  return primes;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_count_up_to\", \"count_up_to\", [], _count_up_to);\n  return main;\n}\n",
+   "durationMs": 21924
+  },
+  {
+   "name": "HumanEval_97_multiply",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 38381,
+    "completionTokens": 1186,
+    "cachedTokens": 36032,
+    "costUSD": 0.0021833502
+   },
+   "runError": null,
+   "candidate": "//Complete the function that takes two integers and returns \n// the product of their unit digits.\n// Assume the input is always valid.\n// Examples:\n// >>> multiply(148, 412)\n// 16\n// >>> multiply(19, 28)\n// 72\n// >>> multiply(2020, 1851)\n// 0\n// >>> multiply(14, -15)\n// 20\nconst _multiply = function multiply(){return(\nfunction multiply(a, b){\n  return Math.abs(a % 10) * Math.abs(b % 10);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_multiply\", \"multiply\", [], _multiply);\n  return main;\n}\n",
+   "durationMs": 27126
+  },
+  {
+   "name": "HumanEval_98_count_upper",
+   "pass": true,
+   "error": null,
+   "steps": 6,
+   "usage": {
+    "calls": 6,
+    "promptTokens": 45409,
+    "completionTokens": 835,
+    "cachedTokens": 43200,
+    "costUSD": 0.001842885
+   },
+   "runError": null,
+   "candidate": "//Given a string s, count the number of uppercase vowels in even indices.\n// For example:\n// >>> count_upper(\"aBCdEf\")\n// 1\n// >>> count_upper(\"abcdefg\")\n// 0\n// >>> count_upper(\"dBBE\")\n// 0\nconst _count_upper = function count_upper(){return(\nfunction count_upper(s){\n  const vowels = new Set(\"AEIOU\");\n  let count = 0;\n  for (let i = 0; i < s.length; i += 2) {\n    if (vowels.has(s[i])) count++;\n  }\n  return count;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_count_upper\", \"count_upper\", [], _count_upper);\n  return main;\n}\n",
+   "durationMs": 19921
+  },
+  {
+   "name": "HumanEval_99_closest_integer",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 39632,
+    "completionTokens": 1470,
+    "cachedTokens": 36864,
+    "costUSD": 0.0026156903999999996
+   },
+   "runError": null,
+   "candidate": "//Create a function that takes a value (string) representing a number\n// and returns the closest integer to it. If the number is equidistant\n// from two integers, round it away from zero.\n// Examples\n// >>> closest_integer(\"10\")\n// 10\n// >>> closest_integer(\"15.3\")\n// 15\n// Note:\n// Rounding away from zero means that if the given number is equidistant\n// from two integers, the one you should return is the one that is the\n// farthest from zero. For example closest_integer(\"14.5\") should\n// return 15 and closest_integer(\"-14.5\") should return -15.\nconst _closest_integer = function closest_integer(){return(\nfunction closest_integer(value){\n  const n = parseFloat(value);\n  return n < 0 ? -Math.round(-n) : Math.round(n);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_closest_integer\", \"closest_integer\", [], _closest_integer);\n  return main;\n}\n",
+   "durationMs": 33291
+  },
+  {
+   "name": "HumanEval_100_make_a_pile",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 38839,
+    "completionTokens": 1172,
+    "cachedTokens": 36224,
+    "costUSD": 0.0022875714
+   },
+   "runError": null,
+   "candidate": "//Given a positive integer n, you have to make a pile of n levels of stones.\n// The first level has n stones.\n// The number of stones in the next level is:\n// - the next odd number if n is odd.\n// - the next even number if n is even.\n// Return the number of stones in each level in an array, where element at index\n// i represents the number of stones in the level (i+1).\n// Examples:\n// >>> make_a_pile(3)\n// [3, 5, 7]\nconst _make_a_pile = function make_a_pile(){return(\nfunction make_a_pile(n){\n  return Array.from({length: n}, (_, i) => n + 2 * i);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_make_a_pile\", \"make_a_pile\", [], _make_a_pile);\n  return main;\n}\n",
+   "durationMs": 25063
+  },
+  {
+   "name": "HumanEval_101_words_string",
+   "pass": true,
+   "error": null,
+   "steps": 4,
+   "usage": {
+    "calls": 4,
+    "promptTokens": 29502,
+    "completionTokens": 633,
+    "cachedTokens": 27712,
+    "costUSD": 0.0014291231999999999
+   },
+   "runError": null,
+   "candidate": "//You will be given a string of words separated by commas or spaces. Your task is\n// to split the string into words and return an array of the words.\n// For example:\n// >>> words_string(\"Hi, my name is John\")\n// [\"Hi\", \"my\", \"name\", \"is\", \"John\"]\n// >>> words_string(\"One, two, three, four, five, six\")\n// [\"One\", \"two\", \"three\", \"four\", \"five\", \"six\"]\nconst _words_string = function words_string(){return(\nfunction words_string(s){\n  return s.split(/[ ,]+/).filter(Boolean);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_words_string\", \"words_string\", [], _words_string);\n  return main;\n}\n",
+   "durationMs": 15011
+  },
+  {
+   "name": "HumanEval_102_choose_num",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 37488,
+    "completionTokens": 779,
+    "cachedTokens": 35584,
+    "costUSD": 0.0016340723999999998
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//This function takes two positive numbers x and y and returns the\n// biggest even integer number that is in the range [x, y] inclusive. If \n// there's no such number, then the function should return -1.\n// For example:\n// >>> choose_num(12, 15)\n// 14\n// >>> choose_num(13, 12)\n// -1\nconst _choose_num = function choose_num(){return(\nfunction choose_num(x, y){\n  if (x > y) return -1;\n  const top = y % 2 === 0 ? y : y - 1;\n  return top >= x ? top : -1;\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_choose_num\", \"choose_num\", [], _choose_num);\n  return main;\n}\n",
+   "durationMs": 22021
+  },
+  {
+   "name": "HumanEval_103_rounded_avg",
+   "pass": true,
+   "error": null,
+   "steps": 5,
+   "usage": {
+    "calls": 5,
+    "promptTokens": 42414,
+    "completionTokens": 2441,
+    "cachedTokens": 38720,
+    "costUSD": 0.0038699520000000003
+   },
+   "runError": null,
+   "candidate": "//You are given two positive integers n and m, and your task is to compute the\n// average of the integers from n through m (including n and m). \n// Round the answer to the nearest integer and convert that to binary.\n// If n is greater than m, return -1.\n// Example:\n// >>> rounded_avg(1, 5)\n// \"0b11\"\n// >>> rounded_avg(7, 5)\n// -1\n// >>> rounded_avg(10, 20)\n// \"0b1111\"\n// >>> rounded_avg(20, 33)\n// \"0b11010\"\nconst _rounded_avg = function rounded_avg(){return(\nfunction rounded_avg(n, m){\n  if (n > m) return -1;\n  const avg = (n + m) / 2;\n  let rounded;\n  const frac = avg - Math.floor(avg);\n  if (frac === 0.5) {\n    // Python-style round half to even\n    const floor = Math.floor(avg);\n    rounded = floor % 2 === 0 ? floor : floor + 1;\n  } else {\n    rounded = Math.round(avg);\n  }\n  return \"0b\" + rounded.toString(2);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_rounded_avg\", \"rounded_avg\", [], _rounded_avg);\n  return main;\n}\n",
+   "durationMs": 42581
+  },
+  {
+   "name": "HumanEval_104_unique_digits",
+   "pass": true,
+   "error": null,
+   "steps": 4,
+   "usage": {
+    "calls": 4,
+    "promptTokens": 29861,
+    "completionTokens": 792,
+    "cachedTokens": 27840,
+    "costUSD": 0.001668399
+   },
+   "runError": null,
+   "candidate": "//Given an array of positive integers x. return a sorted array of all \n// elements that hasn't any even digit.\n// Note: Returned array should be sorted in increasing order.\n// For example:\n// >>> unique_digits([15, 33, 1422, 1])\n// [1, 15, 33]\n// >>> unique_digits([152, 323, 1422, 10])\n// []\nconst _unique_digits = function unique_digits(){return(\nfunction unique_digits(x){\n  return x.filter(n => String(n).split(\"\").every(d => Number(d) % 2 !== 0)).sort((a, b) => a - b);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_unique_digits\", \"unique_digits\", [], _unique_digits);\n  return main;\n}\n",
+   "durationMs": 19775
+  },
+  {
+   "name": "HumanEval_105_by_length",
+   "pass": true,
+   "error": null,
+   "steps": 6,
+   "usage": {
+    "calls": 6,
+    "promptTokens": 47817,
+    "completionTokens": 1523,
+    "cachedTokens": 45056,
+    "costUSD": 0.0026882466
+   },
+   "runError": null,
+   "candidate": "//Given an array of integers, sort the integers that are between 1 and 9 inclusive,\n// reverse the resulting array, and then replace each digit by its corresponding name from\n// \"One\", \"Two\", \"Three\", \"Four\", \"Five\", \"Six\", \"Seven\", \"Eight\", \"Nine\".\n// For example:\n// >>> by_length([2, 1, 1, 4, 5, 8, 2, 3])\n// [\"Eight\", \"Five\", \"Four\", \"Three\", \"Two\", \"Two\", \"One\", \"One\"]\n// If the array is empty, return an empty array:\n// >>> by_length([])\n// []\n// If the array has any strange number ignore it:\n// >>> by_length([1, -1, 55])\n// [\"One\"]\nconst _by_length = function by_length(){return(\nfunction by_length(arr){\n  const names = [\"\", \"One\", \"Two\", \"Three\", \"Four\", \"Five\", \"Six\", \"Seven\", \"Eight\", \"Nine\"];\n  return arr.filter(x => x >= 1 && x <= 9).sort((a, b) => a - b).reverse().map(x => names[x]);\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_by_length\", \"by_length\", [], _by_length);\n  return main;\n}\n",
+   "durationMs": 32421
+  },
+  {
+   "name": "HumanEval_106_f",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Vgz9Zf/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at f (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Vgz9Zf/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Implement the function f that takes n as a parameter,\n// and returns an array of size n, such that the value of the element at index i is the factorial of i if i is even\n// or the sum of numbers from 1 to i otherwise.\n// i starts from 1.\n// the factorial of i is the multiplication of the numbers from 1 to i (1 * 2 * ... * i).\n// Example:\n// >>> f(5)\n// [1, 2, 6, 24, 15]\nconst _f = function f(){return(\nfunction f(n){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_f\", \"f\", [], _f);\n  return main;\n}\n",
+   "durationMs": 3268
+  },
+  {
+   "name": "HumanEval_107_even_odd_palindrome",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-i84zP3/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at even_odd_palindrome (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-i84zP3/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a positive integer n, return an array that has the number of even and odd\n// integer palindromes that fall within the range(1, n), inclusive.\n// Example 1:\n// >>> even_odd_palindrome(3)\n// [1, 2]\n// Explanation:\n// Integer palindrome are 1, 2, 3. one of them is even, and two of them are odd.\n// Example 2:\n// >>> even_odd_palindrome(12)\n// [4, 6]\n// Explanation:\n// Integer palindrome are 1, 2, 3, 4, 5, 6, 7, 8, 9, 11. four of them are even, and 6 of them are odd.\n// Note:\n// 1. 1 <= n <= 10^3\n// 2. returned array has the number of even and odd integer palindromes respectively.\nconst _even_odd_palindrome = function even_odd_palindrome(){return(\nfunction even_odd_palindrome(n){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_even_odd_palindrome\", \"even_odd_palindrome\", [], _even_odd_palindrome);\n  return main;\n}\n",
+   "durationMs": 3127
+  },
+  {
+   "name": "HumanEval_108_count_nums",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-D4YwCF/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at count_nums (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-D4YwCF/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Write a function count_nums which takes an array of integers and returns\n// the number of elements which has a sum of digits > 0.\n// If a number is negative, then its first signed digit will be negative:\n// e.g. -123 has signed digits -1, 2, and 3.\n// >>> count_nums([])\n// 0\n// >>> count_nums([-1, 11, -11])\n// 1\n// >>> count_nums([1, 1, 2])\n// 3\nconst _count_nums = function count_nums(){return(\nfunction count_nums(arr){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_count_nums\", \"count_nums\", [], _count_nums);\n  return main;\n}\n",
+   "durationMs": 3212
+  },
+  {
+   "name": "HumanEval_109_move_one_ball",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-UeCkJB/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at move_one_ball (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-UeCkJB/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//We have an array 'arr' of N integers arr[1], arr[2], ..., arr[N].The\n// numbers in the array will be randomly ordered. Your task is to determine if\n// it is possible to get an array sorted in non-decreasing order by performing \n// the following operation on the given array:\n// You are allowed to perform right shift operation any number of times.\n// One right shift operation means shifting all elements of the array by one\n// position in the right direction. The last element of the array will be moved to\n// the starting position in the array i.e. 0th index. \n// If it is possible to obtain the sorted array by performing the above operation\n// then return true else return false.\n// If the given array is empty then return true.\n// Note: The given array is guaranteed to have unique elements.\n// For Example:\n// >>> move_one_ball([3, 4, 5, 1, 2])\n// true\n// Explanation: By performin 2 right shift operations, non-decreasing order can\n// be achieved for the given array.\n// >>> move_one_ball([3, 5, 4, 1, 2])\n// false\n// Explanation:It is not possible to get non-decreasing order for the given\n// array by performing any number of right shift operations.\nconst _move_one_ball = function move_one_ball(){return(\nfunction move_one_ball(arr){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_move_one_ball\", \"move_one_ball\", [], _move_one_ball);\n  return main;\n}\n",
+   "durationMs": 3157
+  },
+  {
+   "name": "HumanEval_110_exchange",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-NjdtrZ/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at exchange (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-NjdtrZ/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//In this problem, you will implement a function that takes two arrays of numbers,\n// and determines whether it is possible to perform an exchange of elements\n// between them to make lst1 an array of only even numbers.\n// There is no limit on the number of exchanged elements between lst1 and lst2.\n// If it is possible to exchange elements between the lst1 and lst2 to make\n// all the elements of lst1 to be even, return \"YES\".\n// Otherwise, return \"NO\".\n// For example:\n// >>> exchange([1, 2, 3, 4], [1, 2, 3, 4])\n// \"YES\"\n// >>> exchange([1, 2, 3, 4], [1, 5, 3, 4])\n// \"NO\"\n// It is assumed that the input arrays will be non-empty.\nconst _exchange = function exchange(){return(\nfunction exchange(lst1, lst2){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_exchange\", \"exchange\", [], _exchange);\n  return main;\n}\n",
+   "durationMs": 3079
+  },
+  {
+   "name": "HumanEval_111_histogram",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-e3g7x5/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at histogram (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-e3g7x5/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a string representing a space separated lowercase letters, return an object\n// of the letter with the most repetition and containing the corresponding count.\n// If several letters have the same occurrence, return all of them.\n// Example:\n// >>> histogram(\"a b c\")\n// {\"a\": 1, \"b\": 1, \"c\": 1}\n// >>> histogram(\"a b b a\")\n// {\"a\": 2, \"b\": 2}\n// >>> histogram(\"a b c a b\")\n// {\"a\": 2, \"b\": 2}\n// >>> histogram(\"b b b b a\")\n// {\"b\": 4}\n// >>> histogram(\"\")\n// {}\nconst _histogram = function histogram(){return(\nfunction histogram(test){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_histogram\", \"histogram\", [], _histogram);\n  return main;\n}\n",
+   "durationMs": 3202
+  },
+  {
+   "name": "HumanEval_112_reverse_delete",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-2yycsa/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at reverse_delete (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-2yycsa/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Task\n// We are given two strings s and c, you have to deleted all the characters in s that are equal to any character in c\n// then check if the result string is palindrome.\n// A string is called palindrome if it reads the same backward as forward.\n// You should return an array containing the result string and true/false for the check.\n// Example\n// >>> reverse_delete(\"abcde\", \"ae\")\n// [\"bcd\", false]\n// >>> reverse_delete(\"abcdef\", \"b\")\n// [\"acdef\", false]\n// >>> reverse_delete(\"abcdedcba\", \"ab\")\n// [\"cdedc\", true]\nconst _reverse_delete = function reverse_delete(){return(\nfunction reverse_delete(s, c){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_reverse_delete\", \"reverse_delete\", [], _reverse_delete);\n  return main;\n}\n",
+   "durationMs": 3145
+  },
+  {
+   "name": "HumanEval_113_odd_count",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-b0mELF/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at odd_count (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-b0mELF/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given an array of strings, where each string consists of only digits, return an array.\n// Each element i of the output should be \"the number of odd elements in the\n// string i of the input.\" where all the i's should be replaced by the number\n// of odd digits in the i'th string of the input.\n// >>> odd_count([\"1234567\"])\n// [\"the number of odd elements 4n the str4ng 4 of the 4nput.\"]\n// >>> odd_count([\"3\", \"11111111\"])\n// [\"the number of odd elements 1n the str1ng 1 of the 1nput.\", \"the number of odd elements 8n the str8ng 8 of the 8nput.\"]\nconst _odd_count = function odd_count(){return(\nfunction odd_count(lst){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_odd_count\", \"odd_count\", [], _odd_count);\n  return main;\n}\n",
+   "durationMs": 3118
+  },
+  {
+   "name": "HumanEval_114_minSubArraySum",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-sws0i0/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at minSubArraySum (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-sws0i0/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given an array of integers nums, find the minimum sum of any non-empty sub-array\n// of nums.\n// Example\n// >>> minSubArraySum([2, 3, 4, 1, 2, 4])\n// 1\n// >>> minSubArraySum([-1, -2, -3])\n// -6\nconst _minSubArraySum = function minSubArraySum(){return(\nfunction minSubArraySum(nums){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_minSubArraySum\", \"minSubArraySum\", [], _minSubArraySum);\n  return main;\n}\n",
+   "durationMs": 3155
+  },
+  {
+   "name": "HumanEval_115_max_fill",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-TTc45U/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at max_fill (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-TTc45U/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//You are given a rectangular grid of wells. Each row represents a single well,\n// and each 1 in a row represents a single unit of water.\n// Each well has a corresponding bucket that can be used to extract water from it, \n// and all buckets have the same capacity.\n// Your task is to use the buckets to empty the wells.\n// Output the number of times you need to lower the buckets.\n// Example 1:\n// >>> max_fill([[0, 0, 1, 0], [0, 1, 0, 0], [1, 1, 1, 1]], 1)\n// 6\n// Example 2:\n// >>> max_fill([[0, 0, 1, 1], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 1, 1]], 2)\n// 5\n// Example 3:\n// >>> max_fill([[0, 0, 0], [0, 0, 0]], 5)\n// 0\n// Constraints:\n// * all wells have the same length\n// * 1 <= grid.length <= 10^2\n// * 1 <= grid[:,1].length <= 10^2\n// * grid[i][j] -> 0 | 1\n// * 1 <= capacity <= 10\nconst _max_fill = function max_fill(){return(\nfunction max_fill(grid, capacity){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_max_fill\", \"max_fill\", [], _max_fill);\n  return main;\n}\n",
+   "durationMs": 3190
+  },
+  {
+   "name": "HumanEval_116_sort_array",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Lh0VLg/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at sort_array (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Lh0VLg/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//In this Kata, you have to sort an array of non-negative integers according to\n// number of ones in their binary representation in ascending order.\n// For similar number of ones, sort based on decimal value.\n// It must be implemented like this:\n// >>> sort_array([1, 5, 2, 3, 4])\n// [1, 2, 3, 4, 5]\n// >>> sort_array([-2, -3, -4, -5, -6])\n// [-6, -5, -4, -3, -2]\n// >>> sort_array([1, 0, 2, 3, 4])\n// [0, 1, 2, 3, 4]\nconst _sort_array = function sort_array(){return(\nfunction sort_array(arr){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_sort_array\", \"sort_array\", [], _sort_array);\n  return main;\n}\n",
+   "durationMs": 3204
+  },
+  {
+   "name": "HumanEval_117_select_words",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-rcIQDU/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at select_words (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-rcIQDU/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a string s and a natural number n, you have been tasked to implement \n// a function that returns an array of all words from string s that contain exactly \n// n consonants, in order these words appear in the string s.\n// If the string s is empty then the function should return an empty array.\n// Note: you may assume the input string contains only letters and spaces.\n// Examples:\n// >>> select_words(\"Mary had a little lamb\", 4)\n// [\"little\"]\n// >>> select_words(\"Mary had a little lamb\", 3)\n// [\"Mary\", \"lamb\"]\n// >>> select_words(\"simple white space\", 2)\n// []\n// >>> select_words(\"Hello world\", 4)\n// [\"world\"]\n// >>> select_words(\"Uncle sam\", 3)\n// [\"Uncle\"]\nconst _select_words = function select_words(){return(\nfunction select_words(s, n){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_select_words\", \"select_words\", [], _select_words);\n  return main;\n}\n",
+   "durationMs": 3186
+  },
+  {
+   "name": "HumanEval_118_get_closest_vowel",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-RxKanY/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at get_closest_vowel (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-RxKanY/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//You are given a word. Your task is to find the closest vowel that stands between \n// two consonants from the right side of the word (case sensitive).\n// Vowels in the beginning and ending doesn't count. Return empty string if you didn't\n// find any vowel met the above condition. \n// You may assume that the given string contains English letter only.\n// Example:\n// >>> get_closest_vowel(\"yogurt\")\n// \"u\"\n// >>> get_closest_vowel(\"FULL\")\n// \"U\"\n// >>> get_closest_vowel(\"quick\")\n// \"\"\n// >>> get_closest_vowel(\"ab\")\n// \"\"\nconst _get_closest_vowel = function get_closest_vowel(){return(\nfunction get_closest_vowel(word){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_get_closest_vowel\", \"get_closest_vowel\", [], _get_closest_vowel);\n  return main;\n}\n",
+   "durationMs": 3254
+  },
+  {
+   "name": "HumanEval_119_match_parens",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-LoiB2f/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at match_parens (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-LoiB2f/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//You are given an array of two strings, both strings consist of open\n// parentheses '(' or close parentheses ')' only.\n// Your job is to check if it is possible to concatenate the two strings in\n// some order, that the resulting string will be good.\n// A string S is considered to be good if and only if all parentheses in S\n// are balanced. For example: the string '(())()' is good, while the string\n// '())' is not.\n// Return 'Yes' if there's a way to make a good string, and return 'No' otherwise.\n// Examples:\n// >>> match_parens([\"()(\", \")\"])\n// \"Yes\"\n// >>> match_parens([\")\", \")\"])\n// \"No\"\nconst _match_parens = function match_parens(){return(\nfunction match_parens(lst){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_match_parens\", \"match_parens\", [], _match_parens);\n  return main;\n}\n",
+   "durationMs": 3168
+  },
+  {
+   "name": "HumanEval_120_maximum",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-GK8EzU/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at maximum (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-GK8EzU/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given an array arr of integers and a positive integer k, return a sorted array \n// of length k with the maximum k numbers in arr.\n// Example 1:\n// >>> maximum([-3, -4, 5], 3)\n// [-4, -3, 5]\n// Example 2:\n// >>> maximum([4, -4, 4], 2)\n// [4, 4]\n// Example 3:\n// >>> maximum([-3, 2, 1, 2, -1, -2, 1], 1)\n// [2]\n// Note:\n// 1. The length of the array will be in the range of [1, 1000].\n// 2. The elements in the array will be in the range of [-1000, 1000].\n// 3. 0 <= k <= len(arr)\nconst _maximum = function maximum(){return(\nfunction maximum(arr, k){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_maximum\", \"maximum\", [], _maximum);\n  return main;\n}\n",
+   "durationMs": 3184
+  },
+  {
+   "name": "HumanEval_121_solution",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-4WV9e2/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at solution (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-4WV9e2/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a non-empty array of integers, return the sum of all of the odd elements that are in even positions.\n// Examples\n// >>> solution([5, 8, 7, 1])\n// 12\n// >>> solution([3, 3, 3, 3, 3])\n// 9\n// >>> solution([30, 13, 24, 321])\n// 0\nconst _solution = function solution(){return(\nfunction solution(lst){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_solution\", \"solution\", [], _solution);\n  return main;\n}\n",
+   "durationMs": 3110
+  },
+  {
+   "name": "HumanEval_122_add_elements",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Wn8jAJ/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at add_elements (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Wn8jAJ/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a non-empty array of integers arr and an integer k, return\n// the sum of the elements with at most two digits from the first k elements of arr.\n// Example:\n// >>> add_elements([111, 21, 3, 4000, 5, 6, 7, 8, 9], 4)\n// 24\n// Constraints:\n// 1. 1 <= len(arr) <= 100\n// 2. 1 <= k <= len(arr)\nconst _add_elements = function add_elements(){return(\nfunction add_elements(arr, k){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_add_elements\", \"add_elements\", [], _add_elements);\n  return main;\n}\n",
+   "durationMs": 3136
+  },
+  {
+   "name": "HumanEval_123_get_odd_collatz",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-mNfnKj/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at get_odd_collatz (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-mNfnKj/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a positive integer n, return a sorted array that has the odd numbers in collatz sequence.\n// The Collatz conjecture is a conjecture in mathematics that concerns a sequence defined\n// as follows: start with any positive integer n. Then each term is obtained from the \n// previous term as follows: if the previous term is even, the next term is one half of \n// the previous term. If the previous term is odd, the next term is 3 times the previous\n// term plus 1. The conjecture is that no matter what value of n, the sequence will always reach 1.\n// Note: \n// 1. Collatz(1) is [1].\n// 2. returned array sorted in increasing order.\n// For example:\n// get_odd_collatz(5) returns [1, 5] # The collatz sequence for 5 is [5, 16, 8, 4, 2, 1], so the odd numbers are only 1, and 5.\n// >>> get_odd_collatz(5)\n// [1, 5]\nconst _get_odd_collatz = function get_odd_collatz(){return(\nfunction get_odd_collatz(n){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_get_odd_collatz\", \"get_odd_collatz\", [], _get_odd_collatz);\n  return main;\n}\n",
+   "durationMs": 3221
+  },
+  {
+   "name": "HumanEval_124_valid_date",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-KF3K1l/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at valid_date (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-KF3K1l/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//You have to write a function which validates a given date string and\n// returns true if the date is valid otherwise false.\n// The date is valid if all of the following rules are satisfied:\n// 1. The date string is not empty.\n// 2. The number of days is not less than 1 or higher than 31 days for months 1,3,5,7,8,10,12. And the number of days is not less than 1 or higher than 30 days for months 4,6,9,11. And, the number of days is not less than 1 or higher than 29 for the month 2.\n// 3. The months should not be less than 1 or higher than 12.\n// 4. The date should be in the format: mm-dd-yyyy\n// >>> valid_date(\"03-11-2000\")\n// true\n// >>> valid_date(\"15-01-2012\")\n// false\n// >>> valid_date(\"04-0-2040\")\n// false\n// >>> valid_date(\"06-04-2020\")\n// true\n// >>> valid_date(\"06/04/2020\")\n// false\nconst _valid_date = function valid_date(){return(\nfunction valid_date(date){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_valid_date\", \"valid_date\", [], _valid_date);\n  return main;\n}\n",
+   "durationMs": 3440
+  },
+  {
+   "name": "HumanEval_125_split_words",
+   "pass": false,
+   "error": "/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-YTrilh/prog.cjs:2\n  throw new Error(\"not implemented\");\n  ^\n\nError: not implemented\n    at split_words (/private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-YTrilh/prog.cjs:2:9)",
+   "steps": 0,
+   "usage": {
+    "calls": 0,
+    "promptTokens": 0,
+    "completionTokens": 0,
+    "cachedTokens": 0,
+    "costUSD": 0
+   },
+   "runError": "Failed to fetch",
+   "candidate": "//Given a string of words, return an array of words split on whitespace, if no whitespaces exists in the text you\n// should split on commas ',' if no commas exists you should return the number of lower-case letters with odd order in the\n// alphabet, ord('a') = 0, ord('b') = 1, ... ord('z') = 25\n// Examples\n// >>> split_words(\"Hello world!\")\n// [\"Hello\", \"world!\"]\n// >>> split_words(\"Hello,world!\")\n// [\"Hello\", \"world!\"]\n// >>> split_words(\"abcdef\")\n// 3\nconst _split_words = function split_words(){return(\nfunction split_words(txt){\n  throw new Error(\"not implemented\");\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_split_words\", \"split_words\", [], _split_words);\n  return main;\n}\n",
+   "durationMs": 3769
+  }
+ ]
+}

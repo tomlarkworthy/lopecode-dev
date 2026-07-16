@@ -1,0 +1,55 @@
+model: xiaomi/mimo-v2.5-pro  problems: 25  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+  ..affine-cipher attempt1 fail steps=6 (47s)
+PASS@2  affine-cipher  steps=6+10 (76s)
+  ..alphametics attempt1 fail steps=19 (116s)
+FAIL    alphametics  steps=19+32 (423s)  FAIL: Solve the alphametics puzzle > puzzle with three letters
+  ..beer-song attempt1 fail steps=4 (48s) runError=network error
+PASS@2  beer-song  steps=4+5 (87s)
+  ..binary attempt1 fail steps=4 (26s)
+PASS@2  binary  steps=4+5 (67s)
+  ..book-store attempt1 fail steps=9 (131s)
+PASS@2  book-store  steps=9+20 (434s)
+  ..bottle-song attempt1 fail steps=8 (60s)
+FAIL    bottle-song  steps=8+9 (108s)  export recite: cell not defined: recite
+  ..bowling attempt1 fail steps=7 (66s)
+PASS@2  bowling  steps=7+16 (334s)
+  ..complex-numbers attempt1 pass steps=12 (69s)
+PASS@1  complex-numbers  steps=12+0 (69s)
+  ..connect attempt1 fail steps=8 (303s) runError=session.send timed out after 300000ms
+FAIL    connect  steps=8+1 (313s)  FAIL: Judging a game of connect > illegal diagonal does not make a winner
+  ..food-chain attempt1 pass steps=11 (112s)
+PASS@1  food-chain  steps=11+0 (112s)
+  ..forth attempt1 fail steps=11 (93s)
+FAIL    forth  steps=11+1 (151s)  FAIL: Forth > parsing and numbers > pushes negative numbers onto the stack
+  ..go-counting attempt1 fail steps=9 (138s)
+FAIL    go-counting  steps=9+19 (337s)  FAIL: Go Counting > getTerritory > A stone and not a territory on 5x5 board
+  ..grade-school attempt1 fail steps=7 (66s)
+FAIL    grade-school  steps=7+31 (369s)  FAIL: School > a student can't be in two different grades
+  ..grep attempt1 pass steps=8 (115s)
+PASS@1  grep  steps=8+0 (115s)
+  ..house attempt1 pass steps=6 (231s)
+PASS@1  house  steps=6+0 (231s)
+  ..killer-sudoku-helper attempt1 fail steps=6 (37s)
+PASS@2  killer-sudoku-helper  steps=6+5 (84s)
+  ..ledger attempt1 pass steps=19 (187s)
+PASS@1  ledger  steps=19+0 (187s)
+  ..list-ops attempt1 fail steps=9 (153s)
+FAIL    list-ops  steps=9+8 (344s)  export List: cell not defined: List
+  ..meetup attempt1 pass steps=11 (103s)
+PASS@1  meetup  steps=11+0 (103s)
+  ..ocr-numbers attempt1 pass steps=13 (212s)
+PASS@1  ocr-numbers  steps=13+0 (212s)
+  ..palindrome-products attempt1 fail steps=5 (40s)
+PASS@2  palindrome-products  steps=5+8 (74s)
+  ..parallel-letter-frequency attempt1 pass steps=12 (83s)
+PASS@1  parallel-letter-frequency  steps=12+0 (83s)
+  ..phone-number attempt1 pass steps=8 (46s)
+PASS@1  phone-number  steps=8+0 (46s)
+  ..pig-latin attempt1 pass steps=6 (33s)
+PASS@1  pig-latin  steps=6+0 (33s)
+  ..poker attempt1 fail steps=11 (126s)
+PASS@2  poker  steps=11+6 (189s)
+
+pass@1: 10/25 = 0.400
+pass@2: 18/25 = 0.720
+wrote results/agent-shard0.json

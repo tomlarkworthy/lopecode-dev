@@ -1,0 +1,45 @@
+model: xiaomi/mimo-v2.5-pro  problems: 41 (offset 41)  notebook: /Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+PASS  HumanEval_43_pairs_sum_to_zero  steps=4 (28s)
+PASS  HumanEval_44_change_base  steps=5 (23s)
+PASS  HumanEval_45_triangle_area  steps=4 (20s)
+PASS  HumanEval_46_fib4  steps=6 (30s)
+PASS  HumanEval_47_median  steps=5 (121s)
+PASS  HumanEval_48_is_palindrome  steps=5 (20s)
+PASS  HumanEval_49_modp  steps=5 (25s)
+FAIL  HumanEval_51_remove_vowels  steps=4 (20s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-8E1fVc/prog.cjs:11
+PASS  HumanEval_52_below_threshold  steps=6 (25s)
+PASS  HumanEval_53_add  steps=6 (25s)
+PASS  HumanEval_54_same_chars  steps=5 (26s)
+PASS  HumanEval_55_fib  steps=4 (16s)
+PASS  HumanEval_56_correct_bracketing  steps=7 (27s)
+PASS  HumanEval_57_monotonic  steps=5 (21s)
+PASS  HumanEval_58_common  steps=4 (30s)
+PASS  HumanEval_59_largest_prime_factor  steps=4 (18s)
+PASS  HumanEval_60_sum_to_n  steps=4 (17s)
+PASS  HumanEval_61_correct_bracketing  steps=6 (23s)
+FAIL  HumanEval_62_derivative  steps=1 (5s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-AMvgXo/prog.cjs:2
+PASS  HumanEval_63_fibfib  steps=5 (25s)
+PASS  HumanEval_64_vowels_count  steps=6 (28s)
+PASS  HumanEval_65_circular_shift  steps=5 (30s)
+PASS  HumanEval_66_digitSum  steps=2 (13s)
+FAIL  HumanEval_67_fruit_distribution  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-Ka7lyp/prog.cjs:2
+FAIL  HumanEval_68_pluck  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-2IUbyw/prog.cjs:2
+FAIL  HumanEval_69_search  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-nwvMrk/prog.cjs:2
+FAIL  HumanEval_70_strange_sort_list  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-55ejAn/prog.cjs:2
+FAIL  HumanEval_71_triangle_area  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-pUpIFP/prog.cjs:2
+FAIL  HumanEval_72_will_it_fly  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-XK5TWP/prog.cjs:2
+FAIL  HumanEval_73_smallest_change  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-9H0AiH/prog.cjs:2
+FAIL  HumanEval_74_total_match  steps=0 (4s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-dUADrX/prog.cjs:2
+FAIL  HumanEval_75_is_multiply_prime  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-92zmv9/prog.cjs:2
+FAIL  HumanEval_76_is_simple_power  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-mOJpjg/prog.cjs:2
+FAIL  HumanEval_77_iscube  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-MvsYBH/prog.cjs:2
+FAIL  HumanEval_78_hex_key  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-lf950h/prog.cjs:2
+FAIL  HumanEval_79_decimal_to_binary  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-CzYHrb/prog.cjs:2
+FAIL  HumanEval_80_is_happy  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-W1fVGN/prog.cjs:2
+FAIL  HumanEval_81_numerical_letter_grade  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-KB1x56/prog.cjs:2
+FAIL  HumanEval_82_prime_length  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-bRHbt0/prog.cjs:2
+FAIL  HumanEval_83_starts_one_ends  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-TpxSI7/prog.cjs:2
+FAIL  HumanEval_84_solve  steps=0 (3s)  /private/var/folders/b_/f8cht8sx481_7n177fs5nbwc0000gp/T/he-js-jQeamZ/prog.cjs:2
+
+pass@1: 21/41 = 0.512
+wrote results/agent-shard1.json

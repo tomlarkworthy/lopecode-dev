@@ -1,0 +1,34 @@
+{
+ "arm": "agent",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "pass1": 0,
+ "pass2": 1,
+ "total": 2,
+ "results": [
+  {
+   "slug": "triangle",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 9,
+   "steps2": 8,
+   "error": null,
+   "runError1": null,
+   "candidate1": "const _Triangle = function Triangle() {\n  class Triangle {\n    constructor(...sides) {\n      this.sides = sides;\n      const [a, b, c] = sides;\n      this._valid = a > 0 && b > 0 && c > 0 &&\n        a + b >= c && b + c >= a && a + c >= b;\n    }\n\n    get isEquilateral() {\n      if (!this._valid) return false;\n      const [a, b, c] = this.sides;\n      return a === b && b === c;\n    }\n\n    get isIsosceles() {\n      if (!this._valid) return false;\n      const [a, b, c] = this.sides;\n      return a === b || b === c || a === c;\n    }\n\n    get isScalene() {\n      if (!this._valid) return false;\n      const [a, b, c] = this.sides;\n      return a !== b && b !== c && a !== c;\n    }\n  }\n\n  return Triangle;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Triangle\", \"Triangle\", [], _Triangle);\n  return main;\n}\n",
+   "testOutput1": "",
+   "runError2": "Failed to fetch",
+   "candidate2": "const _Triangle = function Triangle() {\n  class Triangle {\n    constructor(...sides) {\n      this.sides = sides;\n      const [a, b, c] = sides;\n      this._valid = a > 0 && b > 0 && c > 0 &&\n        a + b >= c && b + c >= a && a + c >= b;\n    }\n\n    get isEquilateral() {\n      if (!this._valid) return false;\n      const [a, b, c] = this.sides;\n      return a === b && b === c;\n    }\n\n    get isIsosceles() {\n      if (!this._valid) return false;\n      const [a, b, c] = this.sides;\n      return a === b || b === c || a === c;\n    }\n\n    get isScalene() {\n      if (!this._valid) return false;\n      const [a, b, c] = this.sides;\n      return a !== b && b !== c && a !== c;\n    }\n  }\n\n  return Triangle;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Triangle\", \"Triangle\", [], _Triangle);\n  return main;\n}\n",
+   "durationMs": 1788001
+  },
+  {
+   "slug": "two-bucket",
+   "pass1": false,
+   "pass2": false,
+   "steps1": 2,
+   "steps2": 0,
+   "error": "no solution file collected: Failed to fetch",
+   "runError1": "Failed to fetch",
+   "candidate1": null,
+   "durationMs": 54425
+  }
+ ]
+}
