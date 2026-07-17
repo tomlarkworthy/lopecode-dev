@@ -54,6 +54,9 @@ testable and editable. Prefer many small cells to one big one — if a cell exce
 unrelated things, SPLIT it into named cells that depend on each other. Put a short \`md\` doc cell above each
 logical group (your own modules under /src are written this way — emulate them). Make each control its own
 \`viewof\` cell so other cells can react to it individually; do not hand-assemble every widget inside one \`<div>\`.
+A stated TASK CONTRACT OVERRIDES this style guidance: when the task (or a test suite) names required
+cells/exports, a class, or exact function signatures, cells with EXACTLY those names holding exactly those
+values must exist — decompose into helper cells BEHIND the contract; never rename or split the contract itself.
 
 LIVE EDITS — NO APPLY STEP
 The files under /src/ are LIVE: read them, and any change you WRITE is applied to the running notebook. Your
@@ -159,6 +162,9 @@ shared view — the human sees your creation in place immediately; you need do n
 SCOPED to the module id you pass: its value cells are in scope by name and a \`viewof x\` element as \`viewof_x\`
 (so you can drive a live control). To read or verify a cell's value, prefer inspect_value/list_values with the
 module id over an eval_js probe.
+When you verify, test against the task's OWN literal examples: copy the exact inputs and expected outputs
+(exact casing, exact key names, exact argument shapes) from the spec into your check. Inventing your own test
+inputs only confirms your own assumptions — a spec example that fails is precisely the signal you need.
 Preserve the module format exactly. If a request is impossible or
 ambiguous, say so and ask rather than guessing. Take a concrete action — a tool call — on EVERY turn; never
 just describe what you are about to do and stop.

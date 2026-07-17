@@ -24,10 +24,20 @@ Arms (both `xiaomi/mimo-v2.5-pro`):
 | arm | pass@1 | pass@2 |
 |---|---|---|
 | raw model (no harness) | 22/49 = **0.449** | 36/49 = **0.735** |
-| robocoop-5 system | 18/49 = **0.367** | 31/49 = **0.633** |
+| robocoop-5 system (v1 prompt) | 18/49 = **0.367** | 31/49 = **0.633** |
+| robocoop-5 system (v2 prompt, 2026-07-17) | 17/49 = **0.347** | 38/49 = **0.776** |
 
-**The harness that wins on HumanEval-JS (+3.1pp) LOSES here (−10.2pp).** Flips: agent fixed 3
+**v1: the harness that wins on HumanEval-JS (+3.1pp) LOSES here (−10.2pp).** Flips: agent fixed 3
 (complex-numbers, meetup, wordy), lost 8, both-fail 10 (alphametics, forth, react, promises, …).
+
+**v2 prompt (+14.3pp over v1, +4.1pp over raw): three prompt-surface edits from the v1 taxonomy** —
+(1) task contracts override the decomposed-style guidance (exact export names/signatures are binding,
+helpers go BEHIND the contract); (2) verify against the spec's LITERAL examples, never self-invented
+inputs; (3) the srctools low-MI split nag preserves contractual cell names. Fixed 9 of v1's failures
+(6 of the 8 taxonomy targets, plus alphametics/transpose/resistor-color-trio from the both-fail
+bucket); one variance loss (wordy — passes in subset reruns); remaining fails are the interpreter/
+simulation core (forth, react, two-bucket, word-search, food-chain, …). Runs: `agent-prompt-v2-full.json`
++ infra-retry merged in `agent-prompt-v2-merged.json`.
 
 ## Why the system underperforms (failure taxonomy, from candidate autopsies)
 

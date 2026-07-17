@@ -227,7 +227,8 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
     if (!low.length) return head + ' · all cells MI≥65 ✓ (well-decomposed)';
     return head + ' · ⚠ ' + low.length + ' cell' + (low.length === 1 ? '' : 's') + ' below MI 65 (' +
       low.slice(0, 4).map((r) => r.name + ' ' + r.mi).join(', ') + ') — SPLIT each low-MI cell into smaller ' +
-      'named per-concern cells (one panel/view/derivation each); do NOT consolidate cells into one big one';
+      'named per-concern cells (one panel/view/derivation each); do NOT consolidate cells into one big one ' +
+      '(task-required/contractual cell names must stay: split helpers OUT of them, never rename them)';
   };
 
   const moduleExists = (id) => {
