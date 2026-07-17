@@ -55,7 +55,7 @@ const s3p1 = function _anonymous(md,externalLink) {return (md`Here is a simple L
 3. \`result\` applies one to the other, implying both are dependencies.
 
 Edit \`constant\` or \`fun\` and \`result\` recomputes, spreadsheet-fashion. The reactive model is Observable's ${ externalLink('JavaScript in Observable', 'https://observablehq.com/collection/@observablehq/javascript-in-observable') }.`);};
-const _constant = function _constant() {return (30);};
+const _constant = function _constant() {return (31);};
 const _double = function _fun() {return (x => x * 2);};
 const _result = function _result(fun,constant) {return (fun(constant));};
 const _cellSource = async function _cellSource(constant,fun,result,lookupVariable,essayModule,md,cite) {
@@ -564,14 +564,21 @@ const _sec = function _sec(sectionIndex) {return ((key) => {
     : `[missing section: ${ key }]`;
   return h;
 });};
-const _ref = function _ref(sectionIndex, htl) {return ((key) => {
-  const s = sectionIndex.get(key);
-  if (!s) return htl.html`<strong style="color:#c96a6a">[missing section: ${ key }]</strong>`;
-  return htl.html`<a
+const _ref = function _ref(sectionIndex,htl) {return (key => {
+    const s = sectionIndex.get(key);
+    if (!s)
+        return htl.html`<strong style="color:#c96a6a">[missing section: ${ key }]</strong>`;
+    return htl.html`<a
     href="#"
     title="§${ s.num } ${ s.title }"
-    onclick=${ (ev) => { ev.preventDefault(); document.getElementById(`sec-${ key }`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
-  ><em>${ s.title }</em></a>`;
+    onclick=${ ev => {
+        ev.preventDefault();
+        document.getElementById(`sec-${ key }`)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    } }
+  ><em>§${ s.title }</em></a>`;
 });};
 const _essayModuleView = function _essayModuleView(thisModule) {return (
   thisModule()
@@ -584,7 +591,7 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
-  $def("p0", "p0", ["md"], p0);
+  $def("p0", "p0", ["md"], p0);  
   $def("p1", null, ["md","externalLink"], p1);  
   $def("_abstract", "abstract", ["md"], _abstract);  
   $def("s1h", null, ["sec"], s1h);  
@@ -667,15 +674,15 @@ export default function define(runtime, observer) {
   $def("_ref", "ref", ["sectionIndex","htl"], _ref);  
   $def("_essayModuleView", "viewof essayModule", ["thisModule"], _essayModuleView);  
   $def("_essayModule", "essayModule", ["Generators","viewof essayModule"], _essayModule);  
-  main.define("exporter", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("exporter", _));
-  main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));
-  main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));
-  main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));
-  main.define("forkAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("forkAnchor", _));
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
-  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));
-  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));
-  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));
+  main.define("exporter", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("exporter", _));  
+  main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));  
+  main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));  
+  main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));  
+  main.define("forkAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("forkAnchor", _));  
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
+  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
+  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));  
+  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
   main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));
   return main;
 }
