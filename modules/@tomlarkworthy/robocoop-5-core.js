@@ -374,7 +374,19 @@ const _createAgentSession = function _createAgentSession(truncate){
 
       const sp = getSystemPrompt();
       if (sp != null) {
-        const m = { role: 'system', content: String(sp) };
+        // Loop-owned operating principles: appended to WHATEVER system prompt the provider supplies, so
+        // they hold even when a host swaps in a domain prompt. Trigger-conditioned — each names when it
+        // applies AND when it does not, to avoid over-application on simple tasks.
+        const LOOP_PRINCIPLES = '\n\nOPERATING PRINCIPLES (always active):\n' +
+          '- Target check before hard-to-undo actions (external mutations, purchases, cancellations, sends, ' +
+          'deletions): name the exact target entity first. If MORE THAN ONE entity could plausibly match the ' +
+          'request, or you have not examined all plausible candidates, resolve the ambiguity before acting — ' +
+          'inspect the candidates, or ask the user when only they can disambiguate. Never resolve ambiguity ' +
+          'by taking the first match. When exactly one candidate matches, proceed without asking.\n' +
+          '- Multi-part requests: when a request contains several distinct deliverables or changes, enumerate ' +
+          'them explicitly up front, and before finishing check each part off — partial completion otherwise ' +
+          'passes unnoticed. Skip this for single-part requests.';
+        const m = { role: 'system', content: String(sp) + LOOP_PRINCIPLES };
         if (messages[0]?.role === 'system') messages[0] = m;
         else messages.unshift(m);
       }
