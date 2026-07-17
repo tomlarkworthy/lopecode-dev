@@ -315,7 +315,10 @@ const _createAgentSession = function _createAgentSession(truncate){
           'answering, or when you are BLOCKED on something only the user can provide (missing information, a ' +
           'decision, credentials). Put your summary, final answer, or QUESTION TO THE USER in `summary` — the ' +
           'user cannot see or answer anything until your turn ends, so ending the turn IS how you ask. Never ' +
-          'keep taking tool actions while waiting on the user.',
+          'keep taking tool actions while waiting on the user. Before calling this after any STATE-CHANGING ' +
+          'action, re-check that action\'s result against the request: confirm EVERY requested attribute ' +
+          '(exact items, options, amounts, targets) appears in the returned state — a near-miss that "looks ' +
+          'done" is still a failure.',
         parameters: { type: 'object', properties: { summary: { type: 'string', description: 'Short summary / final answer shown to the user.' } }, required: [] },
       },
     } : null;
