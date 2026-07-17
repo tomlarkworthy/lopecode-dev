@@ -142,7 +142,7 @@ const _pathLib = function _pathLib(currentModules, runtime, rc5_store, all_modul
 };
 
 // ── compile + apply (the jbApply/probeDefine machinery, fs-free) ─────────────────────────────────────
-const _applyLib = function _applyLib(jbApply, probeDefine, createModule, currentModules, runtime, exportModuleJS, observe, summarizeJS, rc5_watchBus, cellHelpers, rc5_store, importShim){
+const _applyLib = function _applyLib(jbApply, probeDefine, createModule, currentModules, runtime, exportModuleJS, observe, summarizeJS, rc5_watchBus, cellHelpers, rc5_store, importShim, descendants){
   const apply = jbApply({ currentModules, runtime, probeDefine, createModule });
   const { resolveModule, varsOf, isStructural, oneLine, watchKey } = cellHelpers;
 
@@ -201,24 +201,14 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
   // Reactive blast radius: after an apply, report OTHER-module variables that depend (transitively) on
   // the written module's cells, with compacted current values — the write's consequences arrive in the
   // SAME tool result instead of costing the agent a lookup step or a wait for watch updates.
+  // Dependents come from runtime-sdk's descendants() (the runtime's own _outputs edges).
   const downstreamStatus = async (id) => {
     const mod = resolveModule(id); if (!mod) return '';
     const inSeedModule = new Set(varsOf(mod));
-    const seeds = new Set(varsOf(mod).filter((v) => v._name && !isStructural(v)));
-    const dependents = [];
-    const seen = new Set(seeds);
-    let frontier = seeds;
-    while (frontier.size && dependents.length < 12) {
-      const next = new Set();
-      for (const v of runtime._variables) {
-        if (seen.has(v) || !Array.isArray(v._inputs)) continue;
-        if (v._inputs.some((i) => frontier.has(i))) {
-          seen.add(v); next.add(v);
-          if (!inSeedModule.has(v) && v._name && !isStructural(v)) dependents.push(v);
-        }
-      }
-      frontier = next;
-    }
+    const seeds = varsOf(mod).filter((v) => v._name && !isStructural(v));
+    if (!seeds.length) return '';
+    const dependents = [...descendants(...seeds)]
+      .filter((v) => !inSeedModule.has(v) && v._name && !isStructural(v));
     if (!dependents.length) return '';
     await new Promise((r) => setTimeout(r, 150)); // reactive wave settles on macrotasks
     const parts = await Promise.all(dependents.slice(0, 12).map(async (v) => {
@@ -226,7 +216,7 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
       const r = await readVar(v._module, v);
       return label + '=' + (r.error ? '⚠ ' + r.error : r.pending ? '⏳ still computing' : summ(r.value));
     }));
-    return ' · downstream recomputed: ' + parts.join(', ') + (dependents.length > 12 ? ' …' : '');
+    return ' · downstream recomputed: ' + parts.join(', ') + (dependents.length > 12 ? ' …(+' + (dependents.length - 12) + ' more)' : '');
   };
 
   // Decomposition signal, surfaced on EVERY apply. Reuses @tomlarkworthy/code-metrics VERBATIM (no
@@ -795,6 +785,7 @@ export default function define(runtime, observer) {
   main.define("createModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("createModule", _));
   main.define("observe", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("observe", _));
   main.define("importShim", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("importShim", _));
+  main.define("descendants", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("descendants", _));
 
   main.define("module @tomlarkworthy/module-map", async () =>
     runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
@@ -823,7 +814,7 @@ export default function define(runtime, observer) {
   $def("rc5s_cell_helpers", "cellHelpers", ["currentModules", "runtime"], _cellHelpers);
   $def("rc5s_store", "rc5_store", [], _rc5_store);
   $def("rc5s_path_lib", "pathLib", ["currentModules", "runtime", "rc5_store", "all_module_files", "exportModuleJS", "importShim"], _pathLib);
-  $def("rc5s_apply_lib", "applyLib", ["jbApply", "probeDefine", "createModule", "currentModules", "runtime", "exportModuleJS", "observe", "summarizeJS", "rc5_watchBus", "cellHelpers", "rc5_store", "importShim"], _applyLib);
+  $def("rc5s_apply_lib", "applyLib", ["jbApply", "probeDefine", "createModule", "currentModules", "runtime", "exportModuleJS", "observe", "summarizeJS", "rc5_watchBus", "cellHelpers", "rc5_store", "importShim", "descendants"], _applyLib);
   $def("rc5s_value_tools", "valueTools", ["defineTool", "summarizeJS", "currentModules", "runtime", "observe", "rc5_watchBus", "cellHelpers"], _valueTools);
   $def("rc5s_file_tools", "fileTools", ["defineTool", "rc5_store", "pathLib", "applyLib", "all_module_files"], _fileTools);
   $def("rc5s_host", "rc5_host", ["rc5_store", "pathLib", "applyLib", "exportModuleJS"], _rc5_host);
