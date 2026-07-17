@@ -381,8 +381,10 @@ const _createAgentSession = function _createAgentSession(truncate){
           '- Target check before hard-to-undo actions (external mutations, purchases, cancellations, sends, ' +
           'deletions): name the exact target entity first. If MORE THAN ONE entity could plausibly match the ' +
           'request, or you have not examined all plausible candidates, resolve the ambiguity before acting — ' +
-          'inspect the candidates, or ask the user when only they can disambiguate. Never resolve ambiguity ' +
-          'by taking the first match. When exactly one candidate matches, proceed without asking.\n' +
+          'inspect the candidates, or ask the user when only they can disambiguate. Records you have NOT ' +
+          'opened count as unexamined candidates: a match is only unique once you have surveyed every record ' +
+          'that could contain the target. Never resolve ambiguity by taking the first match. When the survey ' +
+          'is complete and exactly one candidate matches, proceed without asking.\n' +
           '- Multi-part requests: when a request contains several distinct deliverables or changes, enumerate ' +
           'them explicitly up front, and before finishing check each part off — partial completion otherwise ' +
           'passes unnoticed. Skip this for single-part requests.';
