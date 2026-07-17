@@ -311,14 +311,19 @@ const _createAgentSession = function _createAgentSession(truncate){
       type: 'function',
       function: {
         name: completeToolName,
-        description: 'Call this ONLY when the task is fully complete (or you have finished answering) to end ' +
-          'your turn. Put your short summary or final answer in `summary`.',
+        description: 'Call this to END YOUR TURN: when the task is fully complete, when you have finished ' +
+          'answering, or when you are BLOCKED on something only the user can provide (missing information, a ' +
+          'decision, credentials). Put your summary, final answer, or QUESTION TO THE USER in `summary` — the ' +
+          'user cannot see or answer anything until your turn ends, so ending the turn IS how you ask. Never ' +
+          'keep taking tool actions while waiting on the user.',
         parameters: { type: 'object', properties: { summary: { type: 'string', description: 'Short summary / final answer shown to the user.' } }, required: [] },
       },
     } : null;
     const nudge = nudgeMessage ?? ('You ended your turn without calling a tool. If the task is complete, call ' +
-      (completeToolName || 'the completion tool') + ' with a short summary. Otherwise keep going — call a tool ' +
-      'to take the next concrete step; do not just describe what you will do.');
+      (completeToolName || 'the completion tool') + ' with a short summary. If you need information or a ' +
+      'decision from the user, call it with your question as the summary — the user only sees it when your ' +
+      'turn ends. Otherwise keep going — call a tool to take the next concrete step; do not just describe ' +
+      'what you will do.');
 
     const messages = [];
     let currentAbort = null;
