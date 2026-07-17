@@ -222,7 +222,15 @@ for (const task of tasks) {
     let totalSteps = 0;
     for (let ex = 0; ex < MAX_EXCHANGES; ex++) {
       if (Date.now() - t0 > TASK_DEADLINE) throw new Error("task deadline exceeded");
-      const turn = await sendTurn(booted.page, userMsg, SEND_TIMEOUT);
+      // A network blip inside one turn must not abort the whole task: the session is persistent,
+      // so retry the same user message after a pause before giving up.
+      let turn, sendErr;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 20000 * attempt));
+        try { turn = await sendTurn(booted.page, userMsg, SEND_TIMEOUT); sendErr = null; break; }
+        catch (e) { sendErr = e; trajectory.push({ sendError: String(e && e.message).slice(0, 150), attempt }); }
+      }
+      if (sendErr) throw sendErr;
       totalSteps += turn.steps || 0;
       const reply = turn.reply || "(no reply)";
       agentReplies.push(reply);
