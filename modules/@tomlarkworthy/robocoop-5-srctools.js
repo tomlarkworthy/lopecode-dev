@@ -159,10 +159,11 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
   const readVar = (mod, v) => new Promise((resolve) => {
     let done = false; const finish = (r) => { if (!done) { done = true; resolve(r); } };
     if (v._error != null) return finish({ error: (v._error && v._error.message) || String(v._error) });
-    if (v._value !== undefined) return finish({ value: v._value });
+    // Prefer mod.value() — right after an apply, `_value` can be STALE (the reactive wave hasn't
+    // recomputed dependents yet); mod.value resolves with the post-wave value.
     if (v._name) Promise.resolve().then(() => mod.value(v._name)).then((value) => finish({ value }), (error) => finish({ error: (error && error.message) || String(error) }));
     else { try { mod.value((varsOf(mod).find((x) => x._name && !isStructural(x)) || {})._name).catch(() => {}); } catch (e) {} }
-    setTimeout(() => finish({ pending: true }), 4000);
+    setTimeout(() => finish(v._value !== undefined ? { value: v._value } : { pending: true }), 4000);
   });
   const probeAndWatch = async (id) => {
     const mod = resolveModule(id); if (!mod) return null;
@@ -192,7 +193,40 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
     if (errored.length) return ' · ⚠ ' + errored.length + ' cell' + (errored.length === 1 ? '' : 's') +
       ' ERRORING at runtime — ' + errored.map((e) => e.name + ': ' + e.error).join('; ') +
       ' — FIX before task_complete (a compile-clean cell can still error when observed)';
-    return ' · ✓ all ' + okCount + ' cell' + (okCount === 1 ? '' : 's') + ' compute with no runtime error (auto-watched; changes stream to you)';
+    const vals = probe.filter((r) => r.value !== undefined).slice(0, 8).map((r) => r.name + '=' + r.value).join(', ');
+    return ' · ✓ all ' + okCount + ' cell' + (okCount === 1 ? '' : 's') + ' compute with no runtime error (auto-watched; changes stream to you)' +
+      (vals ? ' · values: ' + vals + (probe.length > 8 ? ' …(+' + (probe.length - 8) + ' more)' : '') : '');
+  };
+
+  // Reactive blast radius: after an apply, report OTHER-module variables that depend (transitively) on
+  // the written module's cells, with compacted current values — the write's consequences arrive in the
+  // SAME tool result instead of costing the agent a lookup step or a wait for watch updates.
+  const downstreamStatus = async (id) => {
+    const mod = resolveModule(id); if (!mod) return '';
+    const inSeedModule = new Set(varsOf(mod));
+    const seeds = new Set(varsOf(mod).filter((v) => v._name && !isStructural(v)));
+    const dependents = [];
+    const seen = new Set(seeds);
+    let frontier = seeds;
+    while (frontier.size && dependents.length < 12) {
+      const next = new Set();
+      for (const v of runtime._variables) {
+        if (seen.has(v) || !Array.isArray(v._inputs)) continue;
+        if (v._inputs.some((i) => frontier.has(i))) {
+          seen.add(v); next.add(v);
+          if (!inSeedModule.has(v) && v._name && !isStructural(v)) dependents.push(v);
+        }
+      }
+      frontier = next;
+    }
+    if (!dependents.length) return '';
+    await new Promise((r) => setTimeout(r, 150)); // reactive wave settles on macrotasks
+    const parts = await Promise.all(dependents.slice(0, 12).map(async (v) => {
+      const label = (v._module && v._module._name ? v._module._name + ':' : '') + v._name;
+      const r = await readVar(v._module, v);
+      return label + '=' + (r.error ? '⚠ ' + r.error : r.pending ? '⏳ still computing' : summ(r.value));
+    }));
+    return ' · downstream recomputed: ' + parts.join(', ') + (dependents.length > 12 ? ' …' : '');
   };
 
   // Decomposition signal, surfaced on EVERY apply. Reuses @tomlarkworthy/code-metrics VERBATIM (no
@@ -273,8 +307,9 @@ const _applyLib = function _applyLib(jbApply, probeDefine, createModule, current
       const n = r.changes || 0;
       const surfaced = wasNew && /\bviewof\s|\bmd`|\bhtml`/.test(src) && surfaceInView(id);
       let status = ''; try { status = probeStatus(await probeAndWatch(id)); } catch (e) {}
+      let downstream = ''; try { downstream = await downstreamStatus(id); } catch (e) {}
       let structure = ''; try { structure = await structureStatus(id); } catch (e) {}
-      return { ok: true, msg: 'applied live (' + n + ' cell' + (n === 1 ? '' : 's') + ' changed)' + (surfaced ? ' · opened in the shared view so the human can see it' : '') + status + structure };
+      return { ok: true, msg: 'applied live (' + n + ' cell' + (n === 1 ? '' : 's') + ' changed)' + (surfaced ? ' · opened in the shared view so the human can see it' : '') + status + downstream + structure };
     } catch (e) {
       keepDraft();
       return { ok: false, msg: 'written, but FAILED TO COMPILE: ' + (e && e.message || e) + ' — live runtime unchanged; fix and re-edit' };
