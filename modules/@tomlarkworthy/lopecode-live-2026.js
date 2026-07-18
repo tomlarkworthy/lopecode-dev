@@ -612,6 +612,11 @@ const _ref = function _ref(sectionIndex,htl) {return (key => {
     } }
   ><em>§${ s.title }</em></a>`;
 });};
+const _cpboot = function _commandPaletteBoot(commandPaletteKeybinding, cp_menu_register, htl) {
+    // observing these activates the palette keybinding + burger menu item (lazy otherwise)
+    commandPaletteKeybinding, cp_menu_register;
+    return htl.html`<span style="display:none"></span>`;
+};
 const _essayModuleView = function _essayModuleView(thisModule) {return (
   thisModule()
 );};
@@ -704,7 +709,8 @@ export default function define(runtime, observer) {
   $def("_sectionIndex", "sectionIndex", ["sections"], _sectionIndex);  
   $def("_sec", "sec", ["sectionIndex"], _sec);  
   $def("_ref", "ref", ["sectionIndex","htl"], _ref);  
-  $def("_essayModuleView", "viewof essayModule", ["thisModule"], _essayModuleView);  
+  $def("_cpboot", "commandPaletteBoot", ["commandPaletteKeybinding","cp_menu_register","htl"], _cpboot);
+  $def("_essayModuleView", "viewof essayModule", ["thisModule"], _essayModuleView);
   $def("_essayModule", "essayModule", ["Generators","viewof essayModule"], _essayModule);  
   main.define("exporter", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("exporter", _));  
   main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));  
@@ -714,7 +720,10 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
   main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
   main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));  
-  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
+  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));
   main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));
+  main.define("module @tomlarkworthy/command-palette", async () => runtime.module((await import("/@tomlarkworthy/command-palette.js?v=4")).default));
+  main.define("commandPaletteKeybinding", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("commandPaletteKeybinding", _));
+  main.define("cp_menu_register", ["module @tomlarkworthy/command-palette", "@variable"], (_, v) => v.import("cp_menu_register", _));
   return main;
 }
