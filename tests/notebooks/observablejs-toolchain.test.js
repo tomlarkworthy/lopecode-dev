@@ -5,8 +5,10 @@ import { loadNotebook } from '../../tools/lope-runtime.js';
 // Known failures due to Node VM environment differences (not bugs):
 // - test_compile_import_*: produce importShim() instead of import() because globalThis.importShim exists
 // - test_decompile_import_*: observable.Runtime not available in Node shim
-// - test_decompile_class_with_property: escodegen shim gap
-// - test_all_cells_*: depend on reference notebook document loading
+// - test_all_cells_*: sniff the whole live runtime via cellMap() + fetch a reference
+//   document; neither settles under the headless Node VM, so these time out. This
+//   is an environment limit, NOT a decompile fidelity gap — the round-trip
+//   invariant is instead covered by the self-contained test_decompile_* cases.
 // - test_async_interpolation: depends on FileAttachment resolving
 const KNOWN_FAILURES = new Set([
   'test_compile_import_notebook',
@@ -19,7 +21,6 @@ const KNOWN_FAILURES = new Set([
   'test_decompile_import_variable',
   'test_decompile_import_variable_alias',
   'test_decompile_import_many',
-  'test_decompile_class_with_property',
   'test_all_cells_decompilable',
   'test_all_cells_roundtrippable',
   'test_async_interpolation',
