@@ -386,7 +386,9 @@ const _session = function _session(toolsView, modelView, promptView, client, cre
       ? 'REJECTED: you have made NO tool calls this turn, so nothing has been created, changed, or verified — ' +
         'a completion summary now would be fiction. Do the work first with real tool calls (read_file / ' +
         'write_file / edit_file / eval_js / …), verify it, then call task_complete describing what you DID. ' +
-        'If this request truly requires no tool work, call task_complete again to confirm.'
+        'If this request truly requires no tool work — including when you are ASKING THE USER for information ' +
+        'or a decision only they can provide — call task_complete again with your answer or question as the ' +
+        'summary; asking the user is a legitimate tool-free turn.'
       : null,
     stallNudgeLimit: 2,
     maxStepsPerTurn: 40,

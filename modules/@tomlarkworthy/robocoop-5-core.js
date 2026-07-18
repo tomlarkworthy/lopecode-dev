@@ -311,14 +311,19 @@ const _createAgentSession = function _createAgentSession(truncate){
       type: 'function',
       function: {
         name: completeToolName,
-        description: 'Call this ONLY when the task is fully complete (or you have finished answering) to end ' +
-          'your turn. Put your short summary or final answer in `summary`.',
+        description: 'Call this to END YOUR TURN: when the task is fully complete, when you have finished ' +
+          'answering, or when you are BLOCKED on something only the user can provide (missing information, a ' +
+          'decision, credentials). Put your summary, final answer, or QUESTION TO THE USER in `summary` — the ' +
+          'user cannot see or answer anything until your turn ends, so ending the turn IS how you ask. Never ' +
+          'keep taking tool actions while waiting on the user.',
         parameters: { type: 'object', properties: { summary: { type: 'string', description: 'Short summary / final answer shown to the user.' } }, required: [] },
       },
     } : null;
     const nudge = nudgeMessage ?? ('You ended your turn without calling a tool. If the task is complete, call ' +
-      (completeToolName || 'the completion tool') + ' with a short summary. Otherwise keep going — call a tool ' +
-      'to take the next concrete step; do not just describe what you will do.');
+      (completeToolName || 'the completion tool') + ' with a short summary. If you need information or a ' +
+      'decision from the user, call it with your question as the summary — the user only sees it when your ' +
+      'turn ends. Otherwise keep going — call a tool to take the next concrete step; do not just describe ' +
+      'what you will do.');
 
     const messages = [];
     let currentAbort = null;
@@ -369,7 +374,21 @@ const _createAgentSession = function _createAgentSession(truncate){
 
       const sp = getSystemPrompt();
       if (sp != null) {
-        const m = { role: 'system', content: String(sp) };
+        // Loop-owned operating principles: appended to WHATEVER system prompt the provider supplies, so
+        // they hold even when a host swaps in a domain prompt. Trigger-conditioned — each names when it
+        // applies AND when it does not, to avoid over-application on simple tasks.
+        const LOOP_PRINCIPLES = '\n\nOPERATING PRINCIPLES (always active):\n' +
+          '- Target check before hard-to-undo actions (external mutations, purchases, cancellations, sends, ' +
+          'deletions): name the exact target entity first. If MORE THAN ONE entity could plausibly match the ' +
+          'request, or you have not examined all plausible candidates, resolve the ambiguity before acting — ' +
+          'inspect the candidates, or ask the user when only they can disambiguate. Records you have NOT ' +
+          'opened count as unexamined candidates: a match is only unique once you have surveyed every record ' +
+          'that could contain the target. Never resolve ambiguity by taking the first match. When the survey ' +
+          'is complete and exactly one candidate matches, proceed without asking.\n' +
+          '- Multi-part requests: when a request contains several distinct deliverables or changes, enumerate ' +
+          'them explicitly up front, and before finishing check each part off — partial completion otherwise ' +
+          'passes unnoticed. Skip this for single-part requests.';
+        const m = { role: 'system', content: String(sp) + LOOP_PRINCIPLES };
         if (messages[0]?.role === 'system') messages[0] = m;
         else messages.unshift(m);
       }
