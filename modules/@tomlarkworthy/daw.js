@@ -406,6 +406,37 @@ sticky(mkSeq($0, {
 }), {"kick":[1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],"snare":[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],"ghost":[0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1],"hat":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"bass":[1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0]})
 )};
 const _7a7f2w = (G, _) => G.input(_);
+const _dbus1 = function _drumBus(daw_ctx,master,midiBus)
+{
+  // the drum chain: voices sum into a gain, glue compressor, then master.
+  // `this` idiom keeps the graph immortal; tap 'drums' lets scopes watch it
+  const b = this ?? (() => {
+    const g = daw_ctx.createGain();
+    g.gain.value = 0.9;
+    const comp = daw_ctx.createDynamicsCompressor();
+    comp.threshold.value = -18;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.003;
+    comp.release.value = 0.12;
+    g.connect(comp);
+    comp.connect(master);
+    return g;
+  })();
+  midiBus.registerTap('drums', b);
+  return b;
+};
+const _dsmp1 = async function _drumSamples(FileAttachment,daw_ctx)
+{
+  // Kit8 one-shots from GoogleChromeLabs/web-audio-samples (Apache-2.0),
+  // trimmed + peak-normalized mono WAV so transients land sample-accurate
+  const load = async name => daw_ctx.decodeAudioData(await FileAttachment(name).arrayBuffer());
+  const [kick, snare, hihat] = await Promise.all([
+    'kick.wav',
+    'snare.wav',
+    'hihat.wav'
+  ].map(load));
+  return { kick, snare, hihat };
+};
 const _wu1p2x = function _noiseBuffer(daw_ctx)
 {
   if (this)
@@ -416,69 +447,40 @@ const _wu1p2x = function _noiseBuffer(daw_ctx)
     d[i] = Math.random() * 2 - 1;
   return b;
 };
-const _6ldw81 = function _kick_voice(daw_ctx,master){return(
-(t, amp = 1) => {
-  const o = daw_ctx.createOscillator();
-  const g = daw_ctx.createGain();
-  o.frequency.setValueAtTime(120, t);
-  o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-  g.gain.setValueAtTime(0.9 * amp, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-  o.connect(g);
-  g.connect(master);
-  o.start(t);
-  o.stop(t + 0.3);
-  o.onended = () => g.disconnect();
-}
-)};
-const _1xa2q3y = function _hat_voice(daw_ctx,noiseBuffer,master){return(
+const _6ldw81 = function _kick_voice(daw_ctx,drumSamples,drumBus){return(
 (t, amp = 1) => {
   const s = daw_ctx.createBufferSource();
-  s.buffer = noiseBuffer;
-  const f = daw_ctx.createBiquadFilter();
-  f.type = 'highpass';
-  f.frequency.value = 7000;
+  s.buffer = drumSamples.kick;
   const g = daw_ctx.createGain();
-  g.gain.setValueAtTime(0.3 * amp, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-  s.connect(f);
-  f.connect(g);
-  g.connect(master);
+  g.gain.value = amp;
+  s.connect(g);
+  g.connect(drumBus);
   s.start(t);
-  s.stop(t + 0.08);
   s.onended = () => g.disconnect();
 }
 )};
-const _snr1v = function _snare_voice(daw_ctx,noiseBuffer,master){return(
+const _1xa2q3y = function _hat_voice(daw_ctx,drumSamples,drumBus){return(
 (t, amp = 1) => {
   const s = daw_ctx.createBufferSource();
-  s.buffer = noiseBuffer;
-  const f = daw_ctx.createBiquadFilter();
-  f.type = 'bandpass';
-  f.frequency.value = 1800;
-  f.Q.value = 0.7;
+  s.buffer = drumSamples.hihat;
   const g = daw_ctx.createGain();
-  g.gain.setValueAtTime(0.55 * amp, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-  const o = daw_ctx.createOscillator();
-  o.frequency.setValueAtTime(220, t);
-  o.frequency.exponentialRampToValueAtTime(165, t + 0.08);
-  const og = daw_ctx.createGain();
-  og.gain.setValueAtTime(0.3 * amp, t);
-  og.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-  s.connect(f);
-  f.connect(g);
-  g.connect(master);
-  o.connect(og);
-  og.connect(master);
+  g.gain.value = 0.8 * amp;
+  s.connect(g);
+  g.connect(drumBus);
   s.start(t);
-  s.stop(t + 0.2);
-  o.start(t);
-  o.stop(t + 0.12);
-  o.onended = () => {
-    g.disconnect();
-    og.disconnect();
-  };
+  s.onended = () => g.disconnect();
+}
+)};
+const _snr1v = function _snare_voice(daw_ctx,drumSamples,drumBus){return(
+(t, amp = 1) => {
+  const s = daw_ctx.createBufferSource();
+  s.buffer = drumSamples.snare;
+  const g = daw_ctx.createGain();
+  g.gain.value = amp;
+  s.connect(g);
+  g.connect(drumBus);
+  s.start(t);
+  s.onended = () => g.disconnect();
 }
 )};
 const _1n3qz47 = function _bassCutoff(sticky,Inputs){return(
@@ -2118,6 +2120,15 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
+  const fileAttachments = new Map(["kick.wav","snare.wav","hihat.wav"].map((name) => {
+    const module_name = "@tomlarkworthy/daw";
+    const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
+    if (status !== 200) return [name, undefined];
+    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    return [name, {url: blob_url, mimeType: mime}];
+  }));
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
+
   main.define("module @tomlarkworthy/grid-container", async () => runtime.module((await import("/@tomlarkworthy/grid-container.js?v=4")).default));  
   main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
@@ -2144,10 +2155,12 @@ export default function define(runtime, observer) {
   $def("_s71xha", "stepGrid", ["Event"], _s71xha);
   $def("_14j1vyd", "viewof pattern", ["sticky","mkSeq","viewof clock","midiBus","invalidation"], _14j1vyd);
   $def("_7a7f2w", "pattern", ["Generators","viewof pattern"], _7a7f2w);
-  $def("_wu1p2x", "noiseBuffer", ["daw_ctx"], _wu1p2x);  
-  $def("_6ldw81", "kick_voice", ["daw_ctx","master"], _6ldw81);  
-  $def("_1xa2q3y", "hat_voice", ["daw_ctx","noiseBuffer","master"], _1xa2q3y);
-  $def("_snr1v", "snare_voice", ["daw_ctx","noiseBuffer","master"], _snr1v);
+  $def("_dbus1", "drumBus", ["daw_ctx","master","midiBus"], _dbus1);
+  $def("_dsmp1", "drumSamples", ["FileAttachment","daw_ctx"], _dsmp1);
+  $def("_wu1p2x", "noiseBuffer", ["daw_ctx"], _wu1p2x);
+  $def("_6ldw81", "kick_voice", ["daw_ctx","drumSamples","drumBus"], _6ldw81);
+  $def("_1xa2q3y", "hat_voice", ["daw_ctx","drumSamples","drumBus"], _1xa2q3y);
+  $def("_snr1v", "snare_voice", ["daw_ctx","drumSamples","drumBus"], _snr1v);
   $def("_1n3qz47", "viewof bassCutoff", ["sticky","Inputs"], _1n3qz47);  
   $def("_1hifuoy", "bassCutoff", ["Generators","viewof bassCutoff"], _1hifuoy);  
   $def("_tsq2pi", "viewof bassDecay", ["sticky","Inputs"], _tsq2pi);  
