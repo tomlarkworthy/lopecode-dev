@@ -14,49 +14,64 @@ gridContainer(runtime, {
     'viewof bassCutoff',
     'viewof bassDecay',
     'scope',
-    'template_drum'
+    'template_drum',
+    'drum1',
+    'controls'
   ],
   layout: {
     atoms: {
-      'viewof masterVol': {
+      'controls': {
         'x': 20,
         'y': 20
       },
-      'scope': {
-        'x': 20,
-        'y': 80
+      'viewof playing': {
+        'x': 160,
+        'y': 20
       },
       'viewof bpm': {
-        'x': 20,
-        'y': 180
+        'x': 340,
+        'y': 20,
+        'w': 360
       },
-      'viewof playing': {
-        'x': 560,
-        'y': 180
+      'viewof masterVol': {
+        'x': 720,
+        'y': 20,
+        'w': 360
       },
       'viewof pattern': {
         'x': 20,
-        'y': 240
+        'y': 80
+      },
+      'sequencer': {
+        'x': 440,
+        'y': 80
+      },
+      'scope': {
+        'x': 720,
+        'y': 80,
+        'w': 360
       },
       'viewof bassCutoff': {
         'x': 20,
-        'y': 320
+        'y': 180,
+        'w': 360
       },
       'viewof bassDecay': {
-        'x': 20,
-        'y': 380
-      },
-      'sequencer': {
-        'x': 560,
-        'y': 380
+        'x': 400,
+        'y': 180,
+        'w': 320
       },
       'template_drum': {
         'x': 20,
-        'y': 480
+        'y': 260
+      },
+      'drum1': {
+        'x': 460,
+        'y': 260
       }
     }
   },
-  height: 620
+  height: 460
 })
 )};
 const _hn2uu3 = function _title(md){return(
@@ -67,7 +82,7 @@ A digital audio workstation that is nothing but a notebook. Every piece of state
 Built from three orthogonal concepts, none of them audio-specific:
 
 - **[sticky](https://observablehq.com/@tomlarkworthy/sticky)** — any view remembers its value in its own source (\`sticky(view, remembered)\`), persisted by a silent definition swap: no recompute, no remount, no audio glitch.
-- **[grid-container](https://observablehq.com/@tomlarkworthy/grid-container)** — the rack. Atoms are live cells; layout and membership are self-rewritten literals. **＋ cell → templates** instantiates a copy of any \`template_*\` cell group under a fresh name — add an instrument without typing code.
+- **[grid-container](https://observablehq.com/@tomlarkworthy/grid-container)** — the rack. Atoms are live cells; layout and membership are self-rewritten literals. Even the rack controls are a normal cell (\`controls = gridControls()\`) placed on the rack; its **＋ cell → templates** instantiates a copy of any \`template_*\` cell group under a fresh name — add an instrument without typing code.
 - **Observable dataflow** — wiring. Voices are plain function cells; the sequencer's \`voices\` literal is the patchbay, edited like any other cell (✎ on its atom).
 
 Audio discipline (no timers anywhere):
@@ -444,22 +459,23 @@ gridContainer(runtime, {
   include: [
     'viewof template_drum_pitch',
     'viewof template_drum_decay',
-    'viewof template_drum_hit',
-    'drum1'
+    'viewof template_drum_hit'
   ],
   layout: {
     atoms: {
       'viewof template_drum_pitch': {
         'x': 10,
-        'y': 10
+        'y': 10,
+        'w': 380
       },
       'viewof template_drum_decay': {
         'x': 10,
-        'y': 100
+        'y': 60,
+        'w': 380
       },
       'viewof template_drum_hit': {
         'x': 10,
-        'y': 190
+        'y': 110
       }
     }
   },
@@ -524,6 +540,9 @@ md`## Extending the studio
 2. To sequence it, open the sequencer's ✎ editor and add \`drum1_voice\` to the \`voices\` literal, and its row to the pattern grid's rows. Wiring is the one deliberately code-shaped step: dataflow references *are* the patch cords.
 3. Any view from anywhere can join: \`viewof myThing = sticky(anyView, undefined)\` remembers itself; **＋ cell** puts it on the rack. Template authors just name cells \`template_<name>\` / \`template_<name>_<part>\`.`
 )};
+const _dwctrl = function _controls(gridControls){return(
+gridControls()
+)};
 const _1bmgwdy = function _drum1(gridContainer,runtime,invalidation,dawModule){return(
 gridContainer(runtime, {
   invalidation,
@@ -537,11 +556,13 @@ gridContainer(runtime, {
     atoms: {
       'viewof drum1_pitch': {
         'x': 10,
-        'y': 10
+        'y': 10,
+        'w': 380
       },
       'viewof drum1_decay': {
         'x': 10,
-        'y': 60
+        'y': 60,
+        'w': 380
       },
       'viewof drum1_hit': {
         'x': 10,
@@ -652,7 +673,8 @@ export default function define(runtime, observer) {
   $def("_kyc5cz", "template_drum_hit", ["Generators","viewof template_drum_hit"], _kyc5cz);  
   $def("_bzz7zk", "template_drum_voice", ["viewof template_drum_pitch","viewof template_drum_decay","daw_ctx","master"], _bzz7zk);  
   $def("_1tgfsqb", "extending", ["md"], _1tgfsqb);  
-  $def("_1bmgwdy", "drum1", ["gridContainer","runtime","invalidation","dawModule"], _1bmgwdy);  
+  $def("_dwctrl", "controls", ["gridControls"], _dwctrl);
+  $def("_1bmgwdy", "drum1", ["gridContainer","runtime","invalidation","dawModule"], _1bmgwdy);
   $def("_f4meuj", "viewof drum1_pitch", ["sticky","Inputs"], _f4meuj);  
   $def("_14idqs", "drum1_pitch", ["Generators","viewof drum1_pitch"], _14idqs);  
   $def("_q6ae90", "viewof drum1_decay", ["sticky","Inputs"], _q6ae90);  
@@ -660,7 +682,8 @@ export default function define(runtime, observer) {
   $def("_5jxnjk", "drum1_voice", ["viewof drum1_pitch","viewof drum1_decay","daw_ctx","master"], _5jxnjk);  
   $def("_x1uqb6", "viewof drum1_hit", ["Inputs","daw_ctx","drum1_voice"], _x1uqb6);  
   $def("_1o2c2pf", "drum1_hit", ["Generators","viewof drum1_hit"], _1o2c2pf);  
-  main.define("gridContainer", ["module @tomlarkworthy/grid-container", "@variable"], (_, v) => v.import("gridContainer", _));  
+  main.define("gridContainer", ["module @tomlarkworthy/grid-container", "@variable"], (_, v) => v.import("gridContainer", _));
+  main.define("gridControls", ["module @tomlarkworthy/grid-container", "@variable"], (_, v) => v.import("gridControls", _));
   main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));  
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
   main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));

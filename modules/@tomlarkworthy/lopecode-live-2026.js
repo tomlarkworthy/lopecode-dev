@@ -1,8 +1,8 @@
 const p0 = function _anonymous(md) {return (md`# Source-last programming`);};
 const p1 = function _anonymous(md, externalLink) {return (md`*Tom Larkworthy — draft submission to ${ externalLink('LIVE 2026', 'https://liveprog.org/') }.*`);};
-const _abstract = function _anonymous(md) {return (md`> **Abstract.** A business analyst in a regulated industry could not open a large CSV with Excel. We sent them an ad hoc column-trimming tool over Slack, transmitted as a single HTML file. That is self-serialization as a distribution primitive, which came from one of Lopecode's principles: the runtime is the source of truth.
+const _abstract = function _anonymous(md) {return (md`> **Abstract.** Perhaps to build systems that are malleable and end user programmable we need to rethink the relationship between runtime and development artifacts. It is our opinion that the concept of source code itself was the original sin that drove a wedge between user and developer.
 >
-> Most programming systems are format-first: a canonical saved representation — \\\`.ipynb\\\`, an image dump, a document schema that the system loads. Lopecode is *source-last*: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system. When source code is needed, functions are decompiled on demand starting from \`Function.prototype.toString()\`. Serialization becomes a projection to one of many formats: a standalone HTML file, a JavaScript IIFE or an ATProto PDS. Format-independence is a consequence of runtime-primacy. Furthermore, we claim runtime-primacy also leads to simpler implementations of malleability and liveness, by admitting a plurality of non-source based editing surfaces.
+> Most existing programming systems are format-first: a canonical saved representation — \\\`.ipynb\\\`, an image dump, a document schema that the system loads. Lopecode is *source-last*: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system. When source code is needed, functions are decompiled on demand starting from \`Function.prototype.toString()\`. Serialization becomes a projection to one of many formats: a standalone HTML file, a JavaScript IIFE or an ATProto PDS. Format-independence is a consequence of runtime-primacy. Furthermore, we claim runtime-primacy also leads to simpler implementations of malleability and liveness, by admitting a plurality of non-source based editing surfaces.
 >
 > We share three field episodes where Lopecode's format agnosticism shone: shipping a tool into a locked-down corporate environment; liberating a running program from a notebook SaaS; and freezing an AI-co-created music jam into a document shared over WhatsApp.`);};
 const s1h = function _anonymous(sec) {return (sec('ship'));};
@@ -14,8 +14,8 @@ const s2p1 = function _anonymous(md,aside,ref) {return (md`Most programming syst
 
 Make the runtime the source of truth and serialization becomes a projection, so format-independence follows. We call the design *source-last*: source code still exists, but it is recovered last, on demand, from the running system, rather than maintained as the canonical artifact.
 
-The same arrangement applies to program editors as well. Since the live runtime is the single thing every tool reads and writes, editing surfaces specialize and coexist: ${ aside('editor-5', '@tomlarkworthy/editor-5') } edits cells as source; ${ aside('editable-md', '@tomlarkworthy/editable-md') } makes rendered prose directly editable; and ${ aside('sticky', '@tomlarkworthy/sticky') } (${ ref('copy') }), a higher order UI lens that transforms User manipulations into function updates. All three are unprivedged userspace modules.`);};
-const s2x1 = function _anonymous(experiment,md,aside) {return (experiment(md`**Try ${ aside('editable-md', ['@tomlarkworthy/editable-md']) }.** Click any paragraph of this essay: it opens in a live markdown editor. The prose is cells, and the editor is a userspace module riding in the same file. If you open the code editor as well, you will notice that changing and committing (SHIFT + ENTER) will update the other view`));};
+The same arrangement applies to program editors as well. Since the live runtime is the single thing every tool reads and writes, editing surfaces specialize and coexist: ${ aside('editor-5', '@tomlarkworthy/editor-5') } edits cells as source; ${ aside('editable-md', '@tomlarkworthy/editable-md') } makes rendered prose directly editable; and ${ aside('sticky', '@tomlarkworthy/sticky') } (${ ref('copy') }), a higher order UI lens that transforms user manipulations into function updates. All three are unprivileged userspace modules.`);};
+const s2x1 = function _anonymous(experiment,md,aside) {return (experiment(md`**Try ${ aside('editable-md', ['@tomlarkworthy/editable-md']) }.** Click any paragraph of this essay: it opens in a live markdown editor. The prose is cells, and the editor is a userspace module riding in the same file. If you open the code editor as well, you will notice that changing and committing (SHIFT + ENTER) will update the other view.`));};
 const _claimDiagram = function _claimDiagram(htl) {
     const W = 720, H = 210;
     const box = (x, y, w, h, fill, stroke) => htl.svg`<rect x="${ x }" y="${ y }" width="${ w }" height="${ h }" rx="7" fill="${ fill }" stroke="${ stroke }" stroke-width="1.2"/>`;
@@ -54,8 +54,8 @@ const s3p1 = function _anonymous(md,externalLink) {return (md`Here is a simple L
 
 3. \`result\` applies one to the other, implying both are dependencies.
 
-Edit \`constant\` or \`double\` and \`result\` recomputes, spreadsheet-fashion. The reactive model is Observable's ${ externalLink('JavaScript in Observable', 'https://observablehq.com/collection/@observablehq/javascript-in-observable') }`);};
-const _constant = function _constant() {return (30);};
+Edit \`constant\` or \`fun\` and \`result\` recomputes, spreadsheet-fashion. The reactive model is Observable's ${ externalLink('JavaScript in Observable', 'https://observablehq.com/collection/@observablehq/javascript-in-observable') }.`);};
+const _constant = function _constant() {return (31);};
 const _double = function _fun() {return (x => x * 2);};
 const _result = function _result(fun,constant) {return (fun(constant));};
 const _cellSource = async function _cellSource(constant,fun,result,lookupVariable,essayModule,md,cite) {
@@ -75,13 +75,13 @@ lookupVariable('constant', ...)._definition.toString()
 \`\`\`
   
 \`\`\`js
-lookupVariable('constant', ...)._definition.toString()
-  
+lookupVariable('fun', ...)._definition.toString()
+
 > ${ dv._definition.toString() }
 \`\`\`
 
 \`\`\`js
-lookupVariable('constant', ...)._definition.toString()
+lookupVariable('result', ...)._definition.toString()
 
 > ${ rv._definition.toString() }
 \`\`\`
@@ -90,7 +90,7 @@ That one call, \`Function.prototype.toString()\`, is the reflective interface Lo
 
 Note, recovered functions do *not* contain closure variables. \`toString()\` cannot see captured variables but due to the reactive runtime design a cell closes over nothing; everything it uses arrives as a parameter, so the recovered source is the complete definition.`;
 };
-const s3x1 = function _anonymous(experiment,md,aside) {return (experiment(md`**Try it.** Ensure *Edit mode* in the burger menu is on, and click edit under \`double\` to open ${ aside('editor-5', ['@tomlarkworthy/editor-5']) }'s source editor and change the code to \`(x) => x * 3\`. Note \`result\` recomputes, and the decompiled listing refreshes.`));};
+const s3x1 = function _anonymous(experiment,md,aside) {return (experiment(md`**Try it.** Ensure *Edit mode* in the burger menu is on, and click edit under \`fun\` to open ${ aside('editor-5', ['@tomlarkworthy/editor-5']) }'s source editor and change the code to \`(x) => x * 3\`. Note \`result\` recomputes, and the decompiled listing refreshes.`));};
 const s3p2 = function _anonymous(md,aside,cite,ref) {return (md`\`toString()\` only recovers the low-level *compiled* JavaScript, not the high level notebook-syntax text as the author wrote it. The ${ aside('observablejs-toolchain', '@tomlarkworthy/observablejs-toolchain') } is lensed ${ cite('foster2007lenses') }, so the ill-posed problem of decompilation ${ cite('kell2024source') } is avoided by construction. The known failures of this property are listed in ${ ref('limits') }.`);};
 const s4h = function _anonymous(sec) {return (sec('modular'));};
 const s4p1 = function _anonymous(md,ref,aside) {return (md`The coarse unit of composition in the reactive runtime is the module, a namespace of cells. It is visualized as a notebook, and a single runtime can contain many notebooks. A running system is a set of modules importing values from each other. Imports may be mutually recursive between modules; the cell-level dependency graph stays acyclic, which is what keeps recomputation well-defined.
@@ -104,9 +104,9 @@ const _dialView = function _dial(sticky, Inputs) {return (
 const _dial = (G, _) => G.input(_);
 const s5p2 = function _anonymous(md,cite,aside) {return (md`${ cite('horowitz2023lrc') } identify that the lack of state persistence is the primary reason why Observable notebooks are not a "Live, Rich, and Composable Programming System Beyond Static Text". Lopecode is able to offer opt-in value persistence *because* there is no external source code.
 
-The slider above is wrapped in ${ aside('sticky', ['@tomlarkworthy/sticky']) }, an imported userspace function. On user manipulation, ${ aside('sticky', ['@tomlarkworthy/sticky']) } parses its containing cell's definition with ${ aside('acron', ['@tomlarkworthy/acorn-8-11-3']) } and the persistence argument to the current value. In essence, storing state in it function definition. Reflective exports then propogate that state onwards.`);};
+The slider above is wrapped in ${ aside('sticky', ['@tomlarkworthy/sticky']) }, an imported userspace function. On user manipulation, ${ aside('sticky', ['@tomlarkworthy/sticky']) } parses its containing cell's definition with ${ aside('acorn', ['@tomlarkworthy/acorn-8-11-3']) } and rewrites the persistence argument to the current value. In essence, storing state in its function definition. Reflective exports then propagate that state onwards.`);};
 const s5x1 = function _anonymous(experiment,md) {return (experiment(md`**Try it.** Drag the slider above, then toggle the *cell editor*. The second argument of \`sticky(...)\` holds the value you just set. Close the editor, drag again, reopen, the source rewrites itself on every slider change.`));};
-const _lv38man = function _anonymous(md,aside) {return (md`${ aside('sticky', ['@tomlarkworthy/sticky']) } demonstrates that a single cell definitions can be interpretted in multiple languages. When viewing the source of the cell through ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } we manipulate using a bespoke higher level reactive language Observble Javascript. When sticky mutates its own container, it uses the lower level Javascript language that can be parsed with an off-the-shelf Javascript parser Acorn.`);};
+const _lv38man = function _anonymous(md,aside) {return (md`${ aside('sticky', ['@tomlarkworthy/sticky']) } demonstrates that a single cell definition can be interpreted in multiple languages. When viewing the source of the cell through ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } we manipulate using a bespoke higher level reactive language, Observable JavaScript. When sticky mutates its own container, it uses the lower level JavaScript language that can be parsed with an off-the-shelf JavaScript parser, Acorn.`);};
 const _stickyDiagram = async function _stickyDiagram(mermaid) {
   const svg = await mermaid`sequenceDiagram
   actor U as author
@@ -164,7 +164,9 @@ const _stickyDiagram = async function _stickyDiagram(mermaid) {
   }
   return svg;
 };
-const s5p3 = function _anonymous(md, cite, ref) {return (md`Every arrow above runs through the reflective waist. Authoring is high-level: notebook syntax is compiled to a plain JavaScript function and evaluated into the runtime. \`sticky\` operates entirely at the low level: on a committed change it recovers its own cell's source with \`toString()\`, patches one literal with acorn, and evaluates the patch back — the runtime never recomputes. When the author next opens the cell, the editor recovers the low-level source and decompiles it to notebook syntax, updated literal included. The compiler/decompiler pair is a *lens* in the sense of the bidirectional-programming literature ${ cite('foster2007lenses') } — the construction Cambria applies to live document schemas ${ cite('litt2020cambria') }: the executing function is the concrete source of truth, notebook syntax is the view, and edits on either side must round-trip. The decompilability invariant of ${ ref('cell') } is the lens law holding across the whole runtime; ${ ref('limits') } lists where it does not.`);};
+const s5p3 = function _anonymous(md,cite,ref) {return (md`Every arrow above runs through the reflective waist. Authoring is high-level: notebook syntax is compiled to a plain JavaScript function and evaluated into the runtime. \`sticky\` operates entirely at the low level: on a committed change it recovers its own cell's source with \`toString()\`, patches one literal with acorn, and evaluates the patch back — the runtime never recomputes. When the author next opens the cell, the editor recovers the low-level source and decompiles it to notebook syntax, updated literal included. The compiler/decompiler pair is a *lens* in the sense of the bidirectional-programming literature ${ cite('foster2007lenses') } — the construction Cambria applies to live document schemas ${ cite('litt2020cambria') }: the executing function is the concrete source of truth, notebook syntax is one view, and edits on either side round-trip. The decompilability invariant of ${ ref('cell') } is the lens law holding across the whole runtime; ${ ref('limits') } lists where it does not.
+
+Decompilation is prevalent in the games modding community which is end user programming in the wild. Why not elevate the technique to be the primary method of program editing? Lopecode is a system that follows through on this idea.`);};
 const s6h = function _anonymous(sec) {return (sec('mappings'));};
 const s6p1 = function _anonymous(md, ref) {return (md`Lopecode currently maintains three mappings. Each is a userspace module, and they share nothing with each other beyond the reflection described in ${ ref('cell') }.`);};
 const s6bh = function _anonymous(sec) {return (sec('html'));};
@@ -182,35 +184,35 @@ const _containerInventory = function _containerInventory(Inputs, md, htl) {
   </div>`;
 };
 const _ownBlockPeek = function _ownBlockPeek(md) {
-  const el = document.getElementById('@tomlarkworthy/lopecode-live-2026');
-  const src = el ? el.textContent.trimStart().slice(0, 350) : '(module block not found — running outside the container)';
-  return md`The stored form of *this very module*, as it sits in the HTML mapping (first 350 characters). It goes stale as you edit and is refreshed on the next save, because the block is a projection of the runtime and never the other way around:
+    const el = document.getElementById('@tomlarkworthy/lopecode-live-2026');
+    const src = el ? el.textContent.trimStart().slice(0, 350) : '(module block not found \u2014 running outside the container)';
+    return md`The stored form of *this very module*, as it sits in the HTML mapping (first 350 characters). It goes stale as you edit and is refreshed on the next save, because the block is a projection of the runtime:
 
 \`\`\`js
 ${ src }…
 \`\`\``;
 };
-const s6bx1 = function _anonymous(experiment, md, ref) {return (experiment(md`**Try it.** Edit any cell — \`double\` in ${ ref('cell') }, or this very paragraph in *Edit mode* — and the stored block above does not change: the runtime has moved and the projection is stale. Now *Fork* from the burger menu (or the inline link in ${ ref('copy') }): the fork is written from the runtime, so it opens carrying your edit.`));};
+const s6bx1 = function _anonymous(experiment,md,ref) {return (experiment(md`**Try it.** Edit the title cell, the stored block above does not change: the runtime has moved and the projection is stale. Now *Fork* from the burger menu (or the inline link in ${ ref('copy') }): the fork is written from the runtime, so it opens carrying your edit, reflected in the serialization here.`));};
 const s6ah = function _anonymous(sec) {return (sec('atproto'));};
-const s6ap1 = function _anonymous(md, externalLink, ref, aside) {return (md`The same graph maps onto ATProto, the decentralized protocol behind Bluesky: a record of type \`com.lopecode.bundle\` whose entries are MIME-typed blobs — the same typed units as the script blocks, carried in a content-addressed repository tied to an identity. Publication is a burger-menu action in this essay, provided by the bundled ${ aside('at-write', ['@tomlarkworthy/at-login', '@tomlarkworthy/at-write']) } modules. The base synthesizer used in ${ ref('jam') } was itself fetched from such a record, served at ${ externalLink('lopecode.com', 'https://did-plc-j7nm3lrd5h7fm3sfhcv3lhfv.lopecode.com/r/coding-tools') }. The lexicon is not yet hosted for resolution, so discovery is manual; publication and retrieval work today.`);};
+const s6ap1 = function _anonymous(md,externalLink,aside,ref) {return (md`The runtime graph maps cleanly onto ${ externalLink('ATProto', 'https://atproto.com/') }. A record of type ${ externalLink('com.lopecode.bundle', 'https://lexicon.garden/lexicon/did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.lopecode.bundle') } carries an array of file entries, pointers to MIME-typed blobs.
+
+The userspace module ${ aside('atproto', '@tomlarkworthy/atproto') } allows you to serialize and publish the live notebook into the decentralized network directly. The base synthesizer used in ${ ref('jam') } was fetched from such a record. A web proxy exists for convenient access without a special reader at ${ externalLink('lopecode.com', 'https://did-plc-j7nm3lrd5h7fm3sfhcv3lhfv.lopecode.com/r/coding-tools') }, but it is also possible to fetch modules directly from the network.`);};
 const s6ch = function _anonymous(sec) {return (sec('iife'));};
-const s6cp1 = function _anonymous(md, ref) {return (md`The exporter's *Copy To JS* renders the runtime as a single immediately-invoked script expression on the clipboard. This is an unloader for the HTML mapping: pasted into any page that will execute a script, it reconstructs the whole environment inside that page, bringing a live editable runtime into an origin we do not control. The costs are set by the host — content-security policy blocks inline script on many sites, and the injected environment shares the host's origin, which is a capability and a hazard in equal measure (${ ref('limits') }).`);};
+const s6cp1 = function _anonymous(md,ref) {return (md`The exporter's *Copy To JS* renders the runtime as a single immediately-invoked script expression on the clipboard. This is an unloader for the HTML mapping: pasted into any page that will execute a script, it reconstructs the whole environment inside that page, bringing a live editable runtime into an origin we do not control. Content security is discussed in (${ ref('limits') }).`);};
+const _rccfld4 = function _anonymous(exporter) {return (exporter());};
+const _0otyjzt = function _anonymous(experiment,md,externalLink) {return (experiment(md`**Try it.** Click 'Copy as JS', open ${ externalLink('maps.google.com', 'https://maps.google.com') }, open the developer console and paste.`));};
 const s7h = function _anonymous(sec) {return (sec('liberation'));};
-const s7p1 = function _anonymous(md) {return (md`The reflective interface also works on runtimes booted by someone else. ObservableHQ.com is the hosted notebook service Lopecode grew out of. Notebooks there are compiled on Observable's servers; the source of record lives in their database, and the browser only ever receives the compiled program. Observable's own export paths use privileged knowledge of that source: the embed API is a server endpoint, and the runtime export is a multi-file bundle of compiled code that needs a local webserver to open and contains no source at all. What you get is an embedding. It runs, but it carries no editors and cannot export itself again.`);};
-const s7p2 = function _anonymous(md,aside,externalLink,cite,ref) {return (md`The ${ aside('exporter', '@tomlarkworthy/exporter-3') } — also published on Observable as ${ externalLink('exporter-3', 'https://observablehq.com/@tomlarkworthy/exporter-3') } — takes the reflective route. Imported into any notebook on the platform, it scans the live runtime in the page, decompiles what it finds, and writes a single Lopecode HTML file. We have no access to Observable's stored source and do not need it. The difference is transitive: an artifact made by reflection contains the exporter's own machinery, so it can re-export — you can even export exporter-3 with itself. The copy is then independent of the platform. For larger extractions — several notebooks, their file attachments, a chosen UI — ${ externalLink('jumpgate', 'https://observablehq.com/@tomlarkworthy/jumpgate') } drives the same reflection with more tooling for composing arbitrary mixtures of modules; it is how the content repositories behind this essay are maintained.
+const s7p1 = function _anonymous(md,externalLink) {return (md`The reflective interface also works on runtimes booted by someone else. ${ externalLink('ObservableHQ.com', 'https://ObservableHQ.com') } is the hosted notebook service Lopecode grew out of. Notebooks there are compiled on Observable's servers; the source of record lives in their database, and the browser only ever receives the compiled program. Observable's own export paths use privileged knowledge of that source: the embed API is a server endpoint, and the runtime export is a multi-file bundle of compiled code that needs a local webserver to open and contains no source at all. What you get is an embedding. It runs, but it carries no editors and cannot export itself again.`);};
+const s7p2 = function _anonymous(md,aside,externalLink,cite) {return (md`The ${ aside('exporter-3', '@tomlarkworthy/exporter-3') }, also published on Observable as ${ externalLink('exporter-3', 'https://observablehq.com/@tomlarkworthy/exporter-3') }, takes the reflective route. Imported into any notebook on the platform, it scans the live runtime in the page, decompiles what it finds, and writes a single Lopecode HTML file. We have no access to Observable's stored source and do not need it. The export is transitive: an artifact made by reflection contains the exporter's own machinery, so it can re-export, you can even export exporter-3 with itself. The copy is then independent of the platform. For larger extractions — several notebooks, their file attachments, a framing UI — ${ externalLink('jumpgate', 'https://observablehq.com/@tomlarkworthy/jumpgate') } drives the same reflection with more tooling for composing arbitrary mixtures of modules; it is how the content repositories behind this essay are maintained.
 
-To be precise about scope: this liberates a *copy*; the hosted original remains. And it works because Observable is a cooperative host — live programming in territory the programmer does not control, the condition ${ cite('shank2025hostile') } examine. ${ ref('limits') } describes hosts that fight back.`);};
-const s8h = function _anonymous(sec) {return (sec('container'));};
-const s8p1 = function _anonymous(md, aside, ref) {return (md`The file you are reading holds more than this essay. The ${ aside('CSV tool', ['@tomlarkworthy/csv-column-chooser']) } from ${ ref('ship') } is here. So are a ${ aside('music application', ['@tomlarkworthy/butter-synth']) } (${ ref('jam') }) and an ${ aside('agent', ['@tomlarkworthy/robocoop-4']) } (${ ref('agent') }). Every blue in-page link in this essay is ordinary lopepage navigation: a hash URL naming a layout of modules, which you can also just type. Toggle *Edit mode* in the burger menu and every paragraph becomes an editable cell — this essay was written in itself.
-
-Composing modules into a container is the same ad hoc module mixing that jumpgate performs on Observable in ${ ref('liberation') }, pointed at a file we own. Reading, authoring and distribution happen in the same medium.`);};
+Exporter-3 liberates a *copy*; the hosted original remains. We can consider exporter-3 an example of *Adversarial Extension* ${ cite('shank2025hostile') }.`);};
 const s9h = function _anonymous(sec) {return (sec('jam'));};
-const s9p1 = function _anonymous(md, aside, ref) {return (md`The base application was ${ aside('butter-synth', ['@tomlarkworthy/butter-synth']) }, a small synth-pad instrument, fetched from the ATProto record in ${ ref('atproto') }. In a session with a music teacher — a domain expert, not a programmer — the polite verdict was that it sounded basic. So we asked the in-runtime agent for better music-production sounds, and it wrote new instruments and effects, with presets, as ordinary cells in the running application. The feedback was immediate and audible; the teacher directed, the agent programmed. When the session ended we saved the file and sent a copy over WhatsApp.`);};
-const s9p2 = function _anonymous(md, aside, ref) {return (md`The copy is the point. The agent's contributions were cell definitions, so decompilation captured them exactly as it captures human-written cells: the exported file contains the new effects chain, still live. The version bundled in this essay is the one saved that day — diffing it against the ATProto base shows what the agent added: a tape-saturation stage, a chorus, reverb pre-delay, and a dub delay it titled *"Dub Echo (Safe from Harm)"*, after the Massive Attack track whose sound was being chased. ${ aside('Play it', ['@tomlarkworthy/butter-synth']) }.
+const s9p1 = function _anonymous(md,aside) {return (md`I shared a vibed audio notebook in a session with a music teacher, a domain expert, not a programmer and their polite verdict was that it was *basic*. So together we asked the in-runtime ${ aside('coding agent', '@tomlarkworthy/robocoop-5') } for richer sounds. Live, it wrote new instruments and effects, with presets, as extensions to the existing audio application. The feedback was immediate and audible; the teacher directed, the agent programmed. When the session ended we saved the ${ aside('butter-synth', '@tomlarkworthy/butter-synth') } and shared a copy over WhatsApp as a memento.`);};
+const s9p2 = function _anonymous(md,externalLink,aside,ref) {return (md`The copy is the point. The agent's contributions were cell definitions, so decompilation captured them exactly as it captures human-written cells: the exported file contains the new effects chain, still live. The version bundled in this essay is the one saved that day — diffing it against the ${ externalLink('ATProto butter-synth', 'https://did-plc-j7nm3lrd5h7fm3sfhcv3lhfv.lopecode.com/r/coding-tools#view=R100(S50(@tomlarkworthy/why-claude-code-codes-well,@tomlarkworthy/exporter-3,@tomlarkworthy/runtime-sdk,@tomlarkworthy/claude-code-pairing,@tomlarkworthy/atproto),S50(@tomlarkworthy/butter-synth))&cc=LOPE-55599-EVR2') }  shows what the agent added: a tape-saturation stage, a chorus, reverb pre-delay, and a dub delay it titled *"Dub Echo (Safe from Harm)"*, named after the teacher favourite electronic band *Massive Attack* whose sound was being chased. ${ aside('Play it', ['@tomlarkworthy/butter-synth']) }.
 
 A recording of the session would have captured the sound; the document captured the *instruments*. To be precise about what survives: definitions and declared state (writable file attachments) serialize; transient values do not — they recompute on boot, unless deliberately promoted into a definition, as the slider in ${ ref('copy') } does. Ephemeral, machine-generated code became a durable artifact because serialization reads the runtime, and the runtime is where that code lived.`);};
 const s10h = function _anonymous(sec) {return (sec('agent'));};
-const s10p1 = function _anonymous(md, aside, ref, cite) {return (md`${ aside('robocoop', ['@tomlarkworthy/robocoop-4']) }, the agent used in the jam, executes inside the runtime as a dataflow program: it reads program state as well as code, and modifies cells through the same reflective interface the human editors use. This inverts the usual topology of AI-assisted programming. A coding harness such as Claude Code lives in the developer's environment and operates on source files, and the application ships separately, without it. Here the runtime, the editors, the agent harness and the application are a single bundle: what ships is the entire site of the application's development.
+const s10p1 = function _anonymous(md,aside,cite,ref) {return (md`${ aside('robocoop', ['@tomlarkworthy/robocoop-5']) }, the agent used in the jam, executes inside the runtime as a dataflow program: it reads program state as well as code, and modifies cells through the same reflective interface the human editors use. This inverts the usual topology of AI-assisted programming. A coding harness such as Claude Code lives in the developer's environment and operates on source files, and the application ships separately, without it. Here the runtime, the editors, the agent harness and the application are a single bundle: what ships is an entire snapshot of an application and the application's development environment.
 
 The consequence is personal histories. Every copy is a complete development environment, so each copy can evolve independently of any canonical upstream. The music teacher's copy of the jam contains the new instruments and the means — editors, agent, exporter — to keep changing them, independently of us and of any server. Among this document's background jobs is a ${ aside('change recorder', ['@tomlarkworthy/local-change-history']) }, so a copy's edits are logged and replayable — version history kept inside the artifact itself, a direction Backstitch is also pursuing for the Godot editor ${ cite('backstitch2026') }. Copies diverge into lineages owned by their holders; malleability survives distribution because the toolchain travels inside the artifact.
 
@@ -234,38 +236,36 @@ const _hourglassDiagram = function _hourglassDiagram(htl) {
     ${ label(310, 253, 'the platform: standard, not ours, not moldable from within', 400, 10.5, 0.65) }
   </svg>`;
 };
-const s11p2 = function _anonymous(md, externalLink, cite, aside) {return (md`The narrow waist pays twice. First, it lets tooling be *uncoordinated*. ${ aside('editable-md', ['@tomlarkworthy/editable-md']) } (the prose editing in this page), ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } (the code editor behind Edit mode), the exporter, the debugger and the agent do not know about each other. Each reads and writes the runtime through the same reflective interface, so a new editor is a module you import, not a fork of the system. Second, the waist is a web standard rather than a private VM interface, so the artifact inherits the browser's backwards-compatibility discipline. Our first, embarrassing export from January 2025 ${ externalLink('still opens', 'https://raw.githubusercontent.com/tomlarkworthy/lopecode/459c924658b8a18fe46a51719c1ab2de36a839a7/webpage.html') }.
+const s11p2 = function _anonymous(md,aside,externalLink,cite) {return (md`The narrow waist pays twice. First, it lets tooling be *uncoordinated*. ${ aside('editable-md', ['@tomlarkworthy/editable-md']) } (the prose editing in this page), ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } (the code editor behind Edit mode), the ${ aside('exporter', '@tomlarkworthy/exporter-3') } and the agent do not know about each other. Each reads and writes the runtime through the same reflective interface, so a new editor is a module you import, not a fork of the system. Second, the waist is a web standard rather than a private VM interface, so the artifact inherits the browser's backwards-compatibility discipline. Our first, embarrassing export from January 2025 ${ externalLink('still opens', 'https://raw.githubusercontent.com/tomlarkworthy/lopecode/459c924658b8a18fe46a51719c1ab2de36a839a7/webpage.html') }.
 
-In the vocabulary of BootstrapLab ${ cite('jakubovic2022ladder') }: the *platform* is the browser plus the Observable runtime; the *substrate* is the script-block container plus the reflection SDK; everything above is *product*. Lopecode did not ascend from a low-level instruction set — it inherited a high platform and closed the loop by making the producer, the exporter, an ordinary userspace module.`);};
+In the vocabulary of BootstrapLab ${ cite('jakubovic2022ladder') }: the *platform* is the browser plus the Observable runtime; the *substrate* is the script-block container plus the reflection SDK; everything above is *product*. Lopecode did not ascend from a low-level instruction set — it inherited a high platform and closed the loop by making the producer, the exporter, ordinary userspace modules.`);};
 const s12h = function _anonymous(sec) {return (sec('related'));};
 const s12p1 = function _anonymous(md, cite, ref) {return (md`The form of this submission follows ${ cite('edwards2019') }. That paper criticizes LIVE-style venues for work "presented informally, through screencasts", lacking related work, and proposes the interactive essay, evaluated by inquiry, as the remedy — while naming the archival fragility of web essays as an open difficulty, "easier to address if they are self-contained". This essay is submitted as evidence on that point: an interactive essay that is self-contained by construction, carries its own tooling, and re-exports itself. We adopt their author guidelines, including the requirement for problematic examples (${ ref('limits') }).`);};
 const s12p2 = function _anonymous(md, cite) {return (md`${ cite('jakubovic2023techdims') } define a programming system as "an integrated and complete set of tools sufficient for creating, modifying, and executing programs", which is the register in which Lopecode asks to be judged: it is not a language and not a library. Their design-space maps observe "a conspicuous blank space at the top-right" where high self-sustainability meets high notational diversity; Lopecode sits toward that corner, re-serializing itself while its notation spans prose, code, widgets and whole userspace UIs. ${ cite('jakubovic2022ladder') } define self-sustainability as dissolving the product/source/producer distinction, and reach it by ascending from a minimal substrate. Their persistence, notably, was a manual walk of the state graph to a JSON file — "reminiscent of the image-based persistence in Smalltalk, though it is frustratingly manual". The exporter is Lopecode's answer to exactly that problem, and it adds the axis their account leaves open: the product is a single runtime-free file, so persistence doubles as dissemination.`);};
 const s12p2b = function _anonymous(md, cite, aside) {return (md`The mechanism belongs to the reflection literature. ${ cite('smith1984reflection') } introduced procedural reflection — a program able to represent and act on its own state. ${ cite('maes1987reflection') } named the general property *computational reflection* and reified it as metaobjects. ${ cite('kiczales1991amop') } turned reflection into an engineering practice: expose the implementation to userspace as a metaobject protocol. Lopecode's ${ aside('runtime SDK', ['@tomlarkworthy/runtime-sdk']) } is a metaobject protocol in that engineering sense — the editors, the exporter and the agent are metaprograms written against it — though the reflection on offer is deliberately coarse: whole definitions are read and written, and there is no intercession in the scheduler.`);};
 const s12p3 = function _anonymous(md, cite) {return (md`The exporter is a *mirror* in the sense of ${ cite('bracha2004mirrors') }: a meta-level facility separated from the base program (their *stratification*) that reifies the runtime's own categories — modules, cells and attachments map one-to-one onto script blocks (their *ontological correspondence*). Bracha and Ungar motivate mirrors by "significant advantages with respect to distribution, deployment and general purpose metaprogramming"; a mirror whose output is a deployable artifact takes that motivation literally.`);};
-const s12p4 = function _anonymous(md, cite) {return (md`The comparison Lopecode invites most is the Smalltalk image ${ cite('ingalls1981') }. An image persists a whole live world, and so does a Lopecode file. The differences are the point: an image is an opaque memory dump bound to its VM, where the Lopecode mapping is legible text bound to a web standard; and Smalltalk is imperative message-passing where Lopecode is reactive dataflow. We cite Smalltalk for image persistence and total moldability, not as an architectural analogy. Squeak sharpened the self-description end of that tradition — a Smalltalk whose virtual machine is written in itself ${ cite('ingalls1997squeak') }; its producer is a translator that emits a VM, where Lopecode's producer is an exporter that emits a document.`);};
+const s12p4 = function _anonymous(md,cite) {return (md`The comparison Lopecode invites most is the Smalltalk image ${ cite('ingalls1981') }. An image persists a whole live world, and so does a Lopecode file. The differences are the point: an image is an opaque memory dump bound to its VM, where the Lopecode mapping is legible text bound to a web standard; and Smalltalk is imperative message-passing where Lopecode is reactive dataflow. Smalltalk remembers values, Lopecode only exports code. We cite Smalltalk for image persistence and total moldability, not as an architectural analogy. Squeak sharpened the self-description end of that tradition — a Smalltalk whose virtual machine is written in itself ${ cite('ingalls1997squeak') }; its producer is a translator that emits a VM, where Lopecode's producer is an exporter that emits a document.`);};
 const s12p5 = function _anonymous(md, cite, ref) {return (md`${ cite('miranda2025singlehtml') } is the closest recent precedent: single HTML files that modify and save themselves. In our vocabulary his file is the canonical artifact — format-first — where Lopecode's file is one projection among three. ${ cite('klokmose2015webstrates') } made the DOM itself the shared persistent substrate; again the persisted structure is the document. The mechanism specific to Lopecode is that the persisted form is decompiled on demand from live functions, which is what makes the projections plural and the export transitive (${ ref('liberation') }).`);};
 const s12p6 = function _anonymous(md, cite, ref) {return (md`${ cite('litt2025malleable') } argue for software that users reshape at the point of use, and diagnose the wall between users and "engineering teams at distant corporations". A document that carries its own editors is one concrete form of point-of-use agency, and ${ ref('ship') } is a field report of it crossing an actual corporate wall. ${ cite('shank2025hostile') } name the adversarial conditions live programming meets outside the lab; our findings on hosts that defend themselves (${ ref('limits') }) are the same territory approached from the distribution side. ${ cite('horowitz2023lrc') } name persistence as the quality separating rich in-notebook widgets from programming: interactions with a rendered tool "cannot be 'saved' back to the notebook, and their effects will always disappear when the notebook is reloaded". A definition that is data a cell can rewrite (${ ref('copy') }) supplies that quality from userspace.`);};
 const s12p7 = function _anonymous(md, cite, ref) {return (md`Outside research systems, decompilation is already how shipped software gets reopened. Minecraft's modding ecosystem stands on decompiling and re-mapping an obfuscated binary — the libre yarn mappings exist for exactly this ${ cite('fabricyarn') } — and the Super Mario 64 decompilation reconstructs buildable source from a ROM ${ cite('sm64decomp') }. Those communities work for years to recover what the vendor withheld. A source-last artifact withholds nothing: decompilation here is the system's ordinary read path, not an act of reverse engineering (${ ref('cell') }).`);};
 const s13h = function _anonymous(sec) {return (sec('limits'));};
-const s13p1 = function _anonymous(md, cite, ref) {return (md`Following the guideline in ${ cite('edwards2019') }: problems in roughly the same number as benefits.
+const s13p1 = function _anonymous(md,cite,ref) {return (md`Following the guideline in ${ cite('edwards2019') }: problems in roughly the same number as benefits.
 
-**Not everything round-trips.** Serialization captures definitions and declared state. A cell holding an open WebSocket, a mid-flight generator, or DOM state accumulated outside a file attachment reboots to its definition, not to its moment. The sticky idiom of ${ ref('copy') } narrows the gap by rewriting chosen view state into the definition, but only for JSON-serializable values with commit semantics.
+**Not everything round-trips.** Serialization captures definitions and declared state. State accumulated outside a file attachment reboots to its definition, not to its moment. The sticky idiom of ${ ref('copy') } narrows the gap by rewriting chosen view state into the definition, but only for JSON-serializable values with commit semantics.
 
-**Decompilation has edge cases.** \`toString()\` recovers compiled JavaScript; the inverse mapping back to notebook syntax is engineered, not free. Cross-module \`viewof\` imports are a known case that mangles on round-trip. A reactive test guards the decompilability invariant, and the low-level API is powerful enough to break it deliberately. The platform can also decline: the specification's \`HostHasSourceTextAvailable\` hook lets a host withhold source text entirely ${ cite('tc39tostring') }.
+**Decompilation has edge cases.** \`toString()\` recovers compiled JavaScript; the inverse mapping back to notebook syntax is engineered, not free. Agents that write arbitrary low-level definitions can create undecompilable expressions. A reactive test guards the decompilability invariant to warn the agent, but the agent might ignore the warning. The web platform can also decline: the specification's \`HostHasSourceTextAvailable\` hook lets a host withhold source text entirely ${ cite('tc39tostring') }.
 
-**No closures means not general JavaScript.** The recovered source is complete only because cells close over nothing (${ ref('cell') }). \`toString()\` cannot capture a closure environment, so the technique does not extend to programs that use closures for state — which is most idiomatic JavaScript. Source-last recovery is a property of the closure-free cell shape the compiler enforces, not of the language.
+**No closures means not general JavaScript.** The recovered source is complete only because cells close over nothing (${ ref('cell') }). \`toString()\` cannot capture a closure environment, so the technique does not extend to programs that use closures for state — which is most idiomatic JavaScript. Source-last recovery is a property of the closure-free cell shape the Observable Runtime encourages, not of the language.
 
-**The browser withholds the machine.** Arbitrary HTTP is subject to CORS, and raw TCP, processes and the local file system are unavailable, so whole classes of useful programs cannot be expressed. The same sandbox is why the file is a viable distribution format at all (${ ref('ship') }): the dangerous facilities of remote code execution are neutered by the environment itself.
+**The browser has its own limitations.** Arbitrary HTTP is subject to CORS, and raw TCP, processes and the local file system are unavailable, so whole classes of useful programs cannot be expressed. The same sandbox is why the file is a viable distribution format at all (${ ref('ship') }): the dangerous facilities of remote code execution are neutered by the environment itself.
 
-**The moldability gradient is steep.** Changing a value or a paragraph is spreadsheet-grade. Replacing the exporter or the editor requires understanding the runtime SDK. We have no evidence yet that a non-programmer crosses that gradient unaided.
+**The moldability gradient is steep.** Changing a value or a paragraph is simple. Replacing the exporter or the editor requires understanding the runtime SDK. We have no evidence yet that a non-programmer can cross that gradient unaided. Agents have a habit of glitching themselves when attempting it.
 
-**A document that runs code is a phishing shape.** The same properties that carried the tool of ${ ref('ship') } through a corporate boundary would carry a malicious payload. Provenance and signing are unsolved for us. Plain-text legibility is a partial mitigation, and some email gateways rightly quarantine HTML attachments.
+**A document that runs code is a phishing shape.** The same properties that carried the tool of ${ ref('ship') } through a corporate boundary could carry a malicious payload. Provenance and signing are unsolved in Lopecode. Plain-text legibility is a partial mitigation, and some email gateways rightly quarantine HTML attachments.
 
-**Adversarial hosts win.** The injection direction of ${ ref('iife') } works on cooperative or self-owned pages. Commercial sites defend themselves: when we injected into Google Trends, the page disabled itself even with content-security policy turned off. Capture is a relationship with the host, not a universal right.
+**Adversarial hosts can protect against injection.** The injection direction of ${ ref('iife') } works on cooperative or self-owned pages. Commercial sites defend themselves: when we injected into Google Trends, the page disabled itself even with content-security policy turned off.
 
-**Offline-first is manual labour.** Every dependency must be vendored into the file. We chose openness over conceptual integrity here, and the price is that adopting a library is a deliberate act, not an import statement.
-
-> 🖊️ **TODO(wiring)** — add the live failing round-trip demo: a cell holding a WebSocket, exported, showing what the copy lost.`);};
+**Offline-first is manual labour.** Every dependency must be vendored into the file. We chose openness over conceptual integrity here, and the price is that adopting a library is a deliberate act, not an import statement.`);};
 const s14h = function _anonymous(sec) {return (sec('questions'));};
 const s14p1 = function _anonymous(md, ref) {return (md`LIVE asks three questions of systems submissions. In brief:
 
@@ -526,13 +526,12 @@ const _sections = function _sections() {return ([
   { key: 'claim', title: 'Runtime-first, not format-first' },
   { key: 'cell', title: 'A cell is a function that carries its source' },
   { key: 'modular', title: 'The runtime is modular' },
-  { key: 'copy', title: 'Taking a copy is a menu item' },
+  { key: 'copy', title: 'Copying the live system' },
   { key: 'mappings', title: 'Formats are mappings from the runtime' },
   { key: 'html', title: 'HTML: the document mapping', parent: 'mappings' },
   { key: 'atproto', title: 'ATProto: the record mapping', parent: 'mappings' },
   { key: 'iife', title: 'IIFE: an unloader for the HTML', parent: 'mappings' },
   { key: 'liberation', title: 'Liberation: exporting a program whose source you cannot see' },
-  { key: 'container', title: 'One container, many documents' },
   { key: 'jam', title: 'The jam: serializing a moment' },
   { key: 'agent', title: 'One bundle: runtime, editors, agent, application' },
   { key: 'waist', title: 'The thin waist' },
@@ -565,14 +564,21 @@ const _sec = function _sec(sectionIndex) {return ((key) => {
     : `[missing section: ${ key }]`;
   return h;
 });};
-const _ref = function _ref(sectionIndex, htl) {return ((key) => {
-  const s = sectionIndex.get(key);
-  if (!s) return htl.html`<strong style="color:#c96a6a">[missing section: ${ key }]</strong>`;
-  return htl.html`<a
+const _ref = function _ref(sectionIndex,htl) {return (key => {
+    const s = sectionIndex.get(key);
+    if (!s)
+        return htl.html`<strong style="color:#c96a6a">[missing section: ${ key }]</strong>`;
+    return htl.html`<a
     href="#"
     title="§${ s.num } ${ s.title }"
-    onclick=${ (ev) => { ev.preventDefault(); document.getElementById(`sec-${ key }`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
-  >§${ s.num }</a>`;
+    onclick=${ ev => {
+        ev.preventDefault();
+        document.getElementById(`sec-${ key }`)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    } }
+  ><em>§${ s.title }</em></a>`;
 });};
 const _essayModuleView = function _essayModuleView(thisModule) {return (
   thisModule()
@@ -585,15 +591,6 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
-  main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));  
-  main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));  
-  main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));  
-  main.define("forkAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("forkAnchor", _));  
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
-  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
-  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));  
-  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
-  main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));  
   $def("p0", "p0", ["md"], p0);  
   $def("p1", null, ["md","externalLink"], p1);  
   $def("_abstract", "abstract", ["md"], _abstract);  
@@ -632,23 +629,23 @@ export default function define(runtime, observer) {
   $def("_ownBlockPeek", "ownBlockPeek", ["md"], _ownBlockPeek);  
   $def("s6bx1", null, ["experiment","md","ref"], s6bx1);  
   $def("s6ah", null, ["sec"], s6ah);  
-  $def("s6ap1", null, ["md","externalLink","ref","aside"], s6ap1);  
+  $def("s6ap1", null, ["md","externalLink","aside","ref"], s6ap1);  
   $def("s6ch", null, ["sec"], s6ch);  
   $def("s6cp1", null, ["md","ref"], s6cp1);  
+  $def("_rccfld4", null, ["exporter"], _rccfld4);  
+  $def("_0otyjzt", null, ["experiment","md","externalLink"], _0otyjzt);  
   $def("s7h", null, ["sec"], s7h);  
-  $def("s7p1", null, ["md"], s7p1);  
-  $def("s7p2", null, ["md","aside","externalLink","cite","ref"], s7p2);  
-  $def("s8h", null, ["sec"], s8h);  
-  $def("s8p1", null, ["md","aside","ref"], s8p1);  
+  $def("s7p1", null, ["md","externalLink"], s7p1);  
+  $def("s7p2", null, ["md","aside","externalLink","cite"], s7p2);  
   $def("s9h", null, ["sec"], s9h);  
-  $def("s9p1", null, ["md","aside","ref"], s9p1);  
-  $def("s9p2", null, ["md","aside","ref"], s9p2);  
+  $def("s9p1", null, ["md","aside"], s9p1);  
+  $def("s9p2", null, ["md","externalLink","aside","ref"], s9p2);  
   $def("s10h", null, ["sec"], s10h);  
-  $def("s10p1", null, ["md","aside","ref","cite"], s10p1);  
+  $def("s10p1", null, ["md","aside","cite","ref"], s10p1);  
   $def("s11h", null, ["sec"], s11h);  
   $def("s11p1", null, ["md","cite","ref"], s11p1);  
   $def("_hourglassDiagram", "hourglassDiagram", ["htl"], _hourglassDiagram);  
-  $def("s11p2", null, ["md","externalLink","cite","aside"], s11p2);  
+  $def("s11p2", null, ["md","aside","externalLink","cite"], s11p2);  
   $def("s12h", null, ["sec"], s12h);  
   $def("s12p1", null, ["md","cite","ref"], s12p1);  
   $def("s12p2", null, ["md","cite"], s12p2);  
@@ -676,6 +673,16 @@ export default function define(runtime, observer) {
   $def("_sec", "sec", ["sectionIndex"], _sec);  
   $def("_ref", "ref", ["sectionIndex","htl"], _ref);  
   $def("_essayModuleView", "viewof essayModule", ["thisModule"], _essayModuleView);  
-  $def("_essayModule", "essayModule", ["Generators","viewof essayModule"], _essayModule);
+  $def("_essayModule", "essayModule", ["Generators","viewof essayModule"], _essayModule);  
+  main.define("exporter", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("exporter", _));  
+  main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));  
+  main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));  
+  main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));  
+  main.define("forkAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("forkAnchor", _));  
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
+  main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
+  main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));  
+  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
+  main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));
   return main;
 }
