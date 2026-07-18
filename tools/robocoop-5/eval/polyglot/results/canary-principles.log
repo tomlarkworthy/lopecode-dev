@@ -1,0 +1,23 @@
+model: xiaomi/mimo-v2.5-pro  problems: 9  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval-v2.html
+  ..bottle-song attempt1 fail steps=7 (47s)
+PASS@2  bottle-song  steps=7+7 (87s)
+  ..house attempt1 fail steps=9 (144s)
+FAIL    house  steps=9+8 (187s)  FAIL: House > multiple verses
+  ..meetup attempt1 fail steps=9 (85s)
+PASS@2  meetup  steps=9+7 (187s)
+  ..phone-number attempt1 fail steps=16 (104s)
+PASS@2  phone-number  steps=16+13 (163s)
+  ..pig-latin attempt1 pass steps=8 (71s)
+PASS@1  pig-latin  steps=8+0 (71s)
+  ..say attempt1 fail steps=7 (40s)
+PASS@2  say  steps=7+3 (56s)
+  ..tournament attempt1 pass steps=28 (145s)
+PASS@1  tournament  steps=28+0 (145s)
+  ..triangle attempt1 pass steps=6 (36s)
+PASS@1  triangle  steps=6+0 (36s)
+  ..wordy attempt1 fail steps=5 (29s)
+FAIL    wordy  steps=5+9 (84s)  FAIL: Wordy > unknown operation
+
+pass@1: 3/9 = 0.333
+pass@2: 7/9 = 0.778
+wrote results/canary-principles.json

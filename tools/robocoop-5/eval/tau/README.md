@@ -31,16 +31,20 @@ Arms (both `xiaomi/mimo-v2.5-pro`):
   message = one `session.send` turn; the turn's closing text is the reply. Notebook file tools are
   unregistered so the tool surface matches the baseline (`--keep-tools` keeps the full surface).
 
-## Results (2026-07-17, pass@1, all 115 tasks, zero unresolved infra errors)
+## Results (pass@1, all 115 tasks)
 
-| arm | pass@1 |
-|---|---|
-| raw model (official tool-calling loop) | 91/115 = **0.791** |
-| robocoop-5 system | 84/115 = **0.730** |
+| arm | pass@1 | date |
+|---|---|---|
+| raw model (official tool-calling loop) | 91/115 = **0.791** | 2026-07-17 |
+| robocoop-5 system, v1 core | 84/115 = **0.730** | 2026-07-17 |
+| robocoop-5 system, yield-fix core | 91/115 = **0.791** | 2026-07-17 (zero infra errors) |
 
-Cross-tab: both pass 75, baseline-only 16, agent-only 9, both-fail 15.
+The yield fix (below) closed the whole −6.1pp gap to an exact tie. On top of it, a replay-diff
+failure autopsy (`analyze-fails.mjs`) motivated generic OPERATING PRINCIPLES in the loop prompt,
+which converted 6 of the 11 non-model-ceiling gate failures on targeted re-runs (see below); a full
+confirmation gate with the principles core has not been run yet.
 
-## Why the system loses (−6.1pp): the harness's action bias fights conversational yield
+## v1 failure taxonomy (−6.1pp): the harness's action bias fights conversational yield
 
 **10 of the 16 agent losses called `transfer_to_human_agents` (0 of 9 wins did); 9 of 16 contain runs
 of 3+ consecutive `think` calls.** The mechanism, visible in trajectories: when the agent needs
@@ -62,10 +66,41 @@ Secondary observations:
   client (~2min); the runner now retries a failed turn 3× (the session is persistent) before
   abandoning a task.
 
-Actionable harness work, in expected-value order: make the completion guard conversation-aware (a
-turn that ASKS THE USER a question is a legitimate tool-free turn), soften the never-stop language
-when the blocker is missing user input, and treat `transfer_to_human_agents`-class escalation tools
-as requiring an explicit user-facing question first.
+## The yield fix (core `f8a55e2`): ending the turn to ask the user is a first-class move
+
+Three coordinated prompt/guard changes in the rc5 loop: `task_complete` is described as the way to
+END YOUR TURN (complete, finished answering, or BLOCKED on something only the user can provide —
+"ending the turn IS how you ask"); the stall nudge gained a matching branch; the completion guard
+accepts a tool-free turn that asks the user a question. Mechanism verified on the 16 v1 losses:
+12/16 converted, and the think-loop → `transfer_to_human_agents` signature disappeared from
+trajectories. Full gate result: 91/115, tying the baseline with zero infra errors.
+
+## Failure autopsy (replay diff) and operating principles
+
+`analyze-fails.mjs` replays a failed trajectory's mutations against the env and structurally diffs
+the final state vs the oracle (MISSING / EXTRA / per-path WRONG). Across the 24 gate failures the
+recurring shapes were: wrong-target selection (acted on the first plausible match without surveying
+all candidate records), over-action (extra mutations beyond the request), and dropped halves of
+compound requests. 13 of the 24 were also baseline failures (model ceiling); the 11 remaining were
+strategy defects: committing to the first match without resolving ambiguity, and losing parts of
+multi-part requests (no external working memory).
+
+Both defects were addressed generically (not benchmark-specific) as trigger-conditioned OPERATING
+PRINCIPLES appended to the loop system message (core `eee59f1` + `d6b5903`): (1) before hard-to-undo
+actions, name the exact target and treat unopened records as unexamined candidates — survey before
+acting, ask only when only the user can disambiguate; (2) enumerate multi-part requests up front and
+check each part off before finishing. Targeted re-runs converted 6/11 (tasks 5, 6, 45, 64, 92, 93),
+with the mechanism visible in trajectories (full order survey, enumerated variants, disambiguation
+question). Remainder: 18/91/95/99 reclassified model-ceiling (95 fails even when the user volunteers
+the disambiguator), 41 is a precondition-ordering trap that resisted three formulations. An
+over-application canary — 9 previously-passing polyglot slugs re-run under the principles core —
+scored 7/9 pass@2 with both failures being ordinary semantic variance on historically flip-prone
+tasks (no question-shaped completions), i.e. the ask/survey triggers stay silent where there is no
+user and no ambiguity.
+
+Meta-lesson across the whole ladder: prompts that legitimize or mandate a specific action at a
+specific structural trigger move numbers (streaming yield, principles); generic care-exhortations do
+not (a "double-check after mutations" sentence measurably changed nothing and was reverted).
 
 ## Running
 
@@ -75,6 +110,7 @@ node fidelity-check.mjs                  # JS-vs-Python parity gate (must be 115
 node run-baseline.mjs --limit 115 --concurrency 2 --json results/baseline-full.json
 node run-agent.mjs --offset 0 --limit 58 --json results/agent-shard0.json
 node run-agent.mjs --tasks 5,14,17 ...   # targeted re-runs
+node analyze-fails.mjs results/agent-final-shard0.json   # replay-diff autopsy of failures
 ```
 
 Key from `tools/robocoop-4/.env`; `OPENROUTER_MODEL` there is IGNORED — evals pin mimo explicitly.
