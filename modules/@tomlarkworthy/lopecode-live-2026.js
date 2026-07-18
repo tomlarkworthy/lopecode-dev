@@ -1,10 +1,10 @@
 const p0 = function _anonymous(md) {return (md`# Source-last programming`);};
-const p1 = function _anonymous(md, externalLink) {return (md`*Tom Larkworthy — draft submission to ${ externalLink('LIVE 2026', 'https://liveprog.org/') }.*`);};
 const _abstract = function _anonymous(md) {return (md`> **Abstract.** Perhaps to build systems that are malleable and end user programmable we need to rethink the relationship between runtime and development artifacts. It is our opinion that the concept of source code itself was the original sin that drove a wedge between user and developer.
 >
 > Most existing programming systems are format-first: a canonical saved representation — \\\`.ipynb\\\`, an image dump, a document schema that the system loads. Lopecode is *source-last*: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system. When source code is needed, functions are decompiled on demand starting from \`Function.prototype.toString()\`. Serialization becomes a projection to one of many formats: a standalone HTML file, a JavaScript IIFE or an ATProto PDS. Format-independence is a consequence of runtime-primacy. Furthermore, we claim runtime-primacy also leads to simpler implementations of malleability and liveness, by admitting a plurality of non-source based editing surfaces.
 >
 > We share three field episodes where Lopecode's format agnosticism shone: shipping a tool into a locked-down corporate environment; liberating a running program from a notebook SaaS; and freezing an AI-co-created music jam into a document shared over WhatsApp.`);};
+const p1 = function _anonymous(md,externalLink) {return (md`*Tom Larkworthy — submission to ${ externalLink('LIVE 2026', 'https://liveprog.org/') }.*`);};
 const s1h = function _anonymous(sec) {return (sec('ship'));};
 const s1p1 = function _anonymous(md) {return (md`A business analyst in a regulated industry, in another continent, could not open a large CSV export with their preferred tool, Excel. We knew almost nothing about their environment except that it was strict: corporate machines, no installing software, and data compliance. We built a small tool that trims columns from large CSVs, as a Lopecode notebook, and sent the single HTML file over Slack. They double-clicked it. The tool ran offline in their browser, and they were able to reexport a trimmed CSV that could be loaded by Excel.`);};
 const s1p2 = function _anonymous(md) {return (md`Nothing about the tool is interesting. What is interesting is that it is actually very hard to share a program to non-programmers in 2026. Native binaries and cloud services are not safe in corporate environments. The browser is an ideal runtime because it is sandboxed and present on every operating system. A single HTML file does not require cross-origin requests, so it can be double-clicked and it just works. So a pragmatic option to distribute code is a self-enclosed file that can travel on email and instant messenger.`);};
@@ -137,9 +137,9 @@ const _stickyDiagram = async function _stickyDiagram(mermaid) {
     ${ id } line { stroke: currentColor !important; }
     ${ id } .actor-line { stroke-opacity: 0.25 !important; }
     ${ id } .messageLine0, ${ id } .messageLine1 { stroke-opacity: 0.6 !important; }
-    ${ id } rect.actor { fill: color-mix(in srgb, currentColor 7%, transparent) !important; stroke: color-mix(in srgb, currentColor 45%, transparent) !important; }
-    ${ id } circle { fill: color-mix(in srgb, currentColor 7%, transparent) !important; stroke: currentColor !important; }
-    ${ id } .note { fill: color-mix(in srgb, currentColor 10%, transparent) !important; stroke: color-mix(in srgb, currentColor 40%, transparent) !important; }
+    ${ id } rect.actor { fill: color-mix(in srgb, currentColor 7%, var(--theme-background, Canvas)) !important; stroke: color-mix(in srgb, currentColor 45%, transparent) !important; }
+    ${ id } circle { fill: color-mix(in srgb, currentColor 7%, var(--theme-background, Canvas)) !important; stroke: currentColor !important; }
+    ${ id } .note { fill: color-mix(in srgb, currentColor 10%, var(--theme-background, Canvas)) !important; stroke: color-mix(in srgb, currentColor 40%, transparent) !important; }
     ${ id } marker path { fill: currentColor !important; stroke: none !important; }
   `;
   svg.appendChild(style);
@@ -592,8 +592,8 @@ export default function define(runtime, observer) {
   };
 
   $def("p0", "p0", ["md"], p0);  
-  $def("p1", null, ["md","externalLink"], p1);  
   $def("_abstract", "abstract", ["md"], _abstract);  
+  $def("p1", null, ["md","externalLink"], p1);  
   $def("s1h", null, ["sec"], s1h);  
   $def("s1p1", null, ["md"], s1p1);  
   $def("s1p2", null, ["md"], s1p2);  
