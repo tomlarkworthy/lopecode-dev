@@ -28,7 +28,11 @@ const _i2n6lv = function _sticky(runtime,acorn)
         console.warn('sticky: could not apply remembered value', e);
       }
     }
-    const commit = () => {
+    const commit = e => {
+      // transient events (e.g. arranger scene playback) drive the view without
+      // persisting: source keeps the author's resting state
+      if (e && e.transient)
+        return;
       try {
         const self = [...runtime._variables].find(v => v._value === view);
         if (!self)
