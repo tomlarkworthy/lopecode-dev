@@ -220,20 +220,52 @@ The corollary is that the agent is a per-artifact composition decision, not a pl
 const s11h = function _anonymous(sec) {return (sec('waist'));};
 const s11p1 = function _anonymous(md, cite, ref) {return (md`What is the irreducible, non-userspace core? Below the line sit the browser, es-module-shims for import interception, the Observable runtime (6.5 KB) and a bootloader; a minimal Lopecode file is about 48 KB. Everything else demonstrated in this essay is userspace. The interface between the two layers is narrow, in the manner of the Internet's hourglass ${ cite('beck2019hourglass') }, and its reflective half is a single web standard: \`Function.prototype.toString()\`. The waist is specified: the stage-4 toString revision requires the returned string to be the function's actual source text ${ cite('tc39tostring') }, and the same specification names the conditions under which a host may withhold it, a limit we return to in ${ ref('limits') }.`);};
 const _hourglassDiagram = function _hourglassDiagram(htl) {
-    const W = 620, H = 280;
-    const box = (x, y, w, h, fill, stroke) => htl.svg`<rect x="${ x }" y="${ y }" width="${ w }" height="${ h }" rx="7" fill="${ fill }" stroke="${ stroke }" stroke-width="1.2"/>`;
+    const W = 680, H = 312;
     const label = (x, y, t, weight = 600, size = 12, op = 1) => htl.svg`<text x="${ x }" y="${ y }" text-anchor="middle" font-size="${ size }" font-weight="${ weight }" fill="currentColor" fill-opacity="${ op }">${ t }</text>`;
+    const nav = (module) => () => {
+        const h = `#view=R100(S50(@tomlarkworthy/lopecode-live-2026),S50(${ module }))`;
+        window.history.pushState(null, '', h);
+        window.dispatchEvent(new window.HashChangeEvent('hashchange'));
+    };
+    // one box per userspace module, aside-linked; loose coupling = no lines between them
+    const rows = [
+        ['editor-5', 'editable-md', 'sticky', 'module-map', 'cell-map'],
+        ['exporter-3', 'atproto', 'robocoop-5', 'local-change-history']
+    ];
+    const waist = { x: W / 2 - 110, y: 200, w: 220, h: 30 };
+    const boxes = [], lines = [];
+    const anchors = [];
+    rows.forEach((names, r) => {
+        const widths = names.map((n) => 16 + n.length * 6.6);
+        const total = widths.reduce((s, w) => s + w, 0) + (names.length - 1) * 14;
+        let x = (W - total) / 2;
+        const y = 40 + r * 40;
+        names.forEach((name, i) => {
+            const w = widths[i];
+            boxes.push(htl.svg`<g style="cursor:pointer" onclick=${ nav('@tomlarkworthy/' + name) }>
+        <title>open @tomlarkworthy/${ name }</title>
+        <rect x="${ x }" y="${ y }" width="${ w }" height="26" rx="6" fill="color-mix(in srgb, #7fbf7f 10%, var(--theme-background, Canvas))" stroke="#7fbf7f" stroke-width="1.1"/>
+        <text x="${ x + w / 2 }" y="${ y + 17 }" text-anchor="middle" font-size="11" fill="currentColor" text-decoration="underline">${ name }</text>
+      </g>`);
+            anchors.push({ x: x + w / 2, y: y + 26 });
+            x += w + 14;
+        });
+    });
+    // every module converges on the same waist, independently; left-to-right so lines fan without crossing
+    [...anchors].sort((a, b) => a.x - b.x).forEach((a, i) => {
+        const xt = waist.x + 25 + i * (waist.w - 50) / (anchors.length - 1);
+        lines.push(htl.svg`<line x1="${ a.x }" y1="${ a.y }" x2="${ xt }" y2="${ waist.y }" stroke="#6f9ed6" stroke-opacity="0.55" stroke-width="1"/>`);
+    });
     return htl.svg`<svg viewBox="0 0 ${ W } ${ H }" style="max-width:${ W }px;width:100%;height:auto;color:inherit;font-family:system-ui,-apple-system,sans-serif">
-    ${ box(60, 20, 500, 70, '#7fbf7f18', '#7fbf7f') }
-    ${ label(310, 42, 'userspace (replaceable)', 700, 13) }
-    ${ label(310, 62, 'editors · debugger · tests · exporter · mappings (HTML / IIFE / ATProto) · agents', 400, 11, 0.75) }
-    <path d="M 160 90 L 460 90 L 340 135 L 280 135 Z" fill="#6f9ed618" stroke="#6f9ed6" stroke-width="1.2"/>
-    ${ box(240, 137, 140, 30, '#e0b25222', '#e0b252') }
-    ${ label(310, 156, 'Function.prototype.toString()', 700, 10.5) }
-    <path d="M 280 169 L 340 169 L 460 214 L 160 214 Z" fill="#6f9ed618" stroke="#6f9ed6" stroke-width="1.2"/>
-    ${ box(60, 216, 500, 50, '#b57fc918', '#b57fc9') }
-    ${ label(310, 236, 'browser JS engine + Observable reactive runtime', 700, 12) }
-    ${ label(310, 253, 'the platform: standard, not ours, not moldable from within', 400, 10.5, 0.65) }
+    ${ label(W / 2, 26, 'userspace — loosely coupled, replaceable modules', 700, 12.5) }
+    ${ lines }
+    ${ boxes }
+    <rect x="${ waist.x }" y="${ waist.y }" width="${ waist.w }" height="${ waist.h }" rx="7" fill="#e0b25222" stroke="#e0b252" stroke-width="1.2"/>
+    ${ label(W / 2, waist.y + 19, 'Function.prototype.toString()', 700, 11) }
+    <path d="M ${ W / 2 - 60 } ${ waist.y + waist.h } L ${ W / 2 + 60 } ${ waist.y + waist.h } L ${ W / 2 + 140 } 248 L ${ W / 2 - 140 } 248 Z" fill="#6f9ed618" stroke="#6f9ed6" stroke-width="1.2"/>
+    <rect x="40" y="250" width="${ W - 80 }" height="52" rx="7" fill="#b57fc918" stroke="#b57fc9" stroke-width="1.2"/>
+    ${ label(W / 2, 271, 'browser JS engine + Observable reactive runtime', 700, 12) }
+    ${ label(W / 2, 288, 'the platform: standard, not ours, not moldable from within', 400, 10.5, 0.65) }
   </svg>`;
 };
 const s11p2 = function _anonymous(md,aside,externalLink,cite) {return (md`The narrow waist pays twice. First, it lets tooling be *uncoordinated*. ${ aside('editable-md', ['@tomlarkworthy/editable-md']) } (the prose editing in this page), ${ aside('editor-5', ['@tomlarkworthy/editor-5']) } (the code editor behind Edit mode), the ${ aside('exporter', '@tomlarkworthy/exporter-3') } and the agent do not know about each other. Each reads and writes the runtime through the same reflective interface, so a new editor is a module you import, not a fork of the system. Second, the waist is a web standard rather than a private VM interface, so the artifact inherits the browser's backwards-compatibility discipline. Our first, embarrassing export from January 2025 ${ externalLink('still opens', 'https://raw.githubusercontent.com/tomlarkworthy/lopecode/459c924658b8a18fe46a51719c1ab2de36a839a7/webpage.html') }.
