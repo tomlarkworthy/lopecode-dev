@@ -67,6 +67,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
 | `knowledge/what-makes-a-great-lopebook.md` | Quality criteria and best practices for lopebook content |
 | `knowledge/js-toolchain-notebook-kit-2-cells.md` | Notebook Kit 2.0 cell compile/decompile (`@tomlarkworthy/js-toolchain`): invertability, multi-out cell model, import handling, ts mode |
+| `knowledge/training-robocoop-5.md` | Benchmark-driven robocoop-5 improvement: system-vs-raw arms, fidelity anchoring, failure autopsy, what moved numbers, deployment chain |
 
 ### Which Tool to Use
 
