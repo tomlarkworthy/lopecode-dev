@@ -169,7 +169,7 @@ sticky(Inputs.range([
   label: 'bpm',
   step: 1,
   value: 120
-}), 133)
+}), 85)
 )};
 const _w2pv3n = (G, _) => G.input(_);
 const _ae8ir = function _playing(Inputs){return(
@@ -342,7 +342,7 @@ sticky(Inputs.range([
   label: 'cutoff',
   step: 10,
   value: 800
-}), 2400)
+}), 4000)
 )};
 const _1hifuoy = (G, _) => G.input(_);
 const _tsq2pi = function _bassDecay(sticky,Inputs){return(
@@ -353,7 +353,7 @@ sticky(Inputs.range([
   label: 'decay',
   step: 0.01,
   value: 0.25
-}), 0.25)
+}), 0.06)
 )};
 const _cecwt5 = (G, _) => G.input(_);
 const _7zke3z = function _bass_voice($0,$1,daw_ctx,master)
@@ -492,7 +492,7 @@ sticky(Inputs.range([
   label: 'pitch',
   step: 1,
   value: 120
-}), 120)
+}), 343)
 )};
 const _i2vntw = (G, _) => G.input(_);
 const _1f7glvg = function _template_drum_decay(sticky,Inputs){return(
