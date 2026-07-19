@@ -1,0 +1,6 @@
+<!doctype html><title>delayfb</title><script>
+const ctx = new AudioContext();
+const master=ctx.createGain(); master.gain.value=0.02; master.connect(ctx.destination);
+const dly=ctx.createDelay(2); dly.delayTime.value=0.33; const fb=ctx.createGain(); fb.gain.value=0.25; dly.connect(fb); fb.connect(dly); dly.connect(master); const head=dly;
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(head); o.start(); }
+</script>

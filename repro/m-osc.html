@@ -1,0 +1,5 @@
+<!doctype html><title>osc</title><script>
+const ctx = new AudioContext();
+const g = ctx.createGain(); g.gain.value = 0.02; g.connect(ctx.destination);
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(g); o.start(); }
+</script>

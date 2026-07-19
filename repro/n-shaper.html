@@ -1,0 +1,6 @@
+<!doctype html><title>shaper</title><script>
+const ctx = new AudioContext();
+const master=ctx.createGain(); master.gain.value=0.02; master.connect(ctx.destination);
+const sat=ctx.createWaveShaper(); const crv=new Float32Array(256); for(let i=0;i<256;i++){const x=(i*2)/256-1; crv[i]=Math.tanh(x*1.5)/Math.tanh(1.5);} sat.curve=crv; sat.oversample='2x'; sat.connect(master); const head=sat;
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(head); o.start(); }
+</script>

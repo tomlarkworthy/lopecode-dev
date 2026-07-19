@@ -1,0 +1,16 @@
+<!doctype html><title>fx chain</title><script>
+// mirror of butter-synth's effects(): convolver w/ 3.5s stereo IR, 2x waveshaper, delay, compressor
+const ctx = new AudioContext();
+const makeIR = (dur, decay) => { const len = ctx.sampleRate*dur; const b = ctx.createBuffer(2,len,ctx.sampleRate);
+  for (let ch=0;ch<2;ch++){const d=b.getChannelData(ch); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);} return b; };
+const input=ctx.createGain(), sat=ctx.createWaveShaper(); const crv=new Float32Array(256);
+for(let i=0;i<256;i++){const x=(i*2)/256-1; crv[i]=Math.tanh(x*1.5)/Math.tanh(1.5);}
+sat.curve=crv; sat.oversample='2x';
+const filt=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=14000;
+const conv=ctx.createConvolver(); conv.buffer=makeIR(3.5,1.8);
+const dly=ctx.createDelay(2); dly.delayTime.value=0.33; const fb=ctx.createGain(); fb.gain.value=0.25;
+const comp=ctx.createDynamicsCompressor(); const master=ctx.createGain(); master.gain.value=0.02;
+input.connect(sat); sat.connect(filt); filt.connect(conv); conv.connect(comp); filt.connect(dly);
+dly.connect(fb); fb.connect(dly); dly.connect(comp); comp.connect(master); master.connect(ctx.destination);
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(input); o.start(); }
+</script>

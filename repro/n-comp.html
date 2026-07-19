@@ -1,0 +1,6 @@
+<!doctype html><title>comp</title><script>
+const ctx = new AudioContext();
+const master=ctx.createGain(); master.gain.value=0.02; master.connect(ctx.destination);
+const c=ctx.createDynamicsCompressor(); c.connect(master); const head=c;
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(head); o.start(); }
+</script>

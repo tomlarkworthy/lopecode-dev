@@ -1,0 +1,6 @@
+<!doctype html><title>manyosc</title><script>
+const ctx = new AudioContext();
+const master=ctx.createGain(); master.gain.value=0.02; master.connect(ctx.destination);
+const g=ctx.createGain(); g.connect(master); const head=g; for(let i=0;i<200;i++){const o=ctx.createOscillator(); o.frequency.value=100+i; o.connect(g); o.start();}
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(head); o.start(); }
+</script>

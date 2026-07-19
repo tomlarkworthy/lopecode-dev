@@ -1,0 +1,11 @@
+<!doctype html><title>late fx</title><script>
+setTimeout(() => {
+  const ctx = new AudioContext();
+  const master=ctx.createGain(); master.gain.value=0.02; master.connect(ctx.destination);
+  const conv=ctx.createConvolver(); const len=ctx.sampleRate*3.5; const b=ctx.createBuffer(2,len,ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.8);}
+  conv.buffer=b; conv.connect(master);
+  for (let i=0;i<8;i++){const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(conv); o.start();}
+  document.title = 'late fx started';
+}, 5000);
+</script>

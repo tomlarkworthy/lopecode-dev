@@ -1,0 +1,7 @@
+<!doctype html><title>conv</title><script>
+const ctx = new AudioContext();
+const master=ctx.createGain(); master.gain.value=0.02; master.connect(ctx.destination);
+const makeIR=(dur,decay)=>{const len=ctx.sampleRate*dur;const b=ctx.createBuffer(2,len,ctx.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;};
+const conv=ctx.createConvolver(); conv.buffer=makeIR(3.5,1.8); conv.connect(master); const head=conv;
+for (let i=0;i<8;i++){ const o=ctx.createOscillator(); o.frequency.value=110*(i+1); o.connect(head); o.start(); }
+</script>
