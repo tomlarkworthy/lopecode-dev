@@ -3696,10 +3696,13 @@ const _mkdb1 = function _mkDub(knob){return(
   hpF.frequency.value = 120;
   hpF.Q.value = 0.5;
   const sat = ctx.createWaveShaper();
+  // unity slope at 0: echoes decay at exactly fb per repeat, only peaks
+  // saturate. Normalizing by tanh(1.5) instead would give small signals a
+  // 1.66x boost and every fb above ~0.6 runs away
   const crv = new Float32Array(257);
   for (let i = 0; i <= 256; i++) {
     const x = i / 128 - 1;
-    crv[i] = Math.tanh(1.5 * x) / Math.tanh(1.5);
+    crv[i] = Math.tanh(1.5 * x) / 1.5;
   }
   sat.curve = crv;
   sat.oversample = '2x';
@@ -3711,7 +3714,10 @@ const _mkdb1 = function _mkDub(knob){return(
   hpF.connect(sat);
   sat.connect(fbG);
   fbG.connect(dl);
-  sat.connect(wetG);
+  const makeup = ctx.createGain();
+  makeup.gain.value = 1.65;
+  sat.connect(makeup);
+  makeup.connect(wetG);
   wetG.connect(out);
   const wobLfo = ctx.createOscillator();
   wobLfo.frequency.value = 0.6;
