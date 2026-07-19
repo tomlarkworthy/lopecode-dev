@@ -2525,9 +2525,15 @@ const _mksmp1 = function _mkSampler(knob,mkInputPicker,sampleStore){return(
     const s1 = Math.max(k.start.value, k.end.value) * dur;
     if (s1 - s0 < 0.001)
       return;
-    // mono choke: overlapping copies of the same sample comb-filter into glitch
+    // mono choke: overlapping copies of the same sample comb-filter into glitch.
+    // cancelAndHold: the old voice's scheduled ramps must not re-raise its gain
     if (cur) {
-      cur.g.gain.setTargetAtTime(0.0001, t, 0.004);
+      const gp = cur.g.gain;
+      if (gp.cancelAndHoldAtTime)
+        gp.cancelAndHoldAtTime(t);
+      else
+        gp.cancelScheduledValues(t);
+      gp.setTargetAtTime(0.0001, t, 0.004);
       try {
         cur.s.stop(t + 0.05);
       } catch (err) {}
@@ -2539,10 +2545,16 @@ const _mksmp1 = function _mkSampler(knob,mkInputPicker,sampleStore){return(
       rate *= 2 ** ((noteIn - k.note.value) / 12);
     s.playbackRate.value = rate;
     const g = ctx.createGain();
-    g.gain.value = k.gain.value * Math.max(0.05, vel / 127);
+    // micro-envelope: a trimmed end (end < 1) cuts mid-ring, so hard stops click
+    const lvl = k.gain.value * Math.max(0.05, vel / 127);
+    const wall = (s1 - s0) / Math.max(0.05, rate);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(lvl, t + 0.002);
+    g.gain.setValueAtTime(lvl, t + Math.max(0.003, wall - 0.01));
+    g.gain.linearRampToValueAtTime(0.0001, t + wall);
     s.connect(g);
     g.connect(outNode);
-    s.start(t, s0, s1 - s0);
+    s.start(t, s0, s1 - s0 + 0.02);
     cur = { s, g };
     s.onended = () => {
       g.disconnect();
@@ -3950,9 +3962,16 @@ const _mksl1 = function _mkSlicer(knob,mkInputPicker,sampleStore){return(
       return;
     ctx.resume();
     const tt = t ?? ctx.currentTime + 0.003;
-    // mono choke: each chop cuts the last, like classic hardware slicing
+    // mono choke: each chop cuts the last, like classic hardware slicing.
+    // cancelAndHold first: the old chop has scheduled ramps that would
+    // otherwise re-raise the gain after the choke
     if (cur) {
-      cur.g.gain.setTargetAtTime(0.0001, tt, 0.004);
+      const gp = cur.g.gain;
+      if (gp.cancelAndHoldAtTime)
+        gp.cancelAndHoldAtTime(tt);
+      else
+        gp.cancelScheduledValues(tt);
+      gp.setTargetAtTime(0.0001, tt, 0.004);
       try {
         cur.s.stop(tt + 0.05);
       } catch (err) {}
@@ -3962,10 +3981,16 @@ const _mksl1 = function _mkSlicer(knob,mkInputPicker,sampleStore){return(
     s.buffer = buffer;
     s.playbackRate.value = k.rate.value;
     const g = ctx.createGain();
-    g.gain.value = k.gain.value * Math.max(0.05, vel / 127);
+    // micro-envelope: chops start/end mid-waveform, so hard cuts click
+    const lvl = k.gain.value * Math.max(0.05, vel / 127);
+    const wall = dur / Math.max(0.05, k.rate.value);
+    g.gain.setValueAtTime(0, tt);
+    g.gain.linearRampToValueAtTime(lvl, tt + 0.002);
+    g.gain.setValueAtTime(lvl, tt + Math.max(0.003, wall - 0.01));
+    g.gain.linearRampToValueAtTime(0.0001, tt + wall);
     s.connect(g);
     g.connect(outNode);
-    s.start(tt, slice * dur, dur);
+    s.start(tt, slice * dur, dur + 0.02);
     cur = { s, g };
     s.onended = () => {
       g.disconnect();
