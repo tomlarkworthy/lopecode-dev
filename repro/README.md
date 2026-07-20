@@ -51,7 +51,21 @@ Timing is what matters, not page load:
 | profiler already running, AudioContext created 5s later (`late-fx.html`) | 4/4 |
 | audio graph already running, profiler started afterwards | 0/4 |
 
-## Scripts
+## Reusable tools
+
+The one-off scripts below were generalised into two tools — prefer those for new investigations,
+and see `knowledge/diagnosing-notebook-load-and-boot-glitches.md` for the method:
+
+```
+bun tools/lope-boot-probe.ts <url...> --runs 6 --min-nodes 500 \
+    --trace-categories disabled-by-default-v8.cpu_profiler [--phase load|reload|idle]
+bun tools/lope-bootconf.ts <nb.html> (--get-mains | --drop M | --only M | --set-mains a,b) --out v.html
+```
+
+Reproduces this bug directly: `--phase load` gives `crash 2/2`, `--phase idle` gives `crash 0/2`,
+and `--drop @tomlarkworthy/butter-synth` gives `crash 0/2  boot 2/2  nodes=2222`.
+
+## Scripts (original one-offs)
 
 - `rate.mjs <reps> <url>…` — crash rate, profiler running across a cold load
 - `rate-after.mjs <reps> <url>…` — profiler started after the page is up

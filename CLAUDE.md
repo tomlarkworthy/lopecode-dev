@@ -66,6 +66,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
 | `knowledge/what-makes-a-great-lopebook.md` | Quality criteria and best practices for lopebook content |
+| `knowledge/diagnosing-notebook-load-and-boot-glitches.md` | Notebook won't boot, boots blank, crashes the tab, or loads slowly |
 | `knowledge/js-toolchain-notebook-kit-2-cells.md` | Notebook Kit 2.0 cell compile/decompile (`@tomlarkworthy/js-toolchain`): invertability, multi-out cell model, import handling, ts mode |
 | `knowledge/training-robocoop-5.md` | Benchmark-driven robocoop-5 improvement: system-vs-raw arms, fidelity anchoring, failure autopsy, what moved numbers, deployment chain |
 
@@ -82,6 +83,8 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Push cells to ObservableHQ | `node --experimental-vm-modules tools/lope-push-ws.js` | ~5s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~7s each |
 | Smoke test notebooks in Node.js | `bulk-smoke-test.js` | ~5s each |
+| Does it boot / does it crash (repeated, asserts boot) | `lope-boot-probe.ts` | ~15s per run |
+| Read/rewrite `bootconf.json` mains safely | `lope-bootconf.ts` | Instant |
 | QC bulk exports against reference | `bulk-export-qc.js` | Instant |
 | Claude <-> notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
 | Claude <-> notebook channel (npm) | `bunx @lopecode/channel` | Real-time |
