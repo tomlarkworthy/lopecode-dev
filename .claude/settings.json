@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tools/channel/post-tool-hook.sh"
+            "command": "HOOK=\"${CLAUDE_PROJECT_DIR:-.}/tools/channel/post-tool-hook.sh\"; [ -x \"$HOOK\" ] && \"$HOOK\" || exit 0"
           }
         ]
       }
