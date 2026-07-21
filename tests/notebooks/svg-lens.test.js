@@ -49,6 +49,7 @@ const TEST_CELLS = [
   'test_z_order',
   'test_topmost_selection',
   'test_domain_boundary',
+  'test_snapRects',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.

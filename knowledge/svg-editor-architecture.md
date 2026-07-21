@@ -177,7 +177,7 @@ Then, for credibility as a general editor:
 9. Styling: attribute vs `style=` vs stylesheet precedence (`styleLens`).
 10. `defs` and references: gradients, markers, `clipPath`, `<use>` — editing a `<use>` should retarget
     the lens at the referenced symbol, possibly in another cell.
-11. Snapping, alignment guides, numeric entry, keyboard nudge (all pure L3).
+11. Snapping, alignment guides, numeric entry, keyboard nudge (all pure L3). *(done)*
 12. Undo/redo/history via `local-change-history`. *(done — natively; see M2.9 for why not through it)*
 13. Concurrency with `editor-5` — the definition read-modify-write races with text edits (§3 writer).
 14. Multi-drawing: alias resolution assumes one `svgLens(svg\`…\`)` per cell and finds the variable by
@@ -294,6 +294,17 @@ Then, for credibility as a general editor:
   ends it. The notebook booted as raw text twice. There is now a CI check for it, and a second
   lesson: after such a break, `sync-module` leaves orphan bytes after the block, so restore the
   notebook from git before re-syncing rather than syncing over the wreckage.
+- **M3.5 — snapping, keyboard, inspector done (2026-07-21).** `snapRects` is pure rectangle
+  arithmetic — boxes in, delta plus guides out — so the caller chooses the coordinate system. The
+  move tool works in *screen* space, where every box is axis-aligned whatever transforms its element
+  carries and where the drag delta already lives; guides are converted back into root user space to
+  draw. Alt ignores snapping. An aligned axis keeps its exact value (rounded only to kill float
+  dust); an unaligned one still lands on the grid, per axis.
+  Arrow keys nudge (shift ×10) and the inspector types exact attribute values. Both go through
+  `writer.commit` — the same put a drag makes — so there is no second write path to keep lawful, and
+  a typed `transform` keeps its readable spelling.
+  Verified in a browser: dragging the circle to the mountain's left edge landed at delta 0.0000 with
+  one guide drawn and cleared on release; nudge moved 1 then 10; typing r=31 rewrote only `r`.
 - **M5** Domain widening (units, style, defs).
 
 ## 7. Open questions
