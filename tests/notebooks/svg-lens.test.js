@@ -50,6 +50,9 @@ const TEST_CELLS = [
   'test_topmost_selection',
   'test_domain_boundary',
   'test_snapRects',
+  // domain widening
+  'test_units_and_style',
+  'test_refs',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.

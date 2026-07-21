@@ -305,7 +305,16 @@ Then, for credibility as a general editor:
   a typed `transform` keeps its readable spelling.
   Verified in a browser: dragging the circle to the mountain's left edge landed at delta 0.0000 with
   one guide drawn and cleared on release; nudge moved 1 then 10; typing r=31 rewrote only `r`.
-- **M5** Domain widening (units, style, defs).
+- **M5 — domain widening done (2026-07-21).** Three additions, each a lens or a pure command:
+  `lengthLens` (view the number, keep the unit as residue, so `50%` edited to 60 stays `60%`),
+  `styleLens` over the `style=""` declaration list, and `setProperty`, which writes a paint property
+  into an existing declaration rather than adding an attribute that the declaration would override —
+  the worst kind of edit is one that looks like it worked. References (`url(#id)`, `href="#id"`)
+  resolve to a path via `refsOf`/`pathOfId`, and the inspector offers them as buttons that select the
+  target; a dangling reference reports a null path rather than throwing.
+  Still out of scope, and now said out loud rather than implied: percentage *resolution* against a
+  viewport, `preserveAspectRatio`, nested `<svg>`, and external references. The parse domain itself is
+  enforced (M4.5).
 
 ## 7. Open questions
 
