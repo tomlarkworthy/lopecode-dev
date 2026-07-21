@@ -171,7 +171,7 @@ Blocking, in order:
 Then, for credibility as a general editor:
 
 7. Hit-testing beyond `e.target`: stroke-only hits, click-through to occluded shapes, marquee,
-   multi-select, z-order operations.
+   multi-select, z-order operations. *(done)*
 8. Units and coordinate systems: parsers assume unitless numbers. Real documents carry `px/%/em`,
    `preserveAspectRatio`, nested `<svg>`, `<use>`, percentage lengths.
 9. Styling: attribute vs `style=` vs stylesheet precedence (`styleLens`).
@@ -248,6 +248,18 @@ Then, for credibility as a general editor:
   Bug found in the browser and not by the property tests: a new child inherited the *whole* leading
   gap of the first child, so every insert reproduced the comment above it — four shapes, five copies.
   A fresh child now inherits only the indentation of that gap. Regression test in the CI file.
+- **M2.7 — selection done (2026-07-21).** `svgFocus` holds an ordered *set*; the first path is the
+  primary and everything that only makes sense for one element follows it, so the tools written
+  against single selection needed no changes. Hit-testing defers to `document.elementsFromPoint`,
+  which already answers for painted geometry (click-through to occluded shapes comes for free) and
+  falls back to distance sampled along the geometry so a hairline stroke is still reachable — the
+  browser stays the authority on hit shape. Tapping the primary again steps down the stack;
+  shift-tap toggles; a rubber band on empty canvas selects by box intersection in root user space.
+  Dragging one of several selected shapes moves them all, one commit each. `zTarget` states z-order
+  against the paint model (`front` is last) and `[`/`]`/`{`/`}`/`Delete` act on the selection.
+  Invariant found by rubber-banding the demo: a selection must never hold both a group and something
+  inside it, or a drag translates the inner element twice. `topmostPaths` enforces it in `svgFocus`,
+  so every entry point is covered rather than just the marquee.
 - **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo.
 - **M4** Holes: classification, whole-hole writeback, inversion fallback, locked-handle affordance.
 - **M5** Domain widening (units, style, defs) and differential tests.

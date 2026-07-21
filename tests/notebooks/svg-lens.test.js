@@ -46,6 +46,8 @@ const TEST_CELLS = [
   // creation
   'test_shape_creation',
   'test_pen_path',
+  'test_z_order',
+  'test_topmost_selection',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
