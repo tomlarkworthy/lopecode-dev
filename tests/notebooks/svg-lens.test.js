@@ -57,7 +57,7 @@ const TEST_CELLS = [
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
-const DOM_TEST_CELLS = ['test_morph_projection', 'test_parse_vs_DOMParser', 'test_tex_subset'];
+const DOM_TEST_CELLS = ['test_morph_projection', 'test_parse_vs_DOMParser'];
 
 describe('@tomlarkworthy/svg-lens bundle invariants', () => {
   const s = readFileSync(NB, 'utf8');

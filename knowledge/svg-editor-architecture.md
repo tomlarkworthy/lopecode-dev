@@ -354,9 +354,9 @@ Then, for credibility as a general editor:
   and an `exporter-3` download link whose label counts the puts it will capture → the argument, with a
   widget beside each claim → related and future work → references → appendix (tests first as the
   specification, then implementation in dependency order, imports last).
-  Two things worth remembering. `tex` is not a lopecode builtin and there is no `require`, so the
-  maths is a ~120-line TeX subset compiled to **MathML** — native rendering, no KaTeX, no web fonts.
-  And the §6 log widgets first came out blank: the upstream sink moves a slider, the runtime then
+  Two things worth remembering. `` tex`…` `` **is** a lopecode builtin (KaTeX) — use it; a
+  hand-written TeX→MathML shim was written here first on a bad probe and then deleted, and the builtin
+  renders considerably better. And the §6 log widgets first came out blank: the upstream sink moves a slider, the runtime then
   recomputes the drawing cell, and everything downstream of it restarts — so the put log had to move
   into a cell nothing recomputes, with the widgets as pure renderings of it.
 
