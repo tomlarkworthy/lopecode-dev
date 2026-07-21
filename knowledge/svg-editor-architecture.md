@@ -105,14 +105,13 @@ is identity; reorder is a permutation; every command output re-parses as JavaScr
 Select, direct-select, pen, rect, ellipse, line, text, measure. New tools become new cells, not edits
 to a monolith.
 
-**The renderer — fix 2.1 like this.** Make the invariant *source is truth, DOM is a patched
-projection*. On commit: build the new definition with `realize`, call it with the variable's current
-input values to get a fresh node, then **morph** the live node toward it (keyed by address,
-preserving the overlay subtree). Recomputing the cell instead would mint a new node and break node
-identity, the drag, and any observer holding it. Morphing is ~100 lines restricted to SVG and it
-covers static and interpolated documents identically, because it renders by *evaluating* the
-template rather than parsing its text. Property to test: `morph(dom, src')` deep-equals a fresh
-render of `src'`.
+**The renderer — superseded, see M7.** This section originally specified morphing: build the new
+definition with `realize`, render it to a throwaway node, and patch the live node toward it, so node
+identity survived a gesture. That was implemented and then removed. Committing through
+`Variable.define` and letting the cell recompute is the correct arrangement, because the runtime is
+what everything else listens to; morphing bought node identity at the price of a change no one was
+told about. Node identity is not worth that, and nothing needed it once per-node state moved into a
+registry.
 
 Restrict the domain to cells whose body is a single `return svgLens(svg\`…\`)` — `literalSpan`
 effectively enforces this already — so re-evaluating the template has no side effects.
@@ -273,11 +272,9 @@ Then, for credibility as a general editor:
   source is not what the entry produced — editor-5 or another gesture has written since, and
   clobbering that is worse than declining. Bound to ⌘Z/⇧⌘Z; while the caret is in a cell, editor-5
   keeps its own undo.
-  Not routed through `local-change-history`: its `check_for_code_change` samples definitions only
-  when the variable *set* changes, so the silent `_definition` swap this editor performs is invisible
-  to it. Feeding it would mean announcing every gesture as a code change — one history entry per
-  drag, and a git commit behind it. The put record carries `source.before/after`, so a consumer that
-  wants that can subscribe to `lens-put` and do it.
+  Since M7 this *is* visible to `local-change-history`: committing through `define` re-inserts the
+  variable into `runtime._variables`, which is the only thing that wakes `check_for_code_change`.
+  One history entry per gesture is the cost, and the correct one.
   Verified in a browser: ten gestures (five drags, five structural inserts) undone and redone in
   order, every intermediate source byte-identical to the snapshot taken at the time.
 - **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo *(done)*.
@@ -360,10 +357,40 @@ Then, for credibility as a general editor:
   recomputes the drawing cell, and everything downstream of it restarts — so the put log had to move
   into a cell nothing recomputes, with the widgets as pure renderings of it.
 
+- **M7 — a gesture is an ordinary edit (2026-07-21).** `applySource` now commits with
+  `Variable.define` and waits for the recompute, instead of assigning `_definition` and morphing.
+  Tom's objection was the right one: a drag *changes the document*, so suppressing the recompute
+  means the runtime never learns something true happened, and every consumer then needs a private
+  side channel. Measured in a browser: a silent `_definition` swap causes **zero** `_variables`
+  add/delete, so `check_for_code_change` never re-samples and `editor-5` keeps a stale buffer it
+  will write back over the drag; `v.define(name, inputs, fn)` on an existing variable logs
+  `add:<name>` even though membership is unchanged, which is what wakes the sampler. `editable-md`
+  had been getting this for free all along by calling `self.define(...)`.
+  The enabling change is that per-node closure state moved into a `lensState` Map keyed by the
+  `Variable` (which `define` mutates in place): undo/redo stacks, selection paths, active tool.
+  Selection restores *by path* after the remount — the reason it was addressed as a path.
+  Two things this makes true and one it costs. `morph` and the `guard` flag are deleted, along with
+  `test_morph_projection`. Every gesture now appears in `local-change-history` and in `editor-5`.
+  The cost: the SVG node is replaced on each commit, so anything downstream of the drawing restarts
+  per gesture — the put log already lived in a recompute-proof cell, so the edit counter survives.
+  A put is announced on both the pre- and post-commit node, so history dedupes on a `recorded` flag
+  and `replaying` lives in the shared state; without that, an undo was re-recorded as a fresh edit.
+  Verified: 3 edits / 3 undos / 3 redos keep exact stacks and byte-exact sources, selection survives
+  nine remounts, a synthesized pointer drag writes `translate(18.5 4)`, commit ≈53 ms, 34/34
+  in-notebook tests, 0 errored cells.
+
+- **M8 — prose pass (2026-07-21).** Paper reworded down from its more assertive register at Tom's
+  request ("a lot of the prose is junk and over the top"), and citation density raised from ~22 to 32
+  across 13 works. Two references added after web verification rather than recall: Tanimoto 1990
+  (VIVA, the liveness levels — cited for the direction this editor *reverses*) and Omar et al. 2019
+  (typed holes — cited to mark that "hole" here is the weaker, syntactic sense). Do not add a
+  citation from memory; check it.
+
 ## 7. Open questions
 
 - Does the value stay the DOM node, or become a document object with the node as a projection?
-  Keeping the node is what makes `svgLens(svg\`…\`)` read naturally; it is also what forces morphing.
+  Keeping the node is what makes `svgLens(svg\`…\`)` read naturally. Resolved in M7: the node is
+  replaced on every commit and nothing depends on its identity.
 - Structural path vs an injected stable id attribute. Paths keep the source clean but need
   re-anchoring on every command; ids survive edits but pollute the drawing the user is authoring.
 - Whether `childrenLens` should view child *source strings* (residue-preserving, chosen above) or
