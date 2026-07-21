@@ -40,6 +40,7 @@ const TEST_CELLS = [
   'test_point_commands',
   'test_nearestSegment',
   'test_rebasePath',
+  'test_path_subdivision_exact',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
