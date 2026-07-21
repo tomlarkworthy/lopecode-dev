@@ -51,6 +51,12 @@ dispatch. Every new tool means editing that cell. Same smell as a mega-dispatch 
 
 ## 3. Proposed layering
 
+**Not split into separate modules (decided 2026-07-21).** The layering below is real and holds at the
+cell level, but svg-lens ships as one self-contained artifact: a single notebook that carries its
+essay, its demo, its property suite and its editor. Splitting would buy publishable pieces at the
+price of editing six modules per change, six sync/jumpgate cycles, and a headless CI that no longer
+resolves its own imports. The layer names stay as a reading order, not as a build target.
+
 The rule that separates maths from UX: **tools emit commands, commands are lens puts, one writer
 applies them.** A tool may paint a preview layer; it may never persist. Nothing below L4 touches the
 DOM or the pointer.
