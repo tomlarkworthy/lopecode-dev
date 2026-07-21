@@ -178,7 +178,7 @@ Then, for credibility as a general editor:
 10. `defs` and references: gradients, markers, `clipPath`, `<use>` — editing a `<use>` should retarget
     the lens at the referenced symbol, possibly in another cell.
 11. Snapping, alignment guides, numeric entry, keyboard nudge (all pure L3).
-12. Undo/redo/history via `local-change-history`.
+12. Undo/redo/history via `local-change-history`. *(done — natively; see M2.9 for why not through it)*
 13. Concurrency with `editor-5` — the definition read-modify-write races with text edits (§3 writer).
 14. Multi-drawing: alias resolution assumes one `svgLens(svg\`…\`)` per cell and finds the variable by
     `_value` identity. Several drawings, or one assembled from imported sub-cells, is unhandled.
@@ -260,7 +260,21 @@ Then, for credibility as a general editor:
   Invariant found by rubber-banding the demo: a selection must never hold both a group and something
   inside it, or a drag translates the inner element twice. `topmostPaths` enforces it in `svgFocus`,
   so every entry point is covered rather than just the marquee.
-- **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo.
+- **M2.9 — undo/redo done (2026-07-21).** Each `applySource` now reports the whole prior definition
+  on the put record, and `svgLens` keeps a bounded undo/redo stack of those strings. Undo is
+  "put the previous source back", which the writer already knows how to do, so a structural undo
+  restores the exact prior bytes instead of trying to invert a command. It *refuses* when the current
+  source is not what the entry produced — editor-5 or another gesture has written since, and
+  clobbering that is worse than declining. Bound to ⌘Z/⇧⌘Z; while the caret is in a cell, editor-5
+  keeps its own undo.
+  Not routed through `local-change-history`: its `check_for_code_change` samples definitions only
+  when the variable *set* changes, so the silent `_definition` swap this editor performs is invisible
+  to it. Feeding it would mean announcing every gesture as a code change — one history entry per
+  drag, and a git commit behind it. The put record carries `source.before/after`, so a consumer that
+  wants that can subscribe to `lens-put` and do it.
+  Verified in a browser: ten gestures (five drags, five structural inserts) undone and redone in
+  order, every intermediate source byte-identical to the snapshot taken at the time.
+- **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo *(done)*.
 - **M4** Holes: classification, whole-hole writeback, inversion fallback, locked-handle affordance.
 - **M5** Domain widening (units, style, defs) and differential tests.
 
