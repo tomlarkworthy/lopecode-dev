@@ -53,6 +53,7 @@ const TEST_CELLS = [
   // domain widening
   'test_units_and_style',
   'test_refs',
+  'test_interpolation_slots',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
@@ -151,6 +152,19 @@ if (typeof Bun === 'undefined') {
       assert.equal((front.match(/<!--/g) || []).length, 1, `comment duplicated at the front:\n${front}`);
     });
 
+    // A gesture measures the drawing, not the bytes: `translate(${shift} 0)` is not a pair of
+    // numbers, so an interpolated attribute reads through to the rendered element. Without this the
+    // move tool threw on pointerdown and no tool claimed the gesture at all.
+    it('effectiveAttr reads the rendered value only where the source has holes', async () => {
+      const effectiveAttr = await m.value('effectiveAttr');
+      const doc = '<svg><rect transform="translate(${shift} 0)" x="10"/></svg>';
+      const elems = [null, { getAttribute: (n) => (n === 'transform' ? 'translate(40 0)' : null) }];
+      assert.equal(effectiveAttr(elems, doc, 1, 'transform'), 'translate(40 0)');
+      assert.equal(effectiveAttr(elems, doc, 1, 'x'), '10', 'a hole-free attribute must stay the source token');
+      assert.equal(effectiveAttr(elems, doc, 1, 'fill'), null, 'a missing attribute stays missing');
+      assert.equal(effectiveAttr([null, {}], doc, 1, 'transform'), 'translate(${shift} 0)', 'no element: fall back to source');
+    });
+
     it('childrenLens refuses a child that is not exactly one element', async () => {
       const childrenLens = await m.value('childrenLens');
       const doc = '<svg><rect x="1"/></svg>';
@@ -205,10 +219,29 @@ if (typeof Bun === 'undefined') {
       assert.throws(() => l.put('<svg a="${x}"/>', cell), /would not survive/);
     });
 
-    it('rejects literals with interpolations as outside the domain', async () => {
+    // Writing back an interpolated drawing has to put the author's own holes back, byte for byte —
+    // the safety rule is relative to the bytes being replaced, not absolute.
+    it('lets an existing interpolation return but refuses a new one', async () => {
+      const literalLens = await m.value('literalLens');
+      const cell = 'function _demo(svgLens, svg, shift) {return (svgLens(svg`<svg><rect transform="translate(${shift} 0)"/></svg>`));}';
+      const l = literalLens('svgLens');
+      const out = l.put('<svg><rect transform="translate(${shift} 8)"/></svg>', cell);
+      assert.ok(out.includes('translate(${shift} 8)'), 'the hole did not survive the write');
+      assert.throws(() => l.put('<svg><rect transform="translate(${other} 0)"/></svg>', cell), /would not survive/);
+      assert.throws(() => l.put('<svg><rect x="${shift}" transform="translate(${shift} 0)"/></svg>', cell),
+        /would not survive/, 'a duplicated hole is a new hole in a new place');
+    });
+
+    // An interpolation inside an attribute is in the domain (the slot model decides what may be
+    // written); one in element position is not, because it can render any number of elements and
+    // document-order indices would stop matching the DOM.
+    it('accepts an interpolated attribute and refuses an interpolated element position', async () => {
       const literalSpan = await m.value('literalSpan');
-      const cell = 'function _demo(svgLens, svg, w) {return (svgLens(svg`<svg width="${w}"/>`));}';
-      assert.throws(() => literalSpan(cell, 'svgLens'), /interpolations/);
+      const attr = 'function _demo(svgLens, svg, w) {return (svgLens(svg`<svg width="${w}"/>`));}';
+      const [a, b] = literalSpan(attr, 'svgLens');
+      assert.equal(attr.slice(a, b), '<svg width="${w}"/>');
+      const kids = 'function _demo(svgLens, svg, s) {return (svgLens(svg`<svg>${s}</svg>`));}';
+      assert.throws(() => literalSpan(kids, 'svgLens'), /would not line up/);
     });
   });
 }

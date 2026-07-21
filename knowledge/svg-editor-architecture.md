@@ -316,6 +316,32 @@ Then, for credibility as a general editor:
   viewport, `preserveAspectRatio`, nested `<svg>`, and external references. The parse domain itself is
   enforced (M4.5).
 
+- **M4 — interpolated templates done (2026-07-21).** `literalSpan` now admits holes inside attribute
+  values and still refuses them in element position (a hole there can render any number of elements,
+  so document-order indices would stop matching the DOM). `slotsOf` classifies an attribute's numeric
+  slots as literal or hole; `mergeInterpolated` writes the literal ones and returns the holes byte for
+  byte; the writer routes a moved hole to `writeUpstream`, which sets the `viewof` the identifier
+  names. Every gesture reports its sink on the put record (`literal`, `upstream`, `upstream +
+  literal`, `mixed (partly locked)`), and `svgFocus` greys the handles over any interpolated
+  attribute before the drag rather than failing on release.
+  Three things only a browser could have found, all of them read-side rather than write-side:
+  - Tools read attribute values *from the source*, and `translate(${shift} 0)` is not a pair of
+    numbers — `translateLens.get` threw inside `onPointerDown`, so no tool claimed the gesture and
+    the drag silently did nothing. `effectiveAttr` reads through to the rendered element wherever the
+    source token has holes. Writing still goes to the source; only measuring goes to the drawing.
+  - `literalSafe` was absolute (`no ${ at all`), which refuses the author's own holes on the way back
+    in. It is now relative to the bytes being replaced: a hole that was already there may return
+    verbatim, a new one may not, and outside the holes nothing may contain template syntax.
+  - The tools preview by writing the live element, so by commit time the DOM already held the new
+    value and the writer diffed it against itself — every slot looked untouched and the drag
+    committed nothing. `commit(…, was)` takes the pre-gesture rendered text from the tool that owns
+    the preview.
+  Verified in a QA browser on the three-rect factory demo: dragging the rect whose whole transform is
+  `${shift}` moved `viewof shift` 40 → 70 with the source untouched; dragging the second rect
+  vertically wrote `translate(${shift} 0)` → `translate(${shift} 22)`, hole intact, slider unmoved,
+  sibling untouched; the rect on `rotate(${spin / 2} …)` showed five `locked` handles and its gizmo
+  drag was refused with a stated reason and no write.
+
 ## 7. Open questions
 
 - Does the value stay the DOM node, or become a document object with the node as a projection?
