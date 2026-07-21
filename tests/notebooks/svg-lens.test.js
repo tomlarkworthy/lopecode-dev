@@ -12,7 +12,7 @@ import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const NB = 'lopebooks/notebooks/@tomlarkworthy_svg-lens.html';
+const NB = 'lopebooks/notebooks/tomlarkworthy_svg-lens.html';
 const MODULE = 'modules/@tomlarkworthy/svg-lens.js';
 
 const TEST_CELLS = [

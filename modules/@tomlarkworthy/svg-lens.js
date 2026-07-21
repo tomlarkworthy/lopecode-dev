@@ -15,18 +15,12 @@
 // ================================================================================================
 // DOCUMENTATION + DEMO
 // ================================================================================================
-const _sl01 = function _intro(md){return(
+const _sl01 = function _intro(md,cite){return(
 md`# SVG Lens
 
-A lens is a pair \`get: S → A\`, \`put: (A, S) → S\`. This notebook builds them for SVG's attribute
-microsyntax — \`viewBox\`, \`points\`, \`transform\`, path \`d\` — and then points the whole stack at the
-one source that matters when the running system is canonical and its text is recovered on demand —
-**the cell's own definition**.
-
-Drag a shape below. There is no editor buffer and no separate copy of the drawing: the picture *is*
-the template literal in the cell that produced it, and each gesture is a \`put\` back into that
-literal. Turn on *Edit mode* in the burger menu and open the cell to watch its source change under
-your cursor, or read the live projection further down.`
+A bidirectional binding from source to editable SVG and back using composable *lenses* and
+orthogonal pluggable UX tools. Furthermore the lens can operate on SVG templates, and back
+propagate to upstream parameters. This goes beyond the pioneering work of ${cite("hempel2019")}`
 )};
 
 // The drawing IS the source. Dragging rewrites this literal, byte-exactly, in place.
@@ -4733,7 +4727,7 @@ export default function define(runtime, observer) {
   // Display order is the reading order of a paper: demo and how to use it, then the argument with a
   // widget beside each claim, then related and future work, then the references, then the appendix
   // (tests first, implementation after, imports last).
-  $def("sl01", "intro", ["md"], _sl01);
+  $def("sl01", "intro", ["md", "cite"], _sl01);
   $def("sl02b", "toolbar", ["htl","invalidation","viewof drawing"], _sl02b);
   $def("sl02", "viewof drawing", ["svgLens","svg"], _sl02);
   $def("sl03", "drawing", ["Generators","viewof drawing"], _sl03);
