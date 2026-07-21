@@ -348,6 +348,18 @@ Then, for credibility as a general editor:
   sibling untouched; the rect on `rotate(${spin / 2} …)` showed five `locked` handles and its gizmo
   drag was refused with a stated reason and no write.
 
+- **M6 — the notebook became the paper (2026-07-21).** Reading order is now: demo (toolbar, drawing,
+  then the inspector, which is below because its height follows the selection and above it every
+  selection change shifted the picture mid-gesture) → how to use it elsewhere → the source-last note
+  and an `exporter-3` download link whose label counts the puts it will capture → the argument, with a
+  widget beside each claim → related and future work → references → appendix (tests first as the
+  specification, then implementation in dependency order, imports last).
+  Two things worth remembering. `tex` is not a lopecode builtin and there is no `require`, so the
+  maths is a ~120-line TeX subset compiled to **MathML** — native rendering, no KaTeX, no web fonts.
+  And the §6 log widgets first came out blank: the upstream sink moves a slider, the runtime then
+  recomputes the drawing cell, and everything downstream of it restarts — so the put log had to move
+  into a cell nothing recomputes, with the widgets as pure renderings of it.
+
 ## 7. Open questions
 
 - Does the value stay the DOM node, or become a document object with the node as a projection?
