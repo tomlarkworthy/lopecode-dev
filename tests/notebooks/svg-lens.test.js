@@ -39,6 +39,7 @@ const TEST_CELLS = [
   'test_structural_commands',
   'test_point_commands',
   'test_nearestSegment',
+  'test_rebasePath',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.

@@ -3,9 +3,8 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
-**Status 2026-07-21: M0, most of M1, and M2's tool registry are built** — see §6. §2.1 (the blocking
-defect), §2.3 (no list lens) and §2.4 (the monolith) are fixed. §2.2 (positional addressing) is not.
-Remaining work is tracked as tasks 5–15.
+**Status 2026-07-21: M0, most of M1, M2's tool registry, and stable addressing are built** — see §6.
+Every defect in §2 is now fixed. Remaining work is tracked as tasks 6–15.
 
 ## 1. What already exists in this repo
 
@@ -30,9 +29,11 @@ Three structural blocks, in order of severity.
 path that can make the live DOM gain or lose a node. So "add a polygon", "delete a shape", "group",
 "reorder" are not hard in this design — they are *impossible*. This is the blocker to fix first.
 
-**2.2 Addressing is positional.** Elements are identified by `idx`, an index into `tokenize(src)` in
-document order, matched against `[node, ...node.querySelectorAll("*")]`. Any insert or delete
-renumbers everything after it, invalidating selection, handle keys, and any in-flight gesture.
+**2.2 Addressing is positional.** *(Fixed 2026-07-21.)* Elements were identified by `idx`, an index
+into `tokenize(src)` in document order, matched against `[node, ...node.querySelectorAll("*")]`. Any
+insert or delete renumbered everything after it, invalidating selection, handle keys, and any
+in-flight gesture. Selection is now a **structural path**, and each structural command carries a
+`rebase` that maps an address across it. See §6, M0.2.
 
 **2.3 The lens vocabulary has no list-of-children.** The source path is
 `literalLens → attrTextLens` only: replace one attribute value in one element. The abstract tree
@@ -196,6 +197,22 @@ Then, for credibility as a general editor:
   unowned, so it is skipped when aligning children and new children land before it.
   Verified in a browser: `test_morph_projection` ✅, one overlay and one `<style>` after a dozen
   edits, and a drag still commits `translate(21 13)` with `sameNode: true`.
+- **M0.2 — stable addressing done (2026-07-21).** Selection is a path (`svgFocus` holds `path`, and
+  derives `index` on demand for the handle lenses, which address elements the way `tokenize` does).
+  §7's first open question is settled in favour of structural paths over injected ids: the drawing is
+  the artifact the user is authoring, and stamping `data-lens-id` onto every element would pollute
+  exactly the source this project exists to preserve.
+  A path survives anything outside its own parent chain, so most edits need no rebase at all —
+  appending a shape, or any attribute edit, leaves every path valid. For the rest, `runCommand` takes
+  a `rebase` that maps an address across the edit; the writer never applies it (it still does not know
+  selection exists), it just reports it on `lens-put` and `svgLens` feeds it to the focus.
+  `test_rebasePath` checks it against ground truth rather than restating its rules: note the source
+  text at a path, apply the command, assert the rebased path lands on that same text — for *every*
+  sibling, not just the edited one.
+  One bug worth recording, found in the browser and not by the tests: the commands clamp out-of-range
+  indices, and the rebase did not, so an out-of-range `moveTo` silently dropped the selection. The fix
+  is structural — normalise the index once in `svgLens` and hand the same value to both — because any
+  future divergence between an edit and its rebase has the same symptom.
 - **M1 — mostly done (2026-07-21).** `childrenLens` (view = child element *source strings*, gaps
   travel with their child); commands `insertElement`, `deleteElement`, `reorderElement`,
   `insertPoint`, `deletePoint`, `nearestSegment`; `scan`/`parseDoc`/`nodeAt`/`pathOfIndex` give a
