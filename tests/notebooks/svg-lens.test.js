@@ -68,6 +68,24 @@ describe('@tomlarkworthy/svg-lens bundle invariants', () => {
     assert.ok(mains, 'svg-lens not in any bootconf mains → boots blank');
     assert.ok(mains.includes('lopepage-2'), 'bootconf mains not framed with lopepage-2');
   });
+  // A gesture changes the document, so it is an ordinary edit: commit through the public
+  // `Variable.define` and let the cell recompute. Assigning `_definition` instead (the sticky trick,
+  // which is right for sticky because it only records a change the user has already made and seen)
+  // leaves the runtime believing nothing happened — editor-5 keeps stale bytes and overwrites the
+  // edit on the next keystroke, and the change history never sees it. Verified in a browser: a
+  // silent swap produces zero variable-set churn, so `onCodeChange` never samples.
+  it('the writer commits through Variable.define, not a silent _definition swap', () => {
+    const src = readFileSync(MODULE, 'utf8');
+    assert.ok(/self\.define\(self\._name,/.test(src), 'applySource no longer commits via define');
+    assert.ok(!/^\s*self\._definition\s*=/m.test(src), 'a silent _definition assignment is back');
+  });
+  // The commit remounts the cell, so anything the editor must remember across a gesture cannot live
+  // in the node's closure — it goes in `lensState`, keyed by the Variable, which survives `define`.
+  it('editing state that outlives a remount is keyed off the node', () => {
+    const src = readFileSync(MODULE, 'utf8');
+    assert.ok(/\$def\("sl113s", "lensState", \[\]/.test(src), 'lensState registry missing');
+    assert.ok(!/const undoStack = \[\], redoStack = \[\]/.test(src), 'history back in the node closure');
+  });
   it('carries the modules the source lens needs', () => {
     for (const dep of ['acorn-8-11-3', 'runtime-sdk', 'tests', 'editable-md']) {
       assert.ok(s.includes(`id="@tomlarkworthy/${dep}"`), `${dep} block missing`);

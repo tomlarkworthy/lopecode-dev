@@ -3549,7 +3549,20 @@ const _sl116 = function _svgTarget(runtime,literalSpan){return(
 // definition with the variable's current inputs — it does not parse the SVG text — so an interpolated
 // template renders the same way a static one does. Recomputing the cell instead would mint a new node
 // and break the value's identity.
-const _sl117 = function _svgWriter(runtime,realize,morph,literalLens,cellAttrLens,compose,attrVal,literalSpan,holeSpans,slotsOf,mergeInterpolated){return(
+// Wait for a cell we just redefined to finish recomputing, and hand back its new value. The reactive
+// chain settles on macrotasks and the runtime exposes no per-variable promise, so this polls.
+const _sl117s = function _settle(){return(
+async (variable, previous, tries = 80) => {
+  for (let i = 0; i < tries; i++) {
+    await new Promise((r) => setTimeout(r, 8));
+    const v = variable._value;
+    if (v && v !== previous) return v;
+  }
+  return null;
+}
+)};
+
+const _sl117 = function _svgWriter(runtime,realize,settle,literalLens,cellAttrLens,compose,attrVal,literalSpan,holeSpans,slotsOf,mergeInterpolated){return(
 (node, target, { isOwn, guard }) => {
   const emit = (record) => {
     node.lastPut = record;
@@ -3561,21 +3574,24 @@ const _sl117 = function _svgWriter(runtime,realize,morph,literalLens,cellAttrLen
   async function applySource(next, record) {
     const self = target.variable();
     const before = self._definition;
-    // The whole prior definition, so a history layer can restore the exact bytes. The swap is
-    // silent — `onCodeChange` only samples when the variable *set* changes — so nothing else sees it.
+    // The whole prior definition, so a history layer can restore the exact bytes.
     record.source = { before: target.cellSource(), after: next };
     const [fn] = await realize([next], runtime);
     if (self._definition !== before) {                 // editor-5 (or another gesture) got there first
       record.aborted = "definition changed under the gesture";
       return emit(record);
     }
-    let fresh;
-    guard.rendering = true;
-    try { fresh = await fn.apply(null, self._inputs.map((i) => i._value)); }
-    finally { guard.rendering = false; }
-    self._definition = fn;                             // silent swap, as in @tomlarkworthy/sticky
-    morph(node, fresh, isOwn);
-    node.style.touchAction = "none";                   // morph syncs attributes, including style
+    // The public API, not a silent `_definition =`. A gesture *changes the document*, so it is an
+    // edit like any other: the cell is invalidated, recomputes, and mints a new node. Everything
+    // downstream — editor-5's buffer, the change history, dependent cells — then follows by the
+    // ordinary rules instead of needing to be told separately. State that must outlive the remount
+    // lives in `lensState`, not on the node.
+    self.define(self._name, self._inputs.map((i) => i._name), fn);
+    const fresh = await settle(self, node);
+    if (fresh) {
+      fresh.lastPut = record;
+      fresh.dispatchEvent(new CustomEvent("lens-put", { detail: record }));
+    }
     return emit(record);
   }
 
@@ -4474,7 +4490,16 @@ Inputs.input([toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarque
 const _sl123v = (G, _) => G.input(_);
 
 // ---- svgLens: wiring only ------------------------------------------------------------------------
-const _sl114 = function _svgLens(svgTarget,svgWriter,svgOverlay,svgFocus,svgTools,invert,applyPoint,ctmMat,insertElement,deleteElement,reorderElement,rebasePath,childrenLens,zTarget,attrVal,effectiveAttr,translateLens,nodeAt,setProperty,refsOf)
+// ---- state that outlives a recompute ------------------------------------------------------------
+// A commit re-runs the cell, so the SVG element is replaced. Undo history, the selection and the
+// active tool are properties of the document being edited, not of the element currently projecting
+// it, so they cannot live in the node's closure. Keyed by the Variable, which `define` mutates in
+// place and therefore survives. This cell has no inputs: nothing can invalidate it.
+const _sl113s = function _lensState(){return(
+new Map()
+)};
+
+const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFocus,svgTools,invert,applyPoint,ctmMat,insertElement,deleteElement,reorderElement,rebasePath,childrenLens,zTarget,attrVal,effectiveAttr,translateLens,nodeAt,setProperty,refsOf)
 {
   // Set while re-rendering: the fresh node is a throwaway used to patch the live one, so svgLens must
   // not attach a second overlay and a second set of listeners to it.
@@ -4494,8 +4519,20 @@ const _sl114 = function _svgLens(svgTarget,svgWriter,svgOverlay,svgFocus,svgTool
     const overlay = svgOverlay(node);
     const target = svgTarget(node, { marker: svgLens, isOwn: overlay.isOwn });
     const writer = svgWriter(node, target, { isOwn: overlay.isOwn, guard });
-    const focus = svgFocus(overlay, target,
-      () => node.dispatchEvent(new CustomEvent("lens-select", { detail: { paths: focus.paths, mode: focus.mode } })));
+    // Lazily, because `target.variable()` matches on `_value === node` and the runtime has not
+    // assigned this cell's value yet — we are still inside the definition that produces it.
+    const stateOf = () => {
+      const v = target.variable();
+      if (!v) return null;
+      let s = lensState.get(v);
+      if (!s) lensState.set(v, s = { undo: [], redo: [], paths: null, mode: "replace", tool: null });
+      return s;
+    };
+    const focus = svgFocus(overlay, target, () => {
+      const s = stateOf();
+      if (s) { s.paths = focus.paths.slice(); s.mode = focus.mode; }
+      node.dispatchEvent(new CustomEvent("lens-select", { detail: { paths: focus.paths, mode: focus.mode } }));
+    });
     node.style.touchAction = "none";
 
     // The active tool. A gesture means different things in different modes, so the tools that create
@@ -4504,6 +4541,8 @@ const _sl114 = function _svgLens(svgTarget,svgWriter,svgOverlay,svgFocus,svgTool
     let tool = options.tool || "select";
     const setTool = (id) => {
       tool = id || "select";
+      const s = stateOf();
+      if (s) s.tool = tool;
       ctx.state.pen = null;                              // a half-drawn path ends when the tool changes
       ctx.state.draw = null;
       overlay.clear();
@@ -4631,31 +4670,40 @@ const _sl114 = function _svgLens(svgTarget,svgWriter,svgOverlay,svgFocus,svgTool
     // trying to invert a command. Refuses when the current source is not what this entry produced —
     // someone else (editor-5, another gesture) has written since, and clobbering that is worse than
     // declining. Bounded, because a drag is one entry but a session is many.
-    const undoStack = [], redoStack = [];
     const limit = options.historyLimit === undefined ? 200 : options.historyLimit;
-    let replaying = false;
+    // One put is announced on two nodes — the one the gesture happened on and the one the recompute
+    // produced, so listeners attached either side of the remount both see it. History must record it
+    // once: the record itself carries the flag, and `replaying` lives in the shared state because the
+    // undo that started on the old node completes on the new one.
     node.addEventListener("lens-put", (e) => {
-      const s = e.detail.source;
-      if (!s || replaying || e.detail.aborted) return;
-      undoStack.push(s);
-      if (undoStack.length > limit) undoStack.shift();
-      redoStack.length = 0;                              // a new edit forks the future
+      const s = e.detail.source, st = stateOf();
+      if (!s || e.detail.aborted || !st || st.replaying || e.detail.recorded) return;
+      e.detail.recorded = true;
+      st.undo.push(s);
+      if (st.undo.length > limit) st.undo.shift();
+      st.redo.length = 0;                                // a new edit forks the future
     });
-    const step = async (from, to, want, name) => {
+    const step = async (fromKey, toKey, want, name) => {
+      const st = stateOf();
+      if (!st) return null;
+      const from = st[fromKey], to = st[toKey];
       const entry = from[from.length - 1];
       if (!entry) return null;
       if (target.cellSource() !== entry[want]) return null;   // written since: refuse
       from.pop();
       to.push(entry);
-      replaying = true;
+      st.replaying = true;
       try {
         return await writer.applySource(want === "after" ? entry.before : entry.after,
           { target: name, attribute: "(history)", before: "", after: "", GetPut: true, PutGet: true, span: null });
-      } finally { replaying = false; }
+      } finally { st.replaying = false; }
     };
-    node.undo = () => step(undoStack, redoStack, "after", "undo");
-    node.redo = () => step(redoStack, undoStack, "before", "redo");
-    node.historyDepth = () => ({ undo: undoStack.length, redo: redoStack.length });
+    node.undo = () => step("undo", "redo", "after", "undo");
+    node.redo = () => step("redo", "undo", "before", "redo");
+    node.historyDepth = () => {
+      const s = stateOf();
+      return s ? { undo: s.undo.length, redo: s.redo.length } : { undo: 0, redo: 0 };
+    };
 
     node.selection = () => focus.path;
     node.selectionPaths = () => focus.paths;
@@ -4708,6 +4756,16 @@ const _sl114 = function _svgLens(svgTarget,svgWriter,svgOverlay,svgFocus,svgTool
     };
     node.setTool = setTool;
     Object.defineProperty(node, "tool", { configurable: true, get: () => tool });
+    // A commit remounts this cell, so this run may be the continuation of an editing session rather
+    // than the start of one. The variable is not bound to the node until the runtime has taken this
+    // return value, hence the tick. Selection is restored by *path*, which is why it is addressed
+    // that way: an index would not survive the structural edit that caused the remount.
+    setTimeout(() => {
+      const s = stateOf();
+      if (!s) return;
+      if (s.tool && s.tool !== tool) setTool(s.tool);
+      if (s.paths && s.paths.length) focus.setAll(s.paths, s.mode);
+    }, 0);
     return node;
   };
 };
@@ -4934,7 +4992,8 @@ export default function define(runtime, observer) {
   $def("sl71b", "holeSpans", [], _sl71b);
   $def("sl71c", "slotsOf", ["holeSpans"], _sl71c);
   $def("sl71d", "mergeInterpolated", ["slotsOf"], _sl71d);
-  $def("sl117", "svgWriter", ["runtime","realize","morph","literalLens","cellAttrLens","compose","attrVal","literalSpan","holeSpans","slotsOf","mergeInterpolated"], _sl117);
+  $def("sl117s", "settle", [], _sl117s);
+  $def("sl117", "svgWriter", ["runtime","realize","settle","literalLens","cellAttrLens","compose","attrVal","literalSpan","holeSpans","slotsOf","mergeInterpolated"], _sl117);
   $def("sl118", "svgOverlay", [], _sl118);
   $def("sl119a", "boxInRoot", [], _sl119a);
   $def("sl119c", "topmostPaths", [], _sl119c);
@@ -4956,7 +5015,8 @@ export default function define(runtime, observer) {
   $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer"], _sl126);
   $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl123);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
-  $def("sl114", "svgLens", ["svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf"], _sl114);
+  $def("sl113s", "lensState", [], _sl113s);
+  $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf"], _sl114);
 
   main.define("tests", ["module @tomlarkworthy/tests", "@variable"], (_, v) => v.import("tests", _));
   // Prose is click-to-edit, as in @tomlarkworthy/lopecode-live-2026.
