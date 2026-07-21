@@ -3,8 +3,9 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
-**Status 2026-07-21: M0 and most of M1 are built** — see §6. §2.1 (the blocking defect) and §2.3 (no
-list lens) are fixed; §2.2 (positional addressing) and §2.4 (the monolith) are not.
+**Status 2026-07-21: M0, most of M1, and M2's tool registry are built** — see §6. §2.1 (the blocking
+defect), §2.3 (no list lens) and §2.4 (the monolith) are fixed. §2.2 (positional addressing) is not.
+Remaining work is tracked as tasks 5–15.
 
 ## 1. What already exists in this repo
 
@@ -208,7 +209,16 @@ Then, for credibility as a general editor:
   gap dies with the child, so delete-then-re-add cannot restore it; PutPut therefore holds only up to
   get-equivalence (`test_childrenLens_laws` asserts exactly that). Reprinting every gap canonically
   would buy strict PutPut at the cost of the residue — the wrong trade for this project.
-- **M2** Module split + tool registry + shape tools.
+- **M2 — tool registry done (2026-07-21).** `svgLens` is wiring only; it delegates to `svgTarget`
+  (which variable am I, what does the literal say), `svgWriter` (the only code that assigns
+  `_definition`), `svgOverlay`, `svgFocus`, and the `svgTools` registry. A tool is
+  `{id, onPointerDown, onPointerMove, onPointerUp, onDblClick}`; `onPointerDown` returns true to claim
+  the gesture and registry order is priority. Tools preview in the live DOM and hand a command or a
+  commit to the writer — none of them knows what a lens is. The writer stays ignorant of selection:
+  it reports on the `lens-put` event and the handles follow.
+  Verified by registering a third-party tool (shift-double-click to delete) from *outside* the module
+  and watching it delete a shape from both DOM and source without svgLens being touched.
+  Module split and shape tools still to do.
 - **M3** Transform gizmo, snapping, keyboard, undo.
 - **M4** Holes: classification, whole-hole writeback, inversion fallback, locked-handle affordance.
 - **M5** Domain widening (units, style, defs) and differential tests.
