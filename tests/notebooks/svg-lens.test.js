@@ -34,7 +34,15 @@ const TEST_CELLS = [
   'test_attrTextLens_laws',
   'test_cellSourceLens_laws',
   'test_source_residue_preserved',
+  // structural editing
+  'test_childrenLens_laws',
+  'test_structural_commands',
+  'test_point_commands',
+  'test_nearestSegment',
 ];
+
+// Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
+const DOM_TEST_CELLS = ['test_morph_projection'];
 
 describe('@tomlarkworthy/svg-lens bundle invariants', () => {
   const s = readFileSync(NB, 'utf8');
@@ -52,7 +60,7 @@ describe('@tomlarkworthy/svg-lens bundle invariants', () => {
   });
   it('module source declares every test cell', () => {
     const src = readFileSync(MODULE, 'utf8');
-    for (const name of TEST_CELLS) assert.ok(src.includes(`"${name}"`), `${name} not defined`);
+    for (const name of [...TEST_CELLS, ...DOM_TEST_CELLS]) assert.ok(src.includes(`"${name}"`), `${name} not defined`);
   });
 });
 
@@ -75,6 +83,43 @@ if (typeof Bun === 'undefined') {
         assert.match(String(v), /^✅/, `${name} did not report success: ${v}`);
       });
     }
+
+    for (const name of DOM_TEST_CELLS) {
+      it(`${name} (DOM-gated)`, async () => {
+        const v = await m.value(name);
+        assert.match(String(v), /^[✅⏭]/, `${name} failed: ${v}`);
+      });
+    }
+
+    // The renderer's reach: a structural edit must survive the trip back into a cell definition.
+    it('insertElement through literalLens keeps the cell parseable and the residue intact', async () => {
+      const [literalLens, insertElement] = await Promise.all([m.value('literalLens'), m.value('insertElement')]);
+      const cell =
+        'function _demo(svgLens, svg) {\n' +
+        '  // outside the literal\n' +
+        '  return (svgLens(svg`<svg viewBox="0 0 10 10">\n' +
+        '  <!-- keep me -->\n' +
+        '  <rect x="1"/>\n' +
+        '</svg>`));\n' +
+        '}';
+      const L = literalLens('svgLens');
+      const out = L.put(insertElement(L.get(cell), [0], null, '<circle r="3"/>'), cell);
+      assert.ok(out.includes('<circle r="3"/>'), 'element not inserted');
+      assert.ok(out.includes('<rect x="1"/>'), 'sibling lost');
+      assert.ok(out.includes('<!-- keep me -->'), 'comment residue lost');
+      assert.ok(out.includes('// outside the literal'), 'JS residue lost');
+      assert.doesNotThrow(() => acorn.parseExpressionAt(out, 0, { ecmaVersion: 'latest' }));
+      assert.equal(typeof eval('(' + out + ')'), 'function');
+    });
+
+    it('childrenLens refuses a child that is not exactly one element', async () => {
+      const childrenLens = await m.value('childrenLens');
+      const doc = '<svg><rect x="1"/></svg>';
+      const l = childrenLens([0]);
+      assert.throws(() => l.put(['  <rect x="1"/>'], doc), /exactly one element/);
+      assert.throws(() => l.put(['<a/><b/>'], doc), /exactly one element/);
+      assert.throws(() => l.put(['text'], doc), /exactly one element/);
+    });
 
     it('skip rule: unchanged view preserves non-canonical source strings', async () => {
       const viewBoxLens = await m.value('viewBoxLens');
