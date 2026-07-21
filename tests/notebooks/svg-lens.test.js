@@ -43,6 +43,9 @@ const TEST_CELLS = [
   'test_path_subdivision_exact',
   'test_opsLens_laws',
   'test_transform_gizmo',
+  // creation
+  'test_shape_creation',
+  'test_pen_path',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
@@ -114,6 +117,21 @@ if (typeof Bun === 'undefined') {
       assert.ok(out.includes('// outside the literal'), 'JS residue lost');
       assert.doesNotThrow(() => acorn.parseExpressionAt(out, 0, { ecmaVersion: 'latest' }));
       assert.equal(typeof eval('(' + out + ')'), 'function');
+    });
+
+    // A gap can hold comments; a new child must inherit only the indentation, or every insert
+    // reproduces the comment above the first child.
+    it('inserting does not duplicate the residue in a gap', async () => {
+      const insertElement = await m.value('insertElement');
+      const doc = '<svg>\n  <!-- keep me once -->\n  <rect x="1"/>\n</svg>';
+      let out = doc;
+      for (const mk of ['<circle r="1"/>', '<circle r="2"/>', '<circle r="3"/>'])
+        out = insertElement(out, [0], null, mk);
+      assert.equal((out.match(/<!--/g) || []).length, 1, `comment duplicated:\n${out}`);
+      assert.ok(/\n  <circle r="3"\/>/.test(out), `lost the indentation:\n${out}`);
+      // and inserting first, above the commented child, still leaves exactly one comment
+      const front = insertElement(doc, [0], 0, '<circle r="9"/>');
+      assert.equal((front.match(/<!--/g) || []).length, 1, `comment duplicated at the front:\n${front}`);
     });
 
     it('childrenLens refuses a child that is not exactly one element', async () => {

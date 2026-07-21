@@ -45,22 +45,59 @@ async function invokeVariable(name, module, overrides = {}) {
 
   const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
+  // Follow Observable import indirection to the variable that actually holds the
+  // value: an import is an identity variable whose single input lives in another
+  // module. A per-module builtin import (e.g. `md`) is usually uncomputed when
+  // its cell is never observed, but the shared builtin *source* is computed.
+  const followImportToSource = (v) => {
+    const seen = new Set();
+    while (v && !seen.has(v)) {
+      seen.add(v);
+      const inputs = Array.isArray(v._inputs) ? v._inputs : [];
+      if (inputs.length === 1 && inputs[0] && inputs[0]._module !== v._module) {
+        v = inputs[0];
+        continue;
+      }
+      break;
+    }
+    return v;
+  };
+
   const resolveDependency = async (depName) => {
     if (hasOwn(overrides, depName)) return overrides[depName];
 
-    const scopeVar =
-      module?._scope?.get?.(depName) ??
-      module?._runtime?._builtin?._scope?.get?.(depName);
+    // Resolve the name via the runtime's own scope resolver, then walk imports
+    // to the source that holds the computed value. Reading a settled `_value`
+    // adds no observer or temporary variable (no runtime churn) — important
+    // because callers like module-map peek titles during boot and must not
+    // perturb the runtime variable set.
+    let scopeVar;
+    try {
+      scopeVar = module?._resolve?.(depName);
+    } catch (e) {}
+    if (!scopeVar)
+      scopeVar =
+        module?._scope?.get?.(depName) ??
+        module?._runtime?._builtin?._scope?.get?.(depName);
 
     if (scopeVar) {
+      const source = followImportToSource(scopeVar);
+      if (source._value !== undefined) return source._value;
       if (scopeVar._value !== undefined) return scopeVar._value;
-      if (scopeVar._promise && typeof scopeVar._promise?.then === "function")
-        return await scopeVar._promise;
+      // A reachable source has a live value promise; an unreachable import's
+      // promise can resolve to undefined, so only trust a reachable one.
+      if (source._reachable && typeof source._promise?.then === "function") {
+        const r = await source._promise;
+        if (r !== undefined) return r;
+      }
     }
 
+    // Fallbacks below may force computation — `module.value` adds and removes a
+    // temporary variable (churn); use only as a last resort.
     if (typeof module?.value === "function") {
       try {
-        return await module.value(depName);
+        const r = await module.value(depName);
+        if (r !== undefined) return r;
       } catch (e) {}
     }
 

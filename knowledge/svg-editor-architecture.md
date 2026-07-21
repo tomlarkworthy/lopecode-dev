@@ -3,7 +3,7 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
-**Status 2026-07-21: M0, most of M1, M2's tool registry, and stable addressing are built** — see §6.
+**Status 2026-07-21: M0, most of M1, M2's tool registry, stable addressing, the transform gizmo and the creation tools are built** — see §6.
 Every defect in §2 is now fixed. Remaining work is tracked as tasks 6–15.
 
 ## 1. What already exists in this repo
@@ -165,8 +165,8 @@ Blocking, in order:
 2. Stable addressing + selection re-anchoring.
 3. `childrenLens` + insert/delete/reorder/group commands.
 4. Insert/delete point, close subpath, corner↔smooth. No new math; `handleEdit` needs siblings.
-5. Tool registry + select / direct-select / rect / ellipse / pen.
-6. Transform gizmo: bbox with rotate and scale handles; `rotateLens`, `scaleLens`.
+5. Tool registry + select / direct-select / rect / ellipse / pen. *(done)*
+6. Transform gizmo: bbox with rotate and scale handles; `rotateAbout`, `scaleAbout`. *(done)*
 
 Then, for credibility as a general editor:
 
@@ -236,7 +236,19 @@ Then, for credibility as a general editor:
   Verified by registering a third-party tool (shift-double-click to delete) from *outside* the module
   and watching it delete a shape from both DOM and source without svgLens being touched.
   Module split and shape tools still to do.
-- **M3** Transform gizmo, snapping, keyboard, undo.
+- **M2.5 — creation done (2026-07-21).** Drag-out `rect`/`ellipse`/`line` and a click-by-click pen,
+  plus the active-tool concept the priority registry lacked: `node.setTool(id)`, read by `ctx.tool()`.
+  Only the creating tools gate on it, so everything else stays reachable in select mode; a tool that
+  finishes returns to select on its own and the toolbar follows the editor's `lens-tool` event rather
+  than owning the state. Creation geometry is pure (`dragBox`, `shapeSpec`, `shapeMarkup`,
+  `penPath`) and the drag preview is rendered *from the same spec* as the committed markup, so the two
+  cannot disagree — which is what `test_shape_creation` asserts, reading the committed markup back
+  through the real parser. The pen keeps no builder state: the path is in the source from the first
+  click and each further click is an ordinary `d` put.
+  Bug found in the browser and not by the property tests: a new child inherited the *whole* leading
+  gap of the first child, so every insert reproduced the comment above it — four shapes, five copies.
+  A fresh child now inherits only the indentation of that gap. Regression test in the CI file.
+- **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo.
 - **M4** Holes: classification, whole-hole writeback, inversion fallback, locked-handle affordance.
 - **M5** Domain widening (units, style, defs) and differential tests.
 

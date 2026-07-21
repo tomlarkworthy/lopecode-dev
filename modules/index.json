@@ -1,0 +1,1563 @@
+{
+  "@tomlarkworthy/exporter-3": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_exporter-3.html",
+    "source": "home",
+    "hash": "dbb8c35c16c4d0250577418d26b37041",
+    "versions": 9,
+    "consumers": 201
+  },
+  "@tomlarkworthy/cell-map": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_cell-map.html",
+    "source": "home",
+    "hash": "c8281cd25de378ac872c7e289b0b715a",
+    "versions": 6,
+    "consumers": 203
+  },
+  "@tomlarkworthy/module-selection": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_module-selection.html",
+    "source": "home",
+    "hash": "4a1faa9fa20cfe945828d87c5a758c51",
+    "versions": 6,
+    "consumers": 203
+  },
+  "@tomlarkworthy/themes": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_themes.html",
+    "source": "home",
+    "hash": "2320f0d9d51c50a2272d57b672b66f59",
+    "versions": 6,
+    "consumers": 201
+  },
+  "@tomlarkworthy/exporter-2": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_exporter-2.html",
+    "source": "home",
+    "hash": "a9c2b2ac7607ebe5419cc5b39a7ecce2",
+    "versions": 5,
+    "consumers": 10
+  },
+  "@tomlarkworthy/cells-to-clipboard": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html",
+    "source": "home",
+    "hash": "7af7898b237728b52ea24b568ad2fd32",
+    "versions": 4,
+    "consumers": 203
+  },
+  "@tomlarkworthy/runtime-sdk": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html",
+    "source": "home",
+    "hash": "d6da0322104cb2ad8a836559a8e6cf15",
+    "versions": 4,
+    "consumers": 203
+  },
+  "@tomlarkworthy/acorn-8-11-3": {
+    "canonicalFrom": "lopecode/notebooks/ledger.html",
+    "source": "mode",
+    "hash": "cfbb603f9923f42e480bcc24ea214eb4",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/flow-queue": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_flow-queue.html",
+    "source": "home",
+    "hash": "97db7ca44c394ea3f73a3f60f0d2ef6c",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/local-storage-view": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html",
+    "source": "home",
+    "hash": "da3fda1c802cba464986bb8614de354d",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/module-map": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_module-map.html",
+    "source": "home",
+    "hash": "ddf9b08467025d702a130fbeab912da7",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/observablejs-toolchain": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+    "source": "home",
+    "hash": "b89f6c3ca92136704f5c6c025db14cf0",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/stream-operators": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_stream-operators.html",
+    "source": "home",
+    "hash": "e36abaedab4dca730a68bbd8fa2a72f5",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/summarizejs": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_summarizejs.html",
+    "source": "home",
+    "hash": "d5ca198f066bde101db6eed6086d55ed",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/visualizer": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_visualizer.html",
+    "source": "home",
+    "hash": "006c7bdb86aaefd18519862f541538d9",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/bootloader": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_bootloader.html",
+    "source": "home",
+    "hash": "5714a03c0bf504c73d99fa97737b8797",
+    "versions": 3,
+    "consumers": 203
+  },
+  "@tomlarkworthy/openai-responses-api": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_openai-responses-api.html",
+    "source": "home",
+    "hash": "6f30587bad7d1ee3c882d2a536d303f8",
+    "versions": 3,
+    "consumers": 21
+  },
+  "@tomlarkworthy/tabbed-pane-view": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html",
+    "source": "home",
+    "hash": "19bc7f796fa61d9321039e07e1deed55",
+    "versions": 3,
+    "consumers": 21
+  },
+  "@tomlarkworthy/whisper-input": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_whisper-input.html",
+    "source": "home",
+    "hash": "ca076f1040d00862fc0202a02c996f41",
+    "versions": 3,
+    "consumers": 21
+  },
+  "@tomlarkworthy/robocoop-2": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop-2.html",
+    "source": "home",
+    "hash": "47a5db4e5a2d83991358e93e88099e69",
+    "versions": 3,
+    "consumers": 20
+  },
+  "@tomlarkworthy/prosemirror": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_prosemirror.html",
+    "source": "home",
+    "hash": "cda535d6f78a454cb59074b5599d8070",
+    "versions": 3,
+    "consumers": 11
+  },
+  "@tomlarkworthy/claude-code-pairing": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html",
+    "source": "home",
+    "hash": "9ef62cada1525cf5d4987907f0362236",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/dataflow-templating": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html",
+    "source": "home",
+    "hash": "252c8b301ce39174ba434ed710c829e1",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/dom-view": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_dom-view.html",
+    "source": "home",
+    "hash": "5d93999f7810ce61fe36ddbeca737dff",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/escodegen": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+    "source": "mode",
+    "hash": "d5e793114a390617e9a70bfdd61a42ec",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/golden-layout-2-6-0": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_golden-layout-2-6-0.html",
+    "source": "home",
+    "hash": "24f5fad01bd508dd1bc3a49a99002770",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/import-notebook": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_import-notebook.html",
+    "source": "home",
+    "hash": "b6b75803b1a4b7006005a06e0495ee65",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/inspector": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_inspector.html",
+    "source": "home",
+    "hash": "4388a12127c9f7f4667923f96ebb6820",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/isomorphic-git-1-30-1": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+    "source": "mode",
+    "hash": "16fa79b79fb4e9e1a2d03cfc9221147c",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/jest-expect-standalone": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html",
+    "source": "home",
+    "hash": "418ef3328580c7b2416be5b9fc940db4",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/jszip-3-10-1": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+    "source": "mode",
+    "hash": "2b119c57e9c2ce093b3a9c7d2932d010",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/lightning-fs-4-6-0": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+    "source": "mode",
+    "hash": "1f60955582df75104615d8061957d237",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/lopepage-urls": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html",
+    "source": "home",
+    "hash": "28f1a31190b2a69e3c9d3ac522c41bd4",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/observable-runtime-v6": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_observable-runtime-v6.html",
+    "source": "home",
+    "hash": "6bc9db7b1881559c4d30c39f692e3969",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/reversible-attachment": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html",
+    "source": "home",
+    "hash": "bd5c80a260b0ab92fd01205320224d30",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/spectral-layout": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html",
+    "source": "home",
+    "hash": "35a448bc0359085c38d622228972d60d",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/tests": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_tests.html",
+    "source": "home",
+    "hash": "a4ead3e197c013250a0395848c3f4982",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/view": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_view.html",
+    "source": "home",
+    "hash": "970bf1f386002336660773d1215dd61f",
+    "versions": 2,
+    "consumers": 203
+  },
+  "@tomlarkworthy/file-sync": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_file-sync.html",
+    "source": "home",
+    "hash": "adcaf784830574cbacb4c069959714d6",
+    "versions": 2,
+    "consumers": 202
+  },
+  "@tomlarkworthy/modern-screenshot": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_modern-screenshot.html",
+    "source": "home",
+    "hash": "2068c45ab4a57f62e5e6221fef595e24",
+    "versions": 2,
+    "consumers": 21
+  },
+  "@tomlarkworthy/editable-md": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_editable-md.html",
+    "source": "home",
+    "hash": "1b4d30b426b3ad056b86b40860efd44f",
+    "versions": 2,
+    "consumers": 10
+  },
+  "@tomlarkworthy/robocoop-3": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop-3.html",
+    "source": "home",
+    "hash": "ada2416d9916f5aca8d43fa4cd68b394",
+    "versions": 2,
+    "consumers": 10
+  },
+  "@tomlarkworthy/blank-notebook": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blank-notebook.html",
+    "source": "home",
+    "hash": "4c06c87c7ed2feb0d7b41a7e7127100f",
+    "versions": 2,
+    "consumers": 5
+  },
+  "@tomlarkworthy/at-write": {
+    "canonicalFrom": "lopecode/notebooks/ledger.html",
+    "source": "mode",
+    "hash": "27d7c087ee62106e439802f0f847dbb6",
+    "versions": 2,
+    "consumers": 4
+  },
+  "@tomlarkworthy/atlas": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_atlas.html",
+    "source": "home",
+    "hash": "ebe077f3f4f5d41c3870d377f47a0d56",
+    "versions": 2,
+    "consumers": 4
+  },
+  "@tomlarkworthy/reactive-reflective-testing": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html",
+    "source": "home",
+    "hash": "a306e22475ce61cb394fb4863a9baef9",
+    "versions": 2,
+    "consumers": 4
+  },
+  "@tomlarkworthy/dexie-4": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_notes.html",
+    "source": "mode",
+    "hash": "e3fbf164e82a624d5726172f54f633aa",
+    "versions": 2,
+    "consumers": 3
+  },
+  "@tomlarkworthy/debugger-2": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_debugger-2.html",
+    "source": "home",
+    "hash": "d4c2987a5f8096279a17de631fd51156",
+    "versions": 2,
+    "consumers": 2
+  },
+  "@tomlarkworthy/codemirror-6-v2": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html",
+    "source": "home",
+    "hash": "80378ba570b5e43e8f978aa58a7aff02",
+    "versions": 1,
+    "consumers": 203
+  },
+  "@tomlarkworthy/editor-5": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_editor-5.html",
+    "source": "home",
+    "hash": "a2515020f8ebd02054039cc37c1f9f07",
+    "versions": 1,
+    "consumers": 203
+  },
+  "@tomlarkworthy/fileattachments": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_fileattachments.html",
+    "source": "home",
+    "hash": "fba8f936fac563f937051341f9c4aaf4",
+    "versions": 1,
+    "consumers": 203
+  },
+  "@tomlarkworthy/local-change-history": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_local-change-history.html",
+    "source": "home",
+    "hash": "ea8ffc1745c311432d4c097a64021ccd",
+    "versions": 1,
+    "consumers": 203
+  },
+  "@tomlarkworthy/lopepage": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lopepage.html",
+    "source": "home",
+    "hash": "633f78d13e1da2ee746dc2c8598b5a24",
+    "versions": 1,
+    "consumers": 203
+  },
+  "@tomlarkworthy/observablehq-lezer": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html",
+    "source": "home",
+    "hash": "f827692f8b66b9b0f0cb8b9529f40815",
+    "versions": 1,
+    "consumers": 203
+  },
+  "@tomlarkworthy/command-palette": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_command-palette.html",
+    "source": "home",
+    "hash": "4b7ce022a1bc9a4affa98c47552f828d",
+    "versions": 1,
+    "consumers": 198
+  },
+  "@tomlarkworthy/observable-runtime": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_observable-runtime.html",
+    "source": "home",
+    "hash": "4b60a23333fcadbc20650feae24d4039",
+    "versions": 1,
+    "consumers": 198
+  },
+  "@tomlarkworthy/footer": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_animation.html",
+    "source": "mode",
+    "hash": "5c6ef61561fbdade0bb96ae8418ed328",
+    "versions": 1,
+    "consumers": 34
+  },
+  "@tomlarkworthy/reconcile-nanomorph": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html",
+    "source": "mode",
+    "hash": "1408f147442e69ae3b5a09eaaabd85d4",
+    "versions": 1,
+    "consumers": 14
+  },
+  "@tomlarkworthy/bulma": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html",
+    "source": "mode",
+    "hash": "283db2d44fb90814a656ef52ba6808d4",
+    "versions": 1,
+    "consumers": 10
+  },
+  "@tomlarkworthy/testing": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "361f6b6b1d94162ef7c4baf2fdb8655a",
+    "versions": 1,
+    "consumers": 10
+  },
+  "@tomlarkworthy/viewroutine": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_viewroutine.html",
+    "source": "home",
+    "hash": "2ef8b2e4f8e70ce9cc95ed8033d88855",
+    "versions": 1,
+    "consumers": 9
+  },
+  "@tomlarkworthy/debugger": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_debugger.html",
+    "source": "home",
+    "hash": "0093acabbf948192f41131c5bd196f4d",
+    "versions": 1,
+    "consumers": 8
+  },
+  "@tomlarkworthy/utils": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_utils.html",
+    "source": "home",
+    "hash": "62f1dbbdb6b14ff333b703d3b4206233",
+    "versions": 1,
+    "consumers": 7
+  },
+  "@tomlarkworthy/lite-youtube-embed": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lite-youtube-embed.html",
+    "source": "home",
+    "hash": "22a513081e7148aecd51aaf4cf7fc618",
+    "versions": 1,
+    "consumers": 6
+  },
+  "@tomlarkworthy/manipulate": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_manipulate.html",
+    "source": "home",
+    "hash": "ffbcb3aca51c2477f3a120c12c0701ef",
+    "versions": 1,
+    "consumers": 6
+  },
+  "@tomlarkworthy/fetchp": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "4d6aba395e4f86be85ab32ac2159acc2",
+    "versions": 1,
+    "consumers": 6
+  },
+  "@tomlarkworthy/randomid": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_randomid.html",
+    "source": "home",
+    "hash": "1a4ac3f8e10743c9f40159cd922a5ddb",
+    "versions": 1,
+    "consumers": 6
+  },
+  "@tomlarkworthy/serverless-cells": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "53339104410b8e15587b8ee085140f81",
+    "versions": 1,
+    "consumers": 6
+  },
+  "@tomlarkworthy/at-login": {
+    "canonicalFrom": "lopecode/notebooks/ledger.html",
+    "source": "mode",
+    "hash": "354e0fe905255d6a2b4c1efc22e73bac",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/atproto": {
+    "canonicalFrom": "lopecode/notebooks/ledger.html",
+    "source": "mode",
+    "hash": "9afb1ce056f58a85ece1eefb0ff27c23",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/observable-notes": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_observable-notes.html",
+    "source": "home",
+    "hash": "1823f64cd427517c5ea6b6ccd7c73873",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/url-query-field-view": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_url-query-field-view.html",
+    "source": "home",
+    "hash": "14d26e9b52cc6dcba2e3a291bb6b75ee",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/api-hosting-with-express": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "c764dea76213ddf84bbd1a1f8cc13d7b",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/blog-navigation": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "a8281a6086b3b4cfe11e1a53fededb56",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/blog-sidebar": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "c8ae71d585d6619cd907aa91e12a3c8f",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/firebase-admin": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "20d8fa89a5a97c8f3161d9eb63cf15b0",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/github-backups": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "7f260b597c1ef337450063ed51d4cb59",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/repository-dispatch-min": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "8bd8219c07a84cfa3492c32eba367aee",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/secure-random-id@65": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "8757bbdf2bc207aa53f7fd0e347f40a6",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/serverside-cells": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "2084a04377d43213e03b417e236a09ae",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/mutable-form-input": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_mutable-form-input.html",
+    "source": "home",
+    "hash": "de1612fd68f4d383f4dd1fea5e99349e",
+    "versions": 1,
+    "consumers": 4
+  },
+  "@tomlarkworthy/lopecode-tour": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html",
+    "source": "home",
+    "hash": "19eaadce86c56c6836ab6417fc034158",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/lopecode-vision": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html",
+    "source": "home",
+    "hash": "70fe0b35d21fabaa1421b04cc422eb18",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/jumpgate": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_jumpgate.html",
+    "source": "home",
+    "hash": "ac1667be7ab7a77537abd6b292727cf5",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/native-file-system-adapter": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_native-file-system-adapter.html",
+    "source": "home",
+    "hash": "8f6a2b4c072b492dcb114bdf21242cf3",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/juice": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_juice.html",
+    "source": "home",
+    "hash": "c89c321fe179c7b520fa25f03eac95d4",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/netlify-deploy": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "mode",
+    "hash": "a4c59de2fef4915c5c5f43961732d28f",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/vertical-sliders": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_vertical-sliders.html",
+    "source": "home",
+    "hash": "ef58300b0b2f3768c0844ab158ac5e10",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/aws4fetch": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "5ecf86fca466b4b6f01e2bed56f4f025",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/exporter": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "e8034bed6af686f4cc9ab332fe262f51",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/tom-larkworthy": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tom-larkworthy.html",
+    "source": "home",
+    "hash": "c405f6ea508c2192a88dba30ef10d39e",
+    "versions": 1,
+    "consumers": 3
+  },
+  "@tomlarkworthy/notes": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notes.html",
+    "source": "home",
+    "hash": "5a595a4b24bc045412780be695237b1d",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/secrets": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_secrets.html",
+    "source": "home",
+    "hash": "7657df84767b76ee5c915c6e5d4b8160",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/bulk-jumpgate": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html",
+    "source": "home",
+    "hash": "9e7d89fa0e77a2cc7eedb70ab6ed0a9e",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/animation": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_animation.html",
+    "source": "home",
+    "hash": "bf98303a1ae0a4ef2dd7883ee519ca83",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/audio-inputs": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html",
+    "source": "home",
+    "hash": "ae7b8a342c459812630b88c15ad43f2c",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/parametric-svg": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_parametric-svg.html",
+    "source": "home",
+    "hash": "11fc21f974fabfa7e6f8e03c4670e63c",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/inputs-reference": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_inputs-reference.html",
+    "source": "home",
+    "hash": "393c29bb7a9fc347c0826972d3e2209d",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/colorpicker": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_colorpicker.html",
+    "source": "home",
+    "hash": "4be77747029fcc1830bf23076a3f4739",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/wiki": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_wiki.html",
+    "source": "home",
+    "hash": "fce35e29d9182d0950a27fc51f33deaf",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/circular-barcode-simulator": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html",
+    "source": "home",
+    "hash": "0a3ac8f4261076bbb9da2e2e763f4729",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/rate-estimation": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_rate-estimation.html",
+    "source": "home",
+    "hash": "677dfd8a483eeb7ac6a2ef2b0c345cda",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/notebook-kit": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+    "source": "home",
+    "hash": "18f9b6d8fd9c66e7477de5075e34b17c",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/micro-kernel-design": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html",
+    "source": "home",
+    "hash": "4a4b0379cf602ecaf3a30e06ecde8c07",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/my-lopebooks": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_my-lopebooks.html",
+    "source": "home",
+    "hash": "9dd65081f226005f79a63cb3c24154ed",
+    "versions": 1,
+    "consumers": 2
+  },
+  "@tomlarkworthy/ledger": {
+    "canonicalFrom": "lopecode/notebooks/ledger.html",
+    "source": "mode",
+    "hash": "04cf3720222e86b4c260e237f84d65ff",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/at-read": {
+    "canonicalFrom": "lopecode/notebooks/atproto.html",
+    "source": "mode",
+    "hash": "8bfa43fd4fc07d16397db49d62a71a85",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lopefeed": {
+    "canonicalFrom": "lopecode/notebooks/lopefeed.html",
+    "source": "mode",
+    "hash": "8443cb44664461deda37c0fc3dcc37ba",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/atproto-comments": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_atproto-comments.html",
+    "source": "home",
+    "hash": "4d8f49865f1913caaf64c00d696682fc",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lopepage-2": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
+    "source": "home",
+    "hash": "f477e2e3f9e53c21dfba3c9b35476bee",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/modules": {
+    "canonicalFrom": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
+    "source": "mode",
+    "hash": "383efc0f630704ea804c5ddf05ab44eb",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/tweetstorm": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html",
+    "source": "home",
+    "hash": "24f613d52adccebc74635ee2c4e24f67",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/moltbook": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_moltbook.html",
+    "source": "home",
+    "hash": "6cd895216e672d6bb187e65a88c409c1",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/firestore-messaging": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html",
+    "source": "home",
+    "hash": "5a0556667125d720af9f2a65ac523bca",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/fsm": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_fsm.html",
+    "source": "home",
+    "hash": "f048c94c6a791540dcae68548135cad8",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/computational-blogs-with-claude-code-connectivity": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html",
+    "source": "home",
+    "hash": "8b53389ad5a615eb89dd5f5c63b00a2f",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/ilda-laser-show-player": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_ilda-laser-show-player.html",
+    "source": "home",
+    "hash": "3f264198d60fc52fd592b0e7b18a9ec5",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/linux-sbc": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_linux-sbc.html",
+    "source": "home",
+    "hash": "4a66e62f6b6c951d02bcb04fbefbb98b",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/unaggregating-cloudwatch-metrics": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_unaggregating-cloudwatch-metrics.html",
+    "source": "home",
+    "hash": "c95e70cddb59e24ce845454c6ffc934e",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/simplest-cms": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_simplest-cms.html",
+    "source": "home",
+    "hash": "ccf96f725467fe9fa5951312e41b9649",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/sticky-footer-in-list": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html",
+    "source": "home",
+    "hash": "87b56417813bfd1f945bf8b86ec2b866",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lazer-simulator": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html",
+    "source": "home",
+    "hash": "0780a1400f7907b77832a5065c2da7dc",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/grid@1105": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_sequencer.html",
+    "source": "mode",
+    "hash": "1047ec14896d18d5b508132db6d187fa",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/sequencer": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_sequencer.html",
+    "source": "home",
+    "hash": "2ffb2438b910271fd05aeadcfeae59bd",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/howto-monitoring": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_howto-monitoring.html",
+    "source": "home",
+    "hash": "2ff04edc2c449e6f77ecd626bebb995b",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/gallery": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_gallery.html",
+    "source": "home",
+    "hash": "5cad4e336d90c69746201a0fb182a896",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/switch-dataflow": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_switch-dataflow.html",
+    "source": "home",
+    "hash": "85923d98001831b311abaf5fdc372979",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/unrolling-a-deploy-command": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_unrolling-a-deploy-command.html",
+    "source": "home",
+    "hash": "30eb8fe5769a8a5461928d20bd3d72f7",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/building-a-team-chore-app": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_building-a-team-chore-app.html",
+    "source": "home",
+    "hash": "1742925d6acc016d7bed1d4da0d9146c",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/imgchooser": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_imgchooser.html",
+    "source": "home",
+    "hash": "61603604ca7e63fd04e6cb84160a2287",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/blog-netlify-deployment-manager": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+    "source": "home",
+    "hash": "87950f7892856cdfedba090d685f5930",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lopecode-newsletter-001": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html",
+    "source": "home",
+    "hash": "fb26aa25a7fb5726fe446ccf24f521e7",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/pause-and-play-book": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-book.html",
+    "source": "home",
+    "hash": "64585f3394131945d7b640707585cc3b",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/svg-twist": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_svg-twist.html",
+    "source": "home",
+    "hash": "37cf39513e13c1e93ba2920100cd52a4",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/n-door-monty-hall": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_n-door-monty-hall.html",
+    "source": "home",
+    "hash": "de2016e328278b04794355f2a9e270af",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/twitter-trending-notebook-bot-dataset-2022": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_twitter-trending-notebook-bot-dataset-2022.html",
+    "source": "home",
+    "hash": "20f5b0f9b849f57a37c2226511f9c9df",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/robocoop-gallery": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop-gallery.html",
+    "source": "home",
+    "hash": "96ca1d9acec23886d77cbb4c38493328",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/jsqrcode": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+    "source": "home",
+    "hash": "d4e28c96f996ca3e3314062348201026",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/wormhole2": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_wormhole2.html",
+    "source": "home",
+    "hash": "7e4c89d9ab996f9789f7fab84c06d0c9",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/literateobject": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_literateobject.html",
+    "source": "home",
+    "hash": "1381c346234f58a934d19d054ed71080",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/code-metrics": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_code-metrics.html",
+    "source": "home",
+    "hash": "f3e3b94a476d25b7104440eeab2cd0a7",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html",
+    "source": "home",
+    "hash": "7e2139eb2c477737eb56f4439402e388",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/kirigami-turret": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_kirigami-turret.html",
+    "source": "home",
+    "hash": "74b1c9a15ab061b105844644b9da32d9",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/blm-us-wealth": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html",
+    "source": "home",
+    "hash": "c94d0d5f0cf918c0c4b201564447e18f",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/hacker-favourites-analysis": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_hacker-favourites-analysis.html",
+    "source": "home",
+    "hash": "d4a7ce71a3447a69c274150d7d1f51b6",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/blog-first-post": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+    "source": "home",
+    "hash": "76441c5a1486bb525397c497ea2ea903",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/linux-emu": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_linux-emu.html",
+    "source": "home",
+    "hash": "d582a2aafb565a4a67bfc65437fdccf1",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/svg-boinger": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_svg-boinger.html",
+    "source": "home",
+    "hash": "da4cb2bfcfdb47f61fb77b6380945cbf",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/tiny-notebook": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tiny-notebook.html",
+    "source": "home",
+    "hash": "db42a35c79091d7c1b0213b5cbfa3760",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/repo1": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_repo1.html",
+    "source": "home",
+    "hash": "2699174132e670951a149ac442c0edb6",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/dependancy": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html",
+    "source": "mode",
+    "hash": "f754f5ef85c3660f573db92ece48e0d5",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/notebook-semantics": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html",
+    "source": "home",
+    "hash": "40160c177a0a568029662fc97f078497",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/ego-graph": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_ego-graph.html",
+    "source": "home",
+    "hash": "b5d1edd8ab3d3fd39598a65535e2595a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/metaprogramming": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html",
+    "source": "mode",
+    "hash": "f22cdc222992b0266dfaf5a464a09b47",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/remote-cell-value": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html",
+    "source": "home",
+    "hash": "3b5cbfd36496e2e72928645adba45986",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/wormhole": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_wormhole.html",
+    "source": "home",
+    "hash": "72eae27de6161ef6a3a6f851b521cfe3",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/animated-kirigami": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+    "source": "home",
+    "hash": "e23551bbd05f8c384ed0bb84f35d2a93",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/agentic-planner": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "26ba064fe08d73fbe23fd56f3f6cf464",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/agentic-planner-prototype": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "26ba064fe08d73fbe23fd56f3f6cf464",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/editor-4": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "5368edb259790bbdb37cd26a4b2baf8b",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/gepa": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "a4a1ff06e182025f198b84ffc276ab9d",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/robocoop-eval": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "mode",
+    "hash": "eed836fa955d9f2f13ece19d3810805a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/robocoop3-training": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+    "source": "home",
+    "hash": "ad547f12b45a7a8e2694e91a153f48aa",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/infinite-kirigami-the-endless-wall": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html",
+    "source": "home",
+    "hash": "bd983494e1a1053ba509ff4e94485eed",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/fast-1d-circular-barcode-matching": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html",
+    "source": "home",
+    "hash": "4bb95165979d668ca781edcff545bede",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/aqi_no_loop_breaking": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html",
+    "source": "home",
+    "hash": "e915e3920b3e84c126445be9514266e3",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/cloudevents-explorer": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+    "source": "home",
+    "hash": "dced2f37ccc90ffa9cdaf1615b6a6cdd",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lazer-cut-plant-pot": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html",
+    "source": "home",
+    "hash": "9ee5660785d02b804b2e6f37a4e65ef7",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/synchronizing-external-state-into-bigquery-efficiently": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_synchronizing-external-state-into-bigquery-efficiently.html",
+    "source": "home",
+    "hash": "5d6862f2f6bbda943e352f2c4f80d781",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/womens-suffrage": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html",
+    "source": "home",
+    "hash": "b041aae5c51f793c6753b00e1e702e1c",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/glpk-canonicalization": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html",
+    "source": "home",
+    "hash": "e63b76e4bb843202520e02af99efcdf4",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/redirect-debugging": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html",
+    "source": "home",
+    "hash": "fc35e135e55dd0340e8f94b5dc9038b8",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/single-stroke-font": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_single-stroke-font.html",
+    "source": "home",
+    "hash": "353ec396fd89cc2fc52554990031576a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/p5-sandbox": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_p5-sandbox.html",
+    "source": "home",
+    "hash": "2481d51a0fc8780653909a47d501ec4b",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/sign-a-pdf": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html",
+    "source": "home",
+    "hash": "9c800fe721621d15101184fab6143117",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/just-bash": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "source": "mode",
+    "hash": "0a2b03945a565e206d4f8cc1fd04185a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/justbash": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "source": "home",
+    "hash": "2f807fef28d02b704e843d84f62933de",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/justbash-session": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "source": "mode",
+    "hash": "d3bb4f9e37c4af5d3726582d388e68c8",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/justbash-filesync": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "source": "mode",
+    "hash": "7d629f2e4170195de0fb6dbb9a9d9fda",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/justbash-terminal": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "source": "mode",
+    "hash": "b06eb6008bee201c3cdef95e20840472",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/ilda-virtual-laser-test-pattern": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_ilda-virtual-laser-test-pattern.html",
+    "source": "home",
+    "hash": "067eeca7b9ef2b85ef8033727d4553c5",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/neato": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_neato.html",
+    "source": "home",
+    "hash": "eb6e04639752334d35badb9a2519dd22",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/jamstack": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_jamstack.html",
+    "source": "home",
+    "hash": "ebbe3e921a1652ce026795c41a780894",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/parametric-kirigami-the-castle-wall": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_parametric-kirigami-the-castle-wall.html",
+    "source": "home",
+    "hash": "f936b5b09b58ce58f6baa4e4517403a1",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/most-favorited-hacker-news-youtube-videos": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html",
+    "source": "home",
+    "hash": "f18bfb70c7d033cd11cbd28e8142773f",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/rate-estimation-min": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_rate-estimation-min.html",
+    "source": "home",
+    "hash": "b2a48b0855209bc0bf45ffb5a02098b3",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/wms-leaflet-gca-dev": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html",
+    "source": "home",
+    "hash": "5bd5e17f8730c3e3934aaa2f24018d70",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/coffeescript-demo": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html",
+    "source": "home",
+    "hash": "7c65010019b5dbafa5710e0b4bbb228a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/tester": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tester.html",
+    "source": "home",
+    "hash": "a4ead3e197c013250a0395848c3f4982",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/codemirror-6": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html",
+    "source": "mode",
+    "hash": "0c686e61cc3afc70e174a8531c7d42fa",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/userspace-editor": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html",
+    "source": "home",
+    "hash": "c3e9e6cfcf9935f56668274250ee32fb",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lazer-light": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lazer-light.html",
+    "source": "home",
+    "hash": "620a38946962a9d71f5c874094da82d2",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/radial-explosion": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html",
+    "source": "home",
+    "hash": "553b26bea85575b5a2d314b1d7b23c66",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/linkpreview": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_linkpreview.html",
+    "source": "home",
+    "hash": "560b671e5c45a316c20f30758569020e",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/2d-spatial-wormhole-warp": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html",
+    "source": "home",
+    "hash": "294a77dd20b96e7ce85eb711c4db5572",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/webxr-dom-overlay": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_webxr-dom-overlay.html",
+    "source": "home",
+    "hash": "2b3934d9c0cd31faa552a7855722b68a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/notebook-kit-examples": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notebook-kit-examples.html",
+    "source": "home",
+    "hash": "956dcb17e06ff5ee0042091c81307b10",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/dijkstra": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_dijkstra.html",
+    "source": "home",
+    "hash": "4290ae974d553726e81ccd33d9da0860",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/ink": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_ink.html",
+    "source": "home",
+    "hash": "e3590d05207224d36150ae302c4dfffb",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/codemirror-6-22-2-view": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+    "source": "mode",
+    "hash": "75293bdcb2053798bdcba2e4e8c407ed",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/editor": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+    "source": "mode",
+    "hash": "6087c9fa9fa8ae4088fb9dee38464951",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/minicell": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+    "source": "mode",
+    "hash": "f72475e65a214ad1612d5992fa3fa613",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/moldable-webpage": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+    "source": "home",
+    "hash": "934d8f9d90b92d3e66741daaf008d865",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/track-parent": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+    "source": "mode",
+    "hash": "65eda6ebfb6c62280ffd80758c79ca58",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/tiktok": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_tiktok.html",
+    "source": "home",
+    "hash": "6bc35775e49f22d01dd8ddcb7d7f6bd7",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/linear-app-technical-deep-dive": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html",
+    "source": "home",
+    "hash": "38633d149231b0a58d31a977f0d99972",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html",
+    "source": "home",
+    "hash": "bcf6f4c5a4ad25eefecd092a20a29a30",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/phiresky-sqlite-query": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html",
+    "source": "home",
+    "hash": "2cba2b1ee36dc41568bc480ad839d3b0",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/vr-hackerspace": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html",
+    "source": "home",
+    "hash": "f4d278ca0ccab515c538b0612bd03d24",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/compile-zig": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html",
+    "source": "home",
+    "hash": "d64e057aaddd9c5b6c4bd8c045325508",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/subdomain-certification": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html",
+    "source": "home",
+    "hash": "6209df4a8cc4aa622954a7d85ce2e27d",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/pause-and-play-shop": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-shop.html",
+    "source": "home",
+    "hash": "e54725db22a6e68b53b1762e8da597e6",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/testblog": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_testblog.html",
+    "source": "home",
+    "hash": "563e8d0b94b50c512aaeb823398fef5a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/rss-feed": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_rss-feed.html",
+    "source": "home",
+    "hash": "2a11adc719eeefe5bae9cdcf692c97c6",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/notebook-visualizer": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html",
+    "source": "home",
+    "hash": "ae48021ec63340a80fcefc4497b2a1c0",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/howto-import-react-application": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html",
+    "source": "home",
+    "hash": "cb9320d3db2683cd3e8663e58934b622",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/js-toolchain": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+    "source": "mode",
+    "hash": "094aa31d276871bdf1ddaf6f5ba8b5e3",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/matrix-background": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html",
+    "source": "home",
+    "hash": "dd16cf66cbd1fa70c1f47cc7067c2635",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/bitcoin-energy": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html",
+    "source": "home",
+    "hash": "589b2263ac4881dc55e8361b1f914ece",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/retro-title-graphic": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html",
+    "source": "home",
+    "hash": "39be9bd8147cf5c0b60138975b987448",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/juice-and-charts": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html",
+    "source": "home",
+    "hash": "c11b86f3167632bf09edf13a37f8bef0",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/view-examples": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_view-examples.html",
+    "source": "home",
+    "hash": "53c405ccf00a88e86ffb09926ae5aa0a",
+    "versions": 1,
+    "consumers": 1
+  },
+  "@tomlarkworthy/lopecode-substrate-2026": {
+    "canonicalFrom": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html",
+    "source": "home",
+    "hash": "c8ba45dbfba883f20e1cc9314f3f031a",
+    "versions": 1,
+    "consumers": 1
+  }
+}
