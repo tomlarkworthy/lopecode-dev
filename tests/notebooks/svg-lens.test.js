@@ -48,10 +48,11 @@ const TEST_CELLS = [
   'test_pen_path',
   'test_z_order',
   'test_topmost_selection',
+  'test_domain_boundary',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
-const DOM_TEST_CELLS = ['test_morph_projection'];
+const DOM_TEST_CELLS = ['test_morph_projection', 'test_parse_vs_DOMParser'];
 
 describe('@tomlarkworthy/svg-lens bundle invariants', () => {
   const s = readFileSync(NB, 'utf8');
@@ -67,6 +68,16 @@ describe('@tomlarkworthy/svg-lens bundle invariants', () => {
       assert.ok(s.includes(`id="@tomlarkworthy/${dep}"`), `${dep} block missing`);
     }
   });
+  // The module is embedded in an HTML script block, so its bytes are parsed in script-data state:
+  // `</scr'+'ipt` ends the block, and `<!--` followed by `<scr'+'ipt` puts the parser in
+  // double-escaped state where the real end tag no longer ends it. Either way the notebook boots as
+  // raw text. Both cost a debugging session before this check existed.
+  it('module source writes no script or style tag literally', () => {
+    const src = readFileSync(MODULE, 'utf8');
+    const m = /<\/?\s*(script|style)\b/i.exec(src);
+    assert.equal(m, null, m && `build it from parts instead — at offset ${m.index}: ${src.slice(m.index - 70, m.index + 30)}`);
+  });
+
   it('module source declares every test cell', () => {
     const src = readFileSync(MODULE, 'utf8');
     for (const name of [...TEST_CELLS, ...DOM_TEST_CELLS]) assert.ok(src.includes(`"${name}"`), `${name} not defined`);

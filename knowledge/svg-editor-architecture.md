@@ -184,7 +184,7 @@ Then, for credibility as a general editor:
     `_value` identity. Several drawings, or one assembled from imported sub-cells, is unhandled.
 15. Performance: full re-tokenize per pointermove; fine at 20 elements, not at 2000.
 16. Differential testing against the browser's own parser: `render(put(a, s))` should agree with the
-    equivalent DOM mutation. Cheaper and more convincing than more microsyntax properties.
+    equivalent DOM mutation. Cheaper and more convincing than more microsyntax properties. *(done)*
 
 ## 6. Milestones
 
@@ -276,7 +276,25 @@ Then, for credibility as a general editor:
   order, every intermediate source byte-identical to the snapshot taken at the time.
 - **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo *(done)*.
 - **M4** Holes: classification, whole-hole writeback, inversion fallback, locked-handle affordance.
-- **M5** Domain widening (units, style, defs) and differential tests.
+- **M4.5 — differential tests done (2026-07-21).** `test_parse_vs_DOMParser` (browser-only) checks the
+  scanner against `DOMParser` on eight documents — real markup plus the cases a regex tokenizer gets
+  wrong: `>` inside an attribute value, mixed quote styles, entities, comments containing angle
+  brackets, deep nesting, both closing forms. It compares tree shape, every attribute value, and the
+  *slices* the spans name, because a merely plausible span is the dangerous case: it splices the
+  wrong bytes silently.
+  The domain is now explicit and enforced rather than described in a comment. `outsideDomain(src)`
+  refuses CDATA sections, `<scr…ipt>`/`<sty…le>`/`<foreignObject>` and DOCTYPEs with an internal
+  subset, at every entry point (`parseDoc`, `tokenize`, and so `childrenLens` too). It works over
+  *tokens*, not raw text — a script tag written inside a comment is a comment. Entity references stay
+  inside the domain and are deliberately left as the author's bytes: this editor rewrites source, so
+  decoding on the way in would mean re-encoding on the way out.
+  Cost of learning: the corpus originally wrote `<scr…ipt>` literally. A module lives inside an HTML
+  script block, whose bytes are parsed in script-data state — `</scr…ipt` ends the block, and `<!--`
+  followed by `<scr…ipt` puts the parser in double-escaped state where the real end tag no longer
+  ends it. The notebook booted as raw text twice. There is now a CI check for it, and a second
+  lesson: after such a break, `sync-module` leaves orphan bytes after the block, so restore the
+  notebook from git before re-syncing rather than syncing over the wreckage.
+- **M5** Domain widening (units, style, defs).
 
 ## 7. Open questions
 
