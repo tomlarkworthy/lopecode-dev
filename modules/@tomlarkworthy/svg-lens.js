@@ -145,6 +145,47 @@ const _sl02b = function _toolbar(htl,invalidation,$0)
   };
   document.addEventListener("keydown", onKey);
   invalidation.then(() => document.removeEventListener("keydown", onKey));
+
+  // G8. Right-click renders the same registry the bar does, so it costs nothing as the registry fills.
+  // The click first selects what is under the pointer (unless that is already in the selection), then
+  // the menu lists every command that is live *for that selection* — `canCommand` is the one authority,
+  // exactly as it is for the buttons. Only commands are shown; keyboard-only view verbs stay off it.
+  let menu = null;
+  const closeMenu = () => { if (menu) { menu.remove(); menu = null; } };
+  const openMenu = (x, y) => {
+    closeMenu();
+    const live = (drawing.commands ? drawing.commands() : []).filter((c) => drawing.canCommand(c.id));
+    if (!live.length) return;
+    menu = htl.html`<div style="position:fixed;left:${x}px;top:${y}px;z-index:9999;background:#fff;border:1px solid #b9c4b4;border-radius:8px;padding:4px;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:160px;font:13px system-ui,sans-serif"></div>`;
+    for (const c of live) {
+      const item = htl.html`<div style="display:flex;justify-content:space-between;gap:16px;padding:5px 10px;border-radius:5px;cursor:pointer;color:#243"><span>${c.label}</span><span style="opacity:.5;font-size:11px">${c.key ? KEYNAME(c.key) : ""}</span></div>`;
+      item.onmouseenter = () => (item.style.background = "#eef3ea");
+      item.onmouseleave = () => (item.style.background = "");
+      item.onclick = () => { closeMenu(); drawing.command(c.id); };
+      menu.appendChild(item);
+    }
+    document.body.appendChild(menu);
+  };
+  const onContext = (e) => {
+    e.preventDefault();
+    const hit = drawing.pickAt ? drawing.pickAt(e) : [];
+    const sel = drawing.selectionPaths();
+    const inSel = hit[0] && sel.some((p) => p.join("/") === hit[0].join("/"));
+    if (hit[0] && !inSel) drawing.select([hit[0]], "transform");
+    else if (!hit[0] && !sel.length) drawing.select([]);
+    openMenu(e.clientX, e.clientY);
+  };
+  drawing.addEventListener("contextmenu", onContext);
+  const onDocDown = (e) => { if (menu && !menu.contains(e.target)) closeMenu(); };
+  document.addEventListener("pointerdown", onDocDown, true);
+  document.addEventListener("scroll", closeMenu, true);
+  invalidation.then(() => {
+    closeMenu();
+    drawing.removeEventListener("contextmenu", onContext);
+    document.removeEventListener("pointerdown", onDocDown, true);
+    document.removeEventListener("scroll", closeMenu, true);
+  });
+
   el.appendChild(bar);
   return el;
 };
@@ -7297,6 +7338,105 @@ const _sl260 = function _pathSmooth(parsePath,printPath,pathHandles,pathSegments
 })()
 )};
 
+// ---- G47: change a segment's type ----------------------------------------------------------------
+// The kind an author drew (L / C / Q / A) used to be the kind they were stuck with. This is the
+// conversion registry that makes the kind editable: an entry per ordered `(from, to)` pair it knows
+// how to rewrite, each returning the replacement command group *or null* when the conversion would
+// have to guess. Every entry here is shape-preserving — `L↔C` is byte-exact, `C↔Q` is exact in the
+// direction that loses nothing and declines the other (the same "decline rather than guess" `demote`
+// uses), and `A→C` reproduces the arc within a sub-pixel tolerance (a cubic cannot draw a circular
+// arc *exactly* — the (4/3)·tan(θ/4) approximation is the standard every renderer uses — so this
+// entry is honestly an approximation, deliberately one-way, and is the explicit conversion arcs need
+// before their interior can be edited at all). `pathConvert` only rewrites `d`; addressing, undo and
+// the write path stay `commitDelta`'s.
+const _sl265 = function _pathConvert(pathSegments,replaceGroup,absoluteGroup){return(
+(() => {
+  const near = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 1e-9;
+  // The quadratic a cubic came from, if it came from one: degree-elevating `Q c` gives controls at
+  // the ⅔ points, so a cubic is a raised quadratic exactly when both recovered controls agree.
+  const quadOf = (s) => {
+    const c1 = [s.p0[0] + 1.5 * (s.p1[0] - s.p0[0]), s.p0[1] + 1.5 * (s.p1[1] - s.p0[1])];
+    const c2 = [s.p3[0] + 1.5 * (s.p2[0] - s.p3[0]), s.p3[1] + 1.5 * (s.p2[1] - s.p3[1])];
+    return near(c1, c2) ? c1 : null;
+  };
+  // Endpoint→centre arc parameterisation (SVG F.6.5/F.6.6), split into ≤90° cubics (F.6.4-style
+  // magic constant). The last endpoint is pinned to `p3` so the join is bit-for-bit the arc's own end.
+  const arcToCubics = (s) => {
+    let [rx, ry, phiDeg, fa, fs] = s.args;
+    const [x1, y1] = s.p0, [x2, y2] = s.p3;
+    rx = Math.abs(rx); ry = Math.abs(ry);
+    if (rx < 1e-9 || ry < 1e-9 || near(s.p0, s.p3)) return [{ c: "L", a: [x2, y2] }];
+    const phi = (phiDeg * Math.PI) / 180, cosp = Math.cos(phi), sinp = Math.sin(phi);
+    const dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+    const x1p = cosp * dx + sinp * dy, y1p = -sinp * dx + cosp * dy;
+    let lam = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+    if (lam > 1) { const k = Math.sqrt(lam); rx *= k; ry *= k; }
+    const sign = fa !== fs ? 1 : -1;
+    const num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p;
+    const den = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
+    const co = sign * Math.sqrt(Math.max(0, num / den));
+    const cxp = (co * (rx * y1p)) / ry, cyp = (co * -(ry * x1p)) / rx;
+    const cx = cosp * cxp - sinp * cyp + (x1 + x2) / 2;
+    const cy = sinp * cxp + cosp * cyp + (y1 + y2) / 2;
+    const ang = (ux, uy, vx, vy) => {
+      const d = ux * vx + uy * vy, l = Math.hypot(ux, uy) * Math.hypot(vx, vy);
+      let a = Math.acos(Math.min(1, Math.max(-1, d / l)));
+      return ux * vy - uy * vx < 0 ? -a : a;
+    };
+    const t1 = ang(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
+    let dt = ang((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
+    if (!fs && dt > 0) dt -= 2 * Math.PI;
+    if (fs && dt < 0) dt += 2 * Math.PI;
+    const nseg = Math.max(1, Math.ceil(Math.abs(dt) / (Math.PI / 2) - 1e-9));
+    const delta = dt / nseg, tc = (4 / 3) * Math.tan(delta / 4);
+    const pt = (t) => [cx + rx * Math.cos(t) * cosp - ry * Math.sin(t) * sinp,
+                       cy + rx * Math.cos(t) * sinp + ry * Math.sin(t) * cosp];
+    const der = (t) => [-rx * Math.sin(t) * cosp - ry * Math.cos(t) * sinp,
+                        -rx * Math.sin(t) * sinp + ry * Math.cos(t) * cosp];
+    const out = [];
+    let th = t1;
+    for (let i = 0; i < nseg; i++) {
+      const a = pt(th), da = der(th), b = pt(th + delta), db = der(th + delta);
+      out.push({ c: "C", a: [a[0] + tc * da[0], a[1] + tc * da[1],
+                             b[0] - tc * db[0], b[1] - tc * db[1], b[0], b[1]] });
+      th += delta;
+    }
+    const last = out[out.length - 1].a;
+    last[4] = x2; last[5] = y2;                            // pin the endpoint exactly
+    return out;
+  };
+  const registry = {
+    "L>C": (s) => [{ c: "C", a: [...s.p0, ...s.p3, ...s.p3] }],
+    "C>L": (s) => (near(s.p1, s.p0) && near(s.p2, s.p3)) ? [{ c: "L", a: [...s.p3] }] : null,
+    "Q>C": (s) => [{ c: "C", a: [s.p0[0] + (2 / 3) * (s.p1[0] - s.p0[0]), s.p0[1] + (2 / 3) * (s.p1[1] - s.p0[1]),
+                               s.p3[0] + (2 / 3) * (s.p1[0] - s.p3[0]), s.p3[1] + (2 / 3) * (s.p1[1] - s.p3[1]),
+                               ...s.p3] }],
+    "C>Q": (s) => { const c = quadOf(s); return c ? [{ c: "Q", a: [...c, ...s.p3] }] : null; },
+    "A>C": (s) => arcToCubics(s)
+  };
+  return {
+    // What this segment can become, given its current kind — used to grey out a menu item.
+    targets: (seg) => Object.keys(registry).filter((k) => k.startsWith(seg.kind + ">")).map((k) => k.slice(2)),
+    // Rewrite segment `segIndex` to kind `to`, or null if the registry declines. A following smooth
+    // command (S/T) reflects off this segment's controls, so it is made absolute first, exactly as
+    // `splitPathSegment` does — otherwise the reflection base moves out from under it.
+    convert(cmds, segIndex, to) {
+      const segs = pathSegments(cmds);
+      const seg = segs[segIndex];
+      if (!seg) return null;
+      const fn = registry[seg.kind + ">" + to];
+      if (!fn) return null;
+      const repl = fn(seg);
+      if (!repl) return null;
+      let out = cmds.map((c) => ({ c: c.c, a: c.a.slice() }));
+      const next = segs[segIndex + 1];
+      if (next && /^[STst]$/.test(next.letter)) out = absoluteGroup(out, next);
+      return replaceGroup(out, seg.ci, seg.o, repl);
+    }
+  };
+})()
+)};
+
 // The toggle as a command rather than as a double-click: double-clicking an anchor already means
 // *delete this vertex*, and that is tested behaviour. One held vertex, because "toggle" needs
 // something to be the opposite of.
@@ -7314,6 +7454,49 @@ const _sl261 = function _cmdToggleSmooth(gestureDelta,pathSmooth,pathHandles,nod
     });
   }
 }
+)};
+
+// G47. The convert verb as commands, one per target kind, over whatever anchors are held (P7). The
+// segment an anchor governs is the one it terminates — the same reading `delete-vertex` uses — and a
+// held set is converted highest-index-first so an `A→C` expansion above never shifts the segments
+// below it. Each item is live only where `pathConvert` actually accepts the rewrite (asked once, T8),
+// so "straighten" greys out on a segment that is not a straight cubic, and "to bézier" lights up on a
+// line or a quadratic or an arc. These are the discoverable face of the conversion registry until the
+// S9 affordance panel exists; today they surface through the context menu (G8).
+const _sl266 = function _cmdConvertSegment(gestureDelta,attrVal,parsePath,printPath,pathSegments,pathHandles,attrTextLens,nodeAt,pathConvert){return(
+(to) => ({
+  id: "convert-to-" + { L: "line", C: "curve", Q: "quad" }[to],
+  label: { L: "Straighten segment", C: "Segment to bézier", Q: "Segment to quadratic" }[to],
+  key: null,
+  plan(env) {
+    const vs = (env.vertices || []).filter((v) => v.kind === "anchor");
+    if (!vs.length) return null;
+    const key = (q) => q.join("/");
+    if (vs.some((v) => key(v.path) !== key(vs[0].path))) return null;   // one element at a time
+    const path = vs[0].path;
+    let idx;
+    try { idx = env.index(path); } catch (e) { return null; }
+    const d0 = attrVal(env.src, idx, "d");
+    if (d0 === null) return null;
+    const segs = pathSegments(parsePath(d0));
+    const hs = pathHandles(env.src, idx).filter((h) => h.kind === "anchor");
+    const sis = vs.map((v) => {
+      const h = hs[v.n];
+      return h ? segs.findIndex((sg) => sg.ci === h.ci && sg.o === h.o) : -1;
+    }).filter((i) => i >= 0).sort((a, b) => b - a);
+    const out = [];
+    for (const si of sis) {
+      if (pathConvert.convert(parsePath(d0), si, to) === null) continue;  // declines here, T8
+      out.push(gestureDelta.command("convertSegment", (src) => {
+        let j;
+        try { j = nodeAt(src, path).index; } catch (e) { return src; }
+        const next = pathConvert.convert(parsePath(attrVal(src, j, "d")), si, to);
+        return next === null ? src : attrTextLens(j, "d").put(printPath(next), src);
+      }));
+    }
+    return out.length ? out : null;
+  }
+})
 )};
 
 // G7. Selection is not a source edit (T9), so these plan a `select` delta rather than a `command`
@@ -7344,7 +7527,7 @@ const _sl264 = function _cmdSelect(gestureDelta,nodeAt){return(
 })
 )};
 
-const _sl250 = function _svgCommands(cmdGroup,cmdUngroup,cmdDuplicate,cmdCopy,cmdCut,cmdPaste,cmdAlign,cmdDistribute,alignSpecs,cmdDeleteVertex,cmdClosePath,cmdToggleSmooth,cmdSelect){return(
+const _sl250 = function _svgCommands(cmdGroup,cmdUngroup,cmdDuplicate,cmdCopy,cmdCut,cmdPaste,cmdAlign,cmdDistribute,alignSpecs,cmdDeleteVertex,cmdClosePath,cmdToggleSmooth,cmdSelect,cmdConvertSegment){return(
 // A plain array, not an `Inputs.input`, for the same reason `svgShapes` is: pure code plans a command
 // and the laws exercise that headless, where there is no DOM to hold a view.
 [cmdGroup, cmdUngroup, cmdDuplicate, cmdCopy, cmdCut, cmdPaste(false), cmdPaste(true)]
@@ -7352,6 +7535,7 @@ const _sl250 = function _svgCommands(cmdGroup,cmdUngroup,cmdDuplicate,cmdCopy,cm
   .concat([cmdDistribute("x"), cmdDistribute("y"),
            cmdDeleteVertex, cmdClosePath(true), cmdClosePath(false), cmdToggleSmooth])
   .concat(["all", "none", "same-fill", "same-tag"].map(cmdSelect))
+  .concat(["L", "C", "Q"].map(cmdConvertSegment))
 )};
 
 // Look one up, and answer "what does this keystroke mean" in one place. The binding is a
@@ -7937,6 +8121,9 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
       return s ? { undo: s.undo.length, redo: s.redo.length } : { undo: 0, redo: 0 };
     };
 
+    // What is under a pointer event, topmost first — the very hit-test a click uses (S1), exposed so a
+    // right-click can select before it opens a menu (G8). Measurement stays inside `ctx`, so P5 holds.
+    node.pickAt = (e) => ctx.pick(e).map((h) => h.path);
     node.selection = () => focus.path;
     node.selectionPaths = () => focus.paths;
     node.selectionMode = () => focus.mode;
@@ -8352,7 +8539,9 @@ export default function define(runtime, observer) {
   $def("sl258", "cmdDeleteVertex", ["gestureDelta","attrVal","parsePoints","parsePath","pathSegments","pathHandles","deletePoint","deletePathPoint"], _sl258);
   $def("sl259", "cmdClosePath", ["gestureDelta","attrVal","attrTextLens","nodeAt"], _sl259);
   $def("sl264", "cmdSelect", ["gestureDelta","nodeAt"], _sl264);
-  $def("sl250", "svgCommands", ["cmdGroup","cmdUngroup","cmdDuplicate","cmdCopy","cmdCut","cmdPaste","cmdAlign","cmdDistribute","alignSpecs","cmdDeleteVertex","cmdClosePath","cmdToggleSmooth","cmdSelect"], _sl250);
+  $def("sl265", "pathConvert", ["pathSegments","replaceGroup","absoluteGroup"], _sl265);
+  $def("sl266", "cmdConvertSegment", ["gestureDelta","attrVal","parsePath","printPath","pathSegments","pathHandles","attrTextLens","nodeAt","pathConvert"], _sl266);
+  $def("sl250", "svgCommands", ["cmdGroup","cmdUngroup","cmdDuplicate","cmdCopy","cmdCut","cmdPaste","cmdAlign","cmdDistribute","alignSpecs","cmdDeleteVertex","cmdClosePath","cmdToggleSmooth","cmdSelect","cmdConvertSegment"], _sl250);
   $def("sl249", "commandLookup", [], _sl249);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);

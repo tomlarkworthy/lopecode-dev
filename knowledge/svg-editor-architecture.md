@@ -872,9 +872,14 @@ and S4, and are the gaps those stages closed.)
   with nothing under the scope, "same" with no primary. ⌘A routes automatically through the demo's
   existing `commandForEvent` keymap — no new callsite. Verified headless: all → three shapes,
   same-fill → the two red, same-tag → the two rects. S
-- [ ] **G8 · context menu.** Right-click renders whatever the command registry holds, so it needs no
-  maintenance as the registry fills. **Unblocked by S4** — `node.commands()` and `node.canCommand(id)`
-  are exactly what a menu needs, and the demo's command bar is already built from them. S
+- [x] **G8 · context menu.** Landed 2026-07-23 in the demo toolbar. Right-click hit-tests through the
+  new `node.pickAt(e)` (the same `ctx.pick` a click uses, so P5 holds and no second measure path
+  appears), selects the element under the pointer if it is not already selected, then floats a menu
+  built from `node.commands()` filtered by `node.canCommand(id)` — the identical authority the button
+  bar uses, so a greyed button and a hidden menu item can never disagree. It renders whatever the
+  registry holds, so it needs no maintenance as the registry fills; keyboard-only view verbs (fit,
+  zoom) are not commands, so they correctly stay off it. Dismissed on outside pointer-down, scroll, or
+  choosing an item, and torn down on `invalidation`. S
 
 #### C — transform gestures
 
@@ -1072,7 +1077,24 @@ and S4, and are the gaps those stages closed.)
   filed here as a missing feature is really a symptom of a missing *primitive* — see G47. An author
   who wants to edit an arc's interior converts it to cubics first, explicitly, and then every path
   gesture applies.
-- [ ] **G47 · change a segment's type.** The primitive the whole editor is missing, named by Tom:
+- [x] **G47 · change a segment's type.** Landed 2026-07-23 as `pathConvert` (the registry) plus
+  `cmdConvertSegment` (three commands: straighten, to-bézier, to-quadratic). One correction to the plan
+  below: **`A→C` is not exact.** A cubic Bézier cannot draw a circular/elliptic arc exactly — the
+  `(4/3)·tan(θ/4)` construction is the best there is and every renderer uses it. Measured radial error
+  is 2.7×10⁻³ per unit radius (0.027%), i.e. sub-pixel at any sane zoom, and endpoints are pinned
+  exactly; so it renders pixel-identically in practice but the word "exact" in the plan was wrong and
+  is retracted here. Everything else landed as written: `L↔C` byte-exact (the roundtrip returns the
+  author's `M 0 0 L 10 20` unchanged), `Q→C` exact degree-elevation, `C→Q` offered only when the cubic
+  is a raised quadratic and declining otherwise, `A→C` splitting a >90° sweep into 2–3 sub-cubics with
+  the endpoint pinned. Held anchors address segments (the terminating-anchor reading `delete-vertex`
+  uses); a set converts highest-index-first so an arc's expansion never shifts the segments below it; a
+  following smooth `S`/`T` is made absolute first (as `splitPathSegment` does). Each command greys out
+  where the registry declines (T8). This closes **G24** — subdividing "an arc" is now subdividing the
+  cubics it becomes, and the arc is never subdivided. Surface today is the context menu (G8); the S9
+  affordance panel will add the on-segment version. **✅ 59 green.** M
+  <details><summary>Original plan (superseded by the entry above)</summary>
+
+  The primitive the whole editor is missing, named by Tom:
   *"a way to change a vertex between bezier and straight — and arc would be one of those too."* A path
   segment has a *kind* — `L` (line), `C`/`S` (cubic), `Q`/`T` (quadratic), `A` (arc) — and today the
   kind an author drew is the kind they are stuck with. Making the kind editable is one command,
@@ -1098,6 +1120,7 @@ and S4, and are the gaps those stages closed.)
   offered conversion whose result does not render pixel-identically to the segment it replaced (every
   conversion here is exact by construction *except* the intentionally-declined lossy directions); or a
   round-trippable pair (`L↔C`, `C↔Q`-from-Q) that does not return the author's original bytes. M
+  </details>
 
 #### F — view (S7)
 
