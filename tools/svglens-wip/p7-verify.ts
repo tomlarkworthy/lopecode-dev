@@ -1,0 +1,10 @@
+import { importNotebookModule } from "../notebook-import.ts";
+const m = await importNotebookModule("modules/@tomlarkworthy/svg-lens.js");
+console.log(await m.value("test_rebase_vertex"));
+const va = await m.value("vertexAddress");
+const rv = await m.value("rebaseVertex");
+const a = va.of([0, 2], "anchor", 5);
+console.log("print:", va.print(a));
+console.log("after an insert at 3:", va.print(rv(a, { kind: "vertex-insert", path: [0, 2], at: 3 })));
+console.log("after a delete at 5 :", rv(a, { kind: "vertex-delete", path: [0, 2], at: 5 }));
+console.log("after the element moves:", va.print(rv(a, { kind: "insert", parent: [0], at: 0 })));

@@ -755,11 +755,21 @@ and S4, and are the gaps those stages closed.)
   `commitDelta` returns null for it (decoration is never a source edit), `revertDelta` clears it.
   The alternative was letting decorating gestures reach into the DOM themselves, which L3 now
   forbids — so P6 is the price of L3, and worth it.
-- [ ] **P7 · address something smaller than an element.** `focus` holds element paths; a vertex is
-  identified only by a transient handle `key` inside one tool's gesture scratch. Multi-vertex
-  selection, corner↔smooth, and deleting a segment all need a vertex to be nameable in the
-  complement: `[0,3]` vs `[0,3]#7`. Everything in group E waits on this. **Falsified by:** a vertex
-  address surviving a commit that changes an earlier vertex — T7 for sub-element addresses. M
+- [x] **P7 · address something smaller than an element.** Landed 2026-07-23. The address is
+  `0/3#a2` — "the 3rd anchor of the element at 0/3" — and the shape of it is the finding. The obvious
+  answer, storing the handle `key`, does not work: a key is a position in the attribute's own
+  microsyntax (`p3` for a points list, `ci:o:ix:iy` for a path command list) and *renumbers
+  unpredictably*, because splitting one path segment can turn one command into two. An **ordinal
+  within a kind** renumbers predictably — inserting an anchor shifts exactly the anchors after it —
+  so the key stays transient, resolved from the live handle list at the moment of the drag, and the
+  ordinal is what is stored, rebased and restored. Partial by construction: an ordinal that no longer
+  exists resolves to null, the same answer `focus` already gives for a path that no longer resolves.
+  The edit declares how it renumbers (`{kind: "vertex-insert", path, at}`), exactly as an element
+  command declares its `rebase` — a rebase that *guesses* at what an edit did is the M0.2 failure
+  mode. **Held**: `test_rebase_vertex`, by `test_rebasePath`'s ground-truth method with coordinates
+  standing in for bytes, over a points list and over four paths at every segment; and in a browser,
+  where a dragged vertex is still held after its own commit and becomes `#a2` when a vertex is
+  inserted in front of it. M
 - [x] **P8 · a selection ↔ source-text codec.** Landed 2026-07-23 with S4. Copy, paste and duplicate are all "read these paths
   out as source text, write that text back in somewhere else". `childrenLens` already gives child
   *source strings*, so the read half exists; what is missing is the write half with id/reference
@@ -944,7 +954,7 @@ Roughly by value per unit of work, given what already exists:
 4. ~~**G25**~~ ✅ — zoom, which every subsequent gesture is easier to test and to use with.
 5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
    G8 and G14 are unblocked by the same work.
-6. **G19–G23** — the pen and path work. **G19 done**; G20–G23 wait on P7. **Next.**
+6. **G19–G23** — the pen and path work. **G19 and P7 done**; G20–G23 are now unblocked. **Next.**
 7. **G26–G29** — text, images and style gestures.
 
 ## 7. Milestone log
@@ -1258,6 +1268,22 @@ Roughly by value per unit of work, given what already exists:
   different arguments — there is no case analysis in the tool at all, and the law samples a
   handle-less cubic to show it really is its own chord. Verified with a real browser drag, not by
   reading: `M 20 20 C 40 20 60 60 60 60 C 60 60 90 30 100 20`.
+
+- **M15 — P7, a vertex is a thing you can hold (2026-07-23).** `focus` has addressed elements by path
+  rather than by index since M0, because an index does not survive a structural edit. A vertex had the
+  same problem and no answer at all: it was named by a handle key living in one tool's gesture
+  scratch, which is why every remaining path gesture (G20–G23) was blocked behind this.
+  The finding is *what* the stable name is. Storing the handle key fails — a key is a position in the
+  attribute's microsyntax, and splitting a path segment can turn one command into two and shift every
+  `ci` after it. An **ordinal within a kind** (`0/3#a2`) renumbers predictably, so the key stays
+  transient and the ordinal is stored, rebased and restored. The edit declares how it renumbers, the
+  way an element command declares its `rebase`.
+  One bug found by looking rather than reasoning: restoring the selection after a remount read
+  `s.verts` *after* `focus.setAll` had already repainted — and the repaint announces, and the
+  announcement wrote the still-empty vertex selection back over the one being restored. Both are read
+  before either is restored now.
+  `test_rebase_vertex` is T7 one level down, checked with coordinates as ground truth the way
+  `test_rebasePath` uses bytes. 58 headless tests, 10 browser laws.
 
 ## 8. Open questions
 

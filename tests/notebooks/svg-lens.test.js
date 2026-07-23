@@ -40,6 +40,7 @@ const TEST_CELLS = [
   'test_point_commands',
   'test_nearestSegment',
   'test_rebasePath',
+  'test_rebase_vertex',
   'test_group_ungroup',
   'test_copy_paste',
   'test_align_commands',
