@@ -1269,20 +1269,27 @@ Roughly by value per unit of work, given what already exists:
    G8 and G14 are unblocked by the same work.
 6. **G19–G23** — the pen and path work. **G19, P7, G20, G21 and G23 done.** Only G22 (several
    vertices at once) remains; G24 needs a decision before it can start.
-7. **B1** — the drag jump. Small, felt on *every* drag, and the only item here that makes the editor
+7. ~~**G43**~~ ✅ 2026-07-23 — a move writes the shape's own coordinates, not a `transform`. **B2 done**
+   the same day (the unzoomed flash). Both were reported by Tom in use, neither was on the list.
+8. **B1** — the drag jump. Small, felt on *every* drag, and the only item here that makes the editor
    feel worse than it is. Do it before adding surface — but it needs a decision, because the obvious
-   dead-zone fix violates T2. **Next, and the question is Tom's.** (**B2 done** 2026-07-23.)
-8. **G30–G34, G37** — stroke and paint on S6's field registry. This is the "what about strokes"
-   half of an editor, it needs no new architecture, and every item is S. Highest value per unit of
-   work left on the list.
-9. **G38–G42** — S9's affordance registry. Do it *after* G30–G34, so the first affordances are
-   backed by fields that already exist rather than invented alongside them; G39 then costs nothing
-   per shape.
-10. **S10, then G35–G36** — `defs` you can point at, gradients and arrowheads. The largest remaining
+   dead-zone fix violates T2. **Next, and the question is Tom's.** **G44** (one gesture, one undo)
+   is its natural neighbour: both are about a single drag behaving as one act, and G44 is now more
+   visible because G43 made a rect move two attributes.
+9. **G46 → G30–G34, G37** — stroke and paint. **G46 first**: the field panel (`Inputs.select` for the
+   enums) is the surface the enum tasks have nowhere to live without, and it is what Tom hit asking
+   for dotted lines and caps. Then G30–G34/G37 on S6's field registry — the "what about strokes" half
+   of an editor, no new architecture, every item S.
+10. **G38–G42** — S9's affordance registry. Do it *after* G30–G34, so the first affordances are
+    backed by fields that already exist rather than invented alongside them; G39 then costs nothing
+    per shape.
+11. **S10, then G35–G36** — `defs` you can point at, gradients and arrowheads. The largest remaining
     block, and the one that most changes what documents the editor can open without breaking.
-11. **G26–G29** — text, images, eyedropper, swatch drop. Text is the biggest single item on the whole
+12. **G45** — scribble that fits to a curve. A self-contained tool (Schneider fit) that ends in a
+    `<path>` every existing gesture already edits; slots in whenever, independent of the registries.
+13. **G26–G29** — text, images, eyedropper, swatch drop. Text is the biggest single item on the whole
     list (a content lens, not an attribute lens) and is deliberately last.
-12. **B3** — the per-frame harness. Not a feature; the thing that stops K from refilling.
+14. **B3** — the per-frame harness. Not a feature; the thing that stops K from refilling.
 
 ## 7. Milestone log
 
