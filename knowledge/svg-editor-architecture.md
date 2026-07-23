@@ -1342,22 +1342,23 @@ This section exists because the two most expensive bugs in the log — the P7 re
 undo-drops-selection one (M15, M17) — were both found by *driving* the editor, and neither was
 visible in the source. Items here are reports first and diagnoses second, and they say which is which.
 
-- [ ] **B1 · the first frame of a drag jumps.** Gap 12, measured. Two compounding causes, both in
-  `toolMove.onPointerMove`: the threshold is a trigger rather than a dead zone, so the first frame
-  applies the whole delta from the press point; and snapping is live on that same frame, when the
-  shape has barely moved, so any neighbour within `snapTolerance` captures it. Measured in a fixture:
-  a first move of (4,4) committed `translate(0 5)` — *away* from the direction of travel — before
-  following the pointer to `translate(15 10)`.
-  **The fix is not free, and the reason is a law.** Subtracting the dead zone at the point where the
-  threshold was crossed makes the result depend on *where* it was crossed, which is exactly what T2
-  (path independence) forbids: the same slow drag and fast drag to one endpoint would land in
-  different places. A dead zone that is a pure function of the current offset —
-  `raw · max(0, |raw| − thresh) / |raw|` — is path independent and continuous at the threshold, at the
-  cost of every drag landing `thresh` short of the pointer. Snapping wants hysteresis (once snapped,
-  break away only after a larger movement), and hysteresis is *state*, which is the complement C and
-  therefore allowed — but it must be declared in `ctx.state.drag`, not hidden in a closure.
-  **Falsified by:** a slow drag and a fast drag to the same endpoint committing different values (T2);
-  or the shape moving at all before the pointer has travelled `thresh`. S
+- [x] **B1 · the first frame of a drag jumps.** Fixed 2026-07-23. Both causes were in
+  `toolMove.onPointerMove`. The threshold was a trigger — the first committed frame applied the whole
+  offset from the press point — so it now subtracts a **dead zone** that is a pure function of the
+  current offset: `raw · max(0, |raw| − thresh) / |raw|`. This is the form the item argued for and for
+  the reason it gave: subtracting at the crossing point would make the result depend on *where* the
+  threshold was crossed (a T2 violation), while this form is path independent and continuous at the
+  threshold (0 at `|raw| = thresh`, no jump), costing every drag `thresh` short of the pointer. The
+  ratio dx:dy is preserved, so axis-lock is unchanged. Snapping got the **hysteresis** the item asked
+  for: once an axis is snapped it holds through 2× the tolerance before breaking away, and the sticky
+  state lives in `d.snapped` (the C-complement, declared in `ctx.state.drag`, not a closure).
+  **Falsified by:** a slow and a fast drag to the same endpoint committing different values (T2), or the
+  shape moving before the pointer travels `thresh` — both structural now: the committed delta is
+  `deadzone(clientNow − clientPress)`, a pure function of the endpoint that is 0 below `thresh`.
+  **Held**: the `test_gesture_path_independence` law (T2) green in a browser — *"a 5-leg wander and a
+  straight drag to the same point commit the same bytes, locked or free"* — plus
+  `tools/svglens-wip/b1-deadzone.ts` (no premature move, direction preserved, continuous at the
+  threshold), and B3's frame budget (no first-frame jump across the sampled frames). S
 - [x] **B2 · the drawing flashes unzoomed on release. Fixed 2026-07-23, second attempt, and
   confirmed gone by Tom in ordinary use — the first attempt fixed a real bug that was not this one.** Three reports narrowed it: *"the glitch is on gesture
   start"*, then *"after zooming, the gesture after that momentarily displays the unzoomed size"*, then
@@ -1410,12 +1411,16 @@ visible in the source. Items here are reports first and diagnoses second, and th
     requestAnimationFrame(tick); }
   ```
   S
-- [ ] **B3 · a gesture-level frame budget.** The measurements above were written by hand each time.
-  They should be a law-adjacent harness: sample per `requestAnimationFrame` through a scripted
-  gesture, and assert what must never happen — the selection is never empty between two frames of a
-  gesture, the overlay never disagrees with the shape it frames, no frame renders geometry the source
-  does not hold. That is T5 (consistency) applied *per frame* rather than per commit, and it is the
-  only way this class of defect gets caught by anything other than a person watching. M
+- [x] **B3 · a gesture-level frame budget.** Done — `frameBudget` (`_sl274`), the frame-level sibling
+  of `gestureLaws`. `frameBudget.run()` mounts a fixture, selects a shape, then samples the drawing
+  every `requestAnimationFrame` while a scripted multi-leg drag plays (a concurrent rAF loop recording
+  through the gesture), and asserts the per-frame invariants the K-section bugs each broke: the
+  selection is never empty between two frames (M17's undo-drops-selection class), the overlay never
+  drifts more than 2px from the shape it frames (the group-space `boxGap`), and the drawing's screen
+  scale never jumps >1.5× against its neighbour (the B2 unzoomed flash, which was one frame at 2.64×).
+  That is T5 applied *per frame* rather than per commit. Needs a browser; headless it reports ⏭.
+  **Held**: `frameBudget.run()` green in a browser — *"selection held (≥1), overlay within 0.0px every
+  frame, no scale flash"* — which also stands as an independent confirmation of B1 and B2. M
 
 #### Explicitly not on this list
 
