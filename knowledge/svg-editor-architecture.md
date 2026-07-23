@@ -595,6 +595,9 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
 **Where this lands in the stages:** P1–P4 and L1–L9 *are* S0. P5 is S0 or S1. C0–C6 are S0's
 conversion half. C7 folds into S4.
 
+**Status 2026-07-23: 21 of 22 done.** Only C7's registry half is open, and it is S4's work. S0 is
+therefore complete — see M9 in the milestone log for what it cost.
+
 ### 6.5 Stages
 
 Each stage ends shippable. *Falsified by* is the check that has to go green.
@@ -846,6 +849,28 @@ concurrency (gap 10). None of them blocks the stages above.
   (VIVA, the liveness levels — cited for the direction this editor *reverses*) and Omar et al. 2019
   (typed holes — cited to mark that "hole" here is the weaker, syntactic sense). Do not add a
   citation from memory; check it.
+- **M9 — S0 done (2026-07-23).** The gesture side got the treatment the lens side already had.
+  A gesture is now a **value** (`gestureDelta`, with `attr`/`command`/`select` constructors), read by
+  exactly two sinks — `previewDelta` into the live DOM and `commitDelta` into the source — through
+  one shared expression, `gestureDelta.text`. All seven tools were converted to it (C0–C6, and
+  `toolStructure`'s branches as command deltas), the tool set became a callsite parameter
+  (`svgLens(node, {tools})`), and every measurement a tool takes now goes through `ctx` (P5).
+  Eight gesture laws run in a browser via `gestureLaws.run()` — T1 identity, T2 composition, T4
+  origin, T5 consistency, T6 confinement, T7 rebase agreement, T8 partiality, T9 selection — on a
+  fixture harness (`gestureFixture` + `playGesture`) that drives the *real* writer with synthetic
+  pointer events in the drawing's own user units. Two more, `test_tools_write_through_the_delta` and
+  `test_tools_measure_through_ctx`, are pure: they read the tools' own handler source and run
+  headless with the 50 lens laws, so a tool that grows a second write path or a hidden input fails
+  CI rather than a demo.
+  What the exercise actually cost, and it is the lesson: **every failure it produced was in the
+  harness, not the product.** A module per fixture fed `currentModules` and made the laws re-trigger
+  themselves; `mod.define` mints a new variable per call, so `_opts` was "defined more than once";
+  concurrent fixtures at the same screen origin answered each other's `elementsFromPoint`; a 60ms
+  quiet window did not clear the gap *between* two commits of one gesture, so a four-element move
+  looked like three and T4 reported a bug that was not there. Each was verified against the product
+  before being believed. The one real defect found was C0's, and the laws did not find it — reading
+  the code for the paper did.
+  Remaining from the list: C7's second half, the command registry, which belongs to S4.
 
 ## 8. Open questions
 
