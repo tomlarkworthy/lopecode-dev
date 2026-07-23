@@ -3917,7 +3917,8 @@ const _sl128 = function _gestureDelta(){return(
   attr: (idx, name, value, { lens = null, base = "", dflt = null, was = null } = {}) =>
     ({ kind: "attr", idx, name, value, lens, base, dflt, was }),
   command: (name, apply, { rebase = null } = {}) => ({ kind: "command", name, apply, rebase }),
-  select: (paths, mode = null) => ({ kind: "select", paths, mode }),
+  // `toggle` is shift-click: in or out of the set. An empty `paths` clears.
+  select: (paths, mode = null, { toggle = false } = {}) => ({ kind: "select", paths, mode, toggle }),
   // The attribute text this delta stands for. One expression, read by both sinks.
   text: (d) => (d.lens ? d.lens.put(d.value, d.base) : String(d.value))
 }
@@ -3947,7 +3948,8 @@ async (ctx, ds) => {
     else if (d.kind === "command")
       out.push(await ctx.writer.runCommand(d.name, d.apply, { rebase: d.rebase }));
     else if (d.kind === "select") {
-      if (d.paths.length === 1 && d.mode) ctx.focus.set(d.paths[0], d.mode);
+      if (d.toggle) for (const p of d.paths) ctx.focus.toggle(p);
+      else if (d.paths.length === 1 && d.mode) ctx.focus.set(d.paths[0], d.mode);
       else ctx.focus.setAll(d.paths);
       out.push(null);                               // selection is not a source edit
     } else throw new Error(`unknown delta kind: ${d.kind}`);
@@ -3956,7 +3958,7 @@ async (ctx, ds) => {
 }
 )};
 
-const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointer){return(
+const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointer,gestureDelta,previewDelta,commitDelta){return(
 {
   id: "transform",
   onPointerDown(ctx, e) {
@@ -3999,22 +4001,24 @@ const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointe
       d.ops = scaleAbout(d.base, ctx.snap(k === null ? sx : k), ctx.snap(k === null ? sy : k),
                          d.pivot[0], d.pivot[1]);
     }
-    // Byte-for-byte what the commit will write: `opsLens.put` keeps the residue (`10,20`, `.5`,
-    // `1e2`) that reprinting every op would flatten. Two printers for one value is a d-PutGet
-    // divergence waiting to become a visible one.
-    d.el.setAttribute("transform", opsLens.put(d.ops, d.text));
+    // One delta, both sinks. `opsLens.put` keeps the residue (`10,20`, `.5`, `1e2`) that reprinting
+    // every op would flatten — and because the preview goes through the same `gestureDelta.text`
+    // the commit does, the two cannot pick different printers. They used to, and did.
+    d.delta = gestureDelta.attr(d.idx, "transform", d.ops,
+                                { lens: opsLens, base: d.text, dflt: "", was: d.text });
+    previewDelta(ctx, d.delta);
     ctx.focus.refresh();
   },
   async onPointerUp(ctx) {
     const d = ctx.state.drag;
     ctx.state.drag = null;
-    if (d && d.started) await ctx.writer.commit(d.idx, "transform", d.ops, "", opsLens, d.text);
+    if (d && d.started && d.delta) await commitDelta(ctx, d.delta);
   }
 }
 )};
 
 // Drag a vertex or control point: the `points` and path `d` lenses.
-const _sl120 = function _toolVertex(handleEdit,grabPointer){return(
+const _sl120 = function _toolVertex(handleEdit,grabPointer,gestureDelta,previewDelta,commitDelta){return(
 {
   id: "vertex",
   onPointerDown(ctx, e) {
@@ -4042,14 +4046,16 @@ const _sl120 = function _toolVertex(handleEdit,grabPointer){return(
     if (!p || t === null) return;
     const edit = handleEdit(d.mode, t, d.idx, d.key, p[0], p[1]);
     if (!edit) return;
-    d.edit = edit;
-    el.setAttribute(edit.name, edit.value);              // live only; the source waits for release
+    // `handleEdit` already reprints the whole attribute, so there is no lens here: the delta's value
+    // *is* the text. Live only; the source waits for release.
+    d.delta = gestureDelta.attr(d.idx, edit.name, edit.value, { was: d.was && d.was[edit.name] });
+    previewDelta(ctx, d.delta);
     ctx.focus.refresh();
   },
   async onPointerUp(ctx) {
     const d = ctx.state.drag;
     ctx.state.drag = null;
-    if (d && d.started && d.edit) await ctx.writer.commit(d.idx, d.edit.name, d.edit.value, null, null, d.was && d.was[d.edit.name]);
+    if (d && d.started && d.delta) await commitDelta(ctx, d.delta);
   }
 }
 )};
@@ -4090,7 +4096,7 @@ const _sl121a = function _hitTest(){return(
 // several selected shapes moves them all — one commit each, since each writes its own attribute.
 // A tap with no movement selects instead: shift adds to the set, and tapping the shape that is
 // already primary cycles to the next shape underneath, which is how an occluded shape is reached.
-const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoints,parsePath,pathOfIndex,grabPointer,hitTest,snapRects){return(
+const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoints,parsePath,pathOfIndex,grabPointer,hitTest,snapRects,gestureDelta,previewDelta,commitDelta){return(
 {
   id: "move",
   onPointerDown(ctx, e) {
@@ -4146,14 +4152,18 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoint
       guides = snap.guides;
       aligned = snap.snapped;                            // an alignment beats the grid: it is exact
     }
-    for (const g of d.targets) {
+    // One delta per element the gesture claimed — which is what makes T4's "one commit per claimed
+    // element" literal rather than inferred.
+    d.deltas = d.targets.map((g) => {
       const S = g.Slin;
       // Per axis: an aligned axis keeps its exact value (rounded only to kill float noise, or the
       // source fills up with 10.476190476190474), an unaligned one still lands on the grid.
       const q = (v, on) => (on ? Math.round(v * 1e6) / 1e6 : ctx.snap(v));
       g.T = [q(g.T0[0] + S[0] * dx + S[2] * dy, aligned.x), q(g.T0[1] + S[1] * dx + S[3] * dy, aligned.y)];
-      g.el.setAttribute("transform", translateLens.put(g.T, g.text));
-    }
+      return gestureDelta.attr(g.idx, "transform", g.T,
+                               { lens: translateLens, base: g.text, dflt: "", was: g.text });
+    });
+    previewDelta(ctx, d.deltas);
     ctx.focus.refresh();                                 // clears the overlay, so guides come after
     ctx.guides(guides);
   },
@@ -4163,13 +4173,14 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoint
     if (!d) return;
     if (d.started) {
       ctx.guides([]);
-      for (const g of d.targets) await ctx.writer.commit(g.idx, "transform", g.T, "", translateLens, g.text);
+      if (d.deltas) await commitDelta(ctx, d.deltas);
       return;
     }
     if (e.type !== "pointerup") return;
     const t = ctx.doc();
     if (t === null) return;
-    if (e.shiftKey) return void ctx.focus.toggle(pathOfIndex(t, d.idx));
+    if (e.shiftKey)
+      return void await commitDelta(ctx, gestureDelta.select([pathOfIndex(t, d.idx)], null, { toggle: true }));
     // Tapping the primary again steps down the stack; tapping anything else selects the top hit.
     const list = ctx.elems();
     const single = ctx.focus.paths.length === 1;
@@ -4178,23 +4189,27 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoint
     const idx = list.indexOf(pick);
     if (idx <= 0) return;
     const tag = pick.localName;
-    const tryFocus = (mode, name, parse) => {
-      const v = ctx.attr(t, idx, name);
-      if (v === null) return false;
-      try { parse(v); } catch (err) { return false; }    // outside the lens domain
-      ctx.focus.set(pathOfIndex(t, idx), mode);
-      return true;
-    };
-    if ((tag === "polygon" || tag === "polyline") && tryFocus("points", "points", parsePoints)) return;
-    if (tag === "path" && tryFocus("path", "d", parsePath)) return;
-    ctx.focus.set(pathOfIndex(t, idx), "transform");     // no vertex lens: offer the transform gizmo
+    // Which mode a tap offers is decided by whether the lens can *read* the attribute, not by the
+    // tag: an unparseable `points` list falls through to the gizmo rather than to broken handles.
+    // This is the partiality law (T8) written as one line of product code.
+    const mode = (() => {
+      const readable = (name, parse) => {
+        const v = ctx.attr(t, idx, name);
+        if (v === null) return false;
+        try { parse(v); return true; } catch (err) { return false; }   // outside the lens domain
+      };
+      if ((tag === "polygon" || tag === "polyline") && readable("points", parsePoints)) return "points";
+      if (tag === "path" && readable("d", parsePath)) return "path";
+      return "transform";
+    })();
+    await commitDelta(ctx, gestureDelta.select([pathOfIndex(t, idx)], mode));
   }
 }
 )};
 
 // Drag on empty canvas to rubber-band a selection. Intersection is tested in the root's user space,
 // where the marquee is drawn, so a rotated element is compared as the box it actually occupies.
-const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox){return(
+const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox,gestureDelta,commitDelta){return(
 {
   id: "marquee",
   onPointerDown(ctx, e) {
@@ -4202,7 +4217,9 @@ const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox)
     const p = ctx.localPoint(ctx.node, e);
     if (!p) return false;
     grabPointer(ctx.node, e);
-    if (!e.shiftKey) ctx.focus.clear();
+    // Every outcome of this tool is a `select` delta and nothing else — which is what makes T9
+    // ("selection is not an edit") a statement about the tool's type rather than about its luck.
+    if (!e.shiftKey) commitDelta(ctx, gestureDelta.select([]));
     ctx.state.band = { x0: p[0], y0: p[1], x1: p[0], y1: p[1], add: e.shiftKey, box: null, moved: false };
     return true;
   },
@@ -4221,7 +4238,7 @@ const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox)
     ctx.state.band = null;
     if (!b) return;
     if (b.box) b.box.remove();
-    if (!b.moved) return void ctx.focus.clear();
+    if (!b.moved) return void commitDelta(ctx, gestureDelta.select([]));
     const r = dragBox(b.x0, b.y0, b.x1, b.y1);
     const t = ctx.doc();
     if (t === null) return;
@@ -4233,14 +4250,14 @@ const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox)
       if (box.x <= r.x + r.width && box.x + box.width >= r.x &&
           box.y <= r.y + r.height && box.y + box.height >= r.y) hits.push(pathOfIndex(t, i));
     }
-    ctx.focus.setAll(b.add ? ctx.focus.paths.concat(hits) : hits);
+    return commitDelta(ctx, gestureDelta.select(b.add ? ctx.focus.paths.concat(hits) : hits));
   }
 }
 )};
 
 // Structural editing by double-click: add a vertex on an edge, remove the one under the pointer, or
 // drop a new shape on empty canvas. Every branch is a pure command.
-const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nearestSegment,pointsHandles,parsePoints,attrVal,childrenLens,rebasePath,pathHandles,parsePath,pathSegments,nearestPathSegment,insertPathPoint,deletePathPoint){return(
+const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nearestSegment,pointsHandles,parsePoints,attrVal,childrenLens,rebasePath,pathHandles,parsePath,pathSegments,nearestPathSegment,insertPathPoint,deletePathPoint,gestureDelta,commitDelta){return(
 {
   id: "structure",
   async onDblClick(ctx, e) {
@@ -4254,7 +4271,7 @@ const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nea
     if (key !== undefined && sel && focus.mode === "points") {
       const h = pointsHandles(t, focus.index).find((x) => x.key === key);
       if (!h) return false;
-      await ctx.writer.runCommand("deletePoint", (d) => deletePoint(d, sel, h.i));
+      await commitDelta(ctx, gestureDelta.command("deletePoint", (d) => deletePoint(d, sel, h.i)));
       return true;
     }
 
@@ -4266,7 +4283,7 @@ const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nea
       const segs = pathSegments(parsePath(ctx.attr(t, focus.index, "d")));
       const i = segs.findIndex((s) => s.ci === h.ci && s.o === h.o);
       if (i < 0) return false;
-      await ctx.writer.runCommand("deletePathPoint", (d) => deletePathPoint(d, sel, i));
+      await commitDelta(ctx, gestureDelta.command("deletePathPoint", (d) => deletePathPoint(d, sel, i)));
       return true;
     }
 
@@ -4280,7 +4297,7 @@ const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nea
       if (!p) return false;
       const closed = el.localName !== "polyline";
       const seg = nearestSegment(parsePoints(ctx.attr(t, focus.index, "points")), p[0], p[1], closed);
-      await ctx.writer.runCommand("insertPoint", (d) => insertPoint(d, sel, seg.index, p));
+      await commitDelta(ctx, gestureDelta.command("insertPoint", (d) => insertPoint(d, sel, seg.index, p)));
       return true;
     }
 
@@ -4290,7 +4307,7 @@ const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nea
       const segs = pathSegments(parsePath(ctx.attr(t, focus.index, "d")));
       const near = nearestPathSegment(segs, p[0], p[1]);
       if (near.index < 0 || segs[near.index].kind === "A") return false;
-      await ctx.writer.runCommand("insertPathPoint", (d) => insertPathPoint(d, sel, near.index, near.t));
+      await commitDelta(ctx, gestureDelta.command("insertPathPoint", (d) => insertPathPoint(d, sel, near.index, near.t)));
       return true;
     }
 
@@ -4298,10 +4315,10 @@ const _sl122 = function _toolStructure(insertElement,insertPoint,deletePoint,nea
       const p = ctx.localPoint(ctx.node, e);
       if (!p) return false;
       const at = childrenLens([0]).get(t).length;       // appended, so nothing before it moves
-      await ctx.writer.runCommand(
+      await commitDelta(ctx, gestureDelta.command(
         "insertElement",
         (d) => insertElement(d, [0], null, ctx.options.newShape(p[0], p[1])),
-        { rebase: (path) => rebasePath(path, { kind: "insert", parent: [0], at }) });
+        { rebase: (path) => rebasePath(path, { kind: "insert", parent: [0], at }) }));
       return true;
     }
     return false;
@@ -4364,7 +4381,7 @@ const _sl125d = function _penPath(){return(
 
 // Drag on empty canvas to create a rect, an ellipse or a line. Preview lives in the overlay — the
 // source gets exactly one put, on release, and only if the drag was big enough to mean it.
-const _sl125 = function _toolDraw(shapeSpec,shapeMarkup,dragBox,grabPointer){return(
+const _sl125 = function _toolDraw(shapeSpec,shapeMarkup,dragBox,grabPointer,gestureDelta,commitDelta){return(
 {
   id: "draw",
   onPointerDown(ctx, e) {
@@ -4374,7 +4391,7 @@ const _sl125 = function _toolDraw(shapeSpec,shapeMarkup,dragBox,grabPointer){ret
     if (!p) return false;
     e.preventDefault();
     grabPointer(ctx.node, e);
-    ctx.focus.clear();
+    commitDelta(ctx, gestureDelta.select([]));
     ctx.state.draw = { kind, x0: p[0], y0: p[1], x1: p[0], y1: p[1], square: false, preview: null };
     return true;
   },
@@ -4401,7 +4418,8 @@ const _sl125 = function _toolDraw(shapeSpec,shapeMarkup,dragBox,grabPointer){ret
     const at = ctx.childCount([0]);
     const rec = await ctx.addShape(
       shapeMarkup(d.kind, d.x0, d.y0, d.x1, d.y1, { square: d.square, ...ctx.options.shapeStyle }));
-    if (rec) ctx.focus.set([0, at], "transform");       // hand the new shape straight to the gizmo
+    // hand the new shape straight to the gizmo
+    if (rec) await commitDelta(ctx, gestureDelta.select([[0, at]], "transform"));
     ctx.setTool("select");
   }
 }
@@ -4410,7 +4428,7 @@ const _sl125 = function _toolDraw(shapeSpec,shapeMarkup,dragBox,grabPointer){ret
 // Click to place anchors; click the first anchor to close, or double-click to finish open. The path
 // exists in the source from the first click, so there is no builder state that can diverge from it —
 // the only state the tool keeps is which path it is extending.
-const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer){return(
+const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer,gestureDelta,commitDelta){return(
 {
   id: "pen",
   onPointerDown(ctx, e) {
@@ -4442,7 +4460,7 @@ const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer){return(
       const rec = await ctx.addShape(`<path d="${penPath.start(p[0], p[1])}" ${s}/>`);
       if (!rec) return;
       ctx.state.pen = { path: [0, at], start: p, last: p, band: null };
-      ctx.focus.set([0, at], "path");
+      await commitDelta(ctx, gestureDelta.select([[0, at]], "path"));
       return;
     }
     const t = ctx.doc();
@@ -4452,11 +4470,11 @@ const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer){return(
     const d = ctx.attr(t, idx, "d");
     const r = ctx.options.penCloseRadius === undefined ? 8 : ctx.options.penCloseRadius;
     if (Math.hypot(p[0] - pen.start[0], p[1] - pen.start[1]) <= r) {
-      await ctx.writer.commit(idx, "d", penPath.close(d), null);
+      await commitDelta(ctx, gestureDelta.attr(idx, "d", penPath.close(d)));
       return void ctx.setTool("select");
     }
     pen.last = p;
-    await ctx.writer.commit(idx, "d", penPath.lineTo(d, p[0], p[1]), null);
+    await commitDelta(ctx, gestureDelta.attr(idx, "d", penPath.lineTo(d, p[0], p[1])));
   },
   async onDblClick(ctx) {
     if (!ctx.state.pen) return false;
@@ -4575,8 +4593,11 @@ const _sl131 = function _playGesture(){return(
     return el && (el === node || node.contains(el)) ? el : node;
   };
   // A gesture is done when the puts stop arriving, not after a fixed sleep: a commit awaits `settle`,
-  // which polls, so the tail is variable. Quiet for `idle` ms, or `max` ms total.
-  const quiet = async (f, idle = 60, max = 1200) => {
+  // which polls, so the tail is variable. Quiet for `idle` ms, or `max` ms total. `idle` has to
+  // clear the *gap between* two commits of one gesture, not just one commit — a four-element move
+  // redefines the cell four times in sequence, and at 60ms the harness called the gesture finished
+  // after three of them and reported a product bug that was not there.
+  const quiet = async (f, idle = 200, max = 4000) => {
     const t0 = Date.now();
     let n = f.puts.length, last = Date.now();
     while (Date.now() - t0 < max) {
@@ -4926,6 +4947,43 @@ const _sl142 = function _test_gesture_partiality(withFixture,gestureCorpus,playG
     intact("double-clicking an arc segment");
     return "✅ T8: two documents the lens cannot read are selectable, and neither gesture guesses";
   });
+};
+
+
+// L3 · T3 coherence, the static half. The dynamic half is T5 above; this one is cheaper, stronger
+// and needs nothing but the tools themselves. After the P1 conversion a tool has exactly two routes
+// to the drawing — `previewDelta` for what it will commit, and the overlay for what it will not —
+// so any `setAttribute` on anything the overlay did not hand out is a second write path, and a
+// second write path is where preview and source drift apart. Reading the handlers' own source is
+// the point: this is a claim about how the tools are *written*, and it fails the moment one is
+// written differently. The tools are listed rather than read from `svgTools`, which is an
+// `Inputs.input` and so needs a DOM this law does not.
+const _sl143 = function _test_tools_write_through_the_delta(toolDraw,toolPen,toolTransform,toolVertex,toolMove,toolMarquee,toolStructure)
+{
+  const tools = [toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarquee, toolStructure];
+  const HANDLERS = ["onPointerDown", "onPointerMove", "onPointerUp", "onDblClick", "onHover"];
+  const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  const bad = [];
+  let previews = 0;
+  for (const t of tools) {
+    const srcs = HANDLERS.filter((h) => typeof t[h] === "function")
+                         .map((h) => [h, strip(t[h].toString())]);
+    // Whatever this tool was handed by the overlay. Anything else receiving `setAttribute` is a
+    // document element, and the tool is painting outside the delta.
+    const own = new Set();
+    for (const [, src] of srcs)
+      for (const m of src.matchAll(/([A-Za-z_$][\w$.]*)\s*=\s*ctx\.overlay\.add/g)) own.add(m[1]);
+    for (const [h, src] of srcs) {
+      for (const m of src.matchAll(/([A-Za-z_$][\w$.]*)\.setAttribute\s*\(/g)) {
+        if (own.has(m[1])) previews++;
+        else bad.push(`${t.id}.${h} writes ${m[1]}.setAttribute outside previewDelta`);
+      }
+      for (const m of src.matchAll(/ctx\.writer\.(commit|runCommand)\s*\(/g))
+        bad.push(`${t.id}.${h} calls ctx.writer.${m[1]} instead of commitDelta`);
+    }
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `✅ ${tools.length} tools reach the drawing only through the delta (${previews} overlay writes, 0 direct)`;
 };
 
 
@@ -5521,19 +5579,19 @@ export default function define(runtime, observer) {
   $def("sl128", "gestureDelta", [], _sl128);
   $def("sl128a", "previewDelta", ["gestureDelta"], _sl128a);
   $def("sl128b", "commitDelta", [], _sl128b);
-  $def("sl120", "toolVertex", ["handleEdit","grabPointer"], _sl120);
+  $def("sl120", "toolVertex", ["handleEdit","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl120);
   $def("sl121a", "hitTest", [], _sl121a);
   $def("sl127", "snapRects", [], _sl127);
-  $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","parsePoints","parsePath","pathOfIndex","grabPointer","hitTest","snapRects"], _sl121);
-  $def("sl121b", "toolMarquee", ["boxInRoot","pathOfIndex","grabPointer","dragBox"], _sl121b);
-  $def("sl122", "toolStructure", ["insertElement","insertPoint","deletePoint","nearestSegment","pointsHandles","parsePoints","attrVal","childrenLens","rebasePath","pathHandles","parsePath","pathSegments","nearestPathSegment","insertPathPoint","deletePathPoint"], _sl122);
-  $def("sl124", "toolTransform", ["opsLens","rotateAbout","scaleAbout","grabPointer"], _sl124);
+  $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","parsePoints","parsePath","pathOfIndex","grabPointer","hitTest","snapRects","gestureDelta","previewDelta","commitDelta"], _sl121);
+  $def("sl121b", "toolMarquee", ["boxInRoot","pathOfIndex","grabPointer","dragBox","gestureDelta","commitDelta"], _sl121b);
+  $def("sl122", "toolStructure", ["insertElement","insertPoint","deletePoint","nearestSegment","pointsHandles","parsePoints","attrVal","childrenLens","rebasePath","pathHandles","parsePath","pathSegments","nearestPathSegment","insertPathPoint","deletePathPoint","gestureDelta","commitDelta"], _sl122);
+  $def("sl124", "toolTransform", ["opsLens","rotateAbout","scaleAbout","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl124);
   $def("sl125a", "dragBox", [], _sl125a);
   $def("sl125b", "shapeSpec", ["dragBox"], _sl125b);
   $def("sl125c", "shapeMarkup", ["shapeSpec"], _sl125c);
   $def("sl125d", "penPath", [], _sl125d);
-  $def("sl125", "toolDraw", ["shapeSpec","shapeMarkup","dragBox","grabPointer"], _sl125);
-  $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer"], _sl126);
+  $def("sl125", "toolDraw", ["shapeSpec","shapeMarkup","dragBox","grabPointer","gestureDelta","commitDelta"], _sl125);
+  $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer","gestureDelta","commitDelta"], _sl126);
   $def("sl130", "gestureFixture", ["runtime","realize","settle","literalSpan","nodeAt","svgLens","svg"], _sl130);
   $def("sl131", "playGesture", [], _sl131);
   $def("sl132", "gestureCorpus", [], _sl132);
@@ -5543,6 +5601,7 @@ export default function define(runtime, observer) {
   $def("sl136", "test_gesture_commits_against_its_origin", ["withFixture","gestureCorpus","playGesture"], _sl136);
   $def("sl137", "test_gesture_confinement", ["withFixture","gestureCorpus","playGesture","svgTools"], _sl137);
   $def("sl138", "test_gesture_selection_is_not_an_edit", ["withFixture","gestureCorpus","playGesture","toolMarquee"], _sl138);
+  $def("sl143", "test_tools_write_through_the_delta", ["toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl143);
   $def("sl140", "test_gesture_render_consistency", ["withFixture","gestureCorpus","playGesture"], _sl140);
   $def("sl141", "test_gesture_rebase_agreement", ["withFixture","gestureCorpus","nodeAt","childrenLens","insertPoint"], _sl141);
   $def("sl142", "test_gesture_partiality", ["withFixture","gestureCorpus","playGesture"], _sl142);

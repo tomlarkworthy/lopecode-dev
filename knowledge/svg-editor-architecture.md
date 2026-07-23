@@ -433,11 +433,13 @@ its own laws at runtime, the way `runCommand` already does.
 
 ### 6.4 Task list: adopting deltas, and the laws that check them
 
-#### What each tool does today
+#### What each tool did before the conversion
 
-Read out of the module 2026-07-23. "Absolute" = recomputes from the gesture origin held in the
-complement each frame rather than accumulating from the previous frame — the property T2 needs.
-"Sinks agree" = the mid-drag preview is derived from the same value/lens/base the commit uses.
+Read out of the module 2026-07-23, **before** C0–C6. Kept as the baseline the conversion is measured
+against; the "sinks agree" column is what P1 made structural rather than a matter of care. "Absolute"
+= recomputes from the gesture origin held in the complement each frame rather than accumulating from
+the previous frame — the property T2 needs. "Sinks agree" = the mid-drag preview is derived from the
+same value/lens/base the commit uses.
 
 | tool | view edit | complement `C` | source edit | absolute | sinks agree |
 |---|---|---|---|---|---|
@@ -449,10 +451,16 @@ complement each frame rather than accumulating from the previous frame — the p
 | `toolMarquee` | rubber band | `band{x0,y0,x1,y1,add,box,moved}` | **none** — selection only | n/a | n/a |
 | `toolStructure` | one double-click | stateless | five `runCommand` branches | n/a (discrete) | n/a |
 
-Two conclusions. **`toolDraw` is already right** and its comment says why — derive the preview *from*
-the thing you will commit and they cannot disagree. The work is generalising that one discipline to
-the other six. **`toolTransform` is the only tool with a live T3 defect**: two different printers for
-the same value, so preview and source diverge on residue by construction.
+Two conclusions were drawn from that table. **`toolDraw` was already right** and its comment said why
+— derive the preview *from* the thing you will commit and they cannot disagree — so the work was
+generalising that one discipline to the other six. And **`toolTransform` was the only tool with a
+live T3 defect**: two different printers for the same value, so preview and source diverged on
+residue by construction.
+
+Both are now history. Every tool emits `gestureDelta` values and reaches the drawing through
+`previewDelta`/`commitDelta`; the "sinks agree" column is no longer a property of each tool's care
+but of there being one expression, `gestureDelta.text`, that both sinks read. `L3` checks that
+statically, on the tools' own source, so it stays true.
 
 Tick the boxes as work lands; `git log` is the audit trail. Ordering constraints are in the items,
 and the roll-up is at the end of this section.
@@ -509,10 +517,14 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
   straight drag and a 5-leg wander to the same endpoint commit the same bytes. Holds today —
   snapping is a function of the absolute delta, not of the route — so this is a regression guard
   against a future tool accumulating per frame. **✅ green 2026-07-23.**
-- [ ] **L3 · T3 coherence — d-PutGet.** Two forms, both worth having. *Dynamic:* snapshot every attribute
-  the tool touched on the last frame before `up`, commit, re-render, compare — equal, **or** the
-  writer's record says `locked`. *Static:* after P1, assert no tool calls `setAttribute` outside
-  `previewDelta`. The static one is a few lines and very strong. **Fails today on `toolTransform`.**
+- [x] **L3 · T3 coherence — d-PutGet.** Both halves landed. *Dynamic* is L5 above, which compares the
+  whole rendered tree against the committed source after every gesture. *Static* is
+  `test_tools_write_through_the_delta`: it reads each tool's own handler source and asserts that the
+  only receivers of `setAttribute` are names the overlay handed out, and that no handler calls
+  `ctx.writer.commit`/`runCommand` directly. Measured on the converted tools: **7 tools, 3 overlay
+  writes, 0 direct.** It is pure, so it runs in `bun test` with the lens laws; a negative control
+  (reverting C4 in a scratch copy) is correctly rejected with both violations named. **✅ green
+  2026-07-23.**
 - [x] **L4 · T4 origin — d-PutInc.** `test_gesture_commits_against_its_origin`. Marquee a set, drag
   it, assert the undo depth gained equals the number of elements claimed. Measured: **a 4-element
   move commits 4 edits.** This is the 2026-07-23 multi-move regression, now guarded. **✅ green.**
@@ -554,17 +566,27 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
   `0.5`, `1e2` as `100`) — geometrically identical, so invisible, but it flattened exactly the
   residue the skip rule exists to protect. `printOp` and `attrVal` dropped from the cell's inputs,
   now unused. 50/50 lens tests green.
-- [ ] **C1 · lift the pattern out of `toolDraw`.** No behaviour change: `shapeSpec`/`shapeMarkup` becomes
-  the worked example that P1's default `previewDelta` is modelled on.
-- [ ] **C2 · `toolVertex`.** Simplest real conversion — already coherent, mostly deletion.
-- [ ] **C3 · `toolMove`.** N deltas, one per target, which makes L4's "one delta per claimed element"
-  literal rather than inferred.
-- [ ] **C4 · `toolTransform`.** Now mechanical, since C0 already aligned the two sinks.
-- [ ] **C5 · `toolPen`.** Each click is its own gesture; the point of interest is `state.pen` surviving a
-  commit, i.e. T1's right half.
-- [ ] **C6 · `toolMarquee`.** Classify as a `select` delta so L9 is expressible rather than assumed.
-- [ ] **C7 · `toolStructure`.** Do with S4: its five branches become entries in the command registry with
-  their `rebase`, and the raw `e.target` goes away (gap 0).
+- [x] **C1 · lift the pattern out of `toolDraw`.** `shapeSpec`/`shapeMarkup` stays as it is — it *is*
+  the worked example `previewDelta` was modelled on — and its ghost shape stays a root-layer overlay
+  drawing, deliberately not a delta, because the source cannot express it. What converted is its
+  selection: `focus.clear()` and `focus.set` are now `select` deltas.
+- [x] **C2 · `toolVertex`.** As predicted, mostly deletion: `handleEdit` already reprints the whole
+  attribute, so the delta carries no lens and `gestureDelta.text` is `String(value)`.
+- [x] **C3 · `toolMove`.** N deltas, one per target — L4's "one commit per claimed element" is now
+  literal. Its two selection outcomes converted too, including shift-toggle, which is why
+  `gestureDelta.select` grew a `toggle` option. The mode-choosing branch reads better as a result:
+  which mode a tap offers is decided by whether the lens can *read* the attribute, which is T8 in
+  one expression.
+- [x] **C4 · `toolTransform`.** Mechanical, as expected — C0 had already aligned the two printers,
+  and the delta makes it structural: there is now only one printer to align.
+- [x] **C5 · `toolPen`.** Both commits and the first selection are deltas. `state.pen` surviving the
+  commit is untouched — it lives in `lensState`, not in the delta.
+- [x] **C6 · `toolMarquee`.** Every outcome is now a `select` delta and nothing else, so L9 is a
+  statement about the tool's type rather than about its luck.
+- [ ] **C7 · `toolStructure`.** Half done: all five branches now emit `command` deltas, so every tool
+  speaks the same language and L3-static covers this one too. What remains is S4's part — lifting
+  the branches into a **command registry** with their `rebase`, and removing the raw `e.target`
+  (gap 0).
 
 **Where this lands in the stages:** P1–P4 and L1–L9 *are* S0. P5 is S0 or S1. C0–C6 are S0's
 conversion half. C7 folds into S4.

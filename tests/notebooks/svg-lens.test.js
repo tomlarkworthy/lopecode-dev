@@ -50,6 +50,8 @@ const TEST_CELLS = [
   'test_topmost_selection',
   'test_domain_boundary',
   'test_snapRects',
+  // the tools, statically: every write goes through the delta (design note L3)
+  'test_tools_write_through_the_delta',
   // domain widening
   'test_units_and_style',
   'test_refs',
