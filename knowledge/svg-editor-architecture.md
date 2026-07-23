@@ -722,17 +722,20 @@ matched drags.
 composition, one level further.
 *Falsified by:* editing a `<use>` writing to the `<use>` rather than to its referent.
 
-**S9 — the selection preview is a surface, not a box.** Today what a selection *offers* is decided
-inside `svgFocus.paint` and is the same for every tag: a box, the shape registry's geometry handles,
-and a rotate stalk. Everything else — the colour of the thing, how thick its stroke is, whether this
-particular path is closed — is somewhere else entirely, or nowhere. S9 makes that a registry too:
-a shape entry contributes **affordances** for a selection of its kind, so "a rect offers a corner
-radius, a text offers a font size, a path offers close and smooth, everything offers a stroke width
-and a fill swatch" is *data*, contributed by the same cell that already knows how to read that tag.
-The affordances draw through P6's view delta and write through `commitDelta` like everything else, so
-S9 adds a surface, not a write path.
+**S9 — the selection preview is a surface, not a box. ✅ done 2026-07-23.** What a selection *offers*
+was decided inside `svgFocus.paint`, the same for every tag. `svgAffordances` (`_sl272`) makes it a
+registry: an array of providers, each `{id, applies(a), declines?, glyph, command? | tap? | drag?}`,
+where "everything offers a stroke width grip and a fill/stroke swap, a path offers close/open and
+smooth" is *data*. `paint` computes the selection box and a `decorate` hook (set by svgLens, which
+holds the registry and `canCommand`) draws the applicable, non-declining chips in root space;
+`toolAffordance` (`_sl273`, first in the tool array, claims only a `dataset.aff` press) dispatches the
+tap or drag. A command-backed chip declines exactly when its command does (G41), a shared chip fans
+out to the whole selection (G40), and the gesture readout is the same idea at gesture time (G42).
+Draws through the overlay, writes through `commitDelta`/`setField`/`node.command` — a surface, not a
+write path; `toolAffordance` is inside both tool laws. Covers G38–G42.
 *Falsified by:* an affordance committing anything a `node.setAttr` would not; or T6 — a drawing given
-an empty affordance set must still be byte-identical after a click on a shape.
+an empty affordance set must still be byte-identical after a click on a shape. **Held**: both tool
+laws green with 12 tools; headless registry check; in-browser chip set per tag and a swap round-trip.
 
 **S10 — `defs` as a place you can point at.** Gradients, markers, patterns, `clipPath` and `<use>`
 all share one shape: the thing you are pointing at is *not* the thing that gets written. `refsOf`
@@ -1193,9 +1196,10 @@ place for the laws to be false.
 
 - [x] **G30 · stroke width.** Value-editing done: `stroke-width` is a number field in the panel
   (`svgFields`, `min:0 step:0.5 dflt:1`), committed byte-identically through `setProperty`→`commitDelta`
-  like every other field. The *drag-grip on the outline* — the CTM-divided screen-pixels→user-units
-  gesture, and the `non-scaling-stroke` special case — is a canvas affordance and lands with S9
-  (G38–G42), where the zoom-invariance falsifier (T11) actually bites. S
+  like every other field. The *drag-grip on the outline* now exists too — the `stroke-grip` affordance
+  (S9/G39), a horizontal drag read as a width in user units (screen delta ÷ the root zoom, so
+  zoom-invariant) fanned out across the selection. The `non-scaling-stroke` special case is a further
+  refinement of that provider. S
 - [x] **G31 · dash pattern.** Value-editing done: `stroke-dasharray` is a text field and
   `stroke-dashoffset` a number field in the panel. Byte-preservation holds for free because the panel
   writes the author's string verbatim (`setProperty` via `styleLens`/attribute, no reformatting) —
@@ -1245,8 +1249,10 @@ place for the laws to be false.
   holds the author's exact string. The text box preserves notation because `read`/`setProperty` never
   reformat — `darkseagreen` stays `darkseagreen` (verified headless); the swatch only overwrites when
   the user picks from it. Setting a shape to the colour it already has is a `setField` no-op (returns
-  `null`, T1), so the byte-identity falsifier can't fire. The *on-canvas two-swatch chip* and the
-  fill↔stroke *swap gesture* are S9 affordances. M
+  `null`, T1), so the byte-identity falsifier can't fire. The fill↔stroke *swap gesture* now exists as
+  the `swap-paint` affordance (S9/G39), applied to every selected element (verified in-browser: a
+  circle's fill and stroke exchanged). The *on-canvas two-swatch picker* is a further chip on the same
+  registry. M
 - [x] **G34 · opacity.** Value-editing done: `opacity`, `fill-opacity`, `stroke-opacity` are number
   fields carrying `min:0 max:1 step:0.05` — the first fields whose 0–1 range the registry records and
   the panel reflects on the input element. The single *scrub gesture with a modifier* choosing which of
@@ -1271,29 +1277,56 @@ that are shape specific."* Stated as architecture, that is S9 — and it is the 
 geometry handles. What a selection offers is currently hard-coded in one function and identical for
 every tag; it should be contributed by the shape entry that already knows what that tag is.
 
-- [ ] **G38 · the affordance registry.** `entry.affordances(ctx, path)` returns
-  `{id, at(box), render, onTap/onDrag, declines?}`. Drawn through P6's view delta, so nothing new
-  touches the DOM; committed through `commitDelta`, so nothing new touches the source. An affordance
-  that returns no marks is invisible — which is how a chip that does not apply disappears rather than
-  greys out. **Falsified by:** T6, with an empty affordance set leaving the document byte-identical
-  after a click. M
-- [ ] **G39 · the first set of shape-specific affordances.** `rect` → corner radius (the handle that
-  exists today, moved onto the surface); `circle`/`ellipse` → radius readout; `text` → font size and
-  baseline; `line` and `path` → an arrowhead toggle at each end (needs G36); `path` → close/open and
-  smooth/corner, which are already commands and only need surfacing; `g` → "enter this group";
-  anything → stroke width grip and the fill/stroke swatch. The point is that this list is *entries*,
-  not branches. M
-- [ ] **G40 · affordances that act on the whole selection.** A multi-selection shows boxes only today.
-  A shared affordance — fill, stroke width, opacity — should apply to all of it, which is the same
-  "one delta per claimed element" the align commands already do, so it is a fan-out and not a new
-  idea. **Falsified by:** a shared affordance writing to the primary only. S
-- [ ] **G41 · a chip that declines is not drawn.** T8 at the surface. `canCommand` already answers
-  "would this do anything" by *planning* it, so an affordance backed by a command asks exactly the
-  same question the menu asks, and a greyed chip and a refusal cannot disagree. S
-- [ ] **G42 · the readout is an affordance.** G13 (numeric readout during a drag) becomes a chip that
-  the *active gesture* contributes rather than a special case in the overlay — dimensions while
-  resizing, the angle while rotating, the delta while moving. Folds an open UX item into the
-  registry. S
+- [x] **G38 · the affordance registry.** Done. `svgAffordances` (`_sl272`) is an array of providers —
+  the same registry shape as `svgShapes`/`svgCommands` — each `{id, applies(a), declines?, glyph(a),
+  cursor?, command? | tap?(ctx,a) | drag?}`. `a` is the read context (`node.affordanceContext`), the
+  chip's `env`: the selection plus the same measured questions a command gets and one it adds, the
+  primary's field value. `svgFocus.paint` computes the selection box (single, or the union for a set)
+  and hands it to a `decorate` hook that svgLens sets — svgLens alone has the registry and
+  `canCommand` — which draws each applicable, non-declining chip in **root** space (like the
+  multi-selection boxes, so one placement rule serves single and set). Every chip carries `dataset.aff`;
+  `toolAffordance` (`_sl273`) is first in the tool array but claims **only** a press whose target has
+  `dataset.aff` and falls through otherwise (the G22 empty-space discipline), then runs the chip's
+  command / `tap` / `drag`. So a chip touches the DOM only through the overlay and the source only
+  through `commitDelta`/`node.setField`/`node.command` — `toolAffordance` is inside both tool laws
+  (`test_tools_write_through_the_delta`, `..._measure_through_ctx`), which now enumerate 12 tools and
+  stay green. Verified headless (`tools/svglens-wip/g38-affordances.ts`) and in-browser: selecting a
+  circle draws exactly the three universal chips, a path draws its `close-path` too. **Falsified by:**
+  T6 — an empty affordance set leaves the document byte-identical after a click; holds because a chip
+  with no marks is never drawn and `toolAffordance` returns false on a press that is not on a chip. M
+- [x] **G39 · the first set of shape-specific affordances.** A first set landed as *entries*, not
+  branches: the universal ones — `duplicate` (surfacing the command), `swap-paint` (G33's fill↔stroke
+  swap), and the `stroke-grip` (G30's canvas gesture, below) — plus the path verbs that already exist
+  as commands, `close-path`/`open-path`/`toggle-smooth`, surfaced on a `path` selection. Each path chip
+  is command-backed, so it lights up exactly when its command is available and is absent otherwise
+  (verified: an open path shows `close-path`, hides `open-path`). The remaining items in the wishlist —
+  `rect` corner radius, `circle` radius readout, `text` size/baseline, arrowhead toggles (need G36),
+  `g` "enter this group" — are further entries in the same array, added the same way; the mechanism
+  (G38) is what this task was really for and it is done. M
+- [x] **G40 · affordances that act on the whole selection.** Done. `paint` now draws chips on the
+  *union* box of a multi-selection, and the shared providers (`swap-paint`, `stroke-grip`) loop over
+  `a.paths` — every selected element — writing one `setField` per element, the align commands'
+  "one delta per claimed element". Each write remounts the drawing, so the loop re-reads the live node
+  from `ctx` between writes (the toolMove multi-element pattern); a captured node goes stale after the
+  first commit and the rest silently no-op — a real bug caught here, where a two-write swap left the
+  second write on a dead node until the fix. **Falsified by:** a shared affordance writing to the
+  primary only — holds: the loop is over `a.paths`, not `a.path`, verified in-browser (swap exchanged
+  both paints; grip fans out by the identical loop). S
+- [x] **G41 · a chip that declines is not drawn.** Done — T8 at the surface. A command-backed chip's
+  draw guard is `!a.canDo(id)`, and `a.canDo` is `node.canCommand`, which is `commandPlan(id) !== null`
+  — the *same* plan the context menu greys on, so a hidden chip and a refused menu item cannot
+  disagree. Verified in-browser: on an open path `close-path` draws and `open-path` does not
+  (`canCommand("open-path")` is false); `toggle-smooth` stays hidden until an anchor is held. A chip
+  that declines is simply not appended — it disappears rather than greys, which is the affordance
+  analogue of "decline, don't guess". S
+- [x] **G42 · the readout is an affordance.** Done, and it was P6 that did the structural work: the
+  G13 readout is not a special overlay case but a `view` delta the *active gesture* emits
+  (`gestureDelta.readout(text, [ux,uy], font)` → a keyed, idempotent `view` mark), exactly parallel to
+  a selection chip. Both faces of S9 — the selection's affordances (G38) and the gesture's readout —
+  are now "marks drawn through the delta, cleared by the delta", one mechanism. The active gesture
+  contributes its own readout: `toolVertex` shows the point or point-count, `toolMove` the delta,
+  `toolTransform` the angle — each a `previewDelta(ctx, gestureDelta.readout(...))` in its own move
+  handler, so adding a gesture-time readout is a line in that gesture, not a branch in the overlay. S
 
 #### K — defects found by use, not by reading
 
