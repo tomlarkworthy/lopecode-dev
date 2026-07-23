@@ -473,12 +473,23 @@ and the roll-up is at the end of this section.
   omitted, it is the ambient `svgTools`, so the plugin bus and today's behaviour are unchanged. All
   three dispatch loops — `onPointerDown`, `onHover`, `onDblClick` — read the parameter, and none
   reads the registry directly. The paper's "the pieces" section documents the callsite form.
-- [ ] **P3 · trace harness.** `gesture(lens, script)` over synthetic `PointerEvent`s — `down` on
-  `elementFromPoint`, `move`/`up` on the root, `dblclick`, `key`. Vocabulary: `tap`, `drag(path)`,
-  `dblclick`, `press`. S.
-- [ ] **P4 · instruments.** `docText()`, `elemCount()`, `historyDepth()`, `focusPaths()`, and the
-  overlay-vs-element box delta. All exist as ad-hoc probes from the 2026-07-23 session; make them
-  cells. S.
+- [x] **P3 · trace harness.** Landed 2026-07-23 as `gestureFixture` + `playGesture`.
+  `gestureFixture(body, options)` builds a **throwaway runtime module holding one cell** —
+  `svgLens(svg\`…\`, _opts)` — so a gesture test drives the real writer (it really redefines a
+  Variable) without ever editing the paper's own content; `_opts` is a module variable rather than
+  serialised, so a test can pass real tool arrays. The caller places `container` in its own output,
+  which is what makes `elementsFromPoint` answer correctly with no z-index tricks. `playGesture` has
+  the vocabulary `tap`, `drag(points)`, `dblclick`, `press`, in the drawing's **user units** (it
+  converts through `getScreenCTM`, the matrix the tools invert). It waits for quiet rather than a
+  fixed sleep, because a commit awaits `settle`, which polls. **Verified in a browser:** a tap makes
+  0 puts and leaves the source byte-identical; a `(60,70) → (90,80)` drag makes exactly 1 commit
+  writing `transform="translate(30 10)"`; the fixture module is created and deleted cleanly.
+- [x] **P4 · instruments.** Landed 2026-07-23 on the fixture: `doc()` (the SVG text the source
+  holds, byte for byte — the witness for T1/T2), `elems()` (overlay-excluded, so indices match the
+  tools'), `elemCount()`, `historyDepth()`, `focusPaths()`, `boxGap()` (overlay box minus the
+  selected element — the ghosting probe), and `puts`. One trap found and fixed: the writer announces
+  each put on **both** the outgoing and incoming node with the same record object, so a naive
+  listener double-counts every commit; `puts` dedupes by identity.
 - [ ] **P5 · geometry through `ctx`** — `ctx.bbox`, `ctx.screenCTM`, `ctx.hit`. Tools currently call
   `getBBox`/`getScreenCTM`/`elementsFromPoint` on DOM nodes directly, so "a tool is a pure
   `trace → [command]`" is **not true yet**. Optional: the laws can run as notebook cells in a real

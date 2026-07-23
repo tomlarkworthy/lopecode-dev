@@ -4470,6 +4470,139 @@ const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer){return(
 // tool from any cell and dispatch an input event to extend the editor without touching it. The
 // creation tools come first because they gate on the active tool, so they claim nothing in select
 // mode; toolPen precedes toolStructure so its double-click ends the path rather than dropping a shape.
+// ================================================================================================
+// P3/P4 — the gesture harness. The lens laws are pure and run anywhere; a gesture law needs three
+// things they do not: a live cell whose value is the drawing (the writer commits by redefining a
+// Variable), real DOM geometry, and pointer events. All three are cheap.
+//
+// `gestureFixture` builds a throwaway module holding exactly one cell — `svgLens(svg`…`, opts)` — so
+// no test ever edits the paper's own content, and hands back the node plus the instruments. The
+// caller places `container` in its own output: in flow, at its real screen position, which is what
+// makes `elementsFromPoint` answer correctly without z-index tricks.
+// ================================================================================================
+const _sl130 = function _gestureFixture(runtime,realize,settle,literalSpan,nodeAt,svgLens,svg){return(
+async (body, options = {}) => {
+  const mod = runtime.module();
+  mod.define("svgLens", [], () => svgLens);
+  mod.define("svg", [], () => svg);
+  mod.define("_opts", [], () => options);               // carries real tool arrays; JSON would not
+  const src = `function _fixture(svgLens, svg, _opts) { return (\nsvgLens(svg\`${body}\`, _opts)\n) }`;
+  const [fn] = await realize([src], runtime);
+
+  const container = document.createElement("div");
+  container.style.cssText = "display:inline-block;line-height:0";
+  const puts = [];
+  // Each commit mints a new node, so the listener is re-attached per instance rather than once — and
+  // the writer announces the put on the outgoing node *and* the incoming one, with the same record
+  // object. Dedupe by identity or every commit counts twice.
+  const onPut = (e) => { if (!puts.includes(e.detail)) puts.push(e.detail); };
+  const v = mod.variable({
+    fulfilled: (val) => {
+      if (!val || !val.namespaceURI) return;
+      container.replaceChildren(val);
+      val.addEventListener("lens-put", onPut);
+    },
+    rejected: () => {}
+  }).define("_fixture", ["svgLens", "svg", "_opts"], fn);
+  await settle(v, null);
+
+  const source = () => v._definition.toString();
+  return {
+    container, variable: v, puts,
+    get node() { return v._value; },
+    source,
+    // ---- P4 instruments -------------------------------------------------------------------------
+    // The SVG text the source currently holds, byte for byte. The primary witness for T1 and T2.
+    doc: () => { const s = source(); const [a, b] = literalSpan(s, "svgLens"); return s.slice(a, b); },
+    // Source elements, overlay excluded — the same filter `svgTarget.elems` applies, so indices line
+    // up with document order and with the tools' idea of an element index.
+    elems: () => [v._value, ...v._value.querySelectorAll("*")]
+      .filter((e) => e.namespaceURI === "http://www.w3.org/2000/svg"
+                  && !e.closest("[data-svg-lens-overlay]")),
+    elemCount() { return this.elems().length - 1; },     // minus the root <svg>
+    historyDepth: () => v._value.historyDepth().undo,
+    focusPaths: () => v._value.selectionPaths(),
+    // The overlay must frame what is selected: 0 when it does. This is the ghosting probe.
+    boxGap() {
+      const box = v._value.querySelector("[data-svg-lens-overlay] .box");
+      const sel = v._value.selectionPaths();
+      if (!box || sel.length !== 1) return null;
+      const el = this.elems()[nodeAt(this.doc(), sel[0]).index];
+      if (!el) return null;
+      const a = box.getBoundingClientRect(), b = el.getBoundingClientRect();
+      return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y),
+                      Math.abs(a.width - b.width), Math.abs(a.height - b.height));
+    },
+    destroy: () => { try { v.delete(); } catch (_) {} container.remove(); }
+  };
+}
+)};
+
+// Drive a fixture with scripted pointer events. Coordinates are the drawing's own user units — the
+// harness converts through `getScreenCTM`, the same matrix the tools invert, so a script reads like
+// the picture rather than like the viewport.
+//
+//   play(f, [tap(20, 30)])                       a click
+//   play(f, [drag([[20,30],[60,30],[90,44]])])    press, two moves, release
+//   play(f, [dblclick(60, 40)])
+//   play(f, [press("ArrowUp", {shiftKey: true})])
+const _sl131 = function _playGesture(){return(
+(() => {
+  const toClient = (node, x, y) => {
+    const m = node.getScreenCTM();
+    return m ? [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f] : [x, y];
+  };
+  const pev = (type, cx, cy, o) => new PointerEvent(type, {
+    clientX: cx, clientY: cy, bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse",
+    button: 0, buttons: type === "pointerup" || type === "pointercancel" ? 0 : 1,
+    shiftKey: !!o.shiftKey, altKey: !!o.altKey, ctrlKey: !!o.ctrlKey, metaKey: !!o.metaKey
+  });
+  const at = (node, cx, cy) => {
+    const el = document.elementFromPoint(cx, cy);
+    return el && (el === node || node.contains(el)) ? el : node;
+  };
+  // A gesture is done when the puts stop arriving, not after a fixed sleep: a commit awaits `settle`,
+  // which polls, so the tail is variable. Quiet for `idle` ms, or `max` ms total.
+  const quiet = async (f, idle = 60, max = 1200) => {
+    const t0 = Date.now();
+    let n = f.puts.length, last = Date.now();
+    while (Date.now() - t0 < max) {
+      await new Promise((r) => setTimeout(r, 16));
+      if (f.puts.length !== n) { n = f.puts.length; last = Date.now(); }
+      else if (Date.now() - last >= idle) break;
+    }
+    return f.puts.length;
+  };
+  const play = async (f, steps, opts = {}) => {
+    const before = f.puts.length;
+    for (const step of [].concat(steps)) {
+      const node = f.node;
+      for (const [kind, x, y, o = {}] of step(node)) {
+        const [cx, cy] = toClient(node, x, y);
+        if (kind === "down") at(node, cx, cy).dispatchEvent(pev("pointerdown", cx, cy, o));
+        else if (kind === "move") node.dispatchEvent(pev("pointermove", cx, cy, o));
+        else if (kind === "up") node.dispatchEvent(pev("pointerup", cx, cy, o));
+        else if (kind === "dbl") at(node, cx, cy).dispatchEvent(new MouseEvent("dblclick", {
+          clientX: cx, clientY: cy, bubbles: true, cancelable: true }));
+        else if (kind === "key") document.dispatchEvent(new KeyboardEvent("keydown", {
+          key: x, bubbles: true, cancelable: true, ...o }));
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      await quiet(f, opts.idle, opts.max);
+    }
+    return f.puts.slice(before);
+  };
+  play.tap = (x, y, o = {}) => () => [["down", x, y, o], ["up", x, y, o]];
+  play.drag = (pts, o = {}) => () => [["down", pts[0][0], pts[0][1], o],
+    ...pts.slice(1).map(([x, y]) => ["move", x, y, o]),
+    ["up", pts[pts.length - 1][0], pts[pts.length - 1][1], o]];
+  play.dblclick = (x, y) => () => [["dbl", x, y, {}]];
+  play.press = (key, o = {}) => () => [["key", key, 0, o]];
+  return play;
+})()
+)};
+
+
 const _sl123 = function _svgTools(Inputs,toolDraw,toolPen,toolTransform,toolVertex,toolMove,toolMarquee,toolStructure){return(
 Inputs.input([toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarquee, toolStructure])
 )};
@@ -5048,6 +5181,8 @@ export default function define(runtime, observer) {
   $def("sl125d", "penPath", [], _sl125d);
   $def("sl125", "toolDraw", ["shapeSpec","shapeMarkup","dragBox","grabPointer"], _sl125);
   $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer"], _sl126);
+  $def("sl130", "gestureFixture", ["runtime","realize","settle","literalSpan","nodeAt","svgLens","svg"], _sl130);
+  $def("sl131", "playGesture", [], _sl131);
   $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl123);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);
