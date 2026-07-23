@@ -743,13 +743,22 @@ click is about to hit**.
 
 #### C — transform gestures
 
-- [ ] **G9 · axis lock.** Shift during a *drag* constrains to the dominant axis. Shift on a *tap*
-  already means toggle-select, so the disambiguation is drag-vs-tap, which `d.started` already
-  knows. **Falsified by:** T2 — a locked drag must still depend only on where it ended. XS
-- [ ] **G10 · Esc cancels the gesture.** Currently Esc switches tool; it cannot abandon an in-flight
-  drag, so a mistaken drag must be completed and then undone. This is **literally T1**: a cancelled
-  gesture is a null edit and hands the complement back untouched, so the law already written covers
-  it. XS
+- [x] **G9 · axis lock.** Landed 2026-07-23 in `toolMove`. Shift during a drag freezes whichever
+  axis the pointer has travelled *less* along, measured from the origin rather than the last frame,
+  so the lock is a function of where the pointer is and T2 still holds. Snapping runs after the lock
+  and may pull the frozen axis, so the lock is reapplied afterwards — otherwise a shift-drag drifts
+  sideways whenever a neighbour happens to line up. T2 now runs its wander-vs-straight pair twice,
+  free and locked, and asserts the two differ (else the lock is untested). **✅ green.**
+- [x] **G10 · Esc cancels the gesture.** Landed 2026-07-23 as a **third sink**, `revertDelta`, which
+  is what `attr`'s `was` field was always for: put back what the preview overwrote. A tool declares
+  `onCancel(ctx)` and returns whether it had anything to abandon; `node.cancelGesture()` offers it
+  around and reports back, so the toolbar can do `cancelGesture() || setTool("select")` — Escape
+  means "undo what I am doing now", and only failing that "leave this mode". Keyboard stays with the
+  callsite, as it already was for arrows and z-order: a document listener added inside `svgLens`
+  would leak one per commit. As predicted this is **literally T1**, so the law was extended rather
+  than added to: three abandoned drags must leave neither a byte nor a pixel behind, the pixel half
+  being `domShape` (extracted from T5, since it is the same claim on a different occasion).
+  **✅ green** — and it immediately caught a real defect, below. XS
 - [ ] **G11 · scale from the centre** (alt) and **G12 · a movable rotation pivot** (drag the centre
   mark before rotating). Both are `toolTransform` changes, both fall out of the existing
   `scaleAbout`/`rotateAbout`, which already take an arbitrary fixed point. S
