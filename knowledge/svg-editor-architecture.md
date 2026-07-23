@@ -516,17 +516,30 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
 - [x] **L4 · T4 origin — d-PutInc.** `test_gesture_commits_against_its_origin`. Marquee a set, drag
   it, assert the undo depth gained equals the number of elements claimed. Measured: **a 4-element
   move commits 4 edits.** This is the 2026-07-23 multi-move regression, now guarded. **✅ green.**
-- [ ] **L5 · T5 consistency.** After any gesture, the live DOM minus `overlay.isOwn` deep-equals a fresh
-  render of `docText()`.
+- [x] **L5 · T5 consistency.** `test_gesture_render_consistency`. After each of five gestures — one
+  through each tool that writes an attribute — the live tree (overlay removed, whitespace-only text
+  and the root's `touch-action` style ignored) deep-equals a `DOMParser` render of `docText()`.
+  Mid-gesture is exempt by design: a preview may be ahead of the source, it may not survive the
+  commit. **✅ green 2026-07-23.**
 - [x] **L6 · T6 confinement.** `test_gesture_confinement`. A tool that declines everything is
   installed at the head and at the tail of the registry; both runs must be byte-identical to the run
   without it, and the tool must actually have been offered the gesture (else the law is vacuous).
   Needs P2. **This is the test a third-party tool has to pass. ✅ green 2026-07-23.**
-- [ ] **L7 · T7 rebase agreement.** For every command in the registry, `rebase(p, c)` equals re-locating
-  the same element after `apply(c)`. Extends `test_rebasePath`'s existing ground-truth method.
-- [ ] **L8 · partiality.** A gesture on an attribute outside the lens domain — unparseable `points`, an
-  arc segment for subdivision — ⟹ the tool declines and the source is unchanged. Formal content of
-  "decline cleanly"; the **gap 0 regression test**.
+- [x] **L7 · T7 rebase agreement.** `test_gesture_rebase_agreement`. `test_rebasePath` already checks
+  the three primitives; this checks the **callsites**, where one clamped index is handed to both the
+  command and its rebase — if they clamp differently the selection lands on the wrong shape. Ground
+  truth is bytes: after `addShape` (head and appended), `removeAt`, `moveTo`, `zOrder` front and
+  back, every rebased address must hold what the old address held, and the number of dropped
+  addresses must equal the number of elements the edit removed. A seventh case is a point edit,
+  which claims *no* rebase: the claim checked is that the tree is untouched, not that the bytes are.
+  **✅ green 2026-07-23, 7 commands.**
+- [x] **L8 · partiality.** `test_gesture_partiality`, on a corpus the *browser* renders and the *lens*
+  cannot read: an odd-count `points` list and an arc. Selecting the bad polygon must offer the
+  transform gizmo and **no** vertex handles (`toolMove.tryFocus` already parses before it commits to
+  a mode — this pins that down), and double-clicking either shape must not write, because
+  subdivision has no exact split for an arc. Formal content of "decline cleanly", and the **gap 0
+  regression test**: the failure mode is a declined gesture falling through to "create a shape
+  here". **✅ green 2026-07-23.**
 - [x] **L9 · selection-only.** `test_gesture_selection_is_not_an_edit`. Three marquee bands — both
   drag directions plus one over empty space — never write the source or push an undo entry.
   Measured: selects up to 4 elements, and the empty band correctly clears. **✅ green 2026-07-23.**

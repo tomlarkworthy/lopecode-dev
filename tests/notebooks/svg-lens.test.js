@@ -68,7 +68,10 @@ const GESTURE_TEST_CELLS = [
   'test_gesture_identity',                      // T1  p(1,c) = (1,c)
   'test_gesture_path_independence',             // T2  p(mm′,c) = (nn′,c″)
   'test_gesture_commits_against_its_origin',    // T4  d-PutInc
+  'test_gesture_render_consistency',            // T5  the view is a re-render of the source
   'test_gesture_confinement',                   // T6  ours: a declining tool is invisible
+  'test_gesture_rebase_agreement',              // T7  ours: OT's TP1 for addresses
+  'test_gesture_partiality',                    // T8  the action is partial [JR16 Def 6]
   'test_gesture_selection_is_not_an_edit',      // T9  ours: selection is not in M_X
   'gestureLaws', 'gestureFixture', 'playGesture', 'gestureCorpus', 'withFixture',
 ];

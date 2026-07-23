@@ -4639,8 +4639,17 @@ const _sl132 = function _gestureCorpus(){return(
   <!-- a comment that must survive every gesture -->
   <rect x="10"  y="10" width="20" height="20" transform="translate(10,20)" fill="#888"/>
 </svg>`,
+  // Outside the lens domain, but inside the browser's: an odd count of numbers, which Chrome renders
+  // as the triangle anyway and `parsePoints` rejects; and an arc, which `parsePath` reads but
+  // subdivision cannot split. Both are things the editor must decline rather than guess at.
+  broken: `<svg viewBox="0 0 200 120" width="200" height="120">
+  <polygon points="20,100  60,30  100,100  55" fill="#5B7A5E"/>
+  <path d="M 120 100 A 30 30 0 0 1 180 100" fill="none" stroke="#4C7FD1" stroke-width="6"/>
+</svg>`,
   // Points, in user units. `empty` is clear of every shape.
-  at: { poly: [60, 80], stroke: [135, 70], rect: [35, 18], group: [150, 18], empty: [105, 15] }
+  at: { poly: [60, 80], stroke: [135, 70], rect: [35, 18], group: [150, 18], empty: [105, 15] },
+  // Points on `broken`: inside the odd-count triangle, and on the top of the arc.
+  brokenAt: { badPoly: [60, 80], arc: [150, 70] }
 }
 )};
 
@@ -4779,17 +4788,161 @@ const _sl138 = function _test_gesture_selection_is_not_an_edit(withFixture,gestu
 };
 
 
+// L5 · T5 consistency. The view is a function of the source: once a gesture is over, what is on
+// screen must be exactly what re-rendering the committed text would give. The gap this closes is a
+// *preview that outlived its commit* — a tool writes an attribute to show its work, commits a
+// different value (or none), and the drawing keeps showing the preview until something unrelated
+// forces a re-render. Mid-gesture is exempt, deliberately: a preview is allowed to be ahead of the
+// source, it is just not allowed to survive.
+const _sl140 = function _test_gesture_render_consistency(withFixture,gestureCorpus,playGesture)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  // The tree, minus what neither side can be expected to agree on: the overlay (not in the source by
+  // construction), whitespace-only text (formatting), and the root's `style`, which svgLens sets to
+  // `touch-action:none` on the node it projects.
+  const shape = (el, root) => {
+    const attrs = {};
+    for (const a of el.attributes) if (!(el === root && a.name === "style")) attrs[a.name] = a.value;
+    const kids = [];
+    for (const n of el.childNodes) {
+      if (n.nodeType === 1) {
+        if (!n.hasAttribute("data-svg-lens-overlay")) kids.push(shape(n, root));
+      } else if (n.nodeType === 8) kids.push({ comment: n.nodeValue });
+      else if (n.nodeType === 3 && n.nodeValue.trim()) kids.push({ text: n.nodeValue });
+    }
+    return { tag: el.localName, attrs, kids };
+  };
+  const live = (node) => JSON.stringify(shape(node, node));
+  const fromSource = (text) => {
+    const d = new DOMParser().parseFromString(text, "image/svg+xml");
+    if (d.querySelector("parsererror")) throw new Error("the committed source no longer parses as SVG");
+    return JSON.stringify(shape(d.documentElement, d.documentElement));
+  };
+  return () => withFixture(gestureCorpus.basic, {}, async (f) => {
+    // move, gizmo and vertex: one gesture through each of the three tools that write an attribute.
+    const script = [
+      ["select the polygon",   playGesture.tap(60, 80)],
+      ["drag its body",        playGesture.drag([[60, 80], [66, 84], [72, 88]])],
+      ["drag one of its vertices", playGesture.drag([[26, 104], [30, 108], [34, 110]])],
+      ["select the rect",      playGesture.tap(35, 18)],
+      ["drag the rect",        playGesture.drag([[35, 18], [42, 24], [48, 30]])]
+    ];
+    for (const [what, step] of script) {
+      await playGesture(f, step);
+      if (live(f.node) !== fromSource(f.doc()))
+        throw new Error(`after "${what}" the drawing is not a rendering of its own source`);
+    }
+    return `✅ T5: the view is a re-render of the committed source after ${script.length} gestures`;
+  });
+};
+
+// L7 · T7 rebase agreement. Ours, not from the papers — it is OT's TP1 for addresses: a structural
+// edit moves the elements that come after it, so anyone holding an address (the selection, an open
+// inspector, a half-finished gesture) needs the edit to say where it went. `test_rebasePath` already
+// checks the three primitives against ground truth; what is unchecked is the *callsites*, where an
+// index is clamped once and handed to both the command and its rebase. If those two clamp
+// differently the selection silently lands on the wrong shape — so the ground truth here is bytes:
+// the address the rebase gives back must hold what the old address held.
+const _sl141 = function _test_gesture_rebase_agreement(withFixture,gestureCorpus,nodeAt,childrenLens,insertPoint)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  const MARK = '<circle cx="7" cy="7" r="3" fill="#333"/>';
+  const kids = (d) => childrenLens([0]).get(d);
+  const textAt = (d, p) => { const n = nodeAt(d, p); return d.slice(n.start, n.end); };
+  // `changed` is the one index a point edit is allowed to rewrite: it claims no rebase, and the
+  // claim to check is that the tree is untouched, not that the bytes are.
+  const check = (label, before, after, rec, changed = -1) => {
+    const n0 = kids(before).length, n1 = kids(after).length;
+    const rebase = rec && rec.rebase;
+    let dropped = 0;
+    for (let j = 0; j < n0; j++) {
+      const to = rebase ? rebase([0, j]) : [0, j];
+      if (to === null) { dropped++; continue; }
+      let got = null;
+      try { got = textAt(after, to); } catch (err) { got = null; }
+      if (got === null)
+        throw new Error(`${label}: ${j} rebased to ${to.join("/")}, which addresses nothing`);
+      if (j !== changed && got !== textAt(before, [0, j]))
+        throw new Error(`${label}: ${j} rebased to ${to.join("/")}, which is a different element`);
+    }
+    if (dropped !== Math.max(0, n0 - n1))
+      throw new Error(`${label}: the edit removed ${n0 - n1} elements, the rebase dropped ${dropped}`);
+  };
+  return () => withFixture(gestureCorpus.basic, {}, async (f) => {
+    // Every structural entry point the node offers, in turn, against the document the last one left.
+    // The point edit goes first, while [0,0] is still the corpus's polygon — the reordering cases
+    // below move the elements around, which is the whole point of them.
+    const cases = [
+      // A point edit rewrites one element and claims the tree is untouched. Same law, rebase absent.
+      ["insertPoint (no rebase)",
+       () => f.node.edit("insertPoint", (d) => insertPoint(d, [0, 0], 0, [50, 50])), 0],
+      ["addShape at the head", () => f.node.addShape(MARK, 0), -1],
+      ["addShape appended",    () => f.node.addShape(MARK), -1],
+      ["removeAt the middle",  () => f.node.removeAt([0, 2]), -1],
+      ["moveTo",               () => f.node.moveTo([0, 0], 2), -1],
+      ["zOrder front",         () => f.node.zOrder([0, 0], "front"), -1],
+      ["zOrder back",          () => f.node.zOrder([0, 3], "back"), -1]
+    ];
+    for (const [label, run, changed] of cases) {
+      const before = f.doc();
+      const rec = await run();
+      if (!rec) throw new Error(`${label}: the command did not run`);
+      check(label, before, f.doc(), rec, changed);
+    }
+    return `✅ T7: ${cases.length} structural commands each say where every address went`;
+  });
+};
+
+// L8 · partiality. A module action is partial [JR16 Def 6]: the tool is allowed to have nothing to
+// say. What it is not allowed to do is guess. Both cases here are documents the *browser* renders
+// happily and the *lens* cannot read — an odd-count points list, and an arc, which subdivision has
+// no exact split for — and in both the editor must fall back to something it can do (the transform
+// gizmo) or decline outright, leaving the source alone. This is the gap-0 regression test: the
+// failure mode is a declined gesture falling through to "create a shape here".
+const _sl142 = function _test_gesture_partiality(withFixture,gestureCorpus,playGesture)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  const handles = (f, cls) => f.node.querySelectorAll(`[data-svg-lens-overlay] .${cls}`).length;
+  return () => withFixture(gestureCorpus.broken, {}, async (f) => {
+    const doc0 = f.doc(), n0 = f.elemCount();
+    const intact = (what) => {
+      if (f.doc() !== doc0) throw new Error(`${what} wrote to a source it cannot read`);
+      if (f.elemCount() !== n0) throw new Error(`${what} changed the element count`);
+    };
+    const [bx, by] = gestureCorpus.brokenAt.badPoly;
+    await playGesture(f, playGesture.tap(bx, by));
+    if (!f.focusPaths().length) throw new Error("the unreadable polygon could not even be selected");
+    if (handles(f, "anchor")) throw new Error("vertex handles were offered for an unparseable points list");
+    if (!handles(f, "scale")) throw new Error("no fallback gizmo was offered either, so nothing is editable");
+    intact("selecting the unreadable polygon");
+    await playGesture(f, playGesture.dblclick(bx, by));
+    intact("double-clicking the unreadable polygon");
+
+    const [ax, ay] = gestureCorpus.brokenAt.arc;
+    await playGesture(f, playGesture.tap(ax, ay));
+    const on = f.focusPaths().length === 1 && handles(f, "anchor") > 0;
+    if (!on) throw new Error("the arc path was not selected in path mode, so subdivision is untested");
+    await playGesture(f, playGesture.dblclick(ax, ay));
+    intact("double-clicking an arc segment");
+    return "✅ T8: two documents the lens cannot read are selectable, and neither gesture guesses";
+  });
+};
+
+
 // The gesture laws are opt-in. Unlike the lens laws they mount a fixture, dispatch real pointer
 // events and commit through `Variable.define` — seconds of work and a burst of change-history
 // traffic — so running them on every reader's load would be wrong. Each law above is a function;
 // this runs them all and reports. CI calls `gestureLaws.run()`.
-const _sl139 = function _gestureLaws(test_gesture_identity,test_gesture_path_independence,test_gesture_commits_against_its_origin,test_gesture_confinement,test_gesture_selection_is_not_an_edit){return(
+const _sl139 = function _gestureLaws(test_gesture_identity,test_gesture_path_independence,test_gesture_commits_against_its_origin,test_gesture_render_consistency,test_gesture_confinement,test_gesture_rebase_agreement,test_gesture_partiality,test_gesture_selection_is_not_an_edit){return(
 {
   laws: {
     "T1 identity": test_gesture_identity,
     "T2 path independence": test_gesture_path_independence,
     "T4 origin": test_gesture_commits_against_its_origin,
+    "T5 consistency": test_gesture_render_consistency,
     "T6 confinement": test_gesture_confinement,
+    "T7 rebase agreement": test_gesture_rebase_agreement,
+    "T8 partiality": test_gesture_partiality,
     "T9 selection is not an edit": test_gesture_selection_is_not_an_edit
   },
   async run() {
@@ -5390,7 +5543,10 @@ export default function define(runtime, observer) {
   $def("sl136", "test_gesture_commits_against_its_origin", ["withFixture","gestureCorpus","playGesture"], _sl136);
   $def("sl137", "test_gesture_confinement", ["withFixture","gestureCorpus","playGesture","svgTools"], _sl137);
   $def("sl138", "test_gesture_selection_is_not_an_edit", ["withFixture","gestureCorpus","playGesture","toolMarquee"], _sl138);
-  $def("sl139", "gestureLaws", ["test_gesture_identity","test_gesture_path_independence","test_gesture_commits_against_its_origin","test_gesture_confinement","test_gesture_selection_is_not_an_edit"], _sl139);
+  $def("sl140", "test_gesture_render_consistency", ["withFixture","gestureCorpus","playGesture"], _sl140);
+  $def("sl141", "test_gesture_rebase_agreement", ["withFixture","gestureCorpus","nodeAt","childrenLens","insertPoint"], _sl141);
+  $def("sl142", "test_gesture_partiality", ["withFixture","gestureCorpus","playGesture"], _sl142);
+  $def("sl139", "gestureLaws", ["test_gesture_identity","test_gesture_path_independence","test_gesture_commits_against_its_origin","test_gesture_render_consistency","test_gesture_confinement","test_gesture_rebase_agreement","test_gesture_partiality","test_gesture_selection_is_not_an_edit"], _sl139);
   $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl123);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);
