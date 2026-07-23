@@ -513,9 +513,12 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
 
 #### C — tool conversions, in order
 
-- [ ] **C0 · fix `toolTransform`'s preview** — one line, `opsLens.put(d.ops, d.text)` instead of
-  `d.ops.map(printOp).join(" ")`. Land it **before** converting anything, with L3 as its regression
-  test, so the fix is not tangled up in a refactor.
+- [x] **C0 · fix `toolTransform`'s preview** — `opsLens.put(d.ops, d.text)` instead of
+  `d.ops.map(printOp).join(" ")`. Landed 2026-07-23 ahead of any refactor. Measured before the fix:
+  **7 of 12 residue cases diverged** (`translate(10,20)` previewed as `translate(10 20)`, `.5` as
+  `0.5`, `1e2` as `100`) — geometrically identical, so invisible, but it flattened exactly the
+  residue the skip rule exists to protect. `printOp` and `attrVal` dropped from the cell's inputs,
+  now unused. 50/50 lens tests green.
 - [ ] **C1 · lift the pattern out of `toolDraw`.** No behaviour change: `shapeSpec`/`shapeMarkup` becomes
   the worked example that P1's default `previewDelta` is modelled on.
 - [ ] **C2 · `toolVertex`.** Simplest real conversion — already coherent, mostly deletion.

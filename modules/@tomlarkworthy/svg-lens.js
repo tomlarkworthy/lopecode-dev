@@ -3893,7 +3893,7 @@ const _sl124c = function _grabPointer(){return(
 (node, e) => { try { node.setPointerCapture(e.pointerId); } catch (_) {} }
 )};
 
-const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,printOp,attrVal,grabPointer){return(
+const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointer){return(
 {
   id: "transform",
   onPointerDown(ctx, e) {
@@ -3936,7 +3936,10 @@ const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,printOp,at
       d.ops = scaleAbout(d.base, ctx.snap(k === null ? sx : k), ctx.snap(k === null ? sy : k),
                          d.pivot[0], d.pivot[1]);
     }
-    d.el.setAttribute("transform", d.ops.map(printOp).join(" "));   // live only; source waits
+    // Byte-for-byte what the commit will write: `opsLens.put` keeps the residue (`10,20`, `.5`,
+    // `1e2`) that reprinting every op would flatten. Two printers for one value is a d-PutGet
+    // divergence waiting to become a visible one.
+    d.el.setAttribute("transform", opsLens.put(d.ops, d.text));
     ctx.focus.refresh();
   },
   async onPointerUp(ctx) {
@@ -4966,7 +4969,7 @@ export default function define(runtime, observer) {
   $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","parsePoints","parsePath","pathOfIndex","grabPointer","hitTest","snapRects"], _sl121);
   $def("sl121b", "toolMarquee", ["boxInRoot","pathOfIndex","grabPointer","dragBox"], _sl121b);
   $def("sl122", "toolStructure", ["insertElement","insertPoint","deletePoint","nearestSegment","pointsHandles","parsePoints","attrVal","childrenLens","rebasePath","pathHandles","parsePath","pathSegments","nearestPathSegment","insertPathPoint","deletePathPoint"], _sl122);
-  $def("sl124", "toolTransform", ["opsLens","rotateAbout","scaleAbout","printOp","attrVal","grabPointer"], _sl124);
+  $def("sl124", "toolTransform", ["opsLens","rotateAbout","scaleAbout","grabPointer"], _sl124);
   $def("sl125a", "dragBox", [], _sl125a);
   $def("sl125b", "shapeSpec", ["dragBox"], _sl125b);
   $def("sl125c", "shapeMarkup", ["shapeSpec"], _sl125c);
