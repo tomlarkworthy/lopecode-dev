@@ -250,7 +250,7 @@ edit to a monolith. Every remaining gap is the same move, not yet made, on five 
 |---|---|---|
 | which tags have editable geometry | `polygon/polyline/path`, hardcoded in `toolMove` and `handleEdit` | **shape registry**: tag → `{handles, edit, resize}` |
 | what a gizmo writes | always `transform` | the shape's own `resize`; `transform` only as fallback |
-| which structural edits exist | seven `runCommand` call sites | **command registry**: id → `{apply, rebase, label, key}` |
+| which structural edits exist | ~~seven `runCommand` call sites~~ **done (S4)** | **command registry**: id → `{id, label, key, plan(env)}` |
 | what the inspector shows | one text input per attribute | **field registry**: attribute → widget |
 | what counts as a hit | `hitTest` in some tools, `e.target` in others | one `ctx.hit(e)`; no tool touches `e.target` |
 | which tools are installed | `svgTools`, an ambient registry cell | `options.tools`, **defaulting to** `svgTools` |
@@ -606,17 +606,18 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
   commit is untouched — it lives in `lensState`, not in the delta.
 - [x] **C6 · `toolMarquee`.** Every outcome is now a `select` delta and nothing else, so L9 is a
   statement about the tool's type rather than about its luck.
-- [ ] **C7 · `toolStructure`.** Half done: all five branches now emit `command` deltas, so every tool
-  speaks the same language and L3-static covers this one too. What remains is S4's part — lifting
-  the branches into a **command registry** with their `rebase`, and removing the raw `e.target`
-  (gap 0).
+- [x] **C7 · `toolStructure`.** Done in two halves. All five branches emit `command` deltas, so every
+  tool speaks the same language and L3-static covers this one too; the raw `e.target` went with S1
+  (gap 0); and the **command registry** landed with S4 — though not where this item expected it. The
+  verbs that belong to the *selection* rather than to the pointer moved out of the tool entirely,
+  because a command has no gesture: `svgCommands` holds them, and `toolStructure` keeps only the
+  double-click behaviours, which are gestures and belong to a tool.
 
 **Where this lands in the stages:** P1–P4 and L1–L9 *are* S0. P5 is S0 or S1. C0–C6 are S0's
 conversion half. C7 folds into S4.
 
-**Status 2026-07-23: 21 of 22 done, and C7's `e.target` is gone** (S1 replaced it with `ctx.pick`;
-what remains of C7 is the *command registry*, which is S4's work). S0 is
-therefore complete — see M9 in the milestone log for what it cost.
+**Status 2026-07-23: 22 of 22 done.** S1 replaced C7's `e.target` with `ctx.pick`, and S4 built the
+command registry. S0 is complete — see M9 in the milestone log for what it cost.
 
 ### 6.5 Stages
 
@@ -667,10 +668,18 @@ random rect/corner pairs, that every entry writes nothing when a handle is put b
 that ten drags land on their target, and that four unreadable elements are declined. Verified
 falsifiable by injecting a wrong-edge bug and watching it fail at run 3.
 
-**S4 — command registry, then group/ungroup/duplicate/copy/paste.** Each is a pure doc→doc with a
-rebase, so `test_rebasePath`'s ground-truth method extends unchanged.
+**S4 — command registry, then group/ungroup/duplicate/copy/paste. ✅ done 2026-07-23.** A command is
+a verb that acts on the *selection* rather than on the pointer, and it earns a place beside the tools
+by being the same kind of thing: `plan(env)` returns **deltas**, so it lands in the sink a gesture
+lands in and owes the laws a gesture owes. `env` is to a command what `ctx` is to a tool — pure data
+plus three measured questions — so a command can be planned headless against a fake env, which is how
+align is tested with no browser at all. `plan` returning null *is* the answer to "can I do this",
+asked once, so a greyed-out button and a refusal to run cannot disagree. Fifteen entries, and the
+demo's command bar is generated from the registry, labels and bindings included.
 *Falsified by:* `insert∘delete ≠ id`, `group∘ungroup ≠ id` (modulo whitespace), or a rebase that
-disagrees with its edit — the M0.2 failure mode, which silently drops the selection.
+disagrees with its edit — the M0.2 failure mode, which silently drops the selection. **Held**:
+`test_group_ungroup` (which also carries T7 for the new commands, by `test_rebasePath`'s ground-truth
+method), `test_copy_paste`, `test_align_commands`.
 
 **S5 — outliner.** A pure projection of `childrenLens` plus `node.select`; no new write path.
 *Falsified by:* T7, or the tree disagreeing with `parseDoc`.
@@ -728,11 +737,14 @@ Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool
 | drag in a draw mode | create rect/ellipse/line; shift squares | one element |
 | pen click / click the start / double-click | place an anchor, close, finish | `d` |
 | arrows, `[ ] { }`, Delete, ⌘Z | nudge, z-order, delete, undo/redo | `transform`, structure |
+| ⌘G / ⌘⇧G | group, ungroup | one `<g>`, or its contents spliced back |
+| ⌘D, ⌘C/⌘X/⌘V/⌘⇧V | duplicate, copy, cut, paste, paste-in-place | elements, byte-identical |
+| the command bar | six aligns, two distributes | `transform` per element |
 
 One thing that whole table implies and is worth stating plainly: **the pen draws only straight
-lines**. (Three more — "a rectangle's `width` cannot be edited", "groups cannot be selected as
-groups" and "there is no zoom" — were true until S3, S1 and S7, and are the gaps those stages
-closed.)
+lines**. (Four more — "a rectangle's `width` cannot be edited", "groups cannot be selected as
+groups", "there is no zoom" and "there is no group, duplicate or paste" — were true until S3, S1, S7
+and S4, and are the gaps those stages closed.)
 
 #### P — prerequisites this list needs that §6.4 did not
 
@@ -748,7 +760,7 @@ closed.)
   selection, corner↔smooth, and deleting a segment all need a vertex to be nameable in the
   complement: `[0,3]` vs `[0,3]#7`. Everything in group E waits on this. **Falsified by:** a vertex
   address surviving a commit that changes an earlier vertex — T7 for sub-element addresses. M
-- [ ] **P8 · a selection ↔ source-text codec.** Copy, paste and duplicate are all "read these paths
+- [x] **P8 · a selection ↔ source-text codec.** Landed 2026-07-23 with S4. Copy, paste and duplicate are all "read these paths
   out as source text, write that text back in somewhere else". `childrenLens` already gives child
   *source strings*, so the read half exists; what is missing is the write half with id/reference
   fixups (§`refsOf` knows which attributes point at `defs`). Pleasingly, the clipboard payload is
@@ -799,7 +811,8 @@ closed.)
 - [ ] **G7 · select all / none / same.** ⌘A, Esc, and "select same tag" / "select same fill" as
   command-registry entries rather than special cases. **Falsified by:** T9 — none of them may write. S
 - [ ] **G8 · context menu.** Right-click renders whatever the command registry holds, so it needs no
-  maintenance as S4 fills the registry. Depends on S4. S
+  maintenance as the registry fills. **Unblocked by S4** — `node.commands()` and `node.canCommand(id)`
+  are exactly what a menu needs, and the demo's command bar is already built from them. S
 
 #### C — transform gestures
 
@@ -825,21 +838,36 @@ closed.)
 - [ ] **G13 · numeric readout during a drag.** dx/dy while moving, w×h while drawing, angle while
   rotating, drawn in the overlay root layer. Needs P6. The one place the editor currently gives no
   feedback about magnitude. S
-- [ ] **G14 · alt-drag duplicates.** The standard gesture, and the discoverable face of G16. Depends
-  on S4's duplicate. S
+- [ ] **G14 · alt-drag duplicates.** The standard gesture, and the discoverable face of G16.
+  **Unblocked by S4.** Note alt already means "ignore snapping" during a move, so this needs a
+  modifier decision rather than only an implementation. S
 
 #### D — the structural verbs everyone expects (S4)
 
-- [ ] **G15 · group and ungroup.** ⌘G / ⌘⇧G, as command-registry entries with their `rebase`.
-  **Falsified by:** `group ∘ ungroup ≠ id` modulo whitespace, or a rebase that disagrees with its
-  edit — L7 extends unchanged. M
-- [ ] **G16 · duplicate.** ⌘D, offset by a nudge. Needs P8. S
-- [ ] **G17 · cut, copy, paste, paste-in-place.** Needs P8. The payload is SVG source text, so it
-  interoperates with every other tool the author owns. M
-- [ ] **G18 · align and distribute.** Six aligns and two distributes over a multi-selection, as
-  commands rather than a tool — they have no gesture, only a target set. Snapping guides already
-  exist mid-drag; this is the same idea made explicit and repeatable. **Falsified by:** aligning an
-  already-aligned set writing anything at all (T1 again). S
+- [x] **G15 · group and ungroup.** Landed 2026-07-23. ⌘G / ⌘⇧G as registry entries with their
+  `rebase`. Two things the property test taught, both about residue: a member takes its *gap* into the
+  group with it, so the comment above an element follows the element rather than being dropped; and
+  indentation goes in the gaps only, never inside a child, because re-indenting a multi-line element
+  rewrites the author's bytes. Ungroup splices the group's inner text straight back, so comments
+  inside a group survive too, and pushes a `transform` down onto each child — exactly what the
+  renderer was already doing. It **declines** a group carrying anything else, because `opacity` on a
+  group is not `opacity` on each child. **Held**: `test_group_ungroup` — 239 of 239 contiguous cases
+  byte-identical.
+- [x] **G16 · duplicate.** Landed 2026-07-23. ⌘D, offset by a nudge, appended so no existing address
+  moves; the copies become the selection. Needs one parent, because "offset by a nudge" is a claim
+  about *that* parent's coordinates.
+- [x] **G17 · cut, copy, paste, paste-in-place.** Landed 2026-07-23. The payload is the author's own
+  bytes, which is what makes paste-in-place byte-identical and what lets the clipboard interoperate
+  with every other tool they own. The system clipboard is written best-effort; it cannot be the truth,
+  because a paste that had to wait on a permission prompt would not be a paste. Ids that collide are
+  renamed and references *inside* the pasted set follow the rename, while a reference *out* of it is
+  left as written, because it is still correct. **Held**: `test_copy_paste`.
+- [x] **G18 · align and distribute.** Landed 2026-07-23. Six aligns and two distributes, as commands
+  rather than a tool — they have no gesture, only a target set. They are not structural: they are the
+  move tool's write aimed by arithmetic, so they emit `attr` deltas through `translateLens` and the
+  falsifier ("aligning an already-aligned set writing anything at all") holds *by the skip rule*
+  rather than by a special case. **Held**: `test_align_commands`, which asserts the writer's own
+  condition — `gestureDelta.text(d) === d.base` — on the second plan.
 
 #### E — path and pen: the tool that is furthest from adequate (gap 7)
 
@@ -904,9 +932,9 @@ Roughly by value per unit of work, given what already exists:
    one registry (S2) plus six small cells (S3).
 3. ~~**G6**~~ ✅ — groups, which also closed the last known bug.
 4. ~~**G25**~~ ✅ — zoom, which every subsequent gesture is easier to test and to use with.
-5. **G15–G18** — the structural verbs, once S4's registry exists. **Next**, and blocked on S4 plus
-   the command-registry half of C7.
-6. **G19–G23** — the pen and path work, once P7 exists.
+5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
+   G8 and G14 are unblocked by the same work.
+6. **G19–G23** — the pen and path work, once P7 exists. **Next.**
 7. **G26–G29** — text, images and style gestures.
 
 ## 7. Milestone log
@@ -1188,6 +1216,29 @@ Roughly by value per unit of work, given what already exists:
   looks close — so the law gained the qualifier rather than the product losing the affordance. With
   snapping off both zooms commit `translate(12 8)`, byte for byte.
   All ten browser laws and 54 headless tests green.
+
+- **M13 — S4 done, the selection has verbs, and the fifth registry exists (2026-07-23).** A *command*
+  is a verb that acts on the selection rather than on the pointer, and it is the same kind of object a
+  tool is: `plan(env)` returns deltas. That one decision is what kept the write path single — group,
+  duplicate, paste, cut and align all land in `commitDelta`, so they inherited the laws instead of
+  needing new ones — and it is what let align be tested with no browser, since `env` is data. Two new
+  delta kinds carry what a source edit cannot: `clip` (the clipboard is not the document) and a
+  `select` on `command` (the addresses a command names only exist once the edit has happened).
+  Fifteen entries: group, ungroup, duplicate, copy, cut, paste, paste-in-place, six aligns, two
+  distributes. The demo's command bar is *generated* from the registry — labels, bindings, and
+  enabled-ness straight from `canCommand`, which is the plan itself, so a greyed-out button and a
+  refusal to run cannot disagree. Closes C7, P8, G15–G18, and unblocks G8 and G14.
+  **What the property tests found, all of it about residue**, and none of it visible by reading:
+  grouping dropped the comment above an element, because `childrenLens` deliberately gives a *new*
+  child indentation but never a whole gap — right for an element arriving from nowhere, wrong for one
+  that is merely moving one level down; and both group and ungroup re-indented the *inside* of a
+  multi-line element, rewriting the author's own bytes. Both are fixed by the same rule: indentation
+  lives in the gaps, the child's text is the child's. A third finding was not a bug at all — grouping
+  non-adjacent siblings *must* bring them together, so the round-trip law is the identity only for a
+  contiguous selection, and says so.
+  Align and distribute are the interesting non-structural case: they are the move tool's write aimed
+  by arithmetic, so G18's falsifier holds by the skip rule rather than by a special case. 60 headless
+  tests and all 10 browser laws green, with a fifth registry installed — which is T6 doing its job.
 
 ## 8. Open questions
 
