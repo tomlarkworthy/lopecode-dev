@@ -468,8 +468,11 @@ and the roll-up is at the end of this section.
   preview. A preview the source cannot express (rubber band, ghost shape) is deliberately *not* a
   delta: the tool draws that into the overlay root layer itself, so `previewDelta` only ever touches
   what it will commit.
-- [ ] **P2 · tool set as a parameter.** `options.tools ?? svgTools`, accepting an array or
-  `(defaults) => array`. Required for T6; nothing else can express "the same trace without this tool". S.
+- [x] **P2 · tool set as a parameter.** Landed 2026-07-23. `svgLens(node, {tools})` takes an array
+  (pins the drawing to exactly that set) or `(defaults) => array` (extend without restating);
+  omitted, it is the ambient `svgTools`, so the plugin bus and today's behaviour are unchanged. All
+  three dispatch loops — `onPointerDown`, `onHover`, `onDblClick` — read the parameter, and none
+  reads the registry directly. The paper's "the pieces" section documents the callsite form.
 - [ ] **P3 · trace harness.** `gesture(lens, script)` over synthetic `PointerEvent`s — `down` on
   `elementFromPoint`, `move`/`up` on the root, `dblclick`, `key`. Vocabulary: `tap`, `drag(path)`,
   `dblclick`, `press`. S.

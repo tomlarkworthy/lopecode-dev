@@ -3338,6 +3338,13 @@ svgTools.push({ id: "rect", onPointerDown(ctx, e) { … } });
 viewof svgTools.dispatchEvent(new Event("input"));
 \`\`\`
 
+Or take the set at the callsite, which pins one drawing to exactly the tools you name — how a test runs a tool in isolation, and how a figure shows a reduced editor:
+
+\`\`\`js
+svgLens(node, { tools: [toolVertex] })                // a vertex-only editor
+svgLens(node, { tools: (d) => [myTool, ...d] })       // extend without restating the defaults
+\`\`\`
+
 The writer stays ignorant of selection: it reports what it did on the \`lens-put\` event, and the handles follow — refreshed after an attribute edit, cleared after a structural one, because a structural edit shifts every address after it.`);};
 
 // Draggable handles for a polygon/polyline's points.
@@ -4484,6 +4491,12 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
   // node that is the cell's value now, rather than the one its gesture started on.
   const ctxByNode = new WeakMap();
   return function svgLens(node, options = {}) {
+    // The installed tools, taken at the callsite. An array pins this drawing to exactly that set —
+    // which is how a test runs one tool in isolation, and how a figure shows a reduced editor — and a
+    // function receives the defaults, so extending does not mean restating them. Omitted, it is the
+    // ambient registry, so the plugin bus still works and today's behaviour is unchanged.
+    const tools = typeof options.tools === "function" ? options.tools(svgTools)
+                : options.tools || svgTools;
     const grid = options.grid === undefined ? 0.5 : options.grid;
     const snap = (v) => (grid ? Math.round(v / grid) * grid : v);
     // Markup for a shape dropped on empty canvas. UX policy, not geometry, so it is overridable.
@@ -4602,12 +4615,12 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
 
     let active = null;
     node.addEventListener("pointerdown", (e) => {
-      for (const t of svgTools) if (t.onPointerDown && t.onPointerDown(liveCtx, e)) { active = t; return; }
+      for (const t of tools) if (t.onPointerDown && t.onPointerDown(liveCtx, e)) { active = t; return; }
       active = null;
     });
     node.addEventListener("pointermove", (e) => {
       if (active) return void (active.onPointerMove && active.onPointerMove(liveCtx, e));
-      for (const t of svgTools) if (t.onHover) t.onHover(liveCtx, e);   // between gestures: pen rubber band
+      for (const t of tools) if (t.onHover) t.onHover(liveCtx, e);   // between gestures: pen rubber band
     });
     const end = async (e) => {
       const t = active;
@@ -4618,7 +4631,7 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
     node.addEventListener("pointercancel", end);
     node.addEventListener("dblclick", async (e) => {
       e.preventDefault();
-      for (const t of svgTools) if (t.onDblClick && await t.onDblClick(liveCtx, e)) return;
+      for (const t of tools) if (t.onDblClick && await t.onDblClick(liveCtx, e)) return;
     });
 
     // The handles follow every put. A structural edit may move the selection's address, so the record
