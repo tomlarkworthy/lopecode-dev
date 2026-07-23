@@ -4,12 +4,12 @@ md`# Exporter 3
 ## [video explainer for exporter 2](https://www.youtube.com/watch?v=wx93r1pY_6Y)
 `
 )};
-const _1xs1o58 = function _2(exporter,$0,Event){return(
+const _vpmotg = function _2(exporter,$0,Event){return(
 exporter({
-    output: out => {
-        $0.value = out;
-        $0.dispatchEvent(new Event('input'));
-    }
+  output: out => {
+    $0.value = out;
+    $0.dispatchEvent(new Event('input'));
+  }
 })
 )};
 const _16yvadj = function _3(md,downloadAnchor,forkAnchor){return(
@@ -109,8 +109,9 @@ fill => html`<svg ${ fill ? `fill="${ fill }" ` : '' }width="50px" height="50px"
 const _ibwdcx = function _11(md){return(
 md`## Implementation`
 )};
-const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,variable,domView,view,disk_svg,Inputs,themes,$0,linkTo){return(
-({handler = actionHandler, style = css, output = out => {
+const _1p4bp3o = function _exporter(actionHandler,css,keepalive,exporter_module,variable,domView,view,disk_svg,linkTo,Inputs,themes,$0)
+{
+  return ({handler = actionHandler, style = css, output = out => {
     }, debug = false} = {}) => {
     keepalive(exporter_module, 'futureExportedState');
     const handlerVar = variable(handler);
@@ -118,24 +119,25 @@ const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,v
     // prerender defaults ON; only an explicit "prerender": false in bootconf turns it off
     let prerenderDefault = true;
     try {
-        const conf = JSON.parse(new window.TextDecoder().decode(window.lopecode.contentSync('bootconf.json').bytes));
-        if (conf.prerender === false) prerenderDefault = false;
+      const conf = JSON.parse(new window.TextDecoder().decode(window.lopecode.contentSync('bootconf.json').bytes));
+      if (conf.prerender === false)
+        prerenderDefault = false;
     } catch (e) {
     }
     const options = {
-        style,
-        output,
-        debug
+      style,
+      output,
+      debug
     };
     const spinner = async (...args) => {
-        try {
-            ui.querySelector('.disk-image').classList.add('spinning');
-            await handler(...args, cb => feedback.value = cb);
-            ui.querySelector('.disk-image').classList.remove('spinning');
-        } catch (e) {
-            ui.querySelector('.disk-image').classList.remove('spinning');
-            throw e;
-        }
+      try {
+        ui.querySelector('.disk-image').classList.add('spinning');
+        await handler(...args, cb => feedback.value = cb);
+        ui.querySelector('.disk-image').classList.remove('spinning');
+      } catch (e) {
+        ui.querySelector('.disk-image').classList.remove('spinning');
+        throw e;
+      }
     };
     const ui = view`<div class="moldbook-exporter" style="max-width: 440px;">
     <style>
@@ -194,8 +196,8 @@ const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,v
       }
     </style>
     ${ [
-        'handler',
-        handlerVar
+      'handler',
+      handlerVar
     ] }
     <div style="display: flex; align-items: flex-start; gap: 8px;">
       <div class="disk-image">${ disk_svg() }</div>
@@ -208,31 +210,38 @@ const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,v
           </summary>
           <div class="moldbook-advanced-body">
             ${ [
-        'prerender',
-        Inputs.toggle({ label: 'prerender', value: prerenderDefault })
+      'prerender',
+      Inputs.toggle({
+        label: 'prerender',
+        value: prerenderDefault
+      })
     ] }
             ${ [
-        'theme',
-        Inputs.bind(Inputs.select(themes, { label: 'theme' }), $0)
+      'theme',
+      Inputs.bind(Inputs.select(themes, { label: 'theme' }), $0)
     ] }
             ${ [
-        'bootloader',
-        Inputs.text({ label: 'bootloader', value: '@tomlarkworthy/bootloader', placeholder: '@tomlarkworthy/bootloader' })
+      'bootloader',
+      Inputs.text({
+        label: 'bootloader',
+        value: '@tomlarkworthy/bootloader',
+        placeholder: '@tomlarkworthy/bootloader'
+      })
     ] }
           </div>
         </details>
         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
           ${ [
-        'copyjs',
-        Inputs.button('Copy as JS', { reduce: () => spinner('copyjs', ui.value, options) })
+      'copyjs',
+      Inputs.button('Copy as JS', { reduce: () => spinner('copyjs', ui.value, options) })
     ] }
           ${ [
-        'blob',
-        Inputs.button('Fork', { reduce: () => spinner('tab', ui.value, options) })
+      'blob',
+      Inputs.button('Fork', { reduce: () => spinner('tab', ui.value, options) })
     ] }
           ${ [
-        'html',
-        Inputs.button('Download', { reduce: () => spinner('file', ui.value, options) })
+      'html',
+      Inputs.button('Download', { reduce: () => spinner('file', ui.value, options) })
     ] }
         </div>
       </div>
@@ -242,35 +251,35 @@ const _4vze8h = function _exporter(actionHandler,css,keepalive,exporter_module,v
     // keep the "fork notebook" link navigable without toggling the <details>
     ui.querySelector('.moldbook-target')?.addEventListener('click', e => e.stopPropagation());
     return ui;
-}
-)};
-const _5xp8ad = function _copyTextToClipboard(globalThis){return(
+  };
+};
+const _14mjs7h = function _copyTextToClipboard(globalThis){return(
 async text => {
-    text = String(text ?? '');
-    if (globalThis.navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-    }
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    ta.style.top = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    ta.remove();
-    if (!ok)
-        throw new Error('Clipboard copy failed (no navigator.clipboard and execCommand failed)');
+  text = String(text ?? '');
+  if (globalThis.navigator?.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
     return true;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  ta.style.top = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  ta.remove();
+  if (!ok)
+    throw new Error('Clipboard copy failed (no navigator.clipboard and execCommand failed)');
+  return true;
 }
 )};
-const _ywlem4 = function _htmlToConsoleSnippet(utf8ToBase64){return(
+const _1sbph8c = function _htmlToConsoleSnippet(utf8ToBase64){return(
 (html, {title = 'Observable notebook', zIndex = 2147483647} = {}) => {
-    const b64 = utf8ToBase64(html);
-    const safeTitle = String(title).replace(/`/g, '\\`');
-    return `(async () => {
+  const b64 = utf8ToBase64(html);
+  const safeTitle = String(title).replace(/`/g, '\\`');
+  return `(async () => {
   const b64 = "${ b64 }";
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   const html = new TextDecoder().decode(bytes);
@@ -355,103 +364,103 @@ const _ywlem4 = function _htmlToConsoleSnippet(utf8ToBase64){return(
 })();`;
 }
 )};
-const _1gdtxyo = function _exportAnchor(Node,notebook_name,main,_runtime,exportToHTML,location,getCompactISODate){return(
+const _1w6fc3k = function _exportAnchor(Node,notebook_name,main,_runtime,exportToHTML,location,getCompactISODate){return(
 (action, attrs = {}, label = action, exportOpts = {}) => {
-    const a = document.createElement('a');
-    const {href = '#', title, className, style, target, rel, ...rest} = attrs ?? {};
-    a.href = href;
-    if (title != null)
-        a.title = title;
-    if (className != null)
-        a.className = className;
-    if (style != null)
-        a.setAttribute('style', style);
-    if (target != null)
-        a.target = target;
-    if (rel != null)
-        a.rel = rel;
-    for (const [k, v] of Object.entries(rest)) {
-        if (v == null)
-            continue;
-        if (k.startsWith('on') && typeof v === 'function')
-            continue;
-        try {
-            a.setAttribute(k, String(v));
-        } catch {
-        }
+  const a = document.createElement('a');
+  const {href = '#', title, className, style, target, rel, ...rest} = attrs ?? {};
+  a.href = href;
+  if (title != null)
+    a.title = title;
+  if (className != null)
+    a.className = className;
+  if (style != null)
+    a.setAttribute('style', style);
+  if (target != null)
+    a.target = target;
+  if (rel != null)
+    a.rel = rel;
+  for (const [k, v] of Object.entries(rest)) {
+    if (v == null)
+      continue;
+    if (k.startsWith('on') && typeof v === 'function')
+      continue;
+    try {
+      a.setAttribute(k, String(v));
+    } catch {
     }
-    if (label instanceof Node)
-        a.appendChild(label);
-    else
-        a.textContent = label == null ? '' : String(label);
-    const clickHandler = async event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (a.dataset.busy === '1')
-            return;
-        a.dataset.busy = '1';
-        const prevAriaBusy = a.getAttribute('aria-busy');
-        a.setAttribute('aria-busy', 'true');
-        const prevPointerEvents = a.style.pointerEvents;
-        const prevOpacity = a.style.opacity;
-        a.style.pointerEvents = 'none';
-        a.style.opacity = '0.6';
-        let blobUrl = null;
-        try {
-            const mains = exportOpts.mains ?? (notebook_name ? new Map([[
-                    notebook_name,
-                    main
-                ]]) : _runtime.mains);
-            const runtime = exportOpts.runtime ?? _runtime;
-            const title = exportOpts.title ?? [...mains.keys()][0] ?? 'notebook';
-            const bootloader = exportOpts.bootloader ?? '@tomlarkworthy/bootloader';
-            const appendHash = exportOpts.appendHash ?? true;
-            const resp = await exportToHTML({
-                mains,
-                runtime,
-                options: {
-                    title,
-                    bootloader,
-                    ...exportOpts.options ?? {},
-                    ...exportOpts.theme != null ? { theme: exportOpts.theme } : null,
-                    ...exportOpts.style != null ? { style: exportOpts.style } : null,
-                    ...exportOpts.head != null ? { head: exportOpts.head } : null,
-                    ...exportOpts.headless != null ? { headless: exportOpts.headless } : null,
-                    ...exportOpts.hash != null ? { hash: exportOpts.hash } : null
-                }
-            });
-            const html = resp?.source ?? resp;
-            blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-            if (action === 'tab' || action === 'fork') {
-                const hash = exportOpts.hash ?? location.hash ?? '';
-                window.open(blobUrl + (appendHash ? hash : ''), '_blank');
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-            } else if (action === 'download' || action === 'file') {
-                const filename = exportOpts.filename ?? `${ title }_${ getCompactISODate() }.html`;
-                const dl = document.createElement('a');
-                dl.href = blobUrl;
-                dl.download = filename;
-                dl.click();
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-            } else {
-                throw new Error(`Unknown export action: ${ action }`);
-            }
-        } finally {
-            a.dataset.busy = '0';
-            if (prevAriaBusy == null)
-                a.removeAttribute('aria-busy');
-            else
-                a.setAttribute('aria-busy', prevAriaBusy);
-            a.style.pointerEvents = prevPointerEvents;
-            a.style.opacity = prevOpacity;
+  }
+  if (label instanceof Node)
+    a.appendChild(label);
+  else
+    a.textContent = label == null ? '' : String(label);
+  const clickHandler = async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (a.dataset.busy === '1')
+      return;
+    a.dataset.busy = '1';
+    const prevAriaBusy = a.getAttribute('aria-busy');
+    a.setAttribute('aria-busy', 'true');
+    const prevPointerEvents = a.style.pointerEvents;
+    const prevOpacity = a.style.opacity;
+    a.style.pointerEvents = 'none';
+    a.style.opacity = '0.6';
+    let blobUrl = null;
+    try {
+      const mains = exportOpts.mains ?? (notebook_name ? new Map([[
+          notebook_name,
+          main
+        ]]) : _runtime.mains);
+      const runtime = exportOpts.runtime ?? _runtime;
+      const title = exportOpts.title ?? [...mains.keys()][0] ?? 'notebook';
+      const bootloader = exportOpts.bootloader ?? '@tomlarkworthy/bootloader';
+      const appendHash = exportOpts.appendHash ?? true;
+      const resp = await exportToHTML({
+        mains,
+        runtime,
+        options: {
+          title,
+          bootloader,
+          ...exportOpts.options ?? {},
+          ...exportOpts.theme != null ? { theme: exportOpts.theme } : null,
+          ...exportOpts.style != null ? { style: exportOpts.style } : null,
+          ...exportOpts.head != null ? { head: exportOpts.head } : null,
+          ...exportOpts.headless != null ? { headless: exportOpts.headless } : null,
+          ...exportOpts.hash != null ? { hash: exportOpts.hash } : null
         }
-    };
-    a.addEventListener('click', clickHandler);
-    if (typeof attrs?.onclick === 'function') {
-        const userHandler = attrs.onclick;
-        a.addEventListener('click', e => userHandler(e));
+      });
+      const html = resp?.source ?? resp;
+      blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      if (action === 'tab' || action === 'fork') {
+        const hash = exportOpts.hash ?? location.hash ?? '';
+        window.open(blobUrl + (appendHash ? hash : ''), '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } else if (action === 'download' || action === 'file') {
+        const filename = exportOpts.filename ?? `${ title }_${ getCompactISODate() }.html`;
+        const dl = document.createElement('a');
+        dl.href = blobUrl;
+        dl.download = filename;
+        dl.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      } else {
+        throw new Error(`Unknown export action: ${ action }`);
+      }
+    } finally {
+      a.dataset.busy = '0';
+      if (prevAriaBusy == null)
+        a.removeAttribute('aria-busy');
+      else
+        a.setAttribute('aria-busy', prevAriaBusy);
+      a.style.pointerEvents = prevPointerEvents;
+      a.style.opacity = prevOpacity;
     }
-    return a;
+  };
+  a.addEventListener('click', clickHandler);
+  if (typeof attrs?.onclick === 'function') {
+    const userHandler = attrs.onclick;
+    a.addEventListener('click', e => userHandler(e));
+  }
+  return a;
 }
 )};
 const _1u2ju69 = function _forkAnchor(exportAnchor){return(
@@ -460,88 +469,90 @@ const _1u2ju69 = function _forkAnchor(exportAnchor){return(
 const _1a8n42w = function _downloadAnchor(exportAnchor){return(
 (attrs = {}, label = 'download', exportOpts = {}) => exportAnchor('download', attrs, label, exportOpts)
 )};
-const _r3bep4 = function _actionHandler(Inputs,getSourceModule,notebook_name,_runtime,exportToHTML,htmlToConsoleSnippet,copyTextToClipboard,view,location,getCompactISODate,linkTo){return(
-async (action, state, options, feedback_callback) => {
+const _4zsqot = function _actionHandler(Inputs,getSourceModule,notebook_name,_runtime,exportToHTML,htmlToConsoleSnippet,copyTextToClipboard,view,linkTo,location,getCompactISODate)
+{
+  return async (action, state, options, feedback_callback) => {
     feedback_callback(Inputs.textarea({ value: `Generating source...\n` }));
     const {notebook, module, runtime} = await getSourceModule(state);
     const mains = notebook_name ? new Map([[
-            notebook,
-            module
-        ]]) : _runtime.mains;
+        notebook,
+        module
+      ]]) : _runtime.mains;
     let title = [...mains.keys()][0];
     try {
-        const r = window.lopecode.contentSync('bootconf.json');
-        const b = JSON.parse(new window.TextDecoder().decode(r.bytes)).mains[0];
-        if (!notebook_name && mains.has(b)) title = b;
-    } catch (e) {}
+      const r = window.lopecode.contentSync('bootconf.json');
+      const b = JSON.parse(new window.TextDecoder().decode(r.bytes)).mains[0];
+      if (!notebook_name && mains.has(b))
+        title = b;
+    } catch (e) {
+    }
     const response = await exportToHTML({
-        mains,
-        runtime,
-        options: {
-            bootloader: state.bootloader,
-            title,
-            ...state.prerender != null ? { prerender: state.prerender } : null,
-            ...options
-        }
+      mains,
+      runtime,
+      options: {
+        bootloader: state.bootloader,
+        title,
+        ...state.prerender != null ? { prerender: state.prerender } : null,
+        ...options
+      }
     });
     if (options.output)
-        options.output(response);
+      options.output(response);
     const {source, report} = response;
     if (action === 'copyjs') {
-        const snippet = htmlToConsoleSnippet(source, { title });
-        await copyTextToClipboard(snippet);
-        feedback_callback(view`<div style="padding: 8px;">
+      const snippet = htmlToConsoleSnippet(source, { title });
+      await copyTextToClipboard(snippet);
+      feedback_callback(view`<div style="padding: 8px;">
       <div><b>Copied</b> JS snippet to clipboard.</div>
       <div style="opacity: 0.75; font-size: 12px;">Paste into a JS console to inject the notebook as a full-screen overlay.</div>
     </div>`);
-        return;
+      return;
     }
     const url = URL.createObjectURL(new Blob([source], { type: 'text/html' }));
     // The report table doubles as a table of contents: the notebook's own openable
     // modules (@user/module, not versioned npm deps or the observablehq namespace)
     // render their `id` as a link that opens that module in the live layout via the
     // lopepage "open" intent; everything else stays plain text.
-    const isOpenableModule = id => typeof id === 'string'
-        && /^@[^@/\s]+\/[^@/\s]+$/.test(id)
-        && !id.startsWith('@observablehq/');
+    const isOpenableModule = id => typeof id === 'string' && /^@[^@/\s]+\/[^@/\s]+$/.test(id) && !id.startsWith('@observablehq/');
     feedback_callback(view`
     <center><a href="${ url }" target="_blank">export</a></center>
     ${ Inputs.table(report.filter(f => !f.file), {
-        columns: [
-            'id',
-            'size'
-        ],
-        width: {
-            id: '80%',
-            size: '20%'
-        },
-        format: {
-            id: id => {
-                if (!isOpenableModule(id)) return id;
-                const a = document.createElement('a');
-                a.textContent = id;
-                a.href = linkTo({ open: id });
-                a.style.color = 'var(--theme-foreground-focus)';
-                return a;
-            }
-        },
-        sort: 'size',
-        reverse: true
+      columns: [
+        'id',
+        'size'
+      ],
+      width: {
+        id: '80%',
+        size: '20%'
+      },
+      format: {
+        id: id => {
+          if (!isOpenableModule(id))
+            return id;
+          const a = document.createElement('a');
+          a.textContent = id;
+          a.href = linkTo({ open: id });
+          a.style.color = 'var(--theme-foreground-focus)';
+          return a;
+        }
+      },
+      sort: 'size',
+      reverse: true
     }) }
   `);
     if (action === 'tab') {
-        window.open(url + location.hash, '_blank');
+      window.open(url + location.hash, '_blank');
     } else if (action === 'file') {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${ title }_${ getCompactISODate() }.html`;
-        a.click();
-        URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${ title }_${ getCompactISODate() }.html`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
-}
-)};
-const _k7go5d = function _exportToHTML(_runtime, cssForTheme, css, location, keepalive, exporter_module, $0) {
-    return async function exportToHTML({mains = new Map(), runtime = _runtime, options = {}} = {}) {
+  };
+};
+const _lb3gzc = function _exportToHTML(_runtime,cssForTheme,css,location,keepalive,exporter_module,$0){return(
+async function exportToHTML({mains = new Map(), runtime = _runtime, options = {}} = {}) {
         let conf = { headless: false };
         try {
             conf = (await import('file://bootconf.json')).default;
@@ -562,9 +573,10 @@ const _k7go5d = function _exportToHTML(_runtime, cssForTheme, css, location, kee
         if (options.tickDelayMs == null) {
             options.tickDelayMs = conf.tickDelayMs;
         }
-        // Prerender flag persists in bootconf.json across re-exports (like headless/tick).
+        // Prerender defaults ON (matching the exporter UI toggle); only an explicit
+        // "prerender": false in bootconf.json turns it off. Flag persists across re-exports.
         if (options.prerender == null) {
-            options.prerender = conf.prerender;
+            options.prerender = conf.prerender !== false;
         }
         // Snapshot the live lopepage-2 DOM (only when exporting this running notebook).
         // The snapshot keeps its id="lopepage-2" and scoped styles unchanged; book() nests
@@ -628,213 +640,214 @@ const _k7go5d = function _exportToHTML(_runtime, cssForTheme, css, location, kee
             options
         });
         return response;
-    };
-};
-const _17k9v19 = function _getSourceModule(notebook_name, main, _runtime, importShim) {
-    return async state => {
-        // source picker was removed; the exporter always serialises this notebook
-        if (!state.source || state.source == 'this notebook')
-            return {
-                notebook: notebook_name,
-                module: main,
-                runtime: _runtime
-            };
-        const url = state.source == 'a notebook url' ? state.notebook_url.child : state.top_100.child;
-        const notebook = url.trim().replace('', '');
-        const [{Runtime, Inspector}, {default: define}] = await Promise.all([
-            import('https://cdn.jsdelivr.net/npm/@observablehq/runtime@4/dist/runtime.js'),
-            import(`https://api.observablehq.com/${ notebook }.js?v=4`)
-        ]);
-        const runtime = new Runtime();
-        return {
-            notebook,
-            module: runtime.module(define),
-            runtime
-        };
-    };
-};
-const _6vlf2p = function _createShowable(variable,view)
+    }
+)};
+const _43zr7 = function _getSourceModule(notebook_name,main,_runtime)
 {
-    return function createShowable(child, {
-        show = true
-    } = {}) {
-        const showVariable = variable(show, { name: 'show' });
-        const showable = view`<div>${ [
-            'show',
-            showVariable
-        ] }${ [
-            'child',
-            child
-        ] }`;
-        // The showable logic is to toggle the visibility of the enclosing div based
-        // on the show variable state
-        const updateDisplay = () => {
-            if (showVariable.value) {
-                showable.style.display = 'inline';
-            } else {
-                showable.style.display = 'none';
-            }
-        };
-        // Variables have additional assign event so presentation can be
-        // updated as soon as variables change but before dataflow
-        // because this is a pure presentation state it makes sense not to trigger
-        // dataflow so we do not use 'input' event
-        showVariable.addEventListener('assign', updateDisplay);
-        updateDisplay();
-        return showable;
+  return async state => {
+    // source picker was removed; the exporter always serialises this notebook
+    if (!state.source || state.source == 'this notebook')
+      return {
+        notebook: notebook_name,
+        module: main,
+        runtime: _runtime
+      };
+    const url = state.source == 'a notebook url' ? state.notebook_url.child : state.top_100.child;
+    const notebook = url.trim().replace('', '');
+    const [{Runtime, Inspector}, {default: define}] = await Promise.all([
+      import('https://cdn.jsdelivr.net/npm/@observablehq/runtime@4/dist/runtime.js'),
+      import(`https://api.observablehq.com/${ notebook }.js?v=4`)
+    ]);
+    const runtime = new Runtime();
+    return {
+      notebook,
+      module: runtime.module(define),
+      runtime
     };
+  };
 };
-const _zclcql = function _reportValidity(){return(
+const _tpv4tl = function _createShowable(variable,view)
+{
+  return function createShowable(child, {
+    show = true
+  } = {}) {
+    const showVariable = variable(show, { name: 'show' });
+    const showable = view`<div>${ [
+      'show',
+      showVariable
+    ] }${ [
+      'child',
+      child
+    ] }`;
+    // The showable logic is to toggle the visibility of the enclosing div based
+    // on the show variable state
+    const updateDisplay = () => {
+      if (showVariable.value) {
+        showable.style.display = 'inline';
+      } else {
+        showable.style.display = 'none';
+      }
+    };
+    // Variables have additional assign event so presentation can be
+    // updated as soon as variables change but before dataflow
+    // because this is a pure presentation state it makes sense not to trigger
+    // dataflow so we do not use 'input' event
+    showVariable.addEventListener('assign', updateDisplay);
+    updateDisplay();
+    return showable;
+  };
+};
+const _rnq9mt = function _reportValidity(){return(
 (view, invalidation) => {
-    const input = view.querySelector('input');
-    const report = () => view.reportValidity();
-    input.addEventListener('input', report);
-    invalidation.then(() => input.removeEventListener('input', report));
-    return view;
+  const input = view.querySelector('input');
+  const report = () => view.reportValidity();
+  input.addEventListener('input', report);
+  invalidation.then(() => input.removeEventListener('input', report));
+  return view;
 }
 )};
-const _10rnvxz = function _top120List(){return(
+const _3vwqe7 = function _top120List(){return(
 [
-    '@jashkenas/inputs',
-    '@d3/gallery',
-    '@d3/learn-d3',
-    '@makio135/creative-coding',
-    '@observablehq/module-require-debugger',
-    '@d3/zoomable-sunburst',
-    '@observablehq/plot',
-    '@tmcw/enigma-machine',
-    '@d3/force-directed-graph-component',
-    '@d3/bar-chart-race-explained',
-    '@observablehq/data-wrangler',
-    '@d3/collapsible-tree',
-    '@sxywu/introduction-to-svg-and-d3-js',
-    '@d3/sankey-component',
-    '@d3/zoomable-circle-packing',
-    '@d3/selection-join',
-    '@bstaats/graph-visualization-introduction',
-    '@d3/color-legend',
-    '@uwdata/introducing-arquero',
-    '@mbostock/10-years-of-open-source-visualization',
-    '@nitaku/tangled-tree-visualization-ii',
-    '@makio135/give-me-colors',
-    '@johnburnmurdoch/bar-chart-race-the-most-populous-cities-in-the-world',
-    '@d3/color-schemes',
-    '@tezzutezzu/world-history-timeline',
-    '@d3/calendar',
-    '@observablehq/a-taste-of-observable',
-    '@d3/bar-chart-race',
-    '@mourner/martin-real-time-rtin-terrain-mesh',
-    '@uwdata/introduction-to-vega-lite',
-    '@mbostock/voronoi-stippling',
-    '@ben-tanen/a-tutorial-to-using-d3-force-from-someone-who-just-learned-ho',
-    '@d3/hierarchical-edge-bundling',
-    '@observablehq/introduction-to-data',
-    '@harrystevens/directly-labelling-lines',
-    '@observablehq/summary-table',
-    '@observablehq/plot-cheatsheets',
-    '@tomshanley/cheysson-color-palettes',
-    '@tophtucker/inferring-chart-type-from-autocorrelation-and-other-evils',
-    '@mitvis/introduction-to-d3',
-    '@veltman/watercolor',
-    '@veltman/centerline-labeling',
-    '@mbostock/scrubber',
-    '@observablehq/electoral-college-decision-tree',
-    '@d3/tree-component',
-    '@d3/radial-tree-component',
-    '@d3/world-tour',
-    '@observablehq/introduction-to-generators',
-    '@yurivish/peak-detection',
-    '@mkfreeman/plot-tooltip',
-    '@aboutaaron/racial-demographic-dot-density-map',
-    '@mbostock/methods-of-comparison-compared',
-    '@rreusser/gpgpu-boids',
-    '@rreusser/2d-n-body-gravity-with-poissons-equation',
-    '@bumbeishvili/data-driven-range-sliders',
-    '@observablehq/introducing-visual-dataflow',
-    '@observablehq/vega-lite',
-    '@observablehq/observable-for-jupyter-users',
-    '@observablehq/how-observable-runs',
-    '@unkleho/introducing-d3-render-truly-declarative-and-reusable-d3',
-    '@vega/a-guide-to-guides-axes-legends-in-vega',
-    '@bartok32/diy-inputs',
-    '@mbostock/polar-clock',
-    '@dakoop/learn-js-data',
-    '@mbostock/manipulating-flat-arrays',
-    '@uwdata/an-illustrated-guide-to-arquero-verbs',
-    '@daformat/rounding-polygon-corners',
-    '@yurivish/seasonal-spirals',
-    '@emamd/animating-lots-and-lots-of-circles-with-regl-js',
-    '@uwdata/data-visualization-curriculum',
-    '@d3/d3-group',
-    '@d3/tree-of-life',
-    '@d3/arc-diagram',
-    '@d3/choropleth',
-    '@mattdzugan/generative-art-using-wind-turbine-data',
-    '@jashkenas/handy-embed-code-generator',
-    '@analyzer2004/plot-gallery',
-    '@nsthorat/how-to-build-a-teachable-machine-with-tensorflow-js',
-    '@d3/sunburst-component',
-    '@tomlarkworthy/saas-tutorial',
-    '@mbostock/the-wealth-health-of-nations',
-    '@yy/covid-19-fatality-rate',
-    '@bryangingechen/importing-data-from-google-spreadsheets-into-a-notebook-we',
-    '@mbostock/slide',
-    '@kerryrodden/sequences-sunburst',
-    '@d3/zoom-to-bounding-box',
-    '@ambassadors/interactive-plot-dashboard',
-    '@sethpipho/fractal-tree',
-    '@mbostock/saving-svg',
-    '@analyzer2004/west-coast-weather-from-seattle-to-san-diego',
-    '@tmcw/tables',
-    '@observablehq/introduction-to-serverless-notebooks',
-    '@mootari/range-slider',
-    '@d3/animated-treemap',
-    '@d3/treemap-component',
-    '@uwdata/interaction',
-    '@hydrosquall/d3-annotation-with-d3-line-chart',
-    '@jiazhewang/introduction-to-antv',
-    '@d3/hierarchical-bar-chart',
-    '@uwdata/data-types-graphical-marks-and-visual-encoding-channels',
-    '@observablehq/why-use-a-radial-data-visualization',
-    '@kerryrodden/introduction-to-text-analysis-with-tf-idf',
-    '@uw-info474/javascript-data-wrangling',
-    '@karimdouieb/try-to-impeach-this-challenge-accepted',
-    '@observablehq/plot-gallery',
-    '@carmen-tm/women-architects-i-didnt-hear-about',
-    '@d3/versor-dragging',
-    '@analyzer2004/timespiral',
-    '@d3/brushable-scatterplot-matrix',
-    '@observablehq/require',
-    '@anjana/functional-javascript-first-steps',
-    '@hamzaamjad/tiny-charts',
-    '@observablehq/views',
-    '@yurivish/quarantine-now',
-    '@analyzer2004/performance-chart',
-    '@freedmand/sounds',
-    '@d3/bubble-chart-component',
-    '@d3/mobile-patent-suits',
-    '@observablehq/notebook-visualizer',
-    '@d3/force-directed-tree'
+  '@jashkenas/inputs',
+  '@d3/gallery',
+  '@d3/learn-d3',
+  '@makio135/creative-coding',
+  '@observablehq/module-require-debugger',
+  '@d3/zoomable-sunburst',
+  '@observablehq/plot',
+  '@tmcw/enigma-machine',
+  '@d3/force-directed-graph-component',
+  '@d3/bar-chart-race-explained',
+  '@observablehq/data-wrangler',
+  '@d3/collapsible-tree',
+  '@sxywu/introduction-to-svg-and-d3-js',
+  '@d3/sankey-component',
+  '@d3/zoomable-circle-packing',
+  '@d3/selection-join',
+  '@bstaats/graph-visualization-introduction',
+  '@d3/color-legend',
+  '@uwdata/introducing-arquero',
+  '@mbostock/10-years-of-open-source-visualization',
+  '@nitaku/tangled-tree-visualization-ii',
+  '@makio135/give-me-colors',
+  '@johnburnmurdoch/bar-chart-race-the-most-populous-cities-in-the-world',
+  '@d3/color-schemes',
+  '@tezzutezzu/world-history-timeline',
+  '@d3/calendar',
+  '@observablehq/a-taste-of-observable',
+  '@d3/bar-chart-race',
+  '@mourner/martin-real-time-rtin-terrain-mesh',
+  '@uwdata/introduction-to-vega-lite',
+  '@mbostock/voronoi-stippling',
+  '@ben-tanen/a-tutorial-to-using-d3-force-from-someone-who-just-learned-ho',
+  '@d3/hierarchical-edge-bundling',
+  '@observablehq/introduction-to-data',
+  '@harrystevens/directly-labelling-lines',
+  '@observablehq/summary-table',
+  '@observablehq/plot-cheatsheets',
+  '@tomshanley/cheysson-color-palettes',
+  '@tophtucker/inferring-chart-type-from-autocorrelation-and-other-evils',
+  '@mitvis/introduction-to-d3',
+  '@veltman/watercolor',
+  '@veltman/centerline-labeling',
+  '@mbostock/scrubber',
+  '@observablehq/electoral-college-decision-tree',
+  '@d3/tree-component',
+  '@d3/radial-tree-component',
+  '@d3/world-tour',
+  '@observablehq/introduction-to-generators',
+  '@yurivish/peak-detection',
+  '@mkfreeman/plot-tooltip',
+  '@aboutaaron/racial-demographic-dot-density-map',
+  '@mbostock/methods-of-comparison-compared',
+  '@rreusser/gpgpu-boids',
+  '@rreusser/2d-n-body-gravity-with-poissons-equation',
+  '@bumbeishvili/data-driven-range-sliders',
+  '@observablehq/introducing-visual-dataflow',
+  '@observablehq/vega-lite',
+  '@observablehq/observable-for-jupyter-users',
+  '@observablehq/how-observable-runs',
+  '@unkleho/introducing-d3-render-truly-declarative-and-reusable-d3',
+  '@vega/a-guide-to-guides-axes-legends-in-vega',
+  '@bartok32/diy-inputs',
+  '@mbostock/polar-clock',
+  '@dakoop/learn-js-data',
+  '@mbostock/manipulating-flat-arrays',
+  '@uwdata/an-illustrated-guide-to-arquero-verbs',
+  '@daformat/rounding-polygon-corners',
+  '@yurivish/seasonal-spirals',
+  '@emamd/animating-lots-and-lots-of-circles-with-regl-js',
+  '@uwdata/data-visualization-curriculum',
+  '@d3/d3-group',
+  '@d3/tree-of-life',
+  '@d3/arc-diagram',
+  '@d3/choropleth',
+  '@mattdzugan/generative-art-using-wind-turbine-data',
+  '@jashkenas/handy-embed-code-generator',
+  '@analyzer2004/plot-gallery',
+  '@nsthorat/how-to-build-a-teachable-machine-with-tensorflow-js',
+  '@d3/sunburst-component',
+  '@tomlarkworthy/saas-tutorial',
+  '@mbostock/the-wealth-health-of-nations',
+  '@yy/covid-19-fatality-rate',
+  '@bryangingechen/importing-data-from-google-spreadsheets-into-a-notebook-we',
+  '@mbostock/slide',
+  '@kerryrodden/sequences-sunburst',
+  '@d3/zoom-to-bounding-box',
+  '@ambassadors/interactive-plot-dashboard',
+  '@sethpipho/fractal-tree',
+  '@mbostock/saving-svg',
+  '@analyzer2004/west-coast-weather-from-seattle-to-san-diego',
+  '@tmcw/tables',
+  '@observablehq/introduction-to-serverless-notebooks',
+  '@mootari/range-slider',
+  '@d3/animated-treemap',
+  '@d3/treemap-component',
+  '@uwdata/interaction',
+  '@hydrosquall/d3-annotation-with-d3-line-chart',
+  '@jiazhewang/introduction-to-antv',
+  '@d3/hierarchical-bar-chart',
+  '@uwdata/data-types-graphical-marks-and-visual-encoding-channels',
+  '@observablehq/why-use-a-radial-data-visualization',
+  '@kerryrodden/introduction-to-text-analysis-with-tf-idf',
+  '@uw-info474/javascript-data-wrangling',
+  '@karimdouieb/try-to-impeach-this-challenge-accepted',
+  '@observablehq/plot-gallery',
+  '@carmen-tm/women-architects-i-didnt-hear-about',
+  '@d3/versor-dragging',
+  '@analyzer2004/timespiral',
+  '@d3/brushable-scatterplot-matrix',
+  '@observablehq/require',
+  '@anjana/functional-javascript-first-steps',
+  '@hamzaamjad/tiny-charts',
+  '@observablehq/views',
+  '@yurivish/quarantine-now',
+  '@analyzer2004/performance-chart',
+  '@freedmand/sounds',
+  '@d3/bubble-chart-component',
+  '@d3/mobile-patent-suits',
+  '@observablehq/notebook-visualizer',
+  '@d3/force-directed-tree'
 ]
 )};
-const _1iotzy = function _notebook_name()
+const _yq61j2 = function _notebook_name()
 {
-    if (document.baseURI.startsWith('https://observablehq.com')) {
-        return new URL(document.baseURI).pathname.replace('/', '');
-    }
+  if (document.baseURI.startsWith('https://observablehq.com')) {
+    return new URL(document.baseURI).pathname.replace('/', '');
+  }
 };
 const _1pwnq79 = function _notebook_title(notebook_name,_runtime){return(
 notebook_name || [..._runtime.mains.keys()][0]
 )};
-const _1xzlmfy = function _utf8ToBase64(){return(
+const _433z46 = function _utf8ToBase64(){return(
 str => {
-    const bytes = new TextEncoder().encode(String(str));
-    const chunk = 32768;
-    let bin = '';
-    for (let i = 0; i < bytes.length; i += chunk) {
-        bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-    }
-    return btoa(bin);
+  const bytes = new TextEncoder().encode(String(str));
+  const chunk = 32768;
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
 }
 )};
 const _14gyvdn = function _27(md){return(
@@ -852,77 +865,77 @@ task.runtime
 const _tdkfs5 = function _runtime_variables(task_runtime,variableToObject){return(
 [...task_runtime._variables].map(variableToObject)
 )};
-const _1thre44 = function _buildModuleNames()
+const _qc5kek = function _buildModuleNames()
 {
-    return function buildModuleNames(runtime, {
-        cache = []
-    } = {}) {
-        const names = new Map();
-        for (const [module, info] of cache)
-            names.set(module, info);
-        if (runtime.mains) {
-            for (const [name, module] of runtime.mains) {
-                if (!names.has(module))
-                    names.set(module, {
-                        name,
-                        module
-                    });
+  return function buildModuleNames(runtime, {
+    cache = []
+  } = {}) {
+    const names = new Map();
+    for (const [module, info] of cache)
+      names.set(module, info);
+    if (runtime.mains) {
+      for (const [name, module] of runtime.mains) {
+        if (!names.has(module))
+          names.set(module, {
+            name,
+            module
+          });
+      }
+    }
+    // Pass 1: "module X" variables with resolved _value
+    for (const v of runtime._variables) {
+      if (typeof v._name === 'string' && v._name.startsWith('module ') && v._value && !names.has(v._value)) {
+        const name = v._name.slice(7);
+        names.set(v._value, {
+          name,
+          module: v._value
+        });
+      }
+    }
+    // Pass 2: for import-bridged variables whose source module is still unnamed,
+    // find the "module X" variable in the same module and use its name.
+    // This handles lazy/unresolved modules on Observable.
+    for (const v of runtime._variables) {
+      if (v._inputs?.length === 1 && v._inputs[0]?._module && v._inputs[0]._module !== v._module && !names.has(v._inputs[0]._module)) {
+        // Find a "module X" variable in v._module that could reference this source
+        for (const mv of runtime._variables) {
+          if (mv._module === v._module && typeof mv._name === 'string' && mv._name.startsWith('module ')) {
+            // Try to match: if mv._value is the source module, or if mv._value is unresolved
+            // but mv is the only module var, use its name
+            const targetModule = v._inputs[0]._module;
+            if (mv._value === targetModule) {
+              names.set(targetModule, {
+                name: mv._name.slice(7),
+                module: targetModule
+              });
+              break;
             }
+          }
         }
-        // Pass 1: "module X" variables with resolved _value
-        for (const v of runtime._variables) {
-            if (typeof v._name === 'string' && v._name.startsWith('module ') && v._value && !names.has(v._value)) {
-                const name = v._name.slice(7);
-                names.set(v._value, {
-                    name,
-                    module: v._value
-                });
-            }
-        }
-        // Pass 2: for import-bridged variables whose source module is still unnamed,
-        // find the "module X" variable in the same module and use its name.
-        // This handles lazy/unresolved modules on Observable.
-        for (const v of runtime._variables) {
-            if (v._inputs?.length === 1 && v._inputs[0]?._module && v._inputs[0]._module !== v._module && !names.has(v._inputs[0]._module)) {
-                // Find a "module X" variable in v._module that could reference this source
-                for (const mv of runtime._variables) {
-                    if (mv._module === v._module && typeof mv._name === 'string' && mv._name.startsWith('module ')) {
-                        // Try to match: if mv._value is the source module, or if mv._value is unresolved
-                        // but mv is the only module var, use its name
-                        const targetModule = v._inputs[0]._module;
-                        if (mv._value === targetModule) {
-                            names.set(targetModule, {
-                                name: mv._name.slice(7),
-                                module: targetModule
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
-            // Also for @variable pattern imports
-            if (v._inputs?.length === 2 && v._inputs[1]?._name === '@variable' && v._inputs[0]?._value && !names.has(v._inputs[0]._value)) {
-                names.set(v._inputs[0]._value, {
-                    name: v._inputs[0]._name?.slice(7) || 'unknown',
-                    module: v._inputs[0]._value
-                });
-            }
-        }
-        const builtinModule = runtime._builtin;
-        if (builtinModule && !names.has(builtinModule))
-            names.set(builtinModule, {
-                name: 'builtin',
-                module: builtinModule
-            });
-        for (const v of runtime._variables) {
-            if (!names.has(v._module))
-                names.set(v._module, {
-                    name: 'main',
-                    module: v._module
-                });
-        }
-        return names;
-    };
+      }
+      // Also for @variable pattern imports
+      if (v._inputs?.length === 2 && v._inputs[1]?._name === '@variable' && v._inputs[0]?._value && !names.has(v._inputs[0]._value)) {
+        names.set(v._inputs[0]._value, {
+          name: v._inputs[0]._name?.slice(7) || 'unknown',
+          module: v._inputs[0]._value
+        });
+      }
+    }
+    const builtinModule = runtime._builtin;
+    if (builtinModule && !names.has(builtinModule))
+      names.set(builtinModule, {
+        name: 'builtin',
+        module: builtinModule
+      });
+    for (const v of runtime._variables) {
+      if (!names.has(v._module))
+        names.set(v._module, {
+          name: 'main',
+          module: v._module
+        });
+    }
+    return names;
+  };
 };
 const _1pfdk6e = function _isModuleVar(){return(
 v => typeof v._name === 'string' && v._name.startsWith('module ')
@@ -930,48 +943,48 @@ v => typeof v._name === 'string' && v._name.startsWith('module ')
 const _1vua7u7 = function _isDynamicVar(){return(
 v => typeof v._name === 'string' && v._name.startsWith('dynamic ')
 )};
-const _13nx5f5 = function _isImportBridged()
+const _9cxfm9 = function _isImportBridged()
 {
-    return function isImportBridged(v) {
-        if (v._inputs.length === 1 && v._inputs[0]._module !== v._module && !v._inputs[0]._name?.startsWith?.('@'))
-            return true;
-        if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable')
-            return true;
-        // Observable closure-based imports: single @variable input + definition contains .import(
-        if (v._inputs.length === 1 && v._inputs[0]?._name === '@variable' && v._definition?.toString().includes('.import('))
-            return true;
-        return false;
-    };
+  return function isImportBridged(v) {
+    if (v._inputs.length === 1 && v._inputs[0]._module !== v._module && !v._inputs[0]._name?.startsWith?.('@'))
+      return true;
+    if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable')
+      return true;
+    // Observable closure-based imports: single @variable input + definition contains .import(
+    if (v._inputs.length === 1 && v._inputs[0]?._name === '@variable' && v._definition?.toString().includes('.import('))
+      return true;
+    return false;
+  };
 };
-const _4l3h5t = function _findImportedName3(){return(
+const _1omyant = function _findImportedName3(){return(
 async function findImportedName(v) {
-    if (v._inputs.length === 1 && v._inputs[0]._name === '@variable') {
-        let capture;
-        await v._definition({ import: (...args) => capture = args });
-        return capture[0];
-    }
-    if (v._inputs.length === 1)
-        return v._inputs[0]._name;
-    const regex = /v\.import\("([^"]+)",\s*"([^"]+)"/;
-    const match = v._definition.toString().match(regex);
-    if (match)
-        return match[1];
-    return v._name;
+  if (v._inputs.length === 1 && v._inputs[0]._name === '@variable') {
+    let capture;
+    await v._definition({ import: (...args) => capture = args });
+    return capture[0];
+  }
+  if (v._inputs.length === 1)
+    return v._inputs[0]._name;
+  const regex = /v\.import\("([^"]+)",\s*"([^"]+)"/;
+  const match = v._definition.toString().match(regex);
+  if (match)
+    return match[1];
+  return v._name;
 }
 )};
-const _1r5dbt4 = function _moduleNames(task,moduleMap,task_runtime)
+const _x9dxs8 = function _moduleNames(task,moduleMap,task_runtime)
 {
-    if (task.options?.debug)
-        void 0;
-    return moduleMap(task_runtime, {
-        cache: [...task.mains.entries()].map(([name, module]) => [
-            module,
-            {
-                name,
-                module
-            }
-        ])
-    });
+  if (task.options?.debug)
+    debugger;
+  return moduleMap(task_runtime, {
+    cache: [...task.mains.entries()].map(([name, module]) => [
+      module,
+      {
+        name,
+        module
+      }
+    ])
+  });
 };
 const _2o6tia = function _38(resolve_modules){return(
 resolve_modules
@@ -979,8 +992,14 @@ resolve_modules
 const _dx8tp1 = function _39(summary){return(
 summary
 )};
-const _rd2qwz = function _excluded_module_names(){return(
-["TBD", "error", "builtin", "main", "bootloader"]
+const _ti9fu1 = function _excluded_module_names(){return(
+[
+  'TBD',
+  'error',
+  'builtin',
+  'main',
+  'bootloader'
+]
 )};
 const _po3sop = function _excluded_modules(moduleNames,excluded_module_names){return(
 new Map([...moduleNames.entries()].filter(([m, info]) => excluded_module_names.includes(info.name)))
@@ -988,85 +1007,90 @@ new Map([...moduleNames.entries()].filter(([m, info]) => excluded_module_names.i
 const _16u7vne = function _included_modules(moduleNames,excluded_module_names){return(
 new Map([...moduleNames.entries()].filter(([m, info]) => !excluded_module_names.includes(info.name)))
 )};
-const _1y5e5x8 = async function _module_specs(task,included_modules,TRACE_MODULE,task_runtime,isModuleVar,isDynamicVar,getFileAttachments,main,generate_module_source,moduleNames)
+const _kxkh98 = async function _module_specs(task,included_modules,TRACE_MODULE,task_runtime,isModuleVar,isDynamicVar,getFileAttachments,main,generate_module_source,moduleNames)
 {
-    if (task.options?.debug)
-        void 0;
-    return new Map(await Promise.all([...included_modules.entries()].map(async ([module, spec]) => {
-        if (spec.name === TRACE_MODULE)
-            void 0;
-        // Raw variables for this module (user-defined, non-dynamic)
-        const variables = [...task_runtime._variables].filter(v => v._module === module && (v._type === 1 || isModuleVar(v)) && !isDynamicVar(v));
-        const imports = variables.filter(v => isModuleVar(v)).map(v => v._name.slice(7)).filter(m => !['builtin'].includes(m));
-        const fileAttachments = getFileAttachments(module) || new Map();
-        if (spec.name === task.notebook && task?.options?.main_files !== false) {
-            getFileAttachments(main).forEach((value, key) => fileAttachments.set(key, value));
-        }
-        const source = await generate_module_source(spec, variables, fileAttachments, { moduleNames });
-        return [
-            spec.name,
-            {
-                url: spec.name,
-                imports,
-                fileAttachments,
-                source,
-                variables,
-                module,
-                define: spec.define
-            }
-        ];
-    })));
+  if (task.options?.debug)
+    debugger;
+  return new Map(await Promise.all([...included_modules.entries()].map(async ([module, spec]) => {
+    if (spec.name === TRACE_MODULE)
+      debugger;
+    // Raw variables for this module (user-defined, non-dynamic)
+    const variables = [...task_runtime._variables].filter(v => v._module === module && (v._type === 1 || isModuleVar(v)) && !isDynamicVar(v));
+    const imports = variables.filter(v => isModuleVar(v)).map(v => v._name.slice(7)).filter(m => !['builtin'].includes(m));
+    const fileAttachments = getFileAttachments(module) || new Map();
+    if (spec.name === task.notebook && task?.options?.main_files !== false) {
+      getFileAttachments(main).forEach((value, key) => fileAttachments.set(key, value));
+    }
+    const source = await generate_module_source(spec, variables, fileAttachments, { moduleNames });
+    return [
+      spec.name,
+      {
+        url: spec.name,
+        imports,
+        fileAttachments,
+        source,
+        variables,
+        module,
+        define: spec.define
+      }
+    ];
+  })));
 };
 const _1r3eg9r = function _findImports(){return(
 cells => [...cells.keys()].filter(name => typeof name === 'string' && name.startsWith('module ')).map(name => name.replace('module ', ''))
 )};
-const _ipv4ft = function _getFileAttachments(){return(
+const _15bukmh = function _getFileAttachments(){return(
 module => {
-    let fileMap;
-    const FileAttachment = module._builtins.get('FileAttachment');
-    const backup_get = Map.prototype.get;
-    const backup_has = Map.prototype.has;
-    Map.prototype.has = Map.prototype.get = function (...args) {
-        fileMap = this;
-    };
-    try {
-        FileAttachment('');
-    } catch (e) {
-    }
-    Map.prototype.has = backup_has;
-    Map.prototype.get = backup_get;
-    return fileMap;
+  let fileMap;
+  const FileAttachment = module._builtins.get('FileAttachment');
+  const backup_get = Map.prototype.get;
+  const backup_has = Map.prototype.has;
+  Map.prototype.has = Map.prototype.get = function (...args) {
+    fileMap = this;
+  };
+  try {
+    FileAttachment('');
+  } catch (e) {
+  }
+  Map.prototype.has = backup_has;
+  Map.prototype.get = backup_get;
+  return fileMap;
 }
 )};
-const _strmord = function _streamingModuleOrder(){return(
-(mainNames, specByName) => {
-  // Deterministic, churn-free order: bootconf-declared mains first so a notebook's own page/entry
-  // modules stream before anything else, then every other module — each group sorted alphabetically.
-  // Order depends only on the set of module names (not on the import graph), so re-exporting an
-  // unchanged notebook produces byte-identical block order. Each module's FileAttachment blocks
-  // already precede its source (see lopemodule), so define-time contentSync never misses.
-  const mains = new Set(mainNames.filter((n) => specByName.has(n)));
-  const lead = [...mains].sort();
-  const rest = [...specByName.keys()].filter((n) => !mains.has(n)).sort();
-  return [...lead, ...rest];
-}
-)};
-const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shims,runtime_gz,inspector_gz,module_specs,lopemodule,lopebook,streamingModuleOrder){return(
-(async () => {
-  const cssBlocks = task.options.style.map(([url, content]) => inlineModule(url, content, { mime: 'text/css' })).join('\n');
-  const cssUrls = task.options.style.map(([url]) => url);
-  const systemBlocks = [
-    inlineGzipModule('es-module-shims@2.6.2', es_module_shims),
-    inlineGzipModule('@observablehq/runtime@6.0.0', runtime_gz),
-    inlineGzipModule('@observablehq/inspector@5.0.1', inspector_gz)
-  ].join('\n');
-  const orderedNames = streamingModuleOrder([...task.mains.keys()], module_specs);
-  const userBlocks = (await Promise.all(orderedNames.map(name => lopemodule(module_specs.get(name))))).join('');
-  const bootloader = task.options.bootloader || '@tomlarkworthy/bootloader';
-  const tickLine = task.options.tick != null ? `,\n  "tick": ${ JSON.stringify(task.options.tick) }` : '';
-  const tickDelayLine = task.options.tickDelayMs != null ? `,\n  "tickDelayMs": ${ JSON.stringify(task.options.tickDelayMs) }` : '';
-  const prerenderLine = task.options.prerender ? `,\n  "prerender": true` : '';
-  const bootconfBlock = `<script id="bootconf.json"
+const _g0wr2v = function _streamingModuleOrder()
+{
+  return (mainNames, specByName) => {
+    // Deterministic, churn-free order: bootconf-declared mains first so a notebook's own page/entry
+    // modules stream before anything else, then every other module — each group sorted alphabetically.
+    // Order depends only on the set of module names (not on the import graph), so re-exporting an
+    // unchanged notebook produces byte-identical block order. Each module's FileAttachment blocks
+    // already precede its source (see lopemodule), so define-time contentSync never misses.
+    const mains = new Set(mainNames.filter(n => specByName.has(n)));
+    const lead = [...mains].sort();
+    const rest = [...specByName.keys()].filter(n => !mains.has(n)).sort();
+    return [
+      ...lead,
+      ...rest
+    ];
+  };
+};
+const _e1usrg = function _book(task,inlineModule,inlineGzipModule,es_module_shims,runtime_gz,inspector_gz,streamingModuleOrder,module_specs,lopemodule,lopebook)
+{
+  return (async () => {
+    const cssBlocks = task.options.style.map(([url, content]) => inlineModule(url, content, { mime: 'text/css' })).join('\n');
+    const cssUrls = task.options.style.map(([url]) => url);
+    const systemBlocks = [
+      inlineGzipModule('es-module-shims@2.6.2', es_module_shims),
+      inlineGzipModule('@observablehq/runtime@6.0.0', runtime_gz),
+      inlineGzipModule('@observablehq/inspector@5.0.1', inspector_gz)
+    ].join('\n');
+    const orderedNames = streamingModuleOrder([...task.mains.keys()], module_specs);
+    const userBlocks = (await Promise.all(orderedNames.map(name => lopemodule(module_specs.get(name))))).join('');
+    const bootloader = task.options.bootloader || '@tomlarkworthy/bootloader';
+    const tickLine = task.options.tick != null ? `,\n  "tick": ${ JSON.stringify(task.options.tick) }` : '';
+    const tickDelayLine = task.options.tickDelayMs != null ? `,\n  "tickDelayMs": ${ JSON.stringify(task.options.tickDelayMs) }` : '';
+    const prerenderLine = task.options.prerender ? `,\n  "prerender": true` : '';
+    const bootconfBlock = `<script id="bootconf.json"
         type="text/plain"
         data-mime="application/json"
 >
@@ -1076,22 +1100,22 @@ const _fb2vp1 = function _book(task,inlineModule,inlineGzipModule,es_module_shim
   "headless": ${ !!task.options.headless }${ tickLine }${ tickDelayLine }${ prerenderLine }
 }
 </scr` + `ipt>`;
-  // Prerender: bake the live lopepage-2 chrome+content into <body> so the page shows
-  // (styled, no JS) before boot, then a MutationObserver removes it once the real
-  // #lopepage-2 mounts. Snapshot captured in exportToHTML (browser side).
-  const themeCss = (task.options.style || []).map(([, content]) => content).join('\n');
-  // Prerender: nest the snapshot in a Declarative Shadow DOM so it renders (styled, no JS)
-  // yet is invisible to the booting runtime's document queries. Theme CSS goes OUTSIDE (so
-  // its :root custom props inherit into the shadow) and INSIDE (component rules match shadow
-  // content). The host overlay sits on top (opaque, high z-index) covering the still-booting
-  // live page, then is removed (hard swap) as soon as the live page renders its first cell.
-  const prerenderBlock = (task.options.prerender && task.options.prerenderHTML) ? [
-    `<style id="lope-prerender-style">
+    // Prerender: bake the live lopepage-2 chrome+content into <body> so the page shows
+    // (styled, no JS) before boot, then a MutationObserver removes it once the real
+    // #lopepage-2 mounts. Snapshot captured in exportToHTML (browser side).
+    const themeCss = (task.options.style || []).map(([, content]) => content).join('\n');
+    // Prerender: nest the snapshot in a Declarative Shadow DOM so it renders (styled, no JS)
+    // yet is invisible to the booting runtime's document queries. Theme CSS goes OUTSIDE (so
+    // its :root custom props inherit into the shadow) and INSIDE (component rules match shadow
+    // content). The host overlay sits on top (opaque, high z-index) covering the still-booting
+    // live page, then is removed (hard swap) as soon as the live page renders its first cell.
+    const prerenderBlock = task.options.prerender && task.options.prerenderHTML ? [
+      `<style id="lope-prerender-style">
 ${ themeCss }
 #lope-prerender { position: fixed; inset: 0; z-index: 2147483000; overflow: hidden; background: var(--theme-background, #fff); }
 </style>`,
-    `<div id="lope-prerender"><template shadowrootmode="open"><style>\n${ themeCss }\n</style>${ task.options.prerenderHTML }</template></div>`,
-    `<script id="lope-prerender-cleanup">
+      `<div id="lope-prerender"><template shadowrootmode="open"><style>\n${ themeCss }\n</style>${ task.options.prerenderHTML }</template></div>`,
+      `<script id="lope-prerender-cleanup">
 (function () {
   var pr = document.getElementById('lope-prerender');
   if (!pr) return;
@@ -1104,88 +1128,88 @@ ${ themeCss }
   setTimeout(function () { mo.disconnect(); drop(); }, 5000); // never linger
 })();
 </scr` + `ipt>`
-  ].join('\n') : '';
-  const bootloaderBlock = inlineModule(bootloader, await (await fetch(`https://api.observablehq.com/${ bootloader }.js?v=4`)).text());
-  const blocks = [
-    '<!-- CSS -->',
-    cssBlocks,
-    `<style>
+    ].join('\n') : '';
+    const bootloaderBlock = inlineModule(bootloader, await (await fetch(`https://api.observablehq.com/${ bootloader }.js?v=4`)).text());
+    const blocks = [
+      '<!-- CSS -->',
+      cssBlocks,
+      `<style>
 body .inputs-3a86ea-table thead th {
   background: var(--theme-foreground-faintest);
 }
 </style>`,
-    '<!-- System Modules -->',
-    systemBlocks,
-    userBlocks,
-    '<!-- Bootloader -->',
-    bootconfBlock,
-    bootloaderBlock
-  ].join('\n');
-  return lopebook({
-    blocks,
-    cssUrls,
-    bootloader,
-    bodyPrepend: prerenderBlock,
-    title: task.options.title || (typeof document !== 'undefined' && document.title) || 'Lopecode notebook',
-    description: task.options.description,
-    image: task.options.image,
-    metas: task.options.metas,
-    head: task.options.head
-  });
-})()
-)};
-const _18javdl = function _47(Inputs,module_specs){return(
+      '<!-- System Modules -->',
+      systemBlocks,
+      userBlocks,
+      '<!-- Bootloader -->',
+      bootconfBlock,
+      bootloaderBlock
+    ].join('\n');
+    return lopebook({
+      blocks,
+      cssUrls,
+      bootloader,
+      bodyPrepend: prerenderBlock,
+      title: task.options.title || typeof document !== 'undefined' && document.title || 'Lopecode notebook',
+      description: task.options.description,
+      image: task.options.image,
+      metas: task.options.metas,
+      head: task.options.head
+    });
+  })();
+};
+const _tztkf6 = function _48(Inputs,module_specs){return(
 Inputs.table([...module_specs.entries().map(([name, spec]) => ({
+    name,
+    source: spec.source.length,
+    imports: spec.imports,
+    fileAttachments: spec.fileAttachments
+  }))], {
+  layout: 'auto',
+  format: {
+    fileAttachments: f => !f ? 'none' : Inputs.table([...f.entries().map(([name, f]) => ({
         name,
-        source: spec.source.length,
-        imports: spec.imports,
-        fileAttachments: spec.fileAttachments
-    }))], {
-    layout: 'auto',
-    format: {
-        fileAttachments: f => !f ? 'none' : Inputs.table([...f.entries().map(([name, f]) => ({
-                name,
-                url: f.url || f
-            }))]),
-        imports: f => Inputs.table(f.map(i => ({ name: i })))
-    }
+        url: f.url || f
+      }))]),
+    imports: f => Inputs.table(f.map(i => ({ name: i })))
+  }
 })
 )};
-const _1gb47v = function _48(md){return(
+const _1razd4c = function _49(md){return(
 md`##### Generate a report on the sizes of components`
 )};
-const _5m8hbe = function _report(DOMParser,book)
+const _avn3ei = function _report(DOMParser,book)
 {
-    let report;
-    try {
-        report = [...new DOMParser().parseFromString(book, 'text/html').querySelectorAll('script')].map(script => ({
-            ...script.getAttribute('file') && {
-                file: script.getAttribute('file'),
-                module: script.getAttribute('module')
-            },
-            type: script.getAttribute('data-mime') || 'application/javascript',
-            size: script.text.length,
-            id: script.id
-        }));
-    } catch (err) {
-        report = err;
-    }
-    console.log('report', report);
-    return report;
+  let report;
+  try {
+    report = [...new DOMParser().parseFromString(book, 'text/html').querySelectorAll('script')].map(script => ({
+      ...script.getAttribute('file') && {
+        file: script.getAttribute('file'),
+        module: script.getAttribute('module')
+      },
+      type: script.getAttribute('data-mime') || 'application/javascript',
+      size: script.text.length,
+      id: script.id
+    }));
+  } catch (err) {
+    report = err;
+  }
+  console.log('report', report);
+  return report;
 };
-const _4x0qc2 = function _tomlarkworthy_exporter_task(book,report,exporter_module,$0)
+const _186iat6 = function _tomlarkworthy_exporter_task(book,report,exporter_module,$0)
 {
-    const result = {
-        source: book,
-        report: report
-    };
-    exporter_module;
-    return $0.resolve(result);
+  const result = {
+    source: book,
+    report: report
+  };
+  exporter_module;
+  return $0.resolve(result);
 };
-const _1exq2jt = function _51(md){return(
+const _9aqzbs = function _52(md){return(
 md`## Module Source Generator`
 )};
-const _fctoc0 = function _52(md){return(
+const _1h8zj4h = function _53(md){return(
 md`### exportModuleJS
 
 Serialize a single module from the live runtime to a \`.js\` module source string. Unlike \`module_specs\` (which serializes all modules as part of the full HTML export pipeline), \`exportModuleJS\` works on-demand against the live runtime with no \`task\` dependency.
@@ -1208,12 +1232,9 @@ const {source, fileAttachments} = await exportModuleJS(moduleId, {runtime, modul
 - \`fileAttachments\` — \`Map<name, {url, mimeType}>\` of the module's file attachments
 `
 )};
-const _85q15a = function _exportModuleJS(_runtime,buildModuleNames,isModuleVar,isDynamicVar,getFileAttachments,generate_module_source)
+const _1xx9ynh = function _exportModuleJS(_runtime,buildModuleNames,isModuleVar,isDynamicVar,getFileAttachments,generate_module_source)
 {
-  const fn = async (
-    moduleId,
-    { runtime = _runtime, moduleNamesFn = buildModuleNames } = {}
-  ) => {
+  const fn = async (moduleId, {runtime = _runtime, moduleNamesFn = buildModuleNames} = {}) => {
     const names = moduleNamesFn(runtime);
     let targetModule = null;
     for (const [module, info] of names) {
@@ -1222,21 +1243,12 @@ const _85q15a = function _exportModuleJS(_runtime,buildModuleNames,isModuleVar,i
         break;
       }
     }
-    if (!targetModule) throw new Error(`Module not found: ${moduleId}`);
-    const variables = [...runtime._variables].filter(
-      (v) =>
-        v._module === targetModule &&
-        (v._type === 1 || isModuleVar(v)) &&
-        !isDynamicVar(v)
-    );
+    if (!targetModule)
+      throw new Error(`Module not found: ${ moduleId }`);
+    const variables = [...runtime._variables].filter(v => v._module === targetModule && (v._type === 1 || isModuleVar(v)) && !isDynamicVar(v));
     const fileAttachments = getFileAttachments(targetModule) || new Map();
     const spec = { name: moduleId };
-    const source = await generate_module_source(
-      spec,
-      variables,
-      fileAttachments,
-      { moduleNames: names }
-    );
+    const source = await generate_module_source(spec, variables, fileAttachments, { moduleNames: names });
     return {
       source,
       fileAttachments
@@ -1252,27 +1264,27 @@ ${ await generate_define(spec, variables, fileAttachments, { moduleNames }) }`
 const _19ft5zb = function _generate_definitions(variableToDefinition){return(
 variables => variables.map(v => variableToDefinition(v)).join('')
 )};
-const _7nr512 = function _generate_define(variableToDefine) {
-    return async (spec, variables, fileAttachments, {moduleNames} = {}) => {
-        const fileAttachmentExpression = fileAttachments?.size ? `  const fileAttachments = new Map(${ JSON.stringify([...fileAttachments.keys()]) }.map((name) => {
+const _u3aown = function _generate_define(variableToDefine){return(
+async (spec, variables, fileAttachments, {moduleNames} = {}) => {
+  const fileAttachmentExpression = fileAttachments?.size ? `  const fileAttachments = new Map(${ JSON.stringify([...fileAttachments.keys()]) }.map((name) => {
     const module_name = "${ spec.name }";
     const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
     const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
     return [name, {url: blob_url, mimeType: mime}]
   }));
   main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));\n` : '';
-        const varLines = (await Promise.all(variables.map(v => variableToDefine(v, { moduleNames })))).flat();
-        const definedModules = new Set(varLines.filter(l => l.includes('runtime.module(')).map(l => {
-            const m = l.match(/main\.define\("module ([^"]+)"/);
-            return m ? m[1] : null;
-        }).filter(Boolean));
-        const referencedModules = new Set(varLines.map(l => {
-            const m = l.match(/\["module ([^"]+)", "@variable"\]/);
-            return m ? m[1] : null;
-        }).filter(Boolean));
-        const missingModules = [...referencedModules].filter(m => !definedModules.has(m));
-        const moduleDefineLines = missingModules.map(m => `  main.define("module ${ m }", async () => runtime.module((await importShim("/${ m }.js?v=4")).default));`);
-        return `export default function define(runtime, observer) {
+  const varLines = (await Promise.all(variables.map(v => variableToDefine(v, { moduleNames })))).flat();
+  const definedModules = new Set(varLines.filter(l => l.includes('runtime.module(')).map(l => {
+    const m = l.match(/main\.define\("module ([^"]+)"/);
+    return m ? m[1] : null;
+  }).filter(Boolean));
+  const referencedModules = new Set(varLines.map(l => {
+    const m = l.match(/\["module ([^"]+)", "@variable"\]/);
+    return m ? m[1] : null;
+  }).filter(Boolean));
+  const missingModules = [...referencedModules].filter(m => !definedModules.has(m));
+  const moduleDefineLines = missingModules.map(m => `  main.define("module ${ m }", async () => runtime.module((await importShim("/${ m }.js?v=4")).default));`);
+  return `export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
@@ -1281,128 +1293,148 @@ ${ fileAttachmentExpression }${ moduleDefineLines.join('  \n') }
 ${ varLines.join('  \n') }
   return main;
 }`;
-    };
-};
+}
+)};
 const _1hslsmt = function _isLiveImport(){return(
 v => !v._name && v._definition?.toString().includes('observablehq' + '--inspect ' + 'observablehq--import')
 )};
-const _g39v22 = function _variableToDefinition(isModuleVar,isImportBridged,isLiveImport,isDynamicVar,pid,restoreCanonicalImports){return(
+const _4i5mmq = function _variableToDefinition(isModuleVar,isImportBridged,isLiveImport,isDynamicVar,pid,restoreCanonicalImports){return(
 function variableToDefinition(v) {
-    if (isModuleVar(v))
-        return '';
-    if (isImportBridged(v))
-        return '';
-    if (isLiveImport(v))
-        return '';
-    if (isDynamicVar(v))
-        return '';
-    return `const ${ pid(v) } = ${ restoreCanonicalImports(v._definition.toString()) };\n`;
+  if (isModuleVar(v))
+    return '';
+  if (isImportBridged(v))
+    return '';
+  if (isLiveImport(v))
+    return '';
+  if (isDynamicVar(v))
+    return '';
+  return `const ${ pid(v) } = ${ restoreCanonicalImports(v._definition.toString()) };\n`;
 }
 )};
-const _5zomoj = function _restoreCanonicalImports(acorn,escodegen){return(
+const _79c94t = function _restoreCanonicalImports(acorn){return(
 source => {
-    if (!/\bimportShim\s*\(/.test(source))
-        return source;
-    let ast;
-    try {
-        ast = acorn.Parser.parse(source, {
-            ecmaVersion: 'latest',
-            sourceType: 'script',
-            allowAwaitOutsideFunction: true,
-            allowReturnOutsideFunction: true,
-            allowImportExportEverywhere: true
-        });
-    } catch (e) {
-        console.warn('[exporter-3] importShim AST parse failed; leaving cell unchanged:', e.message);
-        return source;
+  if (!/\bimportShim\s*\(/.test(source))
+    return source;
+  let ast;
+  try {
+    ast = acorn.Parser.parse(source, {
+      ecmaVersion: 'latest',
+      sourceType: 'script',
+      allowAwaitOutsideFunction: true,
+      allowReturnOutsideFunction: true,
+      allowImportExportEverywhere: true
+    });
+  } catch (e) {
+    console.warn('[exporter-3] importShim AST parse failed; leaving cell unchanged:', e.message);
+    return source;
+  }
+  // The rewrite is local: only the callee identifier changes, plus the parent
+  // URL Observable appends. Collect character ranges and splice them, rather
+  // than regenerating the cell, so comments, quote style and indentation
+  // survive. Same approach as the toolchain's source-preserving observableToJs.
+  const edits = [];
+  const visit = node => {
+    if (!node || typeof node !== 'object')
+      return;
+    if (node.type === 'CallExpression' && node.callee && node.callee.type === 'Identifier' && node.callee.name === 'importShim' && node.arguments.length >= 1) {
+      edits.push([
+        node.callee.start,
+        node.callee.end,
+        'import'
+      ]);
+      // Observable compiles a cell's `import(x)` to `importShim(x, "<notebook
+      // url>")`, where argument 2 is the es-module-shims parent. Native import
+      // takes an options object there, so a string second argument is dropped
+      // and an object one (import attributes) is kept.
+      const [spec, second] = node.arguments;
+      if (node.arguments.length === 2 && second.type === 'Literal' && typeof second.value === 'string')
+        edits.push([
+          spec.end,
+          second.end,
+          ''
+        ]);
     }
-    const visit = node => {
-        if (!node || typeof node !== 'object')
-            return;
-        if (node.type === 'CallExpression' && node.callee && node.callee.type === 'Identifier' && node.callee.name === 'importShim' && node.arguments.length >= 1) {
-            const spec = node.arguments[0];
-            for (const k of Object.keys(node))
-                delete node[k];
-            node.type = 'ImportExpression';
-            node.source = spec;
-        }
-        for (const k of Object.keys(node)) {
-            const v = node[k];
-            if (Array.isArray(v))
-                v.forEach(visit);
-            else if (v && typeof v === 'object' && v.type)
-                visit(v);
-        }
-    };
-    visit(ast);
-    return escodegen.generate(ast);
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (Array.isArray(v))
+        v.forEach(visit);
+      else if (v && typeof v === 'object' && v.type)
+        visit(v);
+    }
+  };
+  visit(ast);
+  let out = source;
+  // Descending, so earlier offsets stay valid as we rewrite.
+  for (const [start, end, text] of edits.sort((a, b) => b[0] - a[0]))
+    out = out.slice(0, start) + text + out.slice(end);
+  return out;
 }
 )};
-const _1g36je3 = function _variableToDefine(isLiveImport,isDynamicVar,isModuleVar,isImportBridged,findImportedName3,pid)
+const _1g13ozv = function _variableToDefine(isLiveImport,isDynamicVar,isModuleVar,isImportBridged,findImportedName3,pid)
 {
-    const EXCLUDED = [
-        'main',
-        'builtin',
-        'TBD',
-        'error'
-    ];
-    return async function variableToDefine(v, {moduleNames} = {}) {
-        if (isLiveImport(v))
-            return [];
-        if (isDynamicVar(v))
-            return [];
-        if (isModuleVar(v)) {
-            // On Observable, module vars may be named "module 1" instead of "module @author/name"
-            // Look up the proper name via moduleNames map (keyed by module object)
-            let moduleName = v._name.slice(7);
-            if (v._value && moduleNames?.has(v._value)) {
-                moduleName = moduleNames.get(v._value).name;
-            }
-            if (EXCLUDED.includes(moduleName))
-                return [];
-            return [`  main.define("module ${ moduleName }", async () => runtime.module((await import("/${ moduleName }.js?v=4")).default));`];
+  const EXCLUDED = [
+    'main',
+    'builtin',
+    'TBD',
+    'error'
+  ];
+  return async function variableToDefine(v, {moduleNames} = {}) {
+    if (isLiveImport(v))
+      return [];
+    if (isDynamicVar(v))
+      return [];
+    if (isModuleVar(v)) {
+      // On Observable, module vars may be named "module 1" instead of "module @author/name"
+      // Look up the proper name via moduleNames map (keyed by module object)
+      let moduleName = v._name.slice(7);
+      if (v._value && moduleNames?.has(v._value)) {
+        moduleName = moduleNames.get(v._value).name;
+      }
+      if (EXCLUDED.includes(moduleName))
+        return [];
+      return [`  main.define("module ${ moduleName }", async () => runtime.module((await import("/${ moduleName }.js?v=4")).default));`];
+    }
+    if (isImportBridged(v)) {
+      const importedName = await findImportedName3(v);
+      let moduleVarName = null;
+      if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable') {
+        // Also resolve the module var name for imports
+        const moduleVar = v._inputs[0];
+        let resolvedModuleName = moduleVar._name?.slice(7);
+        if (moduleVar._value && moduleNames?.has(moduleVar._value)) {
+          resolvedModuleName = moduleNames.get(moduleVar._value).name;
         }
-        if (isImportBridged(v)) {
-            const importedName = await findImportedName3(v);
-            let moduleVarName = null;
-            if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable') {
-                // Also resolve the module var name for imports
-                const moduleVar = v._inputs[0];
-                let resolvedModuleName = moduleVar._name?.slice(7);
-                if (moduleVar._value && moduleNames?.has(moduleVar._value)) {
-                    resolvedModuleName = moduleNames.get(moduleVar._value).name;
-                }
-                moduleVarName = `module ${ resolvedModuleName }`;
-            } else if (v._inputs.length === 1 && v._inputs[0]?._name === '@variable') {
-                // Observable closure-based import: single @variable input, module captured in closure.
-                // Find source module by searching which module's _scope contains this variable name.
-                for (const [mod, info] of moduleNames) {
-                    if (info.name === 'main' || info.name === 'builtin')
-                        continue;
-                    if (mod._scope?.has(v._name)) {
-                        moduleVarName = `module ${ info.name }`;
-                        break;
-                    }
-                }
-            } else if (v._inputs.length === 1 && v._inputs[0]._module !== v._module) {
-                const sourceModule = v._inputs[0]._module;
-                const sourceInfo = moduleNames?.get(sourceModule);
-                if (sourceInfo)
-                    moduleVarName = `module ${ sourceInfo.name }`;
-            }
-            if (!moduleVarName)
-                return [];
-            const resolvedName = moduleVarName.slice(7);
-            if (EXCLUDED.includes(resolvedName))
-                return [];
-            return [`  main.define("${ v._name }", ["${ moduleVarName }", "@variable"], (_, v) => v.import(${ importedName && importedName !== v._name ? `"${ importedName }", ` : '' }"${ v._name }", _));`];
+        moduleVarName = `module ${ resolvedModuleName }`;
+      } else if (v._inputs.length === 1 && v._inputs[0]?._name === '@variable') {
+        // Observable closure-based import: single @variable input, module captured in closure.
+        // Find source module by searching which module's _scope contains this variable name.
+        for (const [mod, info] of moduleNames) {
+          if (info.name === 'main' || info.name === 'builtin')
+            continue;
+          if (mod._scope?.has(v._name)) {
+            moduleVarName = `module ${ info.name }`;
+            break;
+          }
         }
-        const deps = JSON.stringify(v._inputs.map(i => i._name));
-        const name_literal = v._name ? `"${ v._name }"` : 'null';
-        return [`  $def("${ pid(v) }", ${ name_literal }, ${ deps }, ${ pid(v) });`];
-    };
+      } else if (v._inputs.length === 1 && v._inputs[0]._module !== v._module) {
+        const sourceModule = v._inputs[0]._module;
+        const sourceInfo = moduleNames?.get(sourceModule);
+        if (sourceInfo)
+          moduleVarName = `module ${ sourceInfo.name }`;
+      }
+      if (!moduleVarName)
+        return [];
+      const resolvedName = moduleVarName.slice(7);
+      if (EXCLUDED.includes(resolvedName))
+        return [];
+      return [`  main.define("${ v._name }", ["${ moduleVarName }", "@variable"], (_, v) => v.import(${ importedName && importedName !== v._name ? `"${ importedName }", ` : '' }"${ v._name }", _));`];
+    }
+    const deps = JSON.stringify(v._inputs.map(i => i._name));
+    const name_literal = v._name ? `"${ v._name }"` : 'null';
+    return [`  $def("${ pid(v) }", ${ name_literal }, ${ deps }, ${ pid(v) });`];
+  };
 };
-const _dxkjia = function _61(md){return(
+const _8rymrb = function _62(md){return(
 md`## Assemble `
 )};
 const _g33g3u = function _es_module_shims(){return(
@@ -1429,107 +1461,185 @@ ${ source }
 const _bwex58 = function _normalize(){return(
 url => url.replace(/^(?:https:\/\/api\.observablehq\.com)?\/(.*?)\.js(?:\?.*)?$/, '$1').replace(/^(d\/[a-f0-9]{16})@\d+$/, '$1')
 )};
-const _eoywzy = function _test_normalize(expect,normalize)
+const _1vymoni = function _test_normalize(expect,normalize)
 {
-    expect(normalize('d/57d79353bac56631@4')).toBe('d/57d79353bac56631');
-    expect(normalize('https://api.observablehq.com/@tomlarkworthy/runtime-sdk.js?v=4')).toBe('@tomlarkworthy/runtime-sdk');
-    expect(normalize('https://api.observablehq.com/@tomlarkworthy/bootloader.js?v=4')).toBe('@tomlarkworthy/bootloader');
-    expect(normalize('https://api.observablehq.com/d/57d79353bac56631.js?v=4')).toBe('d/57d79353bac56631');
-    expect(normalize('/@tomlarkworthy/runtime-sdk.js?v=4')).toBe('@tomlarkworthy/runtime-sdk');
-    expect(normalize('/d/57d79353bac56631.js?v=4')).toBe('d/57d79353bac56631');
-    expect(normalize('/@tomlarkworthy/fileattachments.js?v=4&resolutions=4b0160c7af70b609@8453')).toBe('@tomlarkworthy/fileattachments');
-    expect(normalize('https://api.observablehq.com/@tomlarkworthy/jest-expect-standalone.js?v=4&resolutions=03dda470c56b93ff@8390')).toBe('@tomlarkworthy/jest-expect-standalone');
+  expect(normalize('d/57d79353bac56631@4')).toBe('d/57d79353bac56631');
+  expect(normalize('https://api.observablehq.com/@tomlarkworthy/runtime-sdk.js?v=4')).toBe('@tomlarkworthy/runtime-sdk');
+  expect(normalize('https://api.observablehq.com/@tomlarkworthy/bootloader.js?v=4')).toBe('@tomlarkworthy/bootloader');
+  expect(normalize('https://api.observablehq.com/d/57d79353bac56631.js?v=4')).toBe('d/57d79353bac56631');
+  expect(normalize('/@tomlarkworthy/runtime-sdk.js?v=4')).toBe('@tomlarkworthy/runtime-sdk');
+  expect(normalize('/d/57d79353bac56631.js?v=4')).toBe('d/57d79353bac56631');
+  expect(normalize('/@tomlarkworthy/fileattachments.js?v=4&resolutions=4b0160c7af70b609@8453')).toBe('@tomlarkworthy/fileattachments');
+  expect(normalize('https://api.observablehq.com/@tomlarkworthy/jest-expect-standalone.js?v=4&resolutions=03dda470c56b93ff@8390')).toBe('@tomlarkworthy/jest-expect-standalone');
 };
-const _strmtest1 = function _test_networking_script_is_streaming(expect,networking_script)
+const _158qnvp = function _test_networking_script_is_streaming(networking_script,expect)
 {
-    const src = networking_script;
-    // the streaming gate + waiting helper
-    expect(src.includes("window.__lopeStreaming = true")).toBe(true);
-    expect(src.includes("function __waitForId")).toBe(true);
-    // event-driven (MutationObserver), not a setTimeout poll: robust to Safari background-tab
-    // timer throttling when a fork opens via window.open into an unfocused blob: tab
-    expect(src.includes("new MutationObserver")).toBe(true);
-    expect(src.includes("await new Promise((r) => setTimeout")).toBe(false);
-    // DOMContentLoaded/load clear the streaming flag even if the inline sentinel never runs.
-    // String checks, not regex literals: the push decompiler can't round-trip regex literals.
-    expect(src.includes('addEventListener("DOMContentLoaded", __endStreaming')).toBe(true);
-    expect(src.includes('window.addEventListener("load", __endStreaming')).toBe(true);
-    // dvfBytes (global fetch / XHR / blob path) waits for the block to stream in.
-    // Keep braces balanced everywhere in this cell (even in strings and comments): the
-    // module source extractor counts braces literally, so a stray open brace makes this
-    // cell's _definition run past its end and decompile/push silently drops it.
-    expect(src.includes("async function dvfBytes(id)")).toBe(true);
-    expect(src.includes("await __waitForId(id);")).toBe(true);
-    // es-module-shims fetch + source hooks are async and wait (es-module-shims awaits both)
-    expect(src.includes("async fetch(url, options, parent)")).toBe(true);
-    expect(src.includes("async source(url, fetchOpts, parent, defaultSourceHook)")).toBe(true);
-    const fetchIdx = src.indexOf("async fetch(url, options, parent)");
-    expect(fetchIdx).toBeGreaterThan(-1);
-    expect(src.indexOf("await __waitForId(id);", fetchIdx)).toBeGreaterThan(fetchIdx);
-    // resolve stays synchronous (es-module-shims does not await it) but keeps streaming notebook
-    // ids local instead of rewriting them to the remote observablehq API
-    expect(src.includes("\n    resolve(id, parentUrl, defaultResolve)")).toBe(true);
-    expect(src.includes("if (window.__lopeStreaming && isNotebook(id)) return")).toBe(true);
-    return "ok";
+  const src = networking_script;
+  // the streaming gate + waiting helper
+  expect(src.includes('window.__lopeStreaming = true')).toBe(true);
+  expect(src.includes('function __waitForId')).toBe(true);
+  // event-driven (MutationObserver), not a setTimeout poll: robust to Safari background-tab
+  // timer throttling when a fork opens via window.open into an unfocused blob: tab
+  expect(src.includes('new MutationObserver')).toBe(true);
+  expect(src.includes('await new Promise((r) => setTimeout')).toBe(false);
+  // DOMContentLoaded/load clear the streaming flag even if the inline sentinel never runs.
+  // String checks, not regex literals: the push decompiler can't round-trip regex literals.
+  expect(src.includes('addEventListener("DOMContentLoaded", __endStreaming')).toBe(true);
+  expect(src.includes('window.addEventListener("load", __endStreaming')).toBe(true);
+  // dvfBytes (global fetch / XHR / blob path) waits for the block to stream in.
+  // Keep braces balanced everywhere in this cell (even in strings and comments): the
+  // module source extractor counts braces literally, so a stray open brace makes this
+  // cell's _definition run past its end and decompile/push silently drops it.
+  expect(src.includes('async function dvfBytes(id)')).toBe(true);
+  expect(src.includes('await __waitForId(id);')).toBe(true);
+  // es-module-shims fetch + source hooks are async and wait (es-module-shims awaits both)
+  expect(src.includes('async fetch(url, options, parent)')).toBe(true);
+  expect(src.includes('async source(url, fetchOpts, parent, defaultSourceHook)')).toBe(true);
+  const fetchIdx = src.indexOf('async fetch(url, options, parent)');
+  expect(fetchIdx).toBeGreaterThan(-1);
+  expect(src.indexOf('await __waitForId(id);', fetchIdx)).toBeGreaterThan(fetchIdx);
+  // resolve stays synchronous (es-module-shims does not await it) but keeps streaming notebook
+  // ids local instead of rewriting them to the remote observablehq API
+  expect(src.includes('\n    resolve(id, parentUrl, defaultResolve)')).toBe(true);
+  expect(src.includes('if (window.__lopeStreaming && isNotebook(id)) return')).toBe(true);
+  return 'ok';
 };
-const _strmtest2 = function _test_lopebook_main_at_top_with_sentinel(expect,lopebook)
+const _1d9ux6v = function _test_lopebook_main_at_top_with_sentinel(lopebook,expect)
 {
-    const MARK = "<!--USER_BLOCKS_MARK-->";
-    const html = lopebook({ blocks: MARK, cssUrls: [], bootloader: "@tomlarkworthy/bootloader", title: "t" });
-    const mainIdx = html.indexOf('<script id="main">');
-    const blocksIdx = html.indexOf(MARK);
-    const sentinelIdx = html.indexOf("streaming_sentinel");
-    // main is a classic (non-deferred) script so it runs from the top during streaming
-    expect(mainIdx).toBeGreaterThan(-1);
-    expect(html.includes('<script type="module" id="main">')).toBe(false);
-    // main runs before the module blocks, the end sentinel after them
-    expect(mainIdx).toBeLessThan(blocksIdx);
-    expect(sentinelIdx).toBeGreaterThan(blocksIdx);
-    // bootstrap awaits the now-async fetch hook before reading .text()
-    expect(html.includes('.fetch("file://es-module-shims@2.6.2").then(r => r.text())')).toBe(true);
-    return "ok";
+  const MARK = '<!--USER_BLOCKS_MARK-->';
+  const html = lopebook({
+    blocks: MARK,
+    cssUrls: [],
+    bootloader: '@tomlarkworthy/bootloader',
+    title: 't'
+  });
+  const mainIdx = html.indexOf('<script id="main">');
+  const blocksIdx = html.indexOf(MARK);
+  const sentinelIdx = html.indexOf('streaming_sentinel');
+  // main is a classic (non-deferred) script so it runs from the top during streaming
+  expect(mainIdx).toBeGreaterThan(-1);
+  expect(html.includes('<script type="module" id="main">')).toBe(false);
+  // main runs before the module blocks, the end sentinel after them
+  expect(mainIdx).toBeLessThan(blocksIdx);
+  expect(sentinelIdx).toBeGreaterThan(blocksIdx);
+  // bootstrap awaits the now-async fetch hook before reading .text()
+  expect(html.includes('.fetch("file://es-module-shims@2.6.2").then(r => r.text())')).toBe(true);
+  return 'ok';
 };
-const _strmtest3 = function _test_streaming_order_prioritizes_mains(expect,streamingModuleOrder)
+const _13d3rb0 = function _test_streaming_order_prioritizes_mains(expect,streamingModuleOrder)
 {
-    const mk = (names) => new Map(names.map((n) => [n, { url: n, imports: [] }]));
-    const specByName = mk(["@u/app", "@u/lib", "@u/junk"]);
-    // single main leads, then everything else alphabetically (imports are ignored)
-    expect(streamingModuleOrder(["@u/app"], specByName).join(",")).toBe("@u/app,@u/junk,@u/lib");
-    // multiple mains are themselves alphabetical and still lead
-    expect(streamingModuleOrder(["@u/lib", "@u/app"], specByName).join(",")).toBe("@u/app,@u/lib,@u/junk");
-    // deterministic: independent of specByName insertion order
-    expect(streamingModuleOrder(["@u/app"], mk(["@u/junk", "@u/lib", "@u/app"])).join(",")).toBe("@u/app,@u/junk,@u/lib");
-    // unknown main is ignored; every module still present exactly once
-    expect(streamingModuleOrder(["@u/missing"], specByName).join(",")).toBe("@u/app,@u/junk,@u/lib");
-    return "ok";
-};
-const _strmtest4 = function _test_streaming_order_runtime(expect,Runtime,streamingModuleOrder)
-{
-    // Build a real Runtime with the module-import wiring the exporter introspects, then order it.
-    const rt = new Runtime();
-    const libMod = rt.module();
-    libMod.variable().define("x", [], () => 1);
-    const appMod = rt.module();
-    appMod.variable().define("module @u/lib", [], () => libMod); // app imports lib
-    const junkMod = rt.module();
-    junkMod.variable().define("y", [], () => 2);
-    // derive specs exactly as `module_specs` does: a module's `module ` vars are its imports
-    const names = new Map([[appMod, "@u/app"], [libMod, "@u/lib"], [junkMod, "@u/junk"]]);
-    const specByName = new Map();
-    for (const [mod, name] of names) {
-        const imports = [...rt._variables]
-            .filter(v => v._module === mod && typeof v._name === "string" && v._name.startsWith("module "))
-            .map(v => v._name.slice(7));
-        specByName.set(name, { url: name, imports });
+  const mk = names => new Map(names.map(n => [
+    n,
+    {
+      url: n,
+      imports: []
     }
-    const order = streamingModuleOrder(["@u/app"], specByName);
-    expect(order.join(",")).toBe("@u/app,@u/junk,@u/lib");   // main first, then the rest alphabetically
-    return "ok";
+  ]));
+  const specByName = mk([
+    '@u/app',
+    '@u/lib',
+    '@u/junk'
+  ]);
+  // single main leads, then everything else alphabetically (imports are ignored)
+  expect(streamingModuleOrder(['@u/app'], specByName).join(',')).toBe('@u/app,@u/junk,@u/lib');
+  // multiple mains are themselves alphabetical and still lead
+  expect(streamingModuleOrder([
+    '@u/lib',
+    '@u/app'
+  ], specByName).join(',')).toBe('@u/app,@u/lib,@u/junk');
+  // deterministic: independent of specByName insertion order
+  expect(streamingModuleOrder(['@u/app'], mk([
+    '@u/junk',
+    '@u/lib',
+    '@u/app'
+  ])).join(',')).toBe('@u/app,@u/junk,@u/lib');
+  // unknown main is ignored; every module still present exactly once
+  expect(streamingModuleOrder(['@u/missing'], specByName).join(',')).toBe('@u/app,@u/junk,@u/lib');
+  return 'ok';
+};
+const _18z61zg = function _test_streaming_order_runtime(Runtime,streamingModuleOrder,expect)
+{
+  // Build a real Runtime with the module-import wiring the exporter introspects, then order it.
+  const rt = new Runtime();
+  const libMod = rt.module();
+  libMod.variable().define('x', [], () => 1);
+  const appMod = rt.module();
+  appMod.variable().define('module @u/lib', [], () => libMod);
+  // app imports lib
+  const junkMod = rt.module();
+  junkMod.variable().define('y', [], () => 2);
+  // derive specs exactly as `module_specs` does: a module's `module ` vars are its imports
+  const names = new Map([
+    [
+      appMod,
+      '@u/app'
+    ],
+    [
+      libMod,
+      '@u/lib'
+    ],
+    [
+      junkMod,
+      '@u/junk'
+    ]
+  ]);
+  const specByName = new Map();
+  for (const [mod, name] of names) {
+    const imports = [...rt._variables].filter(v => v._module === mod && typeof v._name === 'string' && v._name.startsWith('module ')).map(v => v._name.slice(7));
+    specByName.set(name, {
+      url: name,
+      imports
+    });
+  }
+  const order = streamingModuleOrder(['@u/app'], specByName);
+  expect(order.join(',')).toBe('@u/app,@u/junk,@u/lib');
+  // main first, then the rest alphabetically
+  return 'ok';
+};
+const _1didxs7 = function _test_restoreCanonicalImports(restoreCanonicalImports,expect)
+{
+  const R = restoreCanonicalImports;
+  // Nothing to rewrite: identity.
+  expect(R('async () => 1 + 2')).toBe('async () => 1 + 2');
+  // Callee position becomes the canonical dynamic import.
+  expect(R('async () => await importShim("/@a/b.js?v=4")')).toBe('async () => await import("/@a/b.js?v=4")');
+  // Several calls of differing length: the offsets must stay valid.
+  expect(R('async () => [await importShim("a"), await importShim("bb")]')).toBe('async () => [await import("a"), await import("bb")]');
+  expect(R('async () => importShim(await importShim("inner"))')).toBe('async () => import(await import("inner"))');
+  // Argument 2 is the es-module-shims parent URL that Observable appends when
+  // it compiles a cell's own `import(x)`. Native import has no such parameter.
+  expect(R("f = () => importShim(objectURL, 'https://api.observablehq.com/@a/b.js?v=4')")).toBe('f = () => import(objectURL)');
+  expect(R('f = () => importShim(`${ nb }.js?v=4`, "https://api.observablehq.com/@a/b.js?v=4")')).toBe('f = () => import(`${ nb }.js?v=4`)');
+  // ...but a real options object is import attributes, and must survive.
+  expect(R("async () => await importShim(url, { with: { type: 'css' } })")).toBe("async () => await import(url, { with: { type: 'css' } })");
+  // Callee position only. A bare `import` identifier is a syntax error, so a
+  // reference passed as a value has to be left alone.
+  expect(R('async () => register(importShim, importShim("real"))')).toBe('async () => register(importShim, import("real"))');
+  expect(R('async () => window.importShim("x") + importShim("y")')).toBe('async () => window.importShim("x") + import("y")');
+  expect(R('async () => importShim() || importShim("x")')).toBe('async () => importShim() || import("x")');
+  // A string that merely mentions importShim is not a call.
+  expect(R('async () => { const s = "call importShim(x) later"; return importShim("real"); }')).toBe('async () => { const s = "call importShim(x) later"; return import("real"); }');
+};
+const _ogm44p = function _test_restoreCanonicalImports_preserves_source(expect,restoreCanonicalImports)
+{
+  // Only the callee identifier changes, so the rest survives byte-for-byte —
+  // escodegen used to reformat the whole cell.
+  const src = [
+    'function _f() {',
+    "  // keep  this   comment",
+    "  const s = 'single-quoted';   /* and this */",
+    '  return importShim("tpl");',
+    '}'
+  ].join('\n');
+  expect(restoreCanonicalImports(src)).toBe(src.replace('return importShim("tpl")', 'return import("tpl")'));
+  // Unparseable input falls back to the original source.
+  const broken = 'async () => importShim("unclosed';
+  expect(restoreCanonicalImports(broken)).toBe(broken);
 };
 const _1vgrzwk = function _isNotebook(){return(
 id => /^(@[^/]+\/[^/]+|d\/[a-f0-9]{16})$/.test(id)
 )};
-const _1pcnq22 = function _networking_script(normalize,isNotebook){return(
+const _1s9g3fb = function _networking_script(normalize,isNotebook){return(
 `
   const normalize = ${ normalize.toString() };
   const isNotebook = ${ isNotebook.toString() };
@@ -1718,7 +1828,7 @@ const _1pcnq22 = function _networking_script(normalize,isNotebook){return(
       const el = _create.call(this, name, opts);
       const tag = String(name).toLowerCase();
       if (tag === "script") {
-        if ( tag === "img") void 0;
+        if ( tag === "img") debugger;
         const d = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, "src");
         Object.defineProperty(el, "src", {
           configurable: true,
@@ -1810,21 +1920,22 @@ const _1pcnq22 = function _networking_script(normalize,isNotebook){return(
     }
   })();`
 )};
-const _lq8bhb = function _lopebook(diskDataUrl, networking_script) {
-    return ({blocks = '', cssUrls = [], bootloader = '@tomlarkworthy/bootloader', title = 'Lopecode notebook', description, image, metas = [], head, bodyPrepend = ''} = {}) => {
-        const styleImports = cssUrls.map((url, i) => `  const style${ i } = await importShim(${ JSON.stringify(url) }, { with: { type: 'css' } });`).join('\n');
-        const styleAdopt = cssUrls.map((_, i) => `style${ i }.default`).join(',');
-        const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const ogTags = [
-            `<meta property="og:title" content="${ attr(title) }">`,
-            `<meta property="og:type" content="website">`,
-            description ? `<meta name="description" content="${ attr(description) }">` : '',
-            description ? `<meta property="og:description" content="${ attr(description) }">` : '',
-            image ? `<meta property="og:image" content="${ attr(image) }">` : '',
-            // Preserved <meta> carried across re-export by exportToHTML's head scan.
-            ...(metas || []).map(m => `<meta ${ m.isProperty ? 'property' : 'name' }="${ attr(m.key) }" content="${ attr(m.content) }">`)
-        ].filter(Boolean).join('\n  ');
-        return `<!DOCTYPE html>
+const _kfs9ca = function _lopebook(diskDataUrl,networking_script)
+{
+  return ({blocks = '', cssUrls = [], bootloader = '@tomlarkworthy/bootloader', title = 'Lopecode notebook', description, image, metas = [], head, bodyPrepend = ''} = {}) => {
+    const styleImports = cssUrls.map((url, i) => `  const style${ i } = await importShim(${ JSON.stringify(url) }, { with: { type: 'css' } });`).join('\n');
+    const styleAdopt = cssUrls.map((_, i) => `style${ i }.default`).join(',');
+    const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const ogTags = [
+      `<meta property="og:title" content="${ attr(title) }">`,
+      `<meta property="og:type" content="website">`,
+      description ? `<meta name="description" content="${ attr(description) }">` : '',
+      description ? `<meta property="og:description" content="${ attr(description) }">` : '',
+      image ? `<meta property="og:image" content="${ attr(image) }">` : '',
+      // Preserved <meta> carried across re-export by exportToHTML's head scan.
+      ...(metas || []).map(m => `<meta ${ m.isProperty ? 'property' : 'name' }="${ attr(m.key) }" content="${ attr(m.content) }">`)
+    ].filter(Boolean).join('\n  ');
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1864,73 +1975,73 @@ ${ blocks }
 <script id="streaming_sentinel">window.__lopeStreaming = false;</scr\ipt>
 </body>
 </html>`;
-    };
+  };
 };
-const _lzzjtg = function _lopemodule(TRACE_MODULE,CSS,arrayBufferToBase64,inlineModule,escapeScriptTags)
+const _li7wcc = function _lopemodule(TRACE_MODULE,CSS,arrayBufferToBase64,inlineModule,escapeScriptTags)
 {
-    return async module => {
-        if (module.url === TRACE_MODULE) {
-            void 0;
-        }
-        const moduleId = module.url.replace(/^(d\/[a-f0-9]{16})@\d+$/, '$1');
-        const files = module.fileAttachments ? await Promise.all([...module.fileAttachments.entries()].map(async ([name, attachment]) => {
-            const url = attachment.url || attachment;
-            const file_url = `${ moduleId }/${ encodeURIComponent(name) }`;
-            // Get from local when possible
-            const lopefile = !url.startsWith('blob:') && document.querySelector(`script[type=lope-file][module='${ CSS.escape(module.url) }'][file='${ CSS.escape(encodeURIComponent(name)) }']`);
-            let data64, mime = undefined;
-            if (!lopefile) {
-                const response = await fetch(url);
-                data64 = await response.arrayBuffer().then(arrayBufferToBase64);
-                mime = response.headers.get('content-type');
-            } else {
-                data64 = lopefile.textContent;
-                mime = lopefile.getAttribute('mime');
-            }
-            return `<script id="${ file_url }" 
+  return async module => {
+    if (module.url === TRACE_MODULE) {
+      debugger;
+    }
+    const moduleId = module.url.replace(/^(d\/[a-f0-9]{16})@\d+$/, '$1');
+    const files = module.fileAttachments ? await Promise.all([...module.fileAttachments.entries()].map(async ([name, attachment]) => {
+      const url = attachment.url || attachment;
+      const file_url = `${ moduleId }/${ encodeURIComponent(name) }`;
+      // Get from local when possible
+      const lopefile = !url.startsWith('blob:') && document.querySelector(`script[type=lope-file][module='${ CSS.escape(module.url) }'][file='${ CSS.escape(encodeURIComponent(name)) }']`);
+      let data64, mime = undefined;
+      if (!lopefile) {
+        const response = await fetch(url);
+        data64 = await response.arrayBuffer().then(arrayBufferToBase64);
+        mime = response.headers.get('content-type');
+      } else {
+        data64 = lopefile.textContent;
+        mime = lopefile.getAttribute('mime');
+      }
+      return `<script id="${ file_url }" 
   type="text/plain"
   data-encoding="base64"
   data-mime="${ mime }"
 >
 ${ data64 }
-</scr\ipt>`;    // return `<script type="lope-file" module="${
-                //   module.url
-                // }" file="${encodeURIComponent(
-                //   name
-                // )}" mime="${mime}">${data64}</scr\ipt>\n`;
-        })) : [];
-        return `${ files.join('\n') }\n${ inlineModule(moduleId, escapeScriptTags(module.source)) }\n`;
-    };
+</scr\ipt>`;  // return `<script type="lope-file" module="${
+              //   module.url
+              // }" file="${encodeURIComponent(
+              //   name
+              // )}" mime="${mime}">${data64}</scr\ipt>\n`;
+    })) : [];
+    return `${ files.join('\n') }\n${ inlineModule(moduleId, escapeScriptTags(module.source)) }\n`;
+  };
 };
 const _19l1umr = function _escapeScriptTags(){return(
 str => str.replaceAll('</scr\ipt', '</scr\\ipt')
 )};
-const _1hwkszj = function _arrayBufferToBase64(){return(
+const _xpg7uv = function _arrayBufferToBase64(){return(
 async function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');
-    return btoa(binary);
+  const bytes = new Uint8Array(buffer);
+  const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');
+  return btoa(binary);
 }
 )};
-const _am38ex = function _74(md){return(
+const _1iz5onh = function _81(md){return(
 md`### Global Output`
 )};
-const _kx1h0y = function _75(md){return(
+const _b9np5w = function _82(md){return(
 md`## Utils`
 )};
-const _t237wb = function _getCompactISODate(){return(
+const _fw7q7v = function _getCompactISODate(){return(
 function getCompactISODate() {
-    const date = new Date();
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    return `${ year }${ month }${ day }T${ hours }${ minutes }${ seconds }Z`;
+  const date = new Date();
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${ year }${ month }${ day }T${ hours }${ minutes }${ seconds }Z`;
 }
 )};
-const _1nku2br = function _77(md){return(
+const _7vqfq9 = function _84(md){return(
 md`## Additional Tests`
 )};
 const _8765p8 = function _diskDataUrl(disk_svg){return(
@@ -1955,6 +2066,7 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
 
+  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));  
   main.define("module @tomlarkworthy/observable-runtime-v6", async () => runtime.module((await import("/@tomlarkworthy/observable-runtime-v6.js?v=4")).default));  
   main.define("module @tomlarkworthy/flow-queue", async () => runtime.module((await import("/@tomlarkworthy/flow-queue.js?v=4")).default));  
   main.define("module @tomlarkworthy/cell-map", async () => runtime.module((await import("/@tomlarkworthy/cell-map.js?v=4")).default));  
@@ -1964,12 +2076,11 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/local-storage-view", async () => runtime.module((await import("/@tomlarkworthy/local-storage-view.js?v=4")).default));  
   main.define("module @tomlarkworthy/dom-view", async () => runtime.module((await import("/@tomlarkworthy/dom-view.js?v=4")).default));  
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));  
-  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
-  main.define("module @tomlarkworthy/lopepage-urls", async () => runtime.module((await import("/@tomlarkworthy/lopepage-urls.js?v=4")).default));  
+  main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
   main.define("module @tomlarkworthy/jest-expect-standalone", async () => runtime.module((await import("/@tomlarkworthy/jest-expect-standalone.js?v=4")).default));  
   main.define("module @tomlarkworthy/themes", async () => runtime.module((await import("/@tomlarkworthy/themes.js?v=4")).default));  
   $def("_1noor04", null, ["md"], _1noor04);  
-  $def("_1xs1o58", null, ["exporter","viewof output","Event"], _1xs1o58);  
+  $def("_vpmotg", null, ["exporter","viewof output","Event"], _vpmotg);  
   $def("_16yvadj", null, ["md","downloadAnchor","forkAnchor"], _16yvadj);  
   $def("_xnho81", null, ["md","forkAnchor","downloadAnchor"], _xnho81);  
   $def("_lv8hyy", null, ["md"], _lv8hyy);  
@@ -1979,77 +2090,79 @@ export default function define(runtime, observer) {
   $def("_17bj13d", null, ["disk_svg"], _17bj13d);  
   $def("_fl78rz", "disk_svg", ["html"], _fl78rz);  
   $def("_ibwdcx", null, ["md"], _ibwdcx);  
-  $def("_4vze8h", "exporter", ["actionHandler","css","keepalive","exporter_module","variable","domView","view","disk_svg","Inputs","themes","viewof theme_assets","linkTo"], _4vze8h);
-  $def("_5xp8ad", "copyTextToClipboard", ["globalThis"], _5xp8ad);  
-  $def("_ywlem4", "htmlToConsoleSnippet", ["utf8ToBase64"], _ywlem4);  
-  $def("_1gdtxyo", "exportAnchor", ["Node","notebook_name","main","_runtime","exportToHTML","location","getCompactISODate"], _1gdtxyo);  
+  $def("_1p4bp3o", "exporter", ["actionHandler","css","keepalive","exporter_module","variable","domView","view","disk_svg","linkTo","Inputs","themes","viewof theme_assets"], _1p4bp3o);  
+  $def("_14mjs7h", "copyTextToClipboard", ["globalThis"], _14mjs7h);  
+  $def("_1sbph8c", "htmlToConsoleSnippet", ["utf8ToBase64"], _1sbph8c);  
+  $def("_1w6fc3k", "exportAnchor", ["Node","notebook_name","main","_runtime","exportToHTML","location","getCompactISODate"], _1w6fc3k);  
   $def("_1u2ju69", "forkAnchor", ["exportAnchor"], _1u2ju69);  
   $def("_1a8n42w", "downloadAnchor", ["exportAnchor"], _1a8n42w);  
-  $def("_r3bep4", "actionHandler", ["Inputs","getSourceModule","notebook_name","_runtime","exportToHTML","htmlToConsoleSnippet","copyTextToClipboard","view","location","getCompactISODate","linkTo"], _r3bep4);
-  $def("_k7go5d", "exportToHTML", ["_runtime","cssForTheme","css","location","keepalive","exporter_module","viewof task"], _k7go5d);  
-  $def("_17k9v19", "getSourceModule", ["notebook_name","main","_runtime","importShim"], _17k9v19);  
-  $def("_6vlf2p", "createShowable", ["variable","view"], _6vlf2p);  
-  $def("_zclcql", "reportValidity", [], _zclcql);  
-  $def("_10rnvxz", "top120List", [], _10rnvxz);  
-  $def("_1iotzy", "notebook_name", [], _1iotzy);  
+  $def("_4zsqot", "actionHandler", ["Inputs","getSourceModule","notebook_name","_runtime","exportToHTML","htmlToConsoleSnippet","copyTextToClipboard","view","linkTo","location","getCompactISODate"], _4zsqot);  
+  $def("_lb3gzc", "exportToHTML", ["_runtime","cssForTheme","css","location","keepalive","exporter_module","viewof task"], _lb3gzc);  
+  $def("_43zr7", "getSourceModule", ["notebook_name","main","_runtime"], _43zr7);  
+  $def("_tpv4tl", "createShowable", ["variable","view"], _tpv4tl);  
+  $def("_rnq9mt", "reportValidity", [], _rnq9mt);  
+  $def("_3vwqe7", "top120List", [], _3vwqe7);  
+  $def("_yq61j2", "notebook_name", [], _yq61j2);  
   $def("_1pwnq79", "notebook_title", ["notebook_name","_runtime"], _1pwnq79);  
-  $def("_1xzlmfy", "utf8ToBase64", [], _1xzlmfy);  
+  $def("_433z46", "utf8ToBase64", [], _433z46);  
   $def("_14gyvdn", null, ["md"], _14gyvdn);  
   $def("_3dtu61", "TRACE_MODULE", [], _3dtu61);  
   $def("_g3fan0", null, ["task"], _g3fan0);  
   $def("_1km8e4e", "task_runtime", ["task"], _1km8e4e);  
   $def("_tdkfs5", "runtime_variables", ["task_runtime","variableToObject"], _tdkfs5);  
-  $def("_1thre44", "buildModuleNames", [], _1thre44);  
+  $def("_qc5kek", "buildModuleNames", [], _qc5kek);  
   $def("_1pfdk6e", "isModuleVar", [], _1pfdk6e);  
   $def("_1vua7u7", "isDynamicVar", [], _1vua7u7);  
-  $def("_13nx5f5", "isImportBridged", [], _13nx5f5);  
-  $def("_4l3h5t", "findImportedName3", [], _4l3h5t);  
-  $def("_1r5dbt4", "moduleNames", ["task","moduleMap","task_runtime"], _1r5dbt4);  
+  $def("_9cxfm9", "isImportBridged", [], _9cxfm9);  
+  $def("_1omyant", "findImportedName3", [], _1omyant);  
+  $def("_x9dxs8", "moduleNames", ["task","moduleMap","task_runtime"], _x9dxs8);  
   $def("_2o6tia", null, ["resolve_modules"], _2o6tia);  
   $def("_dx8tp1", null, ["summary"], _dx8tp1);  
-  $def("_rd2qwz", "excluded_module_names", [], _rd2qwz);  
+  $def("_ti9fu1", "excluded_module_names", [], _ti9fu1);  
   $def("_po3sop", "excluded_modules", ["moduleNames","excluded_module_names"], _po3sop);  
   $def("_16u7vne", "included_modules", ["moduleNames","excluded_module_names"], _16u7vne);  
-  $def("_1y5e5x8", "module_specs", ["task","included_modules","TRACE_MODULE","task_runtime","isModuleVar","isDynamicVar","getFileAttachments","main","generate_module_source","moduleNames"], _1y5e5x8);  
+  $def("_kxkh98", "module_specs", ["task","included_modules","TRACE_MODULE","task_runtime","isModuleVar","isDynamicVar","getFileAttachments","main","generate_module_source","moduleNames"], _kxkh98);  
   $def("_1r3eg9r", "findImports", [], _1r3eg9r);  
-  $def("_ipv4ft", "getFileAttachments", [], _ipv4ft);  
-  $def("_strmord", "streamingModuleOrder", [], _strmord);
-  $def("_fb2vp1", "book", ["task","inlineModule","inlineGzipModule","es_module_shims","runtime_gz","inspector_gz","module_specs","lopemodule","lopebook","streamingModuleOrder"], _fb2vp1);
-  $def("_18javdl", null, ["Inputs","module_specs"], _18javdl);  
-  $def("_1gb47v", null, ["md"], _1gb47v);  
-  $def("_5m8hbe", "report", ["DOMParser","book"], _5m8hbe);  
-  $def("_4x0qc2", "tomlarkworthy_exporter_task", ["book","report","exporter_module","viewof task"], _4x0qc2);  
-  $def("_1exq2jt", null, ["md"], _1exq2jt);  
-  $def("_fctoc0", null, ["md"], _fctoc0);  
-  $def("_85q15a", "exportModuleJS", ["_runtime","buildModuleNames","isModuleVar","isDynamicVar","getFileAttachments","generate_module_source"], _85q15a);  
+  $def("_15bukmh", "getFileAttachments", [], _15bukmh);  
+  $def("_g0wr2v", "streamingModuleOrder", [], _g0wr2v);  
+  $def("_e1usrg", "book", ["task","inlineModule","inlineGzipModule","es_module_shims","runtime_gz","inspector_gz","streamingModuleOrder","module_specs","lopemodule","lopebook"], _e1usrg);  
+  $def("_tztkf6", null, ["Inputs","module_specs"], _tztkf6);  
+  $def("_1razd4c", null, ["md"], _1razd4c);  
+  $def("_avn3ei", "report", ["DOMParser","book"], _avn3ei);  
+  $def("_186iat6", "tomlarkworthy_exporter_task", ["book","report","exporter_module","viewof task"], _186iat6);  
+  $def("_9aqzbs", null, ["md"], _9aqzbs);  
+  $def("_1h8zj4h", null, ["md"], _1h8zj4h);  
+  $def("_1xx9ynh", "exportModuleJS", ["_runtime","buildModuleNames","isModuleVar","isDynamicVar","getFileAttachments","generate_module_source"], _1xx9ynh);  
   $def("_udwrns", "generate_module_source", ["generate_definitions","generate_define"], _udwrns);  
   $def("_19ft5zb", "generate_definitions", ["variableToDefinition"], _19ft5zb);  
-  $def("_7nr512", "generate_define", ["variableToDefine"], _7nr512);  
+  $def("_u3aown", "generate_define", ["variableToDefine"], _u3aown);  
   $def("_1hslsmt", "isLiveImport", [], _1hslsmt);  
-  $def("_g39v22", "variableToDefinition", ["isModuleVar","isImportBridged","isLiveImport","isDynamicVar","pid","restoreCanonicalImports"], _g39v22);  
-  $def("_5zomoj", "restoreCanonicalImports", ["acorn","escodegen"], _5zomoj);  
-  $def("_1g36je3", "variableToDefine", ["isLiveImport","isDynamicVar","isModuleVar","isImportBridged","findImportedName3","pid"], _1g36je3);  
-  $def("_dxkjia", null, ["md"], _dxkjia);  
+  $def("_4i5mmq", "variableToDefinition", ["isModuleVar","isImportBridged","isLiveImport","isDynamicVar","pid","restoreCanonicalImports"], _4i5mmq);  
+  $def("_79c94t", "restoreCanonicalImports", ["acorn"], _79c94t);  
+  $def("_1g13ozv", "variableToDefine", ["isLiveImport","isDynamicVar","isModuleVar","isImportBridged","findImportedName3","pid"], _1g13ozv);  
+  $def("_8rymrb", null, ["md"], _8rymrb);  
   $def("_g33g3u", "es_module_shims", [], _g33g3u);  
   $def("_1na8qih", "inspector_gz", [], _1na8qih);  
   $def("_3naqgd", "inlineModule", [], _3naqgd);  
   $def("_19eucuj", "inlineGzipModule", [], _19eucuj);  
   $def("_bwex58", "normalize", [], _bwex58);  
-  $def("_eoywzy", "test_normalize", ["expect","normalize"], _eoywzy);
-  $def("_strmtest1", "test_networking_script_is_streaming", ["expect","networking_script"], _strmtest1);
-  $def("_strmtest2", "test_lopebook_main_at_top_with_sentinel", ["expect","lopebook"], _strmtest2);
-  $def("_strmtest3", "test_streaming_order_prioritizes_mains", ["expect","streamingModuleOrder"], _strmtest3);
-  $def("_strmtest4", "test_streaming_order_runtime", ["expect","Runtime","streamingModuleOrder"], _strmtest4);
+  $def("_1vymoni", "test_normalize", ["expect","normalize"], _1vymoni);  
+  $def("_158qnvp", "test_networking_script_is_streaming", ["networking_script","expect"], _158qnvp);  
+  $def("_1d9ux6v", "test_lopebook_main_at_top_with_sentinel", ["lopebook","expect"], _1d9ux6v);  
+  $def("_13d3rb0", "test_streaming_order_prioritizes_mains", ["expect","streamingModuleOrder"], _13d3rb0);  
+  $def("_18z61zg", "test_streaming_order_runtime", ["Runtime","streamingModuleOrder","expect"], _18z61zg);  
+  $def("_1didxs7", "test_restoreCanonicalImports", ["restoreCanonicalImports","expect"], _1didxs7);  
+  $def("_ogm44p", "test_restoreCanonicalImports_preserves_source", ["expect","restoreCanonicalImports"], _ogm44p);  
   $def("_1vgrzwk", "isNotebook", [], _1vgrzwk);  
-  $def("_1pcnq22", "networking_script", ["normalize","isNotebook"], _1pcnq22);  
-  $def("_lq8bhb", "lopebook", ["diskDataUrl","networking_script"], _lq8bhb);  
-  $def("_lzzjtg", "lopemodule", ["TRACE_MODULE","CSS","arrayBufferToBase64","inlineModule","escapeScriptTags"], _lzzjtg);  
+  $def("_1s9g3fb", "networking_script", ["normalize","isNotebook"], _1s9g3fb);  
+  $def("_kfs9ca", "lopebook", ["diskDataUrl","networking_script"], _kfs9ca);  
+  $def("_li7wcc", "lopemodule", ["TRACE_MODULE","CSS","arrayBufferToBase64","inlineModule","escapeScriptTags"], _li7wcc);  
   $def("_19l1umr", "escapeScriptTags", [], _19l1umr);  
-  $def("_1hwkszj", "arrayBufferToBase64", [], _1hwkszj);  
-  $def("_am38ex", null, ["md"], _am38ex);  
-  $def("_kx1h0y", null, ["md"], _kx1h0y);  
-  $def("_t237wb", "getCompactISODate", [], _t237wb);  
-  $def("_1nku2br", null, ["md"], _1nku2br);  
+  $def("_xpg7uv", "arrayBufferToBase64", [], _xpg7uv);  
+  $def("_1iz5onh", null, ["md"], _1iz5onh);  
+  $def("_b9np5w", null, ["md"], _b9np5w);  
+  $def("_fw7q7v", "getCompactISODate", [], _fw7q7v);  
+  $def("_7vqfq9", null, ["md"], _7vqfq9);  
   $def("_8765p8", "diskDataUrl", ["disk_svg"], _8765p8);  
   $def("_z4k2or", "viewof task", ["flowQueue"], _z4k2or);  
   $def("_ngmf1x", "task", ["Generators","viewof task"], _ngmf1x);  
@@ -2057,7 +2170,9 @@ export default function define(runtime, observer) {
   $def("_ei7ugd", "output", ["Generators","viewof output"], _ei7ugd);  
   $def("_blfbdd", "viewof exporter_module", ["thisModule"], _blfbdd);  
   $def("_1iao5e4", "exporter_module", ["Generators","viewof exporter_module"], _1iao5e4);  
+  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));  
   main.define("runtime_gz", ["module @tomlarkworthy/observable-runtime-v6", "@variable"], (_, v) => v.import("source_gz", "runtime_gz", _));  
+  main.define("Runtime", ["module @tomlarkworthy/observable-runtime-v6", "@variable"], (_, v) => v.import("Runtime", _));  
   main.define("flowQueue", ["module @tomlarkworthy/flow-queue", "@variable"], (_, v) => v.import("flowQueue", _));  
   main.define("cellMap", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("cellMap", _));  
   main.define("findModuleName", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("findModuleName", _));  
@@ -2067,11 +2182,9 @@ export default function define(runtime, observer) {
   main.define("parser", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("parser", _));  
   main.define("decompress_url", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("decompress_url", _));  
   main.define("acorn", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("acorn", _));  
-  main.define("escodegen", ["module @tomlarkworthy/observablejs-toolchain", "@variable"], (_, v) => v.import("escodegen", _));  
   main.define("view", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("view", _));  
   main.define("variable", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("variable", _));  
-  main.define("bindOneWay", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("bindOneWay", _));
-  main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));
+  main.define("bindOneWay", ["module @tomlarkworthy/view", "@variable"], (_, v) => v.import("bindOneWay", _));  
   main.define("reversibleAttach", ["module @tomlarkworthy/reversible-attachment", "@variable"], (_, v) => v.import("reversibleAttach", _));  
   main.define("localStorageView", ["module @tomlarkworthy/local-storage-view", "@variable"], (_, v) => v.import("localStorageView", _));  
   main.define("domView", ["module @tomlarkworthy/dom-view", "@variable"], (_, v) => v.import("domView", _));  
@@ -2087,8 +2200,7 @@ export default function define(runtime, observer) {
   main.define("main", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("main", _));  
   main.define("id", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("id", _));  
   main.define("importShim", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("importShim", _));  
-  main.define("expect", ["module @tomlarkworthy/jest-expect-standalone", "@variable"], (_, v) => v.import("expect", _));
-  main.define("Runtime", ["module @tomlarkworthy/observable-runtime-v6", "@variable"], (_, v) => v.import("Runtime", _));
+  main.define("expect", ["module @tomlarkworthy/jest-expect-standalone", "@variable"], (_, v) => v.import("expect", _));  
   main.define("themes", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("themes", _));  
   main.define("extra_css", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("extra_css", _));  
   main.define("current_theme", ["module @tomlarkworthy/themes", "@variable"], (_, v) => v.import("current_theme", _));  
