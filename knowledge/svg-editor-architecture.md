@@ -288,50 +288,121 @@ sourceText)` triple, applied by hand to two different targets, in two places, in
 gesture's delta is never a value — it is scattered across `ctx.state.drag` and consumed twice — so
 there is nothing to state a law *about*.
 
-**Make the delta a value and the theory arrives with it.** A gesture is a stream of view-space deltas
-that a tool translates into one source-space edit. That is precisely a **delta / edit lens** (Diskin,
-Xiong & Czarnecki 2011; Hofmann, Pierce & Wagner, *Edit Lenses*, POPL 2012) — the delta-based
-generalisation of the state-based lenses already in the paper, where the laws are about the *monoid of
-edits* rather than about states. The state-based laws have exact gesture counterparts:
+The theory for this is the **delta/edit-based** generalisation of the state-based lenses already in
+the paper. Axioms below are quoted from Johnson & Rosebrugh, *Unifying Set-Based, Delta-Based and
+Edit-Based Lenses*, Bx 2016 (CEUR Vol-1571) — henceforth **[JR16]** — which axiomatises Hofmann,
+Pierce & Wagner, *Edit Lenses*, POPL 2012 (**[HPW12]**, already cited by the paper) and Diskin, Xiong
+& Czarnecki, *From State- to Delta-Based Bidirectional Model Transformations: the Asymmetric Case*,
+JOT 10 (**[DXC11]**).
 
-| lens law | gesture law | falsified by |
-|---|---|---|
-| GetPut `put(get s, s) = s` | **T1 Null gesture** — down and up with no movement leaves the source byte-identical | gap 0: a missed hit silently becomes a *creation* |
-| PutGet `get(put(a,s)) = a` | **T2 Coherence** — the DOM painted mid-drag equals a fresh render of the source that gets committed | the 2026-07-23 ghosting; "it looked right until I reloaded" |
-| PutPut `put(a',put(a,s)) = put(a',s)` | **T3 Homomorphism** — one drag by `d` ≡ the composition of its frames | float accumulation; multi-move committing one element |
+**Module** [JR16 Def 6]. A set `X` with a monoid `M_X` acting **partially** on it:
 
-And two with no state-based counterpart, which are the actual theory *of tools*:
+    (M1)  x · 1 = x
+    (M2)  (x · m) · m′ = x · (m m′)
 
-- **T4 Confinement.** A tool that returns `false` from `onPointerDown` has changed nothing, and
+Partiality is load-bearing: whenever either side of an equation is defined, so is the other, and they
+agree.
+
+**Stateful monoid homomorphism** [JR16 Def 9]. A set `C` of *complements* (JR16: "or better, the
+consistencies") and a partial `p : M_X × C ⇀ M_Y × C`. Writing `p(m,c) = (n,c′)` and
+`p(m′,c′) = (n′,c″)`:
+
+    p(1, c)     = (1, c)
+    p(m m′, c)  = (n n′, c″)
+
+So the answer to both questions I flagged earlier is **yes**: translating the identity edit must give
+the identity edit, and translation must respect composition. The first is sharper than I assumed — it
+also requires the **complement to come back unchanged**. ([HPW12] requires these homomorphisms total
+and carries a distinguished initial complement; [JR16] drops both, and argues the correspondence
+survives.)
+
+**Edit lens** [JR16 Def 10]. `Λ = (C, p, q, K)` with `p`, `q` stateful monoid homomorphisms over a
+shared `C`, and a non-empty *consistency relation* `K ⊆ X × C × Y`:
+
+    (1) (x,c,y) ∈ K and x·m defined  ⟹  p(m,c) = (n,c′) defined, y·n defined, (x·m, c′, y·n) ∈ K
+    (2) symmetrically for q
+
+**Very well-behaved asymmetric delta lens (d-lens)** [JR16 Def 3, after DXC11]. `(G, P)`, `G` a
+functor (the Get), `P` the Put:
+
+    (i)   d-PutInc  dom P(X, α) = X
+    (ii)  d-PutId   P(X, id_{G X}) = id_X
+    (iii) d-PutGet  G(P(X, α)) = α
+    (iv)  d-PutPut  P(X, α′∘α) = P(X′, α′) ∘ P(X, α),  where X′ = cod P(X, α)
+
+#### The dictionary
+
+The axioms are already about svg-lens once you see one thing: **the gesture scratch is the
+complement.**
+
+| edit lens | svg-lens |
+|---|---|
+| `X`, `M_X` | the cell source; the edits a command can make to it |
+| `Y`, `M_Y` | the rendered drawing; pointer deltas |
+| `C` | **`ctx.state.drag`** — `T0`, `x0/y0`, `targets`, the hit list, the snap boxes |
+| `q : M_Y × C ⇀ M_X × C` | **the tool** |
+| `K` | "the DOM on screen is what this source renders to" |
+| `(G, P)` | the renderer and `svgWriter` |
+
+Two frameworks doing two jobs: the **d-lens** is the right shape for the writer (the source is
+authoritative, the drawing is derived), and the **edit lens** is the right shape for a tool, because
+what a tool needs and a state-based lens lacks is exactly a complement.
+
+#### The axioms we want
+
+| # | law | source | what it says here | falsified by |
+|---|---|---|---|---|
+| **T1** | `p(1,c) = (1,c)` | JR16 Def 9 | a null gesture makes a null source edit **and hands the complement back untouched** | left half: gap 0, where a missed hit becomes a *creation*. Right half: the pen bug, where the first-anchor commit discarded `state.pen` |
+| **T2** | `p(mm′,c) = (nn′,c″)` | JR16 Def 9 | translating a composite gesture = composing the translations | incremental accumulation, i.e. the float-drift class |
+| **T3** | d-PutGet | JR16 Def 3 | the gesture you made is the gesture the committed source shows | the 2026-07-23 ghosting; "looked right until I reloaded" |
+| **T4** | d-PutInc | JR16 Def 3 | a gesture commits against the state it started from | **the "gesture outlives its node" bug** — a commit minted a new node, the old target stopped resolving, and element 2's put was computed against a stale `X` |
+| **T5** | consistency preservation | JR16 Def 10 (1) | if the DOM agreed with the source before the gesture, it agrees after | makes T3's DOM-level check a consequence rather than a separate assertion |
+
+T4 is the one I would not have thought to write down, and it retroactively names a bug that took a
+day to find. That is the argument for doing this at all.
+
+**T2 explains two design choices that currently look like accidents.** It holds today because tools
+compute from the gesture *origin* held in the complement (`T0`, `x0`, `y0`) rather than from the
+previous frame, and because an attribute write is last-write-wins, so `n n′ = n′`. The law is the
+reason for both. It is also the law that snapping and grid rounding threaten — and they are survivable
+for exactly the same reason d-PutPut survives in the paper today: last-write-wins holds only **up to
+observation** under the skip rule (§residue), so T2 inherits that weakening rather than needing a new
+excuse.
+
+**Partiality is the formal content of "a tool must decline cleanly."** [JR16] stresses that the action
+is partial. A gesture on an attribute outside the lens domain is undefined, and the law forces its
+translation to be undefined too — the tool declines. `tryFocus`'s `catch { return false }` is that,
+done right. `toolStructure` falling through to *drop a new shape* is that, done wrong, which is gap 0
+again from a third direction.
+
+#### Two laws that are ours, not theirs
+
+Stated separately because they are not in either paper and should not be cited as if they were.
+
+- **T6 Confinement.** A tool that returns `false` from `onPointerDown` has changed nothing, and
   installing it cannot change what the tools before it do. Registry order is priority, so tool sets
-  form a (non-commutative) monoid under concatenation and the priority fold must respect it. **This
-  law is what makes a tool a plugin rather than a patch** — it is the thing a third-party tool has to
-  prove.
-- **T5 Rebase agreement.** `rebase(p, c)` equals re-locating the same element after `apply(c)`. This
-  is operational transformation's TP1 in one-sided form, and `test_rebasePath` already checks it for
-  one command by exactly that ground-truth method. Generalise it to the command registry.
+  form a non-commutative monoid under concatenation and the priority fold must respect it. Motivated
+  by [HPW12]'s modular-construction goal, but it is a property of our fold, not one of their axioms.
+  **This is the law that makes a tool a plugin rather than a patch** — it is what a third-party tool
+  has to prove.
+- **T7 Rebase agreement.** `rebase(p, c)` equals re-locating the same element after `apply(c)`:
+  operational transformation's TP1 in one-sided form, from the OT literature. `test_rebasePath`
+  already checks it for one command by exactly that ground-truth method; generalise it to the command
+  registry.
 
-Two more optics, and three of the gaps stop being special cases:
+#### Three gaps that stop being special cases
 
 - the **shape registry is a family of prisms** — tag dispatch is a sum type, and `preview ∘ review =
   Just` is the law each entry owes;
-- **hit-testing is an affine/optional** — a focus that may fail, whose law is that a failed `get`
-  makes `put` a no-op, which is T1 restated;
-- **multi-selection is a traversal** — so "set fill on the selection" is traversal ∘ lens and comes
-  for free, along with align/distribute (gap 8) and group edit (gap 2).
+- **hit-testing is an affine** — a focus that may fail, whose law is that a failed `get` makes `put` a
+  no-op, which is T1 restated;
+- **multi-selection is a traversal** — so "set fill on the selection" is traversal ∘ lens, and
+  align/distribute (gap 8) and group edit (gap 2) come with it.
 
-All three have textbook laws and can reuse the existing `forAll` harness unchanged.
+All three have textbook laws and reuse the existing `forAll` harness unchanged.
 
-**Where the laws are allowed to fail is the useful part.** T3 does not hold under snapping or grid
-rounding — those are deliberately non-linear, so the law localises the non-linearity instead of
-hiding it: state T3 for `snap: false`, and require the snapped case to satisfy T1 (re-applying a zero
-delta changes nothing). T2 does not hold where the source has holes, because the source cannot
-represent the previewed value — but the writer already detects this and returns `locked` with a
-`reason`, so the law is "coherent, **or** the writer said locked", and an unexplained divergence is a
-bug.
-
-*Before this goes in the LIVE submission, check the exact axioms against the two papers rather than
-against this summary.*
+*(Bibliography: the notebook already cites `hofmann2012editlenses`. Adding `diskin2011delta` and
+`johnson2016unifying` is worth doing only if the prose actually uses them.)*
 
 ### 6.3 How the laws get checked
 
@@ -340,20 +411,22 @@ Synthetic `PointerEvent`s drive real commits (proven 2026-07-23: dispatch `point
 assertions. Split the tool so both halves are checkable:
 
 - `preview(ctx, delta)` paints the live DOM; `commit(ctx, delta)` yields a command. Default `preview`
-  = apply the commit's own lens put to the live attribute, which makes **T2 structural rather than
+  = apply the commit's own lens put to the live attribute, which makes **T3 structural rather than
   tested** for every tool that does not override it — and deletes the duplicated triple from each
   tool.
-- With the delta a value, a tool is a pure `trace → [command]`, testable headlessly; only T2 needs a
-  browser.
+- With the delta a value, a tool is a pure `trace → [command]`, testable headlessly; T1, T2, T4, T6
+  and T7 need no DOM at all. Only T3 and T5 need a browser.
 
 Four instruments, all measurements rather than screenshots, each mapping onto a law:
 
 | instrument | checks |
 |---|---|
-| overlay `getBoundingClientRect()` minus the element's = 0 | T2 at the chrome level |
-| undo depth delta = number of elements the gesture claimed | T3, and T1 for a null gesture |
-| element count unchanged unless the gesture was a creation or deletion | T1, T4 — this alone catches gap 0 |
-| every selection path still resolves | T5 |
+| overlay `getBoundingClientRect()` minus the element's = 0 | T3 at the chrome level |
+| DOM equals a fresh render of the committed source | T5 |
+| undo depth delta = number of elements the gesture claimed | T2, and T1 for a null gesture |
+| element count unchanged unless the gesture was a creation or deletion | T1, T6 — this alone catches gap 0 |
+| the commit lands on the node that is current, not the one the gesture started on | T4 |
+| every selection path still resolves | T7 |
 
 Report them on the existing `lens-put` event beside `GetPut`/`PutGet`, so the editor keeps checking
 its own laws at runtime, the way `runCommand` already does.
@@ -366,10 +439,10 @@ Each stage ends shippable. *Falsified by* is the check that has to go green.
 pure infrastructure, and the one everything else is measured by. Three parts, in order:
 (a) a gesture carries a **delta**, and a tool declares `preview`/`commit` over it, with the default
 `preview` derived from `commit` — this deletes the duplicated `(value, lens, sourceText)` triple from
-every tool and makes T2 hold by construction;
+every tool and makes T3 hold by construction;
 (b) `options.tools` (and later `shapes`/`commands`/`fields`), defaulting to the ambient registries —
-without this, T4 cannot be tested at all;
-(c) the trace harness, T1–T5, and the four instruments, reported on `lens-put`.
+without this, T6 cannot be tested at all;
+(c) the trace harness, T1–T7, and the instruments, reported on `lens-put`.
 *Falsified by:* replaying the three 2026-07-23 bugs and gap 0 against it and having any of them pass;
 or `svgLens(node)` with no options behaving differently from today on the whole corpus.
 
@@ -380,7 +453,7 @@ descend). Closes gap 0 and part of gap 2.
 selection would; or the element-count instrument firing on a double-click.
 
 **S2 — shape registry, no behaviour change.** Move the existing points/path handlers into tag-keyed
-entries. Nothing new works yet; the 50 lens tests and T1–T5 must stay green. This is the refactor that
+entries. Nothing new works yet; the 50 lens tests and T1–T7 must stay green. This is the refactor that
 makes S3 one cell per tag.
 *Falsified by:* any existing test changing, or needing to change.
 
@@ -397,7 +470,7 @@ rebase, so `test_rebasePath`'s ground-truth method extends unchanged.
 disagrees with its edit — the M0.2 failure mode, which silently drops the selection.
 
 **S5 — outliner.** A pure projection of `childrenLens` plus `node.select`; no new write path.
-*Falsified by:* T5, or the tree disagreeing with `parseDoc`.
+*Falsified by:* T7, or the tree disagreeing with `parseDoc`.
 
 **S6 — field registry: colour, length, dash, opacity widgets.** `setProperty` already routes
 attribute vs `style`.
