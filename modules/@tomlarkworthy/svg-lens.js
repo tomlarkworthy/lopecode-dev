@@ -15,13 +15,9 @@
 // ================================================================================================
 // DOCUMENTATION + DEMO
 // ================================================================================================
-const _sl01 = function _intro(md,cite){return(
-md`# SVG Lens
+const _sl01 = function _intro(md) {return (md`# SVG Lens
 
-A bidirectional binding from source to editable SVG and back using composable *lenses* and
-orthogonal pluggable UX tools. Furthermore the lens can operate on SVG templates, and back
-propagate to upstream parameters. This goes beyond the pioneering work of ${cite("hempel2019")}.`
-)};
+The drawing syncs to the code and vice versa. Switch between using code and UI`);};
 
 // The drawing IS the source. Dragging rewrites this literal, byte-exactly, in place.
 const _sl02 = function _drawing(svgLens,svg){return(
@@ -160,19 +156,19 @@ md`Three rectangles, one slider each way. **The first** carries \`transform="tra
 and nothing else: drag it sideways and the slider moves, because that is the only place the number
 lives. **The second** carries the same expression, so its x is upstream, but its y is a literal — drag
 it vertically and its own source changes while \`\${shift}\` comes back byte for byte. **The third**
-is \`rotate(\${spin / 2} 32 100)\`: its handles are drawn locked before you touch them, and a gesture
-on them writes nothing and says why.
+carries \`rotate(\${spin} 32 100)\`: spin it and the *spin* slider moves, the same upstream sink as the
+first, because the whole angle is one expression naming a view.
 
 Watch the table underneath: every gesture reports the sink it landed in.`
 )};
 
 const _sl06b = function _shift(Inputs){return(
-Inputs.range([0, 140], { value: 40, step: 1, label: "shift", width: 260 })
+Inputs.range([-100, 300], { value: 40, step: 1, label: "shift", width: 260 })
 )};
 const _sl06bv = (G, _) => G.input(_);
 
 const _sl06c = function _spin(Inputs){return(
-Inputs.range([0, 90], { value: 20, step: 1, label: "spin", width: 260 })
+Inputs.range([0, 360], { value: 20, step: 1, label: "spin", width: 260 })
 )};
 const _sl06cv = (G, _) => G.input(_);
 
@@ -182,8 +178,8 @@ svgLens(svg`<svg viewBox="0 0 240 120" width="100%" style="max-height:220px;back
   <rect x="10" y="14" width="44" height="30" fill="#4C7FD1" transform="translate(${shift} 0)"/>
   <!-- mixed: y is source and writes; x is an expression and is reported locked -->
   <rect x="10" y="52" width="44" height="30" fill="#5B7A5E" transform="translate(${shift} 0)"/>
-  <!-- opaque: not an identifier, so there is nothing to write — the handles grey out -->
-  <rect x="10" y="88" width="44" height="24" fill="#B25B3A" transform="rotate(${spin / 2} 32 100)"/>
+  <!-- upstream rotation: the whole angle is one expression naming a view, so a spin drags the slider -->
+  <rect x="10" y="88" width="44" height="24" fill="#B25B3A" transform="rotate(${spin} 32 100)"/>
 </svg>`)
 )};
 const _sl06v = (G, _) => G.input(_);
@@ -238,46 +234,32 @@ const _sl02d = function _loadSvg(htl,outsideDomain,$0)
   return htl.html`<div style="display:flex;gap:10px;align-items:center">${file}${dl}</div>`;
 };
 
-const _sl04 = function _howToDrive(md,ref){return(
-md`The picture above is the editor. Drag it; the cell source under it is what changes. The file input
-at the top replaces that source with your own SVG — the same write path, so a document it cannot
-address is refused (the input turns red) rather than written.
+const _sl04 = function _howToDrive(md,ref) {return (md`
 
-| gesture | what it does | lens |
-|---|---|---|
-| drag a shape | moves it | \`transform\` |
-| tap a polygon or path, drag a handle | moves one vertex or anchor | \`points\`, path \`d\` |
-| tap anything else | rotate and scale from the box | \`transform\` |
+| gesture | what it does | lens | 
+|---|---|---| 
+| drag a shape | moves it | \`transform\` | 
+| tap a polygon or path, drag a handle | moves one vertex or anchor | \`points\`, path \`d\` | 
+| tap anything else | rotate and scale from the box | \`transform\` | 
 | double-click an edge / a vertex / empty canvas | add a vertex / remove one / drop in a shape | \`children\` |
 | tap again in the same place | steps down through stacked shapes | — |
 | shift-tap, or rubber-band | adds to the selection | — |
 
-| key | |
-|---|---|
-| **R** **E** **L** | drag out a rect, an ellipse, a line |
-| **P** | place path anchors; click the first again to close, double-click to finish open |
-| **V** / **Esc** | back to selecting (a finished tool returns by itself) |
-| **[** **]** / **{** **}** | lower, raise / send to back, front |
+| key | | 
+|---|---| 
+| **R** **E** **L** | drag out a rect, an ellipse, a line | 
+| **P** | place path anchors; click the first again to close, double-click to finish open | 
+| **V** / **Esc** | back to selecting (a finished tool returns by itself) | 
+| **\\[** **\\]** / **{** **}** | lower, raise / send to back, front |
 | **Delete** | removes the selection |
 | **⌘Z** / **⇧⌘Z** | undo, redo — byte for byte, and declines if something else wrote to the cell first |
-| **arrows**, **shift+arrows** | nudge by one unit, by ten |
+| **arrows**, **shift+arrows** | nudge by one unit, by ten | 
 | **alt** while dragging | ignore snapping |
 
-Features worth knowing: dragging snaps to a sibling's edges and centres and draws the guide it snapped
-to; dragging several selected shapes moves them all, one \`put\` each; the inspector types exact values
-through the same \`put\` a drag makes, so a typed \`transform\` keeps its readable spelling; a reference
-— \`fill="url(#g)"\`, \`href="#tile"\` — shows as a button that selects what it points at; units are
-residue, so \`50%\` and \`12px\` come back wearing the unit they had, and a paint property is written
-into an existing \`style=""\` rather than as an attribute the declaration would override. Handles are
-live DOM only and are never written to the source.
-
-How a gesture reaches the source — the lens chain, the laws it has to satisfy, and where it refuses —
-is ${ref("architecture")}.`
-)};
+${ ref('architecture') }.`);};
 
 // ---- how to use it somewhere else ----------------------------------------------------------------
-const _sl08 = function _useIt(md){return(
-md`## Use it in your own notebook
+const _sl08 = function _useIt(md) {return (md`## Use it in your own notebook
 
 \`\`\`js
 import {svgLens} from "@tomlarkworthy/svg-lens"
@@ -285,37 +267,7 @@ import {svgLens} from "@tomlarkworthy/svg-lens"
 viewof picture = svgLens(svg\`<svg viewBox="0 0 100 100">
   <circle cx="50" cy="50" r="20" fill="tomato"/>
 </svg>\`)
-\`\`\`
-
-Three rules, and they are all consequences of where the writes go:
-
-1. **The SVG must be one template literal in the cell you are calling from.** \`svgLens\` finds its own
-   cell by value identity and edits that literal, so a drawing assembled from string concatenation, or
-   built in a different cell and passed in, has nothing to write to. It still renders; it just will not
-   be editable, and the handles say so.
-2. **Interpolations are allowed inside attribute values, not in element position.** \`viewBox="0 0
-   \${w} 100"\` is fine. \`<svg>\${shapes}</svg>\` is refused, because a hole there can render any number
-   of elements and every address in the document would stop matching the DOM.
-3. **Use \`viewof\`.** The value is the live node; it emits \`input\` on every put, so downstream cells
-   recompute from a drag the same way they would from a slider.
-
-A put commits through \`Variable.define\`, so the cell recomputes and the node is replaced on every
-edit. Hold the *variable*, not the node: read \`viewof picture\` again after a put rather than caching
-the element across one.
-
-| you call | it does |
-|---|---|
-| \`picture.setTool(id)\` | pick what a gesture creates: \`select\`, \`rect\`, \`ellipse\`, \`line\`, \`pen\` |
-| \`picture.select(paths, mode)\`, \`picture.selectionPaths()\` | read or set the selection |
-| \`picture.setAttr(path, name, value)\`, \`picture.setProperty(path, prop, value)\` | typed edits, same put a drag makes |
-| \`picture.addShape(markup, at, parent)\`, \`picture.removeAt\`, \`picture.moveTo\`, \`picture.zOrder\` | structural commands |
-| \`picture.nudge(dx, dy)\`, \`picture.undo()\`, \`picture.redo()\` | keyboard-shaped operations |
-| \`picture.describe(path)\`, \`picture.refs(path)\` | what is at an address, and what it points at |
-| events \`lens-put\`, \`lens-select\`, \`lens-tool\` | every put, every selection change, every tool change |
-
-Every one of those is the same write path: a command, a lens \`put\`, one writer. Nothing in the list is
-a shortcut around the laws.`
-)};
+\`\`\``);};
 
 // ---- citations and cross-references (the apparatus @tomlarkworthy/lopecode-live-2026 uses) -------
 const _sl150 = function _externalLink(htl){return(
@@ -332,7 +284,7 @@ const _sl151 = function _sections(){return(
   { key: "tower", title: "The SVG tower: addressing and nesting" },
   { key: "architecture", title: "Tools, commands, one writer" },
   { key: "propagation", title: "Propagation, and why the loop closes", parent: "architecture" },
-  { key: "rect", title: "A first lens: one number in one rectangle" },
+  { key: "rect", title: "A first lens: one attribute of one shape" },
   { key: "children", title: "The structural lens" },
   { key: "sinks", title: "Back-propagation: three sinks" },
   { key: "related", title: "Related work" },
@@ -510,67 +462,37 @@ htl.html`<ol style="line-height:1.7">
 // ================================================================================================
 // THE PAPER
 // ================================================================================================
-const _sl200 = function _paperHeader(md){return(
-md`---
+const _sl200 = function _paperHeader(md) {return (md`---
 
 # Editing a drawing by editing its program
 
-*What follows is the reasoning behind the editor above: what a lens is, which laws it keeps, how the
-maths is kept apart from the pointer, and what happens when the drawing is a function of its inputs.
-The claims are backed by tests in the appendix, and several sections have a widget beside them.*`
-)};
+*What follows is the reasoning behind the editor above: what a lens is, which laws it keeps, how we combine to cover a complex domain like SVG, how the maths of sync is kept apart from the UX, and additionally how to apply when the drawing is itself a parameterized function.*`);};
 
 const _sl201 = function _problemH(sec){return(sec("problem"))};
 
-const _sl202 = function _problemP(md,cite,ref){return(
-md`A graphics editor and a graphics program disagree about what the drawing *is*. The editor treats it
-as a scene graph; the program treats it as text that produces one. Keeping both means keeping them in
-step, which is the view-update problem ${cite("bancilhon1981")} recast for programs
-${cite("chugh2016")}. Feedback in the other direction — program to picture — is the older half of the
-problem and has a standard vocabulary ${cite("tanimoto1990")}; what is at issue here is the return
-path.
+const _sl202 = function _problemP(md,cite,ref) {return (md`You can create computer graphics by typing code or by a graphical user interface, each has advantages in certain situations. If we can switch between these two modes fluidly, bidirectional, the advantage of each can be leveraged at that moment in time and the combined sum is greater than the parts in isolation. Keeping both means keeping them in step, which is the view-update problem ${ cite('bancilhon1981') } recast for programs ${ cite('chugh2016') }. Feedback in the other direction — program to picture — is the older half of the problem and has a standard vocabulary ${ cite('tanimoto1990') }; what is at issue here is the return path.
 
-Propagation is the hard part. Sketch-n-Sketch infers program changes from output changes by tracing
-values back to the expressions that produced them ${cite("chugh2016")} ${cite("hempel2019")}, which
-works for programs the tracer understands and degrades where it does not.
+Propagation is the hard part. Sketch-n-Sketch infers program changes from output changes by tracing values back to the expressions that produced them ${ cite('chugh2016') } ${ cite('hempel2019') }, which works for programs the tracer understands.
 
-This notebook takes a narrower approach. The drawing is not produced by a program that must be
-searched for the right expression to change: it is a template literal in the cell that is executing,
-and a gesture edits the bytes of that literal. Nothing is inferred. The update path is a composition
-of bidirectional lenses ${cite("foster2007lenses")}, which gives it laws, a stated domain, and
-property tests that run on every load (${ref("laws")}).
+This notebook takes a different approach. The update path is a composition of bidirectional lenses ${ cite('foster2007lenses') }, which gives it laws, a stated domain, and property tests (${ ref('laws') }).
 
-The cost is expressive power. What is editable is a drawing whose shape is written literally, plus
-numbers arriving from named inputs (${ref("sinks")}); a drawing generated by a loop is out of scope.
-In exchange, an accepted gesture is exact rather than a best fit, and anything the gesture does not
-touch — comments and spacing included — comes back byte for byte.`
-)};
+What is editable is a drawing whose shape is written literally, plus numbers arriving from named inputs (${ ref('sinks') }).`);};
 
 const _sl203 = function _lensesH(sec){return(sec("lenses"))};
 
-const _sl204 = function _lensesP(md,tex,cite){return(
-md`A **lens** between a source type ${tex`S`} and a view type ${tex`A`} is a pair of functions
-${cite("foster2007lenses")}:
+const _sl204 = function _lensesP(md,tex,cite) {return (md`A **lens** between a source type ${ tex`S` } and a view type ${ tex`A` } is a pair of functions ${ cite('foster2007lenses') }:
 
-${tex.block`\mathrm{get} : S \to A \qquad \mathrm{put} : A \times S \to S`}
+${ tex.block`\mathrm{get} : S \to A \qquad \mathrm{put} : A \times S \to S` }
 
-${tex`\mathrm{get}`} reads a view out of a source; ${tex`\mathrm{put}`} pushes an edited view back
-*into a particular source*. The second argument is what distinguishes a lens from a parser/printer
-pair: ${tex`S \to A`} and ${tex`A \to S`} would discard everything the parser did not model, whereas
-${tex`\mathrm{put}`} still holds the old source while it writes, so it can keep what the view never
-mentioned ${cite("foster2007lenses")}.
+${ tex`\mathrm{get}` } reads a view out of a source; ${ tex`\mathrm{put}` } pushes an edited view back *into a particular source*. The second argument is what distinguishes a lens from a parser/printer pair: ${ tex`S \to A` } and ${ tex`A \to S` } would discard everything the parser did not model, whereas ${ tex`\mathrm{put}` } still holds the old source while it writes, so it can keep what the view never mentioned ${ cite('foster2007lenses') }.
 
-Here ${tex`S`} is text and ${tex`A`} is whatever a gesture manipulates: a number, a point list, a
-transform. The lenses compose. Writing ${tex`l_1`} for the outer and ${tex`l_2`} for the inner lens,
+Here ${ tex`S` } is text and ${ tex`A` } is whatever a gesture manipulates: a number, a point list, a transform. The lenses compose. Writing ${ tex`l_1` } for the outer and ${ tex`l_2` } for the inner lens,
 
-${tex.block`(l_1 \circ l_2).\mathrm{get}(s) = l_2.\mathrm{get}(l_1.\mathrm{get}(s))`}
+${ tex.block`(l_1 \circ l_2).\mathrm{get}(s) = l_2.\mathrm{get}(l_1.\mathrm{get}(s))` }
 
-${tex.block`(l_1 \circ l_2).\mathrm{put}(b, s) = l_1.\mathrm{put}\big(l_2.\mathrm{put}(b, l_1.\mathrm{get}(s)),\; s\big)`}
+${ tex.block`(l_1 \circ l_2).\mathrm{put}(b, s) = l_1.\mathrm{put}\big(l_2.\mathrm{put}(b, l_1.\mathrm{get}(s)),\; s\big)` }
 
-and that is exactly the chain a drag runs down: cell source → template literal → attribute string →
-typed value, then back up again. Composition of well-behaved lenses is well-behaved, so the laws are
-established once, per level, and hold for the composite.`
-)};
+and that is exactly the chain a drag runs down: cell source → template literal → attribute string → typed value, then back up again. Composition of well-behaved lenses is well-behaved, so the laws are established once, per level, and hold for the composite.`);};
 
 const _sl205 = function _lawsH(sec){return(sec("laws"))};
 
@@ -627,110 +549,59 @@ directly, since random generators are unlikely to reach it.`
 
 const _sl211 = function _towerH(sec){return(sec("tower"))};
 
-const _sl212 = function _towerP(md,tex,ref,cite){return(
-md`Two things make SVG harder than the string examples in ${cite("foster2007lenses")}: the source is
-*nested*, and every address is relative to a source that editing can change.
+const _sl212 = function _towerP(md,cite,tex,ref) {return (md`Two things make SVG harder than the string examples in ${ cite('foster2007lenses') }: the source is *nested*, and every address is relative to a source that editing can change.
 
-**Notation.** Composition is written in diagrammatic order throughout — ${tex`\ell_1 \circ \ell_2`}
-applies ${tex`\ell_1`} first, so the outer lens is on the left. This is the reverse of the usual
-convention for functions, and matches the direction a gesture travels.
+**Notation.** Composition is written in diagrammatic order throughout — ${ tex`\ell_1 \circ \ell_2` } applies ${ tex`\ell_1` } first, so the outer lens is on the left. This is the reverse of the usual convention for functions, and matches the direction a gesture travels.
 
 **The tower.** Four types and three lenses:
 
-${tex.block`\begin{aligned}
-\ell_{\mathrm{lit}} &\;:\; \mathrm{Src} \rightharpoonup \mathrm{Doc} &&\texttt{literalLens} \\
-\ell_{\mathrm{attr}}(p, n) &\;:\; \mathrm{Doc} \rightharpoonup \mathrm{Attr} &&\texttt{attrTextLens} \\
-\ell_\mu &\;:\; \mathrm{Attr} \rightharpoonup A &&\texttt{transformLens},\ \texttt{pointsLens},\ \texttt{pathLens},\ \texttt{lengthLens}
-\end{aligned}`}
+${ tex.block`\begin{aligned} \ell_{\mathrm{lit}} &\;:\; \mathrm{Src} \rightharpoonup \mathrm{Doc} &&\texttt{literalLens} \\ \ell_{\mathrm{attr}}(p, n) &\;:\; \mathrm{Doc} \rightharpoonup \mathrm{Attr} &&\texttt{attrTextLens} \\ \ell_\mu &\;:\; \mathrm{Attr} \rightharpoonup A &&\texttt{transformLens},\ \texttt{pointsLens},\ \texttt{pathLens},\ \texttt{lengthLens} \end{aligned}` }
 
-${tex`\mathrm{Src}`} is the cell's own definition text, recovered from \`Function.prototype.toString()\`;
-${tex`\mathrm{Doc}`} is the bytes of the \`svg\` template literal inside it; ${tex`\mathrm{Attr}`} is one
-attribute value; ${tex`A`} is what the gesture actually manipulates — a number, a point list, an
-affine matrix, a list of path operations. A drag of a shape is the composite
+${ tex`\mathrm{Src}` } is the cell's own definition text, recovered from \`Function.prototype.toString()\`; ${ tex`\mathrm{Doc}` } is the bytes of the \`svg\` template literal inside it; ${ tex`\mathrm{Attr}` } is one attribute value; ${ tex`A` } is what the gesture actually manipulates — a number, a point list, an affine matrix, a list of path operations. A drag of a shape is the composite
 
-${tex.block`\ell_{\mathrm{lit}} \circ \ell_{\mathrm{attr}}(p, \texttt{transform}) \circ \ell_{\mathrm{transform}} \;:\; \mathrm{Src} \rightharpoonup \mathbb{R}^6`}
+${ tex.block`\ell_{\mathrm{lit}} \circ \ell_{\mathrm{attr}}(p, \texttt{transform}) \circ \ell_{\mathrm{transform}} \;:\; \mathrm{Src} \rightharpoonup \mathbb{R}^6` }
 
-and structural editing branches off one level up, at
-${tex`\ell_{\mathrm{kids}}(p) = \texttt{childrenLens}(p) : \mathrm{Doc} \rightharpoonup \mathrm{Elem}^*`},
-whose view is the list of child *source slices* — so every child carries its own residue and only the
-children that changed are reprinted.
+and structural editing branches off one level up, at ${ tex`\ell_{\mathrm{kids}}(p) = \texttt{childrenLens}(p) : \mathrm{Doc} \rightharpoonup \mathrm{Elem}^*` }, whose view is the list of child *source slices* — so every child carries its own residue and only the children that changed are reprinted.
 
-**Addressing is dependent, and that is the interesting part.** For a document ${tex`s`} let
-${tex`\mathrm{Path}(s)`} be the set of addresses of its elements. ${tex`\ell_{\mathrm{attr}}`} is not a
-lens but a *family* indexed by that set, and the set depends on the source:
+**Addressing is dependent, and that is the interesting part.** For a document ${ tex`s` } let ${ tex`\mathrm{Path}(s)` } be the set of addresses of its elements. ${ tex`\ell_{\mathrm{attr}}` } is not a lens but a *family* indexed by that set, and the set depends on the source:
 
-${tex.block`\ell_{\mathrm{attr}} \;:\; (s : \mathrm{Doc}) \to \mathrm{Path}(s) \times \mathrm{Name} \to \mathrm{Lens}(\mathrm{Doc}, \mathrm{Attr})`}
+${ tex.block`\ell_{\mathrm{attr}} \;:\; (s : \mathrm{Doc}) \to \mathrm{Path}(s) \times \mathrm{Name} \to \mathrm{Lens}(\mathrm{Doc}, \mathrm{Attr})` }
 
 The two kinds of put differ exactly here:
 
-${tex.block`\begin{aligned}
-\mathrm{Path}\big(\mathrm{put}_{\ell_{\mathrm{attr}}(p,n)}(a, s)\big) &= \mathrm{Path}(s) \\
-\mathrm{Path}\big(\mathrm{put}_{\ell_{\mathrm{kids}}(p)}(k, s)\big) &\neq \mathrm{Path}(s) \quad\text{in general}
-\end{aligned}`}
+${ tex.block`\begin{aligned} \mathrm{Path}\big(\mathrm{put}_{\ell_{\mathrm{attr}}(p,n)}(a, s)\big) &= \mathrm{Path}(s) \\ \mathrm{Path}\big(\mathrm{put}_{\ell_{\mathrm{kids}}(p)}(k, s)\big) &\neq \mathrm{Path}(s) \quad\text{in general} \end{aligned}` }
 
-An attribute edit preserves the address space; a structural edit does not. That one inequality is the
-reason the editor holds a selection as a *path* and re-resolves it after every put instead of caching a
-node, and the reason handles are refreshed after an attribute edit but cleared after a structural one.
+An attribute edit preserves the address space; a structural edit does not. That one inequality is the reason the editor holds a selection as a *path* and re-resolves it after every put instead of caching a node, and the reason handles are refreshed after an attribute edit but cleared after a structural one.
 
-**Partiality is part of the type.** ${tex`\ell_{\mathrm{lit}}`} refuses text that would not survive
-re-entry into the template literal; ${tex`\ell_{\mathrm{kids}}`} refuses a string that is not exactly
-one element. So put is partial, ${tex`\mathrm{put} : A \times S \rightharpoonup S`}, and composition
-intersects the domains:
+**Partiality is part of the type.** ${ tex`\ell_{\mathrm{lit}}` } refuses text that would not survive re-entry into the template literal; ${ tex`\ell_{\mathrm{kids}}` } refuses a string that is not exactly one element. So put is partial, ${ tex`\mathrm{put} : A \times S \rightharpoonup S` }, and composition intersects the domains:
 
-${tex.block`\mathrm{dom}(\ell_1 \circ \ell_2) = \{\,(b, s) \;\mid\; s \in \mathrm{dom}(\ell_1.\mathrm{get}),\; (b,\, \ell_1.\mathrm{get}(s)) \in \mathrm{dom}(\ell_2.\mathrm{put}),\; (\ell_2.\mathrm{put}(b, \ell_1.\mathrm{get}(s)),\, s) \in \mathrm{dom}(\ell_1.\mathrm{put})\,\}`}
+${ tex.block`\mathrm{dom}(\ell_1 \circ \ell_2) = \{\,(b, s) \;\mid\; s \in \mathrm{dom}(\ell_1.\mathrm{get}),\; (b,\, \ell_1.\mathrm{get}(s)) \in \mathrm{dom}(\ell_2.\mathrm{put}),\; (\ell_2.\mathrm{put}(b, \ell_1.\mathrm{get}(s)),\, s) \in \mathrm{dom}(\ell_1.\mathrm{put})\,\}` }
 
-The editor's contract is that this partiality is *visible*: a gesture whose put is undefined is
-declined before it previews, and the handle is drawn locked with the reason (${ref("sinks")}).
-Refusing is the domain being honest, not a failure.
+The editor's contract is that this partiality is *visible*: a gesture whose put is undefined is declined before it previews, and the handle is drawn locked with the reason (${ ref('sinks') }). Refusing is the domain being honest, not a failure.
 
-**Composition preserves the laws.** If ${tex`\ell_1`} and ${tex`\ell_2`} are well-behaved on their
-domains then so is ${tex`\ell_1 \circ \ell_2`}. GetPut:
+**Composition preserves the laws.** If ${ tex`\ell_1` } and ${ tex`\ell_2` } are well-behaved on their domains then so is ${ tex`\ell_1 \circ \ell_2` }. GetPut:
 
-${tex.block`(\ell_1 \circ \ell_2).\mathrm{put}\big((\ell_1 \circ \ell_2).\mathrm{get}(s),\, s\big) = \ell_1.\mathrm{put}\big(\ell_2.\mathrm{put}(\ell_2.\mathrm{get}(\ell_1.\mathrm{get}(s)),\, \ell_1.\mathrm{get}(s)),\, s\big) = \ell_1.\mathrm{put}(\ell_1.\mathrm{get}(s),\, s) = s`}
+${ tex.block`(\ell_1 \circ \ell_2).\mathrm{put}\big((\ell_1 \circ \ell_2).\mathrm{get}(s),\, s\big) = \ell_1.\mathrm{put}\big(\ell_2.\mathrm{put}(\ell_2.\mathrm{get}(\ell_1.\mathrm{get}(s)),\, \ell_1.\mathrm{get}(s)),\, s\big) = \ell_1.\mathrm{put}(\ell_1.\mathrm{get}(s),\, s) = s` }
 
-using GetPut of ${tex`\ell_2`} then of ${tex`\ell_1`}; PutGet is the same argument read downwards. This
-is why the laws are established once per level and never re-argued for the chain — and why a new
-microsyntax lens is a self-contained obligation: prove it at its own level and the tower is unaffected.
+using GetPut of ${ tex`\ell_2` } then of ${ tex`\ell_1` }; PutGet is the same argument read downwards. This is why the laws are established once per level and never re-argued for the chain — and why a new microsyntax lens is a self-contained obligation: prove it at its own level and the tower is unaffected.
 
-The weakened form composes too. Each level keeps PutPut only up to observation (${ref("residue")}),
-and since ${tex`(\ell_1 \circ \ell_2).\mathrm{get} = \ell_2.\mathrm{get} \circ \ell_1.\mathrm{get}`},
-the composite's quotient is exactly the composite's own \`get\` — so "up to observation" at each level
-gives "up to observation" of the whole chain, with no further loss.`
-)};
+The weakened form composes too. Each level keeps PutPut only up to observation (${ ref('residue') }), and since ${ tex`(\ell_1 \circ \ell_2).\mathrm{get} = \ell_2.\mathrm{get} \circ \ell_1.\mathrm{get}` }, the composite's quotient is exactly the composite's own \`get\` — so "up to observation" at each level gives "up to observation" of the whole chain, with no further loss.`);};
 
 const _sl209 = function _architectureH(sec){return(sec("architecture"))};
 
-const _sl210 = function _architectureP(md,ref,cite){return(
-md`One rule separates the maths from the pointer:
+const _sl210 = function _architectureP(md,ref,cite) {return (md`One rule separates the maths from the pointer:
 
 > **Tools emit commands, commands are lens puts, one writer applies them.**
 
-A tool is a pointer state machine — press, move, release. It may draw a preview into an overlay layer
-and mutate the live DOM; it may not persist anything. What it produces at the end of a gesture is a
-*command*: a pure function from the document text to new document text, or an attribute value to
-write at an address. The writer is the only code in the notebook that redefines a cell.
+A tool is a pointer state machine — press, move, release. It may draw a preview into an overlay layer and mutate the live DOM; it may not persist anything. What it produces at the end of a gesture is a *command*: a pure function from the document text to new document text, or an attribute value to write at an address. The writer is the only code in the notebook that redefines a cell.
 
-| layer | what lives there | knows about |
-|---|---|---|
-| L5 chrome | toolbar, inspector, keyboard, guides | the DOM |
-| L4 tools | pointer state machines, registered as a priority list | the DOM, geometry |
-| L3 commands | insert/delete/reorder, point edits, gizmo ops | text only |
-| L2 source lenses | cell source ⇄ template literal ⇄ attribute ⇄ children | text only |
-| L1 microsyntax | \`viewBox\`, \`points\`, \`transform\`, path \`d\`, lengths, style | strings and numbers |
-| L0 lens core | \`lens\`, \`compose\`, the law predicates | nothing |
+| layer | what lives there | knows about | |---|---|---| | L5 chrome | toolbar, inspector, keyboard, guides | the DOM | | L4 tools | pointer state machines, registered as a priority list | the DOM, geometry | | L3 commands | insert/delete/reorder, point edits, gizmo ops | text only | | L2 source lenses | cell source ⇄ template literal ⇄ attribute ⇄ children | text only | | L1 microsyntax | \`viewBox\`, \`points\`, \`transform\`, path \`d\`, lengths, style | strings and numbers | | L0 lens core | \`lens\`, \`compose\`, the law predicates | nothing |
 
-Nothing below L4 touches the DOM or the pointer, which is why the whole of L0–L3 is testable in
-Node with no browser, and is (${ref("laws")}). Two consequences worth stating:
+Nothing below L4 touches the DOM or the pointer, so L0–L3 is testable outside of a browser, and is (${ ref('laws') }). Two consequences worth stating:
 
-**The source is the truth; the DOM is a projection.** ${cite("larkworthy2026")} calls the general
-arrangement *source-last* — the live runtime is canonical and text is recovered from it on demand —
-and this editor applies it one level down, to the bytes inside one cell. A gesture is therefore an
-ordinary edit; what that buys, and why the resulting feedback loop terminates, is ${ref("propagation")}.
+**The source is the truth; the DOM is a projection.** ${ cite('larkworthy2026') } calls the general arrangement *source-last* — the live runtime is canonical and text is recovered from it on demand — and this editor applies it one level down, to the bytes inside one cell. A gesture is therefore an ordinary edit; what that buys, and why the resulting feedback loop terminates, is ${ ref('propagation') }.
 
-**The browser stays the authority on geometry.** Hit testing is \`elementsFromPoint\`, bounding boxes
-are \`getBBox\`, screen-to-user conversion is \`getScreenCTM\`. The lenses never re-implement SVG
-semantics; they only rewrite the text that produced them.`
-)};
+**The browser stays the authority on geometry.** Hit testing is \`elementsFromPoint\`, bounding boxes are \`getBBox\`, screen-to-user conversion is \`getScreenCTM\`. The lenses never re-implement SVG semantics; they only rewrite the text that produced them.`);};
 
 // ---- §4 widget: one lens, one number, the laws checked in front of you ---------------------------
 // The source string is fixed and deliberately untidy, and the only
@@ -762,83 +633,65 @@ const _sl219 = function _lawBadges(htl){return(
 
 const _sl213 = function _propagationH(sec){return(sec("propagation"))};
 
-const _sl214 = function _propagationP(md,tex,ref){return(
-md`**Commands are endomorphisms of the source.** Currying a put gives
+const _sl214 = function _propagationP(md,tex,ref) {return (md`**Commands are endomorphisms of the source.** Currying a put gives
 
-${tex.block`\mathrm{cmd}_\ell(a) \;=\; \lambda s.\; \mathrm{put}_\ell(a,\, s) \;:\; S \rightharpoonup S`}
+${ tex.block`\mathrm{cmd}_\ell(a) \;=\; \lambda s.\; \mathrm{put}_\ell(a,\, s) \;:\; S \rightharpoonup S` }
 
-so every lens at every level of ${ref("tower")} induces a source-to-source function, and the command
-layer needs no vocabulary of its own: insert, delete, reorder and the gizmo operations are all of this
-shape. Commands compose by ordinary function composition, and the skip rule says a null edit is the
-identity of that monoid:
+so every lens at every level of ${ ref('tower') } induces a source-to-source function, and the command layer needs no vocabulary of its own: insert, delete, reorder and the gizmo operations are all of this shape. Commands compose by ordinary function composition, and the skip rule says a null edit is the identity of that monoid:
 
-${tex.block`\mathrm{cmd}_\ell(\mathrm{get}_\ell(s))(s) = s`}
+${ tex.block`\mathrm{cmd}_\ell(\mathrm{get}_\ell(s))(s) = s` }
 
-This has an operational consequence, not just an algebraic one: the writer compares the produced source
-with the old one and returns before touching the runtime when they are equal, so a gesture that ends
-where it started causes no recompute at all.
+This has an operational consequence, not just an algebraic one: the writer compares the produced source with the old one and returns before touching the runtime when they are equal, so a gesture that ends where it started causes no recompute at all.
 
-**Disjoint addresses commute.** Dragging ${tex`n`} selected shapes is ${tex`n`} commands, one per
-address, and for ${tex`p`}, ${tex`q`} neither a prefix of the other
+**Disjoint addresses commute.** Dragging ${ tex`n` } selected shapes is ${ tex`n` } commands, one per address, and for ${ tex`p` }, ${ tex`q` } neither a prefix of the other
 
-${tex.block`\mathrm{cmd}_{\ell_{\mathrm{attr}}(p,n)}(a) \;\circ\; \mathrm{cmd}_{\ell_{\mathrm{attr}}(q,m)}(b) \;=\; \mathrm{cmd}_{\ell_{\mathrm{attr}}(q,m)}(b) \;\circ\; \mathrm{cmd}_{\ell_{\mathrm{attr}}(p,n)}(a)`}
+${ tex.block`\mathrm{cmd}_{\ell_{\mathrm{attr}}(p,n)}(a) \;\circ\; \mathrm{cmd}_{\ell_{\mathrm{attr}}(q,m)}(b) \;=\; \mathrm{cmd}_{\ell_{\mathrm{attr}}(q,m)}(b) \;\circ\; \mathrm{cmd}_{\ell_{\mathrm{attr}}(p,n)}(a)` }
 
-because an attribute put splices a byte range inside its own element and leaves the element list — and
-therefore every other address — untouched. So "one put per shape" needs no ordering discipline, and
-\`test_commands_commute\` in the appendix checks it on random documents. Structural puts are excluded
-from the claim, and genuinely do not commute: they renumber the addresses the other put is holding.
+because an attribute put splices a byte range inside its own element and leaves the element list — and therefore every other address — untouched. So "one put per shape" needs no ordering discipline, and \`test_commands_commute\` in the appendix checks it on random documents. Structural puts are excluded from the claim, and genuinely do not commute: they renumber the addresses the other put is holding.
 
 **Tools are folds over pointer events.** A tool is a state machine
 
-${tex.block`\delta \;:\; Q \times \mathrm{Event} \to Q \times \mathrm{Preview} \qquad\qquad \varepsilon \;:\; Q \rightharpoonup \mathrm{Cmd}`}
+${ tex.block`\delta \;:\; Q \times \mathrm{Event} \to Q \times \mathrm{Preview} \qquad\qquad \varepsilon \;:\; Q \rightharpoonup \mathrm{Cmd}` }
 
-where ${tex`\delta`} may draw into the overlay and mutate the live DOM, and ${tex`\varepsilon`} is
-consulted once, at release. The preview is a projection that is thrown away; the command is the only
-thing that survives the gesture. Tools sit in a priority list and the first whose hit test claims the
-pointer owns the gesture, so adding a tool is adding an element to a list — it cannot interfere with
-the levels below because nothing in ${tex`Q`} can reach ${tex`S`}.
+where ${ tex`\delta` } may draw into the overlay and mutate the live DOM, and ${ tex`\varepsilon` } is consulted once, at release. The preview is a projection that is thrown away; the command is the only thing that survives the gesture. Tools sit in a priority list and the first whose hit test claims the pointer owns the gesture, so adding a tool is adding an element to a list — it cannot interfere with the levels below because nothing in ${ tex`Q` } can reach ${ tex`S` }.
 
-**Propagation is the runtime's, not ours.** The writer applies the command and installs the result with
-\`Variable.define\`:
+**Propagation is the runtime's, not ours.** The writer applies the command and installs the result with \`Variable.define\`:
 
-${tex.block`s \;\xrightarrow{\;c\;}\; s' \;\xrightarrow{\;\texttt{define}\;}\; \text{cell recomputed} \;\longrightarrow\; \text{node, dependents, editors}`}
+${ tex.block`s \;\xrightarrow{\;c\;}\; s' \;\xrightarrow{\;\texttt{define}\;}\; \text{cell recomputed} \;\longrightarrow\; \text{node, dependents, editors}` }
 
-Nothing in the editor notifies anything. \`editor-5\`'s buffer, the change history and every dependent
-cell update because the runtime recomputed a variable, which is what it does whenever a definition
-changes.
+Nothing in the editor notifies anything. \`editor-5\`'s buffer, the change history and every dependent cell update because the runtime recomputed a variable, which is what it does whenever a definition changes.
 
-**Why the loop closes in one step.** The editor is the value of the cell it rewrites, so a gesture
-edits its own producer — the drawing is downstream of the gesture that changed it. That is a feedback
-loop, and it terminates for a reason worth naming: PutGet. The recomputed view is already the view the
-gesture asked for,
+**Why the loop closes in one step.** The editor is the value of the cell it rewrites, so a gesture edits its own producer — the drawing is downstream of the gesture that changed it. That is a feedback loop, and it terminates for a reason worth naming: PutGet. The recomputed view is already the view the gesture asked for,
 
-${tex.block`\mathrm{get}(\mathrm{put}(a,\, s)) = a`}
+${ tex.block`\mathrm{get}(\mathrm{put}(a,\, s)) = a` }
 
-so the new node has nothing left to write and emits no second command. One gesture, one command, one
-recompute. Had the design gone the other way — mutate the DOM and derive the source from it — the loop
-would need a fixed point and an argument that it converges. Here the law does that work.`
-)};
+so the new node has nothing left to write and emits no second command. One gesture, one command, one recompute. Had the design gone the other way — mutate the DOM and derive the source from it — the loop would need a fixed point and an argument that it converges. Here the law does that work.`);};
 
 // ---- §4 widget: drag it. The comment, the spacing and the `px` unit are residue and must survive.
 const _sl220 = function _rectDemo(svgLens,svg){return(
 svgLens(svg`<svg viewBox="0 0 200 90">
-  <!-- residue: this comment, the odd spacing and the unit on width -->
-  <rect x="20"   y="18" width="60px" height="44" fill="#4C7FD1"/>
+  <!-- residue: this comment and every other attribute survive an edit untouched -->
+  <polygon points="40,70 100,20 160,70" fill="#4C7FD1"/>
 </svg>`)
 )};
+const _sl220v = (G, _) => G.input(_);
 
-const _sl220b = function _rectDemoLaws(lawBadges,$0,invalidation){return(
-lawBadges($0, invalidation)
+const _sl220b = function _rectDemoLaws(htl,lawBadges,$0,invalidation){return(
+htl.html`<div style="display:grid;gap:10px">${lawBadges($0, invalidation)}</div>`
 )};
 
 // ---- §5 widget: the structural lens, and what it refuses to lose ---------------------------------
 const _sl221 = function _childrenDemo(svgLens,svg){return(
 svgLens(svg`<svg viewBox="0 0 200 90">
+  <polygon points="70,70 100,20 130,70" fill="#B25B3A"/>
   <!-- a comment between children is residue too -->
   <rect x="10" y="20" width="50" height="50" fill="#5B7A5E"/>
   <circle cx="120" cy="45" r="24" fill="#F5B840"/>
+  <rect x="150" y="10" width="20" height="20" fill="#41584A"/>
+  <rect x="150" y="10" width="20" height="20" fill="#41584A"/>
 </svg>`)
 )};
+const _sl221v = (G, _) => G.input(_);
 
 const _sl221b = function _childrenDemoOps(htl,lawBadges,$0,invalidation)
 {
@@ -882,25 +735,25 @@ const _sl222 = function _sinkRecord(putLog,edits,Inputs,htl){return(
 const _sl223 = function _rectH(sec){return(sec("rect"))};
 
 const _sl224 = function _rectP(md,tex,ref){return(
-md`The smallest useful lens: one attribute of one rectangle. The source is a fixed, untidy string — a
-comment, three spaces where one would do, a \`px\` unit — and the view is a single number.
+md`The smallest useful lens: one attribute of one shape. The triangle's three corners live in a single
+\`points\` attribute; the rest of the source — a comment, the fill — must come through every edit untouched.
 
-${tex.block`\mathrm{cellAttr} \;=\; \mathrm{attrText}(i, n) \;\circ\; \mathrm{length}`}
+${tex.block`\mathrm{cellPoints} \;=\; \mathrm{attrText}(i, \texttt{points}) \;\circ\; \mathrm{parsePoints}`}
 
-\`attrTextLens(i, name)\` views the *text* of one attribute of element ${tex`i`}; \`lengthLens\` views
-the number inside that text and puts it back wearing whatever unit it found. Composing them gives a
-lens from the whole document to one number, and that composite is what a drag on a rectangle actually
-writes through.
+\`attrTextLens(i, name)\` views the *text* of one attribute of element ${tex`i`}; \`parsePoints\` views
+the numbers inside that text and puts them back into the same slots. Composing them gives a lens from
+the whole document to the corner coordinates, and that composite is what a drag on a vertex writes
+through.
 
-Move the slider. Three things to watch, all computed live rather than asserted:
+Click the triangle, then drag a corner. The readout below reports the put that just happened — which
+attribute changed, and its value before and after. Two things hold, computed on each drag rather than
+asserted:
 
-- the highlighted span in the source is *only* the digits — the comment, the spacing and the \`px\`
-  are never rewritten, because ${tex`\mathrm{put}`} splices instead of reprinting;
-- return the slider to its starting value and the highlight disappears: ${tex`a = \mathrm{get}(s)`},
-  the skip rule fires, and the string that comes back is the original object, not a copy that happens
-  to match (${ref("residue")});
-- switch to \`width\` and the unit survives: \`60px\` becomes \`75px\`, not \`75\`. The number is the
-  view; the unit is residue.`
+- only the \`points\` attribute is written, and only the corner you grabbed changes value; the fill, the
+  comment and everything else in the source are left exactly as typed, because ${tex`\mathrm{put}`}
+  splices the new value into the existing string instead of reprinting the whole element;
+- drop the corner back where it started and the put is a no-op: ${tex`a = \mathrm{get}(s)`}, the skip
+  rule fires, and the source comes back unchanged (${ref("residue")}).`
 )};
 
 const _sl225 = function _childrenH(sec){return(sec("children"))};
@@ -1052,16 +905,11 @@ const _sl233 = function _referencesH(md){return(
 md`## References`
 )};
 
-const _sl234 = function _appendixHeader(md){return(
-md`---
+const _sl234 = function _appendixHeader(md) {return (md`---
 
 ## Appendix: the implementation
 
-The tests come first because they are the specification: every law quoted above is a cell below, run
-on each load with a seeded generator, and the same cells run in Node under \`bun test\`. After them,
-the implementation in dependency order — lens core, SVG microsyntax, source lenses, commands, then
-the editor. The module's imports are last.`
-)};
+The tests come first because they are the specification: every law quoted above is a cell below, run on each load with a seeded generator,. After them, the implementation in dependency order — lens core, SVG microsyntax, source lenses, commands, then the editor.`);};
 
 // ---- source-last: your edits live in the runtime, so take them with you --------------------------
 // A counter over every put in the page. It exists to make the download link *reactive*: the label
@@ -2392,14 +2240,9 @@ const _sl79f = function _nearestSegment(){return(
 // ================================================================================================
 // PROPERTY-TEST HARNESS — deterministic seeded PRNG, domains mirror the original fast-check suite
 // ================================================================================================
-const _sl80 = function _harnessHeader(md){return(
-md`## Property-test harness
+const _sl80 = function _harnessHeader(md) {return (md`## Property-test harness
 
-Deterministic replacement for fast-check: a seeded PRNG (\`mulberry32\`), domain generators (\`arb\`),
-and \`forAll\` which throws the counterexample on failure. Fixed seeds keep every test cell
-rerunnable with identical results. \`arb.anyFinite\` draws random 64-bit patterns, so the exact
-round-trip claims are exercised across the full double range, subnormals and -0 included.`
-)};
+Deterministic replacement of fast-check: a seeded PRNG (\`mulberry32\`), domain generators (\`arb\`), and \`forAll\` which throws the counterexample on failure. Fixed seeds keep every test cell rerunnable with identical results. \`arb.anyFinite\` draws random 64-bit patterns, so the exact round-trip claims are exercised across the full double range, subnormals and -0 included.`);};
 
 const _sl81 = function _NUM_RUNS(){return(
 300
@@ -3486,64 +3329,36 @@ const _sl109b = function _test_parse_vs_DOMParser(parseDoc,outsideDomain,attrVal
   return `✅ agrees with DOMParser on ${CORPUS.length} documents (shape, attributes, spans); refuses CDATA and raw-text elements`;
 };
 
-const _sl110 = function _manipulationHeader(md,ref){return(
-md`## Direct manipulation
+const _sl110 = function _manipulationHeader(md,ref) {return (md`## Direct manipulation
 
-\`svgLens(node)\` returns the node it was given, with pointer handling attached. During a gesture only
-the live DOM changes — no source is written, so dragging is as cheap as \`setAttribute\`. On release
-the gesture commits once, through \`compose(cellAttrLens(…), transformLens)\`, and the DOM then adopts
-the source's exact bytes: if you drag a shape back to where it started, the readable
-\`translate(228 128) rotate(-4)\` is still there, because GetPut says so.
+\`svgLens(node)\` returns the node it was given, with pointer handling attached. During a gesture only the live DOM changes — no source is written, so dragging is as cheap as \`setAttribute\`. On release the gesture commits once, through \`compose(cellAttrLens(…), transformLens)\`, and the DOM then adopts the source's exact bytes: if you drag a shape back to where it started, the readable \`translate(228 128) rotate(-4)\` is still there, because GetPut says so.
 
-The new definition is built with \`realize\` (which routes through \`importShim\` on lopecode) and
-installed with \`Variable.define\` — the same call \`editor-5\` makes when you type in a cell.
+The new definition is built with \`realize\` (which routes through \`importShim\` on lopecode) and installed with \`Variable.define\` — the same call \`editor-5\` makes when you type in a cell.
 
-### A gesture is an ordinary edit
+### A gesture is an ordinary code edit
 
-An earlier version assigned \`_definition\` directly and patched the live node in place, which kept the
-node's identity but left the runtime unaware that anything had changed. Nothing downstream recomputed,
-and \`onCodeChange\` never fired, so \`editor-5\` kept a stale buffer that would overwrite the drag on the
-next keystroke. Using \`define\` instead makes a gesture the same kind of event as typing: the cell is
-invalidated, recomputes, and produces a new node.
+Gestures call \`define\`, the same kind of event as typing: the cell is invalidated, recomputes, and produces a new node.
 
-That has a cost — the node the cell handed out is replaced on every commit — so state that must
-outlive a gesture cannot live in the node's closure. Undo history, the selection and the active tool
-are held in \`lensState\`, keyed by the \`Variable\`, which \`define\` mutates in place. The selection is
-restored by *path* rather than index, which is why it is addressed that way.
+That has a cost — the node the cell handed out is replaced on every commit — so state that must outlive a gesture cannot live in the node's closure. Undo history, the selection and the active tool are held in \`lensState\`, keyed by the \`Variable\`, which \`define\` mutates in place. The selection is restored by *path* rather than index, which is why it is addressed that way.
 
-Rendering evaluates the template rather than parsing its text, so an interpolated
-\`svg\\\`<circle r="\${r}"/>\\\`\` renders the same way a literal one does; what a handle over a hole may
-write to is a separate question (${ref("sinks")}).
+Rendering evaluates the template rather than parsing its text, so an interpolated \`\` svg\`<circle r="\${r}"/>\` \`\` renders the same way a literal one does; what a handle over a hole may write to is a separate question (${ ref('sinks') }).
 
-\`applySource\` re-reads \`_definition\` after the \`await\` and abandons the put if it changed underneath,
-since \`editor-5\` may have rewritten the cell mid-gesture.
+\`applySource\` re-reads \`_definition\` after the \`await\` and abandons the put if it changed underneath, since \`editor-5\` may have rewritten the cell mid-gesture.
 
 ### The pieces
 
 \`svgLens\` is wiring and nothing else. The parts it wires:
 
-| Cell | Owns |
-|---|---|
-| \`svgTarget\` | which variable this node is, the parameter name the cell calls \`svgLens\` by, and the document text |
-| \`svgWriter\` | \`applySource\` / \`commit\` / \`runCommand\` — the only code that assigns \`_definition\` |
-| \`svgOverlay\` | the handle layer, and the \`isOwn\` predicate that keeps the renderer off it |
-| \`svgFocus\` | which element is selected and where its handles are drawn |
-| \`svgTools\` | the tool registry: \`toolVertex\`, \`toolMove\`, \`toolStructure\` |
+| Cell | Owns | |---|---| | \`svgTarget\` | which variable this node is, the parameter name the cell calls \`svgLens\` by, and the document text | | \`svgWriter\` | \`applySource\` / \`commit\` / \`runCommand\` — the only code that assigns \`_definition\` | | \`svgOverlay\` | the handle layer, and the \`isOwn\` predicate that keeps the renderer off it | | \`svgFocus\` | which element is selected and where its handles are drawn | | \`svgTools\` | the tool registry: \`toolVertex\`, \`toolMove\`, \`toolStructure\` |
 
-A tool is \`{id, onPointerDown, onPointerMove, onPointerUp, onDblClick}\`. \`onPointerDown\` returns true
-to claim the gesture; registry order is priority. Tools read the document, preview in the live DOM,
-and hand a command or a commit to the writer — they never write the source themselves, and none of
-them knows what a lens is. Adding a tool is adding a cell:
+A tool is \`{id, onPointerDown, onPointerMove, onPointerUp, onDblClick}\`. \`onPointerDown\` returns true to claim the gesture; registry order is priority. Tools read the document, preview in the live DOM, and hand a command or a commit to the writer — they never write the source themselves, and none of them knows what a lens is. Adding a tool is adding a cell:
 
 \`\`\`js
 svgTools.push({ id: "rect", onPointerDown(ctx, e) { … } });
 viewof svgTools.dispatchEvent(new Event("input"));
 \`\`\`
 
-The writer stays ignorant of selection: it reports what it did on the \`lens-put\` event, and the
-handles follow — refreshed after an attribute edit, cleared after a structural one, because a
-structural edit shifts every address after it.`
-)};
+The writer stays ignorant of selection: it reports what it did on the \`lens-put\` event, and the handles follow — refreshed after an attribute edit, cleared after a structural one, because a structural edit shifts every address after it.`);};
 
 // Draggable handles for a polygon/polyline's points.
 const _sl111 = function _pointsHandles(parsePoints,attrVal){return(
@@ -4898,7 +4713,7 @@ export default function define(runtime, observer) {
   // Display order is the reading order of a paper: demo and how to use it, then the argument with a
   // widget beside each claim, then related and future work, then the references, then the appendix
   // (tests first, implementation after, imports last).
-  $def("sl01", "intro", ["md", "cite"], _sl01);
+  $def("sl01", "intro", ["md"], _sl01);
   $def("sl02d", "loadSvg", ["htl","outsideDomain","viewof drawing"], _sl02d);
   $def("sl02b", "toolbar", ["htl","invalidation","viewof drawing"], _sl02b);
   $def("sl02", "viewof drawing", ["svgLens","svg"], _sl02);
@@ -4927,7 +4742,7 @@ export default function define(runtime, observer) {
   $def("sl207", "residueH", ["sec"], _sl207);
   $def("sl208", "residueP", ["md","tex","cite"], _sl208);
   $def("sl211", "towerH", ["sec"], _sl211);
-  $def("sl212", "towerP", ["md","tex","ref","cite"], _sl212);
+  $def("sl212", "towerP", ["md","cite","tex","ref"], _sl212);
   $def("sl209", "architectureH", ["sec"], _sl209);
   $def("sl210", "architectureP", ["md","ref","cite"], _sl210);
   $def("sl213", "propagationH", ["sec"], _sl213);
@@ -4936,10 +4751,12 @@ export default function define(runtime, observer) {
   $def("sl224", "rectP", ["md","tex","ref"], _sl224);
   $def("sl219", "lawBadges", ["htl"], _sl219);
   $def("sl220", "viewof rectDemo", ["svgLens","svg"], _sl220);
-  $def("sl220b", "rectDemoLaws", ["lawBadges","viewof rectDemo","invalidation"], _sl220b);
+  $def("sl220v", "rectDemo", ["Generators","viewof rectDemo"], _sl220v);
+  $def("sl220b", "rectDemoLaws", ["htl","lawBadges","viewof rectDemo","invalidation"], _sl220b);
   $def("sl225", "childrenH", ["sec"], _sl225);
   $def("sl226", "childrenP", ["md","tex","cite","ref"], _sl226);
   $def("sl221", "viewof childrenDemo", ["svgLens","svg"], _sl221);
+  $def("sl221v", "childrenDemo", ["Generators","viewof childrenDemo"], _sl221v);
   $def("sl221b", "childrenDemoOps", ["htl","lawBadges","viewof childrenDemo","invalidation"], _sl221b);
   $def("sl227", "sinksH", ["sec"], _sl227);
   $def("sl228", "sinksP", ["md","tex","ref","cite"], _sl228);

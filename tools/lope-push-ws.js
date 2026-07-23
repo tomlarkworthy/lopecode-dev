@@ -16,6 +16,7 @@
  *   --cells <names>     Comma-separated cell names to push (default: all)
  *   --no-delete         Skip deleting old cells (for seeding)
  *   --dry-run           List cells that would be pushed without pushing
+ *   --dump <path>       Write the decompiled cells (names + source) to a JSON file
  *   --verbose           Show detailed WS messages
  *   --timeout <ms>      Max wait time (default: 30000)
  *   --profile <path>    Browser profile directory for cookie extraction
@@ -94,6 +95,8 @@ function parseArgs(argv) {
       options.login = true;
     } else if (arg === '--headed') {
       options.headed = true;
+    } else if (arg === '--dump' && args[i + 1]) {
+      options.dump = args[++i];
     } else if (arg === '--dry-run') {
       options.dryRun = true;
     } else if (arg === '--verbose') {
@@ -115,6 +118,7 @@ Options:
                       Repeat the flag to push several. Modify-only — never inserts.
   --no-delete         Skip deleting old cells
   --dry-run           List cells that would be pushed without pushing
+  --dump <path>       Write the decompiled cells (names + source) to a JSON file
   --verbose           Show detailed WS messages
   --timeout <ms>      Max wait time (default: 30000)
   --profile <path>    Browser profile for persistent login
@@ -172,7 +176,11 @@ function parseVariableGroups(content, acorn) {
   let match;
   // Observable's compiler emits cell function definitions in two forms:
   //   const _N = [async] function[*] inner(...) { ... }
-  //   [async] function[*] _N(...) { ... }                 (bare name, starts with _)
+  //   [async] function[*] _N(...) { ... }                 (bare name)
+  // The holder name is NOT always `_`-prefixed: exporter-3 names the holder after the
+  // variable's pid, so a pid like `sl01` emits `const sl01 = ...` while a numeric-leading
+  // pid like `1noor04` emits `_1noor04`. Collect every top-level function-valued binding
+  // and resolve by name from the $def/define registration below.
   // Split them off with the SAME acorn the toolchain decompiler parses with, taking
   // each cell function's exact AST source range. This replaces brace-counting, which
   // miscounts a `{`/`}` inside a string, regex char-class or comment and merges the
@@ -195,12 +203,12 @@ function parseVariableGroups(content, acorn) {
     for (const node of ast.body) {
       if (node.type === 'VariableDeclaration') {
         for (const d of node.declarations) {
-          if (d.id && d.id.type === 'Identifier' && d.id.name.startsWith('_') && d.init &&
+          if (d.id && d.id.type === 'Identifier' && d.init &&
               (d.init.type === 'FunctionExpression' || d.init.type === 'ArrowFunctionExpression')) {
             cellFunctions.set(d.id.name, content.slice(d.init.start, d.init.end));
           }
         }
-      } else if (node.type === 'FunctionDeclaration' && node.id && node.id.name.startsWith('_')) {
+      } else if (node.type === 'FunctionDeclaration' && node.id) {
         cellFunctions.set(node.id.name, content.slice(node.start, node.end));
       }
     }
@@ -211,7 +219,7 @@ function parseVariableGroups(content, acorn) {
     scanContent = buf.join('');
   } else {
     // Fallback for callers that don't supply acorn: original regex + naive brace scan.
-    const cellRegex = /(?:const\s+(_[a-zA-Z0-9_]+)\s*=\s*(async\s+)?function(\*)?\s+[a-zA-Z0-9_]+\s*\(([^)]*)\)\s*\{|(async\s+)?function(\*)?\s+(_[a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{)/g;
+    const cellRegex = /(?:const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(async\s+)?function(\*)?\s+[a-zA-Z0-9_$]*\s*\(([^)]*)\)\s*\{|(async\s+)?function(\*)?\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(([^)]*)\)\s*\{)/g;
     while ((match = cellRegex.exec(content)) !== null) {
       const isConstForm = !!match[1];
       const funcName = isConstForm ? match[1] : match[7];
@@ -245,7 +253,7 @@ function parseVariableGroups(content, acorn) {
     let definition = null;
     let inputs = [];
 
-    const funcRefMatch = defineBody.match(/,\s*(_[a-zA-Z0-9_]+)\s*$/);
+    const funcRefMatch = defineBody.match(/,\s*([A-Za-z_$][A-Za-z0-9_$]*)\s*$/);
     if (funcRefMatch) {
       definition = cellFunctions.get(funcRefMatch[1]);
     }
@@ -269,7 +277,7 @@ function parseVariableGroups(content, acorn) {
     }
   }
 
-  const defRegex = /\$def\("([^"]+)",\s*(?:"([^"]*)"|null),\s*\[([^\]]*)\],\s*(_[a-zA-Z0-9_]+)\)/g;
+  const defRegex = /\$def\("([^"]+)",\s*(?:"([^"]*)"|null),\s*\[([^\]]*)\],\s*([A-Za-z_$][A-Za-z0-9_$]*)\)/g;
   while ((match = defRegex.exec(scanContent)) !== null) {
     const varName = match[2] ?? null;
     const inputsStr = match[3];
@@ -1134,6 +1142,14 @@ async function main() {
   }
 
   log(`Decompiled ${decompiled.length} cells + ${importCells.length} imports = ${cells.length} total`);
+
+  if (options.dump) {
+    fs.writeFileSync(options.dump, JSON.stringify(decompiled.map((src, i) => ({
+      names: variableGroups[i] ? variableGroups[i].map(v => v._name || null) : [],
+      source: src,
+    })).concat(importCells.map(src => ({ names: [], source: src }))), null, 1));
+    log(`Wrote ${cells.length} decompiled cells to ${options.dump}`);
+  }
 
   if (options.dryRun) {
     console.log(`\nDry run: ${cells.length} cells would be pushed\n`);
