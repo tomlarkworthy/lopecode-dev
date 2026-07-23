@@ -3,8 +3,11 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
-**Status 2026-07-21: M0, most of M1, M2's tool registry, stable addressing, the transform gizmo and the creation tools are built** — see §6.
-Every defect in §2 is now fixed. Remaining work is tracked as tasks 6–15.
+**Status 2026-07-23.** M0–M8 are built (§7): the editor commits through `Variable.define`, addressing
+is structural, and tools, selection, the gizmo, undo, snapping and interpolated templates all work.
+Every structural block in §2 is gone. What remains is **breadth** — the editor is lawful and complete
+over three tags and one sink, and an SVG editor has to be complete over the format. §5 is the current
+gap list, re-derived from the code and the browser; §6 is the plan for closing it.
 
 ## 1. What already exists in this repo
 
@@ -164,36 +167,170 @@ to inversion only where syntax runs out — a weaker mechanism with a stronger g
 
 ## 5. Gap list
 
-Blocking, in order:
+Re-derived 2026-07-23 by reading the module and driving it in a browser. The previous list had
+drifted: units (`lengthLens` keeps `px/%/em`) and `styleLens` were marked missing and are done.
+Ordered by how much each blocks real work.
 
-1. Render-by-morph (§3) — without it no structural edit is expressible.
-2. Stable addressing + selection re-anchoring.
-3. `childrenLens` + insert/delete/reorder/group commands.
-4. Insert/delete point, close subpath, corner↔smooth. No new math; `handleEdit` needs siblings.
-5. Tool registry + select / direct-select / rect / ellipse / pen. *(done)*
-6. Transform gizmo: bbox with rotate and scale handles; `rotateAbout`, `scaleAbout`. *(done)*
+### Bugs
 
-Then, for credibility as a general editor:
+**0. A structural double-click misses stroke-only shapes.** Selection routes through `hitTest`, which
+is tolerant — it measures distance along the stroke, so a hairline path is easy to grab.
+`toolStructure` instead uses raw `e.target` and requires `hit === focus.index`. On `fill="none"` the
+interior is not hit-testable, so `e.target` is the root `<svg>`, `hit` is 0, and control falls through
+to the last branch — *"double-clicked empty canvas, drop a shape"*. The gesture does not no-op, it
+appends a triangle. Measured: filled `<polygon>` 3→4 points ✅; `<path fill="none">` → a new
+`<polygon>` appended ❌. This is why adding a point to a line or an unfilled polygon has never worked.
 
-7. Hit-testing beyond `e.target`: stroke-only hits, click-through to occluded shapes, marquee,
-   multi-select, z-order operations. *(done)*
-8. Units and coordinate systems: parsers assume unitless numbers. Real documents carry `px/%/em`,
-   `preserveAspectRatio`, nested `<svg>`, `<use>`, percentage lengths.
-9. Styling: attribute vs `style=` vs stylesheet precedence (`styleLens`).
-10. `defs` and references: gradients, markers, `clipPath`, `<use>` — editing a `<use>` should retarget
-    the lens at the referenced symbol, possibly in another cell.
-11. Snapping, alignment guides, numeric entry, keyboard nudge (all pure L3). *(done)*
-12. Undo/redo/history via `local-change-history`. *(done — natively; see M2.9 for why not through it)*
-13. Concurrency with `editor-5` — the definition read-modify-write races with text edits (§3 writer).
-14. Multi-drawing: alias resolution assumes one `svgLens(svg\`…\`)` per cell and finds the variable by
-    `_value` identity. Several drawings, or one assembled from imported sub-cells, is unhandled.
-15. Performance: full re-tokenize per pointermove; fine at 20 elements, not at 2000.
-16. Differential testing against the browser's own parser: `render(put(a, s))` should agree with the
-    equivalent DOM mutation. Cheaper and more convincing than more microsyntax properties. *(done)*
+### Missing capability
 
-## 6. Milestones
+1. **Geometry editing exists for three tags.** `polygon`, `polyline`, `path`. `rect`, `circle`,
+   `ellipse` and `line` get the transform gizmo only, so resizing a rect writes
+   `transform="… scale(…)"` rather than `width`/`height`, and a `<line>`'s endpoints cannot be dragged
+   at all (measured: 0 anchor handles, 4 scale handles). An editor that cannot change a rectangle's
+   width is not an SVG editor, and its output is not source anyone would maintain by hand.
+2. **No grouping or duplication.** The command set is insert/delete/reorder element and
+   insert/delete point — that is all. No group, ungroup, duplicate, copy or paste. Compounding it, a
+   click always selects the leaf (`[0,3,0]`), never the enclosing `<g>`; only a marquee reaches a
+   group, via `topmostPaths`.
+3. **No zoom or pan.** No wheel handler, no view transform. You edit at whatever size the drawing
+   happens to render.
+4. **Only shape primitives.** No `<text>` (so no typing), no `<image>`, and nothing for `defs` —
+   gradients, markers, `clipPath`, `<use>`. Most real SVG documents are partly untouchable.
+5. **Styling UI is one text input per attribute.** No colour picker, stroke width/dash/cap, or
+   opacity. The plumbing is done — `setProperty` writes into `style="…"` when a declaration already
+   lives there, else the attribute — only the widgets are missing.
+6. **No document outliner.** Z-order is keyboard-only (`[ ] { }`) with nothing showing the stack, and
+   there is no element tree. Past ~10 shapes you cannot find or reorder anything.
+7. **Path editing stops short.** Control points drag, but there is no corner↔smooth conversion, no
+   open/close subpath toggle, and arc segments are explicitly refused for subdivision.
+8. **No align or distribute.** Snapping guides exist mid-drag; there is no align/distribute command
+   over a selection.
+9. **One drawing per cell.** Alias resolution finds the variable by `_value` identity, so two
+   `svgLens(…)` calls in one cell, or a drawing assembled from imported sub-cells, is unhandled.
+10. **`editor-5` wins a race it should share.** The writer re-reads `_definition` and abandons the put
+    if it changed. Safe, but typing in the cell during a drag silently discards the drag.
+11. **Performance is O(document) per frame.** Full re-tokenize per `pointermove`; measured 1.45 ms per
+    move at 24 nodes. Linear, so it will not hold at hundreds of elements. **Deprioritised
+    2026-07-23** — correctness and breadth first.
 
-- **M0 — done (2026-07-21).** Render-by-morph. `morph(live, next, skip)` patches the live node toward
+### UX limitations
+
+Cheap, and several are the visible face of the gaps above.
+
+- Double-click on empty canvas drops a triangle — and is also the fallback for every missed structural
+  double-click, which is how gap 0 presents as "a random shape appeared".
+- No hover highlight or cursor change showing what a click will hit, even though hit-testing is
+  tolerant and therefore invisible.
+- No axis lock while moving (shift squares a *draw*; alt only disables snapping).
+- Esc switches tool; it does not cancel an in-flight drag.
+- No numeric readout during a drag.
+- Overlapping shapes cycle by repeated tap. Works, undiscoverable.
+- No select-all, no context menu.
+
+### Not a gap
+
+Only literal `` svg`…` `` templates are editable; a drawing built by `.map()` is not. That is the
+source-last thesis, and the paper states it.
+
+## 6. The plan from here
+
+Three constraints: **holistic** (one idea, not eleven patches), **incremental** (each stage ships and
+is useful on its own), **testable** (each stage names what would falsify it).
+
+### 6.1 The one idea: competence is the contents of the registries
+
+M2 already made this move once, for tools, and it worked — a new tool is now a new cell rather than an
+edit to a monolith. Every remaining gap is the same move, not yet made, on four more axes:
+
+| axis | today | should be |
+|---|---|---|
+| which tags have editable geometry | `polygon/polyline/path`, hardcoded in `toolMove` and `handleEdit` | **shape registry**: tag → `{handles, edit, resize}` |
+| what a gizmo writes | always `transform` | the shape's own `resize`; `transform` only as fallback |
+| which structural edits exist | seven `runCommand` call sites | **command registry**: id → `{apply, rebase, label, key}` |
+| what the inspector shows | one text input per attribute | **field registry**: attribute → widget |
+| what counts as a hit | `hitTest` in some tools, `e.target` in others | one `ctx.hit(e)`; no tool touches `e.target` |
+
+§4 already routes `handle → slot → class → sink`. The gizmo is the one thing that skips the middle and
+goes straight to `transform`. So gap 1 is not new machinery — it is **deleting a special case** so the
+gizmo goes through the routing everything else already uses.
+
+One consequence worth stating early: **zoom/pan needs no tool changes at all.** Every tool converts
+through `getScreenCTM()`, so a view transform that is DOM-only and never committed is invisible to
+them — the rule the overlay already lives under (`isOwn`). Gap 3 is one cell, not a subsystem.
+
+### 6.2 The missing half of the test strategy
+
+The suite is 50 property tests and every one is a pure lens law. **Nothing exercises a gesture.** All
+three bugs found on 2026-07-23 — the overlay ghosting a moved shape, the pen losing its path after its
+first anchor, a multi-element move committing only the first element — were gesture-level, and the
+suite was green throughout. Gap 0 is the same kind of defect.
+
+Synthetic `PointerEvent`s do drive real commits (dispatch `pointerdown` on `elementFromPoint`, then
+moves and `pointerup` on the root), so the harness is cheap. What makes it worth having is that the
+assertions are **invariants rather than screenshots**. These hold after *any* gesture:
+
+- **I1** the overlay frames the selection: box `getBoundingClientRect()` minus the element's is 0.
+- **I2** one gesture produces one undo entry per element it claimed to edit.
+- **I3** the rendered DOM agrees with a fresh render of the committed source.
+- **I4** no gesture adds or removes an element unless it was a creation or deletion gesture.
+- **I5** every selection path still resolves afterwards.
+
+I4 alone catches gap 0; I1 catches the ghosting; I2 catches the multi-element move. Write them once,
+run them after every scripted gesture, and the class of bug that has been getting through stops
+getting through.
+
+### 6.3 Stages
+
+Each stage ends shippable. *Falsified by* is the check that has to go green.
+
+**S0 — gesture harness and I1–I5.** One harness cell, one test cell per invariant. No product change.
+*Falsified by:* replaying the three 2026-07-23 bugs against it and having any of them pass.
+
+**S1 — one hit contract.** Add `ctx.hit(e)`; remove `e.target` from `toolStructure`. Group-vs-leaf
+selection becomes a policy in that single place (leaf on click, ancestor on marquee, double-click to
+descend). Closes gap 0 and part of gap 2.
+*Falsified by:* any row of a (shape, fill, click position) table picking a different target than
+selection would; or I4 firing on a double-click.
+
+**S2 — shape registry, no behaviour change.** Move the existing points/path handlers into tag-keyed
+entries. Nothing new works yet; the 50 lens tests and I1–I5 must stay green. This is the refactor that
+makes S3 one cell per tag.
+*Falsified by:* any existing test changing, or needing to change.
+
+**S3 — rect/circle/ellipse/line geometry, and gizmo routing.** Each tag is a new cell supplying
+`{handles, edit, resize}`; the gizmo prefers `resize` and falls back to `transform` for groups and
+paths. After this stage the phrase "SVG editor" is defensible.
+*Falsified by:* dragging a rect's corner and finding `transform` in the source rather than `width`; or
+a **resize agreement** property — resizing through the registry and through `transform` must produce
+the same rendered bounding box.
+
+**S4 — command registry, then group/ungroup/duplicate/copy/paste.** Each is a pure doc→doc with a
+rebase, so `test_rebasePath`'s ground-truth method extends unchanged.
+*Falsified by:* `insert∘delete ≠ id`, `group∘ungroup ≠ id` (modulo whitespace), or a rebase that
+disagrees with its edit — the M0.2 failure mode, which silently drops the selection.
+
+**S5 — outliner.** A pure projection of `childrenLens` plus `node.select`; no new write path.
+*Falsified by:* I5, or the tree disagreeing with `parseDoc`.
+
+**S6 — field registry: colour, length, dash, opacity widgets.** `setProperty` already routes
+attribute vs `style`.
+*Falsified by:* a widget's commit differing byte-for-byte from the equivalent `setAttr`.
+
+**S7 — zoom and pan, as an uncommitted view transform.**
+*Falsified by:* the source not being byte-identical after any zoom or pan; or the same drag producing
+a different committed value at zoom 2.5 than at zoom 1.
+
+**S8 — `<text>`, `<image>`, `defs`/`<use>`.** Text needs a *content* lens (children, not attributes).
+`<use>` needs the lens to retarget at the referenced element, possibly in another cell — §4's outward
+composition, one level further.
+*Falsified by:* editing a `<use>` writing to the `<use>` rather than to its referent.
+
+**Deferred:** performance (gap 11, Tom's call 2026-07-23), multi-drawing (gap 9), `editor-5`
+concurrency (gap 10). None of them blocks the stages above.
+
+## 7. Milestone log
+
+- **M0 — done (2026-07-21), later superseded by M7.** Render-by-morph. `morph(live, next, skip)` patches the live node toward
   a freshly rendered one; the writer (`applySource`) is now the single place that touches
   `_definition`, re-reading it after the `await` and abandoning the put if `editor-5` changed it
   underneath. The riskiest assumption held: node identity survives, because the node is never
@@ -204,7 +341,7 @@ Then, for credibility as a general editor:
   edits, and a drag still commits `translate(21 13)` with `sameNode: true`.
 - **M0.2 — stable addressing done (2026-07-21).** Selection is a path (`svgFocus` holds `path`, and
   derives `index` on demand for the handle lenses, which address elements the way `tokenize` does).
-  §7's first open question is settled in favour of structural paths over injected ids: the drawing is
+  §8's first open question is settled in favour of structural paths over injected ids: the drawing is
   the artifact the user is authoring, and stamping `data-lens-id` onto every element would pollute
   exactly the source this project exists to preserve.
   A path survives anything outside its own parent chain, so most edits need no rebase at all —
@@ -386,7 +523,7 @@ Then, for credibility as a general editor:
   (typed holes — cited to mark that "hole" here is the weaker, syntactic sense). Do not add a
   citation from memory; check it.
 
-## 7. Open questions
+## 8. Open questions
 
 - Does the value stay the DOM node, or become a document object with the node as a projection?
   Keeping the node is what makes `svgLens(svg\`…\`)` read naturally. Resolved in M7: the node is
