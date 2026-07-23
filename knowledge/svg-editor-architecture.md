@@ -913,9 +913,17 @@ and S4, and are the gaps those stages closed.)
   handle tracks the pointer while the shape grows symmetrically. Falls straight out of `scaleAbout`
   taking an arbitrary fixed point, exactly as this bullet predicted; the readout (G13) reports the
   live factor. **✅ green.** S
-- [ ] **G12 · a movable rotation pivot** (drag the centre mark before rotating). A `toolTransform`
-  change that falls out of `rotateAbout` already taking an arbitrary fixed point — needs a gizmo
-  handle for the pivot itself. S
+- [x] **G12 · a movable rotation pivot.** Done. `svgFocus` gained a `pivot` (a point in the primary's
+  local user space, null = box centre), reset on every new selection; the transform gizmo draws it as a
+  `kind:"pivot"` handle (orange, `.pivot`) at `pivot || centre`. `toolTransform` grabs `key:"pivot"` as
+  a *view* move — `pivotMove` writes nothing, just `focus.setPivot(localPoint)` and a readout — and the
+  rotate branch measures its angle around, and passes as the centre, `focus.pivot || boxCentre`. That
+  centre goes straight into `rotateAbout`, which emits SVG's about-point `rotate(angle cx cy)`; so the
+  moved pivot is held fixed by the same guarantee the box-centre case had — verified headless
+  (`tools/svglens-wip/g12-pivot.ts`: fixed-point error ≤ 1.8e-15 over four pivots) and in-browser (the
+  pivot handle appears in transform mode beside the four scale handles and the rotate stalk). The
+  pivot is selection-local, so it resets to the box centre after a rotate commits — set it again to
+  rotate about the same point twice. S
 - [x] **G13 · numeric readout during a drag.** Landed 2026-07-23 as `gestureDelta.readout(text, [ux,uy],
   font)`, a view-delta factory that paints a `<text>` mark (white halo via `paint-order:stroke`) in
   the overlay. `ctx.readoutFont()` returns `12/zoom`, so the label is screen-invariant (T11) while its
