@@ -871,9 +871,19 @@ and S4, and are the gaps those stages closed.)
 
 #### E — path and pen: the tool that is furthest from adequate (gap 7)
 
-- [ ] **G19 · the pen draws curves.** Today `penPath` emits only `M`/`L`/`Z` — dragging while placing
-  an anchor should pull out a symmetric control pair and emit `C`. This is the single largest gap
-  between this pen and a usable one. M
+- [x] **G19 · the pen draws curves.** Landed 2026-07-23. Press places the anchor, drag pulls its
+  *outgoing* handle, and the incoming one is the mirror — that symmetry is what makes a pen draw
+  smooth curves rather than a chain of unrelated arcs. Both arms are drawn while dragging, because the
+  one you are not holding decides how the curve *arrives*, and it is the surprising half.
+  The pleasing part is that no case analysis was needed: `curveTo(d, out, in, x, y)` takes the two
+  anchors' handles, and a handle sitting on its own anchor is no curvature at that end — so a click
+  after a drag, a drag after a click and a plain click are one expression, not three branches. A
+  segment is a curve when *either* end has a handle; straight is the special case.
+  Verified in a browser with a real drag: press-drag at (20,20)→(40,20), click at (60,60), press-drag
+  at (100,20)→(110,10) commits `M 20 20 C 40 20 60 60 60 60 C 60 60 90 30 100 20` — the drag is the
+  outgoing handle, the click leaves the far end straight, and the last anchor arrives mirrored.
+  **Held**: `test_pen_path`, extended — `mirror` is an involution, and a cubic whose handles sit on
+  their anchors is sampled and shown to be its own chord. M
 - [ ] **G20 · continue an existing path.** Click a path's open endpoint with the pen to extend it,
   instead of starting a new element. Depends on P7 (naming the endpoint). S
 - [ ] **G21 · corner ↔ smooth.** Double-click an anchor to toggle; alt-drag one handle to break the
@@ -934,7 +944,7 @@ Roughly by value per unit of work, given what already exists:
 4. ~~**G25**~~ ✅ — zoom, which every subsequent gesture is easier to test and to use with.
 5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
    G8 and G14 are unblocked by the same work.
-6. **G19–G23** — the pen and path work, once P7 exists. **Next.**
+6. **G19–G23** — the pen and path work. **G19 done**; G20–G23 wait on P7. **Next.**
 7. **G26–G29** — text, images and style gestures.
 
 ## 7. Milestone log
@@ -1239,6 +1249,15 @@ Roughly by value per unit of work, given what already exists:
   Align and distribute are the interesting non-structural case: they are the move tool's write aimed
   by arithmetic, so G18's falsifier holds by the skip rule rather than by a special case. 60 headless
   tests and all 10 browser laws green, with a fifth registry installed — which is T6 doing its job.
+
+- **M14 — G19, the pen draws curves (2026-07-23).** The largest single gap between this pen and a
+  usable one, and it cost one function. `penPath.curveTo(d, out, in, x, y)` is written in terms of the
+  two anchors' *handles* rather than in terms of what kind of segment this is, and `mirror(p, q)` is
+  the symmetry that makes the curve smooth. Because a handle on its own anchor means no curvature
+  there, click-after-drag, drag-after-click and click-after-click are the same expression with
+  different arguments — there is no case analysis in the tool at all, and the law samples a
+  handle-less cubic to show it really is its own chord. Verified with a real browser drag, not by
+  reading: `M 20 20 C 40 20 60 60 60 60 C 60 60 90 30 100 20`.
 
 ## 8. Open questions
 
