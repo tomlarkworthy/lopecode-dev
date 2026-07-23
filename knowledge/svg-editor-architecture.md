@@ -755,6 +755,10 @@ Two ways in, and they trade differently:
   call-site change. Cost: with several lenses on one page, "the previous node" is ambiguous, and
   guessing wrong is worse than not guessing.
 Recommendation: explicit, with the marker search only as a fallback that must agree or stand down.
+**Downgraded 2026-07-23** after B2's real fix: the view no longer needs this, because the outgoing
+node hands it over positionally, and Tom's constraint — *"don't change the call site if we don't need
+to"* — stands. S11 remains the answer for anything the *heir* must know that cannot be handed across
+a DOM swap, and for collapsing three defensive guards into one invariant. It is no longer urgent.
 *Falsified by:* the node's identity changing across a commit; or a second lens on the page adopting
 the first one's state; or — the reason to do it at all — any further bug whose sentence begins "the
 detached node".
@@ -1133,49 +1137,58 @@ visible in the source. Items here are reports first and diagnoses second, and th
   therefore allowed — but it must be declared in `ctx.state.drag`, not hidden in a closure.
   **Falsified by:** a slow drag and a fast drag to the same endpoint committing different values (T2);
   or the shape moving at all before the pointer has travelled `thresh`. S
-- [x] **B2 · the drawing flashes unzoomed after a commit. Fixed 2026-07-23 — caught in the act by
-  Tom's own console.** Two reports narrowed it: *"the glitch is on gesture start"*, then *"it's clear
-  after zooming, and the gesture after that momentarily displays the unzoomed size."* Four
-  instrumented attempts failed to reproduce it (MutationObserver across frame boundaries, a per-frame
-  overlay-handle census, a per-frame shape-versus-overlay comparison, a per-frame `viewBox` census on
-  the real drawing cell — 143 frames across three commits at `k = 2.5`, zero bad frames). A recorder
-  left running during ordinary use produced what none of them could, in one line:
+- [x] **B2 · the drawing flashes unzoomed on release. Fixed 2026-07-23, second attempt — the first
+  one fixed a real bug that was not this one.** Three reports narrowed it: *"the glitch is on gesture
+  start"*, then *"after zooming, the gesture after that momentarily displays the unzoomed size"*, then
+  a screen recording and *"actually it was when the gesture released!"*
+  **What the recording says, measured rather than watched.** 23 frames at 120 fps; one frame differs
+  (mean |Δ| of 20.8 against 0.0 for every other pair), and it is a single displayed frame. Taking the
+  circle's fill as a ruler — `r = 24`, so 48 user units across — it spans 72 px in the frames either
+  side and 190 px in the flash: **3.958 px/unit against 1.500**, a ratio of 2.64. At 3.958 px/unit the
+  pane holds ≈ 320 user units, which is the source's own `viewBox`; the view in force asked for ≈ 845.
+  So the flash frame is one rendered with **the view never applied at all** — not a wrong view, an
+  absent one.
+  **Why, and why `requestAnimationFrame` was not enough.** A commit re-runs the cell, and the fresh
+  node cannot resolve the `Variable` its view is filed under — the runtime has not taken its value
+  yet — so `viewNow()` reads identity and `applyView()` correctly declines. The view was restored from
+  an rAF, and rAF only guarantees "before the paint of the frame it is scheduled *for*". If the
+  recompute lands after that frame's animation-frame callbacks have already run, the restore is
+  scheduled for the *next* frame, and the frame in between paints the drawing at 1:1. That is a race,
+  and this document should not have called it a closed window.
+  **The fix: the outgoing node hands the view to the node that replaces it.** It is the only object
+  that still knows the view at that instant, so it watches its own parent and, when something takes
+  its place there, copies its live `viewBox` onto it. Two properties make this a mechanism rather than
+  a faster race: MutationObserver callbacks are **microtasks**, so this runs before the rendering
+  steps of the *same* frame; and the heir is identified **positionally** — the node that took our
+  place in our parent — so a fresh node never has to guess which `Variable` it belongs to. Confirmed
+  live at the moment of the swap:
   ```
-  painted -77.248 -85.096 2.0107 2.0107   wanted -77.248 -85.096 643.42 442.35
+  oldConnected: false   oldVb: "-140 -90 842.105 578.947"
+  heir: true            heirVb: "-140 -90 842.105 578.947"   heirInh: "inherited"
   ```
-  **Equal width and height is a signature, and it names one line of code.** No drawing on the page is
-  square; the only place a square window can come from is `baseBox()`'s last resort,
-  `{minX: 0, minY: 0, width: 1, height: 1}` — and `2.0107` is exactly `1/k` for the `k ≈ 0.497` in
-  force. That fallback is reached only when `target.doc()` is null, so the frame was written by a node
-  that *cannot read its own source*. Same class as M17's undo bug, one layer up: `applyView()`
-  computed a view against a 1×1 base, and `restoreView()` — reading "I cannot see the document" as
-  "the document has no viewBox" — called `removeAttribute("viewBox")`, which renders the drawing at
-  1:1 user units. That is not a metaphor for the report, it *is* the report: the unzoomed size.
-  **The fix is the rule M17 already established, applied to the view:** a node that cannot read its
-  source is not a node that should be written to. Both functions return early on `target.doc() === null`.
-  The earlier `requestAnimationFrame` restore stays — it shrinks the window in which a live node has
-  no view yet — but it was never the bug, and this document said so at the time rather than claiming
-  the fix. 59 headless tests, 10 browser laws green after.
-  **The recorder that found it, corrected** — the first version held `drawing` captured once, so after
-  a commit it was watching a detached node and its warnings were half noise (Tom: *"it happens a lot
-  but I am not totally sure it is correlated"*). This one re-resolves every live lens each frame and
-  only reports nodes that are actually on screen:
+  Arming is at **pointerdown**, not where the view is written: `applyView` usually runs from the
+  restore rAF *before* the runtime has inserted the node, so it finds no parent to observe. A gesture
+  is also the only thing that can cause the replacement being guarded against, so pointerdown is both
+  sufficient and free. At identity nothing is armed at all.
+  **Both earlier changes stay, and one of them is load-bearing.** The rAF restore still runs (it
+  restores selection and re-derives the view properly), and the `target.doc() === null` guards from
+  the first attempt are what keep the outgoing node's `viewBox` intact for the handover to read —
+  without them `restoreView` would have wiped it on the way out. 59 headless tests, 10 browser laws.
+  **Falsified by:** any frame between two commits whose `viewBox` is not the one the view asked for.
+  The recorder that finds it, which re-resolves the live node each frame rather than holding a stale
+  reference:
   ```js
-  { const tick = () => {
-      for (const g of document.querySelectorAll("g[data-svg-lens-overlay]")) {
-        const el = g.parentElement;
-        if (!el || !el.isConnected) continue;            // a detached node paints nothing
-        const vb = el.getAttribute("viewBox");
-        if (vb === null) { console.warn("no viewBox at all", el); continue; }
-        const [, , w, h] = vb.trim().split(/[\s,]+/).map(Number);
-        if (Math.abs(w - h) < 1e-9) console.warn("square window — the 1x1 fallback", vb, el);
-      }
+  { const lens = () => [...document.querySelectorAll("svg")]
+      .filter((s) => typeof s.view === "function" && s.isConnected)[0];
+    let want = null;
+    const tick = () => { const n = lens();
+      if (n) { const got = n.getAttribute("viewBox");
+        if (want === null) want = got;
+        else if (got !== want) console.warn("frame at the wrong view", got, "wanted", want); }
       requestAnimationFrame(tick); };
     requestAnimationFrame(tick); }
   ```
-  **The lesson is about evidence, not about viewBoxes.** Instrumentation written by the person who
-  holds the hypothesis samples where the hypothesis says to look. The user's log did not; it named a
-  number, and the number named the line. S
+  S
 - [ ] **B3 · a gesture-level frame budget.** The measurements above were written by hand each time.
   They should be a law-adjacent harness: sample per `requestAnimationFrame` through a scripted
   gesture, and assert what must never happen — the selection is never empty between two frames of a
@@ -1624,6 +1637,32 @@ Roughly by value per unit of work, given what already exists:
   is invoked with `this` bound to its previous value, so the cell can hand its old node back and
   `svgLens` can keep rendering into the node it already owns. The guards stay regardless — they are
   correct, and cheap — but S11 is what stops the fourth one being written.
+  59 headless tests, 10 browser laws, 19 commands.
+
+- **M20 — the fix that was not the bug, and the one that was (2026-07-23).** M19 closed B2 on a
+  console line, and the line was real: a detached node *was* writing a 1×1-based `viewBox`. It was
+  not what Tom could see. He said so — *"did you fix it? It's still doing it"* — and sent a screen
+  recording, which is the first artefact in this whole episode that could be **measured** rather than
+  reasoned about. One frame in 23 differs. The circle is a ruler: 190 px across where it is normally
+  72, so 3.958 px/unit against 1.500, so a 320-unit window where the view asked for 845. 320 is the
+  source's own `viewBox`. The flash is not a wrong view, it is **no view**, on the node the commit
+  just minted.
+  That reading also convicts the previous session's reasoning. `requestAnimationFrame` promises only
+  "before the paint of the frame it is scheduled for" — if the recompute lands after that frame's
+  callbacks have run, the restore is a frame late, and the frame between is the flash. M18 called
+  that a closed window. It was a narrowed race.
+  **What actually closes it is a change of question**: not *how soon can the new node learn its
+  view*, but *who already knows it*. The outgoing node does, and it can see itself being replaced.
+  A MutationObserver on its own parent fires in the microtask checkpoint of the task that does the
+  swap — before that frame's rendering steps, which is the guarantee rAF cannot give — and it names
+  the heir positionally, so nothing has to guess a `Variable`. Verified at the swap: the heir already
+  carries the zoomed `viewBox` before it has ever been painted.
+  Three things worth keeping. **A user saying "it's still doing it" is data, and it outranks a green
+  instrumented run** — five of mine were green, including two after the first fix. **A video is a
+  measurement**, if you stop watching it and take a ruler to it; the circle's radius settled in one
+  step what three sessions of hypotheses had not. And **the first fix was still worth landing**: it
+  is what keeps the outgoing node's `viewBox` intact long enough to be handed over. It was a correct
+  fix to a different bug, which is not the same thing as a wasted one.
   59 headless tests, 10 browser laws, 19 commands.
 
 ## 8. Open questions
