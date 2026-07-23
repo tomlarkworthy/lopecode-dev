@@ -1045,10 +1045,39 @@ and S4, and are the gaps those stages closed.)
   points by more than the tolerance anywhere; the same scribble committing different bytes at
   different zooms (T11); or a fitted path whose anchors G21 then reports as neither smooth nor
   corners. M
-- [ ] **G24 · subdivide an arc.** Explicitly refused today (`segs[i].kind === "A"` returns false),
-  which is honest but a dead end for any document containing arcs. Needs either an exact arc split or
-  arc→bezier conversion, and the latter changes the bytes, so it is a *user-visible* decision, not an
-  internal one. Ask before implementing. M
+- [x] **G24 · subdivide an arc — decided 2026-07-23: no.** Tom: *"I don't think an arc should be
+  subdivided without an explicit conversion."* So an arc stays non-subdividable, and the code that
+  refuses it (`segs[i].kind === "A"` → decline, in `splitPathSegment`, `deletePathAnchor`,
+  `toolStructure` and the two subdivision laws) is the correct behaviour rather than a gap. What was
+  filed here as a missing feature is really a symptom of a missing *primitive* — see G47. An author
+  who wants to edit an arc's interior converts it to cubics first, explicitly, and then every path
+  gesture applies.
+- [ ] **G47 · change a segment's type.** The primitive the whole editor is missing, named by Tom:
+  *"a way to change a vertex between bezier and straight — and arc would be one of those too."* A path
+  segment has a *kind* — `L` (line), `C`/`S` (cubic), `Q`/`T` (quadratic), `A` (arc) — and today the
+  kind an author drew is the kind they are stuck with. Making the kind editable is one command,
+  `convert-segment`, whose plan is a small **conversion registry**: an entry per ordered pair it knows
+  how to rewrite, keyed on `(from, to)`, returning the replacement group or declining.
+  Half of it already exists, unnamed and welded shut. `pathSmooth.promote` is exactly `L → C`
+  (`C p0 p3 p3`, the cubic that draws the identical chord) and `demote` is `C → L` (a cubic whose
+  handles sit on its endpoints spelled `L` again) — they are private to the smooth toggle and refuse
+  everything else. G47 lifts them out as the first two registry entries and adds the rest:
+  - **`L ↔ C`** — already written; the round trip is byte-exact, which is the property test G21
+    already passes.
+  - **`C ↔ Q`** — exact one way (a quadratic *is* a cubic with its controls at ⅔), lossy the other, so
+    `C → Q` is offered only when the cubic actually came from a quadratic (both controls on the ⅔
+    points) and declines otherwise — the same "decline rather than guess" `demote` uses.
+  - **`A → C`** — the explicit conversion arcs need, and the reason G24 is a *no* rather than a
+    feature. An arc splits into up to four ≤90° pieces, each an exact cubic; `absoluteGroup` already
+    rewrites an `A` as an absolute same-shape command, so the missing piece is only the arc→cubic
+    maths. It is deliberately **one-way**: cubics do not round-trip back to a single arc, and pretending
+    they do would invent a curve the author did not draw. After it, subdividing "an arc" is just
+    subdividing the cubics it became — which is why this closes G24 without ever subdividing an arc.
+  The surface is G39's territory (an affordance on a held segment: "make straight" / "make curved" /
+  "to béziers"), and the write path is `commitDelta` like everything else. **Falsified by:** any
+  offered conversion whose result does not render pixel-identically to the segment it replaced (every
+  conversion here is exact by construction *except* the intentionally-declined lossy directions); or a
+  round-trippable pair (`L↔C`, `C↔Q`-from-Q) that does not return the author's original bytes. M
 
 #### F — view (S7)
 
@@ -1268,7 +1297,9 @@ Roughly by value per unit of work, given what already exists:
 5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
    G8 and G14 are unblocked by the same work.
 6. **G19–G23** — the pen and path work. **G19, P7, G20, G21 and G23 done.** Only G22 (several
-   vertices at once) remains; G24 needs a decision before it can start.
+   vertices at once) remains. **G24 resolved 2026-07-23 as a *no*** (arcs are not subdivided in
+   place); the real want underneath it is **G47** (change a segment's type), whose `L↔C` half already
+   exists inside G21's smooth toggle and wants lifting out into a conversion registry.
 7. ~~**G43**~~ ✅ 2026-07-23 — a move writes the shape's own coordinates, not a `transform`. **B2 done**
    the same day (the unzoomed flash). Both were reported by Tom in use, neither was on the list.
 8. **B1** — the drag jump. Small, felt on *every* drag, and the only item here that makes the editor
@@ -1285,8 +1316,10 @@ Roughly by value per unit of work, given what already exists:
     per shape.
 11. **S10, then G35–G36** — `defs` you can point at, gradients and arrowheads. The largest remaining
     block, and the one that most changes what documents the editor can open without breaking.
-12. **G45** — scribble that fits to a curve. A self-contained tool (Schneider fit) that ends in a
-    `<path>` every existing gesture already edits; slots in whenever, independent of the registries.
+12. **G45, G47** — the path-shape pair. **G45** is scribble-to-curve (Schneider fit), self-contained
+    and independent of the registries. **G47** is change-a-segment's-type: its `L↔C` half is already
+    written inside G21, and `A→C` is what makes an arc editable at all — the explicit conversion G24
+    turned out to need. Both end in a `<path>` every existing gesture edits.
 13. **G26–G29** — text, images, eyedropper, swatch drop. Text is the biggest single item on the whole
     list (a content lens, not an attribute lens) and is deliberately last.
 14. **B3** — the per-frame harness. Not a feature; the thing that stops K from refilling.
