@@ -692,12 +692,13 @@ click is about to hit**.
 
 #### P — prerequisites this list needs that §6.4 did not
 
-- [ ] **P6 · a `view` delta.** Zoom, pan, hover highlight and the drag HUD all change what is on
-  screen and must change *nothing* in the source. `gestureDelta` has `attr` (writes), `command`
-  (writes) and `select` (does not) — there is no constructor for "view only", so these gestures would
-  have to bypass the sinks, which is exactly what L3 forbids. Add `gestureDelta.view` and let
-  `previewDelta` own it. **Falsified by:** any zoom, pan or hover changing `docText()` by one byte —
-  T9's assertion, applied to a second kind of non-edit. S
+- [x] **P6 · a `view` delta.** Landed 2026-07-23. `gestureDelta.view(marks, {key, cursor})` where a
+  mark is an overlay primitive `{tag, attrs, layer}`. `key` names the group the delta *replaces*, so
+  emitting the same key every frame is idempotent rather than cumulative — which is what a hover or
+  a readout needs and what a bare "draw into the overlay" could not give. `previewDelta` owns it,
+  `commitDelta` returns null for it (decoration is never a source edit), `revertDelta` clears it.
+  The alternative was letting decorating gestures reach into the DOM themselves, which L3 now
+  forbids — so P6 is the price of L3, and worth it.
 - [ ] **P7 · address something smaller than an element.** `focus` holds element paths; a vertex is
   identified only by a transient handle `key` inside one tool's gesture scratch. Multi-vertex
   selection, corner↔smooth, and deleting a segment all need a vertex to be nameable in the
@@ -713,11 +714,15 @@ click is about to hit**.
 
 #### A — direct geometry: the gap that makes "editor" arguable (needs S2/S3)
 
-- [ ] **G1 · hover highlight and cursor.** A new `toolHover` cell that outlines what `ctx.hit` would
-  claim and sets the cursor. Cheapest item on the list and it unblocks the discoverability of
-  everything else, because hit-testing is deliberately tolerant and therefore currently invisible.
-  Needs P6. **Falsified by:** the highlight disagreeing with what a click then selects — one property,
-  since both must be the same `ctx.hit` call. S
+- [x] **G1 · hover highlight and cursor.** Landed 2026-07-23 as `toolHover`, the eighth tool: reads
+  `ctx.hit(e)[0]`, outlines it with `ctx.rootBox` and sets `cursor: move`. The falsifier is satisfied
+  structurally rather than by a test — it is *the same call* `toolMove` makes to decide what a click
+  claims, so the two cannot disagree. Skips an already-selected element, whose box is drawn already.
+  The tool contract gained `onPointerLeave`, because a pointer can leave without a final move over
+  empty space and would otherwise strand the outline. Verified in a browser: one `rect.hover` mark
+  and `cursor: move` over the house, and all eight gesture laws still green with an eighth tool in
+  the registry — which is T6 doing its job. Uses the same `boxInRoot` the multi-selection boxes use,
+  so it is loose around a rotated shape in exactly the way the rest of the editor already is.
 - [ ] **G2 · rect handles.** Shape-registry entry: 4 corner + 4 side handles writing `x`/`y`/`width`/
   `height`. **Falsified by:** dragging a corner and finding `transform` in the source rather than
   `width`; and by S3's resize-agreement property — resizing through the registry and through
