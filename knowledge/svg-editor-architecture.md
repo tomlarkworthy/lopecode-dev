@@ -378,7 +378,7 @@ translation to be undefined too — the tool declines. `tryFocus`'s `catch { ret
 done right. `toolStructure` falling through to *drop a new shape* is that, done wrong, which is gap 0
 again from a third direction.
 
-#### Two laws that are ours, not theirs
+#### Three laws that are ours, not theirs
 
 Stated separately because they are not in either paper and should not be cited as if they were.
 
@@ -392,6 +392,12 @@ Stated separately because they are not in either paper and should not be cited a
   operational transformation's TP1 in one-sided form, from the OT literature. `test_rebasePath`
   already checks it for one command by exactly that ground-truth method; generalise it to the command
   registry.
+- **T10 Hit agreement** (added 2026-07-23 with S1). What the hover outlines, what a press claims and
+  what a double-click enters are three readings of *one* answer — `ctx.pick` — so they cannot drift
+  apart. This is the law gap 0 needed: gap 0 was not one bug but the same question having two answers
+  (`e.target` and `ctx.hit`) in two places. It also pins the group policy, which is a policy rather
+  than a fact and therefore belongs in a law: click takes the outermost unopened container,
+  double-click descends one level, Escape ascends. Its pure half is `test_scoped_path`.
 
 #### Three gaps that stop being special cases
 
@@ -598,7 +604,8 @@ One cell each, in the appendix beside the existing lens laws, reusing `forAll`. 
 **Where this lands in the stages:** P1–P4 and L1–L9 *are* S0. P5 is S0 or S1. C0–C6 are S0's
 conversion half. C7 folds into S4.
 
-**Status 2026-07-23: 21 of 22 done.** Only C7's registry half is open, and it is S4's work. S0 is
+**Status 2026-07-23: 21 of 22 done, and C7's `e.target` is gone** (S1 replaced it with `ctx.pick`;
+what remains of C7 is the *command registry*, which is S4's work). S0 is
 therefore complete — see M9 in the milestone log for what it cost.
 
 ### 6.5 Stages
@@ -616,11 +623,15 @@ without this, T6 cannot be tested at all;
 *Falsified by:* replaying the three 2026-07-23 bugs and gap 0 against it and having any of them pass;
 or `svgLens(node)` with no options behaving differently from today on the whole corpus.
 
-**S1 — one hit contract.** Add `ctx.hit(e)`; remove `e.target` from `toolStructure`. Group-vs-leaf
-selection becomes a policy in that single place (leaf on click, ancestor on marquee, double-click to
-descend). Closes gap 0 and part of gap 2.
+**S1 — one hit contract. ✅ done 2026-07-23.** `ctx.pick(e)` is the single place group-vs-leaf policy
+lives: it maps the painted leaves `ctx.hit` returns through `scopedPath` at the current scope, dedupes
+and answers front to back. Selection, the hover outline, the occlusion cycle, the marquee and the
+descent gesture all read it, and `toolStructure`'s `e.target` is gone — which was the last place in
+the editor where "what did I click" had a second answer. Closes gap 0 and part of gap 2.
 *Falsified by:* any row of a (shape, fill, click position) table picking a different target than
-selection would; or the element-count instrument firing on a double-click.
+selection would; or the element-count instrument firing on a double-click. **Held**: T10 walks the
+corpus's four kinds and compares the outline with the selection box at each, and double-clicks the
+stroke-only path — the shape `e.target` used to miss — asserting no element was appended.
 
 **S2 — shape registry, no behaviour change. ✅ done 2026-07-23.** The points/path handlers became
 tag-keyed entries in `svgShapes`, read through `shapeLookup.forMode`/`forTag` by `handleEdit`, by the
@@ -687,7 +698,8 @@ Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool
 
 | gesture | what it does | what it writes |
 |---|---|---|
-| tap a shape | select; repeated tap on the primary cycles down the occlusion stack | nothing |
+| tap a shape | select it — or, if it is inside a group you have not entered, that group; repeated tap on the primary cycles down the stack | nothing |
+| double-click a group | enter it; Escape leaves it | nothing |
 | shift-tap | add/remove from the selection | nothing |
 | drag empty canvas | marquee (shift adds) | nothing |
 | drag a shape body | move it, and the rest of the selection with it; snapping with guides, alt disables | `transform` |
@@ -701,9 +713,9 @@ Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool
 | pen click / click the start / double-click | place an anchor, close, finish | `d` |
 | arrows, `[ ] { }`, Delete, ⌘Z | nudge, z-order, delete, undo/redo | `transform`, structure |
 
-Three things that whole table implies and are worth stating plainly: **the pen draws only straight
-lines**, **there is no zoom**, and **groups cannot be selected as groups**. (A fourth, "a rectangle's
-`width` cannot be edited", was true until S3 and is the gap that stage closed.)
+Two things that whole table implies and are worth stating plainly: **the pen draws only straight
+lines** and **there is no zoom**. (Two more, "a rectangle's `width` cannot be edited" and "groups
+cannot be selected as groups", were true until S3 and S1 and are the gaps those stages closed.)
 
 #### P — prerequisites this list needs that §6.4 did not
 
@@ -757,12 +769,16 @@ lines**, **there is no zoom**, and **groups cannot be selected as groups**. (A f
 
 #### B — selection (needs S1's one hit contract)
 
-- [ ] **G6 · groups are selectable, and enterable.** Click selects the outermost `<g>`; double-click
-  descends one level; Esc ascends. Today a click always lands on the leaf and only a marquee ever
-  reaches a group. This is the same change that closes gap 0, because it is the one place `e.target`
-  survives. **Falsified by:** any row of a (shape, fill, click position) table selecting something
-  other than what the highlight showed; or a double-click on a stroke-only shape appending an
-  element. M
+- [x] **G6 · groups are selectable, and enterable.** Landed 2026-07-23 with S1. Click selects the
+  outermost `<g>`, double-click descends one level (`toolScope`, the ninth tool), Escape ascends via
+  `node.ascendScope()` — offered at the callsite between "abandon this gesture" and "leave this
+  mode", so Escape reads as one verb that means the most local thing available. The scope is a path
+  in `lensState`, so being inside a group survives the remount a commit causes, and selecting
+  something the group does not contain leaves it. `scopedPath` is the whole policy in four lines and
+  is checked headless by `test_scoped_path` — which caught a real hole: a scope that had reached the
+  element itself fell all the way back to the root. Verified in the demo: the house selects as its
+  `<g>` with the gizmo, double-click gives the rect's nine geometry handles, Escape returns to the
+  group.
 - [ ] **G7 · select all / none / same.** ⌘A, Esc, and "select same tag" / "select same fill" as
   command-registry entries rather than special cases. **Falsified by:** T9 — none of them may write. S
 - [ ] **G8 · context menu.** Right-click renders whatever the command registry holds, so it needs no
@@ -866,8 +882,8 @@ Roughly by value per unit of work, given what already exists:
    a registry that does not exist. G1 needs P6.
 2. ~~**G2–G5**~~ ✅ — direct geometry. This is the item that changes what the editor *is*, and it was
    one registry (S2) plus six small cells (S3).
-3. **G6** — groups, which also closes the last known bug. **Next.**
-4. **G25** — zoom, because every subsequent gesture is easier to test and to use with it.
+3. ~~**G6**~~ ✅ — groups, which also closed the last known bug.
+4. **G25** — zoom, because every subsequent gesture is easier to test and to use with it. **Next.**
 5. **G15–G18** — the structural verbs, once S4's registry exists.
 6. **G19–G23** — the pen and path work, once P7 exists.
 7. **G26–G29** — text, images and style gestures.
@@ -1114,6 +1130,23 @@ Roughly by value per unit of work, given what already exists:
   corner-radius handle needed a drawn inset, because a truthful handle at `rx = 0` lands on the
   corner and steals it — the inset is subtracted back in `edit`, so it is a bijection rather than a
   lie.
+
+- **M11 — S1 done, groups are things, and gap 0 is closed (2026-07-23).** `ctx.pick(e)` is the one
+  hit contract: it takes the painted leaves `ctx.hit` returns, maps each through `scopedPath` at the
+  current scope, dedupes and answers front to back. Everything that used to ask "what did I click"
+  its own way now asks this — selection, the hover outline, the occlusion cycle, the marquee, and the
+  new `toolScope`. `toolStructure`'s `e.target` is gone, which was the last second answer, and gap 0
+  goes with it: a double-click on a stroke-only shape used to miss and drop a *new* shape on the
+  canvas.
+  Groups became things you can hold (G6). Click takes the outermost `<g>` you have not entered,
+  double-click descends one level, Escape ascends — offered at the callsite between "abandon this
+  gesture" and "leave this mode", so Escape stays one verb meaning the most local thing available.
+  The scope is a path in `lensState`, so being inside a group survives the remount a commit causes.
+  Two laws, one of each kind: **T10 hit agreement** in a browser — the outline and the selection must
+  agree at every corpus point, a group is one thing until entered, and a stroke-only shape is not
+  empty canvas — and `test_scoped_path` headless, which is where the policy's arithmetic lives. The
+  headless one earned its keep immediately: a scope that had reached the element itself fell all the
+  way back to the root, and the property found it on run 1 of a random path.
 
 ## 8. Open questions
 

@@ -46,6 +46,7 @@ const TEST_CELLS = [
   // creation
   'test_shape_creation',
   'test_shape_registry',
+  'test_scoped_path',
   'test_pen_path',
   'test_z_order',
   'test_topmost_selection',
@@ -77,6 +78,7 @@ const GESTURE_TEST_CELLS = [
   'test_gesture_rebase_agreement',              // T7  ours: OT's TP1 for addresses
   'test_gesture_partiality',                    // T8  the action is partial [JR16 Def 6]
   'test_gesture_selection_is_not_an_edit',      // T9  ours: selection is not in M_X
+  'test_gesture_hit_agreement',                 // T10 ours: outline, click and descent are one answer
   'gestureLaws', 'gestureFixture', 'playGesture', 'gestureCorpus', 'withFixture',
 ];
 
