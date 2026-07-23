@@ -79,6 +79,7 @@ const GESTURE_TEST_CELLS = [
   'test_gesture_partiality',                    // T8  the action is partial [JR16 Def 6]
   'test_gesture_selection_is_not_an_edit',      // T9  ours: selection is not in M_X
   'test_gesture_hit_agreement',                 // T10 ours: outline, click and descent are one answer
+  'test_gesture_view_is_not_an_edit',           // T11 ours: zoom and pan are state, not edits
   'gestureLaws', 'gestureFixture', 'playGesture', 'gestureCorpus', 'withFixture',
 ];
 

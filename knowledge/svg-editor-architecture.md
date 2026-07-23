@@ -378,7 +378,7 @@ translation to be undefined too — the tool declines. `tryFocus`'s `catch { ret
 done right. `toolStructure` falling through to *drop a new shape* is that, done wrong, which is gap 0
 again from a third direction.
 
-#### Three laws that are ours, not theirs
+#### Four laws that are ours, not theirs
 
 Stated separately because they are not in either paper and should not be cited as if they were.
 
@@ -398,6 +398,16 @@ Stated separately because they are not in either paper and should not be cited a
   (`e.target` and `ctx.hit`) in two places. It also pins the group policy, which is a policy rather
   than a fact and therefore belongs in a law: click takes the outermost unopened container,
   double-click descends one level, Escape ascends. Its pure half is `test_scoped_path`.
+- **T11 The view is not an edit** (added 2026-07-23 with S7/G25). Zooming, panning and fitting write
+  nothing to the source and push nothing onto the undo stack; and the same drag *in the drawing's own
+  units* commits the same bytes at any zoom. The second half is what makes "no tool needed changing
+  for zoom" a claim rather than a hope: it holds because every measurement goes through `ctx` (P5)
+  and `getScreenCTM` already carries the viewBox, so no tool ever sees the scale factor.
+  **With alignment snapping off**, and that qualifier is a finding, not an escape hatch. Snapping is
+  magnetism and `snapRects` measures it in *screen* pixels, so at 2.5× a neighbour two user units
+  away is five pixels away and pulls when it did not before. That is the behaviour you want — you
+  snap to what looks close — so the law names the one deliberate screen-space affordance rather than
+  claiming a scale-freedom the editor does not have and should not want.
 
 #### Three gaps that stop being special cases
 
@@ -669,9 +679,15 @@ disagrees with its edit — the M0.2 failure mode, which silently drops the sele
 attribute vs `style`.
 *Falsified by:* a widget's commit differing byte-for-byte from the equivalent `setAttr`.
 
-**S7 — zoom and pan, as an uncommitted view transform.**
+**S7 — zoom and pan, as an uncommitted view transform. ✅ done 2026-07-23.** The view lives in
+`lensState.view` (`{k, x, y}`), is applied by rewriting the root `viewBox` against a `baseBox()`
+derived from the source, and is re-applied after every put — so a commit does not throw you back to
+100%. `toolZoom` is the tenth tool: wheel zooms about the pointer, middle-drag pans, and `onCancel`
+returns false because there is nothing to undo. No other tool was touched.
 *Falsified by:* the source not being byte-identical after any zoom or pan; or the same drag producing
-a different committed value at zoom 2.5 than at zoom 1.
+a different committed value at zoom 2.5 than at zoom 1 *with snapping off* — see T11 for why the
+qualifier is there and not a fudge. **Held**: T11, in a browser, over four view changes and two
+matched drags.
 
 **S8 — `<text>`, `<image>`, `defs`/`<use>`.** Text needs a *content* lens (children, not attributes).
 `<use>` needs the lens to retarget at the referenced element, possibly in another cell — §4's outward
@@ -713,9 +729,10 @@ Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool
 | pen click / click the start / double-click | place an anchor, close, finish | `d` |
 | arrows, `[ ] { }`, Delete, ⌘Z | nudge, z-order, delete, undo/redo | `transform`, structure |
 
-Two things that whole table implies and are worth stating plainly: **the pen draws only straight
-lines** and **there is no zoom**. (Two more, "a rectangle's `width` cannot be edited" and "groups
-cannot be selected as groups", were true until S3 and S1 and are the gaps those stages closed.)
+One thing that whole table implies and is worth stating plainly: **the pen draws only straight
+lines**. (Three more — "a rectangle's `width` cannot be edited", "groups cannot be selected as
+groups" and "there is no zoom" — were true until S3, S1 and S7, and are the gaps those stages
+closed.)
 
 #### P — prerequisites this list needs that §6.4 did not
 
@@ -844,11 +861,14 @@ cannot be selected as groups", were true until S3 and S1 and are the gaps those 
 
 #### F — view (S7)
 
-- [ ] **G25 · zoom and pan.** Wheel zooms about the pointer, space-drag or middle-drag pans, ⌘0 fits,
-  ⌘1 is 100%, ⌘2 fits the selection. An uncommitted view transform: needs P6, and it must compose
-  with `ctx.localPoint` so every existing tool keeps working at any zoom without knowing about it.
-  **Falsified by:** the source not being byte-identical after any zoom or pan; or the same drag
-  committing a different value at zoom 2.5 than at zoom 1. M
+- [x] **G25 · zoom and pan.** Landed 2026-07-23. Wheel zooms about the pointer (`ctrl`/pinch is 4×
+  the rate), middle-drag pans, ⌘0 fits, ⌘1 is 100%, ⌘2 fits the selection. `ctx` gained
+  `view`/`zoomAt`/`panBy` so a tool asks for a view change the same way it asks for anything else,
+  and `applyView` writes nothing at identity so a notebook that never zooms has a byte-identical
+  root. **The claim worth recording is that no existing tool changed** — not one line — because P5
+  had already routed every measurement through `getScreenCTM`, which absorbs the viewBox. Verified
+  empirically before it was trusted: at `k = 2.5` the CTM ratio is exactly 2.5 and a corner drag
+  commits the same numbers it commits at 1. **Held**: T11.
 
 #### G — content, not just shapes (S8)
 
@@ -883,8 +903,9 @@ Roughly by value per unit of work, given what already exists:
 2. ~~**G2–G5**~~ ✅ — direct geometry. This is the item that changes what the editor *is*, and it was
    one registry (S2) plus six small cells (S3).
 3. ~~**G6**~~ ✅ — groups, which also closed the last known bug.
-4. **G25** — zoom, because every subsequent gesture is easier to test and to use with it. **Next.**
-5. **G15–G18** — the structural verbs, once S4's registry exists.
+4. ~~**G25**~~ ✅ — zoom, which every subsequent gesture is easier to test and to use with.
+5. **G15–G18** — the structural verbs, once S4's registry exists. **Next**, and blocked on S4 plus
+   the command-registry half of C7.
 6. **G19–G23** — the pen and path work, once P7 exists.
 7. **G26–G29** — text, images and style gestures.
 
@@ -1147,6 +1168,26 @@ Roughly by value per unit of work, given what already exists:
   empty canvas — and `test_scoped_path` headless, which is where the policy's arithmetic lives. The
   headless one earned its keep immediately: a scope that had reached the element itself fell all the
   way back to the root, and the property found it on run 1 of a random path.
+
+- **M12 — S7 done, the drawing zooms, and no tool knew about it (2026-07-23).** The view is
+  `lensState.view` = `{k, x, y}`, applied by rewriting the root `viewBox` against a `baseBox()` read
+  from the source, and re-applied after every put so a commit does not throw you back to 100%.
+  `toolZoom` is the tenth tool — wheel about the pointer, middle-drag to pan — plus ⌘0 fit, ⌘1 100%
+  and ⌘2 fit-selection at the callsite. `applyView` writes nothing at identity, so a notebook that
+  never zooms is byte-identical to before.
+  **The result worth recording is the one that took no work**: not one existing tool changed. P5 had
+  already routed every measurement through `ctx`, and `getScreenCTM` absorbs the viewBox, so no tool
+  ever sees the scale factor. That was measured rather than assumed — at `k = 2.5` the CTM ratio is
+  exactly 2.5, and a corner drag commits the same numbers as at 1.
+  **T11** states it as a law, and stating it precisely was the whole exercise. Its first draft failed
+  twice, and both failures were worth more than a pass: the first because the zoomed view put the
+  drag target off-screen so *neither* arm committed anything — a law that compares two empty results
+  passes vacuously, which is why both arms now assert they committed; the second because with
+  snapping on the two zooms genuinely disagree (`translate(15 10)` vs `translate(12 10)`), since
+  `snapRects` measures magnetism in **screen** pixels. That is correct behaviour — you snap to what
+  looks close — so the law gained the qualifier rather than the product losing the affordance. With
+  snapping off both zooms commit `translate(12 8)`, byte for byte.
+  All ten browser laws and 54 headless tests green.
 
 ## 8. Open questions
 
