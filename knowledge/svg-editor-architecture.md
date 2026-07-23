@@ -236,7 +236,8 @@ source-last thesis, and the paper states it.
 
 Three constraints: **holistic** (one idea, not eleven patches), **incremental** (each stage ships and
 is useful on its own), **testable** (each stage names what would falsify it). §6.1 is the structural
-idea, §6.2 the theory the gesture half is missing, §6.3 how it gets checked, §6.4 the task list, §6.5 the stages.
+idea, §6.2 the theory the gesture half is missing, §6.3 how it gets checked, §6.4 the task list that
+made the gesture side lawful (done), §6.5 the stages, §6.6 the task list that makes it capable.
 
 ### 6.1 The one idea: competence is the contents of the registries
 
@@ -654,6 +655,186 @@ composition, one level further.
 
 **Deferred:** performance (gap 11, Tom's call 2026-07-23), multi-drawing (gap 9), `editor-5`
 concurrency (gap 10). None of them blocks the stages above.
+
+### 6.6 Task list 2: the gesture surface
+
+§6.4 made the gesture side *lawful*. It did not make it *capable* — nothing in that list added a
+thing a user can do. This list is the other half: the tools and gestures an SVG editor is expected to
+have, read against what is actually implemented as of 2026-07-23.
+
+Every item names the registry it belongs in, because §6.1's claim is that competence *is* the
+contents of the registries: a new capability should be a new cell, not an edit to `svgLens`. Items
+also name a falsifier, and each must satisfy the eight gesture laws by construction — several need a
+**new** law, which is called out where it applies.
+
+#### What the editor can do today
+
+Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool cells.
+
+| gesture | what it does | what it writes |
+|---|---|---|
+| tap a shape | select; repeated tap on the primary cycles down the occlusion stack | nothing |
+| shift-tap | add/remove from the selection | nothing |
+| drag empty canvas | marquee (shift adds) | nothing |
+| drag a shape body | move it, and the rest of the selection with it; snapping with guides, alt disables | `transform` |
+| drag a corner handle | scale about the opposite corner; shift keeps aspect | `transform` |
+| drag the rotate stalk | rotate about the centre; shift steps 15° | `transform` |
+| drag a vertex or control point | move it | `points` / `d` |
+| double-click an edge / a vertex | insert / delete a point | `points` / `d` |
+| double-click empty canvas | drop a shape | one element |
+| drag in a draw mode | create rect/ellipse/line; shift squares | one element |
+| pen click / click the start / double-click | place an anchor, close, finish | `d` |
+| arrows, `[ ] { }`, Delete, ⌘Z | nudge, z-order, delete, undo/redo | `transform`, structure |
+
+Four things that whole table implies and are worth stating plainly: **a rectangle's `width` cannot be
+edited**, **the pen draws only straight lines**, **there is no zoom**, and **nothing tells you what a
+click is about to hit**.
+
+#### P — prerequisites this list needs that §6.4 did not
+
+- [ ] **P6 · a `view` delta.** Zoom, pan, hover highlight and the drag HUD all change what is on
+  screen and must change *nothing* in the source. `gestureDelta` has `attr` (writes), `command`
+  (writes) and `select` (does not) — there is no constructor for "view only", so these gestures would
+  have to bypass the sinks, which is exactly what L3 forbids. Add `gestureDelta.view` and let
+  `previewDelta` own it. **Falsified by:** any zoom, pan or hover changing `docText()` by one byte —
+  T9's assertion, applied to a second kind of non-edit. S
+- [ ] **P7 · address something smaller than an element.** `focus` holds element paths; a vertex is
+  identified only by a transient handle `key` inside one tool's gesture scratch. Multi-vertex
+  selection, corner↔smooth, and deleting a segment all need a vertex to be nameable in the
+  complement: `[0,3]` vs `[0,3]#7`. Everything in group E waits on this. **Falsified by:** a vertex
+  address surviving a commit that changes an earlier vertex — T7 for sub-element addresses. M
+- [ ] **P8 · a selection ↔ source-text codec.** Copy, paste and duplicate are all "read these paths
+  out as source text, write that text back in somewhere else". `childrenLens` already gives child
+  *source strings*, so the read half exists; what is missing is the write half with id/reference
+  fixups (§`refsOf` knows which attributes point at `defs`). Pleasingly, the clipboard payload is
+  then the artifact itself — paste into a text editor and you get SVG. **Falsified by:**
+  copy-then-paste-in-place producing anything other than a byte-identical duplicate, references
+  included. M
+
+#### A — direct geometry: the gap that makes "editor" arguable (needs S2/S3)
+
+- [ ] **G1 · hover highlight and cursor.** A new `toolHover` cell that outlines what `ctx.hit` would
+  claim and sets the cursor. Cheapest item on the list and it unblocks the discoverability of
+  everything else, because hit-testing is deliberately tolerant and therefore currently invisible.
+  Needs P6. **Falsified by:** the highlight disagreeing with what a click then selects — one property,
+  since both must be the same `ctx.hit` call. S
+- [ ] **G2 · rect handles.** Shape-registry entry: 4 corner + 4 side handles writing `x`/`y`/`width`/
+  `height`. **Falsified by:** dragging a corner and finding `transform` in the source rather than
+  `width`; and by S3's resize-agreement property — resizing through the registry and through
+  `transform` must produce the same rendered bounding box. M
+- [ ] **G3 · circle and ellipse handles.** Registry entries writing `r`, and `rx`/`ry`. Same
+  falsifier. S
+- [ ] **G4 · line endpoints.** Registry entry writing `x1,y1,x2,y2`. Today a `<line>` has *no*
+  editable geometry at all — measured: 0 anchor handles, 4 scale handles. S
+- [ ] **G5 · corner radius.** One extra handle on the rect entry writing `rx`. XS
+
+#### B — selection (needs S1's one hit contract)
+
+- [ ] **G6 · groups are selectable, and enterable.** Click selects the outermost `<g>`; double-click
+  descends one level; Esc ascends. Today a click always lands on the leaf and only a marquee ever
+  reaches a group. This is the same change that closes gap 0, because it is the one place `e.target`
+  survives. **Falsified by:** any row of a (shape, fill, click position) table selecting something
+  other than what the highlight showed; or a double-click on a stroke-only shape appending an
+  element. M
+- [ ] **G7 · select all / none / same.** ⌘A, Esc, and "select same tag" / "select same fill" as
+  command-registry entries rather than special cases. **Falsified by:** T9 — none of them may write. S
+- [ ] **G8 · context menu.** Right-click renders whatever the command registry holds, so it needs no
+  maintenance as S4 fills the registry. Depends on S4. S
+
+#### C — transform gestures
+
+- [ ] **G9 · axis lock.** Shift during a *drag* constrains to the dominant axis. Shift on a *tap*
+  already means toggle-select, so the disambiguation is drag-vs-tap, which `d.started` already
+  knows. **Falsified by:** T2 — a locked drag must still depend only on where it ended. XS
+- [ ] **G10 · Esc cancels the gesture.** Currently Esc switches tool; it cannot abandon an in-flight
+  drag, so a mistaken drag must be completed and then undone. This is **literally T1**: a cancelled
+  gesture is a null edit and hands the complement back untouched, so the law already written covers
+  it. XS
+- [ ] **G11 · scale from the centre** (alt) and **G12 · a movable rotation pivot** (drag the centre
+  mark before rotating). Both are `toolTransform` changes, both fall out of the existing
+  `scaleAbout`/`rotateAbout`, which already take an arbitrary fixed point. S
+- [ ] **G13 · numeric readout during a drag.** dx/dy while moving, w×h while drawing, angle while
+  rotating, drawn in the overlay root layer. Needs P6. The one place the editor currently gives no
+  feedback about magnitude. S
+- [ ] **G14 · alt-drag duplicates.** The standard gesture, and the discoverable face of G16. Depends
+  on S4's duplicate. S
+
+#### D — the structural verbs everyone expects (S4)
+
+- [ ] **G15 · group and ungroup.** ⌘G / ⌘⇧G, as command-registry entries with their `rebase`.
+  **Falsified by:** `group ∘ ungroup ≠ id` modulo whitespace, or a rebase that disagrees with its
+  edit — L7 extends unchanged. M
+- [ ] **G16 · duplicate.** ⌘D, offset by a nudge. Needs P8. S
+- [ ] **G17 · cut, copy, paste, paste-in-place.** Needs P8. The payload is SVG source text, so it
+  interoperates with every other tool the author owns. M
+- [ ] **G18 · align and distribute.** Six aligns and two distributes over a multi-selection, as
+  commands rather than a tool — they have no gesture, only a target set. Snapping guides already
+  exist mid-drag; this is the same idea made explicit and repeatable. **Falsified by:** aligning an
+  already-aligned set writing anything at all (T1 again). S
+
+#### E — path and pen: the tool that is furthest from adequate (gap 7)
+
+- [ ] **G19 · the pen draws curves.** Today `penPath` emits only `M`/`L`/`Z` — dragging while placing
+  an anchor should pull out a symmetric control pair and emit `C`. This is the single largest gap
+  between this pen and a usable one. M
+- [ ] **G20 · continue an existing path.** Click a path's open endpoint with the pen to extend it,
+  instead of starting a new element. Depends on P7 (naming the endpoint). S
+- [ ] **G21 · corner ↔ smooth.** Double-click an anchor to toggle; alt-drag one handle to break the
+  pair. Depends on P7. M
+- [ ] **G22 · select and move several vertices.** Marquee while in points/path mode. Depends on P7,
+  and it is the case that makes "one delta per claimed element" become "per claimed *vertex*" — a
+  good stress test of the delta record. M
+- [ ] **G23 · open/close a subpath, and delete a segment.** Depends on P7. S
+- [ ] **G24 · subdivide an arc.** Explicitly refused today (`segs[i].kind === "A"` returns false),
+  which is honest but a dead end for any document containing arcs. Needs either an exact arc split or
+  arc→bezier conversion, and the latter changes the bytes, so it is a *user-visible* decision, not an
+  internal one. Ask before implementing. M
+
+#### F — view (S7)
+
+- [ ] **G25 · zoom and pan.** Wheel zooms about the pointer, space-drag or middle-drag pans, ⌘0 fits,
+  ⌘1 is 100%, ⌘2 fits the selection. An uncommitted view transform: needs P6, and it must compose
+  with `ctx.localPoint` so every existing tool keeps working at any zoom without knowing about it.
+  **Falsified by:** the source not being byte-identical after any zoom or pan; or the same drag
+  committing a different value at zoom 2.5 than at zoom 1. M
+
+#### G — content, not just shapes (S8)
+
+- [ ] **G26 · the text tool.** Click to place, type in place, double-click existing text to re-enter.
+  Needs a **content** lens — children, not attributes — which is a genuinely new lens shape rather
+  than another registry entry. L
+- [ ] **G27 · place an image.** `<image>` with an `href`; the interesting part is that a data URI and
+  a file reference are different residue decisions. S
+
+#### H — style as gestures (S6)
+
+- [ ] **G28 · eyedropper.** Alt-click picks fill and stroke off another shape onto the selection.
+  A tool cell, and cheap once the field registry exists. S
+- [ ] **G29 · drop a swatch onto a shape.** Drag a colour from a palette onto a shape; the drop target
+  is a hit test, so it reuses `ctx.hit`. S
+
+#### Explicitly not on this list
+
+**Boolean path operations** (union/subtract/intersect) need a robust path clipper, which is a library
+dependency of a size this project has avoided, and their output is machine-generated path data — the
+opposite of the residue this editor exists to preserve. **Gradients, filters and masks** as *editable*
+objects are deferred with the rest of `defs` (gap 4); they should at least survive an edit
+untouched, which the source lens already gives for free. **Multi-page/artboards** is not an SVG
+concept. **Live collaboration** is `editor-5`'s problem (gap 10), not the editor's.
+
+#### Order
+
+Roughly by value per unit of work, given what already exists:
+
+1. **G1, G10, G9** — hover, Esc-cancels, axis lock. All small, all immediately felt, none needs a
+   registry that does not exist. G1 needs P6.
+2. **G2–G5** — direct geometry. This is the item that changes what the editor *is*, and it is one
+   registry (S2) plus four small cells (S3).
+3. **G6** — groups, which also closes the last known bug.
+4. **G25** — zoom, because every subsequent gesture is easier to test and to use with it.
+5. **G15–G18** — the structural verbs, once S4's registry exists.
+6. **G19–G23** — the pen and path work, once P7 exists.
+7. **G26–G29** — text, images and style gestures.
 
 ## 7. Milestone log
 
