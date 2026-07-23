@@ -235,12 +235,13 @@ source-last thesis, and the paper states it.
 ## 6. The plan from here
 
 Three constraints: **holistic** (one idea, not eleven patches), **incremental** (each stage ships and
-is useful on its own), **testable** (each stage names what would falsify it).
+is useful on its own), **testable** (each stage names what would falsify it). §6.1 is the structural
+idea, §6.2 the theory the gesture half is missing, §6.3 how it gets checked, §6.4 the stages.
 
 ### 6.1 The one idea: competence is the contents of the registries
 
 M2 already made this move once, for tools, and it worked — a new tool is now a new cell rather than an
-edit to a monolith. Every remaining gap is the same move, not yet made, on four more axes:
+edit to a monolith. Every remaining gap is the same move, not yet made, on five more axes:
 
 | axis | today | should be |
 |---|---|---|
@@ -249,6 +250,7 @@ edit to a monolith. Every remaining gap is the same move, not yet made, on four 
 | which structural edits exist | seven `runCommand` call sites | **command registry**: id → `{apply, rebase, label, key}` |
 | what the inspector shows | one text input per attribute | **field registry**: attribute → widget |
 | what counts as a hit | `hitTest` in some tools, `e.target` in others | one `ctx.hit(e)`; no tool touches `e.target` |
+| which tools are installed | `svgTools`, an ambient registry cell | `options.tools`, **defaulting to** `svgTools` |
 
 §4 already routes `handle → slot → class → sink`. The gizmo is the one thing that skips the middle and
 goes straight to `transform`. So gap 1 is not new machinery — it is **deleting a special case** so the
@@ -258,42 +260,127 @@ One consequence worth stating early: **zoom/pan needs no tool changes at all.** 
 through `getScreenCTM()`, so a view transform that is DOM-only and never committed is invisible to
 them — the rule the overlay already lives under (`isOwn`). Gap 3 is one cell, not a subsystem.
 
-### 6.2 The missing half of the test strategy
+**Registries should be parameters, not ambient cells.** `svgTools` is reachable from any cell, which
+is good for extension and bad for everything else: two lenses on a page cannot differ, a test cannot
+isolate one tool, and the essay cannot show a reduced editor. Take the whole set at the callsite,
+defaulting to the registry:
 
-The suite is 50 property tests and every one is a pure lens law. **Nothing exercises a gesture.** All
-three bugs found on 2026-07-23 — the overlay ghosting a moved shape, the pen losing its path after its
-first anchor, a multi-element move committing only the first element — were gesture-level, and the
-suite was green throughout. Gap 0 is the same kind of defect.
+```js
+svgLens(node, { tools: [toolVertex] })                  // a vertex-only editor, for a figure
+svgLens(node, { tools: (d) => [myWallTool, ...d] })     // extend without restating the defaults
+svgLens(node)                                           // exactly today's behaviour
+```
 
-Synthetic `PointerEvent`s do drive real commits (dispatch `pointerdown` on `elementFromPoint`, then
-moves and `pointerup` on the root), so the harness is cheap. What makes it worth having is that the
-assertions are **invariants rather than screenshots**. These hold after *any* gesture:
+This is what makes §6.3's composition law checkable at all — it needs to run the corpus under tool set
+`T` and under `T ∪ {t}` — and it turns "the editor is a configuration" from a claim in the prose into
+something the paper can demonstrate inline.
 
-- **I1** the overlay frames the selection: box `getBoundingClientRect()` minus the element's is 0.
-- **I2** one gesture produces one undo entry per element it claimed to edit.
-- **I3** the rendered DOM agrees with a fresh render of the committed source.
-- **I4** no gesture adds or removes an element unless it was a creation or deletion gesture.
-- **I5** every selection path still resolves afterwards.
+### 6.2 Gestures need their own theory, and it exists
 
-I4 alone catches gap 0; I1 catches the ghosting; I2 catches the multi-element move. Write them once,
-run them after every scripted gesture, and the class of bug that has been getting through stops
-getting through.
+The lens half of svg-lens is over-served: 50 property tests, laws quoted in the prose, `runCommand`
+even self-checks `GetPut` at runtime and reports it on the `lens-put` event. The gesture half has
+none of that, and all three bugs found on 2026-07-23 were gestural.
 
-### 6.3 Stages
+The cause is visible in one line of `toolMove`. Mid-drag it paints
+`el.setAttribute("transform", translateLens.put(g.T, g.text))`; on release it calls
+`writer.commit(g.idx, "transform", g.T, "", translateLens, g.text)`. The **same** `(value, lens,
+sourceText)` triple, applied by hand to two different targets, in two places, in every tool. The
+gesture's delta is never a value — it is scattered across `ctx.state.drag` and consumed twice — so
+there is nothing to state a law *about*.
+
+**Make the delta a value and the theory arrives with it.** A gesture is a stream of view-space deltas
+that a tool translates into one source-space edit. That is precisely a **delta / edit lens** (Diskin,
+Xiong & Czarnecki 2011; Hofmann, Pierce & Wagner, *Edit Lenses*, POPL 2012) — the delta-based
+generalisation of the state-based lenses already in the paper, where the laws are about the *monoid of
+edits* rather than about states. The state-based laws have exact gesture counterparts:
+
+| lens law | gesture law | falsified by |
+|---|---|---|
+| GetPut `put(get s, s) = s` | **T1 Null gesture** — down and up with no movement leaves the source byte-identical | gap 0: a missed hit silently becomes a *creation* |
+| PutGet `get(put(a,s)) = a` | **T2 Coherence** — the DOM painted mid-drag equals a fresh render of the source that gets committed | the 2026-07-23 ghosting; "it looked right until I reloaded" |
+| PutPut `put(a',put(a,s)) = put(a',s)` | **T3 Homomorphism** — one drag by `d` ≡ the composition of its frames | float accumulation; multi-move committing one element |
+
+And two with no state-based counterpart, which are the actual theory *of tools*:
+
+- **T4 Confinement.** A tool that returns `false` from `onPointerDown` has changed nothing, and
+  installing it cannot change what the tools before it do. Registry order is priority, so tool sets
+  form a (non-commutative) monoid under concatenation and the priority fold must respect it. **This
+  law is what makes a tool a plugin rather than a patch** — it is the thing a third-party tool has to
+  prove.
+- **T5 Rebase agreement.** `rebase(p, c)` equals re-locating the same element after `apply(c)`. This
+  is operational transformation's TP1 in one-sided form, and `test_rebasePath` already checks it for
+  one command by exactly that ground-truth method. Generalise it to the command registry.
+
+Two more optics, and three of the gaps stop being special cases:
+
+- the **shape registry is a family of prisms** — tag dispatch is a sum type, and `preview ∘ review =
+  Just` is the law each entry owes;
+- **hit-testing is an affine/optional** — a focus that may fail, whose law is that a failed `get`
+  makes `put` a no-op, which is T1 restated;
+- **multi-selection is a traversal** — so "set fill on the selection" is traversal ∘ lens and comes
+  for free, along with align/distribute (gap 8) and group edit (gap 2).
+
+All three have textbook laws and can reuse the existing `forAll` harness unchanged.
+
+**Where the laws are allowed to fail is the useful part.** T3 does not hold under snapping or grid
+rounding — those are deliberately non-linear, so the law localises the non-linearity instead of
+hiding it: state T3 for `snap: false`, and require the snapped case to satisfy T1 (re-applying a zero
+delta changes nothing). T2 does not hold where the source has holes, because the source cannot
+represent the previewed value — but the writer already detects this and returns `locked` with a
+`reason`, so the law is "coherent, **or** the writer said locked", and an unexplained divergence is a
+bug.
+
+*Before this goes in the LIVE submission, check the exact axioms against the two papers rather than
+against this summary.*
+
+### 6.3 How the laws get checked
+
+Synthetic `PointerEvent`s drive real commits (proven 2026-07-23: dispatch `pointerdown` on
+`elementFromPoint`, then moves and `pointerup` on the root), so the harness is a scripted trace plus
+assertions. Split the tool so both halves are checkable:
+
+- `preview(ctx, delta)` paints the live DOM; `commit(ctx, delta)` yields a command. Default `preview`
+  = apply the commit's own lens put to the live attribute, which makes **T2 structural rather than
+  tested** for every tool that does not override it — and deletes the duplicated triple from each
+  tool.
+- With the delta a value, a tool is a pure `trace → [command]`, testable headlessly; only T2 needs a
+  browser.
+
+Four instruments, all measurements rather than screenshots, each mapping onto a law:
+
+| instrument | checks |
+|---|---|
+| overlay `getBoundingClientRect()` minus the element's = 0 | T2 at the chrome level |
+| undo depth delta = number of elements the gesture claimed | T3, and T1 for a null gesture |
+| element count unchanged unless the gesture was a creation or deletion | T1, T4 — this alone catches gap 0 |
+| every selection path still resolves | T5 |
+
+Report them on the existing `lens-put` event beside `GetPut`/`PutGet`, so the editor keeps checking
+its own laws at runtime, the way `runCommand` already does.
+
+### 6.4 Stages
 
 Each stage ends shippable. *Falsified by* is the check that has to go green.
 
-**S0 — gesture harness and I1–I5.** One harness cell, one test cell per invariant. No product change.
-*Falsified by:* replaying the three 2026-07-23 bugs against it and having any of them pass.
+**S0 — make the gesture a value, the tool set a parameter, and the laws run.** The one stage that is
+pure infrastructure, and the one everything else is measured by. Three parts, in order:
+(a) a gesture carries a **delta**, and a tool declares `preview`/`commit` over it, with the default
+`preview` derived from `commit` — this deletes the duplicated `(value, lens, sourceText)` triple from
+every tool and makes T2 hold by construction;
+(b) `options.tools` (and later `shapes`/`commands`/`fields`), defaulting to the ambient registries —
+without this, T4 cannot be tested at all;
+(c) the trace harness, T1–T5, and the four instruments, reported on `lens-put`.
+*Falsified by:* replaying the three 2026-07-23 bugs and gap 0 against it and having any of them pass;
+or `svgLens(node)` with no options behaving differently from today on the whole corpus.
 
 **S1 — one hit contract.** Add `ctx.hit(e)`; remove `e.target` from `toolStructure`. Group-vs-leaf
 selection becomes a policy in that single place (leaf on click, ancestor on marquee, double-click to
 descend). Closes gap 0 and part of gap 2.
 *Falsified by:* any row of a (shape, fill, click position) table picking a different target than
-selection would; or I4 firing on a double-click.
+selection would; or the element-count instrument firing on a double-click.
 
 **S2 — shape registry, no behaviour change.** Move the existing points/path handlers into tag-keyed
-entries. Nothing new works yet; the 50 lens tests and I1–I5 must stay green. This is the refactor that
+entries. Nothing new works yet; the 50 lens tests and T1–T5 must stay green. This is the refactor that
 makes S3 one cell per tag.
 *Falsified by:* any existing test changing, or needing to change.
 
@@ -310,7 +397,7 @@ rebase, so `test_rebasePath`'s ground-truth method extends unchanged.
 disagrees with its edit — the M0.2 failure mode, which silently drops the selection.
 
 **S5 — outliner.** A pure projection of `childrenLens` plus `node.select`; no new write path.
-*Falsified by:* I5, or the tree disagreeing with `parseDoc`.
+*Falsified by:* T5, or the tree disagreeing with `parseDoc`.
 
 **S6 — field registry: colour, length, dash, opacity widgets.** `setProperty` already routes
 attribute vs `style`.
