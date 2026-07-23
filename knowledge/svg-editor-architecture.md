@@ -501,33 +501,37 @@ and the roll-up is at the end of this section.
 One cell each, in the appendix beside the existing lens laws, reusing `forAll`. Generators over
 (tool, target element, gesture script).
 
-- [ ] **L1 · T1 identity — `p(1,c) = (1,c)`.** For every tool and every element, `down` then `up` at the
-  same point with no movement ⟹ `docText()` byte-identical, `elemCount()` unchanged,
-  `historyDepth()` unchanged, and the gesture scratch back to its prior value. *Selection is exempt*
-  — a click legitimately selects; the law is about `M_X` and `C`, not about focus. **Catches gap 0
-  (left half) and the pen bug (right half).**
-- [ ] **L2 · T2 path independence — `p(mm′,c) = (nn′,c″)`.** Same start and end point, two different
-  interior paths (straight line vs random walk), modifiers held constant ⟹ identical committed
-  source. Holds today for every tool, including under snapping, because snapping is a function of the
-  absolute delta — so this is a regression guard against future incremental accumulation.
+- [x] **L1 · T1 identity — `p(1,c) = (1,c)`.** `test_gesture_identity`. A null tap at 5 points
+  (filled polygon, stroke-only path, rect, transformed group, empty canvas), each twice so the
+  already-selected state is covered ⟹ source byte-identical, element count and undo depth unchanged.
+  Selection is exempt. **✅ green 2026-07-23.**
+- [x] **L2 · T2 path independence — `p(mm′,c) = (nn′,c″)`.** `test_gesture_path_independence`. A
+  straight drag and a 5-leg wander to the same endpoint commit the same bytes. Holds today —
+  snapping is a function of the absolute delta, not of the route — so this is a regression guard
+  against a future tool accumulating per frame. **✅ green 2026-07-23.**
 - [ ] **L3 · T3 coherence — d-PutGet.** Two forms, both worth having. *Dynamic:* snapshot every attribute
   the tool touched on the last frame before `up`, commit, re-render, compare — equal, **or** the
   writer's record says `locked`. *Static:* after P1, assert no tool calls `setAttribute` outside
   `previewDelta`. The static one is a few lines and very strong. **Fails today on `toolTransform`.**
-- [ ] **L4 · T4 origin — d-PutInc.** A gesture that spans a commit (multi-element move; pen second
-  click) ⟹ `historyDepth()` delta equals the number of elements the gesture claimed. **The
-  multi-move regression.**
+- [x] **L4 · T4 origin — d-PutInc.** `test_gesture_commits_against_its_origin`. Marquee a set, drag
+  it, assert the undo depth gained equals the number of elements claimed. Measured: **a 4-element
+  move commits 4 edits.** This is the 2026-07-23 multi-move regression, now guarded. **✅ green.**
 - [ ] **L5 · T5 consistency.** After any gesture, the live DOM minus `overlay.isOwn` deep-equals a fresh
   render of `docText()`.
-- [ ] **L6 · T6 confinement.** For random subsets and orders of the tool list: for every trace, if tool
-  `t` declines, the source is byte-identical to the run without `t`. Needs P2. **This is the test a
-  third-party tool has to pass.**
+- [x] **L6 · T6 confinement.** `test_gesture_confinement`. A tool that declines everything is
+  installed at the head and at the tail of the registry; both runs must be byte-identical to the run
+  without it, and the tool must actually have been offered the gesture (else the law is vacuous).
+  Needs P2. **This is the test a third-party tool has to pass. ✅ green 2026-07-23.**
 - [ ] **L7 · T7 rebase agreement.** For every command in the registry, `rebase(p, c)` equals re-locating
   the same element after `apply(c)`. Extends `test_rebasePath`'s existing ground-truth method.
 - [ ] **L8 · partiality.** A gesture on an attribute outside the lens domain — unparseable `points`, an
   arc segment for subdivision — ⟹ the tool declines and the source is unchanged. Formal content of
   "decline cleanly"; the **gap 0 regression test**.
-- [ ] **L9 · selection-only.** `toolMarquee` never writes the source, under any trace.
+- [x] **L9 · selection-only.** `test_gesture_selection_is_not_an_edit`. Three marquee bands — both
+  drag directions plus one over empty space — never write the source or push an undo entry.
+  Measured: selects up to 4 elements, and the empty band correctly clears. **✅ green 2026-07-23.**
+  (First version asserted a non-empty selection *after* the deliberately-empty band and failed; the
+  law was right, the assertion was not.)
 
 #### C — tool conversions, in order
 

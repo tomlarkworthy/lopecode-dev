@@ -4480,12 +4480,24 @@ const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer){return(
 // caller places `container` in its own output: in flow, at its real screen position, which is what
 // makes `elementsFromPoint` answer correctly without z-index tricks.
 // ================================================================================================
-const _sl130 = function _gestureFixture(runtime,realize,settle,literalSpan,nodeAt,svgLens,svg){return(
+const _sl130 = function _gestureFixture(runtime,realize,settle,literalSpan,nodeAt,svgLens,svg){
+  // ONE module for every fixture, created on first use. A module per fixture grows the runtime's
+  // module registry, `currentModules` recomputes, the lopepage frame re-observes this module's
+  // cells, the law cells re-run and build another fixture: a feedback loop that never settles.
+  // Fixtures are serialised by `withFixture`, so reusing the names is safe.
+  let mod = null, optsVar = null;
+  return (
 async (body, options = {}) => {
-  const mod = runtime.module();
-  mod.define("svgLens", [], () => svgLens);
-  mod.define("svg", [], () => svg);
-  mod.define("_opts", [], () => options);               // carries real tool arrays; JSON would not
+  if (!mod) {
+    mod = runtime.module();
+    mod.define("svgLens", [], () => svgLens);
+    mod.define("svg", [], () => svg);
+    optsVar = mod.variable();                           // one handle, redefined per fixture
+  }
+  // `mod.define` mints a *new* variable each call, so calling it twice for the same name yields
+  // "`_opts` is defined more than once" and every fixture after the first fails. Redefine the
+  // handle instead. Carries real tool arrays, which serialising through the source could not.
+  optsVar.define("_opts", [], () => options);
   const src = `function _fixture(svgLens, svg, _opts) { return (\nsvgLens(svg\`${body}\`, _opts)\n) }`;
   const [fn] = await realize([src], runtime);
 
@@ -4536,7 +4548,8 @@ async (body, options = {}) => {
     destroy: () => { try { v.delete(); } catch (_) {} container.remove(); }
   };
 }
-)};
+  );
+};
 
 // Drive a fixture with scripted pointer events. Coordinates are the drawing's own user units — the
 // harness converts through `getScreenCTM`, the same matrix the tools invert, so a script reads like
@@ -4600,6 +4613,193 @@ const _sl131 = function _playGesture(){return(
   play.press = (key, o = {}) => () => [["key", key, 0, o]];
   return play;
 })()
+)};
+
+
+// ================================================================================================
+// GESTURE LAWS — the tool-side counterparts of the lens laws above (design note §6.2).
+//
+// A tool translates view-space deltas into one source-space edit, with the gesture scratch as its
+// complement: a *stateful monoid homomorphism* in the sense of Johnson & Rosebrugh (Bx 2016), which
+// axiomatises Hofmann/Pierce/Wagner and Diskin/Xiong/Czarnecki. The laws below are those axioms read
+// through the dictionary in the design note. They need a browser; headless they report ⏭.
+// ================================================================================================
+const _sl132 = function _gestureCorpus(){return(
+{
+  // One of each addressable kind: a filled polygon (interior hit-testable), a stroke-only path (the
+  // case a `e.target` hit test misses), a rect (gizmo only) and a transformed group.
+  basic: `<svg viewBox="0 0 200 120" width="200" height="120">
+  <polygon points="20,100  60,30  100,100" fill="#5B7A5E"/>
+  <path d="M 120 100 L 150 40 L 180 100" fill="none" stroke="#4C7FD1" stroke-width="3"/>
+  <rect x="20" y="10" width="30" height="16" fill="#B25B3A"/>
+  <g transform="translate(150,10) rotate(-4)"><circle cx="0" cy="8" r="7" fill="#F5B840"/></g>
+</svg>`,
+  // Deliberately non-canonical: a comment, doubled spaces, a comma-separated translate.
+  residue: `<svg viewBox="0 0 100 100" width="100" height="100">
+  <!-- a comment that must survive every gesture -->
+  <rect x="10"  y="10" width="20" height="20" transform="translate(10,20)" fill="#888"/>
+</svg>`,
+  // Points, in user units. `empty` is clear of every shape.
+  at: { poly: [60, 80], stroke: [135, 70], rect: [35, 18], group: [150, 18], empty: [105, 15] }
+}
+)};
+
+// Mount a fixture, run against it, always unmount. Fixed at the origin and invisible: pointer
+// hit-testing needs real laid-out geometry at known coordinates, and a test must not depend on where
+// the page happens to be scrolled. It is on screen for the length of one gesture.
+const _sl133 = function _withFixture(gestureFixture){return(
+(() => {
+  // The laws share one screen: hit-testing goes through `elementsFromPoint`, so two fixtures mounted
+  // at the same origin would answer for each other's gestures. Observable computes these cells
+  // concurrently, so serialise here rather than hoping. A failing law must not block the next one.
+  let queue = Promise.resolve();
+  return (body, options, fn) => {
+    const run = queue.then(async () => {
+      const f = await gestureFixture(body, options);
+      f.container.style.cssText =
+        "position:fixed;left:0;top:0;opacity:0;z-index:2147483646;display:inline-block;line-height:0";
+      document.body.appendChild(f.container);
+      try { return await fn(f); } finally { f.destroy(); }
+    });
+    queue = run.then(() => {}, () => {});
+    return run;
+  };
+})()
+)};
+
+// L1 · T1 identity — `p(1, c) = (1, c)`. A gesture that moves nothing writes nothing, and hands the
+// complement back untouched. Selection is exempt: a click legitimately selects, and selection is not
+// in `M_X`. The left half of this law is where gap 0 lives — a missed hit that becomes a *creation*.
+const _sl134 = function _test_gesture_identity(withFixture,gestureCorpus,playGesture)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  return () => withFixture(gestureCorpus.basic, {}, async (f) => {
+    for (const [where, [x, y]] of Object.entries(gestureCorpus.at)) {
+      const doc0 = f.doc(), n0 = f.elemCount(), h0 = f.historyDepth();
+      await playGesture(f, playGesture.tap(x, y));
+      if (f.doc() !== doc0) throw new Error(`a null tap on ${where} wrote to the source`);
+      if (f.elemCount() !== n0) throw new Error(`a null tap on ${where} changed the element count`);
+      if (f.historyDepth() !== h0) throw new Error(`a null tap on ${where} pushed an undo entry`);
+      // and again with the shape already selected, which is the state a stray commit hides in
+      await playGesture(f, playGesture.tap(x, y));
+      if (f.doc() !== doc0) throw new Error(`a second null tap on ${where} wrote to the source`);
+    }
+    return `✅ T1: a null gesture is a null edit at ${Object.keys(gestureCorpus.at).length} points`;
+  });
+};
+
+// L2 · T2 composition — `p(m m′, c) = (n n′, c″)`. The committed value depends on where the gesture
+// ended, not on the path it took there. It holds because tools recompute from the origin held in the
+// complement rather than accumulating per frame; a tool that accumulates fails this and drifts.
+const _sl135 = function _test_gesture_path_independence(withFixture,gestureCorpus,playGesture)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  const A = [60, 80], B = [92, 61];
+  const straight = [A, [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], B];
+  const wander = [A, [A[0] + 40, A[1] - 3], [A[0] - 12, A[1] + 25], [B[0] + 18, B[1] - 14],
+                  [A[0] + 2, A[1] + 2], B];
+  const run = (path) => withFixture(gestureCorpus.basic, {}, async (f) => {
+    await playGesture(f, playGesture.tap(...A));
+    await playGesture(f, playGesture.drag(path));
+    return f.doc();
+  });
+  return async () => Promise.all([run(straight), run(wander)]).then(([a, b]) => {
+    if (a !== b) throw new Error(`the route changed the commit:\n  straight: ${a.match(/transform="[^"]*"/)}\n  wander:   ${b.match(/transform="[^"]*"/)}`);
+    if (!/translate/.test(a)) throw new Error("the drag committed nothing, so the law is vacuous here");
+    return "✅ T2: a 5-leg wander and a straight drag to the same point commit the same bytes";
+  });
+};
+
+// L4 · T4 origin — d-PutInc, `dom P(X, α) = X`. A gesture commits against the state it started from.
+// Each commit mints a new node, so a multi-element move finishes against instances that no longer
+// exist; before this was fixed only the first element of a selection moved, silently.
+const _sl136 = function _test_gesture_commits_against_its_origin(withFixture,gestureCorpus,playGesture)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  return () => withFixture(gestureCorpus.basic, {}, async (f) => {
+    // marquee the polygon and the path together, then drag one of them
+    await playGesture(f, playGesture.drag([[10, 20], [60, 60], [190, 110]]));
+    const sel = f.focusPaths().length;
+    if (sel < 2) throw new Error(`the marquee selected ${sel} elements, so this law is untested`);
+    const h0 = f.historyDepth();
+    await playGesture(f, playGesture.drag([[60, 80], [66, 84], [72, 90]]));
+    const gained = f.historyDepth() - h0;
+    if (gained !== sel)
+      throw new Error(`${sel} elements were dragged but ${gained} undo entries appeared — the tail of the gesture committed against a stale node`);
+    return `✅ T4: a ${sel}-element move commits ${gained} edits, one per element it claimed`;
+  });
+};
+
+// L6 · T6 confinement. Ours, not from the papers: a tool that declines has changed nothing, and
+// installing it cannot change what the tools before it do. Registry order is priority, so tool sets
+// form a monoid under concatenation and the fold must respect it. This is what a plugin has to prove.
+const _sl137 = function _test_gesture_confinement(withFixture,gestureCorpus,playGesture,svgTools)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  const seen = [];
+  const declines = { id: "declines-everything",
+    onPointerDown: (ctx, e) => { seen.push(e.type); return false; },
+    onDblClick: () => false, onHover: () => {} };
+  const script = [playGesture.tap(60, 80), playGesture.drag([[60, 80], [70, 86], [84, 94]])];
+  const run = (tools) => withFixture(gestureCorpus.basic, { tools }, async (f) => {
+    for (const s of script) await playGesture(f, s);
+    return f.doc();
+  });
+  return async () => Promise.all([run(svgTools), run([declines, ...svgTools]), run([...svgTools, declines])])
+    .then(([base, first, last]) => {
+      if (!seen.length) throw new Error("the declining tool was never offered the gesture");
+      if (first !== base) throw new Error("installing a declining tool at the head changed the result");
+      if (last !== base) throw new Error("installing a declining tool at the tail changed the result");
+      return `✅ T6: a declining tool is invisible at either end of the registry (${seen.length} offers)`;
+    });
+};
+
+// L9 · a selection-only tool never writes the source. The marquee acts on the complement, not on
+// `M_X`; giving it its own law is what stops a future refactor quietly making selection an edit.
+const _sl138 = function _test_gesture_selection_is_not_an_edit(withFixture,gestureCorpus,playGesture,toolMarquee)
+{
+  if (typeof document === "undefined") return () => "⏭ needs a browser";
+  return () => withFixture(gestureCorpus.basic, { tools: [toolMarquee] }, async (f) => {
+    const doc0 = f.doc(), h0 = f.historyDepth();
+    let most = 0;
+    // Two bands that cover the drawing (either drag direction) and one over empty space, which is
+    // *meant* to select nothing — so the "did it ever select?" check is a maximum, not the final
+    // state, or the empty band makes the law look vacuous when it is doing its job.
+    for (const box of [[[5, 5], [100, 60], [195, 115]], [[190, 110], [90, 50], [10, 10]],
+                       [[105, 12], [106, 13], [107, 14]]]) {
+      await playGesture(f, playGesture.drag(box));
+      most = Math.max(most, f.focusPaths().length);
+      if (f.doc() !== doc0) throw new Error("the marquee wrote to the source");
+      if (f.historyDepth() !== h0) throw new Error("the marquee pushed an undo entry");
+    }
+    if (f.focusPaths().length) throw new Error("a band over empty space left a selection behind");
+    if (!most) throw new Error("no band ever selected anything, so the law is vacuous");
+    return `✅ T9: the marquee selects up to ${most} elements across 3 bands and never writes the source`;
+  });
+};
+
+
+// The gesture laws are opt-in. Unlike the lens laws they mount a fixture, dispatch real pointer
+// events and commit through `Variable.define` — seconds of work and a burst of change-history
+// traffic — so running them on every reader's load would be wrong. Each law above is a function;
+// this runs them all and reports. CI calls `gestureLaws.run()`.
+const _sl139 = function _gestureLaws(test_gesture_identity,test_gesture_path_independence,test_gesture_commits_against_its_origin,test_gesture_confinement,test_gesture_selection_is_not_an_edit){return(
+{
+  laws: {
+    "T1 identity": test_gesture_identity,
+    "T2 path independence": test_gesture_path_independence,
+    "T4 origin": test_gesture_commits_against_its_origin,
+    "T6 confinement": test_gesture_confinement,
+    "T9 selection is not an edit": test_gesture_selection_is_not_an_edit
+  },
+  async run() {
+    const out = {};
+    for (const [name, law] of Object.entries(this.laws)) {
+      try { out[name] = await law(); } catch (e) { out[name] = "❌ " + e.message; }
+    }
+    return out;
+  }
+}
 )};
 
 
@@ -5183,6 +5383,14 @@ export default function define(runtime, observer) {
   $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer"], _sl126);
   $def("sl130", "gestureFixture", ["runtime","realize","settle","literalSpan","nodeAt","svgLens","svg"], _sl130);
   $def("sl131", "playGesture", [], _sl131);
+  $def("sl132", "gestureCorpus", [], _sl132);
+  $def("sl133", "withFixture", ["gestureFixture"], _sl133);
+  $def("sl134", "test_gesture_identity", ["withFixture","gestureCorpus","playGesture"], _sl134);
+  $def("sl135", "test_gesture_path_independence", ["withFixture","gestureCorpus","playGesture"], _sl135);
+  $def("sl136", "test_gesture_commits_against_its_origin", ["withFixture","gestureCorpus","playGesture"], _sl136);
+  $def("sl137", "test_gesture_confinement", ["withFixture","gestureCorpus","playGesture","svgTools"], _sl137);
+  $def("sl138", "test_gesture_selection_is_not_an_edit", ["withFixture","gestureCorpus","playGesture","toolMarquee"], _sl138);
+  $def("sl139", "gestureLaws", ["test_gesture_identity","test_gesture_path_independence","test_gesture_commits_against_its_origin","test_gesture_confinement","test_gesture_selection_is_not_an_edit"], _sl139);
   $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl123);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);

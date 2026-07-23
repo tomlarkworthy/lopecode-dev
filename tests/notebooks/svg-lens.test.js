@@ -59,6 +59,20 @@ const TEST_CELLS = [
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
 const DOM_TEST_CELLS = ['test_parse_vs_DOMParser'];
 
+// The gesture laws (design note §6.2) mount a fixture, dispatch synthetic PointerEvents and commit
+// through `Variable.define`. They need a browser AND several seconds, so unlike the lens laws they
+// are opt-in: each cell is a *function*, and `gestureLaws.run()` runs them. Nothing here evaluates
+// them — this run only asserts they are defined and wired. Run them in a browser:
+//   gestureLaws.run()  →  { "T1 identity": "✅ …", … }
+const GESTURE_TEST_CELLS = [
+  'test_gesture_identity',                      // T1  p(1,c) = (1,c)
+  'test_gesture_path_independence',             // T2  p(mm′,c) = (nn′,c″)
+  'test_gesture_commits_against_its_origin',    // T4  d-PutInc
+  'test_gesture_confinement',                   // T6  ours: a declining tool is invisible
+  'test_gesture_selection_is_not_an_edit',      // T9  ours: selection is not in M_X
+  'gestureLaws', 'gestureFixture', 'playGesture', 'gestureCorpus', 'withFixture',
+];
+
 describe('@tomlarkworthy/svg-lens bundle invariants', () => {
   const s = readFileSync(NB, 'utf8');
   it('embeds the module and boots it under the lopepage-2 frame', () => {
@@ -103,7 +117,7 @@ describe('@tomlarkworthy/svg-lens bundle invariants', () => {
 
   it('module source declares every test cell', () => {
     const src = readFileSync(MODULE, 'utf8');
-    for (const name of [...TEST_CELLS, ...DOM_TEST_CELLS]) assert.ok(src.includes(`"${name}"`), `${name} not defined`);
+    for (const name of [...TEST_CELLS, ...DOM_TEST_CELLS, ...GESTURE_TEST_CELLS]) assert.ok(src.includes(`"${name}"`), `${name} not defined`);
   });
 });
 
