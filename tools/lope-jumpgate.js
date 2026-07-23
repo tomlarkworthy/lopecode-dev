@@ -188,9 +188,12 @@ async function main() {
   }
 
   // Build export_state JSON — title/filename always tracks the primary
+  // prerender: the headless jumpgate runtime has no rendered DOM to snapshot, so this
+  // only sets the bootconf flag — the first in-browser re-export bakes the snapshot.
   const exportState = JSON.stringify({
     title: primaryNotebook,
     hash,
+    prerender: true,
     ...(theme ? { theme } : {}),
   });
 

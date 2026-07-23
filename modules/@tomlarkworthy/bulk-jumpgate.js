@@ -779,7 +779,8 @@ const _1j2bxxb = function _export_state(exportTask){return(
 {
     title: exportTask.sources[0],
     hash: `#view=S100(${ exportTask.sources[0] },@tomlarkworthy/module-selection)`,
-    theme: 'parchment'
+    theme: 'parchment',
+    prerender: true
 }
 )};
 const _1quwq5k = function _export_out(exportToHTML,embedded_runtime,additional_mains,source_module,export_state,$0){return(

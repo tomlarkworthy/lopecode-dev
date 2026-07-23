@@ -954,26 +954,6 @@ const _sl08c = async function _keepYourEdits(htl,downloadAnchor,lookupVariable,s
   </div>`;
 };
 
-const _sl08e = function _sourceLastNote(md,cite){return(
-md`### Where your edits actually are
-
-Every drag you make rewrites a JavaScript function that is running in this page. Nothing is sent
-anywhere, and on observablehq.com nothing is written back to the hosted document either — a reader has
-no permission to change someone else's notebook, and this editor does not ask for any. So on the
-hosted copy your work is real but *unpublished*: it lives in the runtime until the tab closes.
-
-This follows from the host being *source-last* ${cite("larkworthy2026")}: there is no external source
-of truth to write back to, because the running system is canonical and its text is recovered from it
-on demand. The file is a projection of the runtime, and the projection can be taken at any moment —
-the link above asks \`@tomlarkworthy/exporter-3\` to walk this runtime, recover each cell's source with
-\`toString()\`, and write a single self-contained HTML file. Your drawing is included, because it is
-one of those cells. The result boots with your edits, carries this editor, and can be edited and
-re-exported again with no server involved.
-
-The label counts the puts this page has seen, so it reports how much of your own work is in the file
-before you click.`
-)};
-
 // Every gesture, with the laws re-checked on the source it produced.
 // Cumulative snapshots: the runtime keeps only the latest yield, so re-render the whole log.
 const _sl05 = function _putTable(Generators,$0,Inputs,invalidation){return(
@@ -4769,7 +4749,6 @@ export default function define(runtime, observer) {
   $def("sl04", "howToDrive", ["md","ref"], _sl04);
   $def("sl05", "putTable", ["Generators","viewof drawing","Inputs","invalidation"], _sl05);
   $def("sl08", "useIt", ["md"], _sl08);
-  $def("sl08e", "sourceLastNote", ["md","cite"], _sl08e);
   $def("sl08f", "putLog", [], _sl08f);
   $def("sl08d", "edits", ["Generators","putLog","viewof drawing","viewof factory","invalidation"], _sl08d);
   $def("sl08m", "viewof svgLensModule", ["thisModule"], _sl08m);
@@ -5007,7 +4986,7 @@ export default function define(runtime, observer) {
   main.define("acorn", ["module @tomlarkworthy/acorn-8-11-3", "@variable"], (_, v) => v.import("acorn", _));
   main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));
   main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));
-  // The download link: exporter-3 projects this live runtime back into a file (see `sourceLastNote`).
+  // The download link: exporter-3 projects this live runtime back into a file.
   main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));
   return main;
 }

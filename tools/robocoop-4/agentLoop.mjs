@@ -30,8 +30,8 @@ export function createAgentLoop({
       toolOutputLimit,
       runCommand,
     });
-    const { messages, finishReason, steps } = await session.send(userPrompt, callbacks);
-    return { messages, finishReason, steps };
+    const { messages, finishReason, steps, malformed } = await session.send(userPrompt, callbacks);
+    return { messages, finishReason, steps, malformed };
   }
 
   return { run };

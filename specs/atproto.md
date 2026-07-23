@@ -15,7 +15,7 @@ Status: draft / exploratory. Refining a sketch authored without knowledge of the
 - **2026-05-05 — bulk-delete in Ledger.** Step 15 (Manage Publishes UI) ships its first surface inside `@lopecode/ledger` rather than `atproto.html`: the same dense table now carries an auth strip above (login invite when signed-out, identity strip when signed-in) and `Inputs.table(rows, {multiple: isOwner, required: false})` for selection. A `bulkBar` cell renders a sticky bottom bar when `isOwner && ledgerTable.length > 0`, wires the existing `deleteBundle` library through, and bumps a refresh nonce to refetch. Design source: [Lopecode Social Layer (Claude Design)](https://api.anthropic.com/v1/design/h/pn_EcSpIQg4PHrYBi5lMUQ?open_file=Lopecode+Social+Layer.html). The `required: false` is load-bearing — Inputs.table's default emits the full data array on empty selection.
 - **2026-05-05 — identity is the title, not the main.** The 2026-05-04 rkey-from-`bootconf.mains[0]` rule fused publication identity with view-target choice — opening `@tomlarkworthy/atproto.html` against a different "main" view (e.g. `@tomlarkworthy/malleable`) still slugged to `atproto`, overwriting the wrong bundle. Switched at-write to `rkey = slugifyTitle(title)` (`utils.slugifyTitle` NFKD-strips non-ASCII, collapses non-rkey chars to `-`, trims, lowercases, caps at 64 chars). The bundle's identity is now its human-meaningful title; renaming a title creates a new record (cleanup via `deleteBundle`), composing modules differently under the same title is a republish (overwrite). Same `swapRecord` CAS protects against concurrent edits. Also: shipped `deleteBundle({session, xrpc, rkey})` library function in at-write — bare `com.atproto.repo.deleteRecord` against `com.lopecode.bundle/{rkey}`, no companion-post handling, no UI yet (step 15's manage surface will use this).
 - **2026-05-05 — render Worker ETag/304.** Slug rkeys made `did-{}.lopecode.com/r/{rkey}` URLs stable across republishes, so the prior `cache-control: max-age=300` would let republishes go stale for up to 5 minutes per edge/browser. Switched to `cache-control: public, max-age=0, must-revalidate` with `ETag = record.cid` (and the per-blob CID for `?file=`). Revalidation is one cheap getRecord round-trip — match → `304 Not Modified` with no body, no blob fetches, no render. Mismatch → full render. Same shape applied to `?file=` downloads. The apex Worker's `proxyBundle` already passed request headers through and relayed status/headers, so 304 propagates from `lopecode.com/@:handle` and `lopecode.com/` without changes.
-- **2026-05-20 — Bluesky integrating `site.standard.*` natively** ([@esb.lol announcement](https://bsky.app/profile/esb.lol/post/3mmd44oa6g22u), [bluesky-social/atproto#4978](https://github.com/bluesky-social/atproto/discussions/4978)). Phase one rolls out "in the next few days." Bluesky ingests `site.standard.document` + `site.standard.publication` records and uses them to construct enhanced link cards (title, description, thumbnail, estimated reading time from `textContent`). New field on `app.bsky.embed.external`: `associatedRefs[]` — strong refs to standard.site records that the embed represents. Posts that already embedded `associatedRefs` are **not** live-updated when the underlying record edits (anti-misleading guardrail). Publishers are asked to emit `<link rel='site.standard.document' href='at://...'>` on article pages so crawlers can discover the at-uri. **What this means for us:** step 7 (`site.standard.document` sidecar, currently outstanding) becomes load-bearing for Bluesky reach, not just standard.site readers — Bluesky's own link card unfurls richly once the sidecar exists. Step 6 (companion post) needs to populate `embed.external.associatedRefs` with the strong ref to the bundle's document sidecar. Render Worker should emit `<link rel='site.standard.document' href='at://<did>/site.standard.document/<slug>'>` in the served HTML at `did-….lopecode.com/r/:rkey` so plain web shares get the same treatment. See [`site.standard.document` schema](#sitestandarddocument-editorial-sidecar) and step 7 below for the followups.
+- **2026-05-20 — Bluesky integrating `site.standard.*` natively** ([@esb.lol announcement](https://bsky.app/profile/esb.lol/post/3mmd44oa6g22u), [bluesky-social/atproto#4978](https://github.com/bluesky-social/atproto/discussions/4978)). Phase one rolls out "in the next few days." Bluesky ingests `site.standard.document` + `site.standard.publication` records and uses them to construct enhanced link cards (title, description, thumbnail, estimated reading time from `textContent`). New field on `app.bsky.embed.external`: `associatedRefs[]` — strong refs to standard.site records that the embed represents. Posts that already embedded `associatedRefs` are **not** live-updated when the underlying record edits (anti-misleading guardrail). Publishers are asked to emit `<link rel='site.standard.document' href='at://...'>` on article pages so crawlers can discover the at-uri. **What this means for us:** step 7 (`site.standard.document` sidecar, currently outstanding) becomes load-bearing for Bluesky reach, not just standard.site readers — Bluesky's own link card unfurls richly once the sidecar exists. Step 6 (companion post) needs to populate `embed.external.associatedRefs` with the strong ref to the bundle's document sidecar. Render Worker should emit `<link rel='site.standard.document' href='at://<did>/site.standard.document/<slug>'>` in the served HTML at `did-….lopecode.com/r/:rkey` so plain web shares get the same treatment. See [`site.standard.document` schema](#sitestandarddocument-editorial-sidecar) and step 7 below for the followups. *(Corrected 2026-05-29: `site.standard.document` is `key: tid`, so the `<link>`/`associatedRefs` use the document's TID URI stored on the bundle as `docUri`, not a slug — see [Sidecar rkey convention](#sidecar-rkey-convention).)*
 - **2026-05-05 — companion post rkey can't be a slug.** The 2026-05-04 "shared-rkey convention" holds for `com.lopecode.bundle` but **not** for `app.bsky.feed.post`: the Bluesky lexicon declares `key: tid`, so the PDS rejects non-TID rkeys (`bsky post → 400 InvalidRequest: Invalid TID string (got "lopefeed")`). Pivot: companion post uses `createRecord` (TID rkey, server-minted) the first time, and `putRecord` against that *same* TID rkey on re-Share so the post is overwritten, not duplicated. The bundle→post correspondence is recorded *on the bundle* via a new optional `bskyPostUri` field (set on first Share, persists across republishes); post→bundle stays free because `embed.external.uri` encodes the bundle's slug rkey (`did-{}.lopecode.com/r/{slug}`). Affects at-write, the bundle lexicon, and the feed Worker (which previously derived post URI from bundle URI by shared rkey — must now read `bskyPostUri` from the bundle, or have Contrail index it).
 
 ## Design references
@@ -97,7 +97,7 @@ That's the entire object model for v1.
 
 ## Schemas (v1)
 
-Three records are written to the author's PDS per publish: the canonical bundle, a companion Bluesky post, and a standard.site document sidecar. The bundle is what makes the publish a publish; the other two are reach.
+Up to three records are written to the author's PDS. The **bundle + `site.standard.document` are always written together — they are the publish** (canonical artifact + its web-metadata representation; neither broadcasts). The **`app.bsky.feed.post` is opt-in** ("Share to Bluesky") — it's the only record that pushes into followers' feeds.
 
 ### `com.lopecode.bundle` (canonical, immutable)
 
@@ -118,7 +118,10 @@ The lexicon JSON we publish under `_lexicon.lopecode.com`:
           "title":       { "type": "string", "maxLength": 200 },
           "files":       { "type": "array", "items": { "type": "ref", "ref": "#fileEntry" } },
           "createdAt":   { "type": "string", "format": "datetime" },
-          "bskyPostUri": { "type": "string", "format": "at-uri", "description": "Companion app.bsky.feed.post written by Share (TID rkey). Set on first Share; persists across republishes so re-Share overwrites the same post." }
+          "description":  { "type": "string", "maxLength": 2000, "description": "Card summary. Canonical home is the HTML head (og:description); copied onto the record at publish so Contrail indexes it without parsing HTML." },
+          "coverImageId": { "type": "string", "maxLength": 1000, "description": "id of the file-table entry holding the cover image — a normal base64 attachment carried inside the single HTML, NOT a separate blob. Its file's blob CID becomes site.standard.document.coverImage and the bsky embed thumb; the render Worker serves it at ?file=<id> for og:image." },
+          "bskyPostUri": { "type": "string", "format": "at-uri", "description": "Companion app.bsky.feed.post written by Share (TID rkey). Set on first Share; persists across republishes so re-Share overwrites the same post." },
+          "docUri":      { "type": "string", "format": "at-uri", "description": "Companion site.standard.document sidecar (TID rkey — the lexicon declares key:tid, so it can't share the bundle slug). Set on first publish-with-sidecar; persists across republishes so re-publish overwrites the same document. Mirrors bskyPostUri." }
         }
       }
     },
@@ -136,6 +139,34 @@ The lexicon JSON we publish under `_lexicon.lopecode.com`:
 ```
 
 `title` defaults to exporter-3's `notebook_title`. `files[]` is one entry per `<script id data-mime>` block in the running runtime; `encoding` mirrors `data-encoding`; the blob's `mimeType` mirrors `data-mime`. Identical to v0's `dev.lopecode.bundle` shape — the rename is the only schema change.
+
+### Card metadata
+
+The canonical lopecode artifact is the **single self-contained HTML file — no server-side resources.** So card data must be carried *inside* the file, in lopecode's universal storage form (`<script id data-mime data-encoding>` blocks). Nothing here is special:
+
+- **title** — `<title>` / `notebook_title` (already exists).
+- **description** — text in the HTML head (`og:description`). Carried in the file.
+- **cover image** — *just a file attachment*: a `<script id="@user/nb/cover.png" data-mime="image/png" data-encoding="base64">` block, exactly like every image/CSS/lib lopecode already stores. The page displays it via `contentSync(id)` or a `data:` URL; in the head, `og:image` is a `data:` URL. Fully self-contained, zero server.
+
+Not in bootconf — bootconf is boot config (`mains`/`hash`/`headless`), not publication metadata. exporter-3 gains `{description, cover}` params (alongside `notebook_title`) and emits the head tags + the cover attachment.
+
+**The single-file `data:` `og:image` is self-contained but won't unfurl as a thumbnail** on most consumers (Twitter/Slack/Signal/…) — `data:` `og:image` is not spec-forbidden but is empirically unreliable ([Docusaurus #9345](https://github.com/facebook/docusaurus/issues/9345)). Text (`og:title`/`og:description`) unfurls fine. That's an accepted property of serverless single-file mode, not a bug to fix.
+
+**atproto mode upgrades the unfurl for free, without changing the canonical file.** Per the [object model](#granularity), every `<script id data-mime>` block becomes a blob — so the cover attachment is *already* a blob once published, like any other file. No separate upload, no authored "server resource":
+
+- the **bsky embed `thumb`** = that file's blob CID (the lexicon requires `thumb` be a blob; we point it at the file we already carry);
+- the **`site.standard.document.coverImage`** = the same blob CID;
+- the **render Worker** serves it at `https://did-….lopecode.com/r/:slug?file=<id>` and rewrites `og:image` to that https URL, so a *hosted* lopecode unfurls its thumbnail everywhere.
+
+The bundle record carries only **pointers/denormalizations, not bytes**: `description` (copied from the head so Contrail indexes it without parsing HTML) and `coverImageId` (which file-table entry is the cover). The bytes live once, in the file table. at-write reads `document.title` + the head's `og:description` + the cover attachment at publish and fills these.
+
+| source (in the single file) | standalone HTML | atproto projection |
+|---|---|---|
+| title (`<title>`) | `og:title` | `bundle.title`, `document.title` |
+| description (head meta) | `og:description` | `bundle.description`, `document.description` |
+| cover (file attachment) | `og:image` = `data:` (text-only unfurl) | file blob → `thumb` / `document.coverImage`; render Worker → https `og:image` |
+
+`textContent` (standard.site's reading-time field) is deliberately **not** populated — a runnable notebook isn't prose, and there's no OpenGraph equivalent.
 
 ### `app.bsky.feed.post` (companion, sidecar)
 
@@ -159,7 +190,7 @@ What at-write writes after a successful bundle publish:
 
 Standard `app.bsky.feed.post` — no extension fields. `embed.external.uri` is the per-DID web-proxy URL, so the embed card is bookmarkable as a real webpage. The `text` is short and deliberately boring; the embed card carries the actual hook. Replies, likes, reposts on this post are the v1 comments/reactions surface for free.
 
-**Rkey is a TID, not the bundle slug.** The Bluesky lexicon for `app.bsky.feed.post` declares `key: tid`, and the PDS enforces it (`400 InvalidRequest: Invalid TID string`). The companion post can't reuse the bundle's slug rkey, so the share-rkey convention applies to bundles and document sidecars but *not* to this record.
+**Rkey is a TID, not the bundle slug.** The Bluesky lexicon for `app.bsky.feed.post` declares `key: tid`, and the PDS enforces it (`400 InvalidRequest: Invalid TID string`). The companion post can't reuse the bundle's slug rkey — and neither can the `site.standard.document` sidecar (also `key: tid`). Only the bundle is slug-keyed; both sidecars are TID-keyed with their URIs stored back on the bundle (`bskyPostUri`, `docUri`). See [Sidecar rkey convention](#sidecar-rkey-convention).
 
 **Bundle ↔ post correspondence.**
 
@@ -169,29 +200,36 @@ Standard `app.bsky.feed.post` — no extension fields. `embed.external.uri` is t
 
 ### `site.standard.document` (editorial, sidecar)
 
-Brings bundles into the standard.site reader ecosystem. The shape mirrors what standard.site readers already render:
+> **⚠️ Implementation status (2026-05-29) — code is source of truth.** This and the surrounding standard.site design notes were drafted assuming a greenfield build. In fact `@tomlarkworthy/at-write` **already ships** `publishStdDoc` / `publishStdPub` / `publishToStdSite` / `getStdDoc` / `unpublishStdDoc`, wired into the Ledger. The implemented design (authoritative) differs from the in-session redesign:
+> - **Document uses the bundle's SLUG rkey** (shared-slug, one bundle ↔ one document) — *not* a TID + `docUri`. The PDS does not enforce `site.standard.document`'s `key: tid` here, so the in-session "must use TID" conclusion is moot. (`docUri` was therefore dropped from the bundle lexicon.)
+> - **A per-author `site.standard.publication` at `rkey=self` IS created** (`publishStdPub`: url, name, description, icon, `preferences.showInDiscover`) — *not* deferred/document-only. `document.site = at://<did>/site.standard.publication/self`.
+> - **`textContent` is supported** (optional) — not dropped.
+> - **Bundle linkage is via `path: /r/<slug>` + `site`**, not a `content[com.lopecode.runtime]` strongRef. `com.lopecode.runtime` is **unbuilt** (treat as a possible future, not v1).
+> - **`com.lopecode.bundle.version` snapshot collection with a version DAG is shipped** (`publishBundleVersion` via atomic `applyWrites`) — the spec lists versioning as deferred v2; that's stale.
+>
+> The remaining real gaps for the #4978 Bluesky integration are listed in [step 7](#next-steps). The text below is kept for design rationale but the record shape above the line is what's written.
+
+Actual record written by `_publishStdDoc` (rkey = bundle slug):
 
 ```jsonc
 {
   "$type":       "site.standard.document",
+  "site":        "at://<did>/site.standard.publication/self",  // the author's publication (upserted alongside)
   "title":       "<bundle.title>",
-  "publication": "<at-uri of author's site.standard.publication, if they have one>",
-  "createdAt":   "<bundle.createdAt>",
-  "bskyPostRef": {                         // links discussion to the companion Bluesky post
-    "uri": "at://<did>/app.bsky.feed.post/<post-rkey>",
-    "cid": "<companion-post-cid>"
-  },
-  "content": [
-    {
-      "$type":  "com.lopecode.runtime",
-      "bundle": {                          // strong ref to the canonical bundle record
-        "uri": "at://<did>/com.lopecode.bundle/<bundle-rkey>",
-        "cid": "<bundle-cid>"
-      }
-    }
-  ]
+  "path":        "/r/<slug>",                                  // bundle URL relative to publication.url
+  "publishedAt": "<first-publish time>",                       // required; PRESERVED across republishes (don't bump discovery feeds)
+  "updatedAt":   "<republish time, optional>",
+  "description": "<bundle.description, optional>",             // → og:description / bsky card
+  "coverImage":  { /* blob ref, <1MB, optional */ },           // = blob of files[bundle.coverImageId] → og:image / bsky thumb
+  "textContent": "<optional plaintext>",
+  "tags":        ["lopecode", "notebook"],                     // optional
+  "bskyPostRef": { /* optional back-link to the companion post, once one exists */ }
 }
 ```
+
+Design rationale (superseded where it conflicts with the box above): field names match the real `site.standard.document` lexicon ([standard.site docs](https://standard.site/docs/lexicons/document/)) — required `site`, `title`, `publishedAt`. `site` accepts an `at://` publication ref (what the code uses) or a plain `https://` URL.
+
+**`site.standard.document` is `key: tid` — confirmed, so it can't share the bundle slug.** The lexicon declares `"key": "tid"` ([MarshalX/atproto](https://github.com/MarshalX/atproto/blob/master/lexicons/site.standard.document.json), [hyperlink-academy/leaflet](https://github.com/hyperlink-academy/leaflet/blob/main/lexicons/site/standard/document.json); slugs/UUIDs cause schema-validation failure). Same trap as `app.bsky.feed.post`. So the document uses a server-minted TID rkey and the bundle stores a **`docUri`** pointer (mirroring `bskyPostUri`): first publish-with-sidecar → `createRecord` the document (TID) → write `bundle.docUri` under CAS; later publishes → `putRecord` the document at that same TID to overwrite. The `site.standard.publication` lexicon is also `key: tid`, which is fine — the deferred shared publication is a one-time record.
 
 `content` is standard.site's open union — `com.lopecode.runtime` is our extension member, and we publish its lexicon under `_lexicon.lopecode.com` too:
 
@@ -222,14 +260,14 @@ standard.site clients render this as "document with unknown content type"; lopec
      "$type": "app.bsky.embed.external",
      "external": { "uri": "https://did-…lopecode.com/r/<slug>", "title": "…", "description": "…" },
      "associatedRefs": [
-       { "uri": "at://<did>/site.standard.document/<slug>", "cid": "<doc-cid>" }
+       { "uri": "at://<did>/site.standard.document/<doc-tid>", "cid": "<doc-cid>" }   // = bundle.docUri
      ]
    }
    ```
 
    The reciprocal `bskyPostRef` already on the document closes the loop. **Note:** edits to the document record (title/description) do **not** propagate to posts that already embedded `associatedRefs` — Bluesky freezes the embed at post-creation time to avoid misleading retro-edits. Re-Share (which we do via TID-rkey `putRecord`) refreshes the embed.
 
-2. **`<link rel='site.standard.document'>` on served HTML.** The render Worker should emit `<link rel='site.standard.document' href='at://<did>/site.standard.document/<slug>'>` (and `rel='site.standard.publication'` once we have a per-author publication record) in the `<head>` of bundles served at `did-….lopecode.com/r/<rkey>`. That's how Bluesky's link-card crawler discovers the at-uri when somebody pastes a raw lopecode.com URL into a post without going through our Share flow.
+2. **`<link rel='site.standard.document'>` on served HTML.** The render Worker should emit `<link rel='site.standard.document' href='<bundle.docUri>'>` (the document's TID URI, read from the bundle record) in the `<head>` of bundles served at `did-….lopecode.com/r/<rkey>` (alongside the synthesized `og:*` tags — see [Card metadata](#card-metadata)). That's how Bluesky's link-card crawler discovers the at-uri when somebody pastes a raw lopecode.com URL into a post without going through our Share flow. `rel='site.standard.publication'` is added only if/when a shared publication record lands (v1 is document-only).
 
 Bluesky integration makes the sidecar load-bearing for reach (was: editorial standard.site readers only). The schema doesn't change; the *priority* changes.
 
@@ -284,19 +322,20 @@ await xrpc("com.atproto.repo.putRecord", {
 
 ### Sidecar rkey convention
 
-The bundle and the document sidecar share the slug rkey; the Bluesky companion post can't (lexicon `key: tid`), so it carries a TID rkey instead and the binding is stored on the bundle.
+Only the bundle uses the slug rkey. **Both** sidecars (`site.standard.document` and `app.bsky.feed.post`) declare `key: tid`, so neither can reuse the slug; each gets a server-minted TID rkey, and the binding is stored back on the bundle (`docUri`, `bskyPostUri`).
 
 1. `putRecord` for the bundle at `rkey = slugifyTitle(title)`.
-2. Reuse that same rkey for the document sidecar (`site.standard.document/{slug}`).
-3. The companion post (`app.bsky.feed.post/{tid}`) uses a TID rkey. *First* Share: `createRecord` (server mints the TID) → write `bundle.bskyPostUri = at://<did>/app.bsky.feed.post/<tid>` under CAS. *Subsequent* Shares: `putRecord` at the existing TID to overwrite.
+2. The document sidecar (`site.standard.document/{tid}`). *First* publish-with-sidecar: `createRecord` (server mints the TID) → write `bundle.docUri = at://<did>/site.standard.document/<tid>` under CAS. *Subsequent* publishes: `putRecord` at the existing TID to overwrite.
+3. The companion post (`app.bsky.feed.post/{tid}`), same pattern: *First* Share: `createRecord` → write `bundle.bskyPostUri` under CAS. *Subsequent* Shares: `putRecord` at the existing TID.
 
 Lookup directions:
 
-- *Bundle → document sidecar*: derive from the shared slug rkey, no index needed.
+- *Bundle → document sidecar*: read `bundle.docUri` (one field on the record we already fetched).
 - *Bundle → post*: read `bundle.bskyPostUri` (one field on the record we already fetched).
 - *Post → bundle*: parse the bundle slug out of the post's `embed.external.uri` (`https://did-<encoded-did>.lopecode.com/r/<bundle-slug>`).
+- *Document → post / post → document*: `document.bskyPostRef` and the post's `associatedRefs[]` close the loop directly.
 
-Failure mode: if the post or document fails, the bundle still lands; the sidecars can be retried out-of-band. A failed companion-post `createRecord` leaves `bskyPostUri` unset — the next Share starts fresh.
+Failure mode: if a sidecar fails, the bundle still lands; sidecars retry out-of-band. A failed `createRecord` leaves the corresponding `docUri`/`bskyPostUri` unset — the next attempt starts fresh.
 
 ## How bundles attach to authors
 
@@ -481,11 +520,11 @@ Up to three records, all to the author's PDS. Full shapes are in [Schemas (v1)](
 
 | Record | Trigger | Purpose |
 |---|---|---|
-| `com.lopecode.bundle` | always | Canonical artifact — the file table the user just published. |
-| `app.bsky.feed.post` | opt-in ("Share to Bluesky") | Companion post linking to the per-DID web-proxy URL. Drives Bluesky reach (timeline, replies, reposts, native notifications). |
-| `site.standard.document` | (planned, opt-in) | Editorial sidecar with `bskyPostRef` to the companion post and `content[com.lopecode.runtime]` referencing the bundle. Drives reach into the standard.site ecosystem. |
+| `com.lopecode.bundle` | always | Canonical artifact — the file table the user just published. Slug rkey. |
+| `site.standard.document` | always | Web-metadata representation: `title`/`description`/`coverImage` + `content[com.lopecode.runtime]` referencing the bundle. Makes every publish richly unfurlable (Bluesky plain-URL paste, standard.site readers) and gives the post something to reference. TID rkey, stored on the bundle as `docUri`. |
+| `app.bsky.feed.post` | opt-in ("Share to Bluesky") | Companion post linking to the per-DID web-proxy URL; `associatedRefs` → the document. The only record that **broadcasts** (timeline, replies, reposts, notifications). TID rkey, stored as `bskyPostUri`. |
 
-The bundle is canonical; the other two are sidecars. All three share the bundle's rkey, so the sidecar URIs are derivable from the bundle URI. Opt-in design: drafts and experiments shouldn't auto-spam the author's followers.
+**The bundle + document are always written together — they *are* the publish.** Neither broadcasts: both are public records in the author's repo, same category as any other notebook they've published. The opt-in line is drawn at the `app.bsky.feed.post`, because that's the only record that pushes into followers' feeds — drafts and experiments shouldn't auto-spam. (The earlier design also gated the document on Share; that was wrong: it left plain-URL pastes with no rich card, since [step 7d](#next-steps)'s `<link rel>` had nothing to point at, and forced a create-doc-then-post ordering. Always-writing the document removes both problems.) Sidecar URIs aren't derivable from the slug — both are TID-keyed and stored back on the bundle (`docUri`, `bskyPostUri`); see [Sidecar rkey convention](#sidecar-rkey-convention).
 
 After `createRecord` succeeds at-write also calls Contrail's `notify(at://…/com.lopecode.bundle/:rkey)` so the bundle is queryable in the discovery feed immediately, instead of waiting for the next 1-minute Jetstream cycle.
 
@@ -647,7 +686,7 @@ Following [the official threadgate / Bluesky-extension guidance](https://docs.bs
 ### Open v1 questions
 
 - **Capability metadata**: declare on `com.lopecode.bundle` (`{networkAccess, allowedOrigins, usesEval, ...}`)? Reader sandbox is currently blanket `allow-scripts`; capability declarations let us surface a permission summary before the iframe boots. Reasonable to land in v1; small at-read change.
-- **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile` with a per-author standard.site `publication` record carrying lopecode-specific bits.
+- **Author profile shape**: pure derived view (live `listRecords`) is enough for v1, but eventually we'll want a `com.lopecode.profile` record (display name, avatar, pinned bundles) — or, more pragmatically, just reuse `app.bsky.actor.profile`. A `site.standard.publication` is a separate axis: it brands the standard.site/Bluesky *card* (icon + theme), not the lopecode profile. v1 ships no publication (document-only cards). The cheapest branded-card upgrade is **one shared lopecode publication** (project DID, cross-repo strongRef from every document/post) — uniform branding, zero per-author records, and the constant cream/ink/accent palette finally justifies `basicTheme`. Per-author "bring your own publication" (reuse the bsky avatar's blob CID for `icon`) is a further-out v2 step.
 - **Comments**: Bluesky replies on the companion post are the v1 answer. A per-bundle thread root that's *not* a Bluesky post is a v2 concern.
 - **File provenance** (idea, needs more thought): today a file's `name` (`@user/module`) is convention only — bytes have no owner, the bundle's signing DID just attests "I publish these `(name, CID)` pairs." Anyone can publish a file called `@tomlarkworthy/atproto` containing arbitrary bytes; nothing in the system stops it. A `provenance` field on each manifest entry could point at a canonical publishing event:
 
@@ -706,7 +745,12 @@ Public links go through `lopecode.com` from day one, so the *URL* people share o
 **Sharing**
 
 6. ◐ **Companion `app.bsky.feed.post` on publish** in at-write. After bundle publish, the success card surfaces a "Share to Bluesky" panel (textarea pre-filled with title + per-DID lopecode.com URL); clicking writes an `app.bsky.feed.post` with `app.bsky.embed.external` pointing at `https://did-…lopecode.com/r/:slug`. Opt-in rather than automatic by design — not every bundle deserves a public post (drafts, experiments). **Required follow-up (2026-05-05):** the original implementation reused the bundle's slug rkey for the post, but the Bluesky lexicon enforces `key: tid` and the PDS now returns `400 InvalidRequest: Invalid TID string`. Switch to TID rkey: first Share → `createRecord` (server mints TID) → `putRecord` bundle to set `bskyPostUri`; later Shares → read `bundle.bskyPostUri` and `putRecord` post at that same TID to overwrite. See [`app.bsky.feed.post` schema](#appbskyfeedpost-companion-sidecar) for the full flow.
-7. ☐ **`site.standard.document` sidecar** in at-write. Same publish flow, parallel write. Originally specced for the standard.site reader ecosystem; **Bluesky's 2026-05-20 announcement** (see [Milestones](#milestones), [#4978](https://github.com/bluesky-social/atproto/discussions/4978)) makes this load-bearing for Bluesky link-card unfurls too — Bluesky natively ingests `site.standard.*` and renders title/description/thumbnail/reading-time from these records. Two implementation follow-ups beyond the bare sidecar write: (a) Share path (step 6) populates `app.bsky.embed.external.associatedRefs[]` with the strong ref to the document record; (b) Render Worker emits `<link rel='site.standard.document' href='at://<did>/site.standard.document/<slug>'>` in the served HTML at `did-….lopecode.com/r/:rkey` for crawler discovery on plain URL shares. See [`site.standard.document` schema](#sitestandarddocument-editorial-sidecar) for the full shape.
+7. ◐ **`site.standard.document` sidecar** — *largely built* (`publishStdDoc`/`publishStdPub`/`publishToStdSite` in at-write, wired into the Ledger; shared-slug document + per-author publication at `rkey=self`; see the [status box](#sitestandarddocument-editorial-sidecar)). What's already done: the document + publication record writes, `path`/`site`/`publishedAt`/`description`/`coverImage`/`tags`/`textContent` fields, scope upgrades. **Remaining gaps** for the #4978 Bluesky link-card integration (all need a live paired session to implement + verify against a PDS):
+    - **7a. Card metadata into the bundle + head.** The bundle record is currently `{title, files, createdAt}` only. Cover image = a normal **file attachment** (base64 `<script>` block), *not* a new blob. Add `description` + `coverImageId` (pointer into `files[]`) to the bundle record in `_publisher`; teach exporter-3 to take `{description, cover}` params, write the cover attachment, and bake `<title>`/`og:description`/`data:` `og:image` into the HTML head. Then feed `description` + the cover blob (`files[coverImageId].blob`) into the existing `publishToStdSite`/`publishStdDoc` call (which already accept `description`/`coverImage`). See [Card metadata](#card-metadata).
+    - **7b. `associatedRefs` on the companion post.** `associatedRefs` exists nowhere yet. Once the companion `app.bsky.feed.post` (step 6) writes the embed, populate `embed.external.associatedRefs[]` with **both** strong refs (per #4978's example): the document (`at://<did>/site.standard.document/<slug>` — derivable from the shared slug) and the publication (`at://<did>/site.standard.publication/self`).
+    - **7c. Crawler discovery on served HTML.** Render Worker emits `og:image` (from `files[coverImageId]`) + `<link rel='site.standard.document' href='at://<did>/site.standard.document/<slug>'>` and `<link rel='site.standard.publication' href='at://<did>/site.standard.publication/self'>` at `did-….lopecode.com/r/:rkey`, for plain-URL pastes that bypass Share.
+
+    Note: the in-session "TID + `docUri`", "document-only / publication deferred", and "always-publish (not opt-in)" discussions are superseded — the shipped design is shared-slug + per-author publication, invoked via the Ledger's explicit "publish to standard.site" action. Whether to also auto-write the document on every bundle publish (the [Records written per publish](#records-written-per-publish) framing) is a separate product call, not yet wired.
 
 **Profile + discovery**
 

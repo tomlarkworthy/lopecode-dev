@@ -144,6 +144,8 @@ type QaLaunchOpts = {
   viewport?: { width: number; height: number };
   permissions?: string[];
   fakefsRoot?: string;
+  disableWebSecurity?: boolean;
+  chromiumArgs?: string[];
 };
 
 async function ensureQaSession(name: string, opts: QaLaunchOpts = {}): Promise<QaSession> {
@@ -167,8 +169,22 @@ async function ensureQaSession(name: string, opts: QaLaunchOpts = {}): Promise<Q
 
 async function launchQaSession(name: string, opts: QaLaunchOpts): Promise<QaSession> {
   const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: opts.headless ?? false });
-  const ctx = await browser.newContext({ viewport: opts.viewport ?? { width: 1280, height: 800 } });
+  // Disabling web security turns off same-origin/CORS enforcement so a notebook
+  // can fetch cross-origin without proxying — for local testing only. Do NOT
+  // also disable site isolation: forcing single-process rendering deadlocks
+  // worker-heavy notebooks (e.g. the pairing layout's isomorphic-git/lightning-fs
+  // workers), and --disable-web-security bypasses CORS on its own for top-frame
+  // fetches anyway.
+  const launchArgs = [...(opts.chromiumArgs ?? [])];
+  if (opts.disableWebSecurity) launchArgs.push("--disable-web-security");
+  const browser = await chromium.launch({
+    headless: opts.headless ?? false,
+    args: launchArgs.length ? launchArgs : undefined,
+  });
+  const ctx = await browser.newContext({
+    viewport: opts.viewport ?? { width: 1280, height: 800 },
+    ...(opts.disableWebSecurity ? { bypassCSP: true, ignoreHTTPSErrors: true } : {}),
+  });
   const perms = opts.permissions ?? DEFAULT_QA_PERMISSIONS;
   if (perms.length) {
     try { await ctx.grantPermissions(perms); }
@@ -919,6 +935,15 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description: "Absolute path to use as a sandbox root. When set, window.showDirectoryPicker is replaced with a synthetic FileSystemDirectoryHandle whose ops are proxied to the channel server (sandboxed under this root). Lets file-sync work without an OS picker dialog. Created if missing.",
           },
+          disable_web_security: {
+            type: "boolean",
+            description: "Launch Chromium with web security off (--disable-web-security, context bypassCSP + ignoreHTTPSErrors). Lets the notebook make cross-origin fetches without CORS. Local testing only — never for untrusted content. Default false.",
+          },
+          chromium_args: {
+            type: "array",
+            items: { type: "string" },
+            description: "Extra raw Chromium command-line flags to pass at launch (e.g. ['--lang=fr']). Advanced/testing use.",
+          },
         },
         required: ["url"],
       },
@@ -1140,6 +1165,8 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
               },
               permissions: Array.isArray(args.permissions) ? (args.permissions as string[]) : undefined,
               fakefsRoot: typeof args.fakefs_root === "string" ? (args.fakefs_root as string) : undefined,
+              disableWebSecurity: (args.disable_web_security as boolean) ?? false,
+              chromiumArgs: Array.isArray(args.chromium_args) ? (args.chromium_args as string[]) : undefined,
             });
             const waitUntil = (args.wait_until as "load" | "domcontentloaded" | "networkidle") ?? "load";
             const page = session.page;

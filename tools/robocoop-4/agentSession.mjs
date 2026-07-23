@@ -71,6 +71,8 @@ export function createAgentSession({
 
     let finishReason = null;
     let step = 0;
+    let malformed = 0;            // count of empty/malformed (e.g. Gemini finish_reason 'error') turns recovered
+    const malformedRetryLimit = 3;
     const startLen = messages.length;
 
     for (step = 0; step < maxStepsPerTurn; step++) {
@@ -91,7 +93,17 @@ export function createAgentSession({
 
       const calls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
       if (calls.length === 0) {
-        finishReason = res.finish_reason ?? 'stop';
+        // Empty/malformed turn (notably Gemini: finish_reason 'error'/MALFORMED with null content) is NOT
+        // a real completion — the canonical product recovers it. Drop the bad turn, nudge, bounded retry.
+        const fr = res.finish_reason;
+        const isEmpty = !msg.content || String(msg.content).trim() === '';
+        if ((fr === 'error' || fr === 'MALFORMED_FUNCTION_CALL' || isEmpty) && malformed < malformedRetryLimit) {
+          malformed++;
+          messages.pop(); // remove the empty/malformed assistant message
+          messages.push({ role: 'user', content: 'Your previous reply was empty or malformed. Continue the task now: take the next concrete action by calling the bash tool.' });
+          continue;
+        }
+        finishReason = fr ?? 'stop';
         callbacks.onFinish?.({ messages, finishReason });
         break;
       }
@@ -137,6 +149,7 @@ export function createAgentSession({
       messages,
       finishReason: finishReason ?? 'max_steps',
       steps: step + 1,
+      malformed,
       turnMessages: messages.slice(startLen),
     };
   }

@@ -25,6 +25,7 @@ SAFEHOUSE_ARGS=(
     --env-pass="$ENV_PASS"
     --add-dirs-ro=~/.aws/config
     --add-dirs-ro=/Library/Developer/CommandLineTools
+    --add-dirs-ro=/Library/Application\ Support/AikidoSecurity/EndpointProtection/run
     --add-dirs-ro=~/.orbstack
     --add-dirs-ro=/Applications/OrbStack.app
     --add-dirs-ro=~/.local
