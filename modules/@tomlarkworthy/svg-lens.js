@@ -3893,6 +3893,62 @@ const _sl124c = function _grabPointer(){return(
 (node, e) => { try { node.setPointerCapture(e.pointerId); } catch (_) {} }
 )};
 
+// ---- the gesture delta ---------------------------------------------------------------------------
+// What a gesture is, as a value. A tool computes one of these — or a list of them — and hands it to
+// both sinks: `previewDelta` paints it into the live DOM, `commitDelta` writes it to the source.
+// Deriving the preview from the same `(value, lens, base)` the commit uses is what makes the two
+// agree; it is the discipline `shapeSpec`/`shapeMarkup` already applies to creation, generalised.
+//
+//   attr     an attribute put    { idx, name, value, lens, base, dflt, was }
+//   command  a structural edit   { name, apply, rebase }
+//   select   selection only      { paths, mode }
+//
+// A preview the source cannot express — a rubber band, a ghost shape — is not a delta; a tool draws
+// that into the overlay's root layer itself. `previewDelta` only ever touches what it will commit.
+const _sl128 = function _gestureDelta(){return(
+{
+  attr: (idx, name, value, { lens = null, base = "", dflt = null, was = null } = {}) =>
+    ({ kind: "attr", idx, name, value, lens, base, dflt, was }),
+  command: (name, apply, { rebase = null } = {}) => ({ kind: "command", name, apply, rebase }),
+  select: (paths, mode = null) => ({ kind: "select", paths, mode }),
+  // The attribute text this delta stands for. One expression, read by both sinks.
+  text: (d) => (d.lens ? d.lens.put(d.value, d.base) : String(d.value))
+}
+)};
+
+const _sl128a = function _previewDelta(gestureDelta){return(
+(ctx, ds) => {
+  const out = [];
+  for (const d of [].concat(ds)) {
+    if (!d || d.kind !== "attr") continue;          // commands and selections have no attribute preview
+    const el = ctx.elems()[d.idx];
+    if (!el) continue;
+    el.setAttribute(d.name, gestureDelta.text(d));
+    out.push(el);
+  }
+  return out;
+}
+)};
+
+const _sl128b = function _commitDelta(){return(
+async (ctx, ds) => {
+  const out = [];
+  for (const d of [].concat(ds)) {
+    if (!d) continue;
+    if (d.kind === "attr")
+      out.push(await ctx.writer.commit(d.idx, d.name, d.value, d.dflt, d.lens, d.was));
+    else if (d.kind === "command")
+      out.push(await ctx.writer.runCommand(d.name, d.apply, { rebase: d.rebase }));
+    else if (d.kind === "select") {
+      if (d.paths.length === 1 && d.mode) ctx.focus.set(d.paths[0], d.mode);
+      else ctx.focus.setAll(d.paths);
+      out.push(null);                               // selection is not a source edit
+    } else throw new Error(`unknown delta kind: ${d.kind}`);
+  }
+  return out;
+}
+)};
+
 const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointer){return(
 {
   id: "transform",
@@ -4963,6 +5019,9 @@ export default function define(runtime, observer) {
   $def("sl119b", "zTarget", [], _sl119b);
   $def("sl119", "svgFocus", ["pointsHandles","pathHandles","transformHandles","nodeAt","boxInRoot","topmostPaths","attrVal","holeSpans"], _sl119);
   $def("sl124c", "grabPointer", [], _sl124c);
+  $def("sl128", "gestureDelta", [], _sl128);
+  $def("sl128a", "previewDelta", ["gestureDelta"], _sl128a);
+  $def("sl128b", "commitDelta", [], _sl128b);
   $def("sl120", "toolVertex", ["handleEdit","grabPointer"], _sl120);
   $def("sl121a", "hitTest", [], _sl121a);
   $def("sl127", "snapRects", [], _sl127);

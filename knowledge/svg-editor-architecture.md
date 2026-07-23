@@ -459,11 +459,15 @@ and the roll-up is at the end of this section.
 
 #### P — prerequisites (make the laws statable)
 
-- [ ] **P1 · the delta record.** One cell. `{kind:"attr", idx, name, value, lens, base}` /
-  `{kind:"command", name, apply, rebase}` / `{kind:"select", paths, mode}`, plus `previewDelta` and
-  `commitDelta`. Default `previewDelta` for `attr` is
-  `el.setAttribute(name, lens ? lens.put(value, base) : String(value))` — byte-identical to what the
-  commit will put, so **T3 holds by construction** for every tool that does not override it. M.
+- [x] **P1 · the delta record.** Landed 2026-07-23 as three cells in the TOOLS section:
+  `gestureDelta` (constructors `attr`/`command`/`select` plus `text(d)`, the single expression both
+  sinks read), `previewDelta` and `commitDelta`. Both sinks take a delta **or a list of them**, which
+  is what makes `toolMove`'s N targets and L4's "one delta per claimed element" literal.
+  `gestureDelta.text` is `lens ? lens.put(value, base) : String(value)` — byte-identical to what
+  `writer.commit` puts, so **T3 holds by construction** for any tool that does not override the
+  preview. A preview the source cannot express (rubber band, ghost shape) is deliberately *not* a
+  delta: the tool draws that into the overlay root layer itself, so `previewDelta` only ever touches
+  what it will commit.
 - [ ] **P2 · tool set as a parameter.** `options.tools ?? svgTools`, accepting an array or
   `(defaults) => array`. Required for T6; nothing else can express "the same trace without this tool". S.
 - [ ] **P3 · trace harness.** `gesture(lens, script)` over synthetic `PointerEvent`s — `down` on
