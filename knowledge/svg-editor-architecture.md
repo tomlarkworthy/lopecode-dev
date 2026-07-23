@@ -181,6 +181,16 @@ to the last branch — *"double-clicked empty canvas, drop a shape"*. The gestur
 appends a triangle. Measured: filled `<polygon>` 3→4 points ✅; `<path fill="none">` → a new
 `<polygon>` appended ❌. This is why adding a point to a line or an unfilled polygon has never worked.
 
+**12. The first frame of a drag jumps.** Reported by Tom 2026-07-23 as "a frame of glitching at
+gesture start, after a while"; instrumented the same day. Two causes compound, and both are in
+`toolMove.onPointerMove`. (a) The movement threshold is a *trigger*, not a dead zone: the drag starts
+when `hypot(dx, dy)` first exceeds `thresh` (3px mouse, 10px touch) and then applies the **whole**
+delta measured from the press point, so the shape teleports by that distance at the instant the drag
+begins. (b) Snapping is live from that same first frame, when the shape has barely moved, so any
+neighbour edge within `snapTolerance` captures it: measured, a first pointer move of (4,4) committed
+`translate(0 5)` — the shape jumped *away* from the direction of travel before following it. See B1
+in §6.6 for the fix and why it is not free.
+
 ### Missing capability
 
 1. ~~**Geometry editing exists for three tags.**~~ **Closed 2026-07-23 (S2/S3, milestone M10).** It
@@ -203,8 +213,11 @@ appends a triangle. Measured: filled `<polygon>` 3→4 points ✅; `<path fill="
    lives there, else the attribute — only the widgets are missing.
 6. **No document outliner.** Z-order is keyboard-only (`[ ] { }`) with nothing showing the stack, and
    there is no element tree. Past ~10 shapes you cannot find or reorder anything.
-7. **Path editing stops short.** Control points drag, but there is no corner↔smooth conversion, no
-   open/close subpath toggle, and arc segments are explicitly refused for subdivision.
+7. ~~**Path editing stops short.**~~ **Mostly closed 2026-07-23 (G19–G21, G23, milestones M14–M17).**
+   The pen draws curves, an open path can be continued, corner↔smooth is a command, and close/open is
+   another. What remains: arc segments are still refused for subdivision (G24 — a *user-visible*
+   decision, not an internal one), deleting a segment in the *middle* of a subpath is not implemented
+   (only the trailing case), and several vertices cannot be selected at once (G22).
 8. **No align or distribute.** Snapping guides exist mid-drag; there is no align/distribute command
    over a selection.
 9. **One drawing per cell.** Alias resolution finds the variable by `_value` identity, so two
@@ -703,6 +716,27 @@ matched drags.
 composition, one level further.
 *Falsified by:* editing a `<use>` writing to the `<use>` rather than to its referent.
 
+**S9 — the selection preview is a surface, not a box.** Today what a selection *offers* is decided
+inside `svgFocus.paint` and is the same for every tag: a box, the shape registry's geometry handles,
+and a rotate stalk. Everything else — the colour of the thing, how thick its stroke is, whether this
+particular path is closed — is somewhere else entirely, or nowhere. S9 makes that a registry too:
+a shape entry contributes **affordances** for a selection of its kind, so "a rect offers a corner
+radius, a text offers a font size, a path offers close and smooth, everything offers a stroke width
+and a fill swatch" is *data*, contributed by the same cell that already knows how to read that tag.
+The affordances draw through P6's view delta and write through `commitDelta` like everything else, so
+S9 adds a surface, not a write path.
+*Falsified by:* an affordance committing anything a `node.setAttr` would not; or T6 — a drawing given
+an empty affordance set must still be byte-identical after a click on a shape.
+
+**S10 — `defs` as a place you can point at.** Gradients, markers, patterns, `clipPath` and `<use>`
+all share one shape: the thing you are pointing at is *not* the thing that gets written. `refsOf`
+already reports which attributes point where, and the source lens already carries `defs` through an
+edit untouched — what is missing is minting an id that does not collide, writing a new element into
+`defs` (creating it if absent), and rebasing references when `defs` itself is edited. This is the
+prerequisite for G35–G36 and the second half of gap 4.
+*Falsified by:* two pasted gradients sharing an id; or an edit to a `<stop>` failing to repaint the
+shape that references it.
+
 **Deferred:** performance (gap 11, Tom's call 2026-07-23), multi-drawing (gap 9), `editor-5`
 concurrency (gap 10). None of them blocks the stages above.
 
@@ -981,13 +1015,126 @@ and S4, and are the gaps those stages closed.)
 - [ ] **G29 · drop a swatch onto a shape.** Drag a colour from a palette onto a shape; the drop target
   is a hit test, so it reuses `ctx.hit`. S
 
+#### I — stroke and paint: the half of SVG that is not geometry (S6, S9)
+
+Everything above edits *where* things are. Nothing above edits *what they look like*, and for most
+drawings that is the half an author spends their time on. All of it is presentation attributes or
+`style` declarations, and `setProperty` already routes attribute-vs-`style` correctly — gap 5's
+plumbing has been done since M0. What is missing is the gestures and the widgets, so these items add
+no write path. They share one falsifier, which is worth stating once: **a widget's commit must be
+byte-identical to the equivalent `node.setAttr`**, because a second way to write a value is a second
+place for the laws to be false.
+
+- [ ] **G30 · stroke width, by dragging.** A grip on the selection outline that thickens the stroke.
+  The interesting part is not the attribute, it is the units: `stroke-width` is in *user* units and
+  the drag is in screen pixels, so it divides out through the same CTM `moveTargetOf` uses (P5), and
+  a `vector-effect="non-scaling-stroke"` shape must be told apart from one that scales.
+  **Falsified by:** the committed width differing between zoom 1 and zoom 2.5 (T11). S
+- [ ] **G31 · dash pattern.** `stroke-dasharray` as draggable lengths along the selected outline, plus
+  a scrub for `stroke-dashoffset`. Needs a dash-list lens, sibling of `pointsLens`, for the same
+  reason: an author's `4 3` must not come back as `4,3`, and `0.5em` must not become `8`.
+  **Falsified by:** round-tripping any valid dasharray changing its bytes. M
+- [ ] **G32 · caps and joins.** `stroke-linecap`, `stroke-linejoin`, `stroke-miterlimit`. These are the
+  first *enum* fields, so they are what forces the field registry (S6) to have a kind that is neither
+  a number nor a colour — three of them, so the third is free. S
+- [ ] **G33 · fill and stroke colour.** A two-swatch chip on the selection: click opens a picker, and
+  the swap gesture exchanges fill and stroke. Colour is where residue hurts most — `#5B7A5E`,
+  `rgb(91 122 94)` and `darkseagreen` are one colour and three byte strings — so the lens must write
+  back in the *notation the author used*, and only change notation when the user picks a colour that
+  cannot be expressed in it. **Falsified by:** setting a shape to the colour it already has changing
+  a single byte of the source. M
+- [ ] **G34 · opacity.** `opacity`, `fill-opacity`, `stroke-opacity` — one scrub, with the modifier
+  choosing which. Cheap, and the first field whose sensible range (0–1) is worth the registry knowing.
+  S
+- [ ] **G35 · gradients as editable objects.** Needs **S10**. Make a `linearGradient`/`radialGradient`
+  in `defs`, then drag its endpoints and its stops on the canvas over the shape that uses it. This is
+  the first gesture whose *write lands somewhere else in the document than the thing under the
+  pointer* — the handle is on the rect, the edit is in `defs` — which is why it waits for S10 rather
+  than being another registry entry. **Falsified by:** editing a gradient used by two shapes changing
+  only one of them; or a pasted gradient colliding with an existing id. L
+- [ ] **G36 · markers, which is to say arrowheads.** `marker-start`/`-mid`/`-end` plus a `<marker>` in
+  `defs`. Same S10 dependency, and the same "the handle is here, the write is there" shape. Worth
+  doing right after G35 because it reuses all of it. M
+- [ ] **G37 · paint-order, fill-rule, non-scaling stroke.** Three enums, one attribute each, each
+  changing rendering out of all proportion to its size. Nearly free once G32 exists. S
+
+#### J — the selection preview is a surface, not a box (S9)
+
+Tom's observation, 2026-07-23: *"it might make sense to have additional tools on the selection preview
+that are shape specific."* Stated as architecture, that is S9 — and it is the same move S2 made for
+geometry handles. What a selection offers is currently hard-coded in one function and identical for
+every tag; it should be contributed by the shape entry that already knows what that tag is.
+
+- [ ] **G38 · the affordance registry.** `entry.affordances(ctx, path)` returns
+  `{id, at(box), render, onTap/onDrag, declines?}`. Drawn through P6's view delta, so nothing new
+  touches the DOM; committed through `commitDelta`, so nothing new touches the source. An affordance
+  that returns no marks is invisible — which is how a chip that does not apply disappears rather than
+  greys out. **Falsified by:** T6, with an empty affordance set leaving the document byte-identical
+  after a click. M
+- [ ] **G39 · the first set of shape-specific affordances.** `rect` → corner radius (the handle that
+  exists today, moved onto the surface); `circle`/`ellipse` → radius readout; `text` → font size and
+  baseline; `line` and `path` → an arrowhead toggle at each end (needs G36); `path` → close/open and
+  smooth/corner, which are already commands and only need surfacing; `g` → "enter this group";
+  anything → stroke width grip and the fill/stroke swatch. The point is that this list is *entries*,
+  not branches. M
+- [ ] **G40 · affordances that act on the whole selection.** A multi-selection shows boxes only today.
+  A shared affordance — fill, stroke width, opacity — should apply to all of it, which is the same
+  "one delta per claimed element" the align commands already do, so it is a fan-out and not a new
+  idea. **Falsified by:** a shared affordance writing to the primary only. S
+- [ ] **G41 · a chip that declines is not drawn.** T8 at the surface. `canCommand` already answers
+  "would this do anything" by *planning* it, so an affordance backed by a command asks exactly the
+  same question the menu asks, and a greyed chip and a refusal cannot disagree. S
+- [ ] **G42 · the readout is an affordance.** G13 (numeric readout during a drag) becomes a chip that
+  the *active gesture* contributes rather than a special case in the overlay — dimensions while
+  resizing, the angle while rotating, the delta while moving. Folds an open UX item into the
+  registry. S
+
+#### K — defects found by use, not by reading
+
+This section exists because the two most expensive bugs in the log — the P7 restore and the
+undo-drops-selection one (M15, M17) — were both found by *driving* the editor, and neither was
+visible in the source. Items here are reports first and diagnoses second, and they say which is which.
+
+- [ ] **B1 · the first frame of a drag jumps.** Gap 12, measured. Two compounding causes, both in
+  `toolMove.onPointerMove`: the threshold is a trigger rather than a dead zone, so the first frame
+  applies the whole delta from the press point; and snapping is live on that same frame, when the
+  shape has barely moved, so any neighbour within `snapTolerance` captures it. Measured in a fixture:
+  a first move of (4,4) committed `translate(0 5)` — *away* from the direction of travel — before
+  following the pointer to `translate(15 10)`.
+  **The fix is not free, and the reason is a law.** Subtracting the dead zone at the point where the
+  threshold was crossed makes the result depend on *where* it was crossed, which is exactly what T2
+  (path independence) forbids: the same slow drag and fast drag to one endpoint would land in
+  different places. A dead zone that is a pure function of the current offset —
+  `raw · max(0, |raw| − thresh) / |raw|` — is path independent and continuous at the threshold, at the
+  cost of every drag landing `thresh` short of the pointer. Snapping wants hysteresis (once snapped,
+  break away only after a larger movement), and hysteresis is *state*, which is the complement C and
+  therefore allowed — but it must be declared in `ctx.state.drag`, not hidden in a closure.
+  **Falsified by:** a slow drag and a fast drag to the same endpoint committing different values (T2);
+  or the shape moving at all before the pointer has travelled `thresh`. S
+- [ ] **B2 · what is actually being seen has not been confirmed.** Recorded because the honest state of
+  a report matters. Tom sees "a frame of glitching at gesture start, after a while"; B1 is what
+  instrumentation found in a fixture, and it is a real defect, but it has not been shown to be *the*
+  thing being seen. Two hypotheses are already ruled out for that fixture: a per-frame census of
+  overlay handles never showed an empty frame, and shape-versus-overlay transforms never disagreed by
+  a frame. The next measurement, if it recurs, is the same census in the real notebook rather than in
+  a fixture — a zoomed document re-applies its `viewBox` on every put (`applyView`), which is one more
+  thing that can lag a frame, and a fixture is always at zoom 1. S
+- [ ] **B3 · a gesture-level frame budget.** The measurements above were written by hand each time.
+  They should be a law-adjacent harness: sample per `requestAnimationFrame` through a scripted
+  gesture, and assert what must never happen — the selection is never empty between two frames of a
+  gesture, the overlay never disagrees with the shape it frames, no frame renders geometry the source
+  does not hold. That is T5 (consistency) applied *per frame* rather than per commit, and it is the
+  only way this class of defect gets caught by anything other than a person watching. M
+
 #### Explicitly not on this list
 
 **Boolean path operations** (union/subtract/intersect) need a robust path clipper, which is a library
 dependency of a size this project has avoided, and their output is machine-generated path data — the
-opposite of the residue this editor exists to preserve. **Gradients, filters and masks** as *editable*
-objects are deferred with the rest of `defs` (gap 4); they should at least survive an edit
-untouched, which the source lens already gives for free. **Multi-page/artboards** is not an SVG
+opposite of the residue this editor exists to preserve. **Filters and masks** as *editable* objects stay deferred; they
+should at least survive an edit untouched, which the source lens already gives for free. (**Gradients
+and markers** were on this list until 2026-07-23 and have moved onto it as G35–G36, behind S10 — the
+thing that made them tractable is that `refsOf` and the `defs`-carrying source lens turned out to be
+most of the work.) **Multi-page/artboards** is not an SVG
 concept. **Live collaboration** is `editor-5`'s problem (gap 10), not the editor's.
 
 #### Order
@@ -1003,8 +1150,20 @@ Roughly by value per unit of work, given what already exists:
 5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
    G8 and G14 are unblocked by the same work.
 6. **G19–G23** — the pen and path work. **G19, P7, G20, G21 and G23 done.** Only G22 (several
-   vertices at once) remains; G24 needs a decision before it can start. **Next.**
-7. **G26–G29** — text, images and style gestures.
+   vertices at once) remains; G24 needs a decision before it can start.
+7. **B1** — the drag jump. Small, felt on *every* drag, and the only item here that makes the editor
+   feel worse than it is. Do it before adding surface. **Next.**
+8. **G30–G34, G37** — stroke and paint on S6's field registry. This is the "what about strokes"
+   half of an editor, it needs no new architecture, and every item is S. Highest value per unit of
+   work left on the list.
+9. **G38–G42** — S9's affordance registry. Do it *after* G30–G34, so the first affordances are
+   backed by fields that already exist rather than invented alongside them; G39 then costs nothing
+   per shape.
+10. **S10, then G35–G36** — `defs` you can point at, gradients and arrowheads. The largest remaining
+    block, and the one that most changes what documents the editor can open without breaking.
+11. **G26–G29** — text, images, eyedropper, swatch drop. Text is the biggest single item on the whole
+    list (a content lens, not an attribute lens) and is deliberately last.
+12. **B3** — the per-frame harness. Not a feature; the thing that stops K from refilling.
 
 ## 7. Milestone log
 
