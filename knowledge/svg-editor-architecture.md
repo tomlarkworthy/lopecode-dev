@@ -236,7 +236,7 @@ source-last thesis, and the paper states it.
 
 Three constraints: **holistic** (one idea, not eleven patches), **incremental** (each stage ships and
 is useful on its own), **testable** (each stage names what would falsify it). §6.1 is the structural
-idea, §6.2 the theory the gesture half is missing, §6.3 how it gets checked, §6.4 the stages.
+idea, §6.2 the theory the gesture half is missing, §6.3 how it gets checked, §6.4 the task list, §6.5 the stages.
 
 ### 6.1 The one idea: competence is the contents of the registries
 
@@ -431,7 +431,104 @@ Four instruments, all measurements rather than screenshots, each mapping onto a 
 Report them on the existing `lens-put` event beside `GetPut`/`PutGet`, so the editor keeps checking
 its own laws at runtime, the way `runCommand` already does.
 
-### 6.4 Stages
+### 6.4 Task list: adopting deltas, and the laws that check them
+
+#### What each tool does today
+
+Read out of the module 2026-07-23. "Absolute" = recomputes from the gesture origin held in the
+complement each frame rather than accumulating from the previous frame — the property T2 needs.
+"Sinks agree" = the mid-drag preview is derived from the same value/lens/base the commit uses.
+
+| tool | view edit | complement `C` | source edit | absolute | sinks agree |
+|---|---|---|---|---|---|
+| `toolDraw` | two corners | `draw{kind,x0,y0,x1,y1,square,preview}` | `addShape(markup)` | ✅ | ✅ **by construction**, via `shapeSpec`/`shapeMarkup` |
+| `toolMove` | screen `(dx,dy)`, N targets | `drag{targets[{idx,el,text,Slin,T0}],x0,y0,…}` | `transform` via `translateLens`, once per target | ✅ from `T0` | ✅ same `(g.T, translateLens, g.text)` |
+| `toolVertex` | pointer → vertex coords | `drag{key,idx,mode,x0,y0,was,edit}` | `points`/`d`, default lens | ✅ re-derives from `t` | ✅ same `edit.value` |
+| `toolTransform` | pointer → scale/rotate about a pivot | `drag{key,idx,el,b,text,base,ops,centre,pivot}` | `transform` via `opsLens` | ✅ from `base` | ❌ **preview `ops.map(printOp).join(" ")`, commit `opsLens.put(ops, text)`** |
+| `toolPen` | one click | `pen{path,start,last,band}`, `penClick` | `d`, one commit **per click** | ✅ text-in-text-out | ✅ (the band is not the committed value) |
+| `toolMarquee` | rubber band | `band{x0,y0,x1,y1,add,box,moved}` | **none** — selection only | n/a | n/a |
+| `toolStructure` | one double-click | stateless | five `runCommand` branches | n/a (discrete) | n/a |
+
+Two conclusions. **`toolDraw` is already right** and its comment says why — derive the preview *from*
+the thing you will commit and they cannot disagree. The work is generalising that one discipline to
+the other six. **`toolTransform` is the only tool with a live T3 defect**: two different printers for
+the same value, so preview and source diverge on residue by construction.
+
+#### P — prerequisites (make the laws statable)
+
+- **P1 · the delta record.** One cell. `{kind:"attr", idx, name, value, lens, base}` /
+  `{kind:"command", name, apply, rebase}` / `{kind:"select", paths, mode}`, plus `previewDelta` and
+  `commitDelta`. Default `previewDelta` for `attr` is
+  `el.setAttribute(name, lens ? lens.put(value, base) : String(value))` — byte-identical to what the
+  commit will put, so **T3 holds by construction** for every tool that does not override it. M.
+- **P2 · tool set as a parameter.** `options.tools ?? svgTools`, accepting an array or
+  `(defaults) => array`. Required for T6; nothing else can express "the same trace without this tool". S.
+- **P3 · trace harness.** `gesture(lens, script)` over synthetic `PointerEvent`s — `down` on
+  `elementFromPoint`, `move`/`up` on the root, `dblclick`, `key`. Vocabulary: `tap`, `drag(path)`,
+  `dblclick`, `press`. S.
+- **P4 · instruments.** `docText()`, `elemCount()`, `historyDepth()`, `focusPaths()`, and the
+  overlay-vs-element box delta. All exist as ad-hoc probes from the 2026-07-23 session; make them
+  cells. S.
+- **P5 · geometry through `ctx`** — `ctx.bbox`, `ctx.screenCTM`, `ctx.hit`. Tools currently call
+  `getBBox`/`getScreenCTM`/`elementsFromPoint` on DOM nodes directly, so "a tool is a pure
+  `trace → [command]`" is **not true yet**. Optional: the laws can run as notebook cells in a real
+  browser, like the lens laws already do, and P5 only buys a faster headless path. Subsumes S1's hit
+  contract. M.
+
+#### L — the property tests
+
+One cell each, in the appendix beside the existing lens laws, reusing `forAll`. Generators over
+(tool, target element, gesture script).
+
+- **L1 · T1 identity — `p(1,c) = (1,c)`.** For every tool and every element, `down` then `up` at the
+  same point with no movement ⟹ `docText()` byte-identical, `elemCount()` unchanged,
+  `historyDepth()` unchanged, and the gesture scratch back to its prior value. *Selection is exempt*
+  — a click legitimately selects; the law is about `M_X` and `C`, not about focus. **Catches gap 0
+  (left half) and the pen bug (right half).**
+- **L2 · T2 path independence — `p(mm′,c) = (nn′,c″)`.** Same start and end point, two different
+  interior paths (straight line vs random walk), modifiers held constant ⟹ identical committed
+  source. Holds today for every tool, including under snapping, because snapping is a function of the
+  absolute delta — so this is a regression guard against future incremental accumulation.
+- **L3 · T3 coherence — d-PutGet.** Two forms, both worth having. *Dynamic:* snapshot every attribute
+  the tool touched on the last frame before `up`, commit, re-render, compare — equal, **or** the
+  writer's record says `locked`. *Static:* after P1, assert no tool calls `setAttribute` outside
+  `previewDelta`. The static one is a few lines and very strong. **Fails today on `toolTransform`.**
+- **L4 · T4 origin — d-PutInc.** A gesture that spans a commit (multi-element move; pen second
+  click) ⟹ `historyDepth()` delta equals the number of elements the gesture claimed. **The
+  multi-move regression.**
+- **L5 · T5 consistency.** After any gesture, the live DOM minus `overlay.isOwn` deep-equals a fresh
+  render of `docText()`.
+- **L6 · T6 confinement.** For random subsets and orders of the tool list: for every trace, if tool
+  `t` declines, the source is byte-identical to the run without `t`. Needs P2. **This is the test a
+  third-party tool has to pass.**
+- **L7 · T7 rebase agreement.** For every command in the registry, `rebase(p, c)` equals re-locating
+  the same element after `apply(c)`. Extends `test_rebasePath`'s existing ground-truth method.
+- **L8 · partiality.** A gesture on an attribute outside the lens domain — unparseable `points`, an
+  arc segment for subdivision — ⟹ the tool declines and the source is unchanged. Formal content of
+  "decline cleanly"; the **gap 0 regression test**.
+- **L9 · selection-only.** `toolMarquee` never writes the source, under any trace.
+
+#### C — tool conversions, in order
+
+- **C0 · fix `toolTransform`'s preview** — one line, `opsLens.put(d.ops, d.text)` instead of
+  `d.ops.map(printOp).join(" ")`. Land it **before** converting anything, with L3 as its regression
+  test, so the fix is not tangled up in a refactor.
+- **C1 · lift the pattern out of `toolDraw`.** No behaviour change: `shapeSpec`/`shapeMarkup` becomes
+  the worked example that P1's default `previewDelta` is modelled on.
+- **C2 · `toolVertex`.** Simplest real conversion — already coherent, mostly deletion.
+- **C3 · `toolMove`.** N deltas, one per target, which makes L4's "one delta per claimed element"
+  literal rather than inferred.
+- **C4 · `toolTransform`.** Now mechanical, since C0 already aligned the two sinks.
+- **C5 · `toolPen`.** Each click is its own gesture; the point of interest is `state.pen` surviving a
+  commit, i.e. T1's right half.
+- **C6 · `toolMarquee`.** Classify as a `select` delta so L9 is expressible rather than assumed.
+- **C7 · `toolStructure`.** Do with S4: its five branches become entries in the command registry with
+  their `rebase`, and the raw `e.target` goes away (gap 0).
+
+**Where this lands in the stages:** P1–P4 and L1–L9 *are* S0. P5 is S0 or S1. C0–C6 are S0's
+conversion half. C7 folds into S4.
+
+### 6.5 Stages
 
 Each stage ends shippable. *Falsified by* is the check that has to go green.
 
