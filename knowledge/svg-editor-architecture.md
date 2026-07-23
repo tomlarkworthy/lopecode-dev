@@ -697,9 +697,15 @@ method), `test_copy_paste`, `test_align_commands`.
 **S5 — outliner.** A pure projection of `childrenLens` plus `node.select`; no new write path.
 *Falsified by:* T7, or the tree disagreeing with `parseDoc`.
 
-**S6 — field registry: colour, length, dash, opacity widgets.** `setProperty` already routes
-attribute vs `style`.
-*Falsified by:* a widget's commit differing byte-for-byte from the equivalent `setAttr`.
+**S6 — field registry: colour, length, dash, opacity widgets. ✅ done 2026-07-23.** `svgFields`
+(`_sl270`) is the registry — 14 entries `{prop, label, kind ∈ color|number|enum|text, options?, min?,
+max?, step?, dflt?}` plus a `read` that mirrors `setProperty`'s style-over-attribute sink and preserves
+the author's notation. `node.fields`/`node.setField` project and commit it; `fieldPanel` (`_sl271`) is
+the demo surface. Every widget writes through `setProperty`→`commitDelta` — the same path `setAttr`
+uses — and an unchanged value is a no-op (`null`, T1). Covers G30–G34, G37 (value-editing); the
+per-field *canvas gestures* (drag-grip, scrub, swatch chip) are S9. See group I.
+*Falsified by:* a widget's commit differing byte-for-byte from the equivalent `setAttr`. **Held**:
+headless byte-check + in-browser `fill`/`stroke-linecap` round-trip.
 
 **S7 — zoom and pan, as an uncommitted view transform. ✅ done 2026-07-23.** The view lives in
 `lensState.view` (`{k, x, y}`), is applied by rewriting the root `viewBox` against a `baseBox()`
@@ -1185,19 +1191,24 @@ no write path. They share one falsifier, which is worth stating once: **a widget
 byte-identical to the equivalent `node.setAttr`**, because a second way to write a value is a second
 place for the laws to be false.
 
-- [ ] **G30 · stroke width, by dragging.** A grip on the selection outline that thickens the stroke.
-  The interesting part is not the attribute, it is the units: `stroke-width` is in *user* units and
-  the drag is in screen pixels, so it divides out through the same CTM `moveTargetOf` uses (P5), and
-  a `vector-effect="non-scaling-stroke"` shape must be told apart from one that scales.
-  **Falsified by:** the committed width differing between zoom 1 and zoom 2.5 (T11). S
-- [ ] **G31 · dash pattern.** `stroke-dasharray` as draggable lengths along the selected outline, plus
-  a scrub for `stroke-dashoffset`. Needs a dash-list lens, sibling of `pointsLens`, for the same
-  reason: an author's `4 3` must not come back as `4,3`, and `0.5em` must not become `8`.
-  **Falsified by:** round-tripping any valid dasharray changing its bytes. M
-- [ ] **G32 · caps and joins.** `stroke-linecap`, `stroke-linejoin`, `stroke-miterlimit`. These are the
-  first *enum* fields, so they are what forces the field registry (S6) to have a kind that is neither
-  a number nor a colour — three of them, so the third is free. S
-- [ ] **G46 · a field panel, so the enums have somewhere to live.** Tom, hitting exactly this:
+- [x] **G30 · stroke width.** Value-editing done: `stroke-width` is a number field in the panel
+  (`svgFields`, `min:0 step:0.5 dflt:1`), committed byte-identically through `setProperty`→`commitDelta`
+  like every other field. The *drag-grip on the outline* — the CTM-divided screen-pixels→user-units
+  gesture, and the `non-scaling-stroke` special case — is a canvas affordance and lands with S9
+  (G38–G42), where the zoom-invariance falsifier (T11) actually bites. S
+- [x] **G31 · dash pattern.** Value-editing done: `stroke-dasharray` is a text field and
+  `stroke-dashoffset` a number field in the panel. Byte-preservation holds for free because the panel
+  writes the author's string verbatim (`setProperty` via `styleLens`/attribute, no reformatting) —
+  `4 3` stays `4 3`, `0.5em` stays `0.5em`; the falsifier (round-trip changing bytes) can't fire
+  through a text field. The *draggable-lengths-along-the-outline* gesture (the `pointsLens`-sibling
+  dash-list lens) is the S9 affordance. M
+- [x] **G32 · caps and joins.** Done. `stroke-linecap`/`stroke-linejoin` are `kind:"enum"` fields
+  (`Inputs.select`-style `<select>`) and `stroke-miterlimit` a number field. This is what forced the
+  registry's third kind (`enum`, holding its `options`), and the panel renders it as a native `<select>`
+  built with plain DOM (htl rejects a bare `${cond?"selected":""}` in attribute position — see the
+  fieldPanel note). Verified in-browser: selecting a circle then committing `stroke-linecap="square"`
+  wrote through `setField` and re-read as `square`. S
+- [x] **G46 · a field panel, so the enums have somewhere to live.** Tom, hitting exactly this:
   *"I can't do dotted lines and line caps and things (Inputs.select?)"* — and the `Inputs.select` is
   the right instinct. G31/G32/G37 are all *enumerated* values, and an enum has no natural gesture:
   there is nothing to drag. What is missing is not the lens but the **surface**: a panel, driven by
@@ -1210,15 +1221,36 @@ place for the laws to be false.
   `node.setAttr`**. Because it is a registry-driven projection, adding a field is a cell, and every
   item below gets a UI for free the moment its entry exists. Worth doing *before* G31/G32/G37 rather
   than after: they are what an author reaches for, and without this there is nowhere to put them. M
-- [ ] **G33 · fill and stroke colour.** A two-swatch chip on the selection: click opens a picker, and
-  the swap gesture exchanges fill and stroke. Colour is where residue hurts most — `#5B7A5E`,
-  `rgb(91 122 94)` and `darkseagreen` are one colour and three byte strings — so the lens must write
-  back in the *notation the author used*, and only change notation when the user picks a colour that
-  cannot be expressed in it. **Falsified by:** setting a shape to the colour it already has changing
-  a single byte of the source. M
-- [ ] **G34 · opacity.** `opacity`, `fill-opacity`, `stroke-opacity` — one scrub, with the modifier
-  choosing which. Cheap, and the first field whose sensible range (0–1) is worth the registry knowing.
-  S
+
+  **Done.** Two-part: `svgFields` (`_sl270`) — the registry: a 14-entry `list` of
+  `{prop, label, kind, ...}` (`kind ∈ color|number|enum|text`; enums carry `options`, numbers carry
+  `min/max/step/dflt`) and a `read(doc, idx, prop)` that mirrors `setProperty`'s sink choice (a `style`
+  declaration wins over the attribute, absent reads `""`), so the panel shows the same value the write
+  path would touch and preserves the author's notation. `node.fields(path)` returns the list with each
+  field's current value; `node.setField(path, prop, value)` is the write, routed through
+  `setProperty`→`writer.commit` (the one path), returning `null` when unchanged (T1) so a no-op writes
+  nothing. `fieldPanel` (`_sl271`) is the demo surface: a pure projection of `node.fields`, one widget
+  per `kind` (native `<select>` for enums, number/text inputs, a colour swatch **and** text box so the
+  picker and the author's notation both survive), each committing on `change` via `setField` to *every*
+  selected element (the align commands' "one delta per claimed element", G40). Re-renders on
+  `lens-select`/`lens-put`; the listener is wrapped so a render error can't wedge the drawing's
+  synchronous `draw()`. Verified headless (`tools/svglens-wip/g46-fields.ts`: 14 fields, style-over-attr
+  precedence, `darkseagreen` preserved, correct sink per element) and in-browser (a circle's 14 typed
+  fields render; `fill` and `stroke-linecap` commit and re-read; unchanged value → `null`). Note:
+  visual confirmation of the widgets inside the lopepage pane was blocked by a headless
+  intersection-observer quirk (the sibling drawing pane shows the same "loading" placeholder) — the
+  render logic itself is verified throw-free and the projected data correct. M
+- [x] **G33 · fill and stroke colour.** Value-editing done: `fill` and `stroke` are `kind:"color"`
+  fields, each rendered as a native `<input type=color>` swatch (the picker) **beside** a text box that
+  holds the author's exact string. The text box preserves notation because `read`/`setProperty` never
+  reformat — `darkseagreen` stays `darkseagreen` (verified headless); the swatch only overwrites when
+  the user picks from it. Setting a shape to the colour it already has is a `setField` no-op (returns
+  `null`, T1), so the byte-identity falsifier can't fire. The *on-canvas two-swatch chip* and the
+  fill↔stroke *swap gesture* are S9 affordances. M
+- [x] **G34 · opacity.** Value-editing done: `opacity`, `fill-opacity`, `stroke-opacity` are number
+  fields carrying `min:0 max:1 step:0.05` — the first fields whose 0–1 range the registry records and
+  the panel reflects on the input element. The single *scrub gesture with a modifier* choosing which of
+  the three is the S9 affordance. S
 - [ ] **G35 · gradients as editable objects.** Needs **S10**. Make a `linearGradient`/`radialGradient`
   in `defs`, then drag its endpoints and its stops on the canvas over the shape that uses it. This is
   the first gesture whose *write lands somewhere else in the document than the thing under the
@@ -1228,8 +1260,9 @@ place for the laws to be false.
 - [ ] **G36 · markers, which is to say arrowheads.** `marker-start`/`-mid`/`-end` plus a `<marker>` in
   `defs`. Same S10 dependency, and the same "the handle is here, the write is there" shape. Worth
   doing right after G35 because it reuses all of it. M
-- [ ] **G37 · paint-order, fill-rule, non-scaling stroke.** Three enums, one attribute each, each
-  changing rendering out of all proportion to its size. Nearly free once G32 exists. S
+- [x] **G37 · paint-order, fill-rule, non-scaling stroke.** Done — three `kind:"enum"` fields
+  (`paint-order`, `fill-rule`, `vector-effect`) in the registry, free once G32 gave the panel its
+  `enum` kind. Each commits one attribute through the same `setField` path. S
 
 #### J — the selection preview is a surface, not a box (S9)
 

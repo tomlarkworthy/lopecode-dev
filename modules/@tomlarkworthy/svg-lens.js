@@ -239,6 +239,75 @@ const _sl02c = function _inspector(htl,Inputs,invalidation,$0)
   return el;
 };
 
+// G46. The field panel: the enums an author asked for ("dotted lines and line caps") given somewhere
+// to live. It is a pure projection of `drawing.fields(path)` — the registry decides which fields exist
+// and reads their current values, this cell only picks a widget per `kind` and writes the change back
+// through `drawing.setField`, which is `setProperty` → `commitDelta`, the one write path. So a widget's
+// commit is byte-identical to `setAttr`, adding a field is a line in the registry (no change here), and
+// a change applies to *every* selected element (the align commands' "one delta per claimed element",
+// G40). Colour gets both a native picker and a text box: the text preserves the author's own notation
+// (`darkseagreen` stays `darkseagreen`), the picker is the swatch. Re-renders on select and on commit.
+const _sl271 = function _fieldPanel(htl,Inputs,invalidation,$0)
+{
+  const drawing = $0;
+  const el = htl.html`<div style="margin:.5rem 0;display:grid;gap:4px"></div>`;
+  const commit = (paths, prop, value) => { for (const p of paths) drawing.setField(p, prop, value); };
+  const row = (label, control) => htl.html`<label style="display:flex;align-items:center;gap:8px;font:12px ui-monospace,monospace">
+    <span style="flex:0 0 96px;opacity:.7">${label}</span>${control}</label>`;
+  const render = () => {
+    const paths = drawing.selectionPaths();
+    el.textContent = "";
+    if (!paths.length) {
+      el.append(htl.html`<span style="font:12px/1.5 ui-monospace,monospace;opacity:.6">select a shape to edit its paint</span>`);
+      return;
+    }
+    const fields = drawing.fields(paths[0]);
+    const rows = fields.map((f) => {
+      if (f.kind === "enum") {
+        const opts = f.options.includes(f.value) && f.value !== "" ? f.options : [f.value || ""].concat(f.options);
+        const sel = htl.html`<select style="font:12px ui-monospace,monospace;padding:2px 4px"></select>`;
+        for (const o of opts) {
+          const op = document.createElement("option");
+          op.value = o; op.textContent = o === "" ? "(default)" : o;
+          if (o === f.value) op.selected = true;
+          sel.append(op);
+        }
+        sel.addEventListener("change", () => commit(paths, f.prop, sel.value));
+        return row(f.label, sel);
+      }
+      if (f.kind === "color") {
+        const txt = htl.html`<input type="text" value="${f.value}" placeholder="${f.dflt || "none"}" style="font:12px ui-monospace,monospace;width:120px">`;
+        const sw = htl.html`<input type="color" style="width:28px;height:22px;padding:0;border:none;background:none">`;
+        try { if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(f.value)) sw.value = f.value.length === 4
+          ? "#" + f.value.slice(1).split("").map((c) => c + c).join("") : f.value; } catch (e) {}
+        txt.addEventListener("change", () => commit(paths, f.prop, txt.value.trim()));
+        sw.addEventListener("change", () => { txt.value = sw.value; commit(paths, f.prop, sw.value); });
+        return row(f.label, htl.html`<span style="display:flex;gap:6px;align-items:center">${sw}${txt}</span>`);
+      }
+      const inp = htl.html`<input type="${f.kind === "number" ? "number" : "text"}" value="${f.value}" placeholder="${f.dflt || ""}" style="font:12px ui-monospace,monospace;width:120px">`;
+      if (f.min !== undefined) inp.min = f.min;
+      if (f.max !== undefined) inp.max = f.max;
+      if (f.step !== undefined) inp.step = f.step;
+      inp.addEventListener("change", () => commit(paths, f.prop, inp.value.trim()));
+      return row(f.label, inp);
+    });
+    el.append(htl.html`<fieldset style="border:1px solid #b9c4b4;border-radius:6px;padding:6px 10px 8px;margin:0;display:grid;gap:4px">
+      <legend style="font:12px ui-monospace,monospace;padding:0 4px">paint &amp; stroke${paths.length > 1 ? ` · ${paths.length} selected` : ""}</legend>
+      ${rows}</fieldset>`);
+  };
+  // `lens-select`/`lens-put` dispatch synchronously inside the drawing's own `draw()`; a listener that
+  // throws would break that render, so the panel must never let one escape.
+  const on = () => { try { render(); } catch (e) { el.textContent = ""; el.append(htl.html`<span style="font:12px ui-monospace,monospace;color:#a33">${String(e.message || e)}</span>`); } };
+  on();
+  drawing.addEventListener("lens-select", on);
+  drawing.addEventListener("lens-put", on);
+  invalidation.then(() => {
+    drawing.removeEventListener("lens-select", on);
+    drawing.removeEventListener("lens-put", on);
+  });
+  return el;
+};
+
 // ---- the SVG-factory case: a template with holes in it -------------------------------------------
 const _sl06a = function _factoryDoc(md){return(
 md`Three rectangles, one slider each way. **The first** carries \`transform="translate(\${shift} 0)"\`
@@ -1985,6 +2054,51 @@ const _sl31h = function _setProperty(attrVal,styleLens){return(
     return { name: "style", value: styleLens.put(styleLens.get(style).map(([k, v]) => (k === prop ? [k, value] : [k, v])), style) };
   return { name: prop, value };                          // no declaration to update: the attribute it is
 }
+)};
+
+// S6/G46. The field registry: paint and stroke properties as *data*, so a panel that shows the fields
+// of the current selection and a chip that offers one on the canvas read the same list, and adding a
+// property is a line here rather than a branch in a form. Every field is universal to graphics
+// elements, which is why it is one flat list and not a per-tag contribution (geometry stays with the
+// shape entries — this is the "everything offers a stroke and a fill" half of S9). `kind` is what a
+// surface needs to pick a widget: `number`, `color`, `enum` (with `options`), or `text` (a dash list,
+// a transform). `read` returns the *source* value — style declaration first, then attribute, then the
+// SVG default — so the panel shows the bytes the author has, and a write that equals them is skipped
+// upstream (T1). Nothing here writes: a field names a property, and `node.setField` routes it through
+// `setProperty` → `commitDelta`, the one write path, so a widget's commit is byte-identical to a
+// `setAttr` by construction.
+const _sl270 = function _svgFields(attrVal,styleLens){return(
+(() => {
+  const N = (label, prop, extra = {}) => ({ prop, label, kind: "number", ...extra });
+  const E = (label, prop, options) => ({ prop, label, kind: "enum", options });
+  const list = [
+    { prop: "fill", label: "Fill", kind: "color" },
+    { prop: "stroke", label: "Stroke", kind: "color" },
+    N("Stroke width", "stroke-width", { min: 0, step: 0.5, dflt: "1" }),      // G30
+    N("Opacity", "opacity", { min: 0, max: 1, step: 0.05, dflt: "1" }),        // G34
+    N("Fill opacity", "fill-opacity", { min: 0, max: 1, step: 0.05, dflt: "1" }),
+    N("Stroke opacity", "stroke-opacity", { min: 0, max: 1, step: 0.05, dflt: "1" }),
+    { prop: "stroke-dasharray", label: "Dash array", kind: "text", dflt: "none" },  // G31
+    N("Dash offset", "stroke-dashoffset", { step: 1, dflt: "0" }),
+    E("Line cap", "stroke-linecap", ["butt", "round", "square"]),              // G32
+    E("Line join", "stroke-linejoin", ["miter", "round", "bevel", "arcs", "miter-clip"]),
+    N("Miter limit", "stroke-miterlimit", { min: 1, step: 1, dflt: "4" }),
+    E("Paint order", "paint-order", ["normal", "stroke fill markers", "fill stroke markers"]),  // G37
+    E("Fill rule", "fill-rule", ["nonzero", "evenodd"]),
+    E("Vector effect", "vector-effect", ["none", "non-scaling-stroke"])
+  ];
+  // Read a property the same way `setProperty` writes one: a `style` declaration wins over the
+  // attribute, and an absent value reads as "" (the panel then shows the placeholder default).
+  const read = (doc, idx, prop) => {
+    let s = null;
+    try { s = attrVal(doc, idx, "style"); } catch (e) {}
+    if (s !== null) { const d = styleLens.get(s).find(([k]) => k === prop); if (d) return d[1].trim(); }
+    let v = null;
+    try { v = attrVal(doc, idx, prop); } catch (e) {}
+    return v === null ? "" : String(v).trim();
+  };
+  return { list, read };
+})()
 )};
 
 const _sl78 = function _cellAttrLens(compose,literalLens,attrTextLens){return(
@@ -7849,7 +7963,7 @@ const _sl113s = function _lensState(){return(
 new Map()
 )};
 
-const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFocus,svgTools,svgShapes,svgCommands,commandLookup,copyMarkup,moveTargetOf,commitDelta,rebaseVertex,invert,applyPoint,ctmMat,insertElement,deleteElement,reorderElement,rebasePath,childrenLens,zTarget,attrVal,effectiveAttr,translateLens,nodeAt,setProperty,refsOf,boxInRoot,hitTest,scopedPath,pathOfIndex,parseViewBox,printViewBox)
+const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFocus,svgTools,svgShapes,svgCommands,svgFields,commandLookup,copyMarkup,moveTargetOf,commitDelta,rebaseVertex,invert,applyPoint,ctmMat,insertElement,deleteElement,reorderElement,rebasePath,childrenLens,zTarget,attrVal,effectiveAttr,translateLens,nodeAt,setProperty,refsOf,boxInRoot,hitTest,scopedPath,pathOfIndex,parseViewBox,printViewBox)
 {
   // Which instance is projecting which node. Read by the facade below to route a tool's calls to the
   // node that is the cell's value now, rather than the one its gesture started on.
@@ -8462,6 +8576,29 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
       const w = setProperty(t, idx, prop, value);
       return writer.commit(idx, w.name, w.value, null);
     };
+    // S6/G46. The typed field surface: what paint/stroke properties this element has and their current
+    // source values, and a setter that writes one back through `setProperty` — the same path
+    // `setAttr` uses, so a widget commit is byte-identical to it. A write that would not change the
+    // bytes is skipped (T1), which is what lets the panel re-render from the selection on every commit
+    // without a colour picker reporting the same hex re-serialising `darkseagreen`.
+    node.fields = (path) => {
+      const t = target.doc();
+      if (t === null) return [];
+      let idx;
+      try { idx = nodeAt(t, path).index; } catch (e) { return []; }
+      return svgFields.list.map((f) => ({ ...f, value: svgFields.read(t, idx, f.prop) }));
+    };
+    node.setField = (path, prop, value) => {
+      const t = target.doc();
+      if (t === null) return null;
+      let idx;
+      try { idx = nodeAt(t, path).index; } catch (e) { return null; }
+      const v = value == null ? "" : String(value).trim();
+      const cur = svgFields.read(t, idx, prop);
+      if (v === "" || v === cur) return null;                // no clear-to-default yet; no-op if unchanged (T1)
+      const w = setProperty(t, idx, prop, v);
+      return writer.commit(idx, w.name, w.value, null);
+    };
     node.refs = (path) => {
       const t = target.doc();
       if (t === null) return [];
@@ -8527,6 +8664,7 @@ export default function define(runtime, observer) {
   // The inspector's height follows the selection, so it sits *below* the drawing: above it, every
   // change of selection would shift the picture under the pointer mid-gesture.
   $def("sl02c", "inspector", ["htl","Inputs","invalidation","viewof drawing"], _sl02c);
+  $def("sl271", "fieldPanel", ["htl","Inputs","invalidation","viewof drawing"], _sl271);
   $def("sl04", "howToDrive", ["md","ref"], _sl04);
   $def("sl05", "putTable", ["Generators","viewof drawing","Inputs","invalidation"], _sl05);
   $def("sl08", "useIt", ["md"], _sl08);
@@ -8715,6 +8853,7 @@ export default function define(runtime, observer) {
   $def("sl31f", "printStyle", [], _sl31f);
   $def("sl31g", "styleLens", ["lens","parseStyle","printStyle"], _sl31g);
   $def("sl31h", "setProperty", ["attrVal","styleLens"], _sl31h);
+  $def("sl270", "svgFields", ["attrVal","styleLens"], _sl270);
   $def("sl78", "cellAttrLens", ["compose","literalLens","attrTextLens"], _sl78);
   $def("sl79", "childrenLens", ["lens","nodeAt","parseDoc"], _sl79);
   $def("sl79a", "insertElement", ["childrenLens"], _sl79a);
@@ -8838,7 +8977,7 @@ export default function define(runtime, observer) {
   $def("sl249", "commandLookup", [], _sl249);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);
-  $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","svgShapes","svgCommands","commandLookup","copyMarkup","moveTargetOf","commitDelta","rebaseVertex","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf","boxInRoot","hitTest","scopedPath","pathOfIndex","parseViewBox","printViewBox"], _sl114);
+  $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","svgShapes","svgCommands","svgFields","commandLookup","copyMarkup","moveTargetOf","commitDelta","rebaseVertex","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf","boxInRoot","hitTest","scopedPath","pathOfIndex","parseViewBox","printViewBox"], _sl114);
 
   main.define("tests", ["module @tomlarkworthy/tests", "@variable"], (_, v) => v.import("tests", _));
   // Prose is click-to-edit, as in @tomlarkworthy/lopecode-live-2026.
