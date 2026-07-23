@@ -3970,7 +3970,8 @@ const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointe
     if (!el || t === null) return false;
     e.preventDefault();
     grabPointer(ctx.node, e);
-    const b = el.getBBox();
+    const b = ctx.bbox(el);
+    if (!b) return false;
     const text = ctx.attr(t, idx, "transform") || "";
     ctx.state.drag = {
       key, idx, el, b, text, base: opsLens.get(text), ops: opsLens.get(text), started: false,
@@ -4096,12 +4097,12 @@ const _sl121a = function _hitTest(){return(
 // several selected shapes moves them all — one commit each, since each writes its own attribute.
 // A tap with no movement selects instead: shift adds to the set, and tapping the shape that is
 // already primary cycles to the next shape underneath, which is how an occluded shape is reached.
-const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoints,parsePath,pathOfIndex,grabPointer,hitTest,snapRects,gestureDelta,previewDelta,commitDelta){return(
+const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoints,parsePath,pathOfIndex,grabPointer,snapRects,gestureDelta,previewDelta,commitDelta){return(
 {
   id: "move",
   onPointerDown(ctx, e) {
     if (ctx.tool() !== "select") return false;
-    const hits = hitTest(ctx, e, { tolerance: ctx.options.hitTolerance });
+    const hits = ctx.hit(e);
     if (!hits.length) return false;                      // empty canvas: the marquee may want it
     const list = ctx.elems();
     const t = ctx.doc();
@@ -4115,7 +4116,7 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoint
     const targets = [];
     for (const i of sel.indexOf(idx) >= 0 ? sel : [idx]) {
       const node = list[i];
-      const ps = node && node.parentNode.getScreenCTM();
+      const ps = node && ctx.screenCTM(node.parentNode);
       if (!ps) continue;
       const text = ctx.attr(t, i, "transform") || "";
       targets.push({ idx: i, el: node, text,
@@ -4131,9 +4132,9 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoint
       idx, hits, tag: el.localName, targets,
       x0: e.clientX, y0: e.clientY, started: false,
       thresh: e.pointerType === "mouse" ? 3 : 10,
-      box: snapping ? el.getBoundingClientRect() : null,
+      box: snapping ? ctx.screenBox(el) : null,
       others: snapping ? list.slice(1).filter((n) => n !== el && !n.contains(el) && !el.contains(n))
-                              .map((n) => n.getBoundingClientRect()) : null
+                              .map((n) => ctx.screenBox(n)) : null
     };
     grabPointer(ctx.node, e);
     return true;
@@ -4209,7 +4210,7 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,parsePoint
 
 // Drag on empty canvas to rubber-band a selection. Intersection is tested in the root's user space,
 // where the marquee is drawn, so a rotated element is compared as the box it actually occupies.
-const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox,gestureDelta,commitDelta){return(
+const _sl121b = function _toolMarquee(pathOfIndex,grabPointer,dragBox,gestureDelta,commitDelta){return(
 {
   id: "marquee",
   onPointerDown(ctx, e) {
@@ -4245,7 +4246,7 @@ const _sl121b = function _toolMarquee(boxInRoot,pathOfIndex,grabPointer,dragBox,
     const list = ctx.elems();
     const hits = [];
     for (let i = 1; i < list.length; i++) {
-      const box = boxInRoot(list[i], ctx.node);
+      const box = ctx.rootBox(list[i]);
       if (!box) continue;
       if (box.x <= r.x + r.width && box.x + box.width >= r.x &&
           box.y <= r.y + r.height && box.y + box.height >= r.y) hits.push(pathOfIndex(t, i));
@@ -4987,6 +4988,32 @@ const _sl143 = function _test_tools_write_through_the_delta(toolDraw,toolPen,too
 };
 
 
+// P5's law. A tool should be a function of `ctx` and the trace and of nothing else — that is what
+// makes "a tool is a stateful monoid homomorphism" a claim about code rather than a metaphor, and
+// what would let a fake `ctx` drive a tool with no document at all. A handler that reaches past the
+// facade to `getBBox`/`getScreenCTM`/`elementsFromPoint` has a hidden input, and hidden inputs are
+// exactly what the laws cannot see. `hitTest` still asks the browser; the point is that it is the
+// one place that does, reachable as `ctx.hit`.
+const _sl144 = function _test_tools_measure_through_ctx(toolDraw,toolPen,toolTransform,toolVertex,toolMove,toolMarquee,toolStructure)
+{
+  const tools = [toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarquee, toolStructure];
+  const HANDLERS = ["onPointerDown", "onPointerMove", "onPointerUp", "onDblClick", "onHover"];
+  const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  const BANNED = /\b(getBBox|getScreenCTM|getBoundingClientRect|elementsFromPoint|getTotalLength|getPointAtLength)\s*\(/g;
+  const bad = [];
+  let asked = 0;
+  for (const t of tools)
+    for (const h of HANDLERS) {
+      if (typeof t[h] !== "function") continue;
+      const src = strip(t[h].toString());
+      for (const m of src.matchAll(BANNED)) bad.push(`${t.id}.${h} measures with ${m[1]} instead of ctx`);
+      for (const _ of src.matchAll(/\bctx\.(bbox|screenCTM|screenBox|rootBox|hit|localPoint)\s*\(/g)) asked++;
+    }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `✅ ${tools.length} tools measure only through ctx (${asked} measurements, 0 direct)`;
+};
+
+
 // The gesture laws are opt-in. Unlike the lens laws they mount a fixture, dispatch real pointer
 // events and commit through `Variable.define` — seconds of work and a burst of change-history
 // traffic — so running them on every reader's load would be wrong. Each law above is a function;
@@ -5029,7 +5056,7 @@ const _sl113s = function _lensState(){return(
 new Map()
 )};
 
-const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFocus,svgTools,invert,applyPoint,ctmMat,insertElement,deleteElement,reorderElement,rebasePath,childrenLens,zTarget,attrVal,effectiveAttr,translateLens,nodeAt,setProperty,refsOf)
+const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFocus,svgTools,invert,applyPoint,ctmMat,insertElement,deleteElement,reorderElement,rebasePath,childrenLens,zTarget,attrVal,effectiveAttr,translateLens,nodeAt,setProperty,refsOf,boxInRoot,hitTest)
 {
   // Which instance is projecting which node. Read by the facade below to route a tool's calls to the
   // node that is the cell's value now, rather than the one its gesture started on.
@@ -5132,11 +5159,24 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
       // What a tool may measure: the source token, or the rendered one where the source has holes.
       attr: (t, idx, name) => effectiveAttr(target.elems(), t, idx, name),
       localPoint: (el, e) => {
-        const ctm = el.getScreenCTM();
+        const ctm = ctx.screenCTM(el);
         if (!ctm) return null;
         const [x, y] = applyPoint(invert(ctmMat(ctm)), e.clientX, e.clientY);
         return [snap(x), snap(y)];
-      }
+      },
+      // ---- geometry (P5) --------------------------------------------------------------------
+      // Every measurement a tool takes goes through here, so a tool is a function of `ctx` and the
+      // trace and of nothing else. The browser is still the authority — this only names the four
+      // questions a tool is allowed to ask it, which is what lets a fake `ctx` drive a tool with no
+      // document at all, and what stops a tool inventing a fifth way to measure a hit.
+      bbox: (el) => { try { return el && el.getBBox ? el.getBBox() : null; } catch (e) { return null; } },
+      screenCTM: (el) => (el && el.getScreenCTM ? el.getScreenCTM() : null),
+      screenBox: (el) => (el && el.getBoundingClientRect ? el.getBoundingClientRect() : null),
+      // The selection box in the root's user space, where a marquee is drawn and compared.
+      rootBox: (el) => boxInRoot(el, node),
+      // What is under the pointer, front to back. Painted geometry first, then near-misses.
+      hit: (e, opts = {}) =>
+        hitTest(ctx, e, { tolerance: options.hitTolerance, ...opts })
     };
 
     ctxByNode.set(node, ctx);
@@ -5582,8 +5622,8 @@ export default function define(runtime, observer) {
   $def("sl120", "toolVertex", ["handleEdit","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl120);
   $def("sl121a", "hitTest", [], _sl121a);
   $def("sl127", "snapRects", [], _sl127);
-  $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","parsePoints","parsePath","pathOfIndex","grabPointer","hitTest","snapRects","gestureDelta","previewDelta","commitDelta"], _sl121);
-  $def("sl121b", "toolMarquee", ["boxInRoot","pathOfIndex","grabPointer","dragBox","gestureDelta","commitDelta"], _sl121b);
+  $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","parsePoints","parsePath","pathOfIndex","grabPointer","snapRects","gestureDelta","previewDelta","commitDelta"], _sl121);
+  $def("sl121b", "toolMarquee", ["pathOfIndex","grabPointer","dragBox","gestureDelta","commitDelta"], _sl121b);
   $def("sl122", "toolStructure", ["insertElement","insertPoint","deletePoint","nearestSegment","pointsHandles","parsePoints","attrVal","childrenLens","rebasePath","pathHandles","parsePath","pathSegments","nearestPathSegment","insertPathPoint","deletePathPoint","gestureDelta","commitDelta"], _sl122);
   $def("sl124", "toolTransform", ["opsLens","rotateAbout","scaleAbout","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl124);
   $def("sl125a", "dragBox", [], _sl125a);
@@ -5601,6 +5641,7 @@ export default function define(runtime, observer) {
   $def("sl136", "test_gesture_commits_against_its_origin", ["withFixture","gestureCorpus","playGesture"], _sl136);
   $def("sl137", "test_gesture_confinement", ["withFixture","gestureCorpus","playGesture","svgTools"], _sl137);
   $def("sl138", "test_gesture_selection_is_not_an_edit", ["withFixture","gestureCorpus","playGesture","toolMarquee"], _sl138);
+  $def("sl144", "test_tools_measure_through_ctx", ["toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl144);
   $def("sl143", "test_tools_write_through_the_delta", ["toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl143);
   $def("sl140", "test_gesture_render_consistency", ["withFixture","gestureCorpus","playGesture"], _sl140);
   $def("sl141", "test_gesture_rebase_agreement", ["withFixture","gestureCorpus","nodeAt","childrenLens","insertPoint"], _sl141);
@@ -5609,7 +5650,7 @@ export default function define(runtime, observer) {
   $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolStructure"], _sl123);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);
-  $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf"], _sl114);
+  $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf","boxInRoot","hitTest"], _sl114);
 
   main.define("tests", ["module @tomlarkworthy/tests", "@variable"], (_, v) => v.import("tests", _));
   // Prose is click-to-edit, as in @tomlarkworthy/lopecode-live-2026.

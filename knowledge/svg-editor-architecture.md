@@ -498,11 +498,15 @@ and the roll-up is at the end of this section.
   selected element — the ghosting probe), and `puts`. One trap found and fixed: the writer announces
   each put on **both** the outgoing and incoming node with the same record object, so a naive
   listener double-counts every commit; `puts` dedupes by identity.
-- [ ] **P5 · geometry through `ctx`** — `ctx.bbox`, `ctx.screenCTM`, `ctx.hit`. Tools currently call
-  `getBBox`/`getScreenCTM`/`elementsFromPoint` on DOM nodes directly, so "a tool is a pure
-  `trace → [command]`" is **not true yet**. Optional: the laws can run as notebook cells in a real
-  browser, like the lens laws already do, and P5 only buys a faster headless path. Subsumes S1's hit
-  contract. M.
+- [x] **P5 · geometry through `ctx`.** Landed 2026-07-23: `ctx.bbox`, `ctx.screenCTM`, `ctx.screenBox`,
+  `ctx.rootBox` and `ctx.hit` — five named questions a tool may ask the browser, alongside
+  `ctx.localPoint`. Every tool now goes through them, so `hitTest` and `boxInRoot` dropped out of
+  `toolMove`'s and `toolMarquee`'s inputs and `hitTest` is the single place that calls
+  `elementsFromPoint`. That makes "a tool is a function of `ctx` and the trace" a property of the
+  code rather than a description of it, and it is what would let a fake `ctx` drive a tool with no
+  document. Guarded by `test_tools_measure_through_ctx` (pure, headless): **7 tools, 17 measurements,
+  0 direct.** Subsumes S1's hit contract. All 8 gesture laws re-verified in a browser after the
+  reroute, plus the paper's own drawing (clicking the sun still frames it exactly).
 
 #### L — the property tests
 

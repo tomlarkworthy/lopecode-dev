@@ -52,6 +52,7 @@ const TEST_CELLS = [
   'test_snapRects',
   // the tools, statically: every write goes through the delta (design note L3)
   'test_tools_write_through_the_delta',
+  'test_tools_measure_through_ctx',
   // domain widening
   'test_units_and_style',
   'test_refs',
