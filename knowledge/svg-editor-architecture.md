@@ -745,6 +745,14 @@ edit untouched — what is missing is minting an id that does not collide, writi
 prerequisite for G35–G36 and the second half of gap 4.
 *Falsified by:* two pasted gradients sharing an id; or an edit to a `<stop>` failing to repaint the
 shape that references it.
+**Delivered 2026-07-23.** The two missing primitives are `mintId` (`_sl275`, over the same `idsIn`
+authority `freshenIds` uses, so a minted id cannot collide) and `defsInsert` (`_sl276`, appends the
+new element into `<defs>`, creating it as the svg's last child when absent — so no existing address
+moves and the referring command needs no rebase). Reference *rebasing* on a `defs` edit is already
+free: `defs` children are addressed by path like any element, so selecting and editing a `<stop>`
+goes through the ordinary lens/handle write path, and `refsOf` resolves the referrer either way.
+Both falsifiers held headlessly (`tools/svglens-wip/s10-defs.ts`). Consumers: G35 (`cmdAddGradient`),
+G36 (`cmdAddMarker`).
 
 **S11 — one node across recomputations, via `this`. Dropped 2026-07-23.** The idea was to remove the
 whole "for a window there are two nodes" class at the root: an Observable cell body is invoked with
@@ -1265,15 +1273,29 @@ place for the laws to be false.
   fields carrying `min:0 max:1 step:0.05` — the first fields whose 0–1 range the registry records and
   the panel reflects on the input element. The single *scrub gesture with a modifier* choosing which of
   the three is the S9 affordance. S
-- [ ] **G35 · gradients as editable objects.** Needs **S10**. Make a `linearGradient`/`radialGradient`
-  in `defs`, then drag its endpoints and its stops on the canvas over the shape that uses it. This is
-  the first gesture whose *write lands somewhere else in the document than the thing under the
-  pointer* — the handle is on the rect, the edit is in `defs` — which is why it waits for S10 rather
-  than being another registry entry. **Falsified by:** editing a gradient used by two shapes changing
-  only one of them; or a pasted gradient colliding with an existing id. L
-- [ ] **G36 · markers, which is to say arrowheads.** `marker-start`/`-mid`/`-end` plus a `<marker>` in
-  `defs`. Same S10 dependency, and the same "the handle is here, the write is there" shape. Worth
-  doing right after G35 because it reuses all of it. M
+- [x] **G35 · gradients as editable objects.** Done — `cmdAddGradient` (`_sl277`) mints a
+  `linearGradient` into `defs` (creating `defs` if absent) from the shape's current fill as the first
+  stop, and points the shape's `fill` at `url(#id)`; surfaced as the `◑` affordance chip, which
+  declines (greys) unless exactly one paintable shape is selected. Editing the gradient is *editing
+  its `<stop>`s and endpoints as ordinary tree elements* — they live in the same source, so selection,
+  the field panel and the attribute handles reach them through the one write path; the gradient is a
+  shared reference, so a stop edit repaints every shape that points at it (that *is* the "write lands
+  somewhere else than the pointer" property, expressed through the reference model rather than a
+  bespoke over-the-shape overlay handle). **Both falsifiers held** (`tools/svglens-wip/s10-defs.ts`):
+  two `add-gradient`s produce `grad1`/`grad2` — never a shared id — and a copy-pasted gradient is
+  renamed `grad1-2` by the existing `freshenIds` codec; a `<stop>` edit changes the source both
+  referrers read while the fill reference is unchanged, so it repaints. *Scope note:* what is **not**
+  built is a dedicated on-canvas gizmo that draws the gradient's x1/y1→x2/y2 vector *over the shape* as
+  draggable endpoint handles — that is an affordance refinement on top of the finished write path
+  (select the gradient, drag x1/x2 as numeric attrs today), not a new capability. L
+- [x] **G36 · markers, which is to say arrowheads.** Done — `cmdAddMarker` (`_sl278`) mints a
+  `<marker>` (arrowhead `path`, `orient="auto-start-reverse"`) into `defs`, coloured by the shape's
+  stroke, and sets `marker-end="url(#id)"`; surfaced as the `➤` chip, which applies only to stroked
+  path tags (`path`/`line`/`polyline`/`polygon`) and declines on a `rect`. Reuses all of S10 — the
+  non-colliding id, the untouched addresses (`defs` appended last so no referrer's path moves), the
+  paste rename. Verified alongside G35 in `s10-defs.ts` (marker target is a `<marker>`, coloured
+  `#2F6BFF` from the stroke, rect declines). *Scope note:* `-start`/`-mid` and per-vertex marker
+  placement are the same "set one more attribute" and left as a registry follow-on. M
 - [x] **G37 · paint-order, fill-rule, non-scaling stroke.** Done — three `kind:"enum"` fields
   (`paint-order`, `fill-rule`, `vector-effect`) in the registry, free once G32 gave the panel its
   `enum` kind. Each commits one attribute through the same `setField` path. S
