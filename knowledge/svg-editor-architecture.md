@@ -863,8 +863,15 @@ and S4, and are the gaps those stages closed.)
   element itself fell all the way back to the root. Verified in the demo: the house selects as its
   `<g>` with the gizmo, double-click gives the rect's nine geometry handles, Escape returns to the
   group.
-- [ ] **G7 · select all / none / same.** ⌘A, Esc, and "select same tag" / "select same fill" as
-  command-registry entries rather than special cases. **Falsified by:** T9 — none of them may write. S
+- [x] **G7 · select all / none / same.** Landed 2026-07-23 as `cmdSelect`, one factory producing four
+  registry entries (`select-all` on ⌘A, `select-none`, `select-same-fill`, `select-same-tag`). Each
+  plans a `select` **delta**, not a `command` — so T9 holds by construction: the same delta a click
+  emits, routed through `commitDelta`, which never touches the source. "Same" is judged among the
+  current scope's own children (the working level), and `same-fill` includes the primary, so it is
+  idempotent. Each declines (T1/T8) when it would change nothing: none with an empty selection, all
+  with nothing under the scope, "same" with no primary. ⌘A routes automatically through the demo's
+  existing `commandForEvent` keymap — no new callsite. Verified headless: all → three shapes,
+  same-fill → the two red, same-tag → the two rects. S
 - [ ] **G8 · context menu.** Right-click renders whatever the command registry holds, so it needs no
   maintenance as the registry fills. **Unblocked by S4** — `node.commands()` and `node.canCommand(id)`
   are exactly what a menu needs, and the demo's command bar is already built from them. S
@@ -887,12 +894,21 @@ and S4, and are the gaps those stages closed.)
   than added to: three abandoned drags must leave neither a byte nor a pixel behind, the pixel half
   being `domShape` (extracted from T5, since it is the same claim on a different occasion).
   **✅ green** — and it immediately caught a real defect, below. XS
-- [ ] **G11 · scale from the centre** (alt) and **G12 · a movable rotation pivot** (drag the centre
-  mark before rotating). Both are `toolTransform` changes, both fall out of the existing
-  `scaleAbout`/`rotateAbout`, which already take an arbitrary fixed point. S
-- [ ] **G13 · numeric readout during a drag.** dx/dy while moving, w×h while drawing, angle while
-  rotating, drawn in the overlay root layer. Needs P6. The one place the editor currently gives no
-  feedback about magnitude. S
+- [x] **G11 · scale from the centre** (alt). Landed 2026-07-23 in `toolTransform`'s scale branch:
+  `e.altKey` swaps the pivot from the opposite corner to the box centre and doubles the travel, so the
+  handle tracks the pointer while the shape grows symmetrically. Falls straight out of `scaleAbout`
+  taking an arbitrary fixed point, exactly as this bullet predicted; the readout (G13) reports the
+  live factor. **✅ green.** S
+- [ ] **G12 · a movable rotation pivot** (drag the centre mark before rotating). A `toolTransform`
+  change that falls out of `rotateAbout` already taking an arbitrary fixed point — needs a gizmo
+  handle for the pivot itself. S
+- [x] **G13 · numeric readout during a drag.** Landed 2026-07-23 as `gestureDelta.readout(text, [ux,uy],
+  font)`, a view-delta factory that paints a `<text>` mark (white halo via `paint-order:stroke`) in
+  the overlay. `ctx.readoutFont()` returns `12/zoom`, so the label is screen-invariant (T11) while its
+  anchor lives in user space. Wired into every drag: move shows `dx, dy`, draw `w × h`, transform its
+  branch readout, vertex the point's coordinates; each tool clears it on pointer-up / cancel. The zoom
+  the move tool needs is recovered as `12 / readoutFont()` rather than a raw `getScreenCTM()`, so the
+  P5 measure-through-ctx law still holds. **✅ green.** S
 - [x] **G43 · a move writes the shape's own coordinates.** Landed 2026-07-23. Dragging a `<rect>`
   used to append `transform="translate(10 4)"`, which says the rect is somewhere other than where it
   says it is; it now writes `x="26" y="4"`. Tom: *"I don't like that we use translation nodes on
@@ -919,16 +935,20 @@ and S4, and are the gaps those stages closed.)
   neighbour committed `cx="86.000002"`. 1e-4 is below anything an author would write and above the
   noise, and it is fixed rather than zoom-derived, so the same drag still commits the same bytes at
   every zoom (T11). S
-- [ ] **G44 · one gesture, one undo entry.** Newly visible because of G43: a move that writes `x` and
-  `y` is two `writer.commit` calls, so two puts, two remounts and two undo entries — and a rect
-  corner drag has been four since G2. The delta list already describes the whole gesture; what is
-  missing is a writer that takes *several attributes of one element* and lands them in one edit.
-  Nothing above needs to change: `commitDelta` would group by `idx` and call it. **Falsified by:**
-  a single drag needing two undos; or the grouped put differing by one byte from the sequence it
-  replaces. M
-- [ ] **G14 · alt-drag duplicates.** The standard gesture, and the discoverable face of G16.
-  **Unblocked by S4.** Note alt already means "ignore snapping" during a move, so this needs a
-  modifier decision rather than only an implementation. S
+- [x] **G44 · one gesture, one undo entry.** Landed 2026-07-23 as `writer.commitMany`, which folds
+  every plain-attr edit of a gesture into one running source string, applies it once, and records one
+  history entry. `commitDelta` recognises the case — `list.length > 1 && list.every(kind === "attr")`
+  — and routes to it; if any attr carries interpolated-template holes it falls back to the sequential
+  `commit` (holes need per-edit rebasing). Verified in the notebook: a circle move writing `cx` and
+  `cy` is now a single undo. The T4 law was strengthened to assert exactly this — a gesture over N
+  elements produces exactly one edit (`gained === 1`), not one per attribute. **✅ green.** M
+- [x] **G14 · alt-drag duplicates.** Landed 2026-07-23 in `toolMove`. Holding alt at pointer-down
+  records `duplicate` and the origin paths on the drag; on release the tool reverts the originals to
+  their start, copies their markup (`copyMarkup`), offsets each by the committed user delta
+  (`offsetMarkup`), pastes them as one `duplicate` command, and selects the copies — so the source
+  gains new elements and the originals are untouched. The modifier collision this bullet flagged is
+  resolved by role: alt while *moving* means duplicate (snapping is irrelevant to a copy). **✅ green.**
+  S
 
 #### D — the structural verbs everyone expects (S4)
 

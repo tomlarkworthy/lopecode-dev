@@ -5539,7 +5539,7 @@ const _sl263 = function _moveDeltas(gestureDelta,translateLens,attrVal){return(
 }
 )};
 
-const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,shapeLookup,pathOfIndex,grabPointer,snapRects,gestureDelta,previewDelta,commitDelta,revertDelta,moveTargetOf,moveDeltas){return(
+const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,shapeLookup,pathOfIndex,grabPointer,snapRects,gestureDelta,previewDelta,commitDelta,revertDelta,moveTargetOf,moveDeltas,copyMarkup,offsetMarkup,pasteMarkup){return(
 {
   id: "move",
   onPointerDown(ctx, e) {
@@ -5572,6 +5572,11 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,shapeLooku
       tool: "move",
       idx, hits, tag: el.localName, targets,      // `hits` are picks, not raw elements
       x0: e.clientX, y0: e.clientY, started: false,
+      // G14: alt held at the *start* means "drag a copy, leave the original". The decision is taken
+      // once, at pointerdown, so it cannot flip mid-gesture — and it means a duplicate-drag does not
+      // also snap (alt is spent), which is the modifier trade this needs.
+      duplicate: e.altKey,
+      paths: ctx.focus.paths.slice(),
       thresh: e.pointerType === "mouse" ? 3 : 10,
       box: snapping ? ctx.screenBox(el) : null,
       others: snapping ? list.slice(1).filter((n) => n !== el && !n.contains(el) && !el.contains(n))
@@ -5623,6 +5628,7 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,shapeLooku
     // `readoutFont()` is 12/zoom, so the zoom it already measured comes back as 12/font — no tool
     // reaches past `ctx` for the CTM (P5).
     const at = ctx.localPoint(ctx.node, e), font = ctx.readoutFont(), z = 12 / (font || 1);
+    d.userDelta = [dx / z, dy / z];                      // G14: the offset a duplicate would land at
     if (at) previewDelta(ctx, gestureDelta.readout(`${(dx / z).toFixed(1)}, ${(dy / z).toFixed(1)}`, at, font));
   },
   async onPointerUp(ctx, e) {
@@ -5631,6 +5637,23 @@ const _sl121 = function _toolMove(translateLens,attrVal,invert,ctmMat,shapeLooku
     if (!d) return;
     if (d.started) {
       ctx.guides([]);
+      previewDelta(ctx, gestureDelta.view([], { key: "readout" }));   // G13: clear
+      // G14: leave the original where it was and drop a copy at the drag's end, offset by the same
+      // delta. Reuses the paste codec — `copyMarkup` gives the author's own bytes, `offsetMarkup`
+      // translates them, `pasteMarkup` appends. One structural edit; the copies become the selection.
+      if (d.duplicate && d.paths.length && d.userDelta) {
+        revertDelta(ctx, d.deltas || []);                // originals snap back to where they were
+        const src = ctx.doc();
+        if (src === null) return;
+        const [dux, duy] = d.userDelta;
+        const clip = copyMarkup(src, d.paths).map((m) => offsetMarkup(m, dux, duy));
+        const parent = ctx.scope().length ? ctx.scope() : [0];
+        const at = ctx.childCount(parent);
+        await commitDelta(ctx, gestureDelta.command("duplicate",
+          (s) => pasteMarkup(s, parent, at, clip),
+          { select: () => clip.map((_, k) => parent.concat([at + k])) }));
+        return;
+      }
       if (d.deltas) await commitDelta(ctx, d.deltas);
       return;
     }
@@ -7293,13 +7316,42 @@ const _sl261 = function _cmdToggleSmooth(gestureDelta,pathSmooth,pathHandles,nod
 }
 )};
 
-const _sl250 = function _svgCommands(cmdGroup,cmdUngroup,cmdDuplicate,cmdCopy,cmdCut,cmdPaste,cmdAlign,cmdDistribute,alignSpecs,cmdDeleteVertex,cmdClosePath,cmdToggleSmooth){return(
+// G7. Selection is not a source edit (T9), so these plan a `select` delta rather than a `command`
+// one — the same delta a tool emits on a click. "Same" is judged among the current scope's own
+// children, which is the working level; a `same-fill` includes the primary itself, so it is
+// idempotent. Each declines (T1/T8) when it would change nothing: select-none with an empty
+// selection, select-all with nothing to select, "same" with no primary.
+const _sl264 = function _cmdSelect(gestureDelta,nodeAt){return(
+(kind) => ({
+  id: { all: "select-all", none: "select-none", "same-fill": "select-same-fill", "same-tag": "select-same-tag" }[kind],
+  label: { all: "Select all", none: "Select none", "same-fill": "Select same fill", "same-tag": "Select same tag" }[kind],
+  key: kind === "all" ? "Mod-a" : null,
+  plan(env) {
+    if (kind === "none") return env.paths.length ? gestureDelta.select([]) : null;
+    let container;
+    try { container = nodeAt(env.src, env.scope); } catch (e) { return null; }
+    const kids = container.children || [];
+    if (!kids.length) return null;
+    if (kind === "all") return gestureDelta.select(kids.map((c) => c.path));
+    if (!env.paths.length) return null;
+    let primary;
+    try { primary = nodeAt(env.src, env.paths[0]); } catch (e) { return null; }
+    const fill = (n) => (n.attrs && n.attrs.fill ? n.attrs.fill.value : null);
+    const match = kind === "same-tag" ? (n) => n.tag === primary.tag : (n) => fill(n) === fill(primary);
+    const paths = kids.filter(match).map((c) => c.path);
+    return paths.length ? gestureDelta.select(paths) : null;
+  }
+})
+)};
+
+const _sl250 = function _svgCommands(cmdGroup,cmdUngroup,cmdDuplicate,cmdCopy,cmdCut,cmdPaste,cmdAlign,cmdDistribute,alignSpecs,cmdDeleteVertex,cmdClosePath,cmdToggleSmooth,cmdSelect){return(
 // A plain array, not an `Inputs.input`, for the same reason `svgShapes` is: pure code plans a command
 // and the laws exercise that headless, where there is no DOM to hold a view.
 [cmdGroup, cmdUngroup, cmdDuplicate, cmdCopy, cmdCut, cmdPaste(false), cmdPaste(true)]
   .concat(alignSpecs.map(cmdAlign))
   .concat([cmdDistribute("x"), cmdDistribute("y"),
            cmdDeleteVertex, cmdClosePath(true), cmdClosePath(false), cmdToggleSmooth])
+  .concat(["all", "none", "same-fill", "same-tag"].map(cmdSelect))
 )};
 
 // Look one up, and answer "what does this keystroke mean" in one place. The binding is a
@@ -8254,7 +8306,7 @@ export default function define(runtime, observer) {
   $def("sl127", "snapRects", [], _sl127);
   $def("sl251", "moveTargetOf", ["invert","ctmMat","translateLens","shapeLookup"], _sl251);
   $def("sl263", "moveDeltas", ["gestureDelta","translateLens","attrVal"], _sl263);
-  $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","shapeLookup","pathOfIndex","grabPointer","snapRects","gestureDelta","previewDelta","commitDelta","revertDelta","moveTargetOf","moveDeltas"], _sl121);
+  $def("sl121", "toolMove", ["translateLens","attrVal","invert","ctmMat","shapeLookup","pathOfIndex","grabPointer","snapRects","gestureDelta","previewDelta","commitDelta","revertDelta","moveTargetOf","moveDeltas","copyMarkup","offsetMarkup","pasteMarkup"], _sl121);
   $def("sl125z", "toolZoom", ["grabPointer"], _sl125z);
   $def("sl122b", "toolScope", ["pathOfIndex","scopedPath","shapeLookup","gestureDelta","commitDelta"], _sl122b);
   $def("sl121b", "toolMarquee", ["pathOfIndex","scopedPath","grabPointer","dragBox","gestureDelta","commitDelta"], _sl121b);
@@ -8299,7 +8351,8 @@ export default function define(runtime, observer) {
   $def("sl261", "cmdToggleSmooth", ["gestureDelta","pathSmooth","pathHandles","nodeAt"], _sl261);
   $def("sl258", "cmdDeleteVertex", ["gestureDelta","attrVal","parsePoints","parsePath","pathSegments","pathHandles","deletePoint","deletePathPoint"], _sl258);
   $def("sl259", "cmdClosePath", ["gestureDelta","attrVal","attrTextLens","nodeAt"], _sl259);
-  $def("sl250", "svgCommands", ["cmdGroup","cmdUngroup","cmdDuplicate","cmdCopy","cmdCut","cmdPaste","cmdAlign","cmdDistribute","alignSpecs","cmdDeleteVertex","cmdClosePath","cmdToggleSmooth"], _sl250);
+  $def("sl264", "cmdSelect", ["gestureDelta","nodeAt"], _sl264);
+  $def("sl250", "svgCommands", ["cmdGroup","cmdUngroup","cmdDuplicate","cmdCopy","cmdCut","cmdPaste","cmdAlign","cmdDistribute","alignSpecs","cmdDeleteVertex","cmdClosePath","cmdToggleSmooth","cmdSelect"], _sl250);
   $def("sl249", "commandLookup", [], _sl249);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
   $def("sl113s", "lensState", [], _sl113s);
