@@ -1111,14 +1111,33 @@ visible in the source. Items here are reports first and diagnoses second, and th
   therefore allowed — but it must be declared in `ctx.state.drag`, not hidden in a closure.
   **Falsified by:** a slow drag and a fast drag to the same endpoint committing different values (T2);
   or the shape moving at all before the pointer has travelled `thresh`. S
-- [ ] **B2 · what is actually being seen has not been confirmed.** Recorded because the honest state of
-  a report matters. Tom sees "a frame of glitching at gesture start, after a while"; B1 is what
-  instrumentation found in a fixture, and it is a real defect, but it has not been shown to be *the*
-  thing being seen. Two hypotheses are already ruled out for that fixture: a per-frame census of
-  overlay handles never showed an empty frame, and shape-versus-overlay transforms never disagreed by
-  a frame. The next measurement, if it recurs, is the same census in the real notebook rather than in
-  a fixture — a zoomed document re-applies its `viewBox` on every put (`applyView`), which is one more
-  thing that can lag a frame, and a fixture is always at zoom 1. S
+- [~] **B2 · the drawing flashes unzoomed after a commit.** Tom, refining the report 2026-07-23:
+  *"it's clear after zooming, and the gesture after that momentarily displays the unzoomed size."*
+  That names the mechanism, and the code agrees with it. The zoom is not in the source — it is
+  `lensState.view`, re-applied by rewriting the root `viewBox`. A commit remounts the cell, and the
+  **fresh node cannot resolve its own `Variable` yet**, so `viewNow()` falls back to `localView`,
+  which is identity, so `applyView()` declines and the node renders at the *source's* viewBox: 100%.
+  The view was then restored from a `setTimeout(…, 0)`. A macrotask can be separated from that node's
+  insertion by a rendered frame, and that frame is the flash.
+  **Changed 2026-07-23:** the restore runs on `requestAnimationFrame` — which fires *before* the paint
+  of the frame it is scheduled for, by which point the runtime has bound the value — with the timeout
+  kept as a fallback for a node in a tab that never paints, and a `resumed` flag making whichever
+  loses a no-op. Strictly earlier than before, and it cannot be later.
+  **This is a narrowed window, not a proven fix, and the difference matters.** Under per-frame
+  instrumentation the flash did not reproduce — not in a fixture, and not on the real drawing cell in
+  the notebook (143 frames across three commits at `k = 2.5`, zero frames with the wrong `viewBox`).
+  So the window is demonstrable *in the code* but was never caught *in the act*, and a change that
+  cannot be seen to fix what was never seen to break is exactly the kind of claim this document does
+  not make. To confirm or refute it in ordinary use, run this next to a drawing and use it normally:
+  ```js
+  { const el = drawing; let want = el.getAttribute("viewBox"), bad = 0;
+    el.addEventListener("lens-view", () => { want = el.getAttribute("viewBox"); });
+    const tick = () => { const got = el.getAttribute("viewBox");
+      if (got !== want) { bad++; console.warn("frame at the wrong view", got, "wanted", want); }
+      requestAnimationFrame(tick); };
+    requestAnimationFrame(tick); }
+  ```
+  It reports the frames, if any, where the drawing painted at a view nobody asked for. S
 - [ ] **B3 · a gesture-level frame budget.** The measurements above were written by hand each time.
   They should be a law-adjacent harness: sample per `requestAnimationFrame` through a scripted
   gesture, and assert what must never happen — the selection is never empty between two frames of a
@@ -1532,6 +1551,24 @@ Roughly by value per unit of work, given what already exists:
   cannot see the document" is not "the element is gone", so paint now draws nothing and drops
   nothing. Undo keeps the selection, its handles, and the ability to carry on dragging.
   59 headless tests, 10 browser laws, 19 commands.
+
+- **M18 — the flash after a zoom, and what it is honest to claim (2026-07-23).** Tom's second report
+  named the mechanism precisely — *"after zooming, the gesture after that momentarily displays the
+  unzoomed size"* — and it is a consequence of a decision this document is otherwise happy with: the
+  zoom deliberately lives outside the source, so it has to be *re-applied* to every node the runtime
+  mints, and a fresh node cannot yet resolve the `Variable` its view is filed under. The restore was
+  therefore deferred, and it was deferred to a macrotask, which the browser may separate from the
+  node's insertion by a rendered frame. `requestAnimationFrame` cannot be so separated: it runs
+  before the paint of its own frame. The timeout stays for the tab that never paints.
+  **The part worth recording is what could not be shown.** Four instrumented attempts — a
+  MutationObserver across frame boundaries, a per-frame census of overlay handles, a per-frame
+  shape-versus-overlay comparison, and a per-frame `viewBox` census on the real drawing cell — never
+  once caught the drawing painting at the wrong view: 143 frames across three commits at `k = 2.5`,
+  zero bad frames, *before* the change as well as after. So this is a window closed by reading, not a
+  bug caught in the act, and B2 says so rather than claiming a fix. What went into the document
+  instead is a recorder Tom can leave running during ordinary use, which reports any frame painted at
+  a view nobody asked for. A defect that only a person has seen is not fixed until that person stops
+  seeing it.
 
 ## 8. Open questions
 
