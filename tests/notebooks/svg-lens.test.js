@@ -45,6 +45,7 @@ const TEST_CELLS = [
   'test_transform_gizmo',
   // creation
   'test_shape_creation',
+  'test_shape_registry',
   'test_pen_path',
   'test_z_order',
   'test_topmost_selection',

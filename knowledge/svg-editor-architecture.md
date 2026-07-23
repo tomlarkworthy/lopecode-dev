@@ -183,11 +183,13 @@ appends a triangle. Measured: filled `<polygon>` 3→4 points ✅; `<path fill="
 
 ### Missing capability
 
-1. **Geometry editing exists for three tags.** `polygon`, `polyline`, `path`. `rect`, `circle`,
-   `ellipse` and `line` get the transform gizmo only, so resizing a rect writes
-   `transform="… scale(…)"` rather than `width`/`height`, and a `<line>`'s endpoints cannot be dragged
-   at all (measured: 0 anchor handles, 4 scale handles). An editor that cannot change a rectangle's
-   width is not an SVG editor, and its output is not source anyone would maintain by hand.
+1. ~~**Geometry editing exists for three tags.**~~ **Closed 2026-07-23 (S2/S3, milestone M10).** It
+   was `polygon`, `polyline`, `path`; `rect`, `circle`, `ellipse` and `line` got the transform gizmo
+   only, so resizing a rect wrote `transform="… scale(…)"` rather than `width`/`height`, and a
+   `<line>`'s endpoints could not be dragged at all (measured: 0 anchor handles, 4 scale handles). An
+   editor that cannot change a rectangle's width is not an SVG editor, and its output is not source
+   anyone would maintain by hand. All six tags are now registry entries; the gizmo remains the
+   fallback for what the registry cannot read, which is what keeps an unparseable document editable.
 2. **No grouping or duplication.** The command set is insert/delete/reorder element and
    insert/delete point — that is all. No group, ungroup, duplicate, copy or paste. Compounding it, a
    click always selects the leaf (`[0,3,0]`), never the enclosing `<g>`; only a marquee reaches a
@@ -620,17 +622,29 @@ descend). Closes gap 0 and part of gap 2.
 *Falsified by:* any row of a (shape, fill, click position) table picking a different target than
 selection would; or the element-count instrument firing on a double-click.
 
-**S2 — shape registry, no behaviour change.** Move the existing points/path handlers into tag-keyed
-entries. Nothing new works yet; the 50 lens tests and T1–T7 must stay green. This is the refactor that
-makes S3 one cell per tag.
-*Falsified by:* any existing test changing, or needing to change.
+**S2 — shape registry, no behaviour change. ✅ done 2026-07-23.** The points/path handlers became
+tag-keyed entries in `svgShapes`, read through `shapeLookup.forMode`/`forTag` by `handleEdit`, by the
+focus deciding where to draw handles, by `toolMove` deciding what a tap offers, by `toolVertex`
+deciding whether it claims a handle, and by `toolDraw` handing a new shape to whatever can edit it.
+`svgLens(node, {shapes})` mirrors `{tools}`. The registry is a **plain array**, not an
+`Inputs.input` like `svgTools`, because pure code reads it and the lens laws exercise that code
+headless, where there is no DOM to make an input out of.
+*Falsified by:* any existing test changing, or needing to change. **Held**: 52/52 headless with the
+test file untouched, and all eight gesture laws green in a browser.
 
-**S3 — rect/circle/ellipse/line geometry, and gizmo routing.** Each tag is a new cell supplying
-`{handles, edit, resize}`; the gizmo prefers `resize` and falls back to `transform` for groups and
-paths. After this stage the phrase "SVG editor" is defensible.
+**S3 — rect/circle/ellipse/line geometry, and gizmo routing. ✅ done 2026-07-23.** Each tag is its
+own cell — `shapeRect`, `shapeCircle`, `shapeEllipse`, `shapeLine`, plus `shapePoints` and
+`shapePath` extracted from the old pair — supplying `{mode, tags, writes, reads, handles, edit}`.
+The gizmo is still the fallback for everything the registry cannot read, and an entry may set
+`rotatable` to borrow just the rotate stalk, because rotation is the one thing no geometry attribute
+can express. `writes` became a *list*, so one handle can move four attributes, and `edit` returns
+only the attributes that actually changed — which is why dragging the east edge does not rewrite `y`.
 *Falsified by:* dragging a rect's corner and finding `transform` in the source rather than `width`; or
 a **resize agreement** property — resizing through the registry and through `transform` must produce
-the same rendered bounding box.
+the same rendered bounding box. **Held**: `test_shape_registry` checks resize agreement over 300
+random rect/corner pairs, that every entry writes nothing when a handle is put back where it was,
+that ten drags land on their target, and that four unreadable elements are declined. Verified
+falsifiable by injecting a wrong-edge bug and watching it fail at run 3.
 
 **S4 — command registry, then group/ungroup/duplicate/copy/paste.** Each is a pure doc→doc with a
 rebase, so `test_rebasePath`'s ground-truth method extends unchanged.
@@ -677,7 +691,8 @@ Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool
 | shift-tap | add/remove from the selection | nothing |
 | drag empty canvas | marquee (shift adds) | nothing |
 | drag a shape body | move it, and the rest of the selection with it; snapping with guides, alt disables | `transform` |
-| drag a corner handle | scale about the opposite corner; shift keeps aspect | `transform` |
+| drag a rect/ellipse/circle/line handle | resize it directly | `x`,`y`,`width`,`height`,`rx`,`r`,`rx`/`ry`,`x1…y2` |
+| drag a corner handle (anything else) | scale about the opposite corner; shift keeps aspect | `transform` |
 | drag the rotate stalk | rotate about the centre; shift steps 15° | `transform` |
 | drag a vertex or control point | move it | `points` / `d` |
 | double-click an edge / a vertex | insert / delete a point | `points` / `d` |
@@ -686,9 +701,9 @@ Five modes (`V` select, `R` rect, `E` ellipse, `L` line, `P` pen) and seven tool
 | pen click / click the start / double-click | place an anchor, close, finish | `d` |
 | arrows, `[ ] { }`, Delete, ⌘Z | nudge, z-order, delete, undo/redo | `transform`, structure |
 
-Four things that whole table implies and are worth stating plainly: **a rectangle's `width` cannot be
-edited**, **the pen draws only straight lines**, **there is no zoom**, and **nothing tells you what a
-click is about to hit**.
+Three things that whole table implies and are worth stating plainly: **the pen draws only straight
+lines**, **there is no zoom**, and **groups cannot be selected as groups**. (A fourth, "a rectangle's
+`width` cannot be edited", was true until S3 and is the gap that stage closed.)
 
 #### P — prerequisites this list needs that §6.4 did not
 
@@ -723,15 +738,22 @@ click is about to hit**.
   and `cursor: move` over the house, and all eight gesture laws still green with an eighth tool in
   the registry — which is T6 doing its job. Uses the same `boxInRoot` the multi-selection boxes use,
   so it is loose around a rotated shape in exactly the way the rest of the editor already is.
-- [ ] **G2 · rect handles.** Shape-registry entry: 4 corner + 4 side handles writing `x`/`y`/`width`/
-  `height`. **Falsified by:** dragging a corner and finding `transform` in the source rather than
-  `width`; and by S3's resize-agreement property — resizing through the registry and through
-  `transform` must produce the same rendered bounding box. M
-- [ ] **G3 · circle and ellipse handles.** Registry entries writing `r`, and `rx`/`ry`. Same
-  falsifier. S
-- [ ] **G4 · line endpoints.** Registry entry writing `x1,y1,x2,y2`. Today a `<line>` has *no*
-  editable geometry at all — measured: 0 anchor handles, 4 scale handles. S
-- [ ] **G5 · corner radius.** One extra handle on the rect entry writing `rx`. XS
+- [x] **G2 · rect handles.** Landed 2026-07-23. 4 corner + 4 side handles writing `x`/`y`/`width`/
+  `height`, plus the borrowed rotate stalk. A handle's key names the edges it moves (`nw` is `n` and
+  `w`), and each frame recomputes from the *source*, not from the previous frame, so the opposite
+  edges stay where the author put them and a drag past an edge simply flips the rect. Verified in a
+  browser: dragging the corpus rect's SE corner commits `width="50" height="36"` and leaves `x` and
+  `y` alone.
+- [x] **G3 · circle and ellipse handles.** Landed 2026-07-23. `r` from four axis handles; `rx`/`ry`
+  from four axis handles plus four corners that move both. The ellipse is `rotatable`, the circle is
+  not — rotating a circle is a no-op and the stalk would only be clutter.
+- [x] **G4 · line endpoints.** Landed 2026-07-23. Two anchors writing `x1,y1` and `x2,y2`. This is
+  the entry that changes the most for the least: a `<line>` previously had no editable geometry at
+  all.
+- [x] **G5 · corner radius.** Landed 2026-07-23. A ninth handle on the rect entry writing `rx`,
+  drawn a fixed inset along the top edge — at `rx = 0` a truthful handle sits exactly on the `nw`
+  corner, is painted last, and steals every click meant for it. `edit` subtracts the same inset, so
+  the offset is a bijection and "put the handle back where it is writes nothing" still holds.
 
 #### B — selection (needs S1's one hit contract)
 
@@ -840,11 +862,11 @@ concept. **Live collaboration** is `editor-5`'s problem (gap 10), not the editor
 
 Roughly by value per unit of work, given what already exists:
 
-1. **G1, G10, G9** — hover, Esc-cancels, axis lock. All small, all immediately felt, none needs a
-   registry that does not exist. G1 needs P6.
-2. **G2–G5** — direct geometry. This is the item that changes what the editor *is*, and it is one
-   registry (S2) plus four small cells (S3).
-3. **G6** — groups, which also closes the last known bug.
+1. ~~**G1, G10, G9**~~ ✅ — hover, Esc-cancels, axis lock. All small, all immediately felt, none needs
+   a registry that does not exist. G1 needs P6.
+2. ~~**G2–G5**~~ ✅ — direct geometry. This is the item that changes what the editor *is*, and it was
+   one registry (S2) plus six small cells (S3).
+3. **G6** — groups, which also closes the last known bug. **Next.**
 4. **G25** — zoom, because every subsequent gesture is easier to test and to use with it.
 5. **G15–G18** — the structural verbs, once S4's registry exists.
 6. **G19–G23** — the pen and path work, once P7 exists.
@@ -1066,6 +1088,32 @@ Roughly by value per unit of work, given what already exists:
   before being believed. The one real defect found was C0's, and the laws did not find it — reading
   the code for the paper did.
   Remaining from the list: C7's second half, the command registry, which belongs to S4.
+
+- **M10 — S2 and S3 done, and the editor edits geometry (2026-07-23).** A rectangle's `width` can be
+  dragged. The shape registry (`svgShapes`) is a plain array of one cell per tag — `shapePoints`,
+  `shapePath`, `shapeRect`, `shapeCircle`, `shapeEllipse`, `shapeLine` — each answering four
+  questions about one family of elements: can the lens read this one (`reads`), where are its
+  handles, what does dragging one write (`writes`, now a list), and does it borrow the rotate stalk
+  (`rotatable`). Every call site that used to branch on a tag or a mode now asks the registry:
+  `handleEdit`, the focus, `toolMove`, `toolVertex`, `toolDraw`. Adding a tag is one cell and a line
+  in `svgShapes`; `svgLens(node, {shapes})` replaces the set at a callsite.
+  `test_shape_registry` is the new law, and it is three claims: resize agreement over 300 random
+  rect/corner pairs (the registry and the gizmo must leave the same box), a handle put back where it
+  was writes nothing, and a handle dragged somewhere ends up there. It was checked *against a
+  deliberately broken copy* before being believed.
+  **The interesting find was not in the new code.** Verifying G2 on the demo showed the house's
+  handles drawn at the drawing's origin instead of on the house — and the same click on the
+  pre-change build did the same thing, so it was pre-existing, not S3's. `overlay.alignTo` read the
+  element's own `transform` *attribute*, so any shape inside a `<g transform="…">` — most of the
+  demo — had its handles placed in the wrong space. It now divides two screen matrices, which is
+  exactly "the target's user space, expressed in the root's". The instrument that would have caught
+  it, `boxGap`, had been written and never asserted; T5 asserts it now, on an element inside a
+  group, and the answer had been 150px.
+  Two smaller decisions worth keeping: `writes` had to become a list before a rect could be one
+  entry, and `edit` returning *only changed* attributes is what keeps T1 true edge by edge; and the
+  corner-radius handle needed a drawn inset, because a truthful handle at `rx = 0` lands on the
+  corner and steals it — the inset is subtracted back in `edit`, so it is a bijection rather than a
+  lie.
 
 ## 8. Open questions
 
