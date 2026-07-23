@@ -894,14 +894,43 @@ and S4, and are the gaps those stages closed.)
   outgoing handle, the click leaves the far end straight, and the last anchor arrives mirrored.
   **Held**: `test_pen_path`, extended — `mirror` is an involution, and a cubic whose handles sit on
   their anchors is sampled and shown to be its own chord. M
-- [ ] **G20 · continue an existing path.** Click a path's open endpoint with the pen to extend it,
-  instead of starting a new element. Depends on P7 (naming the endpoint). S
+- [x] **G20 · continue an existing path.** Landed 2026-07-23. With no path in progress, a pen click
+  within `penCloseRadius` of an open path's *free end* picks that path up instead of creating a new
+  one; the next click extends it. Picking up writes nothing at all — it is a `select` delta, so T9
+  covers it and T1 is not even in question.
+  Only the end, not the start: extending backwards means reversing the author's `d`, which would
+  rewrite every byte of an attribute the gesture is not otherwise touching. That is a smaller editor
+  than Illustrator's and a much smaller diff, and the trade is the one this whole document keeps
+  making.
+  A closed path has no free end (`/[Zz]\s*$/` on the source `d`, not on the rendered geometry), so it
+  declines; front-to-back scan, like every other hit test here.
+  **Held**: in a browser, tapping (180,100) on the corpus' open path leaves the document byte-identical
+  and moves the selection to `[0,1]`; the next tap makes `d` = `M 120 100 L 150 40 L 180 100 L 190 60`
+  with the path count still 1. A tap away from every free end still creates a new path (`[0,4]`). S
 - [ ] **G21 · corner ↔ smooth.** Double-click an anchor to toggle; alt-drag one handle to break the
   pair. Depends on P7. M
 - [ ] **G22 · select and move several vertices.** Marquee while in points/path mode. Depends on P7,
   and it is the case that makes "one delta per claimed element" become "per claimed *vertex*" — a
   good stress test of the delta record. M
-- [ ] **G23 · open/close a subpath, and delete a segment.** Depends on P7. S
+- [x] **G23 · open/close a subpath, and delete a segment.** Landed 2026-07-23, as two commands on
+  S4's registry rather than two gestures — the payoff of P7 is that "the vertex you are holding" is
+  now something a *command* can be planned against.
+  `delete-vertex` (bound to Delete) takes the held vertices. The finer selection is the one the key
+  means: with a vertex held it deletes the vertex, with none held it falls through to deleting the
+  element, and it is `canCommand` that decides — the same plan that would grey the menu item out.
+  Descending by ordinal, so each delete leaves the ordinals still queued exactly where they were, and
+  each delta carries its own `vertex-delete` op so a held address rebases (P7). It declines rather
+  than guesses in three places: two elements at once, a polygon that would be left with one point,
+  and a path's `M` anchor, which terminates no segment.
+  `close-path` / `open-path` are one `Z`, on or off. Only `d`: a polyline is not a polygon with a
+  flag, it is a different element, and swapping the tag is a different edit than this one claims to
+  be. With several subpaths this closes the last, which is what a trailing `Z` means. No handle
+  appears or disappears — `Z` takes no arguments — so no vertex op is owed.
+  **Held**: `M 120 100 L 150 40 L 180 100` → close → `… Z` → open → the original bytes back;
+  closing an already-closed path declines (T1 by declining rather than by writing the same thing).
+  In a browser, deleting the held anchor `0/0#a1` of the corpus polygon gives `20,100 100,100` and
+  undo restores the document exactly. **Not** done: deleting a *middle* segment, which splits one
+  subpath into two and needs a new `M` — only the trailing case is implemented. S
 - [ ] **G24 · subdivide an arc.** Explicitly refused today (`segs[i].kind === "A"` returns false),
   which is honest but a dead end for any document containing arcs. Needs either an exact arc split or
   arc→bezier conversion, and the latter changes the bytes, so it is a *user-visible* decision, not an
@@ -954,7 +983,8 @@ Roughly by value per unit of work, given what already exists:
 4. ~~**G25**~~ ✅ — zoom, which every subsequent gesture is easier to test and to use with.
 5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
    G8 and G14 are unblocked by the same work.
-6. **G19–G23** — the pen and path work. **G19 and P7 done**; G20–G23 are now unblocked. **Next.**
+6. **G19–G23** — the pen and path work. **G19, P7, G20 and G23 done.** G21 (corner ↔ smooth) and
+   G22 (several vertices at once) remain; G24 needs a decision before it can start. **Next.**
 7. **G26–G29** — text, images and style gestures.
 
 ## 7. Milestone log
@@ -1284,6 +1314,26 @@ Roughly by value per unit of work, given what already exists:
   before either is restored now.
   `test_rebase_vertex` is T7 one level down, checked with coordinates as ground truth the way
   `test_rebasePath` uses bytes. 58 headless tests, 10 browser laws.
+
+- **M16 — G20 and G23, what P7 was blocking (2026-07-23).** Both fell out in an afternoon, which is
+  the point: the expensive part was naming a vertex, not using one.
+  G20 is the difference between a pen and a line tool — a click on an open path's free end continues
+  that path. The part worth recording is that picking the end up **writes nothing**: it is a `select`
+  delta, so there is no edit to be identity-preserving about, and the first byte written is the one
+  the user's *next* click asks for. Extending backwards is deliberately not offered, because
+  reversing `d` rewrites an attribute the gesture is not otherwise touching.
+  G23 arrived as two *commands* rather than two gestures, which was not the plan and is better: with
+  P7 in place, "the vertex you are holding" is data an `env` can carry, so `delete-vertex` is planned
+  headless like every other command. Delete now means the *finer* selection — a held vertex if there
+  is one, the element otherwise — and it is `canCommand` that decides, so the key and a greyed-out
+  menu item cannot disagree. Three declines rather than guesses: two elements at once, a polygon left
+  with one point, and a path's `M` anchor, which terminates no segment.
+  One test artefact worth remembering over any product finding: the first browser run reported
+  `open-path` doing nothing, and it was a stale QA session — a browser left open from an earlier
+  sitting, still holding the *previous* module. The channel had happily evaluated against it. The
+  check that settled it was reading `typeof toolPen.freeEnd` in the page: `undefined` is not a
+  product bug, it is the wrong page. Close every session before believing a browser result.
+  18 commands in the registry, 58 headless tests, 10 browser laws.
 
 ## 8. Open questions
 
