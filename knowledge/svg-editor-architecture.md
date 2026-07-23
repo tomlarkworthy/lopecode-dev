@@ -737,31 +737,16 @@ prerequisite for G35–G36 and the second half of gap 4.
 *Falsified by:* two pasted gradients sharing an id; or an edit to a `<stop>` failing to repaint the
 shape that references it.
 
-**S11 — one node across recomputations, via `this`.** Three separate bugs now (P7's restore, M17's
-undo-drops-selection, B2's flash) have the same cause: a commit re-runs the cell, the cell mints a
-*new* DOM node, and for a window there are two nodes — one of which can no longer resolve the
-`Variable` its state is filed under. Every fix so far has been defensive: teach the dead node not to
-write. Tom's observation 2026-07-23 names the primitive that removes the situation instead — an
-Observable cell body is invoked with `this` bound to the cell's **previous value**, which for
-`viewof drawing = svgLens(svg\`…\`)` *is the previous node*. Hand it back and `svgLens` can render into
-the node it already owns: `_value === node` keeps holding across commits, `target.resolve()` never
-returns null, `lensState` stops needing a key at all, and the whole class closes at the root.
-Two ways in, and they trade differently:
-- **Explicit, `svgLens.call(this, svg\`…\`)`** (or `{previous: this}`). Honest and local, and it reads
-  as what it is. Cost: it is opt-in at *every* call site, including the ones in the paper's own prose,
-  and forgetting it degrades silently to today's behaviour rather than erroring.
-- **Implicit, by marker search.** At construction the runtime has not yet bound the new value, so the
-  owning `Variable`'s `_value` is still the *old* node — findable by a `__svgLens` marker without any
-  call-site change. Cost: with several lenses on one page, "the previous node" is ambiguous, and
-  guessing wrong is worse than not guessing.
-Recommendation: explicit, with the marker search only as a fallback that must agree or stand down.
-**Downgraded 2026-07-23** after B2's real fix: the view no longer needs this, because the outgoing
-node hands it over positionally, and Tom's constraint — *"don't change the call site if we don't need
-to"* — stands. S11 remains the answer for anything the *heir* must know that cannot be handed across
-a DOM swap, and for collapsing three defensive guards into one invariant. It is no longer urgent.
-*Falsified by:* the node's identity changing across a commit; or a second lens on the page adopting
-the first one's state; or — the reason to do it at all — any further bug whose sentence begins "the
-detached node".
+**S11 — one node across recomputations, via `this`. Dropped 2026-07-23.** The idea was to remove the
+whole "for a window there are two nodes" class at the root: an Observable cell body is invoked with
+`this` bound to its previous value, so a cell could hand its old node back and `svgLens` would keep
+rendering into the node it already owns. It is a real mechanism and it would collapse three
+defensive guards into one invariant. It is dropped because the only thing that needed it — the view
+surviving a commit — is now handed over positionally by the outgoing node (B2), and the entry price
+is an opt-in at *every* call site, including the ones in this paper's own prose, that degrades
+silently when forgotten. Tom's call: *"I would drop S11 if it's just about the `this`."* Recorded
+here rather than deleted, because the next bug that begins "the detached node" is evidence to
+reopen it.
 
 **Deferred:** performance (gap 11, Tom's call 2026-07-23), multi-drawing (gap 9), `editor-5`
 concurrency (gap 10). None of them blocks the stages above.
@@ -908,6 +893,39 @@ and S4, and are the gaps those stages closed.)
 - [ ] **G13 · numeric readout during a drag.** dx/dy while moving, w×h while drawing, angle while
   rotating, drawn in the overlay root layer. Needs P6. The one place the editor currently gives no
   feedback about magnitude. S
+- [x] **G43 · a move writes the shape's own coordinates.** Landed 2026-07-23. Dragging a `<rect>`
+  used to append `transform="translate(10 4)"`, which says the rect is somewhere other than where it
+  says it is; it now writes `x="26" y="4"`. Tom: *"I don't like that we use translation nodes on
+  things like rects and circles when dragging. There is a more idiomatic option."*
+  **The line is not which tags we like, it is whether the position is an attribute of its own.**
+  `rect`, `circle`/`ellipse` and `line` keep their position in dedicated numeric attributes, and
+  rewriting one is a local edit that leaves every other byte alone. A `polygon`'s position is spread
+  through `points` and a `path`'s through `d`, so moving them by coordinates would reprint the whole
+  geometry — including the author's own spacing, which the demo drawing exists to show surviving a
+  drag — so those, and `<g>`, still translate. Verified in the notebook: the circle went
+  `cx="60" cy="52"` → `cx="86" cy="64"` with no `transform` added and its line break intact, and the
+  polygon still gained a `translate` with `points="20,190  110,80  200,190"` byte-identical.
+  Three details worth keeping. **Two frames, not one**: `Slin` takes a screen delta into the
+  *parent's* space where a `transform` is written, `Elin` into the element's own space where `x` and
+  `cx` live — so a rotated rect follows the pointer instead of its own tilted axes (dragged (10,0)
+  under `rotate(90)` it writes `y="10"`, and nothing else). **Snapping applies to the origin, once**,
+  or a line would be stretched onto the grid rather than moved onto it. **An unchanged attribute is
+  not written**, so a one-axis drag writes one attribute and a drag that ends where it began writes
+  nothing — T1, edge by edge.
+  It is one function, `moveDeltas`, and align and distribute went through it too: they had been
+  carrying a copy of the same four lines, and they now move a rect by its `x` like everything else.
+  **Also fixed on the way**: the snap-to-neighbour path rounded to 1e-6, which is *finer* than the
+  noise the screen→user round trip leaves behind, so it preserved it — a circle aligned to a
+  neighbour committed `cx="86.000002"`. 1e-4 is below anything an author would write and above the
+  noise, and it is fixed rather than zoom-derived, so the same drag still commits the same bytes at
+  every zoom (T11). S
+- [ ] **G44 · one gesture, one undo entry.** Newly visible because of G43: a move that writes `x` and
+  `y` is two `writer.commit` calls, so two puts, two remounts and two undo entries — and a rect
+  corner drag has been four since G2. The delta list already describes the whole gesture; what is
+  missing is a writer that takes *several attributes of one element* and lands them in one edit.
+  Nothing above needs to change: `commitDelta` would group by `idx` and call it. **Falsified by:**
+  a single drag needing two undos; or the grouped put differing by one byte from the sequence it
+  replaces. M
 - [ ] **G14 · alt-drag duplicates.** The standard gesture, and the discoverable face of G16.
   **Unblocked by S4.** Note alt already means "ignore snapping" during a move, so this needs a
   modifier decision rather than only an implementation. S
@@ -1010,6 +1028,23 @@ and S4, and are the gaps those stages closed.)
   In a browser, deleting the held anchor `0/0#a1` of the corpus polygon gives `20,100 100,100` and
   undo restores the document exactly. **Not** done: deleting a *middle* segment, which splits one
   subpath into two and needs a new `M` — only the trailing case is implemented. S
+- [ ] **G45 · scribble, and get a curve.** Tom: *"I should be able to scribble draw like a pen but it
+  goes into bezier mode."* A freehand tool: hold and draw, and on release the captured polyline is
+  **fitted** to a chain of cubic Béziers and committed as one `<path>` — after which every existing
+  vertex gesture (G19–G21, G23) applies to it, which is the whole point of ending in the same
+  representation rather than in a special "sketch" object.
+  The fit is the work: Schneider's algorithm (fit one cubic by least squares, measure the worst
+  deviation, split there and recurse) is the standard answer and is about 80 lines. Two knobs an
+  author will actually feel: a **tolerance** in *screen* px (so it must divide out through the CTM
+  like every other measurement, P5) and a corner threshold, above which a direction change becomes a
+  real corner rather than being smoothed through. Sample on `pointermove` in user space, and drop
+  points closer together than a fraction of the tolerance — a trackpad emits far more points than the
+  fit needs, and the input noise is what makes naive fits wobble.
+  It writes nothing until release: the stroke previews as a `view` delta (P6), so an abandoned
+  scribble is T1 by construction. **Falsified by:** the committed path deviating from the drawn
+  points by more than the tolerance anywhere; the same scribble committing different bytes at
+  different zooms (T11); or a fitted path whose anchors G21 then reports as neither smooth nor
+  corners. M
 - [ ] **G24 · subdivide an arc.** Explicitly refused today (`segs[i].kind === "A"` returns false),
   which is honest but a dead end for any document containing arcs. Needs either an exact arc split or
   arc→bezier conversion, and the latter changes the bytes, so it is a *user-visible* decision, not an
@@ -1063,6 +1098,19 @@ place for the laws to be false.
 - [ ] **G32 · caps and joins.** `stroke-linecap`, `stroke-linejoin`, `stroke-miterlimit`. These are the
   first *enum* fields, so they are what forces the field registry (S6) to have a kind that is neither
   a number nor a colour — three of them, so the third is free. S
+- [ ] **G46 · a field panel, so the enums have somewhere to live.** Tom, hitting exactly this:
+  *"I can't do dotted lines and line caps and things (Inputs.select?)"* — and the `Inputs.select` is
+  the right instinct. G31/G32/G37 are all *enumerated* values, and an enum has no natural gesture:
+  there is nothing to drag. What is missing is not the lens but the **surface**: a panel, driven by
+  S6's field registry, that shows the fields the current selection actually has and edits them with
+  ordinary Observable inputs — `Inputs.select` for the enums, a number input for widths, a colour
+  input for paint. It composes with S9 rather than competing: an affordance is for the one or two
+  fields worth a gesture on the canvas, the panel is for the long tail.
+  The panel must go through `commitDelta` like everything else, which makes its falsifier the same
+  as the rest of group I: **a widget's commit must be byte-identical to the equivalent
+  `node.setAttr`**. Because it is a registry-driven projection, adding a field is a cell, and every
+  item below gets a UI for free the moment its entry exists. Worth doing *before* G31/G32/G37 rather
+  than after: they are what an author reaches for, and without this there is nowhere to put them. M
 - [ ] **G33 · fill and stroke colour.** A two-swatch chip on the selection: click opens a picker, and
   the swap gesture exchanges fill and stroke. Colour is where residue hurts most — `#5B7A5E`,
   `rgb(91 122 94)` and `darkseagreen` are one colour and three byte strings — so the lens must write
@@ -1137,8 +1185,8 @@ visible in the source. Items here are reports first and diagnoses second, and th
   therefore allowed — but it must be declared in `ctx.state.drag`, not hidden in a closure.
   **Falsified by:** a slow drag and a fast drag to the same endpoint committing different values (T2);
   or the shape moving at all before the pointer has travelled `thresh`. S
-- [x] **B2 · the drawing flashes unzoomed on release. Fixed 2026-07-23, second attempt — the first
-  one fixed a real bug that was not this one.** Three reports narrowed it: *"the glitch is on gesture
+- [x] **B2 · the drawing flashes unzoomed on release. Fixed 2026-07-23, second attempt, and
+  confirmed gone by Tom in ordinary use — the first attempt fixed a real bug that was not this one.** Three reports narrowed it: *"the glitch is on gesture
   start"*, then *"after zooming, the gesture after that momentarily displays the unzoomed size"*, then
   a screen recording and *"actually it was when the gesture released!"*
   **What the recording says, measured rather than watched.** 23 frames at 120 fps; one frame differs
