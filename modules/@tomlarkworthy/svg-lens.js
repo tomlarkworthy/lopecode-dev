@@ -394,24 +394,43 @@ const _sl02d = function _loadSvg(htl,outsideDomain,$0)
 
 const _sl04 = function _howToDrive(md,ref) {return (md`
 
-| gesture | what it does | lens | 
-|---|---|---| 
-| drag a shape | moves it | \`transform\` | 
-| tap a polygon or path, drag a handle | moves one vertex or anchor | \`points\`, path \`d\` | 
-| tap anything else | rotate and scale from the box | \`transform\` | 
+| gesture | what it does | lens |
+|---|---|---|
+| drag a shape | moves it | \`transform\` |
+| tap a polygon or path, drag a handle | moves one vertex or anchor | \`points\`, path \`d\` |
+| tap anything else, drag a corner or the rotate handle | scale or rotate from the box | \`transform\` |
+| drag the pivot dot | moves the point the box scales and rotates around | \`transform\` |
 | double-click an edge / a vertex / empty canvas | add a vertex / remove one / drop in a shape | \`children\` |
 | tap again in the same place | steps down through stacked shapes | — |
 | shift-tap, or rubber-band | adds to the selection | — |
 
-| key | | 
-|---|---| 
-| **R** **E** **L** | drag out a rect, an ellipse, a line | 
-| **P** | place path anchors; click the first again to close, double-click to finish open | 
-| **V** / **Esc** | back to selecting (a finished tool returns by itself) | 
+A selection also carries **chips** — the same commands, one tap away, drawn only when they apply:
+
+| chip | | chip | |
+|---|---|---|---|
+| **⧉** | duplicate | **∿** | smooth ↔ corner the anchor |
+| **⇄** | swap fill and stroke | **◑** | give it a gradient (minted into \`defs\`) |
+| **≡** _(drag)_ | stroke width | **➤** | put an arrowhead on it |
+| **⊚** / **◠** | close / open the path | | |
+
+The panel under the drawing edits \`fill\`, \`stroke\`, width, opacity and the dash as typed inputs;
+each change commits through the same write path, so the source keeps the notation you wrote.
+
+| key | |
+|---|---|
+| **R** **E** **L** | drag out a rect, an ellipse, a line |
+| **P** | place path anchors; click the first again to close, double-click to finish open |
+| **S** | scribble a freehand path; it is fitted to Béziers on release |
+| **V** / **Esc** | back to selecting (a finished tool returns by itself) |
+| **⌘G** / **⇧⌘G** | group / ungroup the selection |
+| **⌘D** | duplicate |
+| **⌘C** **⌘X** **⌘V** / **⇧⌘V** | copy, cut, paste / paste in place |
+| **⌘A** | select all |
+| **1** / **2** | reset the view / fit it to the selection |
 | **\\[** **\\]** / **{** **}** | lower, raise / send to back, front |
 | **Delete** | removes the selection |
 | **⌘Z** / **⇧⌘Z** | undo, redo — byte for byte, and declines if something else wrote to the cell first |
-| **arrows**, **shift+arrows** | nudge by one unit, by ten | 
+| **arrows**, **shift+arrows** | nudge by one unit, by ten |
 | **alt** while dragging | ignore snapping |
 
 ${ ref('architecture') }.`);};
@@ -445,6 +464,8 @@ const _sl151 = function _sections(){return(
   { key: "rect", title: "A first lens: one attribute of one shape" },
   { key: "children", title: "The structural lens" },
   { key: "sinks", title: "Back-propagation: three sinks" },
+  { key: "tools", title: "Tools as edit lenses" },
+  { key: "toollaws", title: "The laws a tool owes", parent: "tools" },
   { key: "related", title: "Related work" },
   { key: "future", title: "Future work" }
 ]
@@ -522,6 +543,22 @@ const _sl155 = function _bibliography(){return(
     title: "Edit Lenses",
     venue: "POPL, 495–508",
     url: "https://repository.upenn.edu/cis_papers/677/"
+  },
+  diskin2011delta: {
+    label: "Diskin et al. 2011",
+    authors: "Diskin, Z., Xiong, Y. & Czarnecki, K.",
+    year: 2011,
+    title: "From State- to Delta-Based Bidirectional Model Transformations: the Asymmetric Case",
+    venue: "Journal of Object Technology 10, 6:1–25",
+    url: "https://www.jot.fm/issues/issue_2011_10/article6.pdf"
+  },
+  johnson2016unifying: {
+    label: "Johnson & Rosebrugh 2016",
+    authors: "Johnson, M. & Rosebrugh, R.",
+    year: 2016,
+    title: "Unifying Set-Based, Delta-Based and Edit-Based Lenses",
+    venue: "Bx@ETAPS, CEUR Vol-1571, 1–13",
+    url: "https://ceur-ws.org/Vol-1571/paper_13.pdf"
   },
   chugh2016: {
     label: "Chugh et al. 2016",
@@ -973,6 +1010,94 @@ everything else depending on that slider updates too. With ${ref("architecture")
 rewritten, not whether the graph is told.`
 )};
 
+const _sl279 = function _toolsH(sec){return(sec("tools"))};
+
+const _sl280 = function _toolsP(md,tex,cite,ref){return(
+md`The lenses so far answer one question: given a new view, what source produces it. A tool asks
+something narrower and carries more with it — given a *pointer delta* and the scratch a gesture has
+been accumulating (the origin it started from, the elements it grabbed, the snap boxes), what edit
+does the source get. Before this scratch was made a value it was scattered across \`ctx.state.drag\`
+and consumed twice: mid-drag \`toolMove\` painted \`el.setAttribute("transform", translateLens.put(g.T,
+g.text))\`, and on release it called \`writer.commit(g.idx, "transform", g.T, "", translateLens,
+g.text)\` — the same \`(value, lens, source)\` triple applied by hand to two targets, in two places, in
+every tool. A gesture's edit was never one thing, so there was nothing to state a law *about*.
+
+The generalisation that fixes this is already in the literature the paper cites. Where a *state-based*
+lens maps states to states, an **edit lens** ${cite("hofmann2012editlenses")} maps *edits* to edits
+through a **complement** — a memory the translation is allowed to keep — and ${cite("johnson2016unifying")}
+axiomatises it alongside the asymmetric **delta lens** of ${cite("diskin2011delta")}. The two frameworks
+do two jobs here. The delta lens is the shape of the *writer*: the source is authoritative, the drawing
+is derived. The edit lens is the shape of a *tool*, because what a tool has that a state-based lens
+lacks is exactly a complement. The dictionary is one line — **the gesture scratch is the complement:**
+
+| edit lens | svg-lens |
+|---|---|
+| ${tex`X,\ M_X`} | the cell source; the edits a command can make to it |
+| ${tex`Y,\ M_Y`} | the rendered drawing; pointer deltas |
+| ${tex`C`} | \`ctx.state.drag\` — the origin, the grabbed targets, the hit list, the snap boxes |
+| ${tex`q : M_Y \times C \rightharpoonup M_X \times C`} | the tool |
+| ${tex`K`} | "the DOM on screen is what this source renders to" |
+
+Making the delta a value is the whole of the framework. A tool returns a \`gestureDelta\` — one of
+\`attr\`, \`command\`, \`select\`, \`view\`, \`clip\` — and three functions consume it: \`previewDelta\`
+paints the live DOM, \`commitDelta\` writes the source once, \`revertDelta\` throws the preview away.
+One write path, so every law in ${ref("toollaws")} is stated about the delta and checked in one place
+rather than re-proved per tool. It is also what lets the registry stay *open*: \`svgLens(node)\` uses
+the default tools, \`svgLens(node, { tools: [toolVertex] })\` pins a vertex-only editor, and
+\`svgLens(node, { tools: (d) => [myTool, ...d] })\` extends without restating the defaults — a test
+runs one tool in isolation and a figure shows a reduced editor by the same mechanism.`
+)};
+
+const _sl281 = function _toollawsH(sec){return(sec("toollaws"))};
+
+const _sl282 = function _toollawsP(md,tex,cite,ref){return(
+md`Five laws come straight from the axioms ${cite("johnson2016unifying")}. The null gesture is the
+sharpest, and the one about starting state is the one worth the whole exercise.
+
+| | law | what it says here | what it caught |
+|---|---|---|---|
+| **T1** | ${tex`p(1,c)=(1,c)`} | a null gesture writes nothing *and* hands the scratch back untouched | a missed hit turning into a shape *creation*; the pen's first-anchor commit discarding its own scratch |
+| **T2** | ${tex`p(mm',c)=(nn',c'')`} | translating a composite gesture equals composing the translations | float drift — a five-leg wander and a straight drag to the same point commit the same bytes |
+| **T3** | ${tex`\mathrm{PutGet}`} | the gesture you made is the gesture the committed source shows | ghosting that "looked right until I reloaded" |
+| **T4** | ${tex`\mathrm{PutInc}`} | a gesture commits against the state it *began* from | the gesture-outlives-its-node bug: a commit mints a new node, the captured target stops resolving, the next write lands on a stale document |
+| **T5** | consistency | if the DOM agreed with the source before, it agrees after | makes T3's screen-level check a consequence, not a separate assertion |
+
+T4 is the one that would not have been written down without the theory, and it names in advance a bug
+that took a day to find. **Partiality is the formal content of "a tool must decline cleanly"**: the
+action is partial, a gesture outside a lens's domain is undefined, so its translation must be too.
+\`onPointerDown\` returning \`false\` is that law done right; a tool falling through to drop a shape on
+an empty click is that law done wrong, which is why an empty-canvas tool gates on \`ctx.pick\` first.
+A command declines the same way — its \`plan\` returns \`null\` — and an affordance chip greys out
+exactly when its command declines.
+
+Six more laws are ours, not the papers', and are stated separately so they are not cited as if they
+were:
+
+- **T6 Confinement.** A tool that returns \`false\` has changed nothing, and installing it cannot
+  change what earlier tools do. Registry order is priority, so tool sets form a non-commutative monoid
+  under concatenation. This is the law that makes a tool a *plugin* rather than a *patch* — it is what
+  a third-party tool has to prove.
+- **T7 Rebase agreement.** \`rebase(path, cmd)\` equals re-locating the same element after the command
+  runs: operational transformation's TP1, one-sided.
+- **T10 Hit agreement.** What hover outlines, what a press claims and what a double-click enters are
+  three readings of *one* answer, \`ctx.pick\`, so they cannot drift apart. It also pins the group
+  policy: a click takes the outermost unopened container, a double-click descends a level, Escape
+  ascends.
+- **T11 The view is not an edit.** Zoom, pan and fit write nothing and push nothing onto undo; and the
+  same drag *in the drawing's own units* commits the same bytes at any zoom, because every measurement
+  goes through \`ctx\` and \`getScreenCTM\` already carries the viewBox. With alignment snapping off —
+  snapping is magnetism measured in *screen* pixels, the one deliberate screen-space affordance.
+
+Three things that looked like special cases are textbook constructions with textbook laws: the **shape
+registry is a family of prisms** (tag dispatch is a sum type; ${tex`\mathrm{preview} \circ \mathrm{review} = \mathrm{Just}`}
+is what each \`rect\`/\`circle\`/\`path\` entry owes), **hit-testing is an affine** (a focus that may
+fail, whose law is that a failed get makes put a no-op — T1 again), and **multi-selection is a
+traversal** (so "set the fill on the selection" is traversal ∘ lens, and align, distribute and
+group-edit come with it). All of them run live: \`test_gesture_*\` and \`gestureLaws\` check the laws
+above over a random corpus of gestures, on the same \`forAll\` harness the lens laws in ${ref("laws")}
+use.`
+)};
+
 const _sl157r = function _referencesList(references){return(
 references
 )};
@@ -1141,6 +1266,94 @@ tests({ filter: (t) => t.computed })
 // ================================================================================================
 const _sl20 = function _coreHeader(md){return(
 md`## Lens core`
+)};
+
+// h3 sub-headers that break the implementation into its classes of function. Each is one heading and
+// one sentence naming the class; they carry no logic. Placed in the reading order by their $def.
+const _sl283 = function _hMatrices(md){return(
+md`### Matrices and the CTM
+
+Affine matrices as a flat \`[a,b,c,d,e,f]\`, their product, and the screen-to-user map (\`getScreenCTM\`) that every measurement is taken through.`
+)};
+const _sl284 = function _hTransforms(md){return(
+md`### Transforms and the gizmo
+
+The \`transform\` attribute as an editable list of operations — translate, rotate, scale — plus the gizmo that rotates or scales about a point held fixed.`
+)};
+const _sl285 = function _hInverse(md){return(
+md`### Inverse, and reading a node
+
+The determinant, the matrix inverse and its involution law (a screen delta sent back through an element's own frame), and the small accessors that read an attribute or child out of a parsed node.`
+)};
+const _sl286 = function _hPathData(md){return(
+md`### Path data
+
+The \`d\` attribute parsed into absolute commands and printed back — the lens the pen and vertex tools write a path through.`
+)};
+const _sl287 = function _hTokenizer(md){return(
+md`### The document: tokenizer and tree
+
+A forgiving scanner over the SVG text, the tree it builds, and \`nodeAt\` / \`pathOfIndex\` for addressing an element by a path that survives structural edits.`
+)};
+const _sl288 = function _hAttrLenses(md){return(
+md`### Attributes, style, length, references
+
+Reading and splicing a single attribute, the \`style=""\` and unit-bearing-number lenses, \`setProperty\` (which writes where the property already lives), and \`refsOf\` for the \`url(#id)\` a shape points at.`
+)};
+const _sl289 = function _hFields(md){return(
+md`### The field registry
+
+Paint and stroke properties as *data*, so the panel and the on-canvas chips read one list and adding a property is a line here, not a branch in a form.`
+)};
+const _sl290 = function _hStructural(md){return(
+md`### The children lens, and structural edits
+
+The list of an element's children as a lawful view, and the pure document-to-document commands built on it: insert, delete, reorder, group, ungroup, the copy/paste codec, and minting into \`defs\`.`
+)};
+const _sl291 = function _hPathGeometry(md){return(
+md`### Path geometry
+
+Segments, subdivision and anchor removal for polygons and paths, and the address rebasing that keeps a vertex selected across an edit that changes the command list.`
+)};
+const _sl292 = function _hHandles(md){return(
+md`### Handles
+
+The draggable points a selected polygon or path exposes — where the vertex tool grabs.`
+)};
+const _sl293 = function _hShapeRegistry(md){return(
+md`### The shape registry
+
+Per-tag geometry as data — what each shape reads, writes and offers as handles — so a new shape is an entry here rather than a branch in every tool.`
+)};
+const _sl294 = function _hPieces(md){return(
+md`### Target, writer, overlay, focus
+
+The four pieces \`svgLens\` wires: which variable this node is, the only code that assigns \`_definition\`, the handle layer, and which element is selected.`
+)};
+const _sl295 = function _hDelta(md){return(
+md`### The delta framework
+
+\`gestureDelta\` values and the three functions that consume them — \`previewDelta\` paints, \`commitDelta\` writes once, \`revertDelta\` discards — the one write path every tool goes through.`
+)};
+const _sl296 = function _hTools(md){return(
+md`### Tools
+
+Each tool claims a gesture through \`onPointerDown\`, previews in the live DOM, and hands a delta to the writer: move, vertex, transform, marquee, scope, the shape and pen tools, and scribble.`
+)};
+const _sl297 = function _hHarness(md){return(
+md`### The gesture-law harness
+
+A headless fixture that plays a recorded gesture and checks T1–T11 over a random corpus, plus the per-frame budget that catches a dropped selection or a scale flash.`
+)};
+const _sl298 = function _hCommands(md){return(
+md`### Commands and affordances
+
+Keyboard/menu commands whose \`plan\` returns a delta or declines, and the chips that surface those same commands on a selection — both writing through \`commitDelta\`.`
+)};
+const _sl299 = function _hAssembly(md){return(
+md`### Assembly
+
+\`svgLens\` itself: the state that outlives a remount, and the wiring that turns all of the above into an editor attached to one node.`
 )};
 
 const _sl21 = function _lens(){return(
@@ -9087,6 +9300,10 @@ export default function define(runtime, observer) {
   $def("sl06", "viewof factory", ["svgLens","svg","shift","spin"], _sl06);
   $def("sl06v", "factory", ["Generators","viewof factory"], _sl06v);
   $def("sl222", "sinkRecord", ["putLog","edits","Inputs","htl"], _sl222);
+  $def("sl279", "toolsH", ["sec"], _sl279);
+  $def("sl280", "toolsP", ["md","tex","cite","ref"], _sl280);
+  $def("sl281", "toollawsH", ["sec"], _sl281);
+  $def("sl282", "toollawsP", ["md","tex","cite","ref"], _sl282);
   $def("sl229", "relatedH", ["sec"], _sl229);
   $def("sl230", "relatedP", ["md","cite","ref"], _sl230);
   $def("sl231", "futureH", ["sec"], _sl231);
@@ -9173,12 +9390,14 @@ export default function define(runtime, observer) {
   $def("sl37", "printPoints", [], _sl37);
   $def("sl38", "pointsEq", [], _sl38);
   $def("sl39", "pointsLens", ["lens","parsePoints","pointsEq","printPoints"], _sl39);
+  $def("sl283", "hMatrices", ["md"], _sl283);
   $def("sl40", "IDENTITY", [], _sl40);
   $def("sl41", "matEq", [], _sl41);
   $def("sl42", "multiply", [], _sl42);
   $def("sl43", "applyPoint", [], _sl43);
   $def("sl44", "ctmMat", [], _sl44);
   $def("sl45", "opToMat", ["multiply"], _sl45);
+  $def("sl284", "hTransforms", ["md"], _sl284);
   $def("sl46", "parseTransform", ["IDENTITY","multiply","opToMat","parseNumList"], _sl46);
   $def("sl47", "printTransform", [], _sl47);
   $def("sl48", "transformLens", ["lens","parseTransform","matEq","printTransform"], _sl48);
@@ -9193,6 +9412,7 @@ export default function define(runtime, observer) {
   $def("sl48i", "scaleAbout", ["setGizmoOp","holdFixed"], _sl48i);
   $def("sl48m", "rotateHandle", [], _sl48m);
   $def("sl48g", "transformHandles", ["rotateHandle"], _sl48g);
+  $def("sl285", "hInverse", ["md"], _sl285);
   $def("sl49", "det", [], _sl49);
   $def("sl50", "invert", ["det"], _sl50);
   $def("sl51", "invertIso", ["invert"], _sl51);
@@ -9201,6 +9421,7 @@ export default function define(runtime, observer) {
   $def("sl54", "attr", ["lens"], _sl54);
   $def("sl55", "requiredAttr", ["lens"], _sl55);
   $def("sl56", "child", ["lens"], _sl56);
+  $def("sl286", "hPathData", ["md"], _sl286);
   $def("sl57", "PATH_ARG_COUNT", [], _sl57);
   $def("sl58", "pathEq", [], _sl58);
   $def("sl59", "parsePath", ["parseNumList","PATH_ARG_COUNT"], _sl59);
@@ -9210,12 +9431,14 @@ export default function define(runtime, observer) {
   $def("sl71", "literalSpan", ["acorn"], _sl71);
   $def("sl72", "literalSafe", ["holeSpans"], _sl72);
   $def("sl73", "literalLens", ["lens","literalSpan","literalSafe"], _sl73);
+  $def("sl287", "hTokenizer", ["md"], _sl287);
   $def("sl74a", "scan", [], _sl74a);
   $def("sl74e", "outsideDomain", ["scan"], _sl74e);
   $def("sl74", "tokenize", ["scan","outsideDomain"], _sl74);
   $def("sl74b", "parseDoc", ["scan","outsideDomain"], _sl74b);
   $def("sl74c", "nodeAt", ["parseDoc"], _sl74c);
   $def("sl74d", "pathOfIndex", ["parseDoc"], _sl74d);
+  $def("sl288", "hAttrLenses", ["md"], _sl288);
   $def("sl75", "attrVal", ["tokenize"], _sl75);
   $def("sl75a", "effectiveAttr", ["attrVal", "holeSpans"], _sl75a);
   $def("sl76", "spliceAttr", ["tokenize"], _sl76);
@@ -9229,8 +9452,10 @@ export default function define(runtime, observer) {
   $def("sl31f", "printStyle", [], _sl31f);
   $def("sl31g", "styleLens", ["lens","parseStyle","printStyle"], _sl31g);
   $def("sl31h", "setProperty", ["attrVal","styleLens"], _sl31h);
+  $def("sl289", "hFields", ["md"], _sl289);
   $def("sl270", "svgFields", ["attrVal","styleLens"], _sl270);
   $def("sl78", "cellAttrLens", ["compose","literalLens","attrTextLens"], _sl78);
+  $def("sl290", "hStructural", ["md"], _sl290);
   $def("sl79", "childrenLens", ["lens","nodeAt","parseDoc"], _sl79);
   $def("sl79a", "insertElement", ["childrenLens"], _sl79a);
   $def("sl79b", "deleteElement", ["childrenLens"], _sl79b);
@@ -9247,6 +9472,7 @@ export default function define(runtime, observer) {
   $def("sl79xh", "pasteMarkup", ["childrenLens","idsIn","freshenIds"], _sl79xh);
   $def("sl79xi", "offsetMarkup", ["compose","attrTextLens","translateLens"], _sl79xi);
   $def("sl79xj", "rebaseMoves", ["rebasePath"], _sl79xj);
+  $def("sl291", "hPathGeometry", ["md"], _sl291);
   $def("sl79d", "insertPoint", ["nodeAt","attrTextLens","parsePoints","printPoints"], _sl79d);
   $def("sl79e", "deletePoint", ["nodeAt","attrTextLens","parsePoints","printPoints"], _sl79e);
   $def("sl79f", "nearestSegment", [], _sl79f);
@@ -9263,8 +9489,10 @@ export default function define(runtime, observer) {
   $def("sl79o", "insertPathPoint", ["nodeAt","attrTextLens","parsePath","printPath","splitPathSegment"], _sl79o);
   $def("sl79p", "deletePathPoint", ["nodeAt","attrTextLens","parsePath","printPath","deletePathAnchor"], _sl79p);
   $def("sl110", "manipulationHeader", ["md","ref"], _sl110);
+  $def("sl292", "hHandles", ["md"], _sl292);
   $def("sl111", "pointsHandles", ["parsePoints","attrVal"], _sl111);
   $def("sl112", "pathHandles", ["parsePath","attrVal","PATH_ARG_COUNT"], _sl112);
+  $def("sl293", "hShapeRegistry", ["md"], _sl293);
   $def("sl113a", "numAttr", ["attrVal"], _sl113a);
   $def("sl113b", "numText", [], _sl113b);
   $def("sl113c", "geomOf", ["numAttr"], _sl113c);
@@ -9278,6 +9506,7 @@ export default function define(runtime, observer) {
   $def("sl113r", "svgShapes", ["shapePoints","shapePath","shapeRect","shapeCircle","shapeEllipse","shapeLine"], _sl113r);
   $def("sl113s2", "shapeLookup", [], _sl113s2);
   $def("sl113", "handleEdit", ["svgShapes","shapeLookup"], _sl113);
+  $def("sl294", "hPieces", ["md"], _sl294);
   $def("sl116", "svgTarget", ["runtime","literalSpan"], _sl116);
   $def("sl71b", "holeSpans", [], _sl71b);
   $def("sl71c", "slotsOf", ["holeSpans"], _sl71c);
@@ -9289,11 +9518,13 @@ export default function define(runtime, observer) {
   $def("sl119c", "topmostPaths", [], _sl119c);
   $def("sl119b", "zTarget", [], _sl119b);
   $def("sl119", "svgFocus", ["shapeLookup","svgShapes","transformHandles","rotateHandle","nodeAt","boxInRoot","topmostPaths","attrVal","holeSpans","vertexAddress"], _sl119);
+  $def("sl295", "hDelta", ["md"], _sl295);
   $def("sl124c", "grabPointer", [], _sl124c);
   $def("sl128", "gestureDelta", [], _sl128);
   $def("sl128a", "previewDelta", ["gestureDelta"], _sl128a);
   $def("sl128b", "commitDelta", [], _sl128b);
   $def("sl128c", "revertDelta", [], _sl128c);
+  $def("sl296", "hTools", ["md"], _sl296);
   $def("sl267", "moveVertices", ["vertexAddress","parsePath","printPath","parsePoints","printPoints","attrVal","PATH_ARG_COUNT"], _sl267);
   $def("sl120", "toolVertex", ["handleEdit","shapeLookup","grabPointer","gestureDelta","previewDelta","commitDelta","revertDelta","vertexAddress","pathSmooth","moveVertices","dragBox"], _sl120);
   $def("sl119d", "scopedPath", [], _sl119d);
@@ -9315,6 +9546,7 @@ export default function define(runtime, observer) {
   $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer","gestureDelta","previewDelta","commitDelta","pathHandles","pathOfIndex"], _sl126);
   $def("sl268", "fitCurve", [], _sl268);
   $def("sl269", "toolScribble", ["fitCurve","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl269);
+  $def("sl297", "hHarness", ["md"], _sl297);
   $def("sl130", "gestureFixture", ["runtime","realize","settle","literalSpan","nodeAt","svgLens","svg"], _sl130);
   $def("sl131", "playGesture", [], _sl131);
   $def("sl132", "gestureCorpus", [], _sl132);
@@ -9334,6 +9566,7 @@ export default function define(runtime, observer) {
   $def("sl145", "test_gesture_hit_agreement", ["withFixture","gestureCorpus","playGesture","boxInRoot"], _sl145);
   $def("sl139", "gestureLaws", ["test_gesture_identity","test_gesture_path_independence","test_gesture_commits_against_its_origin","test_gesture_render_consistency","test_gesture_confinement","test_gesture_rebase_agreement","test_gesture_partiality","test_gesture_selection_is_not_an_edit","test_gesture_hit_agreement","test_gesture_view_is_not_an_edit"], _sl139);
   $def("sl274", "frameBudget", ["withFixture","gestureCorpus","playGesture"], _sl274);
+  $def("sl298", "hCommands", ["md"], _sl298);
   $def("sl127h", "toolHover", ["gestureDelta","previewDelta"], _sl127h);
   $def("sl123", "viewof svgTools", ["Inputs","toolAffordance","toolDraw","toolPen","toolScribble","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl123);
   $def("sl273", "toolAffordance", ["grabPointer","previewDelta","gestureDelta","revertDelta"], _sl273);
@@ -9359,6 +9592,7 @@ export default function define(runtime, observer) {
   $def("sl272", "svgAffordances", ["gestureDelta","previewDelta","setProperty","nodeAt"], _sl272);
   $def("sl249", "commandLookup", [], _sl249);
   $def("sl123v", "svgTools", ["Generators","viewof svgTools"], _sl123v);
+  $def("sl299", "hAssembly", ["md"], _sl299);
   $def("sl113s", "lensState", [], _sl113s);
   $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","svgShapes","svgCommands","svgFields","svgAffordances","commandLookup","copyMarkup","moveTargetOf","commitDelta","rebaseVertex","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf","boxInRoot","hitTest","scopedPath","pathOfIndex","parseViewBox","printViewBox"], _sl114);
 
