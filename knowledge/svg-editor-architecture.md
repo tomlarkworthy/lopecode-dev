@@ -1031,9 +1031,21 @@ and S4, and are the gaps those stages closed.)
   moves no other anchor, and toggles back byte-identical; and coupling keeps the partner's length and
   the anchor smooth. In a browser: `M 20 100 L 100 40 L 180 100` → toggle → two cubics with the
   vertex still held → toggle → the original three commands back. M
-- [ ] **G22 · select and move several vertices.** Marquee while in points/path mode. Depends on P7,
-  and it is the case that makes "one delta per claimed element" become "per claimed *vertex*" — a
-  good stress test of the delta record. M
+- [x] **G22 · select and move several vertices.** Landed 2026-07-23. Two halves. **Marquee**: a press
+  on *empty* canvas while a shape's handles are on show bands its anchors — a `select` gesture that
+  writes nothing (T9). It must claim only empty canvas — gated on `ctx.pick(e)` being empty, so a
+  press on the shape body (to move it) or on another element (to reselect) still falls through to the
+  move/marquee tools; the first cut skipped that gate and `toolVertex` swallowed every ordinary
+  select/move press, which the browser laws caught as **T2 and T10 regressing** (a moved element and a
+  hit both went missing). **Move**: grabbing a vertex that is already in a multi-selection drags the
+  whole set; `moveVertices` translates each held anchor *and the control handles incident to it* by one
+  local delta and returns it as **one attribute edit per element** — the "one delta per claimed
+  element" of a move, refined to the claimed vertices inside it. Relative commands are re-derived from
+  the new running pen so a rel chain never double-counts (verified: `l 40 0 l 40 0` moving the middle
+  anchor writes `l 40 20 l 40 -20`, third anchor fixed), `H`/`V` keep to their one axis, and a
+  zero-delta move is byte-exact (T1). A bare click on empty canvas deselects, as it did before. **9/10
+  browser laws green** (only T11 fails, and it fails identically on the pre-G22 baseline — a harness
+  pointer-delivery flake, not this code). M
 - [x] **G23 · open/close a subpath, and delete a segment.** Landed 2026-07-23, as two commands on
   S4's registry rather than two gestures — the payoff of P7 is that "the vertex you are holding" is
   now something a *command* can be planned against.
@@ -1053,7 +1065,21 @@ and S4, and are the gaps those stages closed.)
   In a browser, deleting the held anchor `0/0#a1` of the corpus polygon gives `20,100 100,100` and
   undo restores the document exactly. **Not** done: deleting a *middle* segment, which splits one
   subpath into two and needs a new `M` — only the trailing case is implemented. S
-- [ ] **G45 · scribble, and get a curve.** Tom: *"I should be able to scribble draw like a pen but it
+- [x] **G45 · scribble, and get a curve.** Landed 2026-07-23 as `toolScribble` + `fitCurve`. Hold and
+  draw; on release the captured polyline is fitted (Schneider: least-squares one cubic, worst-deviation
+  split, a few Newton reparameterisations) to a chain of cubics and committed as one `<path>`, after
+  which every vertex gesture applies — the whole point of landing in the same representation. The
+  stroke previews as an overlay polyline and writes nothing until release, so an abandoned scribble is
+  T1 by construction. The tolerance is a screen distance divided out through the CTM (`readoutFont` is
+  12px/zoom), so the fit is a pure function of the drawing and not the zoom (T11); points closer than
+  half the tolerance are dropped, since a trackpad oversamples and that noise is what makes naive fits
+  wobble. The polyline is split at corners first (a turn sharper than the threshold), so a deliberate
+  kink stays a corner. Verified headless: a quarter-circle fits within tolerance as one cubic (0.5u
+  deviation at r=50), an L-shape splits into two cubics at its corner, and the fit is deterministic.
+  Toolbar gains a **Scribble** button (key S); the tool passed the two P5/write-path tool laws. M
+  <details><summary>Original plan (as written)</summary>
+
+  Tom: *"I should be able to scribble draw like a pen but it
   goes into bezier mode."* A freehand tool: hold and draw, and on release the captured polyline is
   **fitted** to a chain of cubic Béziers and committed as one `<path>` — after which every existing
   vertex gesture (G19–G21, G23) applies to it, which is the whole point of ending in the same
@@ -1070,6 +1096,7 @@ and S4, and are the gaps those stages closed.)
   points by more than the tolerance anywhere; the same scribble committing different bytes at
   different zooms (T11); or a fitted path whose anchors G21 then reports as neither smooth nor
   corners. M
+  </details>
 - [x] **G24 · subdivide an arc — decided 2026-07-23: no.** Tom: *"I don't think an arc should be
   subdivided without an explicit conversion."* So an arc stays non-subdividable, and the code that
   refuses it (`segs[i].kind === "A"` → decline, in `splitPathSegment`, `deletePathAnchor`,

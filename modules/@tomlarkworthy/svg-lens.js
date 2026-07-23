@@ -46,7 +46,7 @@ const _sl02b = function _toolbar(htl,invalidation,$0)
 {
   const drawing = $0;                                    // viewof drawing — the editor node
   const TOOLS = [["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"],
-                 ["line", "Line", "L"], ["pen", "Pen", "P"]];
+                 ["line", "Line", "L"], ["pen", "Pen", "P"], ["scribble", "Scribble", "S"]];
   const el = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:.5rem 0"></div>`;
   const buttons = TOOLS.map(([id, label, key]) => {
     const b = htl.html`<button title="${label} (${key})" style="padding:4px 10px;border-radius:6px;border:1px solid #b9c4b4;cursor:pointer">${label}</button>`;
@@ -5332,34 +5332,128 @@ const _sl124 = function _toolTransform(opsLens,rotateAbout,scaleAbout,grabPointe
 )};
 
 // Drag a vertex or control point: the `points` and path `d` lenses.
-const _sl120 = function _toolVertex(handleEdit,shapeLookup,grabPointer,gestureDelta,previewDelta,commitDelta,revertDelta,vertexAddress,pathSmooth){return(
+// G22. Translate a *set* of held vertices by one local delta, as one attribute edit per element — the
+// "one delta per claimed element" of a move (G43), refined to the claimed vertices inside it. Anchors
+// carry the control handles incident to them (a control links to the anchor it curves toward), so a
+// curve translates rigidly rather than shearing; a control selected on its own moves alone. Relative
+// commands are handled by re-deriving each argument from the *new* running pen position, so a rel
+// chain where an earlier anchor also moved does not double-count. `H`/`V` anchors move only along
+// their one axis, exactly as `handleEdit` moves them — the cross-axis component is simply dropped.
+const _sl267 = function _moveVertices(vertexAddress,parsePath,printPath,parsePoints,printPoints,attrVal,PATH_ARG_COUNT){return(
+(entry, src, idx, addrs, dlx, dly) => {
+  const hs = entry.handles(src, idx);
+  const sel = addrs.map((a) => vertexAddress.resolve(hs, a)).filter(Boolean);
+  if (!sel.length) return [];
+  if (entry.mode === "points") {
+    const pts = parsePoints(attrVal(src, idx, "points"));
+    for (const h of sel) if (h.i != null && pts[h.i]) pts[h.i] = [pts[h.i][0] + dlx, pts[h.i][1] + dly];
+    return [{ name: "points", value: printPoints(pts) }];
+  }
+  if (entry.mode !== "path") return [];
+  const anchors = sel.filter((h) => h.kind === "anchor");
+  const near = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by) < 1e-6;
+  const moved = new Set(sel.map((h) => h.key));
+  for (const h of hs)
+    if (h.kind === "ctrl" && h.link && anchors.some((a) => near(h.link[0], h.link[1], a.x, a.y)))
+      moved.add(h.key);
+  const cmds = parsePath(attrVal(src, idx, "d"));
+  let ocx = 0, ocy = 0, ncx = 0, ncy = 0, osx = 0, osy = 0, nsx = 0, nsy = 0;
+  cmds.forEach((cmd, ci) => {
+    const U = cmd.c.toUpperCase(), u = PATH_ARG_COUNT[U], rel = cmd.c !== U, A = cmd.a;
+    if (u === 0) { ocx = osx; ocy = osy; ncx = nsx; ncy = nsy; return; }   // Z
+    for (let o = 0; o < A.length; o += u) {
+      const obx = ocx, oby = ocy, nbx = ncx, nby = ncy;
+      const put = (ix, iy) => {
+        const key = ci + ":" + o + ":" + ix + ":" + iy;
+        const ox = rel ? obx + A[o + ix] : A[o + ix], oy = rel ? oby + A[o + iy] : A[o + iy];
+        const nx = moved.has(key) ? ox + dlx : ox, ny = moved.has(key) ? oy + dly : oy;
+        A[o + ix] = rel ? nx - nbx : nx;
+        A[o + iy] = rel ? ny - nby : ny;
+        return [ox, oy, nx, ny];
+      };
+      const setPen = (r) => { ocx = r[0]; ocy = r[1]; ncx = r[2]; ncy = r[3]; };
+      switch (U) {
+        case "M": { const r = put(0, 1); setPen(r); if (o === 0) { osx = r[0]; osy = r[1]; nsx = r[2]; nsy = r[3]; } break; }
+        case "L": case "T": setPen(put(0, 1)); break;
+        case "H": { const key = ci + ":" + o + ":0:-1", ox = rel ? obx + A[o] : A[o];
+                    const nx = moved.has(key) ? ox + dlx : ox; A[o] = rel ? nx - nbx : nx;
+                    ocx = ox; ncx = nx; break; }
+        case "V": { const key = ci + ":" + o + ":-1:0", oy = rel ? oby + A[o] : A[o];
+                    const ny = moved.has(key) ? oy + dly : oy; A[o] = rel ? ny - nby : ny;
+                    ocy = oy; ncy = ny; break; }
+        case "C": put(0, 1); put(2, 3); setPen(put(4, 5)); break;
+        case "S": case "Q": put(0, 1); setPen(put(2, 3)); break;
+        case "A": setPen(put(5, 6)); break;                 // radii/flags (0..4) are untouched
+      }
+    }
+  });
+  return [{ name: "d", value: printPath(cmds) }];
+}
+)};
+
+const _sl120 = function _toolVertex(handleEdit,shapeLookup,grabPointer,gestureDelta,previewDelta,commitDelta,revertDelta,vertexAddress,pathSmooth,moveVertices,dragBox){return(
 {
   id: "vertex",
   onPointerDown(ctx, e) {
     const key = e.target.dataset && e.target.dataset.key;
     const mode = ctx.focus.mode;
-    if (key === undefined || ctx.focus.index === null) return false;
+    if (ctx.focus.index === null) return false;
     // Any mode the registry knows; `transform` is not one of them, because the gizmo owns its own
     // handles. Adding a shape entry is therefore all it takes to make its handles draggable.
     const entry = shapeLookup.forMode(ctx.shapes, mode);
     if (!entry) return false;
+    // G22. A press on *empty* canvas, while a shape's vertices are on show, bands a set of them — the
+    // same way the marquee bands a set of elements, and a selection gesture, so it writes nothing (T9).
+    // It must claim only empty canvas: a press on the shape body (to move it) or on another element (to
+    // reselect) has to fall through to the move/marquee tools, exactly as it did before this tool grew
+    // a marquee — otherwise `toolVertex` swallows every ordinary select/move press. `ctx.pick` is the
+    // one hit contract (S1, P5), so "nothing here" is the same answer a click would get.
+    if (key === undefined) {
+      if (e.button !== 0 || ctx.pick(e).length) return false;
+      const p = ctx.localPoint(ctx.node, e);
+      if (!p) return false;
+      e.preventDefault();
+      grabPointer(ctx.node, e);
+      ctx.state.vband = { x0: p[0], y0: p[1], x1: p[0], y1: p[1], add: e.shiftKey, box: null, moved: false };
+      return true;
+    }
     e.preventDefault();
     grabPointer(ctx.node, e);
     // Grabbing a handle selects that vertex, by address rather than by key (P7): shift adds to the
     // set, anything else replaces it. This is what makes a vertex a thing you can hold — and it
     // survives the commit, because an ordinal is rebasable and a key is not.
     const ord = vertexAddress.ordinalOf(ctx.focus.handles(), key);
-    if (ord) {
-      const a = vertexAddress.of(ctx.focus.path, ord.kind, ord.n);
-      if (e.shiftKey) ctx.focus.toggleVertex(a); else ctx.focus.setVertices([a]);
+    const a = ord ? vertexAddress.of(ctx.focus.path, ord.kind, ord.n) : null;
+    const set = ctx.focus.vertices || [];
+    const inSet = a && set.some((s) => vertexAddress.same(s, a));
+    // G22. Grabbing a vertex that is already part of a multi-selection drags the whole set; a press
+    // that does not turn into a drag collapses to just that one (decided on release). Shift toggles.
+    let multi = false;
+    if (a) {
+      if (e.shiftKey) ctx.focus.toggleVertex(a);
+      else if (inSet && set.length > 1) multi = true;
+      else ctx.focus.setVertices([a]);
     }
     const el0 = ctx.elems()[ctx.focus.index];
-    ctx.state.drag = { tool: "vertex", key, idx: ctx.focus.index, mode, started: false, x0: e.clientX, y0: e.clientY,
+    ctx.state.drag = { tool: "vertex", key, idx: ctx.focus.index, mode, entry, started: false,
+                       x0: e.clientX, y0: e.clientY, multi, addr: a,
+                       addrs: multi ? set.slice() : (a ? [a] : []),
+                       press: el0 ? ctx.localPoint(el0, e) : null,
                        // what it rendered before the preview overwrites it (see writer.commit)
                        was: el0 ? Object.fromEntries(entry.writes.map((n) => [n, el0.getAttribute(n)])) : null };
     return true;
   },
   onPointerMove(ctx, e) {
+    const vb = ctx.state.vband;
+    if (vb) {
+      const p = ctx.localPoint(ctx.node, e);
+      if (!p) return;
+      vb.x1 = p[0]; vb.y1 = p[1]; vb.moved = true;
+      const r = dragBox(vb.x0, vb.y0, vb.x1, vb.y1);
+      if (!vb.box || !vb.box.isConnected) vb.box = ctx.overlay.addRoot("rect", { class: "box" });
+      for (const k of ["x", "y", "width", "height"]) vb.box.setAttribute(k, r[k]);
+      return;
+    }
     const d = ctx.state.drag;
     if (!d) return;
     if (!d.started && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 3) return;
@@ -5368,33 +5462,76 @@ const _sl120 = function _toolVertex(handleEdit,shapeLookup,grabPointer,gestureDe
     const p = el && ctx.localPoint(el, e);
     const t = ctx.doc();
     if (!p || t === null) return;
-    // G21. A smooth anchor moves both of its handles; alt breaks the pair for this drag, which is
-    // how you make a corner without saying so — the geometry stops being collinear and that *is* the
-    // corner. Reading `altKey` off the live event, not off the press, so the decision is revocable
-    // mid-drag like every other modifier here.
-    const paired = d.mode === "path" && !e.altKey
-      ? pathSmooth.couple(t, d.idx, d.key, p[0], p[1]) : null;
-    const edits = paired !== null ? [{ name: "d", value: paired }]
-                                  : handleEdit(d.mode, t, d.idx, d.key, p[0], p[1], ctx.shapes);
-    if (!edits.length) return;
-    // `handleEdit` already reprints the whole attribute, so there is no lens here: the delta's value
-    // *is* the text. One delta per attribute the handle moves — a rect corner moves four — and an
-    // attribute the drag did not change is not in the list, so T1 still holds edge by edge.
+    let edits, label;
+    if (d.multi && d.press) {
+      // G22. One local delta, applied to the whole held set as one attribute edit (see moveVertices).
+      const dlx = p[0] - d.press[0], dly = p[1] - d.press[1];
+      edits = moveVertices(d.entry, t, d.idx, d.addrs, dlx, dly);
+      label = `${d.addrs.length} pts`;
+    } else {
+      // G21. A smooth anchor moves both of its handles; alt breaks the pair for this drag, which is
+      // how you make a corner without saying so — the geometry stops being collinear and that *is* the
+      // corner. Reading `altKey` off the live event, not off the press, so the decision is revocable
+      // mid-drag like every other modifier here.
+      const paired = d.mode === "path" && !e.altKey
+        ? pathSmooth.couple(t, d.idx, d.key, p[0], p[1]) : null;
+      edits = paired !== null ? [{ name: "d", value: paired }]
+                              : handleEdit(d.mode, t, d.idx, d.key, p[0], p[1], ctx.shapes);
+      label = `${p[0].toFixed(1)}, ${p[1].toFixed(1)}`;
+    }
+    if (!edits || !edits.length) return;
+    // `handleEdit`/`moveVertices` already reprint the whole attribute, so there is no lens here: the
+    // delta's value *is* the text. One delta per attribute the drag moves — a rect corner moves four —
+    // and an attribute the drag did not change is not in the list, so T1 still holds edge by edge.
     d.delta = edits.map((ed) => gestureDelta.attr(d.idx, ed.name, ed.value,
                                 { dflt: ed.dflt === undefined ? null : ed.dflt,
                                   was: d.was && d.was[ed.name] }));
     previewDelta(ctx, d.delta);
     ctx.focus.refresh();
-    // G13: the point the handle is at, in the element's own coordinates, shown at the pointer.
+    // G13: the point (or how many points) the drag is moving, shown at the pointer.
     const at = ctx.localPoint(ctx.node, e);
-    if (at) previewDelta(ctx, gestureDelta.readout(`${p[0].toFixed(1)}, ${p[1].toFixed(1)}`, at, ctx.readoutFont()));
+    if (at) previewDelta(ctx, gestureDelta.readout(label, at, ctx.readoutFont()));
   },
   async onPointerUp(ctx) {
+    const vb = ctx.state.vband;
+    if (vb) {
+      ctx.state.vband = null;
+      if (vb.box) vb.box.remove();
+      const entry = shapeLookup.forMode(ctx.shapes, ctx.focus.mode);
+      const t = ctx.doc();
+      // A bare click on empty canvas deselects — the same thing the marquee does in select mode, so
+      // clicking off a path leaves node editing rather than only emptying the vertex set.
+      if (!vb.moved) return void (vb.add ? null : commitDelta(ctx, gestureDelta.select([])));
+      if (!entry || t === null) return;
+      const r = dragBox(vb.x0, vb.y0, vb.x1, vb.y1);
+      const el = ctx.elems()[ctx.focus.index];
+      const hs = entry.handles(t, ctx.focus.index);
+      const hits = [];
+      for (const h of hs) {
+        if (h.kind !== "anchor") continue;                  // anchors are the vertices; controls ride them
+        const rp = ctx.rootPoint(el, h.x, h.y);
+        if (rp && rp[0] >= r.x && rp[0] <= r.x + r.width && rp[1] >= r.y && rp[1] <= r.y + r.height) {
+          const ord = vertexAddress.ordinalOf(hs, h.key);
+          if (ord) hits.push(vertexAddress.of(ctx.focus.path, ord.kind, ord.n));
+        }
+      }
+      const all = (vb.add ? (ctx.focus.vertices || []) : []).slice();
+      for (const a of hits) if (!all.some((s) => vertexAddress.same(s, a))) all.push(a);
+      ctx.focus.setVertices(all);
+      return;
+    }
     const d = ctx.state.drag;
     ctx.state.drag = null;
-    if (d && d.started && d.delta) await commitDelta(ctx, d.delta);
+    if (!d) return;
+    if (!d.started) {                                        // a press that never dragged
+      if (d.multi && d.addr) ctx.focus.setVertices([d.addr]);   // collapse the set to the one grabbed
+      return;
+    }
+    if (d.delta) await commitDelta(ctx, d.delta);
   },
   onCancel(ctx) {
+    const vb = ctx.state.vband;
+    if (vb) { ctx.state.vband = null; if (vb.box) vb.box.remove(); return true; }
     const d = ctx.state.drag;
     if (!d || d.tool !== "vertex") return false;
     ctx.state.drag = null;
@@ -5937,6 +6074,91 @@ const _sl125d = function _penPath(){return(
 }
 )};
 
+// G45. Fit a freehand polyline to a chain of cubic Béziers (Schneider's algorithm: least-squares one
+// cubic, measure the worst deviation, reparameterise a few times, and split there and recurse if it
+// still misses). Pure and browser-free — `error` is a distance in the *same* units as the points, so
+// the tool converts a screen-px tolerance through the CTM once and hands user units in, which is what
+// keeps the fit a function of the drawing and not of the zoom (T11). The polyline is first split at
+// corners (a direction change sharper than `cornerAngle`), so a deliberate kink stays a corner instead
+// of being rounded through. Returns an array of `[p0, c1, c2, p3]`; consecutive cubics share an anchor.
+const _sl268 = function _fitCurve(){return(
+(() => {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1]], add = (a, b) => [a[0] + b[0], a[1] + b[1]],
+        mul = (a, s) => [a[0] * s, a[1] * s], dot = (a, b) => a[0] * b[0] + a[1] * b[1],
+        norm = (a) => Math.hypot(a[0], a[1]);
+  const unit = (v) => { const n = norm(v) || 1; return [v[0] / n, v[1] / n]; };
+  const bern = (n, i, t) => { const c = n === 3 ? [1, 3, 3, 1][i] : n === 2 ? [1, 2, 1][i] : [1, 1][i];
+                              return c * Math.pow(t, i) * Math.pow(1 - t, n - i); };
+  const q = (bez, t) => bez.reduce((r, p, i) => add(r, mul(p, bern(3, i, t))), [0, 0]);
+  const chord = (pts) => { const u = [0];
+    for (let i = 1; i < pts.length; i++) u.push(u[i - 1] + norm(sub(pts[i], pts[i - 1])));
+    const last = u[u.length - 1] || 1; return u.map((x) => x / last); };
+  const bezierFor = (pts, u, t1, t2) => {
+    const n = pts.length, first = pts[0], last = pts[n - 1];
+    const A = u.map((uu) => [mul(t1, bern(3, 1, uu)), mul(t2, bern(3, 2, uu))]);
+    let c00 = 0, c01 = 0, c11 = 0, x0 = 0, x1 = 0;
+    for (let i = 0; i < n; i++) {
+      c00 += dot(A[i][0], A[i][0]); c01 += dot(A[i][0], A[i][1]); c11 += dot(A[i][1], A[i][1]);
+      const tmp = sub(pts[i], q([first, first, last, last], u[i]));
+      x0 += dot(A[i][0], tmp); x1 += dot(A[i][1], tmp);
+    }
+    const det = c00 * c11 - c01 * c01;
+    let a1 = det === 0 ? 0 : (x0 * c11 - c01 * x1) / det;
+    let a2 = det === 0 ? 0 : (c00 * x1 - c01 * x0) / det;
+    const len = norm(sub(last, first)), eps = 1e-6 * len;
+    if (a1 < eps || a2 < eps) { a1 = a2 = len / 3; }
+    return [first, add(first, mul(t1, a1)), add(last, mul(t2, a2)), last];
+  };
+  const deriv = (arr, t) => arr.reduce((r, p, i) => add(r, mul(p, bern(arr.length - 1, i, t))), [0, 0]);
+  const newton = (p, bez, u) => {
+    const q1 = [0, 1, 2].map((i) => mul(sub(bez[i + 1], bez[i]), 3));
+    const q2 = [0, 1].map((i) => mul(sub(q1[i + 1], q1[i]), 2));
+    const d = sub(q(bez, u), p), d1 = deriv(q1, u), d2 = deriv(q2, u);
+    const den = dot(d1, d1) + dot(d, d2);
+    return den === 0 ? u : u - dot(d, d1) / den;
+  };
+  const worst = (pts, bez, u) => { let max = 0, idx = (pts.length / 2) | 0;
+    for (let i = 0; i < pts.length; i++) { const e = norm(sub(q(bez, u[i]), pts[i])); if (e > max) { max = e; idx = i; } }
+    return [max, idx]; };
+  const fit = (pts, t1, t2, error, out) => {
+    if (pts.length === 2) { const d = norm(sub(pts[1], pts[0])) / 3;
+      out.push([pts[0], add(pts[0], mul(t1, d)), add(pts[1], mul(t2, d)), pts[1]]); return; }
+    let u = chord(pts), bez = bezierFor(pts, u, t1, t2), [err, idx] = worst(pts, bez, u);
+    if (err < error) return void out.push(bez);
+    if (err < error * 4)
+      for (let k = 0; k < 4; k++) {
+        u = pts.map((p, i) => newton(p, bez, u[i]));
+        bez = bezierFor(pts, u, t1, t2); [err, idx] = worst(pts, bez, u);
+        if (err < error) return void out.push(bez);
+      }
+    if (idx <= 0 || idx >= pts.length - 1) idx = (pts.length / 2) | 0;   // a split must make progress
+    const c = unit(sub(pts[idx - 1], pts[idx + 1]));
+    fit(pts.slice(0, idx + 1), t1, c, error, out);
+    fit(pts.slice(idx), mul(c, -1), t2, error, out);
+  };
+  const dedupe = (pts) => { const o = pts.length ? [pts[0]] : [];
+    for (let i = 1; i < pts.length; i++) if (norm(sub(pts[i], o[o.length - 1])) > 1e-9) o.push(pts[i]);
+    return o; };
+  const corners = (pts, angle) => { const idx = [0];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = unit(sub(pts[i], pts[i - 1])), b = unit(sub(pts[i + 1], pts[i]));
+      if (Math.acos(Math.min(1, Math.max(-1, dot(a, b)))) > angle) idx.push(i);
+    }
+    idx.push(pts.length - 1); return idx; };
+  return (points, error = 4, cornerAngle = Math.PI / 2) => {
+    const pts = dedupe(points || []);
+    if (pts.length < 2) return [];
+    const ci = corners(pts, cornerAngle), out = [];
+    for (let k = 0; k < ci.length - 1; k++) {
+      const run = pts.slice(ci[k], ci[k + 1] + 1);
+      if (run.length < 2) continue;
+      fit(run, unit(sub(run[1], run[0])), unit(sub(run[run.length - 2], run[run.length - 1])), error, out);
+    }
+    return out;
+  };
+})()
+)};
+
 // Drag on empty canvas to create a rect, an ellipse or a line. Preview lives in the overlay — the
 // source gets exactly one put, on release, and only if the drag was big enough to mean it.
 const _sl125 = function _toolDraw(shapeLookup,shapeSpec,shapeMarkup,dragBox,grabPointer,gestureDelta,previewDelta,commitDelta){return(
@@ -6142,6 +6364,65 @@ const _sl126 = function _toolPen(penPath,attrVal,nodeAt,grabPointer,gestureDelta
     if (pen.band) pen.band.remove();
     ctx.state.pen = null;
     ctx.setTool("select");
+    return true;
+  }
+}
+)};
+
+// G45. Scribble a freehand stroke; on release it is fitted (Schneider, `fitCurve`) to a chain of
+// cubics and committed as one `<path>`, after which every vertex gesture (G19–G23) applies to it —
+// which is the whole point of landing in the same representation rather than in a "sketch" object.
+// The stroke previews as an overlay polyline and writes nothing until release, so an abandoned
+// scribble is T1 by construction. The tolerance is a screen distance, divided out through the CTM the
+// way every measurement is (readoutFont is 12px/zoom), so the same user-space input fits the same
+// bytes at any zoom (T11), and points closer than half the tolerance are dropped — a trackpad emits
+// far more samples than the fit needs, and that oversampling is what makes a naive fit wobble.
+const _sl269 = function _toolScribble(fitCurve,grabPointer,gestureDelta,previewDelta,commitDelta){return(
+{
+  id: "scribble",
+  tolU: (ctx) => ctx.readoutFont() * ((ctx.options.scribbleTolerance === undefined ? 4 : ctx.options.scribbleTolerance) / 12),
+  onPointerDown(ctx, e) {
+    if (ctx.tool() !== "scribble") return false;
+    const p = ctx.localPoint(ctx.node, e);
+    if (!p) return false;
+    e.preventDefault();
+    grabPointer(ctx.node, e);
+    commitDelta(ctx, gestureDelta.select([]));
+    ctx.state.scribble = { pts: [p], band: null };
+    return true;
+  },
+  onPointerMove(ctx, e) {
+    const s = ctx.state.scribble;
+    if (!s) return;
+    const p = ctx.localPoint(ctx.node, e);
+    if (!p) return;
+    const last = s.pts[s.pts.length - 1];
+    if (Math.hypot(p[0] - last[0], p[1] - last[1]) < this.tolU(ctx) / 2) return;   // decimate
+    s.pts.push(p);
+    if (!s.band || !s.band.isConnected) s.band = ctx.overlay.addRoot("polyline", { class: "link", fill: "none" });
+    s.band.setAttribute("points", s.pts.map((q) => `${q[0]},${q[1]}`).join(" "));
+  },
+  async onPointerUp(ctx) {
+    const s = ctx.state.scribble;
+    ctx.state.scribble = null;
+    if (!s) return;
+    if (s.band) s.band.remove();
+    if (s.pts.length < 2) return void ctx.setTool("select");
+    const segs = fitCurve(s.pts, this.tolU(ctx));
+    if (!segs.length) return void ctx.setTool("select");
+    const r = (v) => Math.round(v * 1e3) / 1e3;
+    let d = `M ${r(segs[0][0][0])} ${r(segs[0][0][1])}`;
+    for (const sg of segs) d += ` C ${r(sg[1][0])} ${r(sg[1][1])} ${r(sg[2][0])} ${r(sg[2][1])} ${r(sg[3][0])} ${r(sg[3][1])}`;
+    const at = ctx.childCount([0]);
+    const style = ctx.options.penStyle || 'fill="none" stroke="#4C7FD1" stroke-width="3" stroke-linecap="round"';
+    const rec = await ctx.addShape(`<path d="${d}" ${style}/>`);
+    if (rec) await commitDelta(ctx, gestureDelta.select([[0, at]], "path"));
+  },
+  onCancel(ctx) {
+    const s = ctx.state.scribble;
+    if (!s) return false;
+    ctx.state.scribble = null;
+    if (s.band) s.band.remove();
     return true;
   }
 }
@@ -6689,9 +6970,9 @@ const _sl142 = function _test_gesture_partiality(withFixture,gestureCorpus,playG
 // the point: this is a claim about how the tools are *written*, and it fails the moment one is
 // written differently. The tools are listed rather than read from `svgTools`, which is an
 // `Inputs.input` and so needs a DOM this law does not.
-const _sl143 = function _test_tools_write_through_the_delta(toolDraw,toolPen,toolTransform,toolVertex,toolMove,toolMarquee,toolScope,toolZoom,toolStructure,toolHover)
+const _sl143 = function _test_tools_write_through_the_delta(toolDraw,toolPen,toolScribble,toolTransform,toolVertex,toolMove,toolMarquee,toolScope,toolZoom,toolStructure,toolHover)
 {
-  const tools = [toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarquee, toolScope, toolZoom, toolStructure, toolHover];
+  const tools = [toolDraw, toolPen, toolScribble, toolTransform, toolVertex, toolMove, toolMarquee, toolScope, toolZoom, toolStructure, toolHover];
   const HANDLERS = ["onPointerDown", "onPointerMove", "onPointerUp", "onDblClick", "onHover", "onPointerLeave", "onWheel"];
   const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
   const bad = [];
@@ -6724,9 +7005,9 @@ const _sl143 = function _test_tools_write_through_the_delta(toolDraw,toolPen,too
 // facade to `getBBox`/`getScreenCTM`/`elementsFromPoint` has a hidden input, and hidden inputs are
 // exactly what the laws cannot see. `hitTest` still asks the browser; the point is that it is the
 // one place that does, reachable as `ctx.hit`.
-const _sl144 = function _test_tools_measure_through_ctx(toolDraw,toolPen,toolTransform,toolVertex,toolMove,toolMarquee,toolScope,toolZoom,toolStructure,toolHover)
+const _sl144 = function _test_tools_measure_through_ctx(toolDraw,toolPen,toolScribble,toolTransform,toolVertex,toolMove,toolMarquee,toolScope,toolZoom,toolStructure,toolHover)
 {
-  const tools = [toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarquee, toolScope, toolZoom, toolStructure, toolHover];
+  const tools = [toolDraw, toolPen, toolScribble, toolTransform, toolVertex, toolMove, toolMarquee, toolScope, toolZoom, toolStructure, toolHover];
   const HANDLERS = ["onPointerDown", "onPointerMove", "onPointerUp", "onDblClick", "onHover", "onPointerLeave", "onWheel"];
   const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
   const BANNED = /\b(getBBox|getScreenCTM|getBoundingClientRect|elementsFromPoint|getTotalLength|getPointAtLength)\s*\(/g;
@@ -6924,8 +7205,8 @@ const _sl127h = function _toolHover(gestureDelta,previewDelta){return(
 }
 )};
 
-const _sl123 = function _svgTools(Inputs,toolDraw,toolPen,toolTransform,toolVertex,toolMove,toolMarquee,toolScope,toolZoom,toolStructure,toolHover){return(
-Inputs.input([toolDraw, toolPen, toolTransform, toolVertex, toolMove, toolMarquee, toolScope, toolZoom, toolStructure, toolHover])
+const _sl123 = function _svgTools(Inputs,toolDraw,toolPen,toolScribble,toolTransform,toolVertex,toolMove,toolMarquee,toolScope,toolZoom,toolStructure,toolHover){return(
+Inputs.input([toolDraw, toolPen, toolScribble, toolTransform, toolVertex, toolMove, toolMarquee, toolScope, toolZoom, toolStructure, toolHover])
 )};
 const _sl123v = (G, _) => G.input(_);
 
@@ -7884,6 +8165,15 @@ const _sl114 = function _svgLens(lensState,svgTarget,svgWriter,svgOverlay,svgFoc
       screenBox: (el) => (el && el.getBoundingClientRect ? el.getBoundingClientRect() : null),
       // The selection box in the root's user space, where a marquee is drawn and compared.
       rootBox: (el) => boxInRoot(el, node),
+      // An element-local point projected into the root's user space — the point-sized companion to
+      // `rootBox`, for comparing a handle against a marquee band drawn in root space (G22). Stays a
+      // P5 measurement: it only composes the two CTMs `ctx` already exposes.
+      rootPoint: (el, x, y) => {
+        const em = ctx.screenCTM(el), nm = ctx.screenCTM(node);
+        if (!em || !nm) return null;
+        const s = applyPoint(ctmMat(em), x, y);
+        return applyPoint(invert(ctmMat(nm)), s[0], s[1]);
+      },
       // What is under the pointer, front to back. Painted geometry first, then near-misses.
       hit: (e, opts = {}) =>
         hitTest(ctx, e, { tolerance: options.hitTolerance, ...opts }),
@@ -8487,7 +8777,8 @@ export default function define(runtime, observer) {
   $def("sl128a", "previewDelta", ["gestureDelta"], _sl128a);
   $def("sl128b", "commitDelta", [], _sl128b);
   $def("sl128c", "revertDelta", [], _sl128c);
-  $def("sl120", "toolVertex", ["handleEdit","shapeLookup","grabPointer","gestureDelta","previewDelta","commitDelta","revertDelta","vertexAddress","pathSmooth"], _sl120);
+  $def("sl267", "moveVertices", ["vertexAddress","parsePath","printPath","parsePoints","printPoints","attrVal","PATH_ARG_COUNT"], _sl267);
+  $def("sl120", "toolVertex", ["handleEdit","shapeLookup","grabPointer","gestureDelta","previewDelta","commitDelta","revertDelta","vertexAddress","pathSmooth","moveVertices","dragBox"], _sl120);
   $def("sl119d", "scopedPath", [], _sl119d);
   $def("sl121a", "hitTest", [], _sl121a);
   $def("sl127", "snapRects", [], _sl127);
@@ -8505,6 +8796,8 @@ export default function define(runtime, observer) {
   $def("sl125d", "penPath", [], _sl125d);
   $def("sl125", "toolDraw", ["shapeLookup","shapeSpec","shapeMarkup","dragBox","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl125);
   $def("sl126", "toolPen", ["penPath","attrVal","nodeAt","grabPointer","gestureDelta","previewDelta","commitDelta","pathHandles","pathOfIndex"], _sl126);
+  $def("sl268", "fitCurve", [], _sl268);
+  $def("sl269", "toolScribble", ["fitCurve","grabPointer","gestureDelta","previewDelta","commitDelta"], _sl269);
   $def("sl130", "gestureFixture", ["runtime","realize","settle","literalSpan","nodeAt","svgLens","svg"], _sl130);
   $def("sl131", "playGesture", [], _sl131);
   $def("sl132", "gestureCorpus", [], _sl132);
@@ -8514,8 +8807,8 @@ export default function define(runtime, observer) {
   $def("sl136", "test_gesture_commits_against_its_origin", ["withFixture","gestureCorpus","playGesture","nodeAt"], _sl136);
   $def("sl137", "test_gesture_confinement", ["withFixture","gestureCorpus","playGesture","svgTools"], _sl137);
   $def("sl138", "test_gesture_selection_is_not_an_edit", ["withFixture","gestureCorpus","playGesture","toolMarquee"], _sl138);
-  $def("sl144", "test_tools_measure_through_ctx", ["toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl144);
-  $def("sl143", "test_tools_write_through_the_delta", ["toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl143);
+  $def("sl144", "test_tools_measure_through_ctx", ["toolDraw","toolPen","toolScribble","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl144);
+  $def("sl143", "test_tools_write_through_the_delta", ["toolDraw","toolPen","toolScribble","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl143);
   $def("sl140a", "domShape", [], _sl140a);
   $def("sl140", "test_gesture_render_consistency", ["withFixture","gestureCorpus","playGesture","domShape"], _sl140);
   $def("sl141", "test_gesture_rebase_agreement", ["withFixture","gestureCorpus","nodeAt","childrenLens","insertPoint"], _sl141);
@@ -8524,7 +8817,7 @@ export default function define(runtime, observer) {
   $def("sl145", "test_gesture_hit_agreement", ["withFixture","gestureCorpus","playGesture","boxInRoot"], _sl145);
   $def("sl139", "gestureLaws", ["test_gesture_identity","test_gesture_path_independence","test_gesture_commits_against_its_origin","test_gesture_render_consistency","test_gesture_confinement","test_gesture_rebase_agreement","test_gesture_partiality","test_gesture_selection_is_not_an_edit","test_gesture_hit_agreement","test_gesture_view_is_not_an_edit"], _sl139);
   $def("sl127h", "toolHover", ["gestureDelta","previewDelta"], _sl127h);
-  $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl123);
+  $def("sl123", "viewof svgTools", ["Inputs","toolDraw","toolPen","toolScribble","toolTransform","toolVertex","toolMove","toolMarquee","toolScope","toolZoom","toolStructure","toolHover"], _sl123);
   $def("sl240", "cmdGroup", ["gestureDelta","groupPlan","groupElements","rebaseMoves"], _sl240);
   $def("sl241", "cmdUngroup", ["gestureDelta","ungroupBlockers","ungroupElements","childrenLens","rebaseMoves"], _sl241);
   $def("sl242", "cmdDuplicate", ["gestureDelta","copyMarkup","offsetMarkup","pasteMarkup"], _sl242);
