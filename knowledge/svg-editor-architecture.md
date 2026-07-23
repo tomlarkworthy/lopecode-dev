@@ -737,6 +737,28 @@ prerequisite for G35–G36 and the second half of gap 4.
 *Falsified by:* two pasted gradients sharing an id; or an edit to a `<stop>` failing to repaint the
 shape that references it.
 
+**S11 — one node across recomputations, via `this`.** Three separate bugs now (P7's restore, M17's
+undo-drops-selection, B2's flash) have the same cause: a commit re-runs the cell, the cell mints a
+*new* DOM node, and for a window there are two nodes — one of which can no longer resolve the
+`Variable` its state is filed under. Every fix so far has been defensive: teach the dead node not to
+write. Tom's observation 2026-07-23 names the primitive that removes the situation instead — an
+Observable cell body is invoked with `this` bound to the cell's **previous value**, which for
+`viewof drawing = svgLens(svg\`…\`)` *is the previous node*. Hand it back and `svgLens` can render into
+the node it already owns: `_value === node` keeps holding across commits, `target.resolve()` never
+returns null, `lensState` stops needing a key at all, and the whole class closes at the root.
+Two ways in, and they trade differently:
+- **Explicit, `svgLens.call(this, svg\`…\`)`** (or `{previous: this}`). Honest and local, and it reads
+  as what it is. Cost: it is opt-in at *every* call site, including the ones in the paper's own prose,
+  and forgetting it degrades silently to today's behaviour rather than erroring.
+- **Implicit, by marker search.** At construction the runtime has not yet bound the new value, so the
+  owning `Variable`'s `_value` is still the *old* node — findable by a `__svgLens` marker without any
+  call-site change. Cost: with several lenses on one page, "the previous node" is ambiguous, and
+  guessing wrong is worse than not guessing.
+Recommendation: explicit, with the marker search only as a fallback that must agree or stand down.
+*Falsified by:* the node's identity changing across a commit; or a second lens on the page adopting
+the first one's state; or — the reason to do it at all — any further bug whose sentence begins "the
+detached node".
+
 **Deferred:** performance (gap 11, Tom's call 2026-07-23), multi-drawing (gap 9), `editor-5`
 concurrency (gap 10). None of them blocks the stages above.
 
@@ -1111,33 +1133,49 @@ visible in the source. Items here are reports first and diagnoses second, and th
   therefore allowed — but it must be declared in `ctx.state.drag`, not hidden in a closure.
   **Falsified by:** a slow drag and a fast drag to the same endpoint committing different values (T2);
   or the shape moving at all before the pointer has travelled `thresh`. S
-- [~] **B2 · the drawing flashes unzoomed after a commit.** Tom, refining the report 2026-07-23:
-  *"it's clear after zooming, and the gesture after that momentarily displays the unzoomed size."*
-  That names the mechanism, and the code agrees with it. The zoom is not in the source — it is
-  `lensState.view`, re-applied by rewriting the root `viewBox`. A commit remounts the cell, and the
-  **fresh node cannot resolve its own `Variable` yet**, so `viewNow()` falls back to `localView`,
-  which is identity, so `applyView()` declines and the node renders at the *source's* viewBox: 100%.
-  The view was then restored from a `setTimeout(…, 0)`. A macrotask can be separated from that node's
-  insertion by a rendered frame, and that frame is the flash.
-  **Changed 2026-07-23:** the restore runs on `requestAnimationFrame` — which fires *before* the paint
-  of the frame it is scheduled for, by which point the runtime has bound the value — with the timeout
-  kept as a fallback for a node in a tab that never paints, and a `resumed` flag making whichever
-  loses a no-op. Strictly earlier than before, and it cannot be later.
-  **This is a narrowed window, not a proven fix, and the difference matters.** Under per-frame
-  instrumentation the flash did not reproduce — not in a fixture, and not on the real drawing cell in
-  the notebook (143 frames across three commits at `k = 2.5`, zero frames with the wrong `viewBox`).
-  So the window is demonstrable *in the code* but was never caught *in the act*, and a change that
-  cannot be seen to fix what was never seen to break is exactly the kind of claim this document does
-  not make. To confirm or refute it in ordinary use, run this next to a drawing and use it normally:
+- [x] **B2 · the drawing flashes unzoomed after a commit. Fixed 2026-07-23 — caught in the act by
+  Tom's own console.** Two reports narrowed it: *"the glitch is on gesture start"*, then *"it's clear
+  after zooming, and the gesture after that momentarily displays the unzoomed size."* Four
+  instrumented attempts failed to reproduce it (MutationObserver across frame boundaries, a per-frame
+  overlay-handle census, a per-frame shape-versus-overlay comparison, a per-frame `viewBox` census on
+  the real drawing cell — 143 frames across three commits at `k = 2.5`, zero bad frames). A recorder
+  left running during ordinary use produced what none of them could, in one line:
+  ```
+  painted -77.248 -85.096 2.0107 2.0107   wanted -77.248 -85.096 643.42 442.35
+  ```
+  **Equal width and height is a signature, and it names one line of code.** No drawing on the page is
+  square; the only place a square window can come from is `baseBox()`'s last resort,
+  `{minX: 0, minY: 0, width: 1, height: 1}` — and `2.0107` is exactly `1/k` for the `k ≈ 0.497` in
+  force. That fallback is reached only when `target.doc()` is null, so the frame was written by a node
+  that *cannot read its own source*. Same class as M17's undo bug, one layer up: `applyView()`
+  computed a view against a 1×1 base, and `restoreView()` — reading "I cannot see the document" as
+  "the document has no viewBox" — called `removeAttribute("viewBox")`, which renders the drawing at
+  1:1 user units. That is not a metaphor for the report, it *is* the report: the unzoomed size.
+  **The fix is the rule M17 already established, applied to the view:** a node that cannot read its
+  source is not a node that should be written to. Both functions return early on `target.doc() === null`.
+  The earlier `requestAnimationFrame` restore stays — it shrinks the window in which a live node has
+  no view yet — but it was never the bug, and this document said so at the time rather than claiming
+  the fix. 59 headless tests, 10 browser laws green after.
+  **The recorder that found it, corrected** — the first version held `drawing` captured once, so after
+  a commit it was watching a detached node and its warnings were half noise (Tom: *"it happens a lot
+  but I am not totally sure it is correlated"*). This one re-resolves every live lens each frame and
+  only reports nodes that are actually on screen:
   ```js
-  { const el = drawing; let want = el.getAttribute("viewBox"), bad = 0;
-    el.addEventListener("lens-view", () => { want = el.getAttribute("viewBox"); });
-    const tick = () => { const got = el.getAttribute("viewBox");
-      if (got !== want) { bad++; console.warn("frame at the wrong view", got, "wanted", want); }
+  { const tick = () => {
+      for (const g of document.querySelectorAll("g[data-svg-lens-overlay]")) {
+        const el = g.parentElement;
+        if (!el || !el.isConnected) continue;            // a detached node paints nothing
+        const vb = el.getAttribute("viewBox");
+        if (vb === null) { console.warn("no viewBox at all", el); continue; }
+        const [, , w, h] = vb.trim().split(/[\s,]+/).map(Number);
+        if (Math.abs(w - h) < 1e-9) console.warn("square window — the 1x1 fallback", vb, el);
+      }
       requestAnimationFrame(tick); };
     requestAnimationFrame(tick); }
   ```
-  It reports the frames, if any, where the drawing painted at a view nobody asked for. S
+  **The lesson is about evidence, not about viewBoxes.** Instrumentation written by the person who
+  holds the hypothesis samples where the hypothesis says to look. The user's log did not; it named a
+  number, and the number named the line. S
 - [ ] **B3 · a gesture-level frame budget.** The measurements above were written by hand each time.
   They should be a law-adjacent harness: sample per `requestAnimationFrame` through a scripted
   gesture, and assert what must never happen — the selection is never empty between two frames of a
@@ -1171,7 +1209,8 @@ Roughly by value per unit of work, given what already exists:
 6. **G19–G23** — the pen and path work. **G19, P7, G20, G21 and G23 done.** Only G22 (several
    vertices at once) remains; G24 needs a decision before it can start.
 7. **B1** — the drag jump. Small, felt on *every* drag, and the only item here that makes the editor
-   feel worse than it is. Do it before adding surface. **Next.**
+   feel worse than it is. Do it before adding surface — but it needs a decision, because the obvious
+   dead-zone fix violates T2. **Next, and the question is Tom's.** (**B2 done** 2026-07-23.)
 8. **G30–G34, G37** — stroke and paint on S6's field registry. This is the "what about strokes"
    half of an editor, it needs no new architecture, and every item is S. Highest value per unit of
    work left on the list.
@@ -1570,11 +1609,30 @@ Roughly by value per unit of work, given what already exists:
   a view nobody asked for. A defect that only a person has seen is not fixed until that person stops
   seeing it.
 
+- **M19 — the number that named the line (2026-07-23).** B2 was three sessions of not being able to
+  reproduce what Tom could see every day. What closed it was not a better experiment; it was one line
+  of his console. `2.0107 2.0107` — a *square* window over a drawing that is not square, and `2.0107`
+  is `1/k`. There is exactly one square in the codebase, `baseBox()`'s `{width: 1, height: 1}` last
+  resort, and exactly one way to reach it: `target.doc()` returned null. From there the fix wrote
+  itself, and it is the rule M17 had already found one layer down — *a node that cannot read its
+  source must not be written to*. `restoreView` was the visible half: it read "I cannot see the
+  document" as "the document has no viewBox" and removed the attribute, which is 1:1 user units,
+  which is the unzoomed size, which is the report word for word.
+  Three bugs in two days with one cause — a commit mints a new node and briefly there are two — is
+  no longer a series of accidents, and the defensive fix has now been written three times. Tom's
+  suggestion in the same breath is the structural answer and is filed as **S11**: an Observable cell
+  is invoked with `this` bound to its previous value, so the cell can hand its old node back and
+  `svgLens` can keep rendering into the node it already owns. The guards stay regardless — they are
+  correct, and cheap — but S11 is what stops the fourth one being written.
+  59 headless tests, 10 browser laws, 19 commands.
+
 ## 8. Open questions
 
 - Does the value stay the DOM node, or become a document object with the node as a projection?
   Keeping the node is what makes `svgLens(svg\`…\`)` read naturally. Resolved in M7: the node is
-  replaced on every commit and nothing depends on its identity.
+  replaced on every commit and nothing depends on its identity. **Reopened 2026-07-23** — three bugs
+  (P7's restore, M17's undo, M18/B2's flash) turned out to depend on it after all, not on the node's
+  identity being *stable* but on there being, for a window, *two* of them. See S11.
 - Structural path vs an injected stable id attribute. Paths keep the source clean but need
   re-anchoring on every command; ids survive edits but pollute the drawing the user is authoring.
 - Whether `childrenLens` should view child *source strings* (residue-preserving, chosen above) or
