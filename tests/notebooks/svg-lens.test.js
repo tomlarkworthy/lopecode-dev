@@ -45,6 +45,7 @@ const TEST_CELLS = [
   'test_copy_paste',
   'test_align_commands',
   'test_path_subdivision_exact',
+  'test_path_smooth',
   'test_opsLens_laws',
   'test_transform_gizmo',
   // creation

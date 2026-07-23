@@ -907,8 +907,27 @@ and S4, and are the gaps those stages closed.)
   **Held**: in a browser, tapping (180,100) on the corpus' open path leaves the document byte-identical
   and moves the selection to `[0,1]`; the next tap makes `d` = `M 120 100 L 150 40 L 180 100 L 190 60`
   with the path count still 1. A tap away from every free end still creates a new path (`[0,4]`). S
-- [ ] **G21 · corner ↔ smooth.** Double-click an anchor to toggle; alt-drag one handle to break the
-  pair. Depends on P7. M
+- [x] **G21 · corner ↔ smooth.** Landed 2026-07-23. Smoothness is **geometry, not a stored flag**:
+  an anchor is smooth when its two control handles are collinear with it and point opposite ways.
+  There is nowhere to keep a "corner that happens to look smooth" bit that would not be hidden state,
+  and hidden state is the thing this editor does not have — so the toggle asks the drawing, never a
+  side table. The cost of that choice is stated rather than hidden: an anchor whose handles are
+  accidentally collinear reads as smooth, and "make corner" has to *do* something visible, so it
+  retracts both handles onto the anchor.
+  Two halves. **Alt-drag breaks the pair**: dragging a handle of a smooth anchor moves the partner
+  too, mirrored, keeping its own length; with alt held only the handle under the pointer moves, and
+  the geometry stops being collinear — which *is* the corner. `altKey` is read off the live event, not
+  off the press, so the decision is revocable mid-drag like every other modifier here.
+  **The toggle is a command, not the double-click the plan called for**, because double-clicking an
+  anchor already means *delete this vertex* (G23) and that is tested behaviour. It acts on the one
+  held vertex (P7).
+  Smoothing a straight join promotes the segment to `C p0 p3 p3`, the cubic that draws the identical
+  chord; retracting demotes it back, so **smooth-then-corner returns the author's original bytes**
+  rather than a curve-shaped straight line. Q, arcs and `Z` are declined, not approximated.
+  **Held**: `test_path_smooth` — over random polylines, toggling an interior anchor makes it smooth,
+  moves no other anchor, and toggles back byte-identical; and coupling keeps the partner's length and
+  the anchor smooth. In a browser: `M 20 100 L 100 40 L 180 100` → toggle → two cubics with the
+  vertex still held → toggle → the original three commands back. M
 - [ ] **G22 · select and move several vertices.** Marquee while in points/path mode. Depends on P7,
   and it is the case that makes "one delta per claimed element" become "per claimed *vertex*" — a
   good stress test of the delta record. M
@@ -983,8 +1002,8 @@ Roughly by value per unit of work, given what already exists:
 4. ~~**G25**~~ ✅ — zoom, which every subsequent gesture is easier to test and to use with.
 5. ~~**G15–G18**~~ ✅ — the structural verbs, on S4's registry. P8 and C7 closed with them.
    G8 and G14 are unblocked by the same work.
-6. **G19–G23** — the pen and path work. **G19, P7, G20 and G23 done.** G21 (corner ↔ smooth) and
-   G22 (several vertices at once) remain; G24 needs a decision before it can start. **Next.**
+6. **G19–G23** — the pen and path work. **G19, P7, G20, G21 and G23 done.** Only G22 (several
+   vertices at once) remains; G24 needs a decision before it can start. **Next.**
 7. **G26–G29** — text, images and style gestures.
 
 ## 7. Milestone log
@@ -1334,6 +1353,26 @@ Roughly by value per unit of work, given what already exists:
   check that settled it was reading `typeof toolPen.freeEnd` in the page: `undefined` is not a
   product bug, it is the wrong page. Close every session before believing a browser result.
   18 commands in the registry, 58 headless tests, 10 browser laws.
+
+- **M17 — G21, and the bug it walked into (2026-07-23).** Smooth-versus-corner is the first gesture
+  whose *state* is a question, and the answer was to refuse the question: smoothness is read off the
+  geometry — two handles collinear with their anchor — rather than kept in a flag. That is the same
+  trade the rest of the editor makes (the drawing is the state), and it has a stated cost: "make
+  corner" must be visible, so it retracts the handles rather than merely decoupling them.
+  Promotion and demotion are what make it byte-honest: smoothing a straight join writes `C p0 p3 p3`,
+  the cubic that draws the identical chord, and retracting spells it `L` again — so smooth-then-corner
+  hands back the author's original commands. That round trip is the property test.
+  **The find of the session was an accident.** A browser check needed an undo in the middle, and the
+  drag afterwards did nothing: undo had silently dropped the selection. The cause is one line in
+  `svgFocus.paint`, and it is the same shape as the P7 restore bug — *a dead node writing shared
+  state*. After a commit the old node is detached, its `target.doc()` returns null, every selected
+  path fails to resolve, and its last repaint filtered them all away and announced that emptiness
+  into `lensState`, on top of what the new node had just restored. Nothing looked wrong, because the
+  new node's own copy was still correct; the damage only surfaced at the *next* read of the shared
+  state, which is undo. The fix is to distinguish the two ways an address can fail to resolve: "I
+  cannot see the document" is not "the element is gone", so paint now draws nothing and drops
+  nothing. Undo keeps the selection, its handles, and the ability to carry on dragging.
+  59 headless tests, 10 browser laws, 19 commands.
 
 ## 8. Open questions
 
