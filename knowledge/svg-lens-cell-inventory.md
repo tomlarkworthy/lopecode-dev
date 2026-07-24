@@ -13,25 +13,25 @@ dedupe/refactor work, ranked by lines-of-code impact.
 
 | done | cell | user | how | LOC | CC |
 |---|---|---|---|---|---|
-| ☐ | `intro` | prose ·  | | 2 | 1 |
-| ☐ | `loadSvg` |  | | 39 | 11 |
-| ☐ | `toolbar` |  | | 124 | 57 |
-| ☐ | `viewof drawing` |  | | 17 | 1 |
-| ☐ | `drawing` |  | | 1 | 1 |
-| ☐ | `inspector` |  | | 43 | 6 |
-| ☐ | `fieldPanel` |  | | 58 | 23 |
-| ☐ | `howToDrive` | prose ·  | | 36 | 1 |
-| ☐ | `putTable` |  | | 16 | 3 |
+| ☑ | `intro` | title + one-line pitch | static `md` | 2 | 1 |
+| ☑ | `loadSvg` | load your own .svg into the editor | `<input type=file>`; strips XML prolog/DOCTYPE/BOM, rejects markup `outsideDomain` can't address, commits via `drawing.edit("load")` | 39 | 11 |
+| ☑ | `toolbar` | tool buttons (V/R/E/L/P/S) **and the whole keyboard driver** (undo/redo, z-order, nudge, delete, tool hotkeys) | button row bound to `setTool`; global `keydown` mapping keys→tools/commands; highlights active tool | 124 | 57 |
+| ☑ | `viewof drawing` | the main editable drawing (flagship demo canvas) | `svgLens(svg`…`)` over a hand-written scene | 17 | 1 |
+| ☑ | `drawing` | — | `viewof` value | 1 | 1 |
+| ☑ | `inspector` | type exact attribute values for the selection; jump to a referenced `<defs>` node | reads `describe().attrs`, one `Inputs.text` per attr, commits via **`node.setAttr`** (raw `setAttribute`) ⚠ **overlaps `fieldPanel` on fill/stroke, different write path** | 43 | 6 |
+| ☑ | `fieldPanel` | edit paint & stroke (fill, stroke, width, opacity, dash, enums) as typed widgets | projects `drawing.fields()`, commits via **`node.setField`→`setProperty`** (style-aware) ⚠ **overlaps `inspector`** | 58 | 23 |
+| ☑ | `howToDrive` | the gestures + keys cheat-sheet | static `md` tables | 36 | 1 |
+| ☑ | `putTable` | live table of the last 8 edits with GetPut/PutGet law badges | `Generators.observe` on `lens-put`, `Inputs.table` ⚠ **shares the "put log" job with `edits`/`putLog`/`sinkRecord`** | 16 | 3 |
 
 ### Use it in your own notebook  ·  `useIt` (H2)
 
 | done | cell | user | how | LOC | CC |
 |---|---|---|---|---|---|
-| ☐ | `putLog` |  | | 3 | 1 |
-| ☐ | `edits` |  | | 11 | 3 |
-| ☐ | `viewof svgLensModule` |  | | 3 | 1 |
-| ☐ | `svgLensModule` |  | | 1 | 1 |
-| ☐ | `keepYourEdits` |  | | 13 | 5 |
+| ☑ | `putLog` | — | shared `[]` buffer of edit events (backs `edits`/`sinkRecord`) | 3 | 1 |
+| ☑ | `edits` | — | `Generators.observe` piping `lens-put` from drawing+factory into `putLog` ⚠ **put-log plumbing, cf `putTable`** | 11 | 3 |
+| ☑ | `viewof svgLensModule` | — | `thisModule()` handle for self-export | 3 | 1 |
+| ☑ | `svgLensModule` | — | `viewof` value | 1 | 1 |
+| ☑ | `keepYourEdits` | download this notebook with your edits baked in | reads `viewof drawing` `_definition` via `lookupVariable`, `downloadAnchor` saves the whole page | 13 | 5 |
 | ☐ | `paperHeader` | prose ·  | | 3 | 1 |
 
 ### §problem  ·  `problemH` (paper section)
