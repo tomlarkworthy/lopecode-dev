@@ -1954,6 +1954,12 @@ change). Nothing here adds a capability. Each item is falsified the same way the
 concrete before/after — and every change keeps the 59 laws green as the regression gate, which is what
 makes "refactor only" safe.
 
+The findings below were spotted by reading; they are **not** trusted to be complete. The method for
+finding the rest is a full census: **`knowledge/svg-lens-cell-inventory.md`** has one task per cell
+(all 302, LOC/CC pre-filled) — inventory *what it does for the user* and *how*, then cross-reference
+the `user` column for overlaps and rank the dedupe work by lines-of-code removed. The fill case is one
+row of that census; the census exists because one-off spotting misses the others.
+
 ### 9.1 Consistency (one way to do each thing)
 
 - **Two places to set the fill (and stroke).** `inspector` edits every attribute as raw text and
