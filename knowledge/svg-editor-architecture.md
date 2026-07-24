@@ -1959,36 +1959,35 @@ finding the rest was a full census: **`knowledge/svg-lens-cell-inventory.md`** h
 (all 341, LOC/CC and *user job* + *how* filled), then the `user` column cross-referenced for overlaps.
 
 **Census complete 2026-07-24** (20-agent workflow over the census). It confirmed the fill overlap and
-found five more; the ranked dedupe queue (373 LOC across overlapping cells) lives in the inventory doc:
+found five more; the ranked dedupe queue lives in the inventory doc.
 
-1. **`inspector` + `fieldPanel`** — both set fill/stroke through different write paths (101 LOC, high). *The fill case.*
-2. **`toolStructure` + `cmdDeleteVertex`** — delete-a-vertex implemented twice (99 LOC): the dbl-click handler should dispatch the command, not rebuild the delta.
-3. **`putTable` + `lawBadges` + `sinkRecord` + `edits` + `putLog`** — the put-log/law-badge display, five cells with independent listeners (65 LOC): one shared buffer + one `lawBadges` component.
-4. **`cmdAddGradient` + `cmdAddMarker`** — the defs-insert-and-point-`url(#id)` body, duplicated (44 LOC): extract one helper parameterised by markup + target attribute.
-5. **`cmdDuplicate` + `cmdPaste`** — the copy→offset→paste chain, duplicated (36 LOC): duplicate = copy-then-paste-with-offset.
-6. **`nearestSegment` + `nearestPathSegment`** — nearest-segment-to-a-point, twice (28 LOC): one routine over `pathSegments`' normalised list.
+**Dedupe done 2026-07-24: 5 of 6 refactored, #6 declined.** Every change kept the 59 laws + 6 bundle
+invariants green and was live-verified in a real runtime. The shared logic now lives in two new cells,
+`defsCommand` (`_sl300`) and `pasteInto` (`_sl301`). Line count is roughly flat — the census's "LOC"
+summed whole cells, not the removable portion; the win is one implementation per job.
 
-Work top-down; each dedupe is gated by the 59 laws staying green. The findings below (spotted before
-the census) are subsumed by #1–#3 above and kept for the extra detail (the `setAttr`/`setField`
-correctness note, the placement-rule idea).
+1. **`inspector` + `fieldPanel`** — ✅ **done.** `inspector` hides registry-owned properties (paint lives only in `fieldPanel`) and writes through `node.setProperty`; `node.setAttr` **removed**. One paint surface, one write path.
+2. **`toolStructure` + `cmdDeleteVertex`** — ✅ **done.** The dbl-click handler resolves the clicked handle to a vertex ordinal and dispatches `cmdDeleteVertex.plan(env)`; the delta-construction is gone from `toolStructure`. One implementation, two triggers.
+3. **`putTable` + `lawBadges` + `sinkRecord` + `edits` + `putLog`** — ✅ **done.** `putTable` reads the shared `putLog` (dropping its own duplicate listener), matching `sinkRecord`; `lawBadges` was already the shared component.
+4. **`cmdAddGradient` + `cmdAddMarker`** — ✅ **done.** Extracted `defsCommand` factory; both commands are thin `{tags, sourceAttr, targetAttr, prefix, markup}` callers.
+5. **`cmdDuplicate` + `cmdPaste`** — ✅ **done.** Extracted `pasteInto(id, parent, markups, at, d)`; both commands call it.
+6. **`nearestSegment` + `nearestPathSegment`** — ⛔ **declined (false positive).** Exact perpendicular projection (a test asserts `distance === 1`) vs sampled Bézier curves — zero shared code; merging would break exactness or add an adapter longer than either. Kept split by design.
+
+The findings below (spotted before the census) are subsumed by #1–#3 above and kept for the record.
 
 ### 9.1 Consistency (one way to do each thing)
 
-- **Two places to set the fill (and stroke).** `inspector` edits every attribute as raw text and
-  commits through `node.setAttr` (a bare `setAttribute` write); `fieldPanel` edits paint as typed
-  widgets and commits through `node.setField` → `setProperty`. Both show `fill` and `stroke`. They are
-  not merely redundant — they *disagree*: `setProperty` writes into a `style="fill:…"` declaration
-  where one exists, so the two panels can leave the same shape in two states, and the inspector can
-  silently create a losing `fill` **attribute** behind a `style` fill — the exact bug `setProperty`
-  was written to avoid. **Resolve to one paint surface:** either the inspector drops the
-  registry-covered properties (fill, stroke, stroke-width, opacity, dash) and keeps geometry / id /
-  transform, or the field panel absorbs them and the inspector becomes a raw-source escape hatch — but
-  `fill` is set in exactly one place, through one write path.
-- **`setAttr` vs `setField` — two write methods for one job.** `node.setAttr` bypasses
-  `setProperty`'s style-awareness; `node.setField` has it. The inspector is the only UI still on
-  `setAttr`; align, gradient, marker, the field panel and the chips are all on the delta / `setField`
-  path. Either make `setAttr` route through `setProperty` too, or restrict it to geometry attributes
-  where the style-vs-attribute distinction cannot arise.
+- **Two places to set the fill (and stroke).** ✅ **Resolved 2026-07-24.** `inspector` now hides any
+  attribute the `svgFields` registry owns (fill, stroke, stroke-width, opacity, dash…) — it keeps
+  geometry / id / transform / custom attributes — so paint is set in exactly one place, `fieldPanel`.
+  *(Original finding: both panels showed `fill`/`stroke` and could leave a shape in two states, the
+  inspector silently creating a losing `fill` attribute behind a `style` fill.)*
+- **`setAttr` vs `setField` — two write methods for one job.** ✅ **Resolved 2026-07-24.** `node.setAttr`
+  is **removed**; the inspector (its only caller) now writes through `node.setProperty`, which is
+  style-aware — where a `style="fill:…"` declaration exists it updates that declaration instead of
+  writing a losing attribute. For any attribute *not* shadowed by a `style` entry `setProperty`
+  produces byte-identical output to the old `setAttr`, so geometry/transform edits are unchanged. One
+  write path across every surface (delta / `setField` / `setProperty`).
 - **One operation, several surfaces, no stated rule.** Stroke-width is on the field panel *and* the
   ≡ chip; duplicate is ⌘D *and* the ⧉ chip; swap-paint and gradient/marker are chips only;
   align/distribute are keyboardless commands only. The *mechanism* is uniform (all one write path —

@@ -525,9 +525,36 @@ Total LOC in overlapping cells: 373.
 
 ### Dedupe tasks (top-down)
 
-- [ ] **#1 · Edit the selected shape's attributes / paint (fill, stroke, width, opacity)** (101 LOC, high). Merge into one properties panel driven by the svgFields registry with a single setField write path; drop inspector's separate setAttr path. Cells: `inspector`, `fieldPanel`.
-- [ ] **#2 · Delete a path/polygon vertex** (99 LOC, medium). Have the double-click handler dispatch the cmdDeleteVertex command rather than re-building deletePoint/deletePathPoint deltas itself; one delete implementation, two triggers. Cells: `toolStructure`, `cmdDeleteVertex`.
-- [ ] **#3 · Capture and display lens-put events with law checks** (65 LOC, medium). Feed one shared put-log buffer and render everywhere through the reusable lawBadges component; remove putTable/sinkRecord's independent listeners and bespoke tables. Cells: `putTable`, `lawBadges`, `sinkRecord`, `edits`, `putLog`.
-- [ ] **#4 · Add a <defs> entry and point an attribute at url(#id)** (44 LOC, medium). Extract one helper (mintId + defsInsert + setProperty at url(#id)) parameterised by def markup and target attribute; both commands become thin callers. Cells: `cmdAddGradient`, `cmdAddMarker`.
-- [ ] **#5 · Copy, offset and paste a duplicate of the selection** (36 LOC, medium). Share one offset-paste routine; cmdDuplicate becomes copy-then-invoke cmdPaste with offset, removing the repeated copyMarkup->offsetMarkup->pasteMarkup chain. Cells: `cmdDuplicate`, `cmdPaste`.
-- [ ] **#6 · Find the segment of a shape nearest a point** (28 LOC, low). Unify into one nearest-segment routine over a normalized segment list (pathSegments already normalizes both polygon edges and path curves). Cells: `nearestSegment`, `nearestPathSegment`.
+**Status (2026-07-24): 5 of 6 refactored, #6 declined. All 59 laws + 6 bundle invariants green
+after each change, and every changed path live-verified in a real runtime (headless QA).** Two new
+helper cells hold the shared logic: `defsCommand` (`_sl300`) and `pasteInto` (`_sl301`). The line
+count is roughly flat (+103/−101) because the census's "LOC" summed whole cells, not the removable
+portion — the win is one implementation per job, not fewer lines.
+
+- [x] **#1 · Edit the selected shape's attributes / paint** (high) — **done.** `inspector` now hides
+  any attribute the `svgFields` registry owns (fill, stroke, width, opacity…) so paint lives only in
+  `fieldPanel`; its writes route through `node.setProperty` (style-aware) and `node.setAttr` is
+  **removed**. One paint surface, one write path. Verified live: a selected rect shows only
+  `x/y/width/height` in the inspector, `Fill`/`Stroke` only in fieldPanel.
+- [x] **#2 · Delete a path/polygon vertex** (medium) — **done.** The double-click handler in
+  `toolStructure` resolves the clicked handle to a vertex ordinal and dispatches
+  `cmdDeleteVertex.plan(env)`, rather than rebuilding `deletePoint`/`deletePathPoint` deltas. One
+  delete implementation, two triggers. Verified live end-to-end: a real `dblclick` on a polygon's
+  middle vertex handle removed exactly that vertex (3→2 points).
+- [x] **#3 · Capture and display lens-put events** (medium) — **done.** `putTable` now reads the
+  shared `putLog` (the "drawing" rows `edits` already records), dropping its own duplicate
+  `Generators.observe` listener on `viewof drawing` — the same pattern `sinkRecord` already used.
+  `lawBadges` was already the shared per-demo component (no change). Verified live: 6 putLog drawing
+  rows → putTable rendered 6 rows reactively.
+- [x] **#4 · Add a <defs> entry and point an attribute at url(#id)** (medium) — **done.** Extracted
+  `defsCommand` factory (mintId + setProperty + attrTextLens.put + defsInsert), parameterised by
+  `{tags, sourceAttr, targetAttr, prefix, markup}`. `cmdAddGradient`/`cmdAddMarker` are thin callers.
+  Verified live: add-gradient inserted `<defs><linearGradient id="grad1">` and set fill to `url(#grad1)`.
+- [x] **#5 · Copy, offset and paste a duplicate of the selection** (medium) — **done.** Extracted
+  `pasteInto(id, parent, markups, at, d)` — the shared offset→pasteMarkup→select tail. `cmdDuplicate`
+  and `cmdPaste` both call it. Verified live: duplicate produced an offset copy (`translate(8 8)`).
+- [x] **#6 · Find the segment of a shape nearest a point** (low) — **declined (false positive).**
+  `nearestSegment` does *exact* perpendicular projection on straight edges (a test asserts
+  `distance === 1`); `nearestPathSegment` *samples* Bézier curves (projection has no closed form).
+  They share zero code. Merging would break the exactness test or add an adapter longer than either
+  function — so correctness forbids it. Kept split by design. Cells: `nearestSegment`, `nearestPathSegment`.
