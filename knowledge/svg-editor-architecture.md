@@ -3,11 +3,20 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
+**Status 2026-07-24 — feature-complete; the work from here is consistency, usefulness and
+refactoring.** The capability set is done. S1–S10 and the gesture surface are built (§7); the shape,
+command and affordance registries cover the format; gradients and markers (the last new capability)
+landed, and table editing in the prose layer works. **No new features are planned.** Future work has
+three pillars and adds no capability: (a) make the features that exist *consistent* with each other —
+one way to do each thing; (b) make them more *useful*; (c) *refactor* the code for maintainability.
+The remaining "missing capability" items in §5 (text tool, `<image>`, eyedropper, swatch-drop —
+G26–G29) are **out of scope** for this phase: deferred, not planned. §9 is the standing backlog for
+this work; §6 is retained as the record of how the capabilities were built, and the 59 laws are the
+regression gate that makes "refactor only" safe.
+
 **Status 2026-07-23.** M0–M8 are built (§7): the editor commits through `Variable.define`, addressing
 is structural, and tools, selection, the gizmo, undo, snapping and interpolated templates all work.
-Every structural block in §2 is gone. What remains is **breadth** — the editor is lawful and complete
-over three tags and one sink, and an SVG editor has to be complete over the format. §5 is the current
-gap list, re-derived from the code and the browser; §6 is the plan for closing it.
+Every structural block in §2 is gone. What remained was **breadth** — now closed through S10.
 
 ## 1. What already exists in this repo
 
@@ -1935,3 +1944,72 @@ Roughly by value per unit of work, given what already exists:
   re-anchoring on every command; ids survive edits but pollute the drawing the user is authoring.
 - Whether `childrenLens` should view child *source strings* (residue-preserving, chosen above) or
   parsed nodes (nicer commands, loses formatting). Probably strings at L2, nodes at L3.
+
+## 9. Consistency and refactoring: the work from here
+
+Feature-building is done (see the 2026-07-24 status). This is the standing backlog, and it has three
+kinds of entry matching the three pillars: **consistency** (one way to do each thing), **usefulness**
+(the features that exist made to carry their weight), and **refactoring** (code health, no behaviour
+change). Nothing here adds a capability. Each item is falsified the same way the gaps were — by a
+concrete before/after — and every change keeps the 59 laws green as the regression gate, which is what
+makes "refactor only" safe.
+
+### 9.1 Consistency (one way to do each thing)
+
+- **Two places to set the fill (and stroke).** `inspector` edits every attribute as raw text and
+  commits through `node.setAttr` (a bare `setAttribute` write); `fieldPanel` edits paint as typed
+  widgets and commits through `node.setField` → `setProperty`. Both show `fill` and `stroke`. They are
+  not merely redundant — they *disagree*: `setProperty` writes into a `style="fill:…"` declaration
+  where one exists, so the two panels can leave the same shape in two states, and the inspector can
+  silently create a losing `fill` **attribute** behind a `style` fill — the exact bug `setProperty`
+  was written to avoid. **Resolve to one paint surface:** either the inspector drops the
+  registry-covered properties (fill, stroke, stroke-width, opacity, dash) and keeps geometry / id /
+  transform, or the field panel absorbs them and the inspector becomes a raw-source escape hatch — but
+  `fill` is set in exactly one place, through one write path.
+- **`setAttr` vs `setField` — two write methods for one job.** `node.setAttr` bypasses
+  `setProperty`'s style-awareness; `node.setField` has it. The inspector is the only UI still on
+  `setAttr`; align, gradient, marker, the field panel and the chips are all on the delta / `setField`
+  path. Either make `setAttr` route through `setProperty` too, or restrict it to geometry attributes
+  where the style-vs-attribute distinction cannot arise.
+- **One operation, several surfaces, no stated rule.** Stroke-width is on the field panel *and* the
+  ≡ chip; duplicate is ⌘D *and* the ⧉ chip; swap-paint and gradient/marker are chips only;
+  align/distribute are keyboardless commands only. The *mechanism* is uniform (all one write path —
+  that is the achievement); the *placement* is ad-hoc. Write the placement rule down the way §6.1
+  wrote down competence: a **chip** is a spatial/on-canvas action, a **panel row** is a value you
+  type, a **command/key** is a verb over a selection — then make the surfaces match it, and let a
+  surface be a pure projection of "which operations qualify," not a hand-curated list.
+- **The two panels stack under the drawing** with overlapping legends. Once the fill duplication is
+  resolved, decide whether inspector + fieldPanel are one panel with sections or a disclosure/tab
+  surface, so a selection presents *one* editor.
+
+### 9.2 Usefulness (the features made to carry their weight)
+
+- **Heterogeneous multi-selection.** `fieldPanel` reads `fields(paths[0])` — it shows the *first*
+  element's values and writes to all, so a mixed selection shows a misleading value. Show a
+  mixed-state marker (blank / "—") when selected values differ, and only overwrite the ones the user
+  actually changes.
+- **Reachability parity.** The chips have no keys; the keyed commands (align/distribute) have no chip
+  or menu. Round this out so every operation is reachable both ways, or state why an operation is
+  deliberately one-surface-only.
+- **Gradient/marker follow-through.** `cmdAddGradient`/`cmdAddMarker` create a default and stop;
+  editing the stops or endpoints means selecting the `<defs>` child by hand. The deferred G35 on-canvas
+  gizmo would make the feature useful and is refactoring-adjacent — it reuses the delta path and adds
+  no new write mechanism.
+
+### 9.3 Refactoring (no behaviour change)
+
+- **`svgLens` is the monolith §2.4 warned about, now worse:** MI 0, 527 LOC, cyclomatic 197, 36 inputs
+  (`tools/code-metrics-cli.ts`, 2026-07-24). It owns `affContext`, `commandEnv`, the whole `node.*`
+  method surface, the writer wiring and the ctx facade. Extract the cohesive pieces it already names —
+  `affContext`, `commandEnv`/`commandPlan`, the `node.*` command methods — into their own cells, the
+  way the tools and commands were extracted from it earlier. Target: no cell over ~150 LOC.
+- **The next low-MI cells, in order:** `svgWriter` (15), `svgFocus` (18), `toolVertex` (18),
+  `pathSmooth` (18), `toolbar` (20), `toolMove` (20), `toolPen` (21). Each is a state machine or wiring
+  cell that has accreted; the delta framework now gives most of them a smaller shape than they still
+  use (e.g. a tool that still threads `ctx.state.drag` by hand can often hand a `gestureDelta` instead).
+- **Density vs debt.** 215 of 341 cells score MI < 65 — partly the prose density the paper wants, but
+  the *tool and command* cells specifically should come down now that `gestureDelta` carries what they
+  used to inline. Don't flatten the lens cells for a number's sake.
+- **Dead-code sweep.** Confirm nothing still calls the pre-delta positional
+  `writer.commit(idx, name, value, …)` signature, and that the revived `attr`/`child`/`nodeEq` tree
+  lenses (§2.3) are all reachable — remove any that are not.
