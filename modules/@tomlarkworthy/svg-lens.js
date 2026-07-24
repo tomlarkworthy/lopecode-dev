@@ -4555,7 +4555,13 @@ Rendering evaluates the template rather than parsing its text, so an interpolate
 
 \`svgLens\` is wiring and nothing else. The parts it wires:
 
-| Cell | Owns | |---|---| | \`svgTarget\` | which variable this node is, the parameter name the cell calls \`svgLens\` by, and the document text | | \`svgWriter\` | \`applySource\` / \`commit\` / \`runCommand\` — the only code that assigns \`_definition\` | | \`svgOverlay\` | the handle layer, and the \`isOwn\` predicate that keeps the renderer off it | | \`svgFocus\` | which element is selected and where its handles are drawn | | \`svgTools\` | the tool registry: \`toolVertex\`, \`toolMove\`, \`toolStructure\` |
+| Cell | Owns |
+|---|---|
+| \`svgTarget\` | which variable this node is, the parameter name the cell calls \`svgLens\` by, and the document text |
+| \`svgWriter\` | \`applySource\` / \`commit\` / \`runCommand\` — the only code that assigns \`_definition\` |
+| \`svgOverlay\` | the handle layer, and the \`isOwn\` predicate that keeps the renderer off it |
+| \`svgFocus\` | which element is selected and where its handles are drawn |
+| \`svgTools\` | the tool registry — move, vertex, transform, marquee, the shape and pen tools, and the affordance dispatcher |
 
 A tool is \`{id, onPointerDown, onPointerMove, onPointerUp, onDblClick}\`. \`onPointerDown\` returns true to claim the gesture; registry order is priority. Tools read the document, preview in the live DOM, and hand a command or a commit to the writer — they never write the source themselves, and none of them knows what a lens is. Adding a tool is adding a cell:
 
