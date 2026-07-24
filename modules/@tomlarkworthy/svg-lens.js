@@ -362,10 +362,10 @@ gridContainer(runtime, {
   height: 460,
   include: ["viewof drawing", "drawingCode", "toolbar", "inspector", "fieldPanel"],
   layout: {
-    frame: { w: 1200, h: 880 },
+    frame: { w: 1200, h: 800 },
     atoms: {
-      "viewof drawing": { x: 0, y: 0, w: 8, h: 9 },
-      drawingCode: { x: 0, y: 9, w: 8, h: 5 },
+      "viewof drawing": { x: 0, y: 0, w: 8, h: 4 },
+      drawingCode: { x: 0, y: 4, w: 8, h: 4 },
       toolbar: { x: 8, y: 0, w: 4, h: 1 },
       inspector: { x: 8, y: 1, w: 4, h: 3 },
       fieldPanel: { x: 8, y: 4, w: 4, h: 4 }
