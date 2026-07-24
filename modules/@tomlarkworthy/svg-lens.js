@@ -351,25 +351,35 @@ const _sl271 = function _fieldPanel(htl,Inputs,invalidation,$0)
   return el;
 };
 
-// The interactive bench: the drawing beside its tool/paint selectors, composed on a snap grid
-// (drag an atom to rearrange; the `layout` literal is the persisted truth, rewritten on drag).
+// The interactive bench: the drawing above its live source, beside its tool/paint selectors,
+// composed on a snap grid (drag an atom to rearrange; the `layout` literal is the persisted truth,
+// rewritten on drag).
 const _sl305 = function _workbench(gridContainer,runtime,invalidation,svgLensModule){return(
 gridContainer(runtime, {
   invalidation,
   module: svgLensModule,
   columns: 12,
   height: 460,
-  include: ["viewof drawing", "toolbar", "inspector", "fieldPanel"],
+  include: ["viewof drawing", "drawingCode", "toolbar", "inspector", "fieldPanel"],
   layout: {
+    frame: { w: 1200, h: 880 },
     atoms: {
       "viewof drawing": { x: 0, y: 0, w: 8, h: 9 },
+      drawingCode: { x: 0, y: 9, w: 8, h: 5 },
       toolbar: { x: 8, y: 0, w: 4, h: 1 },
-      inspector: { x: 8, y: 1, w: 4, h: 4 },
-      fieldPanel: { x: 8, y: 5, w: 4, h: 4 }
+      inspector: { x: 8, y: 1, w: 4, h: 3 },
+      fieldPanel: { x: 8, y: 4, w: 4, h: 4 }
     }
   }
 })
 )};
+
+// A userspace editor-5 cell editor bound to the drawing's own Variable: a live source preview that
+// rewrites as the SVG is manipulated (and edits back — source and picture are the same value).
+const _sl306 = async function _drawingCode(cellEditor,lookupVariable,svgLensModule){
+  const v = await lookupVariable("viewof drawing", svgLensModule);
+  return cellEditor(v, { pinned: true });
+};
 
 // ---- the SVG-factory case: a template with holes in it -------------------------------------------
 const _sl06a = function _factoryDoc(md){return(
@@ -9664,6 +9674,7 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/acorn-8-11-3", async () => runtime.module((await import("/@tomlarkworthy/acorn-8-11-3.js?v=4")).default));
   main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));
   main.define("module @tomlarkworthy/grid-container", async () => runtime.module((await import("/@tomlarkworthy/grid-container.js?v=4")).default));
+  main.define("module @tomlarkworthy/editor-5", async () => runtime.module((await import("/@tomlarkworthy/editor-5.js?v=4")).default));
 
   // Display order is the reading order of a paper: demo and how to use it, then the argument with a
   // widget beside each claim, then related and future work, then the references, then the appendix
@@ -10028,6 +10039,7 @@ export default function define(runtime, observer) {
   $def("sl02b", "toolbar", ["htl","invalidation","viewof drawing"], _sl02b);
   $def("sl02c", "inspector", ["htl","Inputs","invalidation","svgFields","viewof drawing"], _sl02c);
   $def("sl271", "fieldPanel", ["htl","Inputs","invalidation","viewof drawing"], _sl271);
+  $def("sl306", "drawingCode", ["cellEditor","lookupVariable","svgLensModule"], _sl306);
 
   main.define("tests", ["module @tomlarkworthy/tests", "@variable"], (_, v) => v.import("tests", _));
   // Prose is click-to-edit, as in @tomlarkworthy/lopecode-live-2026.
@@ -10040,5 +10052,6 @@ export default function define(runtime, observer) {
   // The download link: exporter-3 projects this live runtime back into a file.
   main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));
   main.define("gridContainer", ["module @tomlarkworthy/grid-container", "@variable"], (_, v) => v.import("gridContainer", _));
+  main.define("cellEditor", ["module @tomlarkworthy/editor-5", "@variable"], (_, v) => v.import("cellEditor", _));
   return main;
 }
