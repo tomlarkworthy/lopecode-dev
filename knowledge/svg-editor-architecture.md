@@ -1955,10 +1955,22 @@ concrete before/after — and every change keeps the 59 laws green as the regres
 makes "refactor only" safe.
 
 The findings below were spotted by reading; they are **not** trusted to be complete. The method for
-finding the rest is a full census: **`knowledge/svg-lens-cell-inventory.md`** has one task per cell
-(all 302, LOC/CC pre-filled) — inventory *what it does for the user* and *how*, then cross-reference
-the `user` column for overlaps and rank the dedupe work by lines-of-code removed. The fill case is one
-row of that census; the census exists because one-off spotting misses the others.
+finding the rest was a full census: **`knowledge/svg-lens-cell-inventory.md`** has one row per cell
+(all 341, LOC/CC and *user job* + *how* filled), then the `user` column cross-referenced for overlaps.
+
+**Census complete 2026-07-24** (20-agent workflow over the census). It confirmed the fill overlap and
+found five more; the ranked dedupe queue (373 LOC across overlapping cells) lives in the inventory doc:
+
+1. **`inspector` + `fieldPanel`** — both set fill/stroke through different write paths (101 LOC, high). *The fill case.*
+2. **`toolStructure` + `cmdDeleteVertex`** — delete-a-vertex implemented twice (99 LOC): the dbl-click handler should dispatch the command, not rebuild the delta.
+3. **`putTable` + `lawBadges` + `sinkRecord` + `edits` + `putLog`** — the put-log/law-badge display, five cells with independent listeners (65 LOC): one shared buffer + one `lawBadges` component.
+4. **`cmdAddGradient` + `cmdAddMarker`** — the defs-insert-and-point-`url(#id)` body, duplicated (44 LOC): extract one helper parameterised by markup + target attribute.
+5. **`cmdDuplicate` + `cmdPaste`** — the copy→offset→paste chain, duplicated (36 LOC): duplicate = copy-then-paste-with-offset.
+6. **`nearestSegment` + `nearestPathSegment`** — nearest-segment-to-a-point, twice (28 LOC): one routine over `pathSegments`' normalised list.
+
+Work top-down; each dedupe is gated by the 59 laws staying green. The findings below (spotted before
+the census) are subsumed by #1–#3 above and kept for the extra detail (the `setAttr`/`setField`
+correctness note, the placement-rule idea).
 
 ### 9.1 Consistency (one way to do each thing)
 
