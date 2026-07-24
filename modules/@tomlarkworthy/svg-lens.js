@@ -15,26 +15,34 @@
 // ================================================================================================
 // DOCUMENTATION + DEMO
 // ================================================================================================
-const _sl01 = function _intro(md) {return (md`# SVG Lens
+const _sl01 = function _intro(md,cite) {return (md`# SVG Sketch Source
 
-The drawing syncs to the code and vice versa. Switch between using code and UI`);};
+The drawing syncs to the code and vice versa. Switch between using code and UI. Built on composable lens ${ cite('foster2007lenses') } and edit-lens ${ cite('hofmann2012editlenses') } theory.`);};
 
 // The drawing IS the source. Dragging rewrites this literal, byte-exactly, in place.
 const _sl02 = function _drawing(svgLens,svg){return(
-svgLens(svg`<svg viewBox="0 0 320 220" width="100%" style="max-height:420px;background:#EDF1E8">
+svgLens(svg`<svg viewBox="0 0 320 220" width="100%" style="max-height:420px;">
   <!-- comments, odd spacing and readable transforms all
        survive dragging: the lens rewrites only what must change -->
-  <circle cx="60" cy="52" r="24" fill="#F5B840"
-          stroke="#D99A17" stroke-width="3"/>
-  <polygon points="20,190  110,80  200,190" fill="#5B7A5E"/>
-  <polygon points="150,190 230,96 310,190" fill="#41584A"/>
-  <g transform="translate(228 128) rotate(-4)">
+  <circle cx="60" cy="52" r="24" fill="url(#grad1)"
+          stroke="none" stroke-width="3"/>
+  <polygon points="20,190  110,80  200,190" fill="url(#grad2)"/>
+  <path d="M 25.5 192.5 C 136.5 184.5 162 140.5 209 129 S 258 130.5 297.5 147"
+        fill="none" stroke="url(#grad3)" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow1)"/>
+  <polygon points="150,190 230,96 310,190" fill="url(#grad2)"/>
+  <g transform="translate(163.57161652739427 135.71595290467684) rotate(1 0 18)">
     <rect x="-26" y="10" width="52" height="44" fill="#B25B3A"/>
     <polygon points="-34,12 0,-18 34,12" fill="#7A3B25"/>
   </g>
-  <path d="M 10 30 C 50 12, 84 44, 128 26 S 200 8, 244 30 q 20 -12 40 -2"
-        fill="none" stroke="#4C7FD1" stroke-width="3" stroke-linecap="round"/>
   <rect x="0" y="188" width="320" height="8" fill="#3E4A3B"/>
+  <defs>
+    <linearGradient id="grad1" x1="0.021" y1="0.979" x2="-0.031" y2="0.115"><stop offset="0" stop-color="#F5B840"/><stop offset="1" stop-color="#e61919"/></linearGradient>
+    <linearGradient id="background" x1="0.021" y1="0.979" x2="-0.031" y2="0.115"><stop offset="0" stop-color="#F5B840"/><stop offset="1" stop-color="#e61919"/></linearGradient>
+    <marker id="arrow1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4C7FD1"/></marker>
+    <linearGradient id="grad2" x1="0.661" y1="0.6" x2="0.964" y2="0.495"><stop offset="0" stop-color="#5B7A5E"/><stop offset="1" stop-color="#9bc5a0"/></linearGradient>
+    <linearGradient id="grad3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e99401"/><stop offset="1" stop-color="#e30fff"/></linearGradient>
+    </defs>
+  <rect x="156.5773" y="158.5" width="13.5" height="29.5" fill="#13131f"/>
 </svg>`)
 )};
 const _sl03 = (G, _) => G.input(_);
@@ -9640,7 +9648,7 @@ export default function define(runtime, observer) {
   // Display order is the reading order of a paper: demo and how to use it, then the argument with a
   // widget beside each claim, then related and future work, then the references, then the appendix
   // (tests first, implementation after, imports last).
-  $def("sl01", "intro", ["md"], _sl01);
+  $def("sl01", "intro", ["md","cite"], _sl01);
   $def("sl02d", "loadSvg", ["htl","outsideDomain","viewof drawing"], _sl02d);
   $def("sl02b", "toolbar", ["htl","invalidation","viewof drawing"], _sl02b);
   $def("sl02", "viewof drawing", ["svgLens","svg"], _sl02);
