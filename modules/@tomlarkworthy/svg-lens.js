@@ -351,6 +351,26 @@ const _sl271 = function _fieldPanel(htl,Inputs,invalidation,$0)
   return el;
 };
 
+// The interactive bench: the drawing beside its tool/paint selectors, composed on a snap grid
+// (drag an atom to rearrange; the `layout` literal is the persisted truth, rewritten on drag).
+const _sl305 = function _workbench(gridContainer,runtime,invalidation,svgLensModule){return(
+gridContainer(runtime, {
+  invalidation,
+  module: svgLensModule,
+  columns: 12,
+  height: 460,
+  include: ["viewof drawing", "toolbar", "inspector", "fieldPanel"],
+  layout: {
+    atoms: {
+      "viewof drawing": { x: 0, y: 0, w: 8, h: 9 },
+      toolbar: { x: 8, y: 0, w: 4, h: 1 },
+      inspector: { x: 8, y: 1, w: 4, h: 4 },
+      fieldPanel: { x: 8, y: 5, w: 4, h: 4 }
+    }
+  }
+})
+)};
+
 // ---- the SVG-factory case: a template with holes in it -------------------------------------------
 const _sl06a = function _factoryDoc(md){return(
 md`Three rectangles, one slider each way. **The first** carries \`transform="translate(\${shift} 0)"\`
@@ -9643,19 +9663,16 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));
   main.define("module @tomlarkworthy/acorn-8-11-3", async () => runtime.module((await import("/@tomlarkworthy/acorn-8-11-3.js?v=4")).default));
   main.define("module @tomlarkworthy/exporter-3", async () => runtime.module((await import("/@tomlarkworthy/exporter-3.js?v=4")).default));
+  main.define("module @tomlarkworthy/grid-container", async () => runtime.module((await import("/@tomlarkworthy/grid-container.js?v=4")).default));
 
   // Display order is the reading order of a paper: demo and how to use it, then the argument with a
   // widget beside each claim, then related and future work, then the references, then the appendix
   // (tests first, implementation after, imports last).
   $def("sl01", "intro", ["md","cite"], _sl01);
+  // The bench: drawing + tool/paint selectors, composed side-by-side on `workbench`'s snap grid.
+  // Their standalone value-rows live in the implementation appendix (their nodes are shown by the grid).
+  $def("sl305", "workbench", ["gridContainer","runtime","invalidation","svgLensModule"], _sl305);
   $def("sl02d", "loadSvg", ["htl","outsideDomain","viewof drawing"], _sl02d);
-  $def("sl02b", "toolbar", ["htl","invalidation","viewof drawing"], _sl02b);
-  $def("sl02", "viewof drawing", ["svgLens","svg"], _sl02);
-  $def("sl03", "drawing", ["Generators","viewof drawing"], _sl03);
-  // The inspector's height follows the selection, so it sits *below* the drawing: above it, every
-  // change of selection would shift the picture under the pointer mid-gesture.
-  $def("sl02c", "inspector", ["htl","Inputs","invalidation","svgFields","viewof drawing"], _sl02c);
-  $def("sl271", "fieldPanel", ["htl","Inputs","invalidation","viewof drawing"], _sl271);
   $def("sl04", "howToDrive", ["md","ref"], _sl04);
   $def("sl05", "putTable", ["putLog","edits","Inputs"], _sl05);
   $def("sl08", "useIt", ["md"], _sl08);
@@ -10004,6 +10021,14 @@ export default function define(runtime, observer) {
   $def("sl113s", "lensState", [], _sl113s);
   $def("sl114", "svgLens", ["lensState","svgTarget","svgWriter","svgOverlay","svgFocus","svgTools","svgShapes","svgCommands","svgFields","svgAffordances","commandLookup","copyMarkup","moveTargetOf","commitDelta","rebaseVertex","invert","applyPoint","ctmMat","insertElement","deleteElement","reorderElement","rebasePath","childrenLens","zTarget","attrVal","effectiveAttr","translateLens","nodeAt","setProperty","refsOf","boxInRoot","hitTest","scopedPath","pathOfIndex","parseViewBox","printViewBox","gradientGizmo","attrTextLens"], _sl114);
 
+  // The bench cells — their live nodes are shown by `workbench` (the snap-grid at the top); these
+  // definitions render only their value-rows here in the appendix.
+  $def("sl02", "viewof drawing", ["svgLens","svg"], _sl02);
+  $def("sl03", "drawing", ["Generators","viewof drawing"], _sl03);
+  $def("sl02b", "toolbar", ["htl","invalidation","viewof drawing"], _sl02b);
+  $def("sl02c", "inspector", ["htl","Inputs","invalidation","svgFields","viewof drawing"], _sl02c);
+  $def("sl271", "fieldPanel", ["htl","Inputs","invalidation","viewof drawing"], _sl271);
+
   main.define("tests", ["module @tomlarkworthy/tests", "@variable"], (_, v) => v.import("tests", _));
   // Prose is click-to-edit, as in @tomlarkworthy/lopecode-live-2026.
   main.define("md", ["module @tomlarkworthy/editable-md", "@variable"], (_, v) => v.import("md", _));
@@ -10014,5 +10039,6 @@ export default function define(runtime, observer) {
   main.define("lookupVariable", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("lookupVariable", _));
   // The download link: exporter-3 projects this live runtime back into a file.
   main.define("downloadAnchor", ["module @tomlarkworthy/exporter-3", "@variable"], (_, v) => v.import("downloadAnchor", _));
+  main.define("gridContainer", ["module @tomlarkworthy/grid-container", "@variable"], (_, v) => v.import("gridContainer", _));
   return main;
 }
