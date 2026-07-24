@@ -2011,7 +2011,9 @@ The findings below (spotted before the census) are subsumed by #1–#3 above and
 - **Gradient/marker follow-through.** `cmdAddGradient`/`cmdAddMarker` create a default and stop;
   editing the stops or endpoints means selecting the `<defs>` child by hand. The deferred G35 on-canvas
   gizmo would make the feature useful and is refactoring-adjacent — it reuses the delta path and adds
-  no new write mechanism.
+  no new write mechanism. **The gradient property box is the sharpest case — it edits nothing that
+  matters (the colours and stops are invisible from it and unreachable by pointer). Full task list in
+  §9.4.**
 
 ### 9.3 Refactoring (no behaviour change)
 
@@ -2030,3 +2032,77 @@ The findings below (spotted before the census) are subsumed by #1–#3 above and
 - **Dead-code sweep.** Confirm nothing still calls the pre-delta positional
   `writer.commit(idx, name, value, …)` signature, and that the revived `attr`/`child`/`nodeEq` tree
   lenses (§2.3) are all reachable — remove any that are not.
+
+### 9.4 Gradient/defs editing: the property box that edits nothing that matters
+
+`cmdAddGradient` mints `<linearGradient x1=0 y1=0 x2=1 y2=0><stop offset=0 …/><stop offset=1 …/></…>`
+into `<defs>` and points the shape's `fill` at it. After that the feature dead-ends: a `<linearGradient>`
+is *selectable* (the inspector-jump fix), but its property box shows only its **own** attributes
+(`id`, `x1..y2`) as raw text, and the **stops carry the colours and offsets — the whole point of a
+gradient — as children**. Three compounding gaps make those children uneditable in practice:
+
+1. **`describe(path)` returns the element's own attrs only, never its children** (module ~9161), so
+   from the gradient's box the stops don't exist. You see `x1..y2`, not "two colour stops".
+2. **A `<stop>` renders nothing on canvas**, and the only way down the tree is double-clicking
+   geometry (`toolStructure`). There is no outline/layers/defs surface, so a stop is **unreachable by
+   pointer** — you can select it programmatically and no other way.
+3. **The field registry (`svgFields`) is one flat, tag-agnostic list of fill/stroke props** (module
+   ~2282), applied to every element by `node.fields`. On a stop it shows Fill/Stroke (meaningless) and
+   has **no widget for `stop-color`/`stop-opacity`/`offset`**; on the gradient it shows Fill/Stroke too.
+   So even the reachable-by-hand attributes get raw text boxes, not a colour swatch.
+
+Net: the box edits `x1..y2` (blind numbers — in the default `objectBoundingBox` units they are 0..1
+fractions of the shape's box, with no visual axis) and nothing else that matters. This is **usefulness
+work, not a new capability**: a stop is an element and editing an element's attributes is already the
+core competence — these tasks route stops through the existing `describe`/`fields`/`setProperty`/delta
+machinery and the `svgShapes` per-tag registry pattern. Every task keeps the 59 laws + 6 bundle
+invariants green; each is falsified by a concrete before/after in live QA (the laws test lens math, not
+tool/panel wiring).
+
+Order: G1 → G2/G3 unblock *reading and typing* every stop value (the user's stated pain); G4 adds
+add/remove/reorder; G5 the gradient-level controls; G6 the on-canvas gizmo (the deferred G35) is the
+polish once the data model is fully editable.
+
+**Done 2026-07-24 — G1–G6 all shipped.** Two new test cells (`test_gradient_stops`,
+`test_gradient_gizmo`) join the suite (61 laws + 6 bundle invariants green), and each was live-verified
+in a headless runtime. New cells: `cmdStop` (`_sl302`, add/delete-stop), `gradientGizmo` (`_sl304`, the
+pure axis model). New `node` methods: `gradientStops(path)` and `setProperties(path, pairs)` (one-commit
+multi-attr). `svgFields` is now `{ list, read, forTag }`.
+
+- [x] **G1 · make a stop reachable.** ✅ Done. `node.gradientStops(path)` resolves a selection that IS
+  a gradient, is a `<stop>` inside one, or is a shape whose paint `url(#id)` points at one (via
+  `node.refs`/`refsOf`) to `{gradient, stops:[{path,color,offset}]}`. The inspector renders a
+  click-to-select **stops strip** of colour swatches (plus a `+` that runs add-stop). Verified live:
+  selecting the gradient-filled circle shows two swatches; a click makes the `<stop>` the selection.
+  *(The fuller defs/outline panel is still bigger and still deferred; the strip is what unblocked G2/G3.)*
+- [x] **G2 · per-tag fields (mirror `svgShapes`).** ✅ Done. `svgFields.forTag(tag)` returns the fields
+  for a tag: the universal paint list by default; `stop` → `stop-color` (colour), `stop-opacity`
+  (number), `offset` (text); the gradient tags → their own (G5). `node.fields` picks by `nodeAt(...).tag`.
+  Verified live: a selected stop shows a **colour swatch for `stop-color`**, not Fill/Stroke; the write
+  is `setField` → `setProperty`, the one path.
+- [x] **G3 · stop-color/offset split.** ✅ Done. The inspector's `owned` set is now per-tag, so it hides
+  the stop's registry fields (paint stays in the panel). Verified live: `offset` round-trips both `0.5`
+  and `50%` (its field is `text`, so the `%` survives — the same residue rule `lengthLens` keeps).
+- [x] **G4 · add / delete stops.** ✅ Done as `cmdStop("add")` / `cmdStop("delete")` on
+  `insertElement`/`deleteElement` (the shape verbs' delta path). add-stop lands at the **midpoint of the
+  widest offset gap**, colour copied from the left stop, and selects the new stop; delete-stop **declines
+  below two stops** (T8). Verified live: 2→3 on add (new stop at offset 0.75), 3→2 on delete, greyed at 2.
+  **Reorder is deliberately not a command** — stops paint in document order and retyping `offset` past a
+  neighbour is the ordering the author already sees; a move verb would be a second way to say it.
+- [x] **G5 · gradient-level controls.** ✅ Done via G2: `linearGradient`/`radialGradient` contribute
+  `gradientUnits` + `spreadMethod` (enums), the coordinates (`x1..y2` / `cx,cy,r,fx,fy`, as `text` so a
+  `%` survives), and `gradientTransform` (text). Verified live: the gradient panel shows all seven linear
+  fields. **Linear⇄radial (a tag rewrite, not an attr) is deferred** — noted here rather than half-built.
+- [x] **G6 · on-canvas gizmo (the deferred G35).** ✅ Done. When a gradient-filled shape is selected,
+  `setDecorate` draws the axis (dashed line + endpoint handles for linear; centre + radius for radial),
+  positioned by mapping `gradientGizmo.handles` through the shape's box via `ctx.rootPoint` (P5). A drag
+  previews on the live gradient element (transient DOM) and commits `x1..y2`/`cx,cy,r` through
+  `node.setProperties` — **one history entry per endpoint**, `stopPropagation` so the shape's own
+  transform is untouched. Verified live: handles at the right places, a drag commits once, one undo
+  reverts it. **Known limits (polish, not blocking):** the gizmo writes unitless fractions (a `%` in the
+  source is replaced on a gizmo commit — the typed panel preserves it); it does not account for
+  `gradientTransform`; a per-stop swatch draggable along the axis is not drawn.
+
+Cross-refs: [[project_svg_lens_s10_defs]] (why defs live in the same tree; `mintId`/paste-rename),
+[[project_svg_lens_feature_complete]] (§9 is usefulness/consistency/refactor only), §9.1 (one paint
+surface, one write path — G2/G3 must not reopen the two-places-to-set-a-colour bug).

@@ -64,6 +64,9 @@ const TEST_CELLS = [
   'test_units_and_style',
   'test_refs',
   'test_interpolation_slots',
+  // gradient/defs editing (§9.4)
+  'test_gradient_stops',
+  'test_gradient_gizmo',
 ];
 
 // Needs a real DOM, so it reports ⏭ under the headless runtime and ✅ in the notebook.
