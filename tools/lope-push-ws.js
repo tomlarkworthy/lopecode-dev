@@ -41,6 +41,11 @@ import path from 'path';
 import fs from 'fs';
 import vm from 'vm';
 import * as cheerio from 'cheerio';
+import {
+  loadCookiesFromFile,
+  extractNotebookSlug,
+  fetchNotebook,
+} from './observable-auth.js';
 
 // Check for --experimental-vm-modules flag (required for decompilation)
 if (typeof vm.SourceTextModule !== 'function') {
@@ -503,17 +508,6 @@ function extractCellName(source) {
 
 // --- Cookie extraction ---
 
-function decodeICookieExpiration(iValue) {
-  try {
-    const middle = iValue.split('.')[0];
-    const json = Buffer.from(middle, 'base64').toString('utf8');
-    const payload = JSON.parse(json);
-    return typeof payload.expiration === 'number' ? payload.expiration : null;
-  } catch {
-    return null;
-  }
-}
-
 async function extractCookies(options) {
   // Cookie-file shortcut: bypasses Playwright entirely. Per
   // knowledge/pushing-cells-to-observablehq.md, headless Playwright
@@ -521,39 +515,8 @@ async function extractCookies(options) {
   // HttpOnly T/I cookies on probe). Pasting from devtools into a JSON
   // file is the recommended workaround.
   if (options.cookiesFile) {
-    const raw = fs.readFileSync(options.cookiesFile, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!parsed.T || !parsed.I) {
-      throw new Error(`${options.cookiesFile}: missing 'T' or 'I' field`);
-    }
-    // The I cookie is a JWT with a base64url-encoded JSON payload that
-    // includes an `expiration` field (epoch ms). Surface staleness BEFORE
-    // hitting the API so the user knows exactly which cookie to refresh.
-    const iExpiry = decodeICookieExpiration(parsed.I);
-    if (iExpiry && iExpiry < Date.now()) {
-      throw new Error(
-        `${options.cookiesFile}: I cookie expired on ${new Date(iExpiry).toISOString()} ` +
-        `(${Math.round((Date.now() - iExpiry) / 86400000)} day(s) ago). Refresh I from devtools.`
-      );
-    }
-    const resp = await fetch('https://api.observablehq.com/user', {
-      headers: {
-        'Cookie': `I=${parsed.I}; T=${parsed.T}`,
-        'Origin': 'https://observablehq.com',
-      },
-    });
-    const user = await resp.json();
-    if (!user?.login) {
-      const iDesc = iExpiry
-        ? `I expires ${new Date(iExpiry).toISOString()} (not stale)`
-        : 'I payload not decodable';
-      throw new Error(
-        `Cookies in ${options.cookiesFile} did not authenticate (user API returned ${JSON.stringify(user)}). ` +
-        `${iDesc}; T may be stale — re-paste both from devtools.`
-      );
-    }
-    log(`Authenticated as ${user.login} (cookies-file)`);
-    return { T: parsed.T, I: parsed.I };
+    const { T, I } = await loadCookiesFromFile(options.cookiesFile, log);
+    return { T, I };
   }
 
   if (!fs.existsSync(options.profile)) {
@@ -627,49 +590,6 @@ async function extractCookies(options) {
 }
 
 // --- Observable API ---
-
-/**
- * Extract notebook ID from an Observable URL.
- * Supports formats:
- *   https://observablehq.com/d/ab5f35ca1f4066ba
- *   https://observablehq.com/@tomlarkworthy/blank-notebook
- */
-function extractNotebookSlug(targetUrl) {
-  const url = new URL(targetUrl);
-  // /d/{id} format - return the hex ID directly
-  const dMatch = url.pathname.match(/^\/d\/([a-f0-9]+)$/);
-  if (dMatch) return dMatch[1];
-  // /@author/slug format
-  const slugMatch = url.pathname.match(/^\/@([^/]+)\/([^/]+)/);
-  if (slugMatch) return `@${slugMatch[1]}/${slugMatch[2]}`;
-  throw new Error(`Cannot parse Observable URL: ${targetUrl}`);
-}
-
-/**
- * Fetch the notebook document from Observable's API.
- * Returns { id, version, nodes: [{ id, name, value, pinned, mode }] }
- *
- * Note: Origin header is required for cookie-based auth to return roles/sharing.
- */
-async function fetchNotebook(slug, cookies) {
-  const resp = await fetch(`https://api.observablehq.com/document/${slug}`, {
-    headers: {
-      'Cookie': `T=${cookies.T}; I=${cookies.I}`,
-      'Origin': 'https://observablehq.com',
-    },
-  });
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch notebook: ${resp.status} ${resp.statusText}`);
-  }
-  const doc = await resp.json();
-  if (!doc.roles?.includes('editor')) {
-    throw new Error(
-      `No editor role for this notebook (roles: ${JSON.stringify(doc.roles)}).\n` +
-      'Ensure your login has edit access, or re-login with: node tools/lope-push-ws.js --login --headed'
-    );
-  }
-  return doc;
-}
 
 /**
  * Connect to Observable's WebSocket editing endpoint.

@@ -81,6 +81,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Iterative development, pair programming | Pairing channel + MCP tools | Real-time |
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~7s |
 | Push cells to ObservableHQ | `node --experimental-vm-modules tools/lope-push-ws.js` | ~5s |
+| Push file attachments to ObservableHQ | `node tools/lope-push-files.js` (names are one-shot per document) | ~1s each |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~7s each |
 | Smoke test notebooks in Node.js | `bulk-smoke-test.js` | ~5s each |
 | QC bulk exports against reference | `bulk-export-qc.js` | Instant |

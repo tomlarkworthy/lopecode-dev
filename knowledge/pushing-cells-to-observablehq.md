@@ -135,6 +135,81 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 3. **Manual import edits via raw WS.** If you actually do need to add or modify a single import statement, write a one-off mjs script that calls `modify_node` (existing import) or `insert_node` (new import) keyed on the import's `node.id` from the REST API. See "WebSocket Editing Protocol" above.
 4. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
 
+## File Attachments (REST, not WebSocket)
+
+File records live outside the node/version stream — uploading one does not bump the
+document version and never touches cells. Same cookies as above (`I` + `T`).
+
+### Endpoints
+
+```
+POST https://api.observablehq.com/document/{documentId}/file
+     multipart/form-data: token=<T cookie>, client_name=<name>, file=<blob>
+     -> 200 with a newline-delimited JSON stream:
+        {"type":"start","file":{...}} / {"type":"progress","percent":N}
+        {"type":"finish","file":{"name","size","create_time"}}
+        {"type":"error","message":"FILE_QUOTA_EXCEEDED"|"FILE_EMPTY"|...}   <- also HTTP 200
+     -> 409 if the name has EVER been used on this document (see below)
+
+POST https://api.observablehq.com/document/{documentId}/file/delete?name={name}
+     JSON body {"token": <T cookie>}  -> 204
+```
+
+Errors arrive in the response body with HTTP 200, so the stream must be parsed —
+a bare `resp.ok` check reports failures as successes. `{documentId}` is the 16-hex
+`id` from `GET /document/{slug}`, not the slug.
+
+The server sniffs the MIME type itself (`audio/wav` in the part header came back as
+`audio/vnd.wave`); the file `id` is a 128-hex digest, but not a plain sha512 of the
+bytes, so it can't be used for local dedupe. Compare by size, or download `file.url`
+and byte-compare.
+
+Uploaded files show up in `GET /document/{slug}` under `files[]` and in the compiled
+module (`/@user/slug.js?v=4`) as `const fileAttachments = new Map([["name", {url, mimeType}]])`,
+which is what `FileAttachment(name)` resolves against — so dynamic names work as long
+as the name is in that map.
+
+### Attachment names are one-shot per document
+
+A name that has been uploaded once is reserved **for the life of the document**.
+Deleting is a soft delete: the record stays in `files[]` with `status: "deleted"`,
+and re-uploading that name 409s forever. There is no rename, restore or purge
+endpoint (`/file/rename`, `/file/restore`, `?purge=true` all 404).
+
+Observable's own UI never overwrites either: "replace file" mints the next free
+`name@N.ext` (`hihat.wav` → `hihat@1.wav`) and rewrites the cells that referenced
+the old name. Treat delete as irreversible and plan attachment names accordingly.
+
+### Tool: lope-push-files.js
+
+```bash
+# Upload a module's attachments (skips ones already identical remotely)
+node tools/lope-push-files.js lopebooks/notebooks/@tomlarkworthy_daw.html \
+  --module @tomlarkworthy/daw \
+  --target https://observablehq.com/@tomlarkworthy/daw \
+  --cookies-file tools/.observable-cookies.json
+
+# See the plan without uploading
+... --dry-run
+```
+
+| Option | Description |
+|--------|-------------|
+| `--module <name>` | Only this module's attachments (default: all in the HTML) |
+| `--target <url>` | Observable URL or `/d/{id}` (default: spec `upstreams["observablehq.com"][module]`) |
+| `--files <a,b>` | Only these attachment names |
+| `--replace-as-new` | On content conflict, upload as `name@N.ext` (cell references are yours to update) |
+| `--prune` | Delete remote files not present locally — irreversible, burns the name |
+| `--size-only` | Skip the byte-compare download for equal-size files |
+| `--dry-run` | Print the plan only |
+| `--cookies-file` | T/I cookie JSON (default `tools/.observable-cookies.json`) |
+
+Local attachments come from the `<script type="text/plain" id="@user/mod/name.ext">`
+blocks (base64-decoded when `data-encoding="base64"`), so the HTML is the source of
+truth exactly as it is for modules. A file whose content differs from the remote copy
+is reported as a **conflict** and the run fails — the tool never deletes to replace,
+because that would burn the name.
+
 ## Decompilation (Compiled → Observable Source)
 
 The `@tomlarkworthy/observablejs-toolchain` module provides `decompile()` which converts compiled runtime variable definitions back to Observable source.
