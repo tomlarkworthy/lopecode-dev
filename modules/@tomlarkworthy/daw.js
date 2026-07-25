@@ -3115,7 +3115,7 @@ new Map([
   ["kick.flac", () => FileAttachment("kick.flac")],
   ["break.flac", () => FileAttachment("break.flac")],
   ["snare.wav", () => FileAttachment("snare.wav")],
-  ["hihat.wav", () => FileAttachment("hihat.wav")]
+  ["hats.wav", () => FileAttachment("hats.wav")]
 ])
 )};
 const _smpst1 = function _sampleStore(FileAttachment,getFileAttachmentsMap,daw_ctx,sampleFiles)
@@ -3433,7 +3433,7 @@ const _smph1v = function _hat1(sticky,mkSampler,daw_ctx,drumBus,midiBus,invalida
 sticky(mkSampler(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"file":"hihat.wav","note":42,"track":false,"rate":1,"gain":0.8,"start":0.19,"end":1,"pan":0,"inputs":["drums","seq1"]})
+}), {"file":"hats.wav","note":42,"track":false,"rate":1,"gain":0.8,"start":0.19,"end":1,"pan":0,"inputs":["drums","seq1"]})
 )};
 const _smph1g = (G, _) => G.input(_);
 const _tsmp1v = function _template_sampler(sticky,mkSampler,daw_ctx,master,midiBus,invalidation){return(
@@ -3688,7 +3688,7 @@ const _pd1v = function _pads1(sticky,mkPads,daw_ctx,drumBus,midiBus,invalidation
 sticky(mkPads(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"pads":[{"file":"kick.flac","note":36},{"file":"snare.wav","note":38},{"file":"hihat.wav","note":42},{"note":46},{"note":43},{"note":45},{"note":47},{"note":49}],"gain":1.5,"pan":1,"inputs":[]})
+}), {"pads":[{"file":"kick.flac","note":36},{"file":"snare.wav","note":38},{"file":"hats.wav","note":42},{"note":46},{"note":43},{"note":45},{"note":47},{"note":49}],"gain":1.5,"pan":1,"inputs":[]})
 )};
 const _pd1g = (G, _) => G.input(_);
 const _tpd1v = function _template_pads(sticky,mkPads,daw_ctx,master,midiBus,invalidation){return(
@@ -5050,7 +5050,7 @@ export default function define(runtime, observer) {
   const $def = (pid, name, deps, fn) => {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
-  const fileAttachments = new Map(["kick.flac","snare.wav","hihat.wav","break.flac"].map((name) => {
+  const fileAttachments = new Map(["kick.flac","snare.wav","hats.wav","break.flac"].map((name) => {
     const module_name = "@tomlarkworthy/daw";
     const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
     const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
