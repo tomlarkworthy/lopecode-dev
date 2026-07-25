@@ -145,6 +145,15 @@ the live site before publishing anything. Two flavours, both in use:
 Serve with `content-type: text/javascript; charset=utf-8` and
 `access-control-allow-origin: *`.
 
+**Use the function form of `.replace` for the source splice: `src.replace(OLD, () => NEW)`.**
+`String.prototype.replace(OLD, NEW)` interprets `$1`, `$&`, `$$`, `` $` `` in the *replacement string* —
+so any fix whose new source contains those (e.g. the naming helpers' `'$1$'` / `'$1 '`) gets silently
+mangled into invalid JS, the served module throws at load, and the whole notebook cascades to a
+blank/absent state that looks nothing like your hypothesis. Cost two live runs on the lookupVariable
+fix. The `() => NEW` callback form disables all `$` substitution. (`newobs-cellmap-live-test.ts` happened
+to dodge this because its `NEW` had no `$`.) Always `node --check` the spliced source locally before
+trusting a live A/B.
+
 **Neither works on the viewed notebook's own cells.** Only *imported* modules are fetched as
 `api.observablehq.com/<slug>.js?v=4`; the viewed notebook is server-rendered into the worker
 frame, and a network log shows no request carrying its source. So there is nothing to intercept —
@@ -293,8 +302,16 @@ lookup-by-name (`lookupVariable`, `module-map`'s `"module "` prefix scan, editor
 `hotbarTemplate`) must handle both. This is why `title_variable` is `undefined` on the new site,
 which leaves `editedCell === null`, which errors every cell in editor-5's Example section.
 
-`lookupVariable` (runtime-sdk) is a bare `module._scope.get(name)` inside a 1000-frame retry loop,
-so a legacy-spelled name doesn't error — it **spins for 1000 frames and returns `undefined`**.
+`lookupVariable` (runtime-sdk) **used to be** a bare `module._scope.get(name)` inside a 1000-frame
+retry loop, so a legacy-spelled name didn't error — it returned `undefined` (and the loop counter
+`retries` started `undefined`, so `retries++ < 1000` was `NaN < 1000` → the loop never even ran).
+**Fixed (runtime-sdk `lookupVariable`, Observable node 1266):** it now tries the name plus both
+canonicalised spellings (`viewof x` ⇄ `viewof$x`), legacy first, so `lookupVariable('viewof drawing',
+mod)` resolves `viewof$drawing` on the new site while staying byte-identical in behaviour on
+classic/lopecode. This was the whole svg-lens bug: `drawingCode = cellEditor(await
+lookupVariable('viewof drawing', svgLensModule), {pinned:true})` got `undefined` → `cellEditor(undefined)`
+rendered an **empty editor shell** (a real `HTMLDivElement` with no `.cm-editor` — computes fine, no
+error badge; the tell is `_scope.get('viewof drawing')` MISS but `_scope.get('viewof$drawing')` HIT).
 
 **The rule: legacy spelling is canonical; the `$` form is a platform detail that must not escape
 the boundary.** Anything that writes names back into *source code* — grid-container's `include:`
