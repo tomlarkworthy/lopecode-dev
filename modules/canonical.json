@@ -94,7 +94,7 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html"
   },
   "@tomlarkworthy/daw": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_daw.html"
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_daw.html"
   },
   "@tomlarkworthy/debugger": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger.html",
