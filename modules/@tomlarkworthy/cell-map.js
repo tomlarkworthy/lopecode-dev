@@ -713,10 +713,9 @@ const _1hybsm8 = function _coverage_failures(runtime_variables,liveCellMap,modul
   }
   return failures;
 };
-const _4tg5tm = function _test_cell_map_covers_all_runtime_variables(coverage_failures)
+const _1p0qclg = function _test_cell_map_covers_all_runtime_variables(coverage_failures)
 {
   if (coverage_failures.length) {
-    void 0;
     throw JSON.stringify(coverage_failures);
   }
   return "pass";
@@ -776,7 +775,7 @@ async (v) => {
     v._inputs.length == 0 &&
     v._definition.toString().includes("runtime.module((await import")
   ) {
-    void 0;
+    debugger;
     v._value = await v._definition();
     return v._value;
   }*/
@@ -794,30 +793,45 @@ async (v) => {
     }
   }
 
-  // The inline case for live notebook
-  // _definition: "async t=>t.import(e.name,e.alias,await i)"
+  // The inline case for live notebook. Two compiler shapes, one probe object:
+  //   legacy    "async t => t.import(e.name, e.alias, await i)"
+  //   notebook-kit (new.observablehq.com)
+  //             "async (__variable) => { ... __variable._module._runtime.module(_.default) ... }"
   if (
     v._inputs.length == 1 &&
     v._inputs[0]._name == "@variable" &&
     v._definition.toString().includes("import(")
   ) {
-    return await new Promise(async (resolve, reject) => {
-      try {
-        await v._definition({
-          import: (...args) => resolve(args[2])
-        });
-      } catch (err) {
-        if (v._definition.toString().includes("derive")) {
-          console.error("Subbing derrived module for original", v);
-          const derrived = await v._definition(v);
-          resolve(derrived._source);
-        } else {
-          console.error("Cannot sourceModule for ", v);
-          void 0;
-          throw err;
+    const rt = v._module?._runtime;
+    let captured = null;
+    const probe = {
+      import: (...args) => {
+        captured ??= args[2];
+      },
+      _outputs: [],
+      _module: {
+        _runtime: {
+          module: (...args) => {
+            const m = rt.module(...args);
+            captured ??= m;
+            return m;
+          }
         }
       }
-    });
+    };
+    try {
+      await v._definition(probe);
+      return captured;
+    } catch (err) {
+      if (v._definition.toString().includes("derive")) {
+        console.error("Subbing derrived module for original", v);
+        const derrived = await v._definition(v);
+        return derrived._source;
+      }
+      // never leave the caller hanging — cellMap degrades to "no source module"
+      console.error("Cannot sourceModule for ", v, err);
+      return captured;
+    }
   }
 
   return null;
@@ -830,7 +844,7 @@ const _n7jdgk = function _findModuleName(){return(
     if (lookup) return lookup.name;
     return `<unknown ${unknown_id}>`;
   } catch (e) {
-    void 0;
+    debugger;
     return "error";
   }
 }
@@ -958,7 +972,7 @@ export default function define(runtime, observer) {
   $def("_1rtpyzk", "cellMapVizView", ["viewof cellMapViz"], _1rtpyzk);  
   $def("_1srzrzc", null, ["md"], _1srzrzc);  
   $def("_1hybsm8", "coverage_failures", ["runtime_variables","liveCellMap","modules"], _1hybsm8);  
-  $def("_4tg5tm", "test_cell_map_covers_all_runtime_variables", ["coverage_failures"], _4tg5tm);  
+  $def("_1p0qclg", "test_cell_map_covers_all_runtime_variables", ["coverage_failures"], _1p0qclg);  
   $def("_1a18z7a", "test_cell_map_no_variable_in_more_than_one_cell", ["runtime_variables","liveCellMap","modules"], _1a18z7a);  
   $def("_8nkqnx", null, ["md"], _8nkqnx);  
   $def("_2h3a9s", "importedModule", [], _2h3a9s);  
