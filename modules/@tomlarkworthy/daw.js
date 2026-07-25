@@ -4,229 +4,54 @@ md`# DAW`
 const _uafule = function _station(gridContainer,runtime,invalidation,dawModule) {return (gridContainer(runtime, {
     invalidation,
     module: dawModule,
-    include: [
-        'viewof playing',
-        'viewof bpm',
-        'viewof swing',
-        'viewof masterVol',
-        'viewof clock',
-        'viewof kit1',
-        'viewof drums',
-        'viewof bass1',
-        'viewof scope',
-        'viewof song',
-        'controls',
-        'viewof synth1',
-        'viewof synthSeq',
-        'viewof midi1',
-        'viewof keys1',
-        'viewof chord1',
-        'viewof synth2',
-        'viewof keys2',
-        'viewof seq1',
-        'viewof chordSeq',
-        'viewof kick1',
-        'viewof snare1',
-        'viewof hat1',
-        'viewof pads1',
-        'viewof echo1',
-        'viewof verb1',
-        'viewof duck1',
-        'viewof slicer1',
-        'viewof tape1',
-        'viewof dub1',
-        'viewof drumBus',
-        'viewof roll1',
-        'viewof sections1',
-        'viewof prog',
-        'viewof pad1',
-        'viewof note_tour',
-        'viewof note_pump',
-        'viewof note_arp',
-        'viewof note_chords',
-        'viewof note_lead',
-        'viewof note_sections'
-    ],
+    include: ["viewof playing","viewof bpm","viewof swing","viewof masterVol","viewof clock","viewof kit1","viewof drums","viewof bass1","viewof seq1","viewof scope","viewof song","controls","viewof synth1","viewof synthSeq","viewof midi1","viewof keys1","viewof synth2","viewof keys2","viewof kick1","viewof snare1","viewof hat1","viewof pads1","viewof echo1","viewof verb1","viewof duck1","viewof slicer1","viewof tape1","viewof dub1","viewof drumBus","viewof roll1","viewof sections1","viewof prog","viewof chordpad1","viewof pad1","viewof note_tour","viewof note_pump","viewof note_arp","viewof note_chords","viewof note_lead","viewof note_sections"],
     layout: {
-        atoms: {
-            'controls': {
-                'x': 20,
-                'y': 20
-            },
-            'viewof playing': {
-                'x': 160,
-                'y': 20,
-                'w': 160,
-                'h': 40
-            },
-            'viewof bpm': {
-                'x': 340,
-                'y': 20,
-                'w': 360
-            },
-            'viewof masterVol': {
-                'x': 720,
-                'y': 20,
-                'w': 360
-            },
-            'viewof swing': {
-                'x': 1090,
-                'y': 20,
-                'w': 220
-            },
-            'viewof drums': {
-                'x': 20,
-                'y': 80
-            },
-            'viewof clock': {
-                'x': 440,
-                'y': 80
-            },
-            'viewof kit1': {
-                'x': 440,
-                'y': 130,
-                'w': 140,
-                'h': 40
-            },
-            'viewof scope': {
-                'x': 720,
-                'y': 80,
-                'w': 360
-            },
-            'viewof bass1': {
-                'x': 20,
-                'y': 260
-            },
-            'viewof synth1': {
-                'x': 20,
-                'y': 420
-            },
-            'viewof synthSeq': {
-                'x': 560,
-                'y': 420
-            },
-            'viewof midi1': {
-                'x': 960,
-                'y': 420
-            },
-            'viewof keys1': {
-                'x': 20,
-                'y': 540
-            },
-            'viewof chord1': {
-                'x': 460,
-                'y': 575,
-                'w': 260,
-                'h': 40
-            },
-            'viewof song': {
-                'x': 900,
-                'y': 795,
-                'w': 360
-            },
-            'viewof synth2': {
-                'x': 20,
-                'y': 660
-            },
-            'viewof keys2': {
-                'x': 560,
-                'y': 664
-            },
-            'viewof seq1': {
-                'x': 20,
-                'y': 790
-            },
-            'viewof chordSeq': {
-                'x': 480,
-                'y': 790
-            },
-            'viewof kick1': {
-                'x': 20,
-                'y': 940
-            },
-            'viewof snare1': {
-                'x': 390,
-                'y': 940
-            },
-            'viewof hat1': {
-                'x': 760,
-                'y': 940
-            },
-            'viewof pads1': {
-                'x': 20,
-                'y': 1110
-            },
-            'viewof echo1': {
-                'x': 20,
-                'y': 1310
-            },
-            'viewof verb1': {
-                'x': 420,
-                'y': 1310
-            },
-            'viewof duck1': {
-                'x': 760,
-                'y': 1310
-            },
-            'viewof slicer1': {
-                'x': 20,
-                'y': 1460
-            },
-            'viewof tape1': {
-                'x': 20,
-                'y': 1620
-            },
-            'viewof dub1': {
-                'x': 400,
-                'y': 1610
-            },
-            'viewof drumBus': {
-                'x': 400,
-                'y': 1110
-            },
-            'viewof roll1': {
-                'x': 20,
-                'y': 1780
-            },
-            'viewof sections1': {
-                'x': 1090,
-                'y': 230
-            },
-            'viewof prog': {
-                'x': 20,
-                'y': 2170
-            },
-            'viewof pad1': {
-                'x': 900,
-                'y': 660
-            },
-            'viewof note_tour': {
-                'x': 1090,
-                'y': 70
-            },
-            'viewof note_pump': {
-                'x': 440,
-                'y': 190
-            },
-            'viewof note_arp': {
-                'x': 980,
-                'y': 470
-            },
-            'viewof note_chords': {
-                'x': 900,
-                'y': 565
-            },
-            'viewof note_lead': {
-                'x': 480,
-                'y': 1790
-            },
-            'viewof note_sections': {
-                'x': 1090,
-                'y': 375
-            }
-        }
-    },
-    height: 2400
+    atoms: {
+      "controls": {"x":0,"y":2,"w":16,"h":5},
+      "viewof playing": {"x":0,"y":0,"w":12,"h":2},
+      "viewof bpm": {"x":17,"y":1,"w":18,"h":2},
+      "viewof masterVol": {"x":36,"y":1,"w":18,"h":2},
+      "viewof swing": {"x":54,"y":1,"w":11,"h":2},
+      "viewof drums": {"x":18,"y":21,"w":22,"h":7},
+      "viewof clock": {"x":16,"y":7,"w":5,"h":3},
+      "viewof kit1": {"x":39,"y":21,"w":7,"h":2},
+      "viewof scope": {"x":43,"y":5,"w":18,"h":7},
+      "viewof bass1": {"x":38,"y":23,"w":22,"h":6},
+      "viewof synth1": {"x":24,"y":98,"w":30,"h":6},
+      "viewof synthSeq": {"x":1,"y":44,"w":22,"h":9},
+      "viewof midi1": {"x":23,"y":3,"w":7,"h":2},
+      "viewof keys1": {"x":24,"y":103,"w":19,"h":6},
+      "viewof chord1": {"x":33,"y":47,"w":13,"h":2},
+      "viewof song": {"x":45,"y":12,"w":18,"h":7},
+      "viewof synth2": {"x":23,"y":39,"w":30,"h":6},
+      "viewof keys2": {"x":22,"y":45,"w":19,"h":6},
+      "viewof seq1": {"x":45,"y":29,"w":22,"h":6},
+      "viewof chordSeq": {"x":24,"y":50},
+      "viewof kick1": {"x":1,"y":21,"w":19,"h":9},
+      "viewof snare1": {"x":1,"y":29,"w":19,"h":9},
+      "viewof hat1": {"x":18,"y":29,"w":19,"h":9},
+      "viewof pads1": {"x":1,"y":56,"w":21,"h":9},
+      "viewof echo1": {"x":1,"y":66,"w":13,"h":6},
+      "viewof verb1": {"x":39,"y":60,"w":10,"h":6},
+      "viewof duck1": {"x":37,"y":55,"w":15,"h":6},
+      "viewof slicer1": {"x":24,"y":108,"w":17,"h":9},
+      "viewof tape1": {"x":50,"y":63,"w":13,"h":6},
+      "viewof dub1": {"x":22,"y":60,"w":18,"h":6},
+      "viewof drumBus": {"x":20,"y":56,"w":18,"h":5},
+      "viewof roll1": {"x":1,"y":97,"w":26,"h":21},
+      "viewof sections1": {"x":23,"y":5,"w":23,"h":8},
+      "viewof prog": {"x":1,"y":76,"w":75,"h":11},
+      "viewof chordpad1": {"x":34,"y":86,"w":28,"h":10},
+      "viewof pad1": {"x":23,"y":71,"w":30,"h":6},
+      "viewof note_tour": {"x":1,"y":7,"w":15,"h":12},
+      "viewof note_pump": {"x":1,"y":16,"w":16,"h":7},
+      "viewof note_arp": {"x":1,"y":39,"w":18,"h":7},
+      "viewof note_chords": {"x":1,"y":71,"w":21,"h":7},
+      "viewof note_lead": {"x":1,"y":92,"w":22,"h":5},
+      "viewof note_sections": {"x":23,"y":13,"w":15,"h":8}
+    }
+  },
+    columns: 60
 }));};
 const _hn2uu3 = function _title(md){return(
 md`
@@ -518,7 +343,7 @@ sticky(mkSeq($0, {
     { name: 'bass', note: 43 }
   ],
   invalidation
-}), {"kick":[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],"snare":[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],"ghost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"hat":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],"bass":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0]})
+}), {"kick":[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],"snare":[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],"ghost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"hat":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],"__notes":{"kick":36,"snare":38,"ghost":38,"hat":42,"bass":43},"__rows":[{"name":"kick","note":36},{"name":"snare","note":38,"vel":112},{"name":"ghost","note":38,"vel":38},{"name":"hat","note":42,"vel":48}]})
 )};
 const _7a7f2w = (G, _) => G.input(_);
 const _mkbus1 = function _mkBus(knob,selfName){return(
@@ -615,7 +440,7 @@ sticky(mkBus(daw_ctx, {
   bus: midiBus,
   node: this?.node,
   invalidation
-}), {"gain":0.9})
+}), {"gain":0.62})
 )};
 const _dbus1 = ($0) => $0.node;
 const _7zke3z = function _bass_voice($0){return(
@@ -793,7 +618,7 @@ const _bs1v = function _bass1(sticky,mkBass,daw_ctx,master,midiBus,invalidation)
 sticky(mkBass(daw_ctx, master, {
   bus: midiBus,
   invalidation
-}), {"note":36,"cutoff":700,"res":6,"decay":0.32,"sub":0.6,"gain":0.8,"pan":0,"inputs":[]})
+}), {"note":43,"cutoff":210,"res":6,"decay":0.32,"sub":0.6,"gain":0.8,"pan":0,"inputs":[]})
 )};
 const _bs1g = (G, _) => G.input(_);
 const _tbs1v = function _template_bass(sticky,mkBass,daw_ctx,master,midiBus,invalidation){return(
@@ -827,7 +652,7 @@ md`## Extending the studio
 8. **Dub**: a dirty delay — tone filter and a soft saturator live *inside* the feedback loop, so \`fb\` past 1.0 self-oscillates without blowing up, and riding \`time\` pitch-bends the tail, King-Tubby style. \`wob\` adds tape warble.
 9. **Glide**: any synth's \`glide\` knob > 0 makes it mono — overlapping notes slide 303-style instead of retriggering.
 10. **Pan**: every instrument has a \`pan\` knob. Spread the hats, keep kick and sub centred.
-11. **Slice a break**: a demo break (\`break.wav\`, cut from the bundled kit) loads by default — or drop your own on the waveform. It — it chops into \`slices\` equal parts mapped upward from \`base\` (labels drawn on the waveform). Point seq row chips at those notes to resequence the chop; click a slice to audition.
+11. **Slice a break**: a demo break (\`break.flac\`, cut from the bundled kit) loads by default — or drop your own on the waveform. It — it chops into \`slices\` equal parts mapped upward from \`base\` (labels drawn on the waveform). Point seq row chips at those notes to resequence the chop; click a slice to audition.
 12. **Arranging**: set the song's ⌁ to the cells that define a section, dial in a sound, **⊕** to capture it as a scene, change things, capture again. Set bar counts, press play — the song walks the scenes in a loop. ▶ auditions a scene, ⟳ re-captures into it. Un-tick *armed* to jam without the song moving values under you. Tick **morph** for automation: numeric knob values glide toward the next scene across its bars (patterns and note pitches still switch on the boundary). **sections1** arranges the other way \u2014 by muting a static graph: rows are seqs (its ⌁ picker), columns are sections with bar counts; tick a cell to let that seq play there. While *armed* it walks the columns with the clock, exactly on bar lines, and never touches a knob. It only constrains the seqs it manages (one sections unit drives the mix at a time); combine with song scenes when a section also needs a different sound.
 13. Any view from anywhere can join: \`viewof myThing = sticky(anyView, undefined)\` remembers itself; **＋ cell** puts it on the rack. Template authors just name cells \`template_<name>\`.
 14. **roll1** is the piano roll — drag to draw notes, drag a note's right edge for length, drag vertically to repitch (auditions as you go), right-click deletes; positions and lengths snap to 1/32. **drumBus** is the drum submix strip the drum units sum into (gain + glue-compressor meter) before master; FX can tap it as \`drumBus\`.
@@ -1218,30 +1043,6 @@ const _bus1a2 = function _midiBus()
   };
   return bus;
 };
-const _slfn1 = function _selfName(runtime){return(
-(el, apply) => {
-  // resolve the cell name that owns el (sticky returns the same element, so
-  // v._value === el finds the viewof variable). fires apply(name) once;
-  // bus registration happens inside apply so bus names always equal cell names
-  let tries = 0;
-  const look = () => {
-    for (const v of runtime._variables)
-      if (v._value === el && v._name)
-        return v._name.startsWith('viewof ') ? v._name.slice(7) : v._name;
-    return null;
-  };
-  const tick = () => {
-    const n = look();
-    if (n != null)
-      apply(n);
-    else if (++tries < 60)
-      window.setTimeout(tick, 100);
-    else
-      apply(null);
-  };
-  window.setTimeout(tick, 0);
-}
-)};
 const _mkpk5 = function _mkInputPicker(){return(
 (bus, { selected = [], onChange } = {}) => {
   const sel = new Set(selected);
@@ -1312,6 +1113,30 @@ const _mkpk5 = function _mkInputPicker(){return(
   });
   paint();
   return el;
+}
+)};
+const _slfn1 = function _selfName(runtime){return(
+(el, apply) => {
+  // resolve the cell name that owns el (sticky returns the same element, so
+  // v._value === el finds the viewof variable). fires apply(name) once;
+  // bus registration happens inside apply so bus names always equal cell names
+  let tries = 0;
+  const look = () => {
+    for (const v of runtime._variables)
+      if (v._value === el && v._name)
+        return v._name.startsWith('viewof ') ? v._name.slice(7) : v._name;
+    return null;
+  };
+  const tick = () => {
+    const n = look();
+    if (n != null)
+      apply(n);
+    else if (++tries < 60)
+      window.setTimeout(tick, 100);
+    else
+      apply(null);
+  };
+  window.setTimeout(tick, 0);
 }
 )};
 const _msy5k4 = function _mkSynth(knob,mkInputPicker,selfName){return(
@@ -2540,11 +2365,10 @@ sticky(mkSections($0, {
 }), undefined)
 )};
 const _tsec1g = (G, _) => G.input(_);
-const _prgv1 = function _prog(sticky,mkSeq,$0,midiBus,invalidation){return(
-sticky(mkSeq($0, {
+const _prgv1 = function _prog(sticky,mkSeq,$0,midiBus,invalidation) {return (sticky(mkSeq($0, {
   bus: midiBus,
   steps: 64,
-  gate: 14,
+  gate: 5,
   rows: [
     { name: 'G3', note: 55 },
     { name: 'F3', note: 53 },
@@ -2555,14 +2379,13 @@ sticky(mkSeq($0, {
     { name: 'G#2', note: 44 }
   ],
   invalidation
-}), {"G3":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"F3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"D#3":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"D3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"C3":[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"A#2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"G#2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]})
-)};
+}), {"G3":[1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"F3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0],"D#3":[1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"D3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0],"C3":[1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"A#2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0],"G#2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"trk8":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"__notes":{"G3":55,"F3":53,"D#3":51,"D3":50,"C3":48,"A#2":46,"G#2":44,"trk8":49},"__rows":[{"name":"G3","note":55},{"name":"F3","note":53},{"name":"D#3","note":51},{"name":"D3","note":50},{"name":"C3","note":48},{"name":"A#2","note":46},{"name":"G#2","note":44},{"name":"trk8","note":48}]}));};
 const _prgg1 = (G, _) => G.input(_);
 const _padv1 = function _pad1(sticky,mkSynth,daw_ctx,master,midiBus,invalidation){return(
 sticky(mkSynth(daw_ctx, master, {
   bus: midiBus,
   invalidation
-}), {"wave":"sawtooth","gain":0.32,"cutoff":900,"res":0.8,"det":14,"glide":0,"env":0.25,"a":0.3,"d":0.6,"s":0.8,"r":0.9,"pan":-0.1,"inputs":["prog"]})
+}), {"wave":"sawtooth","gain":0.28,"cutoff":313,"res":18,"det":14,"glide":0.055,"env":0.24,"a":0.006,"d":0.6,"s":0.95,"r":2.48,"pan":-0.1,"inputs":["prog","chordpad1"]})
 )};
 const _padg1 = (G, _) => G.input(_);
 const _nttourv = function _note_tour(sticky,mkNote){return(
@@ -2879,7 +2702,7 @@ sticky(mkSeq($0, {
     { name: 'C3', note: 48 }
   ],
   invalidation
-}), {"C4":[0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0],"A#3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"G3":[0,0,1,0,1,0,0,0,1,0,1,0,0,0,1,0],"F3":[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],"D#3":[0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,0],"C3":[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],"__notes":{"C4":60,"A#3":58,"G3":55,"F3":53,"D#3":51,"C3":48}})
+}), {"C4":[0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0],"A#3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"G3":[0,0,1,0,1,0,0,0,1,0,1,0,0,0,1,0],"F3":[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],"D#3":[0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,0],"C3":[1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0],"__notes":{"C4":60,"A#3":58,"G3":55,"F3":53,"D#3":51,"C3":48},"__rows":[{"name":"C4","note":60},{"name":"A#3","note":58},{"name":"G3","note":55},{"name":"F3","note":53},{"name":"D#3","note":51},{"name":"C3","note":48}]})
 )};
 const _sq2g7b = (G, _) => G.input(_);
 const _chd1v = function _chord1(sticky,mkChord,midiBus,invalidation){return(
@@ -2900,7 +2723,7 @@ sticky(mkSynth(daw_ctx, master, {
     'midi1'
   ],
   invalidation
-}), {"wave":"sawtooth","gain":0.4,"cutoff":1400,"res":1,"env":0.3,"a":0.03,"d":0.35,"s":0.3,"r":0.4,"det":8,"inputs":["chord1","midi1","roll1"]})
+}), {"wave":"sawtooth","gain":1,"cutoff":101,"res":3.4,"det":17,"glide":0.22,"env":0.3,"a":0.007,"d":0.22,"s":0.42,"r":0.4,"pan":0,"inputs":["chord1","midi1","roll1"]})
 )};
 const _sy1g2h = (G, _) => G.input(_);
 const _tk1v9 = function _template_keys(keys,midiBus){return(
@@ -3252,7 +3075,7 @@ sticky(mkSynth(daw_ctx, master, {
     'keys2'
   ],
   invalidation
-}), {"wave":"sawtooth","gain":0.55,"cutoff":950,"res":1.2,"det":10,"glide":0,"env":0.45,"a":0.005,"d":0.16,"s":0.12,"r":0.18,"pan":0.1,"inputs":["synthSeq","keys2"]})
+}), {"wave":"sawtooth","gain":1,"cutoff":538,"res":9.2,"det":10,"glide":0,"env":0.72,"a":0.006,"d":0.18,"s":0.12,"r":0.18,"pan":0.1,"inputs":["synthSeq","keys2"]})
 )};
 const _sy2g1 = (G, _) => G.input(_);
 const _ky2v1 = function _keys2(keys,midiBus){return(
@@ -3576,21 +3399,21 @@ const _smpk1v = function _kick1(sticky,mkSampler,daw_ctx,drumBus,midiBus,invalid
 sticky(mkSampler(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"file":"kick.wav","note":36,"track":false,"rate":1,"gain":1,"start":0,"end":1,"inputs":["drums","seq1"]})
+}), {"file":"kick.flac","note":36,"track":false,"rate":1,"gain":1,"start":0,"end":1,"inputs":["drums","seq1"]})
 )};
 const _smpk1g = (G, _) => G.input(_);
 const _smps1v = function _snare1(sticky,mkSampler,daw_ctx,drumBus,midiBus,invalidation){return(
 sticky(mkSampler(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"file":"snare.wav","note":38,"track":false,"rate":1,"gain":1,"start":0,"end":1,"inputs":["drums","seq1"]})
+}), {"file":"snare.wav","note":38,"track":false,"rate":1.11,"gain":1.28,"start":0,"end":1,"pan":0,"inputs":["drums","seq1"]})
 )};
 const _smps1g = (G, _) => G.input(_);
 const _smph1v = function _hat1(sticky,mkSampler,daw_ctx,drumBus,midiBus,invalidation){return(
 sticky(mkSampler(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"file":"hihat.wav","note":42,"track":false,"rate":1,"gain":0.8,"start":0,"end":1,"inputs":["drums","seq1"]})
+}), {"file":"hihat.wav","note":42,"track":false,"rate":1,"gain":0.8,"start":0.19,"end":1,"pan":0,"inputs":["drums","seq1"]})
 )};
 const _smph1g = (G, _) => G.input(_);
 const _tsmp1v = function _template_sampler(sticky,mkSampler,daw_ctx,master,midiBus,invalidation){return(
@@ -3845,7 +3668,7 @@ const _pd1v = function _pads1(sticky,mkPads,daw_ctx,drumBus,midiBus,invalidation
 sticky(mkPads(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"pads":[{"file":"kick.wav","note":36},{"file":"snare.wav","note":38},{"file":"hihat.wav","note":42},{"note":46},{"note":43},{"note":45},{"note":47},{"note":49}],"gain":1.5,"pan":1,"inputs":[]})
+}), {"pads":[{"file":"kick.flac","note":36},{"file":"snare.wav","note":38},{"file":"hihat.wav","note":42},{"note":46},{"note":43},{"note":45},{"note":47},{"note":49}],"gain":1.5,"pan":1,"inputs":[]})
 )};
 const _pd1g = (G, _) => G.input(_);
 const _tpd1v = function _template_pads(sticky,mkPads,daw_ctx,master,midiBus,invalidation){return(
@@ -4138,6 +3961,364 @@ const _mkec1 = function _mkEcho(knob,selfName){return(
   return el;
 }
 )};
+const _mktp1 = function _mkTape(knob,selfName){return(
+(ctx, out, { label = 'tape', bus = null, tap = '', invalidation } = {}) => {
+  const el = document.createElement('div');
+  el.style.cssText = 'display:inline-flex; flex-direction:column; gap:4px; background:#1c2529; border:1px solid #37474f; border-radius:6px; padding:8px 10px; width:max-content;';
+  const head = document.createElement('div');
+  head.style.cssText = 'display:flex; gap:8px; align-items:center; font:10px var(--sans-serif, sans-serif); color:#eceff1;';
+  const name = document.createElement('b');
+  name.textContent = label;
+  const from = document.createElement('span');
+  from.textContent = 'from';
+  from.style.cssText = 'color:#90a4ae; margin-left:auto;';
+  const sel = document.createElement('select');
+  sel.style.cssText = 'font:10px inherit;';
+  head.append(name, from, sel);
+  const k = {
+    drive: knob({ label: 'drive', min: 1, max: 10, value: 3, step: 0.1, log: true }),
+    wow: knob({ label: 'wow', min: 0, max: 1, value: 0.3, step: 0.01 }),
+    tone: knob({ label: 'tone', min: 500, max: 14000, value: 6000, step: 10, log: true }),
+    wet: knob({ label: 'wet', min: 0, max: 1.5, value: 0.7, step: 0.01 })
+  };
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; gap:2px;';
+  row.append(...Object.values(k));
+  el.append(head, row);
+  // parallel tape: source -> drive -> tanh -> wow/flutter delay -> tone -> wet
+  const inG = ctx.createGain();
+  const pre = ctx.createGain();
+  const sat = ctx.createWaveShaper();
+  const crv = new Float32Array(257);
+  for (let i = 0; i <= 256; i++) {
+    const x = i / 128 - 1;
+    crv[i] = Math.tanh(2.5 * x) / Math.tanh(2.5);
+  }
+  sat.curve = crv;
+  sat.oversample = '2x';
+  const dl = ctx.createDelay(0.06);
+  dl.delayTime.value = 0.02;
+  const wowLfo = ctx.createOscillator();
+  wowLfo.frequency.value = 0.5;
+  const wowDepth = ctx.createGain();
+  wowDepth.gain.value = 0;
+  const flutLfo = ctx.createOscillator();
+  flutLfo.frequency.value = 6.3;
+  const flutDepth = ctx.createGain();
+  flutDepth.gain.value = 0;
+  wowLfo.connect(wowDepth);
+  wowDepth.connect(dl.delayTime);
+  flutLfo.connect(flutDepth);
+  flutDepth.connect(dl.delayTime);
+  wowLfo.start();
+  flutLfo.start();
+  const toneF = ctx.createBiquadFilter();
+  toneF.type = 'lowpass';
+  toneF.Q.value = 0.7;
+  const wetG = ctx.createGain();
+  inG.connect(pre);
+  pre.connect(sat);
+  sat.connect(dl);
+  dl.connect(toneF);
+  toneF.connect(wetG);
+  wetG.connect(out);
+  selfName(el, n => {
+    if (n) {
+      label = n;
+      name.textContent = n;
+    }
+    if (bus && bus.registerTap)
+      bus.registerTap(label, wetG);
+    if (invalidation)
+      invalidation.then(() => {
+        if (bus && bus.taps && bus.taps.get(label) === wetG) {
+          bus.taps.delete(label);
+          bus.dispatchEvent(new window.CustomEvent('taps'));
+        }
+      });
+  });
+  const apply = () => {
+    const t = ctx.currentTime;
+    pre.gain.setTargetAtTime(k.drive.value, t, 0.02);
+    // tanh holds peaks near 1; makeup keeps loudness steady as drive rises
+    wetG.gain.setTargetAtTime(k.wet.value / Math.sqrt(k.drive.value), t, 0.02);
+    wowDepth.gain.setTargetAtTime(k.wow.value * 0.006, t, 0.05);
+    flutDepth.gain.setTargetAtTime(k.wow.value * 0.0012, t, 0.05);
+    toneF.frequency.setTargetAtTime(k.tone.value, t, 0.02);
+  };
+  apply();
+  el.addEventListener('input', apply);
+  let want = tap;
+  let cur = null;
+  const connect = () => {
+    if (cur) {
+      try {
+        cur.disconnect(inG);
+      } catch (e) {
+      }
+      cur = null;
+    }
+    const node = bus && bus.taps && bus.taps.get(want);
+    if (node && node !== wetG) {
+      node.connect(inG);
+      cur = node;
+    }
+  };
+  const refresh = () => {
+    const names = [...new Set([
+        '',
+        ...bus && bus.taps ? bus.taps.keys() : [],
+        want
+      ])].filter(n => (!n || !n.startsWith('template_') || n === want) && n !== label);
+    sel.innerHTML = '';
+    for (const n of names) {
+      const o = document.createElement('option');
+      o.value = n;
+      o.textContent = n || '\u2014';
+      sel.appendChild(o);
+    }
+    sel.value = want;
+    connect();
+  };
+  sel.addEventListener('input', () => {
+    want = sel.value;
+    connect();
+  });
+  if (bus)
+    bus.addEventListener('taps', refresh);
+  refresh();
+  if (invalidation)
+    invalidation.then(() => {
+      if (bus)
+        bus.removeEventListener('taps', refresh);
+      if (cur)
+        try {
+          cur.disconnect(inG);
+        } catch (e) {
+        }
+      wetG.disconnect();
+    });
+  Object.defineProperty(el, 'value', {
+    get: () => ({
+      tap: want,
+      ...Object.fromEntries(Object.entries(k).map(([n, e]) => [n, e.value]))
+    }),
+    set: p => {
+      if (!p)
+        return;
+      for (const [n, e] of Object.entries(k))
+        if (typeof p[n] === 'number')
+          e.value = p[n];
+      if (typeof p.tap === 'string')
+        want = p.tap;
+      apply();
+      refresh();
+    }
+  });
+  return el;
+}
+)};
+const _tp1v = function _tape1(sticky,mkTape,daw_ctx,master,midiBus,invalidation){return(
+sticky(mkTape(daw_ctx, master, {
+  bus: midiBus,
+  invalidation
+}), {"tap":"drumBus","drive":2.5,"wow":0.16,"tone":2780,"wet":0.9})
+)};
+const _tp1g = (G, _) => G.input(_);
+const _ttp1v = function _template_tape(sticky,mkTape,daw_ctx,master,midiBus,invalidation){return(
+sticky(mkTape(daw_ctx, master, {
+  bus: midiBus,
+  invalidation
+}), {"tap":"","drive":3,"wow":0.3,"tone":6000,"wet":0.7})
+)};
+const _ttp1g = (G, _) => G.input(_);
+const _mkdb1 = function _mkDub(knob,selfName){return(
+(ctx, out, { label = 'dub', bus = null, tap = '', invalidation } = {}) => {
+  const el = document.createElement('div');
+  el.style.cssText = 'display:inline-flex; flex-direction:column; gap:4px; background:#1c2529; border:1px solid #37474f; border-radius:6px; padding:8px 10px; width:max-content;';
+  const head = document.createElement('div');
+  head.style.cssText = 'display:flex; gap:8px; align-items:center; font:10px var(--sans-serif, sans-serif); color:#eceff1;';
+  const name = document.createElement('b');
+  name.textContent = label;
+  const from = document.createElement('span');
+  from.textContent = 'from';
+  from.style.cssText = 'color:#90a4ae; margin-left:auto;';
+  const sel = document.createElement('select');
+  sel.style.cssText = 'font:10px inherit;';
+  head.append(name, from, sel);
+  const k = {
+    send: knob({ label: 'send', min: 0, max: 1.5, value: 0.8, step: 0.01 }),
+    time: knob({ label: 'time', min: 0.05, max: 1.5, value: 0.375, step: 0.005, log: true }),
+    fb: knob({ label: 'fb', min: 0, max: 1.15, value: 0.55, step: 0.01 }),
+    tone: knob({ label: 'tone', min: 300, max: 8000, value: 2500, step: 10, log: true }),
+    wob: knob({ label: 'wob', min: 0, max: 1, value: 0.35, step: 0.01 }),
+    wet: knob({ label: 'wet', min: 0, max: 1.5, value: 0.7, step: 0.01 })
+  };
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; gap:2px;';
+  row.append(...Object.values(k));
+  el.append(head, row);
+  // dub loop: delay -> tone LPF -> HPF -> tanh -> fb -> delay. The saturator
+  // bounds the loop, so fb past 1.0 self-oscillates instead of blowing up
+  const inG = ctx.createGain();
+  const dl = ctx.createDelay(3);
+  const toneF = ctx.createBiquadFilter();
+  toneF.type = 'lowpass';
+  toneF.Q.value = 0.7;
+  const hpF = ctx.createBiquadFilter();
+  hpF.type = 'highpass';
+  hpF.frequency.value = 120;
+  hpF.Q.value = 0.5;
+  const sat = ctx.createWaveShaper();
+  // unity slope at 0: echoes decay at exactly fb per repeat, only peaks
+  // saturate. Normalizing by tanh(1.5) instead would give small signals a
+  // 1.66x boost and every fb above ~0.6 runs away
+  const crv = new Float32Array(257);
+  for (let i = 0; i <= 256; i++) {
+    const x = i / 128 - 1;
+    crv[i] = Math.tanh(1.5 * x) / 1.5;
+  }
+  sat.curve = crv;
+  sat.oversample = '2x';
+  const fbG = ctx.createGain();
+  const wetG = ctx.createGain();
+  inG.connect(dl);
+  dl.connect(toneF);
+  toneF.connect(hpF);
+  hpF.connect(sat);
+  sat.connect(fbG);
+  fbG.connect(dl);
+  const makeup = ctx.createGain();
+  makeup.gain.value = 1.65;
+  sat.connect(makeup);
+  makeup.connect(wetG);
+  wetG.connect(out);
+  const wobLfo = ctx.createOscillator();
+  wobLfo.frequency.value = 0.6;
+  const wobDepth = ctx.createGain();
+  wobDepth.gain.value = 0;
+  const flutLfo = ctx.createOscillator();
+  flutLfo.frequency.value = 5.2;
+  const flutDepth = ctx.createGain();
+  flutDepth.gain.value = 0;
+  wobLfo.connect(wobDepth);
+  wobDepth.connect(dl.delayTime);
+  flutLfo.connect(flutDepth);
+  flutDepth.connect(dl.delayTime);
+  wobLfo.start();
+  flutLfo.start();
+  selfName(el, n => {
+    if (n) {
+      label = n;
+      name.textContent = n;
+    }
+    if (bus && bus.registerTap)
+      bus.registerTap(label, wetG);
+    if (invalidation)
+      invalidation.then(() => {
+        if (bus && bus.taps && bus.taps.get(label) === wetG) {
+          bus.taps.delete(label);
+          bus.dispatchEvent(new window.CustomEvent('taps'));
+        }
+      });
+  });
+  const apply = () => {
+    const t = ctx.currentTime;
+    inG.gain.setTargetAtTime(k.send.value, t, 0.02);
+    // slow target = tape-style pitch bend when you ride the time knob
+    dl.delayTime.setTargetAtTime(k.time.value, t, 0.08);
+    fbG.gain.setTargetAtTime(k.fb.value, t, 0.02);
+    toneF.frequency.setTargetAtTime(k.tone.value, t, 0.02);
+    wobDepth.gain.setTargetAtTime(k.wob.value * 0.004, t, 0.05);
+    flutDepth.gain.setTargetAtTime(k.wob.value * 0.0012, t, 0.05);
+    wetG.gain.setTargetAtTime(k.wet.value, t, 0.02);
+  };
+  apply();
+  el.addEventListener('input', apply);
+  let want = tap;
+  let cur = null;
+  const connect = () => {
+    if (cur) {
+      try {
+        cur.disconnect(inG);
+      } catch (e) {
+      }
+      cur = null;
+    }
+    const node = bus && bus.taps && bus.taps.get(want);
+    if (node && node !== wetG) {
+      node.connect(inG);
+      cur = node;
+    }
+  };
+  const refresh = () => {
+    const names = [...new Set([
+        '',
+        ...bus && bus.taps ? bus.taps.keys() : [],
+        want
+      ])].filter(n => (!n || !n.startsWith('template_') || n === want) && n !== label);
+    sel.innerHTML = '';
+    for (const n of names) {
+      const o = document.createElement('option');
+      o.value = n;
+      o.textContent = n || '\u2014';
+      sel.appendChild(o);
+    }
+    sel.value = want;
+    connect();
+  };
+  sel.addEventListener('input', () => {
+    want = sel.value;
+    connect();
+  });
+  if (bus)
+    bus.addEventListener('taps', refresh);
+  refresh();
+  if (invalidation)
+    invalidation.then(() => {
+      if (bus)
+        bus.removeEventListener('taps', refresh);
+      if (cur)
+        try {
+          cur.disconnect(inG);
+        } catch (e) {
+        }
+      wetG.disconnect();
+    });
+  Object.defineProperty(el, 'value', {
+    get: () => ({
+      tap: want,
+      ...Object.fromEntries(Object.entries(k).map(([n, e]) => [n, e.value]))
+    }),
+    set: p => {
+      if (!p)
+        return;
+      for (const [n, e] of Object.entries(k))
+        if (typeof p[n] === 'number')
+          e.value = p[n];
+      if (typeof p.tap === 'string')
+        want = p.tap;
+      apply();
+      refresh();
+    }
+  });
+  return el;
+}
+)};
+const _db1v = function _dub1(sticky,mkDub,daw_ctx,master,midiBus,invalidation){return(
+sticky(mkDub(daw_ctx, master, {
+  bus: midiBus,
+  invalidation
+}), {"tap":"drumBus","send":0.8,"time":0.375,"fb":0.22,"tone":2500,"wob":0.35,"wet":0.7})
+)};
+const _db1g = (G, _) => G.input(_);
+const _tdb1v = function _template_dub(sticky,mkDub,daw_ctx,master,midiBus,invalidation){return(
+sticky(mkDub(daw_ctx, master, {
+  bus: midiBus,
+  invalidation
+}), {"tap":"","send":0.8,"time":0.375,"fb":0.55,"tone":2500,"wob":0.35,"wet":0.7})
+)};
+const _tdb1g = (G, _) => G.input(_);
 const _mkvb1 = function _mkVerb(knob,selfName){return(
 (ctx, out, { label = 'verb', bus = null, tap = '', invalidation } = {}) => {
   const el = document.createElement('div');
@@ -4410,7 +4591,7 @@ const _ec1v = function _echo1(sticky,mkEcho,daw_ctx,master,midiBus,invalidation)
 sticky(mkEcho(daw_ctx, master, {
   bus: midiBus,
   invalidation
-}), {"tap":"synth1","send":0.5,"time":0.375,"fb":0.45,"wet":0.35})
+}), {"tap":"synth1","send":0.5,"time":0.375,"fb":0.43,"wet":0.35})
 )};
 const _ec1g = (G, _) => G.input(_);
 const _vb1v = function _verb1(sticky,mkVerb,daw_ctx,master,midiBus,invalidation){return(
@@ -4446,364 +4627,6 @@ sticky(mkDucker(daw_ctx, midiBus, {
 }), {"inputs":[],"target":"","note":36,"depth":0.55,"rel":0.22})
 )};
 const _tdk1g = (G, _) => G.input(_);
-const _mktp1 = function _mkTape(knob,selfName){return(
-(ctx, out, { label = 'tape', bus = null, tap = '', invalidation } = {}) => {
-  const el = document.createElement('div');
-  el.style.cssText = 'display:inline-flex; flex-direction:column; gap:4px; background:#1c2529; border:1px solid #37474f; border-radius:6px; padding:8px 10px; width:max-content;';
-  const head = document.createElement('div');
-  head.style.cssText = 'display:flex; gap:8px; align-items:center; font:10px var(--sans-serif, sans-serif); color:#eceff1;';
-  const name = document.createElement('b');
-  name.textContent = label;
-  const from = document.createElement('span');
-  from.textContent = 'from';
-  from.style.cssText = 'color:#90a4ae; margin-left:auto;';
-  const sel = document.createElement('select');
-  sel.style.cssText = 'font:10px inherit;';
-  head.append(name, from, sel);
-  const k = {
-    drive: knob({ label: 'drive', min: 1, max: 10, value: 3, step: 0.1, log: true }),
-    wow: knob({ label: 'wow', min: 0, max: 1, value: 0.3, step: 0.01 }),
-    tone: knob({ label: 'tone', min: 500, max: 14000, value: 6000, step: 10, log: true }),
-    wet: knob({ label: 'wet', min: 0, max: 1.5, value: 0.7, step: 0.01 })
-  };
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex; gap:2px;';
-  row.append(...Object.values(k));
-  el.append(head, row);
-  // parallel tape: source -> drive -> tanh -> wow/flutter delay -> tone -> wet
-  const inG = ctx.createGain();
-  const pre = ctx.createGain();
-  const sat = ctx.createWaveShaper();
-  const crv = new Float32Array(257);
-  for (let i = 0; i <= 256; i++) {
-    const x = i / 128 - 1;
-    crv[i] = Math.tanh(2.5 * x) / Math.tanh(2.5);
-  }
-  sat.curve = crv;
-  sat.oversample = '2x';
-  const dl = ctx.createDelay(0.06);
-  dl.delayTime.value = 0.02;
-  const wowLfo = ctx.createOscillator();
-  wowLfo.frequency.value = 0.5;
-  const wowDepth = ctx.createGain();
-  wowDepth.gain.value = 0;
-  const flutLfo = ctx.createOscillator();
-  flutLfo.frequency.value = 6.3;
-  const flutDepth = ctx.createGain();
-  flutDepth.gain.value = 0;
-  wowLfo.connect(wowDepth);
-  wowDepth.connect(dl.delayTime);
-  flutLfo.connect(flutDepth);
-  flutDepth.connect(dl.delayTime);
-  wowLfo.start();
-  flutLfo.start();
-  const toneF = ctx.createBiquadFilter();
-  toneF.type = 'lowpass';
-  toneF.Q.value = 0.7;
-  const wetG = ctx.createGain();
-  inG.connect(pre);
-  pre.connect(sat);
-  sat.connect(dl);
-  dl.connect(toneF);
-  toneF.connect(wetG);
-  wetG.connect(out);
-  selfName(el, n => {
-    if (n) {
-      label = n;
-      name.textContent = n;
-    }
-    if (bus && bus.registerTap)
-      bus.registerTap(label, wetG);
-    if (invalidation)
-      invalidation.then(() => {
-        if (bus && bus.taps && bus.taps.get(label) === wetG) {
-          bus.taps.delete(label);
-          bus.dispatchEvent(new window.CustomEvent('taps'));
-        }
-      });
-  });
-  const apply = () => {
-    const t = ctx.currentTime;
-    pre.gain.setTargetAtTime(k.drive.value, t, 0.02);
-    // tanh holds peaks near 1; makeup keeps loudness steady as drive rises
-    wetG.gain.setTargetAtTime(k.wet.value / Math.sqrt(k.drive.value), t, 0.02);
-    wowDepth.gain.setTargetAtTime(k.wow.value * 0.006, t, 0.05);
-    flutDepth.gain.setTargetAtTime(k.wow.value * 0.0012, t, 0.05);
-    toneF.frequency.setTargetAtTime(k.tone.value, t, 0.02);
-  };
-  apply();
-  el.addEventListener('input', apply);
-  let want = tap;
-  let cur = null;
-  const connect = () => {
-    if (cur) {
-      try {
-        cur.disconnect(inG);
-      } catch (e) {
-      }
-      cur = null;
-    }
-    const node = bus && bus.taps && bus.taps.get(want);
-    if (node && node !== wetG) {
-      node.connect(inG);
-      cur = node;
-    }
-  };
-  const refresh = () => {
-    const names = [...new Set([
-        '',
-        ...bus && bus.taps ? bus.taps.keys() : [],
-        want
-      ])].filter(n => (!n || !n.startsWith('template_') || n === want) && n !== label);
-    sel.innerHTML = '';
-    for (const n of names) {
-      const o = document.createElement('option');
-      o.value = n;
-      o.textContent = n || '\u2014';
-      sel.appendChild(o);
-    }
-    sel.value = want;
-    connect();
-  };
-  sel.addEventListener('input', () => {
-    want = sel.value;
-    connect();
-  });
-  if (bus)
-    bus.addEventListener('taps', refresh);
-  refresh();
-  if (invalidation)
-    invalidation.then(() => {
-      if (bus)
-        bus.removeEventListener('taps', refresh);
-      if (cur)
-        try {
-          cur.disconnect(inG);
-        } catch (e) {
-        }
-      wetG.disconnect();
-    });
-  Object.defineProperty(el, 'value', {
-    get: () => ({
-      tap: want,
-      ...Object.fromEntries(Object.entries(k).map(([n, e]) => [n, e.value]))
-    }),
-    set: p => {
-      if (!p)
-        return;
-      for (const [n, e] of Object.entries(k))
-        if (typeof p[n] === 'number')
-          e.value = p[n];
-      if (typeof p.tap === 'string')
-        want = p.tap;
-      apply();
-      refresh();
-    }
-  });
-  return el;
-}
-)};
-const _tp1v = function _tape1(sticky,mkTape,daw_ctx,master,midiBus,invalidation){return(
-sticky(mkTape(daw_ctx, master, {
-  bus: midiBus,
-  invalidation
-}), {"tap":"drumBus","drive":3,"wow":0.3,"tone":6000,"wet":0.7})
-)};
-const _tp1g = (G, _) => G.input(_);
-const _ttp1v = function _template_tape(sticky,mkTape,daw_ctx,master,midiBus,invalidation){return(
-sticky(mkTape(daw_ctx, master, {
-  bus: midiBus,
-  invalidation
-}), {"tap":"","drive":3,"wow":0.3,"tone":6000,"wet":0.7})
-)};
-const _ttp1g = (G, _) => G.input(_);
-const _mkdb1 = function _mkDub(knob,selfName){return(
-(ctx, out, { label = 'dub', bus = null, tap = '', invalidation } = {}) => {
-  const el = document.createElement('div');
-  el.style.cssText = 'display:inline-flex; flex-direction:column; gap:4px; background:#1c2529; border:1px solid #37474f; border-radius:6px; padding:8px 10px; width:max-content;';
-  const head = document.createElement('div');
-  head.style.cssText = 'display:flex; gap:8px; align-items:center; font:10px var(--sans-serif, sans-serif); color:#eceff1;';
-  const name = document.createElement('b');
-  name.textContent = label;
-  const from = document.createElement('span');
-  from.textContent = 'from';
-  from.style.cssText = 'color:#90a4ae; margin-left:auto;';
-  const sel = document.createElement('select');
-  sel.style.cssText = 'font:10px inherit;';
-  head.append(name, from, sel);
-  const k = {
-    send: knob({ label: 'send', min: 0, max: 1.5, value: 0.8, step: 0.01 }),
-    time: knob({ label: 'time', min: 0.05, max: 1.5, value: 0.375, step: 0.005, log: true }),
-    fb: knob({ label: 'fb', min: 0, max: 1.15, value: 0.55, step: 0.01 }),
-    tone: knob({ label: 'tone', min: 300, max: 8000, value: 2500, step: 10, log: true }),
-    wob: knob({ label: 'wob', min: 0, max: 1, value: 0.35, step: 0.01 }),
-    wet: knob({ label: 'wet', min: 0, max: 1.5, value: 0.7, step: 0.01 })
-  };
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex; gap:2px;';
-  row.append(...Object.values(k));
-  el.append(head, row);
-  // dub loop: delay -> tone LPF -> HPF -> tanh -> fb -> delay. The saturator
-  // bounds the loop, so fb past 1.0 self-oscillates instead of blowing up
-  const inG = ctx.createGain();
-  const dl = ctx.createDelay(3);
-  const toneF = ctx.createBiquadFilter();
-  toneF.type = 'lowpass';
-  toneF.Q.value = 0.7;
-  const hpF = ctx.createBiquadFilter();
-  hpF.type = 'highpass';
-  hpF.frequency.value = 120;
-  hpF.Q.value = 0.5;
-  const sat = ctx.createWaveShaper();
-  // unity slope at 0: echoes decay at exactly fb per repeat, only peaks
-  // saturate. Normalizing by tanh(1.5) instead would give small signals a
-  // 1.66x boost and every fb above ~0.6 runs away
-  const crv = new Float32Array(257);
-  for (let i = 0; i <= 256; i++) {
-    const x = i / 128 - 1;
-    crv[i] = Math.tanh(1.5 * x) / 1.5;
-  }
-  sat.curve = crv;
-  sat.oversample = '2x';
-  const fbG = ctx.createGain();
-  const wetG = ctx.createGain();
-  inG.connect(dl);
-  dl.connect(toneF);
-  toneF.connect(hpF);
-  hpF.connect(sat);
-  sat.connect(fbG);
-  fbG.connect(dl);
-  const makeup = ctx.createGain();
-  makeup.gain.value = 1.65;
-  sat.connect(makeup);
-  makeup.connect(wetG);
-  wetG.connect(out);
-  const wobLfo = ctx.createOscillator();
-  wobLfo.frequency.value = 0.6;
-  const wobDepth = ctx.createGain();
-  wobDepth.gain.value = 0;
-  const flutLfo = ctx.createOscillator();
-  flutLfo.frequency.value = 5.2;
-  const flutDepth = ctx.createGain();
-  flutDepth.gain.value = 0;
-  wobLfo.connect(wobDepth);
-  wobDepth.connect(dl.delayTime);
-  flutLfo.connect(flutDepth);
-  flutDepth.connect(dl.delayTime);
-  wobLfo.start();
-  flutLfo.start();
-  selfName(el, n => {
-    if (n) {
-      label = n;
-      name.textContent = n;
-    }
-    if (bus && bus.registerTap)
-      bus.registerTap(label, wetG);
-    if (invalidation)
-      invalidation.then(() => {
-        if (bus && bus.taps && bus.taps.get(label) === wetG) {
-          bus.taps.delete(label);
-          bus.dispatchEvent(new window.CustomEvent('taps'));
-        }
-      });
-  });
-  const apply = () => {
-    const t = ctx.currentTime;
-    inG.gain.setTargetAtTime(k.send.value, t, 0.02);
-    // slow target = tape-style pitch bend when you ride the time knob
-    dl.delayTime.setTargetAtTime(k.time.value, t, 0.08);
-    fbG.gain.setTargetAtTime(k.fb.value, t, 0.02);
-    toneF.frequency.setTargetAtTime(k.tone.value, t, 0.02);
-    wobDepth.gain.setTargetAtTime(k.wob.value * 0.004, t, 0.05);
-    flutDepth.gain.setTargetAtTime(k.wob.value * 0.0012, t, 0.05);
-    wetG.gain.setTargetAtTime(k.wet.value, t, 0.02);
-  };
-  apply();
-  el.addEventListener('input', apply);
-  let want = tap;
-  let cur = null;
-  const connect = () => {
-    if (cur) {
-      try {
-        cur.disconnect(inG);
-      } catch (e) {
-      }
-      cur = null;
-    }
-    const node = bus && bus.taps && bus.taps.get(want);
-    if (node && node !== wetG) {
-      node.connect(inG);
-      cur = node;
-    }
-  };
-  const refresh = () => {
-    const names = [...new Set([
-        '',
-        ...bus && bus.taps ? bus.taps.keys() : [],
-        want
-      ])].filter(n => (!n || !n.startsWith('template_') || n === want) && n !== label);
-    sel.innerHTML = '';
-    for (const n of names) {
-      const o = document.createElement('option');
-      o.value = n;
-      o.textContent = n || '\u2014';
-      sel.appendChild(o);
-    }
-    sel.value = want;
-    connect();
-  };
-  sel.addEventListener('input', () => {
-    want = sel.value;
-    connect();
-  });
-  if (bus)
-    bus.addEventListener('taps', refresh);
-  refresh();
-  if (invalidation)
-    invalidation.then(() => {
-      if (bus)
-        bus.removeEventListener('taps', refresh);
-      if (cur)
-        try {
-          cur.disconnect(inG);
-        } catch (e) {
-        }
-      wetG.disconnect();
-    });
-  Object.defineProperty(el, 'value', {
-    get: () => ({
-      tap: want,
-      ...Object.fromEntries(Object.entries(k).map(([n, e]) => [n, e.value]))
-    }),
-    set: p => {
-      if (!p)
-        return;
-      for (const [n, e] of Object.entries(k))
-        if (typeof p[n] === 'number')
-          e.value = p[n];
-      if (typeof p.tap === 'string')
-        want = p.tap;
-      apply();
-      refresh();
-    }
-  });
-  return el;
-}
-)};
-const _db1v = function _dub1(sticky,mkDub,daw_ctx,master,midiBus,invalidation){return(
-sticky(mkDub(daw_ctx, master, {
-  bus: midiBus,
-  invalidation
-}), {"tap":"drumBus","send":0.8,"time":0.375,"fb":0.55,"tone":2500,"wob":0.35,"wet":0.7})
-)};
-const _db1g = (G, _) => G.input(_);
-const _tdb1v = function _template_dub(sticky,mkDub,daw_ctx,master,midiBus,invalidation){return(
-sticky(mkDub(daw_ctx, master, {
-  bus: midiBus,
-  invalidation
-}), {"tap":"","send":0.8,"time":0.375,"fb":0.55,"tone":2500,"wob":0.35,"wet":0.7})
-)};
-const _tdb1g = (G, _) => G.input(_);
 const _mksl1 = function _mkSlicer(knob,mkInputPicker,sampleStore,selfName){return(
 (ctx, out, { label = 'slicer', bus = null, inputs = [], invalidation } = {}) => {
   const NN = n => ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][n % 12] + (Math.floor(n / 12) - 1);
@@ -5087,23 +4910,127 @@ const _sl1v = function _slicer1(sticky,mkSlicer,daw_ctx,drumBus,midiBus,invalida
 sticky(mkSlicer(daw_ctx, drumBus, {
   bus: midiBus,
   invalidation
-}), {"file":"break.wav","base":60,"slices":8,"rate":1,"gain":1,"pan":0,"inputs":[]})
+}), {"file":"break.flac","base":60,"slices":8,"rate":1,"gain":1,"pan":0,"inputs":[]})
 )};
 const _sl1g = (G, _) => G.input(_);
 const _tsl1v = function _template_slicer(sticky,mkSlicer,daw_ctx,master,midiBus,invalidation){return(
 sticky(mkSlicer(daw_ctx, master, {
   bus: midiBus,
   invalidation
-}), {"file":"break.wav","base":60,"slices":8,"rate":1,"gain":1,"pan":0,"inputs":[]})
+}), {"file":"break.flac","base":60,"slices":8,"rate":1,"gain":1,"pan":0,"inputs":[]})
 )};
 const _tsl1g = (G, _) => G.input(_);
+const _10dx74f = function _mkChordPad(selfName) {return ((bus, { name = 'chordpad', root = 0, mode = 'minor', octave = 3, latch = true, velocity = 100, invalidation } = {}) => {
+  const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const QUAL = { maj: [0,4,7], min: [0,3,7], dim: [0,3,6], maj7: [0,4,7,11], m7: [0,3,7,10], dom7: [0,4,7,10], m7b5: [0,3,6,10], sus2: [0,2,7], sus4: [0,5,7] };
+  const SUF = { maj: '', min: 'm', dim: '°', maj7: 'maj7', m7: 'm7', dom7: '7', m7b5: 'ø7', sus2: 'sus2', sus4: 'sus4' };
+  const LAYOUT = {
+    major: [
+      [['I',0,'maj'],['ii',2,'min'],['iii',4,'min'],['IV',5,'maj'],['V',7,'maj'],['vi',9,'min'],['vii°',11,'dim']],
+      [['Imaj7',0,'maj7'],['ii7',2,'m7'],['iii7',4,'m7'],['IVmaj7',5,'maj7'],['V7',7,'dom7'],['vi7',9,'m7'],['viiø7',11,'m7b5']],
+      [['iv',5,'min'],['♭III',3,'maj'],['♭VI',8,'maj'],['♭VII',10,'maj'],['Isus2',0,'sus2'],['Isus4',0,'sus4'],['Vsus4',7,'sus4']]
+    ],
+    minor: [
+      [['i',0,'min'],['ii°',2,'dim'],['III',3,'maj'],['iv',5,'min'],['v',7,'min'],['VI',8,'maj'],['VII',10,'maj']],
+      [['i7',0,'m7'],['iiø7',2,'m7b5'],['IIImaj7',3,'maj7'],['iv7',5,'m7'],['v7',7,'m7'],['VImaj7',8,'maj7'],['VII7',10,'dom7']],
+      [['V',7,'maj'],['V7',7,'dom7'],['♭II',1,'maj'],['IV',5,'maj'],['I',0,'maj'],['isus2',0,'sus2'],['isus4',0,'sus4']]
+    ]
+  };
+  let state = { root, mode, octave, latch };
+  let sounding = [];
+  let activePad = null;
+  const el = document.createElement('div');
+  el.style.cssText = 'display:inline-flex; flex-direction:column; gap:5px; background:#1c2529; color:#eceff1; border:1px solid #37474f; border-radius:6px; padding:8px 10px; width:max-content; user-select:none;';
+  const commit = () => el.dispatchEvent(new window.Event('input', { bubbles: true }));
+  const off = () => {
+    for (const n of sounding) bus.publish(name, [128, n, 0]);
+    sounding = [];
+    if (activePad) { activePad.style.outline = ''; activePad = null; }
+  };
+  const notesOf = (offset, qual) => {
+    const base = 12 * (state.octave + 1) + ((state.root + offset) % 12);
+    return QUAL[qual].map(iv => base + iv);
+  };
+  const head = document.createElement('div');
+  head.style.cssText = 'display:flex; gap:8px; align-items:center; font:10px var(--sans-serif, sans-serif);';
+  const lab = document.createElement('b');
+  lab.textContent = name;
+  const sel = (opts, value, onchange, title) => {
+    const s = document.createElement('select');
+    s.title = title;
+    s.style.cssText = 'font:10px monospace; background:#263238; color:#eceff1; border:1px solid #37474f; border-radius:3px;';
+    for (const [v, txt] of opts) { const o = document.createElement('option'); o.value = v; o.textContent = txt; s.appendChild(o); }
+    s.value = value;
+    s.addEventListener('input', e => { e.stopPropagation(); onchange(s.value); off(); paint(); commit(); });
+    return s;
+  };
+  const rootSel = sel(NOTES.map((n, i) => [i, n]), String(state.root), v => state.root = +v, 'key root');
+  const modeSel = sel([['major','major'],['minor','minor']], state.mode, v => state.mode = v, 'mode');
+  const octSel = sel([[2,'oct 2'],[3,'oct 3'],[4,'oct 4']], String(state.octave), v => state.octave = +v, 'octave');
+  const latchLab = document.createElement('label');
+  latchLab.style.cssText = 'display:flex; gap:3px; align-items:center; cursor:pointer; color:#90a4ae;';
+  const latchCb = document.createElement('input');
+  latchCb.type = 'checkbox';
+  latchCb.checked = state.latch;
+  latchCb.addEventListener('input', e => { e.stopPropagation(); state.latch = latchCb.checked; off(); paint(); commit(); });
+  latchLab.append(latchCb, document.createTextNode('latch'));
+  head.append(lab, rootSel, modeSel, octSel, latchLab);
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(7, 64px); gap:3px;';
+  const paint = () => {
+    grid.innerHTML = '';
+    for (const row of LAYOUT[state.mode]) {
+      for (const [roman, offset, qual] of row) {
+        const pad = document.createElement('div');
+        const chordName = NOTES[(state.root + offset) % 12] + SUF[qual];
+        pad.style.cssText = 'display:flex; flex-direction:column; align-items:center; justify-content:center; height:38px; border-radius:4px; cursor:pointer; background:#263238; border:1px solid #37474f; font:9px var(--sans-serif, sans-serif); color:#90a4ae;';
+        const r = document.createElement('span'); r.textContent = roman; r.style.cssText = 'font-size:8px; opacity:0.7;';
+        const c = document.createElement('b'); c.textContent = chordName; c.style.cssText = 'color:#eceff1; font-size:10px;';
+        pad.append(r, c);
+        const start = e => {
+          e.preventDefault();
+          const wasActive = activePad === pad;
+          off();
+          if (state.latch && wasActive) return;
+          sounding = notesOf(offset, qual);
+          for (const n of sounding) bus.publish(name, [144, n, velocity]);
+          activePad = pad;
+          pad.style.outline = '2px solid #3ddc84';
+        };
+        pad.addEventListener('pointerdown', start);
+        if (!state.latch) { pad.addEventListener('pointerup', off); pad.addEventListener('pointerleave', () => { if (activePad === pad) off(); }); }
+        grid.appendChild(pad);
+      }
+    }
+  };
+  selfName(el, n => { if (n) { name = n; lab.textContent = n; bus.register(n); } });
+  el.append(head, grid);
+  Object.defineProperty(el, 'value', {
+    get: () => ({ ...state }),
+    set: v => {
+      if (!v) return;
+      if (typeof v.root === 'number') { state.root = v.root; rootSel.value = String(v.root); }
+      if (v.mode === 'major' || v.mode === 'minor') { state.mode = v.mode; modeSel.value = v.mode; }
+      if (typeof v.octave === 'number') { state.octave = v.octave; octSel.value = String(v.octave); }
+      if (typeof v.latch === 'boolean') { state.latch = v.latch; latchCb.checked = v.latch; }
+      paint();
+    }
+  });
+  if (invalidation) invalidation.then(off);
+  paint();
+  return el;
+});};
+const _1ofr1s0 = (G, _) => G.input(_);
+const _mj1yap = function _chordpad1(sticky,mkChordPad,midiBus,invalidation) {return (sticky(mkChordPad(midiBus, {
+  invalidation
+}), {"root":0,"mode":"minor","octave":3,"latch":false}));};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
-  const fileAttachments = new Map(["kick.wav","snare.wav","hihat.wav","break.wav"].map((name) => {
+  const fileAttachments = new Map(["kick.flac","snare.wav","hihat.wav","break.flac"].map((name) => {
     const module_name = "@tomlarkworthy/daw";
     const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
     const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
@@ -5140,15 +5067,15 @@ export default function define(runtime, observer) {
   $def("_s71xha", "stepGrid", ["Event"], _s71xha);  
   $def("_14j1vyd", "viewof drums", ["sticky","mkSeq","viewof clock","midiBus","invalidation"], _14j1vyd);  
   $def("_7a7f2w", "drums", ["Generators","viewof drums"], _7a7f2w);  
-  $def("_mkbus1", "mkBus", ["knob","selfName"], _mkbus1);
-  $def("_dbus1v", "viewof drumBus", ["sticky","mkBus","daw_ctx","master","midiBus","invalidation"], _dbus1v);
+  $def("_mkbus1", "mkBus", ["knob","selfName"], _mkbus1);  
+  $def("_dbus1v", "viewof drumBus", ["sticky","mkBus","daw_ctx","master","midiBus","invalidation"], _dbus1v);  
   $def("_dbus1", "drumBus", ["viewof drumBus"], _dbus1);  
-  $def("_7zke3z", "bass_voice", ["viewof bass1"], _7zke3z);
-  $def("_mkbs1", "mkBass", ["knob","mkInputPicker","selfName"], _mkbs1);
-  $def("_bs1v", "viewof bass1", ["sticky","mkBass","daw_ctx","master","midiBus","invalidation"], _bs1v);
-  $def("_bs1g", "bass1", ["Generators","viewof bass1"], _bs1g);
-  $def("_tbs1v", "viewof template_bass", ["sticky","mkBass","daw_ctx","master","midiBus","invalidation"], _tbs1v);
-  $def("_tbs1g", "template_bass", ["Generators","viewof template_bass"], _tbs1g);
+  $def("_7zke3z", "bass_voice", ["viewof bass1"], _7zke3z);  
+  $def("_mkbs1", "mkBass", ["knob","mkInputPicker","selfName"], _mkbs1);  
+  $def("_bs1v", "viewof bass1", ["sticky","mkBass","daw_ctx","master","midiBus","invalidation"], _bs1v);  
+  $def("_bs1g", "bass1", ["Generators","viewof bass1"], _bs1g);  
+  $def("_tbs1v", "viewof template_bass", ["sticky","mkBass","daw_ctx","master","midiBus","invalidation"], _tbs1v);  
+  $def("_tbs1g", "template_bass", ["Generators","viewof template_bass"], _tbs1g);  
   $def("_1mtgc1q", "viewof template_knob", ["sticky","Inputs"], _1mtgc1q);  
   $def("_9ywdi1", "template_knob", ["Generators","viewof template_knob"], _9ywdi1);  
   $def("_1tgfsqb", "extending", ["md"], _1tgfsqb);  
@@ -5157,39 +5084,39 @@ export default function define(runtime, observer) {
   $def("_kys9m1", "keys", ["selfName"], _kys9m1);  
   $def("_mdn3q7", "midiIn", ["selfName"], _mdn3q7);  
   $def("_bus1a2", "midiBus", [], _bus1a2);  
-  $def("_mkpk5", "mkInputPicker", [], _mkpk5);
+  $def("_mkpk5", "mkInputPicker", [], _mkpk5);  
   $def("_slfn1", "selfName", ["runtime"], _slfn1);  
   $def("_msy5k4", "mkSynth", ["knob","mkInputPicker","selfName"], _msy5k4);  
   $def("_mkclk7", "mkClock", [], _mkclk7);  
-  $def("_mkseq3", "mkSeq", ["stepGrid","selfName"], _mkseq3);
-  $def("_mkrl1", "mkRoll", ["selfName"], _mkrl1);
-  $def("_rl1v", "viewof roll1", ["sticky","mkRoll","viewof clock","midiBus","invalidation"], _rl1v);
-  $def("_rl1g", "roll1", ["Generators","viewof roll1"], _rl1g);
-  $def("_trl1v", "viewof template_roll", ["sticky","mkRoll","viewof clock","midiBus","invalidation"], _trl1v);
-  $def("_trl1g", "template_roll", ["Generators","viewof template_roll"], _trl1g);
-  $def("_mknote1", "mkNote", ["md"], _mknote1);
-  $def("_tnt1v", "viewof template_note", ["sticky","mkNote"], _tnt1v);
-  $def("_tnt1g", "template_note", ["Generators","viewof template_note"], _tnt1g);
-  $def("_mksec1", "mkSections", ["mkInputPicker","selfName"], _mksec1);
-  $def("_sec1v", "viewof sections1", ["sticky","mkSections","viewof clock","midiBus","invalidation"], _sec1v);
-  $def("_sec1g", "sections1", ["Generators","viewof sections1"], _sec1g);
-  $def("_tsec1v", "viewof template_sections", ["sticky","mkSections","viewof clock","midiBus","invalidation"], _tsec1v);
-  $def("_tsec1g", "template_sections", ["Generators","viewof template_sections"], _tsec1g);
-  $def("_prgv1", "viewof prog", ["sticky","mkSeq","viewof clock","midiBus","invalidation"], _prgv1);
-  $def("_prgg1", "prog", ["Generators","viewof prog"], _prgg1);
-  $def("_padv1", "viewof pad1", ["sticky","mkSynth","daw_ctx","master","midiBus","invalidation"], _padv1);
-  $def("_padg1", "pad1", ["Generators","viewof pad1"], _padg1);
-  $def("_nttourv", "viewof note_tour", ["sticky","mkNote"], _nttourv);
-  $def("_nttourg", "note_tour", ["Generators","viewof note_tour"], _nttourg);
-  $def("_ntpumpv", "viewof note_pump", ["sticky","mkNote"], _ntpumpv);
-  $def("_ntpumpg", "note_pump", ["Generators","viewof note_pump"], _ntpumpg);
-  $def("_ntarpv", "viewof note_arp", ["sticky","mkNote"], _ntarpv);
-  $def("_ntarpg", "note_arp", ["Generators","viewof note_arp"], _ntarpg);
-  $def("_ntchordsv", "viewof note_chords", ["sticky","mkNote"], _ntchordsv);
-  $def("_ntchordsg", "note_chords", ["Generators","viewof note_chords"], _ntchordsg);
-  $def("_ntleadv", "viewof note_lead", ["sticky","mkNote"], _ntleadv);
-  $def("_ntleadg", "note_lead", ["Generators","viewof note_lead"], _ntleadg);
-  $def("_ntsectionsv", "viewof note_sections", ["sticky","mkNote"], _ntsectionsv);
+  $def("_mkseq3", "mkSeq", ["stepGrid","selfName"], _mkseq3);  
+  $def("_mkrl1", "mkRoll", ["selfName"], _mkrl1);  
+  $def("_rl1v", "viewof roll1", ["sticky","mkRoll","viewof clock","midiBus","invalidation"], _rl1v);  
+  $def("_rl1g", "roll1", ["Generators","viewof roll1"], _rl1g);  
+  $def("_trl1v", "viewof template_roll", ["sticky","mkRoll","viewof clock","midiBus","invalidation"], _trl1v);  
+  $def("_trl1g", "template_roll", ["Generators","viewof template_roll"], _trl1g);  
+  $def("_mknote1", "mkNote", ["md"], _mknote1);  
+  $def("_tnt1v", "viewof template_note", ["sticky","mkNote"], _tnt1v);  
+  $def("_tnt1g", "template_note", ["Generators","viewof template_note"], _tnt1g);  
+  $def("_mksec1", "mkSections", ["mkInputPicker","selfName"], _mksec1);  
+  $def("_sec1v", "viewof sections1", ["sticky","mkSections","viewof clock","midiBus","invalidation"], _sec1v);  
+  $def("_sec1g", "sections1", ["Generators","viewof sections1"], _sec1g);  
+  $def("_tsec1v", "viewof template_sections", ["sticky","mkSections","viewof clock","midiBus","invalidation"], _tsec1v);  
+  $def("_tsec1g", "template_sections", ["Generators","viewof template_sections"], _tsec1g);  
+  $def("_prgv1", "viewof prog", ["sticky","mkSeq","viewof clock","midiBus","invalidation"], _prgv1);  
+  $def("_prgg1", "prog", ["Generators","viewof prog"], _prgg1);  
+  $def("_padv1", "viewof pad1", ["sticky","mkSynth","daw_ctx","master","midiBus","invalidation"], _padv1);  
+  $def("_padg1", "pad1", ["Generators","viewof pad1"], _padg1);  
+  $def("_nttourv", "viewof note_tour", ["sticky","mkNote"], _nttourv);  
+  $def("_nttourg", "note_tour", ["Generators","viewof note_tour"], _nttourg);  
+  $def("_ntpumpv", "viewof note_pump", ["sticky","mkNote"], _ntpumpv);  
+  $def("_ntpumpg", "note_pump", ["Generators","viewof note_pump"], _ntpumpg);  
+  $def("_ntarpv", "viewof note_arp", ["sticky","mkNote"], _ntarpv);  
+  $def("_ntarpg", "note_arp", ["Generators","viewof note_arp"], _ntarpg);  
+  $def("_ntchordsv", "viewof note_chords", ["sticky","mkNote"], _ntchordsv);  
+  $def("_ntchordsg", "note_chords", ["Generators","viewof note_chords"], _ntchordsg);  
+  $def("_ntleadv", "viewof note_lead", ["sticky","mkNote"], _ntleadv);  
+  $def("_ntleadg", "note_lead", ["Generators","viewof note_lead"], _ntleadg);  
+  $def("_ntsectionsv", "viewof note_sections", ["sticky","mkNote"], _ntsectionsv);  
   $def("_ntsectionsg", "note_sections", ["Generators","viewof note_sections"], _ntsectionsg);  
   $def("_mkkit9", "mkKit", ["mkInputPicker","selfName"], _mkkit9);  
   $def("_mkchd2", "mkChord", ["mkInputPicker","selfName"], _mkchd2);  
@@ -5242,17 +5169,17 @@ export default function define(runtime, observer) {
   $def("_mkdr1", "mkDrum", ["knob","mkInputPicker","selfName"], _mkdr1);  
   $def("_tdr1v", "viewof template_drum", ["sticky","mkDrum","daw_ctx","master","midiBus","invalidation"], _tdr1v);  
   $def("_tdr1g", "template_drum", ["Generators","viewof template_drum"], _tdr1g);  
-  $def("_mkec1", "mkEcho", ["knob","selfName"], _mkec1);
-  $def("_mktp1", "mkTape", ["knob","selfName"], _mktp1);
-  $def("_tp1v", "viewof tape1", ["sticky","mkTape","daw_ctx","master","midiBus","invalidation"], _tp1v);
-  $def("_tp1g", "tape1", ["Generators","viewof tape1"], _tp1g);
-  $def("_ttp1v", "viewof template_tape", ["sticky","mkTape","daw_ctx","master","midiBus","invalidation"], _ttp1v);
-  $def("_ttp1g", "template_tape", ["Generators","viewof template_tape"], _ttp1g);
-  $def("_mkdb1", "mkDub", ["knob","selfName"], _mkdb1);
-  $def("_db1v", "viewof dub1", ["sticky","mkDub","daw_ctx","master","midiBus","invalidation"], _db1v);
-  $def("_db1g", "dub1", ["Generators","viewof dub1"], _db1g);
-  $def("_tdb1v", "viewof template_dub", ["sticky","mkDub","daw_ctx","master","midiBus","invalidation"], _tdb1v);
-  $def("_tdb1g", "template_dub", ["Generators","viewof template_dub"], _tdb1g);
+  $def("_mkec1", "mkEcho", ["knob","selfName"], _mkec1);  
+  $def("_mktp1", "mkTape", ["knob","selfName"], _mktp1);  
+  $def("_tp1v", "viewof tape1", ["sticky","mkTape","daw_ctx","master","midiBus","invalidation"], _tp1v);  
+  $def("_tp1g", "tape1", ["Generators","viewof tape1"], _tp1g);  
+  $def("_ttp1v", "viewof template_tape", ["sticky","mkTape","daw_ctx","master","midiBus","invalidation"], _ttp1v);  
+  $def("_ttp1g", "template_tape", ["Generators","viewof template_tape"], _ttp1g);  
+  $def("_mkdb1", "mkDub", ["knob","selfName"], _mkdb1);  
+  $def("_db1v", "viewof dub1", ["sticky","mkDub","daw_ctx","master","midiBus","invalidation"], _db1v);  
+  $def("_db1g", "dub1", ["Generators","viewof dub1"], _db1g);  
+  $def("_tdb1v", "viewof template_dub", ["sticky","mkDub","daw_ctx","master","midiBus","invalidation"], _tdb1v);  
+  $def("_tdb1g", "template_dub", ["Generators","viewof template_dub"], _tdb1g);  
   $def("_mkvb1", "mkVerb", ["knob","selfName"], _mkvb1);  
   $def("_mkdk1", "mkDucker", ["knob","mkInputPicker","selfName"], _mkdk1);  
   $def("_ec1v", "viewof echo1", ["sticky","mkEcho","daw_ctx","master","midiBus","invalidation"], _ec1v);  
@@ -5277,6 +5204,9 @@ export default function define(runtime, observer) {
   main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));  
   main.define("runtime", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("runtime", _));  
   main.define("thisModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("thisModule", _));  
-  main.define("getFileAttachmentsMap", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("getFileAttachmentsMap", _));
+  main.define("getFileAttachmentsMap", ["module @tomlarkworthy/fileattachments", "@variable"], (_, v) => v.import("getFileAttachmentsMap", _));  
+  $def("_10dx74f", "mkChordPad", ["selfName"], _10dx74f);  
+  $def("_1ofr1s0", "chordpad1", ["Generators","viewof chordpad1"], _1ofr1s0);  
+  $def("_mj1yap", "viewof chordpad1", ["sticky","mkChordPad","midiBus","invalidation"], _mj1yap);
   return main;
 }
