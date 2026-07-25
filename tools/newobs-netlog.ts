@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+const url = process.argv[2]!;
+const browser = await chromium.launch({ headless: !process.env.HEADED });
+const page = await (await browser.newContext()).newPage();
+const seen: string[] = [];
+page.on("request", (r) => { const u = r.url(); if (/document|\.js\?v=4|notebook|graphql|\/d\//.test(u) && !/cdn\.jsdelivr/.test(u)) seen.push(r.method() + " " + u.slice(0, 160)); });
+await page.goto(url, { waitUntil: "load", timeout: 60000 });
+await page.waitForTimeout(15000);
+for (const s of [...new Set(seen)].slice(0, 40)) console.log(s);
+await browser.close();
