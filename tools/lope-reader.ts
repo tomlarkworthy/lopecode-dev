@@ -17,7 +17,7 @@
  * `extractModuleInfo` on each `main.define("module …", loader)` body.
  */
 
-import { readFileSync, statSync, existsSync } from "fs";
+import { readFileSync, statSync, existsSync, writeSync } from "fs";
 import { resolve, basename, relative } from "path";
 import { createHash } from "crypto";
 import * as cheerio from "cheerio";
@@ -305,7 +305,9 @@ async function main(): Promise<void> {
   // Spec output paths route through stdoutWrite so they're unaffected by the
   // console muting we do below for --compute-imports (the toolchain notebook's
   // cells write to console.log via lope-runtime's vm context).
-  const stdoutWrite = (s: string) => process.stdout.write(s + "\n");
+  // writeSync(1) rather than process.stdout.write: we hard-exit below, and a
+  // buffered async write to a pipe can be dropped by process.exit().
+  const stdoutWrite = (s: string) => writeSync(1, s + "\n");
 
   let extract: ExtractFn | undefined;
   let dispose: (() => void) | undefined;
@@ -371,7 +373,17 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+// Hard-exit once the output is written. --compute-imports boots the toolchain
+// notebook, whose @tomlarkworthy/modules cell runs a self-rescheduling 1s rescan
+// loop that runtime.dispose() cannot stop: the loop's kill switch lives in the
+// async generator's `finally`, and generator.return() on a generator parked at an
+// `await` never runs it. Left to drain naturally the process hangs forever, and
+// callers (lope-jumpgate, lope-bulk-jumpgate) time out and discard a good spec.
+main().then(
+  () => process.exit(0),
+  (err) => {
+    // console.* is muted under --compute-imports; go straight to fd 2.
+    writeSync(2, `Error: ${err.message}\n`);
+    process.exit(1);
+  },
+);
