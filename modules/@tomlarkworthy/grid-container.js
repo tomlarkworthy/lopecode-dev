@@ -244,7 +244,7 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
     }
     return -1;
   };
-  return (rt, {invalidation, module = main, filter = () => true, include = null, grid = 20, columns = null, showGrid = true, width = '100%', height = 480, layout = {}, persist = true, detachNodes = true} = {}) => {
+  return (rt, {invalidation, module = main, filter = () => true, include = null, grid = 20, columns = null, showGrid = true, width = '100%', height = 480, portrait = 640, layout = {}, persist = true, detachNodes = true} = {}) => {
     // hide imports and runtime plumbing regardless of mode
     const HIDDEN_NAMES = new Set([
       'invalidation',
@@ -286,6 +286,12 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
     let columnsState = columns;
     let showGridState = showGrid;
     const unitMode = () => columnsState != null;
+    // portrait: a columns grid narrower than the `portrait` breakpoint. Width-driven
+    // (not aspect): height is the open variable — the frame grows to fit content — so
+    // the box is almost always "tall", making aspect meaningless; width is the only
+    // constrained axis. Uses the component's OWN width (not the viewport — may be
+    // nested). Landscape layout stays canonical; portrait is a derived view.
+    const isPortrait = () => unitMode() && scroll.clientWidth > 0 && scroll.clientWidth < portrait;
     const DOTS = 'radial-gradient(circle, color-mix(in srgb, currentColor 14%, transparent) 1px, transparent 1px)';
     const pitch = () => {
       if (!unitMode())
@@ -299,12 +305,64 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
         scroll.style.backgroundSize = `${ p }px ${ p }px`;
         scroll.style.backgroundPosition = `${ p / 2 }px ${ p / 2 }px`;
       }
-      scroll.style.backgroundImage = showGridState ? DOTS : 'none';
+      // dots read as a grid; hide them in the single-column portrait view
+      scroll.style.backgroundImage = showGridState && !isPortrait() ? DOTS : 'none';
+      // columns mode contract: width 100%, height open (fit content) — so the frame
+      // isn't user-resized; px mode keeps the manual resize handle
+      frame.style.resize = unitMode() ? 'none' : 'both';
+      if (unitMode())
+        frame.style.width = '100%';
+    };
+    // open height: the frame grows to fit its content (logical rows are constant, the
+    // pixel height flexes with pitch); the page/parent y-scrolls rather than a nested box
+    const fitHeight = () => {
+      let bottom = 0;
+      for (const n of managedNodes()) {
+        const b = (parseFloat(n.style.top) || 0) + n.offsetHeight;
+        if (b > bottom)
+          bottom = b;
+      }
+      if (bottom > 0)
+        frame.style.height = bottom + PORTRAIT_GAP + 'px';
+    };
+    // Portrait view: linearise atoms into one full-width column, reading order
+    // (row y, then left-edge x — so a centre-straddling atom sorts left). Widths
+    // go 100%; heights preserve each atom's aspect (w:h), pitch-independent.
+    const PORTRAIT_GAP = 8;
+    const stackVertical = () => {
+      const W = scroll.clientWidth;
+      const ordered = managedNodes().map(n => [
+        n,
+        state.atoms[n.dataset.sgKey]
+      ]).filter(([, p]) => p).sort(([, a], [, b]) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0));
+      let top = 0;
+      for (const [n, pos] of ordered) {
+        n.style.left = '0px';
+        n.style.top = top + 'px';
+        const box = n.__box;
+        if (box) {
+          box.style.width = W + 'px';
+          if (pos.w && pos.h) {
+            const h = Math.round(W * pos.h / pos.w);
+            box.style.height = h + 'px';
+            top += h + PORTRAIT_GAP;
+          } else {
+            box.style.height = '';
+            top += (box.offsetHeight || 40) + PORTRAIT_GAP;
+          }
+        } else
+          top += 40 + PORTRAIT_GAP;
+      }
+      // open height: grow the frame to fit the stack; the page/parent y-scrolls
+      frame.style.height = top + 'px';
     };
     const reflowAll = () => {
       applyGridStyle();
+      if (isPortrait())
+        return stackVertical();
       for (const n of managedNodes())
         positionAtom(n);
+      fitHeight();
     };
     const state = {
       frame: { ...layout.frame || {} },
@@ -452,6 +510,8 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
       const pos = state.atoms[atom.dataset.sgKey];
       if (!pos)
         return;
+      if (isPortrait())
+        return stackVertical();
       const u = unitMode() ? pitch() : 1;
       atom.style.left = (pos.x || 0) * u + 'px';
       atom.style.top = (pos.y || 0) * u + 'px';
@@ -489,6 +549,8 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
       }
       pendingMeasure.delete(key);
       positionAtom(node);
+      if (!isPortrait())
+        fitHeight(); // deferred content changed a size — refit (abs atoms don't trip the ResizeObserver)
     });
     const ensurePositions = () => {
       if (!root)
@@ -531,6 +593,8 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
     const pack = () => {
       if (!frame.isConnected)
         return;
+      if (isPortrait())
+        return; // packing arranges the landscape grid; no-op in the portrait view
       // never pack a detached (stale) instance
       const nodes = managedNodes();
       if (!nodes.length)
@@ -564,6 +628,8 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
     };
     // snap explicit (user-resized) sizes on release; record only real changes
     const snapSizes = () => {
+      if (isPortrait())
+        return; // portrait is a derived view — don't write sizes back to the canonical layout
       let changed = false;
       for (const n of managedNodes()) {
         const pos = state.atoms[n.dataset.sgKey];
@@ -868,6 +934,8 @@ const _79iuqn = function _gridContainer(main,sg_css,decompile,compile,cellEditor
           return;
         e.stopPropagation();
         e.preventDefault();
+        if (isPortrait())
+          return; // portrait is a derived stack — no drag-to-reposition
         const key = atom.dataset.sgKey;
         if (!key || !state.atoms[key])
           return;
