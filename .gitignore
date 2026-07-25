@@ -50,3 +50,15 @@ test-sync/
 # robocoop-4 eval transcripts / sweep results (hold full conversations; key-prone — keep untracked)
 tools/robocoop-4/eval/live/results/
 scratch/blogs/**/data/*sweep*.json
+
+# lope-sync working state: which modules are checked out and at what base sha.
+# Per-developer session state, not a repo fact — committing it would recreate the
+# stale-metadata problem the tool exists to solve. modules/canonical.json IS committed.
+modules/.sync.json
+
+# Module working copies: extracted on demand by `lope-sync.ts checkout` from the
+# notebook declared in modules/canonical.json. Reproducible, so not committed —
+# a tracked copy is what silently went stale before (190 frozen snapshots, e6a8bc5).
+# Files already tracked are unaffected: the ones left are `prune`-flagged as
+# UNIQUE (in-flight work not yet in any notebook) and stay versioned until pushed.
+modules/**/*.js

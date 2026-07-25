@@ -83,6 +83,8 @@ function parseArgs(argv) {
       options.cellsMatchBody.push(args[++i]);
     } else if (arg === '--no-delete') {
       options.noDelete = true;
+    } else if (arg === '--delete-first') {
+      options.deleteFirst = true;
     } else if (arg === '--target' && args[i + 1]) {
       options.target = args[++i];
     } else if (arg === '--timeout' && args[i + 1]) {
@@ -809,58 +811,35 @@ async function pushViaWS(decompiled, targetUrl, options) {
       }
     } else {
       // --- Full replace mode ---
-      // 1. Insert new cells
-      const newNodeIds = [];
-      for (let i = 0; i < decompiled.length; i++) {
-        const cellSource = decompiled[i];
-        const newVersion = version + 1;
-        const nodeId = newVersion; // Observable requires node_id = event version
-
-        log(`Inserting cell ${i + 1}/${decompiled.length}: ${extractCellName(cellSource) || '(anonymous)'}...`);
-
-        // Insert before the first existing cell (new_next_node_id = first existing node)
-        // or at end (null) if no existing cells
-        const nextNodeId = i === 0 && existingNodes.length > 0
-          ? existingNodes[0].id
-          : (newNodeIds.length > 0 ? null : null);
-
-        conn.send({
-          type: 'save',
-          events: [{
-            version: newVersion,
-            type: 'insert_node',
-            node_id: nodeId,
-            new_next_node_id: nextNodeId,
-            new_node_value: cellSource,
-            new_node_pinned: false,
-            new_node_mode: 'js',
-            new_node_data: null,
-            new_node_name: null,
-          }],
-          edits: [],
-          version,
-          subversion,
-        });
-
-        const confirm = await waitForConfirm(conn.ws, newVersion, options);
-        version = confirm.version;
-        subversion = confirm.subversion;
-        newNodeIds.push(nodeId);
-      }
-
-      log(`Inserted ${newNodeIds.length} new cells`);
-
-      // 2. Delete old cells (unless --no-delete)
-      if (!options.noDelete && existingNodes.length > 0) {
-        log(`Deleting ${existingNodes.length} old cells...`);
-        for (const node of existingNodes) {
+      // Insert-then-delete by default. On a bloated doc that fails partway,
+      // --delete-first shrinks to empty first (fast, no compounding) then inserts.
+      const insertPhase = async () => {
+        const newNodeIds = [];
+        for (let i = 0; i < decompiled.length; i++) {
+          const cellSource = decompiled[i];
           const newVersion = version + 1;
+          const nodeId = newVersion; // Observable requires node_id = event version
+
+          log(`Inserting cell ${i + 1}/${decompiled.length}: ${extractCellName(cellSource) || '(anonymous)'}...`);
+
+          // Insert before the first existing cell (new_next_node_id = first existing node),
+          // or append at end (null) after a delete-first or when no existing cells remain.
+          const nextNodeId = (!options.deleteFirst && i === 0 && existingNodes.length > 0)
+            ? existingNodes[0].id
+            : null;
+
           conn.send({
             type: 'save',
             events: [{
               version: newVersion,
-              type: 'remove_node',
-              node_id: node.id,
+              type: 'insert_node',
+              node_id: nodeId,
+              new_next_node_id: nextNodeId,
+              new_node_value: cellSource,
+              new_node_pinned: false,
+              new_node_mode: 'js',
+              new_node_data: null,
+              new_node_name: null,
             }],
             edits: [],
             version,
@@ -870,8 +849,44 @@ async function pushViaWS(decompiled, targetUrl, options) {
           const confirm = await waitForConfirm(conn.ws, newVersion, options);
           version = confirm.version;
           subversion = confirm.subversion;
+          newNodeIds.push(nodeId);
         }
-        log(`Deleted ${existingNodes.length} old cells`);
+        log(`Inserted ${newNodeIds.length} new cells`);
+      };
+
+      const deletePhase = async () => {
+        if (!options.noDelete && existingNodes.length > 0) {
+          log(`Deleting ${existingNodes.length} old cells...`);
+          let n = 0;
+          for (const node of existingNodes) {
+            const newVersion = version + 1;
+            conn.send({
+              type: 'save',
+              events: [{
+                version: newVersion,
+                type: 'remove_node',
+                node_id: node.id,
+              }],
+              edits: [],
+              version,
+              subversion,
+            });
+
+            const confirm = await waitForConfirm(conn.ws, newVersion, options);
+            version = confirm.version;
+            subversion = confirm.subversion;
+            if (++n % 50 === 0) log(`Deleted ${n}/${existingNodes.length} old cells...`);
+          }
+          log(`Deleted ${existingNodes.length} old cells`);
+        }
+      };
+
+      if (options.deleteFirst) {
+        await deletePhase();
+        await insertPhase();
+      } else {
+        await insertPhase();
+        await deletePhase();
       }
     }
 
