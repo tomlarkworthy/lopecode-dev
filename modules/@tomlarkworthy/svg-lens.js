@@ -359,10 +359,9 @@ gridContainer(runtime, {
   invalidation,
   module: svgLensModule,
   columns: 12,
-  height: 460,
+  portrait: 640,
   include: ["viewof drawing", "drawingCode", "toolbar", "inspector", "fieldPanel"],
   layout: {
-    frame: { w: 1200, h: 800 },
     atoms: {
       "viewof drawing": { x: 0, y: 0, w: 8, h: 4 },
       drawingCode: { x: 0, y: 4, w: 8, h: 4 },
