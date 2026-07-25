@@ -27,6 +27,15 @@ new (both render in that iframe). It does not distinguish them.
 
 ## Fast triage loop
 
+| Symptom | First suspect |
+|---|---|
+| red error badges, cascading | one root cell — trace it, the rest is downstream |
+| **renders nothing, no error anywhere** | a never-settling promise → `newobs-pending.ts` |
+| a cell is `undefined` where classic has a value | name lookup hitting `viewof$x` / `cell 227` |
+| some items missing from a list/surface | scope enumeration filtering on legacy names |
+| works viewed, breaks imported (or vice versa) | you are in the other environment — see the table above |
+| a `mutable` reads `undefined` or won't write | `Mutable` box-vs-generator, or a stale access-runtime pin |
+
 Tools live in `tools/` (all Playwright, all headless by default, `HEADED=1` to watch):
 
 | Tool | Answers |
@@ -43,7 +52,13 @@ Tools live in `tools/` (all Playwright, all headless by default, `HEADED=1` to w
 | `newobs-mutable-repro.ts` | offline repro: notebook-kit stdlib + `@observablehq/runtime@6` + the **real** served module JS |
 | `newobs-inspect-fa.ts`, `newobs-inspect-write.ts` | worked examples of reading the live runtime: what `FileAttachment` resolves to, and calling the suspect function by hand in the page |
 | `newobs-fileattach-fix-test.ts` | worked example of running one function against **both** platform shapes, asserting old-fails/new-passes |
-| `newobs-fileattach-live-test.ts` | worked example of patching a served module's **source** in flight |
+| `newobs-fileattach-live-test.ts`, `newobs-cellmap-live-test.ts` | worked examples of patching a served module's **source** in flight |
+| `newobs-gridcontainer-live-test.ts` | worked example of A/B-ing a cell in the **viewed** notebook, which has no interceptable source — redefines the variable in the live page |
+| `newobs-importedmodule-probe.ts` | worked example of racing the current vs candidate implementation against a live variable, with a timeout, to tell "wrong" from "hangs" |
+| `newobs-netlog.ts <url>` | what the page actually fetches — use it before assuming a source is interceptable |
+| `newobs-scope-probe.ts`, `newobs-grid-candidates.ts` | dump a module's `_scope` keys and a widget's own candidate list — the classic-vs-new naming diff |
+| `newobs-importdef.ts <url>` | every distinct `_definition` containing `import(`, with its inputs — how to see a compiler's import shape rather than guess it |
+| `local-grid-check.ts <html>` | the lopecode/legacy-runtime leg of the regression matrix, from a local file |
 
 Recommended order:
 
@@ -61,12 +76,27 @@ Recommended order:
    (Observable is lazy — unobserved cells never run, so latent bugs stay invisible). A cell that
    holds a real value on classic and `null` on new is a genuine regression. This is how the
    editor-5 "Example" cell errors were shown to be `editedCell === null`, not broken machinery.
-4. **`newobs-inspect-runtime.ts` / a bespoke `frame.evaluate`** — once `window.__ojs_runtime` is
+4. **`newobs-pending.ts` when nothing renders and nothing errors.** An empty
+   `.observablehq--error` set does not mean healthy — see the import-cell section. Read only the
+   *roots* (all inputs `ok`), and only the ones on the path to your symptom: a healthy notebook
+   has ~10 permanently-pending roots that are supposed to be pending — keepalive generators
+   (`backgroundJobs`, `dynamic observe …`), `bootloader`, `submit_summary`, `notebook_name`,
+   `current_theme`, `editor_manager`. Of the 10 roots in the grid-container hang, exactly one
+   (`viewof liveCellMap`) mattered. Total pending count is still a good A/B metric (39 → 15).
+5. **`newobs-inspect-runtime.ts` / a bespoke `frame.evaluate`** — once `window.__ojs_runtime` is
    available, stop inferring and read the runtime. Find variables by `_name`, check
    `_value`/`_error`, and *call the suspect function by hand* in the page. Calling
    `jsonFileAttachment("x.json", {a:1})` in the live realm is what proved the "Blob" error came
-   from a mis-derived class, not from the `new Blob([bytes])` line it appeared to be on.
-5. **Reproduce offline with notebook-kit** (next section) before proposing a fix.
+   from a mis-derived class, not from the `new Blob([bytes])` line it appeared to be on. Better
+   still, run the **current and candidate implementations side by side** on the live variable,
+   each wrapped in a `Promise.race` timeout — that is what turned "importedModule looks wrong"
+   into "current: HUNG, fixed: resolved, 175 vars" in a single run, before editing anything
+   (`newobs-importedmodule-probe.ts`).
+6. **Reproduce offline with notebook-kit** (next section) before proposing a fix.
+
+Reading the probes: names are looked up across **all** modules, so `newobs-cellstate.ts` returns
+an *array* per name — the same cell name legitimately exists in several modules, and a single
+`ok` among `unreached`s is normal. `absent` means no module defines it at all.
 
 ## Reproducing offline with notebook-kit
 
@@ -114,6 +144,27 @@ the live site before publishing anything. Two flavours, both in use:
 
 Serve with `content-type: text/javascript; charset=utf-8` and
 `access-control-allow-origin: *`.
+
+**Neither works on the viewed notebook's own cells.** Only *imported* modules are fetched as
+`api.observablehq.com/<slug>.js?v=4`; the viewed notebook is server-rendered into the worker
+frame, and a network log shows no request carrying its source. So there is nothing to intercept —
+which matters whenever the bug is in a cell defined in the notebook you are looking at.
+
+- **Variable redefinition** (`newobs-gridcontainer-live-test.ts`): let the page settle, then in
+  `frame.evaluate` find the variable in `__ojs_runtime._variables`, `eval` the replacement factory
+  from the working copy, and `v.define(name, v._inputs.map(i => i._name), fn)`. The runtime
+  recomputes every dependent. Wait ~12s and measure the DOM. Same A/B discipline: `NO_PATCH=1`
+  first.
+
+  Two traps in that harness:
+  - **Do not brace-match to slice a cell out of a working copy.** Comments contain braces
+    (`// {frame: {h}, atoms: {name: {x,y,w,h}}}`) and a naive scanner runs to EOF, producing a
+    silent `SyntaxError: Unexpected end of input` from the `eval` and a run that looks like "the
+    fix didn't help". Cells are emitted as `const _id = …` at column 0 — slice to the next
+    `\nconst _`, then assert the slice starts and ends the way you expect.
+  - Find the notebook frame by `observableusercontent`, not `chat-worker` — the latter is new-site
+    only, so a classic regression run silently falls back to `page.mainFrame()`, where
+    `__ojs_runtime` is undefined.
 
 Always capture the `NO_PATCH=1` / `NO_REPIN=1` baseline in the same session; "9 errors" only means
 something against "23 errors".
@@ -235,12 +286,53 @@ Module the real import created — no side effects. Fixed in `@tomlarkworthy/cel
 **Never leave a failure path that neither resolves nor rejects.** A hang is far more expensive to
 diagnose than an error, because nothing in the UI marks it.
 
-### Cell naming
+### Cell naming — canonicalise at the boundary, never write the platform spelling back
 
 The new compiler emits `viewof$x` / `mutable$x` where legacy uses `viewof x` / `mutable x`. Any
 lookup-by-name (`lookupVariable`, `module-map`'s `"module "` prefix scan, editor-5's
 `hotbarTemplate`) must handle both. This is why `title_variable` is `undefined` on the new site,
 which leaves `editedCell === null`, which errors every cell in editor-5's Example section.
+
+`lookupVariable` (runtime-sdk) is a bare `module._scope.get(name)` inside a 1000-frame retry loop,
+so a legacy-spelled name doesn't error — it **spins for 1000 frames and returns `undefined`**.
+
+**The rule: legacy spelling is canonical; the `$` form is a platform detail that must not escape
+the boundary.** Anything that writes names back into *source code* — grid-container's `include:`
+and `layout:` literals, editable-md, any self-editing view — would otherwise bake `viewof$freq`
+into source that is then broken on classic and in lopecode. Two helpers, applied at every exit
+from the runtime:
+
+```js
+const canonName   = n => typeof n === 'string' ? n.replace(/^(viewof|mutable)\$/, '$1 ') : n;
+const platformName= n => String(n).replace(/^(viewof|mutable) /, '$1$');
+const scopeHas    = (m, n) => m._scope.has(n) || m._scope.has(platformName(n));
+```
+
+**Canonicalise at *every* exit, not just the obvious one.** In grid-container the misses were, in
+the order they were found: the include filter, `keyOf` (atom key), `candidateNames`,
+`templateRoots` / `instantiateTemplate`, the atom label at construction — and finally the
+Inspector's `fulfilled(value, name)` callback, which **re-writes the label from the raw runtime
+name after construction** and silently undid the constructor-time fix. Grep for every writer of a
+name into the DOM (`textContent =`, `setAttribute`) before calling it done.
+
+Two knock-on effects of the same difference, both in **scope enumeration** (cell pickers, "add
+cell" menus, candidate lists):
+
+- `module._scope.has('viewof ' + name)` is how derived viewof *values* are filtered out. It misses
+  on the new site, so `amp` **and** `viewof$amp` both show up as separate candidates. Use
+  `scopeHas`.
+- Import cells sit in `_scope` under `cell 222`…`cell 227` (see the section above), so a `"module "`
+  prefix filter leaks all of them into the list. Detect structurally instead:
+
+```js
+const isImportVar = v => typeof v?._name === 'string' &&
+  (v._name.startsWith('module ') ||
+   v._inputs?.length === 1 && v._inputs[0]?._name === '@variable' &&
+   String(v._definition).includes('import('));
+```
+
+Cosmetic leftover, not worth chasing: `@tomlarkworthy/visualizer` writes the raw name into each
+atom's `cell="viewof$amp"` attribute. Nothing reads it.
 
 ### DOM assumptions
 
@@ -256,21 +348,40 @@ vary run to run — compare error *sets*, not counts.
 ### Noise you can ignore
 
 `Cannot create property 'langApiRestored' on string 'self'` (Observable's own highlight.js),
-`function g(){throw g}` as a pageerror (a runtime sentinel escaping),
+`function g(){throw g}` as a pageerror (a runtime sentinel escaping), and
 `error building module dependancy map undefined …` from module-map's `summary` (its
 `main_modules` is empty because the new platform's main module is not discovered as a "main" —
-cosmetic `console.error`, the map still builds), and `Cannot sourceModule for h`.
+cosmetic `console.error`, the map still builds).
+
+`Cannot sourceModule for h` **used** to be on this list and no longer is: it was the import-cell
+hang announcing itself, and it should not appear now. If you see it again, `importedModule` has
+met a *third* compiler shape — read `v._definition.toString()` before assuming anything.
+
+Beware the general form of that mistake: a message gets classified as noise while the thing it
+reports is silently fatal. `console.error` followed by a swallowed or never-settled promise looks
+identical to a cosmetic warning in a console dump.
 
 ## Checklist for the next platform bug
 
 1. Which environment — viewed or imported? (`viewof$x` in the cell name ⇒ viewed.)
-2. `newobs-probe.ts` → the error text and the cell set.
+2. Errors or a **hang**? `newobs-probe.ts` for the error text and cell set; `newobs-pending.ts`
+   when the symptom is "renders nothing" with a clean error set.
 3. `newobs-trace.ts` with a fragment of the message → the real throw site.
 4. `newobs-cellstate.ts` on classic **and** new → regression or merely newly-reached?
 5. Is it a stale pin? `newobs-pin-audit.ts` + `newobs-imports.ts`.
 6. Reproduce offline against notebook-kit with the real served module JS.
-7. Prove the fix in flight (`route.fulfill`) with a baseline in the same session.
-8. Fix in the utility module that owns the concern, never in each consumer.
-9. Push: `sync-module.ts` into the canonical HTML(s), then `lope-push-ws.js --cells <names>`
-   (see `knowledge/pushing-cells-to-observablehq.md`), then re-probe the live site plus a classic
-   regression run and a `lope-browser-runner.ts` smoke test of the lopecode path.
+7. Prove the fix in flight with a baseline in the same session — `route.fulfill` for an imported
+   module, variable redefinition for a cell in the viewed notebook.
+8. Fix in the utility module that owns the concern, never in each consumer. But **check that the
+   module actually owns it**: grid-container's naming bug looked like a `lookupVariable` problem
+   and grid-container turns out never to import `lookupVariable` — it hand-rolls its own name
+   handling in seven places. Grep the consumer before fixing the utility.
+9. Regression matrix, all three legs, every time: **new** (the fix), **classic** (must be
+   byte-identical — the whole point is that one change serves both), **local lopecode HTML**
+   (`lope-browser-runner.ts` or a bespoke Playwright check on the `file://` notebook). Run the
+   module's own tests too if it has any — cell-map's `test_importedModule` exercises the legacy
+   probe path directly.
+10. Push: `sync-module.ts` into the canonical HTML(s), then `lope-push-ws.js --cells <names>`
+   (see `knowledge/pushing-cells-to-observablehq.md`), then re-run the full matrix against the
+   **published** version — a `--dry-run` first, since `--cells` silently drops imports.
+   Note `modules/*.js` working copies are gitignored; the committed artifact is the notebook HTML.
