@@ -56,7 +56,7 @@ nothing comes from ObservableHQ (robocoop-4 isn't published there). So:
 - An export/build **preserves lopepage-2 iff it's loaded at export time.** A normal pairing export from a
   correctly-booted notebook round-trips it fine.
 - It gets **silently dropped** only when you serialize a boot that never loaded it: opening a stale pre-fix
-  HTML and exporting, or a `lope-build`/exporter run against a bootconf that still lists `@tomlarkworthy/lopepage`.
+  HTML and exporting, or an exporter run against a bootconf that still lists `@tomlarkworthy/lopepage`.
   That is how it regressed once (commit `e0ef730`): a full rebuild ran against a pre-migration `mains`, so
   the output reverted to plain `lopepage` and omitted the lopepage-2 + `modules` blocks.
 - Failure mode is quiet: lopepage-2 imports `apply_theme` from `themes`; a stale `themes` lacking it makes

@@ -24,8 +24,8 @@
   "@tomlarkworthy/audio-inputs": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html"
   },
-  "@tomlarkworthy/belief-state-geometry": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_belief-state-geometry.html"
+  "@tomlarkworthy/belief-geometry": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_belief-geometry.html"
   },
   "@tomlarkworthy/bitcoin-energy": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html"

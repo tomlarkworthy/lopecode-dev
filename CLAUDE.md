@@ -69,12 +69,16 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/js-toolchain-notebook-kit-2-cells.md` | Notebook Kit 2.0 cell compile/decompile (`@tomlarkworthy/js-toolchain`): invertability, multi-out cell model, import handling, ts mode |
 | `knowledge/svg-editor-architecture.md` | Growing `@tomlarkworthy/svg-lens` into an SVG editor: layering, the three write-back sinks (source lens / upstream viewof / numerical inversion), interpolated-template holes, gap list |
 | `knowledge/training-robocoop-5.md` | Benchmark-driven robocoop-5 improvement: system-vs-raw arms, fidelity anchoring, failure autopsy, what moved numbers, deployment chain |
+| `knowledge/diagnosing-new-observable-platform-differences.md` | Debugging our notebooks on `new.observablehq.com` (notebook-kit runtime): viewed-vs-imported environments, the `newobs-*.ts` probe tools, offline repro against `vendor/notebook-kit`, in-flight fix testing, per-importer import resolution, known `Mutable`/`FileAttachment`/naming differences |
 
 ### Which Tool to Use
 
 | Task | Tool | Speed |
 |------|------|-------|
 | List modules, read module source | `lope-reader.ts` | Instant |
+| **Get a module `.js` to edit** | `lope-sync.ts checkout` (never grep for a copy) | Instant |
+| **Check a working copy is still fresh** | `lope-sync.ts status` | ~1s |
+| **Find modules whose copies have drifted** | `lope-sync.ts audit [--module X]` | ~1s |
 | Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
 | Check file attachments, generate manifest | `lope-reader.ts` | Instant |
 | One-off test run, get computed values | `lope-browser-runner.ts` | ~10s startup |
@@ -160,7 +164,20 @@ bun test tests/channel/lopecode-channel.test.ts
 5. **Tests need observation** - Either force reachability or use hash URL with tests module
 6. **Git works** - Despite file sizes, diffs are readable because content is uncompressed
 7. **Keep working files in project** - Avoid `/tmp` directory; use `tools/` for test files to avoid permission prompts
-8. **After editing module `.js` files** - Sync to the target notebook with `bun tools/channel/sync-module.ts --module @name --source file.js --target notebook.html`, then tell the user to hard reload (Cmd+Shift+R). `--target` can be passed multiple times or given a quoted glob (e.g. `--target "lopebooks/notebooks/*.html"`); the source is auto-excluded so it never overwrites itself. Sync-module only handles the module `<script>` block — if the module owns file attachments and the target lacks them, re-jumpgate that target.
+8. **Editing a module — the notebook HTML is the source of truth, the `.js` is a working copy.**
+   ```
+   bun tools/lope-sync.ts checkout @tomlarkworthy/foo      # from the DECLARED canonical
+   …edit modules/@tomlarkworthy/foo.js…
+   bun tools/lope-sync.ts status                           # clean / modified / STALE / DIVERGED
+   bun tools/channel/sync-module.ts --module @tomlarkworthy/foo \
+     --source modules/@tomlarkworthy/foo.js \
+     --target <canonical>.html --target "lopebooks/notebooks/*.html"
+   ```
+   Then tell the user to hard reload (Cmd+Shift+R). `--target` takes multiple values or a quoted glob; the source is auto-excluded so it never overwrites itself. Sync-module only handles the module `<script>` block — if the module owns file attachments and the target lacks them, re-jumpgate that target.
+
+   **Never pick a canonical by grepping.** A module is embedded in up to 218 notebooks and most copies are stale; `modules/canonical.json` declares the real one per repo (24 modules are canonical in *both* — lopebooks is staging, lopecode is published). `sync-module` refuses a `--source` that isn't declared canonical, and refuses a push whose canonical moved since checkout (a save-in-place, a jumpgate, another agent). Those refusals are the safety net — don't `--force` past one without understanding why it fired; run `lope-sync.ts pull` instead.
+
+   **A `.js` already sitting in `modules/` is not evidence of anything.** Most of that directory is a frozen bulk extraction from commit `e6a8bc5` (2026-07-21) that has never been refreshed — it is still tracked in git for now, but it is not authoritative. Run `lope-sync.ts status` (tracked checkouts) or re-`checkout` before trusting any file there.
 9. **Prefer imports over private APIs** — Never access private runtime properties (`mod._runtime`, `variable._module`) or internal builtins (`__ojs_runtime`) when the same value is available as an import. Use `@tomlarkworthy/runtime-sdk` for `runtime`, `main`, `onCodeChange`, `importShim`. Use `@tomlarkworthy/fileattachments` for `getFileAttachmentsMap`. Imports are stable, private APIs break.
 10. **Blank notebook (theme but no content)?** - Check the `bootconf.json` script in the HTML. An empty `"mains": []` means no modules are booted. Fix by adding lopepage and the main module name (e.g. `["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"]`)
 11. **Use `git -C <path>` instead of `cd <path> && git ...`** - Chained `cd` commands silently leave you in the wrong directory if any earlier command fails (the `&&` short-circuits but the shell's cwd is already changed). `git -C <submodule> status` is unambiguous and stateless. Same applies to running tools across both `lopecode/` and `lopebooks/` submodules in one session.

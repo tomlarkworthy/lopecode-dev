@@ -1,0 +1,701 @@
+#!/usr/bin/env bun
+/**
+ * lope-sync.ts — module checkout/staleness tracking for lopecode notebooks.
+ *
+ * The notebook HTML files are the source of truth. A module's identity is the
+ * md5 of its `<script id="@author/name">` block CONTENT, DERIVED on every run —
+ * never stored. Deriving the whole corpus (218 notebooks, 647 MB, ~10k blocks)
+ * costs ~1.1s, so there is no cache to invalidate. This matters: any hash we
+ * persisted would be silently invalidated by save-in-place, which rewrites a
+ * notebook from the browser through a FileSystemFileHandle and cannot update a
+ * sibling file. A stored hash would report "clean" while being wrong.
+ *
+ * Two facts are NOT derivable and so are stored:
+ *   modules/canonical.json  which notebook is the source for a module, per repo
+ *                           (a human decision; committed)
+ *   modules/.sync.json      what a working copy was checked out from, and the
+ *                           block sha at that moment (session state; gitignored)
+ *
+ * Commands:
+ *   bun tools/lope-sync.ts status                 working copies: clean/modified/STALE/DIVERGED
+ *   bun tools/lope-sync.ts audit [--module M]     canonical vs consumers, and cross-repo skew
+ *   bun tools/lope-sync.ts checkout <module> [--repo R]   extract from declared canonical
+ *   bun tools/lope-sync.ts pull <module> [--force]        re-extract over a working copy
+ *   bun tools/lope-sync.ts init-canonical [--write]       bootstrap canonical.json
+ */
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync } from "fs";
+import { join, resolve, relative, dirname } from "path";
+import { createHash } from "crypto";
+
+const ROOT = resolve(import.meta.dir, "..");
+const REPOS = ["lopecode", "lopebooks"];
+const CANONICAL_PATH = join(ROOT, "modules", "canonical.json");
+const INDEX_PATH = join(ROOT, "modules", ".sync.json");
+
+const md5 = (s: string) => createHash("md5").update(s).digest("hex");
+const short = (h: string) => h.slice(0, 12);
+
+// ---------------------------------------------------------------- derived index
+
+export type BlockRef = {
+  repo: string;      // "lopecode" | "lopebooks"
+  rel: string;       // path relative to ROOT
+  sha: string;       // md5 of block content
+};
+
+/** All javascript module blocks in one notebook: id -> content sha. */
+export function blocksIn(html: string): Map<string, string> {
+  const out = new Map<string, string>();
+  // Tag attrs may span newlines (the exporter emits `id="X" \n  type=...`).
+  // [^>]* spans newlines since it is a negated class.
+  const re = /<script\s+id="([^"]+)"([^>]*)>([\s\S]*?)<\/script>/g;
+  for (const m of html.matchAll(re)) {
+    if (!/data-mime="application\/javascript"/.test(m[2])) continue;
+    // `@author/name/path.js` is a file attachment that happens to be JS, not a module.
+    if (m[1].split("/").length > 2) continue;
+    // Match extractModuleContent's normalisation so a checked-out .js hashes
+    // identically to the block it came from.
+    out.set(m[1], md5(m[3].replace(/^\n/, "").replace(/\n$/, "")));
+  }
+  return out;
+}
+
+/** module id -> every notebook that embeds it. ~1.1s cold over the full corpus. */
+export function deriveIndex(): Map<string, BlockRef[]> {
+  const idx = new Map<string, BlockRef[]>();
+  for (const repo of REPOS) {
+    const dir = join(ROOT, repo, "notebooks");
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith(".html")) continue;
+      const abs = join(dir, f);
+      const rel = relative(ROOT, abs);
+      for (const [id, sha] of blocksIn(readFileSync(abs, "utf8"))) {
+        if (!idx.has(id)) idx.set(id, []);
+        idx.get(id)!.push({ repo, rel, sha });
+      }
+    }
+  }
+  return idx;
+}
+
+// ------------------------------------------------------------------- registries
+
+type Canonical = Record<string, Record<string, string>>; // module -> repo -> relpath
+type Checkout = { module: string; canonical: string; baseSha: string; at: string };
+type Index = Record<string, Checkout>;                   // working-copy relpath -> checkout
+
+export function loadCanonical(): Canonical {
+  if (!existsSync(CANONICAL_PATH)) return {};
+  return JSON.parse(readFileSync(CANONICAL_PATH, "utf8"));
+}
+
+export function loadIndex(): Index {
+  if (!existsSync(INDEX_PATH)) return {};
+  return JSON.parse(readFileSync(INDEX_PATH, "utf8"));
+}
+
+export function saveIndex(idx: Index): void {
+  mkdirSync(dirname(INDEX_PATH), { recursive: true });
+  const sorted: Index = {};
+  for (const k of Object.keys(idx).sort()) sorted[k] = idx[k];
+  writeFileSync(INDEX_PATH, JSON.stringify(sorted, null, 2) + "\n");
+}
+
+/**
+ * Resolve the canonical notebook for a module. Returns null when undeclared.
+ * `repo` disambiguates modules canonical in both repos (staging vs published).
+ */
+export function canonicalFor(
+  moduleId: string,
+  repo?: string
+): { repo: string; rel: string } | null | "ambiguous" {
+  const entry = loadCanonical()[moduleId];
+  if (!entry) return null;
+  if (repo) return entry[repo] ? { repo, rel: entry[repo] } : null;
+  const repos = Object.keys(entry);
+  if (repos.length === 1) return { repo: repos[0], rel: entry[repos[0]] };
+  return "ambiguous";
+}
+
+/** Current sha of a module block in a notebook, or null if absent. */
+export function shaOfBlock(relPath: string, moduleId: string): string | null {
+  const abs = join(ROOT, relPath);
+  if (!existsSync(abs)) return null;
+  return blocksIn(readFileSync(abs, "utf8")).get(moduleId) ?? null;
+}
+
+// -------------------------------------------------------------- validation
+
+/**
+ * canonical.json is the one hand-maintained file here, so it is the one that can
+ * rot: renaming a notebook or a module leaves a dangling declaration that every
+ * other command then silently skips. (Observed 2026-07-26: `belief-state-geometry`
+ * was renamed to `belief-geometry` in both module id and filename, and the stale
+ * entry went unnoticed because `audit` skips repos where the module has no copies.)
+ * Run this first in every command so a dangling declaration is loud, not invisible.
+ */
+export function validateCanonical(): number {
+  const canonical = loadCanonical();
+  const problems: string[] = [];
+  for (const [mod, entry] of Object.entries(canonical)) {
+    for (const [repo, rel] of Object.entries(entry)) {
+      if (!existsSync(join(ROOT, rel))) {
+        problems.push(`  ${mod}\n      declared canonical does not exist: ${rel} (${repo})`);
+      } else if (shaOfBlock(rel, mod) === null) {
+        problems.push(`  ${mod}\n      notebook exists but no longer embeds this module: ${rel} (${repo})`);
+      }
+    }
+  }
+  if (problems.length) {
+    console.error(`\ncanonical.json has ${problems.length} dangling declaration(s):`);
+    for (const p of problems) console.error(p);
+    console.error(
+      `\n  Usually a rename. Re-derive with:  bun tools/lope-sync.ts init-canonical --write\n` +
+      `  (diff it first — regenerating drops any entry whose filename no longer encodes its module name.)\n`
+    );
+  }
+  return problems.length;
+}
+
+// ------------------------------------------------------------------ status
+
+type State = "clean" | "modified" | "STALE" | "DIVERGED" | "missing";
+
+function classify(workRel: string, co: Checkout): { state: State; now: string | null } {
+  const abs = join(ROOT, workRel);
+  const now = shaOfBlock(co.canonical, co.module);
+  if (!existsSync(abs)) return { state: "missing", now };
+  const local = md5(readFileSync(abs, "utf8").replace(/\n$/, ""));
+  const localChanged = local !== co.baseSha;
+  const canonicalMoved = now !== null && now !== co.baseSha;
+  if (localChanged && canonicalMoved) return { state: "DIVERGED", now };
+  if (canonicalMoved) return { state: "STALE", now };
+  if (localChanged) return { state: "modified", now };
+  return { state: "clean", now };
+}
+
+function cmdStatus(): number {
+  const dangling = validateCanonical();
+  const idx = loadIndex();
+  const entries = Object.entries(idx);
+  if (entries.length === 0) {
+    console.log("No working copies checked out. Use: lope-sync checkout <module>");
+    return 0;
+  }
+  let bad = 0;
+  for (const [workRel, co] of entries) {
+    const { state } = classify(workRel, co);
+    if (state === "STALE" || state === "DIVERGED" || state === "missing") bad++;
+    const note =
+      state === "clean" ? ""
+      : state === "modified" ? "(local edits; canonical unchanged — safe to push)"
+      : state === "STALE" ? `(canonical moved — pull)`
+      : state === "DIVERGED" ? `(local edits AND canonical moved — reconcile)`
+      : "(working copy deleted)";
+    console.log(`  ${state.padEnd(9)} ${co.module.padEnd(38)} ${note}`);
+    if (state === "STALE" || state === "DIVERGED") {
+      console.log(`  ${"".padEnd(9)} ${"".padEnd(38)} base ${short(co.baseSha)} → ${short(shaOfBlock(co.canonical, co.module) ?? "?")}  ${co.canonical}`);
+    }
+  }
+  return bad > 0 || dangling > 0 ? 1 : 0;
+}
+
+// ------------------------------------------------------------------- audit
+
+function cmdAudit(only?: string, repoFilter?: string): number {
+  const dangling = validateCanonical();
+  const canonical = loadCanonical();
+  const idx = deriveIndex();
+  const managed = Object.keys(canonical).filter((m) => !only || m === only);
+  if (managed.length === 0) {
+    console.error(
+      only
+        ? `${only} is not declared in modules/canonical.json`
+        : "modules/canonical.json is empty — run: lope-sync init-canonical --write"
+    );
+    return 1;
+  }
+
+  let rotten = 0;
+  let behind = 0;
+  const skew: string[] = [];
+  for (const mod of managed.sort()) {
+    const refs = idx.get(mod) ?? [];
+    const decl = canonical[mod];
+    const declRepos = Object.keys(decl);
+
+    // Which canonical does a given consumer answer to? Its own repo's, when that
+    // repo declares one; otherwise the sole canonical (a module canonical in only
+    // one repo still governs consumers in the other). Ambiguous when both repos
+    // declare one and the consumer is in neither — that cannot happen, since a
+    // consumer is always in some repo.
+    const canonRelFor = (repo: string): string | null =>
+      decl[repo] ?? (declRepos.length === 1 ? decl[declRepos[0]] : null);
+
+    for (const repo of REPOS) {
+      if (repoFilter && repo !== repoFilter) continue;
+      const consumers = refs.filter((r) => r.repo === repo);
+      if (consumers.length === 0) continue;
+      const canonRel = canonRelFor(repo);
+      if (!canonRel) continue;
+      const canonSha = refs.find((r) => r.rel === canonRel)?.sha;
+      if (!canonSha) {
+        console.log(`  ${"MISSING".padEnd(9)} ${mod}  declared canonical not found: ${canonRel}`);
+        rotten++;
+        continue;
+      }
+      const stale = consumers.filter((r) => r.rel !== canonRel && r.sha !== canonSha);
+      if (!stale.length) continue;
+      rotten++;
+      const n = consumers.filter((r) => r.rel !== canonRel).length;
+      console.log(`  ${"STALE".padEnd(9)} ${mod.padEnd(38)} ${repo}: ${stale.length}/${n} consumers differ from canonical`);
+      for (const s of stale.slice(0, 3)) console.log(`  ${"".padEnd(9)}   ${s.rel} (${short(s.sha)})`);
+      if (stale.length > 3) console.log(`  ${"".padEnd(9)}   … ${stale.length - 3} more`);
+    }
+
+    // Smell: canonical is a minority version. NOT proof of staleness — content
+    // hashes carry no ordering, and canonical can be MAJORITY-stale (observed:
+    // @tomlarkworthy/summarizejs, where 190/218 copies including canonical lack a
+    // fix that 28 consumers have). Use `audit --module X` for the dated breakdown.
+    const counts = new Map<string, number>();
+    for (const r of refs) counts.set(r.sha, (counts.get(r.sha) ?? 0) + 1);
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    for (const repo of declRepos) {
+      if (repoFilter && repo !== repoFilter) continue;
+      const canonSha = refs.find((r) => r.rel === decl[repo])?.sha;
+      if (!canonSha || top.length < 2) continue;
+      const canonCount = counts.get(canonSha) ?? 0;
+      if (canonCount < top[0][1]) {
+        behind++;
+        console.log(
+          `  ${"minority".padEnd(9)} ${mod.padEnd(38)} ${repo} canonical is a minority version ` +
+          `(${short(canonSha)}×${canonCount} vs ${short(top[0][0])}×${top[0][1]}) — check it is not behind`
+        );
+      }
+    }
+
+    // Single-module drill-down: every distinct version, how many carry it, and
+    // when those notebooks last changed in git. Git dates the NOTEBOOK, not the
+    // block, so this orders versions only approximately — but it is the only
+    // ordering signal available, and it is what distinguishes "canonical is the
+    // source" from "canonical never received the fix".
+    if (only) {
+      console.log(`\n  versions of ${mod} (${refs.length} copies):`);
+      const byShaAll = new Map<string, BlockRef[]>();
+      for (const r of refs) {
+        if (!byShaAll.has(r.sha)) byShaAll.set(r.sha, []);
+        byShaAll.get(r.sha)!.push(r);
+      }
+      const canonRels = new Set(declRepos.map((r) => decl[r]));
+      const dated = [...byShaAll.entries()].map(([sha, rs]) => {
+        let newest = "";
+        for (const r of rs.slice(0, 40)) {
+          try {
+            const d = Bun.spawnSync(["git", "log", "-1", "--format=%cs", "--", r.rel.split("/").slice(1).join("/")], {
+              cwd: join(ROOT, r.repo),
+            }).stdout.toString().trim();
+            if (d > newest) newest = d;
+          } catch { /* not a git repo — date stays blank */ }
+        }
+        return { sha, rs, newest };
+      });
+      dated.sort((a, b) => (b.newest || "").localeCompare(a.newest || ""));
+      for (const { sha, rs, newest } of dated) {
+        const isCanon = rs.some((r) => canonRels.has(r.rel));
+        console.log(
+          `    ${short(sha)}  ×${String(rs.length).padStart(3)}  newest notebook ${newest || "?"}` +
+          (isCanon ? "   <== DECLARED CANONICAL" : "")
+        );
+        console.log(`               e.g. ${rs[0].rel}`);
+      }
+      console.log(`    (git dates the notebook file, not the block — ordering is approximate)`);
+    }
+
+    // Cross-repo channel skew: expected (staging ahead of published), reported separately.
+    if (declRepos.length > 1 && !repoFilter) {
+      const shas = declRepos.map((r) => refs.find((x) => x.rel === decl[r])?.sha);
+      if (new Set(shas).size > 1) {
+        skew.push(`  ${"skew".padEnd(9)} ${mod.padEnd(38)} ${declRepos.map((r, i) => `${r}=${short(shas[i] ?? "?")}`).join("  ")}`);
+      }
+    }
+  }
+
+  if (skew.length) {
+    console.log(`\nCross-repo channel skew (expected — staging vs published, not an error):`);
+    for (const s of skew) console.log(s);
+  }
+  if (rotten === 0 && behind === 0) console.log("  no consumer drift");
+  console.log(
+    `\n${managed.length} managed module(s); ${rotten} with consumers differing from canonical; ` +
+    `${behind} where canonical is a minority version (smell — check with audit --module X); ` +
+    `${skew.length} with cross-repo skew.`
+  );
+  return rotten > 0 || behind > 0 || dangling > 0 ? 1 : 0;
+}
+
+// ---------------------------------------------------------------- checkout/pull
+
+function workPathFor(moduleId: string): string {
+  return join("modules", moduleId.replace(/^@/, "@")) + ".js";
+}
+
+function cmdCheckout(moduleId: string, repo?: string, force = false): number {
+  const c = canonicalFor(moduleId, repo);
+  if (c === null) {
+    console.error(
+      `${moduleId} has no declared canonical.\n` +
+      `Add it to modules/canonical.json (or run: lope-sync init-canonical --write).`
+    );
+    return 1;
+  }
+  if (c === "ambiguous") {
+    const repos = Object.keys(loadCanonical()[moduleId]);
+    console.error(
+      `${moduleId} is canonical in more than one repo: ${repos.join(", ")}.\n` +
+      `Pass --repo <${repos.join("|")}> to pick the channel.`
+    );
+    return 1;
+  }
+
+  const sha = shaOfBlock(c.rel, moduleId);
+  if (!sha) {
+    console.error(`Module ${moduleId} not found in declared canonical ${c.rel}`);
+    return 1;
+  }
+  const workRel = workPathFor(moduleId);
+  const abs = join(ROOT, workRel);
+  if (existsSync(abs) && !force) {
+    const idx = loadIndex();
+    const co = idx[workRel];
+    if (co) {
+      const { state } = classify(workRel, co);
+      if (state === "modified" || state === "DIVERGED") {
+        console.error(`${workRel} has local edits (${state}). Push them, or re-run with --force to discard.`);
+        return 1;
+      }
+    } else {
+      console.error(`${workRel} exists but is not a tracked checkout. Re-run with --force to overwrite.`);
+      return 1;
+    }
+  }
+
+  const html = readFileSync(join(ROOT, c.rel), "utf8");
+  const re = new RegExp(`<script\\s+id="${moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>([\\s\\S]*?)</script>`);
+  const content = html.match(re)![1].replace(/^\n/, "").replace(/\n$/, "");
+
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, content);
+  const idx = loadIndex();
+  idx[workRel] = { module: moduleId, canonical: c.rel, baseSha: sha, at: new Date().toISOString() };
+  saveIndex(idx);
+  console.log(`Checked out ${moduleId} from ${c.rel} (${c.repo}) → ${workRel}  base ${short(sha)}`);
+  return 0;
+}
+
+function cmdPull(moduleId: string, force: boolean): number {
+  const workRel = workPathFor(moduleId);
+  const idx = loadIndex();
+  const co = idx[workRel];
+  if (!co) {
+    console.error(`${moduleId} is not checked out. Use: lope-sync checkout ${moduleId}`);
+    return 1;
+  }
+  const { state } = classify(workRel, co);
+  if ((state === "modified" || state === "DIVERGED") && !force) {
+    console.error(
+      `${workRel} has local edits (${state}) — pull would discard them.\n` +
+      `Push first, or re-run with --force.`
+    );
+    return 1;
+  }
+  return cmdCheckout(moduleId, co.canonical.split("/")[0], true);
+}
+
+// -------------------------------------------------------------------- prune
+
+/**
+ * Delete working copies whose content is provably not unique — i.e. nothing is
+ * lost by removing them, because `checkout` can reproduce the bytes.
+ *
+ *   equivalent  content == the declared canonical's current block  -> delete
+ *   extant      content == some other copy of that module in the corpus, so the
+ *               file is a stale-but-real extraction ("behind")     -> delete
+ *   UNIQUE      content matches NO block anywhere -> in-flight work -> KEEP
+ *   undeclared  no canonical to compare against                    -> KEEP
+ *
+ * Ordering is deliberately not inferred: "behind" here means "these exact bytes
+ * still exist in a notebook", which is checkable, rather than "older", which is
+ * not (content hashes carry no ordering).
+ */
+function cmdPrune(write: boolean): number {
+  const canonical = loadCanonical();
+  const idx = deriveIndex();
+  const storeDir = join(ROOT, "modules");
+  if (!existsSync(storeDir)) { console.log("No modules/ store."); return 0; }
+
+  type Row = { rel: string; mod: string; state: string; note: string };
+  const rows: Row[] = [];
+
+  for (const author of readdirSync(storeDir)) {
+    const authorDir = join(storeDir, author);
+    if (!author.startsWith("@") || !existsSync(authorDir)) continue;
+    for (const f of readdirSync(authorDir)) {
+      if (!f.endsWith(".js")) continue;
+      const rel = join("modules", author, f);
+      const mod = `${author}/${f.replace(/\.js$/, "")}`;
+      const sha = md5(readFileSync(join(ROOT, rel), "utf8").replace(/\n$/, ""));
+      const decl = canonical[mod];
+      const refs = idx.get(mod) ?? [];
+
+      // Undeclared modules have no canonical to compare against, but the
+      // reproducibility question does not need one: if these exact bytes still
+      // sit in a notebook, deleting the file loses nothing. Only fall back to
+      // KEEP when the content matches nothing anywhere.
+      if (!decl) {
+        const here = refs.filter((r) => r.sha === sha);
+        if (here.length) {
+          rows.push({ rel, mod, state: "extant", note: `undeclared; matches ${here.length} notebook(s), e.g. ${here[0].rel}` });
+        } else {
+          rows.push({ rel, mod, state: "UNIQUE", note: `undeclared AND matches none of its ${refs.length} corpus copies — IN FLIGHT` });
+        }
+        continue;
+      }
+      const canonShas = Object.values(decl).map((r) => refs.find((x) => x.rel === r)?.sha).filter(Boolean) as string[];
+      if (canonShas.includes(sha)) { rows.push({ rel, mod, state: "equivalent", note: "matches canonical" }); continue; }
+      const elsewhere = refs.filter((r) => r.sha === sha);
+      if (elsewhere.length) {
+        rows.push({ rel, mod, state: "extant", note: `matches ${elsewhere.length} notebook(s), e.g. ${elsewhere[0].rel}` });
+        continue;
+      }
+      rows.push({ rel, mod, state: "UNIQUE", note: `content matches nothing in the corpus — IN FLIGHT` });
+    }
+  }
+
+  const del = rows.filter((r) => r.state === "equivalent" || r.state === "extant");
+  const keep = rows.filter((r) => r.state === "UNIQUE" || r.state === "undeclared");
+
+  console.log(`\nKEEP — ${keep.filter(r => r.state === "UNIQUE").length} with unique content (in flight), ${keep.filter(r => r.state === "undeclared").length} undeclared:`);
+  for (const r of keep.filter((x) => x.state === "UNIQUE")) console.log(`  UNIQUE      ${r.mod.padEnd(42)} ${r.note}`);
+  for (const r of keep.filter((x) => x.state === "undeclared")) console.log(`  undeclared  ${r.mod.padEnd(42)} ${r.note}`);
+
+  const byState = (s: string) => del.filter((r) => r.state === s).length;
+  console.log(`\nDELETE — ${del.length} reproducible by checkout (${byState("equivalent")} equivalent, ${byState("extant")} extant elsewhere)`);
+
+  if (!write) {
+    console.log(`\n(dry run — pass --write to delete the ${del.length} reproducible files)`);
+    return 0;
+  }
+  const index = loadIndex();
+  for (const r of del) {
+    rmSync(join(ROOT, r.rel));
+    delete index[r.rel];
+  }
+  saveIndex(index);
+  console.log(`\nDeleted ${del.length} file(s). Kept ${keep.length}.`);
+  return 0;
+}
+
+// ----------------------------------------------------------------- spec-sync
+
+/**
+ * Bring each notebook's sibling `.json` spec back in line with the HTML.
+ *
+ * The spec's per-module `hash` IS a content md5 — it just is never updated after
+ * export, so ~70% of entries corpus-wide are stale. Neither `sync-module` (no
+ * spec handling) nor `save-in-place` (writes one file through a
+ * FileSystemFileHandle, cannot touch a sibling) maintains it.
+ *
+ * The commit boundary is the one synchronisation point every writer passes
+ * through, so this is designed as a pre-commit hook: given the staged .html
+ * files, it rewrites their spec hashes. That makes "in committed history,
+ * spec.hash matches the block" a real invariant — which no single writer could
+ * establish on its own.
+ *
+ * Scope is deliberately narrow: it updates hashes for modules present in BOTH
+ * the spec and the HTML. It never invents entries (a new module needs
+ * `dependsOn`, which only the exporter knows) — it reports them instead.
+ */
+function cmdSpecSync(paths: string[], check: boolean): number {
+  const targets = paths.length
+    ? paths.map((p) => resolve(p))
+    : REPOS.flatMap((r) => {
+        const d = join(ROOT, r, "notebooks");
+        return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".html")).map((f) => join(d, f)) : [];
+      });
+
+  let changedFiles = 0, changedEntries = 0, missingSpec = 0;
+  const unlisted: string[] = [];
+
+  for (const html of targets) {
+    if (!html.endsWith(".html") || !existsSync(html)) continue;
+    const specPath = html.replace(/\.html$/, ".json");
+    if (!existsSync(specPath)) { missingSpec++; continue; }
+    let spec: any;
+    try { spec = JSON.parse(readFileSync(specPath, "utf8")); } catch { continue; }
+    if (!spec.modules) continue;
+
+    const blocks = blocksIn(readFileSync(html, "utf8"));
+    let touched = 0;
+    for (const [mod, entry] of Object.entries<any>(spec.modules)) {
+      const actual = blocks.get(mod);
+      if (!actual || !entry) continue;
+      if (entry.hash !== actual) { entry.hash = actual; touched++; }
+    }
+    // Modules in the HTML the spec has never heard of — a re-jumpgate's job.
+    for (const mod of blocks.keys()) {
+      if (mod.startsWith("@tomlarkworthy/") && !(mod in spec.modules)) {
+        unlisted.push(`${relative(ROOT, specPath)}  lacks  ${mod}`);
+      }
+    }
+    if (!touched) continue;
+    changedEntries += touched;
+    changedFiles++;
+    if (check) {
+      console.error(`  STALE ${relative(ROOT, specPath)} (${touched} hash(es))`);
+    } else {
+      writeFileSync(specPath, JSON.stringify(spec, null, 2) + "\n");
+      console.log(`  updated ${relative(ROOT, specPath)} (${touched} hash(es))`);
+    }
+  }
+
+  if (unlisted.length) {
+    console.error(`\n  ${unlisted.length} module(s) embedded but absent from the spec — re-jumpgate to add them:`);
+    for (const u of unlisted.slice(0, 10)) console.error(`    ${u}`);
+    if (unlisted.length > 10) console.error(`    … ${unlisted.length - 10} more`);
+  }
+  if (missingSpec) console.log(`  (${missingSpec} notebook(s) have no spec — skipped)`);
+
+  if (!changedFiles) { console.log("  specs up to date"); return 0; }
+  console.log(
+    check
+      ? `\n${changedEntries} stale hash(es) in ${changedFiles} spec(s). Fix: bun tools/lope-sync.ts spec-sync`
+      : `\n${changedEntries} hash(es) updated in ${changedFiles} spec(s) — re-stage them.`
+  );
+  return 1; // pre-commit convention: non-zero when files were changed or are stale
+}
+
+// -------------------------------------------------------------- init-canonical
+
+function cmdInitCanonical(write: boolean): number {
+  const idx = deriveIndex();
+  const out: Canonical = {};
+  const unresolved: string[] = [];
+  const inferred: string[] = [];
+
+  // A notebook is a module's home when its filename encodes the module name.
+  // Both `@author_name.html` and (from older jumpgates) `author_name.html`.
+  const homeCandidates = (moduleId: string): string[] => {
+    const [author, name] = moduleId.replace(/^@/, "").split("/");
+    return [`@${author}_${name}.html`, `${author}_${name}.html`];
+  };
+
+  for (const [mod, refs] of idx) {
+    if (!mod.startsWith("@tomlarkworthy/")) continue; // third-party is version-pinned in the id
+    const entry: Record<string, string> = {};
+    for (const repo of REPOS) {
+      const names = homeCandidates(mod);
+      const hit = refs.find((r) => r.repo === repo && names.some((n) => r.rel.endsWith("/" + n)));
+      if (hit) entry[repo] = hit.rel;
+    }
+    if (Object.keys(entry).length) {
+      out[mod] = entry;
+      continue;
+    }
+    // No home file: try the bundle host by longest declared prefix
+    // (e.g. @x/robocoop-4-core lives in @x/robocoop-4's notebook).
+    const parts = mod.split("-");
+    let found = false;
+    for (let i = parts.length - 1; i > 0 && !found; i--) {
+      const parent = parts.slice(0, i).join("-");
+      for (const repo of REPOS) {
+        const names = homeCandidates(parent);
+        const hit = refs.find((r) => r.repo === repo && names.some((n) => r.rel.endsWith("/" + n)));
+        if (hit) {
+          out[mod] = { [repo]: hit.rel };
+          inferred.push(`${mod}  ->  ${hit.rel}  (host of ${parent})`);
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found) unresolved.push(`${mod}  (${refs.length} copies, no home notebook)`);
+  }
+
+  const declared = Object.keys(out).length;
+  const dual = Object.values(out).filter((e) => Object.keys(e).length > 1).length;
+  console.log(`Resolved ${declared} module(s); ${dual} canonical in BOTH repos (staging + published).`);
+  if (inferred.length) {
+    console.log(`\nInferred from bundle host — REVIEW THESE (${inferred.length}):`);
+    for (const l of inferred) console.log(`  ${l}`);
+  }
+  if (unresolved.length) {
+    console.log(`\nUNRESOLVED — declare by hand (${unresolved.length}):`);
+    for (const l of unresolved.slice(0, 30)) console.log(`  ${l}`);
+    if (unresolved.length > 30) console.log(`  … ${unresolved.length - 30} more`);
+  }
+
+  if (!write) {
+    console.log(`\n(dry run — pass --write to create modules/canonical.json)`);
+    return 0;
+  }
+  const sorted: Canonical = {};
+  for (const k of Object.keys(out).sort()) sorted[k] = out[k];
+  mkdirSync(dirname(CANONICAL_PATH), { recursive: true });
+  writeFileSync(CANONICAL_PATH, JSON.stringify(sorted, null, 2) + "\n");
+  console.log(`\nWrote ${CANONICAL_PATH}`);
+  return 0;
+}
+
+// ---------------------------------------------------------------------- CLI
+
+if (import.meta.main) {
+  const argv = process.argv.slice(2);
+  const cmd = argv[0];
+  const flag = (n: string) => argv.includes(n);
+  const opt = (n: string) => {
+    const i = argv.indexOf(n);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith("--") && !(i > 0 && arr[i - 1].startsWith("--") && ["--repo", "--module"].includes(arr[i - 1])));
+
+  let code = 0;
+  switch (cmd) {
+    case "status":
+      code = cmdStatus();
+      break;
+    case "audit":
+      code = cmdAudit(opt("--module"), opt("--repo"));
+      break;
+    case "checkout":
+      if (!positional[0]) { console.error("Usage: lope-sync checkout <@author/module> [--repo lopecode|lopebooks] [--force]"); code = 1; break; }
+      code = cmdCheckout(positional[0], opt("--repo"), flag("--force"));
+      break;
+    case "pull":
+      if (!positional[0]) { console.error("Usage: lope-sync pull <@author/module> [--force]"); code = 1; break; }
+      code = cmdPull(positional[0], flag("--force"));
+      break;
+    case "prune":
+      code = cmdPrune(flag("--write"));
+      break;
+    case "spec-sync":
+      code = cmdSpecSync(positional, flag("--check"));
+      break;
+    case "init-canonical":
+      code = cmdInitCanonical(flag("--write"));
+      break;
+    default:
+      console.error(
+        "Usage:\n" +
+        "  bun tools/lope-sync.ts status\n" +
+        "  bun tools/lope-sync.ts audit [--module @a/b] [--repo lopecode|lopebooks]\n" +
+        "  bun tools/lope-sync.ts checkout <@a/b> [--repo R] [--force]\n" +
+        "  bun tools/lope-sync.ts pull <@a/b> [--force]\n" +
+        "  bun tools/lope-sync.ts prune [--write]\n" +
+        "  bun tools/lope-sync.ts spec-sync [--check] [notebook.html ...]\n" +
+        "  bun tools/lope-sync.ts init-canonical [--write]"
+      );
+      code = 1;
+  }
+  process.exit(code);
+}
