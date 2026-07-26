@@ -1,1450 +1,3208 @@
 {
   "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_animation.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_atlas.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_belief-geometry.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_blank-notebook.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: bulk-exporting-lopebooks.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: development-of-pairing-channel-and-claude-plugin.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: how-file-attachments-work.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: js-toolchain-notebook-kit-2-cells.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: live-collaboration-with-claude-code-pairing.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: lopecode-internal-networking.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: maintaining-and-updating-lopecode-and-lopebook-content-repositories.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: module-exporter-runtime-self-serialization.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: notebook-programming-concepts.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: pushing-cells-to-observablehq.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: querying-and-maintaining-the-lopecode-structured-knowledgebase.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: tinyemu-build-chain.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: what-makes-a-great-lopebook.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop-5-srctools imports jbApply from @tomlarkworthy/file-sync, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_building-a-team-chore-app.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_cell-map.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_code-metrics.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/justbash-filesync imports tag from @tomlarkworthy/runtime-sdk, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_colorpicker.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_compile-zig.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-highlight-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-lr-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/compile-zig imports context_menu from @tomlarkworthy/editor-5, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/claude-code-pairing imports @tomlarkworthy/exporter-3"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/claude-code-pairing imports @tomlarkworthy/file-sync"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/local-change-history imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/command-palette"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/observablejs-toolchain imports @tomlarkworthy/observable-runtime"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-highlight-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-lr-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/claude-code-pairing imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editable-md imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/file-sync imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/local-change-history imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/command-palette"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/exporter-3"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/observablejs-toolchain imports @tomlarkworthy/observable-runtime"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_debugger.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_dijkstra.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_editable-md.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_editor-5.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_ego-graph.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_exporter-2.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_exporter-3.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_file-sync.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_fileattachments.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_fsm.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_gallery.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observable-runtime: runtime.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-highlight-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-lr-bundled.js.gz is emitted after its module block"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_grid-container.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_hacker-favourites-analysis.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_howto-monitoring.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_ilda-laser-show-player.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_ilda-virtual-laser-test-pattern.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_imgchooser.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_ink.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_inputs-reference.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_inspector.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_invoke-variable.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_jamstack.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_juice.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_jumpgate.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_justbash.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/justbash-filesync imports tag from @tomlarkworthy/runtime-sdk, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_kirigami-turret.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lazer-light.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_linkpreview.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_linux-emu.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-highlight-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-lr-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/command-palette"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/observablejs-toolchain imports @tomlarkworthy/observable-runtime"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_linux-sbc.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lite-youtube-embed.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_literateobject.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_local-change-history.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html": [
     {
-      "kind": "duplicate",
-      "detail": "@tomlarkworthy/bootloader"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop-5-srctools imports jbApply from @tomlarkworthy/file-sync, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-substrate-2026 imports _1 from @tomlarkworthy/lopecode-vision, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-substrate-2026 imports _2 from @tomlarkworthy/micro-kernel-design, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-substrate-2026 imports _3 from @tomlarkworthy/my-lopebooks, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-substrate-2026 imports _4 from @tomlarkworthy/jumpgate, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-tour imports _0 from @tomlarkworthy/observable-notes, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-tour imports _0 from @tomlarkworthy/observable-notes, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_lopepage.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_manipulate.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_matrix-background.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_module-map.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_module-selection.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/editor imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/moldable-webpage imports cellMaps from @tomlarkworthy/visualizer, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_moltbook.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_mutable-form-input.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_my-lopebooks.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_n-door-monty-hall.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_native-file-system-adapter.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_neato.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_notebook-kit-examples.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_notes.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_observable-notes.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_observable-runtime-v6.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_observable-runtime.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_p5-sandbox.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-highlight-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-lr-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/p5-sandbox: p5.min.js.gz is emitted after its module block"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/command-palette"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/observablejs-toolchain imports @tomlarkworthy/observable-runtime"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_parametric-kirigami-the-castle-wall.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_parametric-svg.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_pause-and-play-book.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_pause-and-play-shop.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_plugin-registry.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_prosemirror.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_randomid.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_rate-estimation-min.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_rate-estimation.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-highlight-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/observablehq-lezer: lezer-lr-bundled.js.gz is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage imports @tomlarkworthy/command-palette"
-    },
-    {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/observablejs-toolchain imports @tomlarkworthy/observable-runtime"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_repo1.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_robocoop-2.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_robocoop-3.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_robocoop-4.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/justbash-filesync imports @tomlarkworthy/justbash-session"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/justbash-filesync imports @tomlarkworthy/justbash-terminal"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/justbash-filesync imports tag from @tomlarkworthy/runtime-sdk, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: bulk-exporting-lopebooks.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: development-of-pairing-channel-and-claude-plugin.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: how-file-attachments-work.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: js-toolchain-notebook-kit-2-cells.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: live-collaboration-with-claude-code-pairing.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: lopecode-internal-networking.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: maintaining-and-updating-lopecode-and-lopebook-content-repositories.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: module-exporter-runtime-self-serialization.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: notebook-programming-concepts.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: pushing-cells-to-observablehq.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: querying-and-maintaining-the-lopecode-structured-knowledgebase.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: tinyemu-build-chain.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: what-makes-a-great-lopebook.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop-5-srctools imports jbApply from @tomlarkworthy/file-sync, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_robocoop-gallery.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/agentic-planner imports foo from @tomlarkworthy/gepa, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/agentic-planner-prototype imports foo from @tomlarkworthy/gepa, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/editor-4 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop-eval imports background_tasks from @tomlarkworthy/robocoop-2, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop3-training imports _0 from @tomlarkworthy/gepa, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop3-training imports _1 from @tomlarkworthy/exporter, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_rss-feed.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_secrets.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_sequencer.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_simplest-cms.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_single-stroke-font.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_sticky.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_stream-operators.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_summarizejs.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_svg-backgrounds.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_svg-boinger.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_svg-twist.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_switch-dataflow.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_synchronizing-external-state-into-bigquery-efficiently.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_testblog.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_tester.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/@tomlarkworthy_testing.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_themes.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_tiktok.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_tiny-notebook.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_tom-larkworthy.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_twitter-trending-notebook-bot-dataset-2022.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_unaggregating-cloudwatch-metrics.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_unrolling-a-deploy-command.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_url-query-field-view.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_utils.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_vertical-sliders.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_view-examples.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_view.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_viewroutine.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/lopepage-2 imports @tomlarkworthy/plugin-registry"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_webxr-dom-overlay.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_whisper-input.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_wiki.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_wormhole.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopebooks/notebooks/@tomlarkworthy_wormhole2.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/tomlarkworthy_daw.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop-5-srctools imports jbApply from @tomlarkworthy/file-sync, which does not define it"
+    }
+  ],
+  "lopebooks/notebooks/tomlarkworthy_svg-lens.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_atlas.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_atproto-comments.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_blank-notebook.html": [
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: bulk-exporting-lopebooks.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: development-of-pairing-channel-and-claude-plugin.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: how-file-attachments-work.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     },
     {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: js-toolchain-notebook-kit-2-cells.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: live-collaboration-with-claude-code-pairing.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: lopecode-internal-networking.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: maintaining-and-updating-lopecode-and-lopebook-content-repositories.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: module-exporter-runtime-self-serialization.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: notebook-programming-concepts.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: pushing-cells-to-observablehq.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: querying-and-maintaining-the-lopecode-structured-knowledgebase.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: tinyemu-build-chain.md is emitted after its module block"
-    },
-    {
-      "kind": "attachment-after-module",
-      "detail": "@tomlarkworthy/markdown-wiki: what-makes-a-great-lopebook.md is emitted after its module block"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/robocoop-5-srctools imports jbApply from @tomlarkworthy/file-sync, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_bootloader.html": [
     {
-      "kind": "duplicate",
-      "detail": "@tomlarkworthy/bootloader"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_cell-map.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_command-palette.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_debugger-2.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_debugger.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_dom-view.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_editor-5.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_exporter-2.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_exporter-3.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_fileattachments.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_flow-queue.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_golden-layout-2-6-0.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_import-notebook.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_local-change-history.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_local-storage-view.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/lopecode-tour imports _0 from @tomlarkworthy/observable-notes, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_lopepage-2.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_lopepage-urls.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_lopepage.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_modern-screenshot.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_module-selection.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_modules.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_notes.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_openai-responses-api.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_robocoop-2.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_robocoop-3.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_robocoop-4.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/justbash-filesync imports @tomlarkworthy/justbash-session"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
     },
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/justbash-filesync imports @tomlarkworthy/justbash-terminal"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/justbash-filesync imports tag from @tomlarkworthy/runtime-sdk, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_runtime-sdk.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/@tomlarkworthy_save-in-place.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_secrets.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_tests.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_themes.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/@tomlarkworthy_visualizer.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/atproto.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    }
+  ],
+  "lopecode/notebooks/jumpgates.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/ledger.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ],
   "lopecode/notebooks/lopefeed.html": [
     {
-      "kind": "missing-import",
-      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
     }
   ]
 }

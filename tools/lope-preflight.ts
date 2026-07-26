@@ -82,6 +82,44 @@ function importsOf(src: string): string[] {
     .filter((id) => /^@[^/${]+\/[^/${]+$/.test(id) && id !== "@x");
 }
 
+/**
+ * Symbols this block imports from other modules, as [sourceModule, exportedName].
+ * The exporter emits one of:
+ *   main.define("x",  ["module @a/b", "@variable"], (_, v) => v.import("x", _));
+ *   main.define("y",  ["module @a/b", "@variable"], (_, v) => v.import("x", "y", _));
+ * so the FIRST string argument to v.import is always the name in the source module.
+ */
+function importedSymbols(src: string): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  const re = /main\.define\("[^"]*",\s*\[\s*"module ([^"]+)"[^\]]*\][^)]*\)\s*=>\s*v\.import\("([^"]+)"/g;
+  for (const m of src.matchAll(re))
+    if (/^@[^/${]+\/[^/${]+$/.test(m[1])) out.push([m[1], m[2]]);
+  return out;
+}
+
+/**
+ * Stdlib names every module gets for free. A module can be imported FROM for one of
+ * these even though it never defines it — the name resolves through the source
+ * module's builtins — so importing e.g. `md` from runtime-sdk is not a missing export.
+ */
+const BUILTINS = new Set([
+  "FileAttachment", "Files", "Generators", "Mutable", "Promises", "DOM", "Event",
+  "html", "md", "svg", "tex", "dot", "mermaid", "now", "width", "invalidation",
+  "visibility", "require", "resolve", "Inputs", "d3", "htl", "_", "L", "topojson",
+]);
+
+/**
+ * Cell names a module block defines. `$def(id, name, inputs, fn)` carries the name
+ * (null for anonymous cells); re-exported imports come through as `main.define("n",`.
+ */
+function definedNames(src: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of src.matchAll(/\$def\("[^"]*",\s*"((?:[^"\\]|\\.)*)"/g)) out.add(m[1]);
+  for (const m of src.matchAll(/main\.define\("((?:[^"\\]|\\.)*)"/g))
+    if (!m[1].startsWith("module ")) out.add(m[1]);
+  return out;
+}
+
 /** FileAttachment names this block expects, from the generated loader map. */
 function attachmentsOf(src: string): string[] {
   const m = src.match(/const fileAttachments = new Map\(\[([\s\S]*?)\]\.map\(/);
@@ -141,11 +179,27 @@ export function checkHtml(html: string): Problem[] {
   bs.forEach((b, i) => { if (!orderOf.has(b.id)) orderOf.set(b.id, i); });
 
   const byId = new Map(mods.map((b) => [b.id, b]));
+  const namesOf = new Map<string, Set<string>>();
+  for (const b of mods) namesOf.set(b.id, definedNames(b.content));
+
   for (const [id, imports] of deps) {
     const live = reached.has(id);
     for (const dep of imports)
       if (!ids.has(dep))
         problems.push({ kind: live ? "missing-import" : "missing-import-lazy", detail: `${id} imports ${dep}` });
+
+    // A module can be present but too OLD to provide what the importer asks for.
+    // Resyncing `observablejs-toolchain` into a notebook whose `acorn-8-11-3` predates
+    // `acorn_walk_url` produced exactly this: every block present, nothing missing,
+    // 44 cells failing at runtime with "acorn_walk_url is not defined".
+    for (const [dep, sym] of importedSymbols(byId.get(id)!.content)) {
+      const has = namesOf.get(dep);
+      if (!has || has.has(sym) || BUILTINS.has(sym)) continue;
+      problems.push({
+        kind: live ? "missing-export" : "missing-export-lazy",
+        detail: `${id} imports ${sym} from ${dep}, which does not define it`,
+      });
+    }
     for (const name of attachmentsOf(byId.get(id)!.content)) {
       const attId = ids.has(`${id}/${encodeURIComponent(name)}`)
         ? `${id}/${encodeURIComponent(name)}`

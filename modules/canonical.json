@@ -2,6 +2,9 @@
   "@tomlarkworthy/2d-spatial-wormhole-warp": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html"
   },
+  "@tomlarkworthy/acorn-8-11-3": {
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"
+  },
   "@tomlarkworthy/animated-kirigami": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html"
   },
