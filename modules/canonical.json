@@ -492,8 +492,7 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html"
   },
   "@tomlarkworthy/save-in-place": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_save-in-place.html",
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_save-in-place.html"
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_save-in-place.html"
   },
   "@tomlarkworthy/secrets": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_secrets.html",
