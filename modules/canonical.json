@@ -329,6 +329,9 @@
   "@tomlarkworthy/manipulate": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_manipulate.html"
   },
+  "@tomlarkworthy/markdown-wiki": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html"
+  },
   "@tomlarkworthy/matrix-background": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html"
   },
@@ -547,6 +550,9 @@
   "@tomlarkworthy/spectral-layout": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html"
   },
+  "@tomlarkworthy/sticky": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky.html"
+  },
   "@tomlarkworthy/sticky-footer-in-list": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html"
   },
@@ -582,6 +588,9 @@
   },
   "@tomlarkworthy/tester": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tester.html"
+  },
+  "@tomlarkworthy/testing": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testing.html"
   },
   "@tomlarkworthy/tests": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_tests.html"
