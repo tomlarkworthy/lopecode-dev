@@ -40,10 +40,12 @@
  *   bun tools/lope-sync.ts checkout <module> [--repo R]   extract from declared canonical
  *   bun tools/lope-sync.ts pull <module> [--force]        re-extract over a working copy
  *   bun tools/lope-sync.ts init-canonical [--write]       bootstrap canonical.json
+ *   bun tools/lope-sync.ts spec-sync [--check] [--rebuild]  sibling .json specs
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync } from "fs";
-import { join, resolve, relative, dirname } from "path";
+import { join, resolve, relative, dirname, basename } from "path";
 import { createHash } from "crypto";
+import { execFileSync } from "child_process";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPOS = ["lopecode", "lopebooks"];
@@ -71,6 +73,12 @@ export function blocksIn(html: string): Map<string, string> {
     if (!/data-mime="application\/javascript"/.test(m[2])) continue;
     // `@author/name/path.js` is a file attachment that happens to be JS, not a module.
     if (m[1].split("/").length > 2) continue;
+    // First occurrence wins, matching both the runtime (`contentSync` resolves by id,
+    // so a later duplicate is shadowed) and extractModuleScriptTag. Two notebooks
+    // embed `@tomlarkworthy/bootloader` twice — the compiled block followed by a raw
+    // Observable-format copy. Letting the last win made audit report all 220
+    // bootloader consumers permanently stale against a block that never executes.
+    if (out.has(m[1])) continue;
     // Match extractModuleContent's normalisation so a checked-out .js hashes
     // identically to the block it came from.
     out.set(m[1], md5(m[3].replace(/^\n/, "").replace(/\n$/, "")));
@@ -560,11 +568,36 @@ function cmdPrune(write: boolean): number {
  * spec.hash matches the block" a real invariant — which no single writer could
  * establish on its own.
  *
- * Scope is deliberately narrow: it updates hashes for modules present in BOTH
- * the spec and the HTML. It never invents entries (a new module needs
- * `dependsOn`, which only the exporter knows) — it reports them instead.
+ * Default scope is deliberately narrow, because the hook runs on every commit:
+ * it restamps hashes for modules present in BOTH the spec and the HTML, and only
+ * reports modules the spec has never heard of.
+ *
+ * `--rebuild` handles those. A new entry needs `dependsOn`, which means parsing
+ * the generated loaders — and that parser is a notebook cell
+ * (`@tomlarkworthy/observablejs-toolchain`'s `extractModuleInfo`), not something
+ * to reimplement here. `lope-reader.ts --manifest <dir> --compute-imports`
+ * already drives it across a whole directory in one notebook load, so rebuild
+ * shells out to that and merges the result. Slow (one runtime boot per
+ * directory), hence opt-in rather than part of the hook.
+ *
+ * Rebuild takes ONLY `modules` from the regeneration. `bootconf` is not
+ * derivable faithfully — parseNotebook reads the last `bootconf.json` block,
+ * which for six notebooks lacks the `theme` the committed spec records — and
+ * `upstreams` / `observable_version` / `observable_update_time` come from
+ * ObservableHQ at jumpgate time. Those are preserved verbatim, as is key order.
  */
-function cmdSpecSync(paths: string[], check: boolean): number {
+function freshModulesByNotebook(dir: string): Map<string, any> {
+  const out = execFileSync(
+    "bun",
+    [join(ROOT, "tools", "lope-reader.ts"), "--manifest", dir, "--compute-imports"],
+    { cwd: ROOT, maxBuffer: 512 << 20, encoding: "utf8" }
+  );
+  const byName = new Map<string, any>();
+  for (const s of JSON.parse(out)) if (s?.notebook && s?.modules) byName.set(s.notebook, s.modules);
+  return byName;
+}
+
+function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
   const targets = paths.length
     ? paths.map((p) => resolve(p))
     : REPOS.flatMap((r) => {
@@ -572,8 +605,19 @@ function cmdSpecSync(paths: string[], check: boolean): number {
         return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".html")).map((f) => join(d, f)) : [];
       });
 
-  let changedFiles = 0, changedEntries = 0, missingSpec = 0;
+  let changedFiles = 0, changedEntries = 0, missingSpec = 0, addedEntries = 0;
   const unlisted: string[] = [];
+
+  // One regeneration per directory, shared by every target in it.
+  const freshCache = new Map<string, Map<string, any>>();
+  const freshFor = (html: string): any | null => {
+    const dir = dirname(html);
+    if (!freshCache.has(dir)) {
+      console.log(`  regenerating ${relative(ROOT, dir)} via lope-reader --compute-imports …`);
+      freshCache.set(dir, freshModulesByNotebook(dir));
+    }
+    return freshCache.get(dir)!.get(basename(html, ".html")) ?? null;
+  };
 
   for (const html of targets) {
     if (!html.endsWith(".html") || !existsSync(html)) continue;
@@ -585,12 +629,23 @@ function cmdSpecSync(paths: string[], check: boolean): number {
 
     const blocks = blocksIn(readFileSync(html, "utf8"));
     let touched = 0;
+
+    if (rebuild) {
+      const fresh = freshFor(html);
+      if (fresh) {
+        const before = JSON.stringify(spec.modules);
+        addedEntries += Object.keys(fresh).filter((k) => !(k in spec.modules)).length;
+        spec.modules = fresh;   // assigning an existing key keeps its position
+        if (JSON.stringify(spec.modules) !== before) touched++;
+      }
+    }
+
     for (const [mod, entry] of Object.entries<any>(spec.modules)) {
       const actual = blocks.get(mod);
       if (!actual || !entry) continue;
       if (entry.hash !== actual) { entry.hash = actual; touched++; }
     }
-    // Modules in the HTML the spec has never heard of — a re-jumpgate's job.
+    // Modules in the HTML the spec has never heard of — `--rebuild` adds them.
     for (const mod of blocks.keys()) {
       if (mod.startsWith("@tomlarkworthy/") && !(mod in spec.modules)) {
         unlisted.push(`${relative(ROOT, specPath)}  lacks  ${mod}`);
@@ -608,7 +663,7 @@ function cmdSpecSync(paths: string[], check: boolean): number {
   }
 
   if (unlisted.length) {
-    console.error(`\n  ${unlisted.length} module(s) embedded but absent from the spec — re-jumpgate to add them:`);
+    console.error(`\n  ${unlisted.length} module(s) embedded but absent from the spec — add them with: bun tools/lope-sync.ts spec-sync --rebuild`);
     for (const u of unlisted.slice(0, 10)) console.error(`    ${u}`);
     if (unlisted.length > 10) console.error(`    … ${unlisted.length - 10} more`);
   }
@@ -618,7 +673,9 @@ function cmdSpecSync(paths: string[], check: boolean): number {
   console.log(
     check
       ? `\n${changedEntries} stale hash(es) in ${changedFiles} spec(s). Fix: bun tools/lope-sync.ts spec-sync`
-      : `\n${changedEntries} hash(es) updated in ${changedFiles} spec(s) — re-stage them.`
+      : `\n${changedEntries} change(s) in ${changedFiles} spec(s)` +
+        (addedEntries ? `, ${addedEntries} module entr(ies) added` : "") +
+        ` — re-stage them.`
   );
   return 1; // pre-commit convention: non-zero when files were changed or are stale
 }
@@ -799,7 +856,7 @@ if (import.meta.main) {
       code = cmdPrune(flag("--write"));
       break;
     case "spec-sync":
-      code = cmdSpecSync(positional, flag("--check"));
+      code = cmdSpecSync(positional, flag("--check"), flag("--rebuild"));
       break;
     case "init-canonical":
       code = cmdInitCanonical(flag("--write"));
@@ -812,7 +869,7 @@ if (import.meta.main) {
         "  bun tools/lope-sync.ts checkout <@a/b> [--repo R] [--force]\n" +
         "  bun tools/lope-sync.ts pull <@a/b> [--force]\n" +
         "  bun tools/lope-sync.ts prune [--write]\n" +
-        "  bun tools/lope-sync.ts spec-sync [--check] [notebook.html ...]\n" +
+        "  bun tools/lope-sync.ts spec-sync [--check] [--rebuild] [notebook.html ...]\n" +
         "  bun tools/lope-sync.ts init-canonical [--write]"
       );
       code = 1;

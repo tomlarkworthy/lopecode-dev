@@ -36,9 +36,9 @@ Neither is visible in a source diff, which is why the gate is not optional.
    imports `@tomlarkworthy/modules` without embedding it. The Observable runtime is
    lazy, so an unmet import outside the `bootconf.mains` closure never resolves and
    never throws — the notebook looks fine until something observes the cell.
-   `lope-resync` skips such targets by default and reports them; `--carry-deps` copies
+   `sync-module --all-canonical` skips such targets by default and reports them; `--carry-deps` copies
    the missing blocks from the canonical notebook, the only place they are known
-   current. 396 blocks need carrying to cover all 3369 pairs; no canonical is itself
+   current. 414 blocks were carried to cover all 3369 pairs; no canonical is itself
    missing a block it declares.
 
 2. **Ordering.** A module's own content blocks must appear *before* its module block.
@@ -57,17 +57,40 @@ bun tools/lope-preflight.ts --json tools/preflight-baseline.json
 bun tools/triage/cellwise.ts --all-minority
 
 # 2. dry run, read the dependency-gap report
-bun tools/lope-resync.ts --all
+bun tools/channel/sync-module.ts --all-canonical
 
-# 3. apply a batch
-bun tools/lope-resync.ts --all --write --carry-deps
+# 3. apply a batch  (--module/--repo/--limit scope it)
+bun tools/channel/sync-module.ts --all-canonical --write --carry-deps
 
 # 4. gate: non-zero exit only for findings that were NOT there before
 bun tools/lope-preflight.ts --baseline tools/preflight-baseline.json
+
+# 5. carrying a module in leaves the sibling .json spec incomplete, which blocks
+#    the pre-commit hook. --rebuild adds the missing entries (one runtime boot).
+bun tools/lope-sync.ts spec-sync --rebuild
 ```
 
 A clean sheet is not the bar — the corpus carries 265 pre-existing static findings.
 The gate is differential.
+
+The sweep lives in `sync-module` rather than in a tool of its own: it is the same
+block injection, sourced from `canonical.json` and aimed at every consumer instead of
+at hand-listed targets. Unlike single-module mode it defaults to a dry run.
+
+## Result of the 2026-07-26 sweep
+
+3369 pairs updated, 414 blocks carried, every notebook touched. The gate reported 0
+new findings and 263 resolved; corpus static findings went 265 -> 2. `lope-sync audit`
+went from 116 modules with drifted consumers to 14 (all one notebook another session
+was mid-export on) and from 32 minority smells to 0. A repeat run is a no-op.
+
+One thing the sweep exposed rather than caused: two notebooks embed
+`@tomlarkworthy/bootloader` twice — the compiled block followed by a raw
+Observable-format copy. `contentSync` resolves by id so the first wins and the second
+is dead weight, but `blocksIn` was hashing the last, which made audit report all 220
+bootloader consumers permanently stale against a block that never runs. `blocksIn`
+now takes the first occurrence, matching both the runtime and `extractModuleScriptTag`.
+The duplicate blocks themselves are still there; preflight reports them as `duplicate`.
 
 ## Cost
 

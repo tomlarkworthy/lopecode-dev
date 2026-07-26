@@ -33,9 +33,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, watch, statSync } from "fs";
-import { resolve, extname, relative } from "path";
+import { resolve, extname, relative, join } from "path";
 import { Glob } from "bun";
-import { loadIndex, saveIndex, loadCanonical, shaOfBlock } from "../lope-sync.ts";
+import { loadIndex, saveIndex, loadCanonical, shaOfBlock, deriveIndex, reposOf } from "../lope-sync.ts";
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -323,8 +323,240 @@ function syncAll(
   );
 }
 
+
+// ------------------------------------------------------- corpus-wide canonical sync
+
+/** Module ids a block imports — see lope-preflight.ts for why these are excluded. */
+function importsOf(src: string): string[] {
+  return [...src.matchAll(/main\.define\("module ([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((id) => /^@[^/${]+\/[^/${]+$/.test(id) && id !== "@x");
+}
+
+/** FileAttachment names a block expects, from the generated loader map. */
+function attachmentsOf(src: string): string[] {
+  const m = src.match(/const fileAttachments = new Map\(\[([\s\S]*?)\]\.map\(/);
+  if (!m) return [];
+  return [...m[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((x) => x[1]);
+}
+
+/** Every `<script id=…>` block id, whatever its mime. `blocksIn` deliberately returns
+ *  only module blocks (JS mime, <=2 path segments), so it cannot see attachments —
+ *  using it here made every attachment look absent. */
+function allIds(html: string): string[] {
+  return [...html.matchAll(/<script\s+id="([^"]+)"/g)].map((m) => m[1]);
+}
+
+/** Every block id the canonical owns by prefix — its attachments plus any content
+ *  it reads off the DOM itself (markdown-wiki scans for its own docs). */
+function ownedBlockIds(html: string, moduleId: string): string[] {
+  return allIds(html).filter((id) => id.startsWith(moduleId + "/"));
+}
+
+/** Insert a block immediately before `moduleId`'s block: a module's own content must
+ *  precede it. Returns false if the anchor is missing. */
+function insertBefore(targetPath: string, moduleId: string, block: string): boolean {
+  const html = readFileSync(targetPath, "utf8");
+  const anchor = extractModuleScriptTag(html, moduleId);
+  if (!anchor) return false;
+  const at = html.indexOf(anchor);
+  writeFileSync(targetPath, html.slice(0, at) + block + "\n\n" + html.slice(at));
+  return true;
+}
+
+/** Dry runs re-read the same 2MB notebooks thousands of times; memoise the block ids.
+ *  Invalidated on write, since carrying a block changes what a target has. */
+const idCache = new Map<string, Set<string>>();
+function idsIn(path: string): Set<string> {
+  let s = idCache.get(path);
+  if (!s) idCache.set(path, (s = new Set(allIds(readFileSync(path, "utf8")))));
+  return s;
+}
+
+function rawBlock(html: string, id: string): string | null {
+  const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = html.match(new RegExp(`<script\\s+id="${esc}"[^>]*>[\\s\\S]*?</script>`));
+  return m ? m[0] : null;
+}
+
+export type ResyncOpts = {
+  modules?: string[];      // explicit module ids; empty means every declared module
+  repo?: string | null;    // restrict to one repo's consumers
+  limit?: number;          // cap targets per module (pilot batches)
+  write?: boolean;         // false = dry run
+  carryDeps?: boolean;     // copy missing dependency blocks across
+};
+
+/**
+ * `--all-canonical`: the same injection as single-module mode, but sourced from
+ * `modules/canonical.json` and applied to every consumer instead of one module to
+ * hand-listed targets. `lope-sync audit` reports this drift; this applies it.
+ *
+ * Direction comes from canonical.json and is never inferred: content hashes carry no
+ * ordering, so "differs from 168 consumers" does not mean "older". Verify a canonical
+ * really is ahead (`tools/triage/cellwise.ts --all-minority`) before sweeping it.
+ *
+ * Two hazards, both real in this corpus:
+ *
+ *  1. A newer module can import a block the target does not embed — 186 notebooks
+ *     carried an `editor-5` importing `@tomlarkworthy/modules` without embedding it,
+ *     which the lazy runtime never surfaces. Such targets are SKIPPED and reported;
+ *     `carryDeps` copies the missing blocks from the canonical notebook, following
+ *     each carried block's own needs to a fixpoint.
+ *  2. A module's own content blocks must precede its module block, so carried
+ *     attachments are inserted before the anchor, never appended.
+ *
+ * Returns a process exit code: non-zero when targets were left skipped.
+ */
+export function resyncCanonical(opts: ResyncOpts): number {
+  const { repo: onlyRepo = null, limit = Infinity, write = false, carryDeps = false } = opts;
+  const idx = deriveIndex();
+  const canon = loadCanonical();
+  const mods = (opts.modules?.length ? opts.modules : Object.keys(canon).sort())
+    .filter((m) => canon[m]);
+  if (!mods.length) {
+    console.error("nothing selected: --all-canonical needs declared modules, or pass --module @a/b");
+    return 2;
+  }
+
+  let updated = 0, unchanged = 0, carried = 0, skipped = 0;
+  const gaps = new Map<string, Set<string>>();   // target -> missing ids
+
+  /**
+   * Which canonical governs each repo's consumers. A module declared canonical in one
+   * repo still has consumers in the other (visualizer: 48 in lopecode, 172 in
+   * lopebooks) and `audit` counts those as drifted, so the sole canonical governs
+   * both. Declared in both repos, each governs its own. Nothing else is guessed.
+   */
+  const governing = (mod: string): Array<[string, string]> => {
+    const declared = reposOf(canon[mod]);
+    if (!declared.length) return [];
+    const out: Array<[string, string]> = declared.map((r) => [r, canon[mod]![r] as string]);
+    if (declared.length === 1)
+      for (const r of ["lopecode", "lopebooks"])
+        if (r !== declared[0]) out.push([r, canon[mod]![declared[0]] as string]);
+    return out;
+  };
+
+  for (const mod of mods) {
+  for (const [repo, canonRel] of governing(mod)) {
+    if (onlyRepo && repo !== onlyRepo) continue;
+    const refs = idx.get(mod) ?? [];
+    const canonSha = refs.find((r) => r.rel === canonRel)?.sha;
+    if (!canonSha) { console.error(`  ! ${mod}: canonical ${canonRel} has no block`); continue; }
+
+    const canonHtml = readFileSync(join(REPO_ROOT, canonRel), "utf8");
+    const block = extractModuleScriptTag(canonHtml, mod)!;
+    const needMods = importsOf(block);
+    const needBlocks = ownedBlockIds(canonHtml, mod);
+    const attNames = attachmentsOf(block);
+    // attachment basenames the canonical actually provides
+    const canonAtt = new Set(needBlocks.map((id) => id.slice(mod.length + 1)));
+
+    // Same-sha consumers are visited too, not just stale ones: a notebook can hold a
+    // block already equal to the canonical while missing what that block imports (5
+    // notebooks embed a current `lopepage` without `@tomlarkworthy/command-palette`).
+    // Skipping them left exactly those gaps unrepaired. The block update is then a
+    // no-op and `inject` reports it unchanged.
+    const targets = refs
+      .filter((r) => r.rel.startsWith(repo + "/") && r.rel !== canonRel)
+      .slice(0, limit);
+    if (!targets.length) continue;
+
+    let mUpd = 0, mSkip = 0, mCarry = 0;
+    for (const t of targets) {
+      const tPath = join(REPO_ROOT, t.rel);
+      const have = idsIn(tPath);
+
+      // What the canonical needs that this target lacks, to a fixpoint: carrying
+      // @tomlarkworthy/modules into 186 notebooks is no good if that module's own
+      // imports and attachments stay behind, so follow each carried block's needs
+      // too. A loader-map name with no block in the *canonical* is a defect in the
+      // canonical rather than something this sweep can repair; reported separately.
+      const carryable: string[] = [];
+      const unfixable: string[] = [];
+      const seen = new Set<string>();
+      const queue = [...needMods, ...needBlocks];
+      while (queue.length) {
+        const id = queue.pop()!;
+        if (have.has(id) || seen.has(id)) continue;
+        seen.add(id);
+        const b = rawBlock(canonHtml, id);
+        if (!b) { unfixable.push(id); continue; }
+        carryable.push(id);
+        if (id.split("/").length <= 2) queue.push(...importsOf(b), ...ownedBlockIds(canonHtml, id));
+      }
+      for (const n of attNames)
+        if (!canonAtt.has(encodeURIComponent(n)) && !canonAtt.has(n))
+          unfixable.push(`${n} (canonical has no such attachment)`);
+
+      const blocked = [...carryable, ...unfixable];
+      if (blocked.length && !(carryDeps && !unfixable.length)) {
+        (gaps.get(t.rel) ?? gaps.set(t.rel, new Set()).get(t.rel)!).add(`${mod} needs ${blocked.join(", ")}`);
+        mSkip++; skipped++;
+        continue;
+      }
+
+      if (!write) {
+        if (t.sha === canonSha) unchanged++; else { mUpd++; updated++; }
+        mCarry += carryable.length; carried += carryable.length;
+        continue;
+      }
+
+      // Modules first, then the blocks they own: an attachment is placed relative to
+      // its owner's block, so the owner has to be present to anchor it.
+      const carryMods = carryable.filter((id) => id.split("/").length <= 2);
+      for (const id of carryMods) inject(rawBlock(canonHtml, id)!, tPath, id, true);
+      for (const id of carryable.filter((id) => !carryMods.includes(id)))
+        insertBefore(tPath, id.slice(0, id.lastIndexOf("/")), rawBlock(canonHtml, id)!);
+      idCache.delete(tPath);
+      mCarry += carryable.length; carried += carryable.length;
+      const r = inject(block, tPath, mod, false);
+      if (r === "updated") { mUpd++; updated++; }
+      else if (r === "unchanged") unchanged++;
+      else { mSkip++; skipped++; }
+    }
+    if (mUpd || mSkip)
+      console.log(`${write ? "sync" : "would"}  ${mod.padEnd(38)} ${repo.padEnd(9)} ` +
+        `${String(mUpd).padStart(3)} target(s)` +
+        (mCarry ? `  +${mCarry} carried` : "") + (mSkip ? `  ${mSkip} skipped (dep gap)` : ""));
+    }
+  }
+
+  console.log(`\n${write ? "applied" : "dry run"}: ${updated} block(s) ${write ? "updated" : "would update"}` +
+    `, ${carried} carried, ${unchanged} already current, ${skipped} skipped for a dependency gap`);
+
+  if (gaps.size) {
+    console.log(`\n${gaps.size} target(s) skipped — the canonical needs blocks they do not embed.` +
+      `\nRe-run with --carry-deps to copy them from the canonical notebook:`);
+    for (const [rel, set] of [...gaps].slice(0, 12)) {
+      console.log(`  ${rel.split("/").pop()}`);
+      for (const g of [...set].slice(0, 3)) console.log(`      ${g}`);
+    }
+    if (gaps.size > 12) console.log(`  … ${gaps.size - 12} more`);
+  }
+  console.log(`\nNow gate it:  bun tools/lope-preflight.ts --baseline tools/preflight-baseline.json`);
+  return skipped ? 1 : 0;
+}
+
 // CLI
 if (import.meta.main) {
+
+// `--all-canonical` is its own mode: source and targets come from canonical.json, so
+// none of --source/--target applies. It defaults to a dry run and needs --write,
+// unlike single-module mode, because it can rewrite a block in all 221 notebooks.
+if (process.argv.includes("--all-canonical")) {
+  const a = process.argv.slice(2);
+  const val = (n: string) => (a.indexOf(n) >= 0 ? a[a.indexOf(n) + 1] : null);
+  process.exit(resyncCanonical({
+    modules: a.filter((x, i) => a[i - 1] === "--module"),
+    repo: val("--repo"),
+    limit: Number(val("--limit") ?? Infinity),
+    write: a.includes("--write"),
+    carryDeps: a.includes("--carry-deps"),
+  }));
+}
+
 const { moduleName, sourcePath, rawTargets, watchMode, insertOk, force } = parseArgs();
 const targetPaths = expandTargets(rawTargets, sourcePath);
 

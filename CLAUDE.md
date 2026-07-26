@@ -81,7 +81,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | **Check a working copy is still fresh** | `lope-sync.ts status` | ~1s |
 | **Find modules whose copies have drifted** | `lope-sync.ts audit [--module X]` | ~1s |
 | **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` | ~4s / ~60min |
-| **Push a canonical out to its stale consumers** | `lope-resync.ts` (verify direction first) | ~30s |
+| **Push a canonical out to every stale consumer** | `sync-module.ts --all-canonical` (verify direction first) | ~30s |
 | Is a minority canonical ahead or behind? | `triage/cellwise.ts --all-minority` (asks Observable) | ~1s/module |
 | Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
 | Check file attachments, generate manifest | `lope-reader.ts` | Instant |
