@@ -27,7 +27,7 @@ distance alone would have destroyed both.
 
 Last full triage: 22 minority canonicals, none behind.
 
-## The two ways a resync breaks a notebook
+## The three ways a resync breaks a notebook
 
 Neither is visible in a source diff, which is why the gate is not optional.
 
@@ -41,7 +41,24 @@ Neither is visible in a source diff, which is why the gate is not optional.
    current. 414 blocks were carried to cover all 3369 pairs; no canonical is itself
    missing a block it declares.
 
-2. **Ordering.** A module's own content blocks must appear *before* its module block.
+2. **A dependency that is present but too old.** This is the one that actually bit,
+   and `--carry-deps` does not cover it: carrying only fills blocks a target LACKS.
+   The sweep pushed a newer `observablejs-toolchain`, which imports `acorn_walk_url`,
+   into 186 notebooks whose `@tomlarkworthy/acorn-8-11-3` predates that export. Every
+   block present, nothing missing, 44 cells failing at runtime in one notebook alone.
+
+   The cause is a module embedded corpus-wide but **not declared in canonical.json**,
+   so the sweep never updates it while updating everything that depends on it. 92
+   modules are undeclared; the 8 holding more than one version are the dangerous ones,
+   and they are all vendored library wrappers (`acorn-8-11-3`,
+   `isomorphic-git-1-30-1`, `lightning-fs-4-6-0`, `@mootari/access-runtime`,
+   `jszip-3-10-1`, `@mbostock/safe-local-storage`, `escodegen`, `dexie-4`). Before
+   sweeping a module, check what it imports is declared too.
+
+   `lope-preflight`'s `missing-export` check exists because of this: it compares each
+   generated `v.import("name", …)` against the names the source block `$def`s.
+
+3. **Ordering.** A module's own content blocks must appear *before* its module block.
    Carried attachments are inserted immediately before the anchor, never appended.
    `lope-fix-attachment-order.ts` repairs existing violations; it asserts the byte
    count is unchanged, since the rewrite must be a pure permutation of inert
@@ -84,6 +101,14 @@ new findings and 263 resolved; corpus static findings went 265 -> 2. `lope-sync 
 went from 116 modules with drifted consumers to 14 (all one notebook another session
 was mid-export on) and from 32 minority smells to 0. A repeat run is a no-op.
 
+It also broke 186 notebooks, caught afterwards by the `missing-export` check added in
+response (see hazard 2) and fixed by declaring `acorn-8-11-3` canonical and resyncing
+it. Corpus `missing-export` findings: 735 before the sweep, 691 after the fix. The two
+that dominate what remains are pre-existing and unrelated — `exporter-3`/`module-map`
+import `sourceModule` from `observablejs-toolchain` (447) and `claude-code-pairing`
+imports `fileSyncTools` from `file-sync` (221); neither source defines the name any
+more, and both are latent until those cells are observed.
+
 One thing the sweep exposed rather than caused: two notebooks embed
 `@tomlarkworthy/bootloader` twice — the compiled block followed by a raw
 Observable-format copy. `contentSync` resolves by id so the first wins and the second
@@ -107,6 +132,7 @@ commits (~9 MB/commit), so this is roughly 70 commits' worth of ordinary churn.
 | `syntax` | a module block does not parse as ESM |
 | `missing-import` | `main.define("module @x/y")` with no embedded `@x/y` block |
 | `missing-attachment` | a loader-map name with no matching block |
+| `missing-export` | an imported symbol the source block does not define |
 | `attachment-after-module` | a module's content block emitted after the module |
 | `missing-main` | a `bootconf.mains` entry that is not embedded |
 | `duplicate` | a repeated block id |
