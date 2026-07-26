@@ -160,6 +160,36 @@ attachments). Run them **one at a time** — several headless Chromiums loading 
 notebooks concurrently produce screenshot timeouts that look exactly like a wedged
 renderer, and a 30-minute A/B chasing one is 30 minutes wasted.
 
+## Switching the theme
+
+The theme is **not** a `bootconf` field. `sync-module --set-theme <name>` switches it
+in the three places it is actually baked:
+
+1. The bootloader's `importShim(...css)` list and `document.adoptedStyleSheets`.
+2. The `<script id="<url>" data-mime="text/css">` blocks holding those bytes. Nothing
+   is fetched at boot, so a URL with no matching block is a silently blank stylesheet.
+3. The sibling `.json` spec's `bootconf.theme` — `lope-jumpgate` reads it to pick the
+   theme on the next export, so skipping it means the next jumpgate reverts the switch.
+
+A theme is a triple: `theme-X.css` + `abstract-{light,dark}.css` +
+`syntax-{light,dark}.css`. Going from a light theme to a dark one swaps all three, so
+the target list and its bytes are copied from a **donor notebook already on that
+theme** rather than reconstructed from a table — the donor is known to boot.
+
+The other five stylesheets (`global`, `inspector`, `highlight`, `plot`, `index`) and
+`file://syntax.css` are theme-independent and byte-identical across themes.
+
+A fourth place exists but is rare: three notebooks ship a baked prerender snapshot
+(`<style id="lope-prerender-style">` plus a copy inside the shadow root), holding the
+concatenated theme CSS — `themeCss` in exporter-3, the style block contents joined by
+`\n` in bootloader order. `--set-theme` rebuilds it. `prerender: true` in bootconf is
+a flag for the *next* export, not evidence a snapshot is already baked; check for a
+`lope-prerender-style` occurrence that is not the `${ themeCss }` template inside the
+exporter-3 module source.
+
+The 2026-07-26 run moved 209 notebooks (207 parchment, 2 near-midnight) to
+`ocean-floor` and updated 202 specs; `lope-preflight` reported 0 new findings.
+
 ## Cost
 
 The sweep rewrites a block in every one of the 221 notebooks, ~652 MB of new git

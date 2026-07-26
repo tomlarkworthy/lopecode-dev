@@ -657,8 +657,159 @@ export function modernizeFrame(opts: { repo?: string | null; limit?: number; wri
   return 0;
 }
 
+// ------------------------------------------------------------------ theme switching
+
+/**
+ * The theme is not a bootconf field. It is baked into three places, and a switch that
+ * misses any one of them leaves the notebook inconsistent:
+ *
+ *  1. The bootloader's `importShim(...css)` list + `document.adoptedStyleSheets`.
+ *  2. The `<script id="<url>" data-mime="text/css">` blocks holding those bytes —
+ *     nothing is fetched at boot, so a URL with no block is a blank stylesheet.
+ *  3. The sibling `.json` spec's `bootconf.theme`, which `lope-jumpgate` reads to
+ *     decide the theme on the next export. Leave it and the next jumpgate reverts.
+ *
+ * Plus, for the three notebooks that ship a baked prerender snapshot, the two inline
+ * copies of the concatenated theme CSS inside it.
+ *
+ * A theme is a triple (`theme-X`, `abstract-light|dark`, `syntax-light|dark`) — going
+ * from a light theme to a dark one swaps all three, so the target list is copied from
+ * a donor notebook already on that theme rather than reconstructed from a table.
+ */
+const THEME_CSS = /\/(theme-[a-z0-9-]+|abstract-(?:light|dark)|syntax-(?:light|dark))\.css$/;
+
+/** The bootloader's ordered CSS list, and the exact region to rewrite. */
+function styleRegion(html: string): { start: number; end: number; urls: string[] } | null {
+  const start = html.indexOf("  const style0 = await importShim(");
+  if (start < 0) return null;
+  const marker = "  document.adoptedStyleSheets = [";
+  const at = html.indexOf(marker, start);
+  if (at < 0) return null;
+  const end = html.indexOf("\n", at) + 1;
+  const urls = [...html.slice(start, at).matchAll(/importShim\("([^"]+)", \{ with: \{ type: 'css' \} \}\)/g)]
+    .map((m) => m[1]);
+  return { start, end, urls };
+}
+
+function renderStyleRegion(urls: string[]): string {
+  const lines = urls.map((u, i) =>
+    `  const style${i} = await importShim(${JSON.stringify(u)}, { with: { type: 'css' } });`);
+  lines.push(`  document.adoptedStyleSheets = [${urls.map((_, i) => `style${i}.default`).join(",")}];`);
+  return lines.join("\n") + "\n";
+}
+
+/** Concatenated CSS exactly as exporter-3 builds `themeCss` for the prerender snapshot. */
+function themeCssOf(html: string, urls: string[]): string | null {
+  const parts = urls.map((u) => rawBlockContent(html, u));
+  return parts.some((p) => p === null) ? null : parts.join("\n");
+}
+
+function rawBlockContent(html: string, id: string): string | null {
+  const b = rawBlock(html, id);
+  if (!b) return null;
+  return b.slice(b.indexOf(">") + 1, b.lastIndexOf("</script>"));
+}
+
+export function setTheme(opts: {
+  theme: string; repo?: string | null; limit?: number; write?: boolean; skip?: string[];
+}): number {
+  const { theme, repo: onlyRepo = null, limit = Infinity, write = false, skip = [] } = opts;
+  const repos = ["lopecode", "lopebooks"].filter((r) => !onlyRepo || r === onlyRepo);
+  const files = (r: string) => {
+    const dir = join(REPO_ROOT, r, "notebooks");
+    return existsSync(dir)
+      ? readdirSync(dir).filter((x) => x.endsWith(".html")).sort().map((f) => join(dir, f))
+      : [];
+  };
+  const all = repos.flatMap(files);
+  const themeOf = (html: string) =>
+    styleRegion(html)?.urls.find((u) => /\/theme-[a-z0-9-]+\.css$/.test(u))
+      ?.match(/theme-([a-z0-9-]+)\.css$/)?.[1] ?? null;
+
+  // donor: any notebook already on the target theme, so the URL triple and its bytes
+  // come from something known to boot rather than from a hand-written table
+  const donorPath = all.find((p) => themeOf(readFileSync(p, "utf8")) === theme);
+  if (!donorPath) { console.error(`no notebook is on theme "${theme}" to copy from`); return 1; }
+  const donorHtml = readFileSync(donorPath, "utf8");
+  const donorTheme = styleRegion(donorHtml)!.urls.filter((u) => THEME_CSS.test(u));
+  console.log(`donor: ${relative(REPO_ROOT, donorPath)}\n  ${donorTheme.map((u) => u.split("/").pop()).join(", ")}\n`);
+
+  let done = 0, prerendered = 0, specs = 0;
+  const skips: string[] = [];
+  for (const path of all) {
+    if (done >= limit) break;
+    const rel = relative(REPO_ROOT, path);
+    if (skip.includes(rel)) { skips.push(`${rel} — excluded`); continue; }
+    let html = readFileSync(path, "utf8");
+    const reg = styleRegion(html);
+    if (!reg) { skips.push(`${rel} — no bootloader style list`); continue; }
+    const was = themeOf(html);
+    if (was === theme) continue;
+
+    const oldTheme = reg.urls.filter((u) => THEME_CSS.test(u));
+    const first = reg.urls.findIndex((u) => THEME_CSS.test(u));
+    const newUrls = reg.urls.filter((u) => !THEME_CSS.test(u));
+    newUrls.splice(first, 0, ...donorTheme);
+    if (!write) { done++; continue; }
+
+    // 4. baked prerender snapshot: replace the two inline themeCss copies. Computed
+    //    before the blocks move, since it is the concatenation of the OLD ones.
+    const oldCss = themeCssOf(html, reg.urls);
+    const newCssParts = newUrls.map((u) =>
+      THEME_CSS.test(u) ? rawBlockContent(donorHtml, u) : rawBlockContent(html, u));
+    if (oldCss && !newCssParts.some((p) => p === null) && html.includes(oldCss)) {
+      html = html.split(oldCss).join(newCssParts.join("\n"));
+      prerendered++;
+    }
+
+    // 2. swap the CSS blocks, new ones landing where the old ones were
+    const anchor = rawBlock(html, oldTheme[0])!;
+    const donorBlocks = donorTheme.map((u) => rawBlock(donorHtml, u)!).join("\n\n");
+    html = html.replace(anchor, donorBlocks);
+    for (const u of oldTheme.slice(1)) {
+      const b = rawBlock(html, u);
+      if (b) html = html.slice(0, html.indexOf(b)) + html.slice(html.indexOf(b) + b.length).replace(/^\n{1,2}/, "");
+    }
+
+    // 1. the bootloader list (re-located: the block edits above shifted offsets)
+    const r2 = styleRegion(html)!;
+    html = html.slice(0, r2.start) + renderStyleRegion(newUrls) + html.slice(r2.end);
+
+    writeFileSync(path, html);
+
+    // 3. the spec's bootconf.theme, or the next jumpgate reverts the switch
+    const spec = path.replace(/\.html$/, ".json");
+    if (existsSync(spec)) {
+      const s = JSON.parse(readFileSync(spec, "utf8"));
+      if (s.bootconf && s.bootconf.theme !== theme) {
+        s.bootconf.theme = theme;
+        writeFileSync(spec, JSON.stringify(s, null, 2) + "\n");
+        specs++;
+      }
+    }
+    done++;
+  }
+
+  console.log(`${write ? "themed" : "would theme"} ${done} notebook(s) -> ${theme}` +
+    (write ? `, ${specs} spec(s) updated, ${prerendered} prerender snapshot(s) rebuilt` : ""));
+  for (const s of skips) console.log(`  skip  ${s}`);
+  return 0;
+}
+
 // CLI
 if (import.meta.main) {
+
+if (process.argv.includes("--set-theme")) {
+  const a = process.argv.slice(2);
+  const val = (n: string) => (a.indexOf(n) >= 0 ? a[a.indexOf(n) + 1] : null);
+  process.exit(setTheme({
+    theme: val("--set-theme")!,
+    repo: val("--repo"),
+    limit: Number(val("--limit") ?? Infinity),
+    write: a.includes("--write"),
+    skip: a.filter((x, i) => a[i - 1] === "--skip"),
+  }));
+}
 
 if (process.argv.includes("--modernize-frame")) {
   const a = process.argv.slice(2);
