@@ -50,6 +50,8 @@ const TEST_CELLS = [
   'test_transform_gizmo',
   // creation
   'test_shape_creation',
+  'test_place_text',
+  'test_edit_run',
   'test_shape_registry',
   'test_scoped_path',
   'test_pen_path',

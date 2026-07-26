@@ -217,8 +217,9 @@ in §6.6 for the fix and why it is not free.
    happens to render.
 4. **Only shape primitives.** No `<text>` (so no typing), no `<image>`, and nothing for `defs` —
    gradients, markers, `clipPath`, `<use>`. Most real SVG documents are partly untouchable.
-   *Update: `defs` gradients/markers now editable (§10 / G-series); the **text tool is in progress**
-   as G26 (2026-07-26). `<image>` (G27) still open.*
+   *Update: `defs` gradients/markers now editable (§10 / G-series); the **text tool shipped**
+   as G26 (2026-07-26) — place `<text>`, edit the run via `textRunLens` + inspector field. `<image>`
+   (G27) still open.*
 5. **Styling UI is one text input per attribute.** No colour picker, stroke width/dash/cap, or
    opacity. The plumbing is done — `setProperty` writes into `style="…"` when a declaration already
    lives there, else the attribute — only the widgets are missing.
@@ -1199,15 +1200,15 @@ and S4, and are the gaps those stages closed.)
 
 #### G — content, not just shapes (S8)
 
-- [ ] **G26 · the text tool. ⭐ REQUESTED 2026-07-26 (Tom) — next capability.** Click to place, type in
-  place, double-click existing text to re-enter. Needs a **content** lens — children (the text run
-  between `<text>…</text>`), not attributes — which is a genuinely new lens shape rather than another
-  registry entry, so it reopens capability work after the 2026-07-24 "feature-complete" pivot. L
-  Scope for a first cut: a `text` tool cell (place → insert `<text x y>…</text>` via the existing
-  `insertElement` delta); an editable text run through `childrenLens` (source strings, per §8) so typing
-  writes the literal; re-enter on double-click of an existing `<text>`; `x`/`y` already move via the
-  transform gizmo, and `font-size`/`fill` are ordinary `svgFields` entries. Two new laws (place-text,
-  edit-text-run) to hold the line at 61 → 63.
+- [x] **G26 · the text tool. ✅ DONE 2026-07-26 (Tom).** First cut shipped: a `toolText` cell places a
+  `<text x y font-size fill>` via the existing `insertElement`/`addShape` delta and selects it; a
+  `textRunLens` (new **content** lens shape — the run slice between `innerStart`..`innerEnd`, per §8, not
+  attributes) + `setTextRun` command back an editable text field in the (now merged) inspector; `x`/`y`
+  move via the transform gizmo, and `font-size`/`text-anchor`/`font-family`/`font-weight`/`font-style`
+  are ordinary `svgFields` entries under a new `text` tag. Two new laws hold the line: `test_place_text`,
+  `test_edit_run` (61 → 63). Verified live: place → commit → select, and inspector-field edit rewrites
+  the run preserving surrounding source. *Deferred polish:* on-canvas inline typing / double-click to
+  re-enter (the first cut edits the run through the inspector field, not in place).
 - [ ] **G27 · place an image.** `<image>` with an `href`; the interesting part is that a data URI and
   a file reference are different residue decisions. S
 
