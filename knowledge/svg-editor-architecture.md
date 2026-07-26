@@ -209,14 +209,16 @@ in §6.6 for the fix and why it is not free.
    editor that cannot change a rectangle's width is not an SVG editor, and its output is not source
    anyone would maintain by hand. All six tags are now registry entries; the gizmo remains the
    fallback for what the registry cannot read, which is what keeps an unparseable document editable.
-2. **No grouping or duplication.** The command set is insert/delete/reorder element and
-   insert/delete point — that is all. No group, ungroup, duplicate, copy or paste. Compounding it, a
-   click always selects the leaf (`[0,3,0]`), never the enclosing `<g>`; only a marquee reaches a
-   group, via `topmostPaths`.
+2. ~~**No grouping or duplication.**~~ **Closed.** Group, ungroup, duplicate, copy, paste and
+   paste-in-place are all toolbar commands now (`cmdDuplicate`/`cmdPaste` share `pasteInto`, §9.3 #5).
+   *Remaining sub-issue:* a click still selects the leaf (`[0,3,0]`), never the enclosing `<g>`; only a
+   marquee reaches a group, via `topmostPaths` — a selection-semantics nit, not a missing command.
 3. **No zoom or pan.** No wheel handler, no view transform. You edit at whatever size the drawing
    happens to render.
 4. **Only shape primitives.** No `<text>` (so no typing), no `<image>`, and nothing for `defs` —
    gradients, markers, `clipPath`, `<use>`. Most real SVG documents are partly untouchable.
+   *Update: `defs` gradients/markers now editable (§10 / G-series); the **text tool is in progress**
+   as G26 (2026-07-26). `<image>` (G27) still open.*
 5. **Styling UI is one text input per attribute.** No colour picker, stroke width/dash/cap, or
    opacity. The plumbing is done — `setProperty` writes into `style="…"` when a declaration already
    lives there, else the attribute — only the widgets are missing.
@@ -227,8 +229,9 @@ in §6.6 for the fix and why it is not free.
    another. What remains: arc segments are still refused for subdivision (G24 — a *user-visible*
    decision, not an internal one), deleting a segment in the *middle* of a subpath is not implemented
    (only the trailing case), and several vertices cannot be selected at once (G22).
-8. **No align or distribute.** Snapping guides exist mid-drag; there is no align/distribute command
-   over a selection.
+8. ~~**No align or distribute.**~~ **Closed.** Align left/centres/right and distribute-vertically are
+   toolbar commands over the selection (alongside the mid-drag snapping guides). *Remaining:* they are
+   command/toolbar-only, no keys — tracked as reachability parity in §9.2, not a missing capability.
 9. **One drawing per cell.** Alias resolution finds the variable by `_value` identity, so two
    `svgLens(…)` calls in one cell, or a drawing assembled from imported sub-cells, is unhandled.
 10. **`editor-5` wins a race it should share.** The writer re-reads `_definition` and abandons the put
@@ -249,7 +252,7 @@ Cheap, and several are the visible face of the gaps above.
 - Esc switches tool; it does not cancel an in-flight drag.
 - No numeric readout during a drag.
 - Overlapping shapes cycle by repeated tap. Works, undiscoverable.
-- No select-all, no context menu.
+- ~~No select-all~~ (shipped: Select all / none / same-fill / same-tag), no context menu.
 
 ### Not a gap
 
