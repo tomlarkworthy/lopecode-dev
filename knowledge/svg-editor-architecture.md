@@ -1196,9 +1196,15 @@ and S4, and are the gaps those stages closed.)
 
 #### G — content, not just shapes (S8)
 
-- [ ] **G26 · the text tool.** Click to place, type in place, double-click existing text to re-enter.
-  Needs a **content** lens — children, not attributes — which is a genuinely new lens shape rather
-  than another registry entry. L
+- [ ] **G26 · the text tool. ⭐ REQUESTED 2026-07-26 (Tom) — next capability.** Click to place, type in
+  place, double-click existing text to re-enter. Needs a **content** lens — children (the text run
+  between `<text>…</text>`), not attributes — which is a genuinely new lens shape rather than another
+  registry entry, so it reopens capability work after the 2026-07-24 "feature-complete" pivot. L
+  Scope for a first cut: a `text` tool cell (place → insert `<text x y>…</text>` via the existing
+  `insertElement` delta); an editable text run through `childrenLens` (source strings, per §8) so typing
+  writes the literal; re-enter on double-click of an existing `<text>`; `x`/`y` already move via the
+  transform gizmo, and `font-size`/`fill` are ordinary `svgFields` entries. Two new laws (place-text,
+  edit-text-run) to hold the line at 61 → 63.
 - [ ] **G27 · place an image.** `<image>` with an `href`; the interesting part is that a data URI and
   a file reference are different residue decisions. S
 
@@ -1947,7 +1953,10 @@ Roughly by value per unit of work, given what already exists:
 
 ## 9. Consistency and refactoring: the work from here
 
-Feature-building is done (see the 2026-07-24 status). This is the standing backlog, and it has three
+Feature-building was declared done on 2026-07-24. **Reopened 2026-07-26 (Tom): the text tool (G26) is a
+genuine missing capability — you cannot type in this "editor" — and is the next feature.** It is the one
+capability worth breaking the pivot for; it needs a *content* lens (§8), not another registry entry.
+Everything else below is still consistency / usefulness / refactor. This is the standing backlog, and it has three
 kinds of entry matching the three pillars: **consistency** (one way to do each thing), **usefulness**
 (the features that exist made to carry their weight), and **refactoring** (code health, no behaviour
 change). Nothing here adds a capability. Each item is falsified the same way the gaps were — by a
