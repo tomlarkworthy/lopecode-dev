@@ -69,6 +69,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/js-toolchain-notebook-kit-2-cells.md` | Notebook Kit 2.0 cell compile/decompile (`@tomlarkworthy/js-toolchain`): invertability, multi-out cell model, import handling, ts mode |
 | `knowledge/svg-editor-architecture.md` | Growing `@tomlarkworthy/svg-lens` into an SVG editor: layering, the three write-back sinks (source lens / upstream viewof / numerical inversion), interpolated-template holes, gap list |
 | `knowledge/training-robocoop-5.md` | Benchmark-driven robocoop-5 improvement: system-vs-raw arms, fidelity anchoring, failure autopsy, what moved numbers, deployment chain |
+| `knowledge/resyncing-modules-across-the-corpus.md` | Pushing a canonical out to the consumers that embed an older copy: verifying direction before sweeping, the dependency-gap and block-ordering hazards, the browserless `lope-preflight.ts` gate and why it is differential |
 | `knowledge/diagnosing-new-observable-platform-differences.md` | Debugging our notebooks on `new.observablehq.com` (notebook-kit runtime): viewed-vs-imported environments, the `newobs-*.ts` probe tools, offline repro against `vendor/notebook-kit`, in-flight fix testing, per-importer import resolution, known `Mutable`/`FileAttachment`/naming differences |
 
 ### Which Tool to Use
@@ -79,6 +80,9 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | **Get a module `.js` to edit** | `lope-sync.ts checkout` (never grep for a copy) | Instant |
 | **Check a working copy is still fresh** | `lope-sync.ts status` | ~1s |
 | **Find modules whose copies have drifted** | `lope-sync.ts audit [--module X]` | ~1s |
+| **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` | ~4s / ~60min |
+| **Push a canonical out to its stale consumers** | `lope-resync.ts` (verify direction first) | ~30s |
+| Is a minority canonical ahead or behind? | `triage/cellwise.ts --all-minority` (asks Observable) | ~1s/module |
 | Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
 | Check file attachments, generate manifest | `lope-reader.ts` | Instant |
 | One-off test run, get computed values | `lope-browser-runner.ts` | ~10s startup |

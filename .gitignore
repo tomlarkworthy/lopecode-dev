@@ -23,6 +23,9 @@ tools/*.env
 tools/**/.env
 tools/tmp-export/
 tools/robocoop-4/eval/live/results/
+# ...but the static preflight baseline is the corpus gate's reference point, not an
+# artifact: without it committed, `--baseline` has nothing to compare against.
+!tools/preflight-baseline.json
 
 # Bulk export / smoke test artifacts
 candidate-*
@@ -62,3 +65,9 @@ modules/.sync.json
 # Files already tracked are unaffected: the ones left are `prune`-flagged as
 # UNIQUE (in-flight work not yet in any notebook) and stay versioned until pushed.
 modules/**/*.js
+
+# Preflight run artifacts: the boot baseline takes ~60min to regenerate and is
+# obsolete after any corpus-wide change; the triage report is a transcript of one
+# run against ObservableHQ. Only the static baseline above is worth versioning.
+tools/preflight-boot.log
+tools/minority-triage.txt
