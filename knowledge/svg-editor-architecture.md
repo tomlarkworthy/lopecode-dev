@@ -2007,16 +2007,20 @@ The findings below (spotted before the census) are subsumed by #1–#3 above and
   wrote down competence: a **chip** is a spatial/on-canvas action, a **panel row** is a value you
   type, a **command/key** is a verb over a selection — then make the surfaces match it, and let a
   surface be a pure projection of "which operations qualify," not a hand-curated list.
-- **The two panels stack under the drawing** with overlapping legends. Once the fill duplication is
-  resolved, decide whether inspector + fieldPanel are one panel with sections or a disclosure/tab
-  surface, so a selection presents *one* editor.
+- ~~**The two panels stack under the drawing** with overlapping legends.~~ ✅ **Resolved 2026-07-26.**
+  `fieldPanel` is **removed**; `inspector` is now the single selection editor — one `<fieldset>` per
+  selected element carrying that element's **paint & stroke** (registry `svgFields`) section, then its
+  non-registry attributes (geometry/transform/custom), then ref jumps and gradient stops. One write path
+  each half (`setField`/`setProperty`). Bonus: paint is now **per-element**, so a heterogeneous selection
+  is no longer misleading (subsumes the first §9.2 item). Workbench `include`/layout drop the fieldPanel
+  atom (inspector grows to `h:7`). Verified live (paint edit commits, one history event) + 61 laws green.
 
 ### 9.2 Usefulness (the features made to carry their weight)
 
-- **Heterogeneous multi-selection.** `fieldPanel` reads `fields(paths[0])` — it shows the *first*
-  element's values and writes to all, so a mixed selection shows a misleading value. Show a
-  mixed-state marker (blank / "—") when selected values differ, and only overwrite the ones the user
-  actually changes.
+- **Heterogeneous multi-selection.** ✅ **Largely resolved 2026-07-26** by the panel merge: the editor
+  now renders one section *per selected element* with that element's own values, so no single
+  first-element value stands in for the set, and a change writes only to its own element. *Remaining
+  nicety:* no explicit mixed-state "—" marker or single combined form — it is N stacked forms instead.
 - **Reachability parity.** The chips have no keys; the keyed commands (align/distribute) have no chip
   or menu. Round this out so every operation is reachable both ways, or state why an operation is
   deliberately one-surface-only.
