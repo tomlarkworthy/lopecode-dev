@@ -246,7 +246,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
   },
   "@tomlarkworthy/justbash-filesync": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "upstream": null
   },
   "@tomlarkworthy/justbash-session": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
