@@ -16,6 +16,24 @@
  *   modules/.sync.json      what a working copy was checked out from, and the
  *                           block sha at that moment (session state; gitignored)
  *
+ * A canonical.json entry maps repo -> notebook, plus one optional non-repo key:
+ *
+ *   "@tomlarkworthy/butter-synth": {
+ *     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+ *     "upstream": null
+ *   }
+ *
+ * `upstream` records whether the module exists on ObservableHQ, which is NOT
+ * derivable from the corpus and changes what a fix looks like:
+ *   absent          publish as @tomlarkworthy/<name> — the default, so most
+ *                   entries say nothing; a stale canonical is fixed by
+ *                   jumpgating down from Observable.
+ *   null            NO upstream. The notebook IS the origin — typically a module
+ *                   owned by a blog post rather than published on its own. There
+ *                   is nothing to jumpgate; the local block is the only copy, and
+ *                   `api.observablehq.com/....js` would 404.
+ *   "<slug>"        published under a different slug than the module name.
+ *
  * Commands:
  *   bun tools/lope-sync.ts status                 working copies: clean/modified/STALE/DIVERGED
  *   bun tools/lope-sync.ts audit [--module M]     canonical vs consumers, and cross-repo skew
@@ -81,7 +99,34 @@ export function deriveIndex(): Map<string, BlockRef[]> {
 
 // ------------------------------------------------------------------- registries
 
-type Canonical = Record<string, Record<string, string>>; // module -> repo -> relpath
+// module -> { <repo>: relpath, ...; upstream?: string | null }. Repo keys and the
+// reserved `upstream` key share one object, so always read repos via reposOf().
+type CanonicalEntry = Record<string, string | null | undefined>;
+type Canonical = Record<string, CanonicalEntry>;
+
+/** The repo keys of an entry, ignoring reserved non-repo keys like `upstream`. */
+export function reposOf(entry: CanonicalEntry | undefined): string[] {
+  if (!entry) return [];
+  return REPOS.filter((r) => typeof entry[r] === "string");
+}
+
+export type Upstream =
+  | { kind: "observable"; slug: string }
+  | { kind: "none" };
+
+/**
+ * Where a module is published, if anywhere. Defaults to ObservableHQ under its
+ * own name — only an explicit `upstream` in canonical.json says otherwise.
+ */
+export function upstreamFor(moduleId: string, canonical?: Canonical): Upstream {
+  const entry = (canonical ?? loadCanonical())[moduleId];
+  if (entry && "upstream" in entry) {
+    const u = entry.upstream;
+    if (u === null) return { kind: "none" };
+    if (typeof u === "string") return { kind: "observable", slug: u };
+  }
+  return { kind: "observable", slug: moduleId };
+}
 type Checkout = { module: string; canonical: string; baseSha: string; at: string };
 type Index = Record<string, Checkout>;                   // working-copy relpath -> checkout
 
@@ -112,9 +157,10 @@ export function canonicalFor(
 ): { repo: string; rel: string } | null | "ambiguous" {
   const entry = loadCanonical()[moduleId];
   if (!entry) return null;
-  if (repo) return entry[repo] ? { repo, rel: entry[repo] } : null;
-  const repos = Object.keys(entry);
-  if (repos.length === 1) return { repo: repos[0], rel: entry[repos[0]] };
+  const repos = reposOf(entry);
+  if (repo) return repos.includes(repo) ? { repo, rel: entry[repo] as string } : null;
+  if (!repos.length) return null;
+  if (repos.length === 1) return { repo: repos[0], rel: entry[repos[0]] as string };
   return "ambiguous";
 }
 
@@ -139,7 +185,8 @@ export function validateCanonical(): number {
   const canonical = loadCanonical();
   const problems: string[] = [];
   for (const [mod, entry] of Object.entries(canonical)) {
-    for (const [repo, rel] of Object.entries(entry)) {
+    for (const repo of reposOf(entry)) {
+      const rel = entry[repo] as string;
       if (!existsSync(join(ROOT, rel))) {
         problems.push(`  ${mod}\n      declared canonical does not exist: ${rel} (${repo})`);
       } else if (shaOfBlock(rel, mod) === null) {
@@ -223,7 +270,7 @@ function cmdAudit(only?: string, repoFilter?: string): number {
   for (const mod of managed.sort()) {
     const refs = idx.get(mod) ?? [];
     const decl = canonical[mod];
-    const declRepos = Object.keys(decl);
+    const declRepos = reposOf(decl);
 
     // Which canonical does a given consumer answer to? Its own repo's, when that
     // repo declares one; otherwise the sole canonical (a module canonical in only
@@ -231,7 +278,8 @@ function cmdAudit(only?: string, repoFilter?: string): number {
     // declare one and the consumer is in neither — that cannot happen, since a
     // consumer is always in some repo.
     const canonRelFor = (repo: string): string | null =>
-      decl[repo] ?? (declRepos.length === 1 ? decl[declRepos[0]] : null);
+      (decl[repo] as string | undefined) ??
+      (declRepos.length === 1 ? (decl[declRepos[0]] as string) : null);
 
     for (const repo of REPOS) {
       if (repoFilter && repo !== repoFilter) continue;
@@ -350,7 +398,7 @@ function cmdCheckout(moduleId: string, repo?: string, force = false): number {
     return 1;
   }
   if (c === "ambiguous") {
-    const repos = Object.keys(loadCanonical()[moduleId]);
+    const repos = reposOf(loadCanonical()[moduleId]);
     console.error(
       `${moduleId} is canonical in more than one repo: ${repos.join(", ")}.\n` +
       `Pass --repo <${repos.join("|")}> to pick the channel.`
@@ -452,7 +500,7 @@ function cmdPrune(write: boolean): number {
       // reproducibility question does not need one: if these exact bytes still
       // sit in a notebook, deleting the file loses nothing. Only fall back to
       // KEEP when the content matches nothing anywhere.
-      if (!decl) {
+      if (!reposOf(decl).length) {
         const here = refs.filter((r) => r.sha === sha);
         if (here.length) {
           rows.push({ rel, mod, state: "extant", note: `undeclared; matches ${here.length} notebook(s), e.g. ${here[0].rel}` });
@@ -461,7 +509,7 @@ function cmdPrune(write: boolean): number {
         }
         continue;
       }
-      const canonShas = Object.values(decl).map((r) => refs.find((x) => x.rel === r)?.sha).filter(Boolean) as string[];
+      const canonShas = reposOf(decl).map((rp) => refs.find((x) => x.rel === decl[rp])?.sha).filter(Boolean) as string[];
       if (canonShas.includes(sha)) { rows.push({ rel, mod, state: "equivalent", note: "matches canonical" }); continue; }
       const elsewhere = refs.filter((r) => r.sha === sha);
       if (elsewhere.length) {
@@ -582,12 +630,30 @@ function cmdInitCanonical(write: boolean): number {
   const out: Canonical = {};
   const unresolved: string[] = [];
   const inferred: string[] = [];
+  const ambiguous: string[] = [];
 
-  // A notebook is a module's home when its filename encodes the module name.
-  // Both `@author_name.html` and (from older jumpgates) `author_name.html`.
+  // A notebook is a module's home when its filename encodes the module name:
+  // `@author_name.html`, `author_name.html` (older jumpgates), or bare `name.html`
+  // (hand-named notebooks like atproto.html / ledger.html / lopefeed.html).
   const homeCandidates = (moduleId: string): string[] => {
     const [author, name] = moduleId.replace(/^@/, "").split("/");
-    return [`@${author}_${name}.html`, `${author}_${name}.html`];
+    return [`@${author}_${name}.html`, `${author}_${name}.html`, `${name}.html`];
+  };
+
+  // Filename is a weak signal: a notebook can host a module whose name it does
+  // not encode (`atproto.html` hosts at-login/at-read/at-write; a blog post hosts
+  // the widgets it embeds). Booting the module as a main is the stronger claim.
+  const mainsCache = new Map<string, string[]>();
+  const mainsOf = (rel: string): string[] => {
+    let m = mainsCache.get(rel);
+    if (m) return m;
+    m = [];
+    const html = readFileSync(join(ROOT, rel), "utf8");
+    for (const b of html.matchAll(/<script\s+id="bootconf\.json"[^>]*>([\s\S]*?)<\/script>/g)) {
+      try { m = JSON.parse(b[1].trim()).mains ?? []; break; } catch { /* exporter template */ }
+    }
+    mainsCache.set(rel, m);
+    return m;
   };
 
   for (const [mod, refs] of idx) {
@@ -619,20 +685,74 @@ function cmdInitCanonical(write: boolean): number {
         }
       }
     }
-    if (!found) unresolved.push(`${mod}  (${refs.length} copies, no home notebook)`);
+    if (found) continue;
+
+    // Last resort: a notebook that BOOTS the module owns it — how a blog post owns
+    // the widget it embeds. Weak on its own, because a consumer boots it too
+    // (blank-notebook boots robocoop-5-engine; a newsletter boots at-login), so it
+    // only counts when exactly one notebook in the corpus does. Anything else is a
+    // judgement call and goes to the human rather than being guessed.
+    const hosts = refs.filter((r) => mainsOf(r.rel).includes(mod));
+    if (hosts.length === 1) {
+      out[mod] = { [hosts[0].repo]: hosts[0].rel };
+      inferred.push(`${mod}  ->  ${hosts[0].rel}  (sole notebook booting it as a main)`);
+    } else if (hosts.length > 1) {
+      ambiguous.push(`${mod}  booted as a main by ${hosts.length}: ${hosts.map((h) => h.rel).join(", ")}`);
+    } else {
+      unresolved.push(`${mod}  (${refs.length} copies, no home notebook)`);
+    }
+  }
+
+  // Merge over the existing file rather than replacing it. Everything above is
+  // inferred; anything a human put there is not, and re-deriving must not silently
+  // drop it. `upstream` is never inferred at all. A hand-declared repo entry the
+  // deriver missed is kept when it still resolves — and reported when it does not,
+  // rather than vanishing (that is how the belief-geometry rename went unnoticed).
+  const existing = loadCanonical();
+  const kept: string[] = [];
+  const dropped: string[] = [];
+  for (const [mod, prev] of Object.entries(existing)) {
+    const entry = (out[mod] ??= {});
+    if ("upstream" in prev) entry.upstream = prev.upstream;
+    for (const repo of reposOf(prev)) {
+      if (entry[repo] === prev[repo]) continue;
+      const rel = prev[repo] as string;
+      const live = existsSync(join(ROOT, rel)) && shaOfBlock(rel, mod) !== null;
+      if (live && !entry[repo]) { entry[repo] = rel; kept.push(`${mod}  ${repo}: ${rel}`); }
+      else if (!live) dropped.push(`${mod}  ${repo}: ${rel} (no longer exists / no longer embeds it)`);
+    }
+    if (!reposOf(entry).length && !("upstream" in entry)) delete out[mod];
   }
 
   const declared = Object.keys(out).length;
-  const dual = Object.values(out).filter((e) => Object.keys(e).length > 1).length;
+  const dual = Object.values(out).filter((e) => reposOf(e).length > 1).length;
   console.log(`Resolved ${declared} module(s); ${dual} canonical in BOTH repos (staging + published).`);
   if (inferred.length) {
     console.log(`\nInferred from bundle host — REVIEW THESE (${inferred.length}):`);
     for (const l of inferred) console.log(`  ${l}`);
   }
-  if (unresolved.length) {
-    console.log(`\nUNRESOLVED — declare by hand (${unresolved.length}):`);
-    for (const l of unresolved.slice(0, 30)) console.log(`  ${l}`);
-    if (unresolved.length > 30) console.log(`  … ${unresolved.length - 30} more`);
+  if (kept.length) {
+    console.log(`\nKept hand-declared entries the deriver did not find (${kept.length}):`);
+    for (const l of kept) console.log(`  ${l}`);
+  }
+  if (dropped.length) {
+    console.log(`\nDROPPED — declared but no longer resolves (${dropped.length}):`);
+    for (const l of dropped) console.log(`  ${l}`);
+  }
+  // Only nag about what is still undeclared. A module the deriver cannot resolve
+  // but a human already declared is answered, not open — otherwise every run
+  // re-asks a question that was settled (at-login, at-write, butter-synth).
+  const open = (lines: string[]) => lines.filter((l) => !reposOf(out[l.split(/\s\s+/)[0]]).length);
+  const stillAmbiguous = open(ambiguous);
+  const stillUnresolved = open(unresolved);
+  if (stillAmbiguous.length) {
+    console.log(`\nAMBIGUOUS — several notebooks boot these; pick one by hand (${stillAmbiguous.length}):`);
+    for (const l of stillAmbiguous) console.log(`  ${l}`);
+  }
+  if (stillUnresolved.length) {
+    console.log(`\nUNRESOLVED — declare by hand (${stillUnresolved.length}):`);
+    for (const l of stillUnresolved.slice(0, 30)) console.log(`  ${l}`);
+    if (stillUnresolved.length > 30) console.log(`  … ${stillUnresolved.length - 30} more`);
   }
 
   if (!write) {

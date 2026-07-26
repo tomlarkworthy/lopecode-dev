@@ -14,9 +14,21 @@
   "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html"
   },
+  "@tomlarkworthy/at-login": {
+    "lopecode": "lopecode/notebooks/atproto.html"
+  },
+  "@tomlarkworthy/at-read": {
+    "lopecode": "lopecode/notebooks/atproto.html"
+  },
+  "@tomlarkworthy/at-write": {
+    "lopecode": "lopecode/notebooks/atproto.html"
+  },
   "@tomlarkworthy/atlas": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_atlas.html",
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_atlas.html"
+  },
+  "@tomlarkworthy/atproto": {
+    "lopecode": "lopecode/notebooks/atproto.html"
   },
   "@tomlarkworthy/atproto-comments": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_atproto-comments.html"
@@ -51,6 +63,10 @@
   },
   "@tomlarkworthy/bulk-jumpgate": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html"
+  },
+  "@tomlarkworthy/butter-synth": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+    "upstream": null
   },
   "@tomlarkworthy/cell-map": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html",
@@ -88,6 +104,9 @@
   },
   "@tomlarkworthy/computational-blogs-with-claude-code-connectivity": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html"
+  },
+  "@tomlarkworthy/csv-column-chooser": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
   },
   "@tomlarkworthy/dataflow-templating": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html",
@@ -203,6 +222,10 @@
   "@tomlarkworthy/jest-expect-standalone": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html"
   },
+  "@tomlarkworthy/js-toolchain": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+    "upstream": null
+  },
   "@tomlarkworthy/jsqrcode": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html"
   },
@@ -214,6 +237,10 @@
   },
   "@tomlarkworthy/jumpgate": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jumpgate.html"
+  },
+  "@tomlarkworthy/just-bash": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+    "upstream": null
   },
   "@tomlarkworthy/justbash": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
@@ -238,6 +265,9 @@
   },
   "@tomlarkworthy/lazer-simulator": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html"
+  },
+  "@tomlarkworthy/ledger": {
+    "lopecode": "lopecode/notebooks/ledger.html"
   },
   "@tomlarkworthy/linear-app-technical-deep-dive": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html"
@@ -280,6 +310,9 @@
   "@tomlarkworthy/lopecode-vision": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html",
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html"
+  },
+  "@tomlarkworthy/lopefeed": {
+    "lopecode": "lopecode/notebooks/lopefeed.html"
   },
   "@tomlarkworthy/lopepage": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage.html",
@@ -612,6 +645,10 @@
   },
   "@tomlarkworthy/whisper-input": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_whisper-input.html"
+  },
+  "@tomlarkworthy/why-claude-code-codes-well": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+    "upstream": null
   },
   "@tomlarkworthy/wiki": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wiki.html"
