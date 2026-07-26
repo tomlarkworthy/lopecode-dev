@@ -348,6 +348,9 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_module-selection.html",
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-selection.html"
   },
+  "@tomlarkworthy/modules": {
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_modules.html"
+  },
   "@tomlarkworthy/moldable-webpage": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html"
   },
