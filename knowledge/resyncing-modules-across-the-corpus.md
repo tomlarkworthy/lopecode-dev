@@ -117,6 +117,49 @@ bootloader consumers permanently stale against a block that never runs. `blocksI
 now takes the first occurrence, matching both the runtime and `extractModuleScriptTag`.
 The duplicate blocks themselves are still there; preflight reports them as `duplicate`.
 
+## Swapping the frame (lopepage -> lopepage-2)
+
+`sync-module --modernize-frame` is a resync of a different kind: it changes which
+modules boot, not just what a block contains.
+
+```
+bun tools/channel/sync-module.ts --modernize-frame          # dry run
+bun tools/channel/sync-module.ts --modernize-frame --write
+```
+
+Per notebook it rewrites only the `"mains"` array of the last parseable
+`bootconf.json` block (`lopepage` -> `lopepage-2`, `save-in-place` appended),
+installs the two frame modules if absent, and **deletes the old lopepage block**.
+The deletion is the part that is easy to get wrong: dropping a module from `mains`
+does not stop it running, because module discovery instantiates every module
+`<script>` in the DOM. A lopepage block left behind boots a competing GoldenLayout
+overlay on top of lopepage-2.
+
+Layout hashes are left alone — lopepage-2 parses the same `R`/`C`/`S` DSL,
+recursively, so `R100(S70(x),C30(S50(y),S50(z)))` renders unchanged. (What it does
+reject is a stack containing a group, `S(S(),S())`; nothing in the corpus had one.)
+
+Two skips, both mandatory:
+
+- **The module's own canonical notebook.** Deleting the block there destroys the
+  module, and the notebook cannot host both frames at once. Caught the hard way —
+  the first run emptied `@tomlarkworthy_lopepage.html`, which the next
+  `--all-canonical` dry run reported as "canonical has no block".
+- **Notebooks where a surviving module still imports lopepage** (`jumpgate` does, in
+  two notebooks). Deleting the block there creates a `missing-import`.
+
+The 2026-07-26 run modernised 191 notebooks. `lope-preflight` reported 0 new
+findings: every notebook already carried lopepage-2's dependency closure
+(`modules`, `visualizer`, `themes`, `runtime-sdk`, `plugin-registry`,
+`command-palette`, `claude-code-pairing`, `local-change-history`, `editor-5`) from
+the earlier resync sweep, so no `--carry-deps` pass was needed.
+
+Static checks cannot see a frame regression, so sample-boot a handful in a browser
+across the layout variants (plain `S`, `R`+`S`, nested `C`, one with file
+attachments). Run them **one at a time** — several headless Chromiums loading 2 MB
+notebooks concurrently produce screenshot timeouts that look exactly like a wedged
+renderer, and a 30-minute A/B chasing one is 30 minutes wasted.
+
 ## Cost
 
 The sweep rewrites a block in every one of the 221 notebooks, ~652 MB of new git

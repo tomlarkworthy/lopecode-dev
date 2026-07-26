@@ -32,7 +32,7 @@
  * `updated=N inserted=M unchanged=O skipped=P failed=K` summary.
  */
 
-import { readFileSync, writeFileSync, existsSync, watch, statSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, watch, statSync } from "fs";
 import { resolve, extname, relative, join } from "path";
 import { Glob } from "bun";
 import { loadIndex, saveIndex, loadCanonical, shaOfBlock, deriveIndex, reposOf } from "../lope-sync.ts";
@@ -539,8 +539,136 @@ export function resyncCanonical(opts: ResyncOpts): number {
   return skipped ? 1 : 0;
 }
 
+// ------------------------------------------------------------- frame modernisation
+
+const FRAME_OLD = "@tomlarkworthy/lopepage";
+const FRAME_NEW = "@tomlarkworthy/lopepage-2";
+const SIP = "@tomlarkworthy/save-in-place";
+
+/** The last `bootconf.json` block that parses — earlier ones are exporter templates. */
+function bootconfBlock(html: string): { tag: string; body: string; conf: any } | null {
+  let out = null;
+  for (const m of html.matchAll(/<script\s+id="bootconf\.json"[^>]*>([\s\S]*?)<\/script>/g)) {
+    try { out = { tag: m[0], body: m[1], conf: JSON.parse(m[1].trim()) }; } catch { /* template */ }
+  }
+  return out;
+}
+
+/**
+ * Swap a notebook's frame from lopepage to lopepage-2 and give it save-in-place.
+ *
+ * Three things have to happen together, and the third is the one that bites:
+ *
+ *  1. bootconf `mains`: lopepage -> lopepage-2, and save-in-place appended. Only the
+ *     mains array is rewritten, so `hash`/`headless`/`prerender` stay byte-identical.
+ *  2. The lopepage-2 and save-in-place blocks are installed if absent. Their own
+ *     dependencies are NOT resolved here — run `--all-canonical --carry-deps`
+ *     afterwards, which now sees these notebooks as consumers and completes them.
+ *  3. The old lopepage BLOCK is deleted, not merely dropped from mains. Module
+ *     discovery instantiates every module `<script>` in the DOM, so a lopepage block
+ *     left behind boots a competing GoldenLayout overlay on top of lopepage-2.
+ *
+ * Skipped: lopepage's own canonical notebooks (deleting the block there destroys the
+ * module, and it cannot host both frames at once), and notebooks where a surviving
+ * module still imports lopepage (jumpgate does), since the import would break.
+ */
+export function modernizeFrame(opts: { repo?: string | null; limit?: number; write?: boolean }): number {
+  const { repo: onlyRepo = null, limit = Infinity, write = false } = opts;
+  const canon = loadCanonical();
+  const srcOf = (mod: string) => {
+    const e = canon[mod];
+    const rel = e && (reposOf(e).includes("lopecode") ? e["lopecode"] : e[reposOf(e)[0]]);
+    if (typeof rel !== "string") throw new Error(`${mod} has no declared canonical`);
+    return { rel, html: readFileSync(join(REPO_ROOT, rel), "utf8") };
+  };
+  const frame = srcOf(FRAME_NEW), sip = srcOf(SIP);
+  const oldHomes = new Set(Object.values(canon[FRAME_OLD] ?? {}).filter((v) => typeof v === "string"));
+
+  let done = 0, skipped = 0, installed = 0;
+  const skips: string[] = [];
+  const repos = ["lopecode", "lopebooks"].filter((r) => !onlyRepo || r === onlyRepo);
+
+  for (const repo of repos) {
+    const dir = join(REPO_ROOT, repo, "notebooks");
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".html")).sort()) {
+      if (done >= limit) break;
+      const rel = `${repo}/notebooks/${f}`;
+      const path = join(dir, f);
+      if (rel === frame.rel || rel === sip.rel) continue;
+      if (oldHomes.has(rel)) { skipped++; skips.push(`${f} — canonical home of ${FRAME_OLD}`); continue; }
+      let html = readFileSync(path, "utf8");
+      const bc = bootconfBlock(html);
+      if (!bc || !Array.isArray(bc.conf.mains) || !bc.conf.mains.includes(FRAME_OLD)) continue;
+
+      // a surviving module that still imports the old frame keeps its block
+      const importers = [...html.matchAll(/<script\s+id="([^"]+)"([^>]*)>([\s\S]*?)<\/script>/g)]
+        .filter((m) => /data-mime="application\/javascript"/.test(m[2]) && m[1] !== FRAME_OLD)
+        .filter((m) => m[3].includes(`main.define("module ${FRAME_OLD}"`))
+        .map((m) => m[1]);
+      if (importers.length) { skipped++; skips.push(`${f} — ${importers.join(", ")} imports ${FRAME_OLD}`); continue; }
+
+      if (!write) { done++; continue; }
+
+      // 2. install the new frame modules (block only; deps come from the resync pass)
+      for (const { mod, src } of [{ mod: FRAME_NEW, src: frame }, { mod: SIP, src: sip }]) {
+        if (rawBlock(html, mod)) continue;
+        const block = extractModuleScriptTag(src.html, mod)!;
+        writeFileSync(path, html);
+        inject(block, path, mod, true);
+        html = readFileSync(path, "utf8");
+        for (const owned of ownedBlockIds(src.html, mod)) {
+          if (rawBlock(html, owned)) continue;
+          insertBefore(path, mod, rawBlock(src.html, owned)!);
+          html = readFileSync(path, "utf8");
+        }
+        installed++;
+      }
+
+      // 3. delete the shadowing old frame block
+      const old = rawBlock(html, FRAME_OLD);
+      if (old) {
+        const at = html.indexOf(old);
+        html = html.slice(0, at) + html.slice(at + old.length).replace(/^\n{1,2}/, "");
+      }
+
+      // 1. rewrite ONLY the mains array, leaving the rest of bootconf untouched
+      const mains = bc.conf.mains.map((m: string) => (m === FRAME_OLD ? FRAME_NEW : m));
+      if (!mains.includes(SIP)) mains.push(SIP);
+      const newBody = bc.body.replace(
+        /"mains"\s*:\s*\[[^\]]*\]/,
+        `"mains": [${mains.map((m: string) => JSON.stringify(m)).join(",")}]`
+      );
+      html = html.replace(bc.tag, bc.tag.replace(bc.body, newBody));
+
+      writeFileSync(path, html);
+      done++;
+    }
+  }
+
+  console.log(`\n${write ? "modernised" : "would modernise"} ${done} notebook(s)` +
+    (installed ? `, ${installed} frame module(s) installed` : "") +
+    (skipped ? `, ${skipped} skipped` : ""));
+  for (const s of skips) console.log(`  skip  ${s}`);
+  if (write && done)
+    console.log(`\nNow complete their dependencies:\n` +
+      `  bun tools/channel/sync-module.ts --all-canonical --write --carry-deps\n` +
+      `  bun tools/lope-preflight.ts --baseline tools/preflight-baseline.json`);
+  return 0;
+}
+
 // CLI
 if (import.meta.main) {
+
+if (process.argv.includes("--modernize-frame")) {
+  const a = process.argv.slice(2);
+  const val = (n: string) => (a.indexOf(n) >= 0 ? a[a.indexOf(n) + 1] : null);
+  process.exit(modernizeFrame({
+    repo: val("--repo"),
+    limit: Number(val("--limit") ?? Infinity),
+    write: a.includes("--write"),
+  }));
+}
 
 // `--all-canonical` is its own mode: source and targets come from canonical.json, so
 // none of --source/--target applies. It defaults to a dry run and needs --write,
