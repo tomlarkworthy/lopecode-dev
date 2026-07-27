@@ -86,6 +86,9 @@ function parseArgs(argv) {
     } else if (arg === '--cells-match-body' && args[i + 1]) {
       if (!options.cellsMatchBody) options.cellsMatchBody = [];
       options.cellsMatchBody.push(args[++i]);
+    } else if (arg === '--insert-before' && args[i + 1]) {
+      // Place unmatched (new) --cells before this existing node id instead of appending at the end.
+      options.insertBefore = parseInt(args[++i], 10);
     } else if (arg === '--no-delete') {
       options.noDelete = true;
     } else if (arg === '--delete-first') {
@@ -909,17 +912,18 @@ async function replaceCellsViaWS(conn, existingNodes, decompiled, options) {
 
   if (inserts.length > 0) {
     log(`Inserting ${inserts.length} new cell(s): ${inserts.map(i => i.name).join(', ')}`);
+    const insertBefore = Number.isFinite(options.insertBefore) ? options.insertBefore : null;
     for (const { name, newSource } of inserts) {
       const newVersion = version + 1;
       const nodeId = newVersion;
-      log(`  "${name}" — inserting at end (node ${nodeId})...`);
+      log(`  "${name}" — inserting ${insertBefore ? `before node ${insertBefore}` : 'at end'} (node ${nodeId})...`);
       conn.send({
         type: 'save',
         events: [{
           version: newVersion,
           type: 'insert_node',
           node_id: nodeId,
-          new_next_node_id: null,
+          new_next_node_id: insertBefore,
           new_node_value: newSource,
           new_node_pinned: false,
           new_node_mode: 'js',
