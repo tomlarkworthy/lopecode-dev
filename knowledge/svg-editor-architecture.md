@@ -3,6 +3,24 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
+**Status 2026-07-26 — back-propagation removed; the paper is the deliverable now.** Two changes landed
+after the feature-complete note below. (1) **Interpolation is tolerated but not written back into.**
+The reflective `writeUpstream` sink — resolve a `${x}` hole to its `viewof` and set the value — was
+deleted. It was fragile and rarely held, and an approximate write is indistinguishable on screen from
+an exact one until it drifts. A hole now renders fine and the literal text around it stays editable,
+but a gesture that would change a hole is declined (locked). `commitInterpolated` keeps only
+`mergeInterpolated` (write the literal slots, keep the holes verbatim); sinks are `literal`,
+`mixed (partly locked)`, `locked` — `upstream`/`upstream + literal` are gone. §4 and §1 below are
+updated; M4 in the milestone log is marked superseded. (2) **The paper was tightened:** em-dashes
+removed across the essay prose (they read as AI slop), the section demos each load a single
+illustrative tool set (`{tools:[toolMove, toolVertex]}` for the vertex demo, `[toolMove, toolStructure]`
+for structural, `[toolMove]` for the interpolation demo) **and strip the selection chrome** — the
+affordance chips are now a registry parameter like the tools (`{affordances: []}`), so a reduced figure
+is graphically reduced too, not just functionally. And an **editable "lens stack" architecture
+diagram** — an `svgLens` drawing of L0→L5, the DOM boundary and the literal-vs-hole branch, with
+`ref()` hyperlinks to each section — sits in the Architecture section (the paper's diagram, edited by
+the editor it describes).
+
 **Status 2026-07-24 — feature-complete; the work from here is consistency, usefulness and
 refactoring.** The capability set is done. S1–S10 and the gesture surface are built (§7); the shape,
 command and affordance registries cover the format; gradients and markers (the last new capability)
@@ -29,8 +47,11 @@ Three unrelated write-back mechanisms, each solving a different part of the same
 | Definition swap | `@tomlarkworthy/sticky`, `grid-container` | whole cell definition | n/a | n/a |
 
 `parametric-svg`'s `svgEditor({target, module})` already drags anchors and solves back to upstream
-sliders. That is the interpolation case, solved by a different technique. The editor should not pick
-one — it should route each handle to whichever sink can accept it (§4).
+sliders. That is the interpolation case, solved by a different technique. **This editor deliberately
+does not do it (decided 2026-07-26).** The first two rows are the same source-text lens; the third,
+back-propagation into an upstream view, was built and then removed for being fragile (§4). Numerical
+inversion and definition-swap stay as prior art to position against, not as sinks this editor routes
+to: a hole it cannot write literally is declined, not solved.
 
 ## 2. Why svg-lens can't grow into an editor as-is
 
@@ -137,42 +158,46 @@ rule makes re-applying it a no-op. This writer is generic — `sticky`, `grid-co
 
 ## 4. Interpolation: the SVG-factory case
 
+**The three-sink routing described here was designed and built (M4), then cut back on 2026-07-26.**
+The current model is simpler: literal slots write, holes are tolerated but locked, and nothing is
+written back through reflection. The design is retained as the record of what was tried and why the
+write-back half did not survive.
+
 `literalSpan` currently throws on `quasis.length !== 1`. That rejects exactly the documents worth
-editing — a static SVG becomes a factory the moment one number is a hole.
+editing — a static SVG becomes a factory the moment one number is a hole. So the domain admits holes
+and the drawing renders with them; the only question is what a *gesture* on a hole may do.
 
 Model the source as a template with holes: `{quasis: string[], exprs: string[]}`. Render, keep a
-source map from rendered offsets back to (quasi index, offset). Every attribute slot then falls into
-one of three classes, and the UX must show which:
+source map from rendered offsets back to (quasi index, offset). Every attribute slot is one of:
 
 1. **Literal** — the slot lies entirely in a quasi. Write text through the existing lens. Exact.
-2. **Whole-hole** — the slot is exactly `${expr}`. Don't write text; write *through* to the source of
-   `expr`. If it is an identifier bound to a `viewof`, set that input's value (this is what
-   `parametric-svg`'s `svgEditor` does). If it resolves to a number literal in another cell's source,
-   compose the lens outward into *that* cell — the lens target becomes the dataflow graph, not one
-   cell. Still exact.
-3. **Mixed** — `transform="translate(${x} 10)"`, or a hole inside an expression. Parse the
-   microsyntax over a token stream that admits hole tokens. A numeric slot that *is* a whole hole is
-   class 2; the rest of the slots stay class 1; anything else is **locked**: render the handle greyed
-   rather than failing on pointerup.
+2. **Hole** — the slot contains a `${expr}`. Kept verbatim; the handle is drawn locked and a gesture
+   that would change it is declined, with the reason. A slot that mixes literal digits with a hole
+   writes its literal parts and reports the hole locked (`mixed (partly locked)`); a slot that is one
+   whole hole writes nothing at all.
 
-Where syntax can't reach — the hole feeds trig, layout, a scale — fall back to the numerical
-inversion already implemented in `manipulate`/`parametric-svg`, which needs `anchor()` markers and
-gives an approximate solve. So:
+**Current sink map (2026-07-26):**
 
 ```
-handle -> slot -> class -> sink
-                  literal    -> source lens        (exact, lawful, residue-preserving)
-                  whole-hole -> upstream viewof / upstream literal   (exact)
-                  mixed/opaque -> numerical inversion, or locked     (approximate / refused)
+handle -> slot -> outcome
+                  literal -> source lens   (exact, lawful, residue-preserving)
+                  hole    -> locked        (rendered, not written back)
 ```
 
-One `Sink` interface, three implementations, chosen by provenance. That unification is the real
-architectural payload of this note, and it is also the honest framing of the laws: they hold per
-sink, on a stated domain, and the UI tells you which sink a handle is on.
+**What was removed, and why.** The original design routed a whole hole `${x}` *through* to the source
+of `x`: if `x` was bound to a `viewof`, set that input's value (`writeUpstream`); a hole feeding trig
+or layout would fall back to the numerical inversion in `manipulate`/`parametric-svg`. The
+back-propagation half was cut because reflection into an upstream view is fragile — it needs the
+identifier to be a plain name bound to a live view in the same module, it rarely held on real
+documents, and an approximate write reads on screen exactly like an exact one until it silently
+drifts. Declining instead keeps the laws (§6.2) true of every *accepted* gesture, and makes the UI's
+one honest report — literal or locked — match what actually happened. Numerical inversion and
+cross-cell literal write-through remain plausible future sinks, but each would have to keep announcing
+that its guarantee is weaker than an exact edit's.
 
 Prior art to cite and position against: Sketch-n-Sketch (Chugh et al.) does trace-based value update
-for arbitrary programs. We deliberately restrict to syntactically local, lawful updates and degrade
-to inversion only where syntax runs out — a weaker mechanism with a stronger guarantee.
+for arbitrary programs. We deliberately restrict to syntactically local, lawful updates and refuse the
+rest rather than guessing — a narrower mechanism with a stronger guarantee.
 
 ## 5. Gap list
 
@@ -280,9 +305,10 @@ edit to a monolith. Every remaining gap is the same move, not yet made, on five 
 | what the inspector shows | one text input per attribute | **field registry**: attribute → widget |
 | what counts as a hit | `hitTest` in some tools, `e.target` in others | one `ctx.hit(e)`; no tool touches `e.target` |
 | which tools are installed | `svgTools`, an ambient registry cell | `options.tools`, **defaulting to** `svgTools` |
+| which affordance chips show | `svgAffordances`, ambient | `options.affordances`, **defaulting to** `svgAffordances` (done 2026-07-26, so a figure can strip the chrome) |
 
-§4 already routes `handle → slot → class → sink`. The gizmo is the one thing that skips the middle and
-goes straight to `transform`. So gap 1 is not new machinery — it is **deleting a special case** so the
+§4 already routes `handle → slot → outcome` (literal writes, hole locked). The gizmo is the one thing
+that skips the middle and goes straight to `transform`. So gap 1 is not new machinery — it is **deleting a special case** so the
 gizmo goes through the routing everything else already uses.
 
 One consequence worth stating early: **zoom/pan needs no tool changes at all.** Every tool converts
@@ -1602,6 +1628,7 @@ Roughly by value per unit of work, given what already exists:
   order, every intermediate source byte-identical to the snapshot taken at the time.
 - **M3** Transform gizmo (done, 2026-07-21 — see task #7), snapping, keyboard, undo *(done)*.
 - **M4** Holes: classification, whole-hole writeback, inversion fallback, locked-handle affordance.
+  *(Writeback and inversion removed 2026-07-26 — holes are now tolerated-but-locked only. See §4.)*
 - **M4.5 — differential tests done (2026-07-21).** `test_parse_vs_DOMParser` (browser-only) checks the
   scanner against `DOMParser` on eight documents — real markup plus the cases a regex tokenizer gets
   wrong: `>` inside an attribute value, mixed quote styles, entities, comments containing angle
@@ -1667,6 +1694,10 @@ Roughly by value per unit of work, given what already exists:
   vertically wrote `translate(${shift} 0)` → `translate(${shift} 22)`, hole intact, slider unmoved,
   sibling untouched; the rect on `rotate(${spin / 2} …)` showed five `locked` handles and its gizmo
   drag was refused with a stated reason and no write.
+  **Superseded 2026-07-26.** The whole-hole → `writeUpstream` sink was removed: dragging the first rect
+  no longer moves `viewof shift`, it is declined as `locked` like any other hole. The literal-slot
+  path (second rect) and the locked affordance (third rect) are unchanged; only the reflective
+  write-back is gone. See §4 for the rationale.
 
 - **M6 — the notebook became the paper (2026-07-21).** Reading order is now: demo (toolbar, drawing,
   then the inspector, which is below because its height follows the selection and above it every
