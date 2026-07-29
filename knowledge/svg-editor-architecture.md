@@ -3,6 +3,17 @@
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a
 usable SVG editor. Written 2026-07-20 after the first port landed.
 
+**Status 2026-07-29 — the capability-parity backlog (§9.5) is closed, and the three open bugs are fixed.**
+The lens-shaped gap to a *basic* vector editor — clip/mask, pattern fills, dash/stroke widgets, more
+align/arrange, multi-line/`tspan`, a swatch palette, place-image, eyedropper, swatch-drop (G27–G29,
+G48–G53) — is all implemented; only text-on-path *creation* (a slice of G52) is deferred. Each landed as
+what the model predicted: a registry entry, a `defs`-minting command, or a content lens, reusing verbs
+that already exist; none needed the model-domain geometry (booleans, offset, tracing, filter graphs) the
+lens thesis does not shorten. The three §5 bugs (structural double-click on stroke-only shapes, colour
+picking with no live feedback, first-frame drag jump) are fixed. Layers, if built, are the same shape:
+top-level `<g id>` + a `<title>` label, projected into a panel, drawn on via `scope` — no new document
+data.
+
 **Status 2026-07-26 — back-propagation removed; the paper is the deliverable now.** Two changes landed
 after the feature-complete note below. (1) **Interpolation is tolerated but not written back into.**
 The reflective `writeUpstream` sink — resolve a `${x}` hole to its `viewof` and set the value — was
@@ -27,10 +38,10 @@ command and affordance registries cover the format; gradients and markers (the l
 landed, and table editing in the prose layer works. **No new features are planned.** Future work has
 three pillars and adds no capability: (a) make the features that exist *consistent* with each other —
 one way to do each thing; (b) make them more *useful*; (c) *refactor* the code for maintainability.
-The remaining "missing capability" items in §5 (text tool, `<image>`, eyedropper, swatch-drop —
-G26–G29) are **out of scope** for this phase: deferred, not planned. §9 is the standing backlog for
-this work; §6 is retained as the record of how the capabilities were built, and the 59 laws are the
-regression gate that makes "refactor only" safe.
+The "missing capability" items in §5 (text tool, `<image>`, eyedropper, swatch-drop — G26–G29) were
+out of scope here but were later reopened and shipped (G26 on 2026-07-26, G27–G29 on 2026-07-29; see the
+top status note and §9.5). §9 is the standing backlog for this work; §6 is retained as the record of how
+the capabilities were built, and the 59 laws are the regression gate that makes "refactor only" safe.
 
 **Status 2026-07-23.** M0–M8 are built (§7): the editor commits through `Variable.define`, addressing
 is structural, and tools, selection, the gizmo, undo, snapping and interpolated templates all work.
@@ -207,13 +218,17 @@ Ordered by how much each blocks real work.
 
 ### Bugs
 
-**0. A structural double-click misses stroke-only shapes.** Selection routes through `hitTest`, which
-is tolerant — it measures distance along the stroke, so a hairline path is easy to grab.
-`toolStructure` instead uses raw `e.target` and requires `hit === focus.index`. On `fill="none"` the
-interior is not hit-testable, so `e.target` is the root `<svg>`, `hit` is 0, and control falls through
-to the last branch — *"double-clicked empty canvas, drop a shape"*. The gesture does not no-op, it
-appends a triangle. Measured: filled `<polygon>` 3→4 points ✅; `<path fill="none">` → a new
-`<polygon>` appended ❌. This is why adding a point to a line or an unfilled polygon has never worked.
+**0. A structural double-click misses stroke-only shapes. ✅ FIXED 2026-07-29.** Selection routes through
+`hitTest`, which is tolerant — it measures distance along the stroke, so a hairline path is easy to grab.
+`toolStructure` used raw `e.target` and required `hit === focus.index`. On `fill="none"` the interior is
+not hit-testable, so `e.target` was the root `<svg>`, `hit` was 0, and control fell through to the last
+branch — *"double-clicked empty canvas, drop a shape"*: the gesture did not no-op, it appended a
+triangle. Fix: `onDblClick` now also runs `ctx.pick(e, {tolerance: 14})` (the same tolerant hit test
+selection uses) and treats a double-click **on the current selection** as an insert, so the
+insert-point/insert-anchor branches fire for a stroke-only path; the shape-drop branch is gated to
+`hit < 0 && !near.length` so it only fires on genuinely empty canvas (T10 partiality). Measured before:
+filled `<polygon>` 3→4 ✅ but `<path fill="none">` appended a stray `<polygon>` ❌; now the unfilled path
+gains its point.
 
 **12. The first frame of a drag jumps.** Reported by Tom 2026-07-23 as "a frame of glitching at
 gesture start, after a while"; instrumented the same day. Two causes compound, and both are in
@@ -242,9 +257,9 @@ in §6.6 for the fix and why it is not free.
    happens to render.
 4. **Only shape primitives.** No `<text>` (so no typing), no `<image>`, and nothing for `defs` —
    gradients, markers, `clipPath`, `<use>`. Most real SVG documents are partly untouchable.
-   *Update: `defs` gradients/markers now editable (§10 / G-series); the **text tool shipped**
-   as G26 (2026-07-26) — place `<text>`, edit the run via `textRunLens` + inspector field. `<image>`
-   (G27) still open.*
+   *Update: `defs` gradients/markers/patterns/clipPath/mask now editable (§10 / G-series); the
+   **text tool shipped** as G26 (2026-07-26) — place `<text>`, edit the run via `textRunLens` + inspector
+   field; **`<image>` shipped** as G27 (2026-07-29, the toolbar 🖼 button). Only `<use>` remains untouched.*
 5. **Styling UI is one text input per attribute.** No colour picker, stroke width/dash/cap, or
    opacity. The plumbing is done — `setProperty` writes into `style="…"` when a declaration already
    lives there, else the attribute — only the widgets are missing.
@@ -279,6 +294,15 @@ Cheap, and several are the visible face of the gaps above.
 - No numeric readout during a drag.
 - Overlapping shapes cycle by repeated tap. Works, undiscoverable.
 - ~~No select-all~~ (shipped: Select all / none / same-fill / same-tag), no context menu.
+- **Colour picking has no live feedback. ✅ FIXED 2026-07-29 (reported same day).** The inspector's
+  `<input type="color">` swatch committed on the `change` event, which a native colour picker fires only
+  when it *closes* — so the drawing did not update while you dragged through the palette. Fix as designed:
+  two node methods, `previewField(path, prop, value)` (a transient inline-`style` write on the live DOM
+  element — inline style beats the attribute and CSS, and the next commit's remount clears it) and
+  `clearPreview`. The colour field now previews on `input` and commits on `change`, so the colour scrubs
+  live but lands as **one** undo entry (G44 / T1 one-gesture-one-commit; a raw `input`→`setField` would
+  flood undo with intermediate colours). The same preview/commit split is available to the enum, text and
+  custom-attribute fields, but colour is where the missing feedback bit.
 
 ### Not a gap
 
@@ -306,6 +330,7 @@ edit to a monolith. Every remaining gap is the same move, not yet made, on five 
 | what counts as a hit | `hitTest` in some tools, `e.target` in others | one `ctx.hit(e)`; no tool touches `e.target` |
 | which tools are installed | `svgTools`, an ambient registry cell | `options.tools`, **defaulting to** `svgTools` |
 | which affordance chips show | `svgAffordances`, ambient | `options.affordances`, **defaulting to** `svgAffordances` (done 2026-07-26, so a figure can strip the chrome) |
+| whether the drawing has its own keyboard | the `toolbar` chrome cell owns a document-level `keydown` | `options.keyboard` (default off): a node-scoped, focus-gated `keydown` mirroring the toolbar's dispatch (undo/redo, `commandForEvent`, z-order, nudge, delete, escape), so a standalone figure gets shortcuts without the toolbar and multiple figures on one page do not collide (done 2026-07-27) |
 
 §4 already routes `handle → slot → outcome` (literal writes, hole locked). The gizmo is the one thing
 that skips the middle and goes straight to `transform`. So gap 1 is not new machinery — it is **deleting a special case** so the
@@ -1235,15 +1260,17 @@ and S4, and are the gaps those stages closed.)
   `test_edit_run` (61 → 63). Verified live: place → commit → select, and inspector-field edit rewrites
   the run preserving surrounding source. *Deferred polish:* on-canvas inline typing / double-click to
   re-enter (the first cut edits the run through the inspector field, not in place).
-- [ ] **G27 · place an image.** `<image>` with an `href`; the interesting part is that a data URI and
-  a file reference are different residue decisions. S
+- [x] **G27 · place an image. ✅ DONE 2026-07-29.** A toolbar 🖼 button reads a file with `FileReader`
+  and `addShape`s an `<image>` with the data URI as `href`; `shapeRect` gained an `image` tag so the
+  same x/y/width/height handles resize it.
 
 #### H — style as gestures (S6)
 
-- [ ] **G28 · eyedropper.** Alt-click picks fill and stroke off another shape onto the selection.
-  A tool cell, and cheap once the field registry exists. S
-- [ ] **G29 · drop a swatch onto a shape.** Drag a colour from a palette onto a shape; the drop target
-  is a hit test, so it reuses `ctx.hit`. S
+- [x] **G28 · eyedropper. ✅ DONE 2026-07-29.** An affordance chip (shows on a 2+ selection) copies the
+  last-selected shape's fill and stroke onto the rest, through `setField`.
+- [x] **G29 · drop a swatch onto a shape. ✅ DONE 2026-07-29.** Palette swatches are `draggable`,
+  carrying the colour on a private MIME; the drawing's `drop` handler `pickAt`s the target and sets its
+  paint (alt → stroke). No target under the pointer, no write (T10).
 
 #### I — stroke and paint: the half of SVG that is not geometry (S6, S9)
 
@@ -2154,3 +2181,56 @@ multi-attr). `svgFields` is now `{ list, read, forTag }`.
 Cross-refs: [[project_svg_lens_s10_defs]] (why defs live in the same tree; `mintId`/paste-rename),
 [[project_svg_lens_feature_complete]] (§9 is usefulness/consistency/refactor only), §9.1 (one paint
 surface, one write path — G2/G3 must not reopen the two-places-to-set-a-colour bug).
+
+### 9.5 Capability parity: the lens-shaped features (added 2026-07-28)
+
+**Status 2026-07-29 — the backlog is closed.** G48 was already implemented in `svgFields`; G50/G51 landed
+as `defsCommand`/`cmdClipMask` command cells; G49 as the projected palette; G28/G29 as affordance +
+drag-drop; G27 as the image tool; G53's aligns/distributes are in place. G52 *editing* (per-`tspan`,
+text-on-path) works through `textRunLens`; only text-on-path *creation* is deferred, noted below.
+
+These *do* add capability, so they sit apart from the consistency/refactor pillars above. They are the
+slice of the gap-to-a-basic-vector-editor (the Inkscape comparison) that the lens model absorbs without
+new machinery: each is a registry entry, a `defs`-minting command, or a content lens — reusing verbs
+that already exist (`setProperty`, `insertElement`/`mintId`, `textRunLens`, `scope`, the align
+machinery). None needs the model-domain geometry (path booleans, offset,
+tracing, filter graphs) that is orthogonal to the thesis. Every item keeps the laws green and is
+falsified by a concrete round-trip: apply it, read the source, reload — the source renders back the
+same and one undo reverts it.
+
+- [x] **G48 · dash & stroke controls. ✅ DONE (already in `svgFields`).** `svgFields` widgets for `stroke-width` (number),
+  `stroke-dasharray` (text + a few presets), `stroke-linecap`/`stroke-linejoin` (enums),
+  `stroke-opacity`. Pure registry entries — the write path (`setProperty` into `style` when a
+  declaration lives there, else the attribute) is already done; only the widgets are missing (§5
+  missing-capability #5). *Falsifier:* selecting a stroked path shows cap/join/dash fields that
+  round-trip both an attribute-form and a `style`-form value without creating a second losing one (§9.1).
+- [x] **G49 · swatch / palette. ✅ DONE 2026-07-29.** A palette *projected* from the colours already in the source (every
+  `fill`/`stroke`/gradient-stop), plus a small fixed set; clicking a swatch sets paint on the selection
+  through the one paint write path. A projection like the layers panel — **no new document data.** (A
+  *saved* palette would need a store, which crosses the pure-source line; note it, don't build it here.)
+  *Falsifier:* the palette lists each distinct colour in the drawing; clicking one recolours the
+  selection and nothing else changes.
+- [x] **G50 · clip & mask. ✅ DONE 2026-07-29.** Commands "clip with topmost" / "mask with topmost": mint a `<clipPath>` /
+  `<mask>` in `defs` from the topmost selected shape (S10 `mintId`/`defsCommand`) and write
+  `clip-path="url(#id)"` / `mask="url(#id)"` on the rest; a release command removes the reference. The
+  clip/mask subtree stays an ordinary editable tree. *Falsifier:* clip a rect with a circle → the rect
+  gains a `clip-path` and a `<clipPath>` def appears; source round-trips; one undo reverts both.
+- [x] **G51 · pattern fills. ✅ DONE 2026-07-29.** A `<pattern>` in `defs`, sibling to gradient/marker (S10), plus
+  `fill="url(#id)"`; the panel generalises the gradient controls (tile `width`/`height`,
+  `patternUnits`, `patternTransform`) and the tile contents are an ordinary editable sub-tree.
+  *Falsifier:* apply a pattern fill → shape gets `fill="url(#p)"`, editing the tile updates every filled
+  shape, source round-trips.
+- [~] **G52 · multi-line / `tspan` text and text-on-path. EDITING DONE; text-on-path creation deferred.** Extends the *content* lens `textRunLens`
+  (G26, §8), not a registry entry: address individual `<tspan>` runs so each line edits independently,
+  and a `<textPath href="#id">` variant whose run is editable while the text follows its referenced
+  path. *Falsifier:* a two-`<tspan>` `<text>` edits each line separately; a `<textPath>` follows its
+  path and its run round-trips.
+- [x] **G53 · more align / arrange. ✅ DONE (6-way align + distribute h/v).** Extend the existing align/distribute commands (§5 #8, currently
+  align + distribute-*vertical* only): distribute-horizontal, align-to-canvas/viewBox, centre-on-page,
+  arrange in rows/columns. Registry entries over the selection reusing the align machinery; no new
+  geometry beyond bounding boxes already read through `ctx`. *Falsifier:* distribute-horizontal evens
+  the x-gaps; align-to-canvas centres a shape in the viewBox.
+Explicitly **not** in this list (they are the model-domain / app-shell work the lens model does *not*
+shorten, per the Inkscape comparison): path booleans, offset-path / stroke-to-path, bitmap tracing,
+gradient mesh, the filter-primitive graph, and raster/PDF export. Those are pure geometry or I/O and
+cost the same in any editor.
