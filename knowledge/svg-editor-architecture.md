@@ -2189,6 +2189,16 @@ as `defsCommand`/`cmdClipMask` command cells; G49 as the projected palette; G28/
 drag-drop; G27 as the image tool; G53's aligns/distributes are in place. G52 *editing* (per-`tspan`,
 text-on-path) works through `textRunLens`; only text-on-path *creation* is deferred, noted below.
 
+**Property tests (2026-07-29).** The two *pure* new commands are law-covered: `test_defs_commands`
+exercises `cmdAddPattern` (mints a `<pattern>` in defs, points `fill` at it, declines on a selection
+that is not exactly one) and `cmdClipMask` for both `clip` and `mask` (consumes the topmost selected
+shape into a `<clipPath>`/`<mask>`, points the rest at `url(#id)`, declines on a selection smaller than
+two). `test_shape_registry` gained an assertion that an `<image>` routes to the rect geometry entry
+(G27). The DOM-bound additions — eyedropper (`tap`), swatch-drop, palette clicks, `previewField` — have
+no headless law, the same exclusion the gesture/DOM `test_gesture_*` laws already carry: they need a real
+node and pointer events. They rest on the primitives (`setField`, `pickAt`, `colors`, the one write path)
+that are covered.
+
 These *do* add capability, so they sit apart from the consistency/refactor pillars above. They are the
 slice of the gap-to-a-basic-vector-editor (the Inkscape comparison) that the lens model absorbs without
 new machinery: each is a registry entry, a `defs`-minting command, or a content lens — reusing verbs
