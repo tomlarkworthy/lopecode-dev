@@ -355,45 +355,52 @@ This is what makes §6.3's composition law checkable at all — it needs to run 
 `T` and under `T ∪ {t}` — and it turns "the editor is a configuration" from a claim in the prose into
 something the paper can demonstrate inline.
 
-#### 6.1.1 The `mutableSvg` tag — editable-md, for SVG (added 2026-07-30)
+#### 6.1.1 `svg` and the curried power API — editable-md, for SVG (added 2026-07-30)
 
-`svgLens(node, opts)` is the power API: explicit, per-cell, fully configurable, and what the demos
-illustrate. There is also a zero-ceremony entry point that turns *every* diagram in a notebook mutable —
-`mutableSvg`, a tagged template that builds the node with the builtin (`htl.svg`) and installs the
-editor:
+The entry point is `svg`, exported so a consumer opts in with one import and **no rename**, exactly like
+editable-md's `md`:
 
 ```js
-mutableSvg = (strings, ...values) => svgLens(htl.svg(strings, ...values), { marker: mutableSvg })
+import {svg} from "@tomlarkworthy/svg-lens"
+viewof drawing = svg`<svg>…</svg>`      // editable; write-back lands in the svg`…` literal
 ```
 
-A consumer opts in with one import, exactly like editable-md's `md`:
+The local import shadows the builtin `svg` **in that module only** (no runtime fork), so every diagram in
+that notebook becomes mutable. The power API is `svgLens` made **curried and tagged** — call it with
+options, tag the template:
 
 ```js
-import {mutableSvg as svg} from "@tomlarkworthy/svg-lens"
-// now `viewof drawing = svg`<svg>…`` is editable; write-back lands in the svg`…` literal
+viewof d = svgLens({ tools: [toolVertex], keyboard: true })`<svg>…</svg>`   // configured editor
 ```
+
+`svg` is simply `svgLens()` (the zero-option tag). `svgLens` itself is **dual-signature**: `svgLens(opts?)`
+returns a tag that builds the node with the builtin (`htl.svg`) and installs the editor; `svgLens(node, opts)`
+still installs on an already-built node, so any external caller of the original API keeps working. The
+detection is `first-arg-is-a-DOM-node → old form, else → factory`.
+
+Consequence inside svg-lens: defining a cell named `svg` shadows the builtin in svg-lens's *own* scope, so
+the demos can no longer use the builtin `svg` — they migrated to the new forms (`svg`…`` for the default
+editor, `svgLens({tools})`…`` for the configured ones). That migration is exactly what the paper should
+illustrate.
 
 Design decisions, and the two rejected alternatives:
 
-- **Rename-on-import, not a runtime builtin.** A global builtin override would make *every* notebook's
-  `svg`…`` editable whether it opted in or not. Instead the consumer's local import shadows the builtin
-  **in that module only** — opt-in, scoped, and a pattern this repo already uses. svg-lens must therefore
-  keep the builtin `svg` in *its own* scope (the demos use the power API `svgLens(svg`…`)`), so the tag
-  is exported under a distinct name (`mutableSvg`) and the consumer aliases it to `svg` on import.
+- **Import-shadow, not a runtime builtin.** A global builtin override would make *every* notebook's
+  `svg`…`` editable whether it opted in or not. The consumer's local import shadows the builtin only in the
+  importing module — opt-in, scoped, and a pattern this repo already uses.
 - **No `import … with` for options.** That desugars to a *forked module instance* — svg-lens's whole
   variable graph is cloned per override, splitting identity (two "same" variables that aren't `===`) and
-  breaking any cycle that passes back through svg-lens. Rejected. The tag ships full defaults; anyone who
-  needs a different tool set uses the power API `svgLens(node, opts)` for that one cell. (If a notebook
-  ever needs its own default without touching every cell, the fork-free route is to read a
-  conventionally-named cell from the *consumer's* module lazily on first mount — noted, not built.)
-- **How write-back finds the literal.** `svgTarget` derives its alias from the *parameter name* under
-  which the `marker` input appears in the cell definition, so an import renamed to `svg` (or `draw`)
-  resolves its own `svg`…`` region. Two supporting changes landed: `literalSpan` now matches a
-  `TaggedTemplateExpression` (`svg`…``), not only a `CallExpression` (`svgLens(svg`…`)`); and
-  `svgTarget`'s marker became `options.marker || svgLens`, so the tag supplies itself and the existing
-  call sites are untouched. `test_tagged_literal_span` covers both forms plus a renamed tag and the
-  element-position-interpolation refusal. When no host variable resolves (nested / `map` uses), the tag
-  falls back to the plain `htl.svg` node, so static SVG in a consumer keeps working.
+  breaking any cycle that passes back through svg-lens. Rejected. The curried `svgLens(opts)` passes options
+  directly at the call site instead, on the one shared instance.
+- **How write-back finds the literal.** `svgTarget` derives its alias from the *parameter name* the marker
+  appears under, so an imported `svg` (or a rename) resolves its own literal. The marker is the tag itself
+  for `svg`…``; for the power form `svgLens({…})`…`` the tag is a fresh closure that is not an input, so it
+  carries `.__factory` back to the `svgLens` the cell depends on, and `svgTarget` tries `[marker,
+  marker.__factory]`. `literalSpan` now matches three shapes: `svgLens(svg`…`)` (CallExpression argument),
+  `svg`…`` (tagged by an identifier), and `svgLens({…})`…`` (tagged by a call on the factory); for a tagged
+  template the literal is exactly its `quasi`. `test_tagged_literal_span` covers all three plus a renamed tag
+  and the element-position-interpolation refusal. When no host variable resolves (nested / `map` uses), the
+  tag falls back to the plain `htl.svg` node, so static SVG in a consumer keeps working.
 
 ### 6.2 Gestures need their own theory, and it exists
 
