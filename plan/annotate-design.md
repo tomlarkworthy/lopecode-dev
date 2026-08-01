@@ -605,6 +605,48 @@ stdlib builtin — it only resolves for a cell that actually depends on it.
 **Verified:** 115/115 (`tools/test-annotate.js` §14: data-space click, tip on the datum, the
 same datum after a width re-render, unknown-surface guard, and a surface contributed as a cell).
 
+## 16. Iteration 9 (2026-08-01): the documentation is the demo
+
+Per Tom: more whimsy, less repetition, and nothing to click before the page shows what it
+does. The notebook now **ships with six annotations**, authored as cells in its own module:
+
+| note | anchors to | shows |
+|---|---|---|
+| `annotation_tour_title` | the `<h1>`, by pid (the cell has no name) | what an annotation *is* |
+| `annotation_tour_prose` | the third *told apart* in the prose | prefix/suffix tie-break |
+| `annotation_tour_plot` | 12 March / 122 on the chart | data space across a re-render |
+| `annotation_tour_svg` | (50, 50) in the drawing | user units across a zoom |
+| `annotation_tour_image` | a quarter across the bitmap | box fraction |
+| `annotation_tour_volatile` | a phrase the shuffle button destroys | the adrift ladder |
+
+The explanations moved *into* those notes — the note pointing at the title says what a note
+is, the one on the chart says what it is pinned to. Section prose shrank to a heading and an
+instruction ("Drag the width slider"). The filler `demoText` cell is gone: the prose that
+explains text anchoring **is** the text being anchored (`demoProse`).
+
+Anchors were not hand-written. `tools/build-annotate-tour.mjs` drives the module's own
+`describeSelection`/`describePoint` against the live page and prints the specs, so the
+authored cells hold exactly what a real placement would have recorded.
+
+Two bugs this exposed, both from anchors that name a cell but not a module — the shape a
+person actually writes:
+
+1. **The box was painted in viewport space.** `locate` only found a pane via `a.module`, so
+   with none the box went to the fixed root and was clamped to the window: at any scroll
+   offset several notes stacked at the top of the screen. `locate` now recovers the pane from
+   the node it resolved to.
+2. **`patch` migrated the annotation out of the notebook.** `rec.home` was recomputed as
+   `anchor.module || DATA`, so patching a hand-written record moved its two cells into
+   `@tomlarkworthy/annotate-data` — after which the next export dropped them from the
+   notebook entirely (observed: 6 of 9 annotations lost across an export round-trip). `home`
+   now defaults to where the cells already are.
+
+`md` is now imported from editable-md by the module itself rather than injected on first
+placement, so the shipped notes are click-to-edit from boot.
+
+**Verified:** 121/121 — §0 asserts the six notes boot, resolve, cover four surfaces, and stay
+in this module when patched.
+
 ## 7. What to verify before building
 
 1. `Range` + `getClientRects()` genuinely survives a pane resize and font change on a real lopecode

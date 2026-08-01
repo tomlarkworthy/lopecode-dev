@@ -42,7 +42,7 @@ const settle = async (page) => {
   // A late pane mount replaces the cell nodes and silently drops any selection made
   // before it, so wait for the overlay AND the demo cell to hold still.
   await page.waitForFunction(() => {
-    const cell = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoText"]');
+    const cell = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoProse"]');
     const root = document.querySelector('[data-a2-root]');
     if (!cell || !root) return false;
     if (window.__a2sCell !== cell || window.__a2sRoot !== root) {
@@ -56,7 +56,7 @@ const settle = async (page) => {
 // Ground truth for a text quote: an independent TreeWalker range, not the module's own resolver.
 const groundTruthRect = (page, phrase, occurrence = 0) =>
   page.evaluate(([ph, occ]) => {
-    const cell = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoText"]');
+    const cell = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoProse"]');
     const text = cell.textContent;
     let at = -1;
     for (let i = 0; i <= occ; i++) at = text.indexOf(ph, at + 1);
@@ -90,7 +90,7 @@ const near = (a, b, tol = 2.5) => Math.abs(a - b) <= tol;
 
 const selectPhrase = (page, phrase, occurrence = 0) =>
   page.evaluate(([ph, occ]) => {
-    const cell = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoText"]');
+    const cell = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoProse"]');
     const text = cell.textContent;
     let at = -1;
     for (let i = 0; i <= occ; i++) at = text.indexOf(ph, at + 1);
@@ -159,8 +159,37 @@ try {
     return true;
   });
 
+  // ---- 0. the notebook ships with its notes already placed ----------------
+  // The documentation is annotations: nothing to click before the demos read as demos.
+  const shipped = await api(page, 'store.all()');
+  check('the notebook boots with its own notes in place', shipped.length === 6, `${shipped.length} notes`);
+  const shippedRes = await api(page,
+    `store.all().map(a => { const r = A.resolve(a.anchor);
+      return {id: a.id, surface: a.anchor.surface, rung: r && r.rung, adrift: !!(r && r.adrift), why: r && r.why}; })`);
+  check('every shipped note resolves — none adrift',
+    shippedRes.every((r) => !r.adrift), JSON.stringify(shippedRes.filter((r) => r.adrift)));
+  check('they demonstrate four coordinate spaces between them',
+    ['text', 'plot', 'svg', 'image'].every((s) => shippedRes.some((r) => r.surface === s)),
+    shippedRes.map((r) => r.surface).join(','));
+  const shippedTitle = shipped.find((a) => a.id === 'tour_title');
+  check('the note on the title is addressed by pid — that cell has no name',
+    shippedTitle && shippedTitle.anchor.pid === '_a2hdr' && !shippedTitle.anchor.cell,
+    shippedTitle && JSON.stringify({pid: shippedTitle.anchor.pid, cell: shippedTitle.anchor.cell}));
+  check('a shipped note is a cell of this module, not of the shared data module',
+    (await api(page, 'mod._scope.has("annotation_tour_title")')) &&
+      !(await api(page, 'data._scope.has("annotation_tour_title")')));
+  // Regression: patching a record whose anchor names no module used to migrate its cells
+  // into the data module, so they vanished from this notebook on the next export.
+  await api(page, 'store.patch("tour_title", {box: {dx: 300, dy: 10, w: 271}})');
+  await page.waitForTimeout(600);
+  check('patching a hand-written record leaves its cells where they were',
+    (await api(page, 'mod._scope.has("annotation_tour_title")')) &&
+      !(await api(page, 'data._scope.has("annotation_tour_title")')) &&
+      (await api(page, 'store.get("tour_title").home')) === '@tomlarkworthy/annotate',
+    await api(page, 'store.get("tour_title").home'));
+
   // ---- 1. text annotation via selection ---------------------------------
-  await selectPhrase(page, 'lazy dog');
+  await selectPhrase(page, 'not a position');
   await page.waitForTimeout(500);
   const chipVisible = await page.evaluate(() => {
     const c = document.querySelector('[data-a2-chip]');
@@ -170,9 +199,9 @@ try {
 
   await page.click('[data-a2-chip]');
   await page.waitForTimeout(500);
-  const a1 = await api(page, 'store.all()[0]');
+  const a1 = await api(page, 'store.all()[store.all().length - 1]');
   check('chip creates a text annotation', !!a1 && a1.anchor.surface === 'text');
-  check('quote captured exactly', a1 && a1.anchor.quote.exact === 'lazy dog', a1 && a1.anchor.quote.exact);
+  check('quote captured exactly', a1 && a1.anchor.quote.exact === 'not a position', a1 && a1.anchor.quote.exact);
   check('annotation is a variable in the module it annotates',
     await api(page, `mod._scope.has("annotation_${a1.id}")`));
   check('the annotation did not land in the shared data module',
@@ -185,9 +214,9 @@ try {
   check('the record cell depends on annotation(), which is what makes it discoverable',
     (await api(page, `mod._scope.get("annotation_${a1.id}")._inputs.map(i => i._name)`)).includes('annotation'));
   check('the anchor records the cell pid, not just its name',
-    a1.anchor.pid === '_a2demoText' && a1.anchor.cell === 'demoText', JSON.stringify({pid: a1.anchor.pid, cell: a1.anchor.cell}));
+    a1.anchor.pid === '_a2demoProse' && a1.anchor.cell === 'demoProse', JSON.stringify({pid: a1.anchor.pid, cell: a1.anchor.cell}));
 
-  const gt1 = await groundTruthRect(page, 'lazy dog');
+  const gt1 = await groundTruthRect(page, 'not a position');
   const hl1 = await highlightRect(page, a1.id);
   check('highlight sits on the quoted text',
     hl1 && near(hl1.left, gt1.left) && near(hl1.top, gt1.top) && near(hl1.width, gt1.width),
@@ -197,12 +226,12 @@ try {
   await api(page, `store.patch(${JSON.stringify(a1.id)}, {box: {dx: 260, dy: -20, w: 200}})`);
 
   // ---- 2. duplicate-phrase disambiguation --------------------------------
-  await selectPhrase(page, 'quick brown fox', 1);
+  await selectPhrase(page, 'told apart', 1);
   await page.waitForTimeout(500);
   await page.click('[data-a2-chip]');
   await page.waitForTimeout(500);
-  const a2 = await api(page, 'store.all()[1]');
-  const gtSecond = await groundTruthRect(page, 'quick brown fox', 1);
+  const a2 = await api(page, 'store.all()[store.all().length - 1]');
+  const gtSecond = await groundTruthRect(page, 'told apart', 1);
   check('second occurrence selected', a2 && a2.anchor.hint.start === gtSecond.at,
     a2 && `hint ${a2.anchor.hint.start} vs ${gtSecond.at}`);
   const hl2 = await highlightRect(page, a2.id);
@@ -236,7 +265,7 @@ try {
   check('the menu item arms the layer', await api(page, 'layer.isArmed()'));
   await page.mouse.click(target.x, target.y);
   await page.waitForTimeout(500);
-  const a3 = await api(page, 'store.all()[2]');
+  const a3 = await api(page, 'store.all()[store.all().length - 1]');
   check('svg annotation stores user-space coords',
     a3 && a3.anchor.surface === 'svg' && near(a3.anchor.svg.x, 50, 1) && near(a3.anchor.svg.y, 50, 1),
     a3 && a3.anchor.svg && `(${a3.anchor.svg.x.toFixed(1)},${a3.anchor.svg.y.toFixed(1)})`);
@@ -283,7 +312,7 @@ try {
       (await page.evaluate(() => { const o = document.querySelector('.command-palette-overlay, #command-palette-overlay'); return o ? o.hidden : true; })));
   await page.mouse.click(imgPoint.x, imgPoint.y);
   await page.waitForTimeout(500);
-  const a4 = await api(page, 'store.all()[3]');
+  const a4 = await api(page, 'store.all()[store.all().length - 1]');
   if (!a4) console.log('   DEBUG store:', JSON.stringify(await api(page, 'store.all().map(a => a.anchor.surface)')),
     'armed:', await api(page, 'layer.isArmed()'), 'imgPoint:', JSON.stringify(imgPoint),
     'imgRect:', JSON.stringify(await page.evaluate(() => { const i = document.querySelector('.observablehq[cell="demoImage"] img'); const r = i.getBoundingClientRect(); return {top: r.top, left: r.left, w: r.width, h: r.height}; })));
@@ -360,10 +389,9 @@ try {
   // ---- 5. every change was an annotate data write ----------------------
   if (probeOn) {
     const events = await page.evaluate(() => window.__a2events);
-    // Two writes are expected on top of the annotation's own cells: notes are markdown
-    // bound to editable-md, so the first annotation placed in a module that has no `md`
-    // of its own gets the import injected. Everything editable-md then mints per cell is
-    // `dynamic *` scaffolding, which the exporter drops — it never reaches the file.
+    // This module binds `md` to editable-md itself, so no import is injected here; the
+    // store still would in a module that has only the builtin `md`. Everything editable-md
+    // mints per cell is `dynamic *` scaffolding, which the exporter drops.
     const INJECTED = ['module @tomlarkworthy/editable-md', 'md'];
     const own = (n) => /^annotation_/.test(n || '');
     const scaffold = (n) => /^dynamic /.test(n || '');
@@ -372,8 +400,8 @@ try {
       foreign.length === 0,
       foreign.length ? foreign.map((e) => e.name).join(',') : `${events.length} events`);
     const injections = events.filter((e) => INJECTED.includes(e.name));
-    check('the editable-md import is injected once, not per annotation',
-      injections.length === INJECTED.length, injections.map((e) => e.name).join(','));
+    check('no md import is injected here — this module already binds md from editable-md',
+      injections.length === 0, injections.map((e) => e.name).join(','));
     const ownEvents = events.filter((e) => own(e.name));
     const withProv = ownEvents.filter((e) => e.prov === 'annotate');
     check('writes to annotation cells carry annotate provenance',
@@ -382,7 +410,7 @@ try {
     await page.evaluate(() => window.__a2stop && window.__a2stop());
   } else {
     check('placement changes only annotation cells, the md import and editor scaffolding', false, 'onCodeChange not computed — probe unavailable');
-    check('the editable-md import is injected once, not per annotation', false, 'probe unavailable');
+    check('no md import is injected here — this module already binds md from editable-md', false, 'probe unavailable');
     check('writes to annotation cells carry annotate provenance', false, 'probe unavailable');
   }
 
@@ -391,7 +419,7 @@ try {
   await page.setViewportSize({ width: 900, height: 3000 });
   await page.waitForTimeout(1000);
 
-  const gtAfter = await groundTruthRect(page, 'lazy dog');
+  const gtAfter = await groundTruthRect(page, 'not a position');
   const hlAfter = await highlightRect(page, a1.id);
   check('text layout actually changed on resize',
     !near(gtAfter.left, gt1.left, 0.5) || !near(gtAfter.top, gt1.top, 0.5),
@@ -472,7 +500,7 @@ try {
 
   // ---- 8. an anchor that stops resolving slides down the ladder -----------
   const cellTop = await page.evaluate(() => {
-    const c = document.querySelector('.observablehq[cell="demoText"]');
+    const c = document.querySelector('.observablehq[cell="demoProse"]');
     const r = c.getBoundingClientRect();
     return { top: r.top, left: r.left };
   });
@@ -516,9 +544,11 @@ try {
   // §6 left the viewport short; a real drag needs the demo prose on screen.
   await page.setViewportSize({ width: 1300, height: 4600 });
   await page.waitForTimeout(800);
-  // Park the other boxes off-screen so a real drag-select cannot hit one.
-  for (const a of [a1, a2, a3]) {
-    await api(page, `store.patch(${JSON.stringify(a.id)}, {box: {dx: 0, dy: -9999, w: 200}})`);
+  // Park every other box off-screen so a real drag-select cannot hit one — including the
+  // notes the notebook ships with.
+  const parked = (await api(page, 'store.all().map(a => a.id)')).filter((id) => id !== a4.id);
+  for (const id of parked) {
+    await api(page, `store.patch(${JSON.stringify(id)}, {box: {dx: 0, dy: -9999, w: 200}})`);
   }
   await api(page, `store.patch(${JSON.stringify(a4.id)}, {box: {dx: 200, dy: 60, w: 200}})`);
   await page.waitForTimeout(500);
@@ -528,7 +558,7 @@ try {
   check('⌖ click arms re-anchor mode',
     await api(page, '/re-anchoring/.test(layer.textContent)'), await api(page, 'layer.textContent'));
 
-  const gtPhrase = await groundTruthRect(page, 'disambiguate');
+  const gtPhrase = await groundTruthRect(page, 'surroundings');
   await page.mouse.move(gtPhrase.left + 1, gtPhrase.top + gtPhrase.height / 2);
   await page.mouse.down();
   await page.mouse.move(gtPhrase.left + gtPhrase.width - 1, gtPhrase.top + gtPhrase.height / 2, { steps: 10 });
@@ -536,7 +566,7 @@ try {
   await page.waitForTimeout(600);
   const reText = await api(page, `store.get(${JSON.stringify(a4.id)})`);
   check('a drag-selection re-anchors the annotation to text',
-    reText && reText.anchor.surface === 'text' && /disambiguate/.test(reText.anchor.quote.exact),
+    reText && reText.anchor.surface === 'text' && /surroundings/.test(reText.anchor.quote.exact),
     reText && `${reText.anchor.surface} "${reText.anchor.quote && reText.anchor.quote.exact}"`);
   check('the re-anchored annotation keeps its note cell', reText && reText.cell === `annotation_${a4.id}_note`);
   check('re-anchor disarms after one pick', !(await api(page, 'layer.isArmed()')));
@@ -554,8 +584,8 @@ try {
     rePoint && rePoint.anchor.surface === 'svg' && near(rePoint.anchor.svg.x, 145, 2) && near(rePoint.anchor.svg.y, 50, 2),
     rePoint && rePoint.anchor.svg && `(${rePoint.anchor.svg.x.toFixed(1)},${rePoint.anchor.svg.y.toFixed(1)})`);
 
-  for (const a of [a1, a2, a3]) {
-    await api(page, `store.patch(${JSON.stringify(a.id)}, {box: ${JSON.stringify(a.box || { dx: 260, dy: -20, w: 200 })}})`);
+  for (const id of parked) {
+    await api(page, `store.patch(${JSON.stringify(id)}, {box: {dx: 260, dy: -20, w: 200}})`);
   }
   await page.waitForTimeout(500);
 
@@ -673,17 +703,20 @@ try {
     await page.evaluate(() => window.__preReloadMarker === undefined));
 
   const restored = await api(page, 'store.all()');
+  const missing = expectCells.filter((c) => !restored.some((r) => r.cell === c));
   check('annotations restore from their cells after reload',
     Array.isArray(restored) && restored.length === expectCells.length,
-    `${restored && restored.length}/${expectCells.length}`);
+    `${restored && restored.length}/${expectCells.length}` + (missing.length ? ` missing ${missing.join(',')}` : ''));
   const restoredBodies = await page.evaluate(() =>
     [...document.querySelectorAll('[data-a2-body]')].map((b) => b.textContent.trim()));
   check('the markdown note re-renders after reload (md binding survived export)',
     restoredBodies.some((t) => /plus typed text/.test(t)), restoredBodies.join(' | ').slice(0, 90));
   check('the non-markdown note re-renders after reload',
     restoredBodies.includes('not markdown'), restoredBodies.join(' | ').slice(0, 90));
-  const hlRestored = restored.length ? await highlightRect(page, restored[0].id) : null;
-  const gtRestored = await groundTruthRect(page, 'lazy dog');
+  // the notebook ships with its own notes, so pick the one this suite placed
+  const restoredText = restored.find((r) => r.anchor.quote && r.anchor.quote.exact === 'not a position');
+  const hlRestored = restoredText ? await highlightRect(page, restoredText.id) : null;
+  const gtRestored = await groundTruthRect(page, 'not a position');
   check('restored text anchor still resolves onto the quote',
     hlRestored && near(hlRestored.left, gtRestored.left) && near(hlRestored.top, gtRestored.top));
 
@@ -746,7 +779,7 @@ try {
     for (const v of rt._variables) if (v._name === 'cellEditor' && v._module === mod) mk = v._value;
     if (typeof mk !== 'function') return { err: 'cellEditor unavailable' };
     const cellEditor = await mk();
-    const div = document.querySelector('.observablehq[cell="demoText"]');
+    const div = document.querySelector('.observablehq[cell="demoProse"]');
     const variable = div.variable || [...rt._variables].find((v) => v._observer && v._observer._node === div);
     const ed = cellEditor(variable, { pinned: true }); // pinned mounts CodeMirror straight away
     ed.setAttribute('data-a2-test-editor', '');
@@ -783,7 +816,7 @@ try {
   check('editor-5 content can be annotated', aEd && aEd.anchor.quote.exact === edSel,
     aEd && aEd.anchor.quote && aEd.anchor.quote.exact);
   check('the anchor records the region beside the cell, and which cell that is',
-    aEd && aEd.anchor.region === 'after' && aEd.anchor.cell === 'demoText',
+    aEd && aEd.anchor.region === 'after' && aEd.anchor.cell === 'demoProse',
     aEd && JSON.stringify({region: aEd.anchor.region, cell: aEd.anchor.cell}));
   check('the editor annotation resolves (it is not an orphan)',
     !!(await highlightRect(page, aEd.id)));
@@ -819,7 +852,7 @@ try {
     const mod = rt.mains.get('@tomlarkworthy/annotate');
     // flat spec, no surface, no box, no id — exactly what a person or an agent would type
     mod.define('annotation_agent_a', ['annotation'], (annotation) =>
-      annotation({ cell: 'demoText', quote: { exact: 'quick brown fox' },
+      annotation({ cell: 'demoProse', quote: { exact: 'told apart' },
                    author: 'agent', severity: 'warn' }));
     // and one that is not even named annotation_*
     mod.define('agentNoteB', ['annotation'], (annotation) =>
@@ -920,17 +953,17 @@ try {
       near(plotRes1.x, datum.x, 3) && near(plotRes1.y, datum.y, 3),
     plotRes1 && `(${plotRes1.x.toFixed(0)},${plotRes1.y.toFixed(0)}) rung ${plotRes1.rung}`);
 
-  // Re-render the chart at a different width: a pixel fraction would slide off the datum,
-  // data coordinates do not.
-  await page.evaluate(() => {
-    const el = document.querySelector('.observablehq[cell="viewof demoPlotWidth"] input[type="range"]')
-      || document.querySelector('.observablehq[cell="viewof demoPlotWidth"] input');
-    el.value = '860';
+  // Pan the window the chart plots: a pixel offset would stay put while the data slid
+  // underneath it; a datum travels with the data.
+  const setPan = (n) => page.evaluate((v) => {
+    const el = document.querySelector('.observablehq[cell="viewof demoPlotPan"] input[type="range"]');
+    el.value = String(v);
     el.dispatchEvent(new Event('input', { bubbles: true }));
-  });
+  }, n);
+  await setPan(8);
   await page.waitForTimeout(1200);
   const datum2 = await datumAt(10);
-  check('the plot really re-rendered at a new width',
+  check('the chart really panned — the datum moved across the frame',
     Math.abs(datum2.x - datum.x) > 40, `${datum.x.toFixed(0)} -> ${datum2.x.toFixed(0)}`);
   const aPlot2 = await api(page, `store.get(${JSON.stringify(aPlot.id)})`);
   check('the stored anchor did not move — it is in data units',
@@ -940,10 +973,23 @@ try {
     plotRes2 && !plotRes2.adrift && near(plotRes2.x, datum2.x, 3) && near(plotRes2.y, datum2.y, 3),
     plotRes2 && `(${plotRes2.x.toFixed(0)},${plotRes2.y.toFixed(0)}) vs datum (${datum2.x.toFixed(0)},${datum2.y.toFixed(0)})`);
 
+  // Pan far enough and the datum is no longer plotted. A scale extrapolates without
+  // complaint, so the guard is the surface's job: off-screen, and say so.
+  await setPan(12);
+  await page.waitForTimeout(1200);
+  const plotRes3 = await api(page, `A.resolve(store.get(${JSON.stringify(aPlot.id)}).anchor)`);
+  check('a datum panned out of the window is adrift, not extrapolated into the page',
+    plotRes3 && plotRes3.adrift === true && /outside the plotted domain/.test(plotRes3.why || ''),
+    plotRes3 && `rung ${plotRes3.rung} adrift ${plotRes3.adrift} why ${plotRes3.why}`);
+  await setPan(4);
+  await page.waitForTimeout(1200);
+  check('panning back brings it home',
+    !(await api(page, `A.resolve(store.get(${JSON.stringify(aPlot.id)}).anchor)`)).adrift);
+
   // A surface this build does not know about must not be painted at a plausible-looking
   // fraction — it goes adrift, honestly.
   const unknown = await api(page,
-    `A.resolve({module: "@tomlarkworthy/annotate", cell: "demoText", surface: "hologram", frac: {fx: 0.5, fy: 0.5}})`);
+    `A.resolve({module: "@tomlarkworthy/annotate", cell: "demoProse", surface: "hologram", frac: {fx: 0.5, fy: 0.5}})`);
   check('an unknown surface is adrift, not silently painted',
     unknown && unknown.adrift === true && unknown.rung === 'cell' && /unknown surface/.test(unknown.why || ''),
     unknown && `rung ${unknown.rung} adrift ${unknown.adrift} why ${unknown.why}`);
@@ -958,12 +1004,12 @@ try {
       place: (el) => { const r = el.getBoundingClientRect(); return { kind: 'point', x: r.right, y: r.bottom }; }
     }));
     mod.define('annotation_corner_x', ['annotation'], (annotation) =>
-      annotation({ cell: 'demoText', surface: 'corner' }));
+      annotation({ cell: 'demoProse', surface: 'corner' }));
   });
   await page.waitForTimeout(2500);
-  const cornerRes = await api(page, `A.resolve({module: "@tomlarkworthy/annotate", cell: "demoText", surface: "corner"})`);
+  const cornerRes = await api(page, `A.resolve({module: "@tomlarkworthy/annotate", cell: "demoProse", surface: "corner"})`);
   const cornerTruth = await page.evaluate(() => {
-    const r = document.querySelector('.observablehq[cell="demoText"]').getBoundingClientRect();
+    const r = document.querySelector('.observablehq[cell="demoProse"]').getBoundingClientRect();
     return { x: r.right, y: r.bottom };
   });
   check('a surface contributed as a cell is registered and used',

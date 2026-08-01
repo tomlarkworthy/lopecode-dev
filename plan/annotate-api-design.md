@@ -1,6 +1,6 @@
 # annotate: the cell *is* the API
 
-Built 2026-08-01. Suite: `tools/test-annotate.js`, 115/115.
+Built 2026-08-01. Suite: `tools/test-annotate.js`, 121/121.
 
 ## 1. The shape
 
@@ -138,6 +138,16 @@ Built in: **text** (0), **plot** (10, data space via Plot's `scale().invert`), *
 user units through `getScreenCTM()`), **image** (30), **element** (90). An anchor naming a
 surface this build has never heard of goes adrift with `why: "unknown surface …"` rather than
 being painted at a guessed fraction.
+
+## 5c. Anchors people write, versus anchors placements record
+
+A hand-written anchor names a cell and a quote and stops there. Two things assumed the full
+recorded shape and broke on it: `locate` found the pane only through `anchor.module` (so the
+box was painted in viewport space and clamped to the window), and `patch` recomputed
+`home` as `anchor.module || DATA` (so patching migrated the annotation into the data module,
+and the next export dropped it from the notebook). Both now derive from where the cell
+actually is. The lesson generalises: every field of an anchor is optional, and the resolver
+has to work from whatever subset is present.
 
 ## 6. Costs, unchanged
 
