@@ -301,6 +301,22 @@ function parseVariableGroups(content, acorn) {
     }
   }
 
+  // A $def whose 4th argument is written inline — `$def(pid, "viewof x", ["Inputs"],
+  // function(Inputs){...})` — does not match the regex above and used to vanish without a
+  // word, taking its cell with it (five `viewof` cells were dropped from an annotate push,
+  // leaving the pushed notebook with "viewof annotations is not defined"). Count the $def
+  // sites and say so when some were not extractable.
+  const defSites = (scanContent.match(/\$def\(/g) || []).length;
+  if (defSites > 0) {
+    const matched = (scanContent.match(new RegExp(defRegex.source, 'g')) || []).length;
+    const missed = defSites - matched;
+    if (missed > 0) {
+      console.warn(`[lope-push-ws] WARNING: ${missed} of ${defSites} $def(...) registrations were not ` +
+        `extractable and are NOT being pushed — their 4th argument must be a top-level function ` +
+        `binding, not an inline function expression.`);
+    }
+  }
+
   // Sort by source position so viewof generators and $def entries interleave correctly
   allDefinesWithPos.sort((a, b) => a._pos - b._pos);
   const allDefines = allDefinesWithPos;

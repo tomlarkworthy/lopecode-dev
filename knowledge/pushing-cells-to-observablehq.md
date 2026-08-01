@@ -133,7 +133,38 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 1. **New named cells are inserted at the end.** `replaceCellsViaWS` matches by cell name and `insert_node`s any name from `--cells` that isn't already on the target. No special handling needed — `--cells "newCell,existingCell"` just works.
 2. **Imports are dropped when `--cells` is set.** Import statements are matched by byte-exact text, but Observable reformats whitespace (e.g. a local single-line decompile vs. a multi-line stored form). A mismatched import gets classified as new and `insert_node`'d, producing duplicate imports of the same symbols. To avoid that, the tool now skips all imports when `--cells` is in use (and logs `Dropping N import(s)`). Imports the caller wants to change should already exist on the target from earlier pushes; if they really need to change, rerun without `--cells` to refresh the whole module.
 3. **Manual import edits via raw WS.** If you actually do need to add or modify a single import statement, write a one-off mjs script that calls `modify_node` (existing import) or `insert_node` (new import) keyed on the import's `node.id` from the REST API. See "WebSocket Editing Protocol" above.
-4. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
+4. **`--cells` cannot address an anonymous cell.** Matching is by name, so a doc/markdown cell defined as `$def("_pid", null, ["md"], fn)` is invisible to `--cells` and is silently left stale. Use `--cells-match-body <substring>` instead — it locates the anonymous cell by a distinctive substring of its body and refuses if that substring is not unique. Failing that, a one-off `modify_node` keyed on the node id from `GET /document/{slug}` (`tools/push-cp-docs.mjs` is a worked example). Do **not** reach for `--no-delete` or a full push to sweep it up.
+5. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
+
+## What does not survive the trip
+
+The pusher reads the compiled module, not the notebook UI, so anything the static scanner
+cannot see or the decompiler cannot spell is missing from the target — usually without an
+error until the notebook is loaded on Observable.
+
+1. **A `$def` whose function is written inline is not pushed.** The scanner collects top-level
+   `const X = function…` / `function X()` bindings and matches `$def(pid, name, [inputs], X)`
+   with `X` as a **bare identifier**. `$def("_p", "viewof x", ["Inputs"], function(Inputs){…})`
+   matches nothing and the cell vanishes — this dropped all five `viewof` cells from an
+   annotate push and the notebook failed with `viewof annotations is not defined`. The tool now
+   warns (`N of M $def(...) registrations were not extractable`); the fix is to hoist the
+   function to a named const.
+2. **Dependencies with no Observable source spelling become undefined cells.** `@variable` (the
+   runtime builtin that hands a cell its own `Variable`) decompiles to the *parameter name*, so
+   `["…","@variable"]` arrives on Observable as a dependency on a cell literally called `_v` →
+   `RuntimeError: _v is not defined`. Use `thisModule()` from `@tomlarkworthy/runtime-sdk`
+   (`viewof self = thisModule()`) when the cell needs its own module.
+3. **Hand-written module bridges are not imports.** Import extraction matches the
+   `main.define(name, ["module …", "@variable"], (_, v) => v.import(name, _))` shape. A bespoke
+   bridge — e.g. a deliberately lazy `main.define("cellEditor", ["module @tomlarkworthy/editor-5"],
+   (m) => () => m.value("cellEditor"))` — matches neither that nor a cell, so the name is simply
+   absent on the target. Express it as an ordinary cell (`importShim` inside the thunk keeps the
+   laziness) or as a real import.
+
+Check for all three at once by booting the published module headlessly, which needs neither the
+Observable page nor a login — see `tools/probe-observable-annotate.mjs`: import
+`https://api.observablehq.com/{slug}.js?v=4` into a bare `@observablehq/runtime` with an
+observer that records `fulfilled` / `rejected` per cell, and expect `errors: 0`.
 
 ## File Attachments (REST, not WebSocket)
 
