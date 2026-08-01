@@ -201,6 +201,18 @@
   "@tomlarkworthy/import-notebook": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_import-notebook.html"
   },
+  "@tomlarkworthy/import-wizard-file": {
+    "lopecode": "lopecode/notebooks/import_wizards.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/import-wizard-js": {
+    "lopecode": "lopecode/notebooks/import_wizards.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/import-wizard-notebook": {
+    "lopecode": "lopecode/notebooks/import_wizards.html",
+    "upstream": null
+  },
   "@tomlarkworthy/infinite-canvas": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html"
   },
