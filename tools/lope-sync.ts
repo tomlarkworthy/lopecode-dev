@@ -572,7 +572,14 @@ function cmdPrune(write: boolean): number {
  * it restamps hashes for modules present in BOTH the spec and the HTML, and only
  * reports modules the spec has never heard of.
  *
- * `--rebuild` handles those. A new entry needs `dependsOn`, which means parsing
+ * A notebook with NO spec fails rather than being skipped — otherwise the
+ * invariant is silently optional and every new notebook opts out of it by
+ * default. The hook is passed only the notebooks being committed, so a
+ * pre-existing gap surfaces when that notebook is next touched, not on every
+ * unrelated commit.
+ *
+ * `--rebuild` handles those, and mints a whole spec for a notebook that has
+ * none. A new entry needs `dependsOn`, which means parsing
  * the generated loaders — and that parser is a notebook cell
  * (`@tomlarkworthy/observablejs-toolchain`'s `extractModuleInfo`), not something
  * to reimplement here. `lope-reader.ts --manifest <dir> --compute-imports`
@@ -586,14 +593,14 @@ function cmdPrune(write: boolean): number {
  * `upstreams` / `observable_version` / `observable_update_time` come from
  * ObservableHQ at jumpgate time. Those are preserved verbatim, as is key order.
  */
-function freshModulesByNotebook(dir: string): Map<string, any> {
+function freshSpecsByNotebook(dir: string): Map<string, any> {
   const out = execFileSync(
     "bun",
     [join(ROOT, "tools", "lope-reader.ts"), "--manifest", dir, "--compute-imports"],
     { cwd: ROOT, maxBuffer: 512 << 20, encoding: "utf8" }
   );
   const byName = new Map<string, any>();
-  for (const s of JSON.parse(out)) if (s?.notebook && s?.modules) byName.set(s.notebook, s.modules);
+  for (const s of JSON.parse(out)) if (s?.notebook && s?.modules) byName.set(s.notebook, s);
   return byName;
 }
 
@@ -605,24 +612,50 @@ function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
         return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".html")).map((f) => join(d, f)) : [];
       });
 
-  let changedFiles = 0, changedEntries = 0, missingSpec = 0, addedEntries = 0;
+  let changedFiles = 0, changedEntries = 0, addedEntries = 0, createdFiles = 0;
   const unlisted: string[] = [];
+  const missingSpec: string[] = [];
 
   // One regeneration per directory, shared by every target in it.
   const freshCache = new Map<string, Map<string, any>>();
-  const freshFor = (html: string): any | null => {
+  const freshSpecFor = (html: string): any | null => {
     const dir = dirname(html);
     if (!freshCache.has(dir)) {
       console.log(`  regenerating ${relative(ROOT, dir)} via lope-reader --compute-imports …`);
-      freshCache.set(dir, freshModulesByNotebook(dir));
+      freshCache.set(dir, freshSpecsByNotebook(dir));
     }
     return freshCache.get(dir)!.get(basename(html, ".html")) ?? null;
   };
+  const freshFor = (html: string): any | null => freshSpecFor(html)?.modules ?? null;
 
   for (const html of targets) {
     if (!html.endsWith(".html") || !existsSync(html)) continue;
     const specPath = html.replace(/\.html$/, ".json");
-    if (!existsSync(specPath)) { missingSpec++; continue; }
+    if (!existsSync(specPath)) {
+      // A notebook with no spec has no invariant to keep, so this is a failure
+      // rather than a skip. `--rebuild` mints one; the hook only ever sees the
+      // notebooks being committed, so pre-existing gaps surface when touched.
+      if (!rebuild) { missingSpec.push(relative(ROOT, html)); continue; }
+      const fresh = freshSpecFor(html);
+      if (!fresh) { missingSpec.push(relative(ROOT, html)); continue; }
+      // Restamp before writing, the same way an existing spec is restamped below:
+      // lope-reader's hash and blocksIn's disagree on at least one block per
+      // notebook, so a spec written straight from the manifest would come out
+      // stale on its very next check.
+      const freshBlocks = blocksIn(readFileSync(html, "utf8"));
+      for (const [mod, entry] of Object.entries<any>(fresh.modules ?? {})) {
+        const actual = freshBlocks.get(mod);
+        if (actual && entry) entry.hash = actual;
+      }
+      if (check) {
+        console.error(`  MISSING ${relative(ROOT, specPath)}`);
+      } else {
+        writeFileSync(specPath, JSON.stringify(fresh, null, 2) + "\n");
+        console.log(`  created ${relative(ROOT, specPath)} (${Object.keys(fresh.modules ?? {}).length} module(s))`);
+      }
+      createdFiles++;
+      continue;
+    }
     let spec: any;
     try { spec = JSON.parse(readFileSync(specPath, "utf8")); } catch { continue; }
     if (!spec.modules) continue;
@@ -667,17 +700,25 @@ function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
     for (const u of unlisted.slice(0, 10)) console.error(`    ${u}`);
     if (unlisted.length > 10) console.error(`    … ${unlisted.length - 10} more`);
   }
-  if (missingSpec) console.log(`  (${missingSpec} notebook(s) have no spec — skipped)`);
+  if (missingSpec.length) {
+    console.error(`\n  ${missingSpec.length} notebook(s) have no spec — mint one with: bun tools/lope-sync.ts spec-sync --rebuild <notebook.html>`);
+    for (const m of missingSpec.slice(0, 10)) console.error(`    ${m}`);
+    if (missingSpec.length > 10) console.error(`    … ${missingSpec.length - 10} more`);
+  }
 
-  if (!changedFiles) { console.log("  specs up to date"); return 0; }
-  console.log(
-    check
-      ? `\n${changedEntries} stale hash(es) in ${changedFiles} spec(s). Fix: bun tools/lope-sync.ts spec-sync`
-      : `\n${changedEntries} change(s) in ${changedFiles} spec(s)` +
-        (addedEntries ? `, ${addedEntries} module entr(ies) added` : "") +
-        ` — re-stage them.`
-  );
-  return 1; // pre-commit convention: non-zero when files were changed or are stale
+  if (!changedFiles && !createdFiles && !missingSpec.length) { console.log("  specs up to date"); return 0; }
+  const parts: string[] = [];
+  if (createdFiles) parts.push(`${createdFiles} spec(s) ${check ? "missing" : "created"}`);
+  if (changedFiles) {
+    parts.push(
+      check
+        ? `${changedEntries} stale hash(es) in ${changedFiles} spec(s)`
+        : `${changedEntries} change(s) in ${changedFiles} spec(s)` +
+          (addedEntries ? `, ${addedEntries} module entr(ies) added` : "")
+    );
+  }
+  if (parts.length) console.log(`\n${parts.join("; ")}${check ? ". Fix: bun tools/lope-sync.ts spec-sync" : " — re-stage them."}`);
+  return 1; // pre-commit convention: non-zero when files were changed, created, or are stale/absent
 }
 
 // -------------------------------------------------------------- init-canonical
