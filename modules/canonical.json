@@ -11,6 +11,12 @@
   "@tomlarkworthy/animation": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_animation.html"
   },
+  "@tomlarkworthy/annotate": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_annotate.html"
+  },
+  "@tomlarkworthy/annotate-data": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_annotate.html"
+  },
   "@tomlarkworthy/aqi_no_loop_breaking": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html"
   },
