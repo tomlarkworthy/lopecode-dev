@@ -1,9 +1,10 @@
 # Annotate on observablehq.com — what it would take
 
-Research note, 2026-08-01. The published mirror <https://observablehq.com/@tomlarkworthy/annotate>
-boots clean (39 cells, 0 errors) but every shipped note is adrift at the `page` rung and the
-boxes pile up in the top-left of the viewport. This is what is actually broken, what a fallback
-would recover, and what it would cost. Nothing here is implemented.
+Research note, 2026-08-01; **implemented 2026-08-02** — see §8 for what shipped and the two
+things the research had not predicted. The published mirror
+<https://observablehq.com/@tomlarkworthy/annotate> booted clean (39 cells, 0 errors) but every
+shipped note was adrift at the `page` rung and the boxes piled up in the top-left of the
+viewport. This is what was broken, what a fallback recovers, and what it cost.
 
 Measured with `tools/probe-observable-dom.mjs`, `tools/probe-observable-anchor.mjs` and
 `tools/probe-observable-fallback.mjs` (the last one spikes the proposed rungs standalone in the
@@ -122,3 +123,39 @@ rename and a cell rewrite, which is a real gap today, and the Observable mirror 
 free. The document-as-pane layer is cheap and stops the pile-up. The writing story is where
 Observable genuinely diverges, and the right answer there is to make the mirror read-only and
 say so, rather than to build a second persistence path.
+
+## 8. What shipped (2026-08-02)
+
+All four changes, in the canonical lopebook and pushed to the mirror (version 473). The local
+suite went 123 → 130 checks, all passing; the six shipped notes now resolve on Observable at
+`quote`, `quote`, `plot`, `svg`, `image`, `quote` — none adrift — and paint at the offsets their
+records ask for, in one `position: absolute` layer in the body.
+
+- **Rung A** — `nodeForVariable(module, cell, pane)` between the cell-attribute rung and the
+  end. Prefers a variable in the named module, then one inside the pane, then a unique loose
+  match; a *named* module that lacks the cell is a miss rather than an invitation to take
+  another module's cell of the same name.
+- **Rung B** — `cellForQuote(quote)`, last. Context match first, bare quote only when it is
+  unique in the page; ambiguity returns null and the note goes adrift honestly.
+- **Document layer** — `docScroller()` becomes the pane when a resolved node is in none. The
+  layer is appended to `body`, stays 0×0 with `overflow: visible` (sizing it to the document
+  would make the layer part of what the document has to scroll) and measures its own origin
+  from its own rect, because body margins and positioning vary by host.
+- **Read-only hosts** — `isOnObservableCom()` from runtime-sdk puts one line above the editor:
+  *Runtime only here — paste this into a cell to keep it.*
+
+Two things the research had not predicted, both found by running it:
+
+1. **A lopecode notebook's own source poisons a document-wide text search.** Every module is
+   embedded as `<script type="text/plain">`, and script text is in the DOM: the page's text ran
+   to 3.4 MB, containing each annotation's own record source, so every quote looked ambiguous
+   and rung B matched nothing. Skipping `SCRIPT`/`STYLE`/`NOSCRIPT`/`TITLE` parents fixes it.
+   An **open cell editor** does the same thing on a smaller scale — CodeMirror renders the
+   cell's source, quote included — so `.cm-editor` and `[data-a2-editor]` are skipped too.
+   Rung B searches rendered content, never a view of the code behind it.
+2. **`runtime.mains` is not just a convenience for the store, it is how a note finds its own
+   cell.** With no registry, `homeOf(record)` fell through to the synthetic data module, so
+   `noteVar` missed, `ensureNote` minted a placeholder, and every box read `note…` while the
+   real note cells sat right there in the notebook. `moduleNamed` now recognises this module by
+   identity (`self`, via `thisModule()`), and the by-name scan covers `self` and the data module
+   as well as the mains.

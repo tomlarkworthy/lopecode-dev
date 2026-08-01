@@ -1018,6 +1018,80 @@ try {
   check('an annotation on that surface is discovered like any other',
     (await api(page, 'store.all()')).some((a) => a.varName === 'annotation_corner_x'));
 
+  // ---- 15. the fallback rungs: no cell attribute, no pane, no name ---------
+  // observablehq.com renders `.observablehq` divs with no `cell` attribute and no panes.
+  // Strip the attribute here to stand in for that, and check the ladder still lands.
+  const strippedTruth = await page.evaluate(() => {
+    const el = document.querySelector('.observablehq[cell="demoSvg"]');
+    const r = el.getBoundingClientRect();
+    el.removeAttribute('cell');
+    return { w: Math.round(r.width), h: Math.round(r.height) };
+  });
+  const byVar = await api(page,
+    `(() => { const n = A.nodeForVariable("@tomlarkworthy/annotate", "demoSvg", null);
+              const r = n && n.getBoundingClientRect();
+              return r ? {w: Math.round(r.width), h: Math.round(r.height), tag: n.tagName} : null; })()`);
+  check('a cell with no `cell` attribute is still found through its variable',
+    byVar && byVar.w === strippedTruth.w && byVar.h === strippedTruth.h,
+    byVar && `${byVar.tag} ${byVar.w}x${byVar.h} vs ${strippedTruth.w}x${strippedTruth.h}`);
+  const svgViaVar = await api(page,
+    `A.resolve({module: "@tomlarkworthy/annotate", cell: "demoSvg", surface: "svg", svg: {x: 100, y: 60}})`);
+  check('and an svg anchor on it still resolves in user space',
+    svgViaVar && !svgViaVar.adrift && svgViaVar.rung === 'svg',
+    svgViaVar && `rung ${svgViaVar.rung} adrift ${svgViaVar.adrift}`);
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('.observablehq')) {
+      if (!el.getAttribute('cell') && el.querySelector('svg')) { el.setAttribute('cell', 'demoSvg'); break; }
+    }
+  });
+
+  // A quote with nothing else: no pid, no cell name — the anonymous-cell case. It must
+  // find the same words the named anchor does.
+  const stripped = (id) =>
+    `(() => { const a = Object.assign({}, store.get(${JSON.stringify(id)}).anchor);
+              delete a.pid; delete a.cell; delete a.module; return a; })()`;
+  const named = await api(page, `A.resolve(store.get("tour_prose").anchor)`);
+  const quoteOnly = await api(page, `A.resolve(${stripped('tour_prose')})`);
+  check('an anchor with only a quote re-finds it anywhere on the page',
+    quoteOnly && !quoteOnly.adrift && quoteOnly.rung === 'quote' &&
+      near(quoteOnly.x, named.x, 2) && near(quoteOnly.y, named.y, 2),
+    quoteOnly && `(${quoteOnly.x?.toFixed(0)},${quoteOnly.y?.toFixed(0)}) vs (${named.x?.toFixed(0)},${named.y?.toFixed(0)}) rung ${quoteOnly.rung}`);
+  // The header note is on an anonymous cell — on Observable its pid means nothing, so the
+  // quote is the only handle it has.
+  const titleNamed = await api(page, `A.resolve(store.get("tour_title").anchor)`);
+  const titleQuote = await api(page, `A.resolve(${stripped('tour_title')})`);
+  check('the anonymous header note survives losing its pid',
+    titleQuote && !titleQuote.adrift && near(titleQuote.x, titleNamed.x, 2) && near(titleQuote.y, titleNamed.y, 2),
+    titleQuote && `(${titleQuote.x?.toFixed(0)},${titleQuote.y?.toFixed(0)}) vs (${titleNamed.x?.toFixed(0)},${titleNamed.y?.toFixed(0)}) rung ${titleQuote.rung}`);
+  // Ambiguity is a miss, not a guess: "Annotate" occurs several times with no context.
+  const ambiguous = await api(page, `A.cellForQuote({exact: "Annotate"})`);
+  check('an ambiguous quote with no context finds nothing', ambiguous === null,
+    ambiguous === null ? '' : 'matched something');
+  const contextual = await api(page,
+    `(() => { const n = A.cellForQuote({prefix: "", exact: "Annotate", suffix: "\\nNotes pinned to things"});
+              return n ? (n.getAttribute("cell") || "unnamed") : null; })()`);
+  check('the same quote with its context resolves to one cell', contextual !== null, String(contextual));
+
+  // No pane for that anchor: the document itself becomes the scroll container, and the box
+  // goes into a layer in the body rather than the viewport-clamped root.
+  await page.evaluate(() => {
+    const d = document.createElement('div');
+    d.className = 'observablehq';
+    d.setAttribute('cell', 'a2DocProbe');
+    d.textContent = 'a cell rendered outside any pane';
+    document.body.appendChild(d);
+  });
+  const docLoc = await api(page,
+    `(() => { const loc = A.locate({cell: "a2DocProbe"});
+              return {pane: loc.pane === A.docScroller() ? "document" : loc.pane ? "pane" : "none",
+                      cell: !!loc.cellNode}; })()`);
+  check('a cell outside every pane falls back to the document as its scroll container',
+    docLoc && docLoc.cell === true && docLoc.pane === 'document', JSON.stringify(docLoc));
+  await page.evaluate(() => {
+    const d = document.querySelector('.observablehq[cell="a2DocProbe"]');
+    if (d) d.remove();
+  });
+
   check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
 } catch (e) {
   check('harness completed', false, e.message);
