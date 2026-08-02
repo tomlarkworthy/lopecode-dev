@@ -51,7 +51,14 @@ const files = process.argv.slice(2).filter((a) => a.endsWith(".js"));
 
 const variants = files.map((f) => ({ name: f.split("/").pop()!.replace(/\.js$/, ""), src: readFileSync(f, "utf8") }));
 
-let names = readdirSync(DIR).filter((f) => f.endsWith(".gray")).map((f) => f.slice(0, -5)).sort();
+// --only / --not select a slice of the archive by name. The reason they exist:
+// frames captured AFTER a variant was tuned are a held-out set, and a variant
+// that wins on the frames it was written against and not on fresh ones was
+// fitted to the archive rather than to the problem.
+const ONLY = argOf("--only", "");
+const NOT = argOf("--not", "");
+let names = readdirSync(DIR).filter((f) => f.endsWith(".gray")).map((f) => f.slice(0, -5)).sort()
+  .filter((n) => (!ONLY || n.includes(ONLY)) && (!NOT || !n.includes(NOT)));
 // A subset for iteration, chosen by every k-th case rather than the first N:
 // the archive is sorted by name, which groups by sitting, so the first N would
 // be one room.
@@ -145,7 +152,13 @@ const out = await page.evaluate(async ({ payload, variants, REPS }) => {
           misplaced: s.counts.misplaced, off: s.offTarget.length, score: s.score,
           rowsTried: res.rowsTried ?? null, rowHits: res.rowHits ?? null,
           fused: (res.fused ?? []).length, unread: (res.unidentified ?? []).length,
-          looR: loo && rMed ? +(loo.worstPx / rMed).toFixed(2) : null,
+          // Leave-one-out is only meaningful at n >= 6. A homography has 8 DOF,
+          // so at 5 points dropping one leaves a fit with nothing to spare and
+          // the "prediction" error is unbounded by construction -- a variant
+          // that takes a frame from 3 marks to 5 shows a looR of 6 where the
+          // baseline showed null, and that reads as a catastrophic regression
+          // when it is actually the metric switching on.
+          looR: loo && rMed && (res.fused ?? []).length >= 6 ? +(loo.worstPx / rMed).toFixed(2) : null,
         });
       }
     }
