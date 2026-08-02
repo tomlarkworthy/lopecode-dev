@@ -1,0 +1,88 @@
+{
+ "name": "hexcase-213",
+ "w": 960,
+ "h": 720,
+ "labelled": true,
+ "pinned": false,
+ "difficulty": 3,
+ "truth": [
+  {
+   "id": 56,
+   "x": 455,
+   "y": 415.9,
+   "radiusPx": 36.2,
+   "state": "missing"
+  },
+  {
+   "id": 11,
+   "x": 529.2,
+   "y": 488,
+   "radiusPx": 44.3,
+   "state": "read"
+  },
+  {
+   "id": 22,
+   "x": 586.6,
+   "y": 413.2,
+   "radiusPx": 36.4,
+   "state": "read"
+  },
+  {
+   "id": 29,
+   "x": 514.5,
+   "y": 358.4,
+   "radiusPx": 30.4,
+   "state": "located"
+  },
+  {
+   "id": 37,
+   "x": 398.3,
+   "y": 360.7,
+   "radiusPx": 30.6,
+   "state": "read"
+  },
+  {
+   "id": 46,
+   "x": 323.1,
+   "y": 418.5,
+   "radiusPx": 36.9,
+   "state": "read"
+  },
+  {
+   "id": 51,
+   "x": 377.1,
+   "y": 491.1,
+   "radiusPx": 44.6,
+   "state": "read"
+  }
+ ],
+ "cfg": {
+  "stride": 4,
+  "edgeThreshold": 12,
+  "minRows": 3,
+  "minVotes": 2,
+  "voteRatio": 2,
+  "minAxisRatio": 0.333333333333333,
+  "minCover": 0.3,
+  "maxASpread": 0.35,
+  "gapFrac": 0.3,
+  "maxWidth": 960,
+  "bothAxes": true
+ },
+ "capture": {
+  "counts": {
+   "read": 5,
+   "located": 1,
+   "misplaced": 0,
+   "missing": 1
+  },
+  "offTarget": 0,
+  "rmsPx": 0.42,
+  "looPx": 3.7,
+  "looFrac": 0.102,
+  "mmPerPx": 0.664,
+  "distanceMm": 386,
+  "tiltDeg": 59.9,
+  "ms": 69
+ }
+}
