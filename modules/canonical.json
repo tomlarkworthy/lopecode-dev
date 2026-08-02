@@ -53,7 +53,8 @@
   },
   "@tomlarkworthy/blank-notebook": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_blank-notebook.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blank-notebook.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blank-notebook.html",
+    "upstream": null
   },
   "@tomlarkworthy/blm-us-wealth": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html"

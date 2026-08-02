@@ -91,6 +91,9 @@ function parseArgs(argv) {
     } else if (arg === '--insert-before' && args[i + 1]) {
       // Place unmatched (new) --cells before this existing node id instead of appending at the end.
       options.insertBefore = parseInt(args[++i], 10);
+    } else if (arg === '--remove-nodes' && args[i + 1]) {
+      // Targeted removal by node id, for undoing an insert that should not have happened.
+      options.removeNodes = args[++i].split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
     } else if (arg === '--no-delete') {
       options.noDelete = true;
     } else if (arg === '--delete-first') {
@@ -131,6 +134,9 @@ Options:
                       decompiled cell that also contains it. Use for anonymous cells (no name).
                       Repeat the flag to push several. Modify-only — never inserts.
   --no-delete         Skip deleting old cells
+  --remove-nodes <ids>  Comma-separated node ids to delete from the target, nothing else.
+                      Needs --target only (no notebook/module/decompile). Use to undo an
+                      insert; find the ids in the document JSON.
   --dry-run           List cells that would be pushed without pushing
   --dump <path>       Write the decompiled cells (names + source) to a JSON file
   --verbose           Show detailed WS messages
@@ -726,6 +732,66 @@ function waitForConfirm(ws, expectedVersion, options) {
  * 1. Insert all new cells
  * 2. Delete all old cells (unless --no-delete)
  */
+/**
+ * Delete specific nodes from the target and nothing else. Same save/retry discipline as
+ * the full-replace path: one event per save, resent on the 404 Observable returns under
+ * sustained writes.
+ */
+async function removeNodesViaWS(targetUrl, nodeIds, options) {
+  const slug = extractNotebookSlug(targetUrl);
+  const cookies = await extractCookies(options);
+  const notebook = await fetchNotebook(slug, cookies);
+  const existing = new Set((notebook.nodes || []).map((n) => n.id));
+  const docVersion = notebook.version || notebook.latest_version;
+  log(`Notebook ${notebook.id}: ${existing.size} cell(s), version ${docVersion}`);
+
+  const missing = nodeIds.filter((id) => !existing.has(id));
+  if (missing.length) {
+    console.error(`Error: node(s) not in the document: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  if (existing.size === nodeIds.length) {
+    console.error('Error: refusing to delete every cell — that empties the notebook.');
+    process.exit(1);
+  }
+  if (options.dryRun) {
+    log(`Dry run: would remove node(s) ${nodeIds.join(', ')}`);
+    return;
+  }
+
+  const conn = await connectWS(notebook.id, cookies, docVersion, options);
+  let { version, subversion } = conn;
+  try {
+    for (const id of nodeIds) {
+      let delay = 1500;
+      for (let attempt = 1; ; attempt++) {
+        const newVersion = version + 1;
+        conn.send({
+          type: 'save',
+          events: [{ version: newVersion, type: 'remove_node', node_id: id }],
+          edits: [], version, subversion,
+        });
+        try {
+          const confirm = await waitForConfirm(conn.ws, newVersion, options);
+          version = confirm.version;
+          subversion = confirm.subversion;
+          log(`  removed node ${id}`);
+          await new Promise((r) => setTimeout(r, options.pace || 0));
+          break;
+        } catch (err) {
+          if (attempt >= 6 || !/status (404|409|429|50\d)/.test(err.message)) throw err;
+          log(`remove ${id}: ${err.message} — retry ${attempt}/6 in ${delay}ms`);
+          await new Promise((r) => setTimeout(r, delay));
+          delay = Math.min(delay * 2, 20000);
+        }
+      }
+    }
+    log(`Removed ${nodeIds.length} node(s). Final version: ${version}`);
+  } finally {
+    conn.ws.close();
+  }
+}
+
 async function pushViaWS(decompiled, targetUrl, options) {
   const slug = extractNotebookSlug(targetUrl);
   const cookies = await extractCookies(options);
@@ -984,6 +1050,16 @@ async function main() {
     await page.goto('https://observablehq.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
     log('Please log in to Observable. Press Ctrl+C when done.');
     await new Promise(() => {});
+  }
+
+  // Removal-only mode: no local notebook or module is involved.
+  if (options.removeNodes) {
+    if (!options.target) {
+      console.error('Error: --remove-nodes requires --target');
+      process.exit(1);
+    }
+    await removeNodesViaWS(options.target, options.removeNodes, options);
+    return;
   }
 
   if (!options.notebook) {
