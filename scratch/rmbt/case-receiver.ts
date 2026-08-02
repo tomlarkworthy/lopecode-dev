@@ -54,6 +54,11 @@ if (importAt !== -1) {
     console.error("--import needs a file");
     process.exit(1);
   }
+  // A bundle downloaded from a build that predates per-boot naming carries bare
+  // hexcase-NN names, which collide with whatever is already here. --prefix
+  // renames the whole import so the two sets stay distinguishable by device.
+  const prefixAt = process.argv.indexOf("--prefix");
+  const prefix = prefixAt === -1 ? "" : safe(process.argv[prefixAt + 1] ?? "") + "-";
   const bundle = JSON.parse(readFileSync(path, "utf8"));
   if (bundle.format !== "hexrig-cases-1")
     throw new Error(`unexpected bundle format ${JSON.stringify(bundle.format)}`);
@@ -67,7 +72,7 @@ if (importAt !== -1) {
     const gray = gunzipSync(Buffer.from(grayGzipB64, "base64"));
     if (gray.length !== meta.w * meta.h)
       throw new Error(`${meta.name}: ${gray.length} bytes for a ${meta.w}x${meta.h} frame`);
-    const g = writeCase(safe(meta.name), ".gray", gray);
+    const g = writeCase(prefix + safe(meta.name), ".gray", gray);
     writeCase(g.replace(/\.gray$/, ""), ".json", Buffer.from(JSON.stringify(meta, null, 1)));
     console.log(`  ${g}  ${meta.w}x${meta.h}  ${gray.length.toLocaleString()}B`);
     n++;
