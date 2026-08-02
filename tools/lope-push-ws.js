@@ -18,6 +18,7 @@
  *   --dry-run           List cells that would be pushed without pushing
  *   --dump <path>       Write the decompiled cells (names + source) to a JSON file
  *   --verbose           Show detailed WS messages
+ *   --pace <ms>         Delay between saves (default 150; raise if the server 404s)
  *   --timeout <ms>      Max wait time (default: 30000)
  *   --profile <path>    Browser profile directory for cookie extraction
  *   --cookies-file <path>  Read T/I cookies from JSON file (bypasses Playwright; recommended)
@@ -71,6 +72,7 @@ function parseArgs(argv) {
     dryRun: false,
     verbose: false,
     timeout: 30000,
+    pace: 150, // ms between saves; Observable 404s on sustained back-to-back writes
     profile: path.join(
       process.env.HOME,
       '.claude/lope-push-browser-profile'
@@ -97,6 +99,8 @@ function parseArgs(argv) {
       options.target = args[++i];
     } else if (arg === '--timeout' && args[i + 1]) {
       options.timeout = parseInt(args[++i], 10);
+    } else if (arg === '--pace' && args[i + 1]) {
+      options.pace = parseInt(args[++i], 10);
     } else if (arg === '--profile' && args[i + 1]) {
       options.profile = args[++i];
     } else if (arg === '--cookies-file' && args[i + 1]) {
@@ -130,6 +134,7 @@ Options:
   --dry-run           List cells that would be pushed without pushing
   --dump <path>       Write the decompiled cells (names + source) to a JSON file
   --verbose           Show detailed WS messages
+  --pace <ms>         Delay between saves (default 150; raise if the server 404s)
   --timeout <ms>      Max wait time (default: 30000)
   --profile <path>    Browser profile for persistent login
   --cookies-file <path>  Read T/I cookies from JSON instead of Playwright (recommended; see knowledge/pushing-cells-to-observablehq.md)
@@ -749,6 +754,30 @@ async function pushViaWS(decompiled, targetUrl, options) {
         subversion = finalState.subversion;
       }
     } else {
+      // One save, retried: Observable's save endpoint answers 404 under sustained
+      // back-to-back writes (observed: a --delete-first run died after 3 removals, leaving
+      // the notebook half-deleted). The event is not applied when it errors, so resending
+      // the same version after a pause is safe.
+      const saveEvent = async (makeEvent, what) => {
+        let delay = 1500;
+        for (let attempt = 1; ; attempt++) {
+          const newVersion = version + 1;
+          conn.send({ type: 'save', events: [makeEvent(newVersion)], edits: [], version, subversion });
+          try {
+            const confirm = await waitForConfirm(conn.ws, newVersion, options);
+            version = confirm.version;
+            subversion = confirm.subversion;
+            await new Promise((r) => setTimeout(r, options.pace || 0));
+            return newVersion;
+          } catch (err) {
+            if (attempt >= 6 || !/status (404|409|429|50\d)/.test(err.message)) throw err;
+            log(`${what}: ${err.message} — retry ${attempt}/6 in ${delay}ms`);
+            await new Promise((r) => setTimeout(r, delay));
+            delay = Math.min(delay * 2, 20000);
+          }
+        }
+      };
+
       // --- Full replace mode ---
       // Insert-then-delete by default. On a bloated doc that fails partway,
       // --delete-first shrinks to empty first (fast, no compounding) then inserts.
@@ -756,8 +785,6 @@ async function pushViaWS(decompiled, targetUrl, options) {
         const newNodeIds = [];
         for (let i = 0; i < decompiled.length; i++) {
           const cellSource = decompiled[i];
-          const newVersion = version + 1;
-          const nodeId = newVersion; // Observable requires node_id = event version
 
           log(`Inserting cell ${i + 1}/${decompiled.length}: ${extractCellName(cellSource) || '(anonymous)'}...`);
 
@@ -767,28 +794,18 @@ async function pushViaWS(decompiled, targetUrl, options) {
             ? existingNodes[0].id
             : null;
 
-          conn.send({
-            type: 'save',
-            events: [{
-              version: newVersion,
-              type: 'insert_node',
-              node_id: nodeId,
-              new_next_node_id: nextNodeId,
-              new_node_value: cellSource,
-              new_node_pinned: false,
-              new_node_mode: 'js',
-              new_node_data: null,
-              new_node_name: null,
-            }],
-            edits: [],
-            version,
-            subversion,
-          });
-
-          const confirm = await waitForConfirm(conn.ws, newVersion, options);
-          version = confirm.version;
-          subversion = confirm.subversion;
-          newNodeIds.push(nodeId);
+          const usedVersion = await saveEvent((v) => ({
+            version: v,
+            type: 'insert_node',
+            node_id: v, // Observable requires node_id = event version
+            new_next_node_id: nextNodeId,
+            new_node_value: cellSource,
+            new_node_pinned: false,
+            new_node_mode: 'js',
+            new_node_data: null,
+            new_node_name: null,
+          }), `insert ${extractCellName(cellSource) || '(anonymous)'}`);
+          newNodeIds.push(usedVersion);
         }
         log(`Inserted ${newNodeIds.length} new cells`);
       };
@@ -798,22 +815,11 @@ async function pushViaWS(decompiled, targetUrl, options) {
           log(`Deleting ${existingNodes.length} old cells...`);
           let n = 0;
           for (const node of existingNodes) {
-            const newVersion = version + 1;
-            conn.send({
-              type: 'save',
-              events: [{
-                version: newVersion,
-                type: 'remove_node',
-                node_id: node.id,
-              }],
-              edits: [],
-              version,
-              subversion,
-            });
-
-            const confirm = await waitForConfirm(conn.ws, newVersion, options);
-            version = confirm.version;
-            subversion = confirm.subversion;
+            await saveEvent((v) => ({
+              version: v,
+              type: 'remove_node',
+              node_id: node.id,
+            }), `remove node ${node.id}`);
             if (++n % 50 === 0) log(`Deleted ${n}/${existingNodes.length} old cells...`);
           }
           log(`Deleted ${existingNodes.length} old cells`);
