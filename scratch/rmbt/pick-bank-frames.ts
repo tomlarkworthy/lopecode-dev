@@ -9,7 +9,8 @@
 // metadata, plus a geometry term so two different rooms at the same tilt do not
 // both win.
 //
-//   bun scratch/rmbt/pick-bank-frames.ts [--n 8] [--out scratch/rmbt/bank]
+//   bun scratch/rmbt/pick-bank-frames.ts [--n 16] [--out scratch/rmbt/bank]
+//                                        [--exclude name,name] [--allow-clipped]
 //
 // FRAMES SHIP WHOLE. Cropping to the target would halve the bytes, and it is
 // the wrong saving: the background is the specificity test. Window bars, picture
@@ -30,8 +31,10 @@ const argOf = (flag: string, dflt: string) => {
   const i = process.argv.indexOf(flag);
   return i === -1 ? dflt : process.argv[i + 1];
 };
-const N = Number(argOf("--n", "8"));
+const N = Number(argOf("--n", "16"));
 const OUT = resolve(argOf("--out", "scratch/rmbt/bank"));
+const ALLOW_CLIPPED = process.argv.includes("--allow-clipped");
+const EXCLUDE = argOf("--exclude", "").split(",").map((s) => s.trim()).filter(Boolean);
 const CROP = process.argv.includes("--crop"); // see the header: not for shipping
 const MARGIN = Number(argOf("--margin", "1.6")); // --crop only: in median mark radii
 
@@ -48,6 +51,21 @@ for (const n of names) {
   const gray = readFileSync(resolve(DIR, n + ".gray"));
   if (gray.length !== meta.w * meta.h) {
     console.warn(`  skip ${n}: ${gray.length} bytes for ${meta.w}x${meta.h}`);
+    continue;
+  }
+  if (EXCLUDE.some((e) => n.includes(e))) {
+    console.log(`  exclude ${n}: named on --exclude`);
+    continue;
+  }
+  // A frame whose target runs off the edge is still a legitimate ARCHIVE case --
+  // the sweep should absolutely be graded on partial marks. It is a bad GALLERY
+  // frame: a reader sees a photo that missed, not a detector that coped, and
+  // asks why the picture is wrong instead of looking at the detection. Four of
+  // seventy captures are like this, so dropping them costs almost no variety.
+  const clipped = (meta.truth ?? []).filter(
+    (m: any) => m.x < m.radiusPx || m.y < m.radiusPx || m.x > meta.w - m.radiusPx || m.y > meta.h - m.radiusPx);
+  if (clipped.length && !ALLOW_CLIPPED) {
+    console.log(`  exclude ${n}: ${clipped.length}/${(meta.truth ?? []).length} marks cut by the frame edge`);
     continue;
   }
   cases.push({ name: n, w: meta.w, h: meta.h, gray, meta, desc: null as any, geo: null as any });
@@ -301,12 +319,18 @@ if (installAt !== -1) {
   const mapEnd = html.indexOf("]", mapStart);
   const existing: string[] = JSON.parse("[" + html.slice(mapStart + "new Map([".length, mapEnd) + "]");
   const names = [...existing.filter((n) => !n.startsWith("hexframe")), ...assets];
-  const wasFixed = existing.filter((n) => n.startsWith("hexframe"));
-  if (wasFixed.length && wasFixed.length !== assets.length)
-    console.warn(`  NOTE: slot count changed ${wasFixed.length} -> ${assets.length}; ` +
-                 `testFrameFiles names them literally, so that cell needs the same edit`);
   html = html.slice(0, mapStart + "new Map([".length) + names.map((n) => JSON.stringify(n)).join(",") +
          html.slice(mapEnd);
+
+  // testFrameFiles names each slot in a literal FileAttachment() call -- the
+  // runtime will not accept a computed name -- so the slot COUNT is source code
+  // and changing --n is a code edit. Doing it here keeps the two in step; a bank
+  // of 16 with a cell listing 8 loses half the frames silently.
+  const slots = assets.filter((f) => f.endsWith(".png"));
+  const slotRe = /(?: *\["hexframe-\d+\.png", FileAttachment\("hexframe-\d+\.png"\)\],\n)+/;
+  if (!slotRe.test(html)) throw new Error("could not find testFrameFiles' hexframe slot lines");
+  html = html.replace(slotRe,
+    slots.map((f) => `  [${JSON.stringify(f)}, FileAttachment(${JSON.stringify(f)})],\n`).join(""));
 
   writeFileSync(nb, html);
   console.log(`\ninstalled ${blocks.length} frame(s) into ${basename(nb)} (removed ${dropped} stale)`);
