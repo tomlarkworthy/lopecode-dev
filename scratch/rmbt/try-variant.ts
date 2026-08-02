@@ -38,12 +38,17 @@ import { chromium } from "playwright";
 import { resolve } from "node:path";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 
-const NB = resolve("lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html");
 const DIR = resolve("data/hexcases");
 const argOf = (flag: string, dflt: string) => {
   const i = process.argv.indexOf(flag);
   return i === -1 ? dflt : process.argv[i + 1];
 };
+// --nb points the harness at a DIFFERENT build of the notebook. The variant
+// mechanism compares two detectors inside one page, which cannot see a change
+// to the shipping cell itself; running the same variant against two builds and
+// diffing the baseline columns can. Used to prove the three-stage split was
+// pure code motion.
+const NB = resolve(argOf("--nb", "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"));
 const REPS = Number(argOf("--reps", "3"));
 const SUBSET = Number(argOf("--subset", "0"));
 const JSON_OUT = argOf("--json", "");
