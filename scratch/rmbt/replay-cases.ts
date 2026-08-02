@@ -63,6 +63,8 @@ if (SWEEP) {
       for (const k of Object.keys(over)) (LAYOUT_KEYS.has(k) ? lay : opts)[k] = over[k];
       opts.layout = { ...manLayout, ...lay };
       let read = 0, misplaced = 0, located = 0, missing = 0, offTarget = 0, total = 0, ms = 0;
+      // A duplicate id in fused feeds fitHexPose two points for one landmark.
+      let dupFrames = 0, dupTotal = 0;
       const loos: number[] = [];
       let worstName = null, worstVal = -1, worstRead = null;
       // LOO refits on n-1 points; a homography needs 4, so at n=5 the refit is
@@ -77,6 +79,11 @@ if (SWEEP) {
         offTarget += s.offTarget.length;
         total += (f.truth || []).length;
         ms += res.ms;
+        const idc = new Map();
+        for (const f of res.fused) idc.set(f.id, (idc.get(f.id) ?? 0) + 1);
+        let dn = 0;
+        for (const [, c2] of idc) if (c2 > 1) dn += c2 - 1;
+        if (dn) { dupFrames++; dupTotal += dn; }
         const l = hexRigLoo(res);
         if (l && isFinite(l.worstPx)) {
           loos.push(l.worstPx);
@@ -90,7 +97,7 @@ if (SWEEP) {
         medLoo: loos.length ? +loos[loos.length >> 1].toFixed(2) : null,
         worstLoo: loos.length ? +loos[loos.length - 1].toFixed(2) : null,
         msPerFrame: +(ms / frames.length).toFixed(1),
-        worstCase: worstName, worstCaseRead: worstRead,
+        worstCase: worstName, worstCaseRead: worstRead, dupFrames, dupTotal,
         n6: loos6.length,
         medLoo6: loos6.length ? +loos6[loos6.length >> 1].toFixed(2) : null,
         worstLoo6: loos6.length ? +loos6[loos6.length - 1].toFixed(2) : null,
@@ -153,10 +160,10 @@ if (SWEEP) {
     `  ${label.padEnd(28)} ${String(r.read).padStart(3)}/${String(r.total).padEnd(3)} ` +
     `${String(r.misplaced).padStart(5)} ${String(r.located).padStart(6)} ${String(r.missing).padStart(6)} ` +
     `${String(r.medLoo).padStart(7)} ${String(r.medLoo6).padStart(8)} ${String(r.worstLoo6).padStart(9)} ` +
-    `${String(r.n6).padStart(4)} ${String(r.msPerFrame).padStart(7)}`;
+    `${String(r.n6).padStart(4)} ${String(r.msPerFrame).padStart(7)} ${String(r.dupFrames).padStart(5)}`;
 
   console.log(`offline sweep over ${sweep.nFrames} archived case(s)\n`);
-  console.log("                              read  wrong  locatd  missng  medLoo  medLoo6 worstLoo6  n>=6   ms/fr");
+  console.log("                              read  wrong  locatd  missng  medLoo  medLoo6 worstLoo6  n>=6   ms/fr  dupF");
   console.log(line("BASELINE (shipping)", b));
   console.log("");
   let lastKnob = "";
@@ -184,6 +191,132 @@ if (SWEEP) {
       ` -- ${sweep.applied.read - b.read < sumParts ? "they do NOT compose" : "they compose"}`);
     console.log(`  config: ${JSON.stringify(sweep.combined)}`);
   }
+  await browser.close();
+  process.exit(0);
+}
+
+
+// ---- --profile: where the time goes, and what it costs in accuracy ---------
+// A frame of a printed sheet against a plain wall and the same sheet against a
+// balcony railing are the same detection problem and NOT the same amount of
+// work: every high-contrast edge in the background enters the row scan as a
+// candidate transition, and the cascade pays for it before it can reject it. So
+// this measures cost per frame against a background-busyness number computed
+// straight from the pixels, independent of anything the detector reports about
+// itself.
+if (process.argv.includes("--profile")) {
+  const prof = await page.evaluate(async (payload) => {
+    const rt = (window as any).__ojs_runtime;
+    const vars = [...rt._variables];
+    const val = async (n: string) => { const v = vars.find((z: any) => z._name === n); return v ? await v._module.value(n) : null; };
+    const analyzeFrameMan: any = await val("analyzeFrameMan");
+    const fitHexPose: any = await val("fitHexPose");
+    const hexRigLoo: any = await val("hexRigLoo");
+    const hexRigScore: any = await val("hexRigScore");
+    const REPS = 5;
+
+    const rows: any[] = [];
+    for (const c of payload) {
+      const bin = atob(c.grayB64);
+      const gray = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) gray[i] = bin.charCodeAt(i);
+      const w = c.meta.w, h = c.meta.h;
+      if (gray.length !== w * h) continue;
+
+      // Background busyness, from the pixels only: the fraction of horizontal
+      // neighbour pairs that clear the detector's own edge threshold. This is
+      // what a row scan actually walks, so it is the honest independent variable.
+      let over = 0, sumAbs = 0, n = 0;
+      for (let y = 0; y < h; y += 4)
+        for (let x = 1; x < w; x++) {
+          const d = Math.abs(gray[y * w + x] - gray[y * w + x - 1]);
+          sumAbs += d; n++;
+          if (d >= 12) over++;
+        }
+      const edgeRate = over / n, gradMean = sumAbs / n;
+
+      const ts: number[] = [];
+      let res: any = null;
+      for (let r = 0; r < REPS; r++) {
+        const t0 = performance.now();
+        res = analyzeFrameMan({ gray, w, h }, { stride: 4 });
+        ts.push(performance.now() - t0);
+      }
+      ts.sort((a, b) => a - b);
+      const pose = fitHexPose({ ...res, w, h });
+      const loo = pose.ok ? hexRigLoo(res) : null;
+      const rMed = pose.ok ? pose.marks.map((m: any) => m.radiusPx).sort((a: number, b: number) => a - b)[3] : null;
+      const scored = hexRigScore ? hexRigScore(res, c.meta.truth ?? []) : null;
+
+      rows.push({
+        name: c.meta.name, w, h,
+        msMed: +ts[REPS >> 1].toFixed(1), msMin: +ts[0].toFixed(1), msMax: +ts[REPS - 1].toFixed(1),
+        edgeRate: +(100 * edgeRate).toFixed(1), gradMean: +gradMean.toFixed(1),
+        rowsTried: res.rowsTried, rowHits: res.rowHits,
+        fused: res.fused.length, unread: res.unidentified.length,
+        posedUnread: res.unidentified.filter((u: any) => u.posed).length,
+        read: pose.ok ? pose.counts.read : 0,
+        located: pose.ok ? pose.counts.located : 0,
+        missing: pose.ok ? pose.counts.missing : 7,
+        misplaced: pose.ok ? pose.counts.misplaced : 0,
+        offTarget: pose.ok ? pose.offTarget.length : 0,
+        rms: pose.ok ? pose.rmsResidualPx : null,
+        looR: loo && rMed ? +(loo.worstPx / rMed).toFixed(2) : null,
+        capRead: (c.meta.capture && c.meta.capture.counts ? c.meta.capture.counts.read : null),
+        scoreRead: scored ? scored.read : null,
+        scoreWrong: scored ? scored.misplaced : null
+      });
+    }
+    return rows;
+  }, cases);
+
+  const num = (x: any, w: number) => String(x ?? "-").padStart(w);
+  prof.sort((a: any, b: any) => b.msMed - a.msMed);
+  console.log(`profile over ${prof.length} archived case(s), median of 5 runs each, stride 4\n`);
+  console.log("  case                  ms   edge%  rowsTried rowHits fused unread  read loc miss off   rms   looR");
+  for (const r of prof)
+    console.log(`  ${r.name.padEnd(20)} ${num(r.msMed, 5)} ${num(r.edgeRate, 6)} ` +
+      `${num(r.rowsTried, 10)} ${num(r.rowHits, 7)} ${num(r.fused, 5)} ${num(r.unread, 6)} ` +
+      `${num(r.read, 5)} ${num(r.located, 3)} ${num(r.missing, 4)} ${num(r.offTarget, 3)} ` +
+      `${num(r.rms, 6)} ${num(r.looR, 6)}`);
+
+  const stat = (xs: number[]) => {
+    const s = xs.slice().sort((a, b) => a - b);
+    return { med: s[s.length >> 1], p90: s[Math.min(s.length - 1, Math.floor(0.9 * s.length))], max: s[s.length - 1], mean: s.reduce((a, b) => a + b, 0) / s.length };
+  };
+  const corr = (xs: number[], ys: number[]) => {
+    const mx = xs.reduce((a, b) => a + b, 0) / xs.length, my = ys.reduce((a, b) => a + b, 0) / ys.length;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < xs.length; i++) { const a = xs[i] - mx, b = ys[i] - my; sxy += a * b; sxx += a * a; syy += b * b; }
+    return sxy / Math.sqrt(sxx * syy);
+  };
+  const ms = prof.map((r: any) => r.msMed);
+  const t = stat(ms);
+  console.log(`\nlatency: median ${t.med.toFixed(1)}ms  mean ${t.mean.toFixed(1)}ms  p90 ${t.p90.toFixed(1)}ms  max ${t.max.toFixed(1)}ms`);
+  console.log(`  a 30fps budget is 33ms/frame; ${ms.filter((m: number) => m > 33).length} of ${ms.length} case(s) blow it, ` +
+    `${ms.filter((m: number) => m > 16.7).length} blow 60fps`);
+  console.log(`  ms vs background edge rate:  r = ${corr(prof.map((r: any) => r.edgeRate), ms).toFixed(2)}`);
+  console.log(`  ms vs rowHits:               r = ${corr(prof.map((r: any) => r.rowHits), ms).toFixed(2)}`);
+  console.log(`  ms vs pixels:                r = ${corr(prof.map((r: any) => r.w * r.h), ms).toFixed(2)}`);
+  console.log(`  ms vs unread candidates:     r = ${corr(prof.map((r: any) => r.unread), ms).toFixed(2)}`);
+
+  // Split the archive at the median edge rate: the point is whether a busy
+  // background costs time, so compare like with like on the SAME frame size.
+  const land = prof.filter((r: any) => r.h === 720);
+  const er = land.map((r: any) => r.edgeRate).sort((a: number, b: number) => a - b);
+  const cut = er[er.length >> 1];
+  const calm = land.filter((r: any) => r.edgeRate <= cut), busy = land.filter((r: any) => r.edgeRate > cut);
+  const avg = (xs: any[], k: string) => xs.reduce((a, b) => a + (b[k] ?? 0), 0) / (xs.length || 1);
+  console.log(`\n960x720 frames split at the median edge rate (${cut}%):`);
+  console.log(`  calm  n=${calm.length}  ${avg(calm, "msMed").toFixed(1)}ms  edge ${avg(calm, "edgeRate").toFixed(1)}%  rowHits ${avg(calm, "rowHits").toFixed(0)}  unread ${avg(calm, "unread").toFixed(1)}  read ${avg(calm, "read").toFixed(2)}/7  off ${avg(calm, "offTarget").toFixed(2)}`);
+  console.log(`  busy  n=${busy.length}  ${avg(busy, "msMed").toFixed(1)}ms  edge ${avg(busy, "edgeRate").toFixed(1)}%  rowHits ${avg(busy, "rowHits").toFixed(0)}  unread ${avg(busy, "unread").toFixed(1)}  read ${avg(busy, "read").toFixed(2)}/7  off ${avg(busy, "offTarget").toFixed(2)}`);
+  console.log(`  cost of a busy background: ${(avg(busy, "msMed") / Math.max(avg(calm, "msMed"), 0.01)).toFixed(2)}x time, ` +
+    `${(avg(busy, "read") - avg(calm, "read")).toFixed(2)} marks read`);
+
+  const totRead = prof.reduce((a: number, r: any) => a + r.read, 0);
+  const totWrong = prof.reduce((a: number, r: any) => a + r.misplaced, 0);
+  const totOff = prof.reduce((a: number, r: any) => a + r.offTarget, 0);
+  console.log(`\naccuracy over ${prof.length} frames (${7 * prof.length} marks): ${totRead} read, ${totWrong} misplaced, ${totOff} off-target detections`);
   await browser.close();
   process.exit(0);
 }
