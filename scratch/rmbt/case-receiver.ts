@@ -73,7 +73,11 @@ if (importAt !== -1) {
     if (gray.length !== meta.w * meta.h)
       throw new Error(`${meta.name}: ${gray.length} bytes for a ${meta.w}x${meta.h} frame`);
     const g = writeCase(prefix + safe(meta.name), ".gray", gray);
-    writeCase(g.replace(/\.gray$/, ""), ".json", Buffer.from(JSON.stringify(meta, null, 1)));
+    const stem = g.replace(/\.gray$/, "");
+    // The sidecar's own name has to follow the file, or a renamed import shows
+    // up in replay-cases under the name it collided with -- two rows, one label.
+    meta.name = stem;
+    writeCase(stem, ".json", Buffer.from(JSON.stringify(meta, null, 1)));
     console.log(`  ${g}  ${meta.w}x${meta.h}  ${gray.length.toLocaleString()}B`);
     n++;
   }
