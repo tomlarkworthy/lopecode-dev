@@ -199,3 +199,33 @@ This pattern is used by `tools.js` `findModule()` and by the `all_module_files` 
                 -->  module define() registers as FileAttachment builtin
 5. Back to step 2
 ```
+
+## Platform differences: notebook-kit / new.observablehq.com
+
+Everything above describes the **legacy** contract (classic observablehq.com and lopecode), where
+each notebook gets its own `FileAttachment` in `module._builtins`, keyed by plain name. A notebook
+being *viewed* on `new.observablehq.com` runs the notebook-kit stdlib instead, where:
+
+1. `FileAttachment` is a single **runtime-level** builtin — `module._builtins` holds only
+   `@variable, invalidation, visibility`, so `module._builtins.get("FileAttachment")` is
+   `undefined`. `getFileAttachments()` falls back to the module's own `FileAttachment` dependency.
+2. The registry is keyed by **resolved href** (`https://…/@user/name.json`), not plain name, so
+   keys need basename normalisation (only applied when the key is an absolute URL, which never
+   happens in lopecode).
+3. `FileAttachment("")` — the probe `getFileAttachmentsMap` uses to capture the registry —
+   **memoises unknown names**, so the probe also no-ops `Map.prototype.set` for its window, or it
+   registers `document.baseURI` as a bogus attachment.
+
+(1) and (2) are handled in `@tomlarkworthy/fileattachments` as of 2026-07-25.
+
+Still broken there, deliberately: the **write** path. `FileAttachmentClass` derives the class as
+`sampleFileAttachment.__proto__.__proto__.constructor`, and notebook-kit's `Inputs.file()` yields
+a raw `File`, so the walk lands on `Blob` (File extends Blob) and `createFileAttachment` throws
+"Failed to construct 'Blob'". Re-deriving is awkward — the global `FileAttachment` is an arrow
+function with no `.prototype`, and the constructor arity differs (classic `new K(name, mimeType)`
+vs notebook-kit `FileAttachmentImpl(href, name, mimeType)`, whose `.json()` reads `this.href`, so
+overriding `url()` does nothing). Left alone because writable attachments are inert on Observable
+regardless: `save_options` in editor-5 is reachable but **never settles** on classic either. It is
+a lopecode-only feature.
+
+See `knowledge/diagnosing-new-observable-platform-differences.md` for the diagnosis playbook.

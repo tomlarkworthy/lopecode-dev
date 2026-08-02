@@ -7,6 +7,12 @@ Kit JavaScript cell to lopecode runtime cells and decompiles them back.
 Notebook Kit and lopecode share the same substrate — Observable runtime 6 — so a cell
 compiled here defines variables on the same runtime lopecode already uses.
 
+The shared substrate is not a shared *stdlib*: notebook-kit's `Mutable`, `FileAttachment`
+and cell naming (`viewof$x`) differ from classic Observable's, which is what breaks our
+modules on `new.observablehq.com`. See
+`knowledge/diagnosing-new-observable-platform-differences.md` — `vendor/notebook-kit` is also
+the fastest way to reproduce those differences offline.
+
 ## Invariant
 
 `decompile(compile(src)) === src`, modulo a single leading/trailing newline (`Sourcemap.trim()`).

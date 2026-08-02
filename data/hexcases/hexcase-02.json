@@ -8,51 +8,51 @@
  "truth": [
   {
    "id": 56,
-   "x": 153.4,
-   "y": 485.2,
-   "radiusPx": 68.2,
+   "x": 542.7,
+   "y": 344.8,
+   "radiusPx": 62.1,
    "state": "read"
   },
   {
    "id": 11,
-   "x": 253.3,
-   "y": 695,
-   "radiusPx": 85,
-   "state": "located"
+   "x": 624,
+   "y": 489.9,
+   "radiusPx": 56.7,
+   "state": "read"
   },
   {
    "id": 22,
-   "x": 340.7,
-   "y": 445.6,
-   "radiusPx": 82.3,
+   "x": 721.1,
+   "y": 342.5,
+   "radiusPx": 60.1,
    "state": "read"
   },
   {
    "id": 29,
-   "x": 230,
-   "y": 272.8,
-   "radiusPx": 66.9,
+   "x": 642.8,
+   "y": 181,
+   "radiusPx": 66.2,
    "state": "read"
   },
   {
    "id": 37,
-   "x": 78.1,
-   "y": 326.8,
-   "radiusPx": 57.1,
+   "x": 449.9,
+   "y": 179.4,
+   "radiusPx": 68.7,
    "state": "read"
   },
   {
    "id": 46,
-   "x": 8.5,
-   "y": 515.8,
-   "radiusPx": 58.1,
-   "state": "read"
+   "x": 355.6,
+   "y": 347.2,
+   "radiusPx": 64.4,
+   "state": "located"
   },
   {
    "id": 51,
-   "x": 74.9,
-   "y": 702.9,
-   "radiusPx": 70.2,
+   "x": 450.5,
+   "y": 495.5,
+   "radiusPx": 58.5,
    "state": "read"
   }
  ],
@@ -67,7 +67,7 @@
   "maxASpread": 0.35,
   "gapFrac": 0.3,
   "maxWidth": 960,
-  "bothAxes": true
+  "bothAxes": false
  },
  "capture": {
   "counts": {
@@ -77,12 +77,12 @@
    "missing": 0
   },
   "offTarget": 0,
-  "rmsPx": 2.11,
-  "looPx": 17.4,
-  "looFrac": 0.255,
-  "mmPerPx": 0.352,
-  "distanceMm": 223,
-  "tiltDeg": 25.6,
-  "ms": 34
+  "rmsPx": 0.96,
+  "looPx": 3.6,
+  "looFrac": 0.058,
+  "mmPerPx": 0.386,
+  "distanceMm": 279,
+  "tiltDeg": 15.4,
+  "ms": 25
  }
 }
