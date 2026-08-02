@@ -61,6 +61,28 @@ Alongside the URL, jumpgate records `"observable_version"` (monotonic integer fr
 
 Exit codes: `0` = success, `1` = failure
 
+### An in-place jumpgate rebuilds the *whole bundle*, not one module
+
+Jumpgate reconstructs the notebook from the Observable document plus a frame, so re-exporting
+over an existing file to refresh **one** module also replaces everything else in it. Measured on
+`@tomlarkworthy_editor-5.html` (2026-08-02, refreshing a single pushed cell):
+
+- **The frame defaults to `@tomlarkworthy/lopepage`** — hash and theme come from the existing
+  spec, the frame does not. Pass `--frame @tomlarkworthy/lopepage-2` when that is what the
+  notebook uses, or the layout regresses.
+- **Anything added to the HTML after the last export is dropped.** `@tomlarkworthy/save-in-place`
+  — module block *and* its `mains` entry — is in the local file but in neither the Observable
+  document nor the frame, so it vanished silently. The notebook still boots; it just loses
+  save-in-place.
+- **21 sibling modules were swapped for Observable's current copies**, drifting them off their
+  declared canonicals (`lope-sync.ts audit` then showed this notebook as a population of one for
+  `lopepage-2`, `cell-map`, `exporter-3`, `themes`, `command-palette`, …).
+
+So: to refresh one module from Observable, jumpgate to a **scratch path**, diff it
+(`lope-reader.ts --get-module` for the module, the `<script id>` set for blocks), then apply just
+that module with `sync-module`. Jumpgate in place only when the whole bundle is meant to be
+re-imported — and re-check `mains` and the frame afterwards.
+
 ### How lope-jumpgate.js Works Internally
 
 1. Launches Playwright Chromium with `--disable-web-security` (needed for file:// + API fetches)
