@@ -120,6 +120,7 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 | `--no-delete` | Skip deleting old cells |
 | `--dry-run` | List cells that would be pushed without pushing |
 | `--verbose` | Show WS message details |
+| `--pace <ms>` | Delay between saves (default 150) — the endpoint 404s on sustained back-to-back writes |
 | `--timeout <ms>` | Max wait time (default: 30000) |
 | `--profile <path>` | Browser profile for cookie storage (default: `~/.claude/lope-push-browser-profile`) |
 | `--cookies-file <path>` | Read T/I cookies from a JSON file instead of Playwright (recommended; see "Workaround" above) |
@@ -135,6 +136,16 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 3. **Manual import edits via raw WS.** If you actually do need to add or modify a single import statement, write a one-off mjs script that calls `modify_node` (existing import) or `insert_node` (new import) keyed on the import's `node.id` from the REST API. See "WebSocket Editing Protocol" above.
 4. **`--cells` cannot address an anonymous cell.** Matching is by name, so a doc/markdown cell defined as `$def("_pid", null, ["md"], fn)` is invisible to `--cells` and is silently left stale. Use `--cells-match-body <substring>` instead — it locates the anonymous cell by a distinctive substring of its body and refuses if that substring is not unique. Failing that, a one-off `modify_node` keyed on the node id from `GET /document/{slug}` (`tools/push-cp-docs.mjs` is a worked example). Do **not** reach for `--no-delete` or a full push to sweep it up.
 5. **`--no-delete` together with `--cells` is broken.** `--no-delete` forces the *full-replace* code path (insert all, skip delete) — combined with `--cells`, you get duplicates of every named cell with no way to recover via the same script. The CLI now refuses this combination, but if you bypass the check or hit the destructive path another way, recovery is a one-shot mjs script that connects to the WS and `remove_node`s the offending node IDs (the duplicates have the highest `node_id`s in the notebook, since `node_id == event_version`).
+
+## Pace the saves
+
+Observable's save endpoint answers **404 after about three back-to-back writes**. A
+`--delete-first` push died three removals in, leaving the live notebook with 41 of its 54 cells
+and the insert phase unrun — the notebook was missing its import cell and every dependent read
+`… is not defined`. The tool now paces saves (`--pace`, default 150ms) and retries a
+404/409/429/5xx six times with backoff; the errored event is not applied, so resending the same
+version is safe. If a push still dies partway, re-run it — `--delete-first` is monotonic — and
+check `GET /document/{slug}` for the node count before assuming the mirror is fine.
 
 ## What does not survive the trip
 
