@@ -35,6 +35,13 @@ const N = Number(argOf("--n", "16"));
 const OUT = resolve(argOf("--out", "scratch/rmbt/bank"));
 const ALLOW_CLIPPED = process.argv.includes("--allow-clipped");
 const EXCLUDE = argOf("--exclude", "").split(",").map((s) => s.trim()).filter(Boolean);
+// Publication allow-list. The bank goes into a notebook pushed to a PUBLIC repo,
+// and several captures have bystanders in them -- faces, tattoos, a recognisable
+// building. An allow-list fails CLOSED: a capture nobody has looked at yet
+// cannot ship. See scratch/rmbt/bank-allow.txt for the rule and its cost.
+const ALLOW = new Set(
+  readFileSync(resolve(argOf("--allow", "scratch/rmbt/bank-allow.txt")), "utf8")
+    .split("\n").map((s) => s.replace(/#.*/, "").trim()).filter(Boolean));
 const CROP = process.argv.includes("--crop"); // see the header: not for shipping
 const MARGIN = Number(argOf("--margin", "1.6")); // --crop only: in median mark radii
 
@@ -53,6 +60,7 @@ for (const n of names) {
     console.warn(`  skip ${n}: ${gray.length} bytes for ${meta.w}x${meta.h}`);
     continue;
   }
+  if (!ALLOW.has(n)) continue; // not cleared for publication; silent, it is the common case
   if (EXCLUDE.some((e) => n.includes(e))) {
     console.log(`  exclude ${n}: named on --exclude`);
     continue;

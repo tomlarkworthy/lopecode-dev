@@ -1,0 +1,90 @@
+# Captures cleared for PUBLICATION in the 11.6 bank.
+#
+# The archive in data/hexcases is a validation set and stays whole -- it is
+# never committed and never leaves this machine. This file is the subset that
+# may be embedded in the notebook, which is pushed to a PUBLIC GitHub repo.
+#
+# Allow-list, not a deny-list, and deliberately so: a deny-list fails OPEN, so
+# the next sitting that happens to have a bystander in it would ship by default
+# the first time anyone re-runs the picker. This fails closed. A capture is
+# added here only after someone has looked at it.
+#
+# Excluded today: the whole hexcase-5mcq-* sitting. Nine of its ten frames show
+# a second adult and two show a child, all identifiable, in a home interior.
+# Family, and content to be in the dataset, which is why the frames stay in the
+# validation set -- but consent to help with an experiment is not consent to be
+# published, and those are different questions. The tenth (5mcq-09) has nobody
+# in it and is held back only because keeping the batch rule simple is worth
+# more than one extra candidate.
+#
+# Everyone else in the archive is the author, who is fine with it.
+hexcase-01
+hexcase-02
+hexcase-02-pre
+hexcase-03
+hexcase-03-pre
+hexcase-04
+hexcase-04-pre
+hexcase-05
+hexcase-06
+hexcase-06-pre
+hexcase-07
+hexcase-08
+hexcase-09
+hexcase-10
+hexcase-100
+hexcase-11
+hexcase-12
+hexcase-13
+hexcase-131
+hexcase-137
+hexcase-14
+hexcase-144
+hexcase-152
+hexcase-159
+hexcase-160
+hexcase-165
+hexcase-166
+hexcase-168
+hexcase-18
+hexcase-206
+hexcase-213
+hexcase-217
+hexcase-220
+hexcase-241
+hexcase-261
+hexcase-263
+hexcase-306
+hexcase-45
+hexcase-5iap-01
+hexcase-5iap-02
+hexcase-5iap-03
+hexcase-5iap-04
+hexcase-5iap-05
+hexcase-5iap-06
+hexcase-5iap-08
+hexcase-5iap-09
+hexcase-5iap-10
+hexcase-5iap-11
+hexcase-5iap-12
+hexcase-5iap-13
+hexcase-5ivq-01
+hexcase-5ivq-02
+hexcase-5ivq-03
+hexcase-5ivq-04
+hexcase-5ivq-05
+hexcase-5ivq-06
+hexcase-5ivq-07
+hexcase-5ivq-08
+hexcase-69
+hexcase-75
+phone-hexcase-01
+phone-hexcase-02
+phone-hexcase-03
+phone-hexcase-04
+phone-hexcase-05
+phone-hexcase-06
+phone-hexcase-07
+phone-hexcase-08
+phone-hexcase-09
+phone-hexcase-10
