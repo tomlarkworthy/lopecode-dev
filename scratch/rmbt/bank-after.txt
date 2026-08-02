@@ -1,0 +1,50 @@
+    "alongPx": 14.8,
+    "acrossPx": 0,
+    "fusedAt": null
+   },
+   {
+    "id": 4,
+    "turnsSeen": 3,
+    "spurious": false,
+    "alongPx": 1.6,
+    "acrossPx": 9,
+    "fusedAt": null
+   },
+   {
+    "id": 5,
+    "turnsSeen": 3,
+    "spurious": false,
+    "alongPx": 2.7,
+    "acrossPx": 3,
+    "fusedAt": null
+   },
+   {
+    "id": 6,
+    "turnsSeen": 4,
+    "spurious": false,
+    "alongPx": 6.1,
+    "acrossPx": 4,
+    "fusedAt": {
+     "x": 569.2,
+     "y": 238.9
+    }
+   }
+  ],
+  "alongScanPx": 23,
+  "acrossScanPx": 64,
+  "fusedIds": 2,
+  "pass": true,
+  "failures": []
+ }
+]
+
+=== frame pixel checksums ===
+[
+ {
+  "name": "man sheet on a phone screen, hand-held and tipped",
+  "w": 760,
+  "h": 540,
+  "n": 410400,
+  "checksum": 183072700
+ }
+]

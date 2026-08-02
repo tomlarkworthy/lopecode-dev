@@ -1,0 +1,8 @@
+{
+ "m_sup14":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "voteMode": "sup", "minSup": 14},
+ "n_sup18":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "voteMode": "sup", "minSup": 18},
+ "o_sup21":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "voteMode": "sup", "minSup": 21},
+ "p_both18": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "voteMode": "both", "minSup": 18, "soloSup": 12, "soloRows": 8},
+ "q_solo11": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 11, "soloRows": 8},
+ "r_solo12r12": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 12, "soloRows": 12}
+}

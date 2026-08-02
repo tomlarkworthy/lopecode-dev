@@ -1,0 +1,262 @@
+{
+  "notebook": "tomlarkworthy_coded-landmark-tracking",
+  "title": "@tomlarkworthy/coded-landmark-tracking",
+  "bootconf": {
+    "mains": [
+      "@tomlarkworthy/save-in-place",
+      "@tomlarkworthy/fast-1d-circular-barcode-matching",
+      "@tomlarkworthy/lopepage-2",
+      "@tomlarkworthy/realtime-multi-barcode-tracking",
+      "@tomlarkworthy/coded-landmark-tracking"
+    ],
+    "hash": "#view=R100(S100(@tomlarkworthy/coded-landmark-tracking))",
+    "headless": true,
+    "prerender": true
+  },
+  "files": [
+    "syntax.css"
+  ],
+  "modules": {
+    "es-module-shims@2.6.2": {
+      "hash": "cee51f1ba35e6d8159e7962602277c5c"
+    },
+    "@observablehq/runtime@6.0.0": {
+      "hash": "ce53c4b3d62862e2a80007100f527242"
+    },
+    "@observablehq/inspector@5.0.1": {
+      "hash": "5658858e85affa2e1e5cd1052924c622"
+    },
+    "@tomlarkworthy/coded-landmark-tracking": {
+      "hash": "d8337186911dd6c33667d361acb4ff25",
+      "files": [
+        "frame-mirror-angled.png",
+        "frame-mirror-flat.png",
+        "frame-blank.png",
+        "frame-man-phone.png"
+      ]
+    },
+    "@tomlarkworthy/fast-1d-circular-barcode-matching": {
+      "hash": "4bb95165979d668ca781edcff545bede",
+      "files": [
+        "image.png"
+      ]
+    },
+    "@tomlarkworthy/lopepage-2": {
+      "hash": "0598b5ecce2336d3dd3c3fc59cc0508d"
+    },
+    "@tomlarkworthy/realtime-multi-barcode-tracking": {
+      "hash": "c4528c8d9ea05790abd20e2833ec104a"
+    },
+    "@tomlarkworthy/save-in-place": {
+      "hash": "aea6b315755118e76e8021177e76e917"
+    },
+    "@mbostock/safe-local-storage": {
+      "hash": "937d252019887842c8c48c634b76179a"
+    },
+    "@mootari/access-runtime": {
+      "hash": "824eda0a37dba52c718c3e24cd664982"
+    },
+    "@mootari/signature": {
+      "hash": "f6530bdd475f662e4a72518086921662"
+    },
+    "@tomlarkworthy/acorn-8-11-3": {
+      "hash": "a2c4eb96cb067e559536d9f841c2a8e1",
+      "files": [
+        "acorn-8.11.3.js.gz",
+        "acorn-walk-8.3.2.js.gz"
+      ]
+    },
+    "@tomlarkworthy/cell-map": {
+      "hash": "434c65227b7b0457fdb8b2baf7580d25"
+    },
+    "@tomlarkworthy/cells-to-clipboard": {
+      "hash": "7af7898b237728b52ea24b568ad2fd32"
+    },
+    "@tomlarkworthy/circular-barcode-simulator": {
+      "hash": "0a3ac8f4261076bbb9da2e2e763f4729",
+      "files": [
+        "image.png",
+        "image%402.png",
+        "image%405.png",
+        "image%407.png",
+        "image%409.png"
+      ]
+    },
+    "@tomlarkworthy/claude-code-pairing": {
+      "hash": "9ef62cada1525cf5d4987907f0362236"
+    },
+    "@tomlarkworthy/codemirror-6-v2": {
+      "hash": "80378ba570b5e43e8f978aa58a7aff02",
+      "files": [
+        "codemirror_javascript%405.js.gz"
+      ]
+    },
+    "@tomlarkworthy/command-palette": {
+      "hash": "a3617c1f57904cbab42a34b069bf092a"
+    },
+    "@tomlarkworthy/dataflow-templating": {
+      "hash": "252c8b301ce39174ba434ed710c829e1",
+      "files": [
+        "dataflow_templating%401.svg"
+      ]
+    },
+    "@tomlarkworthy/dom-view": {
+      "hash": "5d93999f7810ce61fe36ddbeca737dff"
+    },
+    "@tomlarkworthy/editor-5": {
+      "hash": "ce407d44e9550760a7882c2c7192658d",
+      "files": [
+        "cell_options.json"
+      ]
+    },
+    "@tomlarkworthy/exporter-3": {
+      "hash": "9e5fcccf1ed23acb071ad881f1f2e1e0"
+    },
+    "@tomlarkworthy/file-sync": {
+      "hash": "adcaf784830574cbacb4c069959714d6"
+    },
+    "@tomlarkworthy/fileattachments": {
+      "hash": "75679a4f3f2047d045c1e27372816a3b"
+    },
+    "@tomlarkworthy/flow-queue": {
+      "hash": "97db7ca44c394ea3f73a3f60f0d2ef6c",
+      "files": [
+        "flowQuery%401.svg"
+      ]
+    },
+    "@tomlarkworthy/inspector": {
+      "hash": "4388a12127c9f7f4667923f96ebb6820",
+      "files": [
+        "inspector-5%401.0.1.js.gz"
+      ]
+    },
+    "@tomlarkworthy/invoke-variable": {
+      "hash": "ae3d268aca489da6f10ef0ac2ebf5da2"
+    },
+    "@tomlarkworthy/isomorphic-git-1-30-1": {
+      "hash": "16fa79b79fb4e9e1a2d03cfc9221147c",
+      "files": [
+        "isomorphic-git-1%401.30.1.bundle.js.gz",
+        "isomorphic-git-http-1.0.0-beta.36.js.gz"
+      ]
+    },
+    "@tomlarkworthy/jest-expect-standalone": {
+      "hash": "418ef3328580c7b2416be5b9fc940db4",
+      "files": [
+        "jest-expect-standalone-24.0.2.js.gz"
+      ]
+    },
+    "@tomlarkworthy/jszip-3-10-1": {
+      "hash": "2b119c57e9c2ce093b3a9c7d2932d010",
+      "files": [
+        "jszip-3.10.1.min.js.gz"
+      ]
+    },
+    "@tomlarkworthy/lightning-fs-4-6-0": {
+      "hash": "1f60955582df75104615d8061957d237",
+      "files": [
+        "lightning-fs-4.6.0.js.gz"
+      ]
+    },
+    "@tomlarkworthy/local-change-history": {
+      "hash": "4764f3d18c8f776aabdc6acb92d38a6f"
+    },
+    "@tomlarkworthy/local-storage-view": {
+      "hash": "da3fda1c802cba464986bb8614de354d"
+    },
+    "@tomlarkworthy/lopepage-urls": {
+      "hash": "28f1a31190b2a69e3c9d3ac522c41bd4"
+    },
+    "@tomlarkworthy/modern-screenshot": {
+      "hash": "2068c45ab4a57f62e5e6221fef595e24",
+      "files": [
+        "modern-screenshot-4.6.6.js.gz"
+      ]
+    },
+    "@tomlarkworthy/module-map": {
+      "hash": "0933d2f9fd88398e1c86a359579db0e3"
+    },
+    "@tomlarkworthy/modules": {
+      "hash": "1a8195ade0cf1a14d350785eeec762cd"
+    },
+    "@tomlarkworthy/observable-runtime": {
+      "hash": "4b60a23333fcadbc20650feae24d4039",
+      "files": [
+        "runtime.js.gz"
+      ]
+    },
+    "@tomlarkworthy/observable-runtime-v6": {
+      "hash": "6bc9db7b1881559c4d30c39f692e3969"
+    },
+    "@tomlarkworthy/observablehq-lezer": {
+      "hash": "f827692f8b66b9b0f0cb8b9529f40815",
+      "files": [
+        "lezer-lr-bundled.js.gz",
+        "lezer-highlight-bundled.js.gz"
+      ]
+    },
+    "@tomlarkworthy/observablejs-toolchain": {
+      "hash": "ee645d9c91a19f749128621e7ec3f99f",
+      "files": [
+        "parser-6.1.0.js.gz"
+      ]
+    },
+    "@tomlarkworthy/openai-responses-api": {
+      "hash": "6f30587bad7d1ee3c882d2a536d303f8",
+      "files": [
+        "image.png"
+      ]
+    },
+    "@tomlarkworthy/plugin-registry": {
+      "hash": "428298afcf9c9c8bb13c412d7c23b191"
+    },
+    "@tomlarkworthy/reversible-attachment": {
+      "hash": "bd5c80a260b0ab92fd01205320224d30"
+    },
+    "@tomlarkworthy/robocoop-2": {
+      "hash": "47a5db4e5a2d83991358e93e88099e69"
+    },
+    "@tomlarkworthy/runtime-sdk": {
+      "hash": "fe93b58bba8bad16ebe793c3c4b44eb6"
+    },
+    "@tomlarkworthy/spectral-layout": {
+      "hash": "35a448bc0359085c38d622228972d60d"
+    },
+    "@tomlarkworthy/stream-operators": {
+      "hash": "e36abaedab4dca730a68bbd8fa2a72f5"
+    },
+    "@tomlarkworthy/summarizejs": {
+      "hash": "6012d7554a1be7b899eb3e061154b130"
+    },
+    "@tomlarkworthy/tabbed-pane-view": {
+      "hash": "19bc7f796fa61d9321039e07e1deed55"
+    },
+    "@tomlarkworthy/tests": {
+      "hash": "a4ead3e197c013250a0395848c3f4982"
+    },
+    "@tomlarkworthy/themes": {
+      "hash": "042b99c1b68485e7925e7e1cd635a641"
+    },
+    "@tomlarkworthy/view": {
+      "hash": "970bf1f386002336660773d1215dd61f"
+    },
+    "@tomlarkworthy/visualizer": {
+      "hash": "c2964fd9bd642d209f8bbd5a3675b7b3"
+    },
+    "@tomlarkworthy/whisper-input": {
+      "hash": "ca076f1040d00862fc0202a02c996f41"
+    },
+    "d/1f41fef8b019cf4e": {
+      "hash": "526437f8ad32c3ecde45a429e8df302e"
+    },
+    "d/57d79353bac56631": {
+      "hash": "913f1f6b56a3bbdfca30148905419a98"
+    },
+    "d/b2bbebd2f186ed03": {
+      "hash": "a707bcf51c845d252ca7fb139a9fe857"
+    },
+    "@tomlarkworthy/bootloader": {
+      "hash": "f687ddbbf19b8758d061a3cf72779a66"
+    }
+  }
+}

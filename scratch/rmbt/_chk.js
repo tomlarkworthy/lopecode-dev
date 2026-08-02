@@ -1,0 +1,2612 @@
+const _1dvf37e = function _anonymous(md) {return (md`# Coded Landmark Tracking
+
+**Part IV of the realtime optical positioning series.** Parts I–III could find circular barcodes — several at once, at arbitrary chord offsets, on live pixels — but every barcode was the *same* barcode. A detection told you *where*, never *which*. For robotic navigation that is only half a landmark: a map is a set of labelled positions, and the label is what lets a robot know which corridor it is looking down.
+
+This notebook puts a few bits of identity into the rings. The design constraint that shaped everything else: **the payload must not make detection more expensive.** The naive approach — one template per codeword, run Part III's detector once per template — multiplies the per-row cost by the codebook size. Instead the barcode is split into two roles:
+
+- a **fixed carrier**: a handful of rings identical for every codeword, giving detection a payload-independent template;
+- a **payload band**: rings whose colour encodes bits, which detection treats as clutter and *decoding* reads afterwards — not by finding edges, but by sampling image intensity at positions predicted by the already-fitted Möbius map.
+
+Detection cost stays where Part III left it. Decoding is a handful of array lookups per row, and — the property worth the whole exercise — its cost is **independent of how many codewords exist**, because the codebook is only consulted once per row, after the bits are read.
+
+The bits carry an error-correcting code, and that buys a second thing for free: a detection whose bits decode to no valid codeword is a *false positive*, so the payload doubles as a verification gate the earlier parts never had.
+`);};
+const _106dc0v = function _anonymous(md,tex) {return (md`---
+## §1 A code you can read along any chord
+
+The radius is divided into bands. Everything is in **template units**, radius 0 at the centre, 28 at the rim — the same scale Parts II and III used.
+
+| radius | role | colour |
+|---|---|---|
+| 0–4 | core (white reference) | white |
+| 4–6 | inner carrier ring | black |
+| 6–8 | payload cell **P0** | data |
+| 8–9 | guard (white reference) | white |
+| 9–10 | **mid-sync ring** | black |
+| 10–11 | guard (white reference) | white |
+| 11–25 | payload cells **P1–P7**, 2 units each | data |
+| 25–26 | guard (white reference) | white |
+| 26–28 | rim carrier ring | black |
+
+Two properties are load-bearing.
+
+**The carrier's edges exist for every codeword.** A payload cell can be black or white, so the edge *between* a payload cell and its neighbour may or may not exist — but the edges at radii **4, 9, 10, 26 and 28** sit between bands whose colours are fixed. Ten guaranteed edges per diameter, whatever the bits say. That is the detection template.
+
+**The mid-sync ring is where it is for the cross ratio.** Part III learned the hard way that anchor quadruples clustered near the rim have a cross ratio a hair from the degenerate value 1. The anchors here are the rim and mid-sync edges, ${tex`(-28, -10, +10, +28)`}, whose cross ratio is **1.289** at zero chord offset — comfortably informative. And because the anchor radii are known, the cross ratio as a function of chord offset ${tex`d`} is known too: it climbs to 2.14 by ${tex`d = 9`}. Matching a window's cross ratio against that curve does not just *gate* candidates the way §3 of Part III did — **it reads off a coarse estimate of the offset for free**, before any alignment has run.
+
+The white guards around every black carrier ring are not decoration: they are photometric references. Any chord that crosses the carrier crosses known-white and known-black paint at known radii, which is exactly what decoding needs to threshold the payload samples under whatever lighting the row actually has.
+
+Eight payload cells carry an **extended Hamming [8,4] code**: 16 codewords, minimum distance 4 — every landmark ID survives one misread cell and *detects* two. Two of the sixteen are **reserved as invalid**: id 0 (payload all black) and id 15 (payload all white). A window that lands on featureless paint reads a constant stripe pattern, and a constant correlates *perfectly* with one of those two words — margin alone cannot reject it. Declaring the constant words non-ids turns the most dangerous false positive into a structural impossibility, leaving **14 usable identities** — enough for a room-scale landmark map, and §6 shows why the ceiling is a policy choice, not a performance one.
+`);};
+const _lu0qkj = function _LAYOUT() {
+  // radial bands [r0, r1, kind] — kind: 1 white, 0 black, "p<i>" payload cell i
+  const bands = [
+    [0, 4, 1],
+    [4, 6, 0],
+    [6, 8, "p0"],
+    [8, 9, 1],
+    [9, 10, 0],
+    [10, 11, 1],
+    [11, 13, "p1"],
+    [13, 15, "p2"],
+    [15, 17, "p3"],
+    [17, 19, "p4"],
+    [19, 21, "p5"],
+    [21, 23, "p6"],
+    [23, 25, "p7"],
+    [25, 26, 1],
+    [26, 28, 0]
+  ];
+  const cells = bands
+    .filter(([, , k]) => typeof k === "string")
+    .map(([r0, r1, k]) => ({ i: +k.slice(1), r0, r1, rm: (r0 + r1) / 2 }));
+  return {
+    R: 28,
+    bands,
+    cells,
+    // edges between bands of fixed colour — the payload-independent carrier
+    fixedEdges: [4, 9, 10, 26, 28],
+    anchorRadii: [28, 10],
+    whiteRefs: [2, 8.5, 10.5, 25.5],
+    blackRefs: [5, 9.5, 27]
+  };
+};
+const _dwk66l = function _codebook() {
+  // extended Hamming [8,4]: 16 codewords, minimum distance 4
+  const words = [];
+  for (let id = 0; id < 16; id++) {
+    const d = [id & 1, (id >> 1) & 1, (id >> 2) & 1, (id >> 3) & 1];
+    const p0 = d[0] ^ d[1] ^ d[3];
+    const p1 = d[0] ^ d[2] ^ d[3];
+    const p2 = d[1] ^ d[2] ^ d[3];
+    const w = [p0, p1, d[0], p2, d[1], d[2], d[3], 0];
+    w[7] = w.slice(0, 7).reduce((a, b) => a ^ b, 0);
+    words.push(Uint8Array.from(w));
+  }
+  return words;
+};
+const _1p6gckl = function _codebookCheck(codebook) {
+  // verify the claimed minimum distance — a wrong codebook silently halves robustness
+  let dmin = 8;
+  for (let a = 0; a < 16; a++)
+    for (let b = a + 1; b < 16; b++) {
+      let dist = 0;
+      for (let i = 0; i < 8; i++) dist += codebook[a][i] ^ codebook[b][i];
+      dmin = Math.min(dmin, dist);
+    }
+  if (dmin !== 4) throw new Error(`codebook minimum distance ${dmin}, expected 4`);
+  return { codewords: 16, bits: 8, dataBits: 4, minDistance: dmin };
+};
+const _1wej8fk = function _radialColor(LAYOUT) {return (function radialColor(r, word) {
+  // 1 = white, 0 = black, for radius r in template units, given a payload word
+  if (r >= LAYOUT.R) return null; // outside the mark
+  for (const [r0, r1, k] of LAYOUT.bands) {
+    if (r >= r0 && r < r1) {
+      if (typeof k === "number") return k;
+      return word[+k.slice(1)]; // payload cell: the bit is the colour
+    }
+  }
+  return null;
+});};
+const _1i5b3d0 = function _codewordGallery(LAYOUT,codebook) {
+  // all 16 marks side by side — payload rings differ, carrier rings are identical
+  const cell = 72, pad = 6, cols = 8;
+  const rows = Math.ceil(16 / cols);
+  const c = window.document.createElement("canvas");
+  c.width = cols * (cell + pad) + pad;
+  c.height = rows * (cell + pad + 14) + pad;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#2a2a2a";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.font = "11px monospace";
+  ctx.textAlign = "center";
+  for (let id = 0; id < 16; id++) {
+    const gx = pad + (id % cols) * (cell + pad);
+    const gy = pad + Math.floor(id / cols) * (cell + pad + 14);
+    const cx = gx + cell / 2, cy = gy + cell / 2;
+    const scale = cell / 2 / LAYOUT.R;
+    // each band drawn as an annulus (outer disc minus inner disc, evenodd fill)
+    for (const [r0, r1, k] of LAYOUT.bands) {
+      const bit = typeof k === "number" ? k : codebook[id][+k.slice(1)];
+      ctx.fillStyle = bit ? "#fff" : "#000";
+      ctx.beginPath();
+      ctx.arc(cx, cy, r1 * scale, 0, 2 * Math.PI);
+      ctx.arc(cx, cy, r0 * scale, 0, 2 * Math.PI, true);
+      ctx.fill("evenodd");
+    }
+    ctx.fillStyle = "#9ad";
+    ctx.fillText(`id ${id}`, cx, gy + cell + 11);
+  }
+  c.style.maxWidth = "100%";
+  return c;
+};
+const _4gz48s = function _anonymous(md) {return (md`---
+## §2 A scene of labelled landmarks
+
+The simulator is Part III's rig with one change: each target carries its **own** codeword texture, and the ground truth records which. Everything downstream can then be scored on the question that actually matters for navigation: *did we read the right label at the right place?*
+
+Targets cycle through the 16 codewords deterministically (target \`i\` shows codeword \`i mod 16\`), so every run exercises the whole codebook.`);};
+const _faupuu = function _codewordTextures(LAYOUT,codebook,THREE,invalidation) {
+  // one CanvasTexture per codeword, painted band-by-band as annuli
+  const S = 512;
+  const scale = S / 2 / LAYOUT.R;
+  const textures = codebook.map((word) => {
+    const c = window.document.createElement("canvas");
+    c.width = S;
+    c.height = S;
+    const ctx = c.getContext("2d");
+    for (const [r0, r1, k] of LAYOUT.bands) {
+      const bit = typeof k === "number" ? k : word[+k.slice(1)];
+      ctx.fillStyle = bit ? "#ffffff" : "#000000";
+      ctx.beginPath();
+      ctx.arc(S / 2, S / 2, r1 * scale, 0, 2 * Math.PI);
+      ctx.arc(S / 2, S / 2, r0 * scale, 0, 2 * Math.PI, true);
+      ctx.fill("evenodd");
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = false;
+    return tex;
+  });
+  invalidation.then(() => textures.forEach((t) => t.dispose()));
+  return textures;
+};
+const _nfwsus = function _nLandmarks(Inputs) {return (Inputs.range([1, 16], { step: 1, value: 6, label: "landmarks" }));};
+const _zsvxn7 = (G, _) => G.input(_);
+const _15fbbws = function _simRig(FRAME,THREE,codewordTextures,nLandmarks,invalidation) {
+  // Part III's rig, but each target gets its own codeword material and records trueId.
+  // Ids 0 and 15 are reserved (§4), so targets cycle through the 14 usable codewords.
+  const w = FRAME.w;
+  const h = FRAME.h;
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(1);
+  const rt = new THREE.WebGLRenderTarget(w, h);
+  const gl = renderer.getContext();
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x2a2a2a);
+  const camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 100);
+  camera.position.set(0, 0, 5);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  // deterministic per-target pseudo-randomness so the scene is reproducible
+  const rnd = (i, k) => {
+    const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  };
+
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const mats = codewordTextures.map(
+    (tex) =>
+      new THREE.MeshBasicMaterial({
+        map: tex,
+        side: THREE.DoubleSide,
+        transparent: true
+      })
+  );
+
+  const targets = [];
+  for (let i = 0; i < nLandmarks; i++) {
+    const trueId = 1 + (i % 14);
+    const mesh = new THREE.Mesh(geo, mats[trueId]);
+    scene.add(mesh);
+    targets.push({
+      id: i,
+      trueId,
+      mesh,
+      cx: (rnd(i, 1) - 0.5) * 3.4,
+      cy: (rnd(i, 2) - 0.5) * 2.4,
+      cz: -rnd(i, 3) * 2.5,
+      ax: rnd(i, 4) * 0.9 - 0.45,
+      ay: rnd(i, 5) * 0.9 - 0.45,
+      sp: 0.4 + rnd(i, 6),
+      ph: rnd(i, 7) * 6.283,
+      sc: 0.75 + rnd(i, 8) * 0.7
+    });
+  }
+
+  const rgba = new Uint8Array(w * h * 4);
+  const gray = new Uint8Array(w * h);
+
+  // m = motion amount, passed in so the slider does not rebuild the GL context
+  const step = (t, m) => {
+    for (const b of targets) {
+      b.mesh.position.set(
+        b.cx + m * 0.5 * Math.sin(t * b.sp + b.ph),
+        b.cy + m * 0.4 * Math.cos(t * b.sp * 0.8 + b.ph),
+        b.cz + m * 0.6 * Math.sin(t * b.sp * 0.5)
+      );
+      b.mesh.rotation.set(
+        b.ax + m * 0.5 * Math.sin(t * 0.6 + b.ph),
+        b.ay + m * 0.6 * Math.cos(t * 0.5 + b.ph),
+        m * 0.3 * t * b.sp
+      );
+      b.mesh.scale.set(b.sc, b.sc, 1);
+    }
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, camera);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+    // readPixels is bottom-up; flip so row 0 is the top of the image
+    for (let y = 0; y < h; y++) {
+      const src = (h - 1 - y) * w * 4;
+      const dst = y * w;
+      for (let x = 0; x < w; x++) {
+        const o = src + x * 4;
+        gray[dst + x] = (rgba[o] + rgba[o + 1] + rgba[o + 2]) / 3;
+      }
+    }
+    return gray;
+  };
+
+  invalidation.then(() => {
+    rt.dispose();
+    geo.dispose();
+    mats.forEach((m) => m.dispose());
+    renderer.dispose();
+  });
+
+  return { w, h, canvas: renderer.domElement, step, targets, camera, scene };
+};
+const _j6jmhh = function _running(Inputs) {return (Inputs.toggle({ label: "run", value: false }));};
+const _u5lzp = (G, _) => G.input(_);
+const _frwygv = function _motion(Inputs) {return (Inputs.range([0, 1], { step: 0.05, value: 0.3, label: "motion" }));};
+const _13kodma = (G, _) => G.input(_);
+const _1hy8mdc = async function* _simFrame(running,simRig,motion) {
+  const t0 = window.performance.now();
+  let n = 0;
+  while (true) {
+    const t = running ? (window.performance.now() - t0) / 1000 : 0;
+    const gray = simRig.step(t, running ? motion : 0);
+    yield { gray, w: simRig.w, h: simRig.h, t, n: n++, source: "sim" };
+    // paused: park until `running` flips, which re-runs this cell
+    if (!running) await new Promise(() => {});
+  }
+};
+const _tl97yc = function _overlaySvg(htl,FRAME) {return (htl.svg`<svg viewBox="0 0 ${FRAME.w} ${FRAME.h}" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none"></svg>`);};
+const _xwbf17 = function _sceneView(simRig,htl,FRAME,overlaySvg) {
+  const canvas = simRig.canvas;
+  canvas.style.width = "100%";
+  canvas.style.height = "auto";
+  canvas.style.display = "block";
+  const div = htl.html`<div style="position:relative;width:100%;max-width:${FRAME.w}px;border:1px solid var(--theme-foreground-faintest,#888)"></div>`;
+  div.appendChild(canvas);
+  div.appendChild(overlaySvg);
+  return div;
+};
+const _2pll7q = function _rowStride(Inputs) {return (Inputs.range([2, 64], { step: 1, value: 12, label: "row stride (px)" }));};
+const _1jjclm3 = (G, _) => G.input(_);
+const _1svyp0z = function _scanRows(rowStride,FRAME) {
+  const rows = [];
+  for (let y = Math.floor(rowStride / 2); y < FRAME.h; y += rowStride) rows.push(y);
+  return rows;
+};
+const _y17nqa = function _groundTruth(simFrame,simRig,THREE) {
+  simFrame; // recompute each frame
+  const camera = simRig.camera;
+  const w = simRig.w;
+  const h = simRig.h;
+  camera.updateMatrixWorld();
+  const toPx = (v) => {
+    const p = v.clone().project(camera);
+    // flip y: our frame rows run top-down
+    return { x: (p.x * 0.5 + 0.5) * w, y: (1 - (p.y * 0.5 + 0.5)) * h, z: p.z };
+  };
+  return simRig.targets.map((t) => {
+    t.mesh.updateMatrixWorld();
+    const M = t.mesh.matrixWorld;
+    const c = new THREE.Vector3().setFromMatrixPosition(M);
+    // the plane's own axes, already carrying its scale
+    const ax = new THREE.Vector3().setFromMatrixColumn(M, 0);
+    const ay = new THREE.Vector3().setFromMatrixColumn(M, 1);
+    const pc = toPx(c);
+    const pu = toPx(c.clone().addScaledVector(ax, 0.5));
+    const pv = toPx(c.clone().addScaledVector(ay, 0.5));
+    // the disk projects to an ellipse with semi-axis vectors u and v
+    const u = { x: pu.x - pc.x, y: pu.y - pc.y };
+    const v = { x: pv.x - pc.x, y: pv.y - pc.y };
+    const xExtent = Math.hypot(u.x, v.x);
+    const yExtent = Math.hypot(u.y, v.y);
+    return {
+      id: t.id,
+      trueId: t.trueId, // the codeword the landmark displays — the decode target
+      cx: pc.x,
+      cy: pc.y,
+      u,
+      v,
+      xExtent,
+      yExtent,
+      onScreen:
+        pc.z < 1 &&
+        pc.x > -xExtent &&
+        pc.x < w + xExtent &&
+        pc.y > -yExtent &&
+        pc.y < h + yExtent
+    };
+  });
+};
+const _1aqjzs8 = function _anonymous(md) {return (md`---
+## §3 Detecting the carrier, ignoring the payload
+
+Detection must work for *every* codeword without knowing which one it is looking at. The carrier gives it exactly ten guaranteed edges per diameter (±4, ±9, ±10, ±26, ±28 in template units). The payload contributes up to sixteen *extra* edges that may or may not exist — from the detector's point of view they are structured clutter.
+
+The pipeline per scan row:
+
+1. **Window enumeration, gated by a reflection sweep.** Any pair of edges could be the two rim crossings, so enumeration is quadratic in the edges on the row. The enumeration *loop* is not the expensive part — it is ~10 ms for a whole frame's rows, and edge extraction is ~0.01 ms per row. What costs is what each window that survives the next step then pays for: a Möbius fit, a carrier alignment and an offset sweep, about 25 µs apiece. Controlling how many windows reach that stage is therefore the whole game (decoding the payload, by contrast, is ~1 ms for the entire frame). The exploitable structure is that a mark is *concentric*, so it is mirror-symmetric about its centre and **every** ring pair it contributes shares one midpoint. Better still, the centre of a symmetric edge set always lies *between its innermost mirror pair*, so the only centre hypotheses worth testing are the midpoints of near-adjacent edge pairs — a **linear sweep**, not a quadratic vote. Each hypothesis is verified by walking two pointers outward and counting mirrored offsets that agree within a tolerance; hypotheses with enough corroborating pairs survive, and only windows whose midpoint lands near a surviving centre are enumerated — exhaustively and exactly as the full scan would.
+2. **Cross-ratio gate — which also reads the offset.** Inside a candidate window, the mid-sync edges are searched for near their expected span fractions. The cross ratio of \`(rim, mid, mid, rim)\` is projectively invariant, and because the anchor radii are fixed it is a known function of the chord offset \`d\` alone. A window whose cross ratio sits nowhere on that curve is rejected; one that sits on it hands back a **seed estimate of \`d\`** before any fitting.
+3. **Anchor fit + carrier alignment.** Four anchors give an initial Möbius map. The ten carrier edges (fewer once \`d\` starts dropping inner rings) are projected into the image and aligned against the window's edges with Part III's \`dpAlignFast\` — the payload edges simply go unmatched, at a gap cost. A small sweep around the seeded \`d\` re-derives the anchors and keeps the best-scoring offset.
+4. **Gates + non-maximum suppression.** Residual and match-count gates, then overlapping windows resolve by residual.
+
+The gate in step 1 is worth being precise about, because two cheaper-looking designs failed first. Using the symmetry *alone* — take each centre, read the mark straight off its rim pairs — is much faster still, but it loses decoded rows per mark and moves landmark centres by 2–7 px: a window spanning two *neighbouring* marks is symmetric too, about the gap between them, and a perspective image of a circle is not exactly mirror-symmetric in the first place (which is why the decoder fits a Möbius map rather than assuming symmetry). A midpoint *histogram* — vote every pair's midpoint into bins, keep the best-voted bins — fails more subtly: a raw pair count mostly measures local edge density, so one busy stretch of the row takes every slot and starves real marks out of the cap; that surfaced as a decodable mark's bin ranking 37th against a cut-off of 24. The sweep's matched-pair count is the corroboration statistic those designs were missing, and because it needs no rank cap, dense periodic texture — which is mirror-symmetric about every half-period point, and out-votes any real mark — cannot displace a true centre; it only adds windows for the cross-ratio gate to reject.
+
+Measured against the exhaustive scan on the frame bank, per 1280×960 frame: **windows 57k → 12k and surviving candidates 9,625 → 3,014**, which is where the time actually goes — 307 ms → **164 ms** for the angled capture, at equal-or-better position accuracy (1.03 px vs 1.07). The blank negative control drops from 2,160 windows and 20 ms to 129 and **2 ms**. On the quarter-turn frames — three times the edges per row — it **recovers marks the exhaustive scan misses entirely**, because with fewer chance windows surviving, the true ones are no longer starved out of the per-row candidate budget.
+
+The detection band is \`d ≲ 9\`: past that the chord no longer crosses the mid-sync ring and the cross-ratio anchors are gone. That is a real trade — Part III could detect out to \`d ≈ 20\` — and §5 leans on row fusion to compensate: a barcode 60 px tall still puts several scan rows inside the band.`);};
+const _c33xmx = function _carrierTemplate(LAYOUT) {
+  // signed radial positions of the carrier edges, ascending — the detection template
+  const ks = [];
+  for (const r of LAYOUT.fixedEdges) { ks.push(-r); ks.push(r); }
+  return ks.sort((a, b) => a - b);
+};
+const _7u0e3a = function _crCurve(LAYOUT,crossRatio) {
+  // cross ratio of the anchor quadruple (−aOut, −aIn, +aIn, +aOut) as a function of
+  // chord offset d, where aOut = √(28²−d²), aIn = √(10²−d²). Capped at d = 8.5: past
+  // that the mid-sync crossing is so shallow the template degenerates (see §3 notes).
+  const [rOut, rIn] = [LAYOUT.R, LAYOUT.anchorRadii[1]];
+  const rows = [];
+  for (let d = 0; d <= 8.5; d += 0.25) {
+    const aOut = Math.sqrt(rOut * rOut - d * d);
+    const aIn = Math.sqrt(rIn * rIn - d * d);
+    const cr = crossRatio(-aOut, -aIn, aIn, aOut);
+    rows.push({ d, aOut, aIn, cr, fIn: (aOut - aIn) / (2 * aOut) });
+  }
+  return rows;
+};
+const _t28eph = function _detectLandmarkRow(LAYOUT,crCurve,crossRatio,crDistance,templateAtOffset,carrierTemplate,fitMobiusLS,xFromK,dpScratch,dpAlignFast,windowCandidates) {return (function detectLandmarkRow(scanEdges, opts = {}) {
+  const out = [];
+  out.windows = 0;
+  out.survived = 0;
+  const n = scanEdges ? scanEdges.length : 0;
+  if (n < 8) return out;
+  const sx = Float64Array.from(scanEdges, (e) => (typeof e === "number" ? e : e.x));
+
+  const maxCands = opts.maxCands ?? 12; // fine-sweep budget per row
+  const maxXRMSE = opts.maxXRMSE ?? 2.5;
+  const minPairs = opts.minPairs ?? 7;
+  const gapFrac = opts.gapFrac ?? 0.04; // gap penalty as a fraction of window width
+  const rOut = LAYOUT.R;
+  const rIn = LAYOUT.anchorRadii[1];
+  const dMax = crCurve[crCurve.length - 1].d;
+
+  // candidate generation lives in windowCandidates so the exhaustive scan and
+  // the reflection vote can be swapped (opts.generator) against identical
+  // downstream code
+  const gen = windowCandidates(sx, opts);
+  const cands = gen.cands;
+  out.windows = gen.windows;
+  out.survived = cands.length;
+  // spend the expensive alignment on the WIDEST curve-consistent windows: a real
+  // mark's full-rim window is wider than any of its internal accidental windows,
+  // and accidental quadruples routinely beat true ones on cross-ratio distance
+  // (edge noise puts the truth at ~0.003; chance alignments can hit 0.0001).
+  // Two refinements, both learned from mark-dense scenes: windows with a large
+  // internal hole rank AFTER hole-free ones (they are usually stitched across
+  // two marks — and on a symmetric grid such a chimera is centred exactly on the
+  // mark between its parts), and at most 2 candidates may share an x-locality so
+  // one busy region cannot starve the rest of the row.
+  cands.sort(
+    (p, q) =>
+      (p.holeFrac > 0.24) - (q.holeFrac > 0.24) ||
+      q.width - p.width ||
+      p.crDist - q.crDist
+  );
+  const picked = [];
+  for (const c of cands) {
+    if (picked.length >= maxCands) break;
+    const cx = (sx[c.i] + sx[c.j]) / 2;
+    // anti-aliasing double-peaks rim edges, minting several near-identical
+    // copies of the same window (same centre, width within a few px). Copies
+    // must not count against the locality quota or they alone fill it — on a
+    // symmetric grid the wide stitched window over marks A and C is centred
+    // exactly on mark B, and its AA twins were evicting B's true window.
+    let near = 0, twin = false;
+    for (const k of picked) {
+      if (Math.abs(k.cx - cx) >= 24) continue;
+      if (Math.abs(k.width - c.width) < 0.08 * k.width) { twin = true; break; }
+      near++;
+    }
+    if (twin || near >= 2) continue;
+    c.cx = cx;
+    picked.push(c);
+  }
+
+  for (const c of picked) {
+    // full-band sweep over d: at each offset, derive the anchor map, align the
+    // carrier template, refit on the matches. Alignment alone cannot pick d —
+    // payload clutter lets a wrong offset align almost as well as the truth — so
+    // the best hypothesis *per 1-unit d bin* is kept and the decoder's photometric
+    // check (§4) makes the final call.
+    // The mid pair's radius is itself ambiguous: (rim, r) quadruples sit on the
+    // CR(d) curve not only for the designed r=10 but also for payload edges at
+    // r=8 and r=6 (their cross ratios alias to wrong-d points on the curve), so
+    // each d tries all three interpretations of the measured mid pair.
+    const gapPenalty = gapFrac * c.width;
+    const scan = sx.subarray(c.i, c.j + 1);
+    const M = scan.length;
+    const byBin = new Map();
+    for (let d = 0; d <= dMax + 1e-9; d += 0.25) {
+      const aOut = Math.sqrt(rOut * rOut - d * d);
+      const kS = templateAtOffset(carrierTemplate, d);
+      const N = kS.length;
+      for (const rc of [rIn, 8, 6]) {
+        if (d > rc - 0.5) continue;
+        const aIn = Math.sqrt(rc * rc - d * d);
+        let mob;
+        try {
+          mob = fitMobiusLS([
+            { x: sx[c.i], k: -aOut },
+            { x: sx[c.a], k: -aIn },
+            { x: sx[c.b], k: aIn },
+            { x: sx[c.j], k: aOut }
+          ]);
+        } catch { continue; }
+        if (![mob.p, mob.q, mob.r, mob.s].every(isFinite)) continue;
+        const proj = kS.map((k) => xFromK(mob, k));
+        if (!proj.every(isFinite)) continue;
+        dpScratch.ensure((N + 1) * (M + 1), Math.max(N, M));
+        dpAlignFast(proj, N, scan, M, gapPenalty, dpScratch.map);
+        const pairs = [];
+        for (let t = 0; t < N; t++) {
+          const s = dpScratch.map[t];
+          if (s >= 0) pairs.push({ x: scan[s], k: kS[t] });
+        }
+        if (pairs.length < minPairs) continue;
+        let mobR;
+        try { mobR = fitMobiusLS(pairs); } catch { continue; }
+        if (![mobR.p, mobR.q, mobR.r, mobR.s].every(isFinite)) continue;
+        let ss = 0;
+        for (const p of pairs) {
+          const e = xFromK(mobR, p.k) - p.x;
+          ss += e * e;
+        }
+        const xRMSE = Math.sqrt(ss / pairs.length);
+        if (xRMSE > maxXRMSE) continue;
+        const unmatched = N - pairs.length;
+        const score = xRMSE * (1 + (2 * unmatched) / N);
+        if (!isFinite(score)) continue;
+        const bin = Math.floor(d);
+        const cur = byBin.get(bin);
+        if (!cur || score < cur.score)
+          byBin.set(bin, { d, score, xRMSE, mobius: mobR, pairsUsed: pairs.length, rings: N });
+      }
+    }
+    if (!byBin.size) continue;
+    const dCands = [...byBin.values()].sort((p, q) => p.score - q.score);
+    const best = dCands[0];
+    out.push({
+      startIndex: c.i,
+      endIndex: c.j,
+      mobius: best.mobius,
+      dCandidates: dCands,
+      anchors: [sx[c.i], sx[c.a], sx[c.b], sx[c.j]],
+      d: best.d,
+      dSeed: c.dSeed,
+      crDist: c.crDist,
+      holeFrac: c.holeFrac,
+      xRMSE: best.xRMSE,
+      score: best.score,
+      pairsUsed: best.pairsUsed,
+      rings: best.rings,
+      footX: xFromK(best.mobius, 0),
+      leftX: sx[c.i],
+      rightX: sx[c.j]
+    });
+  }
+
+  // non-maximum suppression by coverage then residual. runPipeline defers this
+  // until after decoding (opts.nms === false) so a junk window cannot eclipse a
+  // decodable one purely on edge-alignment merit.
+  if (opts.nms !== false) {
+    out.sort((p, q) => q.pairsUsed - p.pairsUsed || p.score - q.score);
+    const accepted = [];
+    for (const c of out) {
+      const clash = accepted.some(
+        (a) => !(c.endIndex < a.startIndex || c.startIndex > a.endIndex)
+      );
+      if (!clash) accepted.push(c);
+    }
+    accepted.windows = out.windows;
+    accepted.survived = out.survived;
+    return accepted;
+  }
+  return out;
+});};
+const _1w8wvjm = function _edgeThreshold(Inputs) {return (Inputs.range([2, 40], { step: 1, value: 12, label: "edge threshold" }));};
+const _ck7l4a = (G, _) => G.input(_);
+const _hqfg1d = function _runDetection(scanRows,edges1D,rowOf,edgeThreshold,detectLandmarkRow) {return (function runDetection(frame, opts = {}) {
+  const t0 = window.performance.now();
+  const hits = [];
+  let windows = 0, survived = 0, edges = 0;
+  for (const y of scanRows) {
+    const se = edges1D(rowOf(frame, y), opts.edgeThreshold ?? edgeThreshold);
+    edges += se.length;
+    const dets = detectLandmarkRow(se, opts);
+    windows += dets.windows;
+    survived += dets.survived;
+    for (const det of dets) hits.push({ y, ...det });
+  }
+  return {
+    frame: frame.n,
+    hits,
+    ms: window.performance.now() - t0,
+    rowsTouched: scanRows.length,
+    scanEdges: edges,
+    windows,
+    survived
+  };
+});};
+const _1v5ujxb = function _anonymous(md) {return (md`---
+## §4 Reading the bits without finding any edges
+
+Decoding never runs an edge detector. The fitted Möbius map plus the recovered offset \`d\` predict exactly where each payload cell's midline radius crosses the scan row: radius \`r\` is crossed at \`k = ±√(r²−d²)\`, and \`xFromK\` turns that into a pixel coordinate. Reading a bit is two array lookups (both sides of the centre, averaged).
+
+Raw intensities are meaningless without references — lighting, exposure and the renderer's antialiasing all move them. The white guards and black carrier rings are at *known radii*, so the same sampling trick reads them too: every decode carries its own photometric calibration, per row, for free.
+
+Each payload cell becomes a **soft bit** in [−1, 1] (black → −1, white → +1, normalised between the measured references). A cell whose midline radius the chord cannot reach (\`rm ≤ d\`) is an **erasure** — score 0, no vote either way. Then the codebook is scored by correlation: the codeword maximising \`Σ softᵢ·(2wᵢ−1)\` wins, and the gap to the runner-up is the **decode margin**.
+
+Because the minimum distance of the code is 4, a decode that lands close to two codewords at once has a small margin — that is either heavy occlusion or a false-positive detection. The margin gate is the verification step: **a window that aligned well but reads as no valid codeword is rejected**, something Parts I–III could never do.
+
+Cost per decode: ~30 samples and 16 dot products of length 8 — and the codebook is consulted once *after* the bits are read, so growing the codebook from 16 to 256 ids changes nothing upstream of this line.`);};
+const _18v6hzh = function _decodeLandmark(xFromK,LAYOUT,codebook) {return (function decodeLandmark(hit, frame, opts = {}) {
+  const g = frame.gray;
+  const W = frame.w;
+  const row = hit.y * W;
+  const radialMargin = opts.radialMargin ?? 0.3;
+
+  const sample = (mob, k) => {
+    const x = xFromK(mob, k);
+    if (!isFinite(x) || x < 0 || x > W - 2) return null;
+    const ix = Math.floor(x);
+    const f = x - ix;
+    return g[row + ix] * (1 - f) + g[row + ix + 1] * f;
+  };
+  // radius r is crossed at k = ±√(r²−d²); average the two sides when both land
+  const both = (mob, d, r) => {
+    if (r <= d + radialMargin) return null;
+    const k = Math.sqrt(r * r - d * d);
+    const a = sample(mob, k);
+    const b = sample(mob, -k);
+    if (a == null && b == null) return null;
+    return a == null ? b : b == null ? a : (a + b) / 2;
+  };
+  // photometric consistency of a hypothesised (map, offset): a correct pair reads
+  // every white reference brighter than every black one
+  const refEval = (mob, d, dr) => {
+    const ws = LAYOUT.whiteRefs.map((r) => both(mob, d, r + dr)).filter((v) => v != null);
+    const bs = LAYOUT.blackRefs.map((r) => both(mob, d, r + dr)).filter((v) => v != null);
+    if (ws.length < 2 || bs.length < 2) return null;
+    return {
+      sep: Math.min(...ws) - Math.max(...bs),
+      wSpread: Math.max(...ws) - Math.min(...ws),
+      bSpread: Math.max(...bs) - Math.min(...bs),
+      wRef: ws.reduce((a, b) => a + b, 0) / ws.length,
+      bRef: bs.reduce((a, b) => a + b, 0) / bs.length
+    };
+  };
+
+  // Each detector hypothesis is decoded IN FULL and judged on its decode margin —
+  // the final criterion — rather than on reference separation alone. On crisp
+  // marks the references read cleanly even at a wrong offset (thick rings forgive
+  // radius error), so separation saturates while the payload bits scramble; the
+  // margin collapses exactly when that happens, and it costs only ~30 samples and
+  // 16 dot products per hypothesis to measure it directly.
+  //
+  // ringOffsets can widen the search with δ-ring-shifted rereads of each
+  // hypothesis (the quasi-periodic ring lattice makes off-by-one DP locks
+  // conceivable). Default is [0]: in testing the shifted rereads never rescued a
+  // failing row but did surface coherent wrong-id reads at low margin, so the
+  // wider sweep is opt-in.
+  const hyps = hit.dCandidates ?? [{ d: hit.d, mobius: hit.mobius }];
+  const ringOffsets = opts.ringOffsets ?? [0];
+  let best = null;
+  for (const h of hyps) {
+    for (const dr of ringOffsets) {
+      const r = refEval(h.mobius, h.d, dr);
+      if (!r) continue;
+      const contrast = r.wRef - r.bRef;
+      if (contrast < (opts.minContrast ?? 30)) continue;
+      // stitched-chimera killer: a window spanning two neighbouring marks reads
+      // some references off the background between them, which collapses the
+      // worst-case class separation (sep) far below the mean contrast. A true
+      // mark keeps sep comparable to contrast even when anti-aliasing smears
+      // individual rings — the sep RATIO is the discriminator. The spread gate
+      // is deliberately loose (0.75·contrast): a single mis-registered
+      // reference inflates spread on an otherwise perfect margin-8 decode, and
+      // tightening it was observed to reject exactly those clean reads.
+      if (r.sep < (opts.minSepFrac ?? 0.25) * contrast) continue;
+      const maxSpread = (opts.maxRefSpread ?? 0.75) * contrast;
+      if (r.wSpread > maxSpread || r.bSpread > maxSpread) continue;
+
+      // soft bits: black → −1, white → +1, erasure → 0
+      const soft = new Array(8).fill(0);
+      for (const c of LAYOUT.cells) {
+        const v = both(h.mobius, h.d, c.rm + dr);
+        if (v == null) continue;
+        const t = (2 * (v - r.bRef)) / (r.wRef - r.bRef) - 1;
+        soft[c.i] = Math.max(-1, Math.min(1, t));
+      }
+      const readable = soft.filter((x) => x !== 0).length;
+
+      // correlation decode over the whole codebook — the only place codebook size enters
+      let bestSc = -Infinity, second = -Infinity, bestId = -1;
+      for (let id = 0; id < codebook.length; id++) {
+        const w = codebook[id];
+        let sc = 0;
+        for (let i = 0; i < 8; i++) sc += soft[i] * (2 * w[i] - 1);
+        if (sc > bestSc) { second = bestSc; bestSc = sc; bestId = id; }
+        else if (sc > second) second = sc;
+      }
+      // ids 0 and 15 are reserved: their payloads are all-black / all-white, which
+      // is exactly what a misplaced window over featureless paint reads
+      if (bestId === 0 || bestId === 15) continue;
+      const margin = bestSc - second;
+      if (!best || margin > best.margin || (margin === best.margin && r.sep > best.sep)) {
+        best = {
+          id: bestId,
+          score: bestSc,
+          margin,
+          readable,
+          soft,
+          d: h.d,
+          ringOffset: dr,
+          sep: r.sep,
+          mobius: h.mobius,
+          wRef: r.wRef,
+          bRef: r.bRef
+        };
+      }
+    }
+  }
+  return best;
+});};
+const _1bz0j2c = function _minMargin(Inputs) {return (Inputs.range([0, 8], { step: 0.25, value: 2, label: "decode margin gate" }));};
+const _14a2hls = (G, _) => G.input(_);
+const _101f5yy = function _runPipeline(minMargin,scanRows,edges1Dsub,rowOf,edgeThreshold,detectLandmarkRow,decodeLandmark,xFromK) {return (function runPipeline(frame, opts = {}) {
+  const t0 = window.performance.now();
+  const mm = opts.minMargin ?? minMargin;
+  const minReadable = opts.minReadable ?? 5;
+  // callers may re-phase the scan lattice (opts.scanRows): a static scene can be
+  // temporally dithered so a mark that straddles one phase's rows badly is caught
+  // by the next frame's offset rows
+  const rows = opts.scanRows ?? scanRows;
+  // opts.collectWindows hands back the pre-decode windows. They are the detector's
+  // GEOMETRIC evidence, and geometry survives rows whose payload will not decode,
+  // so a caller can use them to find where the marks are before spending any
+  // photometry there. Collected here rather than by a second pass because the
+  // edges are already extracted at this point.
+  const winList = opts.collectWindows ? [] : null;
+  const hits = [];
+  let rawHits = 0, rejected = 0, windows = 0, survived = 0, edges = 0;
+  let msDetect = 0, msDecode = 0;
+  for (const y of rows) {
+    const tA = window.performance.now();
+    const se = edges1Dsub(rowOf(frame, y), opts.edgeThreshold ?? edgeThreshold);
+    edges += se.length;
+    // decode BEFORE non-maximum suppression: overlapping windows are resolved by
+    // who actually reads as a valid codeword, not by edge-alignment score alone
+    const dets = detectLandmarkRow(se, { ...opts, nms: false });
+    windows += dets.windows;
+    survived += dets.survived;
+    rawHits += dets.length;
+    if (winList)
+      for (const d of dets)
+        winList.push({
+          y,
+          cx: (d.leftX + d.rightX) / 2,
+          w: d.rightX - d.leftX,
+          holeFrac: d.holeFrac
+        });
+    const tB = window.performance.now();
+    msDetect += tB - tA;
+    const decoded = [];
+    for (const det of dets) {
+      const hit = { y, ...det };
+      const dec = decodeLandmark(hit, frame, opts);
+      if (!dec || dec.margin < mm || dec.readable < minReadable) {
+        rejected++;
+        continue;
+      }
+      decoded.push({
+        ...hit,
+        mobius: dec.mobius,
+        d: dec.d,
+        footX: xFromK(dec.mobius, 0),
+        id: dec.id,
+        decodeMargin: dec.margin,
+        refSep: dec.sep,
+        readable: dec.readable,
+        soft: dec.soft
+      });
+    }
+    // NMS among decodable hits: strongest decode wins overlaps
+    decoded.sort((p, q) => q.decodeMargin - p.decodeMargin || p.xRMSE - q.xRMSE);
+    for (const c of decoded) {
+      const clash = hits.some(
+        (a) => a.y === c.y && !(c.endIndex < a.startIndex || c.startIndex > a.endIndex)
+      );
+      if (!clash) hits.push(c);
+      else rejected++;
+    }
+    msDecode += window.performance.now() - tB;
+  }
+  return {
+    frame: frame.n,
+    hits,
+    windowList: winList,
+    rawHits,
+    rejectedByDecode: rejected,
+    windows,
+    survived,
+    scanEdges: edges,
+    rowsTouched: rows.length,
+    msDetect,
+    msDecode,
+    ms: window.performance.now() - t0
+  };
+});};
+const _w7qboo = function _frameLandmarks(runPipeline,simFrame) {return (runPipeline(simFrame, {}));};
+const _16dv5r5 = function _detectionLayer(htl,groundTruth,frameLandmarks,overlaySvg,invalidation) {
+  const g = htl.svg`<g></g>`;
+  // ground truth: projected ellipse + true id
+  for (const b of groundTruth) {
+    if (!b.onScreen) continue;
+    const ang = (Math.atan2(b.u.y, b.u.x) * 180) / Math.PI;
+    const ru = Math.hypot(b.u.x, b.u.y);
+    const rv = Math.hypot(b.v.x, b.v.y);
+    g.appendChild(
+      htl.svg`<ellipse cx="${b.cx}" cy="${b.cy}" rx="${ru}" ry="${rv}" transform="rotate(${ang} ${b.cx} ${b.cy})" fill="none" stroke="#4fd1c5" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/>`
+    );
+    g.appendChild(
+      htl.svg`<text x="${b.cx}" y="${b.cy - rv - 4}" fill="#4fd1c5" font-size="11" font-family="monospace" text-anchor="middle">id ${b.trueId}</text>`
+    );
+  }
+  // decoded landmark rows: span, foot, and the id that was read
+  for (const h of frameLandmarks.hits) {
+    if (!isFinite(h.leftX) || !isFinite(h.rightX) || !isFinite(h.footX)) continue;
+    g.appendChild(
+      htl.svg`<line x1="${h.leftX}" y1="${h.y}" x2="${h.rightX}" y2="${h.y}" stroke="#ffd166" stroke-width="2" opacity="0.9"/>`
+    );
+    g.appendChild(
+      htl.svg`<circle cx="${h.footX}" cy="${h.y}" r="3" fill="none" stroke="#ffd166" stroke-width="1.5"/>`
+    );
+    g.appendChild(
+      htl.svg`<text x="${h.rightX + 5}" y="${h.y + 4}" fill="#ffd166" font-size="11" font-family="monospace">${h.id}</text>`
+    );
+  }
+  overlaySvg.appendChild(g);
+  invalidation.then(() => g.remove());
+  return;
+};
+const _16xqu3c = function _landmarkTable(Inputs,frameLandmarks) {return (Inputs.table(
+  frameLandmarks.hits.map((h) => ({
+    y: h.y,
+    id: h.id,
+    footX: +h.footX.toFixed(1),
+    d: +h.d.toFixed(2),
+    margin: +h.decodeMargin.toFixed(2),
+    refSep: +h.refSep.toFixed(0),
+    readable: h.readable,
+    xRMSE: +h.xRMSE.toFixed(3)
+  })),
+  { layout: "auto" }
+));};
+const _134ceh = function _scoreLandmarks(groundTruth) {return (function scoreLandmarks(run) {
+  const gt = groundTruth.filter((b) => b.onScreen);
+  const rows = [];
+  const foundIds = new Set();
+  let idCorrect = 0;
+  for (const hit of run.hits) {
+    let best = null;
+    let bestDist = Infinity;
+    for (const b of gt) {
+      const r = Math.hypot(
+        (hit.footX - b.cx) / b.xExtent,
+        (hit.y - b.cy) / b.yExtent
+      );
+      if (r < bestDist) {
+        bestDist = r;
+        best = b;
+      }
+    }
+    const ok = best && bestDist <= 1;
+    const idOk = ok && hit.id === best.trueId;
+    if (ok) foundIds.add(best.id);
+    if (idOk) idCorrect++;
+    rows.push({
+      y: hit.y,
+      decodedId: hit.id,
+      trueId: ok ? best.trueId : null,
+      idOk: ok ? idOk : null,
+      footX: +hit.footX.toFixed(2),
+      errX: ok ? +(hit.footX - best.cx).toFixed(3) : null,
+      margin: +hit.decodeMargin.toFixed(2)
+    });
+  }
+  const matched = rows.filter((r) => r.trueId !== null);
+  const rms = (xs) =>
+    xs.length ? Math.sqrt(xs.reduce((a, b) => a + b * b, 0) / xs.length) : null;
+  const rx = rms(matched.map((r) => r.errX));
+  return {
+    landmarksOnScreen: gt.length,
+    landmarksFound: foundIds.size,
+    rowHits: rows.length,
+    idCorrect,
+    idWrong: matched.length - idCorrect,
+    falsePositives: rows.length - matched.length,
+    rmsErrX_px: rx == null ? null : +rx.toFixed(3),
+    msPerFrame: +run.ms.toFixed(1),
+    perRow: rows
+  };
+});};
+const _vhmell = function _frameScore(scoreLandmarks,frameLandmarks) {
+  const s = scoreLandmarks(frameLandmarks);
+  return {
+    landmarksOnScreen: s.landmarksOnScreen,
+    landmarksFound: s.landmarksFound,
+    rowHits: s.rowHits,
+    idCorrect: s.idCorrect,
+    idWrong: s.idWrong,
+    falsePositives: s.falsePositives,
+    rmsErrX_px: s.rmsErrX_px,
+    msPerFrame: s.msPerFrame
+  };
+};
+const _d8xg2l = function _anonymous(md,minMargin) {return (md`## 5. Fusing rows into labelled landmarks
+
+A single scan row gives one reading: a position, a chord offset \`d\`, and a decoded id with a margin. Rows are cheap, and a mark spans many of them, so the natural unit of output is not a row hit but a *landmark*: the cluster of row hits that belong to one mark, fused into a 2D centre and a single voted id.
+
+Two things change relative to the per-row pipeline of §4:
+
+1. **The gate relaxes.** Per-row we demanded a decode margin ≥ ${minMargin} because a lone row has nothing to corroborate it. For fusion we drop the bar (margin ≥ 0.8, readable ≥ 4) and let corroboration do the work: a wrong low-margin read is out-voted by its neighbours, and junk windows do not cluster — they land at scattered positions and fail the minimum-rows test.
+
+2. **The id becomes a vote.** Each row hit contributes its decode margin as weight to its id. The cluster's id is the heaviest; the vote margin (best minus runner-up weight) is the landmark's confidence. This is the payoff of soft-decision decoding — a marginal row still contributes evidence instead of being rounded to a hard yes/no.
+
+Geometry reuses Part III's V-fit unchanged (\`fuseCluster\`, imported): \`|d|\` versus \`y\` forms a V whose apex is the mark centre, giving a sub-row-stride vertical position from purely horizontal scans.`);};
+const _1kcdtq1 = function _fuseLandmarks(rowStride,fuseCluster) {return (function fuseLandmarks(hits, opts = {}) {
+  const xTol = opts.xTol ?? 0.6;
+  const maxRowGap = opts.maxRowGap ?? 3;
+  const minRows = opts.minRows ?? 2;
+  // cluster: same greedy row-major sweep as Part III, keyed on footX proximity
+  // relative to the window's own apparent half-width
+  const sorted = hits
+    .filter((h) => isFinite(h.footX) && isFinite(h.d))
+    .sort((a, b) => a.y - b.y || a.footX - b.footX);
+  const clusters = [];
+  for (const h of sorted) {
+    const span = Math.abs(h.rightX - h.leftX);
+    const half = isFinite(span) && span > 1 ? span / 2 : 30;
+    let best = null;
+    let bestDx = Infinity;
+    for (const c of clusters) {
+      const last = c[c.length - 1];
+      if (h.y - last.y > maxRowGap * rowStride) continue;
+      const dx = Math.abs(h.footX - last.footX);
+      if (dx > xTol * half) continue;
+      if (dx < bestDx) {
+        bestDx = dx;
+        best = c;
+      }
+    }
+    if (best) best.push(h);
+    else clusters.push([h]);
+  }
+  const fuseOne = (c) => {
+    if (c.length < minRows) return null;
+    // margin-weighted id vote across the cluster's rows
+    const votes = new Map();
+    for (const h of c) votes.set(h.id, (votes.get(h.id) ?? 0) + h.decodeMargin);
+    const ranked = [...votes.entries()].sort((p, q) => q[1] - p[1]);
+    const [id, voteWeight] = ranked[0];
+    const voteMargin = voteWeight - (ranked[1]?.[1] ?? 0);
+    // geometry from winner rows only: a row that decoded to a losing id got its
+    // position from a wrong map, and would drag the centre fit
+    const geo = c.filter((h) => h.id === id);
+    // the WINNER needs corroboration, not just the cluster: two disagreeing
+    // low-margin rows form a 2-row cluster whose "winner" is a coin toss — a
+    // wrong-id landmark is worse for navigation than no landmark, so demand
+    // minRows rows of the winning id itself
+    if (geo.length < minRows) return null;
+    const fit = geo.length >= 3 ? fuseCluster(geo) : null;
+    let xc, yc;
+    if (fit) {
+      xc = fit.xc;
+      yc = fit.yc;
+    } else {
+      let w = 0, sx = 0, sy = 0;
+      for (const h of geo) {
+        w += h.decodeMargin;
+        sx += h.decodeMargin * h.footX;
+        sy += h.decodeMargin * h.y;
+      }
+      xc = sx / w;
+      yc = sy / w;
+    }
+    return {
+      id,
+      xc,
+      yc,
+      voteWeight: +voteWeight.toFixed(2),
+      voteMargin: +voteMargin.toFixed(2),
+      rows: c.length,
+      geoRows: geo.length,
+      vFit: !!fit,
+      apparentRadiusY: fit ? fit.apparentRadiusY : null,
+      hits: c
+    };
+  };
+  const out = [];
+  for (const c of clusters) {
+    const f = fuseOne(c);
+    if (f) out.push(f);
+  }
+  // Same mark, two clusters. Decodes through a mark are erratic, so a run of
+  // undecodable rows longer than the sweep's maxRowGap can split one physical
+  // mark's rows into two clusters — observed once the reflection gate thinned
+  // the decoded row set, which emitted the same id twice at the same spot. Two
+  // landmarks with the same id whose centres sit within half a mark width ARE
+  // one mark; re-fuse their combined rows so the geometry uses all of them.
+  // Half a mark width cannot merge two genuinely distinct same-id marks: they
+  // would have to physically overlap.
+  const widthOf = (f) => {
+    const spans = f.hits
+      .map((h) => Math.abs(h.rightX - h.leftX))
+      .filter((s) => isFinite(s) && s > 1)
+      .sort((a, b) => a - b);
+    return spans.length ? spans[spans.length >> 1] : 60;
+  };
+  let merged = true;
+  while (merged) {
+    merged = false;
+    outer: for (let a = 0; a < out.length; a++) {
+      for (let b = a + 1; b < out.length; b++) {
+        if (out[a].id !== out[b].id) continue;
+        const lim = Math.max(widthOf(out[a]), widthOf(out[b])) / 2;
+        if (Math.hypot(out[a].xc - out[b].xc, out[a].yc - out[b].yc) > lim) continue;
+        const f = fuseOne(out[a].hits.concat(out[b].hits));
+        out.splice(b, 1);
+        if (f) out[a] = f;
+        else out.splice(a, 1);
+        merged = true;
+        break outer;
+      }
+    }
+  }
+  return out.sort((p, q) => q.voteWeight - p.voteWeight);
+});};
+const _1whsoz5 = function _fusedLandmarks(runPipeline,simFrame,scanRows,fuseLandmarks) {
+  // relaxed per-row gate: corroboration across rows replaces margin strictness.
+  // Two scan phases: a static frame costs nothing to rescan offset by half a
+  // stride, and a mark whose centre falls badly against one row lattice (its
+  // readable band clipped to a single row) gets complementary rows from the
+  // other phase — the same temporal dither the §7 rig uses, collapsed into one
+  // frame because there is no motion to respect.
+  const opts = { minMargin: 0.8, minReadable: 4 };
+  const a = runPipeline(simFrame, opts);
+  const b = runPipeline(simFrame, {
+    ...opts,
+    scanRows: scanRows.map((y) => y - 6).filter((y) => y >= 0)
+  });
+  return fuseLandmarks([...a.hits, ...b.hits]);
+};
+const _1cm1mhn = function _fusedTable(Inputs,fusedLandmarks) {return (Inputs.table(
+  fusedLandmarks.map((f) => ({
+    id: f.id,
+    xc: +f.xc.toFixed(1),
+    yc: +f.yc.toFixed(1),
+    rows: f.rows,
+    geoRows: f.geoRows,
+    vFit: f.vFit,
+    voteWeight: f.voteWeight,
+    voteMargin: f.voteMargin
+  })),
+  { layout: "auto" }
+));};
+const _g4km08 = function _fusedLayer(fusedLandmarks,overlaySvg,invalidation) {
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  for (const f of fusedLandmarks) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", f.xc);
+    c.setAttribute("cy", f.yc);
+    c.setAttribute("r", 6);
+    c.setAttribute("fill", "none");
+    c.setAttribute("stroke", "#ff5cf4");
+    c.setAttribute("stroke-width", 2.5);
+    g.append(c);
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", f.xc + 10);
+    t.setAttribute("y", f.yc - 8);
+    t.setAttribute("fill", "#ff5cf4");
+    t.setAttribute("font-size", "15");
+    t.setAttribute("font-weight", "bold");
+    t.textContent = `id ${f.id} ×${f.rows}`;
+    g.append(t);
+  }
+  overlaySvg.append(g);
+  invalidation.then(() => g.remove());
+};
+const _hl8v3v = function _anonymous(md) {return (md`## 6. Scoring against ground truth
+
+The simulator knows exactly where every mark is and what id it carries, so the whole pipeline can be scored end-to-end. Two levels:
+
+- **Per row** (\`frameScore\`): every surviving row hit is matched to the nearest ground-truth mark in normalized ellipse distance; a hit inside the ellipse (distance ≤ 1) whose decoded id equals the mark's id counts as correct.
+- **Per landmark** (\`fusionScore\`): each fused cluster is matched the same way on its centre estimate.
+
+Occlusion bounds recall: the scene deliberately overlaps marks, and a mark that is partially behind another loses its edge structure on exactly the rows that cross the occluder — no amount of per-row cleverness reads a mark that is not visible. The detector's job is to read every *visible* mark and to say nothing about the rest; false positives are the failure mode that matters, because a robot that trusts a phantom landmark navigates with a corrupted map.
+
+Decode cost does not grow with the codebook. The correlation decode is Σ softᵢ·(2wᵢ−1) per codeword — 16 multiply-adds over 8 bits — and everything before it (windowing, alignment, photometric sampling) is codebook-blind. Doubling the payload to 16 bits would double the sample count per row, not the search space: this is the practical difference between *labelled* landmarks and template-matched ones, where each new template multiplies detection cost.`);};
+const _1uuc46l = function _fusionScore(groundTruth,fusedLandmarks) {
+  const gt = groundTruth.filter((b) => b.onScreen);
+  let idCorrect = 0, wrong = 0, fp = 0;
+  const rows = fusedLandmarks.map((f) => {
+    let best = null, bd = Infinity;
+    for (const b of gt) {
+      const r = Math.hypot((f.xc - b.cx) / b.xExtent, (f.yc - b.cy) / b.yExtent);
+      if (r < bd) { bd = r; best = b; }
+    }
+    const ok = best && bd <= 1;
+    if (!ok) fp++;
+    else if (f.id === best.trueId) idCorrect++;
+    else wrong++;
+    return {
+      id: f.id,
+      trueId: ok ? best.trueId : null,
+      errX: ok ? +(f.xc - best.cx).toFixed(2) : null,
+      errY: ok ? +(f.yc - best.cy).toFixed(2) : null,
+      rows: f.rows,
+      voteMargin: f.voteMargin
+    };
+  });
+  return {
+    landmarksOnScreen: gt.length,
+    landmarksIdentified: idCorrect,
+    idWrong: wrong,
+    falsePositives: fp,
+    perLandmark: rows
+  };
+};
+const _d5ljip = function _anonymous(md) {return (md`---
+## §7 Mirror calibration rig
+
+Point the laptop at a mirror and the machine can see its own screen: the notebook draws marks at positions *it chose*, the camera reports positions *it measured*, and both ends share one \`performance.now()\` clock. That closes the loop that §6's simulator closed in software — but through real optics, real screen persistence, real camera latency.
+
+Two properties make the mirror harmless:
+
+- **The code is radial.** A mirror flips the image left-right, but every ring is a ring after reflection — carrier edges, payload bands and photometric references are all functions of radius only. Decoding is untouched.
+- **A homography absorbs the flip.** The screen-to-camera mapping (mirror included) is projective; fitting it makes no assumption about orientation, so the reflection just shows up as a negative determinant.
+
+The rig has two stimulus modes and two capture sources:
+
+| | measures |
+|---|---|
+| **grid** — six static marks at known positions | screen→camera **homography** (camera calibration), static id accuracy |
+| **orbit** — one mark on a Lissajous path, speed adjustable | **end-to-end latency**, tracking under motion, speed limits |
+
+Latency needs no calibration at all: the commanded x-position and the detected x-position are the same sinusoid up to scale, offset and mirror-flip, so cross-correlating the two normalized signals over a lag grid reads the delay directly. The homography is only needed when you want *metric* answers (where is the camera, how distorted is the lens).
+
+The **loopback** source pipes the stimulus canvas straight into the detector — no camera, no mirror. It exists so the rig can verify itself: loopback latency should be a frame or two, the loopback homography is a known pure scale, and any id error in loopback is a bug, not physics. Switch to **camera** with the mirror in place and every number that moves is measuring the physical channel.`);};
+const _13fbguf = function _drawLandmark(LAYOUT,codebook) {return (function drawLandmark(ctx, cx, cy, R, id) {
+  // no quiet zone: an extra white disc outside the rim adds a strong edge at
+  // 1.15R that windows anchor on, stretching every sampled radius by 1.15x and
+  // landing the photometric references in the wrong bands. The mid-gray
+  // background gives the black rim all the contrast the edge detector needs.
+  const scale = R / LAYOUT.R;
+  for (const [r0, r1, k] of LAYOUT.bands) {
+    const bit = typeof k === "number" ? k : codebook[id][+k.slice(1)];
+    ctx.fillStyle = bit ? "#fff" : "#000";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1 * scale, 0, 2 * Math.PI);
+    ctx.arc(cx, cy, r0 * scale, 0, 2 * Math.PI, true);
+    ctx.fill("evenodd");
+  }
+});};
+const _c4vxv2 = function _calMode(Inputs) {return (Inputs.radio(["grid", "orbit"], { label: "stimulus", value: "grid" }));};
+const _trjtqx = (G, _) => G.input(_);
+const _ohzx5w = function _calRunning(Inputs) {return (Inputs.toggle({ label: "calibration rig", value: false }));};
+const _mmw90r = (G, _) => G.input(_);
+const _ntgvpx = function _calSpeed(Inputs) {return (Inputs.range([0.05, 2], { step: 0.05, value: 0.25, label: "orbit speed (Hz)" }));};
+const _73cqhr = (G, _) => G.input(_);
+const _5pnclc = function _stimulusBus() {
+  // stable shared handle between the stimulus animator and the capture loop —
+  // the capture generator reads history without re-instantiating per frame
+  return { history: [], marks: [], t: 0 };
+};
+const _1g04xsf = function _stimulusView() {
+  const c = window.document.createElement("canvas");
+  c.width = 960;
+  c.height = 600;
+  c.style.width = "100%";
+  c.style.maxWidth = "960px";
+  c.style.display = "block";
+  c.style.background = "#888";
+  const btn = window.document.createElement("button");
+  btn.textContent = "fullscreen (for the mirror)";
+  btn.style.margin = "4px 0";
+  btn.onclick = () => c.requestFullscreen();
+  const div = window.document.createElement("div");
+  div.append(btn, c);
+  div.canvas = c;
+  return div;
+};
+const _xfbe8z = function _stimulusRun(calRunning,stimulusView,calMode,calSpeed,drawLandmark,stimulusBus) {return (async function* () {
+  if (!calRunning) {
+    yield "stimulus off";
+    await new Promise(() => {}); // park until the toggle re-runs this cell
+  }
+  const c = stimulusView.canvas;
+  const ctx = c.getContext("2d");
+  const w = c.width, h = c.height;
+  let n = 0;
+  while (true) {
+    await new Promise((r) => window.requestAnimationFrame(r));
+    const t = window.performance.now();
+    let marks;
+    if (calMode === "grid") {
+      // six static marks at known positions — one frame of these fits a homography.
+      // The middle column is staggered vertically: on a symmetric 3-collinear row
+      // the stitched window spanning the outer marks is centred exactly on the
+      // middle one and its scan rows fight the neighbours' for detector slots.
+      // Staggering removes the shared latitude band (and a non-collinear 6-point
+      // constellation conditions the homography better anyway).
+      marks = [];
+      const R = 100;
+      const stagger = [0, 0.13, 0]; // per-column y offset, as a fraction of h
+      for (let i = 0; i < 6; i++) {
+        const col = i % 3;
+        marks.push({
+          id: 1 + i,
+          x: w * (0.18 + 0.32 * col),
+          y: h * ((i < 3 ? 0.2 : 0.66) + stagger[col]),
+          R
+        });
+      }
+    } else {
+      // orbit: one mark on a Lissajous path, frequency from the speed slider
+      const f = (2 * Math.PI * calSpeed * t) / 1000;
+      marks = [
+        {
+          id: 7,
+          x: w / 2 + 0.32 * w * Math.sin(f),
+          y: h / 2 + 0.22 * h * Math.sin(0.63 * f + 1),
+          R: 110
+        }
+      ];
+    }
+    ctx.fillStyle = "#888";
+    ctx.fillRect(0, 0, w, h);
+    for (const m of marks) drawLandmark(ctx, m.x, m.y, m.R, m.id);
+    stimulusBus.t = t;
+    stimulusBus.marks = marks;
+    stimulusBus.history.push({ t, marks });
+    if (stimulusBus.history.length > 600) stimulusBus.history.shift();
+    if (n % 600 === 0) yield `stimulus ${calMode} frame ${n}`;
+    n++;
+  }
+}());};
+const _12d6o8 = function _calSource(Inputs) {return (Inputs.radio(["loopback", "camera"], { label: "capture source", value: "loopback" }));};
+const _1dh1pen = (G, _) => G.input(_);
+const _1i4d397 = async function _calStream(calRunning,calSource,CAL_FRAME,invalidation) {
+  if (!calRunning || calSource !== "camera") return null;
+  try {
+    const stream = await window.navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: CAL_FRAME.w },
+        height: { ideal: CAL_FRAME.h },
+        facingMode: "user" // the screen-facing camera is the one that sees the mirror
+      }
+    });
+    invalidation.then(() => {
+      for (const t of stream.getTracks()) t.stop();
+    });
+    return stream;
+  } catch (e) {
+    return { error: String((e && e.message) || e) };
+  }
+};
+const _1itgjy2 = async function _calVideo(htl,calStream,invalidation) {
+  const v = htl.html`<video playsinline muted autoplay style="display:none"></video>`;
+  if (calStream && !calStream.error) {
+    v.srcObject = calStream;
+    try {
+      await v.play();
+    } catch (e) {
+      // autoplay policy can reject; the element still decodes once visible
+    }
+  }
+  invalidation.then(() => {
+    try {
+      v.pause();
+      v.srcObject = null;
+    } catch (e) {}
+  });
+  return v;
+};
+const _uxbtt2 = function _calRun(calRunning,CAL_FRAME,calRows,calMode,stimulusBus,calSource,calVideo,stimulusView,analyzeFrame,detectPool) {return (async function* () {
+  if (!calRunning) {
+    yield null;
+    await new Promise(() => {}); // park until the toggle re-runs this cell
+  }
+  const cap = window.document.createElement("canvas");
+  cap.width = CAL_FRAME.w;
+  cap.height = CAL_FRAME.h;
+  const ctx = cap.getContext("2d", { willReadFrequently: true });
+  const gray = new Uint8Array(CAL_FRAME.w * CAL_FRAME.h);
+  const trace = []; // {t, x} detected orbit-mark x per frame
+  let n = 0;
+  let lastYield = 0;
+  // The per-frame lattice phase dither is gone. It existed to give a mark that
+  // straddled one phase's rows another chance on the NEXT frame, and it worked,
+  // but analyzeFrame now locates marks geometrically and puts dense rows through
+  // them within a single frame -- both better (6 of 6 marks rather than 3-4) and
+  // no longer dependent on the scene holding still for four frames.
+  // grid mode: exponential per-id accumulation of fused centres across frames —
+  // the stimulus is static, so the homography should not depend on which subset
+  // of marks a single frame's row phase happened to catch
+  const acc = new Map(); // id -> {x, y, w, seen, vfit}
+  const ACC_DECAY = 0.9;
+  // Scan rows per uninterrupted block. Chunking keeps the tab responsive during
+  // the dense grid sweep; orbit shows a single mark against a flat field and the
+  // whole sweep costs ~9ms, well inside a frame, so chunking it buys nothing and
+  // costs plenty — each setTimeout(0) is clamped to ~4ms, and 13 of them per
+  // frame dragged capture from 60fps to 18, which is exactly the temporal
+  // resolution the latency estimate is made of.
+  // With workers the detection is not on this thread at all, so there is
+  // nothing to yield to and chunking would only serialise the pool -- each
+  // chunk is one round trip that finishes before the next is dealt.
+  const ROW_CHUNK = calMode === "orbit" || detectPool ? Infinity : 20;
+  const breathe = () => new Promise((r) => window.setTimeout(r, 0));
+  // grid is a static scene: there is nothing to gain from detecting at display
+  // rate, and the idle gap keeps the tab responsive and cool. Orbit runs flat
+  // out because its whole point is temporal resolution.
+  const IDLE_MS = 60;
+
+  // commanded x at time t, linearly interpolated from the stimulus history
+  const cmdX = (t) => {
+    const h = stimulusBus.history;
+    if (h.length < 2 || t < h[0].t || t > h[h.length - 1].t) return null;
+    let lo = 0, hi = h.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (h[mid].t <= t) lo = mid;
+      else hi = mid;
+    }
+    const a = h[lo], b = h[hi];
+    const f = (t - a.t) / (b.t - a.t || 1);
+    return a.marks[0].x * (1 - f) + b.marks[0].x * f;
+  };
+
+  // lag maximising |normalized correlation| between detected and commanded x.
+  // Scale/offset/mirror invariant, so it needs no homography.
+  const estimateLatency = () => {
+    if (calMode !== "orbit" || trace.length < 60) return null;
+    let best = null;
+    for (let lag = 0; lag <= 400; lag += 8) {
+      let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, m = 0;
+      for (const p of trace) {
+        const c = cmdX(p.t - lag);
+        if (c == null) continue;
+        sx += p.x; sy += c; sxx += p.x * p.x; syy += c * c; sxy += p.x * c;
+        m++;
+      }
+      if (m < 30) continue;
+      const cov = sxy - (sx * sy) / m;
+      const vx = sxx - (sx * sx) / m;
+      const vy = syy - (sy * sy) / m;
+      if (vx <= 0 || vy <= 0) continue;
+      const r = cov / Math.sqrt(vx * vy);
+      if (!best || Math.abs(r) > Math.abs(best.r)) best = { lagMs: lag, r, samples: m };
+    }
+    return best;
+  };
+
+  while (true) {
+    await new Promise((r) => window.requestAnimationFrame(r));
+    const src = calSource === "camera" ? calVideo : stimulusView.canvas;
+    if (calSource === "camera" && (!calVideo || calVideo.readyState < 2)) continue;
+    ctx.drawImage(src, 0, 0, CAL_FRAME.w, CAL_FRAME.h);
+    const px = ctx.getImageData(0, 0, CAL_FRAME.w, CAL_FRAME.h).data;
+    for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+      gray[i] = (px[p] * 77 + px[p + 1] * 150 + px[p + 2] * 29) >> 8;
+    }
+    const t = window.performance.now();
+    const frame = { gray, w: CAL_FRAME.w, h: CAL_FRAME.h, t, n };
+    // one shared per-frame routine, also driven by the frame-bank tests, so the
+    // regression suite cannot drift away from what the live rig actually runs
+    const { run, fused } = await analyzeFrame(frame, {
+      // grid is static and can afford the dense pass; orbit is one mark and is
+      // spending its budget on temporal resolution, so it scans coarser
+      coarseStride: calMode === "orbit" ? 24 : 16,
+      fineStride: calMode === "orbit" ? 8 : 6,
+      chunk: ROW_CHUNK,
+      breathe,
+      minMargin: 4,
+      minReadable: 4,
+      // same routine, rows dealt to the worker pool instead of run here
+      ...(detectPool ? { runRows: detectPool.runRows } : {})
+    });
+    if (calMode === "grid") {
+      for (const [, a] of acc) a.w *= ACC_DECAY;
+      for (const f of fused) {
+        const a = acc.get(f.id) ?? { x: 0, y: 0, w: 0, seen: 0, vfit: 0 };
+        const wNew = f.rows;
+        a.x = (a.x * a.w + f.xc * wNew) / (a.w + wNew);
+        a.y = (a.y * a.w + f.yc * wNew) / (a.w + wNew);
+        a.w += wNew;
+        a.seen++;
+        if (f.vFit) a.vfit++;
+        acc.set(f.id, a);
+      }
+    }
+    if (calMode === "orbit" && fused.length) {
+      trace.push({ t, x: fused[0].xc });
+      if (trace.length > 240) trace.shift();
+    }
+    n++;
+    if (calMode === "grid") await new Promise((r) => window.setTimeout(r, IDLE_MS));
+    // yield ~4x/s so the dataflow is not saturated by 60Hz updates
+    if (t - lastYield > 250) {
+      lastYield = t;
+      yield {
+        t,
+        n,
+        source: calSource,
+        mode: calMode,
+        capture: cap,
+        run,
+        fused,
+        // accumulated landmarks: ids with meaningful surviving weight only
+        landmarks: [...acc.entries()]
+          .filter(([, a]) => a.w > 1)
+          .map(([id, a]) => ({
+            id, xc: a.x, yc: a.y, weight: a.w, seen: a.seen,
+            // fraction of contributing frames whose yc came from the V-fit
+            // rather than the biased row-centroid fallback
+            vFitFrac: a.seen ? a.vfit / a.seen : 0
+          })),
+        traceLen: trace.length,
+        latency: estimateLatency()
+      };
+    }
+  }
+}());};
+const _9ey4fu = function _fitHomography() {return (function fitHomography(pairs) {
+  // least-squares homography (h33 = 1): [sx,sy] -> [dx,dy], 8 unknowns,
+  // normal equations solved by Gaussian elimination. Reflections (the mirror)
+  // come out as a negative determinant of the affine part — no special casing.
+  if (pairs.length < 4) return null;
+  const A = Array.from({ length: 8 }, () => new Float64Array(9));
+  for (const { sx, sy, dx, dy } of pairs) {
+    const r1 = [sx, sy, 1, 0, 0, 0, -sx * dx, -sy * dx, dx];
+    const r2 = [0, 0, 0, sx, sy, 1, -sx * dy, -sy * dy, dy];
+    for (const r of [r1, r2]) {
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) A[i][j] += r[i] * r[j];
+        A[i][8] += r[i] * r[8];
+      }
+    }
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c;
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    if (Math.abs(A[p][c]) < 1e-12) return null;
+    [A[c], A[p]] = [A[p], A[c]];
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      for (let j = c; j < 9; j++) A[r][j] -= f * A[c][j];
+    }
+  }
+  const h = A.map((row, i) => row[8] / row[i]);
+  const H = [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1];
+  const map = (sx, sy) => {
+    const w = H[6] * sx + H[7] * sy + 1;
+    return [(H[0] * sx + H[1] * sy + H[2]) / w, (H[3] * sx + H[4] * sy + H[5]) / w];
+  };
+  let ss = 0;
+  for (const { sx, sy, dx, dy } of pairs) {
+    const [px, py] = map(sx, sy);
+    ss += (px - dx) ** 2 + (py - dy) ** 2;
+  }
+  return {
+    H,
+    map,
+    mirrored: H[0] * H[4] - H[1] * H[3] < 0,
+    rmsResidual: Math.sqrt(ss / pairs.length),
+    pairs: pairs.length
+  };
+});};
+const _nnfn1b = function _calHomography(calRun,stimulusBus,fitHomography) {
+  // grid mode: id-match the ACCUMULATED landmark centres (not one frame's fused
+  // subset) to the commanded marks — the scan-phase dither means different frames
+  // see different mark subsets, and the accumulator merges them
+  if (!calRun || calRun.mode !== "grid") return null;
+  const cmd = new Map(stimulusBus.marks.map((m) => [m.id, m]));
+  const pairs = [];
+  for (const f of calRun.landmarks ?? []) {
+    const m = cmd.get(f.id);
+    if (m) pairs.push({ sx: m.x, sy: m.y, dx: f.xc, dy: f.yc });
+  }
+  return fitHomography(pairs);
+};
+const _1gnnqz3 = function _calStats(calRun,md,stimulusBus,calHomography,htl) {
+  if (!calRun) return md`*rig off — toggle "calibration rig" to start*`;
+  const rows = [
+    ["mode / source", `${calRun.mode} / ${calRun.source}`],
+    ["frames processed", calRun.n],
+    ["pipeline ms", calRun.run.ms.toFixed(1)],
+    ["row hits", calRun.run.hits.length],
+    ["fused this frame", calRun.fused.map((f) => `id${f.id}×${f.rows}`).join(" ") || "—"]
+  ];
+  if (calRun.mode === "grid") {
+    const cmdIds = new Set(stimulusBus.marks.map((m) => m.id));
+    const lm = calRun.landmarks ?? [];
+    const good = lm.filter((f) => cmdIds.has(f.id)).length;
+    rows.push([
+      "accumulated landmarks",
+      lm.map((f) => `id${f.id}(${f.seen}f)`).join(" ") || "—"
+    ]);
+    rows.push(["ids matched", `${good}/${stimulusBus.marks.length}`]);
+    if (calHomography) {
+      rows.push(
+        ["homography residual", `${calHomography.rmsResidual.toFixed(2)} px (${calHomography.pairs} pts)`],
+        ["mirrored", String(calHomography.mirrored)],
+        ["scale x/y", `${calHomography.H[0].toFixed(3)} / ${calHomography.H[4].toFixed(3)}`]
+      );
+    } else rows.push(["homography", "needs ≥4 id-matched marks"]);
+  }
+  if (calRun.mode === "orbit") {
+    rows.push([
+      "latency",
+      calRun.latency
+        ? `${calRun.latency.lagMs} ms (|r|=${Math.abs(calRun.latency.r).toFixed(3)}, ${calRun.latency.samples} samples${calRun.latency.r < 0 ? ", mirrored" : ""})`
+        : `collecting trace… ${calRun.traceLen}/60`
+    ]);
+  }
+  return htl.html`<table style="font:13px monospace">${rows.map(
+    ([k, v]) => htl.html`<tr><td style="padding:1px 12px 1px 0;opacity:.7">${k}</td><td>${v}</td></tr>`
+  )}</table>`;
+};
+const _1gmmbqf = function _edges1Dsub() {return (function edges1Dsub(sig, thr = 6) {
+  // Part II's edges1D with parabolic sub-pixel refinement of each gradient peak.
+  // Integer edge positions cost ~0.03 of cross ratio at 2px-per-template-unit
+  // mark scales — past the CR gate's tolerance — so the quarter-pixel accuracy
+  // here is what lets small on-screen marks through detection at all.
+  const n = sig.length;
+  const d = new Float32Array(n);
+  for (let i = 1; i < n; i++) d[i] = sig[i] - sig[i - 1];
+  const idx = [];
+  for (let i = 2; i < n - 2; i++) {
+    const v = d[i];
+    if (Math.abs(v) < thr) continue;
+    if (
+      (v > 0 && d[i] >= d[i - 1] && d[i] >= d[i + 1]) ||
+      (v < 0 && d[i] <= d[i - 1] && d[i] <= d[i + 1])
+    ) {
+      const y1 = Math.abs(d[i - 1]), y2 = Math.abs(d[i]), y3 = Math.abs(d[i + 1]);
+      const den = y1 - 2 * y2 + y3;
+      const off = Math.abs(den) > 1e-6 ? (0.5 * (y1 - y3)) / den : 0;
+      idx.push({ x: i + Math.max(-0.5, Math.min(0.5, off)), s: Math.sign(v) });
+    }
+  }
+  return idx;
+});};
+const _vui5kg = function _CAL_FRAME(FRAME) {
+  // Measured through the mirror: a screen mark lands ~70px wide in a 640x480
+  // capture, i.e. 1.25 pixels per template unit — under the ~2 the cross ratio
+  // needs, so only the odd lucky row decoded. The camera reports a 1920 max, so
+  // the resolution was ours to ask for. The sim rig keeps FRAME; oversampling
+  // is confined to the calibration capture path.
+  return { w: FRAME.w * 2, h: FRAME.h * 2 };
+};
+const _4iv3z6 = function _calRows(rowStride,CAL_FRAME,FRAME) {
+  // scanRows at CAL_FRAME scale: the stride grows with the frame so a mark is
+  // crossed by the same number of rows as before, and the sweep costs the same
+  // number of rows rather than four times as many
+  const stride = rowStride * (CAL_FRAME.h / FRAME.h);
+  const rows = [];
+  for (let y = Math.floor(stride / 2); y < CAL_FRAME.h; y += stride) rows.push(y);
+  return rows;
+};
+const _ocjkzi = async function _cameraSample(FileAttachment,htl) {
+  // A real 1280x960 frame off the machine camera, kept as a file attachment so
+  // the mirror rig has a fixed reference image that needs no camera, no mirror
+  // and no permission prompt to look at.
+  const img = await FileAttachment("frame-mirror-angled.png").image({ width: 640 });
+  img.style.border = "1px solid var(--theme-foreground-faintest, #888)";
+  return htl.html`<figure style="margin:0">
+    ${img}
+    <figcaption style="font:12px/1.5 var(--sans-serif, system-ui); opacity:0.7">
+      Sample capture from the calibration camera at CAL_FRAME resolution
+      (1280&times;960), shown at half size.
+    </figcaption>
+  </figure>`;
+};
+const _uio2e6 = function _analyzeFrame(runPipeline,scanLattice,clusterWindows,fuseLandmarks) {return (async function analyzeFrame(frame, opts = {}) {
+  // One frame, coarse-to-fine.
+  //
+  // The old shape was a single uniform lattice, and it topped out at 3-4 of 6
+  // marks. The reason was not detection and not the candidate budget (raising
+  // maxCands changes nothing): it is that fusion demands two rows of the WINNING
+  // id before it will emit a landmark, and a uniform lattice sparse enough to be
+  // affordable puts only one decodable row through a mark. Rows through a mark
+  // decode erratically -- one row can read the full margin 8 while its immediate
+  // neighbours read nothing -- so "enough rows" has to mean many, and paying for
+  // many everywhere is what we cannot afford.
+  //
+  // So: locate geometrically, then decode densely only where a mark actually is.
+  // Windows are found on rows that will never decode, which makes them a much
+  // better locator than decodes are.
+  const coarseStride = opts.coarseStride ?? 16;
+  const fineStride = opts.fineStride ?? 6;
+  const maxFineRows = opts.maxFineRows ?? 260;
+  const chunk = opts.chunk ?? Infinity;
+  const breathe = opts.breathe ?? null;
+  // Where rows actually get processed. The default runs them here; a worker pool
+  // supplies its own and returns the same run records from another thread. This
+  // is an injection point rather than a second copy of the routine on purpose --
+  // a parallel analyzeFrame would be a fork of the passage below, and the two
+  // would drift.
+  const runRows =
+    opts.runRows ??
+    ((f, rows, o) => [runPipeline(f, { ...o, scanRows: rows })]);
+  // everything not consumed here is forwarded to the pipeline, so detector
+  // options (generator, minMargin, ...) reach it without this cell having to
+  // know about each one. runRows and breathe are functions and must NOT be
+  // forwarded -- they would be posted to a worker and fail to clone.
+  const {
+    coarseStride: _a, fineStride: _b, maxFineRows: _c, chunk: _d, breathe: _e,
+    maxBands: _f, scanRows: _g, runRows: _h, ...forward
+  } = opts;
+  const pipeOpts = { minMargin: 4, minReadable: 4, ...forward };
+  const merge = (a, b) =>
+    !a ? b : {
+      ...b,
+      hits: a.hits.concat(b.hits),
+      windowList: (a.windowList ?? []).concat(b.windowList ?? []),
+      rawHits: a.rawHits + b.rawHits,
+      rejectedByDecode: a.rejectedByDecode + b.rejectedByDecode,
+      windows: a.windows + b.windows,
+      survived: a.survived + b.survived,
+      scanEdges: a.scanEdges + b.scanEdges,
+      rowsTouched: a.rowsTouched + b.rowsTouched,
+      msDetect: a.msDetect + b.msDetect,
+      msDecode: a.msDecode + b.msDecode,
+      ms: a.ms + b.ms
+    };
+  const sweep = async (list, acc, extra = {}) => {
+    let run = acc;
+    for (let i = 0; i < list.length; i += chunk) {
+      const parts = await runRows(frame, list.slice(i, i + chunk), {
+        ...pipeOpts,
+        ...extra
+      });
+      for (const part of parts) run = merge(run, part);
+      if (breathe && i + chunk < list.length) await breathe();
+    }
+    return run;
+  };
+  const lattice = (from, to, step) => {
+    const out = [];
+    for (let y = Math.max(0, Math.round(from)); y <= Math.min(frame.h - 1, to); y += step)
+      out.push(y);
+    return out;
+  };
+
+  // pass 1 -- coarse, and harvest the geometry
+  const coarseRows = opts.scanRows ?? scanLattice(frame.h, coarseStride);
+  let run = await sweep(coarseRows, null, { collectWindows: true });
+  const bands = clusterWindows(run.windowList ?? [], {
+    stride: coarseStride,
+    maxBands: opts.maxBands ?? 12
+  });
+
+  // pass 2 -- dense, but only inside a band. Cost tracks the number of marks in
+  // view, not the frame area, so an empty scene costs the coarse pass alone.
+  const seen = new Set(coarseRows);
+  const fine = [];
+  for (const b of bands)
+    for (const y of lattice(b.y0 - b.w * 0.55, b.y1 + b.w * 0.55, fineStride))
+      if (!seen.has(y)) { seen.add(y); fine.push(y); }
+  fine.sort((a, b) => a - b);
+  const fineRows = fine.slice(0, maxFineRows);
+  if (fineRows.length) run = await sweep(fineRows, run);
+  let fused = fuseLandmarks(run.hits);
+
+  // pass 3 -- a mark still short of the V-fit's three rows gets its own rescan.
+  // Sub-row-stride yc needs the V-fit; without it yc degrades to the centroid of
+  // whichever rows fired, measured at 29px rms and a -15px BIAS against loopback
+  // truth, versus 1.9px and no bias once the fit engages.
+  const weak = fused.filter((f) => f.geoRows < 3);
+  let refinedRows = 0;
+  if (weak.length) {
+    const extra = [];
+    for (const f of weak)
+      for (const y of lattice(f.yc - fineStride * 3, f.yc + fineStride * 3, 2))
+        if (!seen.has(y)) { seen.add(y); extra.push(y); }
+    extra.sort((a, b) => a - b);
+    refinedRows = extra.length;
+    if (extra.length) {
+      run = await sweep(extra, run);
+      fused = fuseLandmarks(run.hits);
+    }
+  }
+  return { run, fused, bands: bands.length, refinedRows };
+});};
+const _k6d86f = function _testFrames() {return ([
+  // Real captures through the mirror, kept so the detector can be regression
+  // tested with no camera, no mirror and no permission prompt. Thresholds are
+  // set at or just under what the current pipeline achieves: they are a floor to
+  // notice regressions against, not a target. Raise them when the detector
+  // genuinely improves -- as happened when coarse-to-fine scanning took the
+  // upright yield from 3-4 of 6 marks to 6 of 6 (minIds 3/4 -> 6/6), and again
+  // when the reflection sweep replaced the histogram gate (maxRotDisagreePx
+  // 12 -> 3: the quarter turns went from one ~8.5px sighting to several
+  // V-fit-accurate ones).
+  //
+  // Each frame is also replayed at all four quarter turns. That costs nothing to
+  // store -- a rotation is an exact index permutation of the pixels already
+  // here, no resampling, no second image -- and it buys a geometric self-check
+  // that needs no hand-set number, plus the knowledge that a turn cannot
+  // manufacture a detection on a blank screen.
+  //
+  // TWO agreement bounds, because they measure different things.
+  // maxPrimaryDisagreePx is upright vs 180 only. Both are full-quality views of
+  // the same marks, they agree to ~1.05px, and roughly 1px of that is the
+  // pixel-boundary convention under a flip rather than estimator error. This is
+  // the tight one, and it is the only threshold here that needs no reference
+  // data and no number carried over from a previous run, so it cannot rot.
+  // maxRotDisagreePx spans all four turns and is looser. A 90 degree scan
+  // crosses three times the edges; those turns used to find nothing at all and
+  // now recover several marks, currently agreeing to ~2.1px once unrotated.
+  //
+  // STORED AS 8-BIT GREYSCALE PNG, and it has to stay that way.
+  // Greyscale is free: the pipeline only ever reads luma, so collapsing colour
+  // with the weights it already uses (77/150/29 >> 8) is lossless by
+  // construction -- checked as zero differing bytes over all 1.23M pixels. Note
+  // canvas.toBlob cannot write this; it always emits RGBA, which is twice the
+  // size for the same pixels.
+  // JPEG cannot be used at any quality. It costs decoded rows, which drops marks
+  // below the V-fit's three-row minimum onto the fallback and its -15px bias:
+  // measured centres moved up to 10px, against an estimator whose own error is
+  // 1.7px. It is not even monotonic in quality (q85 clean, q92 at 33% V-fit),
+  // because the damage depends on where a mark lands against the 8x8 block grid.
+  // Downscaling is worse still: half resolution takes 6 ids to 0-3, which is the
+  // whole point of the "flat and far" frame below.
+  {
+    file: "frame-mirror-angled.png",
+    name: "mirror / angled",
+    note: "Screen fills the frame at a slant, so the fitted homography carries real projective content rather than near-pure scale. Marks 110-170px wide. The two most foreshortened marks are the ones the old uniform lattice missed.",
+    expect: {
+      minIds: 6,
+      minUprightVFitShare: 0.9,
+      minUnionIds: 6,
+      maxIds: 6,
+      maxPrimaryDisagreePx: 1.3,
+      maxRotDisagreePx: 3
+    }
+  },
+  {
+    file: "frame-mirror-flat.png",
+    name: "mirror / flat and far",
+    note: "Mirror further back and nearly fronto-parallel, marks around 2.1 pixels per template unit. This is the scale floor: below roughly 2px per template unit the cross ratio stops separating true windows from chance ones.",
+    expect: {
+      minIds: 6,
+      minUprightVFitShare: 0.9,
+      minUnionIds: 6,
+      maxIds: 6,
+      maxPrimaryDisagreePx: 1.3,
+      maxRotDisagreePx: 3
+    }
+  },
+  {
+    file: "frame-blank.png",
+    name: "negative control / blank screen",
+    note: "Same rig and mirror, stimulus not running, so the screen is uniform white. Every raw candidate must be rejected; any id reported is a false positive. This is the frame that vetoes loosening the decode margin -- at minMargin 2 the mirror frames start reporting a DUPLICATE id, two clusters claiming one landmark, which for navigation is a wrong fix rather than a missing one.",
+    expect: { minIds: 0, maxIds: 0 }
+  }
+]);};
+const _1c1rmua = async function _testFrameBank(testFrames,testFrameFiles) {
+  // Decode each attachment to the same {gray, w, h} the live capture path
+  // builds, using the identical luma weights, so a bank frame is byte-for-byte
+  // the input calRun would have handed the detector.
+  const bank = [];
+  for (const spec of testFrames) {
+    const fa = testFrameFiles.get(spec.file);
+    if (!fa) throw new Error(`testFrames names ${spec.file}, which testFrameFiles does not map`);
+    const img = await fa.image();
+    const c = window.document.createElement("canvas");
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const px = ctx.getImageData(0, 0, c.width, c.height).data;
+    const gray = new Uint8Array(c.width * c.height);
+    for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+      gray[i] = (px[p] * 77 + px[p + 1] * 150 + px[p + 2] * 29) >> 8;
+    }
+    bank.push({ ...spec, frame: { gray, w: c.width, h: c.height } });
+  }
+  return bank;
+};
+const _1r6cx83 = function _testFrameFiles(FileAttachment) {return (new Map([
+  // FileAttachment only accepts a literal string, so the bank cannot look one up
+  // by name at runtime; this map is the indirection. Adding a frame means adding
+  // a line here and an entry in testFrames.
+  ["frame-mirror-angled.png", FileAttachment("frame-mirror-angled.png")],
+  ["frame-mirror-flat.png", FileAttachment("frame-mirror-flat.png")],
+  ["frame-blank.png", FileAttachment("frame-blank.png")]
+]));};
+const _s8m851 = async function _testFrameResults(testFrameBank,rotateFrame,analyzeFrame) {
+  // Replay the bank through the same analyzeFrame the live rig uses. Nothing
+  // here touches a camera, a mirror or a permission prompt, so it reruns on any
+  // machine and gives the same answer -- which is the point of a frame bank.
+  //
+  // One call per quarter turn. The lattice-phase sweep this used to do is gone:
+  // analyzeFrame now picks its own rows, densely and only where the geometry
+  // says a mark is, which is both cheaper and strictly better than replaying
+  // four fixed phases.
+  const TURNS = [0, 1, 2, 3];
+  // inverse of rotateFrame's index permutation, taking a point measured in the
+  // rotated frame back into original-frame coordinates. w,h are the ORIGINAL
+  // dimensions. Exact up to the pixel-boundary convention: subpixel edge
+  // positions come back with a constant ~1px offset under a flip, because an
+  // edge lying between pixels i and i+1 is not the same continuous coordinate
+  // as the flipped index of pixel i.
+  const unrotate = (x, y, t, w, h) =>
+    t === 1 ? { x: y, y: h - 1 - x }
+    : t === 2 ? { x: w - 1 - x, y: h - 1 - y }
+    : t === 3 ? { x: w - 1 - y, y: x }
+    : { x, y };
+
+  const out = [];
+  for (const spec of testFrameBank) {
+    const t0 = window.performance.now();
+    const { w, h } = spec.frame;
+    const turns = [];
+    for (const t of TURNS) {
+      const fr = rotateFrame(spec.frame, t);
+      const tt = window.performance.now();
+      const r = await analyzeFrame(fr);
+      const seen = r.fused;
+      turns.push({
+        turn: t,
+        deg: t * 90,
+        ids: seen.map((f) => f.id).sort((a, b) => a - b),
+        landmarks: seen.length,
+        vFitShare: seen.length ? seen.filter((f) => f.vFit).length / seen.length : 0,
+        medRows: seen.length
+          ? seen.map((f) => f.geoRows).sort((a, b) => a - b)[seen.length >> 1]
+          : 0,
+        bands: r.bands,
+        rowsTouched: r.run.rowsTouched,
+        rawHits: r.run.rawHits,
+        windows: r.run.windows,
+        refinedRows: r.refinedRows,
+        ms: window.performance.now() - tt,
+        at: new Map(seen.map((f) => [f.id, unrotate(f.xc, f.yc, t, w, h)]))
+      });
+    }
+
+    // A mark's position must not depend on which way up the frame was, so the
+    // turns cross-check each other with no reference data and no threshold
+    // pulled from a previous run.
+    //
+    // Two bounds, because the turns are not equivalent. 0 and 180 scan along the
+    // same image axis and are the regime the rig actually runs in; they agree to
+    // about a pixel, and that is the bound worth defending. A quarter turn scans
+    // ACROSS the display's texture instead of along it, raises three times the
+    // edges, and the sightings it does manage are correspondingly loose -- 7px
+    // on this bank. Folding that into one number would only mean carrying a
+    // tolerance too slack to catch a real regression in the case we care about.
+    const pairDist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const ids = new Set(turns.flatMap((r) => r.ids));
+    let worstDisagreePx = 0, agreedIds = 0;
+    let primaryDisagreePx = 0, primaryIds = 0;
+    for (const id of ids) {
+      const pts = turns.filter((r) => r.at.has(id)).map((r) => r.at.get(id));
+      if (pts.length >= 2) {
+        agreedIds++;
+        for (let i = 0; i < pts.length; i++)
+          for (let j = i + 1; j < pts.length; j++)
+            worstDisagreePx = Math.max(worstDisagreePx, pairDist(pts[i], pts[j]));
+      }
+      const a = turns[0].at.get(id), b = turns[2].at.get(id);
+      if (a && b) {
+        primaryIds++;
+        primaryDisagreePx = Math.max(primaryDisagreePx, pairDist(a, b));
+      }
+    }
+
+    const up = turns[0];
+    const unionIds = [...ids].sort((a, b) => a - b);
+    const e = spec.expect ?? {};
+    const failures = [];
+    if (e.minIds != null && up.ids.length < e.minIds)
+      failures.push(`upright wanted >=${e.minIds} ids, got ${up.ids.length} (${up.ids.join(",")})`);
+    if (e.minUnionIds != null && unionIds.length < e.minUnionIds)
+      failures.push(`wanted >=${e.minUnionIds} ids over all turns, got ${unionIds.length}`);
+    if (e.minUprightVFitShare != null && up.landmarks && up.vFitShare < e.minUprightVFitShare)
+      failures.push(`upright wanted >=${Math.round(e.minUprightVFitShare * 100)}% V-fit, got ${Math.round(up.vFitShare * 100)}%`);
+    // a duplicated id means two clusters claim one landmark -- for navigation
+    // that is a wrong fix, not a missing one, so it fails at every turn
+    for (const r of turns) {
+      if (new Set(r.ids).size !== r.ids.length)
+        failures.push(`${r.deg}deg reported a duplicate id (${r.ids.join(",")})`);
+      if (e.maxIds != null && r.ids.length > e.maxIds)
+        failures.push(`${r.deg}deg wanted <=${e.maxIds} ids, got ${r.ids.length} (${r.ids.join(",")})`);
+    }
+    if (e.maxPrimaryDisagreePx != null && primaryIds && primaryDisagreePx > e.maxPrimaryDisagreePx)
+      failures.push(`0/180 disagree by ${primaryDisagreePx.toFixed(2)}px, allowed ${e.maxPrimaryDisagreePx}`);
+    if (e.maxRotDisagreePx != null && agreedIds && worstDisagreePx > e.maxRotDisagreePx)
+      failures.push(`turns disagree by ${worstDisagreePx.toFixed(2)}px, allowed ${e.maxRotDisagreePx}`);
+
+    out.push({
+      name: spec.name,
+      file: spec.file,
+      note: spec.note,
+      ids: up.ids,
+      unionIds,
+      landmarks: up.landmarks,
+      vFitShare: up.vFitShare,
+      medRows: up.medRows,
+      rawHits: up.rawHits,
+      turns,
+      agreedIds,
+      worstDisagreePx,
+      primaryIds,
+      primaryDisagreePx,
+      ms: window.performance.now() - t0,
+      failures,
+      pass: failures.length === 0
+    });
+  }
+  return out;
+};
+const _zghole = function _rotateFrame() {return (function rotateFrame(frame, turns) {
+  // Quarter turns only, done as an index permutation rather than through a
+  // canvas: no resampling, so a rotated frame carries exactly the original
+  // pixels and any change in the result is the detector's doing, not a
+  // filter's. Rotation is free storage-wise -- the bank keeps one image and
+  // derives the rest.
+  const t = ((turns % 4) + 4) % 4;
+  if (t === 0) return frame;
+  const { gray, w, h } = frame;
+  const nw = t === 2 ? w : h;
+  const nh = t === 2 ? h : w;
+  const out = new Uint8Array(gray.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let nx, ny;
+      if (t === 1) { nx = h - 1 - y; ny = x; }
+      else if (t === 2) { nx = w - 1 - x; ny = h - 1 - y; }
+      else { nx = y; ny = w - 1 - x; }
+      out[ny * nw + nx] = gray[y * w + x];
+    }
+  }
+  return { gray: out, w: nw, h: nh };
+});};
+const _tavtr3 = function _scanLattice() {return (function scanLattice(height, stride) {
+  // calRows fixed to CAL_FRAME; this is the same construction for any height,
+  // which a rotated frame needs since a quarter turn swaps the dimensions
+  const rows = [];
+  for (let y = Math.floor(stride / 2); y < height; y += stride) rows.push(y);
+  return rows;
+});};
+const _7u6ljb = function _testFrameReport(htl,testFrameResults) {return (htl.html`<div style="font:13px/1.5 system-ui,sans-serif">
+  ${testFrameResults.map((r) => htl.html`<div style="margin:0 0 14px 0;padding:8px 10px;border-left:3px solid ${r.pass ? "#2a7" : "#c33"};background:#0001">
+    <div><b>${r.pass ? "PASS" : "FAIL"}</b> &nbsp;${r.name}
+      <span style="opacity:.6">&nbsp;upright [${r.ids.join(", ")}] &middot; all turns [${r.unionIds.join(", ")}] &middot; ${Math.round(r.ms)}ms</span></div>
+    <table style="border-collapse:collapse;margin:6px 0 0 0;font-variant-numeric:tabular-nums">
+      <tr style="opacity:.6;text-align:left"><th style="padding-right:14px">turn</th><th style="padding-right:14px">ids</th><th style="padding-right:14px">V-fit</th><th style="padding-right:14px">med rows</th><th style="padding-right:14px">bands</th><th style="padding-right:14px">rows scanned</th><th>ms</th></tr>
+      ${r.turns.map((t) => htl.html`<tr>
+        <td style="padding-right:14px">${t.deg}&deg;</td>
+        <td style="padding-right:14px">${t.ids.length ? t.ids.join(", ") : "—"}</td>
+        <td style="padding-right:14px">${t.landmarks ? Math.round(t.vFitShare * 100) + "%" : "—"}</td>
+        <td style="padding-right:14px">${t.medRows || "—"}</td>
+        <td style="padding-right:14px">${t.bands}</td>
+        <td style="padding-right:14px">${t.rowsTouched}</td>
+        <td>${Math.round(t.ms)}</td></tr>`)}
+    </table>
+    <div style="opacity:.6;margin-top:4px">${r.agreedIds
+      ? `${r.agreedIds} id${r.agreedIds > 1 ? "s" : ""} seen at more than one turn, worst cross-turn disagreement ${r.worstDisagreePx.toFixed(2)}px`
+      : "no id seen at more than one turn, so no cross-turn geometry check"}</div>
+    ${r.failures.map((f) => htl.html`<div style="color:#c33">${f}</div>`)}
+  </div>`)}
+</div>`);};
+const _1dpzurc = function _clusterWindows() {return (function clusterWindows(windows, opts = {}) {
+  // Where does the row detector keep finding a compact window at a consistent x?
+  // That question is pure geometry, so it is still answerable on rows whose
+  // payload will not decode -- which is the situation every mark near the scale
+  // floor is in. Locating marks this way and only then spending photometry on
+  // them is what lets the fine pass be dense without being global.
+  const maxHole = opts.maxHole ?? 0.2; // a chimera spans two marks, so it contains background
+  const rowGap = opts.rowGap ?? 4;
+  const minRows = opts.minRows ?? 2;
+  const maxBands = opts.maxBands ?? 12;
+  const stride = opts.stride ?? 12;
+  const cl = [];
+  for (const p of windows) {
+    if (!(p.holeFrac <= maxHole)) continue;
+    let best = null, bd = Infinity;
+    for (const c of cl) {
+      const dx = Math.abs(c.cx - p.cx);
+      if (dx > 0.5 * p.w) continue;
+      if (Math.abs(c.yLast - p.y) > rowGap * stride) continue;
+      if (dx < bd) { bd = dx; best = c; }
+    }
+    if (best) {
+      best.n++;
+      best.cx = (best.cx * (best.n - 1) + p.cx) / best.n;
+      best.yLast = p.y;
+      best.y0 = Math.min(best.y0, p.y);
+      best.y1 = Math.max(best.y1, p.y);
+      best.w = Math.max(best.w, p.w);
+    } else cl.push({ cx: p.cx, w: p.w, n: 1, y0: p.y, y1: p.y, yLast: p.y });
+  }
+  // Ranked and capped, not just filtered. A cluttered scene (or a frame scanned
+  // across its texture rather than along it) throws up many weakly supported
+  // bands, and an uncapped fine pass would then cost seconds. Bounded worst-case
+  // work matters more than the last band.
+  return cl
+    .filter((c) => c.n >= minRows)
+    .sort((a, b) => b.n - a.n || b.w - a.w)
+    .slice(0, maxBands);
+});};
+const _a2pm83 = function _windowCandidates(crossRatio,crCurve,crDistance) {return (function windowCandidates(sx, opts = {}) {
+  // Candidate generation, split out of detectLandmarkRow so strategies can be
+  // swapped (opts.generator) against identical downstream code. Returns one
+  // candidate per accepted window: the mirror-symmetric mid pair whose cross
+  // ratio sits closest to the CR(d) curve.
+  //
+  //   "scan"    exhaustive over every (i,j). The reference.
+  //   "vote"    sweep centres expanded directly into rim pairs. Fastest, but it
+  //             finds fewer decodable rows per mark, and marks that then sit on
+  //             the V-fit's 3-row minimum carry 2-7px of position error.
+  //   "gated"   DEFAULT. The reflection sweep decides WHERE to enumerate; near a
+  //             surviving centre the enumeration is exactly "scan", so the
+  //             candidate set around a real mark -- and hence the accuracy -- is
+  //             unchanged. A false centre costs a few wasted windows, never a
+  //             wrong landmark; the cross-ratio and decode gates downstream
+  //             still judge every window on its own merits.
+  const n = sx.length;
+  const minWidth = opts.minWidth ?? 24;
+  const maxWidth = opts.maxWidth ?? 400;
+  // 48 not 32: a large crisp mark crosses ~34 physical rings near its equator and
+  // anti-aliasing can double-peak several of them; at 32 the enumeration break
+  // fired before j reached the far rim, silently discarding the full-rim window
+  // of exactly the biggest, easiest marks
+  const maxEdges = opts.maxEdges ?? 48;
+  const crTol = opts.crTol ?? 0.012;
+  const generator = opts.generator ?? "gated";
+  const cands = [];
+  let windows = 0;
+
+  // largest edge-free run inside a window, as a width fraction: a true mark is
+  // edge-dense throughout (rings everywhere), while a window stitched across two
+  // neighbouring marks contains the blank background between them
+  const holeFracOf = (i, j, width) => {
+    let mg = 0;
+    for (let e = i; e < j; e++) {
+      const gp = sx[e + 1] - sx[e];
+      if (gp > mg) mg = gp;
+    }
+    return mg / width;
+  };
+  // given a rim pair (i,j), the best mid pair on the CR(d) curve
+  const midPair = (i, j) => {
+    const width = sx[j] - sx[i];
+    const aLo = sx[i] + 0.26 * width, aHi = sx[i] + 0.48 * width;
+    const bLo = sx[i] + 0.52 * width, bHi = sx[i] + 0.74 * width;
+    let bestC = null;
+    for (let a = i + 1; a < j; a++) {
+      if (sx[a] < aLo) continue;
+      if (sx[a] > aHi) break;
+      const fa = (sx[a] - sx[i]) / width;
+      for (let b = a + 1; b < j; b++) {
+        if (sx[b] < bLo) continue;
+        if (sx[b] > bHi) break;
+        const fb = (sx[b] - sx[i]) / width;
+        if (Math.abs(fa - (1 - fb)) > 0.06) continue; // not mirror-symmetric
+        const cr = crossRatio(sx[i], sx[a], sx[b], sx[j]);
+        let bestT = null, bestDist = Infinity;
+        for (const t of crCurve) {
+          const dist = crDistance(cr, t.cr);
+          if (dist < bestDist) { bestDist = dist; bestT = t; }
+        }
+        if (bestDist > crTol) continue;
+        if (!bestC || bestDist < bestC.crDist)
+          bestC = { i, a, b, j, width, cr, crDist: bestDist, dSeed: bestT.d };
+      }
+    }
+    return bestC;
+  };
+  const take = (i, j) => {
+    windows++;
+    const bestC = midPair(i, j);
+    if (bestC) {
+      bestC.holeFrac = holeFracOf(i, j, sx[j] - sx[i]);
+      cands.push(bestC);
+    }
+  };
+
+  if (generator === "scan") {
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 7; j < n; j++) {
+        const width = sx[j] - sx[i];
+        if (width > maxWidth) break;
+        if (j - i + 1 > maxEdges) break;
+        if (width < minWidth) continue;
+        take(i, j);
+      }
+    }
+    return { cands, windows };
+  }
+
+  // Reflection sweep. A mark is concentric, so it is mirror-symmetric about its
+  // centre and EVERY ring pair it contributes shares one midpoint. The key fact
+  // (which took two broken histogram designs to see): the centre of a symmetric
+  // edge set always lies BETWEEN its innermost mirror pair, so the only centre
+  // hypotheses worth testing are the midpoints of near-adjacent edge pairs --
+  // a linear sweep, not an O(n^2) vote. Each hypothesis is verified by walking
+  // two pointers outward and counting mirrored offsets that agree within
+  // mirrorTol; the count is a direct "how many ring pairs corroborate this
+  // centre" statistic, where the histogram's raw pair-vote mostly measured
+  // local edge density and let one busy stretch of the row starve real marks
+  // out of a rank cap.
+  //
+  // mirrorTol is loose on purpose: a perspective image of a circle is NOT
+  // exactly mirror-symmetric (that is why the decoder fits a Mobius map rather
+  // than assuming symmetry), and matching mirrored edges to 2px lost the
+  // foreshortened marks entirely.
+  //
+  // maxInnerGap kills most chimera centres for free: the midpoint between two
+  // NEIGHBOURING marks is also a symmetry centre, but it sits in the blank
+  // between them, so its nearest edges are far away -- whereas a real mark has
+  // mid-sync edges close to its centre.
+  //
+  // No rank cap. Dense periodic texture (a 90-degree row through the screen
+  // grid) is mirror-symmetric about every half-period point and produces fake
+  // centres with pair counts far above any real mark's, so keeping the "best" N
+  // centres is exactly backwards there. Fake centres are harmless to accuracy
+  // -- they only admit windows the cross-ratio gate then rejects -- and after
+  // suppression a typical row carries ~7 centres, so admitting all of them
+  // still cuts enumeration hard.
+  const mirrorTol = opts.mirrorTol ?? 5;
+  const maxInnerGap = opts.maxInnerGap ?? 60;
+  const minPairs = opts.minPairs ?? 5;
+  const nmsPx = opts.centreSuppress ?? 20;
+  const centreTol = opts.centreTol ?? 6;
+  const raw = [];
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 1; j <= Math.min(i + 2, n - 1); j++) {
+      if (sx[j] - sx[i] > maxInnerGap) continue;
+      const c = (sx[i] + sx[j]) / 2;
+      let l = i, r = j, pairs = 0;
+      while (l >= 0 && r < n) {
+        const dl = c - sx[l], dr = sx[r] - c;
+        if (dl > maxWidth / 2 || dr > maxWidth / 2) break;
+        if (Math.abs(dl - dr) <= mirrorTol) { pairs++; l--; r++; }
+        else if (dl < dr) l--;
+        else r++;
+      }
+      if (pairs >= minPairs) raw.push({ c, pairs });
+    }
+  }
+  // suppression: the strongest corroboration wins its neighbourhood. 20px is
+  // well under any plausible same-row mark spacing (marks are >=110px wide), so
+  // it collapses one mark's cluster of near-identical hypotheses without ever
+  // merging two real marks.
+  raw.sort((a, b) => b.pairs - a.pairs);
+  const centres = [];
+  for (const cd of raw) {
+    let near = false;
+    for (const k of centres) if (Math.abs(k.c - cd.c) < nmsPx) { near = true; break; }
+    if (!near) centres.push(cd);
+  }
+
+  if (generator === "gated") {
+    // accept windows whose midpoint lands within centreTol of a sweep centre.
+    // centreTol covers the perspective skew between a rim pair's midpoint and
+    // the true centre (measured up to ~5px on the foreshortened marks).
+    const accept = new Set();
+    for (const k of centres) {
+      const kc = Math.round(k.c);
+      for (let o = -centreTol; o <= centreTol; o++) accept.add(kc + o);
+    }
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 7; j < n; j++) {
+        const width = sx[j] - sx[i];
+        if (width > maxWidth) break;
+        if (j - i + 1 > maxEdges) break;
+        if (width < minWidth) continue;
+        if (!accept.has(Math.round((sx[i] + sx[j]) / 2))) continue;
+        take(i, j);
+      }
+    }
+    return { cands, windows };
+  }
+
+  // "vote": sweep centres expanded directly into the rim pairs centred there.
+  // Everything downstream still has its say -- but see the header: fewer
+  // decodable rows survive per mark, so this trades position accuracy for
+  // speed and is not the default.
+  const taken = new Set();
+  for (const { c } of centres) {
+    const pairs = [];
+    for (let p = 0; p < n; p++) {
+      const mirror = 2 * c - sx[p];
+      if (mirror <= sx[p]) continue;
+      let lo = p + 1, hi = n - 1, q = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (Math.abs(sx[mid] - mirror) <= centreTol) { q = mid; break; }
+        if (sx[mid] < mirror) lo = mid + 1; else hi = mid - 1;
+      }
+      if (q < 0) continue;
+      const width = sx[q] - sx[p];
+      if (width < minWidth || width > maxWidth) continue;
+      if (q - p + 1 > maxEdges) continue;
+      pairs.push({ p, q, width });
+    }
+    pairs.sort((a, b) => b.width - a.width);
+    for (const { p, q } of pairs.slice(0, opts.pairsPerCentre ?? 6)) {
+      const tag = p * 4096 + q;
+      if (taken.has(tag)) continue;
+      taken.add(tag);
+      take(p, q);
+    }
+  }
+  return { cands, windows };
+});};
+const _15g2ti2 = function _detectKernelSource(SVD,LAYOUT,crCurve,carrierTemplate,codebook,minMargin,edgeThreshold,dpScratch,crossRatio,crDistance,xFromK,templateAtOffset,fitMobiusLS,dpAlignFast,windowCandidates,detectLandmarkRow,decodeLandmark,edges1Dsub,rowOf,runPipeline) {
+  // The worker script, built from the LIVE cells rather than a hand-written copy
+  // of them. Every function below is the same object this notebook calls on the
+  // main thread, serialised with toString(); every constant is the same value,
+  // serialised as JSON. So a worker cannot drift from the notebook: edit a cell
+  // and the next pool build picks the edit up. This is the only honest way to
+  // run notebook code off-thread — a transcribed kernel would be a second
+  // implementation to keep in step, and it would be wrong within a week.
+  //
+  // What makes it possible at all is that the detector is per-row pure: a scan
+  // row needs only its own pixels (decodeLandmark indexes hit.y * W and never
+  // leaves that row), so a worker can be handed a set of rows and nothing else.
+  const emit = (name, value) =>
+    typeof value === "function"
+      ? `const ${name} = ${value.toString()};`
+      : `const ${name} = ${JSON.stringify(value)};`;
+
+  const parts = [
+    // runPipeline times itself with window.performance; a worker has no window
+    "var window = self;",
+    // runPipeline's fallback row list, always overridden by the job's rows
+    "const scanRows = [];",
+    // svd-js's export, checked to be self-contained under toString()
+    emit("SVD", SVD),
+    emit("LAYOUT", LAYOUT),
+    emit("crCurve", crCurve),
+    emit("carrierTemplate", carrierTemplate),
+    emit("codebook", codebook),
+    emit("minMargin", minMargin),
+    emit("edgeThreshold", edgeThreshold),
+    // dpScratch is a set of reused buffers; its own ensure() allocates every one
+    // of them on first use, so the worker only needs the empty shell plus that
+    // method -- no buffer list to copy and get out of date
+    `const dpScratch = (function () { const s = { cells: 0, n: 0 }; s.ensure = ${dpScratch.ensure.toString()}; return s; })();`,
+    emit("crossRatio", crossRatio),
+    emit("crDistance", crDistance),
+    emit("xFromK", xFromK),
+    emit("templateAtOffset", templateAtOffset),
+    emit("fitMobiusLS", fitMobiusLS),
+    emit("dpAlignFast", dpAlignFast),
+    emit("windowCandidates", windowCandidates),
+    emit("detectLandmarkRow", detectLandmarkRow),
+    emit("decodeLandmark", decodeLandmark),
+    emit("edges1Dsub", edges1Dsub),
+    emit("rowOf", rowOf),
+    emit("runPipeline", runPipeline),
+    // The worker keeps a full-size frame buffer and writes only the rows of the
+    // job into it, so rowOf and decodeLandmark address pixels by absolute y
+    // exactly as they do on the main thread. Rows arrive packed and transferred,
+    // which is ~1.3KB per row moved rather than the whole 1.2MB frame.
+    `
+let FRAME = null;
+self.onmessage = (e) => {
+  const d = e.data;
+  if (d.type === "init") {
+    FRAME = { gray: new Uint8Array(d.w * d.h), w: d.w, h: d.h };
+    self.postMessage({ type: "ready" });
+    return;
+  }
+  const w = FRAME.w, ys = d.ys, px = d.px;
+  for (let i = 0; i < ys.length; i++)
+    FRAME.gray.set(px.subarray(i * w, (i + 1) * w), ys[i] * w);
+  let run = null, err = null;
+  try {
+    run = runPipeline(FRAME, Object.assign({}, d.opts, { scanRows: ys }));
+  } catch (ex) {
+    err = ex && ex.message ? ex.message : String(ex);
+  }
+  self.postMessage({ type: "done", id: d.id, run, err });
+};`
+  ];
+  return parts.join("\n");
+};
+const _rqclgc = function _poolSize(Inputs) {return (Inputs.range([0, 12], {
+  step: 1,
+  value: Math.min(8, Math.max(1, (navigator.hardwareConcurrency || 4) - 2)),
+  label: "detection workers (0 = main thread)"
+}));};
+const _1xat3lz = (G, _) => G.input(_);
+const _91k4wy = function _detectPool(poolSize,detectKernelSource,invalidation) {
+  // A fixed set of dedicated workers, handed row batches round robin. Nothing
+  // reactive crosses the boundary: a job is (rows, options) in and one run
+  // record out, which is why the same code can run on the main thread with the
+  // pool switched off (poolSize 0) and give byte-identical results.
+  if (!poolSize) return null;
+  const url = URL.createObjectURL(
+    new Blob([detectKernelSource], { type: "text/javascript" })
+  );
+  const ws = [];
+  for (let i = 0; i < poolSize; i++) {
+    const w = new Worker(url);
+    w.pending = new Map();
+    w.onmessage = (e) => {
+      const d = e.data;
+      // init acknowledgement carries no job id; every other reply does
+      if (d.type === "ready") { if (w.onReady) w.onReady(); return; }
+      const settle = w.pending.get(d.id);
+      if (settle) { w.pending.delete(d.id); settle(d); }
+    };
+    ws.push(w);
+  }
+  // rebuilt whenever poolSize changes, so the old pool has to go with it --
+  // otherwise the workers outlive their cell and leak a thread each
+  invalidation.then(() => {
+    for (const w of ws) w.terminate();
+    URL.revokeObjectURL(url);
+  });
+
+  let seq = 0;
+  let next = 0;
+  let dims = null;
+  const send = (w, msg, transfer) =>
+    new Promise((res) => {
+      const id = ++seq;
+      w.pending.set(id, res);
+      w.postMessage({ ...msg, id }, transfer || []);
+    });
+  // each worker keeps a full-size frame buffer so absolute y indexing works
+  // unchanged inside it; only a size change forces a reallocation
+  const ensure = async (frame) => {
+    if (dims && dims.w === frame.w && dims.h === frame.h) return;
+    dims = { w: frame.w, h: frame.h };
+    await Promise.all(
+      ws.map(
+        (w) =>
+          new Promise((res) => {
+            w.onReady = res;
+            w.postMessage({ type: "init", w: frame.w, h: frame.h });
+          })
+      )
+    );
+  };
+
+  return {
+    size: ws.length,
+    // Deal rows round robin rather than in contiguous blocks. Cost per row is
+    // wildly uneven -- a row crossing three marks is worth a hundred crossing
+    // blank screen -- so contiguous blocks would hand one worker every mark and
+    // leave the rest idle. Interleaving averages the marks out across the pool
+    // for free, with no work-stealing machinery.
+    runRows: async (frame, rows, opts) => {
+      await ensure(frame);
+      const buckets = ws.map(() => []);
+      rows.forEach((y, i) => buckets[(next + i) % ws.length].push(y));
+      next = (next + rows.length) % ws.length;
+      const jobs = [];
+      for (let i = 0; i < ws.length; i++) {
+        const ys = buckets[i];
+        if (!ys.length) continue;
+        // pack just this worker's rows; ~1.3KB each, transferred not copied
+        const px = new Uint8Array(ys.length * frame.w);
+        ys.forEach((y, k) =>
+          px.set(frame.gray.subarray(y * frame.w, (y + 1) * frame.w), k * frame.w)
+        );
+        jobs.push(send(ws[i], { type: "rows", ys, px, opts }, [px.buffer]));
+      }
+      const parts = await Promise.all(jobs);
+      const failed = parts.find((p) => p.err);
+      if (failed) throw new Error("detection worker: " + failed.err);
+      return parts.map((p) => p.run);
+    }
+  };
+};
+const _1qdzl86 = function _anonymous(md) {return (md`---
+## §8 Running it on more than one thread
+
+§3 said the detector's cost is ~25 µs per window that clears the cross-ratio gate. That number is the case for workers: it is arithmetic on a few dozen floats, there are thousands of them per frame, and **no two rows interact**. A scan row needs its own pixels and nothing else — \`decodeLandmark\` indexes \`hit.y * W\` and never leaves the row — so rows can be dealt out to a pool and the results concatenated. Fusion, which *is* cross-row, stays on the main thread where it costs nothing.
+
+The pool is deliberately dumb: a fixed set of dedicated workers, rows dealt **round robin**, one message per worker per pass. No work stealing, no queue, no shared memory. Round robin rather than contiguous blocks because per-row cost is wildly uneven — a row crossing three marks is worth a hundred crossing blank screen — and interleaving averages the marks across the pool for free. (Shared memory is not an option here anyway: \`SharedArrayBuffer\` needs cross-origin isolation, which a notebook opened from a file cannot have. Instead each job packs just its own rows, ~1.3 KB apiece, and *transfers* them.)
+
+The part worth stealing for other notebooks is **how the worker gets its code**. It is not transcribed. \`detectKernelSource\` walks the live cells and serialises them — functions through \`toString()\`, constants through \`JSON.stringify\` — so the worker runs the same \`detectLandmarkRow\`, the same \`windowCandidates\`, the same \`crCurve\` this page is running. Edit a cell and the next pool build picks the edit up. A hand-written kernel would be a second implementation of the detector, and it would be wrong within a week; this one cannot disagree with the notebook because it *is* the notebook. The only piece that needed checking was \`SVD\`, which comes from a package rather than a cell — its \`toString()\` turns out to be self-contained, which is verified rather than assumed.
+
+Two things make this safe to believe. \`analyzeFrame\` takes the row runner as an argument (\`opts.runRows\`) instead of having a parallel twin, so there is exactly one copy of the coarse-to-fine logic and the pool is just a different way of executing it. And the agreement check below re-runs the frame bank through both paths and compares fused landmark positions to four decimal places — a worker that drifts fails it.
+
+**Agreement is checked on every load; throughput is not.** They need opposite conditions. Agreement is a property of the output and holds whatever else the machine is doing, so it can be asserted at boot. A stopwatch cannot: at boot this page is still computing, and the contention does not fall on both arms equally — the main-thread arm competes with that work while the pool arm does not, so a benchmark taken then reports a *larger* speedup than the truth. Measured during boot the angled frame read 36×; measured on an idle page it is 5.8×. Hence the button, five runs, an untimed warm-up, and a **spread** column: if the fastest and slowest of the five disagree by much, the machine was busy and the row should not be quoted.`);};
+const _1gsq49k = async function _poolAgreement(testFrameBank,analyzeFrame,detectPool) {
+  // CORRECTNESS ONLY -- deliberately no timings here. This runs at boot, when
+  // the page is busy computing everything else, and a stopwatch read under that
+  // contention measures the boot, not the detector. Worse, it does not measure
+  // both arms equally: the serial arm competes with the boot work on this
+  // thread while the pool arm does not, so the ratio moves with how loaded the
+  // page happens to be. Throughput is measured on demand instead (poolBenchmark
+  // below), when the page is idle and the number means something.
+  //
+  // What IS sound to check at any moment is agreement. Landmark centres must
+  // match to 4dp -- not "close", identical: the workers execute the very same
+  // serialised cells, so a disagreement is a real defect (a constant that failed
+  // to serialise, a stale kernel, a lost row), never floating-point drift, and
+  // it is true regardless of what else the machine is doing.
+  const key = (f) => `${f.id}@${f.xc.toFixed(4)},${f.yc.toFixed(4)}`;
+  const rows = [];
+  for (const spec of testFrameBank) {
+    const serial = await analyzeFrame(spec.frame, {});
+    const parallel = detectPool
+      ? await analyzeFrame(spec.frame, { runRows: detectPool.runRows })
+      : null;
+    rows.push({
+      frame: spec.name,
+      marks: serial.fused.length,
+      poolMarks: parallel ? parallel.fused.length : null,
+      identical: parallel
+        ? serial.fused.map(key).sort().join("|") ===
+          parallel.fused.map(key).sort().join("|")
+        : null
+    });
+  }
+  return rows;
+};
+const _rqwdsc = function _poolReport(poolBenchmark,htl,detectPool,poolAgreement) {
+  const cell = "padding:2px 12px 2px 0";
+  const timing = poolBenchmark
+    ? new Map(poolBenchmark.map((b) => [b.frame, b]))
+    : null;
+  return htl.html`<table style="border-collapse:collapse;font:13px/1.5 system-ui,sans-serif">
+  <thead><tr style="text-align:left;border-bottom:1px solid currentColor">
+    <th style=${cell}>frame</th>
+    <th style=${cell}>marks</th>
+    <th style=${cell}>main thread</th>
+    <th style=${cell}>${detectPool ? detectPool.size + " workers" : "pool off"}</th>
+    <th style=${cell}>speedup</th>
+    <th style=${cell}>fps</th>
+    <th style=${cell}>spread</th>
+    <th style=${cell}>agrees</th>
+  </tr></thead>
+  <tbody>${poolAgreement.map((r) => {
+    const t = timing ? timing.get(r.frame) : null;
+    return htl.html`<tr>
+      <td style=${cell}>${r.frame}</td>
+      <td style=${cell}>${r.marks}${
+        r.poolMarks != null && r.poolMarks !== r.marks ? " / " + r.poolMarks : ""
+      }</td>
+      <td style=${cell}>${t ? Math.round(t.serial.med) + " ms" : "—"}</td>
+      <td style=${cell}>${t && t.parallel ? Math.round(t.parallel.med) + " ms" : "—"}</td>
+      <td style=${cell}>${t && t.speedup ? t.speedup + "×" : "—"}</td>
+      <td style=${cell}>${t ? t.fps : "—"}</td>
+      <td style=${cell};color:${t && t.spread > 25 ? "#d33" : "inherit"}>${
+        t ? t.spread + "%" : "—"
+      }</td>
+      <td style="${cell};color:${
+        r.identical == null ? "inherit" : r.identical ? "#28a745" : "#d33"
+      }">${r.identical == null ? "—" : r.identical ? "identical" : "DIFFERS"}</td>
+    </tr>`;
+  })}</tbody>
+  <caption style="caption-side:bottom;text-align:left;padding-top:6px;opacity:0.7">
+    ${timing
+      ? htl.html`Timings are the median of 5 runs after an untimed warm-up. <b>spread</b> is how much the five disagreed — above ~25% the machine was busy and the row is not worth quoting.`
+      : htl.html`Agreement is checked on every load; it does not depend on timing. Press <b>measure detection throughput</b> for the speed columns — benchmarking at boot would measure the boot, and would penalise the main-thread arm more than the pool.`}
+  </caption>
+</table>`;
+};
+const _1pno4rs = function _benchGo2(Inputs) {return (Inputs.button("measure detection throughput", {
+  description: "run when the page is idle — a benchmark taken during boot measures the boot"
+}));};
+const _1vdscoi = (G, _) => G.input(_);
+const _1kj72ix = async function _poolBenchmark(benchGo2,testFrameBank,analyzeFrame,detectPool) {
+  // On demand, not at boot. Inputs.button counts clicks and starts at 0, so
+  // nothing is measured until asked.
+  if (!benchGo2) return null;
+  const reps = 5;
+  // Median, and the spread is reported alongside it. Median rather than min
+  // because min is the most flattering statistic available and this comparison
+  // is not symmetric -- the main-thread arm loses time to anything else running
+  // on this thread, the pool arm does not, so picking the statistic picks the
+  // ratio. If min and median disagree much, the machine was busy and the run
+  // should be repeated rather than quietly reported.
+  const bench = async (fn) => {
+    await fn(); // untimed: first pool job allocates each worker's frame buffer
+    const ts = [];
+    for (let i = 0; i < reps; i++) {
+      const t0 = window.performance.now();
+      await fn();
+      ts.push(window.performance.now() - t0);
+    }
+    ts.sort((a, b) => a - b);
+    return { med: ts[reps >> 1], min: ts[0], max: ts[reps - 1] };
+  };
+  const rows = [];
+  for (const spec of testFrameBank) {
+    const serial = await bench(() => analyzeFrame(spec.frame, {}));
+    const parallel = detectPool
+      ? await bench(() => analyzeFrame(spec.frame, { runRows: detectPool.runRows }))
+      : null;
+    rows.push({
+      frame: spec.name,
+      serial,
+      parallel,
+      speedup: parallel ? +(serial.med / parallel.med).toFixed(2) : null,
+      fps: Math.round(1000 / (parallel ? parallel.med : serial.med)),
+      // how much the five runs disagreed with each other, as a fraction of the
+      // median: a noisy machine shows up here rather than in a wrong headline
+      spread: +(
+        Math.max(
+          (serial.max - serial.min) / serial.med,
+          parallel ? (parallel.max - parallel.min) / parallel.med : 0
+        ) * 100
+      ).toFixed(0)
+    });
+  }
+  return rows;
+};
+
+export default function define(runtime, observer) {
+  const main = runtime.module();
+  const $def = (pid, name, deps, fn) => {
+    main.variable(observer(name)).define(name, deps, fn).pid = pid;
+  };
+  const fileAttachments = new Map(["frame-mirror-angled.png","frame-mirror-flat.png","frame-blank.png"].map((name) => {
+    const module_name = "@tomlarkworthy/coded-landmark-tracking";
+    const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
+    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
+    return [name, {url: blob_url, mimeType: mime}]
+  }));
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
+
+  $def("_1dvf37e", null, ["md"], _1dvf37e);  
+  main.define("module @tomlarkworthy/fast-1d-circular-barcode-matching", async () => runtime.module((await import("/@tomlarkworthy/fast-1d-circular-barcode-matching.js?v=4")).default));  
+  main.define("edges1D", ["module @tomlarkworthy/fast-1d-circular-barcode-matching", "@variable"], (_, v) => v.import("edges1D", _));  
+  main.define("fitMobiusLS", ["module @tomlarkworthy/fast-1d-circular-barcode-matching", "@variable"], (_, v) => v.import("fitMobiusLS", _));  
+  main.define("xFromK", ["module @tomlarkworthy/fast-1d-circular-barcode-matching", "@variable"], (_, v) => v.import("xFromK", _));  
+  main.define("module @tomlarkworthy/realtime-multi-barcode-tracking", async () => runtime.module((await import("/@tomlarkworthy/realtime-multi-barcode-tracking.js?v=4")).default));  
+  main.define("dpScratch", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("dpScratch", _));  
+  main.define("dpAlignFast", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("dpAlignFast", _));  
+  main.define("FRAME", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("FRAME", _));  
+  main.define("rowOf", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("rowOf", _));  
+  main.define("crossRatio", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("crossRatio", _));  
+  main.define("crDistance", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("crDistance", _));  
+  main.define("fuseCluster", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("fuseCluster", _));  
+  main.define("module @tomlarkworthy/circular-barcode-simulator", async () => runtime.module((await import("/@tomlarkworthy/circular-barcode-simulator.js?v=4")).default));  
+  main.define("THREE", ["module @tomlarkworthy/circular-barcode-simulator", "@variable"], (_, v) => v.import("THREE", _));  
+  $def("_106dc0v", null, ["md","tex"], _106dc0v);  
+  $def("_lu0qkj", "LAYOUT", [], _lu0qkj);  
+  $def("_dwk66l", "codebook", [], _dwk66l);  
+  $def("_1p6gckl", "codebookCheck", ["codebook"], _1p6gckl);  
+  $def("_1wej8fk", "radialColor", ["LAYOUT"], _1wej8fk);  
+  $def("_1i5b3d0", "codewordGallery", ["LAYOUT","codebook"], _1i5b3d0);  
+  $def("_4gz48s", null, ["md"], _4gz48s);  
+  $def("_faupuu", "codewordTextures", ["LAYOUT","codebook","THREE","invalidation"], _faupuu);  
+  $def("_nfwsus", "viewof nLandmarks", ["Inputs"], _nfwsus);  
+  $def("_zsvxn7", "nLandmarks", ["Generators","viewof nLandmarks"], _zsvxn7);  
+  $def("_15fbbws", "simRig", ["FRAME","THREE","codewordTextures","nLandmarks","invalidation"], _15fbbws);  
+  $def("_j6jmhh", "viewof running", ["Inputs"], _j6jmhh);  
+  $def("_u5lzp", "running", ["Generators","viewof running"], _u5lzp);  
+  $def("_frwygv", "viewof motion", ["Inputs"], _frwygv);  
+  $def("_13kodma", "motion", ["Generators","viewof motion"], _13kodma);  
+  $def("_1hy8mdc", "simFrame", ["running","simRig","motion"], _1hy8mdc);  
+  $def("_tl97yc", "overlaySvg", ["htl","FRAME"], _tl97yc);  
+  $def("_xwbf17", "sceneView", ["simRig","htl","FRAME","overlaySvg"], _xwbf17);  
+  $def("_2pll7q", "viewof rowStride", ["Inputs"], _2pll7q);  
+  $def("_1jjclm3", "rowStride", ["Generators","viewof rowStride"], _1jjclm3);  
+  $def("_1svyp0z", "scanRows", ["rowStride","FRAME"], _1svyp0z);  
+  $def("_y17nqa", "groundTruth", ["simFrame","simRig","THREE"], _y17nqa);  
+  main.define("templateAtOffset", ["module @tomlarkworthy/realtime-multi-barcode-tracking", "@variable"], (_, v) => v.import("templateAtOffset", _));  
+  $def("_1aqjzs8", null, ["md"], _1aqjzs8);  
+  $def("_c33xmx", "carrierTemplate", ["LAYOUT"], _c33xmx);  
+  $def("_7u0e3a", "crCurve", ["LAYOUT","crossRatio"], _7u0e3a);  
+  $def("_t28eph", "detectLandmarkRow", ["LAYOUT","crCurve","crossRatio","crDistance","templateAtOffset","carrierTemplate","fitMobiusLS","xFromK","dpScratch","dpAlignFast","windowCandidates"], _t28eph);  
+  $def("_1w8wvjm", "viewof edgeThreshold", ["Inputs"], _1w8wvjm);  
+  $def("_ck7l4a", "edgeThreshold", ["Generators","viewof edgeThreshold"], _ck7l4a);  
+  $def("_hqfg1d", "runDetection", ["scanRows","edges1D","rowOf","edgeThreshold","detectLandmarkRow"], _hqfg1d);  
+  $def("_1v5ujxb", null, ["md"], _1v5ujxb);  
+  $def("_18v6hzh", "decodeLandmark", ["xFromK","LAYOUT","codebook"], _18v6hzh);  
+  $def("_1bz0j2c", "viewof minMargin", ["Inputs"], _1bz0j2c);  
+  $def("_14a2hls", "minMargin", ["Generators","viewof minMargin"], _14a2hls);  
+  $def("_101f5yy", "runPipeline", ["minMargin","scanRows","edges1Dsub","rowOf","edgeThreshold","detectLandmarkRow","decodeLandmark","xFromK"], _101f5yy);  
+  $def("_w7qboo", "frameLandmarks", ["runPipeline","simFrame"], _w7qboo);  
+  $def("_16dv5r5", "detectionLayer", ["htl","groundTruth","frameLandmarks","overlaySvg","invalidation"], _16dv5r5);  
+  $def("_16xqu3c", "landmarkTable", ["Inputs","frameLandmarks"], _16xqu3c);  
+  $def("_134ceh", "scoreLandmarks", ["groundTruth"], _134ceh);  
+  $def("_vhmell", "frameScore", ["scoreLandmarks","frameLandmarks"], _vhmell);  
+  $def("_d8xg2l", null, ["md","minMargin"], _d8xg2l);  
+  $def("_1kcdtq1", "fuseLandmarks", ["rowStride","fuseCluster"], _1kcdtq1);  
+  $def("_1whsoz5", "fusedLandmarks", ["runPipeline","simFrame","scanRows","fuseLandmarks"], _1whsoz5);  
+  $def("_1cm1mhn", "fusedTable", ["Inputs","fusedLandmarks"], _1cm1mhn);  
+  $def("_g4km08", "fusedLayer", ["fusedLandmarks","overlaySvg","invalidation"], _g4km08);  
+  $def("_hl8v3v", null, ["md"], _hl8v3v);  
+  $def("_1uuc46l", "fusionScore", ["groundTruth","fusedLandmarks"], _1uuc46l);  
+  $def("_d5ljip", null, ["md"], _d5ljip);  
+  $def("_13fbguf", "drawLandmark", ["LAYOUT","codebook"], _13fbguf);  
+  $def("_c4vxv2", "viewof calMode", ["Inputs"], _c4vxv2);  
+  $def("_trjtqx", "calMode", ["Generators","viewof calMode"], _trjtqx);  
+  $def("_ohzx5w", "viewof calRunning", ["Inputs"], _ohzx5w);  
+  $def("_mmw90r", "calRunning", ["Generators","viewof calRunning"], _mmw90r);  
+  $def("_ntgvpx", "viewof calSpeed", ["Inputs"], _ntgvpx);  
+  $def("_73cqhr", "calSpeed", ["Generators","viewof calSpeed"], _73cqhr);  
+  $def("_5pnclc", "stimulusBus", [], _5pnclc);  
+  $def("_1g04xsf", "stimulusView", [], _1g04xsf);  
+  $def("_xfbe8z", "stimulusRun", ["calRunning","stimulusView","calMode","calSpeed","drawLandmark","stimulusBus"], _xfbe8z);  
+  $def("_12d6o8", "viewof calSource", ["Inputs"], _12d6o8);  
+  $def("_1dh1pen", "calSource", ["Generators","viewof calSource"], _1dh1pen);  
+  $def("_1i4d397", "calStream", ["calRunning","calSource","CAL_FRAME","invalidation"], _1i4d397);  
+  $def("_1itgjy2", "calVideo", ["htl","calStream","invalidation"], _1itgjy2);  
+  $def("_uxbtt2", "calRun", ["calRunning","CAL_FRAME","calRows","calMode","stimulusBus","calSource","calVideo","stimulusView","analyzeFrame","detectPool"], _uxbtt2);  
+  $def("_9ey4fu", "fitHomography", [], _9ey4fu);  
+  $def("_nnfn1b", "calHomography", ["calRun","stimulusBus","fitHomography"], _nnfn1b);  
+  $def("_1gnnqz3", "calStats", ["calRun","md","stimulusBus","calHomography","htl"], _1gnnqz3);  
+  $def("_1gmmbqf", "edges1Dsub", [], _1gmmbqf);  
+  $def("_vui5kg", "CAL_FRAME", ["FRAME"], _vui5kg);  
+  $def("_4iv3z6", "calRows", ["rowStride","CAL_FRAME","FRAME"], _4iv3z6);  
+  $def("_ocjkzi", "cameraSample", ["FileAttachment","htl"], _ocjkzi);  
+  $def("_uio2e6", "analyzeFrame", ["runPipeline","scanLattice","clusterWindows","fuseLandmarks"], _uio2e6);  
+  $def("_k6d86f", "testFrames", [], _k6d86f);  
+  $def("_1c1rmua", "testFrameBank", ["testFrames","testFrameFiles"], _1c1rmua);  
+  $def("_1r6cx83", "testFrameFiles", ["FileAttachment"], _1r6cx83);  
+  $def("_s8m851", "testFrameResults", ["testFrameBank","rotateFrame","analyzeFrame"], _s8m851);  
+  $def("_zghole", "rotateFrame", [], _zghole);  
+  $def("_tavtr3", "scanLattice", [], _tavtr3);  
+  $def("_7u6ljb", "testFrameReport", ["htl","testFrameResults"], _7u6ljb);  
+  $def("_1dpzurc", "clusterWindows", [], _1dpzurc);  
+  $def("_a2pm83", "windowCandidates", ["crossRatio","crCurve","crDistance"], _a2pm83);  
+  main.define("SVD", ["module @tomlarkworthy/fast-1d-circular-barcode-matching", "@variable"], (_, v) => v.import("SVD", _));  
+  $def("_15g2ti2", "detectKernelSource", ["SVD","LAYOUT","crCurve","carrierTemplate","codebook","minMargin","edgeThreshold","dpScratch","crossRatio","crDistance","xFromK","templateAtOffset","fitMobiusLS","dpAlignFast","windowCandidates","detectLandmarkRow","decodeLandmark","edges1Dsub","rowOf","runPipeline"], _15g2ti2);  
+  $def("_rqclgc", "viewof poolSize", ["Inputs"], _rqclgc);  
+  $def("_1xat3lz", "poolSize", ["Generators","viewof poolSize"], _1xat3lz);  
+  $def("_91k4wy", "detectPool", ["poolSize","detectKernelSource","invalidation"], _91k4wy);  
+  $def("_1qdzl86", null, ["md"], _1qdzl86);  
+  $def("_1gsq49k", "poolAgreement", ["testFrameBank","analyzeFrame","detectPool"], _1gsq49k);  
+  $def("_rqwdsc", "poolReport", ["poolBenchmark","htl","detectPool","poolAgreement"], _rqwdsc);  
+  $def("_1pno4rs", "viewof benchGo2", ["Inputs"], _1pno4rs);  
+  $def("_1vdscoi", "benchGo2", ["Generators","viewof benchGo2"], _1vdscoi);  
+  $def("_1kj72ix", "poolBenchmark", ["benchGo2","testFrameBank","analyzeFrame","detectPool"], _1kj72ix);

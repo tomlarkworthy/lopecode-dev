@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+const [src, dst, w] = process.argv.slice(2);
+const W = +(w ?? 700), H = Math.round(W * 297 / 210);
+const svg = readFileSync(resolve(src), "utf8");
+const b = await chromium.launch({ headless: true });
+const p = await b.newPage({ viewport: { width: W, height: H } });
+await p.setContent(`<body style="margin:0">${svg.replace(/width="210mm" height="297mm"/, `width="${W}" height="${H}"`)}</body>`);
+await p.screenshot({ path: resolve(dst) });
+await b.close();

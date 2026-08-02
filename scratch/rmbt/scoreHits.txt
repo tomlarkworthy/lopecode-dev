@@ -1,0 +1,51 @@
+scoreHits = function scoreHits(run) {
+  const gt = groundTruth.filter((b) => b.onScreen);
+  let rimR = 0;
+  for (const k of template_edges) rimR = Math.max(rimR, Math.abs(k));
+  const rows = [];
+  const foundIds = new Set();
+  for (const hit of run.hits) {
+    let best = null;
+    let bestDist = Infinity;
+    for (const b of gt) {
+      const r = Math.hypot(
+        (hit.footX - b.cx) / b.xExtent,
+        (hit.y - b.cy) / b.yExtent
+      );
+      if (r < bestDist) {
+        bestDist = r;
+        best = b;
+      }
+    }
+    const ok = best && bestDist <= 1;
+    if (ok) foundIds.add(best.id);
+    // ground-truth chord offset in template units (fronto-parallel approximation:
+    // the rim radius maps to the ellipse's vertical extent)
+    const dTrue = ok ? (rimR * (hit.y - best.cy)) / best.yExtent : null;
+    rows.push({
+      y: hit.y,
+      gtId: ok ? best.id : null,
+      footX: +hit.footX.toFixed(2),
+      errX: ok ? +(hit.footX - best.cx).toFixed(3) : null,
+      dFit: +hit.d.toFixed(2),
+      dTrue: ok ? +dTrue.toFixed(2) : null,
+      errD: ok ? +(hit.d - Math.abs(dTrue)).toFixed(2) : null,
+      xRMSE: +hit.xRMSE.toFixed(3)
+    });
+  }
+  const matched = rows.filter((r) => r.gtId !== null);
+  const rms = (xs) =>
+    xs.length ? Math.sqrt(xs.reduce((a, b) => a + b * b, 0) / xs.length) : null;
+  const rx = rms(matched.map((r) => r.errX));
+  const rd = rms(matched.map((r) => r.errD));
+  return {
+    barcodesOnScreen: gt.length,
+    barcodesFound: foundIds.size,
+    rowHits: rows.length,
+    falsePositives: rows.length - matched.length,
+    rmsErrX_px: rx == null ? null : +rx.toFixed(3),
+    rmsErrD_templateUnits: rd == null ? null : +rd.toFixed(3),
+    msPerFrame: +run.ms.toFixed(1),
+    perRow: rows
+  };
+}

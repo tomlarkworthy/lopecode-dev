@@ -1,0 +1,29 @@
+dpScratch = {
+
+  // buffers reused across every candidate in every row; grown, never per-call allocated
+  const s = {
+    D: new Float64Array(0),
+    P: new Int8Array(0),
+    map: new Int32Array(0),
+    proj: new Float64Array(0),
+    px: new Float64Array(0),
+    pk: new Float64Array(0),
+    cells: 0,
+    n: 0
+  };
+  s.ensure = function ensure(cells, n) {
+    if (cells > s.cells) {
+      s.cells = cells;
+      s.D = new Float64Array(cells);
+      s.P = new Int8Array(cells);
+    }
+    if (n > s.n) {
+      s.n = n;
+      s.map = new Int32Array(n);
+      s.proj = new Float64Array(n);
+      s.px = new Float64Array(n);
+      s.pk = new Float64Array(n);
+    }
+  };
+  return s;
+}

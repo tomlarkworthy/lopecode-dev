@@ -1,0 +1,8 @@
+{
+ "y_d6":     {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 12, "soloRows": 8, "dSplit": true, "dValley": 0.6, "dPeak": 0.6, "dRise": 0.15},
+ "z_d55s10": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 10, "soloRows": 12, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "aa_d5":    {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 12, "soloRows": 8, "dSplit": true, "dValley": 0.5, "dPeak": 0.6, "dRise": 0.2},
+ "bb_seed2": {"split": true, "seedMinVotes": 2, "sepFrac": 1.0, "lloyd": 2, "soloSup": 12, "soloRows": 8, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "cc_noll":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 0, "soloSup": 12, "soloRows": 8, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "dd_sep07": {"split": true, "seedMinVotes": 1, "sepFrac": 0.7, "lloyd": 2, "soloSup": 12, "soloRows": 8, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2}
+}

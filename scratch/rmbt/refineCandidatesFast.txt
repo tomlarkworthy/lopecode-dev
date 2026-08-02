@@ -1,0 +1,87 @@
+refineCandidatesFast = function refineCandidatesFast(candidates, kSorted, scanX, opts = {}) {
+  // Behavioural copy of Part II's refineAnchorCandidates, specialised: flat reused
+  // buffers, inlined xFromK, no per-pair objects. `closedForm` selects the refit
+  // solver — see the A/B below for why it defaults off.
+  const N = kSorted.length;
+  const M = scanX.length;
+  if (!candidates.length || N < 3 || M < 3) return [];
+  const gapPenalty = opts.gapPenalty ?? 20;
+  const topK = opts.topK ?? candidates.length;
+  const closedForm = opts.closedForm ?? false;
+  dpScratch.ensure((N + 1) * (M + 1), Math.max(N, M));
+  const proj = dpScratch.proj;
+  const map = dpScratch.map;
+  const px = dpScratch.px;
+  const pk = dpScratch.pk;
+
+  const out = [];
+  for (const cand of candidates) {
+    const mob = cand.mobiusInitial ?? cand.mobius;
+    if (!mob) continue;
+    const mp = mob.p, mq = mob.q, mr = mob.r, ms = mob.s;
+    for (let t = 0; t < N; t++) {
+      const k = kSorted[t];
+      const den = k * mr - mp;
+      proj[t] = Math.abs(den) < 1e-12 ? NaN : (mq - k * ms) / den;
+    }
+    dpAlignFast(proj, N, scanX, M, gapPenalty, map);
+
+    let n = 0;
+    for (let t = 0; t < N; t++) {
+      const sj = map[t];
+      if (sj >= 0) {
+        px[n] = scanX[sj];
+        pk[n] = kSorted[t];
+        n++;
+      }
+    }
+    if (n < 3) continue;
+
+    let mobR = closedForm ? fitMobius3(px, pk, n) : null;
+    if (!mobR) {
+      const arr = new Array(n);
+      for (let i = 0; i < n; i++) arr[i] = { x: px[i], k: pk[i] };
+      try {
+        mobR = fitMobiusLS(arr);
+      } catch {
+        continue;
+      }
+    }
+
+    const { p, q, r, s } = mobR;
+    let se = 0, sx = 0, cnt = 0, cntx = 0;
+    for (let t = 0; t < N; t++) {
+      const sj = map[t];
+      if (sj < 0) continue;
+      const x = scanX[sj];
+      const kT = kSorted[t];
+      const den = r * x + s;
+      if (!isFinite(den) || Math.abs(den) < 1e-12) continue;
+      const e = (p * x + q) / den - kT;
+      se += e * e;
+      cnt++;
+      const dx = kT * r - p;
+      if (Math.abs(dx) >= 1e-12) {
+        const predX = (q - kT * s) / dx;
+        if (isFinite(predX)) {
+          const ex = predX - x;
+          sx += ex * ex;
+          cntx++;
+        }
+      }
+    }
+    if (cnt === 0) continue;
+    out.push({
+      startIndex: cand.startIndex,
+      endIndex: cand.endIndex,
+      pairs4: cand.pairs4,
+      mobiusInitial: cand.mobiusInitial,
+      mobiusRefined: mobR,
+      kRMSE_full: Math.sqrt(se / cnt),
+      xRMSE_full: cntx ? Math.sqrt(sx / cntx) : Infinity,
+      pairsUsed: n
+    });
+  }
+  out.sort((a, b) => a.kRMSE_full - b.kRMSE_full || a.xRMSE_full - b.xRMSE_full);
+  return out.slice(0, topK);
+}

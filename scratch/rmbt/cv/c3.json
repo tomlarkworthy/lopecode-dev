@@ -1,0 +1,8 @@
+{
+ "g_l2s07":  {"split": true, "seedMinVotes": 1, "sepFrac": 0.7, "lloyd": 2},
+ "h_l4":     {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 4},
+ "i_l2asg":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "assignFrac": 3.5},
+ "j_sup24":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "voteMode": "sup", "minSup": 24},
+ "k_solo12": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 12, "soloRows": 8},
+ "l_solo10": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 10, "soloRows": 8}
+}

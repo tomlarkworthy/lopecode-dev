@@ -1,0 +1,33 @@
+fitMobius3 = function fitMobius3(xs, ks, n) {
+  // k = (p x + q) / (r x + s). Fixing s = 1 makes this linear:
+  //   [x, 1, -k x] . [p, q, r] = k
+  // so the fit is a 3x3 normal-equation solve instead of an SVD. Returns null if
+  // the system is ill-conditioned, so the caller can fall back to the SVD version.
+  let a00 = 0, a01 = 0, a02 = 0, a11 = 0, a12 = 0, a22 = 0;
+  let b0 = 0, b1 = 0, b2 = 0;
+  for (let i = 0; i < n; i++) {
+    const x = xs[i];
+    const k = ks[i];
+    const c = -k * x;
+    a00 += x * x;
+    a01 += x;
+    a02 += x * c;
+    a11 += 1;
+    a12 += c;
+    a22 += c * c;
+    b0 += x * k;
+    b1 += k;
+    b2 += c * k;
+  }
+  // symmetric 3x3 by Cramer's rule, inlined to avoid per-candidate allocation
+  const m00 = a11 * a22 - a12 * a12;
+  const m01 = a01 * a22 - a12 * a02;
+  const m02 = a01 * a12 - a11 * a02;
+  const det = a00 * m00 - a01 * m01 + a02 * m02;
+  if (!isFinite(det) || Math.abs(det) < 1e-9) return null;
+  const p = (b0 * m00 - a01 * (b1 * a22 - a12 * b2) + a02 * (b1 * a12 - a11 * b2)) / det;
+  const q = (a00 * (b1 * a22 - a12 * b2) - b0 * m01 + a02 * (a01 * b2 - b1 * a02)) / det;
+  const r = (a00 * (a11 * b2 - b1 * a12) - a01 * (a01 * b2 - b1 * a02) + b0 * m02) / det;
+  if (!isFinite(p) || !isFinite(q) || !isFinite(r)) return null;
+  return { p, q, r, s: 1 };
+}

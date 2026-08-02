@@ -1,0 +1,59 @@
+const detectLandmarkRow = function detectLandmarkRow(scanEdges, opts = {}) {
+  const out = [];
+  out.windows = 0;
+  out.survived = 0;
+  const n = scanEdges ? scanEdges.length : 0;
+  if (n < 8) return out;
+  const sx = Float64Array.from(scanEdges, (e) => (typeof e === "number" ? e : e.x));
+
+  const maxCands = opts.maxCands ?? 12; // fine-sweep budget per row
+  const maxXRMSE = opts.maxXRMSE ?? 2.5;
+  const minPairs = opts.minPairs ?? 7;
+  const gapFrac = opts.gapFrac ?? 0.04; // gap penalty as a fraction of window width
+  const rOut = LAYOUT.R;
+  const rIn = LAYOUT.anchorRadii[1];
+  const dMax = crCurve[crCurve.length - 1].d;
+
+  // candidate generation lives in windowCandidates so the exhaustive scan and
+  // the reflection vote can be swapped (opts.generator) against identical
+  // downstream code
+  const gen = windowCandidates(sx, opts);
+  const cands = gen.cands;
+  out.windows = gen.windows;
+  out.survived = cands.length;
+  // spend the expensive alignment on the WIDEST curve-consistent windows: a real
+  // mark's full-rim window is wider than any of its internal accidental windows,
+  // and accidental quadruples routinely beat true ones on cross-ratio distance
+  // (edge noise puts the truth at ~0.003; chance alignments can hit 0.0001).
+  // Two refinements, both learned from mark-dense scenes: windows with a large
+  // internal hole rank AFTER hole-free ones (they are usually stitched across
+  // two marks — and on a symmetric grid such a chimera is centred exactly on the
+  // mark between its parts), and at most 2 candidates may share an x-locality so
+  // one busy region cannot starve the rest of the row.
+  cands.sort(
+    (p, q) =>
+      (p.holeFrac > 0.24) - (q.holeFrac > 0.24) ||
+      q.width - p.width ||
+      p.crDist - q.crDist
+  );
+  const picked = [];
+  for (const c of cands) {
+    if (picked.length >= maxCands) break;
+    const cx = (sx[c.i] + sx[c.j]) / 2;
+    // anti-aliasing double-peaks rim edges, minting several near-identical
+    // copies of the same window (same centre, width within a few px). Copies
+    // must not count against the locality quota or they alone fill it — on a
+    // symmetric grid the wide stitched window over marks A and C is centred
+    // exactly on mark B, and its AA twins were evicting B's true window.
+    let near = 0, twin = false;
+    for (const k of picked) {
+      if (Math.abs(k.cx - cx) >= 24) continue;
+      if (Math.abs(k.width - c.width) < 0.08 * k.width) { twin = true; break; }
+      near++;
+    }
+    if (twin || near >= 2) continue;
+    c.cx = cx;
+    picked.push(c);
+  }
+
+  for (const c of picked) {

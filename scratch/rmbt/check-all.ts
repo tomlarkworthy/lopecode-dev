@@ -1,67 +1,43 @@
-// Cold-boot the notebook and report EVERY cell that errored, plus the named
-// regressions. Used to prove that stripping the simulator's unused PNG
-// attachments broke nothing that this notebook actually reaches.
 import { chromium } from "playwright";
 import { resolve } from "node:path";
-const NB = resolve(process.argv[2] ?? "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html");
+const NB = resolve("lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html");
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
-const pageErrors: string[] = [];
-page.on("pageerror", (e) => pageErrors.push(e.message));
-page.on("console", (m) => { if (m.type() === "error") pageErrors.push("console: " + m.text().slice(0, 200)); });
+const errs: string[] = [];
+page.on("pageerror", (e) => errs.push("PAGEERROR: " + e.message));
+page.on("console", (m) => { if (m.type() === "error") errs.push("CONSOLE: " + m.text().slice(0, 200)); });
 await page.addInitScript(() => {
   const orig = (window as any).Runtime; let cap = false;
-  Object.defineProperty(window, "Runtime", {
-    get() { return orig; },
-    set(N: any) {
-      const W = function (this: any, ...a: any[]) { const i = new N(...a); if (!cap) { (window as any).__ojs_runtime = i; cap = true; } return i; };
-      W.prototype = N.prototype; Object.assign(W, N); return W;
-    },
-  });
+  Object.defineProperty(window, "Runtime", { get() { return orig; },
+    set(N: any) { const W = function (this: any, ...a: any[]) { const i = new N(...a); if (!cap) { (window as any).__ojs_runtime = i; cap = true; } return i; }; W.prototype = N.prototype; Object.assign(W, N); return W; } });
 });
-await page.goto(`file://${NB}`, { waitUntil: "networkidle", timeout: 120000 });
-await page.waitForFunction(() => !!(window as any).__ojs_runtime, { timeout: 120000 });
-await page.waitForTimeout(12000);
+await page.goto(`file://${NB}`, { waitUntil: "networkidle", timeout: 180000 });
+await page.waitForFunction(() => !!(window as any).__ojs_runtime, { timeout: 180000 });
+await page.waitForTimeout(20000);
 
 const out = await page.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
-  const vars = [...rt._variables];
-  const errored: string[] = [];
-  const pending: string[] = [];
+  const mod = rt.mains.get("@tomlarkworthy/coded-landmark-tracking");
+  const vars = [...rt._variables].filter((v: any) => v._module === mod);
+  const order: string[] = [], bad: string[] = [];
   for (const v of vars) {
-    if (!v._name) continue;
-    // _reachable/_value are runtime internals; only used to survey, not to drive
-    if (v._error) errored.push(v._name + ": " + String(v._error).slice(0, 120));
+    const n = v._name ?? "(anon)";
+    order.push(n);
+    try { await v._module.value(n); } catch (e: any) { bad.push(`${n}: ${String(e && e.message || e).slice(0, 140)}`); }
   }
-  const get = async (name: string) => {
+  // did the markdown render, or is it showing escapes?
+  const mdText = (name: string) => {
     const v = vars.find((z: any) => z._name === name);
-    if (!v) return "MISSING";
-    try { return await v._module.value(name); } catch (e: any) { return "ERROR: " + e.message; }
+    return v && v._value && v._value.textContent ? v._value.textContent.slice(0, 120) : "(no node)";
   };
-  const named: Record<string, any> = {};
-  for (const n of [
-    "hexRigSelfTest", "manAxesTest", "manSceneTest", "hexPrintCheck",
-    "manFrameResults", "frameResults", "sceneTest", "hexRendererCheck",
-  ]) named[n] = await get(n);
-  // the symbols imported from the three earlier-part modules: every one must resolve
-  const imported: Record<string, string> = {};
-  for (const n of ["edges1D", "fitMobiusLS", "xFromK", "dpScratch", "dpAlignFast",
-                   "FRAME", "rowOf", "crossRatio", "crDistance", "fuseCluster",
-                   "THREE", "templateAtOffset", "SVD"]) {
-    const val = await get(n);
-    imported[n] = typeof val === "string" && val.startsWith("ERROR") ? val
-      : val == null ? "NULL" : typeof val;
-  }
-  return { errored, pending, named, imported, nVars: vars.length };
+  return { count: vars.length, order, bad,
+           headline: mdText("headline_md"), algo: mdText("algo_md"), enc: mdText("redesign_md") };
 });
-console.log("variables:", out.nVars);
-console.log("\n=== errored cells ===\n" + (out.errored.length ? out.errored.join("\n") : "(none)"));
-console.log("\n=== imported symbols ===");
-for (const [k, v] of Object.entries(out.imported)) console.log(`  ${k.padEnd(18)} ${v}`);
-console.log("\n=== regressions ===");
-for (const [k, v] of Object.entries(out.named)) {
-  const s = typeof v === "string" ? v : JSON.stringify(v);
-  console.log(`--- ${k} ---\n${String(s).slice(0, 700)}`);
-}
-console.log("\n=== page errors ===\n" + (pageErrors.length ? pageErrors.join("\n") : "(none)"));
 await browser.close();
+console.log(`module variables: ${out.count}`);
+console.log(`\nERRORS (${out.bad.length}):`); for (const b of out.bad) console.log("  " + b);
+console.log(`\npage errors (${errs.length}):`); for (const e of errs.slice(0, 8)) console.log("  " + e);
+console.log(`\nheadline: ${out.headline}`);
+console.log(`algo:     ${out.algo}`);
+console.log(`encoding: ${out.enc}`);
+console.log(`\norder:\n  ${out.order.join(", ")}`);

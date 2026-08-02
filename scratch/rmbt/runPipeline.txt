@@ -1,0 +1,50 @@
+runPipeline = function runPipeline(frame, opts = {}) {
+  const t0 = performance.now();
+  const hits = [];
+  let windows = 0;
+  let survived = 0;
+  let edges = 0;
+  for (const y of scanRows) {
+    const se = edges1D(rowOf(frame, y), opts.edgeThreshold ?? edgeThreshold);
+    edges += se.length;
+    const dets = detectRowOffsets(se, template_edges, opts);
+    windows += dets.windows;
+    survived += dets.survived;
+    for (const det of dets) {
+      // local fine search around the coarse offset that won
+      const fine = refineOffset(det, se, template_edges, {
+        steps: 12,
+        dMin: Math.max(0, det.dCoarse - 4),
+        dMax: det.dCoarse + 4
+      });
+      const mob = fine ? fine.mobius : det.mobius;
+      hits.push({
+        y,
+        startIndex: det.startIndex,
+        endIndex: det.endIndex,
+        mobius: mob,
+        d: fine ? fine.d : det.dCoarse,
+        dCoarse: det.dCoarse,
+        kRMSE: fine ? fine.kRMSE : det.kRMSE,
+        xRMSE: fine ? fine.xRMSE : det.xRMSE,
+        pairsUsed: fine ? fine.pairsUsed : det.pairsUsed,
+        // k_eff = 0 is the foot of the perpendicular from the centre onto the chord
+        footX: xFromK(mob, 0),
+        leftX: det.leftX,
+        rightX: det.rightX
+      });
+    }
+  }
+  const ms = performance.now() - t0;
+  return {
+    frame: frame.n,
+    hits,
+    ms,
+    rowsTouched: scanRows.length,
+    pixelsTouched: scanRows.length * frame.w,
+    frameArea: frame.w * frame.h,
+    scanEdges: edges,
+    windows,
+    survived
+  };
+}

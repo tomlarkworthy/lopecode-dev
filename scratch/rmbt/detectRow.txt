@@ -1,0 +1,56 @@
+detectRow = function detectRow(scanEdges, template_edges, opts = {}) {
+  const empty = [];
+  empty.windows = 0;
+  empty.survived = 0;
+  if (!scanEdges || scanEdges.length < 4) return empty;
+
+  const cands = computeAnchorCandidatesCR(template_edges, scanEdges, {
+    topK: opts.topK ?? 40,
+    crTol: opts.crTol,
+    minBetween: opts.minBetween,
+    maxBetween: opts.maxBetween,
+    anchorFractions: opts.anchorFractions
+  });
+
+  const kSorted = template_edges.slice().sort((a, b) => a - b);
+  const scanXArr = Float64Array.from(scanEdges, (e) =>
+    typeof e === "number" ? e : e.x
+  );
+  const refined = refineCandidatesFast(cands, kSorted, scanXArr, {
+    topK: opts.topKRefine ?? 40,
+    gapPenalty: opts.gapPenalty,
+    closedForm: opts.closedForm
+  });
+
+  const maxRMSE = opts.maxRMSE ?? 1.5;
+  const maxXRMSE = opts.maxXRMSE ?? 3;
+  const minPairFraction = opts.minPairFraction ?? 0.6;
+  const minPairs = Math.floor(kSorted.length * minPairFraction);
+
+  const accepted = [];
+  for (const c of refined) {
+    if (!(c.kRMSE_full <= maxRMSE)) continue;
+    if (!(c.xRMSE_full <= maxXRMSE)) continue;
+    if (c.pairsUsed < minPairs) continue;
+    const clash = accepted.some(
+      (a) => !(c.endIndex < a.startIndex || c.startIndex > a.endIndex)
+    );
+    if (clash) continue;
+    const mob = c.mobiusRefined;
+    accepted.push({
+      startIndex: c.startIndex,
+      endIndex: c.endIndex,
+      mobius: mob,
+      kRMSE: c.kRMSE_full,
+      xRMSE: c.xRMSE_full,
+      pairsUsed: c.pairsUsed,
+      centreX: xFromK(mob, 0),
+      leftX: xFromK(mob, kSorted[0]),
+      rightX: xFromK(mob, kSorted[kSorted.length - 1]),
+      spanX: [scanXArr[c.startIndex], scanXArr[c.endIndex]]
+    });
+  }
+  accepted.windows = cands.windows;
+  accepted.survived = cands.survived;
+  return accepted;
+}

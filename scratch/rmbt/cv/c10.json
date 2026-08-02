@@ -1,0 +1,7 @@
+{
+ "h1_dvote": {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2, "dedupe": "vote"},
+ "h2_pmr5":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2, "partMinRows": 5},
+ "h3_pmr7":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2, "partMinRows": 7},
+ "h4_asg":   {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2, "assignFrac": 3.5},
+ "h5_base":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2}
+}

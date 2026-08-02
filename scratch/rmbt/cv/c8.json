@@ -1,0 +1,6 @@
+{
+ "f1_r5":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 10, "soloRows": 5,  "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "f2_s9r8":{"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 9,  "soloRows": 8,  "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "f3_s11r8":{"split": true,"seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "soloSup": 11, "soloRows": 8,  "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "f4_nosolo":{"split": true,"seedMinVotes":1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2}
+}

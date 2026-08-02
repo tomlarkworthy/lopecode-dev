@@ -1,0 +1,7 @@
+{
+ "ctl":      {},
+ "sp2":      {"split": true, "seedMinVotes": 2, "sepFrac": 1.0},
+ "sp1":      {"split": true, "seedMinVotes": 1, "sepFrac": 1.0},
+ "sp2med":   {"split": true, "seedMinVotes": 2, "sepFrac": 1.0, "footMode": "median"},
+ "med":      {"footMode": "median"}
+}

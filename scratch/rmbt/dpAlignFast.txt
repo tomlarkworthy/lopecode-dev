@@ -1,0 +1,70 @@
+dpAlignFast = function dpAlignFast(tplX, N, scanX, M, gapPenalty, map) {
+  // Needleman-Wunsch on 1D image positions. Same recurrence and tie-breaking as
+  // Part II's dpAlign, but on flat reused buffers with the cost inlined, and it
+  // emits only templateToScan (as an Int32Array, -1 for unmatched) because that
+  // is the only field the refit consumes.
+  const cols = M + 1;
+  dpScratch.ensure((N + 1) * cols, Math.max(N, M));
+  const D = dpScratch.D;
+  const P = dpScratch.P;
+
+  D[0] = 0;
+  P[0] = 0;
+  for (let i = 1; i <= N; i++) {
+    D[i * cols] = i * gapPenalty;
+    P[i * cols] = 1;
+  }
+  for (let j = 1; j <= M; j++) {
+    D[j] = j * gapPenalty;
+    P[j] = 2;
+  }
+
+  for (let i = 1; i <= N; i++) {
+    const xt = tplX[i - 1];
+    const base = i * cols;
+    const prev = base - cols;
+    for (let j = 1; j <= M; j++) {
+      let m = xt - scanX[j - 1];
+      if (m < 0) m = -m;
+      let best = D[prev + j - 1] + m;
+      let ptr = 0;
+      const up = D[prev + j] + gapPenalty;
+      if (up < best) {
+        best = up;
+        ptr = 1;
+      }
+      const left = D[base + j - 1] + gapPenalty;
+      if (left < best) {
+        best = left;
+        ptr = 2;
+      }
+      D[base + j] = best;
+      P[base + j] = ptr;
+    }
+  }
+
+  for (let t = 0; t < N; t++) map[t] = -1;
+  let i = N;
+  let j = M;
+  while (i > 0 || j > 0) {
+    if (i === 0) {
+      j--;
+      continue;
+    }
+    if (j === 0) {
+      i--;
+      continue;
+    }
+    const p = P[i * cols + j];
+    if (p === 0) {
+      map[i - 1] = j - 1;
+      i--;
+      j--;
+    } else if (p === 1) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+  return D[N * cols + M];
+}

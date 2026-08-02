@@ -1,0 +1,8 @@
+{
+ "g1_d66":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.6, "dPeak": 0.6, "dRise": 0.15},
+ "g2_d57":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.5, "dPeak": 0.7, "dRise": 0.25},
+ "g3_whole":{"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2, "dWhole": true},
+ "g4_sep07":{"split": true, "seedMinVotes": 1, "sepFrac": 0.7, "lloyd": 2, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "g5_ll0":  {"split": true, "seedMinVotes": 1, "sepFrac": 1.0, "lloyd": 0, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2},
+ "g6_novs": {"split": false, "dSplit": true, "dValley": 0.55, "dPeak": 0.65, "dRise": 0.2}
+}

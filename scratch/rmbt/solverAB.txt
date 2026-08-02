@@ -1,0 +1,27 @@
+solverAB = {
+  // The only non-self-referential test: run the whole per-row pipeline with each
+  // refit solver and score both against the simulator's ground truth. Comparing
+  // the solvers on their own residuals cannot settle it — they optimise different
+  // objectives, so each looks best under its own metric.
+  const arms = [
+    { name: "SVD (Part II, total least squares)", closedForm: false },
+    { name: "closed form (3x3 normal equations, s=1)", closedForm: true }
+  ];
+  const rows = [];
+  for (const arm of arms) {
+    // one warm-up pass so JIT state is comparable
+    runPipeline(simFrame, { crTol, maxRMSE, closedForm: arm.closedForm });
+    const run = runPipeline(simFrame, { crTol, maxRMSE, closedForm: arm.closedForm });
+    const s = scoreHits(run);
+    rows.push({
+      solver: arm.name,
+      found: `${s.barcodesFound}/${s.barcodesOnScreen}`,
+      rowHits: s.rowHits,
+      falsePos: s.falsePositives,
+      errX_px: s.rmsErrX_px,
+      errD: s.rmsErrD_templateUnits,
+      ms: s.msPerFrame
+    });
+  }
+  return rows;
+}
