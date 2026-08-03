@@ -71,3 +71,10 @@ modules/**/*.js
 # run against ObservableHQ. Only the static baseline above is worth versioning.
 tools/preflight-boot.log
 tools/minority-triage.txt
+
+# Zig toolchain fetched for the WASM spike (45MB, reproducible from ziglang.org)
+scratch/zigtc/
+# spike build artefacts + the 20MB captured-input corpus (regenerate with
+# capture-involution.ts / zigc.ts)
+scratch/rmbt/involution-cases.json
+scratch/rmbt/involution-llvm-Debug.wasm
