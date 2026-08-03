@@ -10,6 +10,8 @@ import { resolve } from "node:path";
 
 const NB = resolve("lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html");
 const WIDTH = Number(process.argv.includes("--width") ? process.argv[process.argv.indexOf("--width") + 1] : 390);
+const num = (f: string, d: number) => process.argv.includes(f) ? Number(process.argv[process.argv.indexOf(f) + 1]) : d;
+const TILT = num("--tilt", 22), YAW = num("--yaw", 8), ROLL = num("--roll", 0);
 const OUT = process.argv.includes("--out") ? process.argv[process.argv.indexOf("--out") + 1] : `scratch/rmbt/rig-${WIDTH}.png`;
 
 const browser = await chromium.launch({
@@ -57,7 +59,7 @@ await page.waitForFunction(() => {
   throw new Error("module variables never appeared");
 });
 
-const info = await page.evaluate(async () => {
+const info = await page.evaluate(async (A) => {
   const rt = (window as any).__ojs_runtime;
   const mod = rt.mains.get("@tomlarkworthy/coded-landmark-tracking");
   const vars = [...rt._variables].filter((v: any) => v._module === mod);
@@ -71,7 +73,7 @@ const info = await page.evaluate(async () => {
 
   // a rendered scene, animated, as the camera feed
   const renderHexScene = await mod.value("renderHexScene");
-  const scene = renderHexScene({ W: 960, H: 720, yawDeg: 8, tiltDeg: 22, fill: 0.72 });
+  const scene = renderHexScene({ W: 960, H: 720, yawDeg: A.yaw, tiltDeg: A.tilt, rollDeg: A.roll, fill: 0.72 });
   const src = document.createElement("canvas");
   src.width = scene.w; src.height = scene.h;
   const g = src.getContext("2d")!;
@@ -94,14 +96,18 @@ const info = await page.evaluate(async () => {
   const strokes = [...view.overlay.querySelectorAll("[stroke-width]")]
     .map((n) => n.getAttribute("stroke-width"));
   const fonts = [...view.overlay.querySelectorAll("text")].map((n) => n.getAttribute("font-size"));
+  const marks = view.__lastMarks || null;
   return {
     stageCssWidth: Math.round(view.querySelector("div")!.getBoundingClientRect().width),
     hud: view.hud.textContent,
     overlayNodes: view.overlay.childElementCount,
     strokeWidths: [...new Set(strokes)].slice(0, 8),
     fontSizes: [...new Set(fonts)].slice(0, 8),
+    polygons: view.overlay.querySelectorAll("polygon").length,
+    circles: view.overlay.querySelectorAll("circle").length,
+    ellipses: view.overlay.querySelectorAll("ellipse").length
   };
-});
+}, { tilt: TILT, yaw: YAW, roll: ROLL });
 console.log(JSON.stringify(info, null, 1));
 
 const stage = page.locator("canvas").first();
