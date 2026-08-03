@@ -14,6 +14,35 @@
 // Fixed buffers, no allocator: the observed maximum over the 16 bank frames is
 // 33 edges, and a detector that allocates per row on a phone is not a detector
 // worth having.
+//
+// ---------------------------------------------------------------------------
+// BUILD
+//
+//   zig build-exe involution.zig -target wasm32-wasi -fno-entry -rdynamic \
+//       -OReleaseFast -femit-bin=involution.wasm
+//
+// Zig 0.14.0. Three of those flags are load-bearing:
+//
+//   -rdynamic      REQUIRED. Without it lld strips every `export fn` as
+//                  unreachable and you get a binary with no callable symbols --
+//                  a 37-byte ReleaseSmall, or a ReleaseFast that instantiates
+//                  fine and has nothing on it.
+//   -fno-entry     there is no program here; main() exists only to satisfy
+//                  build-exe and is never called.
+//   -OReleaseFast  this is the whole point. Debug is ~250x slower.
+//
+// Do NOT build this with the in-browser compiler in
+// @tomlarkworthy/compile-zig. It runs `-fno-llvm` (the self-hosted backend,
+// which performs no optimisation) and its output measured 118x SLOWER than the
+// JavaScript this replaces -- with -OReleaseFast changing the binary size and
+// not the runtime at all. That notebook is for compiling, not for compiling
+// fast. Ship the .wasm built by a real toolchain, alongside this source.
+//
+// Verify any rebuild before trusting it:
+//   bun scratch/rmbt/bench-involution.ts --wasm <the new .wasm>
+// which checks agreement against 42984 recorded real calls BEFORE it reports a
+// speed, because a faster wrong answer is not interesting.
+// ---------------------------------------------------------------------------
 
 const std = @import("std");
 
