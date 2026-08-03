@@ -80,6 +80,8 @@ scratch/zigtc/
 # spike build artefacts + the 20MB captured-input corpus (regenerate with
 # capture-involution.ts / zigc.ts)
 scratch/rmbt/involution-cases.json
+scratch/rmbt/detectrow-cases.json
 scratch/rmbt/involution-llvm-Debug.wasm
+scratch/rmbt/*.wasm.o
 scratch/binaryen/
 scratch/as/
