@@ -39,12 +39,25 @@ const targets = async () => {
   } catch { return null; }
 };
 
+// EVERY adb subcommand starts a daemon if none is listening -- `adb forward`
+// as much as `adb devices`. A daemon started in this sandbox can never see USB,
+// and once it owns port 5037 the user's own adb silently reuses it and their
+// phone stays invisible. That failure is indistinguishable from a dropped
+// cable, and it cost four reconnects before it was spotted. So: touch adb only
+// when someone else's daemon is already up, and never spawn one.
+const daemonUp = await (async () => {
+  try {
+    const s = await Bun.connect({ hostname: "127.0.0.1", port: 5037,
+      socket: { data() {}, open() {}, error() {} } });
+    s.end();
+    return true;
+  } catch { return false; }
+})();
+
 let list = await targets();
-if (!list) {
-  // The forward drops whenever the device reattaches; rebinding it is a
-  // localhost conversation with the daemon, so we can do that much ourselves.
-  // Starting a DAEMON we must not do -- ours could reach no phone, and the
-  // user's next adb command would silently reuse it.
+if (!list && daemonUp) {
+  // The forward drops whenever the device reattaches. Rebinding it is a
+  // localhost conversation with a daemon that already exists, which is safe.
   spawnSync("adb", ["forward", `tcp:${PORT}`, "localabstract:chrome_devtools_remote"], { encoding: "utf8" });
   list = await targets();
 }
