@@ -1,0 +1,54 @@
+{
+  "args": {
+    "model": "google/gemini-2.5-flash",
+    "reps": 1,
+    "conc": 2,
+    "only": "temp-converter",
+    "maxSteps": 25,
+    "ts": "1782370150969"
+  },
+  "byArm": {
+    "control": {
+      "n": 1,
+      "meanScore": 0.125,
+      "passRate": 0,
+      "meanSteps": 2
+    },
+    "treatment": {
+      "n": 1,
+      "meanScore": 0.875,
+      "passRate": 0,
+      "meanSteps": 4
+    }
+  },
+  "rows": [
+    {
+      "task": "temp-converter",
+      "arm": "control",
+      "rep": 0,
+      "pass": false,
+      "score": 0.125,
+      "passed": 1,
+      "total": 8,
+      "steps": 2,
+      "finishReason": "error",
+      "error": null,
+      "ms": 4830,
+      "detail": "+parses -viewof_celsius -celsius_range -fahrenheit_cell -fahrenheit_formula -kelvin_cell -kelvin_formula -summary_md"
+    },
+    {
+      "task": "temp-converter",
+      "arm": "treatment",
+      "rep": 0,
+      "pass": false,
+      "score": 0.875,
+      "passed": 7,
+      "total": 8,
+      "steps": 4,
+      "finishReason": "stop",
+      "error": null,
+      "ms": 9109,
+      "detail": "+parses -viewof_celsius +celsius_range +fahrenheit_cell +fahrenheit_formula +kelvin_cell +kelvin_formula +summary_md"
+    }
+  ]
+}

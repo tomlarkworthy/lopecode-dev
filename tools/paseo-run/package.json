@@ -1,0 +1,7 @@
+{
+  "name": "paseo-run",
+  "private": true,
+  "dependencies": {
+    "@getpaseo/cli": "^0.1.89"
+  }
+}

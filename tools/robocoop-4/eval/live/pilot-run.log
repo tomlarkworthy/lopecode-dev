@@ -1,0 +1,39 @@
+plan-experiment — model=google/gemini-2.5-flash reps=3 tasks=4 arms=2 → 24 runs, conc=5
+
+[ 1/24] control   temp-converter rep2 score= 13% steps= 5 fail
+[ 2/24] control   temp-converter rep1 score=100% steps= 7 PASS
+[ 3/24] control   temp-converter rep0 score=100% steps=10 PASS
+[ 4/24] treatment temp-converter rep2 score= 88% steps= 4 fail
+[ 5/24] treatment temp-converter rep1 score=100% steps=10 PASS
+[ 6/24] control   data-pipeline  rep1 score= 83% steps= 8 fail
+[ 7/24] treatment temp-converter rep0 score= 13% steps=23 fail
+[ 8/24] treatment data-pipeline  rep0 score=100% steps=16 PASS
+[ 9/24] treatment data-pipeline  rep1 score= 17% steps=26 fail
+[10/24] control   data-pipeline  rep2 score=100% steps=26 PASS
+[11/24] control   data-pipeline  rep0 score=100% steps=26 PASS
+[12/24] control   gcd-formula    rep0 score= 86% steps=16 fail
+[13/24] control   gcd-formula    rep1 score=100% steps=13 PASS
+[14/24] treatment data-pipeline  rep2 score=100% steps=23 PASS
+[15/24] control   gcd-formula    rep2 score= 71% steps=13 fail
+[16/24] treatment gcd-formula    rep1 score=100% steps=15 PASS
+[17/24] treatment gcd-formula    rep2 score= 57% steps=11 fail
+[18/24] control   people-table   rep2 score=100% steps= 8 PASS
+[19/24] control   people-table   rep0 score=100% steps=14 PASS
+[20/24] treatment gcd-formula    rep0 score=  0% steps=26 fail
+[21/24] control   people-table   rep1 score=100% steps=24 PASS
+[22/24] treatment people-table   rep0 score= 83% steps=26 fail
+[23/24] treatment people-table   rep2 score=100% steps=17 PASS
+[24/24] treatment people-table   rep1 score=100% steps=25 PASS
+
+=== per-arm ===
+control    meanScore=88%  passRate=67%  meanSteps=14.2  malformed/run=0.58  errRate=0%  (n=12)
+treatment  meanScore=71%  passRate=50%  meanSteps=18.5  malformed/run=0.42  errRate=0%  (n=12)
+DELTA (treatment - control): meanScore -16.3pp  passRate -16.7pp
+
+=== per-task (meanScore control → treatment) ===
+temp-converter 71% → 67%  (-4pp)
+data-pipeline  94% → 72%  (-22pp)
+gcd-formula    86% → 52%  (-33pp)
+people-table   100% → 94%  (-6pp)
+
+raw → tools/robocoop-4/eval/live/plan-experiment-1782370411117.json

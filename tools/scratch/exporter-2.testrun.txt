@@ -1,0 +1,296 @@
+TAP version 13
+1..129
+not ok 1 - module @mootari/access-runtime#test_persistentId # TIMEOUT
+ok 2 - module @tomlarkworthy/golden-layout-2-6-0#test_url_roundtrip
+ok 3 - module @tomlarkworthy/lopepage-urls#test_cell_map_covers_all_runtime_variables
+ok 4 - module @tomlarkworthy/lopepage-urls#test_cell_map_no_variable_in_more_than_one_cell
+ok 5 - module @tomlarkworthy/lopepage-urls#test_cellmap_importInfo_on_real_import
+ok 6 - module @tomlarkworthy/lopepage-urls#test_cellmap_mutable
+ok 7 - module @tomlarkworthy/lopepage-urls#test_findModuleName
+ok 8 - module @tomlarkworthy/lopepage-urls#test_importedModule
+not ok 9 - module @tomlarkworthy/lopepage-urls#test_tests_example # TIMEOUT
+not ok 10 - module @tomlarkworthy/observable-runtime-v6#test_normalize # TIMEOUT
+not ok 11 - module @tomlarkworthy/runtime-sdk#test_bareModulesWrappedInRC # TIMEOUT
+ok 12 - module @tomlarkworthy/runtime-sdk#test_extractNotebookAndCell
+ok 13 - module @tomlarkworthy/runtime-sdk#test_linkTo
+ok 14 - module @tomlarkworthy/runtime-sdk#test_list_modules
+ok 15 - module @tomlarkworthy/runtime-sdk#test_parseGoldenDSL
+ok 16 - module @tomlarkworthy/runtime-sdk#test_parseViewDSL
+ok 17 - module @tomlarkworthy/runtime-sdk#test_reserialized
+ok 18 - module @tomlarkworthy/runtime-sdk#test_serializeGoldenDSL
+ok 19 - module @tomlarkworthy/tests#test_all_cells_decompilable
+ok 20 - module @tomlarkworthy/tests#test_all_cells_roundtrippable
+not ok 21 - module @tomlarkworthy/tests#test_async_interpolation # TIMEOUT
+ok 22 - module @tomlarkworthy/tests#test_case
+ok 23 - module @tomlarkworthy/tests#test_compile_assignment
+ok 24 - module @tomlarkworthy/tests#test_compile_async_function
+ok 25 - module @tomlarkworthy/tests#test_compile_block_dependancy
+ok 26 - module @tomlarkworthy/tests#test_compile_builtin
+ok 27 - module @tomlarkworthy/tests#test_compile_class
+ok 28 - module @tomlarkworthy/tests#test_compile_comments
+ok 29 - module @tomlarkworthy/tests#test_compile_dep
+ok 30 - module @tomlarkworthy/tests#test_compile_dependancy
+ok 31 - module @tomlarkworthy/tests#test_compile_error
+ok 32 - module @tomlarkworthy/tests#test_compile_event
+ok 33 - module @tomlarkworthy/tests#test_compile_fileattachment
+ok 34 - module @tomlarkworthy/tests#test_compile_function
+ok 35 - module @tomlarkworthy/tests#test_compile_generator
+not ok 36 - module @tomlarkworthy/tests#test_compile_import_alias_single
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/dependancy\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/dependancy.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/dependancy",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"dep\", \"dep_alias\", _)",
+      "_inputs": 
+  ...
+not ok 37 - module @tomlarkworthy/tests#test_compile_import_mutable_data_alias_single
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/dependancy\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/dependancy.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/dependancy",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"mutabledep\", \"aslias_mutabledep_data\", _)
+  ...
+not ok 38 - module @tomlarkworthy/tests#test_compile_import_mutable_single
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/dependancy\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/dependancy.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/dependancy",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"mutable mutabledep\", _)",
+      "_inputs": 
+  ...
+not ok 39 - module @tomlarkworthy/tests#test_compile_import_notebook
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/escodegen\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/escodegen.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/escodegen",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"escodegen\", _)",
+      "_inputs": Array [
+    
+  ...
+not ok 40 - module @tomlarkworthy/tests#test_compile_import_plain_single
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/dependancy\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/dependancy.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/dependancy",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"dep\", _)",
+      "_inputs": Array [
+       
+  ...
+not ok 41 - module @tomlarkworthy/tests#test_compile_import_view_data_alias_single
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/dependancy\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/dependancy.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/dependancy",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"viewdep\", \"aslias_viewdep_data\", _)",
+   
+  ...
+not ok 42 - module @tomlarkworthy/tests#test_compile_import_viewof_single
+  ---
+  message: expect(received).toEqual(expected)
+
+Difference:
+
+- Expected
++ Received
+
+  Array [
+    Object {
+-     "_definition": "async () => runtime.module((await import(\"@tomlarkworthy/dependancy\")).default)",
++     "_definition": "async () => runtime.module((await import(\"/@tomlarkworthy/dependancy.js?v=4\")).default)",
+      "_inputs": Array [],
+      "_name": "module @tomlarkworthy/dependancy",
+    },
+    Object {
+      "_definition": "(_, v) => v.import(\"viewof viewdep\", _)",
+      "_inputs": Arra
+  ...
+ok 43 - module @tomlarkworthy/tests#test_compile_inline_viewof
+ok 44 - module @tomlarkworthy/tests#test_compile_integer
+ok 45 - module @tomlarkworthy/tests#test_compile_lambda
+ok 46 - module @tomlarkworthy/tests#test_compile_mutable
+ok 47 - module @tomlarkworthy/tests#test_compile_mutable_dep
+ok 48 - module @tomlarkworthy/tests#test_compile_mutable_dep2
+ok 49 - module @tomlarkworthy/tests#test_compile_named_function
+ok 50 - module @tomlarkworthy/tests#test_compile_obj_literal
+ok 51 - module @tomlarkworthy/tests#test_compile_string
+ok 52 - module @tomlarkworthy/tests#test_compile_syntax_error_anonymous
+ok 53 - module @tomlarkworthy/tests#test_compile_syntax_error_named
+ok 54 - module @tomlarkworthy/tests#test_compile_syntax_error_viewof
+ok 55 - module @tomlarkworthy/tests#test_compile_tagged_literal
+ok 56 - module @tomlarkworthy/tests#test_compile_this_reference
+ok 57 - module @tomlarkworthy/tests#test_compile_view_dep
+ok 58 - module @tomlarkworthy/tests#test_compile_viewof
+ok 59 - module @tomlarkworthy/tests#test_compile_viewof_and_value_coexist
+ok 60 - module @tomlarkworthy/tests#test_decompile_$variable
+ok 61 - module @tomlarkworthy/tests#test_decompile_anon_dep
+ok 62 - module @tomlarkworthy/tests#test_decompile_anon_error_dep
+ok 63 - module @tomlarkworthy/tests#test_decompile_async_function
+ok 64 - module @tomlarkworthy/tests#test_decompile_block
+ok 65 - module @tomlarkworthy/tests#test_decompile_builtin
+ok 66 - module @tomlarkworthy/tests#test_decompile_class
+not ok 67 - module @tomlarkworthy/tests#test_decompile_class_with_property # TIMEOUT
+ok 68 - module @tomlarkworthy/tests#test_decompile_comments
+ok 69 - module @tomlarkworthy/tests#test_decompile_constant
+ok 70 - module @tomlarkworthy/tests#test_decompile_dollar_in_string_literal
+ok 71 - module @tomlarkworthy/tests#test_decompile_error
+ok 72 - module @tomlarkworthy/tests#test_decompile_error_object
+ok 73 - module @tomlarkworthy/tests#test_decompile_fileattachment
+ok 74 - module @tomlarkworthy/tests#test_decompile_function
+ok 75 - module @tomlarkworthy/tests#test_decompile_generator
+ok 76 - module @tomlarkworthy/tests#test_decompile_html_cell
+ok 77 - module @tomlarkworthy/tests#test_decompile_import_alias
+ok 78 - module @tomlarkworthy/tests#test_decompile_import_many
+ok 79 - module @tomlarkworthy/tests#test_decompile_import_mutable
+ok 80 - module @tomlarkworthy/tests#test_decompile_import_mutable_alias
+ok 81 - module @tomlarkworthy/tests#test_decompile_import_mutable_data_alias
+ok 82 - module @tomlarkworthy/tests#test_decompile_import_variable
+ok 83 - module @tomlarkworthy/tests#test_decompile_import_variable_alias
+ok 84 - module @tomlarkworthy/tests#test_decompile_import_viewof
+ok 85 - module @tomlarkworthy/tests#test_decompile_import_viewof_alias
+ok 86 - module @tomlarkworthy/tests#test_decompile_import_viewof_data_alias
+ok 87 - module @tomlarkworthy/tests#test_decompile_lambda
+ok 88 - module @tomlarkworthy/tests#test_decompile_markdown_cell
+ok 89 - module @tomlarkworthy/tests#test_decompile_mutable
+ok 90 - module @tomlarkworthy/tests#test_decompile_mutable_dependancy
+ok 91 - module @tomlarkworthy/tests#test_decompile_mutable_dependancy_2
+ok 92 - module @tomlarkworthy/tests#test_decompile_named_function
+ok 93 - module @tomlarkworthy/tests#test_decompile_object_literal
+ok 94 - module @tomlarkworthy/tests#test_decompile_reference
+ok 95 - module @tomlarkworthy/tests#test_decompile_string_literal
+ok 96 - module @tomlarkworthy/tests#test_decompile_syntax_error_roundtrip
+ok 97 - module @tomlarkworthy/tests#test_decompile_this_reference
+ok 98 - module @tomlarkworthy/tests#test_decompile_viewof
+ok 99 - module @tomlarkworthy/tests#test_decompile_viewof_data
+ok 100 - module @tomlarkworthy/tests#test_decompile_viewof_data_dep
+ok 101 - module @tomlarkworthy/tests#test_decompile_viewof_dep
+ok 102 - module @tomlarkworthy/tests#test_decompile_viewof_param
+ok 103 - module @tomlarkworthy/tests#test_decompiled_cells_recompilable
+ok 104 - module @tomlarkworthy/tests#test_decompileImport_alias
+ok 105 - module @tomlarkworthy/tests#test_decompileImport_basic
+not ok 106 - module @tomlarkworthy/tests#test_decompileImport_compile_roundtrip_single
+  ---
+  message: stageB_importFake is not a function
+  ...
+ok 107 - module @tomlarkworthy/tests#test_decompileImport_returns_null_for_non_import
+not ok 108 - module @tomlarkworthy/tests#test_decompileImport_stageB_aliased
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 109 - module @tomlarkworthy/tests#test_decompileImport_stageB_mixed_alias
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 110 - module @tomlarkworthy/tests#test_decompileImport_stageB_multiple
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 111 - module @tomlarkworthy/tests#test_decompileImport_stageB_mutable
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 112 - module @tomlarkworthy/tests#test_decompileImport_stageB_notebook_id
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 113 - module @tomlarkworthy/tests#test_decompileImport_stageB_order_independent
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 114 - module @tomlarkworthy/tests#test_decompileImport_stageB_single
+  ---
+  message: stageB_importFake is not a function
+  ...
+not ok 115 - module @tomlarkworthy/tests#test_decompileImport_stageB_viewof
+  ---
+  message: stageB_importFake is not a function
+  ...
+ok 116 - module @tomlarkworthy/tests#test_extractModuleInfo_alias_hack
+ok 117 - module @tomlarkworthy/tests#test_extractModuleInfo_id_version
+ok 118 - module @tomlarkworthy/tests#test_extractModuleInfo_id_version_resolution
+ok 119 - module @tomlarkworthy/tests#test_extractModuleInfo_notebook_resolution
+ok 120 - module @tomlarkworthy/tests#test_extractModuleInfo_test_4
+ok 121 - module @tomlarkworthy/tests#test_formatImportDeclaration_roundtrip
+ok 122 - module @tomlarkworthy/visualizer#test_completion_array_literal
+ok 123 - module @tomlarkworthy/visualizer#test_completion_bool_template_regexp
+ok 124 - module @tomlarkworthy/visualizer#test_completion_identifier_deferred
+ok 125 - module @tomlarkworthy/visualizer#test_completion_never_evaluates
+ok 126 - module @tomlarkworthy/visualizer#test_completion_number_literal
+ok 127 - module @tomlarkworthy/visualizer#test_completion_parenthesised_unwrap
+ok 128 - module @tomlarkworthy/visualizer#test_completion_string_literal
+ok 129 - module @tomlarkworthy/visualizer#test_completion_string_prefix
+# tests 129
+# pass 107
+# fail 22
+

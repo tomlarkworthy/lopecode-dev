@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>worker probe</title>
+<pre id="out">running…</pre>
+<script>
+const log = [];
+const say = (k, v) => { log.push(k + ": " + v); document.getElementById("out").textContent = log.join("\n"); };
+
+const workerBody = `
+  self.onmessage = async (e) => {
+    const m = e.data;
+    if (m.type === "ping") { self.postMessage({ type: "pong", t: m.t }); return; }
+    if (m.type === "buf")  { self.postMessage({ type: "buf", buf: m.buf }, [m.buf]); return; }
+    if (m.type === "env") {
+      let dynImport = "n/a";
+      try { await import(m.modUrl); dynImport = "OK"; } catch (err) { dynImport = "FAIL " + err.message; }
+      let fetchBlob = "n/a";
+      try { const r = await fetch(m.blobUrl); fetchBlob = "OK " + (await r.text()).length + "b"; }
+      catch (err) { fetchBlob = "FAIL " + err.message; }
+      let fetchNet = "n/a";
+      try { const r = await fetch(m.httpUrl); fetchNet = "OK " + r.status; }
+      catch (err) { fetchNet = "FAIL " + err.message; }
+      self.postMessage({ type: "env", origin: self.location.origin, href: self.location.href,
+        coi: self.crossOriginIsolated, sab: typeof SharedArrayBuffer, hc: navigator.hardwareConcurrency,
+        oc: typeof OffscreenCanvas, dynImport, fetchBlob, fetchNet });
+      return;
+    }
+  };
+  self.postMessage({ type: "up" });
+`;
+
+(async () => {
+  say("page.origin", location.origin);
+  say("page.crossOriginIsolated", self.crossOriginIsolated);
+  say("page.SharedArrayBuffer", typeof SharedArrayBuffer);
+  say("page.hardwareConcurrency", navigator.hardwareConcurrency);
+
+  const url = URL.createObjectURL(new Blob([workerBody], { type: "application/javascript" }));
+  const dataUrl = "data:text/plain,hello-from-blob";
+  const modUrl = URL.createObjectURL(new Blob(["export const x = 42;"], { type: "application/javascript" }));
+  const assetUrl = URL.createObjectURL(new Blob(["x".repeat(1234)], { type: "text/plain" }));
+
+  // 1. classic blob worker
+  let w;
+  try { w = new Worker(url); say("classic blob Worker", "constructed"); }
+  catch (e) { say("classic blob Worker", "FAIL " + e.message); return; }
+
+  const waitFor = (type) => new Promise((res, rej) => {
+    const h = (e) => { if (e.data.type === type) { w.removeEventListener("message", h); res(e.data); } };
+    w.addEventListener("message", h);
+    w.addEventListener("error", (e) => rej(new Error(e.message || "worker error")), { once: true });
+    setTimeout(() => rej(new Error("timeout " + type)), 8000);
+  });
+
+  try { await waitFor("up"); say("worker boot", "OK"); }
+  catch (e) { say("worker boot", "FAIL " + e.message); return; }
+
+  // 2. module blob worker
+  try {
+    const mw = new Worker(URL.createObjectURL(new Blob(["import {x} from '" + modUrl + "'; self.postMessage({type:'up',x});"], { type: "application/javascript" })), { type: "module" });
+    const got = await new Promise((res, rej) => { mw.onmessage = (e) => res(e.data); mw.onerror = (e) => rej(new Error(e.message || "err")); setTimeout(() => rej(new Error("timeout")), 8000); });
+    say("module blob Worker + static import of blob module", "OK x=" + got.x);
+    mw.terminate();
+  } catch (e) { say("module blob Worker", "FAIL " + e.message); }
+
+  // 3. environment inside the worker
+  const env = (w.postMessage({ type: "env", modUrl, blobUrl: assetUrl, httpUrl: "https://cdn.jsdelivr.net/npm/d3-array@3/package.json" }), await waitFor("env"));
+  for (const k of ["origin", "href", "coi", "sab", "hc", "oc", "dynImport", "fetchBlob", "fetchNet"]) say("worker." + k, env[k]);
+
+  // 4. postMessage round-trip latency
+  const pings = [];
+  for (let i = 0; i < 200; i++) { const t = performance.now(); w.postMessage({ type: "ping", t }); await waitFor("pong"); pings.push(performance.now() - t); }
+  pings.sort((a, b) => a - b);
+  say("postMessage RTT p50/p95 (ms)", pings[100].toFixed(3) + " / " + pings[190].toFixed(3));
+
+  // 5. transfer vs structured clone of a big Float64Array
+  for (const n of [1e4, 1e5, 1e6]) {
+    const mk = () => new Float64Array(n).buffer;
+    let b = mk(); const t0 = performance.now(); w.postMessage({ type: "buf", buf: b }, [b]); await waitFor("buf");
+    const tTransfer = performance.now() - t0;
+    b = mk(); const t1 = performance.now(); w.postMessage({ type: "buf", buf: b }); await waitFor("buf");
+    const tClone = performance.now() - t1;
+    say(`round-trip ${(n * 8 / 1e6).toFixed(1)}MB transfer/clone (ms)`, tTransfer.toFixed(2) + " / " + tClone.toFixed(2));
+  }
+
+  w.terminate();
+  say("DONE", "yes");
+})().catch((e) => say("FATAL", e.message + "\n" + e.stack));
+</script>

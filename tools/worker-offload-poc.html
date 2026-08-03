@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>worker offload PoC</title>
+<pre id="out">running…</pre>
+<script type="module">
+import { Runtime } from "../vendor/observable-runtime/src/index.js";
+
+const log = [];
+const say = (k, v) => { log.push(k.padEnd(44) + " " + v); document.getElementById("out").textContent = log.join("\n"); };
+
+// ---- the "offloadable kernel": a closure-free factory cell -----------------
+function kernelFactory() {
+  return {
+    matmul(N, seed) {
+      const A = new Float64Array(N * N), B = new Float64Array(N * N), C = new Float64Array(N * N);
+      let s = seed >>> 0; const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+      for (let i = 0; i < N * N; i++) { A[i] = rnd(); B[i] = rnd(); }
+      for (let i = 0; i < N; i++) for (let k = 0; k < N; k++) { const a = A[i * N + k]; for (let j = 0; j < N; j++) C[i * N + j] += a * B[k * N + j]; }
+      let acc = 0; for (let i = 0; i < N * N; i++) acc += C[i]; return acc;
+    }
+  };
+}
+
+// ---- generic pool cell (this is the reusable primitive) --------------------
+function makePool(factorySrc, size) {
+  const src = factorySrc + `
+    const kit = kernelFactory();
+    self.onmessage = (e) => { const {id, fn, args} = e.data;
+      try { self.postMessage({ id, ok: kit[fn](...args) }); }
+      catch (err) { self.postMessage({ id, err: String(err) }); } };`;
+  const url = URL.createObjectURL(new Blob([src], { type: "application/javascript" }));
+  let seq = 0; const pending = new Map(); const idle = []; const backlog = [];
+  const workers = Array.from({ length: size }, () => {
+    const w = new Worker(url);
+    w.onmessage = (e) => {
+      const { id, ok, err } = e.data; const p = pending.get(id); pending.delete(id);
+      const job = backlog.shift(); if (job) run(w, job); else idle.push(w);
+      err ? p.rej(new Error(err)) : p.res(ok);
+    };
+    idle.push(w); return w;
+  });
+  const run = (w, job) => { pending.set(job.id, job); w.postMessage({ id: job.id, fn: job.fn, args: job.args }); };
+  return {
+    size,
+    call: (fn, ...args) => new Promise((res, rej) => {
+      const job = { id: ++seq, fn, args, res, rej };
+      const w = idle.pop(); w ? run(w, job) : backlog.push(job);
+    }),
+    terminate: () => { workers.forEach((w) => w.terminate()); URL.revokeObjectURL(url); }
+  };
+}
+
+const P = Math.min(8, navigator.hardwareConcurrency - 2);
+const N = 220, TASKS = 8;
+const kit = kernelFactory();
+
+// baseline: same work, synchronous cells
+{
+  const runtime = new Runtime();
+  const main = runtime.module();
+  const t0 = performance.now();
+  const done = new Promise((res) => {
+    let n = 0;
+    for (let i = 0; i < TASKS; i++)
+      main.variable({ fulfilled: () => { if (++n === TASKS) res(performance.now() - t0); } })
+          .define(`sync${i}`, [], () => kit.matmul(N, i));
+  });
+  say(`${TASKS} SYNC cells on main thread (ms)`, (await done).toFixed(0));
+}
+
+// offloaded: identical graph, bodies dispatched to the pool
+let poolRef;
+{
+  const runtime = new Runtime();
+  const main = runtime.module();
+  const pool = poolRef = makePool(kernelFactory.toString(), P);
+  const t0 = performance.now();
+  // keep a rAF counter running to prove the main thread stays responsive
+  let frames = 0, stop = false;
+  const tick = () => { frames++; if (!stop) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+  const done = new Promise((res) => {
+    let n = 0;
+    for (let i = 0; i < TASKS; i++)
+      main.variable({ fulfilled: () => { if (++n === TASKS) res(performance.now() - t0); } })
+          .define(`par${i}`, [], () => pool.call("matmul", N, i));
+    // a downstream join cell proves normal dataflow composition
+    main.variable({ fulfilled: (v) => say("downstream join cell saw", `${v.length} values, sum=${v.reduce((a,b)=>a+b,0).toFixed(1)}`) })
+        .define("join", Array.from({ length: TASKS }, (_, i) => `par${i}`), (...xs) => xs);
+  });
+  const t = await done; stop = true;
+  say(`${TASKS} OFFLOADED cells, pool of ${P} (ms)`, t.toFixed(0));
+  say("rAF frames during offloaded run", `${frames} (${(frames / t * 1000).toFixed(0)} fps)`);
+}
+
+// invalidation teardown: redefining a cell must kill in-flight work
+{
+  const runtime = new Runtime();
+  const main = runtime.module();
+  const pool = makePool(kernelFactory.toString(), 2);
+  let torn = false;
+  const v = main.variable({ fulfilled: () => {} });
+  v.define("x", ["invalidation"], (invalidation) => { invalidation.then(() => (torn = true)); return pool.call("matmul", 200, 1); });
+  await new Promise((r) => setTimeout(r, 30));
+  v.define("x", [], () => 0);
+  await new Promise((r) => setTimeout(r, 120));
+  say("invalidation fired on redefine", torn ? "YES (teardown hook works)" : "NO");
+  pool.terminate();
+}
+poolRef.terminate();
+say("DONE", "yes");
+</script>

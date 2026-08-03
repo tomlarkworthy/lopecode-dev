@@ -1,0 +1,54 @@
+plan-experiment — model=google/gemini-2.5-flash reps=3 tasks=4 arms=2 → 36 runs, conc=5
+
+[ 1/36] control   temp-converter rep0 score= 88% steps= 6 fail
+[ 2/36] plan-each temp-converter rep0 score= 88% steps=12 fail
+[ 3/36] plan-each temp-converter rep1 score= 13% steps=22 fail
+[ 4/36] control   temp-converter rep1 score= 88% steps=19 fail
+[ 5/36] plan-once temp-converter rep2 score= 88% steps=15 fail
+[ 6/36] control   data-pipeline  rep0 score=100% steps= 9 PASS
+[ 7/36] plan-each temp-converter rep2 score= 88% steps=36 fail
+[ 8/36] control   temp-converter rep2 score=100% steps=28 PASS
+[ 9/36] control   data-pipeline  rep1 score=100% steps=24 PASS
+[10/36] plan-each data-pipeline  rep0 score=100% steps=24 PASS
+[11/36] plan-once temp-converter rep0 score= 50% steps=41 fail
+[12/36] plan-once temp-converter rep1 score= 88% steps=39 fail
+[13/36] plan-once data-pipeline  rep0 score= 17% steps= 7 fail
+[14/36] control   data-pipeline  rep2 score= 67% steps=41 fail
+[15/36] plan-once data-pipeline  rep2 score= 17% steps=12 fail
+[16/36] plan-once data-pipeline  rep1 score=100% steps=19 PASS
+[17/36] control   gcd-formula    rep1 score=100% steps= 4 PASS
+[18/36] plan-each data-pipeline  rep1 score=100% steps=35 PASS
+[19/36] plan-each data-pipeline  rep2 score= 83% steps=41 fail
+[20/36] plan-each gcd-formula    rep0 score= 14% steps=16 fail
+[21/36] control   gcd-formula    rep2 score= 57% steps=15 fail
+[22/36] control   gcd-formula    rep0 score= 57% steps=25 fail
+[23/36] plan-each gcd-formula    rep1 score=  0% steps=22 fail
+[24/36] plan-once gcd-formula    rep2 score= 71% steps=14 fail
+[25/36] plan-each gcd-formula    rep2 score= 71% steps=20 fail
+[26/36] control   people-table   rep0 score= 17% steps= 7 fail
+[27/36] control   people-table   rep1 score=100% steps=15 PASS
+[28/36] plan-once gcd-formula    rep0 score= 86% steps=36 fail
+[29/36] plan-once gcd-formula    rep1 score= 86% steps=35 fail
+[30/36] plan-each people-table   rep1 score=100% steps=10 PASS
+[31/36] plan-once people-table   rep0 score= 17% steps=10 fail
+[32/36] plan-each people-table   rep0 score=100% steps=37 PASS
+[33/36] plan-each people-table   rep2 score=100% steps=18 PASS
+[34/36] plan-once people-table   rep1 score= 17% steps=13 fail
+[35/36] control   people-table   rep2 score= 17% steps=36 fail
+[36/36] plan-once people-table   rep2 score=  0% steps=22 fail
+
+=== per-arm ===
+control    meanScore=74%  passRate=42%  meanSteps=19.1  malformed/run=1.17  errRate=0%  (n=12)
+plan-each  meanScore=71%  passRate=42%  meanSteps=24.4  malformed/run=1.75  errRate=0%  (n=12)
+plan-once  meanScore=53%  passRate=8%  meanSteps=21.9  malformed/run=0.92  errRate=0%  (n=12)
+DELTA (plan-each - control): meanScore -2.7pp  passRate +0.0pp
+DELTA (plan-once - control): meanScore -21.2pp  passRate -33.3pp
+
+=== per-task meanScore by arm ===
+task              control  plan-each  plan-once
+temp-converter        92%        63%        75%
+data-pipeline         89%        94%        44%
+gcd-formula           71%        29%        81%
+people-table          44%       100%        11%
+
+raw → tools/robocoop-4/eval/live/plan-experiment-1782370658651.json

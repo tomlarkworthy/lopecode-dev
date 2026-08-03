@@ -1,0 +1,27 @@
+import { chromium } from 'playwright';
+import path from 'path';
+const NB = path.resolve('lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html');
+const HASH = '#view=R100(S40(@tomlarkworthy/virtual-monorepo),S60(@tomlarkworthy/exporter-3))';
+const FLAGS = ['--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows'];
+const browser = await chromium.launch({ headless: true, args: FLAGS });
+const ctx = await browser.newContext();
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+page.on('console', m => { if (m.type()==='error') errs.push('CONSOLE.ERROR: ' + m.text()); });
+ctx.on('page', p => console.log('  >> NEW TAB opened:', p.url().slice(0,60)));
+await page.goto('file://'+NB+HASH, { waitUntil:'load', timeout:60000 });
+await page.waitForSelector('#lopepage-2 .moldbook-exporter', { timeout:30000 });
+await page.waitForTimeout(2500);
+console.log('clicking Fork...');
+await page.evaluate(() => {
+  const btn = [...document.querySelectorAll('.moldbook-exporter button')].find(b => /fork/i.test(b.textContent));
+  if (!btn) throw new Error('Fork button not found');
+  btn.click();
+});
+await page.waitForTimeout(4000);
+console.log('errors captured:', errs.length);
+errs.forEach(e => console.log('  ' + e.slice(0,200)));
+const feedbackText = await page.evaluate(() => document.querySelector('.moldbook-exporter')?.innerText?.slice(-300) || '');
+console.log('--- feedback tail ---\n' + feedbackText);
+await browser.close();

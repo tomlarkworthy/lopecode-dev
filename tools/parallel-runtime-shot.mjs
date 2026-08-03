@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const b = await chromium.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+const p = await b.newPage({ viewport: { width: 1200, height: 950 } });
+await p.goto("file:///tmp/parallel-runtime-qa-copy.html");
+await p.waitForFunction(() => [...document.querySelectorAll("pre")].some((el) => /wall/.test(el.textContent)), null, { timeout: 60000 });
+await p.waitForTimeout(1500);
+await p.locator("canvas").first().scrollIntoViewIfNeeded();
+await p.waitForTimeout(500);
+await p.screenshot({ path: "tools/screenshots/parallel-runtime-render.png" });
+await b.close();
+process.exit(0);

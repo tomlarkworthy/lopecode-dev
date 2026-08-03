@@ -1,0 +1,16 @@
+launching webkit...
+launched ver=26.0
+
+--- file ---
+  ERROR: browserContext.newPage: Target page, context or browser has been closed
+  ERROR: browserContext.newPage: Target page, context or browser has been closed
+=== mode=blob background=true => STUCK ===
+=== mode=blob background=false => STUCK ===
+
+SUMMARY: file=STUCK blob=STUCK blob+bg=STUCK
+
+--- starting mode=blob background=true ---
+  ERROR: browserContext.newPage: Target page, context or browser has been closed
+=== mode=blob background=true => STUCK ===
+
+SUMMARY: file=STUCK blob=STUCK blob+bg=STUCK

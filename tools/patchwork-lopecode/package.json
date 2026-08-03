@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "name": "lopecode-notebook",
+  "title": "Lopecode Notebook",
+  "version": "0.0.1",
+  "description": "Mount a lopecode/Observable notebook whose source lives in an Automerge document.",
+  "main": "index.js",
+  "author": "prototype"
+}

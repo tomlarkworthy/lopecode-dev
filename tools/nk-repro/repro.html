@@ -1,0 +1,10 @@
+<!doctype html>
+<notebook theme="slate">
+  <title>kit transitive dedup repro</title>
+  <script id="1" type="text/markdown"># shared transitive dep test</script>
+  <script id="9" type="module">window.__rt = __ojs_runtime</script>
+  <script id="2" type="module">import {runtime as rsdkRuntime} from "observable:@tomlarkworthy/runtime-sdk"</script>
+  <script id="3" type="module">import {linkTo} from "observable:@tomlarkworthy/lopepage-urls"</script>
+  <script id="4" type="module" pinned="">rsdkRuntime</script>
+  <script id="5" type="module" pinned="">linkTo</script>
+</notebook>

@@ -1,0 +1,90 @@
+{
+  "args": {
+    "model": "google/gemini-2.5-flash",
+    "reps": 2,
+    "conc": 4,
+    "only": "temp-converter",
+    "maxSteps": 25,
+    "ts": "1782370341644"
+  },
+  "byArm": {
+    "control": {
+      "n": 2,
+      "meanScore": 0.875,
+      "passRate": 0,
+      "meanSteps": 9,
+      "meanMalformed": 1,
+      "errRate": 0
+    },
+    "treatment": {
+      "n": 2,
+      "meanScore": 0.875,
+      "passRate": 0,
+      "meanSteps": 12.5,
+      "meanMalformed": 0,
+      "errRate": 0
+    }
+  },
+  "rows": [
+    {
+      "task": "temp-converter",
+      "arm": "control",
+      "rep": 0,
+      "pass": false,
+      "score": 0.875,
+      "passed": 7,
+      "total": 8,
+      "steps": 4,
+      "finishReason": "stop",
+      "malformed": 0,
+      "error": null,
+      "ms": 4346,
+      "detail": "+parses -viewof_celsius +celsius_range +fahrenheit_cell +fahrenheit_formula +kelvin_cell +kelvin_formula +summary_md"
+    },
+    {
+      "task": "temp-converter",
+      "arm": "control",
+      "rep": 1,
+      "pass": false,
+      "score": 0.875,
+      "passed": 7,
+      "total": 8,
+      "steps": 14,
+      "finishReason": "stop",
+      "malformed": 2,
+      "error": null,
+      "ms": 19164,
+      "detail": "+parses -viewof_celsius +celsius_range +fahrenheit_cell +fahrenheit_formula +kelvin_cell +kelvin_formula +summary_md"
+    },
+    {
+      "task": "temp-converter",
+      "arm": "treatment",
+      "rep": 0,
+      "pass": false,
+      "score": 0.875,
+      "passed": 7,
+      "total": 8,
+      "steps": 4,
+      "finishReason": "stop",
+      "malformed": 0,
+      "error": null,
+      "ms": 4686,
+      "detail": "-parses +viewof_celsius +celsius_range +fahrenheit_cell +fahrenheit_formula +kelvin_cell +kelvin_formula +summary_md"
+    },
+    {
+      "task": "temp-converter",
+      "arm": "treatment",
+      "rep": 1,
+      "pass": false,
+      "score": 0.875,
+      "passed": 7,
+      "total": 8,
+      "steps": 21,
+      "finishReason": "stop",
+      "malformed": 0,
+      "error": null,
+      "ms": 22743,
+      "detail": "+parses -viewof_celsius +celsius_range +fahrenheit_cell +fahrenheit_formula +kelvin_cell +kelvin_formula +summary_md"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+# generated test artifacts (multi-MB notebook builds)
+*.mcp.html
+*.orig.html
+*.orig-csp.html
+*.png

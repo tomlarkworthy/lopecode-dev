@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>worker cost probe</title>
+<pre id="out">running…</pre>
+<script>
+const log = [];
+const say = (k, v) => { log.push(k.padEnd(46) + " " + v); document.getElementById("out").textContent = log.join("\n"); };
+
+// A CPU-bound kernel with no closure over anything: the "offloadable cell body" shape.
+function kernelFactory() {
+  return {
+    // naive NxN matmul, O(N^3) — stands in for a heavy pure cell
+    matmul(N, seed) {
+      const A = new Float64Array(N * N), B = new Float64Array(N * N), C = new Float64Array(N * N);
+      let s = seed >>> 0;
+      const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+      for (let i = 0; i < N * N; i++) { A[i] = rnd(); B[i] = rnd(); }
+      for (let i = 0; i < N; i++)
+        for (let k = 0; k < N; k++) {
+          const a = A[i * N + k];
+          for (let j = 0; j < N; j++) C[i * N + j] += a * B[k * N + j];
+        }
+      let acc = 0; for (let i = 0; i < N * N; i++) acc += C[i];
+      return acc;
+    }
+  };
+}
+
+const workerBody = kernelFactory.toString() + `
+  const kit = kernelFactory();
+  self.onmessage = (e) => {
+    const m = e.data;
+    if (m.type === "ping") return self.postMessage({ type: "pong" });
+    if (m.type === "buf") return self.postMessage({ type: "buf", buf: m.buf }, [m.buf]);
+    if (m.type === "work") return self.postMessage({ type: "work", acc: kit.matmul(m.N, m.seed) });
+  };
+  self.postMessage({ type: "up" });
+`;
+
+const mkWorker = () => {
+  const w = new Worker(URL.createObjectURL(new Blob([workerBody], { type: "application/javascript" })));
+  w.rpc = (msg, transfer) => new Promise((res) => {
+    const h = (e) => { w.removeEventListener("message", h); res(e.data); };
+    w.addEventListener("message", h); w.postMessage(msg, transfer || []);
+  });
+  w.up = new Promise((res) => w.addEventListener("message", function h(e) { if (e.data.type === "up") { w.removeEventListener("message", h); res(); } }));
+  return w;
+};
+
+(async () => {
+  say("hardwareConcurrency", navigator.hardwareConcurrency);
+
+  // --- spawn cost -----------------------------------------------------------
+  for (const n of [1, 4, 8, 14]) {
+    const t0 = performance.now();
+    const ws = Array.from({ length: n }, mkWorker);
+    await Promise.all(ws.map((w) => w.up));
+    const t = performance.now() - t0;
+    say(`spawn+boot ${n} blob workers (ms)`, t.toFixed(1) + `  (${(t / n).toFixed(1)}/worker)`);
+    ws.forEach((w) => w.terminate());
+  }
+
+  const w = mkWorker(); await w.up;
+
+  // --- unclamped RTT: total time over many round trips -----------------------
+  for (const n of [2000]) {
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) await w.rpc({ type: "ping" });
+    const t = performance.now() - t0;
+    say(`postMessage round-trip (mean of ${n}, ms)`, (t / n).toFixed(4));
+  }
+
+  // --- transfer vs clone, averaged ------------------------------------------
+  for (const bytes of [1e5, 1e6, 8e6, 64e6]) {
+    const n = bytes > 1e7 ? 10 : 50;
+    let t0 = performance.now();
+    for (let i = 0; i < n; i++) { const b = new ArrayBuffer(bytes); const r = await w.rpc({ type: "buf", buf: b }, [b]); void r; }
+    const tT = (performance.now() - t0) / n;
+    t0 = performance.now();
+    for (let i = 0; i < n; i++) { const b = new ArrayBuffer(bytes); await w.rpc({ type: "buf", buf: b }); }
+    const tC = (performance.now() - t0) / n;
+    say(`round-trip ${(bytes / 1e6).toFixed(1)}MB transfer / clone (ms)`, tT.toFixed(3) + " / " + tC.toFixed(3) + `   clone=${(bytes / 1e6 / (tC / 1000) / 1000).toFixed(2)} GB/s`);
+  }
+  w.terminate();
+
+  // --- real parallel speedup on a CPU-bound kernel ---------------------------
+  const N = 220, TASKS = 28;
+  const kit = kernelFactory();
+  let t0 = performance.now();
+  for (let i = 0; i < TASKS; i++) kit.matmul(N, i);
+  const serial = performance.now() - t0;
+  say(`serial (main thread): ${TASKS} x ${N}^3 matmul (ms)`, serial.toFixed(0));
+
+  for (const P of [2, 4, 6, 8, 10, 12, 14]) {
+    const ws = Array.from({ length: P }, mkWorker);
+    await Promise.all(ws.map((x) => x.up));
+    let next = 0;
+    t0 = performance.now();
+    await Promise.all(ws.map(async (x) => { while (true) { const i = next++; if (i >= TASKS) return; await x.rpc({ type: "work", N, seed: i }); } }));
+    const t = performance.now() - t0;
+    say(`${String(P).padStart(2)} workers (ms)`, t.toFixed(0) + `   speedup ${(serial / t).toFixed(2)}x   eff ${(serial / t / P * 100).toFixed(0)}%`);
+    ws.forEach((x) => x.terminate());
+  }
+
+  // --- does main-thread work block while workers run? -----------------------
+  {
+    const P = 8;
+    const ws = Array.from({ length: P }, mkWorker);
+    await Promise.all(ws.map((x) => x.up));
+    let frames = 0, stop = false;
+    const tick = () => { frames++; if (!stop) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    t0 = performance.now();
+    await Promise.all(ws.map((x) => x.rpc({ type: "work", N: 300, seed: 1 })));
+    const busy = performance.now() - t0;
+    stop = true;
+    say(`rAF frames while ${P} workers busy ${busy.toFixed(0)}ms`, frames + `  (${(frames / busy * 1000).toFixed(0)} fps — 60 = UI stayed live)`);
+    ws.forEach((x) => x.terminate());
+  }
+
+  say("DONE", "yes");
+})().catch((e) => say("FATAL", e.message + "\n" + e.stack));
+</script>

@@ -1,0 +1,15 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const page = await browser.newPage();
+const fetches = [];
+page.on("request", r=>{ const u=r.url(); if(u.includes("api.observablehq.com")) fetches.push(u.replace("https://api.observablehq.com","")); });
+await page.goto("http://localhost:5173/repro",{waitUntil:"networkidle"});
+await page.waitForTimeout(9000);
+const ar = [...new Set(fetches)].filter(u=>/access-runtime/.test(u));
+const rs = [...new Set(fetches)].filter(u=>/runtime-sdk/.test(u));
+console.log("=== access-runtime.js fetches ("+ar.length+" distinct URLs) ===");
+ar.forEach(u=>console.log("  "+u));
+console.log("=== runtime-sdk.js fetches ("+rs.length+" distinct URLs) ===");
+rs.forEach(u=>console.log("  "+u));
+console.log("TOTAL distinct api fetches:", new Set(fetches).size);
+await browser.close();

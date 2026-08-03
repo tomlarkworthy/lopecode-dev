@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lopecode sandbox capability probe</title>
+<style>
+  body { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 1.5rem; max-width: 60rem; }
+  h1 { font-size: 1.1rem; } h2 { font-size: 1rem; margin-top: 1.6rem; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 2px 8px 2px 0; vertical-align: top; border-bottom: 1px solid #8883; }
+  td.k { width: 22rem; }
+  .y { color: #0a7; } .n { color: #c33; } .q { color: #888; }
+  #verdict { margin-top: 1.5rem; padding: .8rem; border: 1px solid #8886; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Lopecode sandbox capability probe</h1>
+<p class="q">Drop this file wherever a lopecode notebook needs to run (an MCP app resource, an
+artifact iframe, a plain file://) and read the table. It decides which serialization the exporter
+has to emit.</p>
+<table id="out"></table>
+<div id="verdict">running…</div>
+
+<script>
+const rows = [];
+function row(key, ok, detail) {
+  rows.push({ key, ok, detail });
+  const tr = document.createElement("tr");
+  const cls = ok === true ? "y" : ok === false ? "n" : "q";
+  tr.innerHTML = `<td class="k">${key}</td><td class="${cls}">${ok === true ? "yes" : ok === false ? "NO" : "?"}</td><td class="q">${detail ?? ""}</td>`;
+  document.getElementById("out").appendChild(tr);
+}
+const attempt = (key, fn) => { try { const v = fn(); row(key, true, v ?? ""); return true; } catch (e) { row(key, false, e.message); return false; } };
+const attemptAsync = async (key, fn) => { try { const v = await fn(); row(key, true, v ?? ""); return true; } catch (e) { row(key, false, String(e).slice(0, 120)); return false; } };
+
+(async () => {
+  row("inline &lt;script&gt; executes", true, "you are reading its output");
+  row("origin", null, `${location.origin} · isSecureContext=${window.isSecureContext} · crossOriginIsolated=${window.crossOriginIsolated}`);
+
+  // --- the primitive exporter-mcp is built on ---
+  const fnOk = attempt("new Function(body)", () => (new Function("return 40+2"))() === 42 ? "returns 42" : "wrong result");
+  attempt("eval()", () => eval("40+2") === 42 ? "returns 42" : "wrong result");
+  attempt("async Function body with await", () => typeof new Function("__x", '"use strict";return (async()=>{ await 0; return 1 })()') === "function" ? "compiles" : "");
+
+  // --- what exporter-3 relies on today ---
+  let blobUrl = null;
+  attempt("URL.createObjectURL(blob)", () => { blobUrl = URL.createObjectURL(new Blob(["export const v = 1;"], { type: "application/javascript" })); return blobUrl.slice(0, 40); });
+  const blobFetch = blobUrl && await attemptAsync("fetch(blob: URL)", async () => `${(await fetch(blobUrl)).status}`);
+  const blobImport = blobUrl && await attemptAsync("import(blob: URL)  ← exporter-3 boots on this", async () => `v=${(await import(blobUrl)).v}`);
+
+  // --- the cheap alternative, if it survives ---
+  const dataUrl = "data:text/javascript;base64," + btoa("export const v = 2;");
+  const dataImport = await attemptAsync("import(data: URL)  ← cheap fix if allowed", async () => `v=${(await import(dataUrl)).v}`);
+
+  await attemptAsync("&lt;script src=blob:&gt; loads", () => new Promise((res, rej) => {
+    if (!blobUrl) return rej(new Error("no blob url"));
+    const s = document.createElement("script");
+    s.src = URL.createObjectURL(new Blob(["window.__blobScript = 1"], { type: "application/javascript" }));
+    s.onload = () => res("loaded"); s.onerror = () => rej(new Error("blocked"));
+    document.head.appendChild(s);
+  }));
+
+  await attemptAsync("&lt;img src=blob:&gt; loads", () => new Promise((res, rej) => {
+    const px = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="), c => c.charCodeAt(0));
+    const img = new Image();
+    img.onload = () => res("loaded"); img.onerror = () => rej(new Error("blocked"));
+    img.src = URL.createObjectURL(new Blob([px], { type: "image/png" }));
+  }));
+
+  // --- other things the notebook stack needs ---
+  await attemptAsync("WebAssembly.instantiate", async () => {
+    const wasm = Uint8Array.from([0,97,115,109,1,0,0,0]);
+    await WebAssembly.instantiate(wasm);
+    return "ok";
+  });
+  attempt("new CSSStyleSheet() + replaceSync", () => { const s = new CSSStyleSheet(); s.replaceSync("body{}"); document.adoptedStyleSheets = [...document.adoptedStyleSheets, s]; return "adopted"; });
+  await attemptAsync("DecompressionStream('gzip')", async () => { new DecompressionStream("gzip"); return "constructs"; });
+  attempt("localStorage", () => { localStorage.setItem("__probe", "1"); localStorage.removeItem("__probe"); return "read/write"; });
+  attempt("indexedDB", () => indexedDB ? "present" : "absent");
+  await attemptAsync("outbound fetch (example.com)", async () => `${(await fetch("https://example.com", { mode: "no-cors" })).type}`);
+
+  const v = document.getElementById("verdict");
+  if (!fnOk) {
+    v.textContent = "VERDICT: no eval. Neither exporter-3 nor exporter-mcp can run here — the runtime needs to execute code it holds as text.";
+  } else if (blobImport) {
+    v.textContent = "VERDICT: blob: module imports work. exporter-3 output should already run here; if a notebook still fails, the cause is something else.";
+  } else if (dataImport) {
+    v.textContent = "VERDICT: blob: is blocked but data: imports work.\nCheapest fix is to patch es-module-shims' blob minting to emit data: URLs — no new exporter needed.\nexporter-mcp still buys you a smaller, shim-free boot.";
+  } else {
+    v.textContent = "VERDICT: no native module URL scheme is available; only eval is.\nThis is exactly what exporter-mcp is for: every module runs through new Function().";
+  }
+  v.textContent += `\n\nblob fetch=${blobFetch} blob import=${blobImport} data import=${dataImport}`;
+  console.log(JSON.stringify(rows, null, 2));
+})();
+</script>
+</body>
+</html>

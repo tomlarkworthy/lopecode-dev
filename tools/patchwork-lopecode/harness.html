@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>lopecode-in-patchwork — seam harness</title>
+<!-- Patchwork and lopecode both resolve @observablehq/runtime via an importmap.
+     Here we point it at lopecode's vendored runtime source (self-contained ESM). -->
+<script type="importmap">
+{ "imports": { "@observablehq/runtime": "../../vendor/observable-runtime/src/index.js" } }
+</script>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; display: grid;
+    grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+  header { grid-column: 1 / 3; padding: .6rem 1rem; background: #111; color: #fff; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  header p { margin: .25rem 0 0; font-size: 12px; opacity: .7; }
+  .pane { padding: 1rem; overflow: auto; }
+  .pane h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+    color: #888; margin: 0 0 .5rem; }
+  #mount { border: 1px solid #ddd; border-radius: 6px; min-height: 8rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  button { font: inherit; padding: .3rem .6rem; border: 1px solid #ccc;
+    border-radius: 5px; background: #fafafa; cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button.remote { border-color: #35a; color: #35a; }
+  pre { background: #f7f7f7; padding: .75rem; border-radius: 6px; font-size: 12px;
+    white-space: pre-wrap; word-break: break-word; }
+  #log { font-size: 12px; color: #555; }
+  #log div { padding: 1px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>lopecode inside Patchwork — the (handle, element) ⇒ cleanup seam</h1>
+  <p>A mock Patchwork DocHandle drives the Observable runtime. Buttons mutate the
+     Automerge-shaped doc and fire "change" — the runtime recomputes reactively.</p>
+</header>
+
+<div class="pane">
+  <h2>Tool render (mounted via the Patchwork tool contract)</h2>
+  <div id="mount"></div>
+  <div class="controls" id="controls" style="margin-top:1rem"></div>
+  <h2>Event log</h2>
+  <div id="log"></div>
+</div>
+
+<div class="pane">
+  <h2>Automerge-shaped document (source of truth)</h2>
+  <pre id="doc"></pre>
+</div>
+
+<script type="module">
+import { plugins } from "./index.js";
+
+// ---- Mock Patchwork DocHandle -------------------------------------------------
+// Minimal stand-in for automerge-repo's DocHandle: doc(), change(fn), on/off.
+function makeHandle(datatype) {
+  const listeners = new Set();
+  const doc = {};
+  datatype.init(doc); // seed via the datatype contract, like repo.create2
+  return {
+    doc: () => doc,
+    change(fn) { fn(doc); listeners.forEach((l) => l({ handle: this })); },
+    on(_evt, cb) { listeners.add(cb); },
+    off(_evt, cb) { listeners.delete(cb); },
+  };
+}
+
+const log = (msg) => {
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  line.textContent = "• " + msg;
+  el.prepend(line);
+};
+
+const datatype = (await plugins.find((p) => p.type === "patchwork:datatype").load());
+const Tool = await plugins.find((p) => p.type === "patchwork:tool").load();
+
+const handle = makeHandle(datatype);
+const mount = document.getElementById("mount");
+const docView = document.getElementById("doc");
+
+const refreshDoc = () => { docView.textContent = JSON.stringify(handle.doc(), null, 2); };
+handle.on("change", refreshDoc);
+refreshDoc();
+
+// Mount the tool exactly as Patchwork would.
+const cleanup = Tool(handle, mount);
+log(`mounted tool "${datatype.getTitle(handle.doc())}"`);
+
+// ---- Controls that exercise the reactive seam --------------------------------
+const actions = [
+  ["count = 10 (data edit)", () => handle.change((d) => { d.cells.count.body = "return 10"; }), false],
+  ["count = 3 (revert)", () => handle.change((d) => { d.cells.count.body = "return 3"; }), false],
+  ["doubled = count * 10 (logic edit)", () => handle.change((d) => { d.cells.doubled.body = "return count * 10"; }), false],
+  ["doubled = count * 2 (revert)", () => handle.change((d) => { d.cells.doubled.body = "return count * 2"; }), false],
+  ["+ add cell squared", () => handle.change((d) => {
+      d.cells.squared = { inputs: ["count"], body: "return count * count" };
+      if (!d.order.includes("squared")) d.order.push("squared");
+    }), false],
+  ["− remove cell squared", () => handle.change((d) => {
+      delete d.cells.squared; d.order = d.order.filter((n) => n !== "squared");
+    }), false],
+  ["⇄ simulate REMOTE merge (count = 42)", () => handle.change((d) => { d.cells.count.body = "return 42"; }), true],
+];
+
+const controls = document.getElementById("controls");
+for (const [label, fn, remote] of actions) {
+  const b = document.createElement("button");
+  b.textContent = label;
+  if (remote) b.className = "remote";
+  b.onclick = () => { fn(); log(label); };
+  controls.append(b);
+}
+
+window.__cleanup = cleanup; // expose for teardown test
+</script>
+</body>
+</html>
