@@ -133,7 +133,15 @@ const STAGES_EXPR = `(() => {
   return Object.assign(view.stages(), { hud: String(view.hud.textContent || "").slice(0, 200) });
 })()`;
 
-if (cmd === "reload") {
+if (cmd === "shot") {
+  // What is the phone actually looking at? Half the "it broke" reports are a
+  // camera pointed somewhere else, and that is one screenshot to rule out
+  // rather than three inferences to argue about.
+  const { result }: any = await send("Page.captureScreenshot", { format: "jpeg", quality: 70 });
+  const out = flag("out", "scratch/rmbt/phone-shot.jpg");
+  await Bun.write(out, Buffer.from(result.data, "base64"));
+  console.log("wrote " + out);
+} else if (cmd === "reload") {
   // location.reload(true) has ignored its argument for years -- the page comes
   // back from cache and a just-published build is invisible. Only the protocol
   // can actually bypass it.
