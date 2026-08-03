@@ -30,13 +30,28 @@ const out = await page.evaluate(async () => {
     const v = vars.find((z: any) => z._name === name);
     return v && v._value && v._value.textContent ? v._value.textContent.slice(0, 120) : "(no node)";
   };
-  return { count: vars.length, order, bad,
+  // Computing without throwing is not passing. The notebook carries its own
+  // self-tests; read their verdicts, or a green run means only "nothing threw".
+  const VERDICTS = ["hexPrintCheck", "hexRendererCheck", "manSceneTest", "manAxesTest",
+                    "hexRigSelfTest", "hexFrameReport", "manFrameReport", "poolAgreement"];
+  const verdicts = VERDICTS.map((n) => {
+    const v = vars.find((z: any) => z._name === n);
+    if (!v) return [n, "(absent)"];
+    const val = v._value;
+    const txt = val && val.textContent != null ? String(val.textContent)
+      : val && typeof val === "object" ? JSON.stringify(val)
+      : String(val);
+    return [n, txt.replace(/\s+/g, " ").trim().slice(0, 200)];
+  });
+  return { count: vars.length, order, bad, verdicts,
            headline: mdText("headline_md"), algo: mdText("algo_md"), enc: mdText("redesign_md") };
 });
 await browser.close();
 console.log(`module variables: ${out.count}`);
 console.log(`\nERRORS (${out.bad.length}):`); for (const b of out.bad) console.log("  " + b);
 console.log(`\npage errors (${errs.length}):`); for (const e of errs.slice(0, 8)) console.log("  " + e);
+console.log(`\nself-test verdicts:`);
+for (const [n, t] of out.verdicts) console.log(`  ${n.padEnd(18)} ${t}`);
 console.log(`\nheadline: ${out.headline}`);
 console.log(`algo:     ${out.algo}`);
 console.log(`encoding: ${out.enc}`);
