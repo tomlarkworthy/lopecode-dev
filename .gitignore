@@ -85,3 +85,6 @@ scratch/rmbt/involution-llvm-Debug.wasm
 scratch/rmbt/*.wasm.o
 scratch/binaryen/
 scratch/as/
+scratch/rmbt/caseimgs/
+scratch/rmbt/clt.js
+scratch/rmbt/clt2.js
