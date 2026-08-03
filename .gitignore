@@ -82,3 +82,4 @@ scratch/zigtc/
 scratch/rmbt/involution-cases.json
 scratch/rmbt/involution-llvm-Debug.wasm
 scratch/binaryen/
+scratch/as/

@@ -43,10 +43,24 @@ const out = await page.evaluate(async ({ calls, b64, reps }) => {
 
   const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const m = await WebAssembly.compile(bin);
-  const inst = await WebAssembly.instantiate(m, {
-    wasi_snapshot_preview1: { proc_exit: () => { throw new Error("proc_exit"); } }
-  });
+  // Stub whatever the module asks for rather than naming a toolchain's imports:
+  // Zig wants wasi_snapshot_preview1.proc_exit, AssemblyScript wants env.abort,
+  // and a hardcoded list makes the arms non-comparable for no reason. Every
+  // stub throws, so a kernel that actually reaches for the host says so.
+  const wanted = WebAssembly.Module.imports(m);
+  const imports: any = {};
+  for (const im of wanted) {
+    imports[im.module] ??= {};
+    imports[im.module][im.name] = im.kind === "function"
+      ? (...a: any[]) => { throw new Error(`host call: ${im.module}.${im.name}(${a.join(",")})`); }
+      : im.kind === "memory" ? new WebAssembly.Memory({ initial: 4 })
+      : im.kind === "global" ? 0 : new WebAssembly.Table({ initial: 0, element: "anyfunc" });
+  }
+  const inst = await WebAssembly.instantiate(m, imports);
   const ex = inst.exports as any;
+  if (typeof ex.run !== "function" || !ex.memory || typeof ex.xsPtr !== "function")
+    return { err: "module lacks run/memory/xsPtr; exports: " + Object.keys(ex).join(", "),
+      imports: wanted.map((i) => `${i.module}.${i.name}`).join(", ") };
   const XS = new Float64Array(ex.memory.buffer, ex.xsPtr(), 64);
   const SS = new Int32Array(ex.memory.buffer, ex.ssPtr(), 64);
   const U = new Float64Array(ex.memory.buffer, ex.uPtr(), 64);
@@ -112,6 +126,11 @@ const out = await page.evaluate(async ({ calls, b64, reps }) => {
 
 await browser.close();
 
+if ((out as any).err) {
+  console.error((out as any).err);
+  console.error("imports: " + (out as any).imports);
+  process.exit(1);
+}
 console.log(`${out.n} recorded calls (${out.nReal} returned an involution, ${out.nNull} null)\n`);
 if (out.nBad) {
   console.log(`DISAGREEMENTS: ${out.nBad}${out.nBad > 40 ? "+" : ""}`);
