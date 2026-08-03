@@ -24,6 +24,11 @@ const arg = (n: string, d: string) => {
 const NB = resolve(arg("nb", "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"));
 const N = +arg("n", "80");
 const SIZE = +arg("size", "6");
+// --live ticks `liveOn` before the pool is rebuilt. There is no camera in
+// headless, so liveStream just errors -- the point is only that poolAgreement
+// sees the camera as running and defers, which is the whole of the fix being
+// measured. Without it the check runs and the first frames queue behind it.
+const LIVE = process.argv.includes("--live");
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
@@ -37,7 +42,7 @@ await page.goto(`file://${NB}`, { waitUntil: "networkidle", timeout: 180000 });
 await page.waitForFunction(() => !!(window as any).__ojs_runtime, { timeout: 180000 });
 await page.waitForTimeout(15000);
 
-const out = await page.evaluate(async ({ n, size }) => {
+const out = await page.evaluate(async ({ n, size, live }) => {
   const rt = (window as any).__ojs_runtime;
   const mod = rt.mains.get("@tomlarkworthy/coded-landmark-tracking");
   const vars = [...rt._variables].filter((v: any) => v._module === mod);
@@ -46,6 +51,12 @@ const out = await page.evaluate(async ({ n, size }) => {
   const run = await mod.value("analyzeFrameManAsync");
   const opts = await mod.value("hexRigOpts");
   const frame = bank[0].frame;
+
+  if (live) {
+    const cb = (V("viewof liveOn")._value as HTMLElement).querySelector("input[type=checkbox]") as HTMLInputElement;
+    if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event("input", { bubbles: true })); }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
 
   // Settle first, so the "cold" below is the pool's coldness and not the
   // notebook's. Everything the boot wanted to compute is done by now.
@@ -95,7 +106,7 @@ const out = await page.evaluate(async ({ n, size }) => {
     cores: navigator.hardwareConcurrency, workers: pool.size,
     px: frame.w + "x" + frame.h, warm, cold, at, wrk, agreeAt
   };
-}, { n: N, size: SIZE });
+}, { n: N, size: SIZE, live: LIVE });
 
 const med = (a: number[]) => { const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
 const f = (x: number) => x.toFixed(1).padStart(6);
