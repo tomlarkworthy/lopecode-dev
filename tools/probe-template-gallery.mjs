@@ -81,14 +81,19 @@ for (const r of built.out) {
     const errors = [];
     for (const v of rt._variables) {
       const n = v._observer && v._observer._node;
-      if (n && n.querySelector && n.querySelector('.observablehq--error'))
-        errors.push(`${v._name}: ${n.textContent.slice(0, 120)}`);
+      if (!n || !n.textContent) continue;
+      // .observablehq--error alone misses cells lopepage renders itself, so match the text too
+      const errored = (n.querySelector && n.querySelector('.observablehq--error')) ||
+        /RuntimeError|ReferenceError|is not defined/.test(n.textContent);
+      if (errored) errors.push(`${v._name}: ${n.textContent.slice(0, 120)}`);
     }
+    const bodyErrors = (document.body.innerText.match(/RuntimeError/g) || []).length;
     return {
       title: document.title,
       mains: [...rt.mains.keys()],
       moduleBlocks: [...document.querySelectorAll('script[type="text/plain"][id^="@"]')].length,
       errors,
+      bodyErrors,
       // an annotation whose anchor did not resolve renders its header as "(adrift)"
       adrift: (document.body.innerText.match(/\(adrift\)/g) || []).length,
     };
@@ -97,7 +102,12 @@ for (const r of built.out) {
   await b.close();
   const unknownNames = /module <unknown 0\./.test(r.html);
   const tutCells = (r.html.match(/annotation_tut\d+_note/g) || []).length;
-  const ok = boot.errors.length === 0 && errs.length === 0 && !unknownNames && boot.adrift === 0;
+  // Pre-existing dangling import: claude-code-pairing imports fileSyncTools, which file-sync has
+  // never defined (true upstream too). Not a gallery defect — reported, not counted.
+  const known = boot.errors.filter((e) => /fileSyncTools is not defined/.test(e));
+  boot.errors = boot.errors.filter((e) => !known.includes(e));
+  boot.knownExternal = known;
+  const ok = boot.errors.length === 0 && boot.bodyErrors === 0 && errs.length === 0 && !unknownNames && boot.adrift === 0;
   if (!ok) bad++;
   console.log(`\n### ${r.id} — ${ok ? 'OK' : 'PROBLEMS'}  ${(r.bytes / 1e6).toFixed(2)}MB (${Math.round((r.bytes / fatBytes) * 100)}%)`);
   console.log(`    hash ${r.hash}`);
