@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+import { resolve } from 'path';
+const file = resolve('lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const b = await chromium.launch({ headless: true });
+const p = await b.newPage({ viewport: { width: 1400, height: 1100 } });
+await p.goto(`file://${file}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+await p.waitForTimeout(22000);
+await p.screenshot({ path: 'tools/screenshots/launcher.png' });
+console.log((await p.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ').slice(-700));
+await b.close();
