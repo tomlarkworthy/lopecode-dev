@@ -38,28 +38,45 @@ const out = await page.evaluate(async () => {
     await new Promise((r) => setTimeout(r, 500));
   };
   const curve = async () => {
-    const c: number[] = [];
+    const c: number[] = [], wk: number[] = [];
     for (let r = 0; r < 40; r++) {
       const pool = await mod.value("detectPool");
       const opts = { ...(await mod.value("hexRigOpts")), bothAxes: false, runRows: pool.runRows };
-      let ms = 0;
-      for (const s of bank) { const t0 = performance.now(); await analyze(s.frame, opts); ms += performance.now() - t0; }
-      c.push(ms / bank.length);
+      let ms = 0, w = 0;
+      for (const s of bank) {
+        const t0 = performance.now();
+        await analyze(s.frame, opts);
+        ms += performance.now() - t0;
+        if (pool.lastWorkerMs.length) w += Math.max(...pool.lastWorkerMs);
+      }
+      c.push(ms / bank.length); wk.push(w / bank.length);
     }
-    return c;
+    return { ms: c, wk };
   };
   await set(true); await set(false);   // force a cold JS pool
   const js = await curve();
   await set(true);                     // force a cold wasm pool
   const wa = await curve();
-  return { js, wa };
+  const pool = await mod.value("detectPool");
+  return {
+    js, wa,
+    meta: {
+      frames: bank.length,
+      workers: pool.size,
+      cores: navigator.hardwareConcurrency || null,
+      ua: navigator.userAgent,
+      stride: (await mod.value("hexRigOpts")).stride
+    }
+  };
 }, null);
 await browser.close();
 const f = (a: number[]) => a.map((x) => x.toFixed(1)).join(" ");
 const med = (a: number[]) => { const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
-console.log("js   " + f(out.js));
-console.log("wasm " + f(out.wa));
-console.log(`\njs   first ${out.js[0].toFixed(1)}  last-10 median ${med(out.js.slice(-10)).toFixed(1)}`);
-console.log(`wasm first ${out.wa[0].toFixed(1)}  last-10 median ${med(out.wa.slice(-10)).toFixed(1)}`);
-console.log(`\nsettled ratio ${(med(out.js.slice(-10)) / med(out.wa.slice(-10))).toFixed(2)}x`);
-console.log(`first-pass penalty: js ${(out.js[0] / med(out.js.slice(-10))).toFixed(2)}x, wasm ${(out.wa[0] / med(out.wa.slice(-10))).toFixed(2)}x`);
+console.log("js   " + f(out.js.ms));
+console.log("wasm " + f(out.wa.ms));
+console.log(`\njs   first ${out.js.ms[0].toFixed(1)}  last-10 median ${med(out.js.ms.slice(-10)).toFixed(1)}`);
+console.log(`wasm first ${out.wa.ms[0].toFixed(1)}  last-10 median ${med(out.wa.ms.slice(-10)).toFixed(1)}`);
+console.log(`\nsettled ratio ${(med(out.js.ms.slice(-10)) / med(out.wa.ms.slice(-10))).toFixed(2)}x`);
+console.log(`first-pass penalty: js ${(out.js.ms[0] / med(out.js.ms.slice(-10))).toFixed(2)}x, wasm ${(out.wa.ms[0] / med(out.wa.ms.slice(-10))).toFixed(2)}x`);
+await Bun.write("scratch/rmbt/warmup-curve.json", JSON.stringify(out));
+console.log("\nwrote scratch/rmbt/warmup-curve.json");
