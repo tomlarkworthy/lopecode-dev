@@ -116,17 +116,25 @@ console.log(`exported in ${(meta as any).ms}ms (${(html.length / 1e6).toFixed(2)
 console.log(`mains in : ${JSON.stringify((meta as any).mainsIn)}`);
 console.log(`mains out: ${(meta as any).mainsOut}`);
 
-// --- put back what the export pruned -------------------------------------
+// --- account for what the export pruned -----------------------------------
 //
-// exportToHTML emits the modules reachable from the runtime plus their file
-// attachments. Anything else embedded in the file is dropped: on this notebook
-// that is the four AssemblyScript compiler blocks (reachable only by import id,
-// and only when a button is pressed) and nine modules that simply were not
-// booted in this layout -- whisper-input, modern-screenshot,
-// openai-responses-api, tabbed-pane-view, @mootari/signature and two d/ hash
-// notebooks. 4.1MB of a 15.5MB file, silently.
+// exportToHTML emits the modules reachable from the runtime plus THEIR FILE
+// ATTACHMENTS. Nothing else survives. That is the right rule, and the fix for
+// anything that matters is to make it an attachment of a module rather than to
+// splice it back afterwards -- a block reachable only by import id belongs to
+// no module, so no export will ever carry it.
 //
-// So a save-in-place is LOSSY by default and has to be repaired, not trusted.
+// So the only thing this script does with the pruned set is print it and check
+// a keep-list. Modules that were simply not booted in this layout
+// (whisper-input, modern-screenshot, openai-responses-api, tabbed-pane-view,
+// @mootari/signature, two d/ hash notebooks) are bloat and are meant to go.
+const KEEP = [
+  "@tomlarkworthy/coded-landmark-tracking/asc-0.28.20.js.gz",
+  "@tomlarkworthy/coded-landmark-tracking/assemblyscript-0.28.20.js.gz",
+  "@tomlarkworthy/coded-landmark-tracking/binaryen-131.js.gz",
+  "@tomlarkworthy/coded-landmark-tracking/long-5.3.2.js.gz",
+  "@tomlarkworthy/coded-landmark-tracking/detectrow.wasm"
+];
 const scan = (t: string) => {
   const out = new Map<string, { tag: string; body: string; full: string }>();
   const re = /<script\b[^>]*\bid="([^"]+)"[^>]*>/g;
@@ -143,33 +151,19 @@ const srcText = await Bun.file(IN).text();
 const before = scan(srcText), after = scan(html);
 const dropped = [...before.keys()].filter((k) => !after.has(k));
 if (dropped.length) {
-  // Anchor on the REAL bootconf.json block. `id="bootconf.json"` also occurs
-  // inside other blocks' source text (the bootloader builds that markup as a
-  // string), and matching the first occurrence splices 4MB into the middle of
-  // a module's source -- which produced a file that parsed fine, passed a
-  // module syntax check, and then booted to nothing at all: no runtime, no
-  // cells. So identify it by content, not by position: short body that parses
-  // as JSON and carries `mains`.
-  let anchorAt = -1;
-  const anchorRe = /<script\b[^>]*\bid="bootconf\.json"[^>]*>/g;
-  let am: RegExpExecArray | null;
-  while ((am = anchorRe.exec(html))) {
-    const end = html.indexOf("</script>", am.index + am[0].length);
-    const body = html.slice(am.index + am[0].length, end);
-    if (body.length > 4000) continue;
-    try { if (JSON.parse(body).mains) { anchorAt = am.index; } } catch { /* not the one */ }
-  }
-  const a = { index: anchorAt };
-  if (anchorAt < 0) { console.error("cannot restore: no real bootconf.json block found"); process.exit(1); }
-  const restored = dropped.map((k) => before.get(k)!.full).join("\n") + "\n";
-  html = html.slice(0, a.index!) + restored + html.slice(a.index!);
-  console.log(`\nrestored ${dropped.length} block(s) the export pruned:`);
+  console.log(`\npruned ${dropped.length} block(s), ${(dropped.reduce((s, k) => s + before.get(k)!.body.length, 0) / 1e6).toFixed(2)} MB:`);
   for (const k of dropped.sort((x, y) => before.get(y)!.body.length - before.get(x)!.body.length))
     console.log(`  ${before.get(k)!.body.length.toLocaleString().padStart(10)}  ${k}`);
 }
-const check = scan(html);
-const stillMissing = [...before.keys()].filter((k) => !check.has(k));
-if (stillMissing.length) { console.error("STILL MISSING: " + stillMissing.join(", ")); process.exit(1); }
+const lost = KEEP.filter((k) => before.has(k) && !after.has(k));
+if (lost.length) {
+  console.error("\nREFUSING TO WRITE: the export dropped blocks that must survive:");
+  for (const k of lost) console.error("  " + k);
+  console.error("Make each one a file attachment of a booted module (id `@mod/name`) and re-export.");
+  process.exit(1);
+}
+const added = [...after.keys()].filter((k) => !before.has(k));
+if (added.length) console.log(`\nnew block(s): ${added.join(", ")}`);
 
 await Bun.write(OUT, html);
-console.log(`\nwrote ${OUT} (${(html.length / 1e6).toFixed(2)} MB, ${check.size} blocks; source had ${before.size})`);
+console.log(`\nwrote ${OUT} (${(html.length / 1e6).toFixed(2)} MB, ${after.size} blocks; source had ${before.size})`);
