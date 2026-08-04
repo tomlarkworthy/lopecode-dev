@@ -52,8 +52,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html"
   },
   "@tomlarkworthy/blank-notebook": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_blank-notebook.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blank-notebook.html",
+    "lopecode": "lopecode/notebooks/quick_start.html",
+    "lopebooks": "lopebooks/notebooks/quick_start.html",
     "upstream": null
   },
   "@tomlarkworthy/blm-us-wealth": {

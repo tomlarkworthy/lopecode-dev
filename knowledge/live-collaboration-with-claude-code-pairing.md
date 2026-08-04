@@ -227,7 +227,7 @@ The pairing module depends on `@tomlarkworthy/runtime-sdk`. If the notebook has 
 
 ```bash
 # Extract latest runtime-sdk source from blank notebook
-bun tools/lope-reader.ts lopecode/notebooks/@tomlarkworthy_blank-notebook.html \
+bun tools/lope-reader.ts lopecode/notebooks/quick_start.html \
   --get-module @tomlarkworthy/runtime-sdk > tools/scratch/runtime-sdk.js
 
 # Inject into target notebook
@@ -267,7 +267,7 @@ file:///path/to/notebook.html#view=R100(S50(@tomlarkworthy/my-notebook),S25(@tom
 
 To create a new notebook that includes the pairing module:
 
-1. **Choose a base notebook** that has the modules you need (e.g., `@tomlarkworthy_editable-md.html` for blog posts with rich markdown, `@tomlarkworthy_blank-notebook.html` for general use)
+1. **Choose a base notebook** that has the modules you need (e.g., `@tomlarkworthy_editable-md.html` for blog posts with rich markdown, `quick_start.html` for general use)
 2. **Jumpgate the base** to get a fresh copy with latest modules from Observable:
    ```bash
    node tools/lope-jumpgate.js --source @tomlarkworthy/editable-md \

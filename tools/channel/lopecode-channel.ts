@@ -12,11 +12,27 @@ import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { ServerWebSocket } from "bun";
+import { createServer } from "http";
+import { WebSocketServer, type WebSocket as ServerWebSocket } from "ws";
+import { spawn as spawnProcess } from "child_process";
+import { fileURLToPath } from "url";
 import { join, dirname, basename, resolve, sep as pathSep } from "path";
-import { mkdirSync, writeFileSync, readdirSync, statSync, watchFile, unwatchFile, readFileSync as fsReadFileSync } from "fs";
-import { mkdir as fsMkdir, readdir as fsReaddir, readFile as fsReadFile, writeFile as fsWriteFile, stat as fsStat, rm as fsRm, utimes as fsUtimes } from "fs/promises";
-import { homedir } from "os";
+import { mkdirSync, writeFileSync, unlinkSync, readdirSync, statSync, watchFile, unwatchFile, readFileSync as fsReadFileSync } from "fs";
+import { mkdir as fsMkdir, readdir as fsReaddir, readFile as fsReadFile, writeFile as fsWriteFile, stat as fsStat, rm as fsRm, utimes as fsUtimes, open as fsOpen } from "fs/promises";
+import { homedir, tmpdir } from "os";
+
+// Runs under both Node (bundled via esbuild) and Bun (source, native TS) — Node APIs only.
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+
+// The PostToolUse hook locates a live server by port file. Under a plugin install the hook
+// sits at the plugin root while this module runs from dist/, so a path relative to the
+// module alone is not discoverable — write the shared tmpdir location too.
+const PORT_FILES = [
+  process.env.LOPECODE_PORT_FILE ?? join(tmpdir(), "lopecode-channel.port"),
+  join(MODULE_DIR, ".lopecode-port"),
+];
+const writePortFile = () => { for (const p of PORT_FILES) try { writeFileSync(p, String(PORT)); } catch {} };
+const removePortFile = () => { for (const p of PORT_FILES) try { unlinkSync(p); } catch {} };
 
 // --- Configuration ---
 const REQUESTED_PORT = Number(process.env.LOPECODE_PORT ?? 0); // 0 = OS picks a free port
@@ -41,10 +57,10 @@ let PAIRING_TOKEN = "";
 // --- State ---
 type ConnectionMeta = { url: string; title: string; modules?: string[] };
 
-const pendingConnections = new Set<ServerWebSocket<unknown>>();
-const pairedConnections = new Map<string, ServerWebSocket<unknown>>(); // notebook URL → ws
-const connectionMeta = new Map<ServerWebSocket<unknown>, ConnectionMeta>();
-const wsBySocket = new Map<ServerWebSocket<unknown>, string>(); // ws → notebook URL (reverse lookup)
+const pendingConnections = new Set<ServerWebSocket>();
+const pairedConnections = new Map<string, ServerWebSocket>(); // notebook URL → ws
+const connectionMeta = new Map<ServerWebSocket, ConnectionMeta>();
+const wsBySocket = new Map<ServerWebSocket, string>(); // ws → notebook URL (reverse lookup)
 
 // Command correlation for async request-response
 type PendingCommand = {
@@ -198,7 +214,7 @@ async function launchQaSession(name: string, opts: QaLaunchOpts): Promise<QaSess
     const rootAbs = resolve(opts.fakefsRoot ?? DEFAULT_FAKEFS_ROOT);
     await fsMkdir(rootAbs, { recursive: true });
     currentFakefsRoot = rootAbs;
-    const initScript = fsReadFileSync(join(import.meta.dir, "fakefs-init.js"), "utf8");
+    const initScript = fsReadFileSync(join(MODULE_DIR, "fakefs-init.js"), "utf8");
     const cfg = { port: PORT, token: PAIRING_TOKEN, rootName: basename(rootAbs) };
     await ctx.addInitScript({ content: `window.__lopecode_fakefs = ${JSON.stringify(cfg)};\n${initScript}` });
     process.stderr.write(`lopecode-channel: fakefs root = ${rootAbs}${opts.fakefsRoot ? "" : " (default)"}\n`);
@@ -275,9 +291,9 @@ Lopecode notebooks are self-contained HTML files built on the Observable runtime
 
 When the user asks to start/open a lopecode notebook, or start a pairing/collaboration session:
 1. Call get_pairing_token to get the token (format: LOPE-PORT-XXXX)
-2. Find the local notebook HTML file (e.g. lopecode/notebooks/@tomlarkworthy_blank-notebook.html or lopebooks/notebooks/...)
+2. Find the local notebook HTML file (e.g. lopecode/notebooks/quick_start.html or lopebooks/notebooks/...)
 3. Construct a file:// URL with the hash layout and cc=TOKEN parameter:
-   file:///absolute/path/to/@tomlarkworthy_blank-notebook.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
+   file:///absolute/path/to/quick_start.html#view=R100(S50(@tomlarkworthy/blank-notebook),S25(@tomlarkworthy/module-selection),S25(@tomlarkworthy/claude-code-pairing))&cc=TOKEN
 4. Use the open_url tool to open it (this preserves hash fragments on file:// URLs — the macOS open command strips them)
 5. Wait for the connected notification
 6. Send a welcome message via reply
@@ -596,7 +612,7 @@ When multiple notebooks are connected, specify notebook_id (the URL). When only 
 );
 
 // --- Helper: resolve notebook_id ---
-function resolveNotebook(notebookId?: string): { ws: ServerWebSocket<unknown>; url: string } | { error: string } {
+function resolveNotebook(notebookId?: string): { ws: ServerWebSocket; url: string } | { error: string } {
   if (notebookId) {
     const ws = pairedConnections.get(notebookId);
     if (!ws) return { error: `Notebook not connected: ${notebookId}` };
@@ -616,7 +632,7 @@ function resolveNotebook(notebookId?: string): { ws: ServerWebSocket<unknown>; u
 
 // --- Helper: send command and await result ---
 function sendCommand(
-  ws: ServerWebSocket<unknown>,
+  ws: ServerWebSocket,
   action: string,
   params: Record<string, any>,
   timeout = 30000
@@ -1126,10 +1142,10 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           const tmpDir = join(dirname(new URL(url).pathname), "..");
           const tmpFile = join(tmpDir, `.lopecode-redirect-${Date.now()}.html`);
           const redirectHtml = `<!DOCTYPE html><html><head><script>location.replace(${JSON.stringify(url)});</script></head><body>Redirecting...</body></html>`;
-          await Bun.write(tmpFile, redirectHtml);
+          await fsWriteFile(tmpFile, redirectHtml);
           // Open the redirect file (no hash needed), then clean up after a delay
           cmd = ["open", tmpFile];
-          setTimeout(() => { try { require("fs").unlinkSync(tmpFile); } catch {} }, 5000);
+          setTimeout(() => { try { unlinkSync(tmpFile); } catch {} }, 5000);
         } else {
           cmd = ["open", url];
         }
@@ -1138,9 +1154,13 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
 
       process.stderr.write(`lopecode-channel: open_url cmd=${JSON.stringify(cmd)}\n`);
-      const proc = Bun.spawn(cmd, { stdout: "ignore", stderr: "pipe" });
-      const stderr = await new Response(proc.stderr).text();
-      const exitCode = await proc.exited;
+      const { stderr, exitCode } = await new Promise<{ stderr: string; exitCode: number }>((res) => {
+        const proc = spawnProcess(cmd[0], cmd.slice(1), { stdio: ["ignore", "ignore", "pipe"] });
+        let err = "";
+        proc.stderr?.on("data", (d) => { err += d.toString(); });
+        proc.on("error", (e) => res({ stderr: e.message, exitCode: 127 }));
+        proc.on("close", (code) => res({ stderr: err, exitCode: code ?? 0 }));
+      });
       if (exitCode !== 0) {
         const msg = `Failed (exit ${exitCode}): ${stderr || "(no stderr)"}`;
         process.stderr.write(`lopecode-channel: open_url error: ${msg}\n`);
@@ -1496,7 +1516,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       if (htmlStr.length < 1000) {
         return { content: [{ type: "text", text: `Export failed: HTML content too small (${htmlStr.length} bytes). Type was: ${typeof html}` }], isError: true };
       }
-      await Bun.write(originalPath, htmlStr);
+      await fsWriteFile(originalPath, htmlStr);
       return { content: [{ type: "text", text: `Exported to ${originalPath} (${(htmlStr.length / 1024 / 1024).toFixed(2)} MB)` }] };
     }
 
@@ -1511,7 +1531,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       }
       const moduleName: string = result.result.moduleName || (params.module as string);
       const newBody: string = result.result.scriptBody;
-      const existing = await Bun.file(originalPath).text();
+      const existing = await fsReadFile(originalPath, "utf8");
       // Match <script id="<module>" ... > ... </script> (single occurrence)
       const escName = moduleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const re = new RegExp(
@@ -1521,7 +1541,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         return { content: [{ type: "text", text: `export_module: <script id="${moduleName}"> not found in ${originalPath}` }], isError: true };
       }
       const updated = existing.replace(re, (_m, open, _old, close) => `${open}\n${newBody}\n${close}`);
-      await Bun.write(originalPath, updated);
+      await fsWriteFile(originalPath, updated);
       const delta = updated.length - existing.length;
       return { content: [{ type: "text", text: `export_module: wrote @${moduleName} into ${originalPath} (${delta >= 0 ? "+" : ""}${delta} bytes)` }] };
     }
@@ -1543,7 +1563,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
 // proxied here. We sandbox every op under the configured root so the page
 // can't read/write outside it.
 let currentFakefsRoot: string | null = null;     // absolute path, or null when disabled
-const fakefsBindings = new Map<ServerWebSocket<unknown>, string>(); // ws → sandbox absolute path
+const fakefsBindings = new Map<ServerWebSocket, string>(); // ws → sandbox absolute path
 
 function resolveSandbox(root: string, rel: string): string {
   // Treat empty path as the sandbox root itself.
@@ -1615,7 +1635,7 @@ async function handleFsOp(root: string, op: string, args: any): Promise<any> {
 }
 
 // --- WebSocket Server ---
-function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
+function handleWsMessage(ws: ServerWebSocket, raw: string | Buffer) {
   let msg: any;
   try {
     msg = JSON.parse(String(raw));
@@ -1664,7 +1684,7 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
       wsBySocket.set(ws, url);
       ws.send(JSON.stringify({ type: "paired", notebook_id: url }));
       // Restore port file if it was removed on last disconnect
-      try { require("fs").writeFileSync(portFilePath, String(PORT)); } catch {}
+      writePortFile();
 
       // Notify Claude
       void mcp.notification({
@@ -1833,7 +1853,7 @@ function handleWsMessage(ws: ServerWebSocket<unknown>, raw: string | Buffer) {
   }
 }
 
-function handleWsClose(ws: ServerWebSocket<unknown>) {
+function handleWsClose(ws: ServerWebSocket) {
   pendingConnections.delete(ws);
   fakefsBindings.delete(ws);
   const url = wsBySocket.get(ws);
@@ -1861,7 +1881,7 @@ function handleWsClose(ws: ServerWebSocket<unknown>) {
     // Remove port file when last notebook disconnects so the PostToolUse hook
     // skips immediately instead of trying to curl a server with no listeners.
     if (pairedConnections.size === 0) {
-      try { require("fs").unlinkSync(portFilePath); } catch {}
+      removePortFile();
     }
   }
 }
@@ -2002,7 +2022,7 @@ function processLogEntry(line: string) {
 
 /**
  * Tail the active session log file and broadcast activity events.
- * Uses Bun.file + polling to detect new content appended to the JSONL file.
+ * Polls file size and reads the appended range from the JSONL file.
  */
 function startSessionLogTail() {
   const logDir = discoverLogDir();
@@ -2037,8 +2057,11 @@ function startSessionLogTail() {
       const stat = statSync(currentLogPath);
       if (stat.size <= fileOffset) return; // No new data
 
-      const file = Bun.file(currentLogPath);
-      const newData = await file.slice(fileOffset, stat.size).text();
+      const len = stat.size - fileOffset;
+      const buf = Buffer.alloc(len);
+      const fh = await fsOpen(currentLogPath, "r");
+      try { await fh.read(buf, 0, len, fileOffset); } finally { await fh.close(); }
+      const newData = buf.toString("utf8");
       fileOffset = stat.size;
 
       // Process complete lines
@@ -2061,61 +2084,62 @@ function startSessionLogTail() {
   process.stderr.write(`lopecode-channel: session log tailing started (dir: ${basename(logDir)})\n`);
 }
 
-// Connect MCP stdio transport FIRST (must happen before Bun.serve so Claude Code
+// Connect MCP stdio transport FIRST (must happen before the HTTP listen so Claude Code
 // sees the channel capability during the initialization handshake)
 await mcp.connect(new StdioServerTransport());
 
 // Start WebSocket + HTTP server
-const server = Bun.serve({
-  port: REQUESTED_PORT,
-  hostname: "127.0.0.1",
-  async fetch(req, server) {
-    const url = new URL(req.url);
-    if (url.pathname === "/ws") {
-      if (server.upgrade(req)) return;
-      return new Response("WebSocket upgrade failed", { status: 400 });
-    }
-    if (url.pathname === "/health") {
-      return new Response(JSON.stringify({
-        paired: pairedConnections.size,
-        pending: pendingConnections.size,
-        dynamicTools: Object.fromEntries(
-          Array.from(dynamicTools.entries()).map(([url, tools]) => [url, tools.map(t => t.name)])
-        ),
-      }), { headers: { "content-type": "application/json" } });
-    }
+const server = createServer((req, res) => {
+  const url = new URL(req.url ?? "/", "http://127.0.0.1");
+  const send = (status: number, body: string, type = "text/plain") =>
+    res.writeHead(status, { "content-type": type }).end(body);
 
-    // Tool activity endpoint — receives PostToolUse hook data and broadcasts to notebooks
-    if (url.pathname === "/tool-activity" && req.method === "POST") {
+  if (url.pathname === "/health") {
+    return send(200, JSON.stringify({
+      paired: pairedConnections.size,
+      pending: pendingConnections.size,
+      dynamicTools: Object.fromEntries(
+        Array.from(dynamicTools.entries()).map(([url, tools]) => [url, tools.map(t => t.name)])
+      ),
+    }), "application/json");
+  }
+
+  // Tool activity endpoint — receives PostToolUse hook data and broadcasts to notebooks
+  if (url.pathname === "/tool-activity" && req.method === "POST") {
+    let raw = "";
+    req.on("data", (c) => { raw += c; });
+    req.on("end", () => {
       try {
-        const body = await req.json();
-        const toolName = body.tool_name || "unknown";
-        const toolInput = body.tool_input || {};
-        const summary = summarizeToolUse(toolName, toolInput);
-        if (summary) broadcastActivity(toolName, summary);
-        return new Response("ok", { status: 200 });
-      } catch (e) {
-        return new Response("bad request", { status: 400 });
+        const body = JSON.parse(raw);
+        const summary = summarizeToolUse(body.tool_name || "unknown", body.tool_input || {});
+        if (summary) broadcastActivity(body.tool_name || "unknown", summary);
+        send(200, "ok");
+      } catch {
+        send(400, "bad request");
       }
-    }
-    return new Response("not found", { status: 404 });
-  },
-  websocket: {
-    open(ws) {
-      pendingConnections.add(ws);
-    },
-    message: handleWsMessage,
-    close: handleWsClose,
-  },
+    });
+    return;
+  }
+  send(404, "not found");
 });
 
-PORT = server.port; // read actual port (important when REQUESTED_PORT is 0)
+const wss = new WebSocketServer({ server, path: "/ws" });
+wss.on("connection", (ws) => {
+  pendingConnections.add(ws);
+  ws.on("message", (data) =>
+    handleWsMessage(ws, Array.isArray(data) ? Buffer.concat(data) : Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer)));
+  ws.on("close", () => handleWsClose(ws));
+  ws.on("error", () => {});
+});
+
+await new Promise<void>((res) => server.listen(REQUESTED_PORT, "127.0.0.1", res));
+
+PORT = (server.address() as { port: number }).port; // actual port (REQUESTED_PORT may be 0)
 PAIRING_TOKEN = generateToken();
 
-// Write port file so hooks can find us
-const portFilePath = join(import.meta.dir, ".lopecode-port");
-await Bun.write(portFilePath, String(PORT));
-process.on("exit", () => { try { require("fs").unlinkSync(portFilePath); } catch {} });
+// Write port file so hooks can find us (best-effort: read-only under `npx`)
+writePortFile();
+process.on("exit", removePortFile);
 
 process.stderr.write(`lopecode-channel: pairing token: ${PAIRING_TOKEN}\n`);
 process.stderr.write(`lopecode-channel: WebSocket server on ws://127.0.0.1:${PORT}/ws\n`);

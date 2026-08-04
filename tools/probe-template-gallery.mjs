@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { writeFileSync, statSync } from 'fs';
 
-const file = resolve(process.argv[2] || 'lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve(process.argv[2] || 'lopecode/notebooks/quick_start.html');
 const only = process.argv[3];
 // what a user would plausibly tick, to exercise the tab + per-module tutorial note paths
 const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/claude-code-pairing'];

@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
 
-const file = resolve('lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve('lopecode/notebooks/quick_start.html');
 const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/svg-lens', '@tomlarkworthy/at-write',
   '@tomlarkworthy/local-change-history', '@tomlarkworthy/claude-code-pairing'];
 
@@ -41,7 +41,11 @@ const r = await p.evaluate(() => {
 await p.screenshot({ path: 'tools/screenshots/guide-check.png', fullPage: true });
 await b.close();
 
-const MUST = ['⌘K', 'Save', 'blob:', 'theme', 'Roboco-op', 'tabs along the top'];
+const MUST = ['⌘K', 'Save in place', 'blob:', 'theme', 'Roboco-op', 'tabs along the top',
+  // the reactive model and the editor: the two things a newcomer cannot infer from the page
+  'by name', 'Order on the page does not matter', 'viewof', 'Shift-Enter', '⠿', '➕',
+  // borrowing a module later, from a notebook we can actually name
+  'quick_start', 'Install as module'];
 const MODULES = ['Page layout', 'Editable prose', 'Save to disk', 'AI agent', 'Annotations',
   'SVG editor', 'Publish to atproto', 'Change history', 'Claude Code pairing'];
 console.log('--- missing concepts:', MUST.filter((m) => !r.text.includes(m)));
