@@ -136,7 +136,8 @@ const errs = await p.evaluate(() => {
   for (const v of rt._variables) {
     const n = v._observer && v._observer._node;
     const t = n && n.textContent ? n.textContent : '';
-    if (/RuntimeError|ReferenceError|is not defined/.test(t)) bad.push(`${v._name}: ${t.slice(0, 60)}`);
+    // require the "SomeError:" form — the guide documents error messages in prose
+    if (/\b(Runtime|Reference|Type|Syntax|Range)Error:/.test(t)) bad.push(`${v._name}: ${t.slice(0, 60)}`);
   }
   return { bad, adrift: (document.body.innerText.match(/\(adrift\)/g) || []).length };
 });

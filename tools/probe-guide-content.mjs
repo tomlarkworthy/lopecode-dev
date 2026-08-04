@@ -45,7 +45,10 @@ const MUST = ['⌘K', 'Save in place', 'blob:', 'theme', 'Roboco-op', 'tabs alon
   // the reactive model and the editor: the two things a newcomer cannot infer from the page
   'by name', 'Order on the page does not matter', 'viewof', 'Shift-Enter', '⠿', '➕',
   // borrowing a module later, from a notebook we can actually name
-  'quick_start', 'Install as module'];
+  'quick_start', 'Install as module',
+  // the reactive model and, per minimalist-instruction research, recovery
+  'declarations, not statements', 'two faces', 'mutable',
+  'defined more than once', 'circular definition', 'never breaks its neighbours'];
 const MODULES = ['Page layout', 'Editable prose', 'Save to disk', 'AI agent', 'Annotations',
   'SVG editor', 'Publish to atproto', 'Change history', 'Claude Code pairing'];
 console.log('--- missing concepts:', MUST.filter((m) => !r.text.includes(m)));

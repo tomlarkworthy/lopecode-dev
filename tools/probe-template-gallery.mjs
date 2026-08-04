@@ -82,9 +82,10 @@ for (const r of built.out) {
     for (const v of rt._variables) {
       const n = v._observer && v._observer._node;
       if (!n || !n.textContent) continue;
-      // .observablehq--error alone misses cells lopepage renders itself, so match the text too
+      // .observablehq--error alone misses cells lopepage renders itself, so match the text too —
+      // but require the "SomeError:" form, or prose *documenting* an error message trips it.
       const errored = (n.querySelector && n.querySelector('.observablehq--error')) ||
-        /RuntimeError|ReferenceError|is not defined/.test(n.textContent);
+        /\b(Runtime|Reference|Type|Syntax|Range)Error:/.test(n.textContent);
       if (errored) errors.push(`${v._name}: ${n.textContent.slice(0, 120)}`);
     }
     const bodyErrors = (document.body.innerText.match(/RuntimeError/g) || []).length;
