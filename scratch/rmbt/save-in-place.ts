@@ -67,6 +67,50 @@ const server = Bun.serve({
   }
 });
 
+// --- boot extra modules into the export ------------------------------------
+//
+// exportToHTML serialises what the RUNTIME holds, so the way to add a module
+// to the file is to boot it before exporting rather than to splice a block in
+// afterwards. Doing it here rather than in a paired tab is the point: the
+// export takes its hash and its prerender from the live page, so anything done
+// in a tab with a `cc=` token in the URL ships that token in the prerender.
+//
+//   --boot @tomlarkworthy/annotate            (add to runtime.mains, so bootconf lists it)
+//   --import md=@tomlarkworthy/editable-md    (import a binding into the notebook's module)
+const BOOT = arg("boot", "").split(",").map((s) => s.trim()).filter(Boolean);
+const IMPORTS = arg("import", "").split(",").map((s) => s.trim()).filter(Boolean);
+const TARGET = arg("target-module", "@tomlarkworthy/coded-landmark-tracking");
+if (BOOT.length || IMPORTS.length) {
+  const res = await page.evaluate(
+    async ({ boot, imports, target }) => {
+      const rt = (window as any).__ojs_runtime;
+      const out: any = { booted: [], imported: [], errors: [] };
+      for (const name of boot) {
+        try {
+          const define = (await (window as any).importShim(name)).default;
+          rt.mains.set(name, rt.module(define));
+          out.booted.push(name);
+        } catch (e: any) { out.errors.push(`${name}: ${String((e && e.message) || e)}`); }
+      }
+      for (const spec of imports) {
+        const [binding, from] = spec.split("=");
+        try {
+          const host = rt.mains.get(target);
+          if (!host) throw new Error(`target module ${target} not in mains`);
+          const child = rt.module((await (window as any).importShim(from)).default);
+          host.import(binding, binding, child);
+          out.imported.push(spec);
+        } catch (e: any) { out.errors.push(`${spec}: ${String((e && e.message) || e)}`); }
+      }
+      return out;
+    },
+    { boot: BOOT, imports: IMPORTS, target: TARGET }
+  );
+  console.log(`booted: ${JSON.stringify(res.booted)}  imported: ${JSON.stringify(res.imported)}`);
+  if (res.errors.length) { console.error("BOOT FAILED: " + res.errors.join("; ")); await browser.close(); process.exit(1); }
+  await page.waitForTimeout(8000);
+}
+
 const meta = await page.evaluate(async (port) => {
   const rt = (window as any).__ojs_runtime;
   let exportToHTML: any = null;

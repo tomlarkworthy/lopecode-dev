@@ -1,0 +1,249 @@
+lumaCapture = function makeLumaCapture() {
+  // Getting the luma out of a camera, by the cheapest route the browser
+  // actually offers rather than the one everyone writes.
+  //
+  // The obvious pipeline -- drawImage into a 2D canvas, getImageData, weighted
+  // sum to gray -- costs 5.1 + 17.7 + 1.7 ms on a mid-range Android at
+  // 960x1280. The 17.7 is a GPU-to-CPU readback of 4.9MB of RGBA. But a camera
+  // does not produce RGBA: it produces I420 or NV12, whose FIRST PLANE IS THE
+  // LUMA. WebCodecs will hand that over directly for 1.4ms. The whole detour
+  // exists to reconstruct something the hardware already had.
+  //
+  // Everything here is capability-detected and falls back to the old path, so
+  // a browser without WebCodecs, a camera that reports RGBA, or a frame the
+  // caller wants at a different size all still work -- more slowly, and
+  // saying so through `path`.
+  const LUMA_FIRST = /^(I420|I422|I444|NV12|NV21)/;  // formats whose plane 0 is Y
+  let W = 0, H = 0;
+  let cvs = null, ctx = null;      // fallback surface
+  let raw = null, packed = null;   // fast-path buffers
+  let lut = null;
+  let gray = null;
+  let full = false;
+  let src = null;                  // fast path: the luma plane grab() read from
+
+  const size = (w, h) => {
+    if (w === W && h === H) return;
+    W = w; H = h;
+    gray = new Uint8Array(W * H);
+    raw = null; packed = null; cvs = null; ctx = null;
+  };
+
+  const fallbackSurface = () => {
+    if (ctx) return;
+    cvs = window.document.createElement("canvas");
+    cvs.width = W; cvs.height = H;
+    // willReadFrequently asks for a CPU-backed surface. It makes the readback
+    // less catastrophic and the drawImage worse; on this path we do both, so
+    // it is still the right side of that trade.
+    ctx = cvs.getContext("2d", { willReadFrequently: true });
+  };
+
+  // BT.601 limited range (16-235) to full range. The old path derived luma
+  // from RGB that the decoder had ALREADY expanded to full range, so without
+  // this the two paths differ by a scale and an offset -- edge magnitudes
+  // shrink by 219/255 and every tuned threshold, and every archived case,
+  // quietly means something else. One table lookup per pixel is cheaper than
+  // the three multiplies the old conversion cost, so correctness here is free.
+  const buildLut = () => {
+    lut = new Uint8Array(256);
+    for (let v = 0; v < 256; v++) {
+      const x = Math.round(((v - 16) * 255) / 219);
+      lut[v] = x < 0 ? 0 : x > 255 ? 255 : x;
+    }
+  };
+
+  const api = {
+    path: "unknown",
+    format: null,
+    fullRange: null,
+    why: "",
+    ms: 0,
+
+    // What copyTo will ACTUALLY deliver, which is not what the video element
+    // reports. `videoWidth` is the DISPLAY size, after any scaling the browser
+    // applied to satisfy the track constraints; `visibleRect` is the frame the
+    // camera really hands over. On a 1920x1080 sensor centre-cropped to 4:3
+    // they read 1280x960 and 1440x1080 -- and since copyTo crops rather than
+    // scales, a caller sizing itself from the element analyses the top-left
+    // 1280x960 of a 1440x1080 image while showing the whole thing scaled: an
+    // overlay wrong by 1440/1280 everywhere, growing with distance from the
+    // origin. Ask the frame, once per size change, and size to its answer.
+    probe: (video) => {
+      if (typeof window.VideoFrame !== "function" || !video || !video.videoWidth) return null;
+      let f = null;
+      try {
+        f = new window.VideoFrame(video);
+        const fmt = f.format || "";
+        const r = f.visibleRect;
+        return {
+          w: r ? r.width : f.codedWidth,
+          h: r ? r.height : f.codedHeight,
+          format: fmt,
+          luma: LUMA_FIRST.test(fmt)
+        };
+      } catch (e) {
+        return null;
+      } finally {
+        if (f) try { f.close(); } catch (e2) {}
+      }
+    },
+
+    // Fill `gray` for this frame. `rows` is only consulted on the fallback
+    // path, where converting the whole frame costs real time and the scan
+    // needs a quarter of it; the fast path always has every row and says so
+    // through `full`, which is what lets bothAxes and case capture skip their
+    // extra pass entirely.
+    grab: async (video, w, h, rows) => {
+      size(w, h);
+      const t0 = window.performance.now();
+      full = false;
+
+      // The fast path cannot resize -- copyTo crops, it does not scale -- so a
+      // caller asking for anything but the size the frame arrives at gets the
+      // slow one. That test has to be made against the FRAME, not the video
+      // element: the element reports the display size, which the browser may
+      // have scaled down from what copyTo delivers, and a mismatch there is
+      // invisible -- the repack loop reads the extra width as stride padding
+      // and silently analyses a crop. See `probe`.
+      if (typeof window.VideoFrame === "function" && api.path !== "getimagedata-forced") {
+        let frame = null;
+        try {
+          frame = new window.VideoFrame(video);
+          const fmt = frame.format || "";
+          const vr = frame.visibleRect;
+          const fw = vr ? vr.width : frame.codedWidth;
+          const fh = vr ? vr.height : frame.codedHeight;
+          if (!LUMA_FIRST.test(fmt)) {
+            api.why = `format ${fmt} has no luma plane`;
+            frame.close();
+          } else if (fw !== W || fh !== H) {
+            api.why = `frame requested at ${W}x${H}, copyTo delivers ${fw}x${fh}`;
+            frame.close();
+          } else {
+            const need = frame.allocationSize();
+            if (!raw || raw.length < need) raw = new Uint8Array(need);
+            const layout = await frame.copyTo(raw);
+            const cs = frame.colorSpace;
+            const fr = cs && cs.fullRange;
+            frame.close();
+            frame = null;
+            const { offset, stride } = layout[0];
+            // Plane 0 may be padded to a hardware-friendly stride, and often
+            // is not. Only repack when it actually differs.
+            let y;
+            if (stride === W) {
+              y = raw.subarray(offset, offset + W * H);
+            } else {
+              if (!packed || packed.length !== W * H) packed = new Uint8Array(W * H);
+              for (let r = 0; r < H; r++)
+                packed.set(raw.subarray(offset + r * stride, offset + r * stride + W), r * W);
+              y = packed;
+            }
+            if (fr === false) {
+              // The expansion is a per-pixel loop, and a profile on a phone put
+              // it at 4.5ms/frame -- the whole remaining cost of capture, and
+              // more than the copy it follows. The scan reads a quarter of the
+              // rows at stride 4, so expand a quarter of the rows. Same trick
+              // the RGB path always used, for the same reason.
+              if (!lut) buildLut();
+              src = y;
+              if (rows) {
+                for (const yy of rows) {
+                  const b = yy * W;
+                  for (let x = 0; x < W; x++) gray[b + x] = lut[y[b + x]];
+                }
+              } else {
+                for (let i = 0, n = W * H; i < n; i++) gray[i] = lut[y[i]];
+                full = true;
+              }
+            } else {
+              // a bulk copy, not a loop -- cheap enough to always do whole
+              gray.set(y);
+              full = true;
+            }
+            api.path = "videoframe";
+            api.format = fmt;
+            api.fullRange = fr == null ? null : !!fr;
+            api.why = "";
+            api.ms = window.performance.now() - t0;
+            return { gray, full, path: api.path };
+          }
+        } catch (e) {
+          if (frame) try { frame.close(); } catch (e2) {}
+          api.why = "VideoFrame: " + (e && e.message ? e.message : String(e));
+        }
+      } else if (typeof window.VideoFrame !== "function") {
+        api.why = "no WebCodecs";
+      }
+
+      fallbackSurface();
+      ctx.drawImage(video, 0, 0, W, H);
+      const px = ctx.getImageData(0, 0, W, H).data;
+      api._px = px;
+      const row = (yy) => {
+        const b = yy * W;
+        for (let x = 0, p = b * 4; x < W; x++, p += 4)
+          gray[b + x] = (px[p] * 77 + px[p + 1] * 150 + px[p + 2] * 29) >> 8;
+      };
+      if (rows) { for (const yy of rows) row(yy); }
+      else { for (let yy = 0; yy < H; yy++) row(yy); full = true; }
+      api._row = row;
+      api.path = "getimagedata";
+      api.format = "RGBA";
+      api.ms = window.performance.now() - t0;
+      return { gray, full, path: api.path };
+    },
+
+    // Fallback only: convert the rows grab() was allowed to skip. A no-op on
+    // the fast path, which is the point -- callers stop having to know which
+    // path they are on.
+    ensureFull: () => {
+      if (full) return gray;
+      if (api.path === "videoframe") {
+        for (let i = 0, n = W * H; i < n; i++) gray[i] = lut[src[i]];
+      } else {
+        for (let yy = 0; yy < H; yy++) api._row(yy);
+      }
+      full = true;
+      return gray;
+    },
+
+    // Do the two paths agree? Same bar as poolAgreement: run both on ONE
+    // frame and report the difference rather than assert a number nobody
+    // measured. They cannot be identical -- the RGB path has been through
+    // YUV->RGB->luma with rounding at each step -- so this reports the
+    // distribution and lets the reader judge.
+    compare: async (video, w, h) => {
+      const a = await api.grab(video, w, h);
+      if (a.path !== "videoframe") return { note: "fast path unavailable: " + api.why };
+      const fast = gray.slice();
+      const fmt = api.format, fr = api.fullRange;
+      const was = api.path;
+      api.path = "getimagedata-forced";
+      await api.grab(video, w, h);
+      api.path = was;
+      api.format = fmt;
+      const n = w * h;
+      let max = 0, sum = 0, lo = 255, hi = 0;
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(fast[i] - gray[i]);
+        if (d > max) max = d;
+        sum += d;
+        if (fast[i] < lo) lo = fast[i];
+        if (fast[i] > hi) hi = fast[i];
+      }
+      gray.set(fast);
+      full = true;
+      const out = { format: fmt, fullRange: fr, range: lo + ".." + hi,
+        maxDiff: max, meanDiff: +(sum / n).toFixed(3), px: n };
+      // A lens-down phone makes both paths produce all zeros, and "identical"
+      // then means nothing at all -- it is the most agreeable answer this
+      // check can give and the only worthless one. Say so rather than pass.
+      if (hi - lo < 32)
+        out.note = `INCONCLUSIVE: frame spans only ${lo}..${hi}. Point the camera at a lit scene.`;
+      return out;
+    }
+  };
+  return api;
+}

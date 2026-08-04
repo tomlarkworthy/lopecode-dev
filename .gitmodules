@@ -52,3 +52,6 @@
 [submodule "vendor/patchwork-experiments"]
 	path = vendor/patchwork-experiments
 	url = https://github.com/inkandswitch/patchwork-experiments
+[submodule "lopecode-plugin"]
+	path = lopecode-plugin
+	url = git@github.com:tomlarkworthy/lopecode-plugin.git

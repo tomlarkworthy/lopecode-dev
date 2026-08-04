@@ -52,9 +52,9 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html"
   },
   "@tomlarkworthy/blank-notebook": {
+    "upstream": null,
     "lopecode": "lopecode/notebooks/quick_start.html",
-    "lopebooks": "lopebooks/notebooks/quick_start.html",
-    "upstream": null
+    "lopebooks": "lopebooks/notebooks/quick_start.html"
   },
   "@tomlarkworthy/blm-us-wealth": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html"
@@ -75,8 +75,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html"
   },
   "@tomlarkworthy/butter-synth": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
-    "upstream": null
+    "upstream": null,
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html"
   },
   "@tomlarkworthy/cell-map": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html",
@@ -96,6 +96,9 @@
   },
   "@tomlarkworthy/code-metrics": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_code-metrics.html"
+  },
+  "@tomlarkworthy/coded-landmark-tracking": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
   },
   "@tomlarkworthy/codemirror-6-v2": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html"
@@ -117,6 +120,12 @@
   },
   "@tomlarkworthy/csv-column-chooser": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
+  },
+  "@tomlarkworthy/cw-metrics": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
+  },
+  "@tomlarkworthy/cw-share-auth": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
   },
   "@tomlarkworthy/dataflow-templating": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html",
@@ -209,16 +218,16 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_import-notebook.html"
   },
   "@tomlarkworthy/import-wizard-file": {
-    "lopecode": "lopecode/notebooks/import_wizards.html",
-    "upstream": null
+    "upstream": null,
+    "lopecode": "lopecode/notebooks/import_wizards.html"
   },
   "@tomlarkworthy/import-wizard-js": {
-    "lopecode": "lopecode/notebooks/import_wizards.html",
-    "upstream": null
+    "upstream": null,
+    "lopecode": "lopecode/notebooks/import_wizards.html"
   },
   "@tomlarkworthy/import-wizard-notebook": {
-    "lopecode": "lopecode/notebooks/import_wizards.html",
-    "upstream": null
+    "upstream": null,
+    "lopecode": "lopecode/notebooks/import_wizards.html"
   },
   "@tomlarkworthy/infinite-canvas": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html"
@@ -473,6 +482,9 @@
   },
   "@tomlarkworthy/reactive-reflective-testing": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html"
+  },
+  "@tomlarkworthy/realtime-multi-barcode-tracking": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_realtime-multi-barcode-tracking.html"
   },
   "@tomlarkworthy/redirect-debugging": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html"
