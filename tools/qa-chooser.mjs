@@ -25,7 +25,7 @@ const shape = await p.evaluate(() => {
     modLinks: [...t.querySelectorAll('tbody th a.mod')].map((a) => a.getAttribute('href') || ''),
     activeCol: [...t.querySelectorAll('thead th')].findIndex((e) => e.classList.contains('on')),
     mandatory: [...document.querySelectorAll('.qs tr.core input')].map((e) => e.disabled && e.checked),
-    coreSection: (document.querySelector('.qs tr.sect th') || {}).textContent || '',
+    sections: [...document.querySelectorAll('.qs tr.sect th')].map((e) => e.textContent.trim()),
     // no leftover prose: the landing page should be the chooser. Scope to this module's own
     // pane — other panes (robocoop-5) legitimately have headings of their own.
     strayProse: /Blank Notebook|This page is the overview|Start from a template/.test(document.body.innerText),
@@ -39,7 +39,9 @@ check('module names link to the module', shape.modLinks.length === shape.rows.le
 check('each type has an SVG icon', shape.icons === 4, String(shape.icons));
 check('core modules are rows of the same table, ticked and disabled',
   shape.mandatory.length >= 24 && shape.mandatory.every(Boolean), `${shape.mandatory.length} cells`);
-check('core modules are walled off under a heading', /core modules/i.test(shape.coreSection), shape.coreSection);
+check('both groups are walled off under headings',
+  /optional modules/i.test(shape.sections[0] || '') && /core modules/i.test(shape.sections[1] || ''),
+  shape.sections.join(' | '));
 check('no leftover landing-page prose', !shape.strayProse && shape.firstCell === 'chooser',
   `stray=${shape.strayProse} first=${shape.firstCell}`);
 

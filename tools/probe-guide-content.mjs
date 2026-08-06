@@ -5,7 +5,7 @@ import { resolve } from 'path';
 import { writeFileSync } from 'fs';
 
 const file = resolve('lopecode/notebooks/quick_start.html');
-const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/svg-lens', '@tomlarkworthy/at-write',
+const EXTRAS = ['@tomlarkworthy/editable-md', '@tomlarkworthy/annotate', '@tomlarkworthy/svg-lens', '@tomlarkworthy/at-write',
   '@tomlarkworthy/local-change-history', '@tomlarkworthy/claude-code-pairing'];
 
 const browser = await chromium.launch({ headless: true });

@@ -7,8 +7,11 @@ import { writeFileSync, statSync } from 'fs';
 
 const file = resolve(process.argv[2] || 'lopecode/notebooks/quick_start.html');
 const only = process.argv[3];
-// what a user would plausibly tick, to exercise the tab + per-module tutorial note paths
-const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/claude-code-pairing'];
+// what a user would plausibly tick, to exercise the tab + per-module tutorial note paths.
+// robocoop-5 is optional, and its absence changes the layout (no bottom pane to reserve), so run
+// the gate both ways: `--with-agent` covers the C100(...,S25(agent)) hash, the default the S100 one.
+const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/claude-code-pairing',
+  ...(process.argv.includes('--with-agent') ? ['@tomlarkworthy/robocoop-5'] : [])];
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
