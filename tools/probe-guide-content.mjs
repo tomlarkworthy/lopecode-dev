@@ -5,8 +5,10 @@ import { resolve } from 'path';
 import { writeFileSync } from 'fs';
 
 const file = resolve('lopecode/notebooks/quick_start.html');
+// every optional module, so no tour note goes unexercised
 const EXTRAS = ['@tomlarkworthy/editable-md', '@tomlarkworthy/annotate', '@tomlarkworthy/svg-lens', '@tomlarkworthy/at-write',
-  '@tomlarkworthy/local-change-history', '@tomlarkworthy/claude-code-pairing'];
+  '@tomlarkworthy/local-change-history', '@tomlarkworthy/claude-code-pairing', '@tomlarkworthy/sticky',
+  '@tomlarkworthy/tests', '@tomlarkworthy/debugger-2', '@tomlarkworthy/grid-container'];
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1300, height: 1000 } });
@@ -48,11 +50,19 @@ const MUST = ['⌘K', 'Save in place', 'blob:', 'theme', 'Roboco-op', 'tabs alon
   'quick_start', 'Install as module',
   // the reactive model and, per minimalist-instruction research, recovery
   'declarations, not statements', 'two faces', 'mutable',
-  'defined more than once', 'circular definition', 'never breaks its neighbours'];
+  'defined more than once', 'circular definition', 'never breaks its neighbours',
+  // the builtins a newcomer has no way to discover: they are in scope without an import
+  'without importing anything', 'tex', 'mermaid', 'FileAttachment', 'require', 'E = mc^2',
+  'fetch themselves on first use'];
 const MODULES = ['Page layout', 'Editable prose', 'Save to disk', 'AI agent', 'Annotations',
-  'SVG editor', 'Publish to atproto', 'Change history', 'Claude Code pairing'];
-console.log('--- missing concepts:', MUST.filter((m) => !r.text.includes(m)));
-console.log('--- unexplained modules:', MODULES.filter((m) => !r.text.includes(m)));
+  'SVG editor', 'Publish to atproto', 'Change history', 'Claude Code pairing',
+  'Sticky inputs', 'Unit tests', 'Dataflow debugger', 'Snap grid'];
+const missing = MUST.filter((m) => !r.text.includes(m));
+// robocoop-5 is not in EXTRAS, so its row is legitimately absent from the generated list
+const unexplained = MODULES.filter((m) => m !== 'AI agent' && !r.text.includes(m));
+console.log('--- missing concepts:', missing);
+console.log('--- unexplained modules:', unexplained);
 console.log('--- adrift:', r.adrift);
 console.log(`--- ${r.notes.length} pinned notes`);
 for (const n of r.notes) console.log('   •', n.replace(/\s+/g, ' '));
+process.exit(missing.length || unexplained.length || r.adrift ? 1 : 0);

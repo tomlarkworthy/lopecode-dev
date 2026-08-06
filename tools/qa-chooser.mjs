@@ -59,6 +59,22 @@ const supply = await p.evaluate(() => {
 check('every module the chooser offers is in the file', supply.missing.length === 0,
   `${supply.offered} offered; missing: ${supply.missing.join(', ') || 'none'}`);
 
+// The look is chosen at generation time, so the picker has to offer every theme and default to
+// the one this page is already wearing (otherwise Generate silently restyles the fork).
+const themePick = await p.evaluate(() => {
+  const rt = window.__ojs_runtime;
+  const val = (n) => { for (const v of rt._variables) if (v._name === n && v._value !== undefined) return v._value; };
+  const themes = val('themes');
+  const sel = [...document.querySelectorAll('.qs .foot select')]
+    .find((s) => /theme/i.test(s.closest('label')?.textContent || ''));
+  const live = [...themes.entries()].find(([, urls]) => urls.every((u) => document.getElementById(u)))?.[0];
+  return { count: sel ? sel.options.length : 0, value: sel && sel.value, live, all: themes.size };
+});
+check('the theme is chosen at generation time', themePick.count === themePick.all && themePick.all > 5,
+  `${themePick.count} of ${themePick.all} themes offered`);
+check('and defaults to the theme this page is wearing', themePick.value === themePick.live,
+  `picker=${themePick.value} page=${themePick.live}`);
+
 // layout: header rows share a baseline, and Generate sits on a line of its own
 const layout = await p.evaluate(() => {
   const tops = (sel) => [...document.querySelectorAll(sel)].map((e) => Math.round(e.getBoundingClientRect().top));

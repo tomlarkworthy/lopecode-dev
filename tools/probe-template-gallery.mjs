@@ -10,8 +10,17 @@ const only = process.argv[3];
 // what a user would plausibly tick, to exercise the tab + per-module tutorial note paths.
 // robocoop-5 is optional, and its absence changes the layout (no bottom pane to reserve), so run
 // the gate both ways: `--with-agent` covers the C100(...,S25(agent)) hash, the default the S100 one.
-const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/claude-code-pairing',
+// Every optional module the chooser offers, so each one's tutorial note and its entry in the
+// generated module list are actually built — a stray backtick in a catalogue entry kills the cell
+// it lands in, and only a fork that ships that module would show it.
+const EXTRAS = ['@tomlarkworthy/annotate', '@tomlarkworthy/claude-code-pairing', '@tomlarkworthy/editable-md',
+  '@tomlarkworthy/svg-lens', '@tomlarkworthy/grid-container', '@tomlarkworthy/sticky', '@tomlarkworthy/tests',
+  '@tomlarkworthy/debugger-2', '@tomlarkworthy/at-write', '@tomlarkworthy/local-change-history',
   ...(process.argv.includes('--with-agent') ? ['@tomlarkworthy/robocoop-5'] : [])];
+// `--theme <name>` exercises the generation-time theme picker: the fork must ship exactly that
+// theme's stylesheet block, not the one the launcher happens to be wearing.
+const ti = process.argv.indexOf('--theme');
+const THEME = ti >= 0 ? process.argv[ti + 1] : null;
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
@@ -20,7 +29,7 @@ page.on('pageerror', (e) => fatErrs.push(String(e).slice(0, 200)));
 await page.goto(`file://${file}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await page.waitForTimeout(20000);
 
-const built = await page.evaluate(async ({ only, EXTRAS }) => {
+const built = await page.evaluate(async ({ only, EXTRAS, THEME }) => {
   const rt = window.__ojs_runtime;
   const val = (name) => {
     for (const v of rt._variables) if (v._name === name && v._value !== undefined) return v._value;
@@ -42,9 +51,11 @@ const built = await page.evaluate(async ({ only, EXTRAS }) => {
     for (const tutorial of [true, false]) {
       const id = `${t.id}-${tutorial ? 'tutorial' : 'blank'}`;
       try {
-        const { html, hash } = await spawn({
+        const { html, hash, themed } = await spawn({
           template: t, name: `@user/${id}`, title: `${t.label}`, modules: EXTRAS, tutorial,
+          ...(THEME ? { theme: THEME } : {}),
         });
+        if (THEME && !themed) throw new Error(`theme ${THEME} could not be fetched`);
         out.push({ id, html, hash, bytes: html.length });
       } catch (e) {
         out.push({ id, error: e.message + '\n' + (e.stack || '').slice(0, 400) });
@@ -61,7 +72,7 @@ const built = await page.evaluate(async ({ only, EXTRAS }) => {
       addedVars: diff(s1.vars, s0.vars), droppedVars: diff(s0.vars, s1.vars),
     },
   };
-}, { only, EXTRAS });
+}, { only, EXTRAS, THEME });
 
 await browser.close();
 if (built.error) { console.log('FAIL', built.error); process.exit(1); }
@@ -100,18 +111,29 @@ for (const r of built.out) {
       bodyErrors,
       // an annotation whose anchor did not resolve renders its header as "(adrift)"
       adrift: (document.body.innerText.match(/\(adrift\)/g) || []).length,
+      // which theme actually shipped: the CSS blocks are what the themes module sniffs
+      themeCss: [...document.querySelectorAll('script[type="text/plain"][data-mime="text/css"]')]
+        .map((s) => s.id.split('/').pop()).filter((n) => n.startsWith('theme-')),
     };
   });
   await p.screenshot({ path: `tools/screenshots/tpl-${r.id}.png` });
   await b.close();
   const unknownNames = /module <unknown 0\./.test(r.html);
   const tutCells = (r.html.match(/annotation_tut\d+_note/g) || []).length;
-  // Pre-existing dangling import: claude-code-pairing imports fileSyncTools, which file-sync has
-  // never defined (true upstream too). Not a gallery defect — reported, not counted.
-  const known = boot.errors.filter((e) => /fileSyncTools is not defined/.test(e));
+  // Defects that belong to the modules themselves, reproduced in the launcher as well as in a fork.
+  // Reported so they stay visible, not counted against the gallery:
+  //  - claude-code-pairing imports fileSyncTools, which file-sync has never defined;
+  //  - local-change-history's own demo cells throw "branch is required" wherever they are booted;
+  //  - a tests dashboard RENDERS failing tests as data, so its text carries an "Error:" that is
+  //    the report, not a broken cell (currently editable-md's escaped-placeholder test).
+  const known = boot.errors.filter((e) =>
+    /fileSyncTools is not defined|branch is required|#test_\w/.test(e));
   boot.errors = boot.errors.filter((e) => !known.includes(e));
   boot.knownExternal = known;
-  const ok = boot.errors.length === 0 && boot.bodyErrors === 0 && errs.length === 0 && !unknownNames && boot.adrift === 0;
+  const themeOk = !THEME ||
+    (boot.themeCss.length === 1 && boot.themeCss[0] === `theme-${THEME}.css`);
+  const ok = boot.errors.length === 0 && boot.bodyErrors === 0 && errs.length === 0 && !unknownNames &&
+    boot.adrift === 0 && themeOk;
   if (!ok) bad++;
   console.log(`\n### ${r.id} — ${ok ? 'OK' : 'PROBLEMS'}  ${(r.bytes / 1e6).toFixed(2)}MB (${Math.round((r.bytes / fatBytes) * 100)}%)`);
   console.log(`    hash ${r.hash}`);
