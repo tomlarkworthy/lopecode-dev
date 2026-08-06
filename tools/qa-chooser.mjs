@@ -45,6 +45,20 @@ check('both groups are walled off under headings',
 check('no leftover landing-page prose', !shape.strayProse && shape.firstCell === 'chooser',
   `stray=${shape.strayProse} first=${shape.firstCell}`);
 
+// spawnNotebook importShims every chosen module out of THIS file and throws if one is missing, so
+// an offered module with no block is a broken Generate rather than a degraded one.
+const supply = await p.evaluate(() => {
+  const rt = window.__ojs_runtime;
+  const val = (n) => { for (const v of rt._variables) if (v._name === n && v._value !== undefined) return v._value; };
+  const cat = val('catalogue'), templates = val('templates') || [];
+  const ids = [...cat.always, ...cat.optional].map((m) => m.id)
+    .concat(cat.cargo || [], ...templates.map((t) => [...(t.modules || []), ...Object.keys(t.imports || {}), ...Object.keys(t.optionalImports || {})]));
+  const blocks = new Set([...document.querySelectorAll('script[type="text/plain"]')].map((s) => s.id));
+  return { offered: new Set(ids).size, missing: [...new Set(ids)].filter((id) => !blocks.has(id)) };
+});
+check('every module the chooser offers is in the file', supply.missing.length === 0,
+  `${supply.offered} offered; missing: ${supply.missing.join(', ') || 'none'}`);
+
 // layout: header rows share a baseline, and Generate sits on a line of its own
 const layout = await p.evaluate(() => {
   const tops = (sel) => [...document.querySelectorAll(sel)].map((e) => Math.round(e.getBoundingClientRect().top));
@@ -126,15 +140,19 @@ await popup.close();
 const aside = async (slug) => {
   await p.evaluate((s) => document.querySelector(`.qs tbody th a.mod[href*="${s}"]`).click(), slug);
   await p.waitForTimeout(9000);
-  return p.evaluate(() => {
-    const own = [...document.querySelectorAll('.lp2-pane')]
-      .find((e) => e.querySelector('.qs table'));
+  return p.evaluate((s) => {
+    const panes = [...document.querySelectorAll('.lp2-pane')];
+    const own = panes.find((e) => e.querySelector('.qs table'));
+    const opened = panes.find((e) => (e.dataset.module || '').includes(s));
     return {
       hash: decodeURIComponent(location.hash),
       chooserWidth: own ? Math.round(own.getBoundingClientRect().width) : 0,
-      panes: document.querySelectorAll('.lp2-pane').length,
+      panes: panes.length,
+      // A pane whose module never resolved sits on lopepage-2's placeholder for ever.
+      openedText: opened ? opened.textContent.trim().slice(0, 60) : '(no pane)',
+      openedChars: opened ? opened.textContent.length : 0,
     };
-  });
+  }, slug);
 };
 const a1 = await aside('local-change-history');
 check('a module name opens beside the chooser, which stays visible',
@@ -145,6 +163,15 @@ const a2 = await aside('at-write');
 check('a second click reuses the aside slot instead of piling up',
   /,S30\(@tomlarkworthy\/at-write\)\)$/.test(a2.hash) && !/local-change-history/.test(a2.hash) &&
   a2.chooserWidth > 200, JSON.stringify(a2));
+
+// These are in the file as blocks but nothing boots them — neither bootconf mains nor imported by
+// anything, so `modules()` has never heard of them. The chooser still offers a link, so opening one
+// must boot it rather than sit on "loading …".
+for (const slug of ['svg-lens', 'grid-container', 'sticky', 'debugger-2']) {
+  const a = await aside(slug);
+  check(`a module that is in the file but not booted still opens (${slug})`,
+    a.openedChars > 400 && !/^loading /.test(a.openedText), JSON.stringify(a));
+}
 
 await p.screenshot({ path: 'tools/screenshots/qa-chooser.png' });
 await b.close();
