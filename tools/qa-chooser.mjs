@@ -19,7 +19,9 @@ const shape = await p.evaluate(() => {
     cols: [...t.querySelectorAll('thead th')].slice(1).map((e) => e.textContent.trim()),
     rows: [...t.querySelectorAll('tbody th')].map((e) => e.textContent.trim()),
     icons: [...t.querySelectorAll('thead .ico svg')].length,
-    hoverTitles: [...t.querySelectorAll('tbody th')].every((e) => (e.title || '').length > 10),
+    // the explanation is visible prose, not a tooltip, and the name is a link that opens the module
+    whys: [...t.querySelectorAll('tbody th .why')].every((e) => e.textContent.trim().length > 10),
+    modLinks: [...t.querySelectorAll('tbody th a.mod')].map((a) => a.getAttribute('href') || ''),
     activeCol: [...t.querySelectorAll('thead th')].findIndex((e) => e.classList.contains('on')),
     mandatory: [...document.querySelectorAll('.qs .always input')].map((e) => e.disabled && e.checked),
     // no leftover prose: the landing page should be the chooser. Scope to this module's own
@@ -29,12 +31,33 @@ const shape = await p.evaluate(() => {
   };
 });
 check('four type columns', shape.cols.length === 4, shape.cols.join(' | '));
-check('module rows with hover explanations', shape.rows.length >= 5 && shape.hoverTitles, shape.rows.join(', '));
+check('module rows carry a visible explanation', shape.rows.length >= 5 && shape.whys, shape.rows.join(', '));
+check('module names link to the module', shape.modLinks.length === shape.rows.length &&
+  shape.modLinks.every((h) => h.includes('open=@tomlarkworthy/')), shape.modLinks[0] || 'none');
 check('each type has an SVG icon', shape.icons === 4, String(shape.icons));
 check('mandatory modules are ticked and disabled', shape.mandatory.length >= 6 && shape.mandatory.every(Boolean),
   `${shape.mandatory.length} rows`);
 check('no leftover landing-page prose', !shape.strayProse && shape.firstCell === 'chooser',
   `stray=${shape.strayProse} first=${shape.firstCell}`);
+
+// layout: header rows share a baseline, and Generate sits on a line of its own
+const layout = await p.evaluate(() => {
+  const tops = (sel) => [...document.querySelectorAll(sel)].map((e) => Math.round(e.getBoundingClientRect().top));
+  const foot = document.querySelector('.qs .foot').getBoundingClientRect();
+  const gen = document.querySelector('.qs .gen').getBoundingClientRect();
+  const h2 = [...document.querySelectorAll('h2')].find((e) => /What do you want to do/.test(e.textContent));
+  return {
+    icoTops: [...new Set(tops('.qs thead .ico'))],
+    subTops: [...new Set(tops('.qs thead .sub'))],
+    genBelow: gen.top >= foot.bottom - 2,
+    // the title is a markdown cell, so it is a sibling of the chooser rather than inside it
+    mdTitle: !!h2 && !h2.closest('.qs'),
+  };
+});
+check('header icons share one baseline', layout.icoTops.length === 1, layout.icoTops.join(','));
+check('header subtitles share one baseline', layout.subTops.length === 1, layout.subTops.join(','));
+check('Generate is on its own line', layout.genBelow);
+check('title is a markdown cell of its own', layout.mdTitle);
 
 // click the third column (Single file app) and inspect
 const after = await p.evaluate(() => {
@@ -90,6 +113,16 @@ const built = await popup.evaluate(() => ({
 }));
 check('Generate → Tab opens a working notebook', built.mains > 4 && !built.err, JSON.stringify(built));
 await popup.close();
+
+// clicking a module name opens it alongside the chooser. Pick one the default layout does NOT
+// already show, or the assertion passes without the click doing anything.
+await p.evaluate(() => document.querySelector('.qs tbody th a.mod[href*="local-change-history"]').click());
+await p.waitForTimeout(9000);
+const opened = await p.evaluate(() => ({
+  hash: location.hash, chooser: !!document.querySelector('.qs table'),
+}));
+check('a module name opens that module as a pane', /local-change-history/.test(opened.hash) && opened.chooser,
+  opened.hash);
 
 await p.screenshot({ path: 'tools/screenshots/qa-chooser.png' });
 await b.close();

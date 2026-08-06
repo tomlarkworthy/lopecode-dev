@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { resolve } from 'path';
 const b = await chromium.launch({ headless: true });
-const p = await b.newPage({ viewport: { width: 1300, height: 700 } });
+const p = await b.newPage({ viewport: { width: 1300, height: 1000 } });
 await p.goto(`file://${resolve('lopecode/notebooks/quick_start.html')}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await p.waitForTimeout(20000);
 await p.evaluate(() => window.localStorage.removeItem('lopecode.quick_start.tutorial'));
@@ -9,5 +9,5 @@ await p.reload({ waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(20000);
 await p.evaluate(() => [...document.querySelectorAll('.qs thead th')][1].click());
 await p.waitForTimeout(400);
-await p.screenshot({ path: 'tools/screenshots/qa-chooser.png' });
+await p.screenshot({ path: 'tools/screenshots/chooser-shot.png' });
 await b.close();
