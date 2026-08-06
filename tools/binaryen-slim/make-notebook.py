@@ -94,7 +94,8 @@ found = find_bootconf(s)
 a, bs, end, conf = found
 conf["mains"] = ["@tomlarkworthy/save-in-place", "@tomlarkworthy/lopepage-2",
                  "@tomlarkworthy/annotate", MOD]
-conf["hash"] = ("#view=R100(S70(%s),S30(@tomlarkworthy/claude-code-pairing))" % MOD)
+conf["hash"] = ("#view=R100(S60(%s),S20(@tomlarkworthy/annotate),"
+                "S20(@tomlarkworthy/claude-code-pairing))" % MOD)
 s = s[:bs] + "\n" + json.dumps(conf, indent=2) + "\n" + s[end - len("</script>"):]
 print("bootconf mains:", conf["mains"])
 

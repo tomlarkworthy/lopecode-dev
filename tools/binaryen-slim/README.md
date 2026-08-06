@@ -18,10 +18,17 @@ Both compilation caches have to miss for the warm-up to be visible, so each seri
 a unique custom section on the wasm and a unique trailing comment on the JavaScript —
 without that, run 2 reuses run 1's compiled code and starts at its floor.
 
-Measured in Chromium (48×48, 24 inversions a pass): WebAssembly is at its floor by
-pass 2, JavaScript takes ~25 while V8 tiers it up; 1.35× a pass once both are warm,
-1.71× over the whole session. `unchecked()` in the AssemblyScript matters — with the
-bounds checks left in, the wasm is *slower* than the JavaScript at steady state.
+Measured (48×48, 24 inversions a pass): WebAssembly is at its floor by pass 2,
+JavaScript takes 10-25 while V8 tiers it up, and the session total is ~1.2× in
+wasm's favour. **The steady-state result depends on the engine and is not a win.**
+Real Chrome 150 gives parity — three repeats measured 1.09×, 0.99×, 1.01× (both
+~2.00ms a pass); Playwright's bundled Chromium reported 1.26×. For straight f64
+array math TurboFan emits essentially the same code as wasm once it is warm, so the
+honest claim here is time-to-fast, not throughput. Quote the session total, or the
+page's own live figure — never a remembered number.
+
+`unchecked()` in the AssemblyScript still matters: with the bounds checks left in,
+the wasm is *slower* than the JavaScript at steady state (0.7×).
 
 ## Result
 
