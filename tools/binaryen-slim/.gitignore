@@ -1,0 +1,8 @@
+# Build scratch: source tarball, unpacked binaryen, cmake/make output.
+.work/
+node_modules/
+
+# Only the gzipped artifacts are tracked -- those are the exact bytes the notebook
+# embeds. The uncompressed pair is derivable: gunzip -k dist/*.gz
+dist/binaryen-slim-*.js
+dist/binaryen-slim-*.wasm
