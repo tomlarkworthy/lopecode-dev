@@ -21,7 +21,6 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html"
   },
   "@tomlarkworthy/assembly-script": {
-    "upstream": null,
     "lopebooks": "lopebooks/notebooks/assembly_script.html"
   },
   "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark": {
