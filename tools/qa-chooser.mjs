@@ -17,13 +17,15 @@ const shape = await p.evaluate(() => {
   const t = document.querySelector('.qs table');
   return {
     cols: [...t.querySelectorAll('thead th')].slice(1).map((e) => e.textContent.trim()),
-    rows: [...t.querySelectorAll('tbody th')].map((e) => e.textContent.trim()),
+    rows: [...t.querySelectorAll('tbody tr:not(.sect) th')].map((e) => e.textContent.trim()),
     icons: [...t.querySelectorAll('thead .ico svg')].length,
     // the explanation is visible prose, not a tooltip, and the name is a link that opens the module
     whys: [...t.querySelectorAll('tbody th .why')].every((e) => e.textContent.trim().length > 10),
+    // the section heading row carries no link, so count links against link-bearing rows
     modLinks: [...t.querySelectorAll('tbody th a.mod')].map((a) => a.getAttribute('href') || ''),
     activeCol: [...t.querySelectorAll('thead th')].findIndex((e) => e.classList.contains('on')),
-    mandatory: [...document.querySelectorAll('.qs .always input')].map((e) => e.disabled && e.checked),
+    mandatory: [...document.querySelectorAll('.qs tr.core input')].map((e) => e.disabled && e.checked),
+    coreSection: (document.querySelector('.qs tr.sect th') || {}).textContent || '',
     // no leftover prose: the landing page should be the chooser. Scope to this module's own
     // pane — other panes (robocoop-5) legitimately have headings of their own.
     strayProse: /Blank Notebook|This page is the overview|Start from a template/.test(document.body.innerText),
@@ -35,8 +37,9 @@ check('module rows carry a visible explanation', shape.rows.length >= 5 && shape
 check('module names link to the module', shape.modLinks.length === shape.rows.length &&
   shape.modLinks.every((h) => h.includes('open=@tomlarkworthy/')), shape.modLinks[0] || 'none');
 check('each type has an SVG icon', shape.icons === 4, String(shape.icons));
-check('mandatory modules are ticked and disabled', shape.mandatory.length >= 6 && shape.mandatory.every(Boolean),
-  `${shape.mandatory.length} rows`);
+check('core modules are rows of the same table, ticked and disabled',
+  shape.mandatory.length >= 24 && shape.mandatory.every(Boolean), `${shape.mandatory.length} cells`);
+check('core modules are walled off under a heading', /core modules/i.test(shape.coreSection), shape.coreSection);
 check('no leftover landing-page prose', !shape.strayProse && shape.firstCell === 'chooser',
   `stray=${shape.strayProse} first=${shape.firstCell}`);
 
@@ -45,7 +48,7 @@ const layout = await p.evaluate(() => {
   const tops = (sel) => [...document.querySelectorAll(sel)].map((e) => Math.round(e.getBoundingClientRect().top));
   const foot = document.querySelector('.qs .foot').getBoundingClientRect();
   const gen = document.querySelector('.qs .gen').getBoundingClientRect();
-  const h2 = [...document.querySelectorAll('h2')].find((e) => /What do you want to do/.test(e.textContent));
+  const h2 = [...document.querySelectorAll('h1')].find((e) => /Lopecode Quickstart/.test(e.textContent));
   return {
     icoTops: [...new Set(tops('.qs thead .ico'))],
     subTops: [...new Set(tops('.qs thead .sub'))],
@@ -64,7 +67,7 @@ const after = await p.evaluate(() => {
   const th = [...document.querySelectorAll('.qs thead th')][3];
   th.click();
   const t = document.querySelector('.qs table');
-  const rows = [...t.querySelectorAll('tbody tr')].map((tr) => ({
+  const rows = [...t.querySelectorAll('tbody tr:not(.sect):not(.core)')].map((tr) => ({
     label: tr.querySelector('th').textContent.trim(),
     cells: [...tr.querySelectorAll('td')].map((td) => ({
       lit: td.classList.contains('on'), on: td.querySelector('input').checked,
@@ -114,15 +117,32 @@ const built = await popup.evaluate(() => ({
 check('Generate → Tab opens a working notebook', built.mains > 4 && !built.err, JSON.stringify(built));
 await popup.close();
 
-// clicking a module name opens it alongside the chooser. Pick one the default layout does NOT
-// already show, or the assertion passes without the click doing anything.
-await p.evaluate(() => document.querySelector('.qs tbody th a.mod[href*="local-change-history"]').click());
-await p.waitForTimeout(9000);
-const opened = await p.evaluate(() => ({
-  hash: location.hash, chooser: !!document.querySelector('.qs table'),
-}));
-check('a module name opens that module as a pane', /local-change-history/.test(opened.hash) && opened.chooser,
-  opened.hash);
+// Clicking a module name must open it BESIDE the chooser. lopepage-2's plain `open=` intent pushes
+// the module into the first stack and focuses it, which hides the chooser behind a tab — so assert
+// the chooser is still on screen with a non-zero width, not merely that the hash mentions the module.
+// Pick modules the default layout does NOT already show, or the click is a no-op.
+const aside = async (slug) => {
+  await p.evaluate((s) => document.querySelector(`.qs tbody th a.mod[href*="${s}"]`).click(), slug);
+  await p.waitForTimeout(9000);
+  return p.evaluate(() => {
+    const own = [...document.querySelectorAll('.lp2-pane')]
+      .find((e) => e.querySelector('.qs table'));
+    return {
+      hash: decodeURIComponent(location.hash),
+      chooserWidth: own ? Math.round(own.getBoundingClientRect().width) : 0,
+      panes: document.querySelectorAll('.lp2-pane').length,
+    };
+  });
+};
+const a1 = await aside('local-change-history');
+check('a module name opens beside the chooser, which stays visible',
+  /local-change-history/.test(a1.hash) && a1.chooserWidth > 200, JSON.stringify(a1));
+const a2 = await aside('at-write');
+// at-write starts life as a tab of the chooser's OWN stack; focusing it there would hide the
+// chooser, so it has to be pulled out into the aside slot, which the previous target vacates.
+check('a second click reuses the aside slot instead of piling up',
+  /,S30\(@tomlarkworthy\/at-write\)\)$/.test(a2.hash) && !/local-change-history/.test(a2.hash) &&
+  a2.chooserWidth > 200, JSON.stringify(a2));
 
 await p.screenshot({ path: 'tools/screenshots/qa-chooser.png' });
 await b.close();
