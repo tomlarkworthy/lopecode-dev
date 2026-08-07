@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 
-const NB = path.resolve('lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html');
+const NB = path.resolve(process.argv[2] || 'lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html');
 const OUT = path.resolve('tools/prerender-out.html');
 const HASH = '#view=R100(S60(@tomlarkworthy/virtual-monorepo),S40(@tomlarkworthy/exporter-3))';
 const url = 'file://' + NB + HASH;
@@ -67,6 +67,9 @@ const styleIdx = html.indexOf('id="lope-prerender-style"');
 // extract prerender text content (rough) to confirm real content baked
 const prBlock = prerenderIdx > -1 ? html.slice(prerenderIdx, html.indexOf('id="lope-prerender-cleanup"')) : '';
 const textLen = prBlock.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length;
+// Stricter: drop <style> bodies too, so this counts prose a no-JS reader actually sees.
+const proseLen = prBlock.replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+  .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length;
 
 const checks = {
   'prerender div present': prerenderIdx > -1,
@@ -75,7 +78,15 @@ const checks = {
   'prerender is BEFORE boot scripts': prerenderIdx > -1 && prerenderIdx < netIdx,
   'prerender is inside <body>': prerenderIdx > bodyIdx,
   'bootconf persists prerender:true': bootconfPrerender,
-  'snapshot isolated in declarative shadow DOM': html.includes('<template shadowrootmode="open">'),
+  // The snapshot must ship as LIGHT DOM so parsers that never run JS read it from source.
+  // Isolation is restored at runtime by the cleanup script (attachShadow), not by the parser,
+  // so a <template> here would mean the text is invisible to exactly the readers it is for.
+  'snapshot is light DOM, not a <template>': !html.includes('<template shadowrootmode'),
+  'cleanup script hoists snapshot into a shadow root': /attachShadow/.test(html),
+  'prose readable with tags+styles stripped (no JS)': proseLen > 2000,
+  // Observable Inputs style themselves from a <style> in document.head. That is outside the
+  // snapshot, so a prerendered form used to render as bare browser defaults and restyle on swap.
+  'snapshot carries the head styles it needs (Inputs)': /\.__ns__/.test(prBlock),
   'baked visible text content (chars)': textLen > 200,
 };
 console.log('\n--- checks ---');
