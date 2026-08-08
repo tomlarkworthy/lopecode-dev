@@ -7,9 +7,12 @@
 //  2. Mutability — dragging a shape rewrites the CELL SOURCE, not just the DOM. svg-lens resolves
 //     its cell by matching the node against every variable's value, so wrapping the svg in a div
 //     would leave it looking perfect and silently un-editable.
+//  3. The mark is exporter-3's disk, reached through `${diskMark}` in the href. That hole is the
+//     one thing svg-lens is allowed to keep but not write, so a drag has to move x/y AND leave the
+//     hole byte for byte — a writer that resolved it would bake a 1.2KB data URL into the source.
 //
-// Note a fill="none" shape is only grabbable by its stroke unless it carries pointer-events="all" —
-// that is SVG hit-testing, not svg-lens, and it is why the boxes in the banner set it.
+// Note a shape is only grabbable over what it actually paints unless it carries pointer-events="all"
+// — that is SVG hit-testing, not svg-lens, and it is why the <image> sets it.
 import { chromium } from 'playwright';
 import { resolve } from 'path';
 
@@ -46,6 +49,19 @@ const r = await p.evaluate(() => {
     textRights: [...(banner ? banner.querySelectorAll('text') : [])]
       .filter((t) => /lopecode|QUICKSTART/.test(t.textContent))
       .map((t) => ({ s: t.textContent, right: +(t.getBBox().x + t.getBBox().width).toFixed(1) })),
+    // The mark must be the imported disk, not a redrawn one: the href has to be exactly the value
+    // exporter-3's disk_svg produces, and it has to render (a broken data URL still has a bbox).
+    markHref: banner?.querySelector('image')?.getAttribute('href') ?? null,
+    markExpected: (() => {
+      const d = val('disk_svg');
+      return d ? `data:image/svg+xml;base64,${window.btoa(d('steelblue').outerHTML)}` : null;
+    })(),
+    markDrawn: (() => {
+      const im = banner?.querySelector('image');
+      if (!im) return false;
+      const r = im.getBoundingClientRect();
+      return r.width > 20 && r.height > 20;
+    })(),
   };
 });
 check('the hidden h1 still carries the title', r.h1Text === 'Lopecode Quickstart' && r.h1Hidden === true,
@@ -58,6 +74,10 @@ const rights = r.textRights.map((t) => t.right);
 check('QUICKSTART is right-aligned with the wordmark',
   rights.length === 2 && Math.abs(rights[0] - rights[1]) <= 1.5,
   r.textRights.map((t) => `${t.s}@${t.right}`).join(' vs '));
+check('the mark is exporter-3\'s disk, imported rather than redrawn',
+  !!r.markExpected && r.markHref === r.markExpected,
+  r.markHref ? `${r.markHref.slice(0, 34)}… (${r.markHref.length} bytes)` : 'no <image>');
+check('and it renders', r.markDrawn);
 
 // Shoot before the drags: they really do move the banner, so a screenshot after is of the wreckage.
 await p.screenshot({ path: 'tools/screenshots/banner.png', clip: { x: 0, y: 0, width: 1000, height: 260 } });
@@ -68,7 +88,7 @@ const src = () => p.evaluate(() => {
   const v = [...window.__ojs_runtime._variables].find((x) => x._name === 'heading');
   return v ? v._definition.toString() : null;
 });
-for (const sel of ['rect', 'circle', 'text']) {
+for (const sel of ['image', 'text']) {
   const before = await src();
   const at = await p.evaluate((s) => {
     const n = [...window.__ojs_runtime._variables].find((v) => v._name === 'heading')._value;
@@ -83,7 +103,12 @@ for (const sel of ['rect', 'circle', 'text']) {
   for (let i = 1; i <= 6; i++) await p.mouse.move(at.x + i * 4, at.y + i * 3);
   await p.mouse.up();
   await p.waitForTimeout(2000);
-  check(`dragging a <${sel}> rewrites the source`, (await src()) !== before);
+  const after = await src();
+  check(`dragging a <${sel}> rewrites the source`, after !== before);
+  if (sel === 'image')
+    check('and the imported href survives the write as a hole',
+      /href="\$\{'data:image\/svg\+xml;base64,' \+ window\.btoa\(disk_svg\('steelblue'\)\.outerHTML\)\}"/.test(after || ''),
+      (after || '').match(/href="[^"]{0,40}/)?.[0] ?? 'no href in source');
 }
 
 await b.close();
