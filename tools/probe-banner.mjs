@@ -61,12 +61,30 @@ const r = await p.evaluate(() => {
       const dim = +getComputedStyle(g).opacity * +c.opacity * +c.strokeOpacity;
       return { stroke: c.stroke, text: getComputedStyle(banner.querySelector('text')).fill, width: c.strokeWidth, dim };
     })(),
+    // Adopted into the table's corner. The move is the whole point of the layout, and it has to
+    // survive a gesture — the banner is a new node after every drag and must be re-adopted.
+    inCorner: banner?.parentElement?.classList.contains('qs-brand') ?? false,
+    cornerBox: (() => {
+      const th = document.querySelector('.qs thead th.qs-brand');
+      if (!th || !banner) return null;
+      const t = th.getBoundingClientRect(), b = banner.getBoundingClientRect();
+      return { th: [Math.round(t.width), Math.round(t.height)], banner: [Math.round(b.width), Math.round(b.height)],
+        fits: b.width <= t.width + 1 && b.height <= t.height + 1 };
+    })(),
+    // Nothing may be left standing where the banner used to be — neither a blank band nor, once the
+    // inspector gives up on a node it no longer owns, a printed `heading = SVGSVGElement {…}`.
+    leftovers: [...document.querySelectorAll('.lp2-pane .observablehq')]
+      .filter((n) => n.getBoundingClientRect().height > 0 && !n.contains(banner))
+      .filter((n) => !n.children.length || /SVGSVGElement/.test(n.textContent))
+      .map((n) => (n.textContent || '(blank)').slice(0, 40)),
+    // Measured against the banner, not in pixels: the banner scales to whatever column holds it,
+    // so an absolute floor only says how wide that column happens to be today.
     markDrawn: (() => {
       const g = [...(banner ? banner.querySelectorAll('g') : [])]
         .find((n) => n.querySelector('circle'));
-      if (!g) return false;
-      const r = g.getBoundingClientRect();
-      return r.width > 30 && r.height > 30;
+      if (!g || !banner) return null;
+      const r = g.getBoundingClientRect(), b = banner.getBoundingClientRect();
+      return { share: +(r.height / b.height).toFixed(2), box: [Math.round(r.width), Math.round(r.height)] };
     })(),
   };
 });
@@ -83,7 +101,14 @@ check('QUICKSTART is right-aligned with the wordmark',
 check('the mark is the wordmark\'s colour, undimmed',
   !!r.markStroke && r.markStroke.stroke === r.markStroke.text && r.markStroke.dim === 1,
   r.markStroke ? `stroke=${r.markStroke.stroke} text=${r.markStroke.text} width=${r.markStroke.width} opacity=${r.markStroke.dim}` : 'no mark');
-check('and it renders', r.markDrawn);
+check('and it renders at a sane size beside the wordmark',
+  !!r.markDrawn && r.markDrawn.share > 0.3 && r.markDrawn.share < 0.8,
+  r.markDrawn ? `${r.markDrawn.box.join('x')}, ${Math.round(r.markDrawn.share * 100)}% of the banner height` : 'no mark');
+check('the banner sits in the table\'s corner and fits it',
+  r.inCorner && r.cornerBox?.fits,
+  r.cornerBox ? `th ${r.cornerBox.th.join('x')} banner ${r.cornerBox.banner.join('x')} inCorner=${r.inCorner}` : 'no corner');
+check('and leaves nothing behind where it used to be',
+  r.leftovers.length === 0, r.leftovers.join(' | ') || 'clean');
 
 // Shoot before the drags: they really do move the banner, so a screenshot after is of the wreckage.
 await p.screenshot({ path: 'tools/screenshots/banner.png', clip: { x: 0, y: 0, width: 1000, height: 260 } });
@@ -112,6 +137,15 @@ for (const sel of ['circle', 'path', 'text']) {
   const after = await src();
   check(`dragging a <${sel}> rewrites the source`, after !== before);
 }
+
+// A gesture replaces the banner node, so the corner has to re-adopt it or the title vanishes after
+// the first drag — the failure this whole arrangement risks.
+const readopted = await p.evaluate(() => {
+  const n = [...window.__ojs_runtime._variables].find((v) => v._name === 'heading')._value;
+  return { inCorner: n.parentElement?.classList.contains('qs-brand') ?? false, onScreen: n.getBoundingClientRect().width > 100 };
+});
+check('the corner re-adopts the banner after a gesture', readopted.inCorner && readopted.onScreen,
+  JSON.stringify(readopted));
 
 await b.close();
 console.log(`\n${results.filter(Boolean).length}/${results.length} passed`);
