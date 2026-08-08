@@ -7,9 +7,9 @@
 //  2. Mutability — dragging a shape rewrites the CELL SOURCE, not just the DOM. svg-lens resolves
 //     its cell by matching the node against every variable's value, so wrapping the svg in a div
 //     would leave it looking perfect and silently un-editable.
-//  3. The mark is exporter-3's disk, reached through `${diskMark}` in the href. That hole is the
-//     one thing svg-lens is allowed to keep but not write, so a drag has to move x/y AND leave the
-//     hole byte for byte — a writer that resolved it would bake a 1.2KB data URL into the source.
+//  3. The disk is drawn in strokes that inherit the wordmark's colour. It was briefly imported from
+//     exporter-3 through an <image href>, which cannot be restyled — an <image> is an isolated
+//     document, so currentColor never reaches it and a fill has to be baked in per theme.
 //
 // Note a shape is only grabbable over what it actually paints unless it carries pointer-events="all"
 // — that is SVG hit-testing, not svg-lens, and it is why the <image> sets it.
@@ -49,18 +49,24 @@ const r = await p.evaluate(() => {
     textRights: [...(banner ? banner.querySelectorAll('text') : [])]
       .filter((t) => /lopecode|QUICKSTART/.test(t.textContent))
       .map((t) => ({ s: t.textContent, right: +(t.getBBox().x + t.getBBox().width).toFixed(1) })),
-    // The mark must be the imported disk, not a redrawn one: the href has to be exactly the value
-    // exporter-3's disk_svg produces, and it has to render (a broken data URL still has a bbox).
-    markHref: banner?.querySelector('image')?.getAttribute('href') ?? null,
-    markExpected: (() => {
-      const d = val('disk_svg');
-      return d ? `data:image/svg+xml;base64,${window.btoa(d('steelblue').outerHTML)}` : null;
+    // The mark is drawn, and must stay the wordmark's colour on every theme — a baked hex would
+    // look right on the theme it was picked against and wrong on the other twelve.
+    markStroke: (() => {
+      const g = [...(banner ? banner.querySelectorAll('g') : [])]
+        .find((n) => n.querySelector('circle'));
+      if (!g) return null;
+      const c = getComputedStyle(g.querySelector('circle'));
+      // Colour alone is not enough: a group `opacity` greys the mark without changing its stroke,
+      // which is exactly how it read grey next to a full-strength wordmark.
+      const dim = +getComputedStyle(g).opacity * +c.opacity * +c.strokeOpacity;
+      return { stroke: c.stroke, text: getComputedStyle(banner.querySelector('text')).fill, width: c.strokeWidth, dim };
     })(),
     markDrawn: (() => {
-      const im = banner?.querySelector('image');
-      if (!im) return false;
-      const r = im.getBoundingClientRect();
-      return r.width > 20 && r.height > 20;
+      const g = [...(banner ? banner.querySelectorAll('g') : [])]
+        .find((n) => n.querySelector('circle'));
+      if (!g) return false;
+      const r = g.getBoundingClientRect();
+      return r.width > 30 && r.height > 30;
     })(),
   };
 });
@@ -74,9 +80,9 @@ const rights = r.textRights.map((t) => t.right);
 check('QUICKSTART is right-aligned with the wordmark',
   rights.length === 2 && Math.abs(rights[0] - rights[1]) <= 1.5,
   r.textRights.map((t) => `${t.s}@${t.right}`).join(' vs '));
-check('the mark is exporter-3\'s disk, imported rather than redrawn',
-  !!r.markExpected && r.markHref === r.markExpected,
-  r.markHref ? `${r.markHref.slice(0, 34)}… (${r.markHref.length} bytes)` : 'no <image>');
+check('the mark is the wordmark\'s colour, undimmed',
+  !!r.markStroke && r.markStroke.stroke === r.markStroke.text && r.markStroke.dim === 1,
+  r.markStroke ? `stroke=${r.markStroke.stroke} text=${r.markStroke.text} width=${r.markStroke.width} opacity=${r.markStroke.dim}` : 'no mark');
 check('and it renders', r.markDrawn);
 
 // Shoot before the drags: they really do move the banner, so a screenshot after is of the wreckage.
@@ -88,7 +94,7 @@ const src = () => p.evaluate(() => {
   const v = [...window.__ojs_runtime._variables].find((x) => x._name === 'heading');
   return v ? v._definition.toString() : null;
 });
-for (const sel of ['image', 'text']) {
+for (const sel of ['circle', 'path', 'text']) {
   const before = await src();
   const at = await p.evaluate((s) => {
     const n = [...window.__ojs_runtime._variables].find((v) => v._name === 'heading')._value;
@@ -105,10 +111,6 @@ for (const sel of ['image', 'text']) {
   await p.waitForTimeout(2000);
   const after = await src();
   check(`dragging a <${sel}> rewrites the source`, after !== before);
-  if (sel === 'image')
-    check('and the imported href survives the write as a hole',
-      /href="\$\{'data:image\/svg\+xml;base64,' \+ window\.btoa\(disk_svg\('steelblue'\)\.outerHTML\)\}"/.test(after || ''),
-      (after || '').match(/href="[^"]{0,40}/)?.[0] ?? 'no href in source');
 }
 
 await b.close();
