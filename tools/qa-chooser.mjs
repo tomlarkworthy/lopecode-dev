@@ -80,19 +80,24 @@ const layout = await p.evaluate(() => {
   const tops = (sel) => [...document.querySelectorAll(sel)].map((e) => Math.round(e.getBoundingClientRect().top));
   const foot = document.querySelector('.qs .foot').getBoundingClientRect();
   const gen = document.querySelector('.qs .gen').getBoundingClientRect();
-  const h2 = [...document.querySelectorAll('h1')].find((e) => /Lopecode Quickstart/.test(e.textContent));
+  const h1 = [...document.querySelectorAll('h1')].find((e) => /Lopecode Quickstart/.test(e.textContent));
+  const banner = [...document.querySelectorAll('.lp2-pane svg')]
+    .find((e) => /lopecode/.test(e.textContent || ''));
   return {
     icoTops: [...new Set(tops('.qs thead .ico'))],
     subTops: [...new Set(tops('.qs thead .sub'))],
     genBelow: gen.top >= foot.bottom - 2,
-    // the title is a markdown cell, so it is a sibling of the chooser rather than inside it
-    mdTitle: !!h2 && !h2.closest('.qs'),
+    // The title is an svg-lens banner with the h1 hidden beside it: the h1 is what @tomlarkworthy/
+    // modules sniffs for the module title, so it has to be present, carry the text, and not show.
+    h1Hidden: !!h1 && !h1.closest('.qs') && getComputedStyle(h1).display === 'none',
+    bannerShown: !!banner && banner.getBoundingClientRect().height > 40,
   };
 });
 check('header icons share one baseline', layout.icoTops.length === 1, layout.icoTops.join(','));
 check('header subtitles share one baseline', layout.subTops.length === 1, layout.subTops.join(','));
 check('Generate is on its own line', layout.genBelow);
-check('title is a markdown cell of its own', layout.mdTitle);
+check('the banner is an SVG and the sniffed h1 is hidden beside it',
+  layout.h1Hidden && layout.bannerShown, `h1Hidden=${layout.h1Hidden} banner=${layout.bannerShown}`);
 
 // click the third column (Single file app) and inspect
 const after = await p.evaluate(() => {
