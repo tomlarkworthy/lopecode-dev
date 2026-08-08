@@ -51,7 +51,8 @@ const supply = await p.evaluate(() => {
   const rt = window.__ojs_runtime;
   const val = (n) => { for (const v of rt._variables) if (v._name === n && v._value !== undefined) return v._value; };
   const cat = val('catalogue'), templates = val('templates') || [];
-  const ids = [...cat.always, ...cat.optional].map((m) => m.id)
+  // mandatory too: a core module missing its block is just as broken as an optional one
+  const ids = [...cat.always, ...cat.mandatory, ...cat.optional].map((m) => m.id)
     .concat(cat.cargo || [], ...templates.map((t) => [...(t.modules || []), ...Object.keys(t.imports || {}), ...Object.keys(t.optionalImports || {})]));
   const blocks = new Set([...document.querySelectorAll('script[type="text/plain"]')].map((s) => s.id));
   return { offered: new Set(ids).size, missing: [...new Set(ids)].filter((id) => !blocks.has(id)) };
