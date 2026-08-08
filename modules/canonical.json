@@ -547,6 +547,9 @@
   "@tomlarkworthy/robocoop-5": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
   },
+  "@tomlarkworthy/robocoop-5-context": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+  },
   "@tomlarkworthy/robocoop-5-core": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
   },

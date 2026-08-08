@@ -39,13 +39,20 @@ const out = await page.evaluate(async () => {
   // Every robocoop-5-core export must instantiate — a cell missing from the module body is invisible
   // until something computes it (observed: a build slip dropped toolLabel and boot still looked green).
   res.checks.coreExports = {};
-  for (const n of ["truncate", "defineTool", "createOpenRouterClient", "createAgentSession", "composeFooter", "summarizeTurn", "toolLabel"]) {
-    H.force(n);
-  }
+  const CORE = ["truncate", "defineTool", "createOpenRouterClient", "createAgentSession", "composeContext", "composeFooter", "summarizeTurn", "toolLabel"];
+  for (const n of CORE) H.force(n);
   await new Promise((r) => setTimeout(r, 500));
-  for (const n of ["truncate", "defineTool", "createOpenRouterClient", "createAgentSession", "composeFooter", "summarizeTurn", "toolLabel"]) {
-    res.checks.coreExports[n] = typeof H.byName(n);
-  }
+  for (const n of CORE) res.checks.coreExports[n] = typeof H.byName(n);
+
+  // Situational context: contextSetup must have registered its providers, and get_context must
+  // return an <environment> block (or a clean nothing-to-report) without a model.
+  ["contextSetup", "contextView"].forEach((n) => H.force(n));
+  await new Promise((r) => setTimeout(r, 800));
+  const cv = H.byName("contextView");
+  const provs = cv && Array.isArray(cv.value) ? cv.value : [];
+  res.checks.contextProviders = provs.map((p) => p.id);
+  res.checks.get_context = await run("get_context", {});
+  res.checks.get_context_one = await run("get_context", { id: "notebook" });
 
   const host = H.byName("rc5_host");
   if (host) {
@@ -64,6 +71,8 @@ const out = await page.evaluate(async () => {
 console.log(JSON.stringify(out, null, 2));
 const coreOk = Object.values(out.checks.coreExports || {}).every((t) => t === "function");
 console.log("core exports:", coreOk ? "all instantiate" : "MISSING EXPORT — see coreExports above");
+const ctxOk = (out.checks.contextProviders || []).length >= 6 && /<environment|nothing to report/.test(out.checks.get_context || "");
+console.log("context:", ctxOk ? out.checks.contextProviders.length + " providers, get_context works" : "CONTEXT BROKEN — see checks above");
 console.log("console errors:", consoleErrors.length ? consoleErrors.slice(0, 10) : "none");
 await close();
-process.exit(coreOk ? 0 : 1);
+process.exit(coreOk && ctxOk ? 0 : 1);
