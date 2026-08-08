@@ -8,51 +8,51 @@
  "truth": [
   {
    "id": 56,
-   "x": 455.4,
-   "y": 415.2,
-   "radiusPx": 36.5,
+   "x": 453.4,
+   "y": 416.8,
+   "radiusPx": 32.7,
    "state": "missing"
   },
   {
    "id": 11,
-   "x": 530.1,
-   "y": 489.1,
-   "radiusPx": 44.8,
+   "x": 528.8,
+   "y": 490.1,
+   "radiusPx": 42,
    "state": "read"
   },
   {
    "id": 22,
-   "x": 586.8,
-   "y": 413.1,
-   "radiusPx": 36.6,
+   "x": 585.1,
+   "y": 414.3,
+   "radiusPx": 35.3,
    "state": "read"
   },
   {
    "id": 29,
-   "x": 514.4,
-   "y": 357.2,
-   "radiusPx": 30.5,
+   "x": 515.4,
+   "y": 355.1,
+   "radiusPx": 36.6,
    "state": "located"
   },
   {
    "id": 37,
-   "x": 398.3,
-   "y": 358.8,
-   "radiusPx": 30.8,
+   "x": 395.6,
+   "y": 360.9,
+   "radiusPx": 33.1,
    "state": "read"
   },
   {
    "id": 46,
-   "x": 322.8,
-   "y": 417.4,
-   "radiusPx": 37.4,
+   "x": 318.4,
+   "y": 418.4,
+   "radiusPx": 33.9,
    "state": "read"
   },
   {
    "id": 51,
-   "x": 377.3,
-   "y": 491.9,
-   "radiusPx": 45.4,
+   "x": 376.3,
+   "y": 493.6,
+   "radiusPx": 43.4,
    "state": "read"
   }
  ],
@@ -84,5 +84,82 @@
   "distanceMm": 337,
   "tiltDeg": 56.4,
   "ms": 62
- }
+ },
+ "labelQuality": [
+  {
+   "id": 56,
+   "src": "measured",
+   "dirs": 12,
+   "lineRms": 15.98,
+   "planeResid": 0.63,
+   "score": 73.4,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 11,
+   "src": "measured",
+   "dirs": 11,
+   "lineRms": 0.68,
+   "planeResid": 1.02,
+   "score": 81.9,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 22,
+   "src": "measured",
+   "dirs": 9,
+   "lineRms": 2.22,
+   "planeResid": 1.26,
+   "score": 71.6,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 29,
+   "src": "measured",
+   "dirs": 4,
+   "lineRms": 3.5,
+   "planeResid": 1.94,
+   "score": 32.9,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 37,
+   "src": "measured",
+   "dirs": 5,
+   "lineRms": 1.07,
+   "planeResid": 2,
+   "score": 82.2,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 46,
+   "src": "measured",
+   "dirs": 10,
+   "lineRms": 2.65,
+   "planeResid": 1.33,
+   "score": 59.6,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 51,
+   "src": "measured",
+   "dirs": 12,
+   "lineRms": 1.22,
+   "planeResid": 0.54,
+   "score": 65.3,
+   "inFrame": true,
+   "ok": true
+  }
+ ],
+ "golden": true,
+ "goldenThr": 8,
+ "planeTrusted": true,
+ "planeRms": 1.35,
+ "labelledBy": "dense-label: 12 directions, stride 1, per-frame edge threshold; plane by RANSAC; pixel contrast veto"
 }
