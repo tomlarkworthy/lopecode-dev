@@ -40,6 +40,12 @@ const r = await p.evaluate(() => {
     bannerVisible: box ? box.width > 200 && box.height > 40 : false,
     ownedByACell: [...rt._variables].some((v) => v._value === banner),
     animated: !!(banner && banner.querySelector && banner.querySelector('animateTransform')),
+    // QUICKSTART is right-aligned to the wordmark. The wordmark's width comes from whatever
+    // monospace font resolved, so this is the assertion that catches a font that measures
+    // differently — the two right edges have to land on each other, not near each other.
+    textRights: [...(banner ? banner.querySelectorAll('text') : [])]
+      .filter((t) => /lopecode|QUICKSTART/.test(t.textContent))
+      .map((t) => ({ s: t.textContent, right: +(t.getBBox().x + t.getBBox().width).toFixed(1) })),
   };
 });
 check('the hidden h1 still carries the title', r.h1Text === 'Lopecode Quickstart' && r.h1Hidden === true,
@@ -48,6 +54,10 @@ check('and the module title is sniffed from it', r.moduleTitle === 'Lopecode Qui
 check('the banner is a bare <svg> that renders', r.bannerTag === 'svg' && r.bannerVisible, `${r.bannerTag} ${r.bannerBox}`);
 check('svg-lens can resolve the cell from the node', r.ownedByACell);
 check('the sweep animation survived', r.animated);
+const rights = r.textRights.map((t) => t.right);
+check('QUICKSTART is right-aligned with the wordmark',
+  rights.length === 2 && Math.abs(rights[0] - rights[1]) <= 1.5,
+  r.textRights.map((t) => `${t.s}@${t.right}`).join(' vs '));
 
 // Shoot before the drags: they really do move the banner, so a screenshot after is of the wreckage.
 await p.screenshot({ path: 'tools/screenshots/banner.png', clip: { x: 0, y: 0, width: 1000, height: 260 } });
