@@ -8,13 +8,14 @@
 // ("ws://127.0.0.1:9222/devtools/browser 101 WebSocket Protocol Handshake").
 // Every page target advertises its own webSocketDebuggerUrl, which works.
 //
-// The bridge must be established OUTSIDE this sandbox -- it reaches localhost
-// and the internet but not USB and not the private address range:
+// Set up the bridge from in here; metadev's sandbox grants USB since
+// tools/safehouse-adb.sb (2026-08-09), so adb owns the phone directly:
 //
-//   adb kill-server; adb devices
+//   adb devices
 //   adb forward tcp:9222 localabstract:chrome_devtools_remote
 //
-// Everything after that forward is localhost, so it works from in here.
+// An empty device list is now a phone-side answer, not a sandbox one -- run
+// ./tools/usb-probe to tell the two apart.
 //
 //   bun tools/phone-cdp.ts list
 //   bun tools/phone-cdp.ts stages --secs 10     # the rig's frame budget

@@ -1,0 +1,36 @@
+;; metadev: USB access for adb (Android Debug Bridge).
+;;
+;; Appended by metadev via `safehouse --append-profile`, which places these
+;; rules after the generated policy, so the allows win over `(deny default)`.
+;;
+;; What was blocked, measured 2026-08-09 inside the sandbox: IOKit *registry*
+;; reads already work (`ioreg -p IOUSB` lists the attached phone), but
+;; `iokit-open` is deny-by-default. adb's usb_osx.cpp opens every matched
+;; IOUSBHostDevice to read its serial and claim its interface, so with the open
+;; denied it skips every device and `adb devices` prints an empty list — which
+;; is indistinguishable from an unplugged cable. `~/.android` (adbkey) was also
+;; unreadable; metadev grants that with --add-dirs.
+;;
+;; Class names are the ones Apple's own profiles use for USB access, e.g.
+;; /System/Library/Sandbox/Profiles/com.apple.cmio.VDCAssistant.sb and
+;; application.sb under the com.apple.security.device.usb entitlement.
+
+(allow iokit-open
+    (iokit-user-client-class "IOUSBDeviceUserClientV2")        ;; device, IOUSBLib
+    (iokit-user-client-class "IOUSBInterfaceUserClientV2")     ;; interface, older IOUSBLib
+    (iokit-user-client-class "IOUSBInterfaceUserClientV3")     ;; interface, current IOUSBLib
+    (iokit-user-client-class "AppleUSBHostDeviceUserClient")
+    (iokit-user-client-class "AppleUSBHostFrameworkDeviceClient"))
+
+;; Same grant under the newer operation name; both are accepted, and which one
+;; the kernel checks varies by OS version.
+(allow iokit-open-user-client
+    (iokit-user-client-class "IOUSBDeviceUserClientV2")
+    (iokit-user-client-class "IOUSBInterfaceUserClientV2")
+    (iokit-user-client-class "IOUSBInterfaceUserClientV3")
+    (iokit-user-client-class "AppleUSBHostDeviceUserClient")
+    (iokit-user-client-class "AppleUSBHostFrameworkDeviceClient"))
+
+;; IOCreatePlugInInterfaceForService dlopens this bundle to get IOUSBLib.
+(allow file-map-executable
+    (literal "/System/Library/Extensions/IOUSBHostFamily.kext/Contents/PlugIns/IOUSBLib.bundle/Contents/MacOS/IOUSBLib"))
