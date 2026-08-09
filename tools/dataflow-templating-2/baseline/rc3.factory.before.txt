@@ -1,0 +1,25 @@
+@tomlarkworthy_robocoop-3.html  robocoop3({"prompt":"does the dataflow still flow?"})
+{
+  "shape": "<div>",
+  "before": {
+    "vars": 2857,
+    "dyn": 66
+  },
+  "after": {
+    "vars": 2908,
+    "dyn": 117
+  },
+  "bridges": 6,
+  "thrown": null,
+  "rootChildren": 1,
+  "rootText": "PromptAgent configProvider\n    \n    \n      \n        \n    \n      Submit\n    \n  Cl",
+  "rootValue": "object{steps,run}",
+  "inputsInside": 25,
+  "svgsInside": 0,
+  "disposed": {
+    "vars": 2857,
+    "dyn": 66
+  },
+  "backToBaseline": true
+}
+page errors: [ "TypeError: Cannot set properties of undefined (setting 'value')" ]

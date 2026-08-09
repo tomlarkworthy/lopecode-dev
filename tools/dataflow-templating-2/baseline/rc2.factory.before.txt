@@ -1,0 +1,25 @@
+@tomlarkworthy_robocoop-2.html  robocoop2({"autoDispose":false})
+{
+  "shape": "<div>",
+  "before": {
+    "vars": 2561,
+    "dyn": 14
+  },
+  "after": {
+    "vars": 2593,
+    "dyn": 46
+  },
+  "bridges": 6,
+  "thrown": null,
+  "rootChildren": 1,
+  "rootText": "Robocoopconfig\n    \n    \n      \n        \n    \n      🎙️\n      \n    \n      Submit",
+  "rootValue": "<div>",
+  "inputsInside": 24,
+  "svgsInside": 0,
+  "disposed": {
+    "vars": 2561,
+    "dyn": 14
+  },
+  "backToBaseline": true
+}
+page errors: [ "TypeError: element.closest is not a function", "Failed to load resource: the server responded with a status of 401 ()" ]

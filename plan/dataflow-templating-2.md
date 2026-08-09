@@ -1,6 +1,9 @@
 # dataflow-templating v2 — instantiate into a sandbox runtime
 
-Status: design + implementation in progress, branch `cd-editor5`, started 2026-08-09.
+Status: **shipped 2026-08-09**, merged to `main` (the work happened on branch `cd-editor5`).
+All four `cloneDataflow` consumers migrated; `cloneDataflow` kept and still exported. See
+§ "Shipped" and § "The other three consumers" at the end — the design sections above are as
+written before the work and are left that way on purpose.
 Supersedes the `compileDataflow`-replaces-`cloneDataflow` idea recorded in
 `plan/compile-dataflow.md` § "Field test", which was measured and rejected — see § "Why not
 compileDataflow" below.
@@ -429,9 +432,97 @@ zero console errors.
 
 ### Still not done
 
-- **robocoop-2, robocoop-3 and parametric-svg are untested**, and none has been checked for the
-  `mutable` write-back. They remain on `cloneDataflow`, which is why it was not replaced.
+- ~~robocoop-2, robocoop-3 and parametric-svg are untested.~~ All three migrated the same day —
+  see § "The other three consumers" below.
 - The export round-trip was not re-run on the shipped path. The gate closed it (2449557 bytes,
   correct `mains`, boots to 135 hotbars, zero console errors) against the same variable names,
   with the implementation inlined rather than imported.
 - The Observable notebook *page* was not opened. The published-module boot is what was checked.
+
+## The other three consumers — 2026-08-09
+
+All four `cloneDataflow` consumers are now on `cloneViaSandbox`. `cloneDataflow` is still exported
+and still works; nothing in the corpus calls it.
+
+They turned out to share one shape — a factory cell wrapping
+`cloneDataflow(template, observerFactory)` — so the diff per module is four lines: the import, the
+`$def` dependency list, the cell signature, the call site. `migrate-editor5.mjs` was generalised
+to take a module id rather than being copied.
+
+### Two probes, because the first one was not the test that mattered
+
+`probe-consumer-ab.mjs` runs the template through both paths **in the same page**, so the page is
+its own control:
+
+```
+                template vars   cloneDataflow   cloneViaSandbox   differing
+robocoop-2           32          +32 vars         +20 bridges         0
+robocoop-3           51          +51 vars         +16 bridges         0
+parametric-svg       26          +26 vars         +20 bridges         0
+```
+
+Every template variable observed, every one fulfilled in both arms, both disposing back to the
+page baseline exactly. That probe forces computation the real call sites never force — they return
+`null` for most names — which is a stronger error hunt, and it hits both arms identically.
+
+**It still could not have caught the failure worth worrying about.** All three factories poke
+values *into* the instance from the observer callbacks:
+
+```js
+if (name === 'viewof svgTargetName') {
+  return { fulfilled: el => { el.value = target;
+                              el.dispatchEvent(new Event('input', {bubbles: true})); } };
+}
+```
+
+and `svgEditor` only resolves its promise once that write has flowed through the instance to
+`svgEditorController`. A passive observer never exercises the write path, and the write path is
+what a one-way bridge is most likely to break. `probe-consumer-factory.mjs` calls each factory for
+real:
+
+| | result, identical before and after |
+|---|---|
+| `svgEditor({target:'robotArm', module})` | promise resolves, same 12 controller keys, disposes to baseline |
+| `robocoop2({autoDispose:false})` | `<div>`, 1 child, 24 inputs, same rendered text |
+| `robocoop3({prompt:…})` | `<div>`, 1 child, 25 inputs, `root.value = object{steps,run}` |
+
+Every functional field is byte-identical across the migration. Only the counts moved.
+
+The write works because these observers write to an element the **instance** owns, not to a
+capture. `viewof svgTargetName` is in the template, so it is created in the sandbox; the observer
+receives that element and dispatching `input` on it drives the sandbox's own `Generators.input`.
+Nothing crosses the bridge in the write direction.
+
+### Whole-page render, before file against after file
+
+```
+                 rendered (identical)                        vars        clones
+parametric-svg   9 svg / 41 form / 167 input / 16 btn / 0 err  2932->2692  273->33
+robocoop-3       62 form / 116 input / 23 btn / 1 err          2857->2822   66->31
+robocoop-2       22 form /  83 input / 17 btn / 1 err          2561->2561   14->14
+```
+
+robocoop-2's page numbers do not move because its widget is not built at boot; the instance cost
+is what changed, 32 clones to 20 bridges.
+
+**Building a second instance is now free.** parametric-svg goes 2692 → 2692 and robocoop-3
+2822 → 2822 where they used to add 26 and 51. The bridges are shared, so the cost is paid once.
+
+The error node on both robocoops, robocoop-2's `element.closest is not a function` and its 401,
+and robocoop-3's `Cannot set properties of undefined (setting 'value')` are all present in the
+**before** file. They are not from this change and were not fixed by it.
+
+### The mutable regression did not bite
+
+robocoop-2's template lists `"mutable context"` **and** `"context"`, so the `Mutable` is
+constructed inside the instance under either implementation and only `initial context` crosses the
+boundary — read once, never written. That is the general rule: a mutable *inside* the template is
+fine, a mutable *captured from outside* and written to is not. No consumer does the latter.
+
+### Published
+
+`@tomlarkworthy/robocoop-2` 4552 → 4554, `@tomlarkworthy/robocoop-3` 1993 → 1995,
+`@tomlarkworthy/parametric-svg` 1555 → 1557. Each factory's decompile was diffed against the
+stored node first — **one hunk each, the rename, nothing else**. All three boot in a bare runtime
+with the factory computing; the remaining errors are test cells wanting an API key or asserting
+against live data.

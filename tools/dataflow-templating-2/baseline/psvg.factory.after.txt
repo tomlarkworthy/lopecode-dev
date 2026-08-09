@@ -1,0 +1,36 @@
+@tomlarkworthy_parametric-svg.html  svgEditor({"target":"robotArm","module":"parametricSVGEditorModule"})
+{
+  "shape": "promise",
+  "before": {
+    "vars": 2692,
+    "dyn": 33
+  },
+  "after": {
+    "vars": 2692,
+    "dyn": 33
+  },
+  "bridges": 26,
+  "thrown": null,
+  "resolved": "object{overlay,lastTarget,anchors,hover,drags,lockedAnchors,gestureBaseParams,overTarget,targetRect,rebasing}",
+  "controllerKeys": [
+    "overlay",
+    "lastTarget",
+    "anchors",
+    "hover",
+    "drags",
+    "lockedAnchors",
+    "gestureBaseParams",
+    "overTarget",
+    "targetRect",
+    "rebasing",
+    "growPreview",
+    "value"
+  ],
+  "rejected": null,
+  "disposed": {
+    "vars": 2692,
+    "dyn": 33
+  },
+  "backToBaseline": true
+}
+page errors: none
