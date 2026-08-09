@@ -333,6 +333,105 @@ identical call against v1.
 - ~~Whether builtins resolve correctly in the sandbox.~~ They do, by becoming ordinary bridged
   captures — `Generators`, `Inputs`, `htl` and `html` all appear in the bridge list. The sandbox
   `Runtime` is constructed with no builtins at all and never needs them.
-- Whether 135 sandbox modules in one extra runtime cost anything measurable. Expected not to —
-  the runtime schedules on demand, not on a timer — but it replaces one measured number with an
-  unmeasured one and should be measured before this ships.
+- ~~Whether 135 sandbox modules in one extra runtime cost anything measurable.~~ 138 of them boot
+  the page with zero console errors and no observable stall, at the gate and again on the shipped
+  path. What is still unmeasured is a *number* rather than a symptom: nobody timed the boot with
+  and without, so "costs nothing" is an absence of evidence, not a measurement.
+
+## Shipped — 2026-08-09
+
+Not as a replacement. `cloneDataflow` is untouched and still exported; `instantiateDataflow` and
+the `cloneViaSandbox` shim sit next to it, and one of the four consumers moved.
+
+### What landed where
+
+| | |
+|---|---|
+| `@tomlarkworthy/dataflow-templating` | three cells (`instantiateDataflowFactory`, `instantiateDataflow`, `cloneViaSandbox`), four prose cells, and a new `onCodeChange` import from `runtime-sdk` |
+| `@tomlarkworthy/editor-5` | `cellEditor`'s `cloneDataflow` → `cloneViaSandbox`, and the import it arrives on |
+| corpus | both modules swept into all 229 notebooks — library first, editor-5 second |
+| ObservableHQ | `@tomlarkworthy/dataflow-templating` v1436 → v1446, `@tomlarkworthy/editor-5` v4018 → v4020 |
+
+`bake-editor5.mjs` inlined the implementation into editor-5; that was the gate harness only. The
+shipped swap is `migrate-editor5.mjs`, which takes the import.
+
+**The sweep order is not reversible.** editor-5 now imports `cloneViaSandbox` from
+dataflow-templating, so a notebook carrying the new editor-5 against an older
+dataflow-templating has no `cellEditor` at all. All 229 notebooks embed dataflow-templating, so
+this is the whole corpus, not a subset.
+
+### The library verified against itself
+
+The notebook already ships a working `cloneDataflow` example, so the same `template` in the same
+page is the control (`tools/dataflow-templating-2/probe-home-notebook.mjs`):
+
+```
+                  primary vars   bridges   widget
+cloneDataflow           +6          0       DIV
+cloneViaSandbox         +8          8       DIV
+both dispose back to the 2897 / 565 baseline exactly
+```
+
+The 8 are the captures — `Inputs`, `dataset`, `Generators`, `pizzaChoices`, `Plot`, `time`,
+`combine`, `htl` — one bridge each, shared and refcounted. **One instance is a loss here**; two
+break even. The break-even is per capture-count, not a constant, and this example has more
+captures (8) than editor-5 has clones per editor (6).
+
+`params` has no `cloneDataflow` equivalent. Injecting `pizzaChoice = "Hawaiian Pizza Medium"`
+produced `chart` FIGURE / `widget` DIV with zero diagnostics.
+
+### editor-5 re-measured on the shipped path
+
+`tools/dataflow-templating-2/probe-editor5-shipped.mjs`, on the canonical, 132 hotbars:
+
+```
+                        v1 canonical    shipped
+runtime._variables            3107         2297
+  `dynamic ` clones            862           43   (36 bridges + 7 `dynamic observe `)
+editorModule._scope           1031          212
+```
+
+Opening a closed cell: `.cm-content` 2 → 3, `runtime._variables` **unchanged at 2297**, dynamic
+count unchanged at 43. The v1 canonical adds 21 variables and 21 code-change events for the same
+gesture. Zero page errors on boot.
+
+The first panel probe reported `cm-content` 2 → 1 and read as a failure. It was the probe: its
+click heuristic hit an already-open editor and closed it. `probe-editor5-panel.mjs` finds a
+closed hotbar first.
+
+Two `Cannot read properties of undefined (reading 'module')` console errors appear when the
+dataflow-templating notebook boots. They appear identically on the pre-change file
+(`probe-errors.mjs` against a `git show` copy), so they are not from this work.
+
+### ObservableHQ
+
+`lope-push-ws.js --cells` could not do this push: it only addresses named cells, it drops import
+statements outright, and new cells land at the end. Three of the four things that needed to
+change were an edited import, five new anonymous `md` cells, and their position.
+`tools/dataflow-templating-2/push-observable.mjs` applies a scripted list of `modify_node` /
+`insert_node` operations, taking every source from `lope-push-ws.js --dump` so nothing is
+retyped. It refuses an insert whose exact text is already on the target, because an insert is not
+idempotent.
+
+Before pushing `cellEditor` its decompile was diffed against the stored node: 5710 → 5714 bytes,
+and the diff was **two hunks, both `cloneDataflow` → `cloneViaSandbox`**, nothing else. Verified
+as a rename, not just plausible — the decompiler is otherwise byte-faithful on this cell.
+
+Both published modules boot in a bare `@observablehq/runtime` with the new names computing
+(`probe-observable-names.mjs`, which reports names rather than the count
+`probe-observable-annotate.mjs` gives — a count can rise for the wrong reason).
+dataflow-templating: `errors: none`, all four of `instantiateDataflowFactory`,
+`instantiateDataflow`, `cloneViaSandbox`, `cloneDataflow` fulfilled. editor-5: `cellEditor`
+fulfilled, alongside errors from cells that need a real notebook environment
+(`editedCell.variables[0]` with nothing selected) — the unchanged `@tomlarkworthy/cell-map`
+errors the same way in the same probe, and the identical code booted a full lopecode page with
+zero console errors.
+
+### Still not done
+
+- **robocoop-2, robocoop-3 and parametric-svg are untested**, and none has been checked for the
+  `mutable` write-back. They remain on `cloneDataflow`, which is why it was not replaced.
+- The export round-trip was not re-run on the shipped path. The gate closed it (2449557 bytes,
+  correct `mains`, boots to 135 hotbars, zero console errors) against the same variable names,
+  with the implementation inlined rather than imported.
+- The Observable notebook *page* was not opened. The published-module boot is what was checked.
