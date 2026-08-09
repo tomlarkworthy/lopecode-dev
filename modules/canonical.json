@@ -119,6 +119,10 @@
   "@tomlarkworthy/command-palette": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_command-palette.html"
   },
+  "@tomlarkworthy/compile-dataflow": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_compile-dataflow.html",
+    "upstream": null
+  },
   "@tomlarkworthy/compile-zig": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html"
   },
@@ -184,6 +188,10 @@
   },
   "@tomlarkworthy/firestore-messaging": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html"
+  },
+  "@tomlarkworthy/flat-trace": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_flat-trace.html",
+    "upstream": null
   },
   "@tomlarkworthy/flow-queue": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_flow-queue.html"
