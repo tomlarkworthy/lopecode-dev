@@ -1,0 +1,62 @@
+manPageLevel                       : 255
+default sheet is white             : true
+default single mark is white       : true
+pageFill '#808080' still works     : true
+'do not trim' legend default/gray  : false / true
+mark label fill    default/gray    : #4a4a4a / #e8e8e8
+same disc count both ways          : true
+
+consumers must all equal manPageLevel:
+  manColor_beyond_rim      255
+  manScene_corner          255
+  renderHexScene_paper     255
+
+--- test cells ---
+
+[manSceneTest]
+stride 6: 3/4 correct, 0 spurious, 1 located-unread, 11ms
+  #45 W55 yaw0 -> tilt 9 b 54/55 cov 1.10 asp 1.01 err 0.4px
+  #9 W40 yaw30 -> tilt 51 b 54/40 cov 1.11 asp 0.63 err 2.1px
+  #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.29 asp 0.64 err 1.2px
+  #21 W33 yaw15 -> MISSED
+stride 4: 4/4 correct, 0 spurious, 0 located-unread, 21ms
+  #45 W55 yaw0 -> tilt 4 b 55/55 cov 1.39 asp 1.00 err 1.1px
+  #9 W40 yaw30 -> tilt 22 b 38/40 cov 1.58 asp 0.93 err 1.3px
+  #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.26 asp 0.65 err 0.7px
+  #21 W33 yaw15 -> tilt 57 b 56/33 cov 0.86 asp 0.54 err 2.1px
+stride 4 bothAxes: 4/4 correct, 0 spurious, 0 located-unread, 40ms
+  #45 W55 yaw0 -> tilt 4 b 55/55 cov 1.39 asp 1.00 err 0.8px
+  #9 W40 yaw30 -> tilt 22 b 41/40 cov 1.58 asp 0.93 err 1.0px
+  #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.26 asp 0.65 err 0.7px
+  #21 W33 yaw15 -> tilt 57 b 34/33 cov 0.86 asp 0.54 err 1.0px
+
+[manAxesTest]
+rows only (default)    4/4 marks   x 0.66 mean / 0.87 worst   y 1.00 mean / 2.00 worst   5ms
+columns only           4/4 marks   x 1.25 mean / 1.92 worst   y 0.54 mean / 0.69 worst
+bothAxes: true         4/4 marks   x 0.66 mean / 0.87 worst   y 0.43 mean / 0.69 worst   38ms — it is two passes, and it costs two
+
+4/4 detections seen by both passes; 0 id conflict(s); worst cross-pass disagreement 2.81px
+(that disagreement is the same size as the row scan's actual worst y error, 2.00px — so it is a usable error bar and not just a number)
+
+ok   row scan is better in x than in y
+ok   column scan measures y better than the row scan does
+ok   both-axes y beats row-only y
+ok   both-axes x is no worse than row-only x
+ok   both-axes finds no fewer marks
+ok   no id conflicts on a clean scene
+ok   no duplicate ids
+ok   default call is single-pass
+
+PASS
+
+[sectionAudit]
+ok   every section has a heading cell
+ok   no section has two heading cells
+ok   every sec() key is declared
+ok   every ref() key is declared
+ok   no hand-written section number in prose
+
+22 sections
+PASS
+
+pageerrors: none
