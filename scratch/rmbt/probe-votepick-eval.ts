@@ -1,0 +1,111 @@
+// Full end-to-end check of the voteMargin pick, on the path that runs live.
+//
+// Judged the way the soft gate should have been: paired per mark, and by
+// SUMMED MAGNITUDE as well as win/loss count -- those pointed opposite ways
+// last time and the count was the misleading one.
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+
+const t = readFileSync("modules/@tomlarkworthy/coded-landmark-tracking.js", "utf8");
+const s = t.indexOf("const _1m3an4z = function _mergeManAxes(");
+const e = t.indexOf("\nconst _", s + 10);
+const SRC = t.slice(s, e).replace(/^const _1m3an4z = /, "").replace(/;\s*$/, "");
+if (!/axisPick/.test(SRC)) throw new Error("axisPick not in working copy");
+
+const IN = resolve("lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html");
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errs: string[] = [];
+page.on("pageerror", (x) => errs.push(x.message.slice(0, 160)));
+await page.addInitScript(() => {
+  const orig = (window as any).Runtime; let cap = false;
+  Object.defineProperty(window, "Runtime", { get() { return orig; }, set(N: any) {
+    const W = function (this: any, ...a: any[]) { const i = new N(...a); if (!cap) { (window as any).__ojs_runtime = i; cap = true; } return i; };
+    W.prototype = N.prototype; Object.assign(W, N); return W; } });
+});
+await page.goto(`file://${IN}#view=S100(@tomlarkworthy/coded-landmark-tracking)`, { waitUntil: "networkidle", timeout: 300000 });
+await page.waitForFunction(() => !!(window as any).__ojs_runtime, { timeout: 300000 });
+await page.waitForTimeout(15000);
+
+const out = await page.evaluate(async (SRC: string) => {
+  const rt = (window as any).__ojs_runtime;
+  const mod = rt.mains.get("@tomlarkworthy/coded-landmark-tracking");
+  const val = async (n: string) => {
+    const v = [...rt._variables].find((z: any) => z._module === mod && z._name === n);
+    if (!v) throw new Error("no variable " + n); return await v._promise;
+  };
+  mod.redefine("mergeManAxes", ["unrotatePoint"], (0, eval)("(" + SRC + ")"));
+  await new Promise((r) => setTimeout(r, 1500));
+  const [bank, opts, serialA, asyncA, pool, ransac, T, score] = await Promise.all(
+    ["hexFrameBank", "hexRigOpts", "analyzeFrameMan", "analyzeFrameManAsync",
+     "detectPool", "fitPlaneRansac", "hexTarget", "hexRigScore"].map(val)
+  );
+
+  const collect = async (o: any, viaPool: boolean) => {
+    const resid = new Map<string, number>(), loo = new Map<string, number>();
+    const counts: any = { read: 0, located: 0, missing: 0, misplaced: 0, off: 0 };
+    let picks = 0, flips = 0;
+    for (const bk of bank as any[]) {
+      const f = { gray: bk.frame.gray, w: bk.frame.w, h: bk.frame.h };
+      const full = { ...opts, bothAxes: true, ...o, ...(viaPool ? { runRows: pool.runRows } : {}) };
+      const res = viaPool ? await asyncA(f, full) : serialA(f, full);
+      const sc = score(res, bk.truth);
+      counts.read += sc.counts.read; counts.located += sc.counts.located;
+      counts.missing += sc.counts.missing; counts.misplaced += sc.counts.misplaced;
+      counts.off += sc.offTarget.length;
+      for (const m of (res.fused ?? [])) if (m.axis === "both") { picks++; if (m.pickedCol === false) flips++; }
+      for (const m of sc.marks) if (m.residualPx != null) resid.set(bk.name + "/" + m.id, m.residualPx);
+      const marks = (res.fused ?? []).filter((x: any) => T.byId.has(x.id)).map((x: any) => ({ x: x.xc, y: x.yc, id: x.id }));
+      const byId = new Map((bk.truth as any[]).map((x: any) => [x.id, x]));
+      for (const held of marks) {
+        const tr: any = byId.get(held.id); if (!tr) continue;
+        const rest = marks.filter((z) => z !== held);
+        if (rest.length < 5) continue;
+        const pl = ransac(rest); if (!pl || !pl.fit) continue;
+        const mk = T.byId.get(held.id);
+        const [px, py] = pl.fit.map(mk.xMm, mk.yMm);
+        loo.set(bk.name + "/" + held.id, Math.hypot(px - tr.x, py - tr.y));
+      }
+    }
+    return { resid, loo, counts, picks, flips };
+  };
+
+  const report = (A: any, B: any) => {
+    const pair = (ma: Map<string, number>, mb: Map<string, number>) => {
+      const ks = [...ma.keys()].filter((k) => mb.has(k));
+      const va = ks.map((k) => ma.get(k)!), vb = ks.map((k) => mb.get(k)!);
+      const st = (v: number[]) => { const q = v.slice().sort((x, y) => x - y);
+        return q.length ? { p50: +q[q.length >> 1].toFixed(2), p90: +q[Math.floor(q.length * 0.9)].toFixed(2),
+          mean: +(q.reduce((x, c) => x + c, 0) / q.length).toFixed(3), worst: +q[q.length - 1].toFixed(2) } : null; };
+      const better = ks.filter((k) => mb.get(k)! < ma.get(k)! - 1e-9);
+      const worse = ks.filter((k) => mb.get(k)! > ma.get(k)! + 1e-9);
+      const g = (kk: string[]) => +kk.reduce((x, k) => x + (mb.get(k)! - ma.get(k)!), 0).toFixed(2);
+      return { n: ks.length, base: st(va), nw: st(vb), B: better.length, W: worse.length,
+        sumB: g(better), sumW: g(worse), net: +(g(better) + g(worse)).toFixed(2) };
+    };
+    return { resid: pair(A.resid, B.resid), loo: pair(A.loo, B.loo),
+      baseCounts: A.counts, newCounts: B.counts, picks: B.picks, flips: B.flips };
+  };
+
+  const basePool = await collect({ axisPick: "col" }, true), votePool = await collect({}, true);
+  const baseSer = await collect({ axisPick: "col" }, false), voteSer = await collect({}, false);
+  return { pooled: report(basePool, votePool), serial: report(baseSer, voteSer) };
+}, SRC);
+
+const show = (tag: string, r: any) => {
+  console.log(`\n=== ${tag} ===`);
+  console.log(`  fused-from-both marks: ${r.picks}, of which the vote FLIPPED to the row pass: ${r.flips}`);
+  console.log(`  counts  base: read ${r.baseCounts.read} missing ${r.baseCounts.missing} misplaced ${r.baseCounts.misplaced} off ${r.baseCounts.off}`);
+  console.log(`          vote: read ${r.newCounts.read} missing ${r.newCounts.missing} misplaced ${r.newCounts.misplaced} off ${r.newCounts.off}`);
+  for (const [k, m] of [["residual", r.resid], ["LOO pose", r.loo]] as any) {
+    console.log(`  ${k} (paired n=${m.n})`);
+    console.log(`      base  p50 ${String(m.base?.p50).padEnd(6)} p90 ${String(m.base?.p90).padEnd(6)} mean ${String(m.base?.mean).padEnd(7)} worst ${m.base?.worst}`);
+    console.log(`      vote  p50 ${String(m.nw?.p50).padEnd(6)} p90 ${String(m.nw?.p90).padEnd(6)} mean ${String(m.nw?.mean).padEnd(7)} worst ${m.nw?.worst}`);
+    console.log(`      ${m.B} better (${m.sumB}px)  ${m.W} worse (+${m.sumW}px)  NET ${m.net}px`);
+  }
+};
+show("POOLED (live camera path)", out.pooled);
+show("SERIAL", out.serial);
+console.log("\npageerrors:", errs.length ? errs.slice(0, 4) : "none");
+await browser.close();
