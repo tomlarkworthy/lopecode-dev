@@ -158,8 +158,7 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editable-md.html"
   },
   "@tomlarkworthy/editor-5": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_editor-5.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editor-5.html"
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_editor-5.html"
   },
   "@tomlarkworthy/ego-graph": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ego-graph.html"
