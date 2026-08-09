@@ -244,6 +244,78 @@ Two bugs found and fixed by the tests rather than by reading:
 
 `bun test tools/dataflow-templating-2/instantiate-dataflow.test.mjs` — 12 pass.
 
+## The gate — every editor v2 from boot, 2026-08-09
+
+The field test above measured editors built *after* a runtime swap. This run bakes the change into
+the module (`tools/dataflow-templating-2/bake-editor5.mjs`: three cells appended, `cloneDataflow` ->
+`cloneViaSandbox` in `cellEditor`'s signature and both call sites) and syncs it into a throwaway
+copy, so all 135 editors are v2 from boot. The canonical was not written — md5
+`3561b36fbafb71e3b2d23ec379898d99` throughout.
+
+```
+                        v1 canonical    v2 baked
+runtime._variables            3107          2291
+  `dynamic ` clones            862             7   (all `dynamic observe `, not from cellEditor)
+  bridges                        0            36
+editorModule._scope           1031           215
+sandbox modules                  0           138
+editors on page                132           135
+```
+
+`_scope` is the number that surprised me: 816 of the primary module's 1031 scope entries were clone
+names. That is not something the seven guards protect against — they filter *readers*, not the
+namespace itself.
+
+### The five untested gestures
+
+`tools/dataflow-templating-2/gestures.js`, the same script run against both arms:
+
+```
+                 v1                                   v2
+add-cell         anon 0->1, new editor open {}        identical
+copy             ran, clipboard length 0              identical
+paste            anon 1->1 (no new cell)              identical
+cell-link        <a> "md", hash changed, 2 open       identical
+drag-reorder     index 0 -> 0, not moved              identical
+```
+
+Two of those need care in how they are read. **Copy/paste and drag did not demonstrably work in
+either arm** — the clipboard came back empty and the synthetic `PointerEvent` sequence did not move
+a cell. That is either a headless limitation or an inadequate probe; what the run shows is that v2
+is *not different*, which is the question at hand, not that the gestures work. They remain untested
+in the sense of "verified functional".
+
+The whole-run totals show the difference the gestures make:
+
+```
+during the gesture run   primary vars      scope
+v1                       3107 -> 3420      1031 -> 1343
+v2                       2291 -> 2292       215 ->  215
+```
+
+### Export round-trip
+
+`exportToHTML({mains: new Map(runtime.mains)})`, POSTed to the loopback server rather than the
+Downloads folder, then booted from disk:
+
+```
+v1 export  2437413 bytes  mains: [lopepage-2, editor-5, save-in-place]  `dynamic ` x16
+v2 export  2449557 bytes  mains: [lopepage-2, editor-5, save-in-place]  `dynamic ` x19, cloneViaSandbox x8
+```
+
+The v2 export's 19 `dynamic ` occurrences are exactly its source notebook's 19 — literal strings in
+the templating source, not serialised clone variables. Booting it: 135 hotbars, primary 2291, 36
+bridges, 138 sandbox modules, zero console errors — indistinguishable from the un-exported page.
+
+**Dead end worth recording.** The first export produced a notebook that booted to a blank themed
+page, `"mains": []`. That looked like a v2 regression for about ten minutes. It was not:
+`exportToHTML` only fills `mains` `if (runtime.module_names)` (`exporter-3.js`), which is falsy on
+this page, so a bare `exportToHTML()` yields empty mains — **and the v1 canonical does exactly the
+same**, which is what settled it. A later attempt passed `new Map([...rt.mains].map(([module,
+name]) => [name, module]))`, inverting a Map that was already `Map<name, module>`; that call hung
+the page — again on both arms. Two self-inflicted failures, both diagnosed only by running the
+identical call against v1.
+
 ## Not tested
 
 - The 132 existing editors were not migrated; redefining `cellEditor` does not rebuild them, so
