@@ -134,6 +134,10 @@ generator value via `_precompute`) and is one-way. A template whose body writes 
 `mutable` will not work. cloneDataflow supports that today, so this is a genuine regression in
 expressiveness and must be checked against editor-5 rather than assumed harmless.
 
+> **This paragraph is wrong and is kept for the record.** It was written before the bridge existed
+> and was never tested; see § "The mutable write-back was not a regression" at the end. The
+> latency sentence stands; the `mutable` sentence does not.
+
 ### Sentinels are free
 
 `invalidation`, `visibility` and `@variable` are per-variable symbols in `module._builtins`
@@ -331,8 +335,8 @@ identical call against v1.
 
 - ~~Whether any editor-5 template variable writes back to a captured `mutable`.~~ None does; the
   apply path writes through `command_processor` in the primary runtime, not through a bridge.
-  Still true in general: a template that writes to a captured `mutable` will not work, and that is
-  a genuine regression against cloneDataflow.
+  ~~Still true in general: a template that writes to a captured `mutable` will not work.~~ **Not
+  true** — tested afterwards and it works in both directions. See the final section.
 - ~~Whether builtins resolve correctly in the sandbox.~~ They do, by becoming ordinary bridged
   captures — `Generators`, `Inputs`, `htl` and `html` all appear in the bridge list. The sandbox
   `Runtime` is constructed with no builtins at all and never needs them.
@@ -512,12 +516,13 @@ The error node on both robocoops, robocoop-2's `element.closest is not a functio
 and robocoop-3's `Cannot set properties of undefined (setting 'value')` are all present in the
 **before** file. They are not from this change and were not fixed by it.
 
-### The mutable regression did not bite
+### The mutable question did not arise here
 
 robocoop-2's template lists `"mutable context"` **and** `"context"`, so the `Mutable` is
 constructed inside the instance under either implementation and only `initial context` crosses the
-boundary — read once, never written. That is the general rule: a mutable *inside* the template is
-fine, a mutable *captured from outside* and written to is not. No consumer does the latter.
+boundary — read once, never written. No consumer writes to a mutable it captured, so the migration
+did not test the claimed regression. It was tested separately, and there is no regression — see
+the next section.
 
 ### Published
 
@@ -526,3 +531,58 @@ fine, a mutable *captured from outside* and written to is not. No consumer does 
 stored node first — **one hunk each, the rename, nothing else**. All three boot in a bare runtime
 with the factory computing; the remaining errors are test cells wanting an API key or asserting
 against live data.
+
+## The mutable write-back was not a regression — 2026-08-09
+
+Every previous section of this document, three commit messages, and the library's own
+`### What crosses the boundary` prose cell asserted this:
+
+> A template that writes back to a captured `mutable` works under `cloneDataflow` and does not
+> work here.
+
+**It is false.** It was written in § "Captures cross the runtime boundary" *before the bridge was
+implemented*, survived the field test only because editor-5 happens not to do it — recorded there
+as "still true in general", which was an assumption dressed as a finding — and was then repeated
+downstream until someone asked what it meant.
+
+`tools/dataflow-templating-2/mutable-writeback.test.mjs`, three tests, all passing:
+
+```
+cloneDataflow's arrangement: a clone in the origin module writes through    0 -> 42
+instantiateDataflow: a captured mutable is written through the bridge too   0 -> 42
+round trip: sandbox writes the mutable, sandbox reads the new value back      -> 7
+```
+
+The second test asserts `inst.captures` contains `"mutable count"`, so the write really does cross
+a bridge rather than resolving locally.
+
+**Why it works.** `mutable count = 0` compiles to three variables, and this is the shape the test
+builds by hand rather than by assumption:
+
+```js
+$def("_i9nlq8", "initial count", [], ...)                                 // robocoop-2.js:1616
+$def("_1e0fm2r", "mutable count", ["Mutable","initial count"], ...)       // robocoop-2.js:1617
+```
+
+A writing cell takes `mutable count` as an **input** and assigns `.value` on it. `Mutable`
+(`vendor/observable-stdlib/src/mutable.js:3-10`) is an ordinary object with a setter that calls
+`change(value = x)`. The bridge republishes the capture's *value*, and that value is the object
+reference — not a copy. So the sandbox cell holds the origin's `Mutable`, `.value = 42` runs the
+origin's setter, the origin's `count` generator yields, and the third test shows the new value
+arriving back in the sandbox through `count`'s own bridge.
+
+The same reasoning covers the other write pattern already relied on in production: all three of
+robocoop-2, robocoop-3 and parametric-svg poke `el.value = …; el.dispatchEvent(…)` from their
+observers. That was believed to work because the element belongs to the instance. It would have
+worked for a captured element too, for the same reason.
+
+**What one-way actually means.** No variable in the origin module can take a sandbox variable as an
+input. `cloneDataflow` cannot do that either — its clones are named `dynamic <name> <uid>` and
+nothing references them. The real per-capture cost is the frame of latency, which was measured and
+is unchanged.
+
+**The lesson is about how the claim survived**, not about mutables. It was stated as a cost "up
+front" in a design document, which is the right place for a prediction — and then never marked as
+one again. Every later mention inherited the confidence of the first without inheriting its
+status. A prediction that cannot be distinguished from a finding three documents later is a defect
+in the writing, not in the code.
