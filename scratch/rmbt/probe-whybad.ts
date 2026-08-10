@@ -24,8 +24,12 @@ const out = await page.evaluate(() => {
   const cards = report ? [...report.querySelectorAll("figcaption")].map((f) => txt(f)) : [];
   const bad = cards.find((c) => /hexcase-5ivq-06/.test(c));
   const why = cells.find((z) => /is not three marks' worth of worse/.test(txt(z)));
-  return { first, cards: cards.length, bad, why: why ? txt(why).slice(0, 150) : "NOT RENDERED",
-           diagCards: cards.filter((c) => /predicted \d+px from its label/.test(c)).length };
+  const audit = cells.find((z) => /every section has a heading cell/.test(txt(z)));
+  const toc = cells.find((z) => /The barcode mark/.test(txt(z)) && /Evaluation/.test(txt(z)));
+  return { first, cards: cards.length, bad, why: why ? txt(why).slice(0, 120) : "NOT RENDERED",
+           diagCards: cards.filter((c) => /predicted \d+px from its label/.test(c)).length,
+           audit: audit ? txt(audit) : "NOT RENDERED",
+           tocHasPhantom: toc ? /§3.4|§4.8/.test(txt(toc)) : null };
 });
 console.log(JSON.stringify(out, null, 1));
 console.log("pageerrors:", errs.length ? errs.slice(0, 4) : "none");
