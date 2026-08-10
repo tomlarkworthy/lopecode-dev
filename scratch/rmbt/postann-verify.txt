@@ -1,0 +1,126 @@
+{
+ "cells": {
+  "hexTaster": {
+   "defined": true,
+   "error": null,
+   "svg": 1,
+   "img": 1,
+   "caption": "hexcase-5ivq-04, 960×720, read here in 144ms at stride 4: 6 of 7 marks decoded. Solid rings carry an id, dashed located but did not decode. The whole bank, and what the settings above cost it, is §3."
+  },
+  "hexOverlay": {
+   "defined": true,
+   "error": null,
+   "svg": "n/a",
+   "img": 0,
+   "caption": null
+  },
+  "combineDiagram": {
+   "defined": true,
+   "error": null,
+   "svg": 2,
+   "img": 2,
+   "caption": "Stage 1 returned 55 locks over 90 rows at stride 6. Stage 2 joined 52 of them into 3 marks and 1 that located but did not decode; 3 never reached three rows and are dropped. The polyline is not part of the algo"
+  },
+  "ringLatticeDiagram": {
+   "defined": true,
+   "error": null,
+   "svg": 0,
+   "img": 0,
+   "caption": null
+  },
+  "hexFrameReport": {
+   "defined": true,
+   "error": null,
+   "svg": 0,
+   "img": 0,
+   "caption": null
+  },
+  "rowWalkBox": {
+   "defined": true,
+   "error": null,
+   "svg": "n/a",
+   "img": 0,
+   "caption": null
+  },
+  "rowWalkGroups": {
+   "defined": true,
+   "error": null,
+   "svg": 1,
+   "img": 0,
+   "caption": "4 candidate groups, 4 of them lock. The split rule is the widest gap: inside one mark the widest gap is the dark disc, at most 0.21 of the mark's own span, so anything wider separates marks rather than rings. T"
+  },
+  "rowWalkEdges": {
+   "defined": true,
+   "error": null,
+   "svg": 1,
+   "img": 0,
+   "caption": "106 edges out of 960 pixels. Blue rises, amber falls — the sign is not decoration, it is what carries the bit at a mid tooth. Sub-pixel positions are worth the trouble: integer ones cost about 0.03 of cross rat"
+  },
+  "rowWalkFrame": {
+   "defined": true,
+   "error": null,
+   "svg": 1,
+   "img": 1,
+   "caption": "hexcase-5ivq-04 · 960×720 · row y = 411 · 97 of 120 scanned rows lock at least one mark, 36 of them decode an id · this row locks 4, 1 of them with an id. Click or drag on the frame to move the scan row. Green "
+  }
+ },
+ "prose": {
+  "cascade": {
+   "chars": 1190,
+   "tail": "s demoted rather than handed to the homography as a second position for the same landmark."
+  },
+  "constrains": {
+   "chars": 2032,
+   "tail": "udget cannot. What the detector gets from it is indirect: the labels it is scored against."
+  },
+  "plane": {
+   "chars": 542,
+   "tail": " That is §4.7.2. It runs in the offline labeller; the live pose below fuses centres alone."
+  },
+  "wasm": {
+   "chars": 730,
+   "tail": "in the page, so editing the AssemblyScript here changes the accelerator the detector runs."
+  },
+  "fillin": {
+   "chars": 275,
+   "tail": "ncentric ring matching under perspective, and eye balled for correctness of fit, see §4.7."
+  }
+ },
+ "sections": {
+  "relabel": "4.7 Relabelling",
+  "lattice": "4.7.1 The ring lattice",
+  "constrains": "4.7.2 What one mark constrains",
+  "next": "5 Next steps"
+ },
+ "tests": {
+  "sectionAudit": "FAIL every section has a heading cell -> [\"overlay\",\"tests\"] ok no section has two heading cells ok every sec() key is declared ok every ref() key is declared ok no hand-written section number in prose 22 sections FAIL",
+  "manSceneTest": "stride 6: 3/4 correct, 0 spurious, 1 located-unread, 3ms #45 W55 yaw0 -> tilt 9 b 54/55 cov 1.10 asp 1.01 err 0.4px #9 W40 yaw30 -> tilt 51 b 54/40 cov 1.11 asp 0.63 err 2.1px #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.29 asp 0.64 err 1.2px #21 W33 yaw15 -> MISSED stride 4: 4/4 correct, 0 spurious, 0 located-unread, 5ms #45 W55 yaw0 -> tilt 4",
+  "manAxesTest": "rows only (default) 4/4 marks x 0.66 mean / 0.87 worst y 1.00 mean / 2.00 worst 22ms columns only 4/4 marks x 1.25 mean / 1.92 worst y 0.54 mean / 0.69 worst bothAxes: true 4/4 marks x 0.66 mean / 0.87 worst y 0.43 mean / 0.69 worst 38ms — it is two passes, and it costs two 4/4 detections seen by both passes; 0 id conflict(s); worst cross"
+ },
+ "box": {
+  "STRIP": 30,
+  "w": 960,
+  "boxW": 990,
+  "style": "margin:12px 0;max-width:990px"
+ },
+ "viewBoxes": {
+  "frame": "0 0 990 720",
+  "edges": "0 0 990 156",
+  "groups": "0 0 990 110"
+ },
+ "figureWidths": {
+  "frame": "990.0",
+  "edges": "990.0",
+  "groups": "990.0"
+ },
+ "axesTable": {
+  "tables": 1,
+  "bars": 6,
+  "colours": [
+   "rgb(90, 200, 250)",
+   "rgb(47, 224, 138)",
+   "rgb(138, 138, 138)"
+  ]
+ }
+}
+pageerrors: none
