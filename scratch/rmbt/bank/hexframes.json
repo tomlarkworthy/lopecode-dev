@@ -12,52 +12,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 453.1,
-    "y": 416.4,
-    "radiusPx": 35.5,
-    "state": "located"
-   },
-   {
     "id": 11,
-    "x": 529.8,
-    "y": 487.9,
-    "radiusPx": 46.1,
+    "x": 528.88,
+    "y": 489.19,
+    "radiusPx": 41.7,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 585.9,
-    "y": 412.8,
-    "radiusPx": 36.9,
+    "x": 585.69,
+    "y": 412.81,
+    "radiusPx": 35.3,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 511.1,
-    "y": 361.5,
-    "radiusPx": 29.4,
-    "state": "missing"
+    "x": 512.83,
+    "y": 356.84,
+    "radiusPx": 36.5,
+    "state": "read"
    },
    {
     "id": 37,
-    "x": 398,
-    "y": 365.2,
-    "radiusPx": 29,
+    "x": 396.44,
+    "y": 360.15,
+    "radiusPx": 32.6,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 324,
-    "y": 420,
-    "radiusPx": 35.6,
+    "x": 320.98,
+    "y": 418.07,
+    "radiusPx": 29.5,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 374.4,
-    "y": 490.8,
-    "radiusPx": 45,
+    "x": 376.03,
+    "y": 493.1,
+    "radiusPx": 43.4,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 452.88,
+    "y": 417.39,
+    "radiusPx": 42,
     "state": "read"
    }
   ],
@@ -79,7 +79,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": true
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.85,
+    "ringN": 10430,
+    "ringRms": 0.113,
+    "refinedPx": 0.95,
+    "ringModel": "perspective",
+    "planeResid": 0.61,
+    "score": 85.3,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 26.7,
+    "ringN": 4940,
+    "ringRms": 1.218,
+    "refinedPx": 1.88,
+    "ringModel": "affine",
+    "planeResid": 0.31,
+    "score": 73.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 4,
+    "lineRms": 0.47,
+    "ringN": 1534,
+    "ringRms": 0.181,
+    "refinedPx": 4.48,
+    "ringModel": "perspective",
+    "planeResid": 0.35,
+    "score": 70.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 6,
+    "lineRms": 1.89,
+    "ringN": 1834,
+    "ringRms": 0.168,
+    "refinedPx": 1.36,
+    "ringModel": "perspective",
+    "planeResid": 0.75,
+    "score": 85.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 2.05,
+    "ringN": 2732,
+    "ringRms": 1.038,
+    "refinedPx": 0.44,
+    "ringModel": "affine",
+    "planeResid": 0.7,
+    "score": 52.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.91,
+    "ringN": 11042,
+    "ringRms": 0.111,
+    "refinedPx": 0.35,
+    "ringModel": "perspective",
+    "planeResid": 0.39,
+    "score": 64.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "measured",
+    "dirs": 6,
+    "lineRms": 1.72,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 1.71,
+    "score": 66.9,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 12,
+  "planeRms": 0.82,
+  "planeRedundancy": 24,
+  "deltaMm": -0.068,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-2.png",
@@ -94,53 +199,53 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 416.9,
-    "y": 662.4,
-    "radiusPx": 80.1,
-    "state": "missing"
-   },
-   {
     "id": 11,
-    "x": 533.2,
-    "y": 521.6,
-    "radiusPx": 62.1,
+    "x": 532.82,
+    "y": 536.2,
+    "radiusPx": 43.2,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 404,
-    "y": 351.3,
-    "radiusPx": 83.7,
+    "x": 409.46,
+    "y": 361.74,
+    "radiusPx": 70.3,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 214.7,
-    "y": 485.9,
-    "radiusPx": 114.9,
+    "x": 205.15,
+    "y": 487.95,
+    "radiusPx": 114.8,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 234.4,
-    "y": 883.4,
-    "radiusPx": 113.4,
+    "x": 221.5,
+    "y": 898.43,
+    "radiusPx": 112,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 429.5,
-    "y": 965.7,
-    "radiusPx": 82.1,
+    "x": 427.55,
+    "y": 976.92,
+    "radiusPx": 65,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 542.3,
-    "y": 771.9,
-    "radiusPx": 61.7,
-    "state": "missing"
+    "x": 539.05,
+    "y": 780.51,
+    "radiusPx": 42.6,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 414.92,
+    "y": 672.1,
+    "radiusPx": 74.2,
+    "state": "read"
    }
   ],
   "capture": {
@@ -161,7 +266,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 4.87,
+    "ringN": 12394,
+    "ringRms": 0.157,
+    "refinedPx": 2.07,
+    "ringModel": "perspective",
+    "planeResid": 0.65,
+    "score": 34.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 4.49,
+    "ringN": 11588,
+    "ringRms": 0.18,
+    "refinedPx": 2.4,
+    "ringModel": "perspective",
+    "planeResid": 2.7,
+    "score": 68.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 5.28,
+    "ringN": 21738,
+    "ringRms": 0.679,
+    "refinedPx": 4.18,
+    "ringModel": "affine",
+    "planeResid": 1.98,
+    "score": 95.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.98,
+    "ringN": 20106,
+    "ringRms": 0.745,
+    "refinedPx": 4.42,
+    "ringModel": "affine",
+    "planeResid": 1.3,
+    "score": 87.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 6.51,
+    "ringN": 13976,
+    "ringRms": 0.286,
+    "refinedPx": 1.72,
+    "ringModel": "perspective",
+    "planeResid": 2.67,
+    "score": 40.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 4.43,
+    "ringN": 13494,
+    "ringRms": 0.147,
+    "refinedPx": 1.03,
+    "ringModel": "perspective",
+    "planeResid": 0.97,
+    "score": 28.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.92,
+    "ringN": 17740,
+    "ringRms": 1.367,
+    "refinedPx": 2.13,
+    "ringModel": "affine",
+    "planeResid": 1.26,
+    "score": 60.3,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 12,
+  "planeRms": 1.81,
+  "planeRedundancy": 27,
+  "deltaMm": -0.114,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-3.png",
@@ -176,52 +386,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 729.8,
-    "y": 398.9,
-    "radiusPx": 52.2,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 663,
-    "y": 289.2,
-    "radiusPx": 44.5,
+    "x": 660.85,
+    "y": 278.65,
+    "radiusPx": 36.8,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 628.2,
-    "y": 435.3,
-    "radiusPx": 41.2,
-    "state": "missing"
+    "x": 626.59,
+    "y": 426.71,
+    "radiusPx": 38.1,
+    "state": "read"
    },
    {
     "id": 29,
-    "x": 687.5,
-    "y": 559.2,
-    "radiusPx": 48.7,
+    "x": 689.21,
+    "y": 554.76,
+    "radiusPx": 45.2,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 817.6,
-    "y": 543.3,
-    "radiusPx": 64.3,
+    "x": 818.28,
+    "y": 542.21,
+    "radiusPx": 57.5,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 876.6,
-    "y": 346.3,
-    "radiusPx": 70.3,
+    "x": 871.64,
+    "y": 352.98,
+    "radiusPx": 57.6,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 776.1,
-    "y": 223,
-    "radiusPx": 57.4,
+    "x": 775.29,
+    "y": 222.79,
+    "radiusPx": 45.3,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 730.36,
+    "y": 395.3,
+    "radiusPx": 43.5,
     "state": "read"
    }
   ],
@@ -243,7 +453,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 4,
+    "lineRms": 1.95,
+    "ringN": 912,
+    "ringRms": 0.118,
+    "refinedPx": 0.55,
+    "ringModel": "perspective",
+    "planeResid": 0.22,
+    "score": 43.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 1.36,
+    "ringN": 4532,
+    "ringRms": 0.231,
+    "refinedPx": 1.4,
+    "ringModel": "perspective",
+    "planeResid": 0.29,
+    "score": 53.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 1.52,
+    "ringN": 7520,
+    "ringRms": 0.104,
+    "refinedPx": 0.39,
+    "ringModel": "perspective",
+    "planeResid": 0.3,
+    "score": 61.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.83,
+    "ringN": 8236,
+    "ringRms": 0.49,
+    "refinedPx": 1.5,
+    "ringModel": "perspective",
+    "planeResid": 0.45,
+    "score": 48.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.74,
+    "ringN": 9282,
+    "ringRms": 0.078,
+    "refinedPx": 0.75,
+    "ringModel": "perspective",
+    "planeResid": 0.58,
+    "score": 52.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 4,
+    "lineRms": 1.18,
+    "ringN": 1302,
+    "ringRms": 0.086,
+    "refinedPx": 1.32,
+    "ringModel": "perspective",
+    "planeResid": 0.53,
+    "score": 32.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.19,
+    "ringN": 9504,
+    "ringRms": 0.087,
+    "refinedPx": 0.46,
+    "ringModel": "perspective",
+    "planeResid": 0.1,
+    "score": 40.2,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 36,
+  "planeRms": 0.39,
+  "planeRedundancy": 27,
+  "deltaMm": 0.001,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-4.png",
@@ -258,52 +573,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 501.5,
-    "y": 270.9,
-    "radiusPx": 72.4,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 266.7,
-    "y": 271.9,
-    "radiusPx": 70.5,
+    "x": 267.46,
+    "y": 271.69,
+    "radiusPx": 65.9,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 358.1,
-    "y": 445.9,
-    "radiusPx": 80.4,
-    "state": "located"
+    "x": 357.79,
+    "y": 444.26,
+    "radiusPx": 70.8,
+    "state": "read"
    },
    {
     "id": 29,
-    "x": 619.5,
-    "y": 448.8,
-    "radiusPx": 83,
+    "x": 619.29,
+    "y": 448.57,
+    "radiusPx": 81,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 746.3,
-    "y": 269.8,
-    "radiusPx": 74.5,
+    "x": 746.31,
+    "y": 271.58,
+    "radiusPx": 78.9,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 625.2,
-    "y": 119.9,
-    "radiusPx": 65.8,
+    "x": 623.81,
+    "y": 118.81,
+    "radiusPx": 59.1,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 403.9,
-    "y": 123.7,
-    "radiusPx": 64.2,
+    "x": 402.38,
+    "y": 123.97,
+    "radiusPx": 59.3,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 500.5,
+    "y": 270.46,
+    "radiusPx": 65.9,
     "state": "read"
    }
   ],
@@ -325,7 +640,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.61,
+    "ringN": 16332,
+    "ringRms": 0.062,
+    "refinedPx": 0.26,
+    "ringModel": "perspective",
+    "planeResid": 0.73,
+    "score": 129.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 2.37,
+    "ringN": 8418,
+    "ringRms": 0.049,
+    "refinedPx": 2.07,
+    "ringModel": "perspective",
+    "planeResid": 0.34,
+    "score": 135.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.99,
+    "ringN": 15152,
+    "ringRms": 0.079,
+    "refinedPx": 0.62,
+    "ringModel": "perspective",
+    "planeResid": 0.69,
+    "score": 143.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 5,
+    "lineRms": 0.43,
+    "ringN": 3584,
+    "ringRms": 0.059,
+    "refinedPx": 0.42,
+    "ringModel": "perspective",
+    "planeResid": 1.43,
+    "score": 85.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.03,
+    "ringN": 11960,
+    "ringRms": 0.102,
+    "refinedPx": 1.97,
+    "ringModel": "perspective",
+    "planeResid": 1.05,
+    "score": 92,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.32,
+    "ringN": 17688,
+    "ringRms": 0.08,
+    "refinedPx": 0.66,
+    "ringModel": "perspective",
+    "planeResid": 0.35,
+    "score": 92.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.05,
+    "ringN": 15188,
+    "ringRms": 0.09,
+    "refinedPx": 0.76,
+    "ringModel": "perspective",
+    "planeResid": 0.21,
+    "score": 95.1,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 36,
+  "planeRms": 0.8,
+  "planeRedundancy": 27,
+  "deltaMm": -0.155,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-5.png",
@@ -340,52 +760,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 542.7,
-    "y": 344.8,
-    "radiusPx": 62.1,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 624,
-    "y": 489.9,
-    "radiusPx": 56.7,
+    "x": 622.72,
+    "y": 490.04,
+    "radiusPx": 53,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 721.1,
-    "y": 342.5,
-    "radiusPx": 60.1,
+    "x": 719.96,
+    "y": 343.55,
+    "radiusPx": 53.5,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 642.8,
-    "y": 181,
-    "radiusPx": 66.2,
+    "x": 642.39,
+    "y": 181.24,
+    "radiusPx": 63.9,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 449.9,
-    "y": 179.4,
-    "radiusPx": 68.7,
+    "x": 448.74,
+    "y": 180.19,
+    "radiusPx": 66.2,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 355.6,
-    "y": 347.2,
-    "radiusPx": 64.4,
-    "state": "located"
+    "x": 355.64,
+    "y": 350.02,
+    "radiusPx": 57.3,
+    "state": "read"
    },
    {
     "id": 51,
-    "x": 450.5,
-    "y": 495.5,
-    "radiusPx": 58.5,
+    "x": 450.96,
+    "y": 496.49,
+    "radiusPx": 54.9,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 541.75,
+    "y": 346.36,
+    "radiusPx": 54.6,
     "state": "read"
    }
   ],
@@ -407,7 +827,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.34,
+    "ringN": 16106,
+    "ringRms": 0.063,
+    "refinedPx": 0.11,
+    "ringModel": "perspective",
+    "planeResid": 0.26,
+    "score": 171,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.14,
+    "ringN": 12424,
+    "ringRms": 0.053,
+    "refinedPx": 0.17,
+    "ringModel": "perspective",
+    "planeResid": 0.13,
+    "score": 159.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.24,
+    "ringN": 14778,
+    "ringRms": 0.05,
+    "refinedPx": 0.14,
+    "ringModel": "perspective",
+    "planeResid": 0.18,
+    "score": 157.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.23,
+    "ringN": 13804,
+    "ringRms": 0.051,
+    "refinedPx": 0.1,
+    "ringModel": "perspective",
+    "planeResid": 0.21,
+    "score": 89.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.14,
+    "ringN": 12242,
+    "ringRms": 0.051,
+    "refinedPx": 0.09,
+    "ringModel": "perspective",
+    "planeResid": 0.29,
+    "score": 141.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.29,
+    "ringN": 18368,
+    "ringRms": 0.059,
+    "refinedPx": 0.06,
+    "ringModel": "perspective",
+    "planeResid": 0.04,
+    "score": 88.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.15,
+    "ringN": 14776,
+    "ringRms": 0.054,
+    "refinedPx": 0.08,
+    "ringModel": "perspective",
+    "planeResid": 0.27,
+    "score": 139.1,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 36,
+  "planeRms": 0.21,
+  "planeRedundancy": 27,
+  "deltaMm": -0.065,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-6.png",
@@ -422,53 +947,53 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 413,
-    "y": 416.2,
-    "radiusPx": 34,
-    "state": "misplaced"
-   },
-   {
     "id": 11,
-    "x": 341.6,
-    "y": 438.2,
-    "radiusPx": 24.9,
-    "state": "missing"
+    "x": 338.69,
+    "y": 430.49,
+    "radiusPx": 35.3,
+    "state": "read"
    },
    {
     "id": 22,
-    "x": 366,
-    "y": 538.2,
-    "radiusPx": 39.9,
+    "x": 353.85,
+    "y": 545.03,
+    "radiusPx": 43.1,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 486.8,
-    "y": 548.4,
-    "radiusPx": 63.1,
+    "x": 466.83,
+    "y": 536.74,
+    "radiusPx": 48.2,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 541.6,
-    "y": 376.6,
-    "radiusPx": 53.9,
+    "x": 559.93,
+    "y": 386.28,
+    "radiusPx": 47.9,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 454.2,
-    "y": 309,
-    "radiusPx": 32.1,
+    "x": 519.65,
+    "y": 277.74,
+    "radiusPx": 36.8,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 377.5,
-    "y": 352.7,
-    "radiusPx": 23,
-    "state": "missing"
+    "x": 414.13,
+    "y": 310.84,
+    "radiusPx": 34.1,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 437.42,
+    "y": 410.5,
+    "radiusPx": 39.6,
+    "state": "read"
    }
   ],
   "capture": {
@@ -489,7 +1014,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 3.64,
+    "ringN": 4566,
+    "ringRms": 0.138,
+    "refinedPx": 1.53,
+    "ringModel": "perspective",
+    "planeResid": 0.2,
+    "score": 103.3,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 8,
+    "lineRms": 3.49,
+    "ringN": 7742,
+    "ringRms": 0.112,
+    "refinedPx": 1.42,
+    "ringModel": "perspective",
+    "planeResid": 0.29,
+    "score": 85.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 1.86,
+    "ringN": 11206,
+    "ringRms": 0.085,
+    "refinedPx": 1.49,
+    "ringModel": "perspective",
+    "planeResid": 0.29,
+    "score": 111.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 1.57,
+    "ringN": 9124,
+    "ringRms": 0.085,
+    "refinedPx": 1.42,
+    "ringModel": "perspective",
+    "planeResid": 0.34,
+    "score": 94.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 1.09,
+    "ringN": 7236,
+    "ringRms": 0.14,
+    "refinedPx": 1.9,
+    "ringModel": "perspective",
+    "planeResid": 0.44,
+    "score": 80,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 2.61,
+    "ringN": 3800,
+    "ringRms": 0.151,
+    "refinedPx": 2.09,
+    "ringModel": "perspective",
+    "planeResid": 0.3,
+    "score": 95.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 1.26,
+    "ringN": 7244,
+    "ringRms": 0.283,
+    "refinedPx": 2.68,
+    "ringModel": "perspective",
+    "planeResid": 0.06,
+    "score": 92.6,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 36,
+  "planeRms": 0.3,
+  "planeRedundancy": 27,
+  "deltaMm": -0.078,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-7.png",
@@ -504,53 +1134,53 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 469.5,
-    "y": 513.1,
-    "radiusPx": 91.9,
-    "state": "missing"
-   },
-   {
     "id": 11,
-    "x": 792,
-    "y": 379.8,
-    "radiusPx": 118.1,
+    "x": 793.76,
+    "y": 376.2,
+    "radiusPx": 114.5,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 444.7,
-    "y": 191.6,
-    "radiusPx": 148.1,
+    "x": 447.91,
+    "y": 191.28,
+    "radiusPx": 134.9,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 134.6,
-    "y": 379.9,
-    "radiusPx": 116,
+    "x": 144.73,
+    "y": 377.65,
+    "radiusPx": 106.5,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 234.2,
-    "y": 610.4,
-    "radiusPx": 77.9,
+    "x": 236.72,
+    "y": 609.21,
+    "radiusPx": 64.6,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 483,
-    "y": 689.4,
-    "radiusPx": 65.3,
+    "x": 483.54,
+    "y": 689.85,
+    "radiusPx": 58.1,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 724.5,
-    "y": 614.6,
-    "radiusPx": 78.7,
-    "state": "missing"
+    "x": 727.75,
+    "y": 615.25,
+    "radiusPx": 73.8,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 470.32,
+    "y": 513.98,
+    "radiusPx": 83.1,
+    "state": "read"
    }
   ],
   "capture": {
@@ -571,7 +1201,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 3.39,
+    "ringN": 23006,
+    "ringRms": 0.66,
+    "refinedPx": 6.97,
+    "ringModel": "affine",
+    "planeResid": 1.46,
+    "score": 70,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.97,
+    "ringN": 21054,
+    "ringRms": 0.579,
+    "refinedPx": 7.65,
+    "ringModel": "affine",
+    "planeResid": 1.95,
+    "score": 72.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 6.34,
+    "ringN": 20060,
+    "ringRms": 0.558,
+    "refinedPx": 6.75,
+    "ringModel": "affine",
+    "planeResid": 1.14,
+    "score": 75.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 4.46,
+    "ringN": 11982,
+    "ringRms": 0.073,
+    "refinedPx": 2.53,
+    "ringModel": "perspective",
+    "planeResid": 1.19,
+    "score": 57.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 7.88,
+    "ringN": 5652,
+    "ringRms": 0.079,
+    "refinedPx": 1.52,
+    "ringModel": "perspective",
+    "planeResid": 0.22,
+    "score": 49.3,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 3.45,
+    "ringN": 20550,
+    "ringRms": 0.068,
+    "refinedPx": 1.57,
+    "ringModel": "perspective",
+    "planeResid": 0.82,
+    "score": 33.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.94,
+    "ringN": 19034,
+    "ringRms": 0.059,
+    "refinedPx": 1.19,
+    "ringModel": "perspective",
+    "planeResid": 2.93,
+    "score": 56,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 12,
+  "planeRms": 1.6,
+  "planeRedundancy": 27,
+  "deltaMm": 0.004,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-8.png",
@@ -586,51 +1321,51 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 231.3,
-    "y": 441.9,
-    "radiusPx": 31.4,
-    "state": "located"
-   },
-   {
     "id": 11,
-    "x": 178.9,
-    "y": 367.1,
-    "radiusPx": 32,
+    "x": 179.02,
+    "y": 367.74,
+    "radiusPx": 31.6,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 137.6,
-    "y": 450.5,
-    "radiusPx": 32.3,
-    "state": "read"
-   },
-   {
-    "id": 29,
-    "x": 191,
-    "y": 524.6,
+    "x": 136.79,
+    "y": 450.99,
     "radiusPx": 31.7,
     "state": "read"
    },
    {
+    "id": 29,
+    "x": 190.3,
+    "y": 526.06,
+    "radiusPx": 32.1,
+    "state": "read"
+   },
+   {
     "id": 37,
-    "x": 282.3,
-    "y": 514.6,
-    "radiusPx": 30.8,
+    "x": 281.9,
+    "y": 515.65,
+    "radiusPx": 30.7,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 321.3,
-    "y": 433.6,
-    "radiusPx": 30.5,
-    "state": "missing"
+    "x": 319.82,
+    "y": 435.08,
+    "radiusPx": 29.7,
+    "state": "read"
    },
    {
     "id": 51,
-    "x": 271.2,
-    "y": 360.1,
+    "x": 270.66,
+    "y": 362.23,
+    "radiusPx": 30.8,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 231.31,
+    "y": 442.74,
     "radiusPx": 31.1,
     "state": "read"
    }
@@ -653,7 +1388,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "measured",
+    "dirs": 11,
+    "lineRms": 0.19,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.08,
+    "score": 66.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "measured",
+    "dirs": 11,
+    "lineRms": 1.04,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.14,
+    "score": 87.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.14,
+    "ringN": 3864,
+    "ringRms": 0.193,
+    "refinedPx": 0.09,
+    "ringModel": "perspective",
+    "planeResid": 0.12,
+    "score": 96.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "measured",
+    "dirs": 9,
+    "lineRms": 0.09,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.04,
+    "score": 33.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "measured",
+    "dirs": 8,
+    "lineRms": 0.08,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.08,
+    "score": 27.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "measured",
+    "dirs": 11,
+    "lineRms": 0.17,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.05,
+    "score": 23,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.09,
+    "ringN": 2530,
+    "ringRms": 0.917,
+    "refinedPx": 0.2,
+    "ringModel": "perspective",
+    "planeResid": 0.08,
+    "score": 35.4,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 8,
+  "planeRms": 0.09,
+  "planeRedundancy": 12,
+  "deltaMm": -0.034,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-9.png",
@@ -668,52 +1508,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 344.4,
-    "y": 560.3,
-    "radiusPx": 60.1,
+    "id": 11,
+    "x": 413.45,
+    "y": 414.45,
+    "radiusPx": 45.6,
     "state": "read"
    },
    {
-    "id": 11,
-    "x": 413.6,
-    "y": 408.7,
-    "radiusPx": 52.4,
-    "state": "missing"
-   },
-   {
     "id": 22,
-    "x": 274.8,
-    "y": 351.3,
-    "radiusPx": 64.1,
+    "x": 274.59,
+    "y": 351.51,
+    "radiusPx": 53.7,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 175.5,
-    "y": 523.1,
-    "radiusPx": 75.2,
+    "x": 170.07,
+    "y": 524.18,
+    "radiusPx": 76.8,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 258.6,
-    "y": 748,
-    "radiusPx": 70.6,
+    "x": 259.76,
+    "y": 745.16,
+    "radiusPx": 63.3,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 407.7,
-    "y": 750.7,
-    "radiusPx": 57.5,
+    "x": 407.21,
+    "y": 740.38,
+    "radiusPx": 41,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 468.4,
-    "y": 587.7,
-    "radiusPx": 50,
+    "x": 464.41,
+    "y": 587.08,
+    "radiusPx": 38.2,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 344.84,
+    "y": 561.97,
+    "radiusPx": 55.3,
     "state": "read"
    }
   ],
@@ -735,7 +1575,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 3.83,
+    "ringN": 12656,
+    "ringRms": 0.123,
+    "refinedPx": 1.68,
+    "ringModel": "perspective",
+    "planeResid": 0.43,
+    "score": 87.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 2.95,
+    "ringN": 7594,
+    "ringRms": 0.068,
+    "refinedPx": 1,
+    "ringModel": "perspective",
+    "planeResid": 0.67,
+    "score": 99.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.68,
+    "ringN": 13132,
+    "ringRms": 0.054,
+    "refinedPx": 0.6,
+    "ringModel": "perspective",
+    "planeResid": 0.23,
+    "score": 140.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.35,
+    "ringN": 12342,
+    "ringRms": 0.069,
+    "refinedPx": 0.89,
+    "ringModel": "perspective",
+    "planeResid": 0.36,
+    "score": 90.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 6,
+    "lineRms": 1.99,
+    "ringN": 7030,
+    "ringRms": 0.093,
+    "refinedPx": 1.56,
+    "ringModel": "perspective",
+    "planeResid": 0.79,
+    "score": 59,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 1.39,
+    "ringN": 13144,
+    "ringRms": 0.138,
+    "refinedPx": 0.86,
+    "ringModel": "perspective",
+    "planeResid": 0.17,
+    "score": 68.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 3.14,
+    "ringN": 13524,
+    "ringRms": 0.107,
+    "refinedPx": 0.45,
+    "ringModel": "perspective",
+    "planeResid": 0.76,
+    "score": 93.6,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 30,
+  "planeRms": 0.54,
+  "planeRedundancy": 27,
+  "deltaMm": -0.037,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-10.png",
@@ -750,53 +1695,53 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 410.6,
-    "y": 422,
-    "radiusPx": 38.1,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 482.7,
-    "y": 478,
-    "radiusPx": 38.1,
+    "x": 481.92,
+    "y": 520.56,
+    "radiusPx": 40.7,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 517.1,
-    "y": 365,
-    "radiusPx": 38.1,
-    "state": "missing"
+    "x": 518.46,
+    "y": 399.94,
+    "radiusPx": 39.2,
+    "state": "read"
    },
    {
     "id": 29,
-    "x": 445,
-    "y": 309,
-    "radiusPx": 38.1,
+    "x": 444.37,
+    "y": 306.45,
+    "radiusPx": 38.7,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 338.5,
-    "y": 366,
-    "radiusPx": 38.1,
-    "state": "missing"
+    "x": 344.6,
+    "y": 334.18,
+    "radiusPx": 33.1,
+    "state": "read"
    },
    {
     "id": 46,
-    "x": 304.2,
-    "y": 479,
-    "radiusPx": 38.1,
-    "state": "missing"
+    "x": 313.66,
+    "y": 445.23,
+    "radiusPx": 33.8,
+    "state": "read"
    },
    {
     "id": 51,
-    "x": 376.3,
-    "y": 535,
+    "x": 377.79,
+    "y": 537.75,
     "radiusPx": 38.1,
-    "state": "located"
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 410.2,
+    "y": 423.75,
+    "radiusPx": 35.6,
+    "state": "read"
    }
   ],
   "capture": {
@@ -817,7 +1762,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 5,
+    "lineRms": 0.23,
+    "ringN": 7550,
+    "ringRms": 0.088,
+    "refinedPx": 0.25,
+    "ringModel": "perspective",
+    "planeResid": 0.2,
+    "score": 129.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 4,
+    "lineRms": 0.11,
+    "ringN": 5080,
+    "ringRms": 0.076,
+    "refinedPx": 0.48,
+    "ringModel": "perspective",
+    "planeResid": 0.11,
+    "score": 130.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 0.34,
+    "ringN": 7186,
+    "ringRms": 0.1,
+    "refinedPx": 0.13,
+    "ringModel": "perspective",
+    "planeResid": 0.15,
+    "score": 129.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 7,
+    "lineRms": 0.87,
+    "ringN": 6132,
+    "ringRms": 0.118,
+    "refinedPx": 0.14,
+    "ringModel": "perspective",
+    "planeResid": 0.24,
+    "score": 84.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 7,
+    "lineRms": 0.33,
+    "ringN": 5328,
+    "ringRms": 0.127,
+    "refinedPx": 0.1,
+    "ringModel": "perspective",
+    "planeResid": 0.21,
+    "score": 77.2,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 8,
+    "lineRms": 0.39,
+    "ringN": 8172,
+    "ringRms": 0.12,
+    "refinedPx": 0.24,
+    "ringModel": "perspective",
+    "planeResid": 0.28,
+    "score": 64.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 7,
+    "lineRms": 0.82,
+    "ringN": 7450,
+    "ringRms": 0.107,
+    "refinedPx": 0.37,
+    "ringModel": "perspective",
+    "planeResid": 0.2,
+    "score": 90.3,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 36,
+  "planeRms": 0.21,
+  "planeRedundancy": 27,
+  "deltaMm": -0.111,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-11.png",
@@ -832,52 +1882,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 352.6,
-    "y": 665.2,
-    "radiusPx": 68.8,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 158.3,
-    "y": 557.1,
-    "radiusPx": 67.7,
+    "x": 158.06,
+    "y": 556.47,
+    "radiusPx": 68.2,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 132.6,
-    "y": 750.9,
-    "radiusPx": 82.7,
+    "x": 131.4,
+    "y": 752.35,
+    "radiusPx": 84,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 358,
-    "y": 880.7,
-    "radiusPx": 84.8,
+    "x": 357.15,
+    "y": 879.18,
+    "radiusPx": 90.2,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 554,
-    "y": 777.3,
-    "radiusPx": 70.5,
+    "x": 550.21,
+    "y": 772.96,
+    "radiusPx": 79.2,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 524.7,
-    "y": 598.2,
-    "radiusPx": 58.9,
-    "state": "missing"
+    "x": 523.04,
+    "y": 592.52,
+    "radiusPx": 65.6,
+    "state": "read"
    },
    {
     "id": 51,
-    "x": 348.5,
-    "y": 502.7,
-    "radiusPx": 58,
+    "x": 347.66,
+    "y": 502.03,
+    "radiusPx": 56.6,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 352.64,
+    "y": 663.41,
+    "radiusPx": 69.6,
     "state": "read"
    }
   ],
@@ -899,7 +1949,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.06,
+    "ringN": 10436,
+    "ringRms": 0.122,
+    "refinedPx": 0.79,
+    "ringModel": "perspective",
+    "planeResid": 0.57,
+    "score": 137.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.2,
+    "ringN": 6692,
+    "ringRms": 0.117,
+    "refinedPx": 0.54,
+    "ringModel": "perspective",
+    "planeResid": 0.29,
+    "score": 151.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 7,
+    "lineRms": 0.1,
+    "ringN": 5066,
+    "ringRms": 0.099,
+    "refinedPx": 0.07,
+    "ringModel": "perspective",
+    "planeResid": 0.81,
+    "score": 156.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 4,
+    "lineRms": 0.37,
+    "ringN": 1966,
+    "ringRms": 0.126,
+    "refinedPx": 3.06,
+    "ringModel": "perspective",
+    "planeResid": 1.32,
+    "score": 110.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "measured",
+    "dirs": 5,
+    "lineRms": 2.04,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 2.09,
+    "score": 97.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 2.37,
+    "ringN": 5044,
+    "ringRms": 0.123,
+    "refinedPx": 3.17,
+    "ringModel": "perspective",
+    "planeResid": 1.22,
+    "score": 116.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.1,
+    "ringN": 9574,
+    "ringRms": 0.263,
+    "refinedPx": 0.83,
+    "ringModel": "perspective",
+    "planeResid": 0.83,
+    "score": 103.6,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 8,
+  "planeRms": 1.16,
+  "planeRedundancy": 24,
+  "deltaMm": -0.144,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-12.png",
@@ -914,52 +2069,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 307.9,
-    "y": 299.7,
-    "radiusPx": 50.5,
+    "id": 11,
+    "x": 435.7,
+    "y": 227.35,
+    "radiusPx": 47.1,
     "state": "read"
    },
    {
-    "id": 11,
-    "x": 434,
-    "y": 231,
-    "radiusPx": 48.4,
-    "state": "located"
-   },
-   {
     "id": 22,
-    "x": 308.6,
-    "y": 160.5,
-    "radiusPx": 48.5,
+    "x": 308.29,
+    "y": 155.84,
+    "radiusPx": 44.6,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 178.6,
-    "y": 227.3,
-    "radiusPx": 50.6,
+    "x": 177.54,
+    "y": 226.48,
+    "radiusPx": 47.6,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 174.2,
-    "y": 372.6,
-    "radiusPx": 52.8,
+    "x": 174.41,
+    "y": 373.38,
+    "radiusPx": 49.1,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 307.1,
-    "y": 446.9,
-    "radiusPx": 52.7,
+    "x": 305.96,
+    "y": 447.19,
+    "radiusPx": 46.1,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 436.8,
-    "y": 371.9,
-    "radiusPx": 50.4,
+    "x": 436.56,
+    "y": 372.17,
+    "radiusPx": 48.2,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 306.89,
+    "y": 299.5,
+    "radiusPx": 45.3,
     "state": "read"
    }
   ],
@@ -981,7 +2136,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 0.09,
+    "ringN": 5684,
+    "ringRms": 0.174,
+    "refinedPx": 0.09,
+    "ringModel": "perspective",
+    "planeResid": 0.11,
+    "score": 74.9,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.24,
+    "ringN": 2828,
+    "ringRms": 0.409,
+    "refinedPx": 0.25,
+    "ringModel": "affine",
+    "planeResid": 0.19,
+    "score": 67.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.16,
+    "ringN": 4584,
+    "ringRms": 0.195,
+    "refinedPx": 0.22,
+    "ringModel": "perspective",
+    "planeResid": 0.16,
+    "score": 69.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.06,
+    "ringN": 4218,
+    "ringRms": 0.558,
+    "refinedPx": 0.05,
+    "ringModel": "affine",
+    "planeResid": 0.07,
+    "score": 39.6,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.1,
+    "ringN": 4534,
+    "ringRms": 0.156,
+    "refinedPx": 0.11,
+    "ringModel": "perspective",
+    "planeResid": 0.19,
+    "score": 60.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.06,
+    "ringN": 9120,
+    "ringRms": 0.152,
+    "refinedPx": 0.06,
+    "ringModel": "perspective",
+    "planeResid": 0.02,
+    "score": 46.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "measured",
+    "dirs": 12,
+    "lineRms": 0.07,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.18,
+    "score": 62,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 8,
+  "planeRms": 0.15,
+  "planeRedundancy": 24,
+  "deltaMm": -0.056,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-13.png",
@@ -996,52 +2256,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 461.8,
-    "y": 343.4,
-    "radiusPx": 67.3,
-    "state": "missing"
-   },
-   {
     "id": 11,
-    "x": 634.4,
-    "y": 233.6,
-    "radiusPx": 78.7,
+    "x": 634.2,
+    "y": 233.34,
+    "radiusPx": 73.3,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 470.4,
-    "y": 133.7,
-    "radiusPx": 68.1,
+    "x": 470.58,
+    "y": 133.88,
+    "radiusPx": 53.2,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 327.2,
-    "y": 243,
-    "radiusPx": 59.1,
+    "x": 326.81,
+    "y": 243.06,
+    "radiusPx": 52.5,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 320,
-    "y": 433.6,
-    "radiusPx": 58.7,
-    "state": "missing"
+    "x": 320.47,
+    "y": 432.53,
+    "radiusPx": 51.4,
+    "state": "read"
    },
    {
     "id": 46,
-    "x": 453.3,
-    "y": 551.2,
-    "radiusPx": 67.1,
+    "x": 453.49,
+    "y": 551.03,
+    "radiusPx": 57.1,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 624.2,
-    "y": 464.4,
-    "radiusPx": 78.1,
+    "x": 624.05,
+    "y": 465.1,
+    "radiusPx": 72.4,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 460.51,
+    "y": 343.71,
+    "radiusPx": 57.5,
     "state": "read"
    }
   ],
@@ -1063,7 +2323,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.37,
+    "ringN": 8048,
+    "ringRms": 0.096,
+    "refinedPx": 0.46,
+    "ringModel": "perspective",
+    "planeResid": 0.26,
+    "score": 57.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 3,
+    "lineRms": 0.39,
+    "ringN": 1990,
+    "ringRms": 0.111,
+    "refinedPx": 2.67,
+    "ringModel": "perspective",
+    "planeResid": 0.82,
+    "score": 42.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 0.77,
+    "ringN": 4004,
+    "ringRms": 0.129,
+    "refinedPx": 1.09,
+    "ringModel": "perspective",
+    "planeResid": 0.52,
+    "score": 48.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 0.89,
+    "ringN": 3932,
+    "ringRms": 1.211,
+    "refinedPx": 1.83,
+    "ringModel": "affine",
+    "planeResid": 0.39,
+    "score": 34.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.68,
+    "ringN": 10922,
+    "ringRms": 0.602,
+    "refinedPx": 0.92,
+    "ringModel": "affine",
+    "planeResid": 0.61,
+    "score": 41.2,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.17,
+    "ringN": 15682,
+    "ringRms": 0.098,
+    "refinedPx": 0.31,
+    "ringModel": "perspective",
+    "planeResid": 0.18,
+    "score": 33.5,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.7,
+    "ringN": 11124,
+    "ringRms": 0.106,
+    "refinedPx": 0.26,
+    "ringModel": "perspective",
+    "planeResid": 0.87,
+    "score": 44,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 16,
+  "planeRms": 0.58,
+  "planeRedundancy": 27,
+  "deltaMm": -0.041,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-14.png",
@@ -1078,52 +2443,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 370.1,
-    "y": 629.9,
-    "radiusPx": 78.6,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 230.9,
-    "y": 404.5,
-    "radiusPx": 90.9,
+    "x": 226.25,
+    "y": 404.3,
+    "radiusPx": 89.7,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 111,
-    "y": 671.2,
-    "radiusPx": 106.1,
+    "x": 113.16,
+    "y": 667.79,
+    "radiusPx": 93.6,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 277.2,
-    "y": 891.8,
-    "radiusPx": 91.7,
+    "x": 279.55,
+    "y": 879.88,
+    "radiusPx": 82.7,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 485,
-    "y": 816,
-    "radiusPx": 70,
+    "x": 482.78,
+    "y": 813.69,
+    "radiusPx": 67.4,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 546.7,
-    "y": 601.7,
-    "radiusPx": 61.7,
-    "state": "located"
+    "x": 549.52,
+    "y": 606.22,
+    "radiusPx": 68.5,
+    "state": "read"
    },
    {
     "id": 51,
-    "x": 447,
-    "y": 412.8,
-    "radiusPx": 69.5,
+    "x": 447.99,
+    "y": 412.72,
+    "radiusPx": 71.6,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 369.56,
+    "y": 631.83,
+    "radiusPx": 79.3,
     "state": "read"
    }
   ],
@@ -1145,7 +2510,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.64,
+    "ringN": 17494,
+    "ringRms": 0.047,
+    "refinedPx": 0.81,
+    "ringModel": "perspective",
+    "planeResid": 0.13,
+    "score": 141.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.2,
+    "ringN": 14092,
+    "ringRms": 0.043,
+    "refinedPx": 0.25,
+    "ringModel": "perspective",
+    "planeResid": 0.33,
+    "score": 147.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 1.48,
+    "ringN": 18680,
+    "ringRms": 0.057,
+    "refinedPx": 0.68,
+    "ringModel": "perspective",
+    "planeResid": 0.54,
+    "score": 152.2,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 1.28,
+    "ringN": 13986,
+    "ringRms": 0.073,
+    "refinedPx": 1.08,
+    "ringModel": "perspective",
+    "planeResid": 0.88,
+    "score": 100.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 7,
+    "lineRms": 0.92,
+    "ringN": 5158,
+    "ringRms": 0.066,
+    "refinedPx": 12.22,
+    "ringModel": "perspective",
+    "planeResid": 0.28,
+    "score": 87.2,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 2.11,
+    "ringN": 17498,
+    "ringRms": 0.06,
+    "refinedPx": 2.1,
+    "ringModel": "perspective",
+    "planeResid": 0.34,
+    "score": 78.3,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.44,
+    "ringN": 17544,
+    "ringRms": 0.068,
+    "refinedPx": 0.7,
+    "ringModel": "perspective",
+    "planeResid": 0.62,
+    "score": 67.1,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 20,
+  "planeRms": 0.5,
+  "planeRedundancy": 27,
+  "deltaMm": -0.034,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-15.png",
@@ -1160,52 +2630,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 297.8,
-    "y": 387.8,
-    "radiusPx": 71.8,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 438.5,
-    "y": 544.1,
-    "radiusPx": 77.3,
+    "x": 438.48,
+    "y": 543.64,
+    "radiusPx": 76.9,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 500.2,
-    "y": 337.2,
-    "radiusPx": 72,
+    "x": 499.31,
+    "y": 337.94,
+    "radiusPx": 63.2,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 362.7,
-    "y": 197.3,
-    "radiusPx": 67.1,
+    "x": 362.06,
+    "y": 198.31,
+    "radiusPx": 63,
     "state": "read"
    },
    {
     "id": 37,
-    "x": 170,
-    "y": 245.9,
-    "radiusPx": 66.9,
-    "state": "located"
+    "x": 170.43,
+    "y": 245.56,
+    "radiusPx": 62.6,
+    "state": "read"
    },
    {
     "id": 46,
-    "x": 96.4,
-    "y": 438.1,
-    "radiusPx": 71.7,
+    "x": 97.52,
+    "y": 437.34,
+    "radiusPx": 65.8,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 226.6,
-    "y": 596.5,
-    "radiusPx": 77.1,
+    "x": 225.6,
+    "y": 596.56,
+    "radiusPx": 76.6,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 296.97,
+    "y": 387.38,
+    "radiusPx": 71,
     "state": "read"
    }
   ],
@@ -1227,7 +2697,112 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": true
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.1,
+    "ringN": 19094,
+    "ringRms": 0.065,
+    "refinedPx": 0.23,
+    "ringModel": "perspective",
+    "planeResid": 1.15,
+    "score": 138.3,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "measured",
+    "dirs": 11,
+    "lineRms": 0.06,
+    "ringN": null,
+    "ringRms": null,
+    "refinedPx": null,
+    "ringModel": null,
+    "planeResid": 0.75,
+    "score": 122.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.21,
+    "ringN": 5656,
+    "ringRms": 0.095,
+    "refinedPx": 0.13,
+    "ringModel": "perspective",
+    "planeResid": 0.46,
+    "score": 111,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 0.12,
+    "ringN": 7464,
+    "ringRms": 0.1,
+    "refinedPx": 0.04,
+    "ringModel": "perspective",
+    "planeResid": 1.06,
+    "score": 70.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.63,
+    "ringN": 12324,
+    "ringRms": 0.17,
+    "refinedPx": 1.07,
+    "ringModel": "perspective",
+    "planeResid": 0.41,
+    "score": 80.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.3,
+    "ringN": 19620,
+    "ringRms": 0.064,
+    "refinedPx": 0.47,
+    "ringModel": "perspective",
+    "planeResid": 0.71,
+    "score": 59.1,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.19,
+    "ringN": 19264,
+    "ringRms": 0.08,
+    "refinedPx": 0.09,
+    "ringModel": "perspective",
+    "planeResid": 0.09,
+    "score": 57.1,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 12,
+  "planeRms": 0.75,
+  "planeRedundancy": 24,
+  "deltaMm": -0.137,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  },
  {
   "file": "hexframe-16.png",
@@ -1242,52 +2817,52 @@
   },
   "truth": [
    {
-    "id": 56,
-    "x": 461.5,
-    "y": 417.3,
-    "radiusPx": 47.3,
-    "state": "read"
-   },
-   {
     "id": 11,
-    "x": 315.2,
-    "y": 442.4,
-    "radiusPx": 47.7,
+    "x": 314.03,
+    "y": 440.72,
+    "radiusPx": 46.4,
     "state": "read"
    },
    {
     "id": 22,
-    "x": 406.2,
-    "y": 548.9,
-    "radiusPx": 51.8,
+    "x": 404.81,
+    "y": 548.54,
+    "radiusPx": 47.1,
     "state": "read"
    },
    {
     "id": 29,
-    "x": 560.9,
-    "y": 521.8,
-    "radiusPx": 51.5,
-    "state": "missing"
+    "x": 560.44,
+    "y": 521.72,
+    "radiusPx": 50,
+    "state": "read"
    },
    {
     "id": 37,
-    "x": 606.6,
-    "y": 392.5,
-    "radiusPx": 47,
+    "x": 605.53,
+    "y": 392.58,
+    "radiusPx": 44.8,
     "state": "read"
    },
    {
     "id": 46,
-    "x": 510.5,
-    "y": 300.9,
-    "radiusPx": 43.5,
+    "x": 509.65,
+    "y": 301.01,
+    "radiusPx": 40.1,
     "state": "read"
    },
    {
     "id": 51,
-    "x": 372.8,
-    "y": 324,
-    "radiusPx": 43.8,
+    "x": 372.57,
+    "y": 323.32,
+    "radiusPx": 41.5,
+    "state": "read"
+   },
+   {
+    "id": 56,
+    "x": 461.04,
+    "y": 416.24,
+    "radiusPx": 43.3,
     "state": "read"
    }
   ],
@@ -1309,6 +2884,111 @@
    "gapFrac": 0.3,
    "maxWidth": 960,
    "bothAxes": false
-  }
+  },
+  "labelQuality": [
+   {
+    "id": 11,
+    "src": "refined",
+    "dirs": 12,
+    "lineRms": 0.38,
+    "ringN": 10328,
+    "ringRms": 0.067,
+    "refinedPx": 0.33,
+    "ringModel": "perspective",
+    "planeResid": 0.12,
+    "score": 116,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 22,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 0.18,
+    "ringN": 8064,
+    "ringRms": 0.061,
+    "refinedPx": 0.07,
+    "ringModel": "perspective",
+    "planeResid": 0.12,
+    "score": 122.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 29,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.18,
+    "ringN": 11106,
+    "ringRms": 0.065,
+    "refinedPx": 0.03,
+    "ringModel": "perspective",
+    "planeResid": 0.17,
+    "score": 124.7,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 37,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 0.46,
+    "ringN": 9904,
+    "ringRms": 0.077,
+    "refinedPx": 0.25,
+    "ringModel": "perspective",
+    "planeResid": 0.22,
+    "score": 57.8,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 46,
+    "src": "refined",
+    "dirs": 10,
+    "lineRms": 0.27,
+    "ringN": 8370,
+    "ringRms": 0.097,
+    "refinedPx": 0.37,
+    "ringModel": "perspective",
+    "planeResid": 0.21,
+    "score": 61.3,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 51,
+    "src": "refined",
+    "dirs": 11,
+    "lineRms": 0.39,
+    "ringN": 10896,
+    "ringRms": 0.087,
+    "refinedPx": 0.55,
+    "ringModel": "perspective",
+    "planeResid": 0.26,
+    "score": 57.4,
+    "inFrame": true,
+    "ok": true
+   },
+   {
+    "id": 56,
+    "src": "refined",
+    "dirs": 9,
+    "lineRms": 0.19,
+    "ringN": 11508,
+    "ringRms": 0.068,
+    "refinedPx": 0.06,
+    "ringModel": "perspective",
+    "planeResid": 0.18,
+    "score": 81.1,
+    "inFrame": true,
+    "ok": true
+   }
+  ],
+  "goldenThr": 30,
+  "planeRms": 0.19,
+  "planeRedundancy": 27,
+  "deltaMm": -0.077,
+  "labelledBy": "relabelCase: 12 directions, stride 1, per-frame edge threshold, ring-lattice refinement per mark, plane fitted to centres AND mark metrics"
  }
 ]

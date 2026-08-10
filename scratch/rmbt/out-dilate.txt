@@ -1,0 +1,53 @@
+
+scene yaw=0 tilt=0 roll=0 fill=0.8  mark=164px  obs/mark≈1925  456ms scan + 285ms fit  BAD=2
+  base        n=  7 p50=0.059 p90=0.075 max=104.708   bias (-12.787,-7.749)  demeaned n=  7 p50=14.961 p90=15.011 max=89.756
+  fit         n=  5 p50=0.009 p90=0.022 max=0.022   bias (-0.007,-0.003)  demeaned n=  5 p50=0.013 p90=0.017 max=0.017
+  fitNoDelta  n=  5 p50=0.029 p90=0.107 max=0.107   bias (-0.029,-0.003)  demeaned n=  5 p50=0.039 p90=0.079 max=0.079
+  fitPersp    n=  5 p50=0.022 p90=0.030 max=0.030   bias (-0.004,-0.003)  demeaned n=  5 p50=0.024 p90=0.033 max=0.033
+  delta (mm)  0.246 0.249 0.247 0.252 0.245
+
+scene yaw=20 tilt=12 roll=0 fill=0.8  mark=155px  obs/mark≈1303  437ms scan + 185ms fit  BAD=2
+  base        n=  7 p50=0.363 p90=1.522 max=4.886   bias (-0.772,-0.391)  demeaned n=  7 p50=1.004 p90=1.178 max=4.096
+  fit         n=  5 p50=0.317 p90=0.369 max=0.369   bias (0.280,-0.154)  demeaned n=  5 p50=0.031 p90=0.054 max=0.054
+  fitNoDelta  n=  5 p50=0.283 p90=0.370 max=0.370   bias (0.259,-0.158)  demeaned n=  5 p50=0.057 p90=0.071 max=0.071
+  fitPersp    n=  5 p50=0.025 p90=0.336 max=0.336   bias (0.059,-0.041)  demeaned n=  5 p50=0.081 p90=0.265 max=0.265
+  delta (mm)  0.248 0.245 0.252 0.259 0.254
+
+scene yaw=-30 tilt=20 roll=15 fill=0.7  mark=127px  obs/mark≈566  377ms scan + 47ms fit  BAD=2
+  base        n=  3 p50=0.931 p90=285.814 max=285.814   bias (-73.205,-60.364)  demeaned n=  3 p50=95.578 p90=190.931 max=190.931
+  fit         n=  1 p50=0.327 p90=0.327 max=0.327   bias (-0.233,-0.230)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fitNoDelta  n=  1 p50=0.341 p90=0.341 max=0.341   bias (-0.241,-0.241)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fitPersp    n=  1 p50=0.035 p90=0.035 max=0.035   bias (-0.033,-0.009)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  delta (mm)  0.247
+
+scene yaw=35 tilt=-25 roll=-20 fill=0.6  mark=105px  obs/mark≈302  348ms scan + 18ms fit  BAD=1
+  base        n=  2 p50=1.606 p90=1.606 max=1.606   bias (0.477,0.925)  demeaned n=  2 p50=1.187 p90=1.187 max=1.187
+  fit         n=  1 p50=0.302 p90=0.302 max=0.302   bias (0.297,0.058)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fitNoDelta  n=  1 p50=0.310 p90=0.310 max=0.310   bias (0.301,0.075)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fitPersp    n=  1 p50=0.015 p90=0.015 max=0.015   bias (0.013,-0.007)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  delta (mm)  0.194
+
+scene yaw=0 tilt=0 roll=30 fill=0.5  mark=103px  obs/mark≈1092  329ms scan + 17ms fit
+  base        n=  1 p50=4.279 p90=4.279 max=4.279   bias (2.327,-3.591)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fit         n=  1 p50=0.014 p90=0.014 max=0.014   bias (0.012,-0.006)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fitNoDelta  n=  1 p50=0.014 p90=0.014 max=0.014   bias (0.012,-0.008)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  fitPersp    n=  1 p50=0.031 p90=0.031 max=0.031   bias (0.003,-0.031)  demeaned n=  1 p50=0.000 p90=0.000 max=0.000
+  delta (mm)  0.192
+
+scene yaw=15 tilt=30 roll=45 fill=0.9  mark=180px  obs/mark≈2552  467ms scan + 367ms fit  BAD=1
+  base        n=  7 p50=1.053 p90=1.735 max=2.865   bias (0.454,0.584)  demeaned n=  7 p50=0.718 p90=2.130 max=2.265
+  fit         n=  6 p50=0.434 p90=0.550 max=0.550   bias (0.427,-0.131)  demeaned n=  6 p50=0.055 p90=0.104 max=0.104
+  fitNoDelta  n=  6 p50=0.456 p90=0.536 max=0.536   bias (0.421,-0.120)  demeaned n=  6 p50=0.062 p90=0.146 max=0.146
+  fitPersp    n=  6 p50=0.018 p90=0.391 max=0.391   bias (0.068,-0.028)  demeaned n=  6 p50=0.079 p90=0.318 max=0.318
+  delta (mm)  0.241 0.244 0.234 0.244 0.252 0.245
+
+=== over all scenes, px error against exact projected centres  (dirs=12 stride=2 dilate=0.6) ===
+  base        abs n= 27 p50=0.831 p90=4.279 max=285.814
+              de-meaned per scene n= 27 p50=1.187 p90=89.756 max=190.931
+  fit         abs n= 19 p50=0.317 p90=0.434 max=0.550
+              de-meaned per scene n= 19 p50=0.019 p90=0.055 max=0.104
+  fitNoDelta  abs n= 19 p50=0.310 p90=0.456 max=0.536
+              de-meaned per scene n= 19 p50=0.039 p90=0.079 max=0.146
+  fitPersp    abs n= 19 p50=0.022 p90=0.061 max=0.391
+              de-meaned per scene n= 19 p50=0.046 p90=0.092 max=0.318
+  delta       n= 19 p50=0.246 p90=0.252 max=0.259  (signed p50 0.246 mm)

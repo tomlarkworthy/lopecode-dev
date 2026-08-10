@@ -1,0 +1,11 @@
+function _anonymous(md) {return (md`# Fast Multi-Target Circular Barcode Tracking
+
+Part V of a 10 year project designed for better optical localization. In this notebook we
+
+* Match multiple circular barcodes in the scene
+
+* Decode them so each has an unambigous code for matching
+
+* Compile into WASM via AssemblyScript for fast performance
+
+* `);}

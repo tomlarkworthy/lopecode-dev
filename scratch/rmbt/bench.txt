@@ -1,0 +1,182 @@
+{
+ "frames": [
+  {
+   "name": "hexcase-159",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 50,
+   "read": 4,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 4,
+   "ms": 7.6
+  },
+  {
+   "name": "phone-hexcase-08",
+   "truthMarks": 7,
+   "rowsTried": 213,
+   "rowsWithHits": 121,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 14.2
+  },
+  {
+   "name": "hexcase-5ivq-04",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 97,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 18.5
+  },
+  {
+   "name": "phone-hexcase-01",
+   "truthMarks": 7,
+   "rowsTried": 213,
+   "rowsWithHits": 77,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 12.9
+  },
+  {
+   "name": "hexcase-02",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 66,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 9.3
+  },
+  {
+   "name": "hexcase-5ivq-08",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 86,
+   "read": 4,
+   "wrong": 0,
+   "spurious": 2,
+   "fused": 6,
+   "ms": 13.2
+  },
+  {
+   "name": "phone-hexcase-07",
+   "truthMarks": 7,
+   "rowsTried": 213,
+   "rowsWithHits": 123,
+   "read": 7,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 7,
+   "ms": 12.4
+  },
+  {
+   "name": "hexcase-5ivq-03",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 112,
+   "read": 4,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 4,
+   "ms": 17.7
+  },
+  {
+   "name": "phone-hexcase-09",
+   "truthMarks": 7,
+   "rowsTried": 213,
+   "rowsWithHits": 109,
+   "read": 7,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 7,
+   "ms": 16.4
+  },
+  {
+   "name": "hexcase-5ivq-06",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 104,
+   "read": 3,
+   "wrong": 0,
+   "spurious": 2,
+   "fused": 5,
+   "ms": 15.7
+  },
+  {
+   "name": "phone-hexcase-04",
+   "truthMarks": 7,
+   "rowsTried": 213,
+   "rowsWithHits": 105,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 13.3
+  },
+  {
+   "name": "hexcase-5iap-12",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 56,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 7.4
+  },
+  {
+   "name": "hexcase-5iap-04",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 78,
+   "read": 5,
+   "wrong": 0,
+   "spurious": 1,
+   "fused": 6,
+   "ms": 11.2
+  },
+  {
+   "name": "phone-hexcase-06",
+   "truthMarks": 7,
+   "rowsTried": 213,
+   "rowsWithHits": 126,
+   "read": 6,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 6,
+   "ms": 20.6
+  },
+  {
+   "name": "hexcase-04-pre",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 82,
+   "read": 5,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 5,
+   "ms": 9.1
+  },
+  {
+   "name": "hexcase-5ivq-07",
+   "truthMarks": 7,
+   "rowsTried": 120,
+   "rowsWithHits": 68,
+   "read": 7,
+   "wrong": 0,
+   "spurious": 0,
+   "fused": 7,
+   "ms": 10.2
+  }
+ ],
+ "manSceneTest": "stride 6: 3/4 correct, 0 spurious, 1 located-unread, 3ms #45 W55 yaw0 -> tilt 11 b 54/55 cov 1.11 asp 1.02 err 0.1px #9 W40 yaw30 -> tilt 64 b 78/40 cov 0.77 asp 0.44 err 9.0px #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.12 asp 0.65 err 1.0px #21 W33 yaw15 -> MISSED stride 4: 4/4 correct, 0 spurious, 0 located-unread, 5ms #45 W55 yaw0 -> tilt 5 b 55/55 cov 1.24 asp 1.00 err 0.0px #9 W40 yaw30 -> tilt 24 b 32/40 cov 0.75 asp 1.10 err 4.0px #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.20 asp 0.65 err 1.0px #21 W33 yaw15 -> tilt 46 b 46/33 cov 1.12 asp 0.70 err 8.0px stride 4 bothAxes: 4/4 correct, 0 spurious, 0 located-unread, 9ms #45 W55 yaw0 -> tilt 5 b 55/55 cov 1.24 asp 1.00 err 0.9px #9 W40 yaw30 -> tilt 24 b 40/40 cov 0.75 asp 1.10 err 0.8px #62 W70 yaw50 -> tilt 50 b 70/70 cov 1.20 asp 0.65 err 1.3px #21 W33 yaw15 -> tilt 46 b 46/33 cov 1.12 asp 0.70 err 8.0px",
+ "hexRigSelfTest": "⌀80 blur 1.1 yaw 0 tilt 25: read 5 rms 3.62px loo 2.58r → reject, true label err 0.61r ⌀92 blur 0.9 yaw 10 tilt 30: read 6 rms 0.35px loo 0.06r → ADMIT, true label err 0.05r ⌀110 blur 1 yaw 10 tilt 30: read 7 rms 2.52px loo 0.17r → ADMIT, true label err 0.09r ⌀120 blur 1 yaw 10 tilt 30: read 6 rms 1.9px loo 0.25r → ADMIT, true label err 0.1r ⌀130 blur 1 yaw 10 tilt 30: read 7 rms 3.75px loo 0.24r → ADMIT, true label err 0.12r ⌀110 blur 0.9 yaw 10 tilt 30: read 7 rms 0.47px loo 0.03r → ADMIT, true label err 0.04r ⌀100 blur 1 yaw 10 tilt 30: read 6 rms 0.31px loo 0.03r → ADMIT, true label err 0.02r ⌀125 blur 1.1 yaw 0 tilt 25: read 6 rms 0.63px loo 0.04r → ADMIT, true label err 0.05r A no false accept: 7 admitted, worst true label error 0.12r — ok B bar has teeth: rejected 1 frame(s) whose labels were off by >0.3r (worst 0.61r) — ok C frozen score vs live pose: identical on all cases D swe"
+}

@@ -1,0 +1,3 @@
+function _anonymous(md) {return (md`### §3.2   Near missed
+
+Captured by the rig's auto capture. When enough agree but one is wrong, we automatically capture this. Taken in a few different cluttered environments including barcode like features like vanician blinds and railings.`);}

@@ -1,0 +1,62 @@
+{
+ "algo_md": "function _anonymous(md) {return (md`## §4   Dectection\n\n|   |   |\n| --- | --- |\n| §4.1 | **The circular encoding** |\n| §4.2 | **One scanline** |\n| §4.3 | **Frame** fusion |\n| §4.4 | **The plane** |\n\nThe mark is designed so it is easy to recognize and localalize from a single scan line of pixels. The encoding gives it a label and edges for sharp poisitioning.`);}",
+ "next_md": "function _next_md(md) {return (md`## §5 &nbsp; Next steps\n\n**Adaptive tuning**, in its own notebook. The evaluation in §3 makes a fitness\nfunction out of the frame bank: read count, invented marks, and time, on frames\nwith real backgrounds and frozen labels. That is enough to search the detector's\nparameters automatically instead of by hand, and the sweep in §3.3 is the\nmanual, one-factor-at-a-time version of exactly that search.\n\nTwo findings from this notebook say what such a search has to be careful about.\nWinners do not compose — six independent improvements claiming +102 marks\nbetween them delivered +37 when stacked — so a search that optimises one knob at\na time will systematically overstate what it has found. And the real archive\ncannot see an invented mark, so any fitness function built only from captures\nwill happily reward a detector that hallucinates; the rendered scenes have to\nstay in the objective.\n\nThe other open thread is **cost**. Time tracks the number of locked rows, not\nthe number of pixels: correlation 0.87 against rows, 0.20 against frame area. A\nbusy background costs 1.7x the time for no change in accuracy. That points at\ngating the scan to where a mark was last seen rather than at making the image\nsmaller — downscaling is the intuitive lever and the measurements say it is the\nwrong one.\n\nThe pool in §4.5 buys about 2.4x of that cost and no accuracy, and §4.6 buys\nanother 2.5x on top by taking the cascade out of JIT-compiled JavaScript.\nHanding chunks out on demand has since closed the pool's first lead — the frame\nno longer waits on whichever worker drew a slow core. The second is still open:\na **temporal gate** would cut the row count itself, which is the quantity the\ncost actually tracks. The two compose, because one makes rows cheaper to run\nand the other asks for fewer of them.\n\nWorth separating, because they are not the same win: the pool and the port both\nshow up as milliseconds, but only the port removes the *warm-up*, and the\nwarm-up is what a user experiences as the detector being unreliable for the\nfirst fifteen seconds.\n\nA third lead came from the same measurement, was tried, and has been\n**removed**. The main thread scans rows faster than any worker and spends the\nwhole frame awaiting them, so it could consume the same queue. A sampling\nprofile taken over the DevTools protocol on the phone itself made that look\nobvious: the main thread sits **idle 37.9%** of every frame while all six\nworkers saturate.\n\nMeasured on one stored frame, arms interleaved and both warmed, it was **13.8%\nslower** — 39.8ms against 45.3ms, on 8 cores with 6 workers. It was idle because\nit was *waiting*. Scanning on it takes a core away from a worker and blocks the\nreplies those workers are trying to deliver, so it loses twice. An idle main\nthread is not a spare core; idle percentages measure blocking, and only an A/B\nmeasures spare capacity. The code is gone rather than left behind a flag,\nbecause a flag would have preserved the wrong intuition along with it.\n\n### §5.1 &nbsp; Why it used to start slow\n\nThe rig was reliably terrible for its first second and then fine, which is the\nkind of thing that gets explained away as the camera settling. It was 8.4x, and\nit was not the camera.\n\nTiming every job from the very first on a fresh pool, and recording each\nworker's *own* reported time next to wall clock, splits it in two — because\nfrom outside, a job waiting in a queue and a job running interpreted look\nexactly the same:\n\n| jobs | wall | workers reported | |\n|---|---|---|---|\n| 1-17 | 28-47ms | 7-10ms | 25ms of **queueing** |\n| 18 | 7.2ms | | \\`poolAgreement\\` resolved |\n| 18-80 | falling | 7.0 → 4.0ms | **cold code**, tiering up |\n\nThe first half was self-inflicted. \\`poolAgreement\\` is the boot-time\ncorrectness check, and it pushes all 16 bank frames through the very workers\nthe live loop needs, so live frames queued behind it. It now **defers while the\ncamera is running**: queueing 25.4ms → 0.4ms, first ten frames 33.4ms → 7.9ms,\nconverged at job 4 instead of job 41. Turn the camera off and the check runs.\n\nThe second half is real and has no cheap fix. The kernel is these cells put\nthrough \\`toString()\\` and rebuilt with \\`new Function()\\` inside each worker,\nso nothing of the main thread's JIT state crosses over and six workers each\ntier up alone. A synthetic warm-up was tried and did nothing — it was 375x too\nsmall, and sized to work it costs the same second of worker time the deferred\ncheck was already spending. Ahead-of-time compilation is the only thing that\nremoves it outright.\n\n### §5.2 &nbsp; Capture, and how it had to be tuned\n\nOn a phone, **getting the pixels cost more than looking at them**, and that went\nunnoticed for a long time because the frame timer started after the capture. The\noriginal path is the obvious one: \\`drawImage\\` the video into a 2D canvas,\n\\`getImageData\\`, weighted-sum RGB to gray. On a mid-range Android at 960×1280\nthat is 5.1 + 17.7 + 1.7 = **24ms**, against 10-26ms for the detector it feeds.\n\nBut a camera does not produce RGBA. It produces **I420**, and plane 0 of an I420\nframe *is* the luma — the exact buffer the detector wants, already computed by\nthe decoder. \\`new VideoFrame(video).copyTo(buf)\\` hands it over in **1.4ms**,\nand the visible canvas takes the video directly on the GPU for 0.1ms instead of\nreceiving a CPU-side copy. Capture went ~22ms → ~1.5ms, and gray → 0.\n\nFour things had to be right, and each is a way this can quietly regress:\n\n- **Colour range.** I420 luma is BT.601 *limited* range (16-235); the old path\n  derived luma from RGB the decoder had already expanded to full range.\n  Uncorrected, every edge magnitude shrinks by 0.86 and every tuned threshold\n  and every archived case silently means something else. Measured against the\n  old path on a lit frame: raw Y differs by a mean of **11.5 levels**,\n  LUT-corrected by **0.34**. The correction is a 256-entry lookup, cheaper than\n  the three multiplies it replaces.\n- **Expand lazily.** Converting all 1.2M pixels showed up in the next profile as\n  its own cost, larger than the copy it followed. The scan reads a quarter of\n  the rows, so only a quarter of the rows are expanded; anything wanting the\n  whole frame asks for it (\\`ensureFull\\`).\n- **\\`copyTo\\` cannot scale — it crops.** So the fast path requires the working\n  width to equal the width frames actually arrive at. A \\`maxWidth\\` below that\n  silently drops back to the 22ms path. **If capture time jumps back to ~20ms,\n  check this first.**\n- **\\`videoWidth\\` is not that width, and assuming it is corrupts the geometry.**\n  The element reports the *display* size, after whatever scaling the browser\n  applied to satisfy the constraints; \\`VideoFrame.visibleRect\\` is what \\`copyTo\\`\n  hands over. On this laptop they read 1280×960 and 1440×1080 — a 1920×1080\n  sensor centre-cropped to 4:3, then scaled down for display — even though the\n  camera was requested at \\`max: 1280\\`. Sizing the rig from the element was\n  therefore not merely slow but *wrong*: the repack loop read the extra 160\n  columns as stride padding, so the detector analysed the top-left 1280×960 of\n  a 1440×1080 image while the canvas beside it showed the whole frame shrunk to\n  fit, and every overlay landed **1440/1280 = 1.125×** out, growing with\n  distance from the origin. The right 11% and bottom 11% of every frame were\n  never looked at. The fix is to ask the frame (\\`lumaCapture.probe\\`) and size\n  the whole pipeline — canvas, overlay, scan — to its answer, which keeps the\n  fast path and one coordinate space at the same time. This is the failure mode\n  that made \\`fellBack\\`-style counters worth having elsewhere: nothing errored,\n  the fast path stayed on, and only the picture showed it.\n- **Stride may be padded.** Plane 0 can be wider than the image; the\n  \\`PlaneLayout\\` returned by \\`copyTo\\` carries the real stride, and rows are\n  repacked only when it differs from the width. Padding and a size mismatch are\n  indistinguishable at that point, which is exactly why the size has to be\n  settled before the repack rather than inside it.\n\nNone of this is assumed to exist. WebCodecs, the pixel format and the frame size\nare all capability-checked and the old path stays as a real fallback, which is\nalso what makes the two comparable — \\`lumaCapture.compare()\\` runs both on the\nsame live frame and reports the mean and max difference. The HUD says which path\nis live (\\`vf\\` or \\`gid\\`) and, when it is the slow one, why: a 20ms difference\nshould never have to be guessed at.`);}",
+ "sites": [
+  {
+   "v": "viewof hexRigCfg",
+   "line": "// frame, down the columns instead of across the rows (§11.1). It halves the"
+  },
+  {
+   "v": "barcodeDemo",
+   "line": "// labelled variant for print: the same mark the A4 sheet in §2.1 lays out"
+  },
+  {
+   "v": "hexRig",
+   "line": "// The calibration rig. Point the camera at the printed §11.4 sheet and it"
+  },
+  {
+   "v": "hexTargetSvg",
+   "line": "// §10 and §11.2: the whole page floods mid-gray and each mark is nested full"
+  },
+  {
+   "v": "testFrameFiles",
+   "line": "// a line here and an entry in testFrames (classic) or manFrames (§11)."
+  },
+  {
+   "v": "testFrameFiles",
+   "line": "// §11.6's hex bank. NUMBERED SLOTS, not case names: which archived capture"
+  },
+  {
+   "v": "hexFrameReport",
+   "line": "// scenes in §11.2 and the mirror bank in §3 are where the tripwires live; this"
+  },
+  {
+   "v": "manMarkSvgSource",
+   "line": "// A man mark as standalone SVG, mm-sized, same conventions as §10:"
+  },
+  {
+   "v": "manDemo",
+   "line": "// The §11 cascade end to end on one synthetic frame: render a man mark"
+  },
+  {
+   "v": "manRowGroups",
+   "line": "// Measured over the 36-case archive of printed-sheet captures (§11.5),"
+  },
+  {
+   "v": "detectRowMan",
+   "line": "// One scan row, any number of man marks: segment, then run the §11 cascade"
+  },
+  {
+   "v": "clusterManRows",
+   "line": "// sweep them (§3.3). Every default below is the value that was hardcoded"
+  },
+  {
+   "v": "manAxesTest",
+   "line": "// It IS close to a wash on real frames -- see §11.5, where bothAxes never"
+  },
+  {
+   "v": "next_md",
+   "line": "parameters automatically instead of by hand, and the sweep in §3.3 is the"
+  }
+ ]
+}

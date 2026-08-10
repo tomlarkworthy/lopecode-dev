@@ -1,0 +1,136 @@
+{
+ "frame": "hexcase-5ivq-04",
+ "cfg": {
+  "frame": 2,
+  "rowFrac": 0.596,
+  "thr": 12
+ },
+ "row": 429,
+ "nEdges": 96,
+ "scanned": {
+  "locked": 90,
+  "total": 120
+ },
+ "truthCrossing": [
+  {
+   "id": 56,
+   "x": 729.8,
+   "y": 398.9,
+   "r": 52.2,
+   "chord": 42.6,
+   "dTrue": 30.1
+  },
+  {
+   "id": 22,
+   "x": 628.2,
+   "y": 435.3,
+   "r": 41.2,
+   "chord": 40.7,
+   "dTrue": 6.3
+  }
+ ],
+ "kept": [
+  {
+   "foot": 268.94,
+   "id": null,
+   "sup": 5,
+   "d": null,
+   "wHalf": 11.87
+  }
+ ],
+ "groups": [
+  {
+   "gi": 0,
+   "n": 6,
+   "x0": 40.7,
+   "x1": 67.1,
+   "why": "no involution fits",
+   "survives": false,
+   "P": null,
+   "pairs": null,
+   "sup": null,
+   "d": null,
+   "id": null,
+   "bits": null,
+   "nDirect": null,
+   "viol": null,
+   "checks": null,
+   "nVis": null
+  },
+  {
+   "gi": 1,
+   "n": 10,
+   "x0": 115.1,
+   "x1": 213.8,
+   "why": "lattice support 3 < 5",
+   "survives": false,
+   "P": 129.94,
+   "pairs": 3,
+   "sup": 3,
+   "d": 9.23,
+   "id": null,
+   "bits": [
+    0,
+    1,
+    0,
+    1,
+    0,
+    1
+   ],
+   "nDirect": 3,
+   "viol": 1,
+   "checks": 6,
+   "nVis": 6
+  },
+  {
+   "gi": 2,
+   "n": 8,
+   "x0": 246,
+   "x1": 269.7,
+   "why": null,
+   "survives": true,
+   "P": 268.94,
+   "pairs": 6,
+   "sup": 5,
+   "d": 18.9,
+   "id": null,
+   "bits": [
+    null,
+    null,
+    null,
+    0,
+    1,
+    1
+   ],
+   "nDirect": 1,
+   "viol": 0,
+   "checks": 3,
+   "nVis": 3
+  },
+  {
+   "gi": 3,
+   "n": 10,
+   "x0": 246,
+   "x1": 281,
+   "why": "same lock as an earlier group (whole and split both offered)",
+   "survives": false,
+   "P": 268.94,
+   "pairs": 6,
+   "sup": 5,
+   "d": 18.9,
+   "id": null,
+   "bits": [
+    null,
+    null,
+    null,
+    0,
+    1,
+    1
+   ],
+   "nDirect": 1,
+   "viol": 0,
+   "checks": 3,
+   "nVis": 3
+  }
+ ]
+}

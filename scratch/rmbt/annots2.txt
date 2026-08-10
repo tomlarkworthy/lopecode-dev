@@ -1,0 +1,12 @@
+[
+ {
+  "id": "a2lojl6hyd",
+  "note": "function _anonymous(md) {return (md`move to other section`);}",
+  "spec": "function _annotation_a2lojl6hyd(annotation) {return (annotation({\n \"anchor\": {\n  \"surface\": \"text\",\n  \"module\": \"@tomlarkworthy/coded-landmark-tracking\",\n  \"region\": \"cell\",\n  \"afterIndex\": 0,\n  \"cell\": \"manMarkSvgSource\",\n  \"pid\": \"_19a2bc6\",\n  \"quote\": {\n   \"prefix\": \"\",\n   \"exact\": \"manMarkSvgSource = ƒ(…)\",\n   \"suffix\": \"\"\n  },\n  \"hint\": {\n   \"start\": 0,\n   \"end\": 23\n  },\n  \"cellHash\": \"1c6mbvz\"\n },\n \"createdAt\": \"2026-08-04T21:00:07.813Z\"\n}));}"
+ },
+ {
+  "id": "a2s0opfw54",
+  "note": "function _annotation_a2s0opfw54_note(md) {return (md`note…`);}",
+  "spec": "function _annotation_a2s0opfw54(annotation) {return (annotation({\n \"anchor\": {\n  \"surface\": \"text\",\n  \"module\": \"@tomlarkworthy/coded-landmark-tracking\",\n  \"region\": \"cell\",\n  \"afterIndex\": 0,\n  \"cell\": \"hexFrameReport\",\n  \"pid\": \"_1i43fis\",\n  \"quote\": {\n   \"prefix\": \" \\n      90 of 112 marks read now\",\n   \"exact\": \", 86 when captured\",\n   \"suffix\": \", no off-target detections.\\n    \"\n  },\n  \"hint\": {\n   \"start\": 36,\n   \"end\": 54\n  },\n  \"cellHash\": \"1eociux\"\n },\n \"createdAt\": \"2026-08-04T21:07:50.655Z\"\n}));}"
+ }
+]

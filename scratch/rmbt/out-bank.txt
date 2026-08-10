@@ -1,0 +1,74 @@
+console: Not allowed to load local resource: blob:null/076105ca-3e11-48e9-b400-96a17c8e750e
+console: Not allowed to load local resource: blob:null/dd8d8428-bf58-4e90-9c45-1b02ae64bdc1
+console: Not allowed to load local resource: blob:null/43725db7-e96e-43b9-b5f0-aa6ed110388a
+console: Not allowed to load local resource: blob:null/0bbd53af-77f7-43a8-ad97-9fcbd5526c64
+console: Not allowed to load local resource: blob:null/b8a3aa99-0cd7-4894-a3eb-bba9b9a80e16
+console: Not allowed to load local resource: blob:null/20d871a1-0b61-4abc-b8cb-95062679bff4
+console: Not allowed to load local resource: blob:null/6396dd3f-6227-4342-a557-fa18a1e83ddc
+console: Not allowed to load local resource: blob:null/05458364-0faa-4f19-847c-7370b618a879
+console: Not allowed to load local resource: blob:null/4b5baa03-f8d0-456f-9354-bb81adfaa606
+console: Not allowed to load local resource: blob:null/711911b3-4b6c-40dd-998c-94652e0fdafe
+console: Not allowed to load local resource: blob:null/ee2adc6a-1a57-4c2a-8c1a-f82baa02a451
+console: Not allowed to load local resource: blob:null/cce16b8b-a4c0-4d96-ac5c-4043b134a7de
+console: Not allowed to load local resource: blob:null/25bad39c-adc5-47a5-a052-096a2fd1f036
+console: Not allowed to load local resource: blob:null/0e1de12c-44bc-4a71-972f-edd80f4aeec1
+console: Not allowed to load local resource: blob:null/f9e97bc1-ab07-4e29-9669-6040791eb40b
+console: Not allowed to load local resource: blob:null/989378b6-8984-4770-9102-75fe320e9e49
+console: Not allowed to load local resource: blob:null/4b5baa03-f8d0-456f-9354-bb81adfaa606
+hexcase-01             base 19.82/31.40(7)     same-subset 0.24/0.28(5)       fit 0.15/0.17(5)       delta p50 -0.130mm  moved p50 0.28px  bad=3 fellback=1
+hexcase-02             base 0.22/0.35(7)       same-subset 0.22/0.35(7)       fit 0.19/0.31(7)       delta p50 -0.065mm  moved p50 0.11px  bad=0 fellback=0
+hexcase-02-pre         base 1.97/3.56(5)       same-subset -                  fit -                  delta p50 -0.183mm  moved p50 8.60px  bad=2 fellback=3
+hexcase-03             base 0.17/0.30(7)       same-subset 0.17/0.30(7)       fit 0.16/0.28(7)       delta p50 -0.056mm  moved p50 0.09px  bad=0 fellback=0
+hexcase-03-pre         base 5.96/8.45(6)       same-subset 0.20/0.35(5)       fit 0.12/0.22(5)       delta p50 -0.139mm  moved p50 1.18px  bad=1 fellback=5
+hexcase-04             base 0.15/0.23(7)       same-subset 0.15/0.23(7)       fit 0.15/0.27(7)       delta p50 -0.052mm  moved p50 0.10px  bad=0 fellback=0
+hexcase-04-pre         base 0.41/0.70(7)       same-subset 0.37/0.60(6)       fit 0.53/0.67(6)       delta p50 -0.137mm  moved p50 0.23px  bad=1 fellback=0
+hexcase-05             base 0.25/0.38(7)       same-subset 0.22/0.33(6)       fit 0.15/0.23(6)       delta p50 -0.044mm  moved p50 0.14px  bad=1 fellback=1
+hexcase-06             base 0.20/0.34(7)       same-subset 0.20/0.34(7)       fit 0.21/0.29(7)       delta p50 -0.041mm  moved p50 0.14px  bad=0 fellback=0
+hexcase-06-pre         base 0.93/1.42(7)       same-subset 0.93/1.42(7)       fit 0.92/1.54(7)       delta p50 -0.150mm  moved p50 0.19px  bad=0 fellback=0
+hexcase-07             base 0.15/0.28(7)       same-subset 0.15/0.28(7)       fit 0.15/0.27(7)       delta p50 -0.045mm  moved p50 0.10px  bad=0 fellback=0
+hexcase-08             base 0.18/0.33(7)       same-subset 0.18/0.33(7)       fit 0.15/0.27(7)       delta p50 -0.046mm  moved p50 0.13px  bad=0 fellback=0
+hexcase-09             base 0.14/0.21(7)       same-subset 0.14/0.21(7)       fit 0.15/0.27(7)       delta p50 -0.046mm  moved p50 0.12px  bad=0 fellback=0
+hexcase-10             base 0.18/0.35(7)       same-subset 0.18/0.35(7)       fit 0.18/0.28(7)       delta p50 -0.042mm  moved p50 0.11px  bad=0 fellback=0
+hexcase-100            base 0.22/0.31(7)       same-subset 0.22/0.31(7)       fit 0.15/0.27(7)       delta p50 -0.057mm  moved p50 0.22px  bad=0 fellback=0
+hexcase-11             base 0.15/0.21(7)       same-subset 0.15/0.21(7)       fit 0.14/0.22(7)       delta p50 -0.043mm  moved p50 0.09px  bad=0 fellback=1
+hexcase-12             base 0.22/0.36(7)       same-subset 0.22/0.36(7)       fit 0.18/0.29(7)       delta p50 -0.041mm  moved p50 0.13px  bad=0 fellback=0
+hexcase-13             base 0.22/0.37(7)       same-subset 0.22/0.37(7)       fit 0.15/0.27(7)       delta p50 -0.045mm  moved p50 0.15px  bad=0 fellback=0
+hexcase-131            base 0.11/0.22(7)       same-subset 0.10/0.19(6)       fit 0.13/0.23(6)       delta p50 -0.048mm  moved p50 0.17px  bad=1 fellback=0
+hexcase-137            base 1.55/2.50(7)       same-subset 1.55/2.50(7)       fit 0.58/0.96(7)       delta p50 -0.061mm  moved p50 1.22px  bad=0 fellback=1
+hexcase-14             base 0.18/0.30(7)       same-subset 0.18/0.30(7)       fit 0.15/0.27(7)       delta p50 -0.046mm  moved p50 0.12px  bad=0 fellback=0
+hexcase-144            base 1.46/2.33(7)       same-subset 1.46/2.33(7)       fit 0.54/0.95(7)       delta p50 -0.062mm  moved p50 1.35px  bad=0 fellback=0
+hexcase-152            base 0.12/0.26(7)       same-subset 0.12/0.26(7)       fit 0.15/0.26(7)       delta p50 -0.056mm  moved p50 0.09px  bad=0 fellback=0
+hexcase-159            base 1.81/2.53(7)       same-subset 1.81/2.53(7)       fit 0.55/0.94(7)       delta p50 -0.069mm  moved p50 1.34px  bad=0 fellback=0
+hexcase-160            base 0.29/0.40(6)       same-subset 0.29/0.40(6)       fit 0.48/0.84(6)       delta p50 -0.063mm  moved p50 1.01px  bad=0 fellback=0
+hexcase-165            base 2.75/4.55(7)       same-subset 2.75/4.55(7)       fit 0.58/0.96(7)       delta p50 -0.066mm  moved p50 1.28px  bad=0 fellback=2
+hexcase-166            base 0.17/0.31(7)       same-subset 0.17/0.31(7)       fit 0.15/0.27(7)       delta p50 -0.042mm  moved p50 0.08px  bad=0 fellback=0
+hexcase-168            base 0.11/0.20(7)       same-subset 0.11/0.20(7)       fit 0.15/0.27(7)       delta p50 -0.056mm  moved p50 0.09px  bad=0 fellback=0
+hexcase-18             base 0.14/0.21(7)       same-subset 0.14/0.21(7)       fit 0.15/0.27(7)       delta p50 -0.045mm  moved p50 0.21px  bad=0 fellback=0
+hexcase-206            base 0.12/0.16(7)       same-subset 0.12/0.16(7)       fit 0.19/0.27(7)       delta p50 -0.041mm  moved p50 0.10px  bad=0 fellback=1
+hexcase-213            base 1.14/1.62(7)       same-subset 1.14/1.62(7)       fit 0.56/0.95(7)       delta p50 -0.068mm  moved p50 1.82px  bad=0 fellback=0
+hexcase-217            base 0.14/0.19(7)       same-subset 0.14/0.19(7)       fit 0.21/0.29(7)       delta p50 -0.050mm  moved p50 0.09px  bad=0 fellback=0
+hexcase-220            base 0.59/0.82(7)       same-subset 0.54/0.68(5)       fit 0.39/0.54(5)       delta p50 -0.066mm  moved p50 0.97px  bad=3 fellback=1
+hexcase-241            base 0.12/0.17(7)       same-subset 0.12/0.17(7)       fit 0.22/0.32(7)       delta p50 -0.053mm  moved p50 0.18px  bad=0 fellback=1
+hexcase-261            base 0.17/0.27(7)       same-subset 0.17/0.27(7)       fit 0.15/0.27(7)       delta p50 -0.038mm  moved p50 0.09px  bad=0 fellback=0
+hexcase-263            base 0.18/0.30(7)       same-subset 0.18/0.30(7)       fit 0.15/0.28(7)       delta p50 -0.038mm  moved p50 0.11px  bad=0 fellback=0
+hexcase-306            base 0.22/0.33(7)       same-subset 0.22/0.33(7)       fit 0.16/0.23(7)       delta p50 -0.052mm  moved p50 0.19px  bad=0 fellback=1
+hexcase-45             base 2.11/2.99(7)       same-subset 0.42/0.52(5)       fit 0.54/0.76(5)       delta p50 -0.065mm  moved p50 1.29px  bad=2 fellback=0
+hexcase-5iap-01        base 0.21/0.31(7)       same-subset 0.21/0.31(7)       fit 0.15/0.28(7)       delta p50 -0.077mm  moved p50 0.22px  bad=0 fellback=1
+hexcase-5iap-02        base 0.16/0.32(7)       same-subset 0.16/0.32(7)       fit 0.15/0.31(7)       delta p50 -0.051mm  moved p50 0.08px  bad=2 fellback=0
+hexcase-5iap-03        base 0.29/0.46(7)       same-subset 0.30/0.42(6)       fit 0.31/0.56(6)       delta p50 -0.054mm  moved p50 0.30px  bad=1 fellback=1
+hexcase-5iap-04        base 0.61/0.98(7)       same-subset 0.61/0.98(7)       fit 0.50/1.03(7)       delta p50 -0.042mm  moved p50 1.35px  bad=0 fellback=4
+hexcase-5iap-05        base 0.63/1.13(7)       same-subset 0.63/1.13(7)       fit 0.39/0.79(7)       delta p50 -0.050mm  moved p50 0.75px  bad=2 fellback=3
+hexcase-5iap-06        base 0.22/0.43(7)       same-subset 0.22/0.43(7)       fit 0.27/0.54(7)       delta p50 -0.060mm  moved p50 0.24px  bad=1 fellback=0
+hexcase-5iap-08        base 0.14/0.19(7)       same-subset 0.11/0.20(6)       fit 0.06/0.12(6)       delta p50 -0.046mm  moved p50 0.19px  bad=2 fellback=1
+hexcase-5iap-09        base 0.27/0.42(7)       same-subset 0.27/0.42(7)       fit 0.24/0.48(7)       delta p50 -0.074mm  moved p50 0.17px  bad=1 fellback=1
+hexcase-5iap-10        base 0.10/0.17(7)       same-subset 0.10/0.17(7)       fit 0.17/0.29(7)       delta p50 -0.047mm  moved p50 0.10px  bad=2 fellback=0
+hexcase-5iap-11        base 1.98/3.17(7)       same-subset 1.98/3.17(7)       fit 0.11/0.16(7)       delta p50 -0.045mm  moved p50 0.09px  bad=0 fellback=1
+hexcase-5iap-12        base 0.98/1.55(7)       same-subset 1.02/1.45(6)       fit 0.16/0.19(6)       delta p50 -0.054mm  moved p50 0.37px  bad=2 fellback=1
+hexcase-5iap-13        base 0.11/0.19(7)       same-subset 0.11/0.19(7)       fit 0.26/0.44(7)       delta p50 -0.048mm  moved p50 0.21px  bad=0 fellback=1
+
+=== 50 cases, plane rms (consistency, not accuracy) ===
+  base all marks   n= 50 p50=0.216 p90=1.972 max=19.818
+  base same subset n= 49 p50=0.209 p90=1.141 max=2.748
+  fit  same subset n= 49 p50=0.163 p90=0.544 max=0.918
+  fit tighter on 32/49 cases
+  delta n=334 p50=-0.051 p90=-0.039 max=-0.004

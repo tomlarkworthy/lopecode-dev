@@ -1,0 +1,92 @@
+function _hexFrameReport(hexFrameBank,analyzeFrameMan,fitHexPose,htl) {
+  // Replay every banked frame through the shipping cascade and show what it
+  // makes of each one. No pass/fail bars: this bank grows as more conditions get
+  // photographed, and a bar per frame would mean setting one by hand on every
+  // arrival and going red on the first genuinely hard capture. The rendered
+  // scenes in §11.2 and the mirror bank in §3 are where the tripwires live; this
+  // is where the ground truth about REAL optics lives, and its job is to be
+  // looked at.
+  const COL = {
+    read: "#2fe08a", located: "#ffd23f", missing: "#ff5c5c",
+    misplaced: "#ff9f1c", off: "#d264ff"
+  };
+  const cards = [];
+  let nowRead = 0, thenRead = 0, marks = 0, spurious = 0;
+
+  for (const b of hexFrameBank) {
+    const t0 = window.performance.now();
+    const res = analyzeFrameMan({ gray: b.frame.gray, w: b.frame.w, h: b.frame.h }, { stride: 4 });
+    const pose = fitHexPose({ ...res, w: b.frame.w, h: b.frame.h });
+    const ms = window.performance.now() - t0;
+
+    const parts = [];
+    if (pose.ok) {
+      for (const m of pose.marks) {
+        const c = COL[m.state];
+        const dash = m.state === "read" ? "none" : m.state === "located" ? "7 5" : "2 6";
+        parts.push(
+          `<circle cx="${m.predicted.x}" cy="${m.predicted.y}" r="${m.radiusPx.toFixed(1)}"
+            fill="none" stroke="${c}" stroke-width="${m.state === "read" ? 3 : 2}"
+            stroke-dasharray="${dash}"/>` +
+          `<text x="${m.predicted.x}" y="${(m.predicted.y - m.radiusPx - 6).toFixed(1)}"
+            font-family="ui-monospace,monospace" font-size="${Math.max(28, m.radiusPx * 0.5).toFixed(0)}"
+            font-weight="700" fill="${c}" text-anchor="middle" paint-order="stroke"
+            stroke="#000" stroke-width="5">${m.id}</text>`
+        );
+      }
+      // A detection that fits the involution but sits nowhere the plane goes is
+      // the failure the background is in this bank to provoke, so it is drawn
+      // rather than counted away.
+      for (const o of pose.offTarget)
+        parts.push(
+          `<g stroke="${COL.off}" stroke-width="4">
+            <line x1="${o.x - 16}" y1="${o.y - 16}" x2="${o.x + 16}" y2="${o.y + 16}"/>
+            <line x1="${o.x - 16}" y1="${o.y + 16}" x2="${o.x + 16}" y2="${o.y - 16}"/></g>`
+        );
+      nowRead += pose.counts.read;
+      spurious += pose.offTarget.length;
+    } else {
+      for (const f of res.fused)
+        parts.push(
+          `<circle cx="${f.xc.toFixed(1)}" cy="${f.yc.toFixed(1)}"
+            r="${(f.a ?? f.wHalf ?? 24).toFixed(1)}" fill="none" stroke="#8fa" stroke-width="3"/>`
+        );
+    }
+    thenRead += b.capture.read ?? 0;
+    marks += (b.truth ?? []).length;
+
+    // innerHTML rather than interpolation: htl escapes a string, and these are
+    // built as SVG source
+    const overlay = htl.svg`<svg viewBox="0 0 ${b.frame.w} ${b.frame.h}"
+      style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>`;
+    overlay.innerHTML = parts.join("");
+
+    const chip = (m) => htl.html`<span style="display:inline-block;padding:1px 5px;margin:1px;
+      border-radius:3px;font:10px ui-monospace,monospace;color:#111;
+      background:${COL[m.state] ?? "#888"}" title=${m.state}>${m.id}</span>`;
+
+    cards.push(htl.html`<figure style="margin:0;width:280px">
+      <div style="position:relative;background:#1b1b1b;border-radius:4px;overflow:hidden">
+        <img src=${b.url} style="display:block;width:100%;height:auto">${overlay}
+      </div>
+      <figcaption style="font:11px/1.5 ui-monospace,monospace;padding-top:4px;
+        color:var(--theme-foreground-muted,#888)">
+        ${b.name} · ${b.frame.w}×${b.frame.h} · ${ms.toFixed(0)}ms<br>
+        ${b.capture.distanceMm ? `${b.capture.distanceMm}mm · ${b.capture.tiltDeg}° · ` : ""}${
+          pose.ok ? `${pose.counts.read}/7 read` : "no plane"}${
+          pose.ok && pose.offTarget.length ? ` · ${pose.offTarget.length} off-target` : ""}
+        <div>${pose.ok ? pose.marks.map(chip) : ""}</div>
+      </figcaption>
+    </figure>`);
+  }
+
+  return htl.html`<div>
+    <div style="font:13px system-ui;margin-bottom:8px">
+      ${nowRead} of ${marks} marks read now, ${thenRead} when captured${
+        spurious ? `, ${spurious} off-target detection${spurious === 1 ? "" : "s"}` : ", no off-target detections"}.
+      <span style="color:var(--theme-foreground-muted,#888)">solid = read · dashed = located, payload did not decode ·
+      dotted = missing · ✕ = fitted an involution somewhere the plane does not go</span>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">${cards}</div>
+  </div>`;
+}

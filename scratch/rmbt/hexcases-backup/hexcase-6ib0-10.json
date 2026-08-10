@@ -1,0 +1,35 @@
+{
+ "name": "hexcase-6ib0-10",
+ "w": 960,
+ "h": 720,
+ "labelled": false,
+ "pinned": true,
+ "difficulty": 0,
+ "truth": [],
+ "cfg": {
+  "stride": 4,
+  "edgeThreshold": 12,
+  "minRows": 3,
+  "minVotes": 2,
+  "voteRatio": 2,
+  "minAxisRatio": 0.333333333333333,
+  "minCover": 0.3,
+  "maxASpread": 0.35,
+  "gapFrac": 0.3,
+  "maxWidth": 960,
+  "bothAxes": false
+ },
+ "capture": {
+  "counts": null,
+  "offTarget": 0,
+  "rmsPx": null,
+  "looPx": null,
+  "looFrac": null,
+  "mmPerPx": null,
+  "distanceMm": null,
+  "tiltDeg": null,
+  "ms": 3
+ },
+ "labelQuality": [],
+ "labelledBy": "dense-label 12dir stride1 + pixel check"
+}

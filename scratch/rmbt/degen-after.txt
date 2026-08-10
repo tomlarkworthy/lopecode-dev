@@ -1,0 +1,18 @@
+degenerate 4-subsets of the target: 12 of 35
+hexcase-159          read  7  missing 0  worst pred-vs-label    3px  collinear 29,56,51
+phone-hexcase-08     read  4  missing 3  worst pred-vs-label    8px  -
+hexcase-5ivq-04      read  6  missing 0  worst pred-vs-label    1px  collinear 51,56,29
+phone-hexcase-01     read  7  missing 0  worst pred-vs-label   22px  collinear 46,56,22
+hexcase-02           read  6  missing 0  worst pred-vs-label    1px  collinear 37,56,11
+hexcase-5ivq-08      read  5  missing 1  worst pred-vs-label   19px  -
+phone-hexcase-07     read  5  missing 1  worst pred-vs-label   11px  -
+hexcase-5ivq-03      read  5  missing 1  worst pred-vs-label    2px  -
+phone-hexcase-09     read  7  missing 0  worst pred-vs-label    4px  collinear 22,56,46
+hexcase-5ivq-06      read  4  missing 2  worst pred-vs-label    1px  collinear 37,56,11   <-- UNDETERMINED
+phone-hexcase-04     read  6  missing 1  worst pred-vs-label    5px  collinear 51,56,29
+hexcase-5iap-12      read  6  missing 0  worst pred-vs-label    5px  collinear 22,56,46
+hexcase-5iap-04      read  4  missing 3  worst pred-vs-label    1px  -
+phone-hexcase-06     read  6  missing 0  worst pred-vs-label    2px  collinear 11,56,37
+hexcase-04-pre       read  5  missing 0  worst pred-vs-label   34px  collinear 22,56,46
+hexcase-5ivq-07      read  7  missing 0  worst pred-vs-label    0px  collinear 46,56,22
+pageerrors: none

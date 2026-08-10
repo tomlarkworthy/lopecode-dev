@@ -1,0 +1,12 @@
+[
+ {
+  "id": "a2lojl6hyd",
+  "note": "function _anonymous(md) {return (md`move to other section`);}",
+  "spec": "function _annotation_a2lojl6hyd(annotation) {return (annotation({\n \"anchor\": {\n  \"surface\": \"text\",\n  \"module\": \"@tomlarkworthy/coded-landmark-tracking\",\n  \"region\": \"cell\",\n  \"afterIndex\": 0,\n  \"cell\": \"manMarkSvgSource\",\n  \"pid\": \"_19a2bc6\",\n  \"quote\": {\n   \"prefix\": \"\",\n   \"exact\": \"manMarkSvgSource = ƒ(…)\",\n   \"suffix\": \"\"\n  },\n  \"hint\": {\n   \"start\": 0,\n   \"end\": 23\n  },\n  \"cellHash\": \"1c6mbvz\"\n },\n \"createdAt\": \"2026-08-04T21:00:07.813Z\"\n}));}"
+ },
+ {
+  "id": "a20004dx24",
+  "note": "function _anonymous(md) {return (md`pointless section now`);}",
+  "spec": "function _annotation_a20004dx24(annotation) {return (annotation({\n \"anchor\": {\n  \"surface\": \"text\",\n  \"module\": \"@tomlarkworthy/coded-landmark-tracking\",\n  \"region\": \"cell\",\n  \"afterIndex\": 0,\n  \"cell\": \"manPrint_md\",\n  \"pid\": \"_1p7i4wb\",\n  \"quote\": {\n   \"prefix\": \"§2.1   I\",\n   \"exact\": \"ndividual marks\",\n   \"suffix\": \"\\nThe same encoding as a single m\"\n  },\n  \"hint\": {\n   \"start\": 8,\n   \"end\": 23\n  },\n  \"cellHash\": \"bknorg\"\n },\n \"createdAt\": \"2026-08-04T21:00:26.352Z\"\n}));}"
+ }
+]

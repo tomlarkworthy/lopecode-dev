@@ -1,0 +1,4 @@
+{
+  "annotation_a22311zn3p_note": "function _anonymous(md) {return (md`this download button should just be under the selector one above`);}",
+  "annotation_a22311zn3p": "function _annotation_a22311zn3p(annotation) {return (annotation({\n \"anchor\": {\n  \"surface\": \"text\",\n  \"module\": \"@tomlarkworthy/coded-landmark-tracking\",\n  \"region\": \"cell\",\n  \"afterIndex\": 0,\n  \"cell\": \"manPrintPanel\",\n  \"pid\": \"_snxhn8\",\n  \"quote\": {\n   \"prefix\": \"\\n  \\n    \\n    \\n      \",\n   \"exact\": \"download man 45 (60mm)\",\n   \"suffix\": \"\\n    \\n  \\n  \\n    download A4 shee\"\n  },\n  \"hint\": {\n   \"start\": 20,\n   \"end\": 42\n  },\n  \"cellHash\": \"xpoyd8\"\n },\n \"createdAt\": \"2026-08-04T20:59:15.143Z\"\n}));}"
+}

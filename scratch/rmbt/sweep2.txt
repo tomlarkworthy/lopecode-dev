@@ -1,0 +1,461 @@
+{
+ "heads": [
+  {
+   "v": "next_md",
+   "h": "### §5.1 &nbsp; Why it used to start slow"
+  },
+  {
+   "v": "next_md",
+   "h": "### §5.2 &nbsp; Capture, and how it had to be tuned"
+  },
+  {
+   "v": null,
+   "h": "## Registering a command provider"
+  },
+  {
+   "v": null,
+   "h": "## Built-in providers"
+  },
+  {
+   "v": null,
+   "h": "## Exports"
+  },
+  {
+   "v": null,
+   "h": "## Usage from other notebooks"
+  },
+  {
+   "v": null,
+   "h": "## [video explainer for exporter 2](https://www.youtube.com/watch?v=wx93r1pY_6Y)"
+  },
+  {
+   "v": null,
+   "h": "### Inline http responses"
+  },
+  {
+   "v": null,
+   "h": "### Stateless Git"
+  },
+  {
+   "v": null,
+   "h": "## Implementation"
+  },
+  {
+   "v": "title",
+   "h": "#### Use cases"
+  },
+  {
+   "v": "cc_doc_state",
+   "h": "### State cells"
+  },
+  {
+   "v": "cc_doc_lookup",
+   "h": "### Module lookup & serialization"
+  },
+  {
+   "v": "cc_doc_watchers",
+   "h": "### Variable watcher"
+  },
+  {
+   "v": "cc_doc_handlers",
+   "h": "### Command handlers"
+  },
+  {
+   "v": "cc_doc_dispatch",
+   "h": "### Command dispatch & WebSocket"
+  },
+  {
+   "v": "cc_doc_side_effects",
+   "h": "### Side effects"
+  },
+  {
+   "v": null,
+   "h": "# Demos"
+  },
+  {
+   "v": null,
+   "h": "# How it works"
+  },
+  {
+   "v": null,
+   "h": "## Examples"
+  },
+  {
+   "v": null,
+   "h": "## Explainer"
+  },
+  {
+   "v": null,
+   "h": "## Updates"
+  },
+  {
+   "v": null,
+   "h": "## also see [@observablehq/inspector](https://observablehq.com/@observablehq/inspec"
+  },
+  {
+   "v": null,
+   "h": "## The missing generative abstraction for dataflow programming."
+  },
+  {
+   "v": null,
+   "h": "### bundle building"
+  },
+  {
+   "v": null,
+   "h": "### build"
+  },
+  {
+   "v": null,
+   "h": "## Implementation"
+  },
+  {
+   "v": null,
+   "h": "### Optimizations"
+  },
+  {
+   "v": null,
+   "h": "### Errors"
+  },
+  {
+   "v": null,
+   "h": "### Deduplication"
+  },
+  {
+   "v": null,
+   "h": "### Recipe"
+  },
+  {
+   "v": null,
+   "h": "### Why"
+  },
+  {
+   "v": null,
+   "h": "### Updating"
+  },
+  {
+   "v": null,
+   "h": "## computes the mapping of reactive variables to higher level notebook cells, group"
+  },
+  {
+   "v": null,
+   "h": "## bundling prose-mirror"
+  },
+  {
+   "v": null,
+   "h": "### Bundling ProseMirror CSS"
+  },
+  {
+   "v": null,
+   "h": "# Demos"
+  },
+  {
+   "v": null,
+   "h": "# How it works"
+  },
+  {
+   "v": null,
+   "h": "#### How to use the view-literal in UI development"
+  },
+  {
+   "v": null,
+   "h": "### Change log"
+  },
+  {
+   "v": "sift_docs",
+   "h": "### Move being optimized"
+  },
+  {
+   "v": "sift_docs",
+   "h": "### Geometric intuition (circle + chords)"
+  },
+  {
+   "v": "sift_docs",
+   "h": "### Passes and vertex order"
+  },
+  {
+   "v": null,
+   "h": "### Disassemble (one-shot export)"
+  },
+  {
+   "v": null,
+   "h": "### Runtime"
+  },
+  {
+   "v": null,
+   "h": "### Files"
+  },
+  {
+   "v": null,
+   "h": "### File Attachments"
+  },
+  {
+   "v": null,
+   "h": "### Module Add/Remove"
+  },
+  {
+   "v": null,
+   "h": "### Echo Suppression"
+  },
+  {
+   "v": null,
+   "h": "### Persistent IDs (pids)"
+  },
+  {
+   "v": null,
+   "h": "### Restart Tolerance"
+  }
+ ],
+ "refs": {
+  "0": 2,
+  "1": 3,
+  "2": 1,
+  "3": 4,
+  "4": 1,
+  "5": 2,
+  "10": 2,
+  "11": 3,
+  "5.2": 3,
+  "11.1": 1,
+  "2.1": 1,
+  "4.1": 3,
+  "4.2": 6,
+  "11.4": 1,
+  "11.2": 2,
+  "11.6": 1,
+  "3.2": 1,
+  "4.3": 4,
+  "4.4": 2,
+  "11.5": 2,
+  "3.3": 2,
+  "4.5": 4,
+  "4.6": 3,
+  "4.7": 1,
+  "5.1": 1
+ },
+ "refsBySite": [
+  {
+   "v": "hexRigView",
+   "ref": "0"
+  },
+  {
+   "v": "viewof hexRigCfg",
+   "ref": "5.2"
+  },
+  {
+   "v": "viewof hexRigCfg",
+   "ref": "5"
+  },
+  {
+   "v": "viewof hexRigCfg",
+   "ref": "11.1"
+  },
+  {
+   "v": "liveStream",
+   "ref": "5.2"
+  },
+  {
+   "v": "hexRig_md",
+   "ref": "1"
+  },
+  {
+   "v": "barcodeDemo",
+   "ref": "2.1"
+  },
+  {
+   "v": "barcodeEncoding_md",
+   "ref": "4.1"
+  },
+  {
+   "v": "barcodeEncoding_md",
+   "ref": "4.2"
+  },
+  {
+   "v": "hexRig",
+   "ref": "11.4"
+  },
+  {
+   "v": "hexRig",
+   "ref": "0"
+  },
+  {
+   "v": "hexTarget_md",
+   "ref": "2"
+  },
+  {
+   "v": "hexTargetSvg",
+   "ref": "10"
+  },
+  {
+   "v": "hexTargetSvg",
+   "ref": "11.2"
+  },
+  {
+   "v": "eval_md",
+   "ref": "3"
+  },
+  {
+   "v": "testFrameFiles",
+   "ref": "11"
+  },
+  {
+   "v": "testFrameFiles",
+   "ref": "11.6"
+  },
+  {
+   "v": "hexBank_md",
+   "ref": "3.2"
+  },
+  {
+   "v": "hexFrameReport",
+   "ref": "11.2"
+  },
+  {
+   "v": "hexFrameReport",
+   "ref": "3"
+  },
+  {
+   "v": "algo_md",
+   "ref": "4"
+  },
+  {
+   "v": "algo_md",
+   "ref": "4.1"
+  },
+  {
+   "v": "algo_md",
+   "ref": "4.2"
+  },
+  {
+   "v": "algo_md",
+   "ref": "4.3"
+  },
+  {
+   "v": "algo_md",
+   "ref": "4.4"
+  },
+  {
+   "v": null,
+   "ref": "4.1"
+  },
+  {
+   "v": "redesign_md",
+   "ref": "4.2"
+  },
+  {
+   "v": "manMarkSvgSource",
+   "ref": "10"
+  },
+  {
+   "v": "manDemo",
+   "ref": "11"
+  },
+  {
+   "v": "row_md",
+   "ref": "4.2"
+  },
+  {
+   "v": "manRowGroups",
+   "ref": "11.5"
+  },
+  {
+   "v": "detectRowMan",
+   "ref": "11"
+  },
+  {
+   "v": "cascade_md",
+   "ref": "4.3"
+  },
+  {
+   "v": "scanRowsMan",
+   "ref": "4.2"
+  },
+  {
+   "v": "clusterManRows",
+   "ref": "3.3"
+  },
+  {
+   "v": "analyzeFrameMan",
+   "ref": "4.2"
+  },
+  {
+   "v": "fitManPose",
+   "ref": "1"
+  },
+  {
+   "v": "mergeManAxes",
+   "ref": "4.3"
+  },
+  {
+   "v": "mergeManAxes",
+   "ref": "4.3"
+  },
+  {
+   "v": "manAxesTest",
+   "ref": "11.5"
+  },
+  {
+   "v": "plane_md",
+   "ref": "4.4"
+  },
+  {
+   "v": "plane_md",
+   "ref": "1"
+  },
+  {
+   "v": "pool_md",
+   "ref": "4.5"
+  },
+  {
+   "v": "wasm_md",
+   "ref": "4.6"
+  },
+  {
+   "v": "wasm_md",
+   "ref": "4.5"
+  },
+  {
+   "v": "warmupCurve",
+   "ref": "4.5"
+  },
+  {
+   "v": "poolAgreement",
+   "ref": "4.6"
+  },
+  {
+   "v": "sweep_md",
+   "ref": "4.7"
+  },
+  {
+   "v": "sweep_md",
+   "ref": "3"
+  },
+  {
+   "v": "next_md",
+   "ref": "5"
+  },
+  {
+   "v": "next_md",
+   "ref": "3"
+  },
+  {
+   "v": "next_md",
+   "ref": "3.3"
+  },
+  {
+   "v": "next_md",
+   "ref": "4.5"
+  },
+  {
+   "v": "next_md",
+   "ref": "4.6"
+  },
+  {
+   "v": "next_md",
+   "ref": "5.1"
+  },
+  {
+   "v": "next_md",
+   "ref": "5.2"
+  }
+ ]
+}

@@ -1,0 +1,57 @@
+function _barcodeDemo(manLayout,barcodeId,manMarkSvgSource,htl,manColor) {
+  const L = manLayout;
+  const bits = Array.from({ length: L.nBits }, (_, j) => (barcodeId >> (L.nBits - 1 - j)) & 1);
+
+  const svg = manMarkSvgSource(barcodeId, { diameterMm: 60, label: false });
+  const img = htl.html`<img src=${"data:image/svg+xml;utf8," + window.encodeURIComponent(svg)}
+    style="width:190px;height:190px;display:block;border-radius:4px">`;
+
+  // manColor is piecewise constant between teeth, so one band per tooth
+  // interval is exact -- this strip IS the radial profile, not a sampling of it.
+  const W = 520, H = 46, R = L.R;
+  const x = (r) => (r / R) * W;
+  const bounds = [0, ...L.teeth];
+  const bands = [];
+  for (let i = 1; i < bounds.length; i++) {
+    const g = manColor((bounds[i - 1] + bounds[i]) / 2, bits, L);
+    bands.push(`<rect x="${x(bounds[i - 1]).toFixed(2)}" y="0" width="${(x(bounds[i]) - x(bounds[i - 1])).toFixed(2)}" height="${H}" fill="rgb(${g},${g},${g})"/>`);
+  }
+
+  // Which edges exist for THIS payload: ask manColor either side of each tooth
+  // rather than re-deriving the rule and risking disagreeing with the renderer.
+  const eps = 1e-3;
+  const ticks = [];
+  let nGuaranteed = 0, nPayload = 0;
+  for (let m = 0; m <= L.nT; m++) {
+    const r = L.teeth[m];
+    const here = manColor(r - eps, bits, L) !== manColor(r + eps, bits, L);
+    const guaranteed = L.guaranteed.indexOf(m) >= 0;
+    if (here && guaranteed) nGuaranteed++;
+    if (here && !guaranteed) nPayload++;
+    if (!here) continue;
+    ticks.push(`<rect x="${(x(r) - 1).toFixed(2)}" y="${H}" width="2" height="9" fill="${guaranteed ? "#4ade80" : "#facc15"}"/>`);
+  }
+
+  const strip = htl.html`<div style="max-width:520px"></div>`;
+  strip.innerHTML = `<svg viewBox="0 0 ${W} ${H + 9}" style="width:100%;display:block">${bands.join("")}${ticks.join("")}</svg>`;
+
+  const key = (c, t) => htl.html`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px">
+    <span style="width:9px;height:9px;background:${c};display:inline-block;border-radius:1px"></span>${t}</span>`;
+
+  return htl.html`<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin:8px 0">
+    ${img}
+    <div style="flex:1;min-width:300px">
+      <div style="font:12px ui-monospace,monospace;color:var(--theme-foreground-muted,#888);margin-bottom:4px">
+        radius →&nbsp; centre to rim
+      </div>
+      ${strip}
+      <div style="font:12px ui-monospace,monospace;margin-top:8px">
+        id ${barcodeId} &nbsp;=&nbsp; bits <b>${bits.join("")}</b>
+      </div>
+      <div style="font:12px ui-monospace,monospace;margin-top:6px">
+        ${key("#4ade80", `${nGuaranteed} guaranteed`)}${key("#facc15", `${nPayload} payload`)}
+        <span style="color:var(--theme-foreground-muted,#888)">= ${nGuaranteed + nPayload} edges on every scan line</span>
+      </div>
+    </div>
+  </div>`;
+}

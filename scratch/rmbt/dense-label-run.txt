@@ -1,0 +1,198 @@
+console: Not allowed to load local resource: blob:null/eceaf29e-4444-4bd8-be0b-9d0dff7a18a5
+console: Not allowed to load local resource: blob:null/e4959e41-4c1e-4129-89cd-6c42734d3ff1
+console: Not allowed to load local resource: blob:null/88880aef-e4a2-4753-a47a-c727609fea0f
+console: Not allowed to load local resource: blob:null/14944e05-0bca-4534-8be9-ddeaa785b132
+console: Not allowed to load local resource: blob:null/95a29252-8777-4989-b622-579f9bb557b2
+console: Not allowed to load local resource: blob:null/98791634-cfef-4497-aa26-edb0dd692d05
+console: Not allowed to load local resource: blob:null/dcac862e-91b6-4c22-8944-cee26151f572
+console: Not allowed to load local resource: blob:null/032a0fc8-e9bf-43ce-bfee-1bcd0b612242
+console: Not allowed to load local resource: blob:null/47549c61-293d-491b-91bc-11185682d6f4
+console: Not allowed to load local resource: blob:null/a6c362ad-c6b7-4e6f-b9cb-736c68327dad
+console: Not allowed to load local resource: blob:null/abb47b4e-a514-406d-b674-8c4b3df7e6bf
+console: Not allowed to load local resource: blob:null/8b3f56ab-950b-485f-a10f-28e3ab42e47f
+console: Not allowed to load local resource: blob:null/1a6d9cda-7344-4505-b6bc-56011798c9fd
+console: Not allowed to load local resource: blob:null/6f12c86b-d0da-4e55-a1e6-3d78a71597ab
+console: Not allowed to load local resource: blob:null/0f9d0760-24c8-48ec-af91-e54c950ce1b1
+console: Not allowed to load local resource: blob:null/424b7ff4-03ca-4b43-ad5e-99590e00ca6c
+console: Not allowed to load local resource: blob:null/14944e05-0bca-4534-8be9-ddeaa785b132
+hexcase-01               measured=6 fit=5pts rms=0.15  moved p50=1.2 max=2.0px  offTarget=[60]  967ms
+hexcase-02               measured=7 fit=7pts rms=0.32  moved p50=1.8 max=3.6px  898ms
+hexcase-02-pre           measured=5 fit=5pts rms=1.28  moved p50=3.6 max=6.5px  809ms
+hexcase-03               measured=7 fit=7pts rms=0.23  moved p50=0.9 max=2.0px  884ms
+hexcase-03-pre           measured=4 fit=4pts rms=0  moved p50=1.6 max=2.8px  925ms
+hexcase-04               measured=7 fit=7pts rms=0.2  moved p50=1.0 max=1.6px  918ms
+hexcase-04-pre           measured=7 fit=7pts rms=0.43  moved p50=0.9 max=1.6px  753ms
+hexcase-05               measured=7 fit=7pts rms=0.18  moved p50=1.0 max=1.9px  940ms
+hexcase-06               measured=6 fit=6pts rms=0.13  moved p50=1.0 max=1.6px  961ms
+hexcase-06-pre           measured=7 fit=7pts rms=0.9  moved p50=3.8 max=6.5px  768ms
+hexcase-07               measured=7 fit=7pts rms=0.24  moved p50=1.0 max=1.3px  962ms
+hexcase-08               measured=7 fit=7pts rms=0.17  moved p50=0.8 max=1.5px  957ms
+hexcase-09               measured=6 fit=6pts rms=0.16  moved p50=1.1 max=1.5px  971ms
+hexcase-10               measured=7 fit=7pts rms=0.1  moved p50=1.3 max=1.5px  963ms
+hexcase-100              measured=7 fit=7pts rms=0.19  moved p50=0.8 max=1.0px  961ms
+hexcase-11               measured=6 fit=6pts rms=0.14  moved p50=1.0 max=1.3px  972ms
+hexcase-12               measured=6 fit=6pts rms=0.15  moved p50=1.2 max=1.2px  961ms
+hexcase-13               measured=6 fit=6pts rms=0.19  moved p50=1.4 max=2.0px  990ms
+hexcase-131              measured=6 fit=6pts rms=0.1  moved p50=0.7 max=1.1px  954ms
+hexcase-137              measured=3 fit=3pts rms=0  moved p50=3.0 max=7.8px  1170ms
+hexcase-14               measured=7 fit=7pts rms=0.15  moved p50=1.0 max=1.6px  963ms
+hexcase-144              measured=4 fit=4pts rms=0  moved p50=4.4 max=5.5px  1197ms
+hexcase-152              measured=6 fit=6pts rms=0.09  moved p50=1.0 max=1.0px  973ms
+hexcase-159              measured=4 fit=4pts rms=0.48  moved p50=3.8 max=8.4px  1122ms
+hexcase-160              measured=4 fit=4pts rms=0  moved p50=2.5 max=3.7px  1151ms
+hexcase-165              measured=6 fit=6pts rms=1.36  moved p50=2.6 max=3.5px  1144ms
+hexcase-166              measured=7 fit=7pts rms=0.18  moved p50=0.9 max=1.6px  966ms
+hexcase-168              measured=6 fit=6pts rms=0.14  moved p50=1.0 max=1.9px  985ms
+hexcase-18               measured=6 fit=6pts rms=0.15  moved p50=1.1 max=1.2px  967ms
+hexcase-206              measured=6 fit=6pts rms=0.13  moved p50=1.2 max=1.3px  1007ms
+hexcase-213              measured=5 fit=5pts rms=0.31  moved p50=2.1 max=3.0px  1184ms
+hexcase-217              measured=7 fit=7pts rms=0.14  moved p50=0.8 max=1.2px  960ms
+hexcase-220              measured=4 fit=4pts rms=0  moved p50=2.8 max=4.4px  1179ms
+hexcase-241              measured=7 fit=7pts rms=0.17  moved p50=1.0 max=2.1px  956ms
+hexcase-261              measured=7 fit=7pts rms=0.22  moved p50=3.6 max=14.6px  885ms
+hexcase-263              measured=7 fit=7pts rms=0.24  moved p50=1.2 max=1.8px  867ms
+hexcase-306              measured=7 fit=7pts rms=0.17  moved p50=0.9 max=1.1px  963ms
+hexcase-45               measured=4 fit=4pts rms=0  moved p50=2.5 max=2.8px  1166ms
+hexcase-5iap-01          measured=6 fit=6pts rms=0.11  moved p50=1.2 max=1.6px  offTarget=[42,63]  872ms
+hexcase-5iap-02          measured=8 fit=7pts rms=0.17  moved p50=0.8 max=1.2px  offTarget=[0,10,42]  929ms
+hexcase-5iap-03          measured=6 fit=6pts rms=0.18  moved p50=1.9 max=3.8px  offTarget=[0]  849ms
+hexcase-5iap-04          measured=7 fit=7pts rms=0.44  moved p50=1.0 max=1.7px  offTarget=[42,63]  909ms
+hexcase-5iap-05          measured=7 fit=7pts rms=0.73  moved p50=4.6 max=12.8px  offTarget=[10,42]  781ms
+hexcase-5iap-06          measured=7 fit=7pts rms=0.27  moved p50=1.3 max=2.1px  offTarget=[10,42]  939ms
+hexcase-5iap-08          measured=6 fit=6pts rms=0.15  moved p50=2.0 max=4.0px  offTarget=[10]  911ms
+hexcase-5iap-09          measured=7 fit=7pts rms=0.18  moved p50=4.5 max=10.5px  offTarget=[10,42]  898ms
+hexcase-5iap-10          measured=7 fit=7pts rms=0.13  moved p50=1.2 max=1.4px  offTarget=[42,62]  869ms
+hexcase-5iap-11          measured=6 fit=6pts rms=0.06  moved p50=1.0 max=1.3px  offTarget=[10,42,63]  847ms
+hexcase-5iap-12          measured=7 fit=7pts rms=0.16  moved p50=1.4 max=4.0px  offTarget=[10,42]  838ms
+hexcase-5iap-13          measured=7 fit=7pts rms=0.12  moved p50=2.7 max=7.5px  offTarget=[10,42,63]  862ms
+hexcase-5ivq-01          measured=7 fit=7pts rms=0.38  moved p50=0.9 max=1.7px  1342ms
+hexcase-5ivq-02          measured=6 fit=6pts rms=0.36  moved p50=1.4 max=5.8px  1316ms
+hexcase-5ivq-03          measured=7 fit=7pts rms=0.06  moved p50=1.7 max=2.8px  1698ms
+hexcase-5ivq-04          measured=5 fit=5pts rms=0.13  moved p50=3.9 max=10.0px  1522ms
+hexcase-5ivq-05          measured=7 fit=7pts rms=0.71  moved p50=1.9 max=7.4px  1778ms
+hexcase-5ivq-06          measured=7 fit=7pts rms=0.81  moved p50=5.9 max=7.8px  1383ms
+hexcase-5ivq-07          measured=7 fit=7pts rms=0.55  moved p50=1.2 max=1.5px  1018ms
+hexcase-5ivq-08          measured=4 fit=4pts rms=0  moved p50=3.9 max=5.8px  1193ms
+hexcase-5mcq-01          measured=7 fit=7pts rms=0.72  moved p50=5.4 max=29.4px  842ms
+hexcase-5mcq-02          measured=6 fit=6pts rms=0.54  moved p50=1.6 max=5.6px  639ms
+hexcase-5mcq-03          measured=7 fit=7pts rms=0.3  moved p50=1.6 max=3.6px  926ms
+hexcase-5mcq-04          measured=7 fit=7pts rms=0.42  moved p50=2.9 max=12.3px  918ms
+hexcase-5mcq-05          measured=7 fit=7pts rms=0.59  moved p50=2.1 max=5.1px  743ms
+hexcase-5mcq-06          measured=5 fit=5pts rms=0.17  moved p50=4.2 max=6.2px  685ms
+hexcase-5mcq-07          measured=7 fit=7pts rms=0.14  moved p50=3.0 max=7.6px  804ms
+hexcase-5mcq-08          measured=6 fit=6pts rms=0.13  moved p50=1.7 max=3.5px  915ms
+hexcase-5mcq-09          measured=5 fit=5pts rms=0.11  moved p50=0.9 max=1.2px  1167ms
+hexcase-5mcq-10          measured=7 fit=7pts rms=0.53  moved p50=0.9 max=2.3px  909ms
+hexcase-5u7e-01          measured=3 fit=3pts rms=0  moved p50=3.1 max=3.4px  719ms
+hexcase-5u7e-02          measured=5 fit=5pts rms=0.93  moved p50=2.3 max=6.5px  744ms
+hexcase-5u7e-03          measured=4 fit=4pts rms=0  moved p50=4.8 max=14.2px  741ms
+hexcase-5u7e-04          measured=8 fit=7pts rms=1.48  moved p50=3.7 max=7.3px  offTarget=[4]  821ms
+hexcase-5u7e-05          measured=0 fit=0pts rms=-  moved p50=- max=-px  841ms
+hexcase-5u7e-06          measured=0 fit=0pts rms=-  moved p50=- max=-px  857ms
+hexcase-5u7e-07          measured=0 fit=0pts rms=-  moved p50=- max=-px  955ms
+hexcase-5u7e-08          measured=0 fit=0pts rms=-  moved p50=- max=-px  886ms
+hexcase-5u7e-09          measured=0 fit=0pts rms=-  moved p50=- max=-px  904ms
+hexcase-5u7e-10          measured=1 fit=0pts rms=-  moved p50=6.0 max=6.0px  948ms
+hexcase-5u7e-11          measured=7 fit=7pts rms=1.42  moved p50=5.0 max=10.0px  942ms
+hexcase-5u7e-12          measured=7 fit=7pts rms=1.13  moved p50=3.4 max=9.8px  670ms
+hexcase-5u7e-13          measured=7 fit=7pts rms=0.42  moved p50=2.3 max=9.7px  694ms
+hexcase-5u7e-15          measured=7 fit=7pts rms=0.45  moved p50=0.6 max=1.2px  724ms
+hexcase-5u7e-16          measured=7 fit=7pts rms=0.64  moved p50=1.1 max=4.2px  678ms
+hexcase-5u7e-18          measured=7 fit=7pts rms=0.71  moved p50=2.4 max=4.1px  692ms
+hexcase-5x6r-01          measured=7 fit=7pts rms=0.06  moved p50=0.6 max=2.3px  818ms
+hexcase-69               measured=7 fit=7pts rms=0.25  moved p50=1.4 max=3.0px  958ms
+hexcase-6ib0-02          measured=7 fit=7pts rms=0.32  moved p50=0.8 max=1.7px  789ms
+hexcase-6ib0-04          measured=7 fit=7pts rms=0.2  moved p50=1.0 max=1.6px  645ms
+hexcase-6ib0-05          measured=7 fit=7pts rms=0.17  moved p50=0.9 max=2.0px  648ms
+hexcase-6ib0-06          measured=7 fit=7pts rms=0.17  moved p50=2.7 max=8.0px  654ms
+hexcase-6ib0-07          measured=7 fit=7pts rms=0.14  moved p50=0.7 max=1.2px  642ms
+hexcase-6ib0-09          measured=7 fit=7pts rms=0.37  moved p50=- max=-px  469ms
+hexcase-6ib0-10          measured=6 fit=6pts rms=0.22  moved p50=- max=-px  543ms
+hexcase-6ib0-11          measured=7 fit=7pts rms=0.4  moved p50=6.3 max=10.3px  644ms
+hexcase-6ib0-12          measured=7 fit=7pts rms=0.2  moved p50=167.6 max=175.4px  673ms
+hexcase-6ib0-13          measured=5 fit=5pts rms=0.51  moved p50=- max=-px  452ms
+hexcase-6ib0-14          measured=5 fit=5pts rms=0.43  moved p50=- max=-px  486ms
+hexcase-6ib0-15          measured=5 fit=5pts rms=0.15  moved p50=- max=-px  505ms
+hexcase-6ixv-01          measured=6 fit=6pts rms=0.77  moved p50=1.9 max=4.1px  608ms
+hexcase-6ixv-02          measured=6 fit=6pts rms=0.22  moved p50=1.4 max=2.7px  698ms
+hexcase-6ixv-03          measured=6 fit=6pts rms=0.25  moved p50=1.3 max=1.8px  807ms
+hexcase-6ixv-04          measured=7 fit=7pts rms=1.88  moved p50=2.3 max=12.9px  796ms
+hexcase-6ixv-05          measured=7 fit=7pts rms=0.26  moved p50=1.1 max=1.5px  777ms
+hexcase-6izl-01          measured=7 fit=7pts rms=0.2  moved p50=1.3 max=1.4px  665ms
+hexcase-6izl-02          measured=6 fit=6pts rms=0.25  moved p50=1.3 max=1.6px  688ms
+hexcase-6izl-03          measured=7 fit=7pts rms=0.21  moved p50=1.3 max=2.2px  706ms
+hexcase-6izl-04          measured=7 fit=7pts rms=0.23  moved p50=1.2 max=1.7px  729ms
+hexcase-6izl-05          measured=7 fit=7pts rms=0.18  moved p50=1.5 max=1.7px  745ms
+hexcase-6izl-06          measured=7 fit=7pts rms=0.36  moved p50=1.3 max=2.5px  630ms
+hexcase-6izl-07          measured=7 fit=7pts rms=0.33  moved p50=1.5 max=2.2px  656ms
+hexcase-6j09-01          measured=7 fit=7pts rms=0.2  moved p50=0.6 max=1.0px  658ms
+hexcase-6j0b-01          measured=6 fit=6pts rms=0.2  moved p50=1.5 max=1.6px  724ms
+hexcase-6j1n-01          measured=7 fit=7pts rms=0.18  moved p50=2.3 max=9.2px  557ms
+hexcase-6j1n-02          measured=7 fit=7pts rms=0.11  moved p50=2.3 max=5.6px  617ms
+hexcase-6j1n-03          measured=7 fit=7pts rms=0.17  moved p50=0.8 max=2.5px  586ms
+hexcase-6j1n-04          measured=7 fit=7pts rms=0.13  moved p50=1.0 max=1.7px  612ms
+hexcase-6j1n-05          measured=7 fit=7pts rms=0.15  moved p50=1.1 max=1.8px  584ms
+hexcase-6j1n-06          measured=7 fit=7pts rms=0.21  moved p50=1.0 max=2.2px  635ms
+hexcase-6j1n-07          measured=6 fit=6pts rms=0.59  moved p50=3.0 max=3.0px  633ms
+hexcase-6j1n-08          measured=7 fit=7pts rms=0.63  moved p50=2.3 max=5.0px  661ms
+hexcase-6j1n-09          measured=6 fit=6pts rms=0.3  moved p50=1.3 max=2.5px  741ms
+hexcase-6j1n-10          measured=7 fit=7pts rms=0.25  moved p50=1.0 max=1.6px  711ms
+hexcase-6j1n-11          measured=7 fit=7pts rms=0.28  moved p50=0.9 max=1.9px  699ms
+hexcase-6j1n-12          measured=7 fit=7pts rms=0.97  moved p50=1.3 max=5.0px  738ms
+hexcase-6j1n-15          measured=5 fit=5pts rms=0.63  moved p50=2.8 max=12.8px  709ms
+hexcase-6j1n-18          measured=6 fit=6pts rms=1.49  moved p50=4.8 max=6.0px  724ms
+hexcase-6j1n-19          measured=6 fit=6pts rms=1.33  moved p50=2.8 max=5.1px  727ms
+hexcase-6j2n-01          measured=6 fit=6pts rms=1.04  moved p50=2.2 max=5.2px  593ms
+hexcase-6j2n-02          measured=6 fit=6pts rms=1.18  moved p50=1.4 max=5.0px  716ms
+hexcase-6j35-01          measured=6 fit=6pts rms=1.3  moved p50=1.6 max=6.6px  614ms
+hexcase-6j35-02          measured=7 fit=7pts rms=1.21  moved p50=1.6 max=3.7px  706ms
+hexcase-6j35-03          measured=4 fit=4pts rms=0  moved p50=2.4 max=6.1px  714ms
+hexcase-6j35-04          measured=5 fit=5pts rms=1.93  moved p50=5.9 max=8.8px  676ms
+hexcase-6j35-05          measured=3 fit=3pts rms=0  moved p50=4.2 max=4.6px  724ms
+hexcase-6j35-06          measured=4 fit=4pts rms=0  moved p50=2.7 max=9.6px  684ms
+hexcase-6j35-07          measured=2 fit=0pts rms=-  moved p50=4.1 max=4.1px  696ms
+hexcase-6j35-08          measured=2 fit=0pts rms=-  moved p50=3.8 max=3.8px  695ms
+hexcase-6j35-09          measured=4 fit=4pts rms=0  moved p50=1.7 max=8.3px  665ms
+hexcase-6j35-10          measured=1 fit=0pts rms=-  moved p50=3.4 max=3.4px  688ms
+hexcase-6j35-11          measured=5 fit=5pts rms=1.11  moved p50=8.6 max=12.2px  702ms
+hexcase-6j35-12          measured=2 fit=0pts rms=-  moved p50=5.1 max=5.1px  676ms
+hexcase-6j35-15          measured=2 fit=0pts rms=-  moved p50=6.6 max=6.6px  698ms
+hexcase-6j35-20          measured=1 fit=0pts rms=-  moved p50=10.6 max=10.6px  689ms
+hexcase-6j35-21          measured=0 fit=0pts rms=-  moved p50=- max=-px  728ms
+hexcase-6j35-22          measured=2 fit=0pts rms=-  moved p50=4.1 max=4.1px  698ms
+hexcase-6k73-01          measured=7 fit=7pts rms=0.31  moved p50=1.1 max=2.0px  667ms
+hexcase-6k73-02          measured=7 fit=7pts rms=1  moved p50=1.0 max=2.8px  753ms
+hexcase-6k7c-01          measured=6 fit=6pts rms=0.36  moved p50=2.9 max=9.3px  511ms
+hexcase-6k7c-02          measured=7 fit=7pts rms=0.29  moved p50=2.6 max=5.3px  664ms
+hexcase-6k7c-03          measured=7 fit=7pts rms=0.26  moved p50=1.2 max=2.2px  738ms
+hexcase-6k7c-04          measured=6 fit=6pts rms=0.63  moved p50=2.0 max=2.7px  659ms
+hexcase-6k7c-05          measured=7 fit=7pts rms=0.32  moved p50=1.4 max=1.7px  786ms
+hexcase-6k7c-06          measured=6 fit=6pts rms=0.14  moved p50=2.2 max=3.9px  486ms
+hexcase-6k7c-07          measured=7 fit=7pts rms=0.49  moved p50=1.3 max=2.0px  717ms
+hexcase-6k7c-08          measured=7 fit=7pts rms=0.25  moved p50=1.2 max=1.6px  677ms
+hexcase-6k7c-09          measured=6 fit=6pts rms=0.27  moved p50=1.5 max=2.0px  711ms
+hexcase-6k7n-01          measured=7 fit=7pts rms=0.2  moved p50=0.7 max=1.1px  738ms
+hexcase-6k7n-02          measured=7 fit=7pts rms=0.2  moved p50=2.2 max=8.4px  770ms
+hexcase-6k7n-03          measured=7 fit=7pts rms=0.19  moved p50=2.4 max=7.8px  695ms
+hexcase-6k7v-01          measured=7 fit=7pts rms=0.85  moved p50=2.8 max=6.0px  659ms
+hexcase-6k7v-04          measured=6 fit=6pts rms=0.45  moved p50=1.4 max=1.8px  481ms
+hexcase-6k81-01          measured=7 fit=7pts rms=0.2  moved p50=1.4 max=2.9px  744ms
+hexcase-6k88-06          measured=7 fit=7pts rms=0.66  moved p50=1.6 max=2.2px  688ms
+hexcase-75               measured=7 fit=7pts rms=0.17  moved p50=0.9 max=1.1px  967ms
+phone-hexcase-01         measured=3 fit=3pts rms=0  moved p50=0.8 max=1.1px  1320ms
+phone-hexcase-02         measured=3 fit=0pts rms=-  moved p50=16.7 max=16.7px  offTarget=[14,60]  1447ms
+phone-hexcase-03         measured=1 fit=0pts rms=-  moved p50=4.8 max=4.8px  1408ms
+phone-hexcase-04         measured=5 fit=5pts rms=0.39  moved p50=2.5 max=7.2px  1174ms
+phone-hexcase-05         measured=5 fit=5pts rms=0.08  moved p50=1.8 max=3.6px  1074ms
+phone-hexcase-06         measured=6 fit=6pts rms=0.79  moved p50=3.6 max=11.0px  1489ms
+phone-hexcase-07         measured=1 fit=0pts rms=-  moved p50=7.9 max=7.9px  1415ms
+phone-hexcase-08         measured=1 fit=0pts rms=-  moved p50=12.5 max=12.5px  1238ms
+phone-hexcase-09         measured=2 fit=0pts rms=-  moved p50=2.9 max=2.9px  1598ms
+phone-hexcase-10         measured=2 fit=0pts rms=-  moved p50=12.5 max=12.5px  1553ms
+
+=== 174 cases ===
+  label movement  n=956 p50=1.40 p90=5.10 max=175.40
+  plane fit rms   n=154 p50=0.22 p90=0.97 max=1.93
+  labels >5px out 96 / 956
+  sources         measured=956 predicted=0 kept=227
+wrote scratch/rmbt/dense-labels.json

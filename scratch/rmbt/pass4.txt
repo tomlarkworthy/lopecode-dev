@@ -1,0 +1,3 @@
+function _anonymous(md) {return (md`## §2   Multiple Barcodes
+
+If you have known layout of barcodes there combination because a homography estimate. There is no matching ambiguity because the barcodes label themselves. `);}

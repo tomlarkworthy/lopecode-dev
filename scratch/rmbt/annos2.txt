@@ -1,0 +1,114 @@
+[
+ {
+  "n": "annotation_tour_title",
+  "val": "{\"box\":{\"dx\":300,\"dy\":10,\"w\":270},\"state\":\"open\",\"anchor\":{\"pid\":\"_a2hdr\",\"quote\":{\"prefix\":\"\",\"exact\":\"Annotate\",\"suffix\":\"\\nNotes pinned to things. Select \"},\"surface\":\"text\"}}"
+ },
+ {
+  "n": "annotation_tour_title_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_prose",
+  "val": "{\"box\":{\"dx\":320,\"dy\":10,\"w\":260},\"state\":\"open\",\"anchor\":{\"cell\":\"demoProse\",\"pid\":\"_a2demoProse\",\"quote\":{\"prefix\":\"so the note has something to be \",\"exact\":\"told apart\",\"suffix\":\" from.\"},\"surface\":\"text\"}}"
+ },
+ {
+  "n": "annotation_tour_prose_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_plot",
+  "val": "{\"box\":{\"dx\":300,\"dy\":-40,\"w\":260},\"state\":\"open\",\"anchor\":{\"cell\":\"demoPlot\",\"pid\":\"_a2demoPlot\",\"path\":\"svg:nth-of-type(1)\",\"data\":{\"x\":\"2026-03-12T00:00:00.000Z\",\"y\":122},\"surface\":\"plot\"}}"
+ },
+ {
+  "n": "annotation_tour_plot_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_svg",
+  "val": "{\"box\":{\"dx\":260,\"dy\":-40,\"w\":250},\"state\":\"open\",\"anchor\":{\"cell\":\"demoSvg\",\"pid\":\"_a2demoSvg\",\"path\":\"div:nth-of-type(1) > svg:nth-of-type(1)\",\"svg\":{\"x\":50,\"y\":50},\"surface\":\"svg\"}}"
+ },
+ {
+  "n": "annotation_tour_svg_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_image",
+  "val": "{\"box\":{\"dx\":200,\"dy\":-20,\"w\":260},\"state\":\"open\",\"anchor\":{\"cell\":\"demoImage\",\"pid\":\"_a2demoImage\",\"path\":\"img:nth-of-type(1)\",\"frac\":{\"fx\":0.25,\"fy\":0.5},\"surface\":\"image\"}}"
+ },
+ {
+  "n": "annotation_tour_image_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_volatile",
+  "val": "{\"box\":{\"dx\":260,\"dy\":40,\"w\":270},\"state\":\"open\",\"anchor\":{\"cell\":\"demoVolatile\",\"pid\":\"_a2demoVolatile\",\"quote\":{\"prefix\":\"mm, which is\\nhigher \",\"exact\":\"than the\",\"suffix\":\"\\nprevious run.\"},\"surface\":\"text\"}}"
+ },
+ {
+  "n": "annotation_tour_volatile_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_title",
+  "val": "{\"box\":{\"dx\":300,\"dy\":10,\"w\":270},\"state\":\"open\",\"anchor\":{\"pid\":\"_a2hdr\",\"quote\":{\"prefix\":\"\",\"exact\":\"Annotate\",\"suffix\":\"\\nNotes pinned to things. Select \"},\"surface\":\"text\"}}"
+ },
+ {
+  "n": "annotation_tour_title_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_prose",
+  "val": "{\"box\":{\"dx\":320,\"dy\":10,\"w\":260},\"state\":\"open\",\"anchor\":{\"cell\":\"demoProse\",\"pid\":\"_a2demoProse\",\"quote\":{\"prefix\":\"so the note has something to be \",\"exact\":\"told apart\",\"suffix\":\" from.\"},\"surface\":\"text\"}}"
+ },
+ {
+  "n": "annotation_tour_prose_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_plot",
+  "val": "{\"box\":{\"dx\":300,\"dy\":-40,\"w\":260},\"state\":\"open\",\"anchor\":{\"cell\":\"demoPlot\",\"pid\":\"_a2demoPlot\",\"path\":\"svg:nth-of-type(1)\",\"data\":{\"x\":\"2026-03-12T00:00:00.000Z\",\"y\":122},\"surface\":\"plot\"}}"
+ },
+ {
+  "n": "annotation_tour_plot_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_svg",
+  "val": "{\"box\":{\"dx\":260,\"dy\":-40,\"w\":250},\"state\":\"open\",\"anchor\":{\"cell\":\"demoSvg\",\"pid\":\"_a2demoSvg\",\"path\":\"div:nth-of-type(1) > svg:nth-of-type(1)\",\"svg\":{\"x\":50,\"y\":50},\"surface\":\"svg\"}}"
+ },
+ {
+  "n": "annotation_tour_svg_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_image",
+  "val": "{\"box\":{\"dx\":200,\"dy\":-20,\"w\":260},\"state\":\"open\",\"anchor\":{\"cell\":\"demoImage\",\"pid\":\"_a2demoImage\",\"path\":\"img:nth-of-type(1)\",\"frac\":{\"fx\":0.25,\"fy\":0.5},\"surface\":\"image\"}}"
+ },
+ {
+  "n": "annotation_tour_image_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_tour_volatile",
+  "val": "{\"box\":{\"dx\":260,\"dy\":40,\"w\":270},\"state\":\"open\",\"anchor\":{\"cell\":\"demoVolatile\",\"pid\":\"_a2demoVolatile\",\"quote\":{\"prefix\":\"mm, which is\\nhigher \",\"exact\":\"than the\",\"suffix\":\"\\nprevious run.\"},\"surface\":\"text\"}}"
+ },
+ {
+  "n": "annotation_tour_volatile_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_a28wkj0755_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_a28wkj0755",
+  "val": "{\"box\":{\"dx\":120,\"dy\":-80,\"w\":240},\"state\":\"open\",\"createdAt\":\"2026-08-05T05:40:59.417Z\",\"anchor\":{\"surface\":\"text\",\"module\":\"@tomlarkworthy/coded-landmark-tracking\",\"region\":\"cell\",\"afterIndex\":0,\"cell\":\"redesign_md\",\"pid\":\"_1566rx9\",\"quote\":{\"prefix\":\"2u=r2. After normalising by the \",\"exact\":\"involution\",\"suffix\":\"'s fixed points, t=(x−P)/(x−Q)t \"},\"hint\":{\"start\":64,\"end\":74},\"cellHash\":\"173uxbh\"}}"
+ },
+ {
+  "n": "annotation_a24ht120ts_note",
+  "val": "{}"
+ },
+ {
+  "n": "annotation_a24ht120ts",
+  "val": "{\"box\":{\"dx\":120,\"dy\":-80,\"w\":240},\"state\":\"open\",\"createdAt\":\"2026-08-05T05:44:02.206Z\",\"anchor\":{\"surface\":\"text\",\"module\":\"@tomlarkworthy/coded-landmark-tracking\",\"region\":\"cell\",\"afterIndex\":0,\"cell\":\"encodingDiagram\",\"pid\":\"_1w60xe0\",\"quote\":{\"prefix\":\" \\n    B -2.1763e-6\\n        \\n    \",\"exact\":\"d recovered\",\"suffix\":\" 8.697806  (true 8.697806)\\n     \"},\"hint\":{\"start\":330,\"end\":341},\"cellHash\":\"7ok3ga\"}}"
+ }
+]

@@ -1,0 +1,3 @@
+function _anonymous(md,tex) {return (md`A mark is a set of concentric rings. With Manchester Encoding every cell has a mid edge that is always present.
+
+The reason this survives perspective is that the whole per-row warp collapses to an affine map in ${tex`r^2`}-space, so a code built from affine-recognisable structure there is readable on every row, at every pose, from every edge. §4.1 derives that; §4.2 turns one row of it into a decode.`);}

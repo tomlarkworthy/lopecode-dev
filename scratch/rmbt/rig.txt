@@ -1,0 +1,83 @@
+(n) => +(n * k).toFixed(2);
+    const parts = [];
+    if (pose.ok) {
+      const ring = pose.marks.filter((m) => m.k != null);
+      if (ring.length > 2)
+        parts.push(
+          `<polygon points="${ring.map((m) => `${m.predicted.x},${m.predicted.y}`).join(" ")}"
+            fill="none" stroke="#5af" stroke-width="${sw(1.5)}"
+            stroke-dasharray="${sw(4)} ${sw(6)}" opacity="0.8"/>`
+        );
+      for (const m of pose.marks) {
+        const c = COL[m.state];
+        const r = m.radiusPx;
+        const dash = m.state === "read" ? "none"
+          : m.state === "located" ? `${sw(7)} ${sw(5)}` : `${sw(2)} ${sw(6)}`;
+        // the projected circle, not a circle: on a tilted sheet the two differ
+        // by the tilt, and a ring that does not sit on its mark reads as a
+        // tracking error rather than as a drawing one
+        const top = m.outline ? Math.min(...m.outline.map((p) => p[1])) : m.predicted.y - r;
+        const shape = m.outline
+          ? `<polygon points="${m.outline.map((p) => p[0] + "," + p[1]).join(" ")}"`
+          : `<circle cx="${m.predicted.x}" cy="${m.predicted.y}" r="${r.toFixed(1)}"`;
+        parts.push(
+          `${shape} fill="none"
+            stroke="${c}" stroke-width="${sw(m.state === "read" ? 3 : 2)}" stroke-dasharray="${dash}"/>` +
+          `<text x="${m.predicted.x}" y="${(top - sw(5)).toFixed(1)}"
+            font-family="ui-monospace,monospace" font-size="${Math.max(sw(13), r * 0.45).toFixed(1)}"
+            font-weight="700" fill="${c}" text-anchor="middle" paint-order="stroke"
+            stroke="#000" stroke-width="${sw(4)}">${m.id}${m.state === "read" ? "" : " " + m.state[0]}</text>`
+        );
+      }
+      for (const o of pose.offTarget)
+        parts.push(
+          `<g stroke="${COL.off}" stroke-width="${sw(3)}">
+            <line x1="${o.x - sw(12)}" y1="${o.y - sw(12)}" x2="${o.x + sw(12)}" y2="${o.y + sw(12)}"/>
+            <line x1="${o.x - sw(12)}" y1="${o.y + sw(12)}" x2="${o.x + sw(12)}" y2="${o.y - sw(12)}"/></g>
+          <text x="${o.x}" y="${o.y - sw(16)}" font-family="ui-monospace,monospace"
+            font-size="${sw(14)}" fill="${COL.off}" text-anchor="middle" paint-order="stroke"
+            stroke="#000" stroke-width="${sw(4)}">${o.id}?</text>`
+        );
+    } else {
+      // no plane: show the raw detections, otherwise there is nothing to aim by
+      // No homography here, but fitManPose measured both semi-axes -- a along
+      // the scan, b across it -- so an axis-aligned ellipse is still closer to
+      // the mark than a circle of a.
+      for (const f of res.fused) {
+        const ra = f.a ?? f.wHalf ?? 24;
+        parts.push(
+          `<ellipse cx="${f.xc.toFixed(1)}" cy="${f.yc.toFixed(1)}"
+            rx="${ra.toFixed(1)}" ry="${(f.b ?? ra).toFixed(1)}"
+            fill="none" stroke="#8fa" stroke-width="${sw(2)}"/>`
+        );
+      }
+    }
+    view.overlay.innerHTML = parts.join("");
+    stage("draw", tDraw);
+
+    // ---- collect ----
+    const loo = pose.ok ? hexRigLoo(res) : null;
+    const rMed = pose.ok
+      ? pose.marks.map((m) => m.radiusPx).sort((a, b) => a - b)[3]
+      : null;
+    const looOk = !!(loo && loo.worstPx <= LOO_FRAC * rMed);
+    const labelled = pose.ok && pose.counts.read >= 5 && pose.rmsResidualPx <= 4 && looOk;
+    const difficulty = pose.ok
+      ? 4 * (pose.counts.misplaced + pose.offTarget.length) +
+        2 * pose.counts.located + pose.counts.missing
+      : 0;
+    const manual = view.wantKeep;
+    view.wantKeep = false;
+    const auto = view.autoCollect() && labelled && difficulty > 0 && t - lastCap > MIN_GAP_MS;
+    if (manual || auto) {
+      lastCap = t;
+      n++;
+      // a case is replayed at other strides, so it needs the rows this frame's
+      // scan skipped
+      if (!hexRigOpts.bothAxes) grayAll();
+      push({
+        name: `hexcase-${session}-${String(n).padStart(2, "0")}`,
+        w: W, h: H,
+        // a copy: the loop reuses this buffer every frame
+        gray: gray.slice(),
+        // 

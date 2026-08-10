@@ -1,0 +1,14 @@
+function _anonymous(md) {return (md`# Fast Multi-Target Circular Barcode Tracking
+
+Point a camera at a printed sheet. The tracker finds each mark's centre, reads its id, and recovers the plane the sheet is on — in the browser, at video rate, with no marker library, no camera calibration and no training.
+
+**Goals, in the order they constrain the design.**
+
+1. **A wrong answer is worse than no answer.** A positioning system that occasionally invents a landmark is not usable. Every gate here is built to fail closed, and the evaluation in §3 reports invented marks separately from missed ones.
+2. **Realtime on a laptop, from JavaScript.** The budget is one video frame, about 33ms, on a single thread.
+3. **Survive perspective without knowing the camera.** No intrinsics, no distortion model, no calibration step the user has to perform.
+4. **Print it on a home printer.** Paper, greyscale, no retroreflector.
+
+The method is to scan a **sparse lattice of horizontal lines** instead of the whole image. A concentric ring pattern crossed by any straight line gives a one-dimensional signature that survives perspective, because a line through a projective transform of concentric circles is still a projective transform of a line. §4 builds that up from the encoding outwards.
+
+Start at §1: print the target from §2, point a camera at it, and watch the detector work. §3 is the evidence that it does.`);}

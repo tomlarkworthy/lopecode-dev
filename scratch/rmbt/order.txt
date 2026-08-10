@@ -1,0 +1,130 @@
+0	module @tomlarkworthy/editable-md
+1	md
+2	headline_md	<< # Fast Multi-Target Circular Barcode Pose Tracking
+3	(anon)	<< ## The Scanner
+4	htl
+5	viewof liveOn
+6	liveOn
+7	hexRigView
+8	Inputs
+9	viewof hexRigCfg
+10	Generators
+11	hexRigCfg
+12	viewof liveFacing
+13	liveFacing
+14	invalidation
+15	liveStream
+16	liveVideo
+17	hexRigAutosave
+18	hexRig_md	<< ## §1   The barcode mark
+19	tex
+20	viewof barcodeId
+21	barcodeId
+22	barcodeDemo
+23	barcodeEncoding_md
+24	lumaCapture
+25	hexRigOpts
+26	hexRigLoo
+27	hexRigScore
+28	viewof hexRigCases
+29	hexRigCases
+30	hexRig
+31	hexRigCasePanel
+32	hexTarget_md	<< ## §2   Multiple Barcodes
+33	hexPrintPanel
+34	hexTargetSvg
+35	makeHexTarget
+36	hexTarget
+37	hexPrintCheck
+38	manPrint_md	<< ### §2.1 &nbsp; Individual marks
+39	manMarkSvgSource
+40	eval_md	<< ## §3 &nbsp; Evaluation on the test set
+41	FileAttachment
+42	testFrameFiles
+43	hexBank_md	<< ### §3.2 &nbsp; The frame bank
+44	hexFrames
+45	hexFrameBank
+46	hexFrameReport
+47	manTestBank_md	<< ### §3.1 &nbsp; Single-mark frames
+48	manFrames
+49	manFrameBank
+50	manFrameResults
+51	manFrameReport
+52	sweep_md	<< ### §3.3 &nbsp; Self-tests and knob sweeps
+53	viewof hexRigSweepGo
+54	hexRigSweepGo
+55	hexRigSynthCases
+56	hexRigSweep
+57	hexRigSelfTest
+58	renderHexScene
+59	hexRendererCheck
+60	hexPitchSweep
+61	algo_md	<< ## §4 &nbsp; How it works
+62	redesign_md	<< ### §4.1 &nbsp; The encoding, and why it is shaped like this
+63	manLayout
+64	manColor
+65	renderManFrame
+66	viewof manDemoCfg
+67	manDemoCfg
+68	manDemo
+69	manScene
+70	row_md	<< ### §4.2 &nbsp; One scan row
+71	edges1Dsub
+72	findInvolution
+73	solveMan
+74	manRowGroups
+75	detectRowMan
+76	detectFrameMan
+77	cascade_md	<< ### §4.3 &nbsp; A whole frame
+78	manScanRows
+79	scanRowsMan
+80	clusterManRows
+81	analyzeFrameMan
+82	fitManPose
+83	manSceneTest
+84	axes_md	<< #### Scanning the other way
+85	rotateFrame
+86	unrotatePoint
+87	mergeManAxes
+88	manAxesTest
+89	viewof grabPanel
+90	grabPanel
+91	plane_md	<< ### §4.4 &nbsp; From marks to a pose
+92	fitHomography
+93	fitHexPose
+94	pool_md	<< ## §4.5&nbsp; Off the main thread
+95	wasm_md	<< ## §4.6&nbsp; The row cascade in WebAssembly
+96	warmupCurve
+97	Plot
+98	warmupCurveChart
+99	wasm_md2
+100	wasmKernelBytes
+101	makeWasmDetectRow
+102	wasmDetectRowMan
+103	viewof wasmOn
+104	wasmOn
+105	wasmAgreement
+106	wasmSourceText
+107	viewof wasmRebuildGo
+108	wasmRebuildGo
+109	wasmRebuild
+110	wasmRebuildReport
+111	detectKernelSource
+112	viewof poolSize
+113	poolSize
+114	detectPool
+115	analyzeFrameManAsync
+116	poolAgreement
+117	viewof poolBenchGo
+118	poolBenchGo
+119	poolBenchmark
+120	poolReport
+121	next_md	<< ## §5 &nbsp; Next steps
+122	@variable
+123	md
+124	module @tomlarkworthy/annotate
+125	annotation
+126	annotation_a2lojl6hyd_note
+127	annotation_a2lojl6hyd
+128	annotation_a20004dx24_note
+129	annotation_a20004dx24

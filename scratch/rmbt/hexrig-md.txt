@@ -1,0 +1,3 @@
+function _anonymous(md) {return (md`## §1   The barcode
+
+Barcodes `);}

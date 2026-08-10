@@ -1,0 +1,41 @@
+function _manPrintPanel(manDemoCfg,manMarkSvgSource,manLayout,manColor,htl) {
+  // The demo id as a printable mark, plus an A4 sheet of the first 12 ids.
+  // data: URIs, not blob: -- a file:// page refuses blob: as a resource.
+  const id = manDemoCfg.id;
+  const one = manMarkSvgSource(id, { diameterMm: 60 });
+  const sheetIds = Array.from({ length: 12 }, (_, i) => i + 1);
+  const dMm = 60, padFrac = 0.35, pageW = 210, pageH = 297, margin = 10;
+  const tile = dMm * (1 + padFrac), labelMm = 6;
+  const cols = Math.max(1, Math.floor((pageW - 2 * margin) / tile));
+  const parts = [];
+  sheetIds.forEach((sid, n) => {
+    const cx = margin + (n % cols) * tile + tile / 2;
+    const cy = margin + Math.floor(n / cols) * (tile + labelMm) + tile / 2;
+    const scale = dMm / 2 / manLayout.R;
+    const bits = Array.from({ length: manLayout.nBits }, (_, j) => (sid >> (manLayout.nBits - 1 - j)) & 1);
+    const bounds = [0, ...manLayout.teeth];
+    for (let i = bounds.length - 1; i >= 1; i--) {
+      const mid = (bounds[i - 1] + bounds[i]) / 2;
+      const dark = manColor(mid, bits) < 128;
+      parts.push(`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${(bounds[i] * scale).toFixed(2)}" fill="${dark ? "#000000" : "#ffffff"}"/>`);
+    }
+    parts.push(`<text x="${cx.toFixed(2)}" y="${(cy + tile / 2 + 4.2).toFixed(2)}" font-family="monospace" font-size="4" fill="#3a3a3a" text-anchor="middle">man ${sid} &#183; ${dMm}mm</text>`);
+  });
+  const sheet = `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">
+<rect width="${pageW}" height="${pageH}" fill="#808080"/>
+${parts.join("\n")}
+</svg>`;
+  const uri = (svg) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  return htl.html`<div style="display:flex;gap:1.5em;align-items:flex-start;flex-wrap:wrap">
+  <div>
+    <img src=${uri(one)} style="width:220px;display:block"/>
+    <div style="font:12px ui-monospace,monospace;padding:4px 0">
+      <a href=${uri(one)} download=${`man-${id}-60mm.svg`}>download man ${id} (60mm)</a>
+    </div>
+  </div>
+  <div style="font:13px ui-monospace,monospace">
+    <div><a href=${uri(sheet)} download="man-sheet-a4.svg">download A4 sheet (ids 1–12, 60mm)</a></div>
+    <div style="opacity:.65;max-width:28em;padding-top:6px">Print at 100% scale. The gray flood is part of the mark — do not trim to the rim.</div>
+  </div>
+</div>`;
+}

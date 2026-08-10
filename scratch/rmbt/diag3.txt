@@ -1,0 +1,75 @@
+{
+ "row": 429,
+ "nEdges": 96,
+ "groupCap": 33,
+ "maxEdges": 36,
+ "offeredCount": 4,
+ "offered": [
+  [
+   40.7,
+   67.1,
+   6
+  ],
+  [
+   115.1,
+   213.8,
+   10
+  ],
+  [
+   246,
+   269.7,
+   8
+  ],
+  [
+   246,
+   281,
+   10
+  ]
+ ],
+ "maxDepthReached": 6,
+ "droppedNodes": [
+  {
+   "tag": "leaf/REFUSED-over-cap",
+   "depth": 4,
+   "n": 34,
+   "x0": 299,
+   "x1": 438.9
+  },
+  {
+   "tag": "whole/REFUSED-over-cap",
+   "depth": 3,
+   "n": 44,
+   "x0": 246,
+   "x1": 438.9
+  },
+  {
+   "tag": "whole/REFUSED-over-cap",
+   "depth": 2,
+   "n": 54,
+   "x0": 115.1,
+   "x1": 438.9
+  },
+  {
+   "tag": "whole/REFUSED-over-cap",
+   "depth": 1,
+   "n": 60,
+   "x0": 40.7,
+   "x1": 438.9
+  },
+  {
+   "tag": "leaf/REFUSED-over-cap",
+   "depth": 1,
+   "n": 36,
+   "x0": 503,
+   "x1": 759.9
+  },
+  {
+   "tag": "whole/REFUSED-over-cap",
+   "depth": 0,
+   "n": 96,
+   "x0": 40.7,
+   "x1": 759.9
+  }
+ ],
+ "edgesLost": 324
+}

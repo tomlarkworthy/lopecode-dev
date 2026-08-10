@@ -1,0 +1,5 @@
+{
+  "headline_md": "function _anonymous(md) {return (md`# Fast Multi-Target Circular Barcode Pose Tracking\n\nPart V of a 10 year project designed for better optical localization. In this notebook we\n\n* Match multiple circular barcodes in the scene\n\n* Decode them so each has an unambigous code for matching\n\n* Compile into WASM via AssemblyScript for fast performance\n\n  * Web workers exploit parrallism\n\n  * WASM doesn't suffer unoptimized slow starts`);}",
+  "hexRig_md": "function _anonymous(md) {return (md`## §1   The barcode mark`);}",
+  "barcodeEncoding_md": "function _anonymous(md,tex) {return (md`A mark is a set of concentric rings. With Manchester Encoding every cell has a mid edge that is always present. These edges can help position the barcode in multiple places during a scan.\n\nA scanline through the center survives perspective  because the whole per-row warp collapses to an affine map in ${tex`r^2`}-space, so a code built from affine-recognisable structure there is readable on every row, at every pose, from every edge. §4.1 derives that; §4.2 turns one row of it into a decode.`);}"
+}

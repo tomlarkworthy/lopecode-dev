@@ -1,0 +1,32 @@
+tab: @tomlarkworthy/coded-landmark-tracking
+     https://tomlarkworthy.github.io/lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html?v=1786207577#view=S100(@tomlarkworthy/coded-landmark-tracking)&cc=LOPE-52020-NWUZ
+
+profiling 8s -- keep the camera on the sheet
+20425 samples over 8161ms of wall clock
+
+self%   ms    function
+ 24.8   2026  closest  
+ 22.7   1853  (idle)  
+ 13.9   1138  (program)  
+ 10.8    878  docTextNodes  4090f2ed-d941-42a5-8cd1-82:286
+  3.4    279  nextNode  
+  2.9    233  _hexRig  c967b299-3396-477c-aba1-0e:652
+  2.6    215  grab  c967b299-3396-477c-aba1-0e:499
+  1.9    157  drawImage  
+  1.9    152  locate  4090f2ed-d941-42a5-8cd1-82:332
+  1.7    139  w.onmessage  c967b299-3396-477c-aba1-0e:4145
+  1.6    131  set innerHTML  
+  1.4    116  cellForQuote  4090f2ed-d941-42a5-8cd1-82:313
+  1.4    112  consume  c967b299-3396-477c-aba1-0e:4224
+  1.2     98  postMessage  
+  1.2     94  nodeForVariable  4090f2ed-d941-42a5-8cd1-82:267
+  1.0     85  onPage  4090f2ed-d941-42a5-8cd1-82:972
+  0.7     55  copyTo  
+  0.4     29  outlineAt  c967b299-3396-477c-aba1-0e:3897
+  0.4     29  querySelector  
+  0.3     27  runRows  c967b299-3396-477c-aba1-0e:4190
+  0.3     26  render  4090f2ed-d941-42a5-8cd1-82:1478
+  0.3     25  quoteInDoc  4090f2ed-d941-42a5-8cd1-82:305
+  0.2     19  vFit  c967b299-3396-477c-aba1-0e:3270
+  0.2     18  (garbage collector)  
+  0.2     14  (anonymous)  c967b299-3396-477c-aba1-0e:885

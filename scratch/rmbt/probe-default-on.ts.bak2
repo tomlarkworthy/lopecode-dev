@@ -1,0 +1,41 @@
+// Verify against the baked file: the toggle now defaults on, the live opts
+// carry it, the §4.3 prose renders, and the §4.8 test suite still passes.
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const IN = resolve("lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html");
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errs: string[] = [];
+page.on("pageerror", (x) => errs.push(x.message.slice(0, 160)));
+await page.addInitScript(() => {
+  const orig = (window as any).Runtime; let cap = false;
+  Object.defineProperty(window, "Runtime", { get() { return orig; }, set(N: any) {
+    const W = function (this: any, ...a: any[]) { const i = new N(...a); if (!cap) { (window as any).__ojs_runtime = i; cap = true; } return i; };
+    W.prototype = N.prototype; Object.assign(W, N); return W; } });
+});
+await page.goto(`file://${IN}#view=S100(@tomlarkworthy/coded-landmark-tracking)`, { waitUntil: "networkidle", timeout: 300000 });
+await page.waitForFunction(() => !!(window as any).__ojs_runtime, { timeout: 300000 });
+await page.waitForTimeout(18000);
+const out = await page.evaluate(async () => {
+  const rt = (window as any).__ojs_runtime;
+  const mod = rt.mains.get("@tomlarkworthy/coded-landmark-tracking");
+  const val = async (n: string) => {
+    const v = [...rt._variables].find((z: any) => z._module === mod && z._name === n);
+    return v ? await v._promise : null; };
+  const opts: any = await val("hexRigOpts");
+  const tests: any = await val("manAxesTest");
+  const scene: any = await val("manSceneTest");
+  const md: any = await val("_11vsmkp");
+  const doc = [...rt._variables].find((z: any) => z._module === mod && z._pid === "_11vsmkp");
+  return {
+    bothAxesDefault: opts?.bothAxes,
+    axisPickDefault: opts?.axisPick ?? "(unset -> vote rule)",
+    testsTail: typeof tests === "string" ? tests.trim().split("\n").slice(-8) : String(tests).slice(0,200), sceneTail: typeof scene === "string" ? scene.trim().split("\n").slice(-3) : String(scene).slice(0,120)
+  };
+});
+console.log("hexRigOpts.bothAxes default :", out.bothAxesDefault);
+console.log("axisPick                    :", out.axisPickDefault);
+console.log("\n§4.8 manScanTest tail:");
+for (const l of out.testsTail) console.log("   " + l);
+console.log("\npageerrors:", errs.length ? errs.slice(0, 4) : "none");
+await browser.close();

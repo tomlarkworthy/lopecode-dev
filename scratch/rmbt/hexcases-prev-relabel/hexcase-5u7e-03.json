@@ -1,0 +1,157 @@
+{
+ "name": "hexcase-5u7e-03",
+ "w": 960,
+ "h": 720,
+ "labelled": true,
+ "pinned": false,
+ "difficulty": 2,
+ "truth": [
+  {
+   "id": 56,
+   "x": 620.5,
+   "y": 391.2,
+   "radiusPx": 64.3,
+   "state": "read"
+  },
+  {
+   "id": 11,
+   "x": 507.2,
+   "y": 438.3,
+   "radiusPx": 52,
+   "state": "read"
+  },
+  {
+   "id": 22,
+   "x": 650.4,
+   "y": 569.9,
+   "radiusPx": 58.9,
+   "state": "located"
+  },
+  {
+   "id": 29,
+   "x": 805.1,
+   "y": 544.3,
+   "radiusPx": 74.7,
+   "state": "read"
+  },
+  {
+   "id": 37,
+   "x": 784.6,
+   "y": 322.9,
+   "radiusPx": 84.1,
+   "state": "read"
+  },
+  {
+   "id": 46,
+   "x": 585.1,
+   "y": 179,
+   "radiusPx": 71.8,
+   "state": "read"
+  },
+  {
+   "id": 51,
+   "x": 468.8,
+   "y": 265.2,
+   "radiusPx": 56.5,
+   "state": "read"
+  }
+ ],
+ "cfg": {
+  "stride": 4,
+  "edgeThreshold": 12,
+  "minRows": 3,
+  "minVotes": 2,
+  "voteRatio": 2,
+  "minAxisRatio": 0.333333333333333,
+  "minCover": 0.3,
+  "maxASpread": 0.35,
+  "gapFrac": 0.3,
+  "maxWidth": 960,
+  "bothAxes": false
+ },
+ "capture": {
+  "counts": {
+   "read": 6,
+   "located": 1,
+   "misplaced": 0,
+   "missing": 0
+  },
+  "offTarget": 0,
+  "rmsPx": 1.69,
+  "looPx": 13.2,
+  "looFrac": 0.205,
+  "mmPerPx": 0.373,
+  "distanceMm": 317,
+  "tiltDeg": 55.3,
+  "ms": 5
+ },
+ "labelQuality": [
+  {
+   "id": 56,
+   "src": "captured",
+   "dirs": 12,
+   "rms": 1.71,
+   "score": 101.3,
+   "onMark": true,
+   "moved": 0
+  },
+  {
+   "id": 11,
+   "src": "captured",
+   "dirs": 10,
+   "rms": 2.47,
+   "score": 29.8,
+   "onMark": false,
+   "moved": 0
+  },
+  {
+   "id": 22,
+   "src": "captured",
+   "dirs": 3,
+   "rms": 1.04,
+   "score": 50.5,
+   "onMark": true,
+   "moved": 0
+  },
+  {
+   "id": 29,
+   "src": "captured",
+   "dirs": 10,
+   "rms": 2.66,
+   "score": 68.1,
+   "onMark": true,
+   "moved": 0
+  },
+  {
+   "id": 37,
+   "src": "captured",
+   "dirs": 12,
+   "rms": 1.98,
+   "score": 81.3,
+   "onMark": true,
+   "moved": 0
+  },
+  {
+   "id": 46,
+   "src": "captured",
+   "dirs": 10,
+   "rms": 2.07,
+   "score": 97.4,
+   "onMark": true,
+   "moved": 0
+  },
+  {
+   "id": 51,
+   "src": "captured",
+   "dirs": 12,
+   "rms": 1.45,
+   "score": 71.8,
+   "onMark": true,
+   "moved": 0
+  }
+ ],
+ "relabelled": false,
+ "planeRms": null,
+ "looPx": 0.13,
+ "labelledBy": "dense-label 12dir stride1 + pixel veto + plane"
+}

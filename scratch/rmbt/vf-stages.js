@@ -3,7 +3,11 @@
   const m = rt.mains.get("@tomlarkworthy/flat-trace");
   const clt = rt.mains.get("@tomlarkworthy/coded-landmark-tracking");
   const get = (mod, n) => { const v = [...rt._variables].find(z => z._module === mod && z._name === n); return v && v._value; };
-  const g = get(m, "grabber"), cv = get(m, "camVideo"), afm = get(clt, "analyzeFrameMan");
+  const g = get(m, "grabber"), cv = get(m, "camVideo");
+  // analyzeFrameMan is imported into flat-trace, so it is a variable of THIS
+  // module as well as its owner's; take whichever actually holds the function.
+  const afm = [get(m, "analyzeFrameMan"), get(clt, "analyzeFrameMan")].find(v => typeof v === "function");
+  if (!afm) return { err: "analyzeFrameMan not resolved", mains: [...rt.mains.keys()] };
   if (!cv || !cv.videoWidth) return { camOff: true, camOn: get(m, "camOn") };
   const nw = cv.videoWidth, nh = cv.videoHeight;
   const scale = Math.min(1, 800 / nw), w = Math.round(nw * scale), h = Math.round(nh * scale);

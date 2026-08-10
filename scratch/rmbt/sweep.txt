@@ -1,0 +1,5 @@
+function _anonymous(md) {return (md`### §3.3   Result on Test Set
+
+The sweep is one-factor-at-a-time, not a grid, and it also applies every winning single change together as one extra point — because winners do not compose here. A previous round found single changes summing to +42 marks that delivered +26 when applied together.
+
+The self-test grades rendered scenes twice: once by the rig's labelling bar, and once against the renderer's truth the fit never sees. It checks that the bar admits no false accept, that it is not vacuous, and that the offline scorer reproduces the live one. It needs at least one rendered scene that is admitted but does not read all seven marks — so when the detector improves, the scenes have to get harder, and the test says so rather than quietly passing.`);}

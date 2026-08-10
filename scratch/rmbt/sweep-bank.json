@@ -1,0 +1,1826 @@
+[
+ {
+  "name": "hexcase-159",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 16,
+   "n": 7,
+   "planeRms": 1.59,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 528.97,
+     "y": 490.13,
+     "rms": 1.06,
+     "radiusPx": 41.8,
+     "rowsTotal": 842
+    },
+    {
+     "id": 22,
+     "dirs": 11,
+     "x": 584.84,
+     "y": 413.12,
+     "rms": 1.48,
+     "radiusPx": 30.6,
+     "rowsTotal": 488
+    },
+    {
+     "id": 29,
+     "dirs": 5,
+     "x": 512.68,
+     "y": 359.08,
+     "rms": 1.18,
+     "radiusPx": 34.2,
+     "rowsTotal": 167
+    },
+    {
+     "id": 37,
+     "dirs": 5,
+     "x": 396.49,
+     "y": 362.99,
+     "rms": 1.05,
+     "radiusPx": 35.3,
+     "rowsTotal": 166
+    },
+    {
+     "id": 46,
+     "dirs": 10,
+     "x": 319.6,
+     "y": 416.33,
+     "rms": 1.69,
+     "radiusPx": 29.9,
+     "rowsTotal": 504
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 376.18,
+     "y": 495.03,
+     "rms": 1.88,
+     "radiusPx": 42.9,
+     "rowsTotal": 835
+    },
+    {
+     "id": 56,
+     "dirs": 7,
+     "x": 453.42,
+     "y": 415.22,
+     "rms": 2.83,
+     "radiusPx": 32.7,
+     "rowsTotal": 395
+    }
+   ],
+   "ms": 1014
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 1.86
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 1.97
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 1.59
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 12.02
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 13.66
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 10.32
+   },
+   {
+    "thr": 36,
+    "n": 6,
+    "planeRms": 1.28
+   }
+  ]
+ },
+ {
+  "name": "phone-hexcase-08",
+  "w": 960,
+  "h": 1280,
+  "best": {
+   "thr": 12,
+   "n": 7,
+   "planeRms": 1.82,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 9,
+     "x": 532.28,
+     "y": 539,
+     "rms": 4.85,
+     "radiusPx": 43.2,
+     "rowsTotal": 831
+    },
+    {
+     "id": 22,
+     "dirs": 12,
+     "x": 410.62,
+     "y": 364.28,
+     "rms": 4.51,
+     "radiusPx": 70.3,
+     "rowsTotal": 1011
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 209.38,
+     "y": 489.5,
+     "rms": 5.28,
+     "radiusPx": 114.8,
+     "rowsTotal": 1734
+    },
+    {
+     "id": 37,
+     "dirs": 12,
+     "x": 226.18,
+     "y": 897.89,
+     "rms": 2.03,
+     "radiusPx": 112,
+     "rowsTotal": 1726
+    },
+    {
+     "id": 46,
+     "dirs": 10,
+     "x": 426.28,
+     "y": 975.49,
+     "rms": 6.62,
+     "radiusPx": 65,
+     "rowsTotal": 1071
+    },
+    {
+     "id": 51,
+     "dirs": 9,
+     "x": 539.22,
+     "y": 779.38,
+     "rms": 4.71,
+     "radiusPx": 42.6,
+     "rowsTotal": 818
+    },
+    {
+     "id": 56,
+     "dirs": 11,
+     "x": 414.29,
+     "y": 674.61,
+     "rms": 1.95,
+     "radiusPx": 74.2,
+     "rowsTotal": 1354
+    }
+   ],
+   "ms": 1260
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 2.95
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 1.82
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 1.95
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 2.1
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 3.03
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 3.56
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 2.05
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5ivq-04",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 30,
+   "n": 7,
+   "planeRms": 0.32,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 10,
+     "x": 661.07,
+     "y": 279.96,
+     "rms": 1.86,
+     "radiusPx": 41.5,
+     "rowsTotal": 373
+    },
+    {
+     "id": 22,
+     "dirs": 9,
+     "x": 626.69,
+     "y": 427.16,
+     "rms": 1.85,
+     "radiusPx": 33.8,
+     "rowsTotal": 325
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 689.48,
+     "y": 554.84,
+     "rms": 2.35,
+     "radiusPx": 44.3,
+     "rowsTotal": 585
+    },
+    {
+     "id": 37,
+     "dirs": 12,
+     "x": 816.57,
+     "y": 542.54,
+     "rms": 1.05,
+     "radiusPx": 57.5,
+     "rowsTotal": 729
+    },
+    {
+     "id": 46,
+     "dirs": 12,
+     "x": 871.65,
+     "y": 353.81,
+     "rms": 0.84,
+     "radiusPx": 57.4,
+     "rowsTotal": 826
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 775.12,
+     "y": 224.51,
+     "rms": 1.69,
+     "radiusPx": 49.2,
+     "rowsTotal": 710
+    },
+    {
+     "id": 56,
+     "dirs": 12,
+     "x": 730.14,
+     "y": 396.61,
+     "rms": 0.8,
+     "radiusPx": 43.5,
+     "rowsTotal": 983
+    }
+   ],
+   "ms": 802
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 1.86
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.82
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.44
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 0.62
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 1.07
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 0.32
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.36
+   }
+  ]
+ },
+ {
+  "name": "phone-hexcase-01",
+  "w": 960,
+  "h": 1280,
+  "best": {
+   "thr": 30,
+   "n": 7,
+   "planeRms": 0.35,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 10,
+     "x": 268.6,
+     "y": 272.28,
+     "rms": 1.63,
+     "radiusPx": 69.6,
+     "rowsTotal": 856
+    },
+    {
+     "id": 22,
+     "dirs": 10,
+     "x": 359.09,
+     "y": 444.04,
+     "rms": 2.71,
+     "radiusPx": 81,
+     "rowsTotal": 634
+    },
+    {
+     "id": 29,
+     "dirs": 10,
+     "x": 620.57,
+     "y": 449.07,
+     "rms": 0.8,
+     "radiusPx": 84.8,
+     "rowsTotal": 1009
+    },
+    {
+     "id": 37,
+     "dirs": 5,
+     "x": 746.87,
+     "y": 269.68,
+     "rms": 1.28,
+     "radiusPx": 81.6,
+     "rowsTotal": 309
+    },
+    {
+     "id": 46,
+     "dirs": 11,
+     "x": 624.31,
+     "y": 120.59,
+     "rms": 0.96,
+     "radiusPx": 57,
+     "rowsTotal": 858
+    },
+    {
+     "id": 51,
+     "dirs": 10,
+     "x": 403.68,
+     "y": 124.95,
+     "rms": 1.99,
+     "radiusPx": 59.2,
+     "rowsTotal": 883
+    },
+    {
+     "id": 56,
+     "dirs": 9,
+     "x": 501.3,
+     "y": 270.52,
+     "rms": 0.74,
+     "radiusPx": 65.8,
+     "rowsTotal": 930
+    }
+   ],
+   "ms": 837
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 6,
+    "planeRms": 0.92
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 5.21
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.45
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 0.93
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 1.61
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 0.35
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.49
+   }
+  ]
+ },
+ {
+  "name": "hexcase-02",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 36,
+   "n": 7,
+   "planeRms": 0.18,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 622.81,
+     "y": 490.76,
+     "rms": 0.4,
+     "radiusPx": 53,
+     "rowsTotal": 933
+    },
+    {
+     "id": 22,
+     "dirs": 11,
+     "x": 719.84,
+     "y": 344.17,
+     "rms": 0.22,
+     "radiusPx": 53.5,
+     "rowsTotal": 719
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 642.43,
+     "y": 181.97,
+     "rms": 0.35,
+     "radiusPx": 63.9,
+     "rowsTotal": 935
+    },
+    {
+     "id": 37,
+     "dirs": 12,
+     "x": 448.89,
+     "y": 180.76,
+     "rms": 0.28,
+     "radiusPx": 66.2,
+     "rowsTotal": 861
+    },
+    {
+     "id": 46,
+     "dirs": 12,
+     "x": 355.69,
+     "y": 350.57,
+     "rms": 0.29,
+     "radiusPx": 57.3,
+     "rowsTotal": 818
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 451.05,
+     "y": 497.12,
+     "rms": 0.23,
+     "radiusPx": 54.9,
+     "rowsTotal": 1036
+    },
+    {
+     "id": 56,
+     "dirs": 11,
+     "x": 541.86,
+     "y": 346.89,
+     "rms": 0.33,
+     "radiusPx": 54.6,
+     "rowsTotal": 1015
+    }
+   ],
+   "ms": 649
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.31
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.32
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.35
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 0.36
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 0.24
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 0.21
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.18
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5ivq-08",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 36,
+   "n": 7,
+   "planeRms": 0.7,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 10,
+     "x": 339.2,
+     "y": 431.8,
+     "rms": 3.78,
+     "radiusPx": 35.3,
+     "rowsTotal": 386
+    },
+    {
+     "id": 22,
+     "dirs": 8,
+     "x": 356.61,
+     "y": 545.48,
+     "rms": 3.54,
+     "radiusPx": 43.1,
+     "rowsTotal": 384
+    },
+    {
+     "id": 29,
+     "dirs": 9,
+     "x": 466.97,
+     "y": 535.83,
+     "rms": 1.84,
+     "radiusPx": 48.2,
+     "rowsTotal": 497
+    },
+    {
+     "id": 37,
+     "dirs": 9,
+     "x": 559.63,
+     "y": 388.22,
+     "rms": 1.38,
+     "radiusPx": 47.9,
+     "rowsTotal": 555
+    },
+    {
+     "id": 46,
+     "dirs": 9,
+     "x": 521.24,
+     "y": 279.83,
+     "rms": 1.38,
+     "radiusPx": 36.8,
+     "rowsTotal": 385
+    },
+    {
+     "id": 51,
+     "dirs": 10,
+     "x": 415.04,
+     "y": 311.16,
+     "rms": 2.97,
+     "radiusPx": 34.1,
+     "rowsTotal": 403
+    },
+    {
+     "id": 56,
+     "dirs": 9,
+     "x": 440.16,
+     "y": 411.73,
+     "rms": 1.29,
+     "radiusPx": 39.6,
+     "rowsTotal": 528
+    }
+   ],
+   "ms": 583
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 1.26
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 1.6
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 2.26
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 1.53
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 7.97
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 1.08
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.7
+   }
+  ]
+ },
+ {
+  "name": "phone-hexcase-07",
+  "w": 960,
+  "h": 1280,
+  "best": {
+   "thr": 12,
+   "n": 7,
+   "planeRms": 1.24,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 792.3,
+     "y": 383.15,
+     "rms": 3.56,
+     "radiusPx": 114.5,
+     "rowsTotal": 1866
+    },
+    {
+     "id": 22,
+     "dirs": 12,
+     "x": 446.21,
+     "y": 199.36,
+     "rms": 0.98,
+     "radiusPx": 134.9,
+     "rowsTotal": 1972
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 141.96,
+     "y": 383.72,
+     "rms": 6.38,
+     "radiusPx": 106.5,
+     "rowsTotal": 1646
+    },
+    {
+     "id": 37,
+     "dirs": 12,
+     "x": 234.58,
+     "y": 611.43,
+     "rms": 4.5,
+     "radiusPx": 64.6,
+     "rowsTotal": 977
+    },
+    {
+     "id": 46,
+     "dirs": 10,
+     "x": 486.44,
+     "y": 691.34,
+     "rms": 8.11,
+     "radiusPx": 58.1,
+     "rowsTotal": 726
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 729.59,
+     "y": 616.35,
+     "rms": 3.54,
+     "radiusPx": 73.8,
+     "rowsTotal": 1545
+    },
+    {
+     "id": 56,
+     "dirs": 12,
+     "x": 470.54,
+     "y": 515.91,
+     "rms": 2.02,
+     "radiusPx": 83.1,
+     "rowsTotal": 1809
+    }
+   ],
+   "ms": 1477
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 2.08
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 1.24
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 1.76
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 1.29
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 1.24
+   },
+   {
+    "thr": 30,
+    "n": 6,
+    "planeRms": 1.08
+   },
+   {
+    "thr": 36,
+    "n": 6,
+    "planeRms": 1.99
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5ivq-03",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 12,
+   "n": 7,
+   "planeRms": 0.06,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 179.14,
+     "y": 368.35,
+     "rms": 0.21,
+     "radiusPx": 30.3,
+     "rowsTotal": 534
+    },
+    {
+     "id": 22,
+     "dirs": 11,
+     "x": 136.68,
+     "y": 451.56,
+     "rms": 0.27,
+     "radiusPx": 29.2,
+     "rowsTotal": 395
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 190.48,
+     "y": 526.87,
+     "rms": 0.37,
+     "radiusPx": 31.1,
+     "rowsTotal": 550
+    },
+    {
+     "id": 37,
+     "dirs": 10,
+     "x": 281.88,
+     "y": 516.29,
+     "rms": 0.2,
+     "radiusPx": 30.5,
+     "rowsTotal": 473
+    },
+    {
+     "id": 46,
+     "dirs": 8,
+     "x": 319.91,
+     "y": 435.71,
+     "rms": 0.41,
+     "radiusPx": 29.6,
+     "rowsTotal": 317
+    },
+    {
+     "id": 51,
+     "dirs": 10,
+     "x": 270.77,
+     "y": 362.89,
+     "rms": 0.33,
+     "radiusPx": 29,
+     "rowsTotal": 391
+    },
+    {
+     "id": 56,
+     "dirs": 11,
+     "x": 231.31,
+     "y": 443.51,
+     "rms": 0.25,
+     "radiusPx": 31.1,
+     "rowsTotal": 458
+    }
+   ],
+   "ms": 1807
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.08
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.06
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.16
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 0.12
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 3.84
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 17.33
+   },
+   {
+    "thr": 36,
+    "n": 6,
+    "planeRms": 4.72
+   }
+  ]
+ },
+ {
+  "name": "phone-hexcase-09",
+  "w": 960,
+  "h": 1280,
+  "best": {
+   "thr": 30,
+   "n": 7,
+   "planeRms": 0.64,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 11,
+     "x": 414.84,
+     "y": 417.27,
+     "rms": 4.1,
+     "radiusPx": 45.6,
+     "rowsTotal": 763
+    },
+    {
+     "id": 22,
+     "dirs": 9,
+     "x": 274.69,
+     "y": 352.81,
+     "rms": 2.98,
+     "radiusPx": 53.7,
+     "rowsTotal": 678
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 169.58,
+     "y": 524.63,
+     "rms": 1.66,
+     "radiusPx": 76.8,
+     "rowsTotal": 1076
+    },
+    {
+     "id": 37,
+     "dirs": 11,
+     "x": 260.13,
+     "y": 744.94,
+     "rms": 1.36,
+     "radiusPx": 63.3,
+     "rowsTotal": 983
+    },
+    {
+     "id": 46,
+     "dirs": 6,
+     "x": 405.86,
+     "y": 741.46,
+     "rms": 2.08,
+     "radiusPx": 41,
+     "rowsTotal": 414
+    },
+    {
+     "id": 51,
+     "dirs": 9,
+     "x": 464.83,
+     "y": 588.06,
+     "rms": 1.33,
+     "radiusPx": 38.2,
+     "rowsTotal": 759
+    },
+    {
+     "id": 56,
+     "dirs": 12,
+     "x": 344.45,
+     "y": 563.32,
+     "rms": 3.19,
+     "radiusPx": 55.3,
+     "rowsTotal": 1026
+    }
+   ],
+   "ms": 841
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 4.17
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 1.63
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 1.65
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 1.04
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 1.85
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 0.64
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 1.85
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5ivq-06",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 36,
+   "n": 7,
+   "planeRms": 0.11,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 5,
+     "x": 481.9,
+     "y": 521.02,
+     "rms": 0.31,
+     "radiusPx": 40.7,
+     "rowsTotal": 283
+    },
+    {
+     "id": 22,
+     "dirs": 4,
+     "x": 517.74,
+     "y": 400.29,
+     "rms": 0.13,
+     "radiusPx": 39.2,
+     "rowsTotal": 157
+    },
+    {
+     "id": 29,
+     "dirs": 9,
+     "x": 444.51,
+     "y": 307.07,
+     "rms": 0.43,
+     "radiusPx": 38.7,
+     "rowsTotal": 403
+    },
+    {
+     "id": 37,
+     "dirs": 7,
+     "x": 344.71,
+     "y": 334.87,
+     "rms": 0.95,
+     "radiusPx": 33.1,
+     "rowsTotal": 249
+    },
+    {
+     "id": 46,
+     "dirs": 7,
+     "x": 313.68,
+     "y": 445.83,
+     "rms": 0.44,
+     "radiusPx": 33.8,
+     "rowsTotal": 293
+    },
+    {
+     "id": 51,
+     "dirs": 8,
+     "x": 377.43,
+     "y": 538.48,
+     "rms": 0.36,
+     "radiusPx": 38.1,
+     "rowsTotal": 464
+    },
+    {
+     "id": 56,
+     "dirs": 7,
+     "x": 410.51,
+     "y": 424.24,
+     "rms": 0.9,
+     "radiusPx": 35.6,
+     "rowsTotal": 360
+    }
+   ],
+   "ms": 584
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.82
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.81
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.61
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 1.73
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 0.92
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 1.26
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.11
+   }
+  ]
+ },
+ {
+  "name": "phone-hexcase-04",
+  "w": 960,
+  "h": 1280,
+  "best": {
+   "thr": 36,
+   "n": 7,
+   "planeRms": 0.45,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 10,
+     "x": 159.21,
+     "y": 556.3,
+     "rms": 0.93,
+     "radiusPx": 64.5,
+     "rowsTotal": 669
+    },
+    {
+     "id": 22,
+     "dirs": 7,
+     "x": 133.03,
+     "y": 752.7,
+     "rms": 0.57,
+     "radiusPx": 74.4,
+     "rowsTotal": 386
+    },
+    {
+     "id": 29,
+     "dirs": 5,
+     "x": 357.59,
+     "y": 879.44,
+     "rms": 0.26,
+     "radiusPx": 86.2,
+     "rowsTotal": 247
+    },
+    {
+     "id": 37,
+     "dirs": 3,
+     "x": 550.7,
+     "y": 773.44,
+     "rms": 0.12,
+     "radiusPx": 72.5,
+     "rowsTotal": 118
+    },
+    {
+     "id": 46,
+     "dirs": 4,
+     "x": 522.03,
+     "y": 595.45,
+     "rms": 0.25,
+     "radiusPx": 60,
+     "rowsTotal": 133
+    },
+    {
+     "id": 51,
+     "dirs": 6,
+     "x": 348.61,
+     "y": 502.05,
+     "rms": 0.74,
+     "radiusPx": 63.2,
+     "rowsTotal": 214
+    },
+    {
+     "id": 56,
+     "dirs": 4,
+     "x": 352.9,
+     "y": 664.66,
+     "rms": 0.17,
+     "radiusPx": 68.8,
+     "rowsTotal": 190
+    }
+   ],
+   "ms": 607
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.66
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 1.96
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.92
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 2.53
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 0.65
+   },
+   {
+    "thr": 30,
+    "n": 6,
+    "planeRms": 0.67
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.45
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5iap-12",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 8,
+   "n": 7,
+   "planeRms": 0.14,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 10,
+     "x": 435.64,
+     "y": 228.07,
+     "rms": 0.21,
+     "radiusPx": 47.1,
+     "rowsTotal": 703
+    },
+    {
+     "id": 22,
+     "dirs": 11,
+     "x": 308.54,
+     "y": 156.53,
+     "rms": 0.31,
+     "radiusPx": 44.6,
+     "rowsTotal": 596
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 177.81,
+     "y": 227.18,
+     "rms": 0.3,
+     "radiusPx": 47.6,
+     "rowsTotal": 839
+    },
+    {
+     "id": 37,
+     "dirs": 12,
+     "x": 174.52,
+     "y": 374,
+     "rms": 0.23,
+     "radiusPx": 49.1,
+     "rowsTotal": 833
+    },
+    {
+     "id": 46,
+     "dirs": 11,
+     "x": 305.99,
+     "y": 448,
+     "rms": 0.3,
+     "radiusPx": 46.1,
+     "rowsTotal": 707
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 436.67,
+     "y": 372.85,
+     "rms": 0.22,
+     "radiusPx": 48.2,
+     "rowsTotal": 950
+    },
+    {
+     "id": 56,
+     "dirs": 12,
+     "x": 306.96,
+     "y": 300.13,
+     "rms": 0.23,
+     "radiusPx": 45.3,
+     "rowsTotal": 928
+    }
+   ],
+   "ms": 1067
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.14
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.16
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.2
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 0.35
+   },
+   {
+    "thr": 24,
+    "n": 3,
+    "planeRms": null
+   },
+   {
+    "thr": 30,
+    "n": 1,
+    "planeRms": null
+   },
+   {
+    "thr": 36,
+    "n": 0,
+    "planeRms": null
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5iap-04",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 16,
+   "n": 7,
+   "planeRms": 0.4,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 634.37,
+     "y": 234.5,
+     "rms": 0.37,
+     "radiusPx": 73.3,
+     "rowsTotal": 696
+    },
+    {
+     "id": 22,
+     "dirs": 3,
+     "x": 470.25,
+     "y": 136.52,
+     "rms": 0.41,
+     "radiusPx": 53.2,
+     "rowsTotal": 109
+    },
+    {
+     "id": 29,
+     "dirs": 9,
+     "x": 326.43,
+     "y": 244.7,
+     "rms": 0.91,
+     "radiusPx": 52.5,
+     "rowsTotal": 361
+    },
+    {
+     "id": 37,
+     "dirs": 9,
+     "x": 318.91,
+     "y": 434.09,
+     "rms": 0.98,
+     "radiusPx": 51.4,
+     "rowsTotal": 365
+    },
+    {
+     "id": 46,
+     "dirs": 12,
+     "x": 452.73,
+     "y": 551.71,
+     "rms": 0.71,
+     "radiusPx": 57.1,
+     "rowsTotal": 828
+    },
+    {
+     "id": 51,
+     "dirs": 11,
+     "x": 624.46,
+     "y": 465.75,
+     "rms": 0.36,
+     "radiusPx": 72.4,
+     "rowsTotal": 1030
+    },
+    {
+     "id": 56,
+     "dirs": 11,
+     "x": 460.52,
+     "y": 344.43,
+     "rms": 0.88,
+     "radiusPx": 57.5,
+     "rowsTotal": 977
+    }
+   ],
+   "ms": 746
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.52
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.44
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.4
+   },
+   {
+    "thr": 20,
+    "n": 3,
+    "planeRms": null
+   },
+   {
+    "thr": 24,
+    "n": 0,
+    "planeRms": null
+   },
+   {
+    "thr": 30,
+    "n": 0,
+    "planeRms": null
+   },
+   {
+    "thr": 36,
+    "n": 0,
+    "planeRms": null
+   }
+  ]
+ },
+ {
+  "name": "phone-hexcase-06",
+  "w": 960,
+  "h": 1280,
+  "best": {
+   "thr": 12,
+   "n": 7,
+   "planeRms": 0.88,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 226.17,
+     "y": 405.08,
+     "rms": 1.26,
+     "radiusPx": 95.5,
+     "rowsTotal": 1844
+    },
+    {
+     "id": 22,
+     "dirs": 12,
+     "x": 112.87,
+     "y": 668.1,
+     "rms": 0.51,
+     "radiusPx": 94.4,
+     "rowsTotal": 1376
+    },
+    {
+     "id": 29,
+     "dirs": 12,
+     "x": 279.39,
+     "y": 880.99,
+     "rms": 1.12,
+     "radiusPx": 88.2,
+     "rowsTotal": 1474
+    },
+    {
+     "id": 37,
+     "dirs": 12,
+     "x": 482.25,
+     "y": 815.42,
+     "rms": 1.22,
+     "radiusPx": 67.4,
+     "rowsTotal": 1263
+    },
+    {
+     "id": 46,
+     "dirs": 7,
+     "x": 549.55,
+     "y": 608.78,
+     "rms": 6.03,
+     "radiusPx": 72.4,
+     "rowsTotal": 500
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 447.79,
+     "y": 413.39,
+     "rms": 1.26,
+     "radiusPx": 71.6,
+     "rowsTotal": 1568
+    },
+    {
+     "id": 56,
+     "dirs": 12,
+     "x": 370.17,
+     "y": 632.61,
+     "rms": 0.48,
+     "radiusPx": 80.1,
+     "rowsTotal": 1509
+    }
+   ],
+   "ms": 1587
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 2.72
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.88
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 2.46
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 3.25
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 3.4
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 2.04
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 1.81
+   }
+  ]
+ },
+ {
+  "name": "hexcase-04-pre",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 12,
+   "n": 7,
+   "planeRms": 0.43,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 438.57,
+     "y": 544.52,
+     "rms": 0.28,
+     "radiusPx": 76.9,
+     "rowsTotal": 1428
+    },
+    {
+     "id": 22,
+     "dirs": 11,
+     "x": 499.4,
+     "y": 338.56,
+     "rms": 0.26,
+     "radiusPx": 63.2,
+     "rowsTotal": 773
+    },
+    {
+     "id": 29,
+     "dirs": 11,
+     "x": 362.07,
+     "y": 198.82,
+     "rms": 0.28,
+     "radiusPx": 63,
+     "rowsTotal": 820
+    },
+    {
+     "id": 37,
+     "dirs": 9,
+     "x": 170.62,
+     "y": 246.18,
+     "rms": 0.13,
+     "radiusPx": 62.6,
+     "rowsTotal": 704
+    },
+    {
+     "id": 46,
+     "dirs": 12,
+     "x": 96.63,
+     "y": 437.58,
+     "rms": 0.78,
+     "radiusPx": 65.8,
+     "rowsTotal": 1107
+    },
+    {
+     "id": 51,
+     "dirs": 12,
+     "x": 225.34,
+     "y": 597.49,
+     "rms": 0.44,
+     "radiusPx": 76.6,
+     "rowsTotal": 1565
+    },
+    {
+     "id": 56,
+     "dirs": 12,
+     "x": 296.98,
+     "y": 388.06,
+     "rms": 0.22,
+     "radiusPx": 71,
+     "rowsTotal": 1312
+    }
+   ],
+   "ms": 756
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.44
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.43
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.55
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 0.59
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 0.57
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 0.57
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.55
+   }
+  ]
+ },
+ {
+  "name": "hexcase-5ivq-07",
+  "w": 960,
+  "h": 720,
+  "best": {
+   "thr": 30,
+   "n": 7,
+   "planeRms": 0.15,
+   "pairs": 7,
+   "marks": [
+    {
+     "id": 11,
+     "dirs": 12,
+     "x": 313.78,
+     "y": 441.51,
+     "rms": 0.33,
+     "radiusPx": 46.4,
+     "rowsTotal": 780
+    },
+    {
+     "id": 22,
+     "dirs": 10,
+     "x": 404.84,
+     "y": 549.16,
+     "rms": 0.29,
+     "radiusPx": 47.1,
+     "rowsTotal": 591
+    },
+    {
+     "id": 29,
+     "dirs": 11,
+     "x": 560.51,
+     "y": 522.37,
+     "rms": 0.29,
+     "radiusPx": 50,
+     "rowsTotal": 690
+    },
+    {
+     "id": 37,
+     "dirs": 10,
+     "x": 605.52,
+     "y": 393.41,
+     "rms": 0.52,
+     "radiusPx": 44.8,
+     "rowsTotal": 526
+    },
+    {
+     "id": 46,
+     "dirs": 10,
+     "x": 510.06,
+     "y": 301.86,
+     "rms": 0.32,
+     "radiusPx": 40.1,
+     "rowsTotal": 456
+    },
+    {
+     "id": 51,
+     "dirs": 11,
+     "x": 372.36,
+     "y": 323.48,
+     "rms": 0.38,
+     "radiusPx": 41.5,
+     "rowsTotal": 677
+    },
+    {
+     "id": 56,
+     "dirs": 9,
+     "x": 461,
+     "y": 416.86,
+     "rms": 0.35,
+     "radiusPx": 43.3,
+     "rowsTotal": 651
+    }
+   ],
+   "ms": 623
+  },
+  "tries": [
+   {
+    "thr": 8,
+    "n": 7,
+    "planeRms": 0.6
+   },
+   {
+    "thr": 12,
+    "n": 7,
+    "planeRms": 0.55
+   },
+   {
+    "thr": 16,
+    "n": 7,
+    "planeRms": 0.43
+   },
+   {
+    "thr": 20,
+    "n": 7,
+    "planeRms": 2.92
+   },
+   {
+    "thr": 24,
+    "n": 7,
+    "planeRms": 0.46
+   },
+   {
+    "thr": 30,
+    "n": 7,
+    "planeRms": 0.15
+   },
+   {
+    "thr": 36,
+    "n": 7,
+    "planeRms": 0.24
+   }
+  ]
+ }
+]

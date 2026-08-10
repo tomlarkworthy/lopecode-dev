@@ -1,0 +1,725 @@
+{
+ "cells": {
+  "_whdwrzx": {
+   "name": null,
+   "inputs": [
+    "md"
+   ],
+   "def": "function _anonymous(md) {return (md`### §4.7   Relabelling\n\nThe bank's reference labels (§3.1) are not the tracker's own output. They come from a slower procedure allowed to spend a hundred times the frame budget: twelve scan directions instead of one, stride 1 instead of 4, a sweep over the edge threshold, and a sub-pixel refinement stage the real-time path skips entirely. §3.3 then scores the shipping cascade against them.\n\n1. **The edge threshold is chosen per frame.** Clutter scales with the imaged size of a mark, so no single value serves a 30px mark and an 80px one; across this bank the chosen values span 8 to 36. The sweep ranks on marks the plane *used*, not marks measured — a threshold that measures seven and then has one thrown out by RANSAC reports a tight plane *because* the inconsistent mark was discarded.\n2. **Every centre is refined on its own ring lattice** before any plane is fitted, so the plane is fitted to the better centres — and each mark hands the plane its local metric as well as its position.\n3. **The plane is fitted by exhaustive RANSAC over the 4-subsets**, not by dropping the worst point. A mark decoded under the wrong id sits perfectly on its own ink and a whole pitch from where that id belongs, and with seven points it drags a least-squares fit far enough that the innocent marks look as guilty as it does.\n4. **The plane may flag a measurement, never quietly replace one.** A hand-held sheet at a grazing angle is not planar to 4px, and a fit that rejects a mark the pixels endorse is the model being wrong rather than the measurement. So a measurement is overruled only at a residual on the order of the mark spacing — paper curl moves a mark a few px, a misread sits a whole pitch away — or when the pixel contrast of the mark's own printed design refuses it as well.\n\nOne frame at a time below. Everything it reports about a mark is evidence from a different instrument: \\`dirs\\` is how many directions saw it, \\`line rms\\` how well their lines met, \\`ring n\\`/\\`ring rms\\` the refinement's observation count and residual, \\`plane px\\` its residual against the plane the other marks determine, \\`contrast\\` the collar-minus-core of its own ink, and \\`moved px\\` how far the result sits from the label this notebook currently ships.`);}"
+  },
+  "_vlfyqr": {
+   "name": null,
+   "inputs": [
+    "md"
+   ],
+   "def": "function _anonymous(md) {return (md`### §3.1   The label set\n\nEach banked frame carries seven labelled mark centres, and §3.3 scores the detector against them. They are the one part of the evaluation that must not come from the detector being evaluated.\n\nThey did once, and about one in seven was materially wrong. §4.7 is how they are measured now — a slower offline pass that runs on any frame in this bank. In the current set every one of the 112 labels is a direct measurement: 103 refined on the ring lattice, 9 from the line intersection alone, none predicted off the plane and none overruled by it. Re-measuring moved the median label 0.96px and the worst 8.30px.`);}"
+  },
+  "_1epdu7f": {
+   "name": "hexRigScore",
+   "inputs": [],
+   "def": "function _hexRigScore() {return (function hexRigScore(res, truth, tolFrac = 0.6) {\n  // Score one cascade result against a FROZEN label set.\n  //\n  // This is the difference between the rig and fitHexPose. fitHexPose fits the\n  // plane from the detections in the frame it is given, which is right for a\n  // live view but circular for tuning: change a setting, lose a mark, and the\n  // plane moves under you, so the thing you are scoring against is a function\n  // of the thing you are scoring. Here the labels are frozen -- measured once,\n  // offline, by the §4.7 relabelling pass at twelve directions and stride 1 with\n  // ring-lattice refinement -- and every replay at every setting is scored\n  // against those same seven positions.\n  //\n  // States match fitHexPose's vocabulary so the live overlay and the sweep\n  // table mean the same thing by the same word.\n  const fused = res.fused ?? [];\n  const unread = (res.unidentified ?? []).filter((u) => u.posed);\n  const known = new Set(truth.map((t) => t.id));\n  const marks = truth.map((t) => {\n    const tol = tolFrac * t.radiusPx;\n    const hit = fused.find((f) => f.id === t.id);\n    const near = unread.find((u) => Math.hypot(u.xc - t.x, u.yc - t.y) <= tol);\n    const resid = hit ? Math.hypot(hit.xc - t.x, hit.yc - t.y) : null;\n    return {\n      id: t.id,\n      state: hit ? (resid <= tol ? \"read\" : \"misplaced\") : near ? \"located\" : \"missing\",\n      residualPx: resid == null ? null : +resid.toFixed(1)\n    };\n  });\n  const counts = { read: 0, misplaced: 0, located: 0, missing: 0 };\n  for (const m of marks) counts[m.state]++;\n  const offTarget = fused.filter((f) => !known.has(f.id));\n  // A wrong id costs more than a miss. The target's seven ids are pairwise\n  // Hamming distance 3 apart, so a false read is not a near miss of a correct\n  // one -- it is the detector asserting something no single flipped cell can\n  // explain. Weight 3 is a judgement, and it is the only judgement in here;\n  // every other number reported is a count.\n  const wrong = counts.misplaced + offTarget.length;\n  return {\n    marks, counts,\n    offTarget: offTarget.map((f) => ({ id: f.id, x: Math.round(f.xc), y: Math.round(f.yc) })),\n    wrong,\n    score: counts.read - 3 * wrong\n  };\n});}"
+  },
+  "_1878ruu": {
+   "name": "fitRingLattice",
+   "inputs": [
+    "manLayout"
+   ],
+   "def": "function _fitRingLattice(manLayout) {return (function fitRingLattice(obs, init, opts = {}) {\n  // One mark's whole ring lattice, fitted at once:\n  //\n  //     |A (p - c)| = teeth[t] + delta * polarity\n  //\n  // c is the centre in the image and A the inverse of the local plane-to-image map.\n  // delta is one ink-bleed offset in mm. It is identifiable rather than degenerate with\n  // scale because the involution pairs require ss[f] === -ss[e]: growing the ink moves a\n  // dark->light boundary out and a light->dark boundary in, and consecutive teeth\n  // alternate polarity, so delta warps the radial lattice in a way A cannot absorb.\n  //\n  // An affine A is not quite enough. Concentric circles map to NON-concentric ellipses\n  // under a homography -- the image ellipse of a ring drifts toward the vanishing point\n  // as the ring grows -- so on a tilted sheet the affine model carries a bias of a few\n  // tenths of a pixel that no amount of data removes. Two more parameters divide out\n  // that drift and it goes away.\n  const n = obs.length;\n  if (n < 40) return null;\n  const usePersp = opts.perspective !== false;\n  const s = init.radiusPx ? manLayout.R / init.radiusPx : 1;   // px -> mm, isotropic seed\n  const eps = [0.01, 0.01, 1e-5, 1e-5, 1e-5, 1e-5, 1e-3, 1e-8, 1e-8];\n\n  const resid = (t, np, i) => {\n    const o = obs[i];\n    const dx = o[0] - t[0], dy = o[1] - t[1];\n    let qx = t[2] * dx + t[3] * dy, qy = t[4] * dx + t[5] * dy;\n    if (np > 7) { const wg = 1 + t[7] * dx + t[8] * dy; qx /= wg; qy /= wg; }\n    return Math.hypot(qx, qy) - (o[2] + t[6] * o[3]);\n  };\n  const cost = (t, np, wts) => {\n    let sse = 0, sw = 0;\n    for (let i = 0; i < n; i++) { const r = resid(t, np, i); sse += wts[i] * r * r; sw += wts[i]; }\n    return sse / Math.max(1e-9, sw);\n  };\n  const solveLin = (JTJ, JTr, np, lam) => {\n    const M = JTJ.map((row, i) => Float64Array.from([...row, JTr[i]]));\n    for (let a = 0; a < np; a++) M[a][a] *= 1 + lam;\n    for (let c = 0; c < np; c++) {\n      let piv = c;\n      for (let r = c + 1; r < np; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;\n      if (Math.abs(M[piv][c]) < 1e-18) return null;\n      const tmp = M[c]; M[c] = M[piv]; M[piv] = tmp;\n      for (let r = 0; r < np; r++) {\n        if (r === c) continue;\n        const f = M[r][c] / M[c][c];\n        for (let k = c; k <= np; k++) M[r][k] -= f * M[c][k];\n      }\n    }\n    return Array.from({ length: np }, (_, a) => M[a][np] / M[a][a]);\n  };\n  // Levenberg-Marquardt with step ACCEPTANCE, not just damping: plain Gauss-Newton\n  // diverged on about one mark in twenty and threw the centre a thousand pixels. A step\n  // that does not lower the weighted cost has to be refused.\n  const solve = (np, th0) => {\n    let th = th0.slice();\n    let wts = new Float64Array(n).fill(1);\n    let lam = 1e-3, cur = cost(th, np, wts);\n    for (let iter = 0; iter < 60; iter++) {\n      const JTJ = Array.from({ length: np }, () => new Float64Array(np));\n      const JTr = new Float64Array(np);\n      const g = new Float64Array(np);\n      for (let i = 0; i < n; i++) {\n        const r0 = resid(th, np, i);\n        for (let k = 0; k < np; k++) {\n          const t2 = th.slice(); t2[k] += eps[k];\n          g[k] = (resid(t2, np, i) - r0) / eps[k];\n        }\n        const w = wts[i];\n        for (let a = 0; a < np; a++) {\n          JTr[a] += w * g[a] * r0;\n          for (let b = a; b < np; b++) JTJ[a][b] += w * g[a] * g[b];\n        }\n      }\n      for (let a = 0; a < np; a++) for (let b = 0; b < a; b++) JTJ[a][b] = JTJ[b][a];\n      let took = false;\n      for (let attempt = 0; attempt < 8; attempt++) {\n        const d = solveLin(JTJ.map((r) => Float64Array.from(r)), JTr, np, lam);\n        if (!d) { lam *= 10; continue; }\n        const t2 = th.slice();\n        for (let a = 0; a < np; a++) t2[a] -= d[a];\n        const c2 = cost(t2, np, wts);\n        if (c2 < cur) { th = t2; cur = c2; lam = Math.max(1e-9, lam / 3); took = true; break; }\n        lam *= 10;\n        if (lam > 1e12) break;\n      }\n      if (!took) break;\n      // Huber on the mm residual: a crossing assigned to the neighbouring tooth is half a\n      // tooth out and would otherwise drag the centre with it.\n      const rs = new Float64Array(n);\n      for (let i = 0; i < n; i++) rs[i] = Math.abs(resid(th, np, i));\n      const srt = Float64Array.from(rs).sort();\n      const mad = Math.max(0.02, srt[n >> 1]);\n      for (let i = 0; i < n; i++) { const q = rs[i] / (2 * mad); wts[i] = q <= 1 ? 1 : 1 / q; }\n      cur = cost(th, np, wts);\n    }\n    return { th, rms: Math.sqrt(cur) };\n  };\n\n  const aff = solve(7, [init.x, init.y, s, 0, 0, s, 0, 0, 0]);\n  // A refinement that ran away from the measurement it was refining is a failed solve,\n  // not a better centre.\n  if (!isFinite(aff.rms) || aff.rms > 1.5 ||\n      Math.hypot(aff.th[0] - init.x, aff.th[1] - init.y) > (init.radiusPx ?? 40) * 0.5) return null;\n\n  let th = aff.th, rms = aff.rms, model = \"affine\";\n  if (usePersp) {\n    const per = solve(9, [...aff.th.slice(0, 7), 0, 0]);\n    // The perspective pair is the weakest constrained direction in the problem, so a solve\n    // that lands far from the affine one has found a different minimum rather than a better\n    // one. \"Far\" is a question about the MARK, so it scales with the mark: the correction\n    // runs 1-3% of the radius whatever the frame, and a fixed pixel bound turns that into a\n    // rejection for every large mark. At the 1px this used to be, close-up frames lost the\n    // perspective fit on 32 of 40 marks -- 29 of which it had improved, by a median 82% --\n    // and silently fell back to affine, which is the model carrying the tilt bias the\n    // perspective pair exists to remove. The rms condition beside it already rejects a\n    // solve that is merely worse, so this bound only has to catch divergence.\n    const jumpMax = Math.max(1, 0.04 * (init.radiusPx ?? 40));\n    const jump = Math.hypot(per.th[0] - aff.th[0], per.th[1] - aff.th[1]);\n    if (isFinite(per.rms) && per.rms <= aff.rms && jump <= jumpMax) {\n      th = per.th; rms = per.rms; model = \"perspective\";\n    }\n  }\n  return {\n    x: th[0], y: th[1], delta: th[6], rms, n, model,\n    // px -> LAYOUT UNITS (teeth are layout units); the caller converts with mmPerUnit\n    A: [th[2], th[3], th[4], th[5]],\n    moved: Math.hypot(th[0] - init.x, th[1] - init.y)\n  };\n});}"
+  },
+  "_vh398d": {
+   "name": "relabelReport",
+   "inputs": [
+    "relabelRun",
+    "htl",
+    "relabelStatus",
+    "relabelCfg",
+    "hexFrameBank"
+   ],
+   "def": "function _relabelReport(relabelRun,htl,relabelStatus,relabelCfg,hexFrameBank) {\n  if (!relabelRun) return htl.html`<div style=\"font:12px ui-monospace,monospace;color:var(--theme-foreground-muted,#888)\">\n    ${relabelStatus !== \"idle\" ? relabelStatus\n      : relabelCfg.frame == null ? \"choose a bank frame, then press the button\"\n      : \"press the button to relabel \" + hexFrameBank[relabelCfg.frame].name}</div>`;\n  const r = relabelRun;\n  const COL = { refined: \"#2fe08a\", measured: \"#b8e04a\", predicted: \"#5ad8f5\", \"plane-rejected\": \"#e05ad0\", none: \"#888\" };\n  const shipped = new Map(r.shipped.map((t) => [t.id, t]));\n\n  const parts = [];\n  for (const L of r.labels) {\n    if (L.x == null) continue;\n    const c = COL[L.src] ?? \"#888\";\n    const R = L.radiusPx ?? 20;\n    // The rim projected through the plane, not a circle of the median half-width: on a\n    // tilted sheet the two differ by the tilt, and a ring that does not sit on its mark\n    // then reads as a bad measurement rather than as a bad drawing.\n    const top = L.outline ? Math.min(...L.outline.map((p) => p[1])) : L.y - R;\n    const shape = L.outline\n      ? `<polygon points=\"${L.outline.map((p) => p[0] + \",\" + p[1]).join(\" \")}\"`\n      : `<circle cx=\"${L.x}\" cy=\"${L.y}\" r=\"${R.toFixed(1)}\"`;\n    parts.push(\n      `${shape} fill=\"none\" stroke=\"${c}\" stroke-width=\"3\"\n        stroke-dasharray=\"${L.src === \"refined\" || L.src === \"measured\" ? \"none\" : \"9 6\"}\"/>` +\n      `<g stroke=\"${c}\" stroke-width=\"2\"><line x1=\"${L.x - 10}\" y1=\"${L.y}\" x2=\"${L.x + 10}\" y2=\"${L.y}\"/>\n        <line x1=\"${L.x}\" y1=\"${L.y - 10}\" x2=\"${L.x}\" y2=\"${L.y + 10}\"/></g>` +\n      `<text x=\"${L.x}\" y=\"${(top - 6).toFixed(1)}\" font-family=\"ui-monospace,monospace\"\n        font-size=\"${Math.max(20, R * 0.55).toFixed(0)}\" font-weight=\"700\" fill=\"${c}\"\n        text-anchor=\"middle\" paint-order=\"stroke\" stroke=\"#000\" stroke-width=\"4\">${L.id}</text>`\n    );\n    // the label this frame ships with, so a disagreement is visible rather than tabulated\n    const s = shipped.get(L.id);\n    if (s) parts.push(`<circle cx=\"${s.x}\" cy=\"${s.y}\" r=\"4\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2\"/>`);\n  }\n  const overlay = htl.svg`<svg viewBox=\"0 0 ${r.w} ${r.h}\"\n    style=\"position:absolute;inset:0;width:100%;height:100%;pointer-events:none\"></svg>`;\n  overlay.innerHTML = parts.join(\"\");\n\n  const td = (v, style = \"\") => htl.html`<td style=\"text-align:right;padding:2px 7px;\n    font-variant-numeric:tabular-nums;${style}\">${v == null ? \"–\" : v}</td>`;\n  const rows = r.labels.map((L) => {\n    const s = shipped.get(L.id);\n    const moved = s && L.x != null ? +Math.hypot(L.x - s.x, L.y - s.y).toFixed(1) : null;\n    return htl.html`<tr>\n      ${td(L.id)}\n      <td style=\"padding:2px 7px;color:${COL[L.src] ?? \"#888\"}\">${L.src}</td>\n      ${td(L.dirs || null)}${td(L.lineRms)}\n      ${td(L.ringN)}${td(L.ringRms)}${td(L.deltaMm)}${td(L.refinedPx)}\n      ${td(L.planeResid, L.planeResid > 4 ? \"color:#ff9f1c\" : \"\")}\n      ${td(L.score, L.ok ? \"\" : \"color:#ff5c5c\")}${td(moved, moved > 4 ? \"color:#ff9f1c\" : \"\")}\n    </tr>`;\n  });\n\n  return htl.html`<div>\n    <div style=\"display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start\">\n      <div style=\"position:relative;width:460px;max-width:100%;background:#1b1b1b;border-radius:4px;overflow:hidden\">\n        <img src=${r.url} style=\"display:block;width:100%;height:auto\">${overlay}\n      </div>\n      <div>\n        <table style=\"border-collapse:collapse;font:12px ui-monospace,monospace\">\n          <thead><tr>\n            ${[\"id\", \"source\", \"dirs\", \"line rms\", \"ring n\", \"ring rms\", \"δ mm\", \"refine px\", \"plane px\", \"contrast\", \"moved px\"].map((t, i) =>\n              htl.html`<th style=\"text-align:${i === 1 ? \"left\" : \"right\"};padding:2px 7px;font-weight:600;\n                border-bottom:1px solid currentColor\">${t}</th>`)}\n          </tr></thead>\n          <tbody>${rows}</tbody>\n        </table>\n        <div style=\"font:11px/1.6 ui-monospace,monospace;padding-top:8px;color:var(--theme-foreground-muted,#888)\">\n          ${r.name} · ${r.w}×${r.h} · ${r.nDir} directions · stride ${r.stride} · ${r.wallMs}ms<br>\n          threshold sweep ${r.tries.map((t) => `${t.thr}:${t.nUsed ?? t.n}${t.planeRms == null ? \"\" : \"/\" + t.planeRms}`).join(\"  \")}\n          → chose ${r.thr} <span style=\"opacity:0.7\">(marks the plane used, then the tighter plane)</span><br>\n          ${r.refine\n            ? `ring lattice refined ${r.refine.n} centres in ${r.refine.ms}ms${r.refine.deltaMm == null ? \"\" : `, median ink offset δ ${r.refine.deltaMm}mm`}`\n            : \"refinement off: centres are the line intersection alone\"}<br>\n          ${r.plane\n            ? `plane rms ${r.plane.rms}px on ${r.plane.used.length} marks${r.plane.metric ? `, redundancy ${r.plane.metric.redundancy}` : \"\"}${r.plane.rejected.length ? `, flagged ${r.plane.rejected.join(\",\")}` : \"\"}`\n            : \"no trusted plane: too few marks agree on one, and their measured metrics do not make up the difference\"}<br>\n          ring = the mark's rim projected through the plane, centred on the result ·\n          green = refined on the ring lattice · olive = line intersection only ·\n          cyan = predicted off the plane · magenta = measured somewhere the geometry refuses ·\n          small white ring = the label this frame ships with\n        </div>\n      </div>\n    </div>\n  </div>`;\n}"
+  },
+  "_1k65scp": {
+   "name": null,
+   "inputs": [
+    "md"
+   ],
+   "def": "function _anonymous(md) {return (md`#### The ring lattice\n\nThe line intersection above keeps one number per scan direction — the median involution foot — and throws away every edge crossing that produced it. But \\`solveMan\\` has already assigned each involution pair a tooth, so each crossing is a point lying at a radius the barcode itself names. One mark yields three to twenty thousand of them.\n\nFit the whole set at once:\n\n~~~\n|A (p − c)| = teeth[t] + δ · polarity\n~~~\n\n\\`c\\` is the centre in the image, \\`A\\` the inverse of the local plane-to-image map, and δ a single ink-bleed offset. Seven parameters against thousands of observations, where the line intersection had twelve numbers against twelve.\n\n**δ is identifiable, not degenerate with scale.** Thickening the ink moves a dark→light boundary outward and a light→dark boundary inward. The involution pairs require \\`ss[f] === -ss[e]\\`, so both edges of a pair take the same signed shift, and consecutive teeth alternate polarity — a warp of the radial lattice that no choice of \\`A\\` can absorb. On clean rendered frames it comes back at 0.002mm. Dilate the ink by 0.6px and it comes back at 0.246mm and halves the residual scatter. Across the bank it sits near −0.06mm, so the printed ink is some tens of microns thinner than nominal.\n\n**An affine \\`A\\` is not enough.** Under a homography concentric circles map to ellipses that are not concentric: the imaged ellipse of a ring drifts toward the vanishing point as the ring grows. An affine fit has no term for that, so on a tilted sheet it carries a bias no quantity of observations removes. Two perspective parameters divide the drift out, solved as a second stage off the converged affine fit — from a cold start that pair is the weakest-constrained direction in the problem and finds other minima.\n\nMeasured against a renderer's exact centres, adding this stage takes the relabelling from a median error of 0.118px to **0.010px**, and its worst case from 0.721px to 0.027px.`);}"
+  },
+  "_h0321j": {
+   "name": null,
+   "inputs": [
+    "md"
+   ],
+   "def": "function _anonymous(md) {return (md`#### What one mark constrains\n\nA homography from a plane has eight degrees of freedom. A mark reduced to its centre supplies two, so four marks fit one exactly — which is why a four-point consensus at rms 0 is not evidence of anything, and why the RANSAC below originally demanded five.\n\nBut the ring fit returns more than a centre. It returns \\`A\\`, the local plane-to-image map at that mark, and \\`A\\` is not free: it is the Jacobian of the homography evaluated there,\n\n~~~\nJ = (1/w) · [[h11 − x·h31, h12 − x·h32],\n             [h21 − y·h31, h22 − y·h32]],    w = h31·X + h32·Y + h33\n~~~\n\nso a measured \\`A\\` is four more equations on the same eight numbers.\n\nNot four, though. The rings are concentric, so the pattern is invariant under rotation about its own centre and \\`|A d|\\` is unchanged if \\`A\\` is composed with any rotation. Rotation is exactly the part of \\`A\\` the mark cannot see. What it determines is the metric \\`AᵀA\\` — symmetric, **three** numbers.\n\nA mark is therefore worth five constraints, not two. \\`fitPlaneMetric\\` fits the eight parameters against centres and metrics together and reports the redundancy as \\`2·pairs + 3·metrics − 8\\`: 27 on a seven-mark bank frame where the centres alone give 6, and 12 on a four-mark frame where the centres alone give none. Two marks now over-determine the plane.\n\nThe difference is not cosmetic. Predict a held-out mark from four centres alone and the worst of 414 synthetic trials reaches 47000px — an exact fit is an interpolation, and asking it for a fifth point extrapolates through a near-singular solve. From the same four centres plus their metrics, the worst held-out prediction is 1.1px.`);}"
+  }
+ },
+ "order": [
+  {
+   "pid": "_wycbkf",
+   "name": "module @tomlarkworthy/editable-md"
+  },
+  {
+   "pid": "_3dvo7f",
+   "name": "module @tomlarkworthy/assembly-script"
+  },
+  {
+   "pid": "_113ht55",
+   "name": "module @tomlarkworthy/coded-landmark-tracking-data"
+  },
+  {
+   "pid": "_1dhgp2g",
+   "name": "md"
+  },
+  {
+   "pid": "_ebocnh",
+   "name": "headline_md"
+  },
+  {
+   "pid": "_ns9hhpe",
+   "name": null
+  },
+  {
+   "pid": "_1ykrpzw",
+   "name": "Inputs"
+  },
+  {
+   "pid": "_1ve7ka5",
+   "name": "viewof liveOn"
+  },
+  {
+   "pid": "_c55mzz",
+   "name": "Generators"
+  },
+  {
+   "pid": "_1keow27",
+   "name": "liveOn"
+  },
+  {
+   "pid": "_y32b57",
+   "name": "htl"
+  },
+  {
+   "pid": "_1di846o",
+   "name": "hexRigView"
+  },
+  {
+   "pid": "_ktbd9n",
+   "name": "viewof hexRigCfg"
+  },
+  {
+   "pid": "_1pvjep3",
+   "name": "hexRigCfg"
+  },
+  {
+   "pid": "_1kn5g73",
+   "name": "viewof liveFacing"
+  },
+  {
+   "pid": "_1ncd6hs",
+   "name": "liveFacing"
+  },
+  {
+   "pid": "_u7f971",
+   "name": "invalidation"
+  },
+  {
+   "pid": "_xdtu1n",
+   "name": "liveStream"
+  },
+  {
+   "pid": "_1sh7vi3",
+   "name": "liveVideo"
+  },
+  {
+   "pid": "_oydmgri",
+   "name": null
+  },
+  {
+   "pid": "_18kb3j3",
+   "name": "hexRigAutosave"
+  },
+  {
+   "pid": "_1lt19nm",
+   "name": "hexRigOpts"
+  },
+  {
+   "pid": "_gwo9xk",
+   "name": "hexRigLoo"
+  },
+  {
+   "pid": "_1epdu7f",
+   "name": "hexRigScore"
+  },
+  {
+   "pid": "_q7egru",
+   "name": "viewof hexRigCases"
+  },
+  {
+   "pid": "_cih7ns",
+   "name": "hexRigCases"
+  },
+  {
+   "pid": "_lumcap0",
+   "name": "lumaCapture"
+  },
+  {
+   "pid": "_1bfhbxi",
+   "name": "hexRig"
+  },
+  {
+   "pid": "_136sicf",
+   "name": "hexRigCasePanel"
+  },
+  {
+   "pid": "_1h5er0z",
+   "name": "hexRig_md"
+  },
+  {
+   "pid": "_ro0bjp",
+   "name": "viewof barcodeId"
+  },
+  {
+   "pid": "_baxx27",
+   "name": "barcodeId"
+  },
+  {
+   "pid": "_phlah3",
+   "name": "barcodeDemo"
+  },
+  {
+   "pid": "_1duxrlh",
+   "name": "barcodeEncoding_md"
+  },
+  {
+   "pid": "_js23sh",
+   "name": "hexTarget_md"
+  },
+  {
+   "pid": "_xt3mg6",
+   "name": "hexPrintPanel"
+  },
+  {
+   "pid": "_q8nv1h",
+   "name": "hexTargetSvg"
+  },
+  {
+   "pid": "_5xkwav",
+   "name": "makeHexTarget"
+  },
+  {
+   "pid": "_5gg2ic",
+   "name": "hexTarget"
+  },
+  {
+   "pid": "_13k4hcg",
+   "name": "hexPrintCheck"
+  },
+  {
+   "pid": "_nb1x",
+   "name": "eval_md"
+  },
+  {
+   "pid": "_vlfyqr",
+   "name": null
+  },
+  {
+   "pid": "_1ffq68r",
+   "name": "hexBank_md"
+  },
+  {
+   "pid": "_1i43fis",
+   "name": "hexFrameReport"
+  },
+  {
+   "pid": "_tkkz5a",
+   "name": null
+  },
+  {
+   "pid": "_1mzjoz4",
+   "name": "hexBankScores"
+  },
+  {
+   "pid": "_1xylr2t",
+   "name": null
+  },
+  {
+   "pid": "_s3i2bc",
+   "name": "hexBankOverlay"
+  },
+  {
+   "pid": "_nb3x",
+   "name": "algo_md"
+  },
+  {
+   "pid": "_7a2tij3",
+   "name": null
+  },
+  {
+   "pid": "_vzqosp",
+   "name": "viewof encodingCfg"
+  },
+  {
+   "pid": "_156p83f",
+   "name": "encodingCfg"
+  },
+  {
+   "pid": "_1w60xe0",
+   "name": "encodingDiagram"
+  },
+  {
+   "pid": "_bbs83a",
+   "name": "tex"
+  },
+  {
+   "pid": "_1566rx9",
+   "name": "redesign_md"
+  },
+  {
+   "pid": "_1jghxt5",
+   "name": "manLayout"
+  },
+  {
+   "pid": "_12dy4hh",
+   "name": "manColor"
+  },
+  {
+   "pid": "_19a2bc6",
+   "name": "manMarkSvgSource"
+  },
+  {
+   "pid": "_4krul3",
+   "name": "renderManFrame"
+  },
+  {
+   "pid": "_ujkuco",
+   "name": "manScene"
+  },
+  {
+   "pid": "_nb4x",
+   "name": "row_md"
+  },
+  {
+   "pid": "_2dhvou",
+   "name": "viewof rowWalkCfg"
+  },
+  {
+   "pid": "_e4xx4t",
+   "name": "rowWalkCfg"
+  },
+  {
+   "pid": "_erd4p7",
+   "name": "rowWalkScan"
+  },
+  {
+   "pid": "_ra002j",
+   "name": "rowWalkRow"
+  },
+  {
+   "pid": "_dtevw7",
+   "name": "Event"
+  },
+  {
+   "pid": "_1ta8m6l",
+   "name": "rowWalkFrame"
+  },
+  {
+   "pid": "_eihwp8",
+   "name": "rowWalkEdges"
+  },
+  {
+   "pid": "_sf5orsi",
+   "name": null
+  },
+  {
+   "pid": "_wlt2av",
+   "name": "rowWalkGroups"
+  },
+  {
+   "pid": "_y9u9t68",
+   "name": null
+  },
+  {
+   "pid": "_7ch6id",
+   "name": "rowWalkLock"
+  },
+  {
+   "pid": "_7l3m08s",
+   "name": null
+  },
+  {
+   "pid": "_1gmmbqf",
+   "name": "edges1Dsub"
+  },
+  {
+   "pid": "_gg8jqp",
+   "name": "findInvolution"
+  },
+  {
+   "pid": "_1mszvx0",
+   "name": "solveMan"
+  },
+  {
+   "pid": "_w574fm",
+   "name": "manRowGroups"
+  },
+  {
+   "pid": "_rvt6ru",
+   "name": "detectRowMan"
+  },
+  {
+   "pid": "_1mnpthu",
+   "name": "detectFrameMan"
+  },
+  {
+   "pid": "_4liiby",
+   "name": "cascade_md"
+  },
+  {
+   "pid": "_10in6wk",
+   "name": "manScanRows"
+  },
+  {
+   "pid": "_30gfrc",
+   "name": "scanRowsMan"
+  },
+  {
+   "pid": "_ezke5v",
+   "name": "clusterManRows"
+  },
+  {
+   "pid": "_1jt47m8",
+   "name": "analyzeFrameMan"
+  },
+  {
+   "pid": "_138kml",
+   "name": "fitManPose"
+  },
+  {
+   "pid": "_1xa2cta",
+   "name": "manSceneTest"
+  },
+  {
+   "pid": "_11vsmkp",
+   "name": "axes_md"
+  },
+  {
+   "pid": "_zghole",
+   "name": "rotateFrame"
+  },
+  {
+   "pid": "_rtuzun",
+   "name": "unrotatePoint"
+  },
+  {
+   "pid": "_1m3an4z",
+   "name": "mergeManAxes"
+  },
+  {
+   "pid": "_9mkcus",
+   "name": "manAxesTest"
+  },
+  {
+   "pid": "_1az419w",
+   "name": "viewof grabPanel"
+  },
+  {
+   "pid": "_qag4z6",
+   "name": "grabPanel"
+  },
+  {
+   "pid": "_nb5x",
+   "name": "plane_md"
+  },
+  {
+   "pid": "_9ey4fu",
+   "name": "fitHomography"
+  },
+  {
+   "pid": "_1qa5emd",
+   "name": "fitHexPose"
+  },
+  {
+   "pid": "_1v692pi",
+   "name": "pool_md"
+  },
+  {
+   "pid": "_10l0bax",
+   "name": "viewof poolSize"
+  },
+  {
+   "pid": "_1xat3lz",
+   "name": "poolSize"
+  },
+  {
+   "pid": "_13ae255",
+   "name": "detectKernelSource"
+  },
+  {
+   "pid": "_l7r79y",
+   "name": "detectPool"
+  },
+  {
+   "pid": "_p4hc5x",
+   "name": "analyzeFrameManAsync"
+  },
+  {
+   "pid": "_1hgoegm",
+   "name": "poolAgreement"
+  },
+  {
+   "pid": "_fp9av3",
+   "name": "viewof poolBenchGo"
+  },
+  {
+   "pid": "_2jzm2c",
+   "name": "poolBenchGo"
+  },
+  {
+   "pid": "_1ptv9em",
+   "name": "poolBenchmark"
+  },
+  {
+   "pid": "_704z68",
+   "name": "poolReport"
+  },
+  {
+   "pid": "_wsmw0",
+   "name": "wasm_md"
+  },
+  {
+   "pid": "_wsmc1",
+   "name": "warmupCurve"
+  },
+  {
+   "pid": "_47r44a",
+   "name": "Plot"
+  },
+  {
+   "pid": "_wsmc2",
+   "name": "warmupCurveChart"
+  },
+  {
+   "pid": "_mywf8k",
+   "name": "FileAttachment"
+  },
+  {
+   "pid": "_rv4ces",
+   "name": "wasmShippedBytes"
+  },
+  {
+   "pid": "_wsmb1",
+   "name": "wasmKernelBytes"
+  },
+  {
+   "pid": "_wsmb2",
+   "name": "makeWasmDetectRow"
+  },
+  {
+   "pid": "_wsmb3",
+   "name": "wasmDetectRowMan"
+  },
+  {
+   "pid": "_wsmb4",
+   "name": "viewof wasmOn"
+  },
+  {
+   "pid": "_wsmb5",
+   "name": "wasmOn"
+  },
+  {
+   "pid": "_wsmb6",
+   "name": "wasmAgreement"
+  },
+  {
+   "pid": "_wsmr1",
+   "name": "wasmSourceText"
+  },
+  {
+   "pid": "_wsmr2",
+   "name": "viewof wasmRebuildGo"
+  },
+  {
+   "pid": "_wsmr3",
+   "name": "wasmRebuildGo"
+  },
+  {
+   "pid": "_wsmr4",
+   "name": "wasmBuild"
+  },
+  {
+   "pid": "_wsmr5",
+   "name": "wasmRebuildReport"
+  },
+  {
+   "pid": "_whdwrzx",
+   "name": null
+  },
+  {
+   "pid": "_io8z64",
+   "name": "resampleAlong"
+  },
+  {
+   "pid": "_11kt00d",
+   "name": "denseRotations"
+  },
+  {
+   "pid": "_tdcvy7",
+   "name": "intersectLines"
+  },
+  {
+   "pid": "_f2jo8h",
+   "name": "denseLabel"
+  },
+  {
+   "pid": "_1k65scp",
+   "name": null
+  },
+  {
+   "pid": "_dozrc3",
+   "name": "ringObservations"
+  },
+  {
+   "pid": "_1878ruu",
+   "name": "fitRingLattice"
+  },
+  {
+   "pid": "_h0321j",
+   "name": null
+  },
+  {
+   "pid": "_1tm4zrn",
+   "name": "fitPlaneMetric"
+  },
+  {
+   "pid": "_56yy58",
+   "name": "fitPlaneRansac"
+  },
+  {
+   "pid": "_vq3w1d",
+   "name": "markContrast"
+  },
+  {
+   "pid": "_1w91i3j",
+   "name": "relabelCase"
+  },
+  {
+   "pid": "_1stieyf",
+   "name": "viewof relabelCfg"
+  },
+  {
+   "pid": "_1duclsl",
+   "name": "relabelCfg"
+  },
+  {
+   "pid": "_1wcv97b",
+   "name": "viewof relabelGo"
+  },
+  {
+   "pid": "_13t348l",
+   "name": "relabelGo"
+  },
+  {
+   "pid": "_o7cs5i",
+   "name": "relabelProgress"
+  },
+  {
+   "pid": "_1nbl9h5",
+   "name": "initial relabelStatus"
+  },
+  {
+   "pid": "_19qilex",
+   "name": "Mutable"
+  },
+  {
+   "pid": "_7sp7oz",
+   "name": "mutable relabelStatus"
+  },
+  {
+   "pid": "_np1y0e",
+   "name": "relabelStatus"
+  },
+  {
+   "pid": "_9og0ba",
+   "name": "relabelRun"
+  },
+  {
+   "pid": "_vh398d",
+   "name": "relabelReport"
+  },
+  {
+   "pid": "_nb2x",
+   "name": null
+  },
+  {
+   "pid": "_16hxrfy",
+   "name": "viewof hexRigSweepGo"
+  },
+  {
+   "pid": "_5e077b",
+   "name": "hexRigSweepGo"
+  },
+  {
+   "pid": "_1fdcn6e",
+   "name": "renderHexScene"
+  },
+  {
+   "pid": "_15xffv4",
+   "name": "hexRigSynthCases"
+  },
+  {
+   "pid": "_zoue8d",
+   "name": "hexRigSweep"
+  },
+  {
+   "pid": "_a0ribc",
+   "name": "hexRigSelfTest"
+  },
+  {
+   "pid": "_1kgvsyz",
+   "name": "hexRendererCheck"
+  },
+  {
+   "pid": "_1au9ya6",
+   "name": "hexPitchSweep"
+  },
+  {
+   "pid": "_nb6x",
+   "name": "next_md"
+  },
+  {
+   "pid": "_4jtae8",
+   "name": "IntersectionObserver"
+  },
+  {
+   "pid": "_18tz7tt",
+   "name": "localStorage"
+  },
+  {
+   "pid": "_1visgate",
+   "name": "whenVisible"
+  },
+  {
+   "pid": "_1fw5a6r",
+   "name": "@variable"
+  },
+  {
+   "pid": "_1dhgp2g",
+   "name": "md"
+  },
+  {
+   "pid": "_1lhipjl",
+   "name": "hexFrameBank"
+  },
+  {
+   "pid": "_1okoi28",
+   "name": "toolchain"
+  },
+  {
+   "pid": "_5de2fl",
+   "name": "module @tomlarkworthy/annotate"
+  },
+  {
+   "pid": "_1g787t8",
+   "name": "annotation"
+  }
+ ]
+}
