@@ -23,10 +23,11 @@ const out = await page.evaluate(() => {
   const report = cells.find((z) => /marks read now/.test(txt(z)));
   const cards = report ? [...report.querySelectorAll("figcaption")].map((f) => txt(f)) : [];
   const bad = cards.find((c) => /hexcase-5ivq-06/.test(c));
-  const why = cells.find((z) => /is not three marks' worth of worse/.test(txt(z)));
+  const why = cells.find((z) => /collinear to 0\.000mm/.test(txt(z)));
   const audit = cells.find((z) => /every section has a heading cell/.test(txt(z)));
   const toc = cells.find((z) => /The barcode mark/.test(txt(z)) && /Evaluation/.test(txt(z)));
   return { first, cards: cards.length, bad, why: why ? txt(why).slice(0, 120) : "NOT RENDERED",
+           whyPre: why ? why.querySelectorAll("pre,code").length : 0,
            diagCards: cards.filter((c) => /predicted \d+px from its label/.test(c)).length,
            audit: audit ? txt(audit) : "NOT RENDERED",
            tocHasPhantom: toc ? /§3.4|§4.8/.test(txt(toc)) : null };
