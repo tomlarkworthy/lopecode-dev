@@ -28,3 +28,6 @@ usr/
 # drop the TS sources and duplicate ESM builds
 browser-native/vendor-xterm/**/src/
 browser-native/vendor-xterm/**/lib/*.mjs
+claude-md.json
+.rc5-engine.js
+.wiki.js

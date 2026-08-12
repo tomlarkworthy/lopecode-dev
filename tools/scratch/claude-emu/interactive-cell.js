@@ -399,11 +399,12 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   document.addEventListener("visibilitychange", () => healIfBlank());
 
   // ---- cli.js + shim assets ----
-  let DIST_FILES = null, CLI_SRC = null;
+  let DIST_FILES = null, CLI_SRC = null, CLAUDE_MD = null;
   async function ensureAssets() {
     if (DIST_FILES) return;
     DIST_FILES = JSON.parse(await gunzipText(FileAttachment("shims.js.gz")));
     CLI_SRC = await gunzipText(FileAttachment("cli.js.gz"));
+    CLAUDE_MD = await gunzipText(FileAttachment("CLAUDE.md.gz"));
   }
 
   // ---- rc5 filesystem adapter (lean binding over the notebook's own engines) ----
@@ -423,6 +424,21 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     try {
       const r = await Promise.race([D().exportModuleJS(id), new Promise((res) => setTimeout(() => res(null), 5000))]);
       return r && r.source ? r.source : null;
+    } catch { return null; }
+  }
+  // A notebook block, addressed by its id exactly as it appears in the HTML. This is how
+  // rc5 serves /content, and the knowledge docs are stored as blocks with those ids.
+  function blockText(id) {
+    const el = document.getElementById(id);
+    if (!el || el.tagName !== "SCRIPT") return null;
+    const enc = (el.getAttribute("data-encoding") || "text").toLowerCase();
+    const raw = el.textContent || "";
+    if (enc === "text") return raw;
+    try {
+      const bin = atob(raw.replace(/\s+/g, ""));
+      const u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(u); // atob alone gives latin1, mangling any non-ASCII
     } catch { return null; }
   }
   function domContent(id) {
@@ -448,6 +464,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   }
   async function readPathAsync(path) {
     if (rc5_store.scratch.has(path)) return rc5_store.scratch.get(path);
+    const c = path.match(/^\/content\/(.+)$/);
+    if (c) return blockText(c[1]);
     let m = path.match(/^\/src\/(.+)\.js$/);
     if (m) {
       const id = m[1];
@@ -503,6 +521,21 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
         const s = await seedSrc(id);
         if (s) { cache["/src/" + id + ".js"] = s; cache["/notebook/" + id + ".js"] = s; }
       }));
+      // Plain-text blocks (the knowledge docs and bootconf) under /content, so glob and
+      // grep reach them. Encoded blocks are skipped: cli.js.gz alone is 5MB of base64.
+      const live = new Set(moduleIds());
+      for (const el of document.querySelectorAll('script[type="text/plain"][id]')) {
+        const id = el.id;
+        if (live.has(id)) continue;
+        // Select on MIME, not encoding: two of the knowledge docs are base64 blocks and
+        // an encoding test silently dropped them from the listing. Gzip payloads (cli.js
+        // alone is 5MB of base64) are excluded by their mime instead.
+        const mime = (el.getAttribute("data-mime") || "text/plain").toLowerCase();
+        if (!/^text\/|json/.test(mime)) continue;
+        if ((el.textContent || "").length > 512 * 1024) continue;
+        const txt = blockText(id);
+        if (txt != null) cache["/content/" + id] = txt;
+      }
       return cache;
     })();
     return primed;
@@ -556,6 +589,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "  globalThis.__INTERACTIVE = true;",
 "  globalThis.__termSize = (P.__termSize || { cols: 100, rows: 30 });",
 "  globalThis.__HOSTFS = P.__RC5FS || null;",
+"  // Project memory, seeded before any shim import so cli.js finds it at startup.",
+"  globalThis.__SEED_FILES = P.__CLAUDE_MD ? { '/home/user/project/CLAUDE.md': P.__CLAUDE_MD } : {};",
 "  globalThis.__ptyWrite = (s) => { try { P.__ptyWrite && P.__ptyWrite(s); } catch {} };",
 "  try {",
 "    const urlFor = Object.create(null);",
@@ -809,6 +844,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
+      window.__CLAUDE_MD = CLAUDE_MD;
       window.__IMPORT_MAP = IMPORT_MAP;
       window.__runConfig = { key, model, yolo, base, provider: prov, mcp: MCP_URL };
       try { fit && fit.fit(); } catch {}

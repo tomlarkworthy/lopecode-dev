@@ -47,5 +47,14 @@ vol.mkdirSync("/home/user/.claude/projects", { recursive: true });
 vol.mkdirSync("/home/user/.claude/todos", { recursive: true });
 vol.writeFileSync("/home/user/project/README.md", "# project\n\nA scratch project for the browser-native Claude Code session.\n");
 
+// Files the host seeds before boot (project memory built from the notebook's own docs).
+for (const [path, content] of Object.entries(globalThis.__SEED_FILES || {})) {
+  try {
+    const dir = path.slice(0, path.lastIndexOf("/"));
+    if (dir) vol.mkdirSync(dir, { recursive: true });
+    vol.writeFileSync(path, String(content));
+  } catch {}
+}
+
 globalThis.__vol = vol;
 export { fs };

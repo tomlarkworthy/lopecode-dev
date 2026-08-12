@@ -195,6 +195,24 @@ const mcp = await page.evaluate(async () => {
 console.log("mcp:", JSON.stringify(mcp));
 const mcpOk = mcp.handshake > 0 && mcp.tools.length === 4 && typeof mcp.listed === "number" && mcp.wrote && mcp.wrote.ok === true && mcp.evaled === 2;
 
+// ---- STEP 4c: project memory + the knowledge docs it indexes ----
+console.log("\n== project memory ==");
+const mem = await page.evaluate(() => {
+  const w = document.querySelector("#cb-cli-frame").contentWindow;
+  const md = String((w.__vol.toJSON() || {})["/home/user/project/CLAUDE.md"] || "");
+  const paths = window.__RC5FS.list();
+  const wiki = paths.filter((k) => k.startsWith("/content/@tomlarkworthy/markdown-wiki/"));
+  return {
+    bytes: md.length,
+    // The prompt is only useful if the docs it points at actually resolve.
+    indexed: (md.match(/^- \/content\/@tomlarkworthy\/markdown-wiki\//gm) || []).length,
+    present: wiki.length,
+    readable: (window.__RC5FS.readSync(wiki[0]) || "").length,
+  };
+});
+console.log("memory:", JSON.stringify(mem));
+const memOk = mem.bytes > 10000 && mem.indexed > 0 && mem.present === mem.indexed && mem.readable > 0;
+
 // ---- STEP 5: YOLO toggle reaches cli.js argv (default ON, and off when unchecked) ----
 console.log("\n== YOLO mode ==");
 // Negative arm: untick, restart, confirm the flag is gone.
@@ -240,13 +258,14 @@ console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
 console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
+console.log("project memory (CLAUDE.md + every indexed doc present):", memOk, JSON.stringify(mem));
 console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
 console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
-const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && yoloOk && mcpOk && anthOk;
+const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && yoloOk && mcpOk && anthOk && memOk;
 console.log("VERDICT:", GO ? "GO" : "NO-GO");
 console.log("=================================================");
 
