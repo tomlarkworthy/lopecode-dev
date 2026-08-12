@@ -12,11 +12,20 @@ const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-co
 const KEY = process.env.KEY === "direct" ? readFileSync(HERE + "/or-key.txt", "utf8").trim() : "";
 const MODEL = process.env.MODEL || "xiaomi/mimo-v2.5-pro";
 const CHAT = process.env.PROMPT || "Do not use any tools. Reply with exactly one word: BANANA";
-const HASH = "#view=R100(S75(@tomlarkworthy/claude-code-browser),S25(@tomlarkworthy/claude-code-pairing))";
+// HASH matters: S100(a,b) stacks both modules as TABS, so the terminal pane can mount
+// hidden — a layout the side-by-side default never exercises.
+const HASH = process.env.HASH || "#view=R100(S75(@tomlarkworthy/claude-code-browser),S25(@tomlarkworthy/claude-code-pairing))";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1100, height: 720 } });
+// SLOW=<rate> throttles the CPU, standing in for a slow machine: the paint canary
+// must not condemn a healthy terminal just because frames take longer.
+if (process.env.SLOW) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: Number(process.env.SLOW) });
+  console.log("CPU throttled x" + process.env.SLOW);
+}
 
 const openrouterHits = [];
 page.on("request", (r) => { if (r.url().includes("openrouter.ai/api/v1/chat/completions")) process.stdout.write("[openrouter request] " + r.method() + "\n"); });
@@ -71,13 +80,20 @@ const readArgv = () => page.evaluate(() => {
 // What the user actually SEES. __dumpTerm reads the buffer, so a renderer that
 // attaches without painting still "passes" it — that bug shipped twice. Measured here
 // for the same reason as the YOLO arm: STEP 4 re-renders the cell and drops the term.
-const painted = await page.evaluate(() => {
-  const r = document.querySelector("#cb-term .xterm-rows");
-  const b = window.__dumpTerm ? window.__dumpTerm() : "";
-  return { renderedChars: r ? r.textContent.trim().length : 0, bufferedChars: b.trim().length };
-});
-const paintOk = painted.renderedChars > 0;
-console.log("painted to screen:", JSON.stringify(painted));
+// The buffer fills before the DOM paints, so poll rather than sampling once — the
+// guarantee is "it paints", not "it paints within one frame of being buffered".
+// Wait on the engine's own report rather than a wall-clock poll of the DOM: the page
+// exposes __termHealth(), which carries the renderer's paint count next to the rendered
+// character count. "The renderer painted but the DOM is empty" is a wedge; "no paint
+// yet" is just a machine still working.
+let health = await page.waitForFunction(() => {
+  const h = window.__termHealth && window.__termHealth();
+  return h && (h.renderedChars > 0 || h.wedges > 0) ? h : false;
+}, { timeout: 120000, polling: "raf" }).then((h) => h.jsonValue()).catch(() => null);
+if (!health) health = await page.evaluate(() => (window.__termHealth ? window.__termHealth() : null));
+const paintOk = !!health && health.renderedChars > 0 && health.wedges === 0;
+const painted = { renderedChars: health?.renderedChars, bufferedChars: health?.bufferedChars };
+console.log("term health:", JSON.stringify(health));
 
 const FLAG = "--dangerously-skip-permissions";
 const yoloOn = await readArgv();

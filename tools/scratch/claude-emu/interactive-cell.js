@@ -8,6 +8,18 @@
 // This file is `node --check`-able and carries no literal close-script token.
 function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, currentModules, exportModuleJS, jbApply, probeDefine){return((() => {
   const IMPORT_MAP = /*__IMPORT_MAP__*/;
+  window.__CB_INSTANCES = (window.__CB_INSTANCES || 0) + 1;
+  const INSTANCE = window.__CB_INSTANCES;
+  // This cell re-renders whenever its reactive inputs change, and currentModules floods
+  // as modules load. Each re-render used to build a brand new terminal while cli.js kept
+  // writing to the previous one: measured under CPU throttle as instance 4 of 4 on
+  // screen, the boot output sitting in instance 1's buffer, screen blank forever. That,
+  // not paint timing, is what blanks the terminal. So the first instance owns the
+  // terminal, the iframe and the DOM for the life of the page; later instances only
+  // publish fresh dependency values and hand back the same node.
+  window.__CB_DEPS = { FileAttachment, runtime, importShim, createModule, currentModules, exportModuleJS, jbApply, probeDefine };
+  const D = () => window.__CB_DEPS;
+  if (window.__CB_ROOT) return window.__CB_ROOT;
   // No key ships with the notebook. Blank key => the rate-limited demo gateway
   // (per-IP daily budget, MiMo-only, injects the key server-side), same as
   // robocoop-5's _client. A user key goes straight to OpenRouter instead.
@@ -18,6 +30,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 
   // ---- UI shell ----
   const root = document.createElement("div");
+  window.__CB_ROOT = root;
   root.style.cssText = "font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100%;display:flex;flex-direction:column;gap:8px;padding:8px;box-sizing:border-box;background:#1e1e1e;color:#ddd";
   root.innerHTML = [
     "<div style='display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap'>",
@@ -103,6 +116,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       allowProposedApi: true,
     });
     try { fit = new window.FitAddon.FitAddon(); t.loadAddon(fit); } catch {}
+    attachProbes(t);
     return t;
   }
   async function ensureXterm() {
@@ -115,7 +129,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     if (!term) {
       term = newTerminal();
       window.__term = () => term; // debug handle; term is swapped by healIfBlank
-      window.__ptyWrite = (s) => { try { term.write(s); } catch {} };
+      window.__ptyWrite = (s) => { health.writes++; trace("write", { n: s.length }); try { term.write(s); } catch (e) { trace("write-threw", { msg: String(e && e.message) }); } };
       window.__sendKeys = (s) => ptyIn(s);
       window.__dumpTerm = () => {
         const buf = term.buffer.active; const lines = [];
@@ -166,16 +180,89 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   const renderedLen = () => { const r = termHost.querySelector(".xterm-rows"); return r ? r.textContent.trim().length : 0; };
   const bufferedLen = () => { try { return window.__dumpTerm().trim().length; } catch { return 0; } };
 
+  // Health is measured from the terminal's OWN events, not from a clock:
+  //   onWriteParsed - the emulator consumed the bytes we wrote
+  //   onRender      - the renderer painted rows (and which rows)
+  // Comparing "the renderer says it painted" against "the DOM has characters"
+  // identifies a wedged terminal directly and immediately, instead of inferring it
+  // from how long something took, which is really a guess about machine speed.
+  const health = { writes: 0, parses: 0, renders: 0, lastRange: null, blankPaints: 0, openRetries: 0, wedges: 0, nudges: 0, trace: [] };
+  let renderWaiters = [];
+  function attachProbes(t) {
+    try {
+      t.onRender((e) => {
+        health.renders++; health.lastRange = e;
+        // The direct wedge test, available on EVERY paint rather than only at open:
+        // the renderer says it drew these rows, so if the screen is empty while the
+        // buffer holds text, this terminal is not putting output where anyone can see it.
+        const chars = renderedLen();
+        trace("render", { rows: e.end - e.start + 1, chars });
+        if (chars === 0) {
+          const buffered = bufferedLen();
+          // A single empty paint is not a verdict - xterm clears rows mid-repaint, so
+          // this is a suspicion. It becomes a wedge only if the screen is still empty
+          // after the app has been asked to redraw (see healIfBlank).
+          if (buffered > 0) { health.blankPaints++; trace("blank-paint", { rows: e.end - e.start + 1, buffered }); onWedge(); }
+        }
+        const w = renderWaiters; renderWaiters = [];
+        for (const fn of w) fn();
+      });
+    } catch { trace("no-onRender", {}); }
+    try { t.onWriteParsed(() => { health.parses++; trace("parsed", { chars: renderedLen() }); onParsed(); }); }
+    catch { trace("no-onWriteParsed", {}); }
+  }
+  function trace(ev, data) {
+    health.trace.push({ ev, r: health.renders, p: health.parses, ...data });
+    if (health.trace.length > 60) health.trace.shift();
+  }
+
+  // Frames are used ONLY as a give-up bound for an event that may never arrive, never
+  // as the measurement. A frame budget stretches with the hardware (frames tick when
+  // the browser paints), so a slow machine simply gets more wall-clock time.
+  function waitFrames(pred, maxFrames) {
+    return new Promise((resolve) => {
+      let n = 0;
+      const tick = () => {
+        if (pred()) return resolve(true);
+        if (++n >= maxFrames) return resolve(false);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+  // Resolves true when the renderer reports a paint, false if it never reports one.
+  function nextRender(maxFrames) {
+    return new Promise((resolve) => {
+      let done = false;
+      const settle = (v) => { if (!done) { done = true; resolve(v); } };
+      renderWaiters.push(() => settle(true));
+      waitFrames(() => done, maxFrames || 240).then(() => settle(false));
+    });
+  }
+
+  window.__canaryLog = [];
+  // Write a glyph and ask the renderer what happened. Three distinguishable outcomes:
+  //   painted + DOM has it  -> healthy
+  //   painted + DOM empty   -> wedged, known immediately (this is the failure mode)
+  //   never painted         -> the window is not drawing yet; not evidence of a wedge
   async function paintsCanary() {
-    term.write("█");
-    await new Promise((r) => setTimeout(r, 400));
-    const ok = renderedLen() > 0;
+    const before = health.renders;
+    term.write("\u2588"); health.writes++;
+    const painted = await nextRender();
+    const chars = renderedLen();
+    const ok = painted && chars > 0;
+    // Wedged at open: the renderer painted and produced nothing. openTerminal discards
+    // this terminal and builds another, so it is a recovered condition, not a failure.
+    if (painted && chars === 0) health.openRetries++;
+    window.__canaryLog.push({ ok, painted, chars, renders: health.renders - before,
+      rowsEl: !!termHost.querySelector(".xterm-rows"), host: termHost.clientWidth + "x" + termHost.clientHeight });
     try { term.reset(); } catch {}
     return ok;
   }
 
   async function openTerminal(attempts) {
-    for (let attempt = 0; attempt < (attempts || 6); attempt++) {
+    const last = (attempts || 6) - 1;
+    for (let attempt = 0; attempt <= last; attempt++) {
       await whenVisible();
       await whenSized();
       try { await document.fonts.ready; } catch {}
@@ -183,10 +270,14 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       term.open(termHost);
       try { fit && fit.fit(); } catch {}
       if (await paintsCanary()) break;
+      // Never end the loop holding an unopened terminal: output would land in a
+      // buffer with nothing on screen, turning a false negative into a dead pane.
+      // Degrade to the opened one and let the watchdog retry instead.
+      if (attempt === last) break;
       try { term.dispose(); } catch {}   // wedged — discard and wait for a real paint
       termHost.innerHTML = "";
       term = newTerminal();
-      await new Promise((r) => setTimeout(r, 500));
+      await waitFrames(() => false, 30); // yield real frames before retrying
     }
     try { window.__termSize = { cols: term.cols, rows: term.rows }; } catch {}
     pushResize();
@@ -198,31 +289,67 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // Ink repaint via a real SIGWINCH. The buffer cannot be replayed, so the redraw
   // has to come from the app. Keep watching: the moment the user actually looks at
   // the window it paints again, and that is when the rebuild can succeed.
-  const frameEl = () => root.querySelector("#cb-cli-frame");
+  // Re-inserting an iframe anywhere in the document reloads it, which would restart
+  // cli.js and lose the session, so it never lives inside the cell's own DOM. It is
+  // display:none regardless, so a permanent host on <body> costs nothing.
+  function frameHost() {
+    let h = window.__CB_FRAMEHOST;
+    if (!h || !h.isConnected) {
+      h = document.createElement("div"); h.id = "cb-frame-host"; h.style.display = "none";
+      document.body.appendChild(h); window.__CB_FRAMEHOST = h;
+    }
+    return h;
+  }
+  const frameEl = () => frameHost().querySelector("#cb-cli-frame");
   let healing = false;
   window.__healLog = [];
+
+  // Recovery is NON-DESTRUCTIVE and event-driven. Rebuilding a live terminal was
+  // measured to be the problem rather than the cure (under CPU throttling it fired 7-8
+  // times, each teardown destroying output the previous one was still drawing), and a
+  // periodic timer is what kept firing it. So this runs off real data flow instead: the
+  // app wrote something, the emulator parsed it, the renderer reported a paint - and
+  // the DOM is still empty. Then, and only then, ask Ink to redraw. That costs nothing
+  // if the terminal was in fact fine.
   async function healIfBlank() {
-    // Condition is "a session is running but nothing is on screen". Deliberately NOT
-    // buffer-based: a rebuilt terminal has an empty buffer until Ink repaints, and a
-    // buffer guard therefore switches healing off exactly when it is needed.
-    if (healing || !term || !frameEl() || renderedLen() > 0) return false;
+    if (healing || !term || !frameEl()) return false;
+    if (renderedLen() > 0 || bufferedLen() === 0) return false;
     healing = true;
     try {
-      try { term.dispose(); } catch {}
-      termHost.innerHTML = "";
-      term = newTerminal();
-      await openTerminal();
-      const fe = frameEl(); const w = fe && fe.contentWindow;
-      if (w && w.__ptyResize) { w.__ptyResize(Math.max(2, term.cols - 1), term.rows); setTimeout(() => w.__ptyResize(term.cols, term.rows), 80); }
-      window.__healLog.push({ at: Date.now(), rendered: renderedLen(), cols: term.cols });
-      return true;
+      if (await nextRender() && renderedLen() > 0) return false; // it was mid-paint
+      if (renderedLen() > 0) return false;
+      sigwinch();
+      await nextRender();
+      const ok = renderedLen() > 0;
+      if (!ok) health.wedges++; // confirmed: painted, asked to redraw, still nothing
+      window.__healLog.push({ redrawWorked: ok, chars: renderedLen(), renders: health.renders, parses: health.parses });
+      return ok;
     } finally { healing = false; }
   }
+  // The app redrawing is the natural trigger to check whether the redraw landed.
+  function onParsed() { if (!healing && bufferedLen() > 0 && renderedLen() === 0) healIfBlank(); }
+  function onWedge() { if (!healing) healIfBlank(); }
+  function sigwinch() {
+    const fe = frameEl(); const w = fe && fe.contentWindow;
+    if (!w || !w.__ptyResize) return;
+    health.nudges++;
+    w.__ptyResize(Math.max(2, term.cols - 1), term.rows);
+    nextRender().then(() => w.__ptyResize(term.cols, term.rows));
+  }
   window.__heal = () => healIfBlank();
-  window.__healState = () => ({ healing, hasTerm: !!term, hasFrame: !!frameEl(), rendered: renderedLen(), buffered: bufferedLen(), log: window.__healLog.slice(-5) });
+  // One place to read the engine's real state, for tests and for debugging a live pane.
+  window.__termHealth = () => ({
+    instance: INSTANCE, instances: window.__CB_INSTANCES,
+    ...health,
+    renderedChars: renderedLen(), bufferedChars: bufferedLen(),
+    cols: term && term.cols, rows: term && term.rows,
+    opened: !!termHost.querySelector(".xterm-rows"),
+    hasFrame: !!frameEl(), healing,
+    canary: window.__canaryLog.slice(-8), heals: window.__healLog.slice(-5),
+  });
+  window.__healState = () => window.__termHealth();
   window.addEventListener("focus", () => healIfBlank());
   document.addEventListener("visibilitychange", () => healIfBlank());
-  setInterval(() => healIfBlank(), 3000);
 
   // ---- cli.js + shim assets ----
   let DIST_FILES = null, CLI_SRC = null;
@@ -236,18 +363,18 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   const rc5_store = { srcFns: new Map(), scratch: new Map() };
   // NOTE: the imported `jbApply` cell is already curried with importShim
   // (its cell = _jbApply(importShim) = makeApply), so call it directly.
-  const applyCore = jbApply({ currentModules, runtime, probeDefine, createModule });
+  const applyCore = (id, def) => D().jbApply({ currentModules: D().currentModules, runtime: D().runtime, probeDefine: D().probeDefine, createModule: D().createModule })(id, def);
   const MODULE_PATH = /^\/(?:notebook|src)\/(.+)\.js$/;
   let cache = null;
 
   function moduleIds() {
     const ids = [];
-    try { for (const info of currentModules.values()) if (info && info.name) ids.push(info.name); } catch {}
+    try { for (const info of D().currentModules.values()) if (info && info.name) ids.push(info.name); } catch {}
     return ids;
   }
   async function seedSrc(id) {
     try {
-      const r = await Promise.race([exportModuleJS(id), new Promise((res) => setTimeout(() => res(null), 5000))]);
+      const r = await Promise.race([D().exportModuleJS(id), new Promise((res) => setTimeout(() => res(null), 5000))]);
       return r && r.source ? r.source : null;
     } catch { return null; }
   }
@@ -313,7 +440,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       list() { return Object.keys(cache); },
     };
     // Debug handle for the boot-test (runtime objects only; no secrets).
-    window.__RC5DEBUG = { store: rc5_store, applyModuleSrc, readPathAsync, currentModules, runtime, exportModuleJS };
+    window.__RC5DEBUG = { store: rc5_store, applyModuleSrc, readPathAsync, deps: D,
+      exportModuleJS: (...a) => D().exportModuleJS(...a),
+      get currentModules() { return D().currentModules; },
+      get runtime() { return D().runtime; } };
   }
 
   let primed = null;
@@ -528,8 +658,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       frame.id = "cb-cli-frame";
       frame.style.display = "none";
       frame.srcdoc = SRCDOC;
-      root.appendChild(frame);
-      frame.addEventListener("load", () => { setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); [1500, 4000, 9000].forEach((t) => setTimeout(healIfBlank, t)); });
+      frameHost().appendChild(frame);
+      frame.addEventListener("load", () => { setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
       setStatus("Starting interactive session…");
       setTimeout(() => { try { term.focus(); } catch {} }, 120);
     } catch (e) {
