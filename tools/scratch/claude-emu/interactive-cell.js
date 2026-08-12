@@ -8,9 +8,11 @@
 // This file is `node --check`-able and carries no literal close-script token.
 function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, currentModules, exportModuleJS, jbApply, probeDefine){return((() => {
   const IMPORT_MAP = /*__IMPORT_MAP__*/;
-  // Build-time injected demo key (empty when built without or-key.txt). Shown as
-  // prose only — never auto-filled, the reader copies it in deliberately.
-  const DEMO_KEY = /*__DEMO_KEY__*/"";
+  // No key ships with the notebook. Blank key => the rate-limited demo gateway
+  // (per-IP daily budget, MiMo-only, injects the key server-side), same as
+  // robocoop-5's _client. A user key goes straight to OpenRouter instead.
+  const GATEWAY = "https://openrouter-gateway.endpointservices.workers.dev/v1";
+  const DIRECT = "https://openrouter.ai/api/v1";
   const KEY_LS = "openrouter_key";
   const YOLO_LS = "claude_yolo";
 
@@ -20,8 +22,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   root.innerHTML = [
     "<div style='display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap'>",
     "  <div style='display:flex;flex-direction:column;gap:3px;flex:1;min-width:220px'>",
-    "    <label style='font-size:11px;font-weight:600;opacity:.7'>OpenRouter API key</label>",
-    "    <input id='cb-key' type='password' placeholder='sk-or-...' autocomplete='off' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
+    "    <label style='font-size:11px;font-weight:600;opacity:.7'>OpenRouter API key <span style='font-weight:400;opacity:.6'>(optional)</span></label>",
+    "    <input id='cb-key' type='password' placeholder='leave blank to use the demo gateway' autocomplete='off' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "  </div>",
     "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 260px'>",
     "    <label style='font-size:11px;font-weight:600;opacity:.7'>Model <span id='cb-model-hint' style='font-weight:400;opacity:.6'></span></label>",
@@ -50,35 +52,29 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   yoloEl.checked = (() => { try { return localStorage.getItem(YOLO_LS) !== "0"; } catch { return true; } })();
   yoloEl.addEventListener("change", () => { try { localStorage.setItem(YOLO_LS, yoloEl.checked ? "1" : "0"); } catch {} });
 
-  // Demo key as prose. Deliberately not auto-filled: the reader copies it in.
   const demoEl = q("cb-demo");
-  if (DEMO_KEY) {
-    demoEl.style.display = "";
-    demoEl.append("No key of your own? Copy this demo key into the field above: ");
-    const code = document.createElement("code");
-    code.textContent = DEMO_KEY;
-    code.style.cssText = "user-select:all;word-break:break-all;padding:1px 5px;border-radius:4px;background:#333;color:#9ad;font-family:ui-monospace,Menlo,monospace";
-    demoEl.append(code);
-    const note = document.createElement("div");
-    note.style.cssText = "opacity:.7;margin-top:5px";
-    note.textContent = "It only works with MiMo (xiaomi/mimo-v2.5-pro), and it has a limited budget — if it does not work, it has probably already been spent. For anything else, use your own key from openrouter.ai/keys.";
-    demoEl.append(note);
-  }
+  demoEl.style.display = "";
+  demoEl.innerHTML = "Leave the key blank and this runs on a shared <b>demo gateway</b> that supplies the key for you. "
+    + "It is rate limited per user against a small daily budget and serves MiMo only, so if it stops responding the day's budget is likely spent. "
+    + "Add your own key from openrouter.ai/keys to use any model on your own quota.";
 
-  // Model list straight from OpenRouter (public, CORS-open). Datalist rather than a
-  // select so any id can still be typed or pasted.
+  // Model list from the endpoint actually in use. Datalist rather than a select so
+  // any id can still be typed or pasted. Demo mode lists only what it can serve.
   async function loadModels() {
     const dl = q("cb-models"), hint = q("cb-model-hint");
+    const demo = !keyEl.value.trim();
+    dl.innerHTML = "";
     try {
-      const r = await fetch("https://openrouter.ai/api/v1/models");
-      const models = ((await r.json()).data || []).slice().sort((a, b) => a.id < b.id ? -1 : 1);
+      const r = await fetch((demo ? GATEWAY : DIRECT) + "/models");
+      let models = ((await r.json()).data || []).slice().sort((a, b) => a.id < b.id ? -1 : 1);
+      if (demo) models = models.filter((m) => /^xiaomi\//.test(m.id)); // gateway key is MiMo-only
       for (const m of models) {
         const o = document.createElement("option");
         o.value = m.id;
         if (m.name) o.label = m.name;
         dl.appendChild(o);
       }
-      hint.textContent = "(" + models.length + " from OpenRouter)";
+      hint.textContent = demo ? "(" + models.length + " on the demo gateway)" : "(" + models.length + " from OpenRouter)";
     } catch (e) { hint.textContent = "(list unavailable — type an id)"; }
   }
   loadModels();
@@ -341,7 +337,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    const im = document.createElement('script'); im.type = 'importmap';",
 "    im.textContent = JSON.stringify({ imports }); document.head.appendChild(im);",
 "    globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: 'http://cli.local', ANTHROPIC_API_KEY: 'sk-ant-browser-native', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };",
-"    installTranslator(CFG.key, CFG.model);",
+"    installTranslator(CFG.key, CFG.model, CFG.base);",
 "    globalThis.__ARGV = ['/usr/bin/node', '/cli.js'].concat(CFG.yolo ? ['--dangerously-skip-permissions'] : []);",
 "    window.addEventListener('unhandledrejection', (e) => { const r = e.reason; if (r && r.name === 'ProcessExit') { globalThis.__cliExit = r.code; e.preventDefault(); return; } say('reject: ' + (r && (r.stack || r.message) || r)); });",
 "    window.addEventListener('error', (e) => say('error: ' + (e.message || e)));",
@@ -351,7 +347,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    try { await import(cliUrl); } catch (e) { if (!e || e.name !== 'ProcessExit') say('cli threw: ' + (e && (e.stack || e.message) || e)); }",
 "  } catch (e) { say('fatal: ' + (e && (e.stack || e.message) || e)); globalThis.__cliExit = globalThis.__cliExit ?? 1; }",
 "",
-"  function installTranslator(key, model) {",
+"  function installTranslator(key, model, base) {",
 "    const real = globalThis.fetch.bind(globalThis);",
 "    const textOf = (c) => typeof c === 'string' ? c : (Array.isArray(c) ? c.filter((b) => b.type === 'text').map((b) => b.text).join('') : '');",
 "    const FINISH = { stop: 'end_turn', length: 'max_tokens', tool_calls: 'tool_use', content_filter: 'end_turn' };",
@@ -414,8 +410,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "      if (path.endsWith('/count_tokens')) { let body = {}; try { body = JSON.parse(await bodyText(input, init)); } catch {} return new Response(JSON.stringify({ input_tokens: estimateTokens(body) }), { status: 200, headers: { 'content-type': 'application/json' } }); }",
 "      if (path.endsWith('/v1/messages')) {",
 "        let body; try { body = JSON.parse(await bodyText(input, init)); } catch (e) { return new Response(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'bad json' } }), { status: 400, headers: { 'content-type': 'application/json' } }); }",
-"        say('-> OpenRouter ' + model + ' (' + (toOpenAIMessages(body).length) + ' msgs, ' + ((body.tools || []).length) + ' tools)');",
-"        let up; try { up = await real('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://lopecode.local/claude-emu', 'X-Title': 'claude-emu' }, body: JSON.stringify(toOpenAIRequest(body)) }); }",
+"        say('-> ' + (key ? 'OpenRouter ' : 'demo gateway ') + model + ' (' + (toOpenAIMessages(body).length) + ' msgs, ' + ((body.tools || []).length) + ' tools)');",
+"        const hdrs = { 'Content-Type': 'application/json', 'HTTP-Referer': 'https://lopecode.com', 'X-Title': 'claude-code-browser' };",
+"        if (key) hdrs.Authorization = 'Bearer ' + key;", // gateway injects its own key server-side
+"        let up; try { up = await real(base + '/chat/completions', { method: 'POST', headers: hdrs, body: JSON.stringify(toOpenAIRequest(body)) }); }",
 "        catch (e) { return new Response(JSON.stringify({ type: 'error', error: { type: 'api_error', message: String(e && e.message || e) } }), { status: 502, headers: { 'content-type': 'application/json' } }); }",
 "        const txt = await up.text();",
 "        if (!up.ok) { say('upstream ' + up.status + ': ' + txt.slice(0, 200)); return new Response(JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'upstream ' + up.status + ': ' + txt.slice(0, 500) } }), { status: up.status, headers: { 'content-type': 'application/json' } }); }",
@@ -434,8 +432,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   let starting = false, pending = false, lastCfg = null;
   async function startSession() {
     if (starting) { pending = true; return; } // coalesce changes made mid-boot
-    const key = keyEl.value.trim();
-    if (!key) { setStatus("Paste an OpenRouter key above to start" + (DEMO_KEY ? " — or copy the demo key below." : ".")); return; }
+    const key = keyEl.value.trim(); // blank is fine: the demo gateway supplies one
+    const base = key ? DIRECT : GATEWAY;
     try { localStorage.setItem(KEY_LS, key); } catch {}
     const model = modelEl.value.trim() || "xiaomi/mimo-v2.5-pro";
     const yolo = !!yoloEl.checked;
@@ -452,7 +450,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
       window.__IMPORT_MAP = IMPORT_MAP;
-      window.__runConfig = { key, model, yolo };
+      window.__runConfig = { key, model, yolo, base };
       try { fit && fit.fit(); } catch {}
       window.__termSize = { cols: term.cols, rows: term.rows };
       window.__cliExit = undefined;
@@ -466,7 +464,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       frame.style.display = "none";
       frame.srcdoc = SRCDOC;
       root.appendChild(frame);
-      frame.addEventListener("load", () => { setStatus("Running via OpenRouter · " + model + (yolo ? " · YOLO (no permission prompts)" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
+      frame.addEventListener("load", () => { setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
       setStatus("Starting interactive session…");
       setTimeout(() => { try { term.focus(); } catch {} }, 120);
     } catch (e) {
@@ -485,7 +483,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     startSession();
   }
   // `change` (not `input`) so a key is not rebooted on every keystroke.
-  keyEl.addEventListener("change", settingChanged);
+  keyEl.addEventListener("change", () => { loadModels(); settingChanged(); });
   modelEl.addEventListener("change", settingChanged);
   yoloEl.addEventListener("change", settingChanged);
   restartEl.addEventListener("click", () => { lastCfg = null; startSession(); });

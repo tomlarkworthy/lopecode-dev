@@ -7,7 +7,9 @@ import { readFileSync } from "node:fs";
 
 const HERE = "/Users/tom.larkworthy/dev/lopecode-dev/tools/scratch/claude-emu";
 const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
-const KEY = readFileSync(HERE + "/or-key.txt", "utf8").trim();
+// No key by default: exercise the demo-gateway path users actually get.
+// KEY=direct uses or-key.txt to test the bring-your-own-key path instead.
+const KEY = process.env.KEY === "direct" ? readFileSync(HERE + "/or-key.txt", "utf8").trim() : "";
 const MODEL = process.env.MODEL || "xiaomi/mimo-v2.5-pro";
 const CHAT = process.env.PROMPT || "Do not use any tools. Reply with exactly one word: BANANA";
 const HASH = "#view=R100(S75(@tomlarkworthy/claude-code-browser),S25(@tomlarkworthy/claude-code-pairing))";
@@ -24,6 +26,8 @@ page.on("console", (m) => { const t = m.text(); if (m.type() === "error") consol
 page.on("pageerror", (e) => { consoleErrs.push("pageerror: " + e.message); process.stdout.write("[pageerror] " + e.message + "\n"); });
 
 await page.addInitScript((k) => { try { localStorage.setItem("openrouter_key", k); } catch {} }, KEY);
+const gatewayHits = [];
+page.on("response", (r) => { if (r.url().includes("openrouter-gateway.endpointservices.workers.dev")) gatewayHits.push({ status: r.status(), url: r.url().slice(-24) }); });
 
 console.log("== loading notebook (file://) ==");
 await page.goto("file://" + NB + HASH, { waitUntil: "load", timeout: 60000 });
@@ -94,7 +98,7 @@ const t0 = Date.now(); let roundtrip = false;
 while (Date.now() - t0 < 90000) {
   const fm = await page.evaluate(() => window.__frameMsgs || []);
   if (fm.some((m) => m.includes("<- OpenRouter finish"))) { roundtrip = true; break; }
-  if (openrouterHits.length > 0) { roundtrip = true; break; }
+  if (openrouterHits.length > 0 || gatewayHits.some(h => h.url.includes("chat/completions"))) { roundtrip = true; break; }
   await sleep(500);
 }
 await sleep(3500);
@@ -164,7 +168,8 @@ console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
-console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits));
+console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
+console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
 const GO = boot.ok && help.ok && chatOk && fsOk && yoloOk;

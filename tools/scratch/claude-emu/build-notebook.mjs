@@ -58,17 +58,9 @@ const addonFitB64 = gz(addonFit);
 // ---- the app cell (interactive + rc5), with the importmap baked in ----------
 let cellSrc = readFileSync(CELL_SRC, "utf8");
 if (!cellSrc.includes("/*__IMPORT_MAP__*/")) throw new Error("cell source missing /*__IMPORT_MAP__*/ placeholder");
-if (!cellSrc.includes('/*__DEMO_KEY__*/""')) throw new Error('cell source missing /*__DEMO_KEY__*/"" placeholder');
 if (cellSrc.includes("</scr" + "ipt>")) throw new Error("cell source contains a literal close-script token");
-// Demo key is injected HERE, not written into the cell source, so it lands in the
-// (gitignored) notebook without ever entering git — where secret scanning would
-// likely revoke it. Built without or-key.txt, the notebook simply shows no demo key.
-let demoKey = "";
-try { demoKey = readFileSync(here + "/or-key.txt", "utf8").trim(); } catch {}
-const APP_CELL = cellSrc
-  .split("/*__IMPORT_MAP__*/").join(JSON.stringify(importMap))
-  .split('/*__DEMO_KEY__*/""').join(JSON.stringify(demoKey))
-  .trimEnd();
+// No key is baked in: a blank key routes to the rate-limited demo gateway.
+const APP_CELL = cellSrc.split("/*__IMPORT_MAP__*/").join(JSON.stringify(importMap)).trimEnd();
 
 // ---- engine import wiring (bring rc5 engines in as cell deps) ----------------
 // Match the compiled import format other modules in the donor use.
