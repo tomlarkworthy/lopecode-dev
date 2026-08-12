@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Claude Code cli.js — browser-native spike</title>
+<script type="importmap">
+{
+  "imports": {
+    "node:process": "/dist/process.js",           "process": "/dist/process.js",
+    "node:fs": "/dist/fs.js",                       "fs": "/dist/fs.js",
+    "node:fs/promises": "/dist/fs-promises.js",     "fs/promises": "/dist/fs-promises.js",
+    "node:os": "/dist/os.js",                       "os": "/dist/os.js",
+    "node:child_process": "/dist/child_process.js", "child_process": "/dist/child_process.js",
+    "node:path": "/dist/path.js",                   "path": "/dist/path.js",
+    "node:util": "/dist/util.js",                   "util": "/dist/util.js",
+    "node:crypto": "/dist/crypto.js",               "crypto": "/dist/crypto.js",
+    "node:net": "/dist/net.js",                     "net": "/dist/net.js",
+    "node:stream": "/dist/stream.js",               "stream": "/dist/stream.js",
+    "node:stream/consumers": "/dist/stream-consumers.js", "stream/consumers": "/dist/stream-consumers.js",
+    "node:http": "/dist/http.js",                   "http": "/dist/http.js",
+    "node:https": "/dist/https.js",                 "https": "/dist/https.js",
+    "node:buffer": "/dist/buffer.js",               "buffer": "/dist/buffer.js",
+    "node:async_hooks": "/dist/async_hooks.js",     "async_hooks": "/dist/async_hooks.js",
+    "node:zlib": "/dist/zlib.js",                   "zlib": "/dist/zlib.js",
+    "node:tty": "/dist/tty.js",                     "tty": "/dist/tty.js",
+    "node:tls": "/dist/tls.js",                     "tls": "/dist/tls.js",
+    "node:timers/promises": "/dist/timers-promises.js", "timers/promises": "/dist/timers-promises.js",
+    "node:readline": "/dist/readline.js",           "readline": "/dist/readline.js",
+    "node:module": "/dist/module.js",               "module": "/dist/module.js",
+    "node:url": "/dist/url.js",                     "url": "/dist/url.js",
+    "node:events": "/dist/events.js",               "events": "/dist/events.js",
+    "node:assert": "/dist/assert.js",               "assert": "/dist/assert.js",
+    "node:http2": "/dist/stub.js",                  "http2": "/dist/stub.js",
+    "node:worker_threads": "/dist/stub.js",         "worker_threads": "/dist/stub.js",
+    "node:inspector": "/dist/stub.js",              "inspector": "/dist/stub.js",
+    "node:v8": "/dist/stub.js",                     "v8": "/dist/stub.js",
+    "node:vm": "/dist/stub.js",                     "vm": "/dist/stub.js",
+    "node:dns": "/dist/stub.js",                    "dns": "/dist/stub.js",
+    "node:dns/promises": "/dist/stub.js",           "dns/promises": "/dist/stub.js",
+    "node:dgram": "/dist/stub.js",                  "dgram": "/dist/stub.js",
+    "node:perf_hooks": "/dist/stub.js",             "perf_hooks": "/dist/stub.js",
+    "node:diagnostics_channel": "/dist/stub.js",    "diagnostics_channel": "/dist/stub.js",
+    "node:string_decoder": "/dist/stub.js",         "string_decoder": "/dist/stub.js",
+    "node:querystring": "/dist/stub.js",            "querystring": "/dist/stub.js",
+    "node:constants": "/dist/stub.js",              "constants": "/dist/stub.js",
+    "node:sqlite": "/dist/stub.js",                 "bun:jsc": "/dist/stub.js",
+    "bun:ffi": "/dist/stub.js",                     "node:wasi": "/dist/stub.js",
+    "path/posix": "/dist/path.js",                  "path/win32": "/dist/path.js",
+    "node:path/posix": "/dist/path.js",             "node:path/win32": "/dist/path.js",
+    "stream/promises": "/dist/stub.js",             "node:stream/promises": "/dist/stub.js",
+    "stream/web": "/dist/stub.js",                  "node:stream/web": "/dist/stub.js",
+    "util/types": "/dist/util.js",                  "node:util/types": "/dist/util.js"
+  }
+}
+</script>
+</head>
+<body>
+<h1>Claude Code cli.js — browser-native spike</h1>
+<pre id="log"></pre>
+<script type="module" src="/dist/bootstrap.js"></script>
+<script type="module" src="/dist/preload.js"></script>
+<script type="module">
+  // Catch and surface async failures so the driver can read them.
+  window.__errors = [];
+  window.addEventListener("error", (e) => { window.__errors.push({ kind: "error", message: e.message, stack: e.error?.stack }); });
+  window.addEventListener("unhandledrejection", (e) => {
+    const r = e.reason;
+    if (r && r.name === "ProcessExit") { window.__cliExit = r.code; return; }
+    window.__errors.push({ kind: "unhandledrejection", message: String(r?.message || r), stack: r?.stack });
+    console.error("[unhandledrejection]", r?.message || r, "\n", (r?.stack || "").split("\n").slice(0, 8).join("\n"));
+  });
+  window.__fetchLog = [];
+  const _fetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input?.url;
+    console.log("[fetch] " + (init?.method || "GET") + " " + url);
+    window.__fetchLog.push(url);
+    return _fetch(input, init).then((r) => { console.log("[fetch<-] " + r.status + " " + url); return r; }, (e) => { console.error("[fetch-x] " + url + " " + e.message); throw e; });
+  };
+</script>
+<script type="module" src="/package/cli.js"></script>
+</body>
+</html>

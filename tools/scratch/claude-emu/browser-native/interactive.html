@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Claude Code cli.js — interactive (xterm.js, browser-native)</title>
+<link rel="stylesheet" href="/vendor-xterm/xterm/css/xterm.css">
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 16px; background: #1e1e1e; color: #ddd; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  .sub { opacity: .6; margin: 0 0 12px; font-size: 12px; }
+  .row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  label { font-size: 11px; font-weight: 600; opacity: .7; }
+  input { font: inherit; padding: 6px 8px; border: 1px solid #555; border-radius: 5px; background: #2a2a2a; color: #eee; }
+  button { font: inherit; font-weight: 600; padding: 7px 14px; border: 0; border-radius: 5px; background: #2f6feb; color: #fff; cursor: pointer; }
+  button.secondary { background: #444; }
+  #status { font-size: 12px; opacity: .8; margin: 8px 0; min-height: 16px; }
+  #term { width: 900px; height: 520px; background: #000; border: 1px solid #333; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1>Claude Code <code>cli.js</code> — interactive TUI in xterm.js</h1>
+<p class="sub">The unmodified <b>v2.1.112</b> cli.js runs interactively (Ink/REPL, slash commands) inside a persistent iframe, its stdio bridged to this xterm.js terminal.</p>
+
+<div class="row">
+  <div class="field" style="flex:1; min-width:260px">
+    <label for="key">OpenRouter API key</label>
+    <input id="key" type="password" placeholder="sk-or-..." autocomplete="off" spellcheck="false" style="width:100%">
+  </div>
+  <div class="field" style="flex:0 0 240px">
+    <label for="model">Model</label>
+    <input id="model" type="text" value="xiaomi/mimo-v2.5-pro" spellcheck="false">
+  </div>
+  <button id="start">Start session</button>
+  <button id="restart" class="secondary">Restart</button>
+</div>
+
+<div id="status">Enter your OpenRouter key and press Start.</div>
+<div id="term"></div>
+
+<script src="/vendor-xterm/xterm/lib/xterm.js"></script>
+<script src="/vendor-xterm/fit/lib/addon-fit.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const keyEl = $("key"), modelEl = $("model"), startEl = $("start"), restartEl = $("restart"), statusEl = $("status");
+const KEY_LS = "openrouter_key";
+try { const k = localStorage.getItem(KEY_LS); if (k) keyEl.value = k; } catch {}
+function setStatus(t) { statusEl.textContent = t; }
+
+// ---- xterm ----
+const term = new Terminal({
+  cols: 100, rows: 30,
+  convertEol: false,
+  cursorBlink: true,
+  fontFamily: 'ui-monospace, Menlo, Monaco, "Courier New", monospace',
+  fontSize: 13,
+  theme: { background: "#000000", foreground: "#e0e0e0" },
+  allowProposedApi: true,
+});
+const fit = new FitAddon.FitAddon();
+term.loadAddon(fit);
+term.open($("term"));
+try { fit.fit(); } catch {}
+
+// Output bridge: iframe (cli.js stdout/stderr) -> xterm.
+window.__ptyWrite = (s) => { try { term.write(s); } catch (e) {} };
+// Frame diagnostics.
+window.__frameMsgs = [];
+window.__frameLog = (m) => { window.__frameMsgs.push(String(m)); };
+
+// The persistent interactive iframe running cli.js.
+let frame = null;
+function ptyIn(d) { try { const w = frame && frame.contentWindow; if (w && w.__ptyIn) w.__ptyIn(d); } catch (e) {} }
+
+// Input bridge: xterm keystrokes -> iframe stdin.
+term.onData((d) => ptyIn(d));
+// Also expose a direct injector for the automated driver.
+window.__sendKeys = (s) => ptyIn(s);
+
+// Resize bridge.
+function pushResize() {
+  try { fit.fit(); } catch {}
+  window.__termSize = { cols: term.cols, rows: term.rows };
+  const w = frame && frame.contentWindow;
+  if (w && w.__ptyResize) w.__ptyResize(term.cols, term.rows);
+}
+window.addEventListener("resize", pushResize);
+
+// Terminal buffer dump for the automated driver.
+window.__dumpTerm = () => {
+  const buf = term.buffer.active;
+  const lines = [];
+  for (let i = 0; i < buf.length; i++) {
+    const line = buf.getLine(i);
+    lines.push(line ? line.translateToString(true) : "");
+  }
+  // trim trailing blank lines
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  return lines.join("\n");
+};
+
+function startSession() {
+  const key = keyEl.value.trim();
+  if (!key) { setStatus("Enter your OpenRouter API key first."); keyEl.focus(); return; }
+  try { localStorage.setItem(KEY_LS, key); } catch {}
+  const model = modelEl.value.trim() || "xiaomi/mimo-v2.5-pro";
+
+  // Config + size for the frame to read synchronously at boot.
+  window.__runConfig = { key, model };
+  try { fit.fit(); } catch {}
+  window.__termSize = { cols: term.cols, rows: term.rows };
+  window.__cliExit = undefined;
+  window.__frameMsgs.length = 0;
+  term.reset();
+
+  if (frame) { frame.remove(); frame = null; }
+  frame = document.createElement("iframe");
+  frame.id = "cli-frame";
+  frame.style.display = "none";
+  frame.src = "/frame.html";
+  document.body.appendChild(frame);
+  frame.addEventListener("load", () => { setStatus("Session booting… (interactive)"); setTimeout(pushResize, 300); });
+  setStatus("Starting interactive session…");
+  term.focus();
+}
+
+startEl.addEventListener("click", startSession);
+restartEl.addEventListener("click", () => { if (!window.__runConfig) { startSession(); } else { startSession(); } });
+
+// Auto-start if a key is preloaded and the driver requested it.
+window.__autostart = () => startSession();
+</script>
+</body>
+</html>

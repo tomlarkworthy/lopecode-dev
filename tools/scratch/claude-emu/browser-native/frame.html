@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>cli.js interactive frame</title>
+<script type="importmap">
+{
+  "imports": {
+    "node:process": "/dist/process.js",           "process": "/dist/process.js",
+    "node:fs": "/dist/fs.js",                       "fs": "/dist/fs.js",
+    "node:fs/promises": "/dist/fs-promises.js",     "fs/promises": "/dist/fs-promises.js",
+    "node:os": "/dist/os.js",                       "os": "/dist/os.js",
+    "node:child_process": "/dist/child_process.js", "child_process": "/dist/child_process.js",
+    "node:path": "/dist/path.js",                   "path": "/dist/path.js",
+    "node:util": "/dist/util.js",                   "util": "/dist/util.js",
+    "node:crypto": "/dist/crypto.js",               "crypto": "/dist/crypto.js",
+    "node:net": "/dist/net.js",                     "net": "/dist/net.js",
+    "node:stream": "/dist/stream.js",               "stream": "/dist/stream.js",
+    "node:stream/consumers": "/dist/stream-consumers.js", "stream/consumers": "/dist/stream-consumers.js",
+    "node:http": "/dist/http.js",                   "http": "/dist/http.js",
+    "node:https": "/dist/https.js",                 "https": "/dist/https.js",
+    "node:buffer": "/dist/buffer.js",               "buffer": "/dist/buffer.js",
+    "node:async_hooks": "/dist/async_hooks.js",     "async_hooks": "/dist/async_hooks.js",
+    "node:zlib": "/dist/zlib.js",                   "zlib": "/dist/zlib.js",
+    "node:tty": "/dist/tty.js",                     "tty": "/dist/tty.js",
+    "node:tls": "/dist/tls.js",                     "tls": "/dist/tls.js",
+    "node:timers/promises": "/dist/timers-promises.js", "timers/promises": "/dist/timers-promises.js",
+    "node:readline": "/dist/readline.js",           "readline": "/dist/readline.js",
+    "node:module": "/dist/module.js",               "module": "/dist/module.js",
+    "node:url": "/dist/url.js",                     "url": "/dist/url.js",
+    "node:events": "/dist/events.js",               "events": "/dist/events.js",
+    "node:assert": "/dist/assert.js",               "assert": "/dist/assert.js",
+    "node:http2": "/dist/stub.js",                  "http2": "/dist/stub.js",
+    "node:worker_threads": "/dist/stub.js",         "worker_threads": "/dist/stub.js",
+    "node:inspector": "/dist/stub.js",              "inspector": "/dist/stub.js",
+    "node:v8": "/dist/stub.js",                     "v8": "/dist/stub.js",
+    "node:vm": "/dist/stub.js",                     "vm": "/dist/stub.js",
+    "node:dns": "/dist/stub.js",                    "dns": "/dist/stub.js",
+    "node:dns/promises": "/dist/stub.js",           "dns/promises": "/dist/stub.js",
+    "node:dgram": "/dist/stub.js",                  "dgram": "/dist/stub.js",
+    "node:perf_hooks": "/dist/stub.js",             "perf_hooks": "/dist/stub.js",
+    "node:diagnostics_channel": "/dist/stub.js",    "diagnostics_channel": "/dist/stub.js",
+    "node:string_decoder": "/dist/stub.js",         "string_decoder": "/dist/stub.js",
+    "node:querystring": "/dist/stub.js",            "querystring": "/dist/stub.js",
+    "node:constants": "/dist/stub.js",              "constants": "/dist/stub.js",
+    "node:sqlite": "/dist/stub.js",                 "bun:jsc": "/dist/stub.js",
+    "bun:ffi": "/dist/stub.js",                     "node:wasi": "/dist/stub.js",
+    "path/posix": "/dist/path.js",                  "path/win32": "/dist/path.js",
+    "node:path/posix": "/dist/path.js",             "node:path/win32": "/dist/path.js",
+    "stream/promises": "/dist/stub.js",             "node:stream/promises": "/dist/stub.js",
+    "stream/web": "/dist/stub.js",                  "node:stream/web": "/dist/stub.js",
+    "util/types": "/dist/util.js",                  "node:util/types": "/dist/util.js"
+  }
+}
+</script>
+</head>
+<body>
+<script>
+// Classic (non-deferred) script: runs BEFORE the deferred module scripts, so
+// __INTERACTIVE / __ARGV / env overrides / the fetch translator are all in place
+// before bootstrap.js builds process and before cli.js issues any fetch.
+"use strict";
+(function () {
+  var P = window.parent;
+  var CFG = (P && P.__runConfig) || {};
+  var SIZE = (P && P.__termSize) || { cols: 80, rows: 24 };
+
+  globalThis.__INTERACTIVE = true;
+  globalThis.__termSize = { cols: SIZE.cols, rows: SIZE.rows };
+  globalThis.__ARGV = ["/usr/bin/node", "/cli.js"]; // interactive: NO -p
+  globalThis.__ENV_OVERRIDES = {
+    ANTHROPIC_BASE_URL: "http://cli.local",
+    ANTHROPIC_API_KEY: "sk-ant-browser-native",
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+  };
+  // Output bridge: cli.js stdout/stderr -> parent xterm.
+  globalThis.__ptyWrite = function (s) { try { if (P && P.__ptyWrite) P.__ptyWrite(s); } catch (e) {} };
+
+  // Surface fatal errors to the parent for the driver.
+  function say(m) { try { if (P && P.__frameLog) P.__frameLog(String(m)); } catch (e) {} }
+  window.addEventListener("error", function (e) { say("error: " + (e.message || e)); });
+  window.addEventListener("unhandledrejection", function (e) {
+    var r = e.reason;
+    if (r && r.name === "ProcessExit") { globalThis.__cliExit = r.code; e.preventDefault(); return; }
+    say("reject: " + (r && (r.stack || r.message) || r));
+  });
+
+  installTranslator(CFG.key || "", CFG.model || "xiaomi/mimo-v2.5-pro");
+
+  // ---- Anthropic Messages <-> OpenAI chat/completions (verbatim from the -p template) ----
+  function installTranslator(key, model) {
+    var real = globalThis.fetch.bind(globalThis);
+    var textOf = function (c) { return typeof c === "string" ? c : (Array.isArray(c) ? c.filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("") : ""); };
+    var FINISH = { stop: "end_turn", length: "max_tokens", tool_calls: "tool_use", content_filter: "end_turn" };
+    function toOpenAIMessages(body) {
+      var msgs = [];
+      if (body.system) { var sys = typeof body.system === "string" ? body.system : textOf(body.system); if (sys) msgs.push({ role: "system", content: sys }); }
+      (body.messages || []).forEach(function (m) {
+        if (typeof m.content === "string") { msgs.push({ role: m.role, content: m.content }); return; }
+        var blocks = Array.isArray(m.content) ? m.content : [];
+        if (m.role === "assistant") {
+          var text = blocks.filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("");
+          var toolUses = blocks.filter(function (b) { return b.type === "tool_use"; });
+          var om = { role: "assistant", content: text || null };
+          if (toolUses.length) om.tool_calls = toolUses.map(function (t) { return { id: t.id, type: "function", function: { name: t.name, arguments: JSON.stringify(t.input || {}) } }; });
+          msgs.push(om);
+        } else {
+          var toolResults = blocks.filter(function (b) { return b.type === "tool_result"; });
+          var others = blocks.filter(function (b) { return b.type !== "tool_result"; });
+          toolResults.forEach(function (tr) { var c = tr.content; if (Array.isArray(c)) c = c.map(function (x) { return x.type === "text" ? x.text : JSON.stringify(x); }).join(""); msgs.push({ role: "tool", tool_call_id: tr.tool_use_id, content: String(c == null ? "" : c) }); });
+          if (others.length) { var txt = others.filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join(""); if (txt) msgs.push({ role: "user", content: txt }); }
+        }
+      });
+      return msgs;
+    }
+    function toOpenAIRequest(body) {
+      var req = { model: model, messages: toOpenAIMessages(body), stream: false };
+      if (body.max_tokens) req.max_tokens = body.max_tokens;
+      if (body.temperature != null) req.temperature = body.temperature;
+      if (body.top_p != null) req.top_p = body.top_p;
+      if (Array.isArray(body.stop_sequences) && body.stop_sequences.length) req.stop = body.stop_sequences;
+      if (Array.isArray(body.tools) && body.tools.length) req.tools = body.tools.map(function (t) { return { type: "function", function: { name: t.name, description: t.description || "", parameters: t.input_schema || { type: "object" } } }; });
+      if (body.tool_choice) { var tc = body.tool_choice; if (tc.type === "auto") req.tool_choice = "auto"; else if (tc.type === "any") req.tool_choice = "required"; else if (tc.type === "tool" && tc.name) req.tool_choice = { type: "function", function: { name: tc.name } }; }
+      return req;
+    }
+    function buildSSE(oai, mdl) {
+      var choice = (oai.choices && oai.choices[0]) || {}; var msg = choice.message || {};
+      var id = "msg_" + String(oai.id || "x").replace(/[^A-Za-z0-9]/g, "").slice(0, 24);
+      var blocks = [];
+      if (msg.content) blocks.push({ type: "text", text: String(msg.content) });
+      (msg.tool_calls || []).forEach(function (tc) { var input = {}; try { input = JSON.parse(tc.function.arguments || "{}"); } catch (e) {} blocks.push({ type: "tool_use", id: tc.id || ("toolu_" + Math.floor(Math.random() * 1e6)), name: tc.function.name, input: input }); });
+      if (!blocks.length) blocks.push({ type: "text", text: "" });
+      var usage = oai.usage || {}; var inTok = usage.prompt_tokens || 0; var outTok = usage.completion_tokens || 0;
+      var stopReason = FINISH[choice.finish_reason] || "end_turn";
+      var ev = []; var push = function (event, data) { ev.push("event: " + event + "\ndata: " + JSON.stringify(data) + "\n\n"); };
+      push("message_start", { type: "message_start", message: { id: id, type: "message", role: "assistant", model: mdl, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: inTok, output_tokens: 0 } } });
+      blocks.forEach(function (blk, i) {
+        if (blk.type === "text") { push("content_block_start", { type: "content_block_start", index: i, content_block: { type: "text", text: "" } }); push("content_block_delta", { type: "content_block_delta", index: i, delta: { type: "text_delta", text: blk.text } }); }
+        else { push("content_block_start", { type: "content_block_start", index: i, content_block: { type: "tool_use", id: blk.id, name: blk.name, input: {} } }); push("content_block_delta", { type: "content_block_delta", index: i, delta: { type: "input_json_delta", partial_json: JSON.stringify(blk.input) } }); }
+        push("content_block_stop", { type: "content_block_stop", index: i });
+      });
+      push("message_delta", { type: "message_delta", delta: { stop_reason: stopReason, stop_sequence: null }, usage: { output_tokens: outTok } });
+      push("message_stop", { type: "message_stop" });
+      return ev.join("");
+    }
+    var estimateTokens = function (body) { var chars = (typeof body.system === "string" ? body.system : textOf(body.system || "")).length; (body.messages || []).forEach(function (m) { chars += textOf(m.content).length; }); return Math.max(1, Math.ceil(chars / 4)); };
+    function bodyText(input, init) { if (init && init.body != null) return typeof init.body === "string" ? Promise.resolve(init.body) : new Response(init.body).text(); if (input && typeof input.text === "function") return input.clone().text(); return Promise.resolve("{}"); }
+    globalThis.fetch = function (input, init) {
+      var url = typeof input === "string" ? input : (input && input.url) || "";
+      var path; try { path = new URL(url, "http://cli.local").pathname; } catch (e) { path = url; }
+      if (path.endsWith("/count_tokens")) { return bodyText(input, init).then(function (t) { var body = {}; try { body = JSON.parse(t); } catch (e) {} return new Response(JSON.stringify({ input_tokens: estimateTokens(body) }), { status: 200, headers: { "content-type": "application/json" } }); }); }
+      if (path.endsWith("/v1/messages")) {
+        return bodyText(input, init).then(function (t) {
+          var body; try { body = JSON.parse(t); } catch (e) { return new Response(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: "bad json" } }), { status: 400, headers: { "content-type": "application/json" } }); }
+          say("-> OpenRouter " + model + " (" + toOpenAIMessages(body).length + " msgs, " + ((body.tools || []).length) + " tools)");
+          return real("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json", "HTTP-Referer": "https://lopecode.local/claude-emu", "X-Title": "claude-emu" }, body: JSON.stringify(toOpenAIRequest(body)) }).then(function (up) {
+            return up.text().then(function (txt) {
+              if (!up.ok) { say("upstream " + up.status + ": " + txt.slice(0, 200)); return new Response(JSON.stringify({ type: "error", error: { type: "api_error", message: "upstream " + up.status + ": " + txt.slice(0, 500) } }), { status: up.status, headers: { "content-type": "application/json" } }); }
+              var oai = {}; try { oai = JSON.parse(txt); } catch (e) {}
+              say("<- OpenRouter finish=" + (oai.choices && oai.choices[0] && oai.choices[0].finish_reason));
+              return new Response(buildSSE(oai, body.model || model), { status: 200, headers: { "content-type": "text/event-stream", "cache-control": "no-cache" } });
+            });
+          }, function (e) { return new Response(JSON.stringify({ type: "error", error: { type: "api_error", message: String(e && e.message || e) } }), { status: 502, headers: { "content-type": "application/json" } }); });
+        });
+      }
+      return real(input, init);
+    };
+  }
+})();
+</script>
+<script type="module" src="/dist/bootstrap.js"></script>
+<script type="module" src="/dist/preload.js"></script>
+<script type="module" src="/package/cli.js"></script>
+</body>
+</html>

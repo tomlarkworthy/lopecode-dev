@@ -1,0 +1,14 @@
+{
+  "name": "claude-cli-browser-native",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "memfs": "^4.68.0",
+    "path-browserify": "^1.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

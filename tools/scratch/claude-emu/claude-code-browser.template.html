@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Claude Code cli.js — browser-native (OpenRouter/MiMo)</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 24px; max-width: 900px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { opacity: .7; margin: 0 0 20px; font-size: 13px; }
+  .row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px; }
+  label { font-size: 12px; font-weight: 600; opacity: .8; }
+  input, textarea { font: inherit; padding: 8px 10px; border: 1px solid #8888; border-radius: 6px; background: transparent; color: inherit; }
+  textarea { min-height: 70px; resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  button { font: inherit; font-weight: 600; padding: 9px 20px; border: 0; border-radius: 6px; background: #2f6feb; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #status { font-size: 12px; opacity: .8; margin: 12px 0 6px; min-height: 16px; }
+  pre#output { border: 1px solid #8884; border-radius: 6px; padding: 12px; overflow: auto; max-height: 55vh; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: #0001; }
+  pre#output .err { color: #d33; }
+  .hint { font-size: 12px; opacity: .65; }
+  a { color: #2f6feb; }
+</style>
+</head>
+<body>
+<h1>Claude Code <code>cli.js</code> in the browser</h1>
+<p class="sub">The real, unmodified Claude Code <b>v2.1.112</b> <code>cli.js</code> runs entirely in this page — no Node, no server, works from <code>file://</code>. Requests are translated in-page to OpenRouter and answered by your chosen model.</p>
+
+<div class="row">
+  <div class="field">
+    <label for="key">OpenRouter API key</label>
+    <input id="key" type="password" placeholder="sk-or-..." autocomplete="off" spellcheck="false">
+    <span class="hint">Stored only in this browser's localStorage. Get one at <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a>.</span>
+  </div>
+  <div class="field" style="flex:0 0 260px">
+    <label for="model">Model</label>
+    <input id="model" type="text" value="xiaomi/mimo-v2.5-pro" spellcheck="false">
+  </div>
+</div>
+
+<div class="field" style="margin-bottom:12px">
+  <label for="prompt">Prompt</label>
+  <textarea id="prompt">Reply with exactly one word: BANANA</textarea>
+</div>
+
+<button id="run">Run</button>
+
+<div id="status"></div>
+<pre id="output"></pre>
+
+<!-- payloads: gzip+base64. dist = {filename: source} of the esbuild shim bundle; cli = the npm cli.js with its shebang neutralised -->
+<script id="dist-gz-b64" type="text/plain">__DIST_GZ_B64__</script>
+<script id="cli-gz-b64" type="text/plain">__CLI_GZ_B64__</script>
+
+<script>
+"use strict";
+// node:* / bare-specifier -> dist filename, derived at build time from index.html.
+window.__IMPORT_MAP = /*__IMPORT_MAP__*/;
+
+const $ = (id) => document.getElementById(id);
+const keyEl = $("key"), modelEl = $("model"), promptEl = $("prompt"), runEl = $("run"), statusEl = $("status"), outEl = $("output");
+
+const KEY_LS = "openrouter_key";
+try { const k = localStorage.getItem(KEY_LS); if (k) keyEl.value = k; } catch {}
+
+function setStatus(t) { statusEl.textContent = t; }
+function render(cliOut, exitCode) {
+  const parts = [];
+  for (const s of (cliOut?.stdout || [])) parts.push({ t: s, e: false });
+  // interleave order is lost between streams; show stdout then stderr for clarity
+  const errParts = (cliOut?.stderr || []).map((s) => ({ t: s, e: true }));
+  outEl.textContent = "";
+  for (const p of parts) outEl.appendChild(document.createTextNode(p.t));
+  if (errParts.length) {
+    const span = document.createElement("span"); span.className = "err";
+    span.textContent = "\n" + errParts.map((p) => p.t).join("");
+    // keep stderr visible but de-emphasised
+    outEl.appendChild(span);
+  }
+}
+
+// --- gzip+base64 -> text (async, DecompressionStream) ---
+async function gunzipB64(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return await new Response(stream).text();
+}
+
+// Decompress once, cache.
+let DIST_FILES = null, CLI_SRC = null;
+async function ensureAssets() {
+  if (DIST_FILES) return;
+  setStatus("Decompressing runtime (first run only)…");
+  const distJson = await gunzipB64($("dist-gz-b64").textContent.trim());
+  DIST_FILES = JSON.parse(distJson);
+  CLI_SRC = await gunzipB64($("cli-gz-b64").textContent.trim());
+}
+
+// The per-run sandbox document. Everything about running cli.js lives here so
+// each run gets a FRESH globalThis.process / memfs / async-hooks patches.
+// Big assets and config are read from the parent; blob URLs are minted inside
+// the frame so its own import map resolves them. Uses only dynamic import(),
+// so the import map (injected synchronously below) is always in place first.
+const SRCDOC = [
+"<!doctype html><meta charset=utf-8><body><script>",
+"(async () => {",
+"  const P = window.parent, FILES = P.__DIST_FILES, CLI_SRC = P.__CLI_SRC, CFG = P.__runConfig, MAP = P.__IMPORT_MAP;",
+"  const say = (m) => { try { P.__frameLog && P.__frameLog(m); } catch {} };",
+"  try {",
+"    // 1. mint a blob URL per dist file, rewriting ./chunk-*.js refs to blob URLs (topological / DAG).",
+"    const urlFor = Object.create(null);",
+"    const depRe = /([\\\"\\'])\\.\\/(chunk-[A-Za-z0-9]+\\.js)\\1/g;",
+"    let remaining = new Set(Object.keys(FILES));",
+"    while (remaining.size) {",
+"      let progressed = false;",
+"      for (const name of [...remaining]) {",
+"        const src = FILES[name];",
+"        const deps = [...src.matchAll(depRe)].map((m) => m[2]);",
+"        if (deps.every((d) => urlFor[d])) {",
+"          const out = src.replace(depRe, (m, q, d) => q + urlFor[d] + q);",
+"          urlFor[name] = URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));",
+"          remaining.delete(name); progressed = true;",
+"        }",
+"      }",
+"      if (!progressed) throw new Error('unresolved chunk deps: ' + [...remaining].join(','));",
+"    }",
+"    // 2. build + inject the import map BEFORE any import() runs.",
+"    const imports = {};",
+"    for (const [spec, file] of Object.entries(MAP)) { if (urlFor[file]) imports[spec] = urlFor[file]; }",
+"    const im = document.createElement('script'); im.type = 'importmap';",
+"    im.textContent = JSON.stringify({ imports }); document.head.appendChild(im);",
+"    // 3. env overrides (dummy base URL; the fetch override does the real call) + in-page translator.",
+"    globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: 'http://cli.local', ANTHROPIC_API_KEY: 'sk-ant-browser-native', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };",
+"    installTranslator(CFG.key, CFG.model);",
+"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js', '-p', CFG.prompt];",
+"    window.addEventListener('unhandledrejection', (e) => { const r = e.reason; if (r && r.name === 'ProcessExit') { globalThis.__cliExit = r.code; e.preventDefault(); return; } say('reject: ' + (r && (r.stack || r.message) || r)); });",
+"    // 4. run: bootstrap -> preload -> cli (fresh cli blob = fresh module state).",
+"    await import(urlFor['bootstrap.js']);",
+"    await import(urlFor['preload.js']);",
+"    const cliUrl = URL.createObjectURL(new Blob([CLI_SRC], { type: 'text/javascript' }));",
+"    try { await import(cliUrl); } catch (e) { if (!e || e.name !== 'ProcessExit') say('cli threw: ' + (e && (e.stack || e.message) || e)); }",
+"  } catch (e) { say('fatal: ' + (e && (e.stack || e.message) || e)); globalThis.__cliExit = globalThis.__cliExit ?? 1; }",
+"",
+"  // ---- Anthropic Messages <-> OpenAI chat/completions (ported from anthropic-openrouter-translator.mjs) ----",
+"  function installTranslator(key, model) {",
+"    const real = globalThis.fetch.bind(globalThis);",
+"    const textOf = (c) => typeof c === 'string' ? c : (Array.isArray(c) ? c.filter((b) => b.type === 'text').map((b) => b.text).join('') : '');",
+"    const FINISH = { stop: 'end_turn', length: 'max_tokens', tool_calls: 'tool_use', content_filter: 'end_turn' };",
+"    function toOpenAIMessages(body) {",
+"      const msgs = [];",
+"      if (body.system) { const sys = typeof body.system === 'string' ? body.system : textOf(body.system); if (sys) msgs.push({ role: 'system', content: sys }); }",
+"      for (const m of body.messages || []) {",
+"        if (typeof m.content === 'string') { msgs.push({ role: m.role, content: m.content }); continue; }",
+"        const blocks = Array.isArray(m.content) ? m.content : [];",
+"        if (m.role === 'assistant') {",
+"          const text = blocks.filter((b) => b.type === 'text').map((b) => b.text).join('');",
+"          const toolUses = blocks.filter((b) => b.type === 'tool_use');",
+"          const om = { role: 'assistant', content: text || null };",
+"          if (toolUses.length) om.tool_calls = toolUses.map((t) => ({ id: t.id, type: 'function', function: { name: t.name, arguments: JSON.stringify(t.input || {}) } }));",
+"          msgs.push(om);",
+"        } else {",
+"          const toolResults = blocks.filter((b) => b.type === 'tool_result');",
+"          const others = blocks.filter((b) => b.type !== 'tool_result');",
+"          for (const tr of toolResults) { let c = tr.content; if (Array.isArray(c)) c = c.map((x) => x.type === 'text' ? x.text : JSON.stringify(x)).join(''); msgs.push({ role: 'tool', tool_call_id: tr.tool_use_id, content: String(c ?? '') }); }",
+"          if (others.length) { const txt = others.filter((b) => b.type === 'text').map((b) => b.text).join(''); if (txt) msgs.push({ role: 'user', content: txt }); }",
+"        }",
+"      }",
+"      return msgs;",
+"    }",
+"    function toOpenAIRequest(body) {",
+"      const req = { model, messages: toOpenAIMessages(body), stream: false };",
+"      if (body.max_tokens) req.max_tokens = body.max_tokens;",
+"      if (body.temperature != null) req.temperature = body.temperature;",
+"      if (body.top_p != null) req.top_p = body.top_p;",
+"      if (Array.isArray(body.stop_sequences) && body.stop_sequences.length) req.stop = body.stop_sequences;",
+"      if (Array.isArray(body.tools) && body.tools.length) req.tools = body.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description || '', parameters: t.input_schema || { type: 'object' } } }));",
+"      if (body.tool_choice) { const tc = body.tool_choice; if (tc.type === 'auto') req.tool_choice = 'auto'; else if (tc.type === 'any') req.tool_choice = 'required'; else if (tc.type === 'tool' && tc.name) req.tool_choice = { type: 'function', function: { name: tc.name } }; }",
+"      return req;",
+"    }",
+"    function buildSSE(oai, mdl) {",
+"      const choice = (oai.choices && oai.choices[0]) || {}; const msg = choice.message || {};",
+"      const id = 'msg_' + String(oai.id || 'x').replace(/[^A-Za-z0-9]/g, '').slice(0, 24);",
+"      const blocks = [];",
+"      if (msg.content) blocks.push({ type: 'text', text: String(msg.content) });",
+"      for (const tc of msg.tool_calls || []) { let input = {}; try { input = JSON.parse(tc.function.arguments || '{}'); } catch {} blocks.push({ type: 'tool_use', id: tc.id || ('toolu_' + Math.floor(Math.random() * 1e6)), name: tc.function.name, input }); }",
+"      if (!blocks.length) blocks.push({ type: 'text', text: '' });",
+"      const usage = oai.usage || {}; const inTok = usage.prompt_tokens || 0; const outTok = usage.completion_tokens || 0;",
+"      const stopReason = FINISH[choice.finish_reason] || 'end_turn';",
+"      const ev = []; const push = (event, data) => ev.push('event: ' + event + '\\ndata: ' + JSON.stringify(data) + '\\n\\n');",
+"      push('message_start', { type: 'message_start', message: { id, type: 'message', role: 'assistant', model: mdl, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: inTok, output_tokens: 0 } } });",
+"      blocks.forEach((blk, i) => {",
+"        if (blk.type === 'text') { push('content_block_start', { type: 'content_block_start', index: i, content_block: { type: 'text', text: '' } }); push('content_block_delta', { type: 'content_block_delta', index: i, delta: { type: 'text_delta', text: blk.text } }); }",
+"        else { push('content_block_start', { type: 'content_block_start', index: i, content_block: { type: 'tool_use', id: blk.id, name: blk.name, input: {} } }); push('content_block_delta', { type: 'content_block_delta', index: i, delta: { type: 'input_json_delta', partial_json: JSON.stringify(blk.input) } }); }",
+"        push('content_block_stop', { type: 'content_block_stop', index: i });",
+"      });",
+"      push('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason, stop_sequence: null }, usage: { output_tokens: outTok } });",
+"      push('message_stop', { type: 'message_stop' });",
+"      return ev.join('');",
+"    }",
+"    const estimateTokens = (body) => { let chars = (typeof body.system === 'string' ? body.system : textOf(body.system || '')).length; for (const m of body.messages || []) chars += textOf(m.content).length; return Math.max(1, Math.ceil(chars / 4)); };",
+"    async function bodyText(input, init) { if (init && init.body != null) return typeof init.body === 'string' ? init.body : await new Response(init.body).text(); if (input && typeof input.text === 'function') return await input.clone().text(); return '{}'; }",
+"    globalThis.fetch = async (input, init) => {",
+"      const url = typeof input === 'string' ? input : (input && input.url) || '';",
+"      let path; try { path = new URL(url, 'http://cli.local').pathname; } catch { path = url; }",
+"      if (path.endsWith('/count_tokens')) { let body = {}; try { body = JSON.parse(await bodyText(input, init)); } catch {} return new Response(JSON.stringify({ input_tokens: estimateTokens(body) }), { status: 200, headers: { 'content-type': 'application/json' } }); }",
+"      if (path.endsWith('/v1/messages')) {",
+"        let body; try { body = JSON.parse(await bodyText(input, init)); } catch (e) { return new Response(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'bad json' } }), { status: 400, headers: { 'content-type': 'application/json' } }); }",
+"        say('-> OpenRouter ' + model + ' (' + (toOpenAIMessages(body).length) + ' msgs, ' + ((body.tools || []).length) + ' tools)');",
+"        let up; try { up = await real('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://lopecode.local/claude-emu', 'X-Title': 'claude-emu' }, body: JSON.stringify(toOpenAIRequest(body)) }); }",
+"        catch (e) { return new Response(JSON.stringify({ type: 'error', error: { type: 'api_error', message: String(e && e.message || e) } }), { status: 502, headers: { 'content-type': 'application/json' } }); }",
+"        const txt = await up.text();",
+"        if (!up.ok) { say('upstream ' + up.status + ': ' + txt.slice(0, 200)); return new Response(JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'upstream ' + up.status + ': ' + txt.slice(0, 500) } }), { status: up.status, headers: { 'content-type': 'application/json' } }); }",
+"        let oai = {}; try { oai = JSON.parse(txt); } catch {}",
+"        say('<- OpenRouter finish=' + (oai.choices && oai.choices[0] && oai.choices[0].finish_reason));",
+"        return new Response(buildSSE(oai, body.model || model), { status: 200, headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' } });",
+"      }",
+"      return real(input, init);",
+"    };",
+"  }",
+"})();",
+"<\/script>"
+].join("\n");
+
+let running = false;
+async function run() {
+  if (running) return;
+  const key = keyEl.value.trim();
+  if (!key) { setStatus("Enter your OpenRouter API key first."); keyEl.focus(); return; }
+  try { localStorage.setItem(KEY_LS, key); } catch {}
+  const model = modelEl.value.trim() || "xiaomi/mimo-v2.5-pro";
+  const prompt = promptEl.value;
+
+  running = true; runEl.disabled = true; outEl.textContent = "";
+  try {
+    await ensureAssets();
+  } catch (e) { setStatus("Failed to decompress runtime: " + e.message); running = false; runEl.disabled = false; return; }
+
+  setStatus("Booting cli.js…");
+  const frameMessages = [];
+  window.__frameLog = (m) => { frameMessages.push(String(m)); };
+  window.__DIST_FILES = DIST_FILES;
+  window.__CLI_SRC = CLI_SRC;
+  window.__runConfig = { key, model, prompt };
+
+  // fresh sandbox frame per run -> fresh process/memfs/monkeypatches
+  const old = document.getElementById("run-frame");
+  if (old) old.remove();
+  const frame = document.createElement("iframe");
+  frame.id = "run-frame";
+  frame.style.display = "none";
+  frame.srcdoc = SRCDOC;
+  document.body.appendChild(frame);
+
+  const started = Date.now();
+  const timer = setInterval(() => {
+    let cw; try { cw = frame.contentWindow; } catch { return; }
+    if (!cw) return;
+    render(cw.__cliOut, cw.__cliExit);
+    const exit = cw.__cliExit;
+    if (exit !== undefined) {
+      clearInterval(timer);
+      render(cw.__cliOut, exit);
+      const ok = exit === 0;
+      setStatus((ok ? "Done" : "cli.js exited " + exit) + " · " + ((Date.now() - started) / 1000).toFixed(1) + "s" + (frameMessages.length ? " · " + frameMessages[frameMessages.length - 1] : ""));
+      running = false; runEl.disabled = false;
+    } else if (Date.now() - started > 120000) {
+      clearInterval(timer);
+      setStatus("Timed out after 120s. " + (frameMessages.slice(-1)[0] || ""));
+      running = false; runEl.disabled = false;
+    }
+  }, 150);
+}
+
+runEl.addEventListener("click", run);
+</script>
+</body>
+</html>

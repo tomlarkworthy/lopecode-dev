@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>fs hostfs delegation test</title>
+<script type="importmap">
+{
+  "imports": {
+    "node:process": "/dist/process.js", "process": "/dist/process.js",
+    "node:fs": "/dist/fs.js", "fs": "/dist/fs.js",
+    "node:fs/promises": "/dist/fs-promises.js", "fs/promises": "/dist/fs-promises.js",
+    "node:os": "/dist/os.js", "os": "/dist/os.js",
+    "node:path": "/dist/path.js", "path": "/dist/path.js",
+    "node:util": "/dist/util.js", "util": "/dist/util.js",
+    "node:buffer": "/dist/buffer.js", "buffer": "/dist/buffer.js",
+    "node:events": "/dist/events.js", "events": "/dist/events.js",
+    "node:stream": "/dist/stream.js", "stream": "/dist/stream.js",
+    "node:crypto": "/dist/crypto.js", "crypto": "/dist/crypto.js",
+    "node:url": "/dist/url.js", "url": "/dist/url.js",
+    "node:assert": "/dist/assert.js", "assert": "/dist/assert.js"
+  }
+}
+</script>
+</head>
+<body>
+<script>
+// Inject a fake robocoop-5-style host filesystem BEFORE the fs shim evaluates.
+window.__writes = [];
+globalThis.__HOSTFS = {
+  _store: { "/home/user/project/foo.txt": "HELLO-FROM-HOST" },
+  snapshot() { return { "/home/user/project/foo.txt": "HELLO-FROM-HOST", "/home/user/project/mod.js": "export const x = 1;" }; },
+  readSync(p) { return p in this._store ? this._store[p] : null; },
+  writeSync(p, c) { this._store[p] = c; window.__writes.push({ path: p, content: c }); },
+  list() { return Object.keys(this._store); },
+  exists(p) { return p in this._store; },
+};
+</script>
+<script type="module">
+import "/dist/bootstrap.js"; // builds globalThis.process
+import "/dist/buffer.js";    // sets globalThis.Buffer
+const fs = (await import("/dist/fs.js")).default;
+
+const results = {};
+try {
+  // 1) read served from host snapshot/readSync
+  results.readFooUtf8 = fs.readFileSync("/home/user/project/foo.txt", "utf8");
+  // 2) read of a snapshot-primed file (not in live _store readSync) falls back to primed memfs
+  results.readModPrimed = fs.readFileSync("/home/user/project/mod.js", "utf8");
+  // 3) seeded memfs config still readable (host readSync returns null -> memfs)
+  const cfg = JSON.parse(fs.readFileSync("/home/user/.claude.json", "utf8"));
+  results.onboarding = cfg.hasCompletedOnboarding;
+  // 4) write-through: writeFileSync updates memfs AND calls hostfs.writeSync
+  fs.writeFileSync("/home/user/project/bar.txt", "WRITTEN");
+  results.readBackAfterWrite = fs.readFileSync("/home/user/project/bar.txt", "utf8");
+  results.hostSawWrite = window.__writes.some((w) => w.path === "/home/user/project/bar.txt" && w.content === "WRITTEN");
+  // 5) existence backstop via host.exists
+  results.existsFoo = fs.existsSync("/home/user/project/foo.txt");
+} catch (e) {
+  results.error = String(e && (e.stack || e.message) || e);
+}
+window.__fsTest = results;
+document.body.appendChild(Object.assign(document.createElement("pre"), { textContent: JSON.stringify(results, null, 2) }));
+</script>
+</body>
+</html>

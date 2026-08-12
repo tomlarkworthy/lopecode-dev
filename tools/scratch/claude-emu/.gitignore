@@ -9,3 +9,22 @@ or-key.txt
 seedrng
 package/
 tinyemu-2019-12-21/
+# browser-native harness: keep source (src/, *.mjs, *.md) but not heavy artifacts
+browser-native/node_modules/
+browser-native/package/
+browser-native/dist/
+browser-native/*.png
+# built browser-native notebook (regenerate with build-single.mjs) + test artifacts
+claude-code-browser.html
+claude-code-browser-test.png
+
+# recovered 50MB emulator notebook + extracted rootfs (never commit — regenerate)
+recovered-notebook.html
+usr/
+# screenshots and source maps are throwaway noise
+*.png
+*.map
+# vendored xterm: keep only the built UMD the recipe actually reads (lib/*.js, css, addon-fit.js);
+# drop the TS sources and duplicate ESM builds
+browser-native/vendor-xterm/**/src/
+browser-native/vendor-xterm/**/lib/*.mjs
