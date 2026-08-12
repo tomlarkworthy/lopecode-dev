@@ -147,46 +147,74 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       termHost.tabIndex = 0;
       termHost.addEventListener("mousedown", () => { try { term.focus(); } catch {} });
 
-      // Render fix, part 1: xterm measures cell size at open(), so opening into a
-      // zero-size or not-yet-laid-out host leaves the DOM renderer painting nothing.
-      // Wait for real size, for fonts (the measurement depends on them), and for a
-      // settled frame before opening.
-      const sized = () => termHost.clientWidth > 0 && termHost.clientHeight > 0;
-      const whenSized = () => sized() ? Promise.resolve()
-        : new Promise((res) => { const ro = new ResizeObserver(() => { if (sized()) { ro.disconnect(); res(); } }); ro.observe(termHost); });
-      const twoFrames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await whenSized();
-      try { await document.fonts.ready; } catch {}
-      await twoFrames();
-      openTerminal();
+      await openTerminal();
     }
   }
 
-  function openTerminal() {
-    term.open(termHost);
-    try { fit && fit.fit(); } catch {}
+  // A Terminal opened while the window is not actually painting — another monitor, a
+  // background window, a hidden pane — comes up permanently wedged: rows never fill
+  // even though the buffer does, and nothing revives it (write, resize, refresh,
+  // fontSize change and fit were all verified to fail on a wedged instance). Only a
+  // Terminal constructed while the page really paints works. Since no public API
+  // reports the broken state, prove it: write a canary and check it reached the DOM.
+  const sized = () => termHost.clientWidth > 0 && termHost.clientHeight > 0;
+  const whenSized = () => sized() ? Promise.resolve()
+    : new Promise((res) => { const ro = new ResizeObserver(() => { if (sized()) { ro.disconnect(); res(); } }); ro.observe(termHost); });
+  const whenVisible = () => document.visibilityState === "visible" ? Promise.resolve()
+    : new Promise((res) => { const h = () => { if (document.visibilityState === "visible") { document.removeEventListener("visibilitychange", h); res(); } }; document.addEventListener("visibilitychange", h); });
+  const twoFrames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const renderedLen = () => { const r = termHost.querySelector(".xterm-rows"); return r ? r.textContent.trim().length : 0; };
+  const bufferedLen = () => { try { return window.__dumpTerm().trim().length; } catch { return 0; } };
+
+  async function paintsCanary() {
+    term.write("█");
+    await new Promise((r) => setTimeout(r, 150));
+    const ok = renderedLen() > 0;
+    try { term.reset(); } catch {}
+    return ok;
+  }
+
+  async function openTerminal() {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      await whenVisible();
+      await whenSized();
+      try { await document.fonts.ready; } catch {}
+      await twoFrames();
+      term.open(termHost);
+      try { fit && fit.fit(); } catch {}
+      if (await paintsCanary()) break;
+      try { term.dispose(); } catch {}   // wedged — discard and wait for a real paint
+      termHost.innerHTML = "";
+      term = newTerminal();
+      await new Promise((r) => setTimeout(r, 500));
+    }
     try { window.__termSize = { cols: term.cols, rows: term.rows }; } catch {}
     pushResize();
     try { term.focus(); } catch {}
   }
 
-  // Render fix, part 2. Even when opened into a sized host the renderer sometimes
-  // attaches without ever painting: the buffer fills but .xterm-rows stays empty,
-  // and no write, fit or resize revives it (verified live). Rebuilding the Terminal
-  // into the settled host does work, so detect that state and redo it. A SIGWINCH
-  // then makes Ink repaint its whole UI into the fresh terminal.
-  const renderedLen = () => { const r = termHost.querySelector(".xterm-rows"); return r ? r.textContent.trim().length : 0; };
-  const bufferedLen = () => { try { return window.__dumpTerm().trim().length; } catch { return 0; } };
+  // If it wedges anyway — the window can stay unpainted for the whole boot, so the
+  // canary loop above can time out and attach a wedged terminal — rebuild and make
+  // Ink repaint via a real SIGWINCH. The buffer cannot be replayed, so the redraw
+  // has to come from the app. Keep watching: the moment the user actually looks at
+  // the window it paints again, and that is when the rebuild can succeed.
+  let healing = false;
   async function healIfBlank() {
-    if (!term || renderedLen() > 0 || bufferedLen() === 0) return false;
-    try { term.dispose(); } catch {}
-    termHost.innerHTML = "";
-    term = newTerminal();
-    openTerminal();
-    const w = frame && frame.contentWindow;
-    if (w && w.__ptyResize) { w.__ptyResize(Math.max(2, term.cols - 1), term.rows); setTimeout(() => w.__ptyResize(term.cols, term.rows), 80); }
-    return true;
+    if (healing || !term || renderedLen() > 0 || bufferedLen() === 0) return false;
+    healing = true;
+    try {
+      try { term.dispose(); } catch {}
+      termHost.innerHTML = "";
+      term = newTerminal();
+      await openTerminal();
+      const w = frame && frame.contentWindow;
+      if (w && w.__ptyResize) { w.__ptyResize(Math.max(2, term.cols - 1), term.rows); setTimeout(() => w.__ptyResize(term.cols, term.rows), 80); }
+      return true;
+    } finally { healing = false; }
   }
+  window.addEventListener("focus", () => healIfBlank());
+  document.addEventListener("visibilitychange", () => healIfBlank());
+  setInterval(() => healIfBlank(), 3000);
 
   // ---- cli.js + shim assets ----
   let DIST_FILES = null, CLI_SRC = null;
