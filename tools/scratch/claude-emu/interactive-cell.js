@@ -21,14 +21,14 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   root.style.cssText = "font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100%;display:flex;flex-direction:column;gap:8px;padding:8px;box-sizing:border-box;background:#1e1e1e;color:#ddd";
   root.innerHTML = [
     "<div style='display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap'>",
-    "  <div style='display:flex;flex-direction:column;gap:3px;flex:1;min-width:220px'>",
-    "    <label style='font-size:11px;font-weight:600;opacity:.7'>OpenRouter API key <span style='font-weight:400;opacity:.6'>(optional)</span></label>",
-    "    <input id='cb-key' type='password' placeholder='leave blank to use the demo gateway' autocomplete='off' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
-    "  </div>",
-    "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 260px'>",
+    "  <div style='display:flex;flex-direction:column;gap:3px;flex:1;min-width:260px'>",
     "    <label style='font-size:11px;font-weight:600;opacity:.7'>Model <span id='cb-model-hint' style='font-weight:400;opacity:.6'></span></label>",
     "    <input id='cb-model' type='text' list='cb-models' value='xiaomi/mimo-v2.5-pro' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "    <datalist id='cb-models'></datalist>",
+    "  </div>",
+    "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 240px'>",
+    "    <label style='font-size:11px;font-weight:600;opacity:.7'>OpenRouter API key <span style='font-weight:400;opacity:.6'>(optional)</span></label>",
+    "    <input id='cb-key' type='password' placeholder='blank = demo gateway' autocomplete='off' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "  </div>",
     "  <button id='cb-restart' title='Reboot the session' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#444;color:#fff;cursor:pointer'>Restart</button>",
     "</div>",
@@ -95,6 +95,16 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     const s = document.createElement("script"); s.textContent = wrapped; document.head.appendChild(s);
   }
   let term = null, fit = null;
+  function newTerminal() {
+    const t = new window.Terminal({
+      cols: 100, rows: 30, convertEol: false, cursorBlink: true,
+      fontFamily: 'ui-monospace, Menlo, Monaco, "Courier New", monospace',
+      fontSize: 13, theme: { background: "#000000", foreground: "#e0e0e0" },
+      allowProposedApi: true,
+    });
+    try { fit = new window.FitAddon.FitAddon(); t.loadAddon(fit); } catch {}
+    return t;
+  }
   async function ensureXterm() {
     if (!window.Terminal) {
       const css = await gunzipText(FileAttachment("xterm.css.gz"));
@@ -103,13 +113,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       injectUMD(await gunzipText(FileAttachment("addon-fit.js.gz")));
     }
     if (!term) {
-      term = new window.Terminal({
-        cols: 100, rows: 30, convertEol: false, cursorBlink: true,
-        fontFamily: 'ui-monospace, Menlo, Monaco, "Courier New", monospace',
-        fontSize: 13, theme: { background: "#000000", foreground: "#e0e0e0" },
-        allowProposedApi: true,
-      });
-      try { fit = new window.FitAddon.FitAddon(); term.loadAddon(fit); } catch {}
+      term = newTerminal();
+      window.__term = () => term; // debug handle; term is swapped by healIfBlank
       window.__ptyWrite = (s) => { try { term.write(s); } catch {} };
       window.__sendKeys = (s) => ptyIn(s);
       window.__dumpTerm = () => {
@@ -142,21 +147,45 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       termHost.tabIndex = 0;
       termHost.addEventListener("mousedown", () => { try { term.focus(); } catch {} });
 
-      // Render fix. Opening xterm while the pane is zero-size leaves the DOM
-      // renderer painting nothing (buffer fills, screen stays blank) and it does
-      // not recover on a later resize. Defer open() until the host has real
-      // size, then fit; keep fitting as the pane resizes.
+      // Render fix, part 1: xterm measures cell size at open(), so opening into a
+      // zero-size or not-yet-laid-out host leaves the DOM renderer painting nothing.
+      // Wait for real size, for fonts (the measurement depends on them), and for a
+      // settled frame before opening.
       const sized = () => termHost.clientWidth > 0 && termHost.clientHeight > 0;
-      const doOpen = () => {
-        term.open(termHost);
-        try { fit && fit.fit(); } catch {}
-        try { window.__termSize = { cols: term.cols, rows: term.rows }; } catch {}
-        pushResize();
-        try { term.focus(); } catch {}
-      };
-      if (sized()) doOpen();
-      else { const ro = new ResizeObserver(() => { if (sized()) { ro.disconnect(); doOpen(); } }); ro.observe(termHost); }
+      const whenSized = () => sized() ? Promise.resolve()
+        : new Promise((res) => { const ro = new ResizeObserver(() => { if (sized()) { ro.disconnect(); res(); } }); ro.observe(termHost); });
+      const twoFrames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await whenSized();
+      try { await document.fonts.ready; } catch {}
+      await twoFrames();
+      openTerminal();
     }
+  }
+
+  function openTerminal() {
+    term.open(termHost);
+    try { fit && fit.fit(); } catch {}
+    try { window.__termSize = { cols: term.cols, rows: term.rows }; } catch {}
+    pushResize();
+    try { term.focus(); } catch {}
+  }
+
+  // Render fix, part 2. Even when opened into a sized host the renderer sometimes
+  // attaches without ever painting: the buffer fills but .xterm-rows stays empty,
+  // and no write, fit or resize revives it (verified live). Rebuilding the Terminal
+  // into the settled host does work, so detect that state and redo it. A SIGWINCH
+  // then makes Ink repaint its whole UI into the fresh terminal.
+  const renderedLen = () => { const r = termHost.querySelector(".xterm-rows"); return r ? r.textContent.trim().length : 0; };
+  const bufferedLen = () => { try { return window.__dumpTerm().trim().length; } catch { return 0; } };
+  async function healIfBlank() {
+    if (!term || renderedLen() > 0 || bufferedLen() === 0) return false;
+    try { term.dispose(); } catch {}
+    termHost.innerHTML = "";
+    term = newTerminal();
+    openTerminal();
+    const w = frame && frame.contentWindow;
+    if (w && w.__ptyResize) { w.__ptyResize(Math.max(2, term.cols - 1), term.rows); setTimeout(() => w.__ptyResize(term.cols, term.rows), 80); }
+    return true;
   }
 
   // ---- cli.js + shim assets ----
@@ -464,7 +493,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       frame.style.display = "none";
       frame.srcdoc = SRCDOC;
       root.appendChild(frame);
-      frame.addEventListener("load", () => { setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
+      frame.addEventListener("load", () => { setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); [1500, 4000, 9000].forEach((t) => setTimeout(healIfBlank, t)); });
       setStatus("Starting interactive session…");
       setTimeout(() => { try { term.focus(); } catch {} }, 120);
     } catch (e) {

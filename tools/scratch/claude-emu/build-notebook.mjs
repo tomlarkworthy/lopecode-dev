@@ -168,7 +168,7 @@ const NEW_BOOTCONF = `<script id="bootconf.json"
         data-mime="application/json"
 >
 {
-  "mains": ["@tomlarkworthy/lopepage-2","@tomlarkworthy/claude-code-browser","@tomlarkworthy/claude-code-pairing"],
+  "mains": ["@tomlarkworthy/lopepage-2","@tomlarkworthy/save-in-place","@tomlarkworthy/claude-code-browser","@tomlarkworthy/claude-code-pairing"],
   "hash": "#view=R100(S75(@tomlarkworthy/claude-code-browser),S25(@tomlarkworthy/claude-code-pairing))",
   "headless": true,
   "prerender": false

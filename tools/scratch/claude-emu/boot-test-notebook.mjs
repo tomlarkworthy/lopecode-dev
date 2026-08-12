@@ -68,6 +68,17 @@ const readArgv = () => page.evaluate(() => {
   try { argv = document.querySelector("#cb-cli-frame").contentWindow.__ARGV || null; } catch (e) { argv = "ERR:" + e.message; }
   return { argv, checked: !!document.querySelector("#cb-yolo")?.checked, cfg: window.__runConfig && window.__runConfig.yolo };
 });
+// What the user actually SEES. __dumpTerm reads the buffer, so a renderer that
+// attaches without painting still "passes" it — that bug shipped twice. Measured here
+// for the same reason as the YOLO arm: STEP 4 re-renders the cell and drops the term.
+const painted = await page.evaluate(() => {
+  const r = document.querySelector("#cb-term .xterm-rows");
+  const b = window.__dumpTerm ? window.__dumpTerm() : "";
+  return { renderedChars: r ? r.textContent.trim().length : 0, bufferedChars: b.trim().length };
+});
+const paintOk = painted.renderedChars > 0;
+console.log("painted to screen:", JSON.stringify(painted));
+
 const FLAG = "--dangerously-skip-permissions";
 const yoloOn = await readArgv();
 // cli.js refuses the flag as root; our shim reports uid 1000, so this must NOT appear.
@@ -163,7 +174,8 @@ const yoloOk = yoloOn.checked && Array.isArray(yoloOn.argv) && yoloOn.argv.inclu
 const benign = (e) => /User-Agent|api\.anthropic\.com|downloads\.claude\.ai|metrics_enabled|Failed to load resource.*cli\.local|net::ERR|Access-Control|CORS|statsig|telemetry/i.test(e);
 const fatal = consoleErrs.filter((e) => !benign(e));
 console.log("\n================ NOTEBOOK RESULT ================");
-console.log("TUI rendered:", boot.ok);
+console.log("TUI in buffer:", boot.ok);
+console.log("TUI actually painted to screen:", paintOk, JSON.stringify(painted));
 console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
@@ -172,7 +184,7 @@ console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
-const GO = boot.ok && help.ok && chatOk && fsOk && yoloOk;
+const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && yoloOk;
 console.log("VERDICT:", GO ? "GO" : "NO-GO");
 console.log("=================================================");
 
