@@ -23,6 +23,9 @@ const r = await p.evaluate(() => {
     modelCount: opts.length,
     hasMimo: opts.includes("xiaomi/mimo-v2.5-pro"),
     hint: document.querySelector("#cb-model-hint").textContent,
+    status: document.querySelector("#cb-status").textContent,
+    noSessionWithoutKey: !document.querySelector("#cb-cli-frame"),
+    startButtonGone: !document.querySelector("#cb-start"),
   };
 });
 console.log(JSON.stringify(r, null, 2));

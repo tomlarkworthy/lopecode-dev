@@ -28,8 +28,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "    <input id='cb-model' type='text' list='cb-models' value='xiaomi/mimo-v2.5-pro' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "    <datalist id='cb-models'></datalist>",
     "  </div>",
-    "  <button id='cb-start' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#2f6feb;color:#fff;cursor:pointer'>Start session</button>",
-    "  <button id='cb-restart' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#444;color:#fff;cursor:pointer'>Restart</button>",
+    "  <button id='cb-restart' title='Reboot the session' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#444;color:#fff;cursor:pointer'>Restart</button>",
     "</div>",
     "<div style='display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px;opacity:.85'>",
     "  <label style='display:flex;gap:6px;align-items:center;cursor:pointer' title='--dangerously-skip-permissions. Safe here: the filesystem is this notebook&#39;s own modules, subprocesses fail gracefully and sockets are inert.'>",
@@ -42,7 +41,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   ].join("\n");
 
   const q = (id) => root.querySelector("#" + id);
-  const keyEl = q("cb-key"), modelEl = q("cb-model"), startEl = q("cb-start"),
+  const keyEl = q("cb-key"), modelEl = q("cb-model"),
         restartEl = q("cb-restart"), statusEl = q("cb-status"), termHost = q("cb-term"),
         yoloEl = q("cb-yolo");
   try { const k = localStorage.getItem(KEY_LS); if (k) keyEl.value = k; } catch {}
@@ -432,15 +431,16 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   ].join("\n");
 
   // ---- session lifecycle ----
-  let starting = false;
+  let starting = false, pending = false, lastCfg = null;
   async function startSession() {
-    if (starting) return;
+    if (starting) { pending = true; return; } // coalesce changes made mid-boot
     const key = keyEl.value.trim();
-    if (!key) { setStatus("Enter your OpenRouter API key first."); keyEl.focus(); return; }
+    if (!key) { setStatus("Paste an OpenRouter key above to start" + (DEMO_KEY ? " — or copy the demo key below." : ".")); return; }
     try { localStorage.setItem(KEY_LS, key); } catch {}
     const model = modelEl.value.trim() || "xiaomi/mimo-v2.5-pro";
     const yolo = !!yoloEl.checked;
-    starting = true; startEl.disabled = true;
+    starting = true; restartEl.disabled = true;
+    lastCfg = JSON.stringify({ key, model, yolo });
     try {
       setStatus("Loading terminal…");
       await ensureXterm();
@@ -472,16 +472,27 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     } catch (e) {
       setStatus("Failed to start: " + (e && e.message || e));
     } finally {
-      starting = false; startEl.disabled = false;
+      starting = false; restartEl.disabled = false;
+      if (pending) { pending = false; startSession(); }
     }
   }
 
-  startEl.addEventListener("click", startSession);
-  restartEl.addEventListener("click", startSession);
+  // Any setting change reboots the session; unchanged values (a blur with no edit)
+  // are ignored so the terminal is not torn down for nothing.
+  function settingChanged() {
+    const cfg = JSON.stringify({ key: keyEl.value.trim(), model: modelEl.value.trim() || "xiaomi/mimo-v2.5-pro", yolo: !!yoloEl.checked });
+    if (cfg === lastCfg) return;
+    startSession();
+  }
+  // `change` (not `input`) so a key is not rebooted on every keystroke.
+  keyEl.addEventListener("change", settingChanged);
+  modelEl.addEventListener("change", settingChanged);
+  yoloEl.addEventListener("change", settingChanged);
+  restartEl.addEventListener("click", () => { lastCfg = null; startSession(); });
   window.__autostart = () => startSession();
 
-  // Mount the terminal immediately so the pane isn't blank before Start.
-  ensureXterm().then(() => setStatus("Enter your OpenRouter key and press Start.")).catch((e) => setStatus("xterm load failed: " + (e && e.message || e)));
+  // Mount the terminal, then boot straight in if a key is already saved.
+  ensureXterm().then(() => startSession()).catch((e) => setStatus("xterm load failed: " + (e && e.message || e)));
 
   return root;
 })())}

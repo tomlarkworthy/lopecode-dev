@@ -31,11 +31,12 @@ await page.goto("file://" + NB + HASH, { waitUntil: "load", timeout: 60000 });
 // Wait for the cell to mount (its __autostart hook appears once the app cell executes).
 await page.waitForFunction(() => typeof window.__autostart === "function", { timeout: 45000 });
 console.log("app cell mounted (window.__autostart present)");
-await page.waitForSelector("#cb-start", { timeout: 15000 });
+await page.waitForSelector("#cb-restart", { timeout: 15000 });
 await page.screenshot({ path: HERE + "/nb-1-mounted.png" }).catch(() => {});
 
+// No Start button: the cell auto-boots because addInitScript seeded the key.
+// Filling the model with the same default is a no-op; a different MODEL reboots.
 await page.fill("#cb-model", MODEL).catch(() => {});
-await page.click("#cb-start");
 
 async function dump() { return await page.evaluate(() => (window.__dumpTerm ? window.__dumpTerm() : "")); }
 async function waitFor(subs, timeoutMs) {
@@ -145,9 +146,8 @@ const fsOk = fsResult.hasRC5 && fsResult.selfReadLen > 0 && fsResult.readBackImm
 // ---- STEP 5: YOLO toggle reaches cli.js argv (default ON, and off when unchecked) ----
 console.log("\n== YOLO mode ==");
 // Negative arm: untick, restart, confirm the flag is gone.
-await page.uncheck("#cb-yolo").catch(() => {});
-await page.click("#cb-restart");
-await sleep(6000);
+await page.uncheck("#cb-yolo").catch(() => {}); // reboots by itself now
+await sleep(8000);
 const yoloOff = await readArgv();
 console.log("default ON  :", JSON.stringify(yoloOn));
 console.log("unchecked   :", JSON.stringify(yoloOff));
