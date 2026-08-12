@@ -14,7 +14,7 @@ const MODEL = process.env.MODEL || "xiaomi/mimo-v2.5-pro";
 const CHAT = process.env.PROMPT || "Do not use any tools. Reply with exactly one word: BANANA";
 // HASH matters: S100(a,b) stacks both modules as TABS, so the terminal pane can mount
 // hidden — a layout the side-by-side default never exercises.
-const HASH = process.env.HASH || "#view=R100(S75(@tomlarkworthy/claude-code-browser),S25(@tomlarkworthy/claude-code-pairing))";
+const HASH = process.env.HASH || "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const browser = await chromium.launch({ headless: true });
@@ -174,6 +174,27 @@ console.log("rc5 fs result:", JSON.stringify(fsResult, null, 2));
 
 const fsOk = fsResult.hasRC5 && fsResult.selfReadLen > 0 && fsResult.readBackImmediate && fsResult.appliedToRuntime && fsResult.exportModuleRoundTrips;
 
+// ---- STEP 4b: the in-page pairing channel (notebook MCP server) ----
+console.log("\n== pairing: notebook MCP server ==");
+const mcp = await page.evaluate(async () => {
+  const log = window.__MCPLOG || [];
+  const tools = window.__NBTOOLS ? window.__NBTOOLS.list().map((t) => t.name) : [];
+  // Exercise the tools the way the CLI would, through the same entry point.
+  let listed = null, wrote = null, read = null, evaled = null;
+  try { listed = (await window.__NBTOOLS.call("list_modules", {})).length; } catch (e) { listed = String(e); }
+  try {
+    wrote = await window.__NBTOOLS.call("write_module", {
+      name: "@test/pairing",
+      source: 'export default function define(runtime, observer){const main=runtime.module();main.variable(observer("pair")).define("pair",[],()=>"PAIRED");return main;}',
+    });
+    read = (await window.__NBTOOLS.call("read_module", { name: "@test/pairing" })).slice(0, 40);
+  } catch (e) { wrote = String(e); }
+  try { evaled = await window.__NBTOOLS.call("eval_js", { code: "1+1" }); } catch (e) { evaled = String(e); }
+  return { handshake: log.filter((l) => l.ev === "initialize").length, listedMethods: [...new Set(log.map((l) => l.ev))], tools, listed, wrote, read, evaled };
+});
+console.log("mcp:", JSON.stringify(mcp));
+const mcpOk = mcp.handshake > 0 && mcp.tools.length === 4 && typeof mcp.listed === "number" && mcp.wrote && mcp.wrote.ok === true && mcp.evaled === 2;
+
 // ---- STEP 5: YOLO toggle reaches cli.js argv (default ON, and off when unchecked) ----
 console.log("\n== YOLO mode ==");
 // Negative arm: untick, restart, confirm the flag is gone.
@@ -189,18 +210,43 @@ const yoloOk = yoloOn.checked && Array.isArray(yoloOn.argv) && yoloOn.argv.inclu
 // ---- summary ----
 const benign = (e) => /User-Agent|api\.anthropic\.com|downloads\.claude\.ai|metrics_enabled|Failed to load resource.*cli\.local|net::ERR|Access-Control|CORS|statsig|telemetry/i.test(e);
 const fatal = consoleErrs.filter((e) => !benign(e));
+// ---- STEP 6: Anthropic mode — no key must mean NO auth, so /login can run ----
+console.log("\n== Anthropic API mode ==");
+await page.selectOption("#cb-provider", "anthropic").catch(() => {});
+// The switch reboots the session: wait for the terminal's own report that it repainted
+// rather than a fixed sleep, so an empty dump below means something real.
+await page.waitForFunction(() => { const h = window.__termHealth && window.__termHealth(); return h && h.bufferedChars > 0; }, { timeout: 60000, polling: "raf" }).catch(() => {});
+await sleep(2000);
+const anth = await page.evaluate(() => {
+  const f = document.querySelector("#cb-cli-frame");
+  const env = (f && f.contentWindow && f.contentWindow.__ENV_OVERRIDES) || {};
+  return {
+    base: env.ANTHROPIC_BASE_URL,
+    hasApiKey: Object.prototype.hasOwnProperty.call(env, "ANTHROPIC_API_KEY"),
+    provider: window.__runConfig && window.__runConfig.provider,
+    urlPlaceholder: document.querySelector("#cb-url").placeholder,
+    screen: (window.__dumpTerm ? window.__dumpTerm() : "").split("\n").slice(0, 10).join("\n"),
+    health: (() => { const h = window.__termHealth(); return { rendered: h.renderedChars, buffered: h.bufferedChars, wedges: h.wedges, instance: h.instance }; })(),
+  };
+});
+console.log("anthropic:", JSON.stringify({ base: anth.base, hasApiKey: anth.hasApiKey, provider: anth.provider, health: anth.health }));
+console.log("---- screen in Anthropic mode ----\n" + anth.screen);
+const anthOk = anth.provider === "anthropic" && anth.base === "https://api.anthropic.com" && anth.hasApiKey === false && anth.health.rendered > 0 && anth.health.wedges === 0;
+
 console.log("\n================ NOTEBOOK RESULT ================");
 console.log("TUI in buffer:", boot.ok);
 console.log("TUI actually painted to screen:", paintOk, JSON.stringify(painted));
 console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
+console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
+console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
 console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
-const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && yoloOk;
+const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && yoloOk && mcpOk && anthOk;
 console.log("VERDICT:", GO ? "GO" : "NO-GO");
 console.log("=================================================");
 

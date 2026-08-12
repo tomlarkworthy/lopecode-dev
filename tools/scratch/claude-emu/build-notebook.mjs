@@ -113,10 +113,12 @@ export default function define(runtime, observer) {
   }));
   main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
 
+  // The app is defined FIRST so lopepage renders the terminal above the import cells;
+  // Observable resolves by name, so definition order costs nothing.
+  $def("_cb_app", "claude_code_browser", ${JSON.stringify(APP_DEPS)}, _cb_app);
+
 ${loaderLines}
 ${bindingLines}
-
-  $def("_cb_app", "claude_code_browser", ${JSON.stringify(APP_DEPS)}, _cb_app);
   return main;
 }</script>`;
 
@@ -169,7 +171,7 @@ const NEW_BOOTCONF = `<script id="bootconf.json"
 >
 {
   "mains": ["@tomlarkworthy/lopepage-2","@tomlarkworthy/save-in-place","@tomlarkworthy/claude-code-browser","@tomlarkworthy/claude-code-pairing"],
-  "hash": "#view=R100(S75(@tomlarkworthy/claude-code-browser),S25(@tomlarkworthy/claude-code-pairing))",
+  "hash": "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))",
   "headless": true,
   "prerender": false
 }</script>`;

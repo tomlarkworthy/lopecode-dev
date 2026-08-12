@@ -1,0 +1,28 @@
+// What does the TUI actually do on Anthropic with no key? (Does /login run?)
+import { chromium } from "playwright";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const HASH = "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))";
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const b = await chromium.launch({ headless: true });
+const p = await b.newPage({ viewport: { width: 1200, height: 900 } });
+await p.addInitScript(() => { window.__CB_DEBUG = true; });
+await p.goto("file://" + NB + HASH, { waitUntil: "load", timeout: 60000 });
+await p.waitForFunction(() => window.__termHealth && window.__termHealth().renderedChars > 0, { timeout: 90000 }).catch(() => {});
+await p.selectOption("#cb-provider", "anthropic");
+await sleep(20000);
+const h = await p.evaluate(() => window.__termHealth());
+console.log("health after switch:", JSON.stringify({ rendered: h.renderedChars, buffered: h.bufferedChars, wedges: h.wedges, openRetries: h.openRetries, instance: h.instance }));
+console.log("---- screen ----\n" + await p.evaluate(() => window.__dumpTerm()));
+console.log("---- typing /login ----");
+await p.evaluate(() => window.__sendKeys("/login"));
+await sleep(1500);
+await p.evaluate(() => window.__sendKeys("\r"));
+await sleep(10000);
+console.log(await p.evaluate(() => window.__dumpTerm()));
+console.log("---- selecting 'Claude account with subscription' ----");
+await p.evaluate(() => window.__sendKeys("\r"));
+await sleep(12000);
+console.log(await p.evaluate(() => window.__dumpTerm()));
+console.log("---- frame log ----", JSON.stringify(await p.evaluate(() => (window.__frameMsgs || []).slice(0, 12))));
+console.log("---- popups ----", JSON.stringify(p.context().pages().map((x) => x.url().slice(0, 120))));
+await b.close(); process.exit(0);

@@ -25,7 +25,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // robocoop-5's _client. A user key goes straight to OpenRouter instead.
   const GATEWAY = "https://openrouter-gateway.endpointservices.workers.dev/v1";
   const DIRECT = "https://openrouter.ai/api/v1";
+  const ANTHROPIC = "https://api.anthropic.com";
   const KEY_LS = "openrouter_key";
+  const PROVIDER_LS = "claude_provider";
+  const URL_LS = "claude_base_url";
   const YOLO_LS = "claude_yolo";
 
   // ---- UI shell ----
@@ -34,13 +37,24 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   root.style.cssText = "font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100%;display:flex;flex-direction:column;gap:8px;padding:8px;box-sizing:border-box;background:#1e1e1e;color:#ddd";
   root.innerHTML = [
     "<div style='display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap'>",
+    "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 150px'>",
+    "    <label style='font-size:11px;font-weight:600;opacity:.7'>API</label>",
+    "    <select id='cb-provider' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
+    "      <option value='openrouter'>OpenRouter</option>",
+    "      <option value='anthropic'>Anthropic</option>",
+    "    </select>",
+    "  </div>",
+    "  <div style='display:flex;flex-direction:column;gap:3px;flex:1;min-width:230px'>",
+    "    <label style='font-size:11px;font-weight:600;opacity:.7'>Base URL <span id='cb-url-hint' style='font-weight:400;opacity:.6'></span></label>",
+    "    <input id='cb-url' type='text' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
+    "  </div>",
     "  <div style='display:flex;flex-direction:column;gap:3px;flex:1;min-width:260px'>",
     "    <label style='font-size:11px;font-weight:600;opacity:.7'>Model <span id='cb-model-hint' style='font-weight:400;opacity:.6'></span></label>",
     "    <input id='cb-model' type='text' list='cb-models' value='xiaomi/mimo-v2.5-pro' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "    <datalist id='cb-models'></datalist>",
     "  </div>",
     "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 240px'>",
-    "    <label style='font-size:11px;font-weight:600;opacity:.7'>OpenRouter API key <span style='font-weight:400;opacity:.6'>(optional)</span></label>",
+    "    <label style='font-size:11px;font-weight:600;opacity:.7'><span id='cb-key-label'>OpenRouter</span> API key <span style='font-weight:400;opacity:.6'>(optional)</span></label>",
     "    <input id='cb-key' type='password' placeholder='blank = demo gateway' autocomplete='off' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "  </div>",
     "  <button id='cb-restart' title='Reboot the session' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#444;color:#fff;cursor:pointer'>Restart</button>",
@@ -58,27 +72,59 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   const q = (id) => root.querySelector("#" + id);
   const keyEl = q("cb-key"), modelEl = q("cb-model"),
         restartEl = q("cb-restart"), statusEl = q("cb-status"), termHost = q("cb-term"),
-        yoloEl = q("cb-yolo");
+        yoloEl = q("cb-yolo"), providerEl = q("cb-provider"), urlEl = q("cb-url");
+  try { providerEl.value = localStorage.getItem(PROVIDER_LS) || "openrouter"; } catch {}
+  const provider = () => (providerEl.value === "anthropic" ? "anthropic" : "openrouter");
+  // Blank means "whatever this provider defaults to", so the field can always be
+  // cleared back to a working state.
+  const defaultUrl = () => (provider() === "anthropic" ? ANTHROPIC : (keyEl.value.trim() ? DIRECT : GATEWAY));
+  const baseUrl = () => (urlEl.value.trim().replace(/\/+$/, "") || defaultUrl());
+  function syncProviderUI() {
+    const anth = provider() === "anthropic";
+    q("cb-key-label").textContent = anth ? "Anthropic" : "OpenRouter";
+    keyEl.placeholder = anth ? "blank = sign in with /login" : "blank = demo gateway";
+    urlEl.placeholder = defaultUrl();
+    q("cb-url-hint").textContent = urlEl.value.trim() ? "(overridden)" : "(default)";
+    demoEl.innerHTML = anth ? ANTHROPIC_NOTE : DEMO_NOTE;
+    q("cb-model-hint").textContent = anth ? "(Anthropic model ids)" : q("cb-model-hint").textContent;
+  }
   try { const k = localStorage.getItem(KEY_LS); if (k) keyEl.value = k; } catch {}
+  try { const u = localStorage.getItem(URL_LS); if (u) urlEl.value = u; } catch {}
   // YOLO defaults ON: in this sandbox the fs is the notebook's own modules,
   // child_process fails gracefully and sockets are inert, so prompts are friction.
   yoloEl.checked = (() => { try { return localStorage.getItem(YOLO_LS) !== "0"; } catch { return true; } })();
   yoloEl.addEventListener("change", () => { try { localStorage.setItem(YOLO_LS, yoloEl.checked ? "1" : "0"); } catch {} });
 
-  const demoEl = q("cb-demo");
-  demoEl.style.display = "";
-  demoEl.innerHTML = "Leave the key blank and this runs on a shared <b>demo gateway</b> that supplies the key for you. "
+  const DEMO_NOTE = "Leave the key blank and this runs on a shared <b>demo gateway</b> that supplies the key for you. "
     + "It is rate limited per user against a small daily budget and serves MiMo only, so if it stops responding the day's budget is likely spent. "
     + "Add your own key from openrouter.ai/keys to use any model on your own quota.";
+  // Measured, not assumed: api.anthropic.com refuses a browser outright unless the
+  // request carries anthropic-dangerous-direct-browser-access (added for you here), and
+  // the OAuth token endpoint sends no CORS headers at all, so /login can produce a code
+  // it cannot then redeem.
+  const ANTHROPIC_NOTE = "Talks to the Anthropic API directly, with no translation. "
+    + "<b>Paste an API key</b> to use it. With the key blank no credential is sent at all, so <code>/login</code> runs and will show you a sign-in URL "
+    + "— but the browser blocks the final token exchange (CORS), so a subscription login cannot complete in-page yet.";
+  const demoEl = q("cb-demo");
+  demoEl.style.display = "";
+  demoEl.innerHTML = DEMO_NOTE;
 
   // Model list from the endpoint actually in use. Datalist rather than a select so
   // any id can still be typed or pasted. Demo mode lists only what it can serve.
+  // Anthropic's /v1/models needs credentials we may deliberately not have (the whole
+  // point of the no-key path is to let /login supply them), so that list is static.
+  const ANTHROPIC_MODELS = ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"];
   async function loadModels() {
     const dl = q("cb-models"), hint = q("cb-model-hint");
     const demo = !keyEl.value.trim();
     dl.innerHTML = "";
+    if (provider() === "anthropic") {
+      for (const id of ANTHROPIC_MODELS) { const o = document.createElement("option"); o.value = id; dl.appendChild(o); }
+      hint.textContent = "(Anthropic)";
+      return;
+    }
     try {
-      const r = await fetch((demo ? GATEWAY : DIRECT) + "/models");
+      const r = await fetch(baseUrl() + "/models");
       let models = ((await r.json()).data || []).slice().sort((a, b) => a.id < b.id ? -1 : 1);
       if (demo) models = models.filter((m) => /^xiaomi\//.test(m.id)); // gateway key is MiMo-only
       for (const m of models) {
@@ -90,6 +136,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       hint.textContent = demo ? "(" + models.length + " on the demo gateway)" : "(" + models.length + " from OpenRouter)";
     } catch (e) { hint.textContent = "(list unavailable — type an id)"; }
   }
+  syncProviderUI();
   loadModels();
   const setStatus = (t) => { statusEl.textContent = t; };
 
@@ -531,9 +578,21 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    for (const [spec, file] of Object.entries(MAP)) { if (urlFor[file]) imports[spec] = urlFor[file]; }",
 "    const im = document.createElement('script'); im.type = 'importmap';",
 "    im.textContent = JSON.stringify({ imports }); document.head.appendChild(im);",
-"    globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: 'http://cli.local', ANTHROPIC_API_KEY: 'sk-ant-browser-native', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };",
-"    installTranslator(CFG.key, CFG.model, CFG.base);",
-"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js'].concat(CFG.yolo ? ['--dangerously-skip-permissions'] : []);",
+"    if (CFG.provider === 'anthropic') {",
+"      // Talk the native protocol: no translation, and NO synthetic credential. With no",
+"      // key cli.js sees an unauthenticated Anthropic endpoint and can run its own",
+"      // /login flow, which a fake ANTHROPIC_API_KEY would suppress.",
+"      const env = { ANTHROPIC_BASE_URL: CFG.base, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };",
+"      if (CFG.key) env.ANTHROPIC_API_KEY = CFG.key;",
+"      globalThis.__ENV_OVERRIDES = env;",
+"      installDirect(CFG.base);",
+"    } else {",
+"      globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: 'http://cli.local', ANTHROPIC_API_KEY: 'sk-ant-browser-native', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };",
+"      installTranslator(CFG.key, CFG.model, CFG.base);",
+"    }",
+"    installMCP(CFG.mcp);",
+"    const mcpCfg = JSON.stringify({ mcpServers: { notebook: { type: 'http', url: CFG.mcp } } });",
+"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js', '--mcp-config', mcpCfg].concat(CFG.yolo ? ['--dangerously-skip-permissions'] : []).concat(P.__CB_DEBUG ? ['--debug'] : []);",
 "    window.addEventListener('unhandledrejection', (e) => { const r = e.reason; if (r && r.name === 'ProcessExit') { globalThis.__cliExit = r.code; e.preventDefault(); return; } say('reject: ' + (r && (r.stack || r.message) || r)); });",
 "    window.addEventListener('error', (e) => say('error: ' + (e.message || e)));",
 "    await import(urlFor['bootstrap.js']);",
@@ -541,6 +600,67 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    const cliUrl = URL.createObjectURL(new Blob([CLI_SRC], { type: 'text/javascript' }));",
 "    try { await import(cliUrl); } catch (e) { if (!e || e.name !== 'ProcessExit') say('cli threw: ' + (e && (e.stack || e.message) || e)); }",
 "  } catch (e) { say('fatal: ' + (e && (e.stack || e.message) || e)); globalThis.__cliExit = globalThis.__cliExit ?? 1; }",
+"",
+"  // Anthropic in a browser needs one header the CLI never sends; otherwise this is a",
+"  // pure passthrough - the point of this mode is that nothing is translated.",
+"  function installDirect(base) {",
+"    const real = globalThis.fetch.bind(globalThis);",
+"    globalThis.fetch = async (input, init) => {",
+"      let req; try { req = new Request(input, init); } catch { return real(input, init); }",
+"      if (req.url.indexOf(base) === 0 || /anthropic\\.com/.test(req.url)) {",
+"        try { req.headers.set('anthropic-dangerous-direct-browser-access', 'true'); } catch {}",
+"        say('-> Anthropic ' + req.method + ' ' + req.url.replace(base, ''));",
+"      }",
+"      return real(req);",
+"    };",
+"  }",
+"",
+"  // The notebook's own MCP server, served from inside the page. cli.js is pointed at",
+"  // MCP_URL with --mcp-config; the request never leaves the frame, so there is no",
+"  // channel server, no port and no pairing token to supply.",
+"  function installMCP(mcpUrl) {",
+"    const real = globalThis.fetch.bind(globalThis);",
+"    const T = () => P.__NBTOOLS;",
+"    const rpc = async (msg) => {",
+"      const id = msg.id, m = msg.method;",
+"      const ok = (result) => ({ jsonrpc: '2.0', id, result });",
+"      try {",
+"        if (m === 'initialize') { T().note('initialize'); return ok({ protocolVersion: msg.params && msg.params.protocolVersion || '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'notebook', version: '1.0.0' } }); }",
+"        if (m === 'tools/list') { T().note('tools/list'); return ok({ tools: T().list() }); }",
+"        if (m === 'tools/call') {",
+"          const r = await T().call(msg.params.name, msg.params.arguments);",
+"          return ok({ content: [{ type: 'text', text: typeof r === 'string' ? r : JSON.stringify(r, null, 2) }] });",
+"        }",
+"        if (m === 'ping') return ok({});",
+"        if (m === 'resources/list') return ok({ resources: [] });",
+"        if (m === 'prompts/list') return ok({ prompts: [] });",
+"        return { jsonrpc: '2.0', id, error: { code: -32601, message: 'method not found: ' + m } };",
+"      } catch (e) {",
+"        return { jsonrpc: '2.0', id, error: { code: -32603, message: String(e && e.message || e) } };",
+"      }",
+"    };",
+"    // cli.js probes connectivity before the handshake and does not always pass a",
+"    // string: a URL or a Request both have to resolve here, or the request escapes to",
+"    // the real network and fails DNS (observed: 'HTTP Connection failed: Failed to",
+"    // fetch' with the interceptor installed and never consulted).",
+"    const urlOf = (input) => { try { return typeof input === 'string' ? input : (input && typeof input.url === 'string' ? input.url : String(input || '')); } catch { return ''; } };",
+"    const host = (() => { try { return new URL(mcpUrl).host; } catch { return 'notebook.local'; } })();",
+"    globalThis.fetch = async (input, init) => {",
+"      const url = urlOf(input);",
+"      if (url.indexOf(host) < 0) return real(input, init);",
+"      const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();",
+"      // No server-initiated stream: 405 tells the client to use POST only.",
+"      if (method !== 'POST') { T().note('probe:' + method); return new Response('', { status: 405, headers: { 'content-type': 'text/plain' } }); }",
+"      let body = null;",
+"      try { body = JSON.parse(init && init.body != null ? (typeof init.body === 'string' ? init.body : await new Response(init.body).text()) : await new Request(input, init).text()); } catch {}",
+"      if (body == null) return new Response('', { status: 202 });",
+"      const msgs = Array.isArray(body) ? body : [body];",
+"      const out = [];",
+"      for (const msg of msgs) { if (msg && msg.id !== undefined) out.push(await rpc(msg)); else if (msg) T().note(msg.method || 'notification'); }",
+"      if (!out.length) return new Response('', { status: 202 });",
+"      return new Response(JSON.stringify(Array.isArray(body) ? out : out[0]), { status: 200, headers: { 'content-type': 'application/json' } });",
+"    };",
+"  }",
 "",
 "  function installTranslator(key, model, base) {",
 "    const real = globalThis.fetch.bind(globalThis);",
@@ -623,17 +743,62 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "<\/script>"
   ].join("\n");
 
+  // ---- pairing: the notebook's own tools, served to the browser Claude over MCP ----
+  // No channel server and no token: the agent is already inside the page, so the tools
+  // are wired straight to the live runtime instead of over a WebSocket. The frame
+  // serves them at MCP_URL (intercepted, never a real request) and cli.js is pointed at
+  // it with --mcp-config. An external pairing session over `cc=` still works alongside;
+  // this is what fills the gap when no token was supplied.
+  const MCP_URL = "http://notebook.local/mcp";
+  window.__MCPLOG = [];
+  const NBTOOLS = {
+    list_modules: {
+      description: "List the module ids defined in this notebook.",
+      schema: { type: "object", properties: {} },
+      run: async () => moduleIds(),
+    },
+    read_module: {
+      description: "Read a module's compiled JavaScript source.",
+      schema: { type: "object", properties: { name: { type: "string", description: "module id, e.g. @tomlarkworthy/foo" } }, required: ["name"] },
+      run: async ({ name }) => (await readPathAsync("/src/" + name + ".js")) || "(not found)",
+    },
+    write_module: {
+      description: "Replace a module's source and apply it to the live runtime. Source must export default define(runtime, observer).",
+      schema: { type: "object", properties: { name: { type: "string" }, source: { type: "string" } }, required: ["name", "source"] },
+      run: async ({ name, source }) => await applyModuleSrc(name, source),
+    },
+    eval_js: {
+      description: "Evaluate a JavaScript expression in the notebook page and return the result as JSON.",
+      schema: { type: "object", properties: { code: { type: "string" } }, required: ["code"] },
+      run: async ({ code }) => {
+        const v = await (new Function("return (" + code + ")"))();
+        try { return JSON.parse(JSON.stringify(v ?? null)); } catch { return String(v); }
+      },
+    },
+  };
+  window.__NBTOOLS = {
+    list: () => Object.entries(NBTOOLS).map(([name, t]) => ({ name, description: t.description, inputSchema: t.schema })),
+    call: async (name, args) => {
+      window.__MCPLOG.push({ ev: "call", name });
+      const t = NBTOOLS[name];
+      if (!t) throw new Error("no such tool: " + name);
+      return await t.run(args || {});
+    },
+    note: (ev, extra) => { window.__MCPLOG.push({ ev, ...(extra || {}) }); },
+  };
+
   // ---- session lifecycle ----
   let starting = false, pending = false, lastCfg = null;
   async function startSession() {
     if (starting) { pending = true; return; } // coalesce changes made mid-boot
     const key = keyEl.value.trim(); // blank is fine: the demo gateway supplies one
-    const base = key ? DIRECT : GATEWAY;
+    const base = baseUrl();
+    const prov = provider();
     try { localStorage.setItem(KEY_LS, key); } catch {}
     const model = modelEl.value.trim() || "xiaomi/mimo-v2.5-pro";
     const yolo = !!yoloEl.checked;
     starting = true; restartEl.disabled = true;
-    lastCfg = JSON.stringify({ key, model, yolo });
+    lastCfg = JSON.stringify({ key, model, yolo, provider: prov, url: base });
     try {
       setStatus("Loading terminal…");
       await ensureXterm();
@@ -645,7 +810,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
       window.__IMPORT_MAP = IMPORT_MAP;
-      window.__runConfig = { key, model, yolo, base };
+      window.__runConfig = { key, model, yolo, base, provider: prov, mcp: MCP_URL };
       try { fit && fit.fit(); } catch {}
       window.__termSize = { cols: term.cols, rows: term.rows };
       window.__cliExit = undefined;
@@ -673,10 +838,16 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // Any setting change reboots the session; unchanged values (a blur with no edit)
   // are ignored so the terminal is not torn down for nothing.
   function settingChanged() {
-    const cfg = JSON.stringify({ key: keyEl.value.trim(), model: modelEl.value.trim() || "xiaomi/mimo-v2.5-pro", yolo: !!yoloEl.checked });
+    const cfg = JSON.stringify({ key: keyEl.value.trim(), model: modelEl.value.trim() || "xiaomi/mimo-v2.5-pro", yolo: !!yoloEl.checked, provider: provider(), url: baseUrl() });
     if (cfg === lastCfg) return;
     startSession();
   }
+  providerEl.addEventListener("change", () => {
+    try { localStorage.setItem(PROVIDER_LS, provider()); } catch {}
+    // A URL typed for one provider is meaningless for the other.
+    urlEl.value = ""; syncProviderUI(); loadModels(); settingChanged();
+  });
+  urlEl.addEventListener("change", () => { try { localStorage.setItem(URL_LS, urlEl.value.trim()); } catch {} syncProviderUI(); loadModels(); settingChanged(); });
   // `change` (not `input`) so a key is not rebooted on every keystroke.
   keyEl.addEventListener("change", () => { loadModels(); settingChanged(); });
   modelEl.addEventListener("change", settingChanged);
