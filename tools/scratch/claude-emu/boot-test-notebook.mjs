@@ -56,6 +56,18 @@ const frameMsgs0 = await page.evaluate(() => window.__frameMsgs || []);
 console.log("frame msgs:", JSON.stringify(frameMsgs0.slice(-8)));
 await page.screenshot({ path: HERE + "/nb-2-tui.png" }).catch(() => {});
 
+// YOLO positive arm, captured here: STEP 4 inserts a module, which re-renders the
+// cell and drops the iframe, so argv must be read while this session is still live.
+const readArgv = () => page.evaluate(() => {
+  let argv = null;
+  try { argv = document.querySelector("#cb-cli-frame").contentWindow.__ARGV || null; } catch (e) { argv = "ERR:" + e.message; }
+  return { argv, checked: !!document.querySelector("#cb-yolo")?.checked, cfg: window.__runConfig && window.__runConfig.yolo };
+});
+const FLAG = "--dangerously-skip-permissions";
+const yoloOn = await readArgv();
+// cli.js refuses the flag as root; our shim reports uid 1000, so this must NOT appear.
+const rootRefusal = boot.buf.includes("cannot be used with root");
+
 // ---- STEP 2: /help ----
 console.log("\n== typing /help ==");
 await page.click("#cb-term");
@@ -130,6 +142,19 @@ console.log("rc5 fs result:", JSON.stringify(fsResult, null, 2));
 
 const fsOk = fsResult.hasRC5 && fsResult.selfReadLen > 0 && fsResult.readBackImmediate && fsResult.appliedToRuntime && fsResult.exportModuleRoundTrips;
 
+// ---- STEP 5: YOLO toggle reaches cli.js argv (default ON, and off when unchecked) ----
+console.log("\n== YOLO mode ==");
+// Negative arm: untick, restart, confirm the flag is gone.
+await page.uncheck("#cb-yolo").catch(() => {});
+await page.click("#cb-restart");
+await sleep(6000);
+const yoloOff = await readArgv();
+console.log("default ON  :", JSON.stringify(yoloOn));
+console.log("unchecked   :", JSON.stringify(yoloOff));
+console.log("root refusal in TUI:", rootRefusal);
+const yoloOk = yoloOn.checked && Array.isArray(yoloOn.argv) && yoloOn.argv.includes(FLAG) && !rootRefusal
+  && Array.isArray(yoloOff.argv) && !yoloOff.argv.includes(FLAG);
+
 // ---- summary ----
 const benign = (e) => /User-Agent|api\.anthropic\.com|downloads\.claude\.ai|metrics_enabled|Failed to load resource.*cli\.local|net::ERR|Access-Control|CORS|statsig|telemetry/i.test(e);
 const fatal = consoleErrs.filter((e) => !benign(e));
@@ -138,10 +163,11 @@ console.log("TUI rendered:", boot.ok);
 console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
+console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
-const GO = boot.ok && help.ok && chatOk && fsOk;
+const GO = boot.ok && help.ok && chatOk && fsOk && yoloOk;
 console.log("VERDICT:", GO ? "GO" : "NO-GO");
 console.log("=================================================");
 

@@ -9,6 +9,7 @@
 function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, currentModules, exportModuleJS, jbApply, probeDefine){return((() => {
   const IMPORT_MAP = /*__IMPORT_MAP__*/;
   const KEY_LS = "openrouter_key";
+  const YOLO_LS = "claude_yolo";
 
   // ---- UI shell ----
   const root = document.createElement("div");
@@ -26,14 +27,24 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "  <button id='cb-start' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#2f6feb;color:#fff;cursor:pointer'>Start session</button>",
     "  <button id='cb-restart' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#444;color:#fff;cursor:pointer'>Restart</button>",
     "</div>",
+    "<div style='display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px;opacity:.85'>",
+    "  <label style='display:flex;gap:6px;align-items:center;cursor:pointer' title='--dangerously-skip-permissions. Safe here: the filesystem is this notebook&#39;s own modules, subprocesses fail gracefully and sockets are inert.'>",
+    "    <input id='cb-yolo' type='checkbox' style='margin:0'> YOLO mode <span style='opacity:.6'>(skip permission prompts)</span>",
+    "  </label>",
+    "</div>",
     "<div id='cb-status' style='font-size:12px;opacity:.8;min-height:16px'></div>",
     "<div id='cb-term' style='flex:1;min-height:360px;background:#000;border:1px solid #333;border-radius:6px;overflow:hidden'></div>"
   ].join("\n");
 
   const q = (id) => root.querySelector("#" + id);
   const keyEl = q("cb-key"), modelEl = q("cb-model"), startEl = q("cb-start"),
-        restartEl = q("cb-restart"), statusEl = q("cb-status"), termHost = q("cb-term");
+        restartEl = q("cb-restart"), statusEl = q("cb-status"), termHost = q("cb-term"),
+        yoloEl = q("cb-yolo");
   try { const k = localStorage.getItem(KEY_LS); if (k) keyEl.value = k; } catch {}
+  // YOLO defaults ON: in this sandbox the fs is the notebook's own modules,
+  // child_process fails gracefully and sockets are inert, so prompts are friction.
+  yoloEl.checked = (() => { try { return localStorage.getItem(YOLO_LS) !== "0"; } catch { return true; } })();
+  yoloEl.addEventListener("change", () => { try { localStorage.setItem(YOLO_LS, yoloEl.checked ? "1" : "0"); } catch {} });
   const setStatus = (t) => { statusEl.textContent = t; };
 
   // gzip FileAttachment -> text (DecompressionStream).
@@ -294,7 +305,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    im.textContent = JSON.stringify({ imports }); document.head.appendChild(im);",
 "    globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: 'http://cli.local', ANTHROPIC_API_KEY: 'sk-ant-browser-native', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1' };",
 "    installTranslator(CFG.key, CFG.model);",
-"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js'];",
+"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js'].concat(CFG.yolo ? ['--dangerously-skip-permissions'] : []);",
 "    window.addEventListener('unhandledrejection', (e) => { const r = e.reason; if (r && r.name === 'ProcessExit') { globalThis.__cliExit = r.code; e.preventDefault(); return; } say('reject: ' + (r && (r.stack || r.message) || r)); });",
 "    window.addEventListener('error', (e) => say('error: ' + (e.message || e)));",
 "    await import(urlFor['bootstrap.js']);",
@@ -390,6 +401,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     if (!key) { setStatus("Enter your OpenRouter API key first."); keyEl.focus(); return; }
     try { localStorage.setItem(KEY_LS, key); } catch {}
     const model = modelEl.value.trim() || "xiaomi/mimo-v2.5-pro";
+    const yolo = !!yoloEl.checked;
     starting = true; startEl.disabled = true;
     try {
       setStatus("Loading terminal…");
@@ -402,7 +414,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
       window.__IMPORT_MAP = IMPORT_MAP;
-      window.__runConfig = { key, model };
+      window.__runConfig = { key, model, yolo };
       try { fit && fit.fit(); } catch {}
       window.__termSize = { cols: term.cols, rows: term.rows };
       window.__cliExit = undefined;
@@ -416,7 +428,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       frame.style.display = "none";
       frame.srcdoc = SRCDOC;
       root.appendChild(frame);
-      frame.addEventListener("load", () => { setStatus("Session running (interactive) — type in the terminal."); setTimeout(pushResize, 300); });
+      frame.addEventListener("load", () => { setStatus("Running via OpenRouter · " + model + (yolo ? " · YOLO (no permission prompts)" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
       setStatus("Starting interactive session…");
       setTimeout(() => { try { term.focus(); } catch {} }, 120);
     } catch (e) {
