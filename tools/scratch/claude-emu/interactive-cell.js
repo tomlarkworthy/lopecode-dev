@@ -168,14 +168,14 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 
   async function paintsCanary() {
     term.write("█");
-    await new Promise((r) => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 400));
     const ok = renderedLen() > 0;
     try { term.reset(); } catch {}
     return ok;
   }
 
-  async function openTerminal() {
-    for (let attempt = 0; attempt < 40; attempt++) {
+  async function openTerminal(attempts) {
+    for (let attempt = 0; attempt < (attempts || 6); attempt++) {
       await whenVisible();
       await whenSized();
       try { await document.fonts.ready; } catch {}
@@ -198,20 +198,28 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // Ink repaint via a real SIGWINCH. The buffer cannot be replayed, so the redraw
   // has to come from the app. Keep watching: the moment the user actually looks at
   // the window it paints again, and that is when the rebuild can succeed.
+  const frameEl = () => root.querySelector("#cb-cli-frame");
   let healing = false;
+  window.__healLog = [];
   async function healIfBlank() {
-    if (healing || !term || renderedLen() > 0 || bufferedLen() === 0) return false;
+    // Condition is "a session is running but nothing is on screen". Deliberately NOT
+    // buffer-based: a rebuilt terminal has an empty buffer until Ink repaints, and a
+    // buffer guard therefore switches healing off exactly when it is needed.
+    if (healing || !term || !frameEl() || renderedLen() > 0) return false;
     healing = true;
     try {
       try { term.dispose(); } catch {}
       termHost.innerHTML = "";
       term = newTerminal();
       await openTerminal();
-      const w = frame && frame.contentWindow;
+      const fe = frameEl(); const w = fe && fe.contentWindow;
       if (w && w.__ptyResize) { w.__ptyResize(Math.max(2, term.cols - 1), term.rows); setTimeout(() => w.__ptyResize(term.cols, term.rows), 80); }
+      window.__healLog.push({ at: Date.now(), rendered: renderedLen(), cols: term.cols });
       return true;
     } finally { healing = false; }
   }
+  window.__heal = () => healIfBlank();
+  window.__healState = () => ({ healing, hasTerm: !!term, hasFrame: !!frameEl(), rendered: renderedLen(), buffered: bufferedLen(), log: window.__healLog.slice(-5) });
   window.addEventListener("focus", () => healIfBlank());
   document.addEventListener("visibilitychange", () => healIfBlank());
   setInterval(() => healIfBlank(), 3000);
