@@ -8,6 +8,9 @@
 // This file is `node --check`-able and carries no literal close-script token.
 function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, currentModules, exportModuleJS, jbApply, probeDefine){return((() => {
   const IMPORT_MAP = /*__IMPORT_MAP__*/;
+  // Build-time injected demo key (empty when built without or-key.txt). Shown as
+  // prose only — never auto-filled, the reader copies it in deliberately.
+  const DEMO_KEY = /*__DEMO_KEY__*/"";
   const KEY_LS = "openrouter_key";
   const YOLO_LS = "claude_yolo";
 
@@ -20,9 +23,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "    <label style='font-size:11px;font-weight:600;opacity:.7'>OpenRouter API key</label>",
     "    <input id='cb-key' type='password' placeholder='sk-or-...' autocomplete='off' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
     "  </div>",
-    "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 220px'>",
-    "    <label style='font-size:11px;font-weight:600;opacity:.7'>Model</label>",
-    "    <input id='cb-model' type='text' value='xiaomi/mimo-v2.5-pro' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
+    "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 260px'>",
+    "    <label style='font-size:11px;font-weight:600;opacity:.7'>Model <span id='cb-model-hint' style='font-weight:400;opacity:.6'></span></label>",
+    "    <input id='cb-model' type='text' list='cb-models' value='xiaomi/mimo-v2.5-pro' spellcheck='false' style='font:inherit;padding:6px 8px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee'>",
+    "    <datalist id='cb-models'></datalist>",
     "  </div>",
     "  <button id='cb-start' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#2f6feb;color:#fff;cursor:pointer'>Start session</button>",
     "  <button id='cb-restart' style='font:inherit;font-weight:600;padding:7px 14px;border:0;border-radius:5px;background:#444;color:#fff;cursor:pointer'>Restart</button>",
@@ -32,6 +36,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "    <input id='cb-yolo' type='checkbox' style='margin:0'> YOLO mode <span style='opacity:.6'>(skip permission prompts)</span>",
     "  </label>",
     "</div>",
+    "<div id='cb-demo' style='display:none;font-size:12px;line-height:1.6;padding:8px 10px;border:1px solid #3a3a3a;border-radius:6px;background:#242424'></div>",
     "<div id='cb-status' style='font-size:12px;opacity:.8;min-height:16px'></div>",
     "<div id='cb-term' style='flex:1;min-height:360px;background:#000;border:1px solid #333;border-radius:6px;overflow:hidden'></div>"
   ].join("\n");
@@ -45,6 +50,39 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // child_process fails gracefully and sockets are inert, so prompts are friction.
   yoloEl.checked = (() => { try { return localStorage.getItem(YOLO_LS) !== "0"; } catch { return true; } })();
   yoloEl.addEventListener("change", () => { try { localStorage.setItem(YOLO_LS, yoloEl.checked ? "1" : "0"); } catch {} });
+
+  // Demo key as prose. Deliberately not auto-filled: the reader copies it in.
+  const demoEl = q("cb-demo");
+  if (DEMO_KEY) {
+    demoEl.style.display = "";
+    demoEl.append("No key of your own? Copy this demo key into the field above: ");
+    const code = document.createElement("code");
+    code.textContent = DEMO_KEY;
+    code.style.cssText = "user-select:all;word-break:break-all;padding:1px 5px;border-radius:4px;background:#333;color:#9ad;font-family:ui-monospace,Menlo,monospace";
+    demoEl.append(code);
+    const note = document.createElement("div");
+    note.style.cssText = "opacity:.7;margin-top:5px";
+    note.textContent = "It only works with MiMo (xiaomi/mimo-v2.5-pro), and it has a limited budget — if it does not work, it has probably already been spent. For anything else, use your own key from openrouter.ai/keys.";
+    demoEl.append(note);
+  }
+
+  // Model list straight from OpenRouter (public, CORS-open). Datalist rather than a
+  // select so any id can still be typed or pasted.
+  async function loadModels() {
+    const dl = q("cb-models"), hint = q("cb-model-hint");
+    try {
+      const r = await fetch("https://openrouter.ai/api/v1/models");
+      const models = ((await r.json()).data || []).slice().sort((a, b) => a.id < b.id ? -1 : 1);
+      for (const m of models) {
+        const o = document.createElement("option");
+        o.value = m.id;
+        if (m.name) o.label = m.name;
+        dl.appendChild(o);
+      }
+      hint.textContent = "(" + models.length + " from OpenRouter)";
+    } catch (e) { hint.textContent = "(list unavailable — type an id)"; }
+  }
+  loadModels();
   const setStatus = (t) => { statusEl.textContent = t; };
 
   // gzip FileAttachment -> text (DecompressionStream).
