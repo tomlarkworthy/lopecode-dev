@@ -1,5 +1,27 @@
+// Does the saved file work when opened fresh, and is it safe to publish?
+// A live tab is not evidence of either: cells restored from change history never reach
+// disk, and a prerender snapshot bakes whatever was on screen — which has shipped local
+// paths, a session id and a command log before now.
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
 const NB = process.argv[2] || "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
+
+// Scanned against the FILE, not the DOM: the prerender is deleted at boot, so anything
+// baked into it is invisible to a page query and still public in the repo.
+const LEAKS = [
+  [/sk-or-v1-[A-Za-z0-9]{10}/, "OpenRouter key"],
+  [/sk-ant-(?:api|oat)\d{2}-[A-Za-z0-9_-]{10}/, "Anthropic credential"],
+  // A live token is one something would dial: baked into a hash or a rendered URL. The
+  // bare shape also occurs as an example in the pairing docs this notebook carries.
+  [/cc=LOPE-\d{3,}-[A-Z0-9]{4}/, "pairing token"],
+  [/\/Users\/[a-z][\w.-]+\//i, "local absolute path"],
+  [/claude-50\d\//, "session scratch path"],
+  [/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl/, "session transcript id"],
+  [/ghp_[A-Za-z0-9]{10}|AKIA[0-9A-Z]{12}|xoxb-\d/, "third-party token"],
+];
+const src = readFileSync(NB, "utf8");
+const leaks = LEAKS.filter(([re]) => re.test(src)).map(([re, what]) => ({ what, sample: String(src.match(re)[0]).slice(0, 40) }));
+
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1400, height: 900 } });
 const errs = [];
@@ -14,5 +36,12 @@ const r = await p.evaluate(() => ({
   errorText: [...document.querySelectorAll(".observablehq--error")].slice(0, 3).map((n) => n.textContent.slice(0, 90)),
   terminal: !!document.getElementById("cb-term"),
 }));
-console.log(JSON.stringify({ ...r, pageErrors: errs.slice(0, 3) }, null, 1));
+const prerenderKB = (() => {
+  const i = src.indexOf('<div id="lope-prerender">');
+  if (i < 0) return 0;
+  const j = src.indexOf('<script id="lope-prerender-cleanup"', i);
+  return j < 0 ? -1 : Math.round((j - i) / 1024);
+})();
+console.log(JSON.stringify({ ...r, prerenderKB, leaks, pageErrors: errs.slice(0, 3) }, null, 1));
 await b.close();
+process.exit(leaks.length ? 1 : 0);
