@@ -586,6 +586,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "  const say = (m) => { try { P.__frameLog && P.__frameLog(m); } catch {} };",
 "  // interactive + host-fs wiring MUST be set before any shim import.",
 "  globalThis.__INTERACTIVE = true;",
+"  globalThis.__FS_TRACE = !!P.__CB_FSTRACE;",
 "  globalThis.__termSize = (P.__termSize || { cols: 100, rows: 30 });",
 "  globalThis.__HOSTFS = P.__RC5FS || null;",
 "  // Project memory, seeded before any shim import so cli.js finds it at startup.",

@@ -3,6 +3,8 @@
 // Since cli.js statically imports all 22 builtins, they are all registered
 // before cli.js's body (and thus any require() call) runs.
 export const reg = Object.create(null);
+// Debug handle: lets a probe call the very modules cli.js is using.
+try { globalThis.__REG = reg; } catch {}
 
 export function register(name, mod) {
   reg[name] = mod;

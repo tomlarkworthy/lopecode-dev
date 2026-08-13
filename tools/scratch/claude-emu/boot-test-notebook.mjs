@@ -174,6 +174,26 @@ console.log("rc5 fs result:", JSON.stringify(fsResult, null, 2));
 
 const fsOk = fsResult.hasRC5 && fsResult.selfReadLen > 0 && fsResult.readBackImmediate && fsResult.appliedToRuntime && fsResult.exportModuleRoundTrips;
 
+// ---- STEP 4a2: every write path reaches the notebook ----
+// cli.js's Write tool does not call writeFileSync on the target: it writes a temp file
+// and renames it. That bypassed the host bridge, so an agent's edit reported success
+// while the notebook never saw it. Deterministic, no model needed.
+console.log("\n== write paths ==");
+const writes = await page.evaluate(async () => {
+  const fs = document.querySelector("#cb-cli-frame").contentWindow.__REG.fs;
+  const mk = (tag) => 'export default function define(runtime, observer){const main=runtime.module();main.variable(observer("probe")).define("probe",[],()=>"' + tag + '");return main;}';
+  fs.mkdirSync("/src/@wtest", { recursive: true });
+  fs.writeFileSync("/src/@wtest/sync.js", mk("SYNC"));
+  await fs.promises.writeFile("/src/@wtest/promises.js", mk("PROMISES"));
+  fs.writeFileSync("/src/@wtest/.tmp", mk("RENAME"));
+  fs.renameSync("/src/@wtest/.tmp", "/src/@wtest/rename.js");
+  await new Promise((r) => setTimeout(r, 1500));
+  const seen = (n) => (window.__RC5FS.readSync("/src/@wtest/" + n + ".js") || "").length > 0;
+  return { sync: seen("sync"), promises: seen("promises"), rename: seen("rename") };
+});
+console.log("write paths reaching the notebook:", JSON.stringify(writes));
+const writesOk = writes.sync && writes.promises && writes.rename;
+
 // ---- STEP 4b: the in-page pairing channel (notebook MCP server) ----
 console.log("\n== pairing: notebook MCP server ==");
 const mcp = await page.evaluate(async () => {
@@ -261,6 +281,7 @@ console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
 console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
+console.log("write paths (writeFileSync / promises / rename):", writesOk, JSON.stringify(writes));
 console.log("project memory (CLAUDE.md + every indexed doc present):", memOk, JSON.stringify(mem));
 console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
@@ -268,7 +289,7 @@ console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
-const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && yoloOk && mcpOk && anthOk && memOk;
+const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && writesOk && yoloOk && mcpOk && anthOk && memOk;
 console.log("VERDICT:", GO ? "GO" : "NO-GO");
 console.log("=================================================");
 

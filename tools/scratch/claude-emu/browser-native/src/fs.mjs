@@ -87,6 +87,47 @@ if (hostfs && typeof hostfs === "object") {
     }
   };
 
+  // 3b) every OTHER way a file can land. cli.js's Write tool does not call
+  // writeFileSync on the target path: the trace shows write-temp + renameSync (plus
+  // chmod/utimes), and fs.promises is a separate object memfs owns. Both wrote into
+  // memfs only, so an agent's edit reported success while the notebook never saw it.
+  // Write-through reads back what memfs now holds and hands that to the host.
+  const _renameSync = fs.renameSync.bind(fs);
+  const _appendFileSync = fs.appendFileSync.bind(fs);
+  const through = (path) => {
+    const p = typeof path === "string" ? path : (path && path.toString ? path.toString() : null);
+    if (typeof p !== "string" || typeof hostfs.writeSync !== "function") return;
+    let v = null;
+    try { v = _readFileSync(p, "utf8"); } catch { return; }
+    try { hostfs.writeSync(p, String(v)); } catch (e) { console.warn("[fs] hostfs writeSync failed:", e && e.message); }
+  };
+  fs.renameSync = function (from, to) { const r = _renameSync(from, to); through(to); return r; };
+  fs.appendFileSync = function (path, data, opts) { const r = _appendFileSync(path, data, opts); through(path); return r; };
+  fs.copyFileSync = function (a, b) { fs.writeFileSync(b, _readFileSync(a)); };
+
+  if (fs.promises && typeof fs.promises === "object") {
+    const P = fs.promises;
+    const wrapWrite = (name) => {
+      const orig = P[name] && P[name].bind(P);
+      if (!orig) return;
+      P[name] = async (path, ...rest) => { const r = await orig(path, ...rest); through(path); return r; };
+    };
+    wrapWrite("writeFile");
+    wrapWrite("appendFile");
+    const _pRename = P.rename && P.rename.bind(P);
+    if (_pRename) P.rename = async (from, to) => { const r = await _pRename(from, to); through(to); return r; };
+    const _pRead = P.readFile && P.readFile.bind(P);
+    if (_pRead) P.readFile = async (path, opts) => {
+      const p = typeof path === "string" ? path : String(path);
+      if (typeof hostfs.readSync === "function") {
+        let hv = null;
+        try { hv = hostfs.readSync(p); } catch {}
+        if (hv != null) return wantsString(opts) ? String(hv) : (B ? B.from(String(hv), "utf8") : new TextEncoder().encode(String(hv)));
+      }
+      return _pRead(path, opts);
+    };
+  }
+
   // 4) existence consults the host as a backstop for paths outside the snapshot
   fs.existsSync = function (path) {
     if (_existsSync(path)) return true;
