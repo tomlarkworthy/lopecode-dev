@@ -54,7 +54,19 @@ export function randomBytes(n, cb) {
   if (cb) { cb(null, out); return; } return out;
 }
 export function randomFillSync(buf) { crypto.getRandomValues(buf); return buf; }
-export function randomUUID() { return crypto.randomUUID(); }
+// A blob: fork is an opaque origin, which is not a secure context, so crypto.randomUUID
+// is absent there while getRandomValues is not. cli.js calls it during startup, so
+// without this the whole session dies before printing a byte.
+export function randomUUID() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
+  return h.slice(0, 4).join("") + "-" + h.slice(4, 6).join("") + "-" + h.slice(6, 8).join("")
+    + "-" + h.slice(8, 10).join("") + "-" + h.slice(10).join("");
+}
 export function randomInt(min, max) { if (max === undefined) { max = min; min = 0; } return min + Math.floor(Math.random() * (max - min)); }
 export function createPrivateKey() { throw new Error("createPrivateKey not supported in browser-native"); }
 export function createPublicKey() { throw new Error("createPublicKey not supported"); }

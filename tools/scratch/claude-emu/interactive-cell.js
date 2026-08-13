@@ -1009,7 +1009,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     for (const e of batch) { if (!by.has(e.kind)) by.set(e.kind, []); by.get(e.kind).push(e); }
     const parts = [];
     for (const [kind, list] of by) {
-      const names = [...new Set(list.map((e) => e.what))];
+      const names = [...new Set(list.map((e) => e.what + (e.via === "restored" ? " (restored)" : "")))];
       const shown = names.slice(0, 6);
       parts.push(kind + ": " + shown.join(", ") + (names.length > shown.length ? " (+" + (names.length - shown.length) + " more)" : ""));
     }
@@ -1037,7 +1037,12 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       for (const e of h.slice(historyMark)) {
         recordEvent({ t: e.t || Date.now(), kind: "cell " + (e.op || "change"),
           what: e._name || e.pid || "(anonymous)", named: !!e._name, module: e.module,
-          inputs: e._inputs || [], source: String(e._definition || "").slice(0, 400) });
+          // history's own `source` says how the change arrived: "runtime" is someone
+          // editing now, "git" is a restore/playback replaying an older edit (it carries
+          // a provenance oid). Reporting a restore as an edit would send the agent
+          // looking for a change the user did not just make.
+          via: e.source === "git" ? "restored" : "edited", provenance: e.provenance || null,
+          inputs: e._inputs || [], code: String(e._definition || "").slice(0, 400) });
       }
     }
     historyMark = h.length;
@@ -1261,7 +1266,14 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // Mounting reboots the session: the frame's in-memory fs is primed from a snapshot at
   // boot, so without a restart the new files would be readable but invisible to ls/glob.
   q("cb-mount").addEventListener("click", async () => {
-    if (typeof window.showDirectoryPicker !== "function") { setStatus("This browser has no directory picker (Chrome/Edge only)."); return; }
+    if (typeof window.showDirectoryPicker !== "function") {
+      // In a blob: fork the origin is opaque, so the context is not secure and the
+      // browser withholds the picker. Saying "your browser cannot" would be wrong.
+      setStatus(window.isSecureContext
+        ? "This browser has no directory picker (Chrome and Edge have one)."
+        : "No directory picker here: this page is a blob: fork, which is not a secure context. Open the saved notebook file itself to mount a folder.");
+      return;
+    }
     let handle = null;
     try { handle = await window.showDirectoryPicker({ mode: "readwrite", id: "lopecode-local-disk" }); }
     catch (e) { if (e && e.name !== "AbortError") setStatus("Folder not mounted: " + (e.message || e)); return; }

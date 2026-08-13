@@ -14,6 +14,23 @@ listeners.setMaxListeners(0);
 const INTERACTIVE = !!globalThis.__INTERACTIVE;
 const decoder = new TextDecoder();
 
+// cli.js calls the GLOBAL crypto.randomUUID as well as node:crypto's. On an opaque
+// origin (a blob: fork of the notebook) that method does not exist — the context is not
+// secure — and the session dies at startup before printing anything.
+if (globalThis.crypto && typeof globalThis.crypto.randomUUID !== "function") {
+  try {
+    globalThis.crypto.randomUUID = () => {
+      const b = new Uint8Array(16);
+      globalThis.crypto.getRandomValues(b);
+      b[6] = (b[6] & 0x0f) | 0x40;
+      b[8] = (b[8] & 0x3f) | 0x80;
+      const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
+      return h.slice(0, 4).join("") + "-" + h.slice(4, 6).join("") + "-" + h.slice(6, 8).join("")
+        + "-" + h.slice(8, 10).join("") + "-" + h.slice(10).join("");
+    };
+  } catch {}
+}
+
 function termSize() {
   const s = globalThis.__termSize || {};
   return { cols: s.cols || 80, rows: s.rows || 24 };

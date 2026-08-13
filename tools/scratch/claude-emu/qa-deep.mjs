@@ -7,7 +7,8 @@ const results = [];
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); console.log((ok ? "PASS" : "FAIL") + "  " + name + (detail !== undefined ? "  " + JSON.stringify(detail) : "")); };
 
 const b = await chromium.launch({ headless: true });
-const p = await b.newPage({ viewport: { width: 1200, height: 900 } });
+const ctx = await b.newContext({ viewport: { width: 1200, height: 900 } });
+const p = await ctx.newPage();
 const pageErrors = [];
 p.on("pageerror", (e) => pageErrors.push(String(e.message).slice(0, 120)));
 await p.goto("file://" + NB + "#view=S100(@tomlarkworthy/claude-code-browser)", { waitUntil: "load", timeout: 60000 });
@@ -94,6 +95,21 @@ check("A14 a real cell edit is pushed with its name", await (async () => {
   return (await pushes()).some((c) => /cell upd: motto/.test(c));
 })(), (await pushes()).slice(-2));
 
+// --- a replayed change must not read as an edit made now
+const restored = await p.evaluate(async () => {
+  const D = window.__CB_DEPS;
+  const def = (await D.importShim("/@tomlarkworthy/local-change-history.js?v=4")).default;
+  const h = await D.runtime.module(def).value("history");
+  h.push({ t: Date.now(), op: "upd", source: "git", pid: "_qa_restore", module: "qa",
+    provenance: { source: "git", oid: "deadbeef" }, _name: "restored_cell", _inputs: [], _definition: "function _restored_cell(){return 1}" });
+  return true;
+});
+await sleep(8000);
+check("A15 a git-sourced change is labelled a restore, not an edit",
+  (await pushes()).some((c) => /restored_cell \(restored\)/.test(c)), (await pushes()).slice(-1));
+check("A16 the event carries its provenance for the agent to check",
+  (await p.evaluate(() => window.__nbEvents().filter((e) => e.what === "restored_cell").map((e) => ({ via: e.via, oid: e.provenance && e.provenance.oid }))))[0]?.oid === "deadbeef");
+
 // --- /local-disk (synthetic handle: the native picker cannot be driven headlessly,
 // everything downstream of it is the real path)
 const refuseUnmounted = await p.evaluate(() => {
@@ -155,6 +171,44 @@ const refuseRo = await p.evaluate(() => {
   try { window.__RC5FS.writeSync("/local-disk/README.md", "nope"); return "wrote anyway"; } catch (err) { return err.message; }
 });
 check("D8 a read-only mount refuses writes in-turn", ro.readonly === true && /REFUSED .*read-only/.test(refuseRo), refuseRo);
+
+// --- E: a fork of this notebook must be a working notebook, not a dead one.
+// A blob: fork is an opaque origin: no IndexedDB, no localStorage, not a secure context.
+// That last one cost a whole session — crypto.randomUUID does not exist there and cli.js
+// calls it at startup, so the fork mounted, said "Running", and printed nothing.
+const forkPage = new Promise((res) => ctx.on("page", res));
+const clicked = await p.evaluate(async () => {
+  let ex = null;
+  for (const [mod, info] of window.__CB_DEPS.currentModules) if (info && info.name === "@tomlarkworthy/exporter-3") ex = mod;
+  if (!ex) return "no exporter-3";
+  (await ex.value("forkAnchor"))({}, "fork").click();
+  return "clicked";
+});
+check("E1 the fork affordance runs", clicked === "clicked", clicked);
+const fp = await Promise.race([forkPage, sleep(150000).then(() => null)]);
+check("E2 a fork tab opens", !!fp, fp && fp.url().slice(0, 24));
+if (fp) {
+  await fp.waitForLoadState("load", { timeout: 120000 }).catch(() => {});
+  const fh = await fp.waitForFunction(() => {
+    const h = window.__termHealth && window.__termHealth();
+    return h && h.renderedChars > 0 ? h : false;
+  }, { timeout: 120000, polling: "raf" }).then((x) => x.jsonValue()).catch(() => null);
+  check("E3 the forked session paints", !!fh && fh.renderedChars > 0 && fh.wedges === 0,
+    fh && { chars: fh.renderedChars, buffered: fh.bufferedChars, wedges: fh.wedges });
+  const fdump = () => fp.evaluate(() => (window.__dumpTerm ? window.__dumpTerm() : ""));
+  check("E4 the fork carries the runtime, not just the UI",
+    await fp.evaluate(() => [...document.querySelectorAll('script[type="text/plain"][id]')].some((s) => /claude-code-browser\/cli\.js/.test(s.id))));
+  const powers = await fp.evaluate(() => ({ secure: window.isSecureContext, uuid: typeof crypto.randomUUID }));
+  check("E5 the fork really is the hostile environment this guards", powers.secure === false && powers.uuid === "undefined", powers);
+  let listening = false;
+  for (let i = 0; i < 20 && !listening; i++) { await sleep(1500); listening = /Listening for channel messages/.test(await fdump()); }
+  check("E6 pairing works in the fork", listening);
+  await fp.evaluate(() => window.__NBNOTIFY("fork qa hello", { type: "qa" }));
+  let delivered = false;
+  for (let i = 0; i < 8 && !delivered; i++) { await sleep(1500); delivered = /fork qa hello/.test(await fdump()); }
+  check("E7 a notification reaches the forked session", delivered);
+  await fp.close();
+}
 
 // --- health after all that
 const h = await p.evaluate(() => window.__termHealth());
