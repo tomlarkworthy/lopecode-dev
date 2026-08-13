@@ -115,7 +115,18 @@ const MODULE_BLOCK = `<script id="${MODULE_ID}"
   type="text/plain"
   data-mime="application/javascript"
 >
+const _cb_title = function _cb_title(md){return(
+md\`# Caged Code\`
+)};
+
 const _cb_app = ${APP_CELL};
+
+const _cb_about = function _cb_about(md){return(
+md\`The vanilla Claude Code binary hosted in a webpage, hardwired to a notebook environment.
+This is not endorsed by Anthropic in any way. Use your existing Anthropic account through /login
+with token copying, or use OpenRouter API endpoints. Defaults to our OpenRouter demo endpoint,
+restricted to MiMo models only.\`
+)};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -130,9 +141,13 @@ export default function define(runtime, observer) {
   }));
   main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
 
-  // The app is defined FIRST so lopepage renders the terminal above the import cells;
-  // Observable resolves by name, so definition order costs nothing.
+  // Definition order IS render order, and module-map takes the module's title from the
+  // h1 of the lowest-id cell — so the title cell must come first, then the terminal, then
+  // the blurb, all ahead of the import cells. Observable resolves by name, so ordering
+  // these costs nothing.
+  $def("_cb_title", "cb_title", ["md"], _cb_title);
   $def("_cb_app", "claude_code_browser", ${JSON.stringify(APP_DEPS)}, _cb_app);
+  $def("_cb_about", "cb_about", ["md"], _cb_about);
 
 ${loaderLines}
 ${bindingLines}

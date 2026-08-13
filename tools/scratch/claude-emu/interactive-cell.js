@@ -36,6 +36,9 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   window.__CB_ROOT = root;
   root.style.cssText = "font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100%;display:flex;flex-direction:column;gap:8px;padding:8px;box-sizing:border-box;background:#1e1e1e;color:#ddd";
   root.innerHTML = [
+    // The terminal is the point of the cell, so it goes first; everything that configures
+    // it sits underneath.
+    "<div id='cb-term' style='flex:1;min-height:360px;background:#000;border:1px solid #333;border-radius:6px;overflow:hidden'></div>",
     "<div style='display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap'>",
     "  <div style='display:flex;flex-direction:column;gap:3px;flex:0 0 150px'>",
     "    <label style='font-size:11px;font-weight:600;opacity:.7'>API</label>",
@@ -70,8 +73,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "  <span id='cb-mount-status' style='opacity:.6'>/local-disk: nothing mounted</span>",
     "</div>",
     "<div id='cb-demo' style='display:none;font-size:12px;line-height:1.6;padding:8px 10px;border:1px solid #3a3a3a;border-radius:6px;background:#242424'></div>",
-    "<div id='cb-status' style='font-size:12px;opacity:.8;min-height:16px'></div>",
-    "<div id='cb-term' style='flex:1;min-height:360px;background:#000;border:1px solid #333;border-radius:6px;overflow:hidden'></div>"
+    "<div id='cb-status' style='font-size:12px;opacity:.8;min-height:16px'></div>"
   ].join("\n");
 
   const q = (id) => root.querySelector("#" + id);
@@ -108,8 +110,9 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // the OAuth token endpoint sends no CORS headers at all, so /login can produce a code
   // it cannot then redeem.
   const ANTHROPIC_NOTE = "Talks to the Anthropic API directly, with no translation. "
-    + "<b>Paste an API key</b> to use it. With the key blank no credential is sent at all, so <code>/login</code> runs and will show you a sign-in URL "
-    + "— but the browser blocks the final token exchange (CORS), so a subscription login cannot complete in-page yet.";
+    + "<b>Paste an API key</b>, or an <b>OAuth access token</b> (<code>sk-ant-oat…</code>) copied from a machine where you have already signed in "
+    + "— Claude Code keeps it in <code>~/.claude/.credentials.json</code>. A token is sent as a Bearer credential with the oauth beta, not as an API key. "
+    + "Running <code>/login</code> here produces a real sign-in URL, but the browser blocks the final token exchange (CORS), so the sign-in cannot complete in-page: copy a token instead.";
   const demoEl = q("cb-demo");
   demoEl.style.display = "";
   demoEl.innerHTML = DEMO_NOTE;
@@ -775,9 +778,12 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "      // u8() short-circuits to the default before it can read cachedGrowthBookFeatures,",
 "      // which is the only way the tengu_harbor channel gate can be satisfied offline.",
 "      const env = { ANTHROPIC_BASE_URL: CFG.base, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '', DISABLE_TELEMETRY: '' };",
-"      if (CFG.key) env.ANTHROPIC_API_KEY = CFG.key;",
+"      // An sk-ant-oat… token is an OAuth access token from an existing Claude account,",
+"      // not an API key: it authenticates as Bearer with the oauth beta, and setting it as",
+"      // ANTHROPIC_API_KEY would send it as x-api-key and 401.",
+"      if (CFG.key && !/^sk-ant-oat/.test(CFG.key)) env.ANTHROPIC_API_KEY = CFG.key;",
 "      globalThis.__ENV_OVERRIDES = env;",
-"      installDirect(CFG.base);",
+"      installDirect(CFG.base, CFG.key);",
 "    } else {",
 "      // No ANTHROPIC_API_KEY: the seeded claude.ai credential already satisfies cli.js, and",
 "      // setting both raises a permanent 'Auth conflict' banner. The translator replaces",
@@ -800,13 +806,22 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "",
 "  // Anthropic in a browser needs one header the CLI never sends; otherwise this is a",
 "  // pure passthrough - the point of this mode is that nothing is translated.",
-"  function installDirect(base) {",
+"  function installDirect(base, key) {",
+"    const oauth = /^sk-ant-oat/.test(String(key || ''));",
 "    const real = globalThis.fetch.bind(globalThis);",
 "    globalThis.fetch = async (input, init) => {",
 "      let req; try { req = new Request(input, init); } catch { return real(input, init); }",
 "      if (req.url.indexOf(base) === 0 || /anthropic\\.com/.test(req.url)) {",
 "        try { req.headers.set('anthropic-dangerous-direct-browser-access', 'true'); } catch {}",
-"        say('-> Anthropic ' + req.method + ' ' + req.url.replace(base, ''));",
+"        if (oauth) {",
+"          try {",
+"            req.headers.delete('x-api-key');",
+"            req.headers.set('authorization', 'Bearer ' + key);",
+"            const beta = req.headers.get('anthropic-beta');",
+"            req.headers.set('anthropic-beta', beta ? 'oauth-2025-04-20,' + beta : 'oauth-2025-04-20');",
+"          } catch {}",
+"        }",
+"        say('-> Anthropic ' + req.method + ' ' + req.url.replace(base, '') + (oauth ? ' (oauth)' : ''));",
 "      }",
 "      return real(req);",
 "    };",
