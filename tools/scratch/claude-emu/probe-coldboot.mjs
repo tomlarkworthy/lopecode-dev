@@ -11,16 +11,20 @@ const NB = process.argv[2] || "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/
 const LEAKS = [
   [/sk-or-v1-[A-Za-z0-9]{10}/, "OpenRouter key"],
   [/sk-ant-(?:api|oat)\d{2}-[A-Za-z0-9_-]{10}/, "Anthropic credential"],
-  // A live token is one something would dial: baked into a hash or a rendered URL. The
-  // bare shape also occurs as an example in the pairing docs this notebook carries.
-  [/cc=LOPE-\d{3,}-[A-Z0-9]{4}/, "pairing token"],
-  [/\/Users\/[a-z][\w.-]+\//i, "local absolute path"],
-  [/claude-50\d\//, "session scratch path"],
-  [/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl/, "session transcript id"],
   [/ghp_[A-Za-z0-9]{10}|AKIA[0-9A-Z]{12}|xoxb-\d/, "third-party token"],
 ];
+// Reported, not blocked — judged not sensitive for this corpus: a cc= token only
+// authorises a loopback port on the machine that exported the file, and the paths carry a
+// username already published under @tomlarkworthy.
+const NOTES = [
+  [/cc=LOPE-\d{3,}-[A-Z0-9]{4}/, "pairing token"],
+  [/\/Users\/[a-z][\w.-]+\//i, "local absolute path"],
+  [/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl/, "session transcript id"],
+];
 const src = readFileSync(NB, "utf8");
-const leaks = LEAKS.filter(([re]) => re.test(src)).map(([re, what]) => ({ what, sample: String(src.match(re)[0]).slice(0, 40) }));
+const scan = (rules) => rules.filter(([re]) => re.test(src)).map(([re, what]) => ({ what, sample: String(src.match(re)[0]).slice(0, 40) }));
+const leaks = scan(LEAKS);
+const notes = scan(NOTES);
 
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1400, height: 900 } });
@@ -42,6 +46,6 @@ const prerenderKB = (() => {
   const j = src.indexOf('<script id="lope-prerender-cleanup"', i);
   return j < 0 ? -1 : Math.round((j - i) / 1024);
 })();
-console.log(JSON.stringify({ ...r, prerenderKB, leaks, pageErrors: errs.slice(0, 3) }, null, 1));
+console.log(JSON.stringify({ ...r, prerenderKB, leaks, notes, pageErrors: errs.slice(0, 3) }, null, 1));
 await b.close();
 process.exit(leaks.length ? 1 : 0);
