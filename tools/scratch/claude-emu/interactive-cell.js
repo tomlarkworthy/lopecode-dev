@@ -113,7 +113,9 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     + "<b>Paste an API key</b>, or an <b>account token</b> (<code>sk-ant-oat…</code>) from a machine where you are already signed in — "
     + "<code>claude setup-token</code> prints one (on macOS the credential itself lives in the Keychain, not in a file). "
     + "A token is seeded as this session's claude.ai login, so <code>/status</code> shows it and requests go out as a Bearer credential; an API key goes out as <code>x-api-key</code>. "
-    + "Running <code>/login</code> here produces a real sign-in URL, but the browser blocks the final token exchange (CORS), so sign-in cannot complete in-page: paste a token instead.";
+    + "Running <code>/login</code> here produces a real sign-in URL, but the browser blocks the final token exchange (CORS), so sign-in cannot complete in-page: paste a token instead. "
+    + "<b>Measured:</b> a Claude subscription token authenticates but is then refused by org policy — <i>CORS requests are not allowed for this Organization</i> — which no Console setting exposes. "
+    + "A Console API key from an org that permits browser access works; otherwise point the URL field at a proxy that adds the CORS headers, or stay on OpenRouter.";
   const demoEl = q("cb-demo");
   demoEl.style.display = "";
   demoEl.innerHTML = DEMO_NOTE;

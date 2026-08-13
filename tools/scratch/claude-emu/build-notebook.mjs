@@ -239,13 +239,36 @@ const byId = (id) => blocks.find((b) => b.id === id);
 
 const boot = byId("bootconf.json");
 if (!boot) throw new Error("bootconf.json block not found");
+
+// Anything the user authored in the notebook exists only in the output file — this build
+// regenerates that file from the donor, and once dropped a saved blog post that way.
+// Carry every @user/… block across, keep the layout that referenced it, and never carry
+// a pairing token: export bakes the live tab's cc= into the hash.
+let carriedBlocks = "", carriedMains = [], carriedHash = null;
+try {
+  const prev = readFileSync(OUT);
+  const prevBlocks = scanBlocks(prev);
+  const mine = prevBlocks.filter((b) => b.id && b.id.startsWith("@user/"));
+  carriedBlocks = mine.map((b) => prev.slice(b.start, b.end).toString("utf8")).join("\n");
+  carriedMains = mine.map((b) => b.id).filter((id) => id.split("/").length === 2);
+  const pb = prevBlocks.find((b) => b.id === "bootconf.json");
+  if (pb && carriedMains.length) {
+    const body = prev.slice(pb.start, pb.end).toString("utf8");
+    const h = (body.match(/"hash"\s*:\s*"([^"]*)"/) || [])[1];
+    if (h && carriedMains.some((id) => h.includes(id))) carriedHash = h.replace(/&cc=[A-Za-z0-9-]+/g, "");
+  }
+  if (mine.length) console.log("  carried from previous:", mine.map((b) => b.id).join(", "));
+} catch {}
+
+const MAINS = ["@tomlarkworthy/lopepage-2", "@tomlarkworthy/save-in-place", "@tomlarkworthy/claude-code-browser", "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/annotate"].concat(carriedMains);
+const HASH = carriedHash || "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))";
 const NEW_BOOTCONF = `<script id="bootconf.json"
         type="text/plain"
         data-mime="application/json"
 >
 {
-  "mains": ["@tomlarkworthy/lopepage-2","@tomlarkworthy/save-in-place","@tomlarkworthy/claude-code-browser","@tomlarkworthy/claude-code-pairing","@tomlarkworthy/annotate"],
-  "hash": "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))",
+  "mains": ${JSON.stringify(MAINS)},
+  "hash": "${HASH}",
   "headless": true,
   "prerender": false
 }</script>`;
@@ -271,6 +294,7 @@ const out = Buffer.concat([
   data.slice(0, spliceStart),
   Buffer.from(NEW_BLOCKS, "utf8"),
   data.slice(spliceEnd, boot.start),
+  Buffer.from(carriedBlocks ? carriedBlocks + "\n" : "", "utf8"),
   Buffer.from(NEW_BOOTCONF, "utf8"),
   data.slice(boot.end),
 ]);
