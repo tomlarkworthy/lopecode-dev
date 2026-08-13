@@ -95,16 +95,15 @@ const paintOk = !!health && health.renderedChars > 0 && health.wedges === 0;
 const painted = { renderedChars: health?.renderedChars, bufferedChars: health?.bufferedChars };
 console.log("term health:", JSON.stringify(health));
 
-// ---- STEP 1b: dev-channels confirmation ----
-// cli.js asks on every launch that carries --dangerously-load-development-channels and
-// there is no persisted opt-out, so the session sits on this dialog until it is answered.
+// ---- STEP 1b: dev-channels confirmation, answered by the cell ----
+// cli.js asks on every --dangerously-load-development-channels launch and has no
+// persisted opt-out. Nothing here presses a key: the cell answers it from the terminal's
+// parse events, so a session must reach "listening" on its own.
 console.log("\n== dev-channels dialog ==");
-await page.click("#cb-term");
-await sleep(400);
-const devDialog = /development channels/i.test(await dump());
-if (devDialog) { await page.keyboard.press("Enter"); await sleep(3000); }
-const channelsRegistered = /Listening for channel messages/i.test(await dump());
-console.log("dialog shown:", devDialog, "| channels registered:", channelsRegistered);
+const chan = await waitFor(["Listening for channel messages"], 30000);
+const channelsRegistered = chan.ok;
+const devDialogAuto = await page.evaluate(() => (window.__termHealth().trace || []).some((t) => t.ev === "dev-channels-accepted"));
+console.log("auto-accepted:", devDialogAuto, "| channels registered:", channelsRegistered);
 
 const FLAG = "--dangerously-skip-permissions";
 const yoloOn = await readArgv();
@@ -158,7 +157,7 @@ const channelDelivered = /notebook: boot test says hello/i.test(chanBuf);
 console.log("notify enqueued:", notifySent, "| delivered to session:", channelDelivered);
 await page.keyboard.press("Escape"); // stop the turn it induced
 await sleep(1200);
-const channelOk = channelsRegistered && notifySent && channelDelivered;
+const channelOk = channelsRegistered && devDialogAuto && notifySent && channelDelivered;
 
 // ---- STEP 4: rc5 fs adapter ----
 console.log("\n== rc5 fs adapter test ==");
@@ -313,7 +312,7 @@ console.log("rc5 fs backed by modules:", fsOk);
 console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
 console.log("write paths (3 routes + compile refusal):", writesOk, JSON.stringify(writes));
 console.log("project memory (CLAUDE.md + every indexed doc present):", memOk, JSON.stringify(mem));
-console.log("channel push (registered + delivered unprompted):", channelOk, JSON.stringify({ devDialog, channelsRegistered, notifySent, channelDelivered }));
+console.log("channel push (registered + delivered unprompted):", channelOk, JSON.stringify({ devDialogAuto, channelsRegistered, notifySent, channelDelivered }));
 console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
 console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");

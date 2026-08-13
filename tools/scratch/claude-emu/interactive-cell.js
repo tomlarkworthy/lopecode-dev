@@ -376,7 +376,24 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     } finally { healing = false; }
   }
   // The app redrawing is the natural trigger to check whether the redraw landed.
-  function onParsed() { if (!healing && bufferedLen() > 0 && renderedLen() === 0) healIfBlank(); }
+  // cli.js asks for confirmation on every --dangerously-load-development-channels launch
+  // and has no persisted opt-out. The warning is about running a channel server you
+  // downloaded; here the server IS this page, in a tab, with no OS under it — so answer it
+  // from the terminal's own parse events (no timer: a slow machine just gets there later).
+  let devChannelsAccepted = false;
+  function acceptDevChannels() {
+    if (devChannelsAccepted) return;
+    let screen = "";
+    try { screen = window.__dumpTerm(); } catch { return; }
+    if (!/Loading development channels/i.test(screen)) return;
+    devChannelsAccepted = true;
+    trace("dev-channels-accepted", {});
+    ptyIn("\r"); // option 1 is preselected: "I am using this for local development"
+  }
+  function onParsed() {
+    acceptDevChannels();
+    if (!healing && bufferedLen() > 0 && renderedLen() === 0) healIfBlank();
+  }
   function onWedge() { if (!healing) healIfBlank(); }
   function sigwinch() {
     const fe = frameEl(); const w = fe && fe.contentWindow;
@@ -1085,6 +1102,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       try { fit && fit.fit(); } catch {}
       window.__termSize = { cols: term.cols, rows: term.rows };
       window.__cliExit = undefined;
+      devChannelsAccepted = false; // each session asks again
       window.__frameMsgs = window.__frameMsgs || []; window.__frameMsgs.length = 0;
       window.__frameLog = (m) => { window.__frameMsgs.push(String(m)); };
       term.reset();
