@@ -63,6 +63,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "  <label style='display:flex;gap:6px;align-items:center;cursor:pointer' title='--dangerously-skip-permissions. Safe here: the filesystem is this notebook&#39;s own modules, subprocesses fail gracefully and sockets are inert.'>",
     "    <input id='cb-yolo' type='checkbox' style='margin:0'> YOLO mode <span style='opacity:.6'>(skip permission prompts)</span>",
     "  </label>",
+    "  <button id='cb-mount' title='Pick a folder on this machine and map it into the session at /local-disk' style='font:inherit;font-size:12px;padding:4px 10px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee;cursor:pointer'>Mount a local folder…</button>",
+    "  <span id='cb-mount-status' style='opacity:.6'>/local-disk: nothing mounted</span>",
     "</div>",
     "<div id='cb-demo' style='display:none;font-size:12px;line-height:1.6;padding:8px 10px;border:1px solid #3a3a3a;border-radius:6px;background:#242424'></div>",
     "<div id='cb-status' style='font-size:12px;opacity:.8;min-height:16px'></div>",
@@ -519,6 +521,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       },
       writeSync(path, content) {
         if (path.includes("/.claude") || path.startsWith("/home") || path.startsWith("/root")) return;
+        if (path === LOCAL_ROOT || path.startsWith(LOCAL_ROOT + "/")) { writeLocalDisk(path, content); return; }
         cache[path] = content;
         const m = path.match(MODULE_PATH);
         if (m) { applyModuleSrcSync(m[1], content); }
@@ -537,6 +540,107 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       get currentModules() { return D().currentModules; },
       get runtime() { return D().runtime; } };
   }
+
+  // ---- /local-disk: a real folder from this machine, mapped into the session ----
+  // The bridge below is synchronous (readSync/writeSync) and the File System Access API
+  // is not, so the folder is read once into the same cache the module tree uses, and
+  // writes go back to disk asynchronously. Handles are kept per file so a write lands in
+  // the file the agent actually read, not one re-resolved by name.
+  const LOCAL_ROOT = "/local-disk";
+  const localDisk = {
+    name: null, dirHandle: null, text: new Map(), handles: new Map(),
+    skipped: [], bytes: 0, pending: 0, errors: [], readonly: false,
+  };
+  const SKIP_DIRS = new Set([".git", "node_modules", ".venv", "venv", "__pycache__", ".next", ".cache", "target"]);
+  const MAX_FILE = 512 * 1024, MAX_TOTAL = 24 * 1024 * 1024, MAX_FILES = 4000;
+
+  function localDiskInfo() {
+    return { name: localDisk.name, files: localDisk.text.size, bytes: localDisk.bytes,
+      skipped: localDisk.skipped.length, readonly: localDisk.readonly,
+      pending: localDisk.pending, errors: localDisk.errors.slice(-5) };
+  }
+  function mountStatus() {
+    const el = q("cb-mount-status");
+    if (!el) return;
+    if (!localDisk.name) { el.textContent = "/local-disk: nothing mounted"; return; }
+    const i = localDiskInfo();
+    el.textContent = "/local-disk → " + i.name + " · " + i.files + " files"
+      + (i.skipped ? " (" + i.skipped + " skipped)" : "") + (i.readonly ? " · read-only" : "")
+      + (i.errors.length ? " · write error: " + i.errors[i.errors.length - 1] : "");
+  }
+  function applyLocalDisk() { for (const [p, t] of localDisk.text) cache[p] = t; }
+
+  // Text only, and decided by decoding rather than by extension: a file that is not valid
+  // UTF-8 cannot round-trip through a bridge whose values are strings, so it is left out
+  // of the listing instead of being offered as mojibake.
+  async function readLocalFile(fh, path) {
+    const f = await fh.getFile();
+    if (f.size > MAX_FILE) return { skip: "too large (" + Math.round(f.size / 1024) + "KB)" };
+    const buf = await f.arrayBuffer();
+    try { return { text: new TextDecoder("utf-8", { fatal: true }).decode(buf) }; }
+    catch { return { skip: "not text" }; }
+  }
+
+  async function mountLocalDisk(dirHandle) {
+    if (dirHandle.requestPermission) {
+      let perm = "granted";
+      try { perm = await dirHandle.queryPermission({ mode: "readwrite" }); } catch { perm = "prompt"; }
+      if (perm !== "granted") { try { perm = await dirHandle.requestPermission({ mode: "readwrite" }); } catch { perm = "denied"; } }
+      localDisk.readonly = perm !== "granted";
+    }
+    localDisk.name = dirHandle.name || "folder";
+    localDisk.dirHandle = dirHandle;
+    localDisk.text.clear(); localDisk.handles.clear();
+    localDisk.skipped = []; localDisk.errors = []; localDisk.bytes = 0;
+    const queue = [{ handle: dirHandle, prefix: LOCAL_ROOT }];
+    while (queue.length) {
+      const { handle, prefix } = queue.shift();
+      for await (const [name, child] of handle.entries()) {
+        if (localDisk.text.size >= MAX_FILES || localDisk.bytes >= MAX_TOTAL) {
+          localDisk.skipped.push({ path: prefix + "/" + name, why: "mount limit reached" });
+          queue.length = 0; break;
+        }
+        const path = prefix + "/" + name;
+        if (child.kind === "directory") { if (!SKIP_DIRS.has(name)) queue.push({ handle: child, prefix: path }); continue; }
+        const r = await readLocalFile(child, path);
+        if (r.skip) { localDisk.skipped.push({ path, why: r.skip }); continue; }
+        localDisk.text.set(path, r.text);
+        localDisk.handles.set(path, child);
+        localDisk.bytes += r.text.length;
+      }
+    }
+    applyLocalDisk();
+    mountStatus();
+    return localDiskInfo();
+  }
+
+  // Write-back cannot be synchronous, so what CAN be checked synchronously is checked
+  // synchronously: an unmounted or read-only /local-disk throws in the agent's own turn
+  // rather than reporting a write that never reaches the disk.
+  function writeLocalDisk(path, content) {
+    if (!localDisk.dirHandle) throw new Error("REFUSED " + path + ": no local folder is mounted (use 'Mount a local folder…' in the notebook)");
+    if (localDisk.readonly) throw new Error("REFUSED " + path + ": /local-disk is mounted read-only");
+    localDisk.text.set(path, content);
+    cache[path] = content;
+    localDisk.pending++;
+    (async () => {
+      const segs = path.slice(LOCAL_ROOT.length + 1).split("/");
+      const name = segs.pop();
+      let dir = localDisk.dirHandle;
+      for (const seg of segs) dir = await dir.getDirectoryHandle(seg, { create: true });
+      const fh = localDisk.handles.get(path) || await dir.getFileHandle(name, { create: true });
+      const w = await fh.createWritable();
+      await w.write(content); await w.close();
+      localDisk.handles.set(path, fh);
+    })().then(
+      () => { localDisk.pending--; mountStatus(); },
+      (e) => { localDisk.pending--; localDisk.errors.push(String(e && e.message || e)); mountStatus();
+        try { window.__NBNOTIFY("write to " + path + " FAILED on disk: " + (e && e.message || e), { type: "local_disk_error", path }); } catch {} }
+    );
+  }
+
+  window.__mountLocalDisk = mountLocalDisk;   // also the test seam: takes any handle-shaped object
+  window.__localDiskInfo = localDiskInfo;
 
   let primed = null;
   function primeRC5() {
@@ -921,18 +1025,35 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     const def = (await importShim("/" + moduleId + ".js?v=4")).default;
     return await runtime.module(def).value(cellName);
   }
-  let claudeMdOnce = null;
+  // Written fresh each boot: a folder mounted after the first session has to reach the
+  // NEXT session's memory, and a session that cannot see the mount will not go looking.
+  function localDiskNote() {
+    if (!localDisk.name) return "";
+    return [
+      "## /local-disk",
+      "",
+      "`" + LOCAL_ROOT + "` is a real folder on the user's machine (`" + localDisk.name + "`), mapped into this filesystem: "
+        + localDisk.text.size + " text files"
+        + (localDisk.readonly
+          ? ". It is READ-ONLY here — writes are refused."
+          : ". Writing a file under it writes to the user's disk, so treat it as their working copy."),
+      localDisk.skipped.length
+        ? "" + localDisk.skipped.length + " entries were left out of the mount (not UTF-8 text, over 512KB, or under .git/node_modules/etc). A path missing from " + LOCAL_ROOT + " may exist on disk."
+        : "",
+      "",
+    ].filter(Boolean).join("\n") + "\n";
+  }
+  let claudeMdBody = null;
   function claudeMd() {
-    if (claudeMdOnce) return claudeMdOnce;
-    claudeMdOnce = (async () => {
+    if (!claudeMdBody) claudeMdBody = (async () => {
       let body = "";
       // Best-effort, and deliberately separate awaits: a wiki that fails to render its
       // index should not cost the session its authoring guidance.
       try { body += await cellValue("@tomlarkworthy/robocoop-5-engine", "systemPrompt"); } catch (e) { body += "(robocoop-5 prompt unavailable: " + (e && e.message || e) + ")"; }
       try { body += "\n\n" + await cellValue("@tomlarkworthy/markdown-wiki", "wiki_index"); } catch {}
-      return SESSION_HEADER + body + "\n";
+      return body;
     })();
-    return claudeMdOnce;
+    return claudeMdBody.then((body) => SESSION_HEADER + localDiskNote() + body + "\n");
   }
 
   // ---- session lifecycle ----
@@ -954,6 +1075,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       await ensureAssets();
       setStatus("Indexing notebook modules for the filesystem…");
       await primeRC5();
+      applyLocalDisk(); // a mounted folder survives a reboot; the module prime owns the cache
 
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
@@ -1002,6 +1124,20 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   modelEl.addEventListener("change", settingChanged);
   yoloEl.addEventListener("change", settingChanged);
   restartEl.addEventListener("click", () => { lastCfg = null; startSession(); });
+  // Mounting reboots the session: the frame's in-memory fs is primed from a snapshot at
+  // boot, so without a restart the new files would be readable but invisible to ls/glob.
+  q("cb-mount").addEventListener("click", async () => {
+    if (typeof window.showDirectoryPicker !== "function") { setStatus("This browser has no directory picker (Chrome/Edge only)."); return; }
+    let handle = null;
+    try { handle = await window.showDirectoryPicker({ mode: "readwrite", id: "lopecode-local-disk" }); }
+    catch (e) { if (e && e.name !== "AbortError") setStatus("Folder not mounted: " + (e.message || e)); return; }
+    setStatus("Reading " + handle.name + "…");
+    try {
+      const info = await mountLocalDisk(handle);
+      setStatus("Mounted " + info.name + " at /local-disk (" + info.files + " files) — restarting the session so it is listable…");
+      lastCfg = null; startSession();
+    } catch (e) { setStatus("Mount failed: " + (e && e.message || e)); }
+  });
   window.__autostart = () => startSession();
 
   // Mount the terminal, then boot straight in if a key is already saved.
