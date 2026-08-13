@@ -474,6 +474,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     catch (e) { throw new Error("FAILED TO APPLY " + id + ": " + (e && e.message || e)); }
     def.src = src;
     rc5_store.srcFns.set(id, def);
+    try { window.__NBNOTIFY("module " + id + " applied to the live runtime", { type: "module_applied", module: id }); } catch {}
     if (!(r && r.applied)) throw new Error("FAILED TO APPLY " + id + ": the runtime did not accept the module");
   }
 
@@ -654,7 +655,9 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    }",
 "    installMCP(CFG.mcp);",
 "    const mcpCfg = JSON.stringify({ mcpServers: { notebook: { type: 'http', url: CFG.mcp } } });",
-"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js', '--mcp-config', mcpCfg].concat(CFG.yolo ? ['--dangerously-skip-permissions'] : []).concat(P.__CB_DEBUG ? ['--debug'] : []);",
+"    // --channels opts this session into server-pushed notifications; without it cli.js",
+"    // accepts the capability and then logs 'channels feature is not currently available'.",
+"    globalThis.__ARGV = ['/usr/bin/node', '/cli.js', '--mcp-config', mcpCfg, '--channels', 'server:notebook'].concat(CFG.yolo ? ['--dangerously-skip-permissions'] : []).concat(P.__CB_DEBUG ? ['--debug'] : []);",
 "    window.addEventListener('unhandledrejection', (e) => { const r = e.reason; if (r && r.name === 'ProcessExit') { globalThis.__cliExit = r.code; e.preventDefault(); return; } say('reject: ' + (r && (r.stack || r.message) || r)); });",
 "    window.addEventListener('error', (e) => say('error: ' + (e.message || e)));",
 "    await import(urlFor['bootstrap.js']);",
@@ -687,7 +690,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "      const id = msg.id, m = msg.method;",
 "      const ok = (result) => ({ jsonrpc: '2.0', id, result });",
 "      try {",
-"        if (m === 'initialize') { T().note('initialize'); return ok({ protocolVersion: msg.params && msg.params.protocolVersion || '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'notebook', version: '1.0.0' } }); }",
+"        if (m === 'initialize') { T().note('initialize'); return ok({ protocolVersion: msg.params && msg.params.protocolVersion || '2025-06-18', capabilities: { tools: {}, experimental: { 'claude/channel': {} } }, serverInfo: { name: 'notebook', version: '1.0.0' } }); }",
 "        if (m === 'tools/list') { T().note('tools/list'); return ok({ tools: T().list() }); }",
 "        if (m === 'tools/call') {",
 "          const r = await T().call(msg.params.name, msg.params.arguments);",
@@ -711,7 +714,20 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "      const url = urlOf(input);",
 "      if (url.indexOf(host) < 0) return real(input, init);",
 "      const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();",
-"      // No server-initiated stream: 405 tells the client to use POST only.",
+"      // The GET is the server->client stream. Refusing it (405) is why cli.js logged",
+"      // 'Channel notifications skipped': with no stream there is nowhere to push, so",
+"      // the notebook could not tell its own agent that anything had changed.",
+"      if (method === 'GET') {",
+"        T().note('stream:open');",
+"        const enc = new TextEncoder();",
+"        const body = new ReadableStream({",
+"          start(controller) {",
+"            P.__NBSTREAM = (payload) => { try { controller.enqueue(enc.encode('event: message\\ndata: ' + JSON.stringify(payload) + '\\n\\n')); return true; } catch { return false; } };",
+"          },",
+"          cancel() { P.__NBSTREAM = null; },",
+"        });",
+"        return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' } });",
+"      }",
 "      if (method !== 'POST') { T().note('probe:' + method); return new Response('', { status: 405, headers: { 'content-type': 'text/plain' } }); }",
 "      let body = null;",
 "      try { body = JSON.parse(init && init.body != null ? (typeof init.body === 'string' ? init.body : await new Response(init.body).text()) : await new Request(input, init).text()); } catch {}",
@@ -837,6 +853,15 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
         try { return JSON.parse(JSON.stringify(v ?? null)); } catch { return String(v); }
       },
     },
+  };
+  // Pairing notifications, in the shape @lopecode/channel sends them, so the in-page
+  // agent is told about changes the same way an external paired Claude is.
+  window.__NBNOTIFY = (content, meta) => {
+    const send = window.__NBSTREAM;
+    if (typeof send !== "function") return false;
+    window.__MCPLOG.push({ ev: "notify", content: String(content).slice(0, 60) });
+    return send({ jsonrpc: "2.0", method: "notifications/claude/channel",
+      params: { content: String(content), meta: Object.assign({ notebook: location.href }, meta || {}) } });
   };
   window.__NBTOOLS = {
     list: () => Object.entries(NBTOOLS).map(([name, t]) => ({ name, description: t.description, inputSchema: t.schema })),
