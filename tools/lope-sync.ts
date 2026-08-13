@@ -86,6 +86,19 @@ export function blocksIn(html: string): Map<string, string> {
   return out;
 }
 
+/**
+ * The notebook's own `bootconf.json` block, or null. Last parseable block wins —
+ * the exporter modules carry the *template* for this block in their source, and
+ * that one has unresolved `${…}` so it never parses.
+ */
+export function bootconfIn(html: string): Record<string, unknown> | null {
+  let found: Record<string, unknown> | null = null;
+  for (const m of html.matchAll(/<script\s+id="bootconf\.json"[^>]*>([\s\S]*?)<\/script>/g)) {
+    try { found = JSON.parse(m[1].trim()); } catch { /* exporter template */ }
+  }
+  return found;
+}
+
 /** module id -> every notebook that embeds it. ~1.1s cold over the full corpus. */
 export function deriveIndex(): Map<string, BlockRef[]> {
   const idx = new Map<string, BlockRef[]>();
@@ -569,8 +582,19 @@ function cmdPrune(write: boolean): number {
  * establish on its own.
  *
  * Default scope is deliberately narrow, because the hook runs on every commit:
- * it restamps hashes for modules present in BOTH the spec and the HTML, and only
- * reports modules the spec has never heard of.
+ * it restamps hashes for modules present in BOTH the spec and the HTML, resyncs
+ * `bootconf` from the HTML block, and only reports modules the spec has never
+ * heard of.
+ *
+ * `bootconf` is in the default path because it is the half of the spec other
+ * tools *read*: `lope-jumpgate.js` takes `mains` and `hash` from it to decide
+ * what to re-export. Left unmaintained it went badly wrong — on 2026-08-13, 187
+ * of 229 specs recorded different `mains` than their own HTML, so a jumpgate
+ * regeneration silently dropped mains and downgraded the frame. `theme` is
+ * preserved rather than overwritten: the exporter never writes one into the
+ * block (0 of 231 notebooks), so the spec is its only record. Measured the same
+ * day, `theme` is the ONLY key the spec has and the HTML lacks, and the HTML has
+ * no key the spec lacks — so a whole-object merge is faithful.
  *
  * A notebook with NO spec fails rather than being skipped — otherwise the
  * invariant is silently optional and every new notebook opts out of it by
@@ -587,11 +611,10 @@ function cmdPrune(write: boolean): number {
  * shells out to that and merges the result. Slow (one runtime boot per
  * directory), hence opt-in rather than part of the hook.
  *
- * Rebuild takes ONLY `modules` from the regeneration. `bootconf` is not
- * derivable faithfully — parseNotebook reads the last `bootconf.json` block,
- * which for six notebooks lacks the `theme` the committed spec records — and
- * `upstreams` / `observable_version` / `observable_update_time` come from
- * ObservableHQ at jumpgate time. Those are preserved verbatim, as is key order.
+ * Rebuild takes ONLY `modules` from the regeneration — `bootconf` is handled on
+ * the default path above, and `upstreams` / `observable_version` /
+ * `observable_update_time` come from ObservableHQ at jumpgate time. Those are
+ * preserved verbatim, as is key order.
  */
 function freshSpecsByNotebook(dir: string): Map<string, any> {
   const out = execFileSync(
@@ -612,7 +635,7 @@ function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
         return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".html")).map((f) => join(d, f)) : [];
       });
 
-  let changedFiles = 0, changedEntries = 0, addedEntries = 0, createdFiles = 0;
+  let changedFiles = 0, changedEntries = 0, addedEntries = 0, createdFiles = 0, bootconfFiles = 0;
   const unlisted: string[] = [];
   const missingSpec: string[] = [];
 
@@ -660,8 +683,28 @@ function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
     try { spec = JSON.parse(readFileSync(specPath, "utf8")); } catch { continue; }
     if (!spec.modules) continue;
 
-    const blocks = blocksIn(readFileSync(html, "utf8"));
+    const src = readFileSync(html, "utf8");
+    const blocks = blocksIn(src);
     let touched = 0;
+
+    // bootconf: the HTML is the live record — save-in-place and sync-module rewrite
+    // its block, and neither touches the spec. `theme` is the exception and is
+    // preserved: the exporter never writes one into the block (0 of 231 notebooks),
+    // so the spec is its only record. Measured 2026-08-13: `theme` is the ONLY key
+    // the spec has and the HTML lacks, and the HTML has no key the spec lacks.
+    let bootconfFixed = false;
+    const liveBootconf = bootconfIn(src);
+    if (liveBootconf) {
+      const merged: Record<string, unknown> = { ...liveBootconf };
+      for (const [k, v] of Object.entries(spec.bootconf ?? {})) {
+        if (!(k in merged)) merged[k] = v;
+      }
+      if (JSON.stringify(spec.bootconf ?? null) !== JSON.stringify(merged)) {
+        spec.bootconf = merged;
+        bootconfFixed = true;
+        touched++;
+      }
+    }
 
     if (rebuild) {
       const fresh = freshFor(html);
@@ -687,11 +730,13 @@ function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
     if (!touched) continue;
     changedEntries += touched;
     changedFiles++;
+    if (bootconfFixed) bootconfFiles++;
+    const what = `${touched - (bootconfFixed ? 1 : 0)} hash(es)${bootconfFixed ? " + bootconf" : ""}`;
     if (check) {
-      console.error(`  STALE ${relative(ROOT, specPath)} (${touched} hash(es))`);
+      console.error(`  STALE ${relative(ROOT, specPath)} (${what})`);
     } else {
       writeFileSync(specPath, JSON.stringify(spec, null, 2) + "\n");
-      console.log(`  updated ${relative(ROOT, specPath)} (${touched} hash(es))`);
+      console.log(`  updated ${relative(ROOT, specPath)} (${what})`);
     }
   }
 
@@ -712,9 +757,11 @@ function cmdSpecSync(paths: string[], check: boolean, rebuild = false): number {
   if (changedFiles) {
     parts.push(
       check
-        ? `${changedEntries} stale hash(es) in ${changedFiles} spec(s)`
+        ? `${changedEntries} stale entr(ies) in ${changedFiles} spec(s)` +
+          (bootconfFiles ? ` (${bootconfFiles} bootconf)` : "")
         : `${changedEntries} change(s) in ${changedFiles} spec(s)` +
-          (addedEntries ? `, ${addedEntries} module entr(ies) added` : "")
+          (addedEntries ? `, ${addedEntries} module entr(ies) added` : "") +
+          (bootconfFiles ? `, ${bootconfFiles} bootconf(s) resynced` : "")
     );
   }
   if (parts.length) console.log(`\n${parts.join("; ")}${check ? ". Fix: bun tools/lope-sync.ts spec-sync" : " — re-stage them."}`);
@@ -745,11 +792,7 @@ function cmdInitCanonical(write: boolean): number {
   const mainsOf = (rel: string): string[] => {
     let m = mainsCache.get(rel);
     if (m) return m;
-    m = [];
-    const html = readFileSync(join(ROOT, rel), "utf8");
-    for (const b of html.matchAll(/<script\s+id="bootconf\.json"[^>]*>([\s\S]*?)<\/script>/g)) {
-      try { m = JSON.parse(b[1].trim()).mains ?? []; break; } catch { /* exporter template */ }
-    }
+    m = (bootconfIn(readFileSync(join(ROOT, rel), "utf8"))?.mains as string[]) ?? [];
     mainsCache.set(rel, m);
     return m;
   };

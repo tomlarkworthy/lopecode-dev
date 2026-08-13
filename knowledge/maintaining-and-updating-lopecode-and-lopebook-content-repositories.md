@@ -45,15 +45,21 @@ node tools/lope-jumpgate.js \
 
 | Arg | Default | Description |
 |-----|---------|-------------|
-| `--source <name>` | (required) | Observable notebook shorthand |
-| `--frame <name>` | `@tomlarkworthy/lopepage` | Frame notebook shorthand |
+| `--source <name>` | the non-frame entries of the output spec's `bootconf.mains` | Observable notebook shorthand. Required only when there is no spec to derive it from |
+| `--frame <name>` | the `lopepage*` entry of the output spec's `bootconf.mains`, else `@tomlarkworthy/lopepage` | Frame notebook shorthand |
 | `--jumpgate <path>` | `lopecode/notebooks/jumpgates.html` | Path to jumpgate HTML |
 | `--output <path>` | (required) | Where to write the exported HTML |
 | `--hash <hash>` | existing spec or side-panel | Hash for bootconf (e.g. `#view=@author/notebook`) |
 | `--theme <name>` | existing spec or none | Theme name (e.g. `near-midnight`) |
+| `--no-carry-mains` | false | Ignore the spec's `bootconf.mains` — the pre-2026-08-13 behaviour. Use when deliberately narrowing what a notebook boots, or to export one source at a time under Observable's rate limit |
+| `--dry-run` | false | Print the resolved frame/sources/mains as JSON and exit, without launching a browser |
 | `--timeout <ms>` | `120000` | Max wait for export |
 | `--headed` | false | Show browser for debugging |
 | `--verbose` | false | Show browser console logs |
+
+`--source` stays the primary — it drives the title and the default hash — and carried mains are
+appended after it. An explicit `--frame` swaps the recorded frame out rather than adding to it.
+The spec's `bootconf` is kept in step with the HTML by the `lope-spec-sync` pre-commit hook.
 
 Jumpgate writes per-module upstream URLs to the `.json` spec file as `"upstreams"`, a `host → module → url` map (currently only `observablehq.com` is populated). For the single-source case the map has one entry; for multi-source bundles it records every primary. `lope-push-ws.js` reads `upstreams["observablehq.com"][--module]` as a default `--target`, so pushes don't need an explicit URL after the first jumpgate. Older specs that only have a top-level `"observablehq.com"` string are still honored as a fallback.
 
@@ -69,19 +75,66 @@ over an existing file to refresh **one** module also replaces everything else in
 
 - **The frame defaults to `@tomlarkworthy/lopepage`** — hash and theme come from the existing
   spec, the frame does not. Pass `--frame @tomlarkworthy/lopepage-2` when that is what the
-  notebook uses, or the layout regresses.
+  notebook uses, or the layout regresses. — *fixed 2026-08-13, see below.*
 - **Anything added to the HTML after the last export is dropped.** `@tomlarkworthy/save-in-place`
   — module block *and* its `mains` entry — is in the local file but in neither the Observable
   document nor the frame, so it vanished silently. The notebook still boots; it just loses
-  save-in-place.
+  save-in-place. — *fixed 2026-08-13 for anything named in `mains`; still true for a module
+  present in the HTML but absent from `mains`.*
 - **21 sibling modules were swapped for Observable's current copies**, drifting them off their
   declared canonicals (`lope-sync.ts audit` then showed this notebook as a population of one for
-  `lopepage-2`, `cell-map`, `exporter-3`, `themes`, `command-palette`, …).
+  `lopepage-2`, `cell-map`, `exporter-3`, `themes`, `command-palette`, …). — **still true.**
 
 So: to refresh one module from Observable, jumpgate to a **scratch path**, diff it
 (`lope-reader.ts --get-module` for the module, the `<script id>` set for blocks), then apply just
 that module with `sync-module`. Jumpgate in place only when the whole bundle is meant to be
-re-imported — and re-check `mains` and the frame afterwards.
+re-imported.
+
+#### 2026-08-13: mains and the frame now round-trip
+
+The first two bullets were one defect — `lope-jumpgate.js` never read `bootconf.mains`, so a
+regeneration declared exactly `[--frame, ...--source]` and silently dropped every other main.
+Reproduced on `@tomlarkworthy_cell-map.html` with the pre-fix tool:
+
+```
+recorded  ["@tomlarkworthy/lopepage-2","@tomlarkworthy/cell-map","@tomlarkworthy/save-in-place"]
+--source @tomlarkworthy/cell-map
+          ["@tomlarkworthy/lopepage",  "@tomlarkworthy/cell-map"]
+```
+
+Two losses in one run: the frame downgraded `lopepage-2` → `lopepage`, and `save-in-place` gone.
+`mains` now resolves into frame + sources — the `lopepage*` entry is the frame, the rest are
+sources — and the same command reproduces the recorded list exactly.
+
+**That works only because the spec is now maintained.** `mains` and `hash` are read from the
+`.json` sidecar, which had been written only by jumpgate while `save-in-place` and `sync-module`
+rewrote the HTML's `bootconf` block without touching it: on 2026-08-13, **187 of 229 specs recorded
+different `mains` than their own HTML**. `@tomlarkworthy_exporter-3.json` was the case that
+surfaced it, still carrying `observable_update_time` `2026-07-23T02:55:00.669Z` and
+`mains: ["lopepage","exporter-3"]` against an HTML reading
+`["lopepage-2","exporter-3","save-in-place"]`.
+
+So `bun tools/lope-sync.ts spec-sync` — already the `lope-spec-sync` pre-commit hook in both
+content repos — now resyncs `bootconf` from the HTML block alongside the module hashes, and the
+whole corpus was resynced in one pass. `theme` is preserved rather than overwritten: the exporter
+never writes one into the block (0 of 231 notebooks), so the spec is its only record. Measured the
+same day, `theme` is the **only** key the spec has and the HTML lacks, and the HTML has no key the
+spec lacks — which is what makes a whole-object merge faithful. All 205 recorded themes survived
+the resync.
+
+Verified by `--dry-run` (which prints the resolved frame/sources/mains without launching a browser)
+over all 229 notebooks with specs, after the resync: 212 reproduce their HTML's `mains` exactly, 14
+differ only by the frame moving to index 0 (set-identical — a jumpgate export has always emitted
+the frame first), **0 lose or gain a main**. Then a real browser export of `cell-map` reproduced
+`["lopepage-2","cell-map","save-in-place"]` and booted clean in headless Chromium.
+
+The three frame-only notebooks (`@tomlarkworthy_lopepage.html` ×2, `_lopepage-2.html`) have nothing
+but a frame in `mains`, so they still need an explicit `--source`:
+`Error: --source is required (no spec bootconf mains to derive it from)`.
+
+Carrying mains means carrying sources, so a multi-main notebook now fetches several Observable
+documents per export — the rate-limit hazard `lope-bulk-jumpgate` already hits. `--no-carry-mains`
+restores the old single-source behaviour, which is also how to export one source at a time.
 
 ### How lope-jumpgate.js Works Internally
 
