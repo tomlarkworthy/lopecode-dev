@@ -399,12 +399,11 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   document.addEventListener("visibilitychange", () => healIfBlank());
 
   // ---- cli.js + shim assets ----
-  let DIST_FILES = null, CLI_SRC = null, CLAUDE_MD = null;
+  let DIST_FILES = null, CLI_SRC = null;
   async function ensureAssets() {
     if (DIST_FILES) return;
     DIST_FILES = JSON.parse(await gunzipText(FileAttachment("shims.js.gz")));
     CLI_SRC = await gunzipText(FileAttachment("cli.js.gz"));
-    CLAUDE_MD = await gunzipText(FileAttachment("CLAUDE.md.gz"));
   }
 
   // ---- rc5 filesystem adapter (lean binding over the notebook's own engines) ----
@@ -822,6 +821,51 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     note: (ev, extra) => { window.__MCPLOG.push({ ev, ...(extra || {}) }); },
   };
 
+  // ---- project memory, read from the modules that own it ----
+  // robocoop-5's prompt already describes this exact situation (an agent editing
+  // Observable modules at /src/<id>.js through file tools), and markdown-wiki owns the
+  // doc index. Both are CELLS in modules bundled here, so they are imported and read —
+  // a baked copy of the text would fork silently the next time either is edited.
+  const SESSION_HEADER = [
+    "# This session",
+    "",
+    "You are Claude Code running in a browser, inside the lopecode notebook described below.",
+    "What follows is this project's own canonical guidance, written for an agent with",
+    "equivalent tools under different names. Map them like this:",
+    "",
+    "  read_file -> Read      write_file -> Write     edit_file -> Edit",
+    "  glob -> Glob           grep -> Grep",
+    "",
+    "Differences from that description: there is no `/notebook` tree here; live cell VALUES",
+    "come from the `notebook` MCP server (`eval_js`, `list_modules`, `read_module`,",
+    "`write_module`) rather than inspect_value/list_values/watch_variable; and there is no",
+    "task_complete — you simply answer. `/content/<id>` is read-only and holds the raw",
+    "notebook blocks, including the knowledge docs indexed at the end of this file.",
+    "",
+    "There is no operating system under you: no shell, no git, no npm, and sockets are inert.",
+    "Editing `/src/<module-id>.js` applies to the running notebook immediately.",
+    "",
+    "",
+  ].join("\n");
+
+  async function cellValue(moduleId, cellName) {
+    const def = (await importShim("/" + moduleId + ".js?v=4")).default;
+    return await runtime.module(def).value(cellName);
+  }
+  let claudeMdOnce = null;
+  function claudeMd() {
+    if (claudeMdOnce) return claudeMdOnce;
+    claudeMdOnce = (async () => {
+      let body = "";
+      // Best-effort, and deliberately separate awaits: a wiki that fails to render its
+      // index should not cost the session its authoring guidance.
+      try { body += await cellValue("@tomlarkworthy/robocoop-5-engine", "systemPrompt"); } catch (e) { body += "(robocoop-5 prompt unavailable: " + (e && e.message || e) + ")"; }
+      try { body += "\n\n" + await cellValue("@tomlarkworthy/markdown-wiki", "wiki_index"); } catch {}
+      return SESSION_HEADER + body + "\n";
+    })();
+    return claudeMdOnce;
+  }
+
   // ---- session lifecycle ----
   let starting = false, pending = false, lastCfg = null;
   async function startSession() {
@@ -844,7 +888,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
-      window.__CLAUDE_MD = CLAUDE_MD;
+      window.__CLAUDE_MD = await claudeMd();
       window.__IMPORT_MAP = IMPORT_MAP;
       window.__runConfig = { key, model, yolo, base, provider: prov, mcp: MCP_URL };
       try { fit && fit.fit(); } catch {}

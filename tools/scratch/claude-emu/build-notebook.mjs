@@ -39,41 +39,22 @@ if (!imMatch) throw new Error("no importmap in index.html");
 const importMap = {};
 for (const [spec, path] of Object.entries(JSON.parse(imMatch[1]).imports)) importMap[spec] = path.replace(/^\/dist\//, "");
 
-// ---- project memory, composed from canonical cells (see extract-prompt.ts) --------
-execSync("bun extract-prompt.ts", { cwd: here, stdio: "inherit" });
-const claudeMdParts = JSON.parse(readFileSync(here + "/claude-md.json", "utf8"));
-// The only hand-written part: cli.js's tools carry different names from the ones the
-// canonical prompt describes, and two of the trees it describes do not exist here.
-const SESSION_HEADER = `# This session
-
-You are Claude Code running in a browser, inside the lopecode notebook described below.
-What follows is this project's own canonical guidance, written for an agent with
-equivalent tools under different names. Map them like this:
-
-  read_file -> Read      write_file -> Write     edit_file -> Edit
-  glob -> Glob           grep -> Grep
-
-Differences from that description: there is no \`/notebook\` tree here; live cell VALUES
-come from the \`notebook\` MCP server (\`eval_js\`, \`list_modules\`, \`read_module\`,
-\`write_module\`) rather than inspect_value/list_values/watch_variable; and there is no
-task_complete — you simply answer. \`/content/<id>\` is read-only and holds the raw
-notebook blocks, including the knowledge docs indexed at the end of this file.
-
-There is no operating system under you: no shell, no git, no npm, and sockets are inert.
-Editing \`/src/<module-id>.js\` applies to the running notebook immediately.
-
-`;
-const CLAUDE_MD = SESSION_HEADER + claudeMdParts.systemPrompt + "\n\n" + claudeMdParts.wikiIndex + "\n";
-
-// ---- the knowledge docs, copied verbatim so /content/<id> resolves -----------------
-// rc5 serves /content/<id> straight off the <script type="text/plain"> block with that
-// id, so carrying the blocks across is all the wiki index needs to stop dangling.
-const WIKI_SRC = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html";
-const wikiBlocks = (readFileSync(WIKI_SRC, "utf8").match(/<script\s+id="@tomlarkworthy\/markdown-wiki\/[^"]+"[\s\S]*?<\/script>/g) || []);
-if (wikiBlocks.length !== Object.keys(claudeMdParts.docs).length) {
-  throw new Error("wiki block copy mismatch: " + wikiBlocks.length + " blocks vs " + Object.keys(claudeMdParts.docs).length + " docs");
-}
-const WIKI_BLOCKS = wikiBlocks.join("\n") + "\n";
+// ---- robocoop-5 + the knowledge wiki, imported as MODULES ---------------------
+// The session prompt and wiki index are cells of these modules, read at runtime. Copying
+// their text into an attachment would fork it from the canonical source, so the modules
+// themselves come across: closure computed with lope-reader --compute-imports, minus what
+// this notebook already carries. `@user/other` is excluded — it is not a module, it is
+// example code inside the prompt STRING that the import scanner picks up.
+const RC5_SRC = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html";
+const IMPORT_MODULES = [
+  "@tomlarkworthy/markdown-wiki",
+  "@tomlarkworthy/robocoop-5",
+  "@tomlarkworthy/robocoop-5-context",
+  "@tomlarkworthy/robocoop-5-core",
+  "@tomlarkworthy/robocoop-5-engine",
+  "@tomlarkworthy/robocoop-5-srctools",
+  "@tomlarkworthy/robocoop-5-tools",
+];
 
 let cli = readFileSync(HARNESS + "/package/cli.js", "utf8");
 if (!cli.startsWith("#!")) throw new Error("cli.js has no shebang; refusing to guess");
@@ -90,7 +71,6 @@ const cliB64 = gz(cli);
 const xtermJsB64 = gz(xtermJs);
 const xtermCssB64 = gz(xtermCss);
 const addonFitB64 = gz(addonFit);
-const claudeMdB64 = gz(CLAUDE_MD);
 
 // ---- the app cell (interactive + rc5), with the importmap baked in ----------
 let cellSrc = readFileSync(CELL_SRC, "utf8");
@@ -129,7 +109,7 @@ const bindingLines = ENGINE_BINDINGS.map(
 // block its terminal mount on it; the 8 below are what _claudeCodeBrowser consumes).
 const APP_DEPS = ["FileAttachment", "runtime", "importShim", "createModule", "currentModules", "exportModuleJS", "jbApply", "probeDefine"];
 
-const ATTACHMENTS = ["cli.js.gz", "shims.js.gz", "xterm.js.gz", "xterm.css.gz", "addon-fit.js.gz", "CLAUDE.md.gz"];
+const ATTACHMENTS = ["cli.js.gz", "shims.js.gz", "xterm.js.gz", "xterm.css.gz", "addon-fit.js.gz"];
 
 const MODULE_BLOCK = `<script id="${MODULE_ID}"
   type="text/plain"
@@ -165,14 +145,35 @@ const attBlock = (name, b64body) => `<script id="${MODULE_ID}/${name}"
   data-mime="application/gzip"
 >${b64body}</script>`;
 
+const rc5Data = readFileSync(RC5_SRC);
+function blocksOf(buf) {
+  const out = [];
+  const open = Buffer.from("<script"), close = Buffer.from("</script>");
+  let i = 0;
+  while (true) {
+    const st = buf.indexOf(open, i); if (st < 0) break;
+    const gt = buf.indexOf(0x3e, st); if (gt < 0) break;
+    const e = buf.indexOf(close, gt); if (e < 0) break;
+    const end = e + close.length;
+    const m = buf.slice(st, gt + 1).toString("latin1").match(/id="([^"]*)"/);
+    out.push({ start: st, end, id: m ? m[1] : null });
+    i = end;
+  }
+  return out;
+}
+const wanted = new Set(IMPORT_MODULES);
+const copied = blocksOf(rc5Data).filter((b) => b.id && (wanted.has(b.id) || IMPORT_MODULES.some((m) => b.id.startsWith(m + "/"))));
+const copiedIds = new Set(copied.map((b) => b.id));
+for (const m of IMPORT_MODULES) if (!copiedIds.has(m)) throw new Error("module block not found in rc5 notebook: " + m);
+const IMPORTED_BLOCKS = copied.map((b) => rc5Data.slice(b.start, b.end).toString("utf8")).join("\n") + "\n";
+
 const NEW_BLOCKS =
   attBlock("cli.js.gz", cliB64) + "\n" +
   attBlock("shims.js.gz", distB64) + "\n" +
   attBlock("xterm.js.gz", xtermJsB64) + "\n" +
   attBlock("xterm.css.gz", xtermCssB64) + "\n" +
   attBlock("addon-fit.js.gz", addonFitB64) + "\n" +
-  attBlock("CLAUDE.md.gz", claudeMdB64) + "\n" +
-  WIKI_BLOCKS +
+  IMPORTED_BLOCKS +
   MODULE_BLOCK + "\n";
 
 // ---- byte-accurate surgery on the donor ------------------------------------
@@ -250,8 +251,7 @@ console.log("  shims.js.gz b64     :", mb(distB64.length), "MB");
 console.log("  xterm.js.gz b64     :", mb(xtermJsB64.length), "MB");
 console.log("  xterm.css.gz b64    :", mb(xtermCssB64.length), "MB");
 console.log("  addon-fit.gz b64    :", mb(addonFitB64.length), "MB");
-console.log("  CLAUDE.md           :", (CLAUDE_MD.length / 1024).toFixed(1), "KB ->", (claudeMdB64.length / 1024).toFixed(0), "KB b64");
-console.log("  wiki doc blocks     :", wikiBlocks.length);
+console.log("  imported modules    :", IMPORT_MODULES.length, "(+", copied.length - IMPORT_MODULES.length, "attachments,", (IMPORTED_BLOCKS.length / 1024 / 1024).toFixed(2), "MB)");
 console.log("  removed linux span  :", mb(spliceEnd - spliceStart), "MB (" + inSpan.length + " blocks)");
 console.log("  donor size          :", mb(data.length), "MB");
 console.log("  final HTML          :", mb(out.length), "MB");

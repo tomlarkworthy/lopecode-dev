@@ -204,6 +204,9 @@ const mem = await page.evaluate(() => {
   const wiki = paths.filter((k) => k.startsWith("/content/@tomlarkworthy/markdown-wiki/"));
   return {
     bytes: md.length,
+    // Guards the property that matters: the text is READ from the modules that own it.
+    // A baked attachment would satisfy every other assertion here while silently forking.
+    fromModules: !/prompt unavailable/.test(md) && !document.getElementById("@tomlarkworthy/claude-code-browser/CLAUDE.md.gz") && /NOTEBOOK MODEL/.test(md),
     // The prompt is only useful if the docs it points at actually resolve.
     indexed: (md.match(/^- \/content\/@tomlarkworthy\/markdown-wiki\//gm) || []).length,
     present: wiki.length,
@@ -211,7 +214,7 @@ const mem = await page.evaluate(() => {
   };
 });
 console.log("memory:", JSON.stringify(mem));
-const memOk = mem.bytes > 10000 && mem.indexed > 0 && mem.present === mem.indexed && mem.readable > 0;
+const memOk = mem.bytes > 10000 && mem.fromModules && mem.indexed > 0 && mem.present === mem.indexed && mem.readable > 0;
 
 // ---- STEP 5: YOLO toggle reaches cli.js argv (default ON, and off when unchecked) ----
 console.log("\n== YOLO mode ==");

@@ -17,7 +17,11 @@ console.log("fs:", JSON.stringify(await p.evaluate(async () => {
   const doc = await window.__RC5FS_read?.("x");
   return {
     claudeMdBytes: md ? String(md).length : 0,
-    claudeMdHead: md ? String(md).split("\n").slice(0, 3).join(" / ") : null,
+    fallbackUsed: /prompt unavailable/.test(md || ""),
+    hasWikiIndex: /KNOWLEDGE WIKI/.test(md || ""),
+    hasPromptBody: /NOTEBOOK MODEL/.test(md || ""),
+    attachmentGone: !document.getElementById("@tomlarkworthy/claude-code-browser/CLAUDE.md.gz"),
+    rc5Modules: window.__RC5FS.list().filter((k) => /robocoop-5|markdown-wiki/.test(k) && k.startsWith("/src/")).length,
     contentPaths: window.__RC5FS.list().filter((k) => k.startsWith("/content/")).length,
     wikiPaths: window.__RC5FS.list().filter((k) => k.includes("markdown-wiki")).slice(0, 3),
     wikiRead: (window.__RC5FS.readSync("/content/@tomlarkworthy/markdown-wiki/notebook-programming-concepts.md") || "").slice(0, 60),
