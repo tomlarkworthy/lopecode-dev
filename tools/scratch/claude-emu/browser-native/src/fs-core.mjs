@@ -23,6 +23,10 @@ const claudeJson = JSON.stringify({
     },
   },
   oauthAccount: undefined,
+  // Also declared here, not only on the command line: the channel warning list checks the
+  // *configured* servers (settings scopes) and --mcp-config is not one of them, so a
+  // command-line-only server draws "server:notebook · no MCP server configured with that name".
+  ...(globalThis.__SEED_MCP_URL ? { mcpServers: { notebook: { type: "http", url: globalThis.__SEED_MCP_URL } } } : {}),
   // Gate 2 of the channels chain: mP6() = u8("tengu_harbor", false), and u8 falls back to
   // this map when the Statsig fetch (blocked here) never lands.
   cachedGrowthBookFeatures: { tengu_harbor: true },
@@ -32,6 +36,9 @@ const claudeJson = JSON.stringify({
     approved: [
       "sk-ant-browser-native", "sk-ant-browser-native".slice(-20),
       "sk-ant-mock-key-for-browser-native-poc", "sk-ant-mock-key-for-browser-native-poc".slice(-20),
+      // A key the user pasted this session: pre-approved, or cli.js asks in the TUI
+      // and answers Vw() with source "none" until it is answered.
+      ...(globalThis.__SEED_API_KEY ? [String(globalThis.__SEED_API_KEY).slice(-20)] : []),
     ],
     rejected: [],
   },
@@ -48,15 +55,23 @@ vol.writeFileSync("/home/user/.config/claude.json", claudeJson);
 vol.mkdirSync("/home/user/.claude/statsig", { recursive: true });
 vol.mkdirSync("/home/user/.claude/projects", { recursive: true });
 vol.mkdirSync("/home/user/.claude/todos", { recursive: true });
-// Gate 3: o7() reads claudeAiOauth.accessToken from the plaintext store (platform is "linux",
-// so no keychain). Local-only marker — it authorises nothing, it just clears the channel gate.
+// o7() reads claudeAiOauth from the plaintext store (platform is "linux", so no keychain).
+// Two things read it, and they read different fields:
+//   - the channels gate needs only accessToken to be non-null;
+//   - i7()/xb() count the credential as a *login* only if scopes include "user:inference",
+//     and a login alongside ANTHROPIC_API_KEY raises a permanent "Auth conflict" banner.
+// So a session with a pasted API key seeds the marker with no inference scope: channels
+// still pass, cli.js still authenticates with the key, and no banner appears.
 // No refreshToken, so the refresh path returns early rather than calling a CORS-blocked endpoint.
+const seededToken = globalThis.__SEED_CREDENTIAL || null;
 vol.writeFileSync("/home/user/.claude/.credentials.json", JSON.stringify({
   claudeAiOauth: {
-    accessToken: "browser-native-local-channel",
+    accessToken: seededToken || "browser-native-local-channel",
     refreshToken: null,
     expiresAt: 4102444800000,
-    scopes: ["user:inference"],
+    // "user:profile" is deliberately absent: it makes AD() true, which sends this
+    // credential to the profile/bootstrap endpoints, and the marker is not a real token.
+    scopes: globalThis.__SEED_NO_LOGIN ? [] : ["user:inference"],
     subscriptionType: null,
     rateLimitTier: null,
   },

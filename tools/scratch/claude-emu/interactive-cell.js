@@ -110,9 +110,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // the OAuth token endpoint sends no CORS headers at all, so /login can produce a code
   // it cannot then redeem.
   const ANTHROPIC_NOTE = "Talks to the Anthropic API directly, with no translation. "
-    + "<b>Paste an API key</b>, or an <b>OAuth access token</b> (<code>sk-ant-oat…</code>) copied from a machine where you have already signed in "
-    + "— Claude Code keeps it in <code>~/.claude/.credentials.json</code>. A token is sent as a Bearer credential with the oauth beta, not as an API key. "
-    + "Running <code>/login</code> here produces a real sign-in URL, but the browser blocks the final token exchange (CORS), so the sign-in cannot complete in-page: copy a token instead.";
+    + "<b>Paste an API key</b>, or an <b>account token</b> (<code>sk-ant-oat…</code>) from a machine where you are already signed in — "
+    + "<code>claude setup-token</code> prints one (on macOS the credential itself lives in the Keychain, not in a file). "
+    + "A token is seeded as this session's claude.ai login, so <code>/status</code> shows it and requests go out as a Bearer credential; an API key goes out as <code>x-api-key</code>. "
+    + "Running <code>/login</code> here produces a real sign-in URL, but the browser blocks the final token exchange (CORS), so sign-in cannot complete in-page: paste a token instead.";
   const demoEl = q("cb-demo");
   demoEl.style.display = "";
   demoEl.innerHTML = DEMO_NOTE;
@@ -396,8 +397,24 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     trace("dev-channels-accepted", {});
     ptyIn("\r"); // option 1 is preselected: "I am using this for local development"
   }
+  // /login builds a real sign-in URL but the token exchange is a cross-origin POST to
+  // platform.claude.com, which sends no CORS headers — so it ends in "OAuth error: Network
+  // Error" with nothing in the TUI saying why. Say it here, where there is room.
+  const LOGIN_HELP = "Sign-in cannot finish inside a browser: the token endpoint blocks cross-origin requests. "
+    + "Run `claude setup-token` where you are already signed in, then paste the sk-ant-oat… token in the Anthropic key field.";
+  let loginHelpShown = false;
+  function noticeLoginBlocked() {
+    if (loginHelpShown) return;
+    let screen = "";
+    try { screen = window.__dumpTerm(); } catch { return; }
+    if (!/OAuth error|Failed to (?:exchange|obtain) .*token/i.test(screen)) return;
+    loginHelpShown = true;
+    trace("login-blocked-notice", {});
+    setStatus(LOGIN_HELP);
+  }
   function onParsed() {
     acceptDevChannels();
+    noticeLoginBlocked();
     if (!healing && bufferedLen() > 0 && renderedLen() === 0) healIfBlank();
   }
   function onWedge() { if (!healing) healIfBlank(); }
@@ -748,6 +765,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "  globalThis.__HOSTFS = P.__RC5FS || null;",
 "  // Project memory, seeded before any shim import so cli.js finds it at startup.",
 "  globalThis.__SEED_FILES = P.__CLAUDE_MD ? { '/home/user/project/CLAUDE.md': P.__CLAUDE_MD } : {};",
+"  globalThis.__SEED_MCP_URL = CFG.mcp;",
 "  globalThis.__ptyWrite = (s) => { try { P.__ptyWrite && P.__ptyWrite(s); } catch {} };",
 "  try {",
 "    const urlFor = Object.create(null);",
@@ -771,21 +789,27 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    const im = document.createElement('script'); im.type = 'importmap';",
 "    im.textContent = JSON.stringify({ imports }); document.head.appendChild(im);",
 "    if (CFG.provider === 'anthropic') {",
-"      // Talk the native protocol: no translation, and NO synthetic credential. With no",
-"      // key cli.js sees an unauthenticated Anthropic endpoint and can run its own",
-"      // /login flow, which a fake ANTHROPIC_API_KEY would suppress.",
+"      // Talk the native protocol: no translation. The credential is handed to cli.js in",
+"      // the form it understands rather than swapped in underneath it — the SDK refuses to",
+"      // build a request while it holds neither apiKey nor authToken, and cli.js reports",
+"      // that refusal as 'Not logged in · Please run /login' before the fetch interceptor",
+"      // is ever consulted (measured: the wire then carried no credential at all).",
 "      // NB: no CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC — it makes ya() false, and then",
 "      // u8() short-circuits to the default before it can read cachedGrowthBookFeatures,",
 "      // which is the only way the tengu_harbor channel gate can be satisfied offline.",
-"      // ANTHROPIC_API_KEY is cleared, not merely left unset: the shim env defaults to a",
-"      // mock key, and any key alongside the seeded claude.ai credential raises a permanent",
-"      // 'Auth conflict' banner. The credential goes on the wire from installDirect instead.",
-"      const env = { ANTHROPIC_BASE_URL: CFG.base, ANTHROPIC_API_KEY: '', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '', DISABLE_TELEMETRY: '' };",
-      // The key is NOT put in the environment. cli.js already holds a claude.ai
-"      // credential (seeded so channels work), and a session with both raises a permanent",
-"      // 'Auth conflict' banner telling the user to /logout. The interceptor below puts the",
-"      // real credential on the wire instead — as x-api-key for an API key, or as a Bearer",
-"      // with the oauth beta for an sk-ant-oat… token from an existing Claude account.",
+"      const oat = /^sk-ant-oat/.test(String(CFG.key || ''));",
+"      if (oat) {",
+"        // A real claude.ai login: /status shows it and the channel gate reads a real token.",
+"        globalThis.__SEED_CREDENTIAL = CFG.key;",
+"      } else if (CFG.key) {",
+"        // An API key goes in the environment, where cli.js looks for it, pre-approved so",
+"        // it does not stop to ask. The seeded marker keeps its accessToken (channels) but",
+"        // drops the inference scope, so cli.js does not count it as a second login and",
+"        // raise the permanent 'Auth conflict' banner.",
+"        globalThis.__SEED_API_KEY = CFG.key;",
+"        globalThis.__SEED_NO_LOGIN = true;",
+"      }",
+"      const env = { ANTHROPIC_BASE_URL: CFG.base, ANTHROPIC_API_KEY: (oat ? '' : String(CFG.key || '')), CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '', DISABLE_TELEMETRY: '' };",
 "      globalThis.__ENV_OVERRIDES = env;",
 "      installDirect(CFG.base, CFG.key);",
 "    } else {",
@@ -1255,6 +1279,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       window.__termSize = { cols: term.cols, rows: term.rows };
       window.__cliExit = undefined;
       devChannelsAccepted = false; // each session asks again
+      loginHelpShown = false;
       streamArmed = false;         // a restart re-imports modules; that is not user activity
       window.__frameMsgs = window.__frameMsgs || []; window.__frameMsgs.length = 0;
       window.__frameLog = (m) => { window.__frameMsgs.push(String(m)); };
@@ -1266,7 +1291,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       frame.style.display = "none";
       frame.srcdoc = SRCDOC;
       frameHost().appendChild(frame);
-      frame.addEventListener("load", () => { setTimeout(() => { streamArmed = true; }, 3000); setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
+      frame.addEventListener("load", () => { setTimeout(() => { streamArmed = true; }, 3000); setStatus("Running via " + (prov === "anthropic" ? (/^sk-ant-oat/.test(key) ? "Anthropic (your account token)" : key ? "Anthropic (your API key)" : "Anthropic — no credential, see below") : key ? "OpenRouter (your key)" : "the demo gateway") + (prov === "anthropic" ? "" : " · " + model) + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal.");setTimeout(pushResize, 300); });
       setStatus("Starting interactive session…");
       setTimeout(() => { try { term.focus(); } catch {} }, 120);
     } catch (e) {
