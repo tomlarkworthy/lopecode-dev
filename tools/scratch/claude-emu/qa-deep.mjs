@@ -94,6 +94,68 @@ check("A14 a real cell edit is pushed with its name", await (async () => {
   return (await pushes()).some((c) => /cell upd: motto/.test(c));
 })(), (await pushes()).slice(-2));
 
+// --- /local-disk (synthetic handle: the native picker cannot be driven headlessly,
+// everything downstream of it is the real path)
+const refuseUnmounted = await p.evaluate(() => {
+  try { window.__RC5FS.writeSync("/local-disk/x.txt", "nope"); return "wrote anyway"; } catch (err) { return err.message; }
+});
+check("D1 writing with nothing mounted is refused in-turn", /REFUSED .*no local folder is mounted/.test(refuseUnmounted), refuseUnmounted);
+
+const mkTree = (readonly) => p.evaluate((ro) => {
+  const enc = new TextEncoder();
+  const mk = (name, bytes) => ({ kind: "file", name,
+    getFile: async () => ({ size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }),
+    createWritable: async function () { const self = this; return { write: async (c) => { self.__written = c; }, close: async () => {} }; } });
+  const dir = (name, entries) => ({ kind: "directory", name, __entries: entries,
+    entries: async function* () { for (const e of entries) yield [e.name, e]; },
+    queryPermission: async () => (ro ? "denied" : "granted"),
+    requestPermission: async () => (ro ? "denied" : "granted"),
+    getDirectoryHandle: async (n, o) => { let d = entries.find((e) => e.name === n && e.kind === "directory"); if (!d && o && o.create) { d = dir(n, []); entries.push(d); } return d; },
+    getFileHandle: async (n, o) => { let f = entries.find((e) => e.name === n && e.kind === "file"); if (!f && o && o.create) { f = mk(n, new Uint8Array()); entries.push(f); } return f; } });
+  const tree = dir("qa-project", [
+    mk("README.md", enc.encode("# qa project\n")),
+    mk("logo.png", new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe])),
+    mk("huge.txt", enc.encode("x".repeat(600 * 1024))),
+    dir("src", [mk("index.js", enc.encode("export const answer = 42;\n"))]),
+    dir("node_modules", [mk("junk.js", enc.encode("nope"))]),
+  ]);
+  window.__QA_TREE = tree;
+  return window.__mountLocalDisk(tree);
+}, readonly);
+
+const m1 = await mkTree(false);
+check("D2 mount indexes text and skips the rest", m1.files === 2 && m1.skipped === 2 && !m1.readonly, m1);
+check("D3 node_modules is not walked", !(await p.evaluate(() => window.__RC5FS.list().some((x) => x.includes("node_modules")))));
+const wrote2 = await p.evaluate(async () => {
+  window.__RC5FS.writeSync("/local-disk/src/new.txt", "hello disk\n");
+  await new Promise((r) => setTimeout(r, 400));
+  const src = window.__QA_TREE.__entries.find((e) => e.name === "src");
+  return (src.__entries.find((e) => e.name === "new.txt") || {}).__written || null;
+});
+check("D4 a write reaches the real file handle", wrote2 === "hello disk\n", wrote2);
+
+// restart: the mount and the stream must both survive it
+await p.evaluate(() => window.__autostart());
+await p.waitForFunction(() => window.__termHealth && window.__termHealth().renderedChars > 0, { timeout: 90000 }).catch(() => {});
+await sleep(9000);
+const inside = await p.evaluate(() => {
+  const fs = document.querySelector("#cb-cli-frame").contentWindow.__REG.fs;
+  try { return { ls: fs.readdirSync("/local-disk"), md: /local-disk/.test(fs.readFileSync("/home/user/project/CLAUDE.md", "utf8")) }; }
+  catch (err) { return { ls: "ERR " + err.message }; }
+});
+check("D5 the mount survives a restart and is listable in-session", Array.isArray(inside.ls) && inside.ls.includes("README.md"), inside);
+check("D6 the session's memory tells it about the mount", inside.md === true);
+const beforeR = (await pushes()).length;
+await addModule("@qa/after-restart");
+await sleep(8000);
+check("D7 the change stream re-arms after a restart", (await pushes()).length > beforeR, (await pushes()).slice(beforeR));
+
+const ro = await mkTree(true);
+const refuseRo = await p.evaluate(() => {
+  try { window.__RC5FS.writeSync("/local-disk/README.md", "nope"); return "wrote anyway"; } catch (err) { return err.message; }
+});
+check("D8 a read-only mount refuses writes in-turn", ro.readonly === true && /REFUSED .*read-only/.test(refuseRo), refuseRo);
+
 // --- health after all that
 const h = await p.evaluate(() => window.__termHealth());
 check("C1 terminal never wedged", h.wedges === 0 && h.renderedChars > 0, { wedges: h.wedges, chars: h.renderedChars, instances: h.instances });
