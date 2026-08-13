@@ -95,6 +95,17 @@ const paintOk = !!health && health.renderedChars > 0 && health.wedges === 0;
 const painted = { renderedChars: health?.renderedChars, bufferedChars: health?.bufferedChars };
 console.log("term health:", JSON.stringify(health));
 
+// ---- STEP 1b: dev-channels confirmation ----
+// cli.js asks on every launch that carries --dangerously-load-development-channels and
+// there is no persisted opt-out, so the session sits on this dialog until it is answered.
+console.log("\n== dev-channels dialog ==");
+await page.click("#cb-term");
+await sleep(400);
+const devDialog = /development channels/i.test(await dump());
+if (devDialog) { await page.keyboard.press("Enter"); await sleep(3000); }
+const channelsRegistered = /Listening for channel messages/i.test(await dump());
+console.log("dialog shown:", devDialog, "| channels registered:", channelsRegistered);
+
 const FLAG = "--dangerously-skip-permissions";
 const yoloOn = await readArgv();
 // cli.js refuses the flag as root; our shim reports uid 1000, so this must NOT appear.
@@ -135,6 +146,19 @@ const chatOk = roundtrip && (bananaCount >= 2 || /⏺|●\s|Claude/i.test(chatBu
 console.log("chat round-trip:", roundtrip, "| BANANA x", bananaCount, "| openrouter hits:", openrouterHits.length);
 console.log("---- chat buffer ----\n" + chatBuf + "\n---------------------");
 await page.screenshot({ path: HERE + "/nb-4-chat.png" }).catch(() => {});
+
+// ---- STEP 3b: a notebook-pushed channel message reaches the session ----
+// The notebook talks to a session nobody is typing into: the message must appear as an
+// inbound channel line, not as something the test typed.
+console.log("\n== channel push ==");
+const notifySent = await page.evaluate(() => window.__NBNOTIFY("boot test says hello", { type: "boot_test" }));
+await sleep(4000);
+const chanBuf = await dump();
+const channelDelivered = /notebook: boot test says hello/i.test(chanBuf);
+console.log("notify enqueued:", notifySent, "| delivered to session:", channelDelivered);
+await page.keyboard.press("Escape"); // stop the turn it induced
+await sleep(1200);
+const channelOk = channelsRegistered && notifySent && channelDelivered;
 
 // ---- STEP 4: rc5 fs adapter ----
 console.log("\n== rc5 fs adapter test ==");
@@ -289,13 +313,14 @@ console.log("rc5 fs backed by modules:", fsOk);
 console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
 console.log("write paths (3 routes + compile refusal):", writesOk, JSON.stringify(writes));
 console.log("project memory (CLAUDE.md + every indexed doc present):", memOk, JSON.stringify(mem));
+console.log("channel push (registered + delivered unprompted):", channelOk, JSON.stringify({ devDialog, channelsRegistered, notifySent, channelDelivered }));
 console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
 console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));
 console.log("console errors (fatal, filtered):", JSON.stringify(fatal.slice(0, 12)));
 console.log("console errors (total):", consoleErrs.length);
-const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && writesOk && yoloOk && mcpOk && anthOk && memOk;
+const GO = boot.ok && paintOk && help.ok && chatOk && fsOk && writesOk && yoloOk && mcpOk && anthOk && memOk && channelOk;
 console.log("VERDICT:", GO ? "GO" : "NO-GO");
 console.log("=================================================");
 

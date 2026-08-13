@@ -23,6 +23,9 @@ const claudeJson = JSON.stringify({
     },
   },
   oauthAccount: undefined,
+  // Gate 2 of the channels chain: mP6() = u8("tengu_harbor", false), and u8 falls back to
+  // this map when the Statsig fetch (blocked here) never lands.
+  cachedGrowthBookFeatures: { tengu_harbor: true },
   // cli.js normalises a key to its last-20-chars (VE(k)=k.slice(-20)) before the
   // approved-list check, so the stored form must be that suffix.
   customApiKeyResponses: {
@@ -45,6 +48,19 @@ vol.writeFileSync("/home/user/.config/claude.json", claudeJson);
 vol.mkdirSync("/home/user/.claude/statsig", { recursive: true });
 vol.mkdirSync("/home/user/.claude/projects", { recursive: true });
 vol.mkdirSync("/home/user/.claude/todos", { recursive: true });
+// Gate 3: o7() reads claudeAiOauth.accessToken from the plaintext store (platform is "linux",
+// so no keychain). Local-only marker — it authorises nothing, it just clears the channel gate.
+// No refreshToken, so the refresh path returns early rather than calling a CORS-blocked endpoint.
+vol.writeFileSync("/home/user/.claude/.credentials.json", JSON.stringify({
+  claudeAiOauth: {
+    accessToken: "browser-native-local-channel",
+    refreshToken: null,
+    expiresAt: 4102444800000,
+    scopes: ["user:inference"],
+    subscriptionType: null,
+    rateLimitTier: null,
+  },
+}));
 vol.writeFileSync("/home/user/project/README.md", "# project\n\nA scratch project for the browser-native Claude Code session.\n");
 
 // Files the host seeds before boot (project memory built from the notebook's own docs).
