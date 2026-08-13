@@ -1,6 +1,6 @@
 // What does "fork" actually produce, and does the terminal work inside the fork?
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await chromium.launch({ headless: true });
 const ctx = await b.newContext({ viewport: { width: 1200, height: 900 } });

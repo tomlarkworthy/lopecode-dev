@@ -1,7 +1,7 @@
 // QA with a real agent in the loop: the change stream and the compile refusal are only
 // worth anything if the model in the terminal acts on them.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 const check = (n, ok, d) => { results.push({ n, ok: !!ok }); console.log((ok ? "PASS" : "FAIL") + "  " + n + (d !== undefined ? "  " + JSON.stringify(d).slice(0, 300) : "")); };

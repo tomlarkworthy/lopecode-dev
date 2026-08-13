@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const HASH = process.env.HASH || "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))";
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1100, height: 800 } });

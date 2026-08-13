@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 
 const HERE = "/Users/tom.larkworthy/dev/lopecode-dev/tools/scratch/claude-emu";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 // No key by default: exercise the demo-gateway path users actually get.
 // KEY=direct uses or-key.txt to test the bring-your-own-key path instead.
 const KEY = process.env.KEY === "direct" ? readFileSync(HERE + "/or-key.txt", "utf8").trim() : "";

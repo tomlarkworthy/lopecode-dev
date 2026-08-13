@@ -1,7 +1,7 @@
 // Can the browser redeem an OAuth code? Send a deliberately invalid one: a 4xx means
 // CORS allows the exchange, a TypeError means the browser blocked it outright.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage();
 await p.goto("file://" + NB + "#view=S100(@tomlarkworthy/claude-code-browser)", { waitUntil: "load", timeout: 60000 });

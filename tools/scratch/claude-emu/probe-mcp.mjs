@@ -1,7 +1,7 @@
 // Why doesn't cli.js call the in-page MCP endpoint? Boot, ask the TUI itself (/mcp),
 // and dump the frame's log.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const HASH = "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await chromium.launch({ headless: true });

@@ -1,7 +1,7 @@
 // /local-disk end to end. The native picker cannot be driven headlessly, so the handle is
 // synthetic — everything downstream of showDirectoryPicker() is the real code path.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1200, height: 900 } });

@@ -2,7 +2,7 @@
 // gateway, ship NO key of its own, offer only models the gateway can serve, and boot a
 // session anyway. Complements boot-test-notebook.mjs, which drives a full session.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1100, height: 720 } });
 await p.goto("file://" + NB + "#view=S100(@tomlarkworthy/claude-code-browser)", { waitUntil: "load", timeout: 60000 });

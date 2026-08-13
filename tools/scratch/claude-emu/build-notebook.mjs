@@ -1,4 +1,4 @@
-// Build lopebooks/notebooks/claude-code-browser.html: a lopecode NOTEBOOK that runs
+// Build lopebooks/notebooks/Caged_Code.html: a lopecode NOTEBOOK that runs
 // the real Claude Code cli.js v2.1.112 browser-native as a FULL INTERACTIVE TUI in
 // an xterm.js terminal, with cli.js's filesystem backed by the notebook's own modules
 // (robocoop-5 VFS via __HOSTFS -> __RC5FS).
@@ -21,7 +21,7 @@ const here = "/Users/tom.larkworthy/dev/lopecode-dev/tools/scratch/claude-emu";
 const HARNESS = here + "/browser-native";
 const CELL_SRC = here + "/interactive-cell.js";
 const DONOR = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/linux-claude.html";
-const OUT = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const OUT = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 
 const MODULE_ID = "@tomlarkworthy/claude-code-browser";
 

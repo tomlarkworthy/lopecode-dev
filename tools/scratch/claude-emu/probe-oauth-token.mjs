@@ -1,7 +1,7 @@
 // Does api.anthropic.com accept an OAuth access token from a browser at all? Send a
 // bogus one both ways; the two rejections say whether the route is even open.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage();
 await p.goto("file://" + NB + "#view=S100(@tomlarkworthy/claude-code-browser)", { waitUntil: "load", timeout: 60000 });

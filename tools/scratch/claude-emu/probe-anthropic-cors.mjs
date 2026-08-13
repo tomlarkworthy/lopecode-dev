@@ -1,7 +1,7 @@
 // Does api.anthropic.com answer a browser at all? A 401 means CORS let us through
 // (auth is a separate matter); "Failed to fetch" means the browser blocked it.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage();
 await p.goto("file://" + NB + "#view=S100(@tomlarkworthy/claude-code-browser)", { waitUntil: "load", timeout: 60000 });

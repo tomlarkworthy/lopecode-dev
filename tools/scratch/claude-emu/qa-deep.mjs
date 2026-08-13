@@ -1,7 +1,7 @@
 // Deep QA of the pairing surface: the change stream (arming, fidelity, coalescing,
 // self-suppression, the toggle) and the MCP tools. Deterministic — no model turns.
 import { chromium } from "playwright";
-const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/claude-code-browser.html";
+const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); console.log((ok ? "PASS" : "FAIL") + "  " + name + (detail !== undefined ? "  " + JSON.stringify(detail) : "")); };
