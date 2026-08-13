@@ -9,12 +9,15 @@
  *   node tools/lope-jumpgate.js --source @tomlarkworthy/exporter-2 --output path/to/output.html
  *
  * Options:
- *   --source <name>      Observable notebook shorthand (required)
- *   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
+ *   --source <name>      Observable notebook shorthand (default: from the existing spec's bootconf mains)
+ *   --frame <name>       Frame notebook shorthand (default: from the existing spec's bootconf mains,
+ *                        else @tomlarkworthy/lopepage)
  *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
  *   --output <path>      Where to write the exported HTML (required)
- *   --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
+ *   --hash <hash>        Hash for bootconf (default: read from the existing spec, or side-panel layout)
  *   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec)
+ *   --no-carry-mains     Don't derive frame/sources from the existing spec's bootconf mains
+ *   --dry-run            Print the resolved frame/sources/mains as JSON and exit
  *   --timeout <ms>       Max wait for export (default: 120000)
  *   --headed             Show browser for debugging
  *   --verbose            Show browser console logs
@@ -43,6 +46,9 @@ function parseArgs(argv) {
     timeout: 120000,
     headed: false,
     verbose: false,
+    carryMains: true,
+    frameExplicit: false,
+    dryRun: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -52,6 +58,11 @@ function parseArgs(argv) {
       options.source = options.source ? `${options.source},${next}` : next;
     } else if (arg === '--frame' && args[i + 1]) {
       options.frame = args[++i];
+      options.frameExplicit = true;
+    } else if (arg === '--no-carry-mains') {
+      options.carryMains = false;
+    } else if (arg === '--dry-run') {
+      options.dryRun = true;
     } else if (arg === '--jumpgate' && args[i + 1]) {
       options.jumpgate = args[++i];
     } else if (arg === '--output' && args[i + 1]) {
@@ -74,15 +85,22 @@ Usage:
   node tools/lope-jumpgate.js --source <name> --output <path> [options]
 
 Options:
-  --source <name>      Observable notebook shorthand, e.g. @tomlarkworthy/exporter-2 (required).
+  --source <name>      Observable notebook shorthand, e.g. @tomlarkworthy/exporter-2.
                        Repeat --source or comma-separate to embed multiple primaries
                        in one bundle (--source @a/b --source @a/c, or --source @a/b,@a/c).
                        The first source is the primary (used for filename, title, default hash).
-  --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage)
+                       Optional when --output names a notebook with an existing .json
+                       spec: the remaining sources are then read from its bootconf mains.
+  --frame <name>       Frame notebook shorthand (default: the lopepage variant recorded in
+                       the spec's bootconf mains, else @tomlarkworthy/lopepage)
   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
   --output <path>      Where to write the exported HTML (required)
-  --hash <hash>        Hash for bootconf (default: read from existing spec, or side-panel layout)
+  --hash <hash>        Hash for bootconf (default: read from the existing spec, or side-panel layout)
   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec or none)
+  --no-carry-mains     Don't derive frame/sources from the spec's bootconf mains. Use when
+                       deliberately narrowing what a notebook boots, or to export one
+                       source at a time when a multi-source run hits Observable's rate limit.
+  --dry-run            Print the resolved frame/sources/mains as JSON and exit
   --timeout <ms>       Max wait for export (default: 120000)
   --headed             Show browser for debugging
   --verbose            Show browser console logs
@@ -111,6 +129,21 @@ function log(msg) {
   process.stderr.write(`[lope-jumpgate] ${msg}\n`);
 }
 
+function readSpec(specPath) {
+  if (!fs.existsSync(specPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+  } catch (e) {
+    log(`Warning: failed to read existing spec: ${e.message}`);
+    return null;
+  }
+}
+
+// Which main is the frame. lopepage/lopepage-2 are the only frames in the corpus.
+function isFrameModule(name) {
+  return /(^|\/)lopepage(-\d+)?$/.test(name);
+}
+
 async function fetchObservableMetadata(observableUrl) {
   const prefix = 'https://observablehq.com/';
   if (!observableUrl.startsWith(prefix)) return null;
@@ -129,10 +162,6 @@ async function fetchObservableMetadata(observableUrl) {
 async function main() {
   const options = parseArgs(process.argv);
 
-  if (!options.source) {
-    console.error('Error: --source is required');
-    process.exit(1);
-  }
   if (!options.output) {
     console.error('Error: --output is required');
     process.exit(1);
@@ -151,9 +180,43 @@ async function main() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const sources = options.source.split(',').map(s => s.trim()).filter(Boolean);
+  // What the notebook currently boots. The sidecar's bootconf is kept in step with the
+  // HTML by the spec-sync pre-commit hook (`bun tools/lope-sync.ts spec-sync`).
+  const specPath = outputPath.replace(/\.html$/, '.json');
+  const spec = readSpec(specPath);
+  const priorBootconf = spec?.bootconf ?? null;
+  if (priorBootconf) {
+    log(`Prior bootconf: mains=${JSON.stringify(priorBootconf.mains ?? null)}`);
+  }
+
+  // Frame + sources: --flag > prior bootconf mains > defaults. An explicit --source stays
+  // primary (it drives title and the default hash); recorded mains are appended after it.
+  const sources = (options.source ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  const priorMains = options.carryMains && Array.isArray(priorBootconf?.mains)
+    ? priorBootconf.mains
+    : [];
+  if (priorMains.length && !options.frameExplicit) {
+    const frames = priorMains.filter(isFrameModule);
+    if (frames.length === 1) {
+      options.frame = frames[0];
+      log(`Using frame from prior bootconf: ${options.frame}`);
+    } else if (frames.length > 1) {
+      log(`Warning: prior bootconf records ${frames.length} frames (${frames.join(', ')}); keeping --frame ${options.frame}`);
+    }
+  }
+  const frameName = toNotebookName(toFullUrl(options.frame));
+  if (priorMains.length) {
+    // Frames are never carried as sources — an explicit --frame swaps the recorded one out.
+    const carried = priorMains.filter(
+      name => !isFrameModule(name) && !sources.some(s => toNotebookName(toFullUrl(s)) === name)
+    );
+    if (carried.length) {
+      sources.push(...carried);
+      log(`Carrying ${carried.length} main(s) from prior bootconf: ${carried.join(', ')}`);
+    }
+  }
   if (sources.length === 0) {
-    console.error('Error: --source is required');
+    console.error('Error: --source is required (no spec bootconf mains to derive it from)');
     process.exit(1);
   }
   const sourceUrls = sources.map(toFullUrl);
@@ -162,24 +225,16 @@ async function main() {
   const primaryNotebook = sourceNotebooks[0];
   const frameUrl = toFullUrl(options.frame);
 
-  // Resolve hash and theme: --flag > existing spec > defaults
+  // Resolve hash and theme: --flag > prior bootconf > defaults.
   let hash = options.hash;
   let theme = options.theme;
-  const specPath = outputPath.replace(/\.html$/, '.json');
-  if ((!hash || !theme) && fs.existsSync(specPath)) {
-    try {
-      const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
-      if (!hash && spec.bootconf?.hash) {
-        hash = spec.bootconf.hash;
-        log(`Using hash from existing spec: ${hash}`);
-      }
-      if (!theme && spec.bootconf?.theme) {
-        theme = spec.bootconf.theme;
-        log(`Using theme from existing spec: ${theme}`);
-      }
-    } catch (e) {
-      log(`Warning: failed to read existing spec: ${e.message}`);
-    }
+  if (!hash && priorBootconf?.hash) {
+    hash = priorBootconf.hash;
+    log(`Using hash from prior bootconf: ${hash}`);
+  }
+  if (!theme && priorBootconf?.theme) {
+    theme = priorBootconf.theme;
+    log(`Using theme from prior bootconf: ${theme}`);
   }
   if (!hash) {
     hash = `#view=${encodeURI(
@@ -201,6 +256,19 @@ async function main() {
   log(`Frame: ${frameUrl}`);
   log(`Jumpgate: ${jumpgatePath}`);
   log(`Output: ${outputPath}`);
+
+  if (options.dryRun) {
+    // The mains the export would declare, in the order the jumpgate builds them.
+    // Deduped because the jumpgate keys them into a Map.
+    process.stdout.write(JSON.stringify({
+      frame: frameName,
+      sources: sourceNotebooks,
+      mains: [...new Set([frameName, ...sourceNotebooks])],
+      hash,
+      theme: theme ?? null,
+    }, null, 2) + '\n');
+    process.exit(0);
+  }
 
   // Launch browser
   const browser = await chromium.launch({
