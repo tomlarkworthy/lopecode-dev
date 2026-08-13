@@ -189,10 +189,16 @@ const writes = await page.evaluate(async () => {
   fs.renameSync("/src/@wtest/.tmp", "/src/@wtest/rename.js");
   await new Promise((r) => setTimeout(r, 1500));
   const seen = (n) => (window.__RC5FS.readSync("/src/@wtest/" + n + ".js") || "").length > 0;
-  return { sync: seen("sync"), promises: seen("promises"), rename: seen("rename") };
+  // A module that will not compile must be REFUSED loudly: cli.js turns the throw into a
+  // failed Write in the same turn. Silently dropping it is the bug this guards.
+  let refusal = null;
+  try { fs.writeFileSync("/src/@wtest/broken.js", 'export default function define(runtime, observer){const main=runtime.module();return main;'); }
+  catch (e) { refusal = String(e.message).slice(0, 60); }
+  return { sync: seen("sync"), promises: seen("promises"), rename: seen("rename"), refusal,
+           brokenKeptOnDisk: (fs.readFileSync("/src/@wtest/broken.js", "utf8") || "").length > 0 };
 });
 console.log("write paths reaching the notebook:", JSON.stringify(writes));
-const writesOk = writes.sync && writes.promises && writes.rename;
+const writesOk = writes.sync && writes.promises && writes.rename && /FAILED TO COMPILE/.test(writes.refusal || "") && writes.brokenKeptOnDisk;
 
 // ---- STEP 4b: the in-page pairing channel (notebook MCP server) ----
 console.log("\n== pairing: notebook MCP server ==");
@@ -281,7 +287,7 @@ console.log("/help UI:", help.ok);
 console.log("chat streamed:", chatOk);
 console.log("rc5 fs backed by modules:", fsOk);
 console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
-console.log("write paths (writeFileSync / promises / rename):", writesOk, JSON.stringify(writes));
+console.log("write paths (3 routes + compile refusal):", writesOk, JSON.stringify(writes));
 console.log("project memory (CLAUDE.md + every indexed doc present):", memOk, JSON.stringify(mem));
 console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);

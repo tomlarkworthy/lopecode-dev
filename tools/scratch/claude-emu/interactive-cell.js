@@ -450,6 +450,33 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       return null;
     } catch { return null; }
   }
+  // Build the define function SYNCHRONOUSLY, so a compile error is raised during the
+  // write rather than inside a promise nobody awaits. `export default function define`
+  // becomes `return function define`, which `new Function` can compile without an
+  // import(); the cell consts above it stay in scope as the closure they already are.
+  // Returns null when the source is not that shape, so the caller falls back to import().
+  function defineFromSource(src) {
+    if (/^\s*import\s/m.test(src)) return null; // real top-level imports need the async path
+    const body = src.replace(/^\s*export\s+default\s+function\s+define/m, "return function define");
+    if (body === src) return null;
+    return new Function(body)();
+  }
+  // Throws on failure: fs.writeFileSync propagates it, so cli.js reports the Write as
+  // failed in the SAME turn — which is what the session prompt promises. The file keeps
+  // the agent's exact text either way; only the live runtime is left untouched.
+  function applyModuleSrcSync(id, src) {
+    let def;
+    try { def = defineFromSource(src); }
+    catch (e) { throw new Error("FAILED TO COMPILE " + id + ": " + (e && e.message || e)); }
+    if (!def) { applyModuleSrc(id, src); return; } // not our shape: async fallback, no verdict
+    let r = null;
+    try { r = applyCore(id, def); }
+    catch (e) { throw new Error("FAILED TO APPLY " + id + ": " + (e && e.message || e)); }
+    def.src = src;
+    rc5_store.srcFns.set(id, def);
+    if (!(r && r.applied)) throw new Error("FAILED TO APPLY " + id + ": the runtime did not accept the module");
+  }
+
   async function applyModuleSrc(id, src) {
     const u = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
     let mod = null;
@@ -493,7 +520,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
         if (path.includes("/.claude") || path.startsWith("/home") || path.startsWith("/root")) return;
         cache[path] = content;
         const m = path.match(MODULE_PATH);
-        if (m) { applyModuleSrc(m[1], content); }
+        if (m) { applyModuleSrcSync(m[1], content); }
         else rc5_store.scratch.set(path, content);
       },
       exists(path) {
@@ -844,7 +871,12 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "notebook blocks, including the knowledge docs indexed at the end of this file.",
     "",
     "There is no operating system under you: no shell, no git, no npm, and sockets are inert.",
-    "Editing `/src/<module-id>.js` applies to the running notebook immediately.",
+    "Editing `/src/<module-id>.js` applies to the running notebook immediately. A module",
+    "that does not compile is REFUSED: the write fails in the same turn with",
+    "`FAILED TO COMPILE <id>: <error>`, the file keeps your exact text, and the live",
+    "runtime is left untouched — fix it and write again. That check is syntactic only, so",
+    "a module can compile and still have cells that ERROR when they run; the write says",
+    "nothing about that. Check a cell's live value with the `eval_js` MCP tool.",
     "",
     "",
   ].join("\n");

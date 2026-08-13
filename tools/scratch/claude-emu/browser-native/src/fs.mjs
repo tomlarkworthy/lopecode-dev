@@ -79,12 +79,14 @@ if (hostfs && typeof hostfs === "object") {
   };
 
   // 3) writes update memfs (the sync cache) AND write through to the host
+  // The host may REFUSE a write (a module that will not compile). That refusal is the
+  // agent's feedback channel, so it propagates: cli.js surfaces it as a failed Write in
+  // the same turn. memfs keeps the text either way, so the file still reads back as
+  // written and only the live runtime is left untouched.
   fs.writeFileSync = function (path, data, opts) {
     _writeFileSync(path, data, opts);
     const p = typeof path === "string" ? path : (path && path.toString ? path.toString() : path);
-    if (typeof p === "string" && typeof hostfs.writeSync === "function") {
-      try { hostfs.writeSync(p, toStr(data)); } catch (e) { console.warn("[fs] hostfs writeSync failed:", e && e.message); }
-    }
+    if (typeof p === "string" && typeof hostfs.writeSync === "function") hostfs.writeSync(p, toStr(data));
   };
 
   // 3b) every OTHER way a file can land. cli.js's Write tool does not call
@@ -99,7 +101,7 @@ if (hostfs && typeof hostfs === "object") {
     if (typeof p !== "string" || typeof hostfs.writeSync !== "function") return;
     let v = null;
     try { v = _readFileSync(p, "utf8"); } catch { return; }
-    try { hostfs.writeSync(p, String(v)); } catch (e) { console.warn("[fs] hostfs writeSync failed:", e && e.message); }
+    hostfs.writeSync(p, String(v)); // refusals propagate — see writeFileSync above
   };
   fs.renameSync = function (from, to) { const r = _renameSync(from, to); through(to); return r; };
   fs.appendFileSync = function (path, data, opts) { const r = _appendFileSync(path, data, opts); through(path); return r; };
