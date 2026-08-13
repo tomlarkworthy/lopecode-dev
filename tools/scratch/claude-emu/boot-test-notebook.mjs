@@ -242,7 +242,8 @@ const mcp = await page.evaluate(async () => {
   return { handshake: log.filter((l) => l.ev === "initialize").length, listedMethods: [...new Set(log.map((l) => l.ev))], tools, listed, wrote, read, evaled };
 });
 console.log("mcp:", JSON.stringify(mcp));
-const mcpOk = mcp.handshake > 0 && mcp.tools.length === 4 && typeof mcp.listed === "number" && mcp.wrote && mcp.wrote.ok === true && mcp.evaled === 2;
+const EXPECTED_TOOLS = ["list_modules", "read_module", "write_module", "notebook_events", "eval_js"];
+const mcpOk = mcp.handshake > 0 && EXPECTED_TOOLS.every((t) => mcp.tools.includes(t)) && typeof mcp.listed === "number" && mcp.wrote && mcp.wrote.ok === true && mcp.evaled === 2;
 
 // ---- STEP 4c: project memory + the knowledge docs it indexes ----
 console.log("\n== project memory ==");
@@ -313,7 +314,7 @@ console.log("Anthropic mode (base switched, no synthetic key):", anthOk);
 console.log("write paths (3 routes + compile refusal):", writesOk, JSON.stringify(writes));
 console.log("project memory (CLAUDE.md + every indexed doc present):", memOk, JSON.stringify(mem));
 console.log("channel push (registered + delivered unprompted):", channelOk, JSON.stringify({ devDialogAuto, channelsRegistered, notifySent, channelDelivered }));
-console.log("pairing MCP (handshake + 4 tools live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, methods: mcp.listedMethods }));
+console.log("pairing MCP (handshake + every tool live):", mcpOk, JSON.stringify({ handshake: mcp.handshake, tools: mcp.tools, methods: mcp.listedMethods }));
 console.log("YOLO toggle (default on / off when unchecked):", yoloOk);
 console.log("upstream:", KEY ? "openrouter.ai (key)" : "demo gateway (no key)");
 console.log("OpenRouter POSTs:", JSON.stringify(openrouterHits), "| gateway hits:", JSON.stringify(gatewayHits));

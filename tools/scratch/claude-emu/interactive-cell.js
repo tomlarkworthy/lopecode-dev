@@ -63,6 +63,9 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "  <label style='display:flex;gap:6px;align-items:center;cursor:pointer' title='--dangerously-skip-permissions. Safe here: the filesystem is this notebook&#39;s own modules, subprocesses fail gracefully and sockets are inert.'>",
     "    <input id='cb-yolo' type='checkbox' style='margin:0'> YOLO mode <span style='opacity:.6'>(skip permission prompts)</span>",
     "  </label>",
+    "  <label style='display:flex;gap:6px;align-items:center;cursor:pointer' title='Push a channel message into the session when cells or modules change in the notebook'>",
+    "    <input id='cb-notify' type='checkbox' checked style='margin:0'> Notify session of edits",
+    "  </label>",
     "  <button id='cb-mount' title='Pick a folder on this machine and map it into the session at /local-disk' style='font:inherit;font-size:12px;padding:4px 10px;border:1px solid #555;border-radius:5px;background:#2a2a2a;color:#eee;cursor:pointer'>Mount a local folder…</button>",
     "  <span id='cb-mount-status' style='opacity:.6'>/local-disk: nothing mounted</span>",
     "</div>",
@@ -74,7 +77,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   const q = (id) => root.querySelector("#" + id);
   const keyEl = q("cb-key"), modelEl = q("cb-model"),
         restartEl = q("cb-restart"), statusEl = q("cb-status"), termHost = q("cb-term"),
-        yoloEl = q("cb-yolo"), providerEl = q("cb-provider"), urlEl = q("cb-url");
+        yoloEl = q("cb-yolo"), providerEl = q("cb-provider"), urlEl = q("cb-url"), notifyEl = q("cb-notify");
   try { providerEl.value = localStorage.getItem(PROVIDER_LS) || "openrouter"; } catch {}
   const provider = () => (providerEl.value === "anthropic" ? "anthropic" : "openrouter");
   // Blank means "whatever this provider defaults to", so the field can always be
@@ -493,6 +496,8 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     catch (e) { throw new Error("FAILED TO APPLY " + id + ": " + (e && e.message || e)); }
     def.src = src;
     rc5_store.srcFns.set(id, def);
+    selfApplyUntil = Date.now() + 2500; // its own edit is already reported as module_applied
+    selfCreated.set(id, Date.now());
     try { window.__NBNOTIFY("module " + id + " applied to the live runtime", { type: "module_applied", module: id }); } catch {}
     if (!(r && r.applied)) throw new Error("FAILED TO APPLY " + id + ": the runtime did not accept the module");
   }
@@ -961,6 +966,103 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // this is what fills the gap when no token was supplied.
   const MCP_URL = "http://notebook.local/mcp";
   window.__MCPLOG = [];
+
+  // ---- the notebook's change stream, forwarded into the session ----
+  // An externally paired Claude gets cell edits from cc_change_forwarder (which polls
+  // `viewof history` every second and streams them over the socket). The in-page agent
+  // got none of that: it was told about its OWN writes and nothing else, so when the user
+  // edited a cell it could only re-derive the state by hand. Measured on a real session:
+  // 500 lines of eval_js introspection chasing an event that was never sent.
+  // Same source as the external forwarder, observed instead of polled.
+  const events = [];            // ring buffer; notebook_events reads it
+  let pendingEv = [], flushT = null, lastPush = 0, selfApplyUntil = 0;
+  // Booting the page is not news. Measured: a fresh session pushed "cell del _59vo1b"
+  // twice (both really in the notebook's history, 21ms apart) and three "module added"
+  // lines for modules THIS cell imports to build CLAUDE.md — an agent woken up to be told
+  // about its own startup. Baselines keep updating while disarmed, so nothing is
+  // mistaken for new later; only reporting waits.
+  let streamArmed = false;
+  const PUSH_GAP = 5000;        // each push costs the session a turn, so bursts coalesce
+  function recordEvent(ev) {
+    if (!streamArmed) return;
+    events.push(ev);
+    if (events.length > 200) events.shift();
+    pendingEv.push(ev);
+    if (!flushT) {
+      const wait = Math.max(1200, PUSH_GAP - (Date.now() - lastPush));
+      flushT = setTimeout(() => { flushT = null; flushEvents(); }, wait);
+    }
+  }
+  function flushEvents() {
+    // Kept in the buffer either way — only the push is suppressed, so a pull still sees
+    // everything that happened while the agent was writing.
+    // An unnamed delete is runtime churn, not an edit — this notebook emits the same
+    // anonymous `del _59vo1b` every time the change listener runs, which as a push reads
+    // like the user deleting something over and over. Kept in the buffer, never pushed.
+    const batch = pendingEv.filter((e) =>
+      !(e.t <= selfApplyUntil && e.kind.startsWith("cell")) && !(e.kind === "cell del" && !e.named));
+    pendingEv = [];
+    if (!batch.length) return;
+    if (!(notifyEl && notifyEl.checked)) return;
+    lastPush = Date.now();
+    const by = new Map();
+    for (const e of batch) { if (!by.has(e.kind)) by.set(e.kind, []); by.get(e.kind).push(e); }
+    const parts = [];
+    for (const [kind, list] of by) {
+      const names = [...new Set(list.map((e) => e.what))];
+      const shown = names.slice(0, 6);
+      parts.push(kind + ": " + shown.join(", ") + (names.length > shown.length ? " (+" + (names.length - shown.length) + " more)" : ""));
+    }
+    window.__NBNOTIFY(parts.join(" · ") + " — call notebook_events for the source",
+      { type: "notebook_change", count: String(batch.length) });
+  }
+
+  let historyMark = null, watching = false;
+  async function watchNotebookChanges() {
+    if (watching) return;
+    watching = true;
+    const def = (await D().importShim("/@tomlarkworthy/local-change-history.js?v=4")).default;
+    // Same module instance the notebook already booted (identity is the define function),
+    // so this observes the live history rather than starting a second one.
+    D().runtime.module(def).variable({ fulfilled: onHistory, rejected: () => {} })
+      .define(null, ["history"], (h) => h);
+    const mm = (await D().importShim("/@tomlarkworthy/module-map.js?v=4")).default;
+    D().runtime.module(mm).variable({ fulfilled: onModules, rejected: () => {} })
+      .define(null, ["currentModules"], (cm) => cm);
+  }
+  function onHistory(h) {
+    if (!Array.isArray(h)) return;
+    if (historyMark === null) { historyMark = h.length; return; } // boot state is not news
+    if (h.length > historyMark) {
+      for (const e of h.slice(historyMark)) {
+        recordEvent({ t: e.t || Date.now(), kind: "cell " + (e.op || "change"),
+          what: e._name || e.pid || "(anonymous)", named: !!e._name, module: e.module,
+          inputs: e._inputs || [], source: String(e._definition || "").slice(0, 400) });
+      }
+    }
+    historyMark = h.length;
+  }
+  // Modules appearing and disappearing must be read from module-map's own
+  // currentModules, not from this cell's dependency value: the singleton returns early on
+  // re-render, so the diff only ran when something else happened to re-render the cell.
+  // Measured: 13 module additions sat undetected until an unrelated write woke the cell,
+  // then arrived as one late batch that also named modules created minutes earlier.
+  let knownModules = null;
+  const selfCreated = new Map(); // module id -> t, so the agent's own module is not news
+  function onModules(cm) {
+    const names = new Set();
+    try { for (const v of cm.values()) if (v && v.name) names.add(v.name); } catch { return; }
+    if (!knownModules) { knownModules = names; return; }
+    for (const n of names) if (!knownModules.has(n)) {
+      const mine = selfCreated.get(n);
+      if (mine && Date.now() - mine < 15000) continue;
+      recordEvent({ t: Date.now(), kind: "module added", what: n });
+    }
+    for (const n of knownModules) if (!names.has(n)) recordEvent({ t: Date.now(), kind: "module removed", what: n });
+    knownModules = names;
+  }
+  window.__nbEvents = () => events;
+
   const NBTOOLS = {
     list_modules: {
       description: "List the module ids defined in this notebook.",
@@ -977,6 +1079,14 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       schema: { type: "object", properties: { name: { type: "string" }, source: { type: "string" } }, required: ["name", "source"] },
       run: async ({ name, source }) => await applyModuleSrc(name, source),
     },
+    notebook_events: {
+      description: "What changed in the notebook outside this session: cell edits (with source), modules added or removed, most recent last. Call this when a channel message says the notebook changed, instead of introspecting the runtime by hand.",
+      schema: { type: "object", properties: { limit: { type: "number", description: "how many most-recent events (default 20)" } } },
+      run: async ({ limit }) => {
+        const n = Math.max(1, Math.min(200, Number(limit) || 20));
+        return events.slice(-n).map((e) => Object.assign({ ago_ms: Date.now() - e.t }, e));
+      },
+    },
     eval_js: {
       description: "Evaluate a JavaScript expression in the notebook page and return the result as JSON.",
       schema: { type: "object", properties: { code: { type: "string" } }, required: ["code"] },
@@ -991,7 +1101,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   window.__NBNOTIFY = (content, meta) => {
     const send = window.__NBSTREAM;
     if (typeof send !== "function") return false;
-    window.__MCPLOG.push({ ev: "notify", content: String(content).slice(0, 60) });
+    window.__MCPLOG.push({ ev: "notify", content: String(content).slice(0, 300) });
     return send({ jsonrpc: "2.0", method: "notifications/claude/channel",
       params: { content: String(content), meta: Object.assign({ notebook: location.href }, meta || {}) } });
   };
@@ -1034,6 +1144,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
     "runtime is left untouched — fix it and write again. That check is syntactic only, so",
     "a module can compile and still have cells that ERROR when they run; the write says",
     "nothing about that. Check a cell's live value with the `eval_js` MCP tool.",
+    "",
+    "When the user edits the notebook you receive a channel message naming what changed.",
+    "Call `notebook_events` for the actual edits (op, cell name, module, source) rather",
+    "than reconstructing them from the runtime — it is the notebook's own change history.",
     "",
     "",
   ].join("\n");
@@ -1093,6 +1207,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       setStatus("Indexing notebook modules for the filesystem…");
       await primeRC5();
       applyLocalDisk(); // a mounted folder survives a reboot; the module prime owns the cache
+      watchNotebookChanges().catch((e) => trace("history-watch-failed", { msg: String(e && e.message || e) }));
 
       window.__DIST_FILES = DIST_FILES;
       window.__CLI_SRC = CLI_SRC;
@@ -1103,6 +1218,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       window.__termSize = { cols: term.cols, rows: term.rows };
       window.__cliExit = undefined;
       devChannelsAccepted = false; // each session asks again
+      streamArmed = false;         // a restart re-imports modules; that is not user activity
       window.__frameMsgs = window.__frameMsgs || []; window.__frameMsgs.length = 0;
       window.__frameLog = (m) => { window.__frameMsgs.push(String(m)); };
       term.reset();
@@ -1113,7 +1229,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
       frame.style.display = "none";
       frame.srcdoc = SRCDOC;
       frameHost().appendChild(frame);
-      frame.addEventListener("load", () => { setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
+      frame.addEventListener("load", () => { setTimeout(() => { streamArmed = true; }, 3000); setStatus("Running via " + (key ? "OpenRouter (your key)" : "the demo gateway") + " · " + model + (yolo ? " · YOLO" : " · permission prompts on") + " — type in the terminal."); setTimeout(pushResize, 300); });
       setStatus("Starting interactive session…");
       setTimeout(() => { try { term.focus(); } catch {} }, 120);
     } catch (e) {
