@@ -290,7 +290,7 @@ const inSpan = blocks.filter((b) => b.start >= spliceStart && b.end <= spliceEnd
 if (inSpan.length !== linuxIds.length) throw new Error("splice span covers " + inSpan.length + " blocks, expected " + linuxIds.length + ": " + inSpan.map((b) => b.id).join(","));
 if (boot.start < spliceEnd) throw new Error("unexpected: bootconf before linux-emu span");
 
-const out = Buffer.concat([
+let out = Buffer.concat([
   data.slice(0, spliceStart),
   Buffer.from(NEW_BLOCKS, "utf8"),
   data.slice(spliceEnd, boot.start),
@@ -298,6 +298,26 @@ const out = Buffer.concat([
   Buffer.from(NEW_BOOTCONF, "utf8"),
   data.slice(boot.end),
 ]);
+
+// The donor carries a prerender snapshot of whoever exported it last — 160KB of rendered
+// DOM that a boot script deletes anyway, and which in practice held local absolute paths,
+// a session id and an activity log. Publishable files must not ship someone's screen.
+const PRE_OPEN = '<div id="lope-prerender">';
+const preStart = out.indexOf(Buffer.from(PRE_OPEN));
+if (preStart >= 0) {
+  const text = out.toString("utf8");
+  const from = text.indexOf(PRE_OPEN);
+  const re = /<(\/?)div\b[^>]*>/gi;
+  re.lastIndex = from;
+  let depth = 0, preEnd = -1, m;
+  while ((m = re.exec(text))) {
+    depth += m[1] ? -1 : 1;
+    if (depth === 0) { preEnd = m.index + m[0].length; break; }
+  }
+  if (preEnd < 0) throw new Error("unbalanced #lope-prerender div");
+  out = Buffer.from(text.slice(0, from) + text.slice(preEnd), "utf8");
+  console.log("  prerender stripped  :", ((preEnd - from) / 1024).toFixed(0), "KB of a previous session's DOM");
+}
 
 // The donor's <title> was the literal string "undefined", which is what the browser tab
 // and every pairing message showed. Only the first one: the exporter's own template
