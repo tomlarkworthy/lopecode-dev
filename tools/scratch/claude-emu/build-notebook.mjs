@@ -55,6 +55,16 @@ const IMPORT_MODULES = [
   "@tomlarkworthy/robocoop-5-srctools",
   "@tomlarkworthy/robocoop-5-tools",
 ];
+// Annotate and the two modules it needs that this notebook does not already carry
+// (closure is 28 modules, 24 of them already here). Its own canonical notebook is the
+// donor. d/57d79353bac56631 is already present unversioned, which is the same block.
+const PAGE_TITLE = "Caged Code";
+const ANNOTATE_SRC = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_annotate.html";
+const ANNOTATE_MODULES = [
+  "@tomlarkworthy/annotate",
+  "@tomlarkworthy/editable-md",
+  "@tomlarkworthy/prosemirror",
+];
 
 let cli = readFileSync(HARNESS + "/package/cli.js", "utf8");
 if (!cli.startsWith("#!")) throw new Error("cli.js has no shebang; refusing to guess");
@@ -176,11 +186,20 @@ function blocksOf(buf) {
   }
   return out;
 }
-const wanted = new Set(IMPORT_MODULES);
-const copied = blocksOf(rc5Data).filter((b) => b.id && (wanted.has(b.id) || IMPORT_MODULES.some((m) => b.id.startsWith(m + "/"))));
-const copiedIds = new Set(copied.map((b) => b.id));
-for (const m of IMPORT_MODULES) if (!copiedIds.has(m)) throw new Error("module block not found in rc5 notebook: " + m);
-const IMPORTED_BLOCKS = copied.map((b) => rc5Data.slice(b.start, b.end).toString("utf8")).join("\n") + "\n";
+// Each donor is the canonical notebook for the modules taken from it — copying a module
+// out of whatever file happens to have a copy is how a corpus drifts.
+const annData = readFileSync(ANNOTATE_SRC);
+function copyModules(buf, ids, label) {
+  const want = new Set(ids);
+  const blocks = blocksOf(buf).filter((x) => x.id && (want.has(x.id) || ids.some((m) => x.id.startsWith(m + "/"))));
+  const got = new Set(blocks.map((x) => x.id));
+  for (const m of ids) if (!got.has(m)) throw new Error("module block not found in " + label + ": " + m);
+  return { text: blocks.map((x) => buf.slice(x.start, x.end).toString("utf8")).join("\n") + "\n", ids: [...got] };
+}
+const rc5Copy = copyModules(rc5Data, IMPORT_MODULES, "robocoop-5 notebook");
+const annCopy = copyModules(annData, ANNOTATE_MODULES, "annotate notebook");
+const IMPORTED_BLOCKS = rc5Copy.text + annCopy.text;
+const copied = [...rc5Copy.ids, ...annCopy.ids];
 
 const NEW_BLOCKS =
   attBlock("cli.js.gz", cliB64) + "\n" +
@@ -225,7 +244,7 @@ const NEW_BOOTCONF = `<script id="bootconf.json"
         data-mime="application/json"
 >
 {
-  "mains": ["@tomlarkworthy/lopepage-2","@tomlarkworthy/save-in-place","@tomlarkworthy/claude-code-browser","@tomlarkworthy/claude-code-pairing"],
+  "mains": ["@tomlarkworthy/lopepage-2","@tomlarkworthy/save-in-place","@tomlarkworthy/claude-code-browser","@tomlarkworthy/claude-code-pairing","@tomlarkworthy/annotate"],
   "hash": "#view=C100(S25(@tomlarkworthy/claude-code-pairing),S75(@tomlarkworthy/claude-code-browser))",
   "headless": true,
   "prerender": false
@@ -256,17 +275,32 @@ const out = Buffer.concat([
   data.slice(boot.end),
 ]);
 
-writeFileSync(OUT, out);
+// The donor's <title> was the literal string "undefined", which is what the browser tab
+// and every pairing message showed. Only the first one: the exporter's own template
+// carries a `${ title }` placeholder further down that must stay a placeholder.
+const titleTag = Buffer.from("<title>");
+const tStart = out.indexOf(titleTag);
+const tEnd = out.indexOf(Buffer.from("</title>"), tStart);
+if (tStart < 0 || tEnd < 0) throw new Error("no <title> in the donor to set");
+const titled = Buffer.concat([
+  out.slice(0, tStart),
+  Buffer.from("<title>" + PAGE_TITLE + "</title>", "utf8"),
+  out.slice(tEnd + "</title>".length),
+]);
+
+writeFileSync(OUT, titled);
 
 const mb = (n) => (n / 1024 / 1024).toFixed(2);
 console.log("wrote", OUT);
+console.log("  page title          :", PAGE_TITLE);
 console.log("  dist files embedded :", Object.keys(distFiles).length);
 console.log("  cli.js.gz   b64     :", mb(cliB64.length), "MB");
 console.log("  shims.js.gz b64     :", mb(distB64.length), "MB");
 console.log("  xterm.js.gz b64     :", mb(xtermJsB64.length), "MB");
 console.log("  xterm.css.gz b64    :", mb(xtermCssB64.length), "MB");
 console.log("  addon-fit.gz b64    :", mb(addonFitB64.length), "MB");
-console.log("  imported modules    :", IMPORT_MODULES.length, "(+", copied.length - IMPORT_MODULES.length, "attachments,", (IMPORTED_BLOCKS.length / 1024 / 1024).toFixed(2), "MB)");
+const IMPORTED_ALL = IMPORT_MODULES.length + ANNOTATE_MODULES.length;
+console.log("  imported modules    :", IMPORTED_ALL, "(+", copied.length - IMPORTED_ALL, "attachments,", (IMPORTED_BLOCKS.length / 1024 / 1024).toFixed(2), "MB)");
 console.log("  removed linux span  :", mb(spliceEnd - spliceStart), "MB (" + inSpan.length + " blocks)");
 console.log("  donor size          :", mb(data.length), "MB");
 console.log("  final HTML          :", mb(out.length), "MB");

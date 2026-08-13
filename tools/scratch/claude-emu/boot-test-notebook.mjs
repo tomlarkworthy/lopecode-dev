@@ -293,7 +293,10 @@ const anth = await page.evaluate(() => {
   const env = (f && f.contentWindow && f.contentWindow.__ENV_OVERRIDES) || {};
   return {
     base: env.ANTHROPIC_BASE_URL,
-    hasApiKey: Object.prototype.hasOwnProperty.call(env, "ANTHROPIC_API_KEY"),
+    // The point is that no synthetic credential reaches cli.js. It is now cleared rather
+    // than omitted (the shim env defaults to a mock key, and any key beside the seeded
+    // claude.ai credential raises a permanent "Auth conflict" banner), so test the value.
+    hasApiKey: !!env.ANTHROPIC_API_KEY,
     provider: window.__runConfig && window.__runConfig.provider,
     urlPlaceholder: document.querySelector("#cb-url").placeholder,
     screen: (window.__dumpTerm ? window.__dumpTerm() : "").split("\n").slice(0, 10).join("\n"),
