@@ -342,6 +342,9 @@
   "@tomlarkworthy/lopecode-newsletter-001": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html"
   },
+  "@tomlarkworthy/lopecode-newsletter-002": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-002.html"
+  },
   "@tomlarkworthy/lopecode-substrate-2026": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html"
   },
@@ -632,6 +635,10 @@
   },
   "@tomlarkworthy/tabbed-pane-view": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html"
+  },
+  "@tomlarkworthy/tarot": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+    "upstream": null
   },
   "@tomlarkworthy/testblog": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testblog.html"
