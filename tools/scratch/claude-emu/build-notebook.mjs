@@ -234,6 +234,26 @@ function scanBlocks(buf) {
   return blocks;
 }
 
+// --payloads: swap the payload attachments inside the EXISTING output and stop.
+// A full rebuild regenerates the file from the donor, which discards the prerender
+// snapshot a save-in-place put there. When only the shims/cli/xterm bytes changed,
+// patch those blocks and leave every other byte of the published file alone.
+if (process.argv.includes("--payloads")) {
+  const cur = readFileSync(OUT);
+  const want = { "cli.js.gz": cliB64, "shims.js.gz": distB64, "xterm.js.gz": xtermJsB64, "xterm.css.gz": xtermCssB64, "addon-fit.js.gz": addonFitB64 };
+  const found = scanBlocks(cur).filter((b) => b.id && b.id.startsWith(MODULE_ID + "/") && want[b.id.slice(MODULE_ID.length + 1)]);
+  const missing = Object.keys(want).filter((n) => !found.some((b) => b.id === MODULE_ID + "/" + n));
+  if (missing.length) throw new Error("payload block(s) not in " + OUT + ": " + missing.join(", "));
+  let patched = cur;
+  for (const b of found.sort((x, y) => y.start - x.start)) {
+    const name = b.id.slice(MODULE_ID.length + 1);
+    patched = Buffer.concat([patched.slice(0, b.start), Buffer.from(attBlock(name, want[name]), "utf8"), patched.slice(b.end)]);
+  }
+  writeFileSync(OUT, patched);
+  console.log("patched payloads in", OUT, "(" + found.length + " blocks,", ((patched.length - cur.length) / 1024).toFixed(1) + " KB delta)");
+  process.exit(0);
+}
+
 const blocks = scanBlocks(data);
 const byId = (id) => blocks.find((b) => b.id === id);
 

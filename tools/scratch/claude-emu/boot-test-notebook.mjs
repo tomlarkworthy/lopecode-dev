@@ -283,6 +283,10 @@ const benign = (e) => /User-Agent|api\.anthropic\.com|downloads\.claude\.ai|metr
 const fatal = consoleErrs.filter((e) => !benign(e));
 // ---- STEP 6: Anthropic mode — no key must mean NO auth, so /login can run ----
 console.log("\n== Anthropic API mode ==");
+// Clear the key first: a key in the field IS forwarded as ANTHROPIC_API_KEY now
+// (that is how bring-your-own-console-key works), so leaving KEY=direct's OpenRouter
+// key there would test the wrong branch.
+await page.fill("#cb-key", "").catch(() => {});
 await page.selectOption("#cb-provider", "anthropic").catch(() => {});
 // The switch reboots the session: wait for the terminal's own report that it repainted
 // rather than a fixed sleep, so an empty dump below means something real.
