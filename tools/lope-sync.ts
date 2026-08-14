@@ -41,6 +41,7 @@
  *   bun tools/lope-sync.ts pull <module> [--force]        re-extract over a working copy
  *   bun tools/lope-sync.ts init-canonical [--write]       bootstrap canonical.json
  *   bun tools/lope-sync.ts spec-sync [--check] [--rebuild]  sibling .json specs
+ *   bun tools/lope-sync.ts hash-mains [--write]   declare modules only the boot hash holds
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync } from "fs";
 import { join, resolve, relative, dirname, basename } from "path";
@@ -565,6 +566,123 @@ function cmdPrune(write: boolean): number {
   return 0;
 }
 
+// ---------------------------------------------------------------- hash-mains
+
+/**
+ * Declare the modules a notebook's boot hash opens, but nothing holds.
+ *
+ * exporter-3 emits blocks by walking `mains` through each module's imports, so a
+ * block reachable from neither is not written out — "it is in the file" does not
+ * survive a save. The boot hash is NOT part of that walk, so a module a pane
+ * opens is only safe while something imports it.
+ *
+ * `@tomlarkworthy/lopepage` imported ten symbols from `@tomlarkworthy/module-selection`
+ * (notebookModule, selected_modules, parseGoldenDSL, linkTo, …), which anchored it
+ * incidentally. `@tomlarkworthy/lopepage-2` does not use it at all — it is an
+ * optional utility opened from the hash — so the anchor vanished on conversion.
+ * Measured 2026-08-14: 181 lopepage-2 notebooks were exposed, the 7 still on v1
+ * were not, and two (plugin-registry, import_wizards) had already lost the block
+ * and were silently fetching it from api.observablehq.com at pane-open.
+ *
+ * The fix is to say so in `mains`. Reachability, not the frame name, is the test:
+ * a module already imported from a main needs nothing, which is why v1 notebooks
+ * are left alone. Booting one costs a `define()` and no tab — and for these the
+ * hash renders the pane anyway, so it is what already happens, just declared.
+ *
+ * Refuses a module with no block in the file: making that a main turns a lazy
+ * pane-open fetch into a boot-time network dependency. Those need the block
+ * inserting first (`sync-module --insert-ok`).
+ */
+function cmdHashMains(paths: string[], write: boolean): number {
+  const targets = paths.length
+    ? paths.map((p) => resolve(p))
+    : REPOS.flatMap((r) => {
+        const d = join(ROOT, r, "notebooks");
+        return existsSync(d) ? readdirSync(d).filter((f) => f.endsWith(".html")).map((f) => join(d, f)) : [];
+      });
+
+  let fixed = 0, clean = 0, blocked = 0;
+  const blockedRows: string[] = [];
+
+  for (const abs of targets) {
+    if (!existsSync(abs)) continue;
+    const src = readFileSync(abs, "utf8");
+    const bc = bootconfIn(src);
+    if (!bc) continue;
+    const mains = Array.isArray(bc.mains) ? (bc.mains as string[]) : [];
+    const hash = typeof bc.hash === "string" ? bc.hash : "";
+    const hashMods = [...new Set([...hash.matchAll(/@[\w.-]+\/[\w.-]+/g)].map((m) => m[0]))];
+    if (!hashMods.length) continue;
+
+    // Reachable = mains plus everything they import, transitively. dependsOn comes
+    // from the sibling spec (lope-reader --compute-imports writes it); with no spec
+    // entry a module contributes no edges, which biases toward declaring — safe.
+    const specPath = abs.replace(/\.html$/, ".json");
+    let deps: Record<string, string[]> = {};
+    if (existsSync(specPath)) {
+      try {
+        const spec = JSON.parse(readFileSync(specPath, "utf8"));
+        for (const [id, info] of Object.entries<any>(spec.modules ?? {})) {
+          deps[id] = Array.isArray(info?.dependsOn) ? info.dependsOn : [];
+        }
+      } catch { /* unreadable spec: treat as no edges */ }
+    }
+    const reachable = new Set<string>();
+    const walk = (id: string) => {
+      if (reachable.has(id)) return;
+      reachable.add(id);
+      for (const d of deps[id] ?? []) walk(d);
+    };
+    mains.forEach(walk);
+
+    const blocksHere = blocksIn(src);
+    const needed = hashMods.filter((m) => !reachable.has(m));
+    if (!needed.length) { clean++; continue; }
+
+    const addable = needed.filter((m) => blocksHere.has(m));
+    const absent = needed.filter((m) => !blocksHere.has(m));
+    for (const m of absent) blockedRows.push(`${basename(abs)}  ${m} (no block in file)`);
+    if (absent.length) blocked++;
+    if (!addable.length) continue;
+
+    const next = { ...bc, mains: [...mains, ...addable] };
+    console.log(`${write ? "fix " : "would fix"}  ${basename(abs)}  += ${addable.join(", ")}`);
+    if (write) {
+      // Replace only the parseable bootconf block; the exporter's `${…}` template
+      // copy must stay untouched.
+      // Match the shape exporter-3's template emits — one key per line, arrays
+      // inline — so a later save-in-place does not reformat the block back and
+      // churn the diff.
+      const body = "{\n" +
+        Object.entries(next).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(",\n") +
+        "\n}";
+      let done = false;
+      const out = src.replace(
+        /(<script\s+id="bootconf\.json"[^>]*>)([\s\S]*?)(<\/script>)/g,
+        (whole, open, prev, close) => {
+          try { JSON.parse(prev.trim()); } catch { return whole; }
+          done = true;
+          return `${open}\n${body}\n${close}`;
+        }
+      );
+      if (!done) { console.error(`  ! ${basename(abs)}: no parseable bootconf block, skipped`); continue; }
+      writeFileSync(abs, out);
+    }
+    fixed++;
+  }
+
+  console.log(
+    `\n${fixed} notebook(s) ${write ? "updated" : "would be updated"}; ${clean} already consistent` +
+    (blocked ? `; ${blocked} need a block inserted first` : "")
+  );
+  if (blockedRows.length) {
+    console.error(`\n  hash opens a module the file does not carry — insert the block, do not declare it:`);
+    for (const r of blockedRows) console.error(`    ${r}`);
+  }
+  if (!write && fixed) console.log(`\nRe-run with --write, then: bun tools/lope-sync.ts spec-sync`);
+  return blockedRows.length ? 1 : 0;
+}
+
 // ----------------------------------------------------------------- spec-sync
 
 /**
@@ -942,6 +1060,9 @@ if (import.meta.main) {
     case "spec-sync":
       code = cmdSpecSync(positional, flag("--check"), flag("--rebuild"));
       break;
+    case "hash-mains":
+      code = cmdHashMains(positional, flag("--write"));
+      break;
     case "init-canonical":
       code = cmdInitCanonical(flag("--write"));
       break;
@@ -954,6 +1075,7 @@ if (import.meta.main) {
         "  bun tools/lope-sync.ts pull <@a/b> [--force]\n" +
         "  bun tools/lope-sync.ts prune [--write]\n" +
         "  bun tools/lope-sync.ts spec-sync [--check] [--rebuild] [notebook.html ...]\n" +
+        "  bun tools/lope-sync.ts hash-mains [--write] [notebook.html ...]\n" +
         "  bun tools/lope-sync.ts init-canonical [--write]"
       );
       code = 1;
