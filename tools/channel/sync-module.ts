@@ -273,6 +273,35 @@ function extractToJs(targetPath: string, moduleId: string, jsPath: string): void
   console.log(`Extracted ${moduleId} from ${targetPath} → ${jsPath}`);
 }
 
+/**
+ * A module's attachments are separate `<script id="<module>/<name>">` blocks, and a
+ * `--source` .js working copy contains none of them — so inserting a module into a
+ * notebook that never had it left the attachments behind and the module dead at
+ * boot (measured: installing `@tomlarkworthy/prosemirror` gave two
+ * `missing-attachment` findings from lope-preflight). Carry them from the declared
+ * canonical, which is the only place they are known to be current. Only blocks this
+ * module *owns*; a missing dependency module is a different repair
+ * (`--all-canonical --carry-deps`) and preflight names it either way.
+ */
+function carryOwnedBlocks(moduleId: string, targetPath: string): string[] {
+  const decl = loadCanonical()[moduleId];
+  if (!decl) return [];
+  const tRel = relative(REPO_ROOT, targetPath);
+  const repo = tRel.split("/")[0];
+  const canonRel = decl[repo] ?? Object.values(decl)[0];
+  const canonHtml = readFileSync(join(REPO_ROOT, canonRel), "utf8");
+  const carried: string[] = [];
+  for (const id of ownedBlockIds(canonHtml, moduleId)) {
+    if (idsIn(targetPath).has(id)) continue;
+    const b = rawBlock(canonHtml, id);
+    if (b && insertBefore(targetPath, moduleId, b)) {
+      idCache.delete(targetPath);
+      carried.push(id.slice(moduleId.length + 1));
+    }
+  }
+  return carried;
+}
+
 function syncAll(
   sourcePath: string,
   targetPaths: string[],
@@ -293,13 +322,16 @@ function syncAll(
       console.log(`Skipped ${t}: no <script id="${moduleId}"> block (pass --insert-ok to add the module to this target)`);
       return;
     }
-    const size = (statSync(t).size / 1024 / 1024).toFixed(2);
     console.log(
       result === "updated"
         ? `Updated existing ${moduleId} module`
         : `Inserted new ${moduleId} module`
     );
-    console.log(`Wrote ${t} (${size} MB)`);
+    if (result === "inserted") {
+      const carried = carryOwnedBlocks(moduleId, t);
+      if (carried.length) console.log(`  carried ${carried.length} attachment(s): ${carried.join(", ")}`);
+    }
+    console.log(`Wrote ${t} (${(statSync(t).size / 1024 / 1024).toFixed(2)} MB)`);
     return;
   }
 
@@ -308,7 +340,7 @@ function syncAll(
     try {
       const r = inject(scriptBlock, target, moduleId, insertOk);
       if (r === "updated") updated++;
-      else if (r === "inserted") inserted++;
+      else if (r === "inserted") { inserted++; carryOwnedBlocks(moduleId, target); }
       else if (r === "skipped") skipped++;
       else unchanged++;
       if (verbose) console.log(`${r.padEnd(9)} ${target}`);
