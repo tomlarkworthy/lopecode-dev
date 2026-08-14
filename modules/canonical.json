@@ -188,10 +188,6 @@
   "@tomlarkworthy/firestore-messaging": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html"
   },
-  "@tomlarkworthy/flat-trace": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_flat-trace.html",
-    "upstream": null
-  },
   "@tomlarkworthy/flow-queue": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_flow-queue.html"
   },
