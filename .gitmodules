@@ -55,3 +55,6 @@
 [submodule "lopecode-plugin"]
 	path = lopecode-plugin
 	url = git@github.com:tomlarkworthy/lopecode-plugin.git
+[submodule "tomlarkworthy.github.io"]
+	path = tomlarkworthy.github.io
+	url = git@github.com:tomlarkworthy/tomlarkworthy.github.io.git

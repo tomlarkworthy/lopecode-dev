@@ -211,10 +211,40 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
         ptyIn(b);
         e.preventDefault(); e.stopImmediatePropagation();
       }, true);
+      // A soft keyboard is not a keyboard: Android sends keydown{key:"Unidentified",
+      // keyCode:229} and delivers the text on beforeinput, so the handler above types
+      // nothing on a phone. Take the text from the input events instead, and keep both
+      // the textarea and xterm's own input path out of it so nothing is sent twice.
+      const EDIT_BYTES = {
+        insertLineBreak: "\r", insertParagraph: "\r",
+        deleteContentBackward: "\x7f", deleteWordBackward: "\x17", deleteContentForward: "\x1b[3~",
+      };
+      let composing = false;
+      const clearTA = () => { const a = document.activeElement; if (a && a.tagName === "TEXTAREA") a.value = ""; };
+      const stop = (e) => { if (e.cancelable) e.preventDefault(); e.stopImmediatePropagation(); };
+      document.addEventListener("compositionstart", (e) => { if (inTerm()) { composing = true; e.stopImmediatePropagation(); } }, true);
+      document.addEventListener("compositionend", (e) => {
+        if (!inTerm()) return;
+        composing = false;
+        if (e.data) ptyIn(e.data);   // predictive text commits the whole word here
+        clearTA(); e.stopImmediatePropagation();
+      }, true);
+      document.addEventListener("beforeinput", (e) => {
+        if (!inTerm() || composing) return; // mid-composition text is provisional
+        const t = /^insert(Text|ReplacementText)$/.test(e.inputType) ? (e.data || "") : EDIT_BYTES[e.inputType];
+        if (!t) return;
+        ptyIn(t); stop(e); clearTA();
+      }, true);
       document.addEventListener("paste", (e) => {
         if (!inTerm()) return;
-        try { const t = (e.clipboardData || window.clipboardData).getData("text"); if (t) ptyIn(t); } catch {}
         e.preventDefault(); e.stopImmediatePropagation();
+        const cd = e.clipboardData || window.clipboardData;
+        // An image: cli.js reads those by shelling out to xclip/osascript, which cannot
+        // work here. Hand the bytes to the frame and press ctrl+v on the user's behalf —
+        // the clipboard shim answers that shell-out from them. See browser-native/src/clipboard.mjs.
+        const item = [...((cd && cd.items) || [])].find((it) => it.kind === "file" && /^image\//.test(it.type));
+        if (item) { pasteImage(item.getAsFile()); return; }
+        try { const t = cd.getData("text"); if (t) ptyIn(t); } catch {}
       }, true);
       termHost.tabIndex = 0;
       termHost.addEventListener("mousedown", () => { try { term.focus(); } catch {} });
@@ -719,6 +749,21 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // ---- stdio bridge (parent xterm <-> frame cli.js) ----
   let frame = null;
   function ptyIn(d) { try { const w = frame && frame.contentWindow; if (w && w.__ptyIn) w.__ptyIn(d); } catch {} }
+  // Base64, not the bytes: a Uint8Array built in this realm is a foreign object inside
+  // the frame. Ctrl+V goes in after the stash so cli.js finds an image when it looks.
+  async function pasteImage(file) {
+    if (!file) return;
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+      const w = frame && frame.contentWindow;
+      if (!w) return;
+      w.__CLIPBOARD_IMAGE = { base64: btoa(bin), mediaType: file.type || "image/png" };
+      ptyIn("\x16");
+    } catch {}
+  }
+  window.__pasteImage = (f) => pasteImage(f);
   // Map a keydown to the bytes a PTY expects (xterm-256color).
   function keyToBytes(e) {
     const k = e.key;

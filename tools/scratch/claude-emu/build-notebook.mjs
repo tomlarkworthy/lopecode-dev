@@ -238,19 +238,27 @@ function scanBlocks(buf) {
 // A full rebuild regenerates the file from the donor, which discards the prerender
 // snapshot a save-in-place put there. When only the shims/cli/xterm bytes changed,
 // patch those blocks and leave every other byte of the published file alone.
+// It covers this module and its payloads — the app cell included — which is everything
+// this build owns. Anything else (a donor module, the layout) still needs a full build.
 if (process.argv.includes("--payloads")) {
   const cur = readFileSync(OUT);
-  const want = { "cli.js.gz": cliB64, "shims.js.gz": distB64, "xterm.js.gz": xtermJsB64, "xterm.css.gz": xtermCssB64, "addon-fit.js.gz": addonFitB64 };
-  const found = scanBlocks(cur).filter((b) => b.id && b.id.startsWith(MODULE_ID + "/") && want[b.id.slice(MODULE_ID.length + 1)]);
-  const missing = Object.keys(want).filter((n) => !found.some((b) => b.id === MODULE_ID + "/" + n));
-  if (missing.length) throw new Error("payload block(s) not in " + OUT + ": " + missing.join(", "));
+  const want = new Map([
+    [MODULE_ID, MODULE_BLOCK],
+    [MODULE_ID + "/cli.js.gz", attBlock("cli.js.gz", cliB64)],
+    [MODULE_ID + "/shims.js.gz", attBlock("shims.js.gz", distB64)],
+    [MODULE_ID + "/xterm.js.gz", attBlock("xterm.js.gz", xtermJsB64)],
+    [MODULE_ID + "/xterm.css.gz", attBlock("xterm.css.gz", xtermCssB64)],
+    [MODULE_ID + "/addon-fit.js.gz", attBlock("addon-fit.js.gz", addonFitB64)],
+  ]);
+  const found = scanBlocks(cur).filter((b) => want.has(b.id));
+  const missing = [...want.keys()].filter((id) => !found.some((b) => b.id === id));
+  if (missing.length) throw new Error("block(s) not in " + OUT + ": " + missing.join(", "));
   let patched = cur;
   for (const b of found.sort((x, y) => y.start - x.start)) {
-    const name = b.id.slice(MODULE_ID.length + 1);
-    patched = Buffer.concat([patched.slice(0, b.start), Buffer.from(attBlock(name, want[name]), "utf8"), patched.slice(b.end)]);
+    patched = Buffer.concat([patched.slice(0, b.start), Buffer.from(want.get(b.id), "utf8"), patched.slice(b.end)]);
   }
   writeFileSync(OUT, patched);
-  console.log("patched payloads in", OUT, "(" + found.length + " blocks,", ((patched.length - cur.length) / 1024).toFixed(1) + " KB delta)");
+  console.log("patched in place:", OUT, "(" + found.length + " blocks,", ((patched.length - cur.length) / 1024).toFixed(1) + " KB delta)");
   process.exit(0);
 }
 

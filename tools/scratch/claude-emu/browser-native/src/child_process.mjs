@@ -5,12 +5,15 @@
 // unavailable" and OMITS the startup context (git/rg/uname/…) rather than
 // throwing uncaught.
 //
-// The exception is `rg`: the Glob and Grep tools ARE ripgrep invocations, so an
-// ENOENT there costs the agent the ability to list or search files at all. Those
-// two are served in-process by ./ripgrep.mjs against the same fs.
+// The exceptions are the commands whose absence costs a feature outright: `rg`
+// (the Glob and Grep tools ARE ripgrep invocations) is served by ./ripgrep.mjs
+// against the same fs, and the xclip/osascript clipboard reads behind ctrl+v are
+// served by ./clipboard.mjs from the image the page itself pasted.
 import { register } from "./registry.mjs";
 import { EventEmitter } from "./events.mjs";
+import { Readable } from "./stream.mjs";
 import { isRipgrep, runRipgrep } from "./ripgrep.mjs";
+import { runClipboard } from "./clipboard.mjs";
 
 function nullStream() {
   const s = new EventEmitter();
@@ -19,22 +22,41 @@ function nullStream() {
   return s;
 }
 
-// A process that "ran": stdout/stderr arrive on the next microtask, then exit/close.
+// Output that waits to be read. execa (which cli.js shells out through) async-iterates
+// the stream a few microtasks after spawn returns, so this must be a real Readable, and
+// it must hold the bytes until something subscribes — a stream that fired immediately
+// delivered nothing and left the caller awaiting forever. The macrotask flush closes a
+// child nobody reads.
+function resultStream(text) {
+  const s = new Readable();
+  s.setEncoding = () => s;
+  let flushed = false;
+  const flush = () => {
+    if (flushed) return;
+    flushed = true;
+    queueMicrotask(() => {
+      const B = globalThis.Buffer;
+      if (text) s.push(B ? B.from(text) : text);
+      s.push(null);
+    });
+  };
+  s.on("newListener", (ev) => { if (ev === "data" || ev === "end") flush(); });
+  setTimeout(flush, 0);
+  return s;
+}
+
+// A process that "ran": output first, then exit/close.
 function emulate(cp, cmd, result) {
   cp.pid = 1;
   cp.exitCode = null; cp.signalCode = null; cp.killed = false;
   cp.spawnfile = cmd; cp.connected = false;
-  cp.stdin = nullStream(); cp.stdout = nullStream(); cp.stderr = nullStream();
+  cp.stdin = nullStream(); cp.stdout = resultStream(result.stdout); cp.stderr = resultStream(result.stderr);
   cp.stdio = [cp.stdin, cp.stdout, cp.stderr];
-  queueMicrotask(() => {
-    const B = globalThis.Buffer;
-    if (result.stdout) cp.stdout.emit("data", B ? B.from(result.stdout) : result.stdout);
-    if (result.stderr) cp.stderr.emit("data", B ? B.from(result.stderr) : result.stderr);
-    cp.stdout.emit("end"); cp.stderr.emit("end");
+  setTimeout(() => {
     cp.exitCode = result.code;
     cp.emit("exit", result.code, null);
     cp.emit("close", result.code, null);
-  });
+  }, 0);
 }
 
 export class ChildProcess extends EventEmitter {
@@ -64,11 +86,16 @@ export class ChildProcess extends EventEmitter {
   ref() {} unref() {} disconnect() {} send() { return false; }
 }
 
-// rg is the one command with an implementation; everything else still ENOENTs.
+// rg and the clipboard-image commands have implementations; everything else ENOENTs.
+// Every attempt is recorded — what cli.js shells out for is otherwise invisible.
 function emulated(cmd, args, opts) {
-  if (!isRipgrep(cmd, opts)) return null;
-  try { return runRipgrep(args || [], (opts && opts.cwd) || "/"); }
-  catch (e) { return { code: 2, stdout: "", stderr: `rg: ${e && e.message}\n` }; }
+  const log = (globalThis.__CPLOG = globalThis.__CPLOG || []);
+  if (log.length < 200) log.push({ cmd: String(cmd), args: (args || []).map(String).slice(0, 4), shell: !!(opts && opts.shell) });
+  if (isRipgrep(cmd, opts)) {
+    try { return runRipgrep(args || [], (opts && opts.cwd) || "/"); }
+    catch (e) { return { code: 2, stdout: "", stderr: `rg: ${e && e.message}\n` }; }
+  }
+  return runClipboard(cmd, args, opts);
 }
 
 export function spawn(cmd, args, opts) {
