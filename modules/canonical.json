@@ -104,8 +104,7 @@
     "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
   },
   "@tomlarkworthy/coded-landmark-tracking-data": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html",
-    "upstream": null
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
   },
   "@tomlarkworthy/codemirror-6-v2": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html"
