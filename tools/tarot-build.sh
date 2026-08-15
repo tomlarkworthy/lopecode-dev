@@ -26,16 +26,27 @@ if [[ ! -f modules/@tomlarkworthy/tarot.js ]]; then
 fi
 cp "$BASE" "$WORK"
 
-echo "== 2/4 injecting module + 81 attachments =="
+echo "== 2/5 injecting module + 80 attachments =="
 node --check modules/@tomlarkworthy/tarot.js
 node tools/tarot-inject.mjs "$WORK"
 
-echo "== 3/4 re-exporting through exporter-3 =="
+echo "== 3/5 refreshing exporter-3 to canonical =="
+# quick_start carries exporter-3 10d706c73268, which emits userBlocks BEFORE bootconf and
+# the bootloader. `main` is at the top of the document and immediately awaits
+# importShim("@tomlarkworthy/bootloader"), so boot cannot start until ~99% of the bytes have
+# arrived — measured at 2 MB/s: every module block was in by 1.8s, the runtime was not
+# constructed until 3.07s. Canonical (3ccacbe45314) already emits boot first. Step 4 runs
+# the exporter that is IN this file, so it has to be refreshed before the export, not after.
+bun tools/lope-sync.ts checkout @tomlarkworthy/exporter-3 --repo lopecode
+bun tools/channel/sync-module.ts --module @tomlarkworthy/exporter-3 \
+  --source modules/@tomlarkworthy/exporter-3.js --target "$WORK"
+
+echo "== 4/5 re-exporting through exporter-3 =="
 mkdir -p scratch
 bun scratch/rmbt/save-in-place.ts --in "$WORK" --out "$TMP" --hash "$HASH" --settle 40000
 cp "$TMP" "$WORK"
 
-echo "== 4/4 patching head metadata =="
+echo "== 5/5 patching head metadata =="
 node tools/tarot-patch-head.mjs "$WORK"
 
 ls -l "$WORK" | awk '{printf "\nbuilt %s  %.2f MB\n", $9, $5/1048576}'

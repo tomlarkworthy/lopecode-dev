@@ -3,7 +3,8 @@
 import { chromium } from 'playwright';
 import { resolve } from 'path';
 
-const file = resolve('lopebooks/notebooks/@tomlarkworthy_tarot.html');
+const arg = process.argv[2] || 'lopebooks/notebooks/@tomlarkworthy_tarot.html';
+const target = arg.startsWith('http') ? arg : `file://${resolve(arg)}`;
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1100, height: 1000 } });
 const errs = [];
@@ -11,7 +12,7 @@ page.on('pageerror', (e) => errs.push(String(e).slice(0, 180)));
 
 const app = () => page.locator('.tarot-app').first();
 
-await page.goto(`file://${file}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 120000 });
 await page.waitForSelector('.tarot-app', { timeout: 90000 });
 await page.waitForTimeout(6000);
 
@@ -84,7 +85,7 @@ const q = shareUrl.slice(shareUrl.indexOf('?'));
 const page2 = await browser.newPage({ viewport: { width: 1100, height: 1000 } });
 const errs2 = [];
 page2.on('pageerror', (e) => errs2.push(String(e).slice(0, 180)));
-await page2.goto(`file://${file}${q}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page2.goto(`${target}${q}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
 await page2.waitForSelector('.tarot-app', { timeout: 90000 });
 await page2.waitForTimeout(9000);
 
