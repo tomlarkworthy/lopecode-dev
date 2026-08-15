@@ -12,11 +12,18 @@ const hit = [...html.matchAll(bootRe)].find((c) => { try { JSON.parse(c[2]); ret
 const conf = JSON.parse(hit[2]);
 console.log('current mains (%d):', conf.mains.length);
 
+// Same bytes in every arm — only bootconf.mains differs — so this isolates define()
+// cost from download cost. A shipped lean build would also be smaller, because
+// exporter-3 prunes blocks no main reaches.
+const drop = (...names) => conf.mains.filter((m) => !names.some((n) => m.includes(n)));
 const VARIANTS = {
-  'all-19 (current)': conf.mains,
-  'editing-only': ['@tomlarkworthy/lopepage-2', '@tomlarkworthy/tarot', '@tomlarkworthy/editor-5',
-    '@tomlarkworthy/save-in-place', '@tomlarkworthy/exporter-3'],
-  'tarot-only': ['@tomlarkworthy/lopepage-2', '@tomlarkworthy/tarot'],
+  'as shipped': conf.mains,
+  'no robocoop': drop('robocoop'),
+  'no robocoop, no wizards': drop('robocoop', 'import-wizard'),
+  'no robocoop/wizards/atproto': drop('robocoop', 'import-wizard', 'at-login', 'at-write', 'claude-code-pairing'),
+  'editing only': ['@tomlarkworthy/lopepage-2', '@tomlarkworthy/tarot', '@tomlarkworthy/blank-notebook',
+    '@tomlarkworthy/editable-md', '@tomlarkworthy/save-in-place'],
+  'tarot only': ['@tomlarkworthy/lopepage-2', '@tomlarkworthy/tarot'],
 };
 
 const reading = { name: 'Tom', question: 'Will my project ship?', text: '*The candle gutters.* Ah, Tom. The Five of Pentacles marks a lean beginning. The Nine of Pentacles stands in your present. The Three of Cups ahead promises the harvest shared. Yes, it ships.', cards: ['p05', 'p09', 'c03'] };

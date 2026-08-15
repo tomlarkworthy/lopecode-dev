@@ -3,14 +3,15 @@
 import { chromium } from 'playwright';
 import { resolve } from 'path';
 
-const file = process.argv[2] || resolve('lopebooks/notebooks/@tomlarkworthy_tarot.html');
+const arg = process.argv[2] || resolve('lopebooks/notebooks/@tomlarkworthy_tarot.html');
+const url = arg.startsWith('http') ? arg : `file://${arg}`;
 const browser = await chromium.launch({ headless: false });
 const page = await browser.newPage({ viewport: { width: 1100, height: 1000 } });
 const errs = [];
 page.on('pageerror', (e) => errs.push(String(e).slice(0, 200)));
 const app = () => page.locator('.tarot-app').first();
 
-await page.goto(`file://${file}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
 await page.waitForSelector('.tarot-app', { timeout: 90000 });
 await page.waitForTimeout(6000);
 
