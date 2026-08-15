@@ -17,9 +17,10 @@ const MODULES = [
   ['@tomlarkworthy/tarot', 'modules/@tomlarkworthy/tarot.js', (f) => !f.endsWith('.avif') || f === 'velvet.avif'],
   ['@tomlarkworthy/tarot-deck', 'modules/@tomlarkworthy/tarot-deck.js', (f) => f.endsWith('.avif') && f !== 'velvet.avif'],
 ];
-// runtime-sdk gives showCards its importShim; declaring it a main keeps its block in the
-// size-sorted mains group, ahead of the deck, so the static import it costs resolves early.
-const EXTRA_MAINS = ['@tomlarkworthy/tarot-deck', '@tomlarkworthy/runtime-sdk'];
+// tarot-deck is NOT a main. @tomlarkworthy/tarot declares `module @tomlarkworthy/tarot-deck`
+// so the exporter's walk keeps its blocks, which also leaves it in the non-main group that
+// exporter-3 sorts by size — so the biggest block in the file lands last on its own.
+const MAINS = ['@tomlarkworthy/tarot'];
 
 const MIME = { '.avif': 'image/avif', '.json': 'application/json' };
 
@@ -70,8 +71,7 @@ const candidates = [...html.matchAll(bootRe)].filter((c) => {
 if (candidates.length !== 1) throw new Error(`expected 1 real bootconf, found ${candidates.length}`);
 const hit = candidates[0];
 const conf = JSON.parse(hit[2]);
-for (const id of [...MODULES.map(([m]) => m), ...EXTRA_MAINS])
-  if (!conf.mains.includes(id)) conf.mains.push(id);
+for (const id of MAINS) if (!conf.mains.includes(id)) conf.mains.push(id);
 // debugger-2 pins the whole page to 24-30fps whether or not its pane is on screen —
 // measured: dropping it alone takes idle rAF from 41.7ms to 8.3ms. It is the only main
 // that does; every other module boots at the display rate. Nothing here needs it.
