@@ -33,7 +33,7 @@ await page.waitForTimeout(1500);
 console.log('after question:', await state());
 
 // --- spread the fan, then pick three ------------------------------------
-const backs = app().locator('image.card');
+const backs = app().locator('use.card');
 console.log('fan size:', await backs.count());
 
 // Cards overlap, so a user just clicks the fan and hits whatever is on top.
@@ -41,7 +41,7 @@ console.log('fan size:', await backs.count());
 // (Each picked card sets pointer-events:none, exposing the next one down.)
 // Take the real on-screen rect of the topmost card rather than guessing at the viewBox.
 const spot = await page.evaluate(() => {
-  const cards = document.querySelectorAll('.tarot-app image.card');
+  const cards = document.querySelectorAll('.tarot-app use.card');
   const r = cards[cards.length - 1].getBoundingClientRect();
   return { x: r.x + r.width / 2, y: r.y + r.height / 2, rect: [r.x, r.y, r.width, r.height] };
 });
@@ -72,7 +72,7 @@ for (let i = 0; i < 60; i++) {
 console.log('\n--- READING (%d chars) ---\n%s\n', text.length, text.slice(0, 500));
 
 const shownCards = await app().locator('.board image').count();
-const labels = await app().locator('.board text').allInnerTexts();
+const labels = await app().locator('.board text').allTextContents();
 console.log('cards displayed:', shownCards, labels);
 
 // --- share url ----------------------------------------------------------

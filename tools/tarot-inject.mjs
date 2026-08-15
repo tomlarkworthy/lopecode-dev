@@ -1,4 +1,4 @@
-// Inject the tarot module + its 81 file attachments into a lopecode notebook.
+// Inject the tarot module + its 80 file attachments into a lopecode notebook.
 // Attachments are written BEFORE the module block (a module placed ahead of its own
 // attachments loses them silently under a streaming load).
 import fs from 'fs';
@@ -53,6 +53,10 @@ if (candidates.length !== 1) throw new Error(`expected 1 real bootconf, found ${
 const hit = candidates[0];
 const conf = JSON.parse(hit[2]);
 if (!conf.mains.includes(MODULE_ID)) conf.mains.push(MODULE_ID);
+// debugger-2 pins the whole page to 24-30fps whether or not its pane is on screen —
+// measured: dropping it alone takes idle rAF from 41.7ms to 8.3ms. It is the only main
+// that does; every other module boots at the display rate. Nothing here needs it.
+conf.mains = conf.mains.filter((m) => m !== '@tomlarkworthy/debugger-2');
 conf.hash = HASH;
 const replacement = `${hit[1]}${JSON.stringify(conf, null, 2)}${hit[3]}`;
 html = html.slice(0, hit.index) + replacement + html.slice(hit.index + hit[0].length);

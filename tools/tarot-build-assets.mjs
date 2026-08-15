@@ -1,4 +1,4 @@
-// Build the embeddable tarot asset bundle: 78 AVIF cards + back + velvet + trimmed metadata.
+// Build the embeddable tarot asset bundle: 78 AVIF cards + velvet + trimmed metadata.
 // Source deck is the Rider-Waite-Smith scans from @triptych/tarot-utilities (public domain).
 import { execFileSync } from 'child_process';
 import fs from 'fs';
@@ -67,8 +67,8 @@ const cards = meta.cards.map(c => {
   };
 });
 
-// --- back + background -------------------------------------------------
-avif(path.join(SCRATCH, 'cardback.webp'), path.join(OUT, 'back.avif'), 40);
+// --- background --------------------------------------------------------
+// No back.avif: the card back is drawn as SVG in the module (see cardBackDefs).
 avif(path.join(SCRATCH, 'velvet.webp'), path.join(OUT, 'velvet.avif'), 35, 900);
 
 fs.writeFileSync(path.join(OUT, 'deck.json'), JSON.stringify(cards));
@@ -78,7 +78,6 @@ const files = fs.readdirSync(OUT);
 const total = files.reduce((s, f) => s + fs.statSync(path.join(OUT, f)).size, 0);
 const group = (pred) => files.filter(pred).reduce((s, f) => s + fs.statSync(path.join(OUT, f)).size, 0);
 console.log(`cards   ${cards.length} files  ${(group(f => /^[mcpsw]\d\d\.avif$/.test(f)) / 1024).toFixed(0)} KB`);
-console.log(`back    ${(fs.statSync(path.join(OUT, 'back.avif')).size / 1024).toFixed(0)} KB`);
 console.log(`velvet  ${(fs.statSync(path.join(OUT, 'velvet.avif')).size / 1024).toFixed(0)} KB`);
 console.log(`deck    ${(fs.statSync(path.join(OUT, 'deck.json')).size / 1024).toFixed(0)} KB metadata`);
 console.log(`TOTAL   ${(total / 1048576).toFixed(2)} MB raw -> ${(total * 4 / 3 / 1048576).toFixed(2)} MB base64`);

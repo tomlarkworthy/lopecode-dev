@@ -21,7 +21,7 @@ await app().locator('textarea').first().dispatchEvent('input');
 await page.waitForTimeout(1800);
 
 const spot = await page.evaluate(() => {
-  const c = document.querySelectorAll('.tarot-app image.card');
+  const c = document.querySelectorAll('.tarot-app use.card');
   const r = c[c.length - 1].getBoundingClientRect();
   return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
 });
