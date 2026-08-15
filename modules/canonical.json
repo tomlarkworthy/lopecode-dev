@@ -640,6 +640,10 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
     "upstream": null
   },
+  "@tomlarkworthy/tarot-deck": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+    "upstream": null
+  },
   "@tomlarkworthy/testblog": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testblog.html"
   },

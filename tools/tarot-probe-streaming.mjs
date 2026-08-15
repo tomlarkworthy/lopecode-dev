@@ -10,6 +10,7 @@
 import { chromium } from 'playwright';
 import http from 'http';
 import fs from 'fs';
+import { gzipSync } from 'zlib';
 
 const FILE = process.argv[2] || 'lopebooks/notebooks/@tomlarkworthy_tarot.html';
 const BYTES_PER_SEC = Number(process.argv[3] || 2_000_000);
@@ -27,9 +28,11 @@ const server = http.createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const port = server.address().port;
 
-const WATCH = ['bootconf.json', '@tomlarkworthy/bootloader', '@tomlarkworthy/lopepage-2',
-  '@tomlarkworthy/tarot', '@tomlarkworthy/tarot/deck.json', '@tomlarkworthy/tarot/m00.avif',
-  '@tomlarkworthy/tarot/w14.avif', 'streaming_sentinel'];
+const WATCH = ['bootconf.json', '@tomlarkworthy/bootloader', '@tomlarkworthy/runtime-sdk',
+  '@tomlarkworthy/view', '@tomlarkworthy/lopepage-2', '@tomlarkworthy/tarot',
+  '@tomlarkworthy/tarot-deck', '@tomlarkworthy/blank-notebook', '@tomlarkworthy/editor-5',
+  '@tomlarkworthy/codemirror-6-v2', '@tomlarkworthy/robocoop-5', '@tomlarkworthy/svg-lens',
+  '@tomlarkworthy/markdown-wiki', 'streaming_sentinel'];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1100, height: 1000 } });
@@ -49,10 +52,13 @@ await page.addInitScript((watch) => {
       if (rt.mains?.has('@tomlarkworthy/lopepage-2')) mark('LIVE: lopepage-2 module');
       if (rt.mains?.has('@tomlarkworthy/tarot')) mark('LIVE: tarot module');
     }
-    // the live app replaces the prerendered snapshot; the runtime-built one has a
-    // reactive input wired to it, the snapshot does not
-    const inp = document.querySelector('.tarot-app input[autocomplete="given-name"]');
-    if (inp && inp.closest('[data-pid]')) mark('LIVE: app mounted');
+    // lope-prerender-cleanup hoists the snapshot into a shadow root, but there is a window
+    // before that where the snapshot's own #lopepage-2 is still in the light DOM — so the
+    // ancestor test is required, not just the selector
+    const mount = document.querySelector('#lopepage-2 .observablehq');
+    if (mount && !mount.closest('#lope-prerender')) mark('LIVE: app mounted');
+    const board = document.querySelector('.tarot-app .board image[href]');
+    if (board) mark('LIVE: card faces');
   };
   const attach = () => {
     if (!document.documentElement) return setTimeout(attach, 0);
@@ -63,9 +69,15 @@ await page.addInitScript((watch) => {
   document.addEventListener('DOMContentLoaded', () => mark('DOMContentLoaded'));
 }, WATCH);
 
-await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'commit', timeout: 180000 });
+// Load as a share link: it is the worst case (the board renders at boot rather than
+// after a click) and it is the journey Tom reported as slow.
+const reading = { name: 'Tom', question: 'Will it ship?', cards: ['p05', 'p09', 'c03'],
+  text: 'The Five of Pentacles marks a lean beginning, the Nine of Pentacles your present, and the Three of Cups the harvest shared.' };
+const payload = gzipSync(Buffer.from(JSON.stringify(reading)))
+  .toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+await page.goto(`http://127.0.0.1:${port}/?r=${payload}`, { waitUntil: 'commit', timeout: 180000 });
 for (let i = 0; i < 900; i++) {
-  const done = await page.evaluate(() => !!window.__marks?.['LIVE: tarot module']).catch(() => false);
+  const done = await page.evaluate(() => !!window.__marks?.['LIVE: card faces']).catch(() => false);
   if (done) break;
   await page.waitForTimeout(100);
 }
