@@ -2,10 +2,11 @@
 // file-attachment blocks (a module placed ahead of its own attachments loses them silently
 // under a streaming load — the generated loader calls contentSync synchronously).
 //
-// The split is the point: tarot keeps deck.json + velvet.avif (46 KB) and tarot-deck owns
-// the 78 card scans (1.56 MB). exporter-3 orders blocks by emitted size, so the app lands
-// near the front of the document and the deck last, and tarot loads the deck lazily from
-// inside showCards rather than importing it.
+// The split is the point. @tomlarkworthy/tarot is the landing page and is two cells plus an
+// import; @tomlarkworthy/tarot-app is the interface and reading logic (deck.json + velvet,
+// 46 KB); @tomlarkworthy/tarot-deck is 1.56 MB of card scans, not needed until three cards
+// are picked. exporter-3 orders blocks by emitted size, so the page and the app land near
+// the front and the scans last.
 import fs from 'fs';
 import path from 'path';
 
@@ -14,7 +15,8 @@ const HASH = '#view=S100(@tomlarkworthy/tarot)';
 const ASSETS = 'data/tarot';
 // [module id, js path, which asset files it owns]
 const MODULES = [
-  ['@tomlarkworthy/tarot', 'modules/@tomlarkworthy/tarot.js', (f) => !f.endsWith('.avif') || f === 'velvet.avif'],
+  ['@tomlarkworthy/tarot', 'modules/@tomlarkworthy/tarot.js', () => false],
+  ['@tomlarkworthy/tarot-app', 'modules/@tomlarkworthy/tarot-app.js', (f) => !f.endsWith('.avif') || f === 'velvet.avif'],
   ['@tomlarkworthy/tarot-deck', 'modules/@tomlarkworthy/tarot-deck.js', (f) => f.endsWith('.avif') && f !== 'velvet.avif'],
 ];
 // tarot-deck is NOT a main. @tomlarkworthy/tarot declares `module @tomlarkworthy/tarot-deck`

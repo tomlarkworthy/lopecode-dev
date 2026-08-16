@@ -43,7 +43,10 @@ bun tools/channel/sync-module.ts --module @tomlarkworthy/exporter-3 \
 
 echo "== 4/5 re-exporting through exporter-3 =="
 mkdir -p scratch
-bun scratch/rmbt/save-in-place.ts --in "$WORK" --out "$TMP" --hash "$HASH" --settle 40000
+# The landing module is four cells, so the exporter's default "more than 20 cells on
+# screen" readiness check never fires — wait for the app itself instead.
+bun scratch/rmbt/save-in-place.ts --in "$WORK" --out "$TMP" --hash "$HASH" --settle 40000 \
+  --ready-cells 3 --ready-selector ".tarot-app"
 cp "$TMP" "$WORK"
 
 echo "== 5/5 patching head metadata =="
