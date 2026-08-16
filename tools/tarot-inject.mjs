@@ -1,6 +1,8 @@
 // Inject @tomlarkworthy/tarot and @tomlarkworthy/tarot-deck, each preceded by its own
-// file-attachment blocks (a module placed ahead of its own attachments loses them silently
-// under a streaming load — the generated loader calls contentSync synchronously).
+// file-attachment blocks. This is the seed only, and it has to hold for tarot-app, whose
+// cells read FileAttachment while define() runs. The re-export in step 4 decides the real
+// layout, and puts tarot-deck's code block ahead of its 78 scans because that module has no
+// define-time read (its cells use window.lopecode.dvfBytes).
 //
 // The split is the point. @tomlarkworthy/tarot is the landing page and is two cells plus an
 // import; @tomlarkworthy/tarot-app is the interface and reading logic (deck.json + velvet,
