@@ -18,7 +18,7 @@ if [[ "${1:-}" == "--assets" ]]; then
   node tools/tarot-og-image.mjs
 fi
 
-echo "== 1/5 seeding from $BASE =="
+echo "== 1/6 seeding from $BASE =="
 # modules/**/*.js is gitignored — the notebook is the source of truth, the .js a working
 # copy. Recover it from the declared canonical if this is a fresh clone.
 if [[ ! -f modules/@tomlarkworthy/tarot.js ]]; then
@@ -26,11 +26,11 @@ if [[ ! -f modules/@tomlarkworthy/tarot.js ]]; then
 fi
 cp "$BASE" "$WORK"
 
-echo "== 2/5 injecting module + 80 attachments =="
+echo "== 2/6 injecting module + 80 attachments =="
 node --check modules/@tomlarkworthy/tarot.js
 node tools/tarot-inject.mjs "$WORK"
 
-echo "== 3/5 refreshing exporter-3 to canonical =="
+echo "== 3/6 refreshing exporter-3 to canonical =="
 # quick_start carries exporter-3 10d706c73268, which emits userBlocks BEFORE bootconf and
 # the bootloader. `main` is at the top of the document and immediately awaits
 # importShim("@tomlarkworthy/bootloader"), so boot cannot start until ~99% of the bytes have
@@ -41,7 +41,7 @@ bun tools/lope-sync.ts checkout @tomlarkworthy/exporter-3 --repo lopecode
 bun tools/channel/sync-module.ts --module @tomlarkworthy/exporter-3 \
   --source modules/@tomlarkworthy/exporter-3.js --target "$WORK"
 
-echo "== 4/5 re-exporting through exporter-3 =="
+echo "== 4/6 re-exporting through exporter-3 =="
 mkdir -p scratch
 # The landing module is four cells, so the exporter's default "more than 20 cells on
 # screen" readiness check never fires — wait for the app itself instead.
@@ -49,7 +49,10 @@ bun scratch/rmbt/save-in-place.ts --in "$WORK" --out "$TMP" --hash "$HASH" --set
   --ready-cells 3 --ready-selector ".tarot-app"
 cp "$TMP" "$WORK"
 
-echo "== 5/5 patching head metadata =="
+echo "== 5/6 hoisting the deck's code ahead of its scans =="
+node tools/tarot-hoist-deck.mjs "$WORK"
+
+echo "== 6/6 patching head metadata =="
 node tools/tarot-patch-head.mjs "$WORK"
 
 ls -l "$WORK" | awk '{printf "\nbuilt %s  %.2f MB\n", $9, $5/1048576}'
