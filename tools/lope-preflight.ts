@@ -98,6 +98,20 @@ function importedSymbols(src: string): Array<[string, string]> {
 }
 
 /**
+ * Whether this module block can reach block content itself, rather than having a
+ * consumer read it later. Three mechanisms, matched as *calls* rather than words so
+ * a module's own prose about attachments does not trip it:
+ *   - a generated `fileAttachments` loader Map, which calls contentSync during define()
+ *   - a direct `lopecode.contentSync(...)`
+ *   - scanning the DOM for script blocks
+ * Only such a module is hurt by its blocks arriving after it.
+ */
+const resolvesContentAtBoot = (src: string) =>
+  /\[[^\]]*"FileAttachment"/.test(src) ||
+  /lopecode\.contentSync\s*\(/.test(src) ||
+  /querySelectorAll\(\s*['"`][^'"`]*script/.test(src);
+
+/**
  * Stdlib names every module gets for free. A module can be imported FROM for one of
  * these even though it never defines it — the name resolves through the source
  * module's builtins — so importing e.g. `md` from runtime-sdk is not a missing export.
@@ -213,13 +227,19 @@ export function checkHtml(html: string): Problem[] {
   }
 
   // Blocks that belong to a module by id prefix but are not in its loader map are
-  // still content the module reads (markdown-wiki scans the DOM for its own docs),
-  // so the same ordering rule applies to them.
+  // often still content the module reads (markdown-wiki scans the DOM for its own
+  // docs), so the same ordering rule applies — but only if the module can actually
+  // reach that content while `define()` runs. A module whose blocks are read by a
+  // *consumer* after parsing (thetarot.online's deck: `tarot-hoist-deck.mjs` strips
+  // the dead loader Map and hoists the 3 KB code block ahead of 1.5 MB of scans, and
+  // `@tomlarkworthy/tarot` reads them through `dvfBytes`) cannot lose them, so the
+  // ordering is deliberate rather than a defect.
   for (const b of bs) {
     const slash = b.id.lastIndexOf("/");
     if (slash < 0) continue;
     const owner = b.id.slice(0, slash);
     if (!byId.has(owner)) continue;
+    if (!resolvesContentAtBoot(byId.get(owner)!.content)) continue;
     if (orderOf.get(b.id)! > orderOf.get(owner)!)
       problems.push({ kind: "attachment-after-module", detail: `${owner}: ${b.id.slice(slash + 1)} is emitted after its module block` });
   }

@@ -122,12 +122,13 @@ for (const r of built.out) {
   const tutCells = (r.html.match(/annotation_tut\d+_note/g) || []).length;
   // Defects that belong to the modules themselves, reproduced in the launcher as well as in a fork.
   // Reported so they stay visible, not counted against the gallery:
-  //  - claude-code-pairing imports fileSyncTools, which file-sync has never defined;
   //  - local-change-history's own demo cells throw "branch is required" wherever they are booted;
   //  - a tests dashboard RENDERS failing tests as data, so its text carries an "Error:" that is
   //    the report, not a broken cell (currently editable-md's escaped-placeholder test).
+  // fileSyncTools is no longer filtered: pairing declares its tools through plugin-registry
+  // instead of importing a name file-sync never defined, so that error should not reappear.
   const known = boot.errors.filter((e) =>
-    /fileSyncTools is not defined|branch is required|#test_\w/.test(e));
+    /branch is required|#test_\w/.test(e));
   boot.errors = boot.errors.filter((e) => !known.includes(e));
   boot.knownExternal = known;
   const themeOk = !THEME ||
