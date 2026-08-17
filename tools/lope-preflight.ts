@@ -16,6 +16,7 @@
  *   attachments  every FileAttachment name maps to an embedded <module>/<name> block
  *   mains        every bootconf main is embedded
  *   duplicates   no repeated block id
+ *   dep skew     each cell's input list matches what its body references, both ways
  *
  * Two layers, same entry point. The static layer above is instant and total. The
  * `--boot` layer really instantiates each notebook in node (reusing
@@ -37,6 +38,9 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync } from "fs";
 import { join, resolve, relative, dirname } from "path";
 import { execFile } from "child_process";
+import { createHash } from "crypto";
+import * as acorn from "acorn";
+import * as walk from "acorn-walk";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPOS = ["lopecode", "lopebooks"];
@@ -134,6 +138,160 @@ function definedNames(src: string): Set<string> {
   return out;
 }
 
+/**
+ * Names a cell body may reference without declaring them as inputs. Two sources, and they
+ * are not interchangeable:
+ *   - real JS/browser globals, which resolve lexically and are the *safe* way to reach a
+ *     browser API from a shared module (see the `window.X` rule for bootloader cells)
+ *   - Observable stdlib builtins, which the runtime injects
+ * A name outside both, referenced but not declared, resolves to nothing at runtime.
+ */
+const AMBIENT = new Set([
+  ...BUILTINS,
+  // ECMAScript
+  "globalThis", "Object", "Array", "String", "Number", "Boolean", "Symbol", "BigInt",
+  "Math", "JSON", "Date", "RegExp", "Error", "TypeError", "RangeError", "SyntaxError",
+  "ReferenceError", "EvalError", "URIError", "AggregateError", "Function", "Map", "Set",
+  "WeakMap", "WeakSet", "WeakRef", "Promise", "Proxy", "Reflect", "ArrayBuffer",
+  "SharedArrayBuffer", "DataView", "Atomics", "Int8Array", "Uint8Array", "Uint8ClampedArray",
+  "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array",
+  "BigInt64Array", "BigUint64Array", "Intl", "parseInt", "parseFloat", "isNaN", "isFinite",
+  "encodeURI", "encodeURIComponent", "decodeURI", "decodeURIComponent", "escape", "unescape",
+  "undefined", "NaN", "Infinity", "structuredClone", "queueMicrotask",
+  // browser
+  "window", "self", "document", "navigator", "location", "history", "screen", "console",
+  "fetch", "Request", "Response", "Headers", "Blob", "File", "FileReader", "FormData",
+  "URL", "URLSearchParams", "AbortController", "AbortSignal", "TextEncoder", "TextDecoder",
+  "CompressionStream", "DecompressionStream", "ReadableStream", "WritableStream",
+  "TransformStream", "setTimeout", "clearTimeout", "setInterval", "clearInterval",
+  "requestAnimationFrame", "cancelAnimationFrame", "requestIdleCallback", "getComputedStyle",
+  "matchMedia", "localStorage", "sessionStorage", "indexedDB", "crypto", "performance",
+  "atob", "btoa", "alert", "confirm", "prompt", "open", "close", "postMessage", "addEventListener",
+  "removeEventListener", "dispatchEvent", "Node", "Element", "HTMLElement", "SVGElement",
+  "DocumentFragment", "CustomEvent", "MouseEvent", "KeyboardEvent", "PointerEvent", "DragEvent",
+  "TouchEvent", "WheelEvent", "InputEvent", "FocusEvent", "MessageEvent", "ErrorEvent",
+  "CloseEvent", "ProgressEvent", "MutationObserver", "ResizeObserver", "IntersectionObserver",
+  "PerformanceObserver", "WebSocket", "Worker", "SharedWorker", "MessageChannel", "MessagePort",
+  "BroadcastChannel", "EventTarget", "EventSource", "XMLHttpRequest", "DOMParser",
+  "XMLSerializer", "Image", "Audio", "AudioContext", "OfflineAudioContext", "Path2D",
+  "ImageData", "OffscreenCanvas", "createImageBitmap", "ClipboardItem", "DataTransfer",
+  "IntersectionObserverEntry", "CSS", "Range", "Selection", "Notification", "caches",
+  "importShim", "process", "Buffer", "require", "module", "exports", "__dirname", "__filename",
+  "devicePixelRatio", "innerWidth", "innerHeight", "outerWidth", "outerHeight", "scrollX",
+  "scrollY", "pageXOffset", "pageYOffset", "parent", "top", "frames", "origin", "visualViewport",
+  "isSecureContext", "WebAssembly", "speechSynthesis", "scrollTo", "scrollBy", "getSelection",
+]);
+
+/**
+ * Does each cell's declared input list match what its body actually references?
+ *
+ * A compiled cell binds inputs to params POSITIONALLY — `$def(pid, name, ["a","viewof b"], fn)`
+ * with `function fn(a, $0)`. So the check is per position, not per name, which is why `viewof`
+ * deps (params named `$0`) work here at all.
+ *
+ * Two directions, both produced by hand- or AI-editing a cell body without updating its input
+ * array, and they fail differently:
+ *   unused-dep      declared, never referenced. The cell still WAITS on that variable, so it
+ *                   inherits its failure and recomputes on its changes, for nothing.
+ *   undeclared-ref  referenced, never declared and not ambient. Resolves to nothing at runtime.
+ *
+ * Over-approximates what counts as bound (every declaration anywhere in the function, plus every
+ * nested param) so the errors it can make are misses, not false alarms. Cells reaching `arguments`
+ * or `eval` are skipped: their references are not statically visible.
+ *
+ * Memoized on block content — the corpus holds 11,719 (notebook, module) pairs but only 424
+ * distinct blocks, so this runs 424 times rather than 11,719.
+ */
+/** Every name a binding position introduces, through destructuring, defaults and rest. */
+function patternNames(node: any, out: Set<string>): void {
+  if (!node) return;
+  switch (node.type) {
+    case "Identifier": out.add(node.name); return;
+    case "ObjectPattern": for (const p of node.properties) patternNames(p.type === "RestElement" ? p.argument : p.value, out); return;
+    case "ArrayPattern": for (const e of node.elements) patternNames(e, out); return;
+    case "AssignmentPattern": patternNames(node.left, out); return;
+    case "RestElement": patternNames(node.argument, out); return;
+  }
+}
+
+const skewCache = new Map<string, Problem[]>();
+function depSkew(src: string): Problem[] {
+  const key = createHash("sha256").update(src).digest("hex");
+  const hit = skewCache.get(key);
+  if (hit) return hit;
+  const out: Problem[] = [];
+  skewCache.set(key, out);
+  let ast: any;
+  try { ast = acorn.parse(src, { ecmaVersion: 2022, sourceType: "module" }); } catch { return out; }
+
+  const fns = new Map<string, { params: string[]; refs: Set<string>; bound: Set<string>; opaque: boolean }>();
+  walk.simple(ast, {
+    VariableDeclarator(n: any) {
+      if (n.id.type !== "Identifier" || !n.init) return;
+      if (n.init.type !== "FunctionExpression" && n.init.type !== "ArrowFunctionExpression") return;
+      const params = (n.init.params || []).map((p: any) => (p.type === "Identifier" ? p.name : null));
+      const refs = new Set<string>(), bound = new Set<string>();
+      // the cell's own params bind too; a destructured one binds names but holds no positional dep
+      for (const p of n.init.params || []) patternNames(p, bound);
+      let opaque = false;
+      walk.ancestor(n.init.body ?? n.init, {
+        Identifier(id: any, _s: any, anc: any[]) {
+          const parent = anc[anc.length - 2];
+          if (parent) {
+            // a property NAME is not a reference to a variable of that name
+            if (parent.type === "MemberExpression" && !parent.computed && parent.property === id) return;
+            // `{html}` is ONE node serving as both key and value — skipping it as a key would
+            // report the cell as not using a dep it passes straight through.
+            if (parent.type === "Property" && !parent.computed && !parent.shorthand && parent.key === id) return;
+            if ((parent.type === "MethodDefinition" || parent.type === "PropertyDefinition")
+              && !parent.computed && parent.key === id) return;
+            if (parent.type === "LabeledStatement" || parent.type === "BreakStatement" || parent.type === "ContinueStatement") return;
+          }
+          if (id.name === "arguments" || id.name === "eval") opaque = true;
+          refs.add(id.name);
+        },
+        VariableDeclarator(d: any) { patternNames(d.id, bound); },
+        FunctionDeclaration(f: any) { if (f.id) bound.add(f.id.name); for (const p of f.params || []) patternNames(p, bound); },
+        FunctionExpression(f: any) { if (f.id) bound.add(f.id.name); for (const p of f.params || []) patternNames(p, bound); },
+        ArrowFunctionExpression(f: any) { for (const p of f.params || []) patternNames(p, bound); },
+        ClassDeclaration(c: any) { if (c.id) bound.add(c.id.name); },
+        ClassExpression(c: any) { if (c.id) bound.add(c.id.name); },
+        CatchClause(c: any) { if (c.param) patternNames(c.param, bound); },
+        ImportSpecifier(s: any) { bound.add(s.local.name); },
+        ImportDefaultSpecifier(s: any) { bound.add(s.local.name); },
+        ImportNamespaceSpecifier(s: any) { bound.add(s.local.name); },
+      });
+      fns.set(n.id.name, { params, refs, bound, opaque });
+    },
+  });
+
+  walk.simple(ast, {
+    CallExpression(n: any) {
+      if (n.callee.type !== "Identifier" || n.callee.name !== "$def") return;
+      const [, nameNode, depsNode, fnNode] = n.arguments;
+      if (!fnNode || fnNode.type !== "Identifier") return;
+      const fn = fns.get(fnNode.name);
+      if (!fn || fn.opaque) return;
+      const inputs: string[] = depsNode?.type === "ArrayExpression"
+        ? depsNode.elements.map((e: any) => (e?.type === "Literal" ? String(e.value) : null)) : [];
+      const cell = nameNode?.type === "Literal" && nameNode.value !== null ? String(nameNode.value) : "(anonymous)";
+      inputs.forEach((dep, i) => {
+        if (dep === null) return;
+        const p = fn.params[i];
+        // No param at that position at all: editing the input array without touching the
+        // signature leaves a dep that CANNOT be referenced, which is the pure form of the bug.
+        if (!p) { out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} but has no parameter for it` }); return; }
+        if (!fn.refs.has(p)) out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} but never uses it` });
+      });
+      const params = new Set(fn.params.filter(Boolean) as string[]);
+      for (const r of fn.refs)
+        if (!params.has(r) && !fn.bound.has(r) && !AMBIENT.has(r) && !/^\$\d+$/.test(r))
+          out.push({ kind: "undeclared-ref", detail: `${cell} references ${r}, which is not one of its inputs` });
+    },
+  });
+  return out;
+}
+
 /** FileAttachment names this block expects, from the generated loader map. */
 function attachmentsOf(src: string): string[] {
   const m = src.match(/const fileAttachments = new Map\(\[([\s\S]*?)\]\.map\(/);
@@ -214,6 +372,9 @@ export function checkHtml(html: string): Problem[] {
         detail: `${id} imports ${sym} from ${dep}, which does not define it`,
       });
     }
+    for (const p of depSkew(byId.get(id)!.content))
+      problems.push({ kind: live ? p.kind : `${p.kind}-lazy`, detail: `${id}: ${p.detail}` });
+
     for (const name of attachmentsOf(byId.get(id)!.content)) {
       const attId = ids.has(`${id}/${encodeURIComponent(name)}`)
         ? `${id}/${encodeURIComponent(name)}`
@@ -339,7 +500,10 @@ if (baselineIn) {
   for (const [rel, ps] of Object.entries(report)) for (const p of ps) now.add(key(rel, p));
 
   const added = [...now].filter((k) => !had.has(k)).filter((k) => !k.split("\u0000")[1].endsWith("-lazy"));
-  const fixed = [...had].filter((k) => !now.has(k));
+  // only over the files this run looked at -- a scoped run (the pre-commit hook passes a few
+  // paths) has no opinion about findings in notebooks it never opened
+  const checked = new Set(targets);
+  const fixed = [...had].filter((k) => !now.has(k) && checked.has(k.split("\u0000")[0]));
   console.log(`\nvs baseline ${baselineIn}:  ${added.length} NEW, ${fixed.length} resolved`);
   for (const k of added.slice(0, 30)) {
     const [rel, kind, detail] = k.split("\u0000");

@@ -84,7 +84,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | **Get a module `.js` to edit** | `lope-sync.ts checkout` (never grep for a copy) | Instant |
 | **Check a working copy is still fresh** | `lope-sync.ts status` | ~1s |
 | **Find modules whose copies have drifted** | `lope-sync.ts audit [--module X]` | ~1s |
-| **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` — also a prek pre-commit hook in both content repos, scoped to the notebooks being committed | ~4s / ~60min |
+| **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` — module graph + per-cell dep skew (`unused-dep`/`undeclared-ref`). Also a prek pre-commit hook in both content repos, judged against `tools/preflight-baseline.json`, scoped to the notebooks being committed | ~7s / ~60min |
 | **Push a canonical out to every stale consumer** | `sync-module.ts --all-canonical` (verify direction first) | ~30s |
 | Is a minority canonical ahead or behind? | `triage/cellwise.ts --all-minority` (asks Observable) | ~1s/module |
 | Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
