@@ -141,7 +141,9 @@ const errs = await p.evaluate(() => {
   }
   return { bad, adrift: (document.body.innerText.match(/\(adrift\)/g) || []).length };
 });
-check('no error cells', errs.bad.filter((e) => !/fileSyncTools/.test(e)).length === 0, errs.bad.join(' | ').slice(0, 120));
+// No fileSyncTools exemption: pairing declares its tools through plugin-registry rather than
+// importing a name file-sync never defined, so that error must not reappear.
+check('no error cells', errs.bad.length === 0, errs.bad.join(' | ').slice(0, 120));
 check('no adrift annotations', errs.adrift === 0, String(errs.adrift));
 check('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 2).join(' | '));
 

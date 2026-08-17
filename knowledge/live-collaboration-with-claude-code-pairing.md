@@ -61,7 +61,7 @@ The pairing module panel shows connection status. When connected, you'll see a c
 Browser (Notebook)  ←→  WebSocket  ←→  Channel Server (Bun)  ←→  MCP stdio  ←→  Claude Code
 ```
 
-- **Channel Server** (`tools/channel/lopecode-channel.ts`): Bridges WebSocket to MCP. Translates MCP tool calls into WebSocket commands, and WebSocket notifications into MCP notifications. Stateless — all intelligence is in the notebook module and runtime-sdk.
+- **Channel Server** (`lopecode-plugin/src/lopecode-channel.ts`): Bridges WebSocket to MCP. Translates MCP tool calls into WebSocket commands, and WebSocket notifications into MCP notifications. Stateless — all intelligence is in the notebook module and runtime-sdk.
 - **Notebook Module** (`@tomlarkworthy/claude-code-pairing`): Observable module with chat UI, watch table, command handler. Dispatches commands to runtime-sdk functions.
 - **Runtime SDK** (`@tomlarkworthy/runtime-sdk`): The authoritative implementation of metaprogramming operations — `realize`, `observe`, `createModule`, `deleteModule`, `lookupVariable`, etc. The channel module calls these; it does not reimplement them.
 
@@ -141,7 +141,7 @@ These are the tools Claude sees. Each is a thin wrapper that sends a command to 
 Notebooks can declare MCP tools that Claude Code discovers at runtime. These appear in Claude's tool list alongside the static tools above. See `knowledge/development-of-pairing-channel-and-claude-plugin.md` for full architecture details.
 
 Currently registered dynamic tools:
-- **`setup_file_sync`** — declared by `@tomlarkworthy/file-sync`, returns sync status and auto-watches `syncStatus`
+- **`setup_file_sync`** — declared by `@tomlarkworthy/claude-code-pairing` (not by file-sync: a provider cell only runs where something observes it, and file-sync is a bootconf main in 1 notebook of 232), returns sync status and auto-watches `syncStatus`
 
 Dynamic tools are registered during the WebSocket pair handshake and updated via `register-tools` messages. The channel server emits `notifications/tools/list_changed` so Claude refreshes its tool list. Tool calls are routed back to the originating notebook's handler.
 
@@ -466,7 +466,7 @@ tools/channel/
 - **Delete module support** — implement `delete_module` MCP tool + runtime-sdk `deleteModule` function
 - **Marketplace submission** — submit plugin to Claude's marketplace or self-host
 - **Hash param preservation** — fix bootloader hash mangling ([#140](https://github.com/tomlarkworthy/lopecode/issues/140))
-- **File-sync "defined more than once" bug** — when file-sync applies a module containing import bridges, `filesToNotebook` can hit duplicate definitions. See `plan/claude-pairing-notebook-file-sync.md` Step 6
+- **File-sync "defined more than once"** — `filesToNotebook` re-applies a module wholesale, so the import bridges and module defines that sit outside the `$def` pattern re-run as side effects of `define()` and redefine names that already exist (`RuntimeError: <name> is defined more than once`). Recorded fix direction: only `$def`-registered cells carry a `pid` and should be synced — structural wiring should never come back from disk. Still open 2026-08-17: `filesToNotebook` has no `"@variable"` or `"module @"` guard. Hits any sync set where one module imports another, so it is not specific to pairing
 
 ## Development
 
@@ -475,7 +475,7 @@ tools/channel/
 Integration tests exercise the WebSocket protocol (pairing, commands, notifications, health endpoint) by spawning the channel server as a subprocess and connecting via plain WebSocket. No browser or Claude Code needed.
 
 ```bash
-bun test tests/channel/lopecode-channel.test.ts
+bun test lopecode-plugin/tests/lopecode-channel.test.ts
 ```
 
 ### Local Testing (manual)
@@ -483,7 +483,7 @@ bun test tests/channel/lopecode-channel.test.ts
 Start the server standalone and connect a notebook:
 
 ```bash
-bun run tools/channel/lopecode-channel.ts
+bun run lopecode-plugin/src/lopecode-channel.ts
 # stderr shows: pairing token: LOPE-PORT-XXXX
 # Check http://127.0.0.1:PORT/health for connection status
 ```
