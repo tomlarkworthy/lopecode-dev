@@ -1,1 +1,32 @@
-{}
+{
+  "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html": [
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/editor imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it"
+    },
+    {
+      "kind": "missing-export",
+      "detail": "@tomlarkworthy/moldable-webpage imports cellMaps from @tomlarkworthy/visualizer, which does not define it"
+    },
+    {
+      "kind": "missing-import",
+      "detail": "@tomlarkworthy/editor-5 imports @tomlarkworthy/modules"
+    }
+  ]
+}
