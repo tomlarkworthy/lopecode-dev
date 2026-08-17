@@ -279,7 +279,7 @@ const yoloOk = yoloOn.checked && Array.isArray(yoloOn.argv) && yoloOn.argv.inclu
   && Array.isArray(yoloOff.argv) && !yoloOff.argv.includes(FLAG);
 
 // ---- summary ----
-const benign = (e) => /User-Agent|api\.anthropic\.com|downloads\.claude\.ai|metrics_enabled|Failed to load resource.*cli\.local|net::ERR|Access-Control|CORS|statsig|telemetry/i.test(e);
+const benign = (e) => /User-Agent|api\.anthropic\.com|downloads\.claude\.ai|metrics_enabled|Failed to load resource.*cli\.invalid|net::ERR|Access-Control|CORS|statsig|telemetry/i.test(e);
 const fatal = consoleErrs.filter((e) => !benign(e));
 // ---- STEP 6: Anthropic mode — no key must mean NO auth, so /login can run ----
 console.log("\n== Anthropic API mode ==");
