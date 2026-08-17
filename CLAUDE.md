@@ -30,6 +30,8 @@ The preferred harness is `./metadev`, which uses [safehouse](https://github.com/
 
 ```
 lopecode-dev/
+├── lopecode-plugin/             # Channel server + Claude Code plugin (submodule)
+│   └── src/lopecode-channel.ts  # The MCP server behind every pairing tool
 ├── lopecode/                    # Main content repository (submodule)
 │   └── notebooks/               # Published notebook HTML files
 ├── lopebooks/                   # Development/staging content repository (submodule)
@@ -42,7 +44,8 @@ lopecode-dev/
 │   ├── lope-browser-runner.ts          # One-off runtime execution (Playwright)
 │   ├── lope-jumpgate.js        # Automated jumpgate export (Playwright); drives lopecode/notebooks/jumpgates.html
 │   ├── lope-bulk-jumpgate.js   # Bulk export driver; drives lopecode/notebooks/jumpgates.html
-│   ├── channel/                 # Claude Code <-> notebook channel (Bun + MCP)
+│   ├── channel/sync-module.ts   # Corpus tool: push a module into notebook HTML
+│   │                            # (the channel SERVER itself lives in lopecode-plugin)
 │   ├── staging/                 # Bulk export staging artifacts
 │   └── screenshots/             # Test screenshots
 ├── vendor/                      # Reference submodules
@@ -62,6 +65,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/pushing-cells-to-observablehq.md` | Pushing cell changes back to Observable |
 | `knowledge/live-collaboration-with-claude-code-pairing.md` | Claude Code pairing: setup, user journeys, MCP tools, distribution |
 | `knowledge/development-of-pairing-channel-and-claude-plugin.md` | Channel server architecture, dynamic MCP tools, reactive decoupling patterns |
+| `lopecode-plugin/README.md` | The channel server itself — it is a **separate repo** (see below) |
 | `knowledge/how-file-attachments-work.md` | File attachment internals |
 | `knowledge/lopecode-internal-networking.md` | Fetch/XHR/import interception internals |
 | `knowledge/notebook-programming-concepts.md` | Observable runtime internals, lopepage architecture, hash URL DSL |
@@ -80,7 +84,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | **Get a module `.js` to edit** | `lope-sync.ts checkout` (never grep for a copy) | Instant |
 | **Check a working copy is still fresh** | `lope-sync.ts status` | ~1s |
 | **Find modules whose copies have drifted** | `lope-sync.ts audit [--module X]` | ~1s |
-| **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` | ~4s / ~60min |
+| **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` — also a prek pre-commit hook in both content repos, scoped to the notebooks being committed | ~4s / ~60min |
 | **Push a canonical out to every stale consumer** | `sync-module.ts --all-canonical` (verify direction first) | ~30s |
 | Is a minority canonical ahead or behind? | `triage/cellwise.ts --all-minority` (asks Observable) | ~1s/module |
 | Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
@@ -93,7 +97,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~7s each |
 | Smoke test notebooks in Node.js | `bulk-smoke-test.js` | ~5s each |
 | QC bulk exports against reference | `bulk-export-qc.js` | Instant |
-| Claude <-> notebook channel | `tools/channel/lopecode-channel.ts` | Real-time |
+| Claude <-> notebook channel | `lopecode-plugin/src/lopecode-channel.ts` | Real-time |
 | Claude <-> notebook channel (npm) | `bunx @lopecode/channel` | Real-time |
 | Create new notebook with pairing | See `knowledge/live-collaboration-with-claude-code-pairing.md` § "Creating a New Notebook" | ~2min |
 | Define cells via Observable source | `define_cell` MCP tool (via pairing channel) | Instant |
@@ -156,7 +160,7 @@ Since re-exporting is a human-driven process, agents should:
 
 ```bash
 node --test tests/notebooks/*.test.js
-bun test tests/channel/lopecode-channel.test.ts
+bun test lopecode-plugin/tests/lopecode-channel.test.ts
 ```
 
 ### Tips for Agents
@@ -187,15 +191,24 @@ bun test tests/channel/lopecode-channel.test.ts
 9. **Prefer imports over private APIs** — Never access private runtime properties (`mod._runtime`, `variable._module`) or internal builtins (`__ojs_runtime`) when the same value is available as an import. Use `@tomlarkworthy/runtime-sdk` for `runtime`, `main`, `onCodeChange`, `importShim`. Use `@tomlarkworthy/fileattachments` for `getFileAttachmentsMap`. Imports are stable, private APIs break.
 10. **Blank notebook (theme but no content)?** - Check the `bootconf.json` script in the HTML. An empty `"mains": []` means no modules are booted. Fix by adding lopepage and the main module name (e.g. `["@tomlarkworthy/lopepage", "@tomlarkworthy/my-notebook"]`)
 11. **Use `git -C <path>` instead of `cd <path> && git ...`** - Chained `cd` commands silently leave you in the wrong directory if any earlier command fails (the `&&` short-circuits but the shell's cwd is already changed). `git -C <submodule> status` is unambiguous and stateless. Same applies to running tools across both `lopecode/` and `lopebooks/` submodules in one session.
-12. **Channel server is sandboxed (safehouse) — don't write to `~/...`** - The channel server runs under safehouse and cannot create files under the user's home directory (`~/.cache`, `~/Library`, etc. → `EPERM`). For runtime artifacts a backend tool needs to write (fakefs roots, lock files, caches), default to `/tmp/...`. Tip 7 still applies to *Claude's* test/working files — those go in `tools/` to avoid permission prompts. The two rules don't conflict because they apply to different processes.
-13. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
+12. **The channel server lives in its own repo, vendored as a submodule.** `@lopecode/channel` — the MCP
+   server behind every pairing tool (`define_cell`, `eval_code`, `qa_*`, …) — is its own
+   repository, [`tomlarkworthy/lopecode-plugin`](https://github.com/tomlarkworthy/lopecode-plugin),
+   vendored here as the `lopecode-plugin` submodule (`git submodule update --init lopecode-plugin`). It owns its source (`src/`),
+   tests, build, npm package and Claude Code plugin manifests, and releases itself on a `v*`
+   tag. Edit the channel there, not here. `.mcp.json` and the PostToolUse hook in
+   `.claude/settings.json` both resolve `lopecode-plugin`, so the submodule must be initialised
+   for pairing to work. Only `tools/channel/sync-module.ts` stayed behind — it is a corpus tool
+   that merely shared the directory.
+13. **Channel server is sandboxed (safehouse) — don't write to `~/...`** - The channel server runs under safehouse and cannot create files under the user's home directory (`~/.cache`, `~/Library`, etc. → `EPERM`). For runtime artifacts a backend tool needs to write (fakefs roots, lock files, caches), default to `/tmp/...`. Tip 7 still applies to *Claude's* test/working files — those go in `tools/` to avoid permission prompts. The two rules don't conflict because they apply to different processes.
+14. **See `knowledge/notebook-programming-concepts.md`** - Contains critical info on:
    - Observable runtime lazy evaluation (cells only compute when observed)
    - Lopepage hash URL DSL for multi-module layouts
    - Natural test observation via `latest_state` Map
    - How to force cell computation with `_reachable` and `_computeNow()`
-14. **Writing style** - Terse and factual, do not use hyperbole, metaphors or similes in public facing documentation.
-15. **Be terse in comments** - Default to no comment. When one is warranted (non-obvious *why*), keep it to one short line.
-16. **Never copy notebook code into scripts — import it.** When a node/bun tool needs logic that already lives in a notebook module (a metric, a parser, a formula, a transform), do **not** reimplement or copy it — that copy silently drifts from the canonical source (observed: a hand-copied `code-metrics` formula diverged on cyclomatic complexity). Reuse the real cell instead. Three paths, lightest first:
+15. **Writing style** - Terse and factual, do not use hyperbole, metaphors or similes in public facing documentation. **Before writing or substantially editing any doc** — `knowledge/*.md`, `plan/*.md`, notebook `md` cells, a README, a PR body — invoke the `document` skill. It carries the house standard (evidence-first, drawn from the hand-written docs) and the specific failure modes of unaided LLM prose here.
+16. **Be terse in comments** - Default to no comment. When one is warranted (non-obvious *why*), keep it to one short line.
+17. **Never copy notebook code into scripts — import it.** When a node/bun tool needs logic that already lives in a notebook module (a metric, a parser, a formula, a transform), do **not** reimplement or copy it — that copy silently drifts from the canonical source (observed: a hand-copied `code-metrics` formula diverged on cyclomatic complexity). Reuse the real cell instead. Three paths, lightest first:
    - **One module's cells/functions** → `bun tools/notebook-import.ts` (`importNotebookModule(jsPath, { overrides })`) — loads the module into a headless `@observablehq/runtime`, `await m.value("cellName")` returns the cell's value (a function cell gives you a reusable function; a data cell gives computed data). `overrides` inject deps a cell needs (a `require`-based or browser-only builtin, or a feeder input). No browser, no DOM. See `tools/code-metrics-cli.ts` for a worked example (it feeds `allCells` and reads the real `metricsRows`).
    - **A whole notebook** (needs importmap / file attachments) → `tools/lope-runtime.js` `loadNotebook()`.
    - **Full browser fidelity** (real DOM/APIs) → drive it in Playwright like `tools/lope-jumpgate.js` and read `__ojs_runtime` cell values via `page.evaluate`.
