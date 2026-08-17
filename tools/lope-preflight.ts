@@ -214,6 +214,30 @@ function patternNames(node: any, out: Set<string>): void {
   }
 }
 
+/**
+ * What a declared input resolves to, which is what decides how much an unused one costs:
+ *
+ *   imported from @x/y   an import bridge. The heaviest: the module depends on @x/y for
+ *                        nothing. `importShim` is the common case — it looks ambient because
+ *                        the networking script also exposes it as a global, but as a DEP it is
+ *                        `v.import("importShim")` from runtime-sdk.
+ *   a cell here          a sibling cell, so the cell waits on it and inherits its failures
+ *   a stdlib builtin     always resolves, but declared for no reason
+ *   nothing defines it   resolves to a placeholder that never settles, so the cell NEVER RUNS
+ *                        whether or not the body uses it
+ */
+function depOrigin(src: string): (dep: string) => string {
+  const bridge = new Map<string, string>();
+  for (const m of src.matchAll(/main\.define\("((?:[^"\\]|\\.)*)",\s*\[\s*"module ([^"]+)"/g))
+    bridge.set(m[1], m[2]);
+  const local = definedNames(src);
+  return (dep) =>
+    bridge.has(dep) ? `imported from ${bridge.get(dep)}`
+    : local.has(dep) ? "a cell here"
+    : BUILTINS.has(dep) ? "a stdlib builtin"
+    : "nothing here defines it";
+}
+
 const skewCache = new Map<string, Problem[]>();
 function depSkew(src: string): Problem[] {
   const key = createHash("sha256").update(src).digest("hex");
@@ -265,6 +289,7 @@ function depSkew(src: string): Problem[] {
     },
   });
 
+  const originOf = depOrigin(src);
   walk.simple(ast, {
     CallExpression(n: any) {
       if (n.callee.type !== "Identifier" || n.callee.name !== "$def") return;
@@ -280,8 +305,8 @@ function depSkew(src: string): Problem[] {
         const p = fn.params[i];
         // No param at that position at all: editing the input array without touching the
         // signature leaves a dep that CANNOT be referenced, which is the pure form of the bug.
-        if (!p) { out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} but has no parameter for it` }); return; }
-        if (!fn.refs.has(p)) out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} but never uses it` });
+        if (!p) { out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} (${originOf(dep)}) but has no parameter for it` }); return; }
+        if (!fn.refs.has(p)) out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} (${originOf(dep)}) but never uses it` });
       });
       const params = new Set(fn.params.filter(Boolean) as string[]);
       for (const r of fn.refs)
