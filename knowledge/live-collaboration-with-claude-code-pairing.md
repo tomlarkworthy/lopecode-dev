@@ -16,14 +16,31 @@ There are two entry points depending on where the user starts.
 
 ### Starting from Claude Code (CLI-first) — Preferred
 
-```bash
-# One-time setup (requires Bun: https://bun.sh)
-bun install -g @lopecode/channel
-claude mcp add lopecode bunx @lopecode/channel
+Install as a plugin. This route touches npm not at all — the repo is its own marketplace and
+`dist/` is committed, so the install is a clone with no build step:
 
-# Start Claude Code with channels enabled
+```
+/plugin marketplace add tomlarkworthy/lopecode-plugin
+/plugin install lopecode-channel@lopecode-plugins
+```
+
+Then restart with the channel enabled:
+
+```bash
+claude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins
+```
+
+Verified 2026-08-18 on Claude Code 2.1.233. The flag is what makes pairing two-way; without it
+Claude still drives the notebook, but the notebook's chat box reaches nobody. From npm instead:
+
+```bash
+claude mcp add lopecode -- npx -y @lopecode/channel
 claude --dangerously-load-development-channels server:lopecode
 ```
+
+A plugin install runs from a fresh clone with no `node_modules`, so playwright is not resolvable
+and the nine `qa_*` browser tools are absent — 21 tools rather than 30. `open_url` does not need
+playwright, so pairing is unaffected.
 
 Then ask Claude: **"Open a lopecode notebook"**
 
@@ -41,17 +58,16 @@ claude --dangerously-load-development-channels server:lopecode
 
 If you see the `@tomlarkworthy/claude-code-pairing` module panel in a notebook but don't have Claude Code connected:
 
-1. **Install Bun** if you don't have it: https://bun.sh
-2. **Install the channel plugin**:
-   ```bash
-   bun install -g @lopecode/channel
-   claude mcp add lopecode bunx @lopecode/channel
+1. **Install the plugin** in Claude Code:
    ```
-3. **Start Claude Code with channels**:
-   ```bash
-   claude --dangerously-load-development-channels server:lopecode
+   /plugin marketplace add tomlarkworthy/lopecode-plugin
+   /plugin install lopecode-channel@lopecode-plugins
    ```
-4. **Ask Claude** to connect to your notebook. Claude will provide a `&cc=TOKEN` URL — paste it into your notebook's address bar, or ask Claude to open a fresh notebook.
+2. **Restart Claude Code with the channel enabled**:
+   ```bash
+   claude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins
+   ```
+3. **Ask Claude** to connect to your notebook. Claude will provide a `&cc=TOKEN` URL — paste it into your notebook's address bar, or ask Claude to open a fresh notebook.
 
 The pairing module panel shows connection status. When connected, you'll see a chat interface and a watch table showing live variable values.
 
@@ -364,7 +380,7 @@ User says "pair without a browser" or `/pair-headless <notebook>`. The `pair-hea
 The host writes a PID file at `/tmp/lope-headless-<TOKEN>.pid` and self-terminates when the pairing WebSocket to the channel server closes (channel down → host gone, no leak). `/pair-stop` reads the PID file and SIGTERMs the host. Use this when running long automated authoring sessions where keeping a foreground tab is disruptive; keep the headed flow (1) for visual debugging.
 
 ### 2. Initial connection (notebook-first)
-User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--dangerously-load-development-channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
+User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install the plugin from the marketplace, then start Claude Code with `--dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
 
 ### 3. Convert web notebook to local file
 User has a notebook open from GitHub Pages. Guide them to open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2`) and use the fork button to save to disk.
