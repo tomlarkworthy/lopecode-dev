@@ -41,6 +41,13 @@ export async function createDriver({
 
   async function runQuestion(evalDef) {
     const question = String(evalDef?.question ?? "");
+    // evalDef.resume: array of prior-conversation messages (WITHOUT the leading system prompt —
+    // send() re-adds it). They are pushed into session.messages, then the turn continues with
+    // send(question) — or send(null) when `question` is empty, which pushes no user message at all.
+    // Two callers: attribute.mjs re-runs a trajectory PREFIX with no new question (send(null), the
+    // model just carries on), and run-agent.mjs's warm attempt 2 resumes the whole attempt-1
+    // conversation and asks a new question on top of it (the aider retry protocol).
+    const resume = Array.isArray(evalDef?.resume) && evalDef.resume.length ? evalDef.resume : null;
     const partial = { ok: false, error: null, question, model, durationMs: 0, steps: 0 };
     const consoleEvents = [];
 
@@ -249,7 +256,7 @@ export async function createDriver({
       // Step 6: send the question (raced against timeout) and build the WorldSnapshot — all in-page so
       // we have synchronous access to live runtime values.
       const snapshot = await page.evaluate(
-        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs }) => {
+        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -327,7 +334,13 @@ export async function createDriver({
               // Multi-turn: send the question then each followup as a SEPARATE turn on the same session, so a
               // "build then adjust" eval edits code written by a prior turn (the byte-stability stress point).
               // Snapshot is taken after the final turn; steps/usage accumulate across turns.
-              const prompts = [question, ...(followups || [])];
+              // Resume mode: inject the prior conversation, then run ONE turn on top of it — with the
+              // new question if there is one, else send(null) (no user message pushed; the loop just
+              // proceeds from the injected history).
+              if (resume) {
+                for (const m of resume) session.messages.push(m);
+              }
+              const prompts = resume ? [question || null] : [question, ...(followups || [])];
               let acc = 0, lastFinish = null, usage = null;
               for (const p of prompts) {
                 const turn = await Promise.race([session.send(p), timeout]);
@@ -458,7 +471,7 @@ export async function createDriver({
           return result;
         },
         { question, model, timeoutMs, targetModules, followups: evalDef.followups || [],
-          forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800 },
+          forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800, resume },
       );
 
       // --- files via the harness seam (after settle + force-compute, so file state is final) ---
