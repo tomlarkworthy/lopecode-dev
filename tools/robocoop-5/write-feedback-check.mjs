@@ -2,11 +2,12 @@
 // recompute report must appear in the SAME apply result. Boots the eval notebook, writes module A,
 // writes module B importing from A, then re-writes A and inspects B's blast radius in A's apply msg.
 import { chromium } from "playwright";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const NB = join(here, "eval", "robocoop-5-eval.html");
+// Defaults to the (gitignored) eval build; pass a notebook path to check a different one.
+const NB = process.argv[2] ? resolve(process.argv[2]) : join(here, "eval", "robocoop-5-eval.html");
 const LAYOUT = "R100(S75(@tomlarkworthy/robocoop-5),S25(@tomlarkworthy/robocoop-5-srctools))";
 
 const A1 = `const _x = function x(){return( 1 )};
