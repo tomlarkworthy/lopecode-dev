@@ -87,3 +87,6 @@ scratch/rmbt/clt.js
 scratch/rmbt/clt2.js
 tools/usb-probe
 scratch/rmbt/calshots/*.gray
+tools/robocoop-5/rc5-bundle.html
+tools/robocoop-5/eval/polyglot/results/trajectories/
+tools/robocoop-5/eval/tau/results/trajectories/

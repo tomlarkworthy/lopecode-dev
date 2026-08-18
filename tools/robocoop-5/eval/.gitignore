@@ -4,3 +4,10 @@ tau-src/
 tau/results/
 tau/retail-export.json
 robocoop-5-eval-v2.html
+
+# Run artefacts: agent trajectories are whole conversations (key-prone by design) and the
+# per-run JSON/logs are bulky and regenerable. Same convention as tau/results/ above and
+# tools/robocoop-4/eval/live/results/. Results committed before this rule stay tracked —
+# .gitignore does not untrack — but nothing new lands here.
+polyglot/results/
+humaneval/results/

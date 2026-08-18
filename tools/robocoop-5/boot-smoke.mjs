@@ -3,11 +3,12 @@
 // every robocoop-5-core export actually instantiates (lazy cells hide a missing definition until first
 // use), and dumps console errors. No model calls.
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { bootNotebook } from "./lib/notebook-boot.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const NB = join(here, "../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html");
+// Defaults to the lopebooks canonical; pass a notebook path to smoke a different build (e.g. rc5-bundle.html).
+const NB = process.argv[2] ? resolve(process.argv[2]) : join(here, "../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html");
 const LAYOUT = "R100(S75(@tomlarkworthy/robocoop-5),S25(@tomlarkworthy/robocoop-5-srctools))";
 
 const { page, consoleErrors, close } = await bootNotebook({ notebookPath: NB, layout: LAYOUT });

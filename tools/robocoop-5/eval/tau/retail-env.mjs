@@ -258,6 +258,64 @@ export function invokeTool(data, name, kwargs) {
   }
 }
 
+// ---- episode termination (tau-bench fidelity) ----
+// Official retail env declares one terminate tool (tau-src/tau_bench/envs/retail/env.py):
+//     self.terminate_tools = ["transfer_to_human_agents"]
+// and envs/base.py:108 sets `done = True` the instant such a tool is invoked, computing the reward
+// at that step (base.py:114). Nothing the agent does after the transfer counts.
+export const TERMINATE_TOOLS = ["transfer_to_human_agents"];
+export const isTerminateTool = (name) => TERMINATE_TOOLS.includes(name);
+
+// Official step budget: ToolCallingAgent.solve(max_num_steps=30) — 30 LLM calls per episode, tool
+// calls and replies alike; an episode that exhausts it is graded as it stands.
+export const OFFICIAL_MAX_STEPS = 30;
+
+/** T3: out of official budget once the episode's accumulated LLM calls reach the cap. */
+export const budgetExhausted = (totalSteps, budget = OFFICIAL_MAX_STEPS) => (totalSteps ?? 0) >= budget;
+
+// Every distinct way an episode can end; recorded on each result row (T2).
+export const END_REASONS = ["stop", "transfer", "exhausted", "deadline", "error"];
+
+/**
+ * Label an episode's ending (T2). Official grades the state wherever the episode stops, so the
+ * label is bookkeeping — but it has to be unambiguous when several things are true at once.
+ * Precedence: an error hides what would have happened; a transfer is a hard stop the simulator
+ * never gets to answer; '###STOP###' beats the clock and the budget, both of which are only
+ * checked once the turn that satisfied the user has already been scored.
+ * No flag set = the exchange limit ran out, which is also exhaustion.
+ */
+export function classifyEnd({ error = false, transferred = false, stopped = false, deadline = false } = {}) {
+  if (error) return "error";
+  if (transferred) return "transfer";
+  if (stopped) return "stop";
+  if (deadline) return "deadline";
+  return "exhausted";
+}
+
+const textOf = (m) => (m && typeof m.content === "string" ? m.content : "");
+const toolNamesOf = (m) =>
+  (Array.isArray(m?.tool_calls) ? m.tool_calls : []).map((tc) => tc?.function?.name ?? tc?.name).filter(Boolean)
+    .concat(Array.isArray(m?.tools) ? m.tools.filter(Boolean) : []);
+
+/**
+ * Every assistant text message, in order (T9). Official calculate_reward scans EVERY respond action
+ * (base.py:150 `for action in self.actions`), not just the last one per turn — an rc5 turn emits
+ * many assistant messages and only the last was being collected, so a required output stated
+ * mid-turn was scored as missing. Accepts either wire messages (`tool_calls`) or the flattened
+ * page-side shape (`tools: [name]`).
+ */
+export function assistantTexts(messages) {
+  return (messages || []).filter((m) => m?.role === "assistant" && textOf(m).trim()).map(textOf);
+}
+
+/** Assistant text emitted strictly BEFORE the first call to one of `names` — the corpus official
+ *  would have scanned when a terminate tool ends the episode mid-turn. */
+export function assistantTextsBefore(messages, names = TERMINATE_TOOLS) {
+  const list = messages || [];
+  const at = list.findIndex((m) => toolNamesOf(m).some((n) => names.includes(n)));
+  return assistantTexts(at < 0 ? list : list.slice(0, at));
+}
+
 // ---- grading ----
 const NUM_EPS = 1e-9;
 export function deepEq(a, b) {

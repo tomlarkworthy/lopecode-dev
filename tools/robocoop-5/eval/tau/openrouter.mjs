@@ -19,12 +19,16 @@ export function loadKey() {
 
 const key = loadKey();
 
-export async function chat(messages, { model, tools, max_tokens = 16000, timeoutMs = 600000 } = {}) {
+// `temperature` and `withUsage` are opt-in (added for the U3 reviewer measurement): omitting them
+// leaves the request bytes and the return shape exactly as they were for the tau harness.
+export async function chat(messages, { model, tools, max_tokens = 16000, timeoutMs = 600000, temperature, withUsage = false } = {}) {
   let lastErr;
   for (let attempt = 0; attempt < 6; attempt++) {
     if (attempt) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt + Math.random() * 1000));
     try {
       const body = { model, messages, max_tokens, stream: true };
+      if (temperature != null) body.temperature = temperature;
+      if (withUsage) body.stream_options = { include_usage: true };
       if (tools) body.tools = tools;
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -35,7 +39,7 @@ export async function chat(messages, { model, tools, max_tokens = 16000, timeout
       if (!res.ok) throw new Error(`openrouter ${res.status}: ${(await res.text()).slice(0, 200)}`);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buf = "", content = "", sawChunk = false, finish = null;
+      let buf = "", content = "", sawChunk = false, finish = null, usage = null;
       const toolSlots = [];
       for (;;) {
         const { done, value } = await reader.read();
@@ -50,6 +54,7 @@ export async function chat(messages, { model, tools, max_tokens = 16000, timeout
           if (payload === "[DONE]") continue;
           try {
             const j = JSON.parse(payload);
+            if (j.usage) usage = j.usage;
             const choice = j.choices?.[0];
             const delta = choice?.delta;
             if (choice?.finish_reason) finish = choice.finish_reason;
@@ -69,7 +74,7 @@ export async function chat(messages, { model, tools, max_tokens = 16000, timeout
       if (!sawChunk) throw new Error("empty streamed completion");
       const tool_calls = toolSlots.filter(Boolean);
       if (!content && !tool_calls.length) throw new Error("no content and no tool calls");
-      return { content: content || null, tool_calls: tool_calls.length ? tool_calls : null, finish_reason: finish };
+      return { content: content || null, tool_calls: tool_calls.length ? tool_calls : null, finish_reason: finish, usage };
     } catch (e) {
       lastErr = e;
       if (/AbortError|TimeoutError/.test(String(e?.name))) break; // overall deadline: don't burn retries

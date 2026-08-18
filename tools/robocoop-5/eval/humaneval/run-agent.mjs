@@ -42,6 +42,10 @@ const notebook = flag(
   "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
 );
 const jsonOut = flag("--json", join(here, "results", `agent-${offset}-${offset + limit}.json`));
+// Recorded in the result file. The in-notebook rc5 client sends NO temperature — the sampling
+// temperature is whatever the provider defaults to. The baseline arm pins 0, so the two arms are
+// not sampled identically; recorded as null so the asymmetry is visible in the data.
+const temperature = null;
 
 const SEED_PATH = "/src/@user/humaneval.js";
 
@@ -114,7 +118,7 @@ try {
         (rec.pass ? "" : "  " + String(rec.error).split("\n")[0].slice(0, 100)),
     );
     mkdirSync(dirname(jsonOut), { recursive: true });
-    writeFileSync(jsonOut, JSON.stringify({ arm: "agent", model, offset, limit, results }, null, 1));
+    writeFileSync(jsonOut, JSON.stringify({ arm: "agent", model, temperature, offset, limit, results }, null, 1));
   }
 } finally {
   await driver.close();
@@ -122,5 +126,5 @@ try {
 
 const passed = results.filter((r) => r.pass).length;
 console.log(`\npass@1: ${passed}/${results.length} = ${(passed / results.length).toFixed(3)}`);
-writeFileSync(jsonOut, JSON.stringify({ arm: "agent", model, offset, limit, passed, total: results.length, results }, null, 1));
+writeFileSync(jsonOut, JSON.stringify({ arm: "agent", model, temperature, offset, limit, passed, total: results.length, results }, null, 1));
 console.log("wrote", jsonOut);

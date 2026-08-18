@@ -1,9 +1,15 @@
 // MultiPL-E humaneval-js grader. The candidate arrives as robocoop-5 /src module source (a compiled
 // Observable module: cell definition functions + `export default function define(...)`) or as plain
 // JS from the baseline arm. Grading attempts, first pass wins, each in its own node subprocess:
-//   1. emulate the define() with a mini synchronous runtime, candidate = the target CELL VALUE
-//   2. each textual `function <name>(...)` occurrence, brace-extracted, as a bare declaration
-// pass = official MultiPL-E tests exit 0.
+//   1. PRIMARY, per candidate shape:
+//      - module source (`export default`) → emulate the define() with a mini synchronous runtime,
+//        candidate = the target CELL VALUE
+//      - raw text (baseline arm) → the official MultiPL-E program: the WHOLE candidate + '\n' + tests
+//   2. FALLBACK: each textual `function <name>(...)` occurrence, brace-extracted, as a bare
+//      declaration. Extraction alone drops top-level require()/helper declarations that the
+//      function needs, which failed three correct baseline solutions (string_to_md5,
+//      make_palindrome, minPath) — so it now runs only after the whole program has failed.
+// pass = official MultiPL-E tests exit 0. Timeout matches MultiPL-E's subprocess timeout of 5s.
 
 import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -79,24 +85,31 @@ function runProgram(program, timeoutMs) {
   };
 }
 
-export function gradeCandidate(candidateSrc, tests, { fnName, timeoutMs = 15000 } = {}) {
+// The official MultiPL-E program: one file, the candidate as written, then the tests.
+export function wholeProgram(candidateSrc, tests) {
+  return candidateSrc + "\n" + tests + "\n";
+}
+
+export const HUMANEVAL_TIMEOUT_MS = 5000; // MultiPL-E runs each program with subprocess timeout=5
+
+export function gradeCandidate(candidateSrc, tests, { fnName, timeoutMs = HUMANEVAL_TIMEOUT_MS } = {}) {
+  const isModule = /export\s+default/.test(candidateSrc);
   const programs = [];
-  if (fnName && /export\s+default/.test(candidateSrc)) {
-    programs.push(emulatorProgram(candidateSrc, fnName, tests));
-  }
+  if (fnName && isModule) programs.push({ via: "emulator", src: emulatorProgram(candidateSrc, fnName, tests) });
+  else programs.push({ via: "whole-program", src: wholeProgram(candidateSrc, tests) });
   if (fnName) {
     let at = -1;
     while ((at = candidateSrc.indexOf(`function ${fnName}`, at + 1)) >= 0) {
       const ext = extractBalanced(candidateSrc, at);
-      if (ext) programs.push(ext + "\n\n" + tests + "\n");
+      if (ext) programs.push({ via: "extracted", src: ext + "\n\n" + tests + "\n" });
     }
   }
-  if (!programs.length) programs.push(candidateSrc + "\n\n" + tests + "\n");
 
-  let last = { pass: false, error: "no candidate" };
-  for (const program of programs) {
-    last = runProgram(program, timeoutMs);
-    if (last.pass) return last;
+  let primary = null;
+  for (const { via, src } of programs) {
+    const r = runProgram(src, timeoutMs);
+    if (r.pass) return { ...r, via };
+    if (!primary) primary = { ...r, via }; // report the faithful attempt, not the last fallback
   }
-  return last;
+  return primary || { pass: false, error: "no candidate", via: null };
 }
