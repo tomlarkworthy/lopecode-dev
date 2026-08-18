@@ -34,6 +34,9 @@ const offset = Number(flag("--offset", 0));
 const model = flag("--model", "xiaomi/mimo-v2.5-pro"); // NEVER read OPENROUTER_MODEL — evals are mimo
 const jsonOut = flag("--json", join(here, "results", `baseline-${offset}-${offset + limit}.json`));
 const concurrency = Number(flag("--concurrency", 4));
+// Recorded in the result file. ASYMMETRY: this arm pins temperature 0; the agent arm's in-notebook
+// rc5 client sends no temperature at all (provider default) and records null. Not comparable yet.
+const temperature = 0;
 
 const key = loadKey();
 const problems = JSON.parse(readFileSync(join(here, "humaneval-js.json"), "utf8")).slice(offset, offset + limit);
@@ -60,7 +63,7 @@ async function complete(p) {
       },
       { role: "user", content: p.prompt },
     ],
-    temperature: 0,
+    temperature,
   };
   // Sustained concurrency trips transient network/rate-limit failures ("fetch failed", 429) — a full-161
   // run lost 104 problems to them. Retry with exponential backoff before counting anything as a failure.
@@ -110,5 +113,5 @@ await Promise.all(Array.from({ length: concurrency }, worker));
 
 const passed = results.filter((r) => r.pass).length;
 console.log(`\npass@1: ${passed}/${results.length} = ${(passed / results.length).toFixed(3)}`);
-writeFileSync(jsonOut, JSON.stringify({ arm: "baseline", model, offset, limit, passed, total: results.length, results }, null, 1));
+writeFileSync(jsonOut, JSON.stringify({ arm: "baseline", model, temperature, offset, limit, passed, total: results.length, results }, null, 1));
 console.log("wrote", jsonOut);

@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // Merge agent shard results and sequentially re-run INFRASTRUCTURE failures (rate-limit "Failed to
-// fetch", timeouts, empty turns, uncollected files) in one browser. Genuine test failures are kept.
+// fetch", empty turns, uncollected files) in one browser. Genuine test failures are kept.
+// A run that TIMED OUT is not infrastructure: an agent that spends its whole budget and never
+// finishes has failed the problem, and retrying it only re-rolls a capability failure. Timeouts
+// stay where they land.
 //   node retry-agent.mjs [--in results/agent-shard*.json ...] [--out results/agent-merged.json]
 //                        [--rounds N] [--model m] [--notebook path]
 
@@ -32,6 +35,9 @@ const out = flag("--out", join(here, "results", "agent-merged.json"));
 const rounds = Number(flag("--rounds", 3));
 const model = flag("--model", "xiaomi/mimo-v2.5-pro");
 const notebook = flag("--notebook", "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html");
+// The in-notebook rc5 client sends no temperature (provider default); the baseline arm pins 0.
+// Recorded as null so the sampling asymmetry between arms is in the data, not just in a note.
+const temperature = null;
 
 const SEED_PATH = "/src/@user/humaneval.js";
 const problems = JSON.parse(readFileSync(join(here, "humaneval-js.json"), "utf8"));
@@ -46,7 +52,7 @@ console.log(`merged ${merged.size} results from ${inFiles.length} files  model: 
 
 const isInfra = (rec) =>
   !rec.pass &&
-  ((rec.runError && /fetch|network|timed out|empty turn|did not initialize/i.test(String(rec.runError))) ||
+  ((rec.runError && /fetch|network|empty turn|did not initialize/i.test(String(rec.runError))) ||
     /^no file collected/.test(String(rec.error || "")) ||
     rec.steps === 0);
 
@@ -101,7 +107,7 @@ for (let round = 1; round <= rounds; round++) {
       console.log(`${rec.pass ? "PASS" : "FAIL"}  ${p.name}  steps=${rec.steps} (${Math.round(rec.durationMs / 1000)}s)` +
         (rec.pass ? "" : "  " + String(rec.error).split("\n")[0].slice(0, 90)));
       const results = [...merged.values()];
-      writeFileSync(out, JSON.stringify({ arm: "agent", model, results }, null, 1));
+      writeFileSync(out, JSON.stringify({ arm: "agent", model, temperature, results }, null, 1));
     }
   } finally { await driver.close(); }
 }
@@ -109,6 +115,6 @@ for (let round = 1; round <= rounds; round++) {
 const results = [...merged.values()];
 const passed = results.filter((r) => r.pass).length;
 const infra = results.filter(isInfra).length;
-writeFileSync(out, JSON.stringify({ arm: "agent", model, passed, total: results.length, infraRemaining: infra, results }, null, 1));
+writeFileSync(out, JSON.stringify({ arm: "agent", model, temperature, passed, total: results.length, infraRemaining: infra, results }, null, 1));
 console.log(`\npass@1: ${passed}/${results.length} = ${(passed / results.length).toFixed(3)}  (infra failures remaining: ${infra})`);
 console.log("wrote", out);

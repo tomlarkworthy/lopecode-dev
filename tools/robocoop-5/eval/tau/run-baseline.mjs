@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadData, invokeTool, grade, userSimSystemPrompt } from "./retail-env.mjs";
+import { loadData, invokeTool, grade, userSimSystemPrompt, isTerminateTool, classifyEnd } from "./retail-env.mjs";
 import { chat } from "./openrouter.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -22,6 +22,11 @@ const taskSel = flag("--tasks", null);
 const concurrency = Number(flag("--concurrency", 2));
 const jsonOut = flag("--json", join(here, "results", `baseline-${taskSel ? "sel" : offset + "-" + (offset + limit)}.json`));
 const MAX_STEPS = 30; // tau-bench run.py default
+// Official RunConfig.temperature = 0.0 (tau-src/tau_bench/types.py:80), passed straight into the
+// agent's completion call (agents/tool_calling_agent.py). The user simulator does NOT set one:
+// envs/user.py calls `completion(model=..., custom_llm_provider=..., messages=messages)` with no
+// temperature, so ours stays unset too.
+const AGENT_TEMPERATURE = 0;
 
 const EXPORT = JSON.parse(readFileSync(join(here, "retail-export.json"), "utf8"));
 const WIKI = EXPORT.wiki;
@@ -55,8 +60,11 @@ async function runTask(task) {
   trajectory.push({ user: firstUser });
 
   let steps = 0;
+  // The loop can only fall out of the bottom by using up MAX_STEPS; every other exit raises a flag
+  // and classifyEnd() turns the flags into the recorded endReason (T2).
+  let transferred = false, stopped = false;
   for (; steps < MAX_STEPS; steps++) {
-    const r = await chat(messages, { model, tools: TOOLS_INFO, max_tokens: 16000 });
+    const r = await chat(messages, { model, tools: TOOLS_INFO, max_tokens: 16000, temperature: AGENT_TEMPERATURE });
     if (r.tool_calls) {
       const tc = r.tool_calls[0]; // official behavior: truncate to first
       let kwargs = {};
@@ -68,6 +76,9 @@ async function runTask(task) {
         { role: "tool", tool_call_id: tc.id, name: tc.function.name, content: obs },
       );
       trajectory.push({ tool: tc.function.name, kwargs, obs: String(obs).slice(0, 400) });
+      // T1 — a terminate tool ends the episode at this step (envs/base.py:108): the tool runs, then
+      // done=True and the reward is computed from the state and the replies as they stand.
+      if (isTerminateTool(tc.function.name)) { transferred = true; break; }
     } else {
       const reply = r.content || "";
       agentReplies.push(reply);
@@ -75,12 +86,19 @@ async function runTask(task) {
       simMessages.push({ role: "user", content: reply });
       const userMsg = await userSim(simMessages);
       trajectory.push({ user: userMsg });
-      if (userMsg.includes("###STOP###")) break;
+      if (userMsg.includes("###STOP###")) { stopped = true; break; }
       messages.push({ role: "assistant", content: reply }, { role: "user", content: userMsg });
     }
   }
+  const endReason = classifyEnd({ transferred, stopped });
+  // T9 — `agentReplies` already holds EVERY content-only assistant message, which is exactly the set
+  // official scans: message_to_action() classifies a message carrying tool_calls as a tool action, so
+  // its text is never a respond action and never enters the outputs corpus.
   const g = grade(task, initial, data, agentReplies);
-  return { idx: task.idx, reward: g.reward, r_actions: g.r_actions, r_outputs: g.r_outputs, missing: g.missing, steps, trajectory };
+  return {
+    idx: task.idx, reward: g.reward, r_actions: g.r_actions, r_outputs: g.r_outputs, missing: g.missing,
+    steps, endReason, terminatedByTransfer: endReason === "transfer", trajectory,
+  };
 }
 
 const results = [];
@@ -95,7 +113,7 @@ async function worker() {
     try {
       rec = await runTask(task);
     } catch (e) {
-      rec = { idx: task.idx, reward: 0, error: String(e && e.message).slice(0, 300) };
+      rec = { idx: task.idx, reward: 0, endReason: classifyEnd({ error: true }), error: String(e && e.message).slice(0, 300) };
     }
     rec.seconds = Math.round((Date.now() - t0) / 1000);
     results.push(rec);
@@ -107,6 +125,9 @@ await Promise.all(Array.from({ length: concurrency }, worker));
 results.sort((a, b) => a.idx - b.idx);
 const passed = results.filter((r) => r.reward === 1).length;
 console.log(`\npass@1: ${passed}/${results.length} = ${(passed / results.length).toFixed(3)}`);
+const endReasons = {};
+for (const r of results) endReasons[r.endReason ?? "unknown"] = (endReasons[r.endReason ?? "unknown"] ?? 0) + 1;
+console.log(`endReason: ${Object.entries(endReasons).map(([k, v]) => `${k}=${v}`).join("  ")}`);
 mkdirSync(join(here, "results"), { recursive: true });
-writeFileSync(jsonOut, JSON.stringify({ arm: "baseline", model, userModel, pass1: passed, total: results.length, results }, null, 1));
+writeFileSync(jsonOut, JSON.stringify({ arm: "baseline", model, userModel, temperature: AGENT_TEMPERATURE, pass1: passed, total: results.length, endReasons, results }, null, 1));
 console.log("wrote", jsonOut);
