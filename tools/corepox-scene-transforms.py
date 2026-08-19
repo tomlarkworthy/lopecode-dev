@@ -40,6 +40,21 @@ for p in SCENES:
         if isinstance(j, str) and '"components"' in j:
             go = d.get("m_GameObject", {}).get("m_PathID")
             ships[go] = j
+    # MissionController.initialShip names the PLAYER's ship (MissionController.cs:63,
+    # `Controller.Instance.game.playerShip = initialShip`). Without this the gate
+    # cannot tell a foe from the player, and in two scenes the answer is surprising:
+    # SideShooter's and TwinTurrets' player is a lone Brain, not the armed ship.
+    player = None
+    for o in env.objects:
+        if o.type.name != "MonoBehaviour": continue
+        try: d = o.read_typetree()
+        except Exception: continue
+        if "initialShip" in d and "liveMode" in d:
+            ref = d["initialShip"].get("m_PathID")
+            tgt = byid.get(ref)
+            if tgt is not None:
+                try: player = tgt.read_typetree().get("m_GameObject", {}).get("m_PathID")
+                except Exception: pass
     rows = []
     for pid, (kind, d) in tree.items():
         if kind != "GameObject" or pid not in ships: continue
@@ -55,6 +70,7 @@ for p in SCENES:
             # rotates clockwise, so y and the angle both flip. 1 tile = 0.64 world
             # units (Metric.Tile2Pixel).
             rows.append({"go": d.get("m_Name"), "ship": nm.group(1) if nm else "?",
+                         "player": pid == player,
                          "wx": round(pos.get("x", 0), 3), "wy": round(pos.get("y", 0), 3),
                          "tx": round(pos.get("x", 0) / 0.64, 2), "ty": round(-pos.get("y", 0) / 0.64, 2),
                          "a": round(-quat_to_deg(rot), 2)})
@@ -66,5 +82,5 @@ with open('data/corepox/scene-transforms.json', 'w') as f:
 for scene, rows in out.items():
     print(scene)
     for r in rows:
-        print(f"   {r['go'][:16]:18}{r['ship'][:22]:24} world {r['wx']:7}, {r['wy']:7}"
+        print(f"   {'P' if r['player'] else ' '} {r['go'][:16]:18}{r['ship'][:22]:24} world {r['wx']:7}, {r['wy']:7}"
               f"   ->  tile {r['tx']:7}, {r['ty']:7}   a={r['a']}")

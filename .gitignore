@@ -88,3 +88,10 @@ scratch/rmbt/clt2.js
 tools/usb-probe
 scratch/rmbt/calshots/*.gray
 tools/.venv-unity/
+
+# Recovered Corepox originals: 2.8 GiB of Unity project, art, and the shipped
+# APK. The Unity tree also carries live GCP service-account keys, so none of it
+# goes near a commit.
+vendor/corepox/
+vendor/corepox_art/
+vendor/corepox_apk/

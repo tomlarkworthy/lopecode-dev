@@ -9,6 +9,14 @@ import {importNotebookModule} from "./notebook-import.ts";
 import {readFileSync} from "fs";
 const m = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
 const SHIPS: any = await m.value("SHIPS");
+// The scene addresses a wire by the CELL its connector sits in; our SHIPS name the
+// component and the port. loadShipSpec is the engine's own translation between the
+// two, so run it rather than reimplementing the geometry -- and comparing the
+// resolved wires, not just how many there are, is what caught Avoid steering
+// straight (the scene wires the constant to the MINUS `b` and crosses the engines;
+// ours fed `a` and left both engines on the same value).
+const e = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+const loadShipSpec: any = await e.value("loadShipSpec");
 const scenes = JSON.parse(readFileSync("data/corepox/scene-ships.json", "utf8"));
 
 const num = (v: any) => v === "Infinity" ? Infinity : v === "-Infinity" ? -Infinity : v;
@@ -46,8 +54,14 @@ for (const [key, want] of Object.entries<any>(truth)) {
       lines.push(`  ${k} overrides [${ovKey(gc)}] != [${ovKey(wc)}]`);
   }
   for (const k of gl.keys()) if (!wl.has(k)) lines.push(`  extra component ${k}`);
-  if (want.connections.length !== (got.connections ?? []).length)
-    lines.push(`  ${(got.connections ?? []).length} wires, scene has ${want.connections.length}`);
+  const {spec: resolved, dropped} = loadShipSpec(want);
+  const wire = (k: any) => `${k.from[0]},${k.from[1]}.${k.fromPort} -> ${k.to[0]},${k.to[1]}.${k.toPort}`;
+  const ws = new Set(resolved.connections.map(wire));
+  const gs = new Set((got.connections ?? []).map(wire));
+  for (const w of ws) if (!gs.has(w)) lines.push(`  missing wire ${w}`);
+  for (const w of gs) if (!ws.has(w)) lines.push(`  extra wire   ${w}`);
+  for (const d of dropped)
+    lines.push(`  scene wire ${d.from} -> ${d.to} resolves to no port (our PORTS table)`);
   if (lines.length) { console.log(`${key} (scene "${want.name}")`); lines.forEach(l => console.log(l)); issues++; }
 }
 console.log(issues ? `\n${issues} of ${Object.keys(truth).length} checked ships differ from the scene` :
