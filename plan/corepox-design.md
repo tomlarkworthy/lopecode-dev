@@ -1666,3 +1666,76 @@ Doing it would take connectivity from 84% to 32%.
 (a curved corner admits no connector) and corrected in four places by Tom from memory. Nothing in
 the simulation reads it yet, so nothing tests it. What is claimed is narrower: it is now stored in
 one frame, read the same way everywhere, and the round-trip proves the move lost nothing.
+
+## 16. The archetypes against real player ships (2026-08-19)
+
+§8 asked why `rammer` and `wall` did not work and answered it from self-play — the roster fighting
+itself. Nothing had ever fought the roster against the 892-ship dump. `tools/corepox-archetype-vs-corpus.ts`
+does: 40 corpus ships, deterministically sampled, four start bearings each, 3000 ticks (60s), so a
+ship that only works head-on cannot fake a score.
+
+Opponents are filtered to legal and in-budget — no dropped wires, no overlapping cells, one body,
+and power draw inside its own supply. **234 of 892 survive that filter**, which is itself the
+headline number: three quarters of the dump is either broken under the recovered tables or was
+built over budget. An over-budget ship fights with parts dark, which measures the budget rather
+than the design, so they are excluded.
+
+```
+legal in-budget corpus ships: 234; sampled 40
+
+archetype        win   loss   draw   of 160 duels
+wall              5     32    123   3% win
+braitenberg       2      4    154   1% win
+seeker           34     41     85   21% win
+proportional     23     37    100   14% win
+rammer           11     73     76   7% win
+turtle            2     13    145   1% win
+sniper           36     42     82   23% win
+
+roster overall 10.1% win, 21.6% loss, 68.3% draw
+```
+
+**68.3% draws.** The stalemate §8 diagnosed as time-to-kill is still the dominant outcome against
+real opponents, and it is worse for the archetypes that do not steer: `braitenberg` draws 96% of
+its duels and `turtle` 91%. `rammer` is the only one that loses more than it draws (73 losses of
+160) — it closes, and dying on contact is a decision.
+
+`sniper` is top of the roster at 23%, and it was firing **zero shots** until this morning: its range
+constant was browned out (see the commit "sniper fired 0 shots because its range constant was
+browned out"). Before that fix it would have scored like `turtle`. That is a caution about the
+whole table — these numbers measure the roster as currently built, and the roster has bugs in it.
+
+### 16.1 One ship beats the entire roster
+
+`2259C56C5600E341A3D81AF6781653BD` — nine components, 16 of 20 power — takes 24 of 28 duels:
+
+```
+ID=2259C56C5600E341A3D81AF6781653BD bun tools/corepox-archetype-vs-corpus.ts
+
+wall           W1 L3 D0
+braitenberg    W0 L1 D3
+seeker         W0 L3 D1
+proportional   W0 L3 D1
+rammer         W0 L4 D0
+turtle         W0 L4 D0
+sniper         W0 L4 D0
+```
+
+It is a Braitenberg with a latched gun: `radar.bearing` goes straight into one Engine and through
+`MINUS(0.01, bearing)` into the other, and the Lazer carries `input: 1` as a saved connector value,
+so it fires continuously while it turns. Two Orbs, one Constant, one Brain. It closes to 2.6 tiles
+from every one of the four bearings and kills a nine-part armour box from all four.
+
+Nothing about it is clever. It is the shape `braitenberg` in the roster already has — and
+`braitenberg` scores 1%. The difference is layout: this ship's engines and radar are placed so the
+torque arms work, which is the open "retune archetype steering" item stated as a measurement rather
+than a suspicion.
+
+*Depends on `vendor/corepox`*, which is untracked (2.8 GiB, and it contains live GCP service-account
+keys — see the repo warning). The sampling is deterministic given that dump, so the table above
+reproduces; without it the tool cannot run at all.
+
+*Not claimed:* that 10.1% is a fair measure of the archetypes. Four bearings, one opponent sample,
+a 60-second cap that produces two thirds draws, and a roster with at least one known bug in it as
+of this morning. What it does establish is a floor: **the hand-built roster does not beat the real
+corpus**, and the reason is steering, not weapons.

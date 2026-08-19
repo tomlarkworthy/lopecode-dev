@@ -104,7 +104,11 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       the constant holding the range threshold. The guns stayed lit with nothing telling them to
       fire, through a 1500-tick match that closed from 18.8 to 0.6 tiles. One Lazer now, 17/20
 - [ ] **Retune archetype steering** — 4 of 7 barely close; gains were set when engines sat at
-      (+-1,-1) and they now sit at (+-2,-3), so the torque arms doubled. Draws 81-100%
+      (+-1,-1) and they now sit at (+-2,-3), so the torque arms doubled. Now measured against the
+      dump, not just self-play (`tools/corepox-archetype-vs-corpus.ts`, 40 ships x 4 bearings):
+      roster 10.1% win / 21.6% loss / **68.3% draw**; braitenberg draws 96%, turtle 91%. One real
+      9-part player ship (2259C56C…) takes 24 of 28 duels against the whole roster with the same
+      Braitenberg wiring braitenberg already has — the difference is where its engines sit
 - [ ] **Brownout order is geometric, and it can strand a trigger.** `powerUp` spreads breadth-first
       from the Brain, nearest-first within a hop, so a Constant placed far out goes dark while the
       guns it drives stay powered. Whether the original did this is unrecovered. Options: power by
