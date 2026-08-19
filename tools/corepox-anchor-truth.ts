@@ -14,11 +14,15 @@
 //
 //   tools/.venv-unity/bin/python tools/corepox-apk-sprites.py   # first
 //   bun tools/corepox-anchor-truth.ts
-import {importNotebookModule} from "./notebook-import.ts";
+import {loadAssets} from "./corepox-assets-headless.ts";
 import {readFileSync} from "fs";
 
 const TILE2PIXEL = 0.64;                        // Metric.Tile2Pixel, world units per tile
-const a = await importNotebookModule("modules/@tomlarkworthy/corepox-assets.js");
+// The eleven component drawings are cells now, so SYMBOLS is measured from each
+// one's viewBox rather than read off a generated table -- which means this gate
+// reads whatever the art is after an svg-lens edit, not what it was when the
+// table was written.
+const {assets: a} = await loadAssets();
 const SYMBOLS: any = await a.value("SYMBOLS");
 const SYMBOL_FOR: any = await a.value("SYMBOL_FOR");
 const TILE: number = await a.value("TILE");
