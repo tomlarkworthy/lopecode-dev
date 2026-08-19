@@ -87,3 +87,4 @@ scratch/rmbt/clt.js
 scratch/rmbt/clt2.js
 tools/usb-probe
 scratch/rmbt/calshots/*.gray
+tools/.venv-unity/

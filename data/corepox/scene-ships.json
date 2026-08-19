@@ -1,0 +1,1185 @@
+{
+ "Aim": [
+  {
+   "name": "player",
+   "velocity": [
+    0.0,
+    0.0
+   ],
+   "angularVelocity": 0.0,
+   "components": [
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      -4
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      0,
+      -3
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": ""
+    },
+    {
+     "type": "Brain",
+     "pos": [
+      -1,
+      0
+     ],
+     "dir": "up",
+     "hp": 20,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      -3
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "LaserTurret2",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 100,
+     "param": "",
+     "overrides": [
+      {
+       "name": "rot_input",
+       "value": 45.0
+      },
+      {
+       "name": "fire_input",
+       "value": 1.0
+      }
+     ]
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      -2
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      -4
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      0,
+      -4
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      -1
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      -2
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      -3
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      -4
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      0
+     ],
+     "dir": "up",
+     "hp": 75,
+     "param": ""
+    }
+   ],
+   "connections": []
+  }
+ ],
+ "Avoid": [
+  {
+   "name": "SteerableDrifterV2",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "param": ""
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "down",
+     "param": "MINUS"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      -2,
+      -1
+     ],
+     "dir": "up",
+     "param": ""
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up",
+     "param": ""
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      -1,
+      0
+     ],
+     "dir": "up",
+     "param": "0"
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      -1,
+      0
+     ],
+     "to": [
+      -1,
+      -1
+     ]
+    },
+    {
+     "from": [
+      0,
+      0
+     ],
+     "to": [
+      2,
+      -1
+     ]
+    },
+    {
+     "from": [
+      -1,
+      0
+     ],
+     "to": [
+      -2,
+      -1
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ProximityMine",
+   "velocity": [
+    0.0,
+    0.0
+   ],
+   "angularVelocity": 0.0,
+   "components": [
+    {
+     "type": "Explosive",
+     "pos": [
+      -1,
+      2
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      1,
+      2
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      2,
+      1
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      2,
+      0
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      1,
+      -2
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": "",
+     "overrides": [
+      {
+       "name": "input",
+       "value": "Infinity"
+      }
+     ]
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      -1,
+      -2
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": "",
+     "overrides": [
+      {
+       "name": "input",
+       "value": "Infinity"
+      }
+     ]
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      -2,
+      -1
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      -2,
+      1
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      -2,
+      0
+     ],
+     "dir": "up",
+     "hp": 0,
+     "param": ""
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      0,
+      2
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": [
+      {
+       "name": "output",
+       "value": 4.0
+      }
+     ]
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up",
+     "hp": 100,
+     "param": "MINUS",
+     "overrides": [
+      {
+       "name": "a",
+       "value": 4.0
+      },
+      {
+       "name": "b",
+       "value": "Infinity"
+      },
+      {
+       "name": "output",
+       "value": "Infinity"
+      }
+     ]
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "left",
+     "hp": 50,
+     "param": "",
+     "overrides": [
+      {
+       "name": "distance",
+       "value": "Infinity"
+      },
+      {
+       "name": "angle",
+       "value": 90.0
+      }
+     ]
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      0,
+      -2
+     ],
+     "to": [
+      -1,
+      -2
+     ]
+    },
+    {
+     "from": [
+      0,
+      -2
+     ],
+     "to": [
+      1,
+      -2
+     ]
+    },
+    {
+     "from": [
+      1,
+      0
+     ],
+     "to": [
+      1,
+      -1
+     ]
+    },
+    {
+     "from": [
+      0,
+      2
+     ],
+     "to": [
+      -1,
+      -1
+     ]
+    }
+   ]
+  }
+ ],
+ "Cocoon": [
+  {
+   "name": "Brain",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up"
+    }
+   ]
+  }
+ ],
+ "Connection": [
+  {
+   "name": "DisconnectedRocketCore",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 20
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up",
+     "hp": 50
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      0,
+      1
+     ],
+     "dir": "up",
+     "hp": 50
+    }
+   ],
+   "connections": []
+  }
+ ],
+ "ConnectionLite": [
+  {
+   "name": "LiteDisconnectedRocketCore",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 20
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up",
+     "hp": 50
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      0,
+      1
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "100"
+    }
+   ],
+   "connections": []
+  }
+ ],
+ "FollowBoss": [
+  {
+   "name": "Orb Drone Chassis",
+   "id": "UnwiredOrbDrone",
+   "components": [
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      3
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      0,
+      4
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      -2,
+      4
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      3
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      -1,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      -2,
+      0
+     ],
+     "dir": "up",
+     "param": "TIMES"
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "param": "MINUS"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      -3,
+      -1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up"
+    }
+   ],
+   "connections": []
+  },
+  {
+   "name": "Brain",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up"
+    }
+   ]
+  }
+ ],
+ "FollowCourse": [
+  {
+   "name": "Unfinished Orb Drone",
+   "id": "UnfinishedOrbDrone",
+   "components": [
+    {
+     "type": "Binary",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "left",
+     "param": "TIMES"
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      -1,
+      -1
+     ],
+     "dir": "right",
+     "param": "MINUS"
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      -1,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      1,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      2,
+      1
+     ],
+     "dir": "up",
+     "param": "180"
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      -1,
+      1
+     ],
+     "dir": "up",
+     "param": "0"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      -2,
+      -2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      3,
+      -2
+     ],
+     "dir": "up"
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      1,
+      -1
+     ],
+     "to": [
+      2,
+      -2
+     ]
+    },
+    {
+     "from": [
+      3,
+      -1
+     ],
+     "to": [
+      -1,
+      -2
+     ]
+    },
+    {
+     "from": [
+      2,
+      1
+     ],
+     "to": [
+      2,
+      0
+     ]
+    },
+    {
+     "from": [
+      -1,
+      1
+     ],
+     "to": [
+      -1,
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "name": "UnfinishedOrbDrone",
+   "components": [
+    {
+     "type": "Composite",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "param": "{\"id\":\"UnfinishedOrbDrone\",\"name\":\"Unfinished Orb Drone\",\"components\":[{\"type\":\"Binary\",\"pos\":[2,-1],\"dir\":\"left\",\"param\":\"TIMES\",\"overrides\":[{\"name\":\"a\",\"value\":102.83528137207031},{\"name\":\"b\",\"value\":180.0},{\"name\":\"output\",\"value\":18758.390625}]},{\"type\":\"Radar\",\"pos\":[0,-1],\"dir\":\"up\",\"param\":\"\",\"overrides\":[{\"name\":\"distance\",\"value\":9.182044982910157},{\"name\":\"angle\",\"value\":102.83528137207031}]},{\"type\":\"Binary\",\"pos\":[-1,-1],\"dir\":\"right\",\"param\":\"MINUS\",\"overrides\":[{\"name\":\"b\",\"value\":18758.390625},{\"name\":\"output\",\"value\":-19004.55078125}]},{\"type\":\"Orb\",\"pos\":[-1,2],\"dir\":\"up\",\"param\":\"\",\"overrides\":[]},{\"type\":\"Orb\",\"pos\":[1,2],\"dir\":\"up\",\"param\":\"\",\"overrides\":[]},{\"type\":\"Constant\",\"pos\":[2,1],\"dir\":\"up\",\"param\":\"180\",\"overrides\":[{\"name\":\"output\",\"value\":180.0}]},{\"type\":\"Constant\",\"pos\":[-1,1],\"dir\":\"up\",\"param\":\"0\",\"overrides\":[]},{\"type\":\"Engine\",\"pos\":[-2,-2],\"dir\":\"up\",\"param\":\"\",\"overrides\":[{\"name\":\"input\",\"value\":0.009999999776482582}]},{\"type\":\"Engine\",\"pos\":[3,-2],\"dir\":\"up\",\"param\":\"\",\"overrides\":[{\"name\":\"input\",\"value\":0.009999999776482582}]}],\"connections\":[{\"from\":[1,-1],\"to\":[2,-2]},{\"from\":[3,-1],\"to\":[-1,-2]},{\"from\":[2,1],\"to\":[2,0]},{\"from\":[-1,1],\"to\":[-1,0]}]}"
+    },
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      -2
+     ],
+     "dir": "up"
+    }
+   ],
+   "connections": []
+  }
+ ],
+ "FollowCourseAdvanced": [
+  {
+   "name": "Orb Drone Chassis",
+   "id": "UnwiredOrbDrone",
+   "components": [
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      3
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      0,
+      4
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      -2,
+      4
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      3
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      -1,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      -2,
+      0
+     ],
+     "dir": "up",
+     "param": "TIMES"
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "param": "MINUS"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      -3,
+      -1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up"
+    }
+   ],
+   "connections": []
+  }
+ ],
+ "ManualAim": [
+  {
+   "name": "manual_aim",
+   "velocity": [
+    0.0,
+    0.0
+   ],
+   "angularVelocity": 0.0,
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "hp": 20,
+     "param": ""
+    },
+    {
+     "type": "LaserTurret2",
+     "pos": [
+      0,
+      1
+     ],
+     "dir": "up",
+     "hp": 100,
+     "param": "",
+     "overrides": [
+      {
+       "name": "fire_input",
+       "value": 1.0
+      }
+     ]
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": ""
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      0,
+      0
+     ],
+     "to": [
+      0,
+      1
+     ]
+    }
+   ]
+  }
+ ],
+ "PlaceBrain": [],
+ "SideShooter": [
+  {
+   "name": "Brain",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up"
+    }
+   ]
+  },
+  {
+   "name": "shooter",
+   "velocity": [
+    0.0,
+    0.0
+   ],
+   "angularVelocity": 0.0,
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 20,
+     "param": ""
+    },
+    {
+     "type": "Lazer",
+     "pos": [
+      0,
+      1
+     ],
+     "dir": "up",
+     "hp": 100,
+     "param": "",
+     "overrides": [
+      {
+       "name": "input",
+       "value": 1.0
+      }
+     ]
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "hp": 5,
+     "param": ""
+    }
+   ],
+   "connections": []
+  }
+ ],
+ "TwinTurrets": [
+  {
+   "name": "laserpost",
+   "velocity": [
+    0.0,
+    0.0
+   ],
+   "angularVelocity": 0.0,
+   "components": [
+    {
+     "type": "Radar",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": ""
+    },
+    {
+     "type": "LaserTurret2",
+     "pos": [
+      0,
+      3
+     ],
+     "dir": "up",
+     "hp": 100,
+     "param": "",
+     "overrides": [
+      {
+       "name": "rot_input",
+       "value": -15.73702621459961
+      },
+      {
+       "name": "fire_input",
+       "value": 1.0
+      }
+     ]
+    },
+    {
+     "type": "Brain",
+     "pos": [
+      2,
+      0
+     ],
+     "dir": "up",
+     "hp": 20,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      2,
+      1
+     ],
+     "dir": "up",
+     "hp": 5,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      2,
+      3
+     ],
+     "dir": "up",
+     "hp": 5,
+     "param": ""
+    },
+    {
+     "type": "Explosive",
+     "pos": [
+      2,
+      2
+     ],
+     "dir": "up",
+     "hp": 5,
+     "param": ""
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      1,
+      0
+     ],
+     "to": [
+      0,
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Brain",
+   "components": [
+    {
+     "type": "Brain",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up"
+    }
+   ]
+  }
+ ],
+ "bomb": [],
+ "delayBomb": [],
+ "drifter": [],
+ "rocket": []
+}
