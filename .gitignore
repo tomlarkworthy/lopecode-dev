@@ -95,3 +95,4 @@ tools/.venv-unity/
 vendor/corepox/
 vendor/corepox_art/
 vendor/corepox_apk/
+vendor/android-sdk/

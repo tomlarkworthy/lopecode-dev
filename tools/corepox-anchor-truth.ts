@@ -18,6 +18,12 @@ import {loadAssets} from "./corepox-assets-headless.ts";
 import {readFileSync} from "fs";
 
 const TILE2PIXEL = 0.64;                        // Metric.Tile2Pixel, world units per tile
+// Measured against the sprite's INK, not its rect. The rect carries the glow's
+// transparent padding -- Constant's 222px rect holds a 174px square -- and an SVG
+// trace has none of it, so rect-to-viewBox compares the wrong two things. It read
+// "1.2 tiles" for a 1x1 Constant until this changed on 2026-08-19.
+// data/corepox/sprites/*.png comes from tools/corepox-apk-sprite-png.py.
+const INK: Record<string, number[]> = JSON.parse(readFileSync("data/corepox/sprite-ink.json", "utf8"));
 // The eleven component drawings are cells now, so SYMBOLS is measured from each
 // one's viewBox rather than read off a generated table -- which means this gate
 // reads whatever the art is after an svg-lens edit, not what it was when the
@@ -46,8 +52,12 @@ for (const [type, sname] of Object.entries(SPRITE_FOR)) {
   const [sym, ax, ay] = cur;
   const [W, H] = SYMBOLS[sym] ?? [];
   if (W == null) { console.log(`${type}: symbol ${sym} not in SYMBOLS`); continue; }
-  const tw = s.rect[2] / (s.ppu * TILE2PIXEL), th = s.rect[3] / (s.ppu * TILE2PIXEL);
-  const px = s.pivot[0] * W, py = (1 - s.pivot[1]) * H;
+  const ink = INK[sname];
+  if (!ink) { console.log(`${type}: no ink for ${sname}`); continue; }
+  const [ix, iy, iw, ih] = ink;
+  const tw = iw / (s.ppu * TILE2PIXEL), th = ih / (s.ppu * TILE2PIXEL);
+  const u = TILE / (s.ppu * TILE2PIXEL);        // svg units per sprite pixel
+  const px = (s.pivot[0] * s.rect[2] - ix) * u, py = ((1 - s.pivot[1]) * s.rect[3] - iy) * u;
   const scaleX = W / tw, scaleY = H / th;
   const off = Math.hypot(px - ax, py - ay);
   const flag = off > TILE * 0.15 ? "  <-- WRONG" : "";
