@@ -36,8 +36,8 @@
     "lopecode": "lopecode/notebooks/atproto.html"
   },
   "@tomlarkworthy/atlas": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_atlas.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_atlas.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_atlas.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_atlas.html"
   },
   "@tomlarkworthy/atproto": {
     "lopecode": "lopecode/notebooks/atproto.html"
@@ -55,9 +55,9 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html"
   },
   "@tomlarkworthy/blank-notebook": {
-    "upstream": null,
+    "lopebooks": "lopebooks/notebooks/quick_start.html",
     "lopecode": "lopecode/notebooks/quick_start.html",
-    "lopebooks": "lopebooks/notebooks/quick_start.html"
+    "upstream": null
   },
   "@tomlarkworthy/blm-us-wealth": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html"
@@ -78,12 +78,12 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html"
   },
   "@tomlarkworthy/butter-synth": {
-    "upstream": null,
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+    "upstream": null
   },
   "@tomlarkworthy/cell-map": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cell-map.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cell-map.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html"
   },
   "@tomlarkworthy/cells-to-clipboard": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html"
@@ -128,6 +128,30 @@
   "@tomlarkworthy/computational-blogs-with-claude-code-connectivity": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html"
   },
+  "@tomlarkworthy/corepox-assets": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-components": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-engine": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-game": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-missions": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-render": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
   "@tomlarkworthy/csv-column-chooser": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
   },
@@ -138,15 +162,15 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
   },
   "@tomlarkworthy/dataflow-templating": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html"
   },
   "@tomlarkworthy/daw": {
     "lopebooks": "lopebooks/notebooks/tomlarkworthy_daw.html"
   },
   "@tomlarkworthy/debugger": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_debugger.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_debugger.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger.html"
   },
   "@tomlarkworthy/debugger-2": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger-2.html"
@@ -161,19 +185,19 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editable-md.html"
   },
   "@tomlarkworthy/editor-5": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_editor-5.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editor-5.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editor-5.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_editor-5.html"
   },
   "@tomlarkworthy/ego-graph": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ego-graph.html"
   },
   "@tomlarkworthy/exporter-2": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-2.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-2.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-2.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-2.html"
   },
   "@tomlarkworthy/exporter-3": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-3.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-3.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-3.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-3.html"
   },
   "@tomlarkworthy/fast-1d-circular-barcode-matching": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html"
@@ -182,8 +206,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_file-sync.html"
   },
   "@tomlarkworthy/fileattachments": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_fileattachments.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fileattachments.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fileattachments.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_fileattachments.html"
   },
   "@tomlarkworthy/firestore-messaging": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html"
@@ -228,16 +252,16 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_import-notebook.html"
   },
   "@tomlarkworthy/import-wizard-file": {
-    "upstream": null,
-    "lopecode": "lopecode/notebooks/import_wizards.html"
+    "lopecode": "lopecode/notebooks/import_wizards.html",
+    "upstream": null
   },
   "@tomlarkworthy/import-wizard-js": {
-    "upstream": null,
-    "lopecode": "lopecode/notebooks/import_wizards.html"
+    "lopecode": "lopecode/notebooks/import_wizards.html",
+    "upstream": null
   },
   "@tomlarkworthy/import-wizard-notebook": {
-    "upstream": null,
-    "lopecode": "lopecode/notebooks/import_wizards.html"
+    "lopecode": "lopecode/notebooks/import_wizards.html",
+    "upstream": null
   },
   "@tomlarkworthy/infinite-canvas": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html"
@@ -330,8 +354,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_literateobject.html"
   },
   "@tomlarkworthy/local-change-history": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_local-change-history.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_local-change-history.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_local-change-history.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_local-change-history.html"
   },
   "@tomlarkworthy/local-storage-view": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html"
@@ -349,26 +373,26 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html"
   },
   "@tomlarkworthy/lopecode-tour": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html"
   },
   "@tomlarkworthy/lopecode-vision": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html"
   },
   "@tomlarkworthy/lopefeed": {
     "lopecode": "lopecode/notebooks/lopefeed.html"
   },
   "@tomlarkworthy/lopepage": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage.html"
   },
   "@tomlarkworthy/lopepage-2": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html"
   },
   "@tomlarkworthy/lopepage-urls": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-urls.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-urls.html"
   },
   "@tomlarkworthy/manipulate": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_manipulate.html"
@@ -389,8 +413,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-map.html"
   },
   "@tomlarkworthy/module-selection": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_module-selection.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-selection.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-selection.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_module-selection.html"
   },
   "@tomlarkworthy/modules": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_modules.html"
@@ -432,8 +456,8 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html"
   },
   "@tomlarkworthy/notes": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_notes.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notes.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notes.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_notes.html"
   },
   "@tomlarkworthy/observable-notes": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-notes.html"
@@ -448,8 +472,8 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html"
   },
   "@tomlarkworthy/observablejs-toolchain": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"
   },
   "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html"
@@ -515,16 +539,16 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html"
   },
   "@tomlarkworthy/robocoop-2": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-2.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-2.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-2.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-2.html"
   },
   "@tomlarkworthy/robocoop-3": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-3.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-3.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-3.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-3.html"
   },
   "@tomlarkworthy/robocoop-4": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-4.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-4.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
   },
   "@tomlarkworthy/robocoop-4-bash": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
@@ -578,15 +602,15 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rss-feed.html"
   },
   "@tomlarkworthy/runtime-sdk": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_runtime-sdk.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_runtime-sdk.html"
   },
   "@tomlarkworthy/save-in-place": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_save-in-place.html"
   },
   "@tomlarkworthy/secrets": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_secrets.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_secrets.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_secrets.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_secrets.html"
   },
   "@tomlarkworthy/sequencer": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sequencer.html"
@@ -661,8 +685,8 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_tests.html"
   },
   "@tomlarkworthy/themes": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_themes.html",
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_themes.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_themes.html",
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_themes.html"
   },
   "@tomlarkworthy/tiktok": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tiktok.html"

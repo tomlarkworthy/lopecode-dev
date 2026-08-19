@@ -1,0 +1,125 @@
+# Corepox — working task list
+
+Updated 2026-08-19. Ticked only when verified, not when written.
+
+## Now
+- [x] Recover original source (partial clone; `vendor/corepox`)
+- [x] Recover vector art (`design.sketch` history + `corepox_art` repo)
+- [x] `tools/sketch2svg.py` — Sketch JSON → SVG, incl. `--groups` for the components page
+- [x] Recover 12 missions + 79 ship specs from binary scenes
+- [x] `corepox-engine` module — physics/dataflow/damage, headless, 446k ticks/s
+- [x] `corepox-assets` module — 20 Symbols-page components
+- [x] Confirm neon look = render-time bloom, not baked art
+- [ ] **Fold components-page art (36 syms incl. armour/orb/explosive/hyperdrive/turret2) into `corepox-assets`**
+- [ ] **Ship a `bloom` filter + `SYMBOL_FOR` type→symbol map from `corepox-assets`**
+- [ ] **`corepox-render` — ship node from real sprites, on black, bloomed**
+- [ ] **Value labels on connectors** (the thing that makes it read as a running program)
+- [ ] **Live battle view** — seeker vs drone, animated
+- [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
+      inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
+      errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
+      20s wall (corepox-qa-aim.mjs). lopebooks@2949e16f
+
+## Campaign (done 2026-08-19)
+- [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
+      Gate is `tools/corepox-play-missions.ts` (exits non-zero otherwise). Was 5/9 and 1/9
+- [x] Mission logic recovered from C# (`Assets/scripts/scenes/missions/*.cs`) — win/loss per
+      controller, the 2s re-check that stops Cocoon's own detonation being an instant win,
+      Aim counting Explosives not Brains, and the missions that have no loss branch at all
+- [x] Ship prefabs carry their ShipLoader JSON verbatim, wiring included (8 ships,
+      `tools/corepox-extract-prefabs.py`). They are the sharpest test of the port tables
+- [x] **Binary `a`/`b` were swapped** — every MINUS and DIVIDE in the corpus computed backwards.
+      DelayBomb's self-feeding fuse proves it; FollowCourse's TIMES Binary confirms independently
+- [x] **LaserTurret2 inputs are both on its base**: angle (0,0), fire (1,0). Fixes the 4 wires
+      Strafer and StraferThin dropped; corpus now 4621 resolved / 63 dropped (1.3%), 84% one piece
+- [x] Connector overrides restored — 881/892 corpus ships carry saved connector state, and it is
+      live state: 609 ships start with an unwired lazer already firing
+- [x] Three inventions rolled back where they broke recovered levels: power for brainless hulls,
+      recoil (`World.RECOIL`, off — it let ManualAim solve itself), impulse impact damage
+      (the original is a flat 5 per contact per TICK, 250/s)
+- [x] `Ship.overlaps()` — nothing had ever stopped two components sharing a cell. Build mode now
+      tests the whole footprint, not the anchor
+- [x] Reference solutions for SideShooter and TwinTurrets found by exhaustive search over the
+      mission's own inventory (`tools/corepox-solve.ts`), not written by hand
+- [ ] **Turret parallax**: `BEAM_R = 0.75` is CHOSEN, not measured — the collider is a scaled
+      sprite in a binary prefab and reads either way. With a zero-width beam the radar->turret
+      wire only lands inside +-5 degrees, which makes Aim unplayable. Check this first if the
+      collider size is ever recovered
+- [ ] `tools/corepox-engine-test.ts` fails on a STALE fixture (its SEEKER's Radar overlaps a
+      Binary, written before the 2x3 footprint). Retire it or rebuild on corepox-tourney-specs
+- [ ] TwinTurrets' player ship is authored: the scene's loose components overlap three ways under
+      the recovered footprints, and FollowCourse shows the extractor groups by prefab, not by ship
+
+## Next
+- [ ] Starfield background + dashed target lines (from `BattleView` page)
+- [ ] `corepox-designer` — place / rotate / wire
+- [x] Fix the stalemate — diagnosed as TTK (138s kill in a 60s match), not piloting.
+      Raycast bug + HP collapse + impact damage + body splitting. Draws 76-98% -> 32-81%.
+- [x] Design study: self-play, corpus mining, comparable-game research -> `plan/corepox-design.md`
+- [ ] Renderer: show bodies created mid-match by `splitDetached()` (currently invisible)
+- [x] Diagnosed rammer (CoM asymmetry 2.8:1) and wall (strawman; real walls were best-piloted)
+- [x] Power budget — guns now have an opportunity cost; gun-ladder spread 67pp -> 20pp
+- [ ] Brownout priority: hop distance is not the player's choice. Expose it, or power criticals first
+- [ ] Designer must show centre of mass + engine torque arms (42% of corpus heavy ships steer badly)
+- [x] Port: all 892 real ships load and run (ports recovered, footprints, mass model)
+- [x] Archetypes rebuilt on real footprints (tools/corepox-tourney-specs.ts). Wires now name
+      COMPONENTS -- Ship.at() resolves by anchor cell, which moves with any layout change. All 7
+      pass corepox-archetype-check.ts. Round-robin runs again
+- [ ] **Retune archetype steering** — 4 of 7 barely close; gains were set when engines sat at
+      (+-1,-1) and they now sit at (+-2,-3), so the torque arms doubled. Draws 81-100%
+- [x] Composite expansion — dropped connections 5.1% -> 1.2%. Did NOT fix multi-island (prediction
+      falsified). All 228 corpus instances are BrautenbourgsFirst
+- [x] Connectivity resolved: reach-2 IS the physical model (connector stalks meet in the gap cell).
+      Joints are NOT the gap (4-way is their ceiling and fails), footprints are NOT the gap
+      (best sweep 33% costs 48% overlap). Engine dominates the residual bridging pairs
+- [x] Engine 2x1 (nozzle behind), Lazer 3x1 (barrel forward) — earlier 1x1 call was a world-space
+      vs local-space measurement bug. multi-island 22% -> 17%
+- [x] Joints recovered off the SVG art (tools/corepox-joints-from-art.py). Engine came out as
+      N[0,1] E[0] W[0] = exactly the "4 on top and top/left/right" Tom described from memory
+- [ ] **Wire JOINTS into powerUp/islands** so attachment is per-component like the original,
+      replacing the uniform reach-2. Should explain the remaining 17% multi-island
+- [x] Brain joints = full 8 (Tom). Unblocked 485 ships for testing, up from 10
+- [x] Radar joints CONFIRMED blind: Tom's "4 on the 2-length side + closest round the corner = 6"
+      matches the art-derived table exactly. Engine confirmed the same way
+- [x] LaserTurret2: base 2x1, 8 joints, pivot [0.5,-0.5] (Tom). Old 12-tile footprint was the
+      turret's SWEPT AREA, not its footprint
+- [x] Fixed production bug: Ship.detach() read c.dirName (never existed; dir is DEGREES), so every
+      rotated component was reset to "up" on a ship split
+- [x] Hyperdrive footprint: 2x4 head + 3x2 stem (Tom). Corpus is flat here (57 instances), so it
+      rests on Tom alone. Joints still unrecovered
+- [ ] **Multi-island is NOT an error metric** — some corpus ships are genuinely multiple ships
+      (Tom). Reach-2 was partly selected by minimising it, which over-connects real multi-body
+      designs. Pick the reach from the physical model instead; target figure unknown
+- [x] Joint connectivity 1% -> 56%. The engine's tile frame is +y FORWARD (rotTile, Engine's aft
+      nozzle, the renderer's flip all agree); the art SVG is +y down; the solver tried the
+      no-flip fit first and every symmetric footprint matched it. Rotation sense was inverted too.
+      Gap rule still 1%, so it is still not the missing physics
+- [x] tools/corepox-draw.ts — footprints, joints, anchors and wired ports drawn from the engine's
+      own tables. Built to let Tom check the choices; found the frame bug on the way
+- [x] @tomlarkworthy/corepox-components — component browser IN the notebook, editable. Draws
+      from the engine's own TYPES/JOINTS/PORTS, converts joints to ENGINE frame once on load,
+      click to toggle a joint / add-remove a cell / move a connector, and emits the JS to paste
+      back. In bootconf mains. Boots clean, 0 console errors
+- [ ] Land the engine-frame JOINTS table into corepox-engine and delete ARTCELLS/ALIGN from the
+      runtime path — that is the whole class of sign bugs gone (2 found so far)
+- [ ] Hyperdrive joints — the only type with no table, 52/892 ships (6%) contain one
+- [x] Tom's corrections off the drawing: Lazer 6->4 joints, Hyperdrive negated in y (hammerhead
+      leads), Binary side-slot mirror. The mirror was a TOOL bug -- Binary is the one type whose
+      alignment does not negate y, so it is drawn mirrored and the slot order on vertical sides
+      had to swap with the N/S names. Costs 9pp of one-piece ships; recorded, not undone
+- [ ] Binary art grid vs footprint disagree on which end the T stem points. Both alternatives
+      measured and both are worse (52%, 31% vs 56%), so it is unresolved, not settled
+- [ ] TILE is 56 in corepox-assets but the art is exported at 56/59/64/135.5 per symbol — the
+      renderer needs the per-symbol unit or sprites are misscaled
+- [ ] Reach-2 connectivity is empirical (78% vs 57% for reach-1) and physically unjustified —
+      the real `joints: CoordDir8[]` arrays died with the prefabs
+- [ ] Hyperdrive footprint unresolved (no same-type pairs in corpus). Orb = 2x2 (Tom)
+- [ ] Hinge joints (original already has `joints: CoordDir8[]`)
+- [ ] Trig tables for cross-engine determinism, before anything hashes a match outcome
+- [ ] Trim the quick_start payload out of the notebook (3.7 MB)
+
+## Later
+- [ ] Composite mechanic — corpus says 24.6% adoption with only 7 examples; make it the atproto object
+- [ ] Campaign from the 12 recovered missions
+- [ ] atproto: `com.corepox.ship`, ladder as re-simulating index
+- [ ] Seed ladder with the 492 recovered player ships

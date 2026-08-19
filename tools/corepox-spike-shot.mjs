@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const p = await b.newPage({viewport:{width:1500,height:820}});
+await p.goto('file://' + process.cwd() + '/scratch/corepox-spike.html');
+await p.evaluate(() => reset(8));
+await p.waitForTimeout(9000);
+await p.screenshot({ path: 'tools/screenshots/corepox-spike-8.png' });
+await p.evaluate(() => reset(1));
+await p.waitForTimeout(11000);
+await p.screenshot({ path: 'tools/screenshots/corepox-spike-duel.png' });
+console.log(JSON.stringify(await p.evaluate(()=>window.__spike)));
+await b.close();
