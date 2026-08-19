@@ -230,6 +230,84 @@ boolean solver, so a subtract-heavy shape could fill wrongly; bitmap fills are s
 ignored. `a4` (882×462) and `group` (530×132) come out empty, which on inspection is because those
 artboards are empty — not a converter failure.
 
+### The Sketch symbols are not what shipped (2026-08-19)
+
+`design.sketch` is the *source* design. The APK carries the art that was actually built, and for at
+least one component the two are different drawings, not two renderings of one drawing.
+
+Tom, annotating `h_Radar` in the notebook: *"this was not the final design for radar. I think we
+shipped something with a circle for the 2x2 top part. And range was indicated by a seperatly
+animated dial."* The Sketch-derived trace is a stack of rectangles with magenta marks and a green
+10px-stroked square. `data/corepox/sprites/radar.png`, pulled out of the APK, is a green ring 1.88
+tiles across with a dot at its centre on a yellow base whose top edge dips. They are not the same
+picture.
+
+`tools/corepox-apk-sprite-png.py` dumps the images (`d.image` off a UnityPy `Sprite`); 13 of them
+are in `data/corepox/sprites/`, 784K. The geometry-only tool that came first
+(`corepox-apk-sprites.py`, July) reads `m_Rect`/`m_Pivot`/`m_PixelsToUnits` and was enough to fix
+the anchors, but cannot answer *which design shipped* or *where is the glow*. Only the picture can.
+
+**One tile is 192 px in every sprite.** `m_PixelsToUnits` is 300 for all of them and
+`Metric.Tile2Pixel` is 0.64, so the conversion to the notebook's 56-units-to-the-tile grid is a
+single constant, `56/192 = 0.291667` units per pixel. That constant is what makes the sprites usable
+as a ruler.
+
+**Measure against the sprite's ink, not its rect.** The rect carries the glow's transparent padding
+— Constant's 222px rect holds a 174px square — and an SVG trace has none of it: its path bbox *is*
+the ink. A first refit matched rect to viewBox and came out 27% large on Constant.
+`data/corepox/sprite-ink.json` is the ink bbox per sprite, and `corepox-anchor-truth.ts` now reads
+it.
+
+Held: every trace was at its own scale, because each Sketch symbol is normalised to its own
+artboard. `corepox-anchor-truth.ts` printed svg-units-per-tile from 47.2 to 64.0 where all of them
+should read 56, so the board drew Armour 16% small and Brain 14% large from the start of the port.
+After `corepox-art-refit.py`:
+
+```
+  Brain       82.0x 77.0 ->  53.0x 49.8   0.92x0.92 tiles   footprint 1x1
+  Constant    56.0x 56.0 ->  50.8x 50.8   0.91x0.91         1x1
+  Binary     193.0x128.0 -> 161.9x107.3   2.91x1.91         3x2
+  Radar      118.0x171.0 -> 109.5x158.7   1.91x2.91         2x3
+  Engine      56.0x119.0 ->  50.1x106.4   0.91x1.88         1x2
+  Explosive   56.0x 56.0 ->  50.8x 50.8   0.91x0.91         1x1
+  Armour      56.0x 56.0 ->  50.8x 50.8   0.91x0.91         1x1
+  Hyperdrive 248.0x299.0 -> 218.6x263.6   3.91x4.70         4x5
+```
+
+Eight drawings land within 0.1 tile of eight footprints derived independently from the prefabs.
+Nothing in the fit knows what a footprint is, which is why that agreement is worth something.
+
+**The neon was never in the vectors** — in Unity it came from 2DxFX shaders at draw time — and two
+separate things were eating it in the notebook:
+
+1. Binary's trace holds five shapes drawn *twice, identically*. Everywhere else in the sheet that
+   pair is a wide saturated stroke under a thin pale one, which is what the glow is. A cross-section
+   of `binary.png` at x=500 reads, outside in: soft glow, saturated green, a 3px pale core
+   `rgb(181,232,181)`, saturated green, then the body fill at alpha 76/255. The tracer emitted the
+   pair and lost the distinction.
+2. Every drawing's path sits *on* its bounding box and the halo is centred on the path, so half of
+   it falls outside the viewBox. `symbolSheet` turns each drawing into a `<symbol>` and a `<use>` of
+   a symbol clips to its viewport, so the outer half of every halo was cut off in play.
+   `corepox-art-pad.py` moves each viewBox origin negative by half the widest stroke; no geometry
+   moves.
+
+**A sensor need not sit on its component's transform.** `RadarFn.cs` opens with
+`Vector3 here = center.transform.position` and measures from that child, not from the component. The
+sprite says where the child is: ring centre (206.7, 204.6)px, pivot (111.8, 491.4)px, so (+0.494,
++1.494) tiles — the centre of the 2x2 top block to a hundredth of a tile. The engine measured from
+the origin tile, i.e. 1.58 tiles off, so every `dist < k` in the corpus was reading against the wrong
+point. Now `SENSOR` + `Ship.sensorOf`. Checked against the other components: `EngineFn`, `LaserFn`,
+`ExplosiveFn`, `TurretFn` and `MeleeFn` all use `this.transform.position`, and `center` appears
+nowhere else in `Assets/scripts/game/components/`, so Radar is the only one.
+
+**Not done.** The traces have square corners where the shipped sprites are rounded — visible on
+Brain, Engine, Hyperdrive and Armour; only Constant's was fixed, because only Constant's was
+annotated (measured there as 20px of radius on a 174px square). `Lazer`, `Orb` and `LaserTurret2`
+keep their Sketch scale: no single sprite maps onto them (turret2 is cap + gear + barrel), so there
+is nothing to measure against. And the radar's moving parts are recorded but not built — `scan`
+tweens its localScale 0→max on a 1s infinite loop, `arrow` rotates to the target and hides when
+there is none, `trace.size.y` is set to `distance - 0.64` each frame.
+
 ### UI.sketch is the whole screen flow
 
 `vendor/corepox_art/UI.sketch` → 13 artboards, 107 KB of SVG, 98 gradients:
