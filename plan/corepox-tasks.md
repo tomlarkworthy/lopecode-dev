@@ -49,6 +49,22 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       Binary, written before the 2x3 footprint). Retire it or rebuild on corepox-tourney-specs
 - [ ] TwinTurrets' player ship is authored: the scene's loose components overlap three ways under
       the recovered footprints, and FollowCourse shows the extractor groups by prefab, not by ship
+- [x] Composite definitions are NOT in Firebase (Tom's question). Four recovered from the C#, two
+      scenes and the corpus (`tools/corepox-extract-composites.py`); all four load 0-dropped,
+      1-island, no overlaps. LazerHardpoint reads bearing->angle, dist->fire — a fourth
+      independent confirmation of the turret ports
+- [x] Shipped campaign order recovered from `InitialCampaign.prefab`: 7 missions, and the model had
+      ManualAim and ConnectionLite the wrong way round. SideShooter/TwinTurrets have objective text
+      but no campaign slot; FollowBoss/FollowCourse/FollowCourseAdvanced have neither
+- [x] The editor was unusable and the headless gate could not see it — it hands the engine a
+      finished ship. Found by driving the DOM (`tools/corepox-qa-connect.mjs` solves ConnectionLite
+      by clicking): connectors resolve per CELL now (so `b`, `dist` and `fire` are reachable at
+      all), connect mode paints where they are, and the camera snaps rather than eases when the
+      game is paused — easing moved the viewBox between the paint and the click, putting every
+      editor click a tile out
+- [x] Camera frames the action: every live body plus named fixed points, eased in play, snapped in
+      the editor, 16-tile minimum while building and the mission span while running. Avoid's player
+      used to leave the frame at y=-38 and Aim's rockets spawned 22 tiles outside it
 
 ## Next
 - [ ] Starfield background + dashed target lines (from `BattleView` page)

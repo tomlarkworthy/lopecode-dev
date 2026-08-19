@@ -1401,3 +1401,81 @@ keeps an authored player ship, and this is recorded rather than worked around.
   the threshold is 18.75 tiles, not 12. Every corpus threshold moved the same way; the archetype
   gains need re-tuning against the new units, which was already open from §11.8.
 - Hyperdrive is still the only type with no joint table (52/892 ships contain one).
+
+### 13.9 The composite definitions are not in Firebase
+
+Tom asked whether composite definitions lived in the Firebase DB. They do not — a `CompositeSpec`
+is a JSON string, and it appears in three local places: `SpoilsOverride.composites` (a `string[]`
+field on a mission scene object), hard-coded in a `MissionController`, and inside any ship that
+uses one, as the `Composite` component's `param`. `tools/corepox-extract-composites.py` finds four,
+and they need three different unescapings to read — plain JSON in a scene field, C# verbatim
+strings that double every quote, and a spec nested inside another JSON string where every quote is
+backslash-escaped.
+
+```
+LazerHardpoint      scripts/scenes/missions/AimMission.cs    10c  2w   Aim's spoil
+UnfinishedOrbDrone  scenes/missions/FollowCourse.unity        9c  4w
+UnwiredOrbDrone     scenes/missions/FollowCourseAdvanced      13c 0w
+BrautenbourgsFirst  firebase/data/ships.json                  5c  4w   228 corpus uses
+```
+
+All four load with 0 dropped wires, 1 island and no overlapping cells. `LazerHardpoint` reads
+`bearing->angle` and `dist->fire` — a fourth independent confirmation of the LaserTurret2 port
+cells, on an artifact that was not used to derive them.
+
+### 13.10 The shipped campaign is seven missions, and the order was wrong
+
+`prefabs/missions/InitialCampaign.prefab` holds the `List<Mission>`, and its strings survive a
+plain scan in serialised order:
+
+```
+seed birth birthing PlaceBrain    armour cocoon cocoon Cocoon
+connectlite connectlite run ConnectionLite    manualaim manualaim gunner ManualAim
+connect connect connection Connection    aim aim aiming Aim    avoid avoid avoiding Avoid
+tutorial
+```
+
+Seven missions: **PlaceBrain, Cocoon, ConnectionLite, ManualAim, Connection, Aim, Avoid**. The
+model had ManualAim before ConnectionLite; corrected. Each entry is four non-empty strings against
+five `Mission` string fields, so one field per mission is empty and the exact field mapping is not
+pinned down — the *order* is, which is what the campaign needs.
+
+SideShooter and TwinTurrets have full objective text in `Objectives.textByScene` but no slot in the
+campaign list, so they are kept after the seven as bonus levels rather than promoted into the arc.
+FollowBoss, FollowCourse and FollowCourseAdvanced have scenes but neither objective text nor a
+campaign slot; one of their composites is named `UnfinishedOrbDrone`, which is a fair summary.
+
+### 13.11 The editor was not usable, for three separate reasons
+
+All three were invisible to the headless gate, because the gate hands the engine a finished ship.
+Found by driving the DOM (`tools/corepox-qa-connect.mjs`, which solves ConnectionLite by clicking).
+
+**A connector belongs to a cell, not to a component.** `portsAt` resolved by anchor and took
+`ports[0]`, so a Binary's `b`, a Radar's `dist` and a turret's `fire` could not be wired at all —
+which is most of what the corpus does. It now resolves the clicked cell against the port table with
+the component's rotation, the same rule `loadShipSpec` uses to read a saved ship.
+
+**Nothing showed where the connectors were.** Connect mode now paints every port cell, green for
+outputs and blue for inputs, with the legal targets for the current step brought forward. Guessing
+which cell of a six-cell Radar carries `dist` was not a puzzle, it was a hidden control.
+
+**The camera moved between the paint and the click.** Adding a framing camera (§13.11 below) made
+every click land a tile out in the editor: the overlay painted a connector at one viewBox, the
+click was aimed at that pixel, and an intervening `render()` had eased the viewBox 12% toward its
+target. The camera now snaps whenever the game is not running, and eases only during a match. The
+symptom was a first click that selected correctly and a second that resolved to the neighbouring
+tile — visible only because the debug line printed the resolved tile:
+
+```
+CP click 0 1 mode connect ports {"t":"Constant","outs":["out"]} wireFrom null
+CP click 0 0 mode connect ports null wireFrom {"px":0,"py":1,...}
+```
+
+The second click was aimed at the Engine's input at `(0,-1)`.
+
+**The camera itself.** The view was a fixed box on the origin, so Avoid's player left the frame at
+y=-38 and Aim's rockets spawned 22 tiles outside it. `battlefield` now frames every live body plus
+any fixed points the caller names, eased, never tighter than a minimum span. The two modes want
+different things and say so: editing frames the ship at a 16-tile minimum, a running match frames
+everything including the jump zone. Both are set through `view.focus` and `view.minSpan`, which are
+mutable on the returned view.
