@@ -45,8 +45,8 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       sprite in a binary prefab and reads either way. With a zero-width beam the radar->turret
       wire only lands inside +-5 degrees, which makes Aim unplayable. Check this first if the
       collider size is ever recovered
-- [ ] `tools/corepox-engine-test.ts` fails on a STALE fixture (its SEEKER's Radar overlaps a
-      Binary, written before the 2x3 footprint). Retire it or rebuild on corepox-tourney-specs
+- [x] `tools/corepox-engine-test.ts` rebuilt on `corepox-missions.SHIPS` — nothing hand-drawn.
+      The old SEEKER's Radar overlapped four of its own Binaries. All checks pass
 - [ ] TwinTurrets' player ship is authored: the scene's loose components overlap three ways under
       the recovered footprints, and FollowCourse shows the extractor groups by prefab, not by ship
 - [x] Composite definitions are NOT in Firebase (Tom's question). Four recovered from the C#, two
@@ -65,6 +65,14 @@ Updated 2026-08-19. Ticked only when verified, not when written.
 - [x] Camera frames the action: every live body plus named fixed points, eased in play, snapped in
       the editor, 16-tile minimum while building and the mission span while running. Avoid's player
       used to leave the frame at y=-38 and Aim's rockets spawned 22 tiles outside it
+- [x] **The campaign is playable by clicking**, not just by handing the engine a ship:
+      `tools/corepox-qa-campaign.ts` executes each mission's own reference solution as real input
+      (pick part, click cell, click connector to connector, type the value) and reads 9/9. It read
+      4/9 the first time, against a headless gate that said 9/9
+- [x] Build envelope constrains the ANCHOR, not the footprint — an Engine's nozzle hangs off the
+      hull, and testing the whole footprint made both engine missions unbuildable
+- [x] `specOf` dropped `overrides` — every edit rebuilds the ship, so typing the angle into
+      ManualAim's Constant unlatched its turret's `fire_input` and disarmed the gun. Same for Avoid
 
 ## Next
 - [ ] Starfield background + dashed target lines (from `BattleView` page)

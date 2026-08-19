@@ -1479,3 +1479,130 @@ any fixed points the caller names, eased, never tighter than a minimum span. The
 different things and say so: editing frames the ship at a 16-tile minimum, a running match frames
 everything including the jump zone. Both are set through `view.focus` and `view.minSpan`, which are
 mutable on the returned view.
+
+## 14. Playing the campaign by clicking (2026-08-19)
+
+§13 ended with the campaign at 9/9 under `tools/corepox-play-missions.ts` and the editor fixed by
+hand-driving one mission through the DOM. That is two different claims about two different pieces
+of software. The gate builds `new Ship(m.solution)` and hands it to the engine; it never touches
+`place`, `portsAt`, `setParam` or `rebuild`. So it reports 9/9 for a game a player cannot finish.
+
+`tools/corepox-qa-campaign.ts` closes the gap. It reads `MISSIONS` from the module (not a copy),
+takes each mission's own reference solution as a *plan*, and executes it with real input: click the
+part in the tray, click the destination cell, click the source connector then the sink connector,
+type the number into the field. Tile-to-pixel comes from the game's own `tileToView` through a `qa`
+seam on the view element — re-deriving it in the test would be exactly the copy that drifts.
+
+First run, immediately after §13:
+
+```
+4/9 completed by clicking, not by handing the engine a ship
+```
+
+Three defects, none of them visible to the headless gate.
+
+### 14.1 The envelope constrained the footprint, not the anchor
+
+SideShooter and TwinTurrets could not be built at all. Both solutions put an Engine on a cell the
+mission's own envelope lists:
+
+```
+SideShooter envelope [[-1,0],[0,-1],[1,-1],[-1,-1],[1,1],[-1,1]]
+solution adds:       Engine@0,-1  Constant@1,1
+Engine tiles:        [[0,0],[0,-1]]      -> occupies [0,-1] AND [0,-2]
+```
+
+`[0,-2]` is not in the envelope, and `place()` tested every cell of the footprint against it, so the
+placement silently did nothing. The rule is anchor-in-envelope plus no-overlap: an engine nozzle
+hanging off the back of the hull is the normal case, not an error. Overlap is still checked across
+the whole footprint — that is what §13 added `Ship.overlaps()` for, and it stays.
+
+Both parts of the same check were written in one line in §13 and only one of them was right.
+
+### 14.2 Editing a ship disarmed it
+
+ManualAim's whole mission is to type an angle into a Constant. Typing it made the mission
+unwinnable. `setParam` rebuilds the ship — deliberately, because mass, centre of mass, inertia and
+the topological order are all computed in the constructor — and the rebuild goes through
+`specOf(player)`, which emitted `{type, pos, dir, hp, param}` and **dropped `overrides`**.
+
+`overrides` are the saved connector values recovered in §12: ManualAim's turret arrives with
+`fire_input` latched at 1 from `ManualAim.unity`. Rebuilding without them unlatched the trigger, so
+the player typed the correct angle at a gun that no longer fired. Avoid failed the same way.
+
+The component now carries its `overrides` and `specOf` writes them back. Headless, nothing changed
+(9/9 before and after) because the gate never rebuilds — which is the point.
+
+### 14.3 A part you place has no value yet
+
+With 14.1 and 14.2 fixed the campaign read 7/9. The two engine missions still failed, and the
+harness said why:
+
+```
+ 8. SideShooter    ----  built 4/5 parts 2/2 wires
+      MISSING PARTS Constant@1,1=100
+```
+
+A Constant placed from the tray arrives with no `param`. The test was diffing the solution against
+the *handed* ship to decide what to type, so it only ever typed into fields that already existed.
+Diffing against the *live* ship instead covers both cases. This one was a defect in the harness,
+not in the game, and it is recorded because the distinction was not obvious while reading the log:
+"built 4/5 parts" with all wires present looks like a game bug.
+
+Final:
+
+```
+9/9 completed by clicking, not by handing the engine a ship
+```
+
+Both gates now run: `corepox-play-missions.ts` (engine, ~2s) and `corepox-qa-campaign.ts`
+(browser, ~4min). The first is the fast one; only the second can see the editor.
+
+### 14.4 The engine test was testing a ship that cannot exist
+
+`tools/corepox-engine-test.ts` had been failing since the footprints were recovered (§10). The
+cause was its fixture, not the engine: a hand-drawn "SEEKER" whose Radar at `[0,1]` is 2x3 and
+therefore overlapped four of its own Binaries. It was written when every component was assumed 1x1.
+`Ship` loaded it anyway — nothing checked overlap until §13 — and the test read FAIL for weeks.
+
+Rebuilt on `corepox-missions.SHIPS`, which is entirely recovered from the scenes. Nothing in it is
+hand-drawn now:
+
+```
+-- recovered specs --      11 ships: no overlaps, one island, 0 dropped wires
+-- piloting --             drifter at throttle 0: 0.000 tiles/3s;  at 100: 12.64
+-- damage --               fuse 1.14s; target 420 -> 365 hp; the bomb shreds itself (3 -> 0)
+-- guns --                 mark 420 -> 365 hp in 12s; 600 ticks in 20ms
+-- determinism --          two runs identical over 10 sampled frames
+```
+
+Two of those checks were wrong before they were right, and both mistakes are the same shape —
+asserting on the wrong quantity:
+
+*Parts, when the answer is hit points.* "blast damages the neighbour" asserted `live.length < 5`.
+Armour is 100hp and a fragment is 5, so a working blast that lands 11 fragments destroys nothing.
+The blast was fine; the assertion could only ever pass for a much bigger weapon.
+
+*A gun that never fires.* The first match pitted `laserpost` against `shooter` and read `draw`.
+`laserpost`'s recovered wiring is `bearing -> angle` with nothing on `fire` — it aims and never
+shoots, and neither ship has an engine. `manualAim` is the one recovered spec whose trigger is
+latched, so it is the only one that tests the gun rather than the turret. Controlled against the
+same ship with the turret removed:
+
+```
+with turret      hp 420 -> 365   ticks with a beam in flight: 12
+turret removed   hp 420 -> 420   ticks with a beam in flight: 0
+```
+
+*Not a defect:* `loadShipSpec` is for Unity's cell-addressed connections (`{from: [cell], to:
+[cell]}`), and running our own port-named specs through it reports every wire as dropped. The test
+now only applies it to specs that carry no port names. `lazerHardpoint` is the one recovered
+composite still in that form, and it is the only spec exercising that path.
+
+### 14.5 Unattributed
+
+`Error: <rect> attribute height: A negative value is not valid. ("-3")` appears once per campaign
+run. Not corepox: its only rects are `TILE`-sized. It reproduces neither at boot nor during a
+match, and `svg-lens`'s resize-agreement property test builds `<rect>` documents from arbitraries
+and drags corners past their pivot, which produces exactly that. Not chased further — an invalid
+SVG attribute is ignored by the renderer.
