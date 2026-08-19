@@ -14,7 +14,7 @@
 //
 //   tools/.venv-unity/bin/python tools/corepox-apk-sprites.py   # first
 //   bun tools/corepox-anchor-truth.ts
-import {loadAssets} from "./corepox-assets-headless.ts";
+import {loadAssets, loadComponents as loadComponents_} from "./corepox-assets-headless.ts";
 import {readFileSync} from "fs";
 
 const TILE2PIXEL = 0.64;                        // Metric.Tile2Pixel, world units per tile
@@ -30,6 +30,16 @@ const INK: Record<string, number[]> = JSON.parse(readFileSync("data/corepox/spri
 // table was written.
 const {assets: a} = await loadAssets();
 const SYMBOLS: any = await a.value("SYMBOLS");
+// Drawings carry a negative viewBox origin so their halo is not clipped
+// (corepox-art-pad.py), and an anchor is a coordinate in the PATH space that
+// origin sits in -- drawComponent adopts the art's children, never its viewBox.
+// So the pivot's offset into the ink has to be placed relative to that origin or
+// this reads 2.9 units of error that is not there.
+const ART: any = await (await loadComponents_()).value("COMPONENT_ART");
+const ORIGIN: Record<string, number[]> = {};
+// COMPONENT_ART is keyed by SYMBOL name, not by component type.
+for (const [sym, node] of Object.entries<any>(ART))
+  ORIGIN[sym] = (node?.getAttribute?.("viewBox") ?? "0 0 0 0").trim().split(/\s+/).map(Number);
 const SYMBOL_FOR: any = await a.value("SYMBOL_FOR");
 const TILE: number = await a.value("TILE");
 const sprites = JSON.parse(readFileSync("data/corepox/apk-sprites.json", "utf8"));
@@ -57,7 +67,9 @@ for (const [type, sname] of Object.entries(SPRITE_FOR)) {
   const [ix, iy, iw, ih] = ink;
   const tw = iw / (s.ppu * TILE2PIXEL), th = ih / (s.ppu * TILE2PIXEL);
   const u = TILE / (s.ppu * TILE2PIXEL);        // svg units per sprite pixel
-  const px = (s.pivot[0] * s.rect[2] - ix) * u, py = ((1 - s.pivot[1]) * s.rect[3] - iy) * u;
+  const [ox, oy] = ORIGIN[sym] ?? [0, 0];
+  const px = ox + (s.pivot[0] * s.rect[2] - ix) * u,
+        py = oy + ((1 - s.pivot[1]) * s.rect[3] - iy) * u;
   const scaleX = W / tw, scaleY = H / th;
   const off = Math.hypot(px - ax, py - ay);
   const flag = off > TILE * 0.15 ? "  <-- WRONG" : "";
