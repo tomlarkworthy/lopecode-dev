@@ -1,767 +1,775 @@
 {
-  "@tomlarkworthy/2d-spatial-wormhole-warp": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html"
-  },
-  "@tomlarkworthy/acorn-8-11-3": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"
-  },
-  "@tomlarkworthy/animated-kirigami": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html"
-  },
-  "@tomlarkworthy/animation": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_animation.html"
-  },
-  "@tomlarkworthy/annotate": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_annotate.html"
-  },
-  "@tomlarkworthy/annotate-data": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_annotate.html"
-  },
-  "@tomlarkworthy/aqi_no_loop_breaking": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html"
-  },
-  "@tomlarkworthy/assembly-script": {
-    "lopebooks": "lopebooks/notebooks/assembly_script.html"
-  },
-  "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html"
-  },
-  "@tomlarkworthy/at-login": {
-    "lopecode": "lopecode/notebooks/atproto.html"
-  },
-  "@tomlarkworthy/at-read": {
-    "lopecode": "lopecode/notebooks/atproto.html"
-  },
-  "@tomlarkworthy/at-write": {
-    "lopecode": "lopecode/notebooks/atproto.html"
-  },
-  "@tomlarkworthy/atlas": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_atlas.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_atlas.html"
-  },
-  "@tomlarkworthy/atproto": {
-    "lopecode": "lopecode/notebooks/atproto.html"
-  },
-  "@tomlarkworthy/atproto-comments": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_atproto-comments.html"
-  },
-  "@tomlarkworthy/audio-inputs": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html"
-  },
-  "@tomlarkworthy/belief-geometry": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_belief-geometry.html"
-  },
-  "@tomlarkworthy/bitcoin-energy": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html"
-  },
-  "@tomlarkworthy/blank-notebook": {
-    "lopebooks": "lopebooks/notebooks/quick_start.html",
-    "lopecode": "lopecode/notebooks/quick_start.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/blm-us-wealth": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html"
-  },
-  "@tomlarkworthy/blog-first-post": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html"
-  },
-  "@tomlarkworthy/blog-netlify-deployment-manager": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html"
-  },
-  "@tomlarkworthy/bootloader": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_bootloader.html"
-  },
-  "@tomlarkworthy/building-a-team-chore-app": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_building-a-team-chore-app.html"
-  },
-  "@tomlarkworthy/bulk-jumpgate": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html"
-  },
-  "@tomlarkworthy/butter-synth": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/cell-map": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cell-map.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html"
-  },
-  "@tomlarkworthy/cells-to-clipboard": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html"
-  },
-  "@tomlarkworthy/circular-barcode-simulator": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html"
-  },
-  "@tomlarkworthy/claude-code-pairing": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html"
-  },
-  "@tomlarkworthy/cloudevents-explorer": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html"
-  },
-  "@tomlarkworthy/code-metrics": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_code-metrics.html"
-  },
-  "@tomlarkworthy/coded-landmark-tracking": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
-  },
-  "@tomlarkworthy/coded-landmark-tracking-data": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
-  },
-  "@tomlarkworthy/codemirror-6-v2": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html"
-  },
-  "@tomlarkworthy/coffeescript-demo": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html"
-  },
-  "@tomlarkworthy/colorpicker": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_colorpicker.html"
-  },
-  "@tomlarkworthy/command-palette": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_command-palette.html"
-  },
-  "@tomlarkworthy/compile-dataflow": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_compile-dataflow.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/compile-zig": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html"
-  },
-  "@tomlarkworthy/computational-blogs-with-claude-code-connectivity": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html"
-  },
-  "@tomlarkworthy/corepox-assets": {
-    "lopebooks": "lopebooks/notebooks/corepox.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/corepox-components": {
-    "lopebooks": "lopebooks/notebooks/corepox.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/corepox-engine": {
-    "lopebooks": "lopebooks/notebooks/corepox.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/corepox-game": {
-    "lopebooks": "lopebooks/notebooks/corepox.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/corepox-missions": {
-    "lopebooks": "lopebooks/notebooks/corepox.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/corepox-render": {
-    "lopebooks": "lopebooks/notebooks/corepox.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/csv-column-chooser": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
-  },
-  "@tomlarkworthy/cw-metrics": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
-  },
-  "@tomlarkworthy/cw-share-auth": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
-  },
-  "@tomlarkworthy/dataflow-templating": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html"
-  },
-  "@tomlarkworthy/daw": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_daw.html"
-  },
-  "@tomlarkworthy/debugger": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_debugger.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger.html"
-  },
-  "@tomlarkworthy/debugger-2": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger-2.html"
-  },
-  "@tomlarkworthy/dijkstra": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dijkstra.html"
-  },
-  "@tomlarkworthy/dom-view": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_dom-view.html"
-  },
-  "@tomlarkworthy/editable-md": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editable-md.html"
-  },
-  "@tomlarkworthy/editor-5": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editor-5.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_editor-5.html"
-  },
-  "@tomlarkworthy/ego-graph": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ego-graph.html"
-  },
-  "@tomlarkworthy/exporter-2": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-2.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-2.html"
-  },
-  "@tomlarkworthy/exporter-3": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-3.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-3.html"
-  },
-  "@tomlarkworthy/fast-1d-circular-barcode-matching": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html"
-  },
-  "@tomlarkworthy/file-sync": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_file-sync.html"
-  },
-  "@tomlarkworthy/fileattachments": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fileattachments.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_fileattachments.html"
-  },
-  "@tomlarkworthy/firestore-messaging": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html"
-  },
-  "@tomlarkworthy/flow-queue": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_flow-queue.html"
-  },
-  "@tomlarkworthy/fsm": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fsm.html"
-  },
-  "@tomlarkworthy/gallery": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_gallery.html"
-  },
-  "@tomlarkworthy/glpk-canonicalization": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html"
-  },
-  "@tomlarkworthy/golden-layout-2-6-0": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_golden-layout-2-6-0.html"
-  },
-  "@tomlarkworthy/grid-container": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_grid-container.html"
-  },
-  "@tomlarkworthy/hacker-favourites-analysis": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_hacker-favourites-analysis.html"
-  },
-  "@tomlarkworthy/howto-import-react-application": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html"
-  },
-  "@tomlarkworthy/howto-monitoring": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_howto-monitoring.html"
-  },
-  "@tomlarkworthy/ilda-laser-show-player": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ilda-laser-show-player.html"
-  },
-  "@tomlarkworthy/ilda-virtual-laser-test-pattern": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ilda-virtual-laser-test-pattern.html"
-  },
-  "@tomlarkworthy/imgchooser": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_imgchooser.html"
-  },
-  "@tomlarkworthy/import-notebook": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_import-notebook.html"
-  },
-  "@tomlarkworthy/import-wizard-file": {
-    "lopecode": "lopecode/notebooks/import_wizards.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/import-wizard-js": {
-    "lopecode": "lopecode/notebooks/import_wizards.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/import-wizard-notebook": {
-    "lopecode": "lopecode/notebooks/import_wizards.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/infinite-canvas": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html"
-  },
-  "@tomlarkworthy/infinite-kirigami-the-endless-wall": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html"
-  },
-  "@tomlarkworthy/ink": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ink.html"
-  },
-  "@tomlarkworthy/inputs-reference": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_inputs-reference.html"
-  },
-  "@tomlarkworthy/inspector": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_inspector.html"
-  },
-  "@tomlarkworthy/invoke-variable": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_invoke-variable.html"
-  },
-  "@tomlarkworthy/jamstack": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jamstack.html"
-  },
-  "@tomlarkworthy/jest-expect-standalone": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html"
-  },
-  "@tomlarkworthy/js-toolchain": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/jsqrcode": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html"
-  },
-  "@tomlarkworthy/juice": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_juice.html"
-  },
-  "@tomlarkworthy/juice-and-charts": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html"
-  },
-  "@tomlarkworthy/jumpgate": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jumpgate.html"
-  },
-  "@tomlarkworthy/just-bash": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/justbash": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
-  },
-  "@tomlarkworthy/justbash-filesync": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/justbash-session": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
-  },
-  "@tomlarkworthy/justbash-terminal": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
-  },
-  "@tomlarkworthy/kirigami-turret": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_kirigami-turret.html"
-  },
-  "@tomlarkworthy/lazer-cut-plant-pot": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html"
-  },
-  "@tomlarkworthy/lazer-light": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-light.html"
-  },
-  "@tomlarkworthy/lazer-simulator": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html"
-  },
-  "@tomlarkworthy/ledger": {
-    "lopecode": "lopecode/notebooks/ledger.html"
-  },
-  "@tomlarkworthy/linear-app-technical-deep-dive": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html"
-  },
-  "@tomlarkworthy/linkpreview": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linkpreview.html"
-  },
-  "@tomlarkworthy/linux-emu": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linux-emu.html"
-  },
-  "@tomlarkworthy/linux-sbc": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linux-sbc.html"
-  },
-  "@tomlarkworthy/lite-youtube-embed": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lite-youtube-embed.html"
-  },
-  "@tomlarkworthy/literateobject": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_literateobject.html"
-  },
-  "@tomlarkworthy/local-change-history": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_local-change-history.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_local-change-history.html"
-  },
-  "@tomlarkworthy/local-storage-view": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html"
-  },
-  "@tomlarkworthy/lopecode-live-2026": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
-  },
-  "@tomlarkworthy/lopecode-newsletter-001": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html"
-  },
-  "@tomlarkworthy/lopecode-newsletter-002": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-002.html"
-  },
-  "@tomlarkworthy/lopecode-substrate-2026": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html"
-  },
-  "@tomlarkworthy/lopecode-tour": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html"
-  },
-  "@tomlarkworthy/lopecode-vision": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html"
-  },
-  "@tomlarkworthy/lopefeed": {
-    "lopecode": "lopecode/notebooks/lopefeed.html"
-  },
-  "@tomlarkworthy/lopepage": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage.html"
-  },
-  "@tomlarkworthy/lopepage-2": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html"
-  },
-  "@tomlarkworthy/lopepage-urls": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-urls.html"
-  },
-  "@tomlarkworthy/manipulate": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_manipulate.html"
-  },
-  "@tomlarkworthy/markdown-wiki": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html"
-  },
-  "@tomlarkworthy/matrix-background": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html"
-  },
-  "@tomlarkworthy/micro-kernel-design": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html"
-  },
-  "@tomlarkworthy/modern-screenshot": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_modern-screenshot.html"
-  },
-  "@tomlarkworthy/module-map": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-map.html"
-  },
-  "@tomlarkworthy/module-selection": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-selection.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_module-selection.html"
-  },
-  "@tomlarkworthy/modules": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_modules.html"
-  },
-  "@tomlarkworthy/moldable-webpage": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html"
-  },
-  "@tomlarkworthy/moltbook": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_moltbook.html"
-  },
-  "@tomlarkworthy/most-favorited-hacker-news-youtube-videos": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html"
-  },
-  "@tomlarkworthy/mutable-form-input": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_mutable-form-input.html"
-  },
-  "@tomlarkworthy/my-lopebooks": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_my-lopebooks.html"
-  },
-  "@tomlarkworthy/n-door-monty-hall": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_n-door-monty-hall.html"
-  },
-  "@tomlarkworthy/native-file-system-adapter": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_native-file-system-adapter.html"
-  },
-  "@tomlarkworthy/neato": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_neato.html"
-  },
-  "@tomlarkworthy/notebook-kit": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html"
-  },
-  "@tomlarkworthy/notebook-kit-examples": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit-examples.html"
-  },
-  "@tomlarkworthy/notebook-semantics": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html"
-  },
-  "@tomlarkworthy/notebook-visualizer": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html"
-  },
-  "@tomlarkworthy/notes": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notes.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_notes.html"
-  },
-  "@tomlarkworthy/observable-notes": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-notes.html"
-  },
-  "@tomlarkworthy/observable-runtime": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-runtime.html"
-  },
-  "@tomlarkworthy/observable-runtime-v6": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-runtime-v6.html"
-  },
-  "@tomlarkworthy/observablehq-lezer": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html"
-  },
-  "@tomlarkworthy/observablejs-toolchain": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"
-  },
-  "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html"
-  },
-  "@tomlarkworthy/openai-responses-api": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_openai-responses-api.html"
-  },
-  "@tomlarkworthy/p5-sandbox": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_p5-sandbox.html"
-  },
-  "@tomlarkworthy/parametric-kirigami-the-castle-wall": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_parametric-kirigami-the-castle-wall.html"
-  },
-  "@tomlarkworthy/parametric-svg": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_parametric-svg.html"
-  },
-  "@tomlarkworthy/pause-and-play-book": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-book.html"
-  },
-  "@tomlarkworthy/pause-and-play-shop": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-shop.html"
-  },
-  "@tomlarkworthy/phiresky-sqlite-query": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html"
-  },
-  "@tomlarkworthy/plugin-registry": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_plugin-registry.html"
-  },
-  "@tomlarkworthy/prosemirror": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_prosemirror.html"
-  },
-  "@tomlarkworthy/radial-explosion": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html"
-  },
-  "@tomlarkworthy/randomid": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_randomid.html"
-  },
-  "@tomlarkworthy/rate-estimation": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rate-estimation.html"
-  },
-  "@tomlarkworthy/rate-estimation-min": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rate-estimation-min.html"
-  },
-  "@tomlarkworthy/reactive-reflective-testing": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html"
-  },
-  "@tomlarkworthy/realtime-multi-barcode-tracking": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_realtime-multi-barcode-tracking.html"
-  },
-  "@tomlarkworthy/redirect-debugging": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html"
-  },
-  "@tomlarkworthy/remote-cell-value": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html"
-  },
-  "@tomlarkworthy/repo1": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_repo1.html"
-  },
-  "@tomlarkworthy/retro-title-graphic": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html"
-  },
-  "@tomlarkworthy/reversible-attachment": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html"
-  },
-  "@tomlarkworthy/robocoop-2": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-2.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-2.html"
-  },
-  "@tomlarkworthy/robocoop-3": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-3.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-3.html"
-  },
-  "@tomlarkworthy/robocoop-4": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-4.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-bash": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-bash-session": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-bash-terminal": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-core": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-engine": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-hostbridge": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-tests": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-4-tools": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
-  },
-  "@tomlarkworthy/robocoop-5": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
-  },
-  "@tomlarkworthy/robocoop-5-context": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
-  },
-  "@tomlarkworthy/robocoop-5-core": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
-  },
-  "@tomlarkworthy/robocoop-5-engine": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
-  },
-  "@tomlarkworthy/robocoop-5-srctools": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
-  },
-  "@tomlarkworthy/robocoop-5-tools": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
-  },
-  "@tomlarkworthy/robocoop-gallery": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-gallery.html"
-  },
-  "@tomlarkworthy/robocoop3-training": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html"
-  },
-  "@tomlarkworthy/rss-feed": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rss-feed.html"
-  },
-  "@tomlarkworthy/runtime-sdk": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_runtime-sdk.html"
-  },
-  "@tomlarkworthy/save-in-place": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_save-in-place.html"
-  },
-  "@tomlarkworthy/secrets": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_secrets.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_secrets.html"
-  },
-  "@tomlarkworthy/sequencer": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sequencer.html"
-  },
-  "@tomlarkworthy/sign-a-pdf": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html"
-  },
-  "@tomlarkworthy/simplest-cms": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_simplest-cms.html"
-  },
-  "@tomlarkworthy/single-stroke-font": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_single-stroke-font.html"
-  },
-  "@tomlarkworthy/spectral-layout": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html"
-  },
-  "@tomlarkworthy/sticky": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky.html"
-  },
-  "@tomlarkworthy/sticky-footer-in-list": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html"
-  },
-  "@tomlarkworthy/stream-operators": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_stream-operators.html"
-  },
-  "@tomlarkworthy/subdomain-certification": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html"
-  },
-  "@tomlarkworthy/summarizejs": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_summarizejs.html"
-  },
-  "@tomlarkworthy/svg-boinger": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_svg-boinger.html"
-  },
-  "@tomlarkworthy/svg-lens": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_svg-lens.html"
-  },
-  "@tomlarkworthy/svg-twist": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_svg-twist.html"
-  },
-  "@tomlarkworthy/switch-dataflow": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_switch-dataflow.html"
-  },
-  "@tomlarkworthy/synchronizing-external-state-into-bigquery-efficiently": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_synchronizing-external-state-into-bigquery-efficiently.html"
-  },
-  "@tomlarkworthy/tabbed-pane-view": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html"
-  },
-  "@tomlarkworthy/tarot": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/tarot-app": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/tarot-deck": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/testblog": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testblog.html"
-  },
-  "@tomlarkworthy/tester": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tester.html"
-  },
-  "@tomlarkworthy/testing": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testing.html"
-  },
-  "@tomlarkworthy/tests": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_tests.html"
-  },
-  "@tomlarkworthy/themes": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_themes.html",
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_themes.html"
-  },
-  "@tomlarkworthy/tiktok": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tiktok.html"
-  },
-  "@tomlarkworthy/tiny-notebook": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tiny-notebook.html"
-  },
-  "@tomlarkworthy/tom-larkworthy": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tom-larkworthy.html"
-  },
-  "@tomlarkworthy/tweetstorm": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html"
-  },
-  "@tomlarkworthy/twitter-trending-notebook-bot-dataset-2022": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_twitter-trending-notebook-bot-dataset-2022.html"
-  },
-  "@tomlarkworthy/unaggregating-cloudwatch-metrics": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_unaggregating-cloudwatch-metrics.html"
-  },
-  "@tomlarkworthy/unrolling-a-deploy-command": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_unrolling-a-deploy-command.html"
-  },
-  "@tomlarkworthy/url-query-field-view": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_url-query-field-view.html"
-  },
-  "@tomlarkworthy/userspace-editor": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html"
-  },
-  "@tomlarkworthy/utils": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_utils.html"
-  },
-  "@tomlarkworthy/vertical-sliders": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_vertical-sliders.html"
-  },
-  "@tomlarkworthy/view": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_view.html"
-  },
-  "@tomlarkworthy/view-examples": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_view-examples.html"
-  },
-  "@tomlarkworthy/viewroutine": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_viewroutine.html"
-  },
-  "@tomlarkworthy/virtual-monorepo": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html"
-  },
-  "@tomlarkworthy/visualizer": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_visualizer.html"
-  },
-  "@tomlarkworthy/vr-hackerspace": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html"
-  },
-  "@tomlarkworthy/webxr-dom-overlay": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_webxr-dom-overlay.html"
-  },
-  "@tomlarkworthy/whisper-input": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_whisper-input.html"
-  },
-  "@tomlarkworthy/why-claude-code-codes-well": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
-    "upstream": null
-  },
-  "@tomlarkworthy/wiki": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wiki.html"
-  },
-  "@tomlarkworthy/wms-leaflet-gca-dev": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html"
-  },
-  "@tomlarkworthy/womens-suffrage": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html"
-  },
-  "@tomlarkworthy/wormhole": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wormhole.html"
-  },
-  "@tomlarkworthy/wormhole2": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wormhole2.html"
-  }
+ "@tomlarkworthy/2d-spatial-wormhole-warp": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html"
+ },
+ "@tomlarkworthy/acorn-8-11-3": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"
+ },
+ "@tomlarkworthy/animated-kirigami": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html"
+ },
+ "@tomlarkworthy/animation": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_animation.html"
+ },
+ "@tomlarkworthy/annotate": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_annotate.html"
+ },
+ "@tomlarkworthy/annotate-data": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_annotate.html"
+ },
+ "@tomlarkworthy/aqi_no_loop_breaking": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html"
+ },
+ "@tomlarkworthy/assembly-script": {
+  "lopebooks": "lopebooks/notebooks/assembly_script.html"
+ },
+ "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html"
+ },
+ "@tomlarkworthy/at-login": {
+  "lopecode": "lopecode/notebooks/atproto.html"
+ },
+ "@tomlarkworthy/at-read": {
+  "lopecode": "lopecode/notebooks/atproto.html"
+ },
+ "@tomlarkworthy/at-write": {
+  "lopecode": "lopecode/notebooks/atproto.html"
+ },
+ "@tomlarkworthy/atlas": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_atlas.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_atlas.html"
+ },
+ "@tomlarkworthy/atproto": {
+  "lopecode": "lopecode/notebooks/atproto.html"
+ },
+ "@tomlarkworthy/atproto-comments": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_atproto-comments.html"
+ },
+ "@tomlarkworthy/audio-inputs": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html"
+ },
+ "@tomlarkworthy/belief-geometry": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_belief-geometry.html"
+ },
+ "@tomlarkworthy/bitcoin-energy": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html"
+ },
+ "@tomlarkworthy/blank-notebook": {
+  "lopebooks": "lopebooks/notebooks/quick_start.html",
+  "lopecode": "lopecode/notebooks/quick_start.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/blm-us-wealth": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html"
+ },
+ "@tomlarkworthy/blog-first-post": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html"
+ },
+ "@tomlarkworthy/blog-netlify-deployment-manager": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html"
+ },
+ "@tomlarkworthy/bootloader": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_bootloader.html"
+ },
+ "@tomlarkworthy/building-a-team-chore-app": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_building-a-team-chore-app.html"
+ },
+ "@tomlarkworthy/bulk-jumpgate": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html"
+ },
+ "@tomlarkworthy/butter-synth": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/cell-map": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cell-map.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html"
+ },
+ "@tomlarkworthy/cells-to-clipboard": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html"
+ },
+ "@tomlarkworthy/circular-barcode-simulator": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html"
+ },
+ "@tomlarkworthy/claude-code-pairing": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html"
+ },
+ "@tomlarkworthy/cloudevents-explorer": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html"
+ },
+ "@tomlarkworthy/code-metrics": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_code-metrics.html"
+ },
+ "@tomlarkworthy/coded-landmark-tracking": {
+  "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
+ },
+ "@tomlarkworthy/coded-landmark-tracking-data": {
+  "lopebooks": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html"
+ },
+ "@tomlarkworthy/codemirror-6-v2": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html"
+ },
+ "@tomlarkworthy/coffeescript-demo": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html"
+ },
+ "@tomlarkworthy/colorpicker": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_colorpicker.html"
+ },
+ "@tomlarkworthy/command-palette": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_command-palette.html"
+ },
+ "@tomlarkworthy/compile-dataflow": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_compile-dataflow.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/compile-zig": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html"
+ },
+ "@tomlarkworthy/computational-blogs-with-claude-code-connectivity": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html"
+ },
+ "@tomlarkworthy/corepox-assets": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-components": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-engine": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-game": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-lab": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-missions": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-render": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/corepox-shipyard": {
+  "lopebooks": "lopebooks/notebooks/corepox.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/csv-column-chooser": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
+ },
+ "@tomlarkworthy/cw-metrics": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
+ },
+ "@tomlarkworthy/cw-share-auth": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
+ },
+ "@tomlarkworthy/dataflow-templating": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dataflow-templating.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html"
+ },
+ "@tomlarkworthy/daw": {
+  "lopebooks": "lopebooks/notebooks/tomlarkworthy_daw.html"
+ },
+ "@tomlarkworthy/debugger": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_debugger.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger.html"
+ },
+ "@tomlarkworthy/debugger-2": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_debugger-2.html"
+ },
+ "@tomlarkworthy/dijkstra": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_dijkstra.html"
+ },
+ "@tomlarkworthy/dom-view": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_dom-view.html"
+ },
+ "@tomlarkworthy/editable-md": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editable-md.html"
+ },
+ "@tomlarkworthy/editor-5": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_editor-5.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_editor-5.html"
+ },
+ "@tomlarkworthy/ego-graph": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ego-graph.html"
+ },
+ "@tomlarkworthy/exporter-2": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-2.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-2.html"
+ },
+ "@tomlarkworthy/exporter-3": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-3.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-3.html"
+ },
+ "@tomlarkworthy/fast-1d-circular-barcode-matching": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html"
+ },
+ "@tomlarkworthy/file-sync": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_file-sync.html"
+ },
+ "@tomlarkworthy/fileattachments": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fileattachments.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_fileattachments.html"
+ },
+ "@tomlarkworthy/firestore-messaging": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html"
+ },
+ "@tomlarkworthy/flow-queue": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_flow-queue.html"
+ },
+ "@tomlarkworthy/fsm": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fsm.html"
+ },
+ "@tomlarkworthy/gallery": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_gallery.html"
+ },
+ "@tomlarkworthy/glpk-canonicalization": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html"
+ },
+ "@tomlarkworthy/golden-layout-2-6-0": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_golden-layout-2-6-0.html"
+ },
+ "@tomlarkworthy/grid-container": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_grid-container.html"
+ },
+ "@tomlarkworthy/hacker-favourites-analysis": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_hacker-favourites-analysis.html"
+ },
+ "@tomlarkworthy/howto-import-react-application": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html"
+ },
+ "@tomlarkworthy/howto-monitoring": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_howto-monitoring.html"
+ },
+ "@tomlarkworthy/ilda-laser-show-player": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ilda-laser-show-player.html"
+ },
+ "@tomlarkworthy/ilda-virtual-laser-test-pattern": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ilda-virtual-laser-test-pattern.html"
+ },
+ "@tomlarkworthy/imgchooser": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_imgchooser.html"
+ },
+ "@tomlarkworthy/import-notebook": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_import-notebook.html"
+ },
+ "@tomlarkworthy/import-wizard-file": {
+  "lopecode": "lopecode/notebooks/import_wizards.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/import-wizard-js": {
+  "lopecode": "lopecode/notebooks/import_wizards.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/import-wizard-notebook": {
+  "lopecode": "lopecode/notebooks/import_wizards.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/infinite-canvas": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html"
+ },
+ "@tomlarkworthy/infinite-kirigami-the-endless-wall": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html"
+ },
+ "@tomlarkworthy/ink": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ink.html"
+ },
+ "@tomlarkworthy/inputs-reference": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_inputs-reference.html"
+ },
+ "@tomlarkworthy/inspector": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_inspector.html"
+ },
+ "@tomlarkworthy/invoke-variable": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_invoke-variable.html"
+ },
+ "@tomlarkworthy/jamstack": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jamstack.html"
+ },
+ "@tomlarkworthy/jest-expect-standalone": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html"
+ },
+ "@tomlarkworthy/js-toolchain": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/jsqrcode": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html"
+ },
+ "@tomlarkworthy/juice": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_juice.html"
+ },
+ "@tomlarkworthy/juice-and-charts": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html"
+ },
+ "@tomlarkworthy/jumpgate": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jumpgate.html"
+ },
+ "@tomlarkworthy/just-bash": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/justbash": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
+ },
+ "@tomlarkworthy/justbash-filesync": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/justbash-session": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
+ },
+ "@tomlarkworthy/justbash-terminal": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_justbash.html"
+ },
+ "@tomlarkworthy/kirigami-turret": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_kirigami-turret.html"
+ },
+ "@tomlarkworthy/lazer-cut-plant-pot": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html"
+ },
+ "@tomlarkworthy/lazer-light": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-light.html"
+ },
+ "@tomlarkworthy/lazer-simulator": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html"
+ },
+ "@tomlarkworthy/ledger": {
+  "lopecode": "lopecode/notebooks/ledger.html"
+ },
+ "@tomlarkworthy/linear-app-technical-deep-dive": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html"
+ },
+ "@tomlarkworthy/linkpreview": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linkpreview.html"
+ },
+ "@tomlarkworthy/linux-emu": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linux-emu.html"
+ },
+ "@tomlarkworthy/linux-sbc": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_linux-sbc.html"
+ },
+ "@tomlarkworthy/lite-youtube-embed": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lite-youtube-embed.html"
+ },
+ "@tomlarkworthy/literateobject": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_literateobject.html"
+ },
+ "@tomlarkworthy/local-change-history": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_local-change-history.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_local-change-history.html"
+ },
+ "@tomlarkworthy/local-storage-view": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html"
+ },
+ "@tomlarkworthy/lopecode-live-2026": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
+ },
+ "@tomlarkworthy/lopecode-newsletter-001": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html"
+ },
+ "@tomlarkworthy/lopecode-newsletter-002": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-002.html"
+ },
+ "@tomlarkworthy/lopecode-substrate-2026": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html"
+ },
+ "@tomlarkworthy/lopecode-tour": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-tour.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html"
+ },
+ "@tomlarkworthy/lopecode-vision": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-vision.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html"
+ },
+ "@tomlarkworthy/lopefeed": {
+  "lopecode": "lopecode/notebooks/lopefeed.html"
+ },
+ "@tomlarkworthy/lopepage": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage.html"
+ },
+ "@tomlarkworthy/lopepage-2": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html"
+ },
+ "@tomlarkworthy/lopepage-urls": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopepage-urls.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-urls.html"
+ },
+ "@tomlarkworthy/manipulate": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_manipulate.html"
+ },
+ "@tomlarkworthy/markdown-wiki": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html"
+ },
+ "@tomlarkworthy/matrix-background": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html"
+ },
+ "@tomlarkworthy/micro-kernel-design": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html"
+ },
+ "@tomlarkworthy/modern-screenshot": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_modern-screenshot.html"
+ },
+ "@tomlarkworthy/module-map": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-map.html"
+ },
+ "@tomlarkworthy/module-selection": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_module-selection.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_module-selection.html"
+ },
+ "@tomlarkworthy/modules": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_modules.html"
+ },
+ "@tomlarkworthy/moldable-webpage": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html"
+ },
+ "@tomlarkworthy/moltbook": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_moltbook.html"
+ },
+ "@tomlarkworthy/most-favorited-hacker-news-youtube-videos": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html"
+ },
+ "@tomlarkworthy/mutable-form-input": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_mutable-form-input.html"
+ },
+ "@tomlarkworthy/my-lopebooks": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_my-lopebooks.html"
+ },
+ "@tomlarkworthy/n-door-monty-hall": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_n-door-monty-hall.html"
+ },
+ "@tomlarkworthy/native-file-system-adapter": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_native-file-system-adapter.html"
+ },
+ "@tomlarkworthy/neato": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_neato.html"
+ },
+ "@tomlarkworthy/notebook-kit": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html"
+ },
+ "@tomlarkworthy/notebook-kit-examples": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit-examples.html"
+ },
+ "@tomlarkworthy/notebook-semantics": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html"
+ },
+ "@tomlarkworthy/notebook-visualizer": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html"
+ },
+ "@tomlarkworthy/notes": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notes.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_notes.html"
+ },
+ "@tomlarkworthy/observable-notes": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-notes.html"
+ },
+ "@tomlarkworthy/observable-runtime": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-runtime.html"
+ },
+ "@tomlarkworthy/observable-runtime-v6": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observable-runtime-v6.html"
+ },
+ "@tomlarkworthy/observablehq-lezer": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html"
+ },
+ "@tomlarkworthy/observablejs-toolchain": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"
+ },
+ "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html"
+ },
+ "@tomlarkworthy/openai-responses-api": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_openai-responses-api.html"
+ },
+ "@tomlarkworthy/p5-sandbox": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_p5-sandbox.html"
+ },
+ "@tomlarkworthy/parametric-kirigami-the-castle-wall": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_parametric-kirigami-the-castle-wall.html"
+ },
+ "@tomlarkworthy/parametric-svg": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_parametric-svg.html"
+ },
+ "@tomlarkworthy/pause-and-play-book": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-book.html"
+ },
+ "@tomlarkworthy/pause-and-play-shop": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-shop.html"
+ },
+ "@tomlarkworthy/phiresky-sqlite-query": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html"
+ },
+ "@tomlarkworthy/plugin-registry": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_plugin-registry.html"
+ },
+ "@tomlarkworthy/prosemirror": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_prosemirror.html"
+ },
+ "@tomlarkworthy/radial-explosion": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html"
+ },
+ "@tomlarkworthy/randomid": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_randomid.html"
+ },
+ "@tomlarkworthy/rate-estimation": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rate-estimation.html"
+ },
+ "@tomlarkworthy/rate-estimation-min": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rate-estimation-min.html"
+ },
+ "@tomlarkworthy/reactive-reflective-testing": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html"
+ },
+ "@tomlarkworthy/realtime-multi-barcode-tracking": {
+  "lopebooks": "lopebooks/notebooks/tomlarkworthy_realtime-multi-barcode-tracking.html"
+ },
+ "@tomlarkworthy/redirect-debugging": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html"
+ },
+ "@tomlarkworthy/remote-cell-value": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html"
+ },
+ "@tomlarkworthy/repo1": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_repo1.html"
+ },
+ "@tomlarkworthy/retro-title-graphic": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html"
+ },
+ "@tomlarkworthy/reversible-attachment": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html"
+ },
+ "@tomlarkworthy/robocoop-2": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-2.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-2.html"
+ },
+ "@tomlarkworthy/robocoop-3": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-3.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-3.html"
+ },
+ "@tomlarkworthy/robocoop-4": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-4.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-bash": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-bash-session": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-bash-terminal": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-core": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-engine": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-hostbridge": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-tests": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-4-tools": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html"
+ },
+ "@tomlarkworthy/robocoop-5": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+ },
+ "@tomlarkworthy/robocoop-5-context": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+ },
+ "@tomlarkworthy/robocoop-5-core": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+ },
+ "@tomlarkworthy/robocoop-5-engine": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+ },
+ "@tomlarkworthy/robocoop-5-srctools": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+ },
+ "@tomlarkworthy/robocoop-5-tools": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
+ },
+ "@tomlarkworthy/robocoop-gallery": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-gallery.html"
+ },
+ "@tomlarkworthy/robocoop3-training": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html"
+ },
+ "@tomlarkworthy/rss-feed": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_rss-feed.html"
+ },
+ "@tomlarkworthy/runtime-sdk": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_runtime-sdk.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_runtime-sdk.html"
+ },
+ "@tomlarkworthy/save-in-place": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_save-in-place.html"
+ },
+ "@tomlarkworthy/secrets": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_secrets.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_secrets.html"
+ },
+ "@tomlarkworthy/sequencer": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sequencer.html"
+ },
+ "@tomlarkworthy/sign-a-pdf": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html"
+ },
+ "@tomlarkworthy/simplest-cms": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_simplest-cms.html"
+ },
+ "@tomlarkworthy/single-stroke-font": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_single-stroke-font.html"
+ },
+ "@tomlarkworthy/spectral-layout": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html"
+ },
+ "@tomlarkworthy/sticky": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky.html"
+ },
+ "@tomlarkworthy/sticky-footer-in-list": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html"
+ },
+ "@tomlarkworthy/stream-operators": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_stream-operators.html"
+ },
+ "@tomlarkworthy/subdomain-certification": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html"
+ },
+ "@tomlarkworthy/summarizejs": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_summarizejs.html"
+ },
+ "@tomlarkworthy/svg-boinger": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_svg-boinger.html"
+ },
+ "@tomlarkworthy/svg-lens": {
+  "lopebooks": "lopebooks/notebooks/tomlarkworthy_svg-lens.html"
+ },
+ "@tomlarkworthy/svg-twist": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_svg-twist.html"
+ },
+ "@tomlarkworthy/switch-dataflow": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_switch-dataflow.html"
+ },
+ "@tomlarkworthy/synchronizing-external-state-into-bigquery-efficiently": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_synchronizing-external-state-into-bigquery-efficiently.html"
+ },
+ "@tomlarkworthy/tabbed-pane-view": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html"
+ },
+ "@tomlarkworthy/tarot": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/tarot-app": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/tarot-deck": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/testblog": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testblog.html"
+ },
+ "@tomlarkworthy/tester": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tester.html"
+ },
+ "@tomlarkworthy/testing": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_testing.html"
+ },
+ "@tomlarkworthy/tests": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_tests.html"
+ },
+ "@tomlarkworthy/themes": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_themes.html",
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_themes.html"
+ },
+ "@tomlarkworthy/tiktok": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tiktok.html"
+ },
+ "@tomlarkworthy/tiny-notebook": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tiny-notebook.html"
+ },
+ "@tomlarkworthy/tom-larkworthy": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tom-larkworthy.html"
+ },
+ "@tomlarkworthy/tweetstorm": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html"
+ },
+ "@tomlarkworthy/twitter-trending-notebook-bot-dataset-2022": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_twitter-trending-notebook-bot-dataset-2022.html"
+ },
+ "@tomlarkworthy/unaggregating-cloudwatch-metrics": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_unaggregating-cloudwatch-metrics.html"
+ },
+ "@tomlarkworthy/unrolling-a-deploy-command": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_unrolling-a-deploy-command.html"
+ },
+ "@tomlarkworthy/url-query-field-view": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_url-query-field-view.html"
+ },
+ "@tomlarkworthy/userspace-editor": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html"
+ },
+ "@tomlarkworthy/utils": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_utils.html"
+ },
+ "@tomlarkworthy/vertical-sliders": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_vertical-sliders.html"
+ },
+ "@tomlarkworthy/view": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_view.html"
+ },
+ "@tomlarkworthy/view-examples": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_view-examples.html"
+ },
+ "@tomlarkworthy/viewroutine": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_viewroutine.html"
+ },
+ "@tomlarkworthy/virtual-monorepo": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html"
+ },
+ "@tomlarkworthy/visualizer": {
+  "lopecode": "lopecode/notebooks/@tomlarkworthy_visualizer.html"
+ },
+ "@tomlarkworthy/vr-hackerspace": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html"
+ },
+ "@tomlarkworthy/webxr-dom-overlay": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_webxr-dom-overlay.html"
+ },
+ "@tomlarkworthy/whisper-input": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_whisper-input.html"
+ },
+ "@tomlarkworthy/why-claude-code-codes-well": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+  "upstream": null
+ },
+ "@tomlarkworthy/wiki": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wiki.html"
+ },
+ "@tomlarkworthy/wms-leaflet-gca-dev": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html"
+ },
+ "@tomlarkworthy/womens-suffrage": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html"
+ },
+ "@tomlarkworthy/wormhole": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wormhole.html"
+ },
+ "@tomlarkworthy/wormhole2": {
+  "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wormhole2.html"
+ }
 }
