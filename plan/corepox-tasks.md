@@ -10,11 +10,12 @@ Updated 2026-08-19. Ticked only when verified, not when written.
 - [x] `corepox-engine` module — physics/dataflow/damage, headless, 446k ticks/s
 - [x] `corepox-assets` module — 20 Symbols-page components
 - [x] Confirm neon look = render-time bloom, not baked art
-- [ ] **Fold components-page art (36 syms incl. armour/orb/explosive/hyperdrive/turret2) into `corepox-assets`**
-- [ ] **Ship a `bloom` filter + `SYMBOL_FOR` type→symbol map from `corepox-assets`**
-- [ ] **`corepox-render` — ship node from real sprites, on black, bloomed**
-- [ ] **Value labels on connectors** (the thing that makes it read as a running program)
-- [ ] **Live battle view** — seeker vs drone, animated
+- [x] Components-page art folded into `corepox-assets` — 58 symbols, `SYMBOL_FOR` covers all 12
+      component types, `cp-bloom` filter shipped from the same module
+- [x] `corepox-render` — hulls from the real sprites on black, bloomed, over a starfield
+- [x] Value labels on connectors — `valueNode`, live per frame. Verified in a screenshot of Aim:
+      the incoming rocket's Engine reads 40.0 while it flies
+- [x] Live battle view — `battlefield`, animated, framing camera, reconciled per frame
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
@@ -73,14 +74,21 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       hull, and testing the whole footprint made both engine missions unbuildable
 - [x] `specOf` dropped `overrides` — every edit rebuilds the ship, so typing the angle into
       ManualAim's Constant unlatched its turret's `fire_input` and disarmed the gun. Same for Avoid
+- [x] The board fits on screen: `viewof game` is defined first, so it renders above the module's
+      import rows and helper cells. Objectives, board, mode bar and mission select are all above
+      the fold at 1280x900
+- [x] `defend` objectives read as constraints, not goals — they were struck through from t=0,
+      because the core is still there on frame one
 
 ## Next
-- [ ] Starfield background + dashed target lines (from `BattleView` page)
+- [x] Starfield background (`starfield`, parallax-free, seeded per view)
+- [ ] Dashed target lines (from the `BattleView` page) — radar-to-target, still missing
 - [ ] `corepox-designer` — place / rotate / wire
 - [x] Fix the stalemate — diagnosed as TTK (138s kill in a 60s match), not piloting.
       Raycast bug + HP collapse + impact damage + body splitting. Draws 76-98% -> 32-81%.
 - [x] Design study: self-play, corpus mining, comparable-game research -> `plan/corepox-design.md`
-- [ ] Renderer: show bodies created mid-match by `splitDetached()` (currently invisible)
+- [x] Renderer shows bodies created mid-match by `splitDetached()` — the node set is reconciled
+      against `world.ships` every frame, so a severed piece appears instead of vanishing
 - [x] Diagnosed rammer (CoM asymmetry 2.8:1) and wall (strawman; real walls were best-piloted)
 - [x] Power budget — guns now have an opportunity cost; gun-ladder spread 67pp -> 20pp
 - [ ] Brownout priority: hop distance is not the player's choice. Expose it, or power criticals first
