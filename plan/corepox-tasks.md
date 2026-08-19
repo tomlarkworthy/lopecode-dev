@@ -108,8 +108,10 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       vs local-space measurement bug. multi-island 22% -> 17%
 - [x] Joints recovered off the SVG art (tools/corepox-joints-from-art.py). Engine came out as
       N[0,1] E[0] W[0] = exactly the "4 on top and top/left/right" Tom described from memory
-- [ ] **Wire JOINTS into powerUp/islands** so attachment is per-component like the original,
-      replacing the uniform reach-2. Should explain the remaining 17% multi-island
+- [~] **RETIRED: wire JOINTS into powerUp/islands.** It contradicts the entry above it. Re-measured
+      2026-08-19 after the frame landing: joint stalks meeting in the gap cell leave 7/838 ships
+      (1%) in one piece and plain joint adjacency 235/838 (28%), against reach-2's 84%. Doing this
+      would take connectivity from 84% to 32%. `tools/corepox-joint-connectivity.ts`
 - [x] Brain joints = full 8 (Tom). Unblocked 485 ships for testing, up from 10
 - [x] Radar joints CONFIRMED blind: Tom's "4 on the 2-length side + closest round the corner = 6"
       matches the art-derived table exactly. Engine confirmed the same way
@@ -132,8 +134,11 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       from the engine's own TYPES/JOINTS/PORTS, converts joints to ENGINE frame once on load,
       click to toggle a joint / add-remove a cell / move a connector, and emits the JS to paste
       back. In bootconf mains. Boots clean, 0 console errors
-- [ ] Land the engine-frame JOINTS table into corepox-engine and delete ARTCELLS/ALIGN from the
-      runtime path — that is the whole class of sign bugs gone (2 found so far)
+- [x] JOINTS landed in ENGINE frame; ARTCELLS/ALIGN/toEngineFrame gone from the runtime path
+      (corepox-components and tools/corepox-draw.ts read the table straight through). Verified by
+      round-trip: `bun tools/corepox-art-frame.ts` -> "all 10 types round-trip to the recovered art
+      table". Fixed a third symptom nobody had attributed: LaserTurret2's entry was already engine
+      frame, so the art fit returned null and the component page showed the turret with 0 joints
 - [ ] Hyperdrive joints — the only type with no table, 52/892 ships (6%) contain one
 - [x] Tom's corrections off the drawing: Lazer 6->4 joints, Hyperdrive negated in y (hammerhead
       leads), Binary side-slot mirror. The mirror was a TOOL bug -- Binary is the one type whose

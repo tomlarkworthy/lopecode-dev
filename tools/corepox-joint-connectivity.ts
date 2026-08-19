@@ -5,7 +5,10 @@
 import {importNotebookModule} from "./notebook-import.ts";
 const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
 const Ship:any=await m.value("Ship"); const load:any=await m.value("loadShipSpec");
-const TYPES:any=await m.value("TYPES"); const JOINTS:any=await m.value("JOINTS");
+const TYPES:any=await m.value("TYPES");
+// JOINTS is stored in ENGINE frame now; this tool was written against the art frame.
+const {toArtFrame}=await import("./corepox-art-frame.ts");
+const JOINTS:any=toArtFrame(await m.value("JOINTS"), TYPES);
 const fs=await import("node:fs");
 // Binary is the one type whose art cell grid cannot be laid on its footprint by a
 // y-flip: the art's T stem points forward, the footprint's points aft. --binary-flip

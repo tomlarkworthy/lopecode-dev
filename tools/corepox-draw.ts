@@ -2,10 +2,10 @@
 // (footprints, joints, ports, anchors) are visible and checkable by eye.
 //
 // Frames: the engine's ship-local tile frame is +y FORWARD (rotTile is clockwise
-// only in a y-up frame; Engine's [[0,0],[0,-1]] puts the nozzle aft; SEEKER has
-// engines at y=-1 and its lazer at y=+2). The art SVG is +y down. They agree
-// VISUALLY and disagree only on the sign of the y number, so art->engine is
-// (x+ox, -y+oy) and the side names N/E/S/W carry across unchanged.
+// only in a y-up frame; Engine's [[0,0],[0,-1]] puts the nozzle aft). This file
+// used to hold a second copy of the art->engine joint conversion; JOINTS is stored
+// in engine frame from 2026-08-19, so it is read straight through and the copy is
+// gone. Two copies of a frame conversion is how the sign bugs happened.
 import {importNotebookModule} from "./notebook-import.ts";
 const m=await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
 const Ship:any=await m.value("Ship"); const load:any=await m.value("loadShipSpec");
@@ -18,51 +18,17 @@ const COL:any={Brain:"#ff9f43",Constant:"#ffe14d",Binary:"#ff6b9d",Radar:"#4dd47
   Engine:"#6ec6ff",Lazer:"#ff5a4a",Explosive:"#ff3860",Armour:"#c9d4e6",
   Orb:"#c17bff",LaserTurret2:"#ff8c42",Hyperdrive:"#4ddbd4",Composite:"#9aa5b1"};
 const CELL=44, PAD=2.5;
-// Cell grids as the art tool sees them (SVG, +y down, top-left origin).
-const ARTCELLS:any={Engine:[[0,0],[0,1]],Lazer:[[0,0],[0,1],[0,2]],
-  Binary:[[1,0],[0,1],[1,1],[2,1]],Radar:[[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]],
-  Orb:[[0,0],[1,0],[0,1],[1,1]],Armour:[[0,0]],Constant:[[0,0]],Explosive:[[0,0]],
-  Brain:[[0,0]],LaserTurret2:[[0,0],[1,0]]};
-const ALIGN:any={}; const SUSPECT:string[]=[];
-for(const type of Object.keys(ARTCELLS)){
-  const art=ARTCELLS[type], eng=TYPES[type]?.tiles; if(!eng) continue;
-  const key=(a:number[])=>a[0]+","+a[1];
-  const want=new Set(eng.map((t:number[])=>key(t)));
-  for(const a of art) for(const e of eng){
-    const ox=e[0]-a[0], oy=e[1]+a[1];
-    const got=art.map((c:number[])=>key([c[0]+ox, -c[1]+oy]));
-    if(got.length===want.size && got.every(k=>want.has(k))){ ALIGN[type]=[ox,oy]; break; }
-  }
-  if(!ALIGN[type]){   // no y-flip solution: the art and the footprint disagree on which end is forward
-    for(const a of art) for(const e of eng){
-      const ox=e[0]-a[0], oy=e[1]-a[1];
-      const got=art.map((c:number[])=>key([c[0]+ox, c[1]+oy]));
-      if(got.length===want.size && got.every(k=>want.has(k))){ ALIGN[type]=[ox,oy,"NOFLIP"]; break; }
-    }
-    if(ALIGN[type]) SUSPECT.push(type);
-  }
-}
-console.log("art->engine (x+ox, -y+oy):",
-  Object.entries(ALIGN).map(([k,v]:any)=>`${k}:${v?`(${v[0]},${v[1]})${v[2]??""}`:"FAILED"}`).join("  "));
-console.log("no y-flip solution (art and footprint disagree on which end is forward):", SUSPECT.join(", ")||"none");
-
 const TURN=["N","E","S","W"];   // clockwise, visually
 function jointsOf(c:any){
-  const tbl=JOINTS[c.type], al=ALIGN[c.type]; if(!tbl||!al) return [];
+  const tbl=JOINTS[c.type]; if(!tbl) return [];
   const t=(Math.round((c.dir??0)/90)%4+4)%4;
   const out:any[]=[];
   for(const key of Object.keys(tbl)){
     const [ax,ay]=key.split(",").map(Number);
-    const [rx,ry]=rotTile([ax+al[0], al[2]?ay+al[1]:-ay+al[1]], c.dir??0);
-    for(const side of Object.keys(tbl[key])){
-      // al[2] = the fit did not negate y, so art-top lands at engine-aft and the
-      // whole component is mirrored: N/S names swap AND the two slots on a
-      // vertical side swap with them.
-      const vs=al[2]&&(side==="N"||side==="S")?(side==="N"?"S":"N"):side;
-      const mirror=al[2]&&(side==="E"||side==="W");
-      const rs=TURN[(TURN.indexOf(vs)+t)%4];
-      for(const slot of tbl[key][side]) out.push([c.px+rx, c.py+ry, rs, mirror?1-slot:slot]);
-    }
+    const [rx,ry]=rotTile([ax,ay], c.dir??0);
+    for(const side of Object.keys(tbl[key]))
+      for(const slot of tbl[key][side])
+        out.push([c.px+rx, c.py+ry, TURN[(TURN.indexOf(side)+t)%4], slot]);
   }
   return out;
 }
@@ -219,9 +185,6 @@ fs.writeFileSync("scratch/corepox-ships.html",
     <span><i style="border:1.6px solid var(--wire);border-radius:50%"></i>signal out</span>
     <span><i style="border:1.6px solid var(--sink)"></i>signal in</span>
   </div>
-  ${SUSPECT.length?`<p class="flag"><b>${SUSPECT.join(", ")}</b> — the art cell grid cannot be laid
-  on the footprint by a y-flip at all, so art and footprint disagree about which end is forward.
-  Its joints below are drawn with an unflipped fit and may be upside down.</p>`:""}
 </div>
 ${wrap("Every component, alone","Footprint, joint slots and every connector slot for one unrotated instance of each type. Hyperdrive and Composite have no joints recovered yet.",sheet)}
 ${wrap("Rotation convention","One Engine at each of the four <code>dir</code> values. The nozzle cell should stay behind the mount as the arrow turns.",rots)}

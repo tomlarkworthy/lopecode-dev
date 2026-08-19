@@ -1606,3 +1606,63 @@ run. Not corepox: its only rects are `TILE`-sized. It reproduces neither at boot
 match, and `svg-lens`'s resize-agreement property test builds `<rect>` documents from arbitraries
 and drags corners past their pivot, which produces exactly that. Not chased further — an invalid
 SVG attribute is ignored by the renderer.
+
+## 15. JOINTS landed in engine frame (2026-08-19)
+
+The joint table was recovered from the vector art by `tools/corepox-joints-from-art.py`, which reads
+SVG, where **+y is down**. The engine's ship-local tile frame is the opposite: **+y is forward**
+(`rotTile` is `(x,y)->(y,-x)`, clockwise only in a y-up frame; `Engine`'s `[[0,0],[0,-1]]` puts the
+nozzle aft). The table was stored in the art frame and converted on read — twice, by two separate
+copies of the conversion: `@tomlarkworthy/corepox-components` on load, and `tools/corepox-draw.ts`
+at draw time. §11 records the two sign bugs that came out of that.
+
+There was a third symptom nobody had attributed. `LaserTurret2`'s joints were authored from Tom's
+description, in engine frame, so the art-to-engine *fit* had nothing to fit: `ARTCELLS.LaserTurret2`
+is the 2x1 base, `TYPES.LaserTurret2.tiles` is the twelve cells `TurretFn.Awake()` reserves, and no
+translation maps two cells onto twelve. `ALIGN` returned `null`, `toEngineFrame` returned `null`,
+and the component page rendered the turret with **0 joints** instead of 8. Same in the drawing tool.
+
+The table now lives in engine frame in `corepox-engine`, and the conversion is gone from every
+runtime path. What each type carries, unchanged in content:
+
+```
+Engine        4 slots     N[0,1] E[1] W[1] on the mount cell, nothing on the nozzle
+Lazer         4           aft cell only
+Binary       12
+Radar         6           S[0,1] on both aft cells, plus W[0] and E[0]
+Orb           4
+Brain/Constant/Explosive/Armour  8 each
+LaserTurret2  8           was 0 in the browser and in the drawing
+```
+
+**Verified by round-trip, not by eye.** `bun tools/corepox-art-frame.ts` converts the engine-frame
+table back and compares it against the literal art table the Python tool emitted:
+
+```
+all 10 types round-trip to the recovered art table
+```
+
+That is the check that matters, because a frame error is exactly the kind of change that looks
+right in a drawing. It runs against the engine's live table, so it fails if a later edit — through
+the component page's paste-back snippet, say — lands a mirrored entry.
+
+The four `corepox-joint-*.ts` investigation tools were written against the art frame and hard-code
+art cell keys (`Lazer`'s `"0,2"`). They now go through `toArtFrame` in `tools/corepox-art-frame.ts`,
+which is the only conversion left and is not on the runtime path. `corepox-joint-connectivity.ts`
+still reproduces its recorded finding after the move:
+
+```
+ touching (adjacent cells)    235/838 ships one piece (28%)
+ stalks meet in the gap cell  7/838 ships one piece (1%)
+ either                       267/838 ships one piece (32%)
+```
+
+against reach-2's 84%. **So the open task "wire JOINTS into powerUp/islands, replacing the uniform
+reach-2" is retired, not deferred.** It contradicts the finding recorded directly below it in the
+task list — reach-2 *is* the physical model, joints are not the gap, and 4-way is their ceiling.
+Doing it would take connectivity from 84% to 32%.
+
+*Not claimed:* that the joint table is right. It is recovered from art under a reading rule
+(a curved corner admits no connector) and corrected in four places by Tom from memory. Nothing in
+the simulation reads it yet, so nothing tests it. What is claimed is narrower: it is now stored in
+one frame, read the same way everywhere, and the round-trip proves the move lost nothing.

@@ -1,6 +1,9 @@
 import {importNotebookModule} from "./notebook-import.ts";
 const m=await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
-const Ship:any=await m.value("Ship"); const JOINTS:any=await m.value("JOINTS");
+const Ship:any=await m.value("Ship");
+// JOINTS is stored in ENGINE frame now; this tool was written against the art frame.
+const {toArtFrame}=await import("./corepox-art-frame.ts");
+const JOINTS:any=toArtFrame(await m.value("JOINTS"), await m.value("TYPES"));
 const TYPES:any=await m.value("TYPES");
 const ARTCELLS:any={Engine:[[0,0],[0,1]],Lazer:[[0,0],[0,1],[0,2]],
   Binary:[[1,0],[0,1],[1,1],[2,1]],Radar:[[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]],

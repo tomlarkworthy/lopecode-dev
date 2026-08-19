@@ -1,7 +1,9 @@
 import {importNotebookModule} from "./notebook-import.ts";
 const m=await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
 const Ship:any=await m.value("Ship"); const load:any=await m.value("loadShipSpec");
-const JOINTS:any=await m.value("JOINTS");
+// JOINTS is stored in ENGINE frame now; this tool was written against the art frame.
+const {toArtFrame}=await import("./corepox-art-frame.ts");
+const JOINTS:any=toArtFrame(await m.value("JOINTS"), await m.value("TYPES"));
 const fs=await import("node:fs"); const raw:any[]=[];
 for(const line of fs.readFileSync("vendor/corepox/firebase/data/ships.json","utf8").split("\n")){
   const i=line.indexOf(","); if(i<0) continue;
