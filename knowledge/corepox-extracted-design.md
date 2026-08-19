@@ -277,6 +277,13 @@ After `corepox-art-refit.py`:
 Eight drawings land within 0.1 tile of eight footprints derived independently from the prefabs.
 Nothing in the fit knows what a footprint is, which is why that agreement is worth something.
 
+That table is the *path* bbox, and it was wrong by one stroke width for a few hours: a stroke is
+centred on its path, so what a drawing covers is path bbox + one whole stroke, and after the halo
+padding below the viewBox read 55.3 for 50.8 of ink — Armour and Constant 8.9% large.
+`corepox-art-fit-ink.py` rescales so the viewBox *is* the rendered extent. `corepox-anchor-truth.ts`
+is what caught it, and only because it was re-run; the run before the padding read 56.0 and nothing
+would have re-read it. **A gate that is not re-run after the next change is not a gate.**
+
 **The neon was never in the vectors** — in Unity it came from 2DxFX shaders at draw time — and two
 separate things were eating it in the notebook:
 
@@ -289,7 +296,10 @@ separate things were eating it in the notebook:
    it falls outside the viewBox. `symbolSheet` turns each drawing into a `<symbol>` and a `<use>` of
    a symbol clips to its viewport, so the outer half of every halo was cut off in play.
    `corepox-art-pad.py` moves each viewBox origin negative by half the widest stroke; no geometry
-   moves.
+   moves. An anchor is a coordinate in the *path* space that origin sits in — `drawComponent` adopts
+   the art's children and never its viewBox — so once the origin went negative, anything comparing an
+   anchor to a pivot has to add it. `corepox-anchor-truth.ts` was not, and reported 2.9 units of
+   error that was not there.
 
 **A sensor need not sit on its component's transform.** `RadarFn.cs` opens with
 `Vector3 here = center.transform.position` and measures from that child, not from the component. The
@@ -300,9 +310,14 @@ point. Now `SENSOR` + `Ship.sensorOf`. Checked against the other components: `En
 `ExplosiveFn`, `TurretFn` and `MeleeFn` all use `this.transform.position`, and `center` appears
 nowhere else in `Assets/scripts/game/components/`, so Radar is the only one.
 
-**Not done.** The traces have square corners where the shipped sprites are rounded — visible on
-Brain, Engine, Hyperdrive and Armour; only Constant's was fixed, because only Constant's was
-annotated (measured there as 20px of radius on a 174px square). `Lazer`, `Orb` and `LaserTurret2`
+**Corners.** The traces square off corners the sprites round. Measured off the top row of solid ink:
+constant 20px, armour 19px, explosive 20px. `corepox-art-round.py` rounds only paths that are an
+axis-aligned rectangle covering most of their own viewBox, which is the body.
+
+**Not done.** Brain, Engine and Hyperdrive still have square corners where the sprites are rounded.
+Brain is the awkward one: its trace is a 36.2-unit inner square with the connector teeth *outside*
+it, while the sprite has a rounded outer frame enclosing the teeth and a grey inner square — it
+needs redrawing, not rounding. `Lazer`, `Orb` and `LaserTurret2`
 keep their Sketch scale: no single sprite maps onto them (turret2 is cap + gear + barrel), so there
 is nothing to measure against. And the radar's moving parts are recorded but not built — `scan`
 tweens its localScale 0→max on a 1s infinite loop, `arrow` rotates to the target and hides when
