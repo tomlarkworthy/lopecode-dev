@@ -33,8 +33,8 @@ const SUBCLASS: Record<string, any> = {
                    spoils: {Constant: 1, Engine: 1}},
   Connection:     {inventory: {Brain: 1, Engine: 1}, envelope: [[0, 0], [0, -1]],
                    spoils: {Constant: 1, Engine: 1}},
-  // AimMission.cs:19-32; the second spoil is a relic composite, carried separately
-  // AimMission.cs:19-32 plus the CircleSpawn on Aim.unity
+  // AimMission.cs:19-32 plus the CircleSpawn on Aim.unity. The second spoil is a
+  // relic composite, carried separately in the mission's `composites`.
   Aim:            {inventory: {}, envelope: [], spoils: {Radar: 1},
                    spawn: {every: 5, radius: 18, arc: [-2, 10]}},
   // AvoidMission.cs:34-50. The inventory is unreachable in play -- the scene's
@@ -68,21 +68,34 @@ const DIVERGENT: Record<string, Record<string, string>> = {
   // constants and a 3x3 box, so the override is taken as the stale half.
   Avoid: {envelope: "AvoidMission's 3x3 box is unreachable (Build hidden) and unusable " +
                     "anyway -- Engine is two cells and every free cell's second cell is taken"},
-  // Neither scene is in InitialCampaign, and neither is winnable as authored: the
-  // player is a bare Brain, and a freshly built Lazer's trigger connector starts at
-  // 0 with nothing in the inventory that outputs a number (LaserFn.cs:18 fires only
-  // on trigger.value > 0; the component prefabs carry no value override). Shipped
-  // here with the roles swapped -- you fly the armed ship -- which is a playable
-  // completion of an unfinished level, not a port of it.
   // The scene's arc is centred on +4 degrees and this hull cannot hit off the
   // boresight -- the radar is 3 tiles behind the turret, which throws a shot at 18
   // tiles by 9.5 degrees. Every centred arc wins and every off-centre one loses
   // (tools/corepox-aim-spawn.ts). Period and radius are the scene's.
   Aim: {"spawn.arc": "off-centre arc: our turret misses off the boresight"},
-  SideShooter: {inventory: "unfinished scene, roles swapped", enemies: "unfinished scene, roles swapped"},
+  // These two are the only missions balanced around an inventory the PORT DOES NOT
+  // HAVE. Prizes accumulate: SpoilsOverride names what a mission pays out,
+  // SpoilsLoader awards it, PlayerRecord.setMissionGains(mission_id, ...) banks it
+  // once per mission and PlayerRecord.getInventory() reads the running total back
+  // out of the player's Firebase record (FirebaseLoader.cs:548). So what you can
+  // build in a late mission is what you won in the early ones, and the scene's own
+  // InventoryOverride is a top-up on top of that -- Tom, and the account inventory
+  // is his, not an inference from the scenes. Here every mission's inventory is
+  // fixed and nothing carries between them, which is why these two ship with the
+  // roles swapped: you fly the armed ship. That is a playable completion of a
+  // level whose real starting kit is an account balance, not a port of it.
+  //
+  // Corrected 2026-08-19: the earlier note here said neither was winnable as
+  // authored, on the grounds that a bare Brain plus a Lazer has nothing to trigger
+  // the gun with (LaserFn.cs:18 fires only on trigger.value > 0, and no component
+  // prefab carries a value override). That reasoning assumed the InventoryOverride
+  // was everything the player had. It is not.
+  SideShooter: {inventory: "balanced around the carried account inventory; roles swapped",
+                enemies: "balanced around the carried account inventory; roles swapped"},
   // TwinTurrets keeps the scene's post placement -- the two laserposts are the
   // enemies in both readings -- so only the build side is waived here.
-  TwinTurrets: {inventory: "unfinished scene, roles swapped", envelope: "unfinished scene, roles swapped"},
+  TwinTurrets: {inventory: "balanced around the carried account inventory; roles swapped",
+                envelope: "balanced around the carried account inventory; roles swapped"},
 };
 
 const bag = (a: any[] = []) => Object.fromEntries(a.map((i: any) => [i.type, i.n]));
