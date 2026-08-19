@@ -82,7 +82,9 @@ Updated 2026-08-19. Ticked only when verified, not when written.
 
 ## Next
 - [x] Starfield background (`starfield`, parallax-free, seeded per view)
-- [ ] Dashed target lines (from the `BattleView` page) — radar-to-target, still missing
+- [x] Dashed target lines — each live Radar draws a sightline to what it is looking at. The
+      endpoints are `c.lock`, set where the engine computes bearing and dist, so the line cannot
+      disagree with the numbers printed on the component
 - [ ] `corepox-designer` — place / rotate / wire
 - [x] Fix the stalemate — diagnosed as TTK (138s kill in a 60s match), not piloting.
       Raycast bug + HP collapse + impact damage + body splitting. Draws 76-98% -> 32-81%.
