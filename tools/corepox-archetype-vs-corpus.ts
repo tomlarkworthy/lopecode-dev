@@ -3,7 +3,7 @@
 // proportional, ram, turtle, snipe). Nothing had ever fought it against the dump.
 import {importNotebookModule} from "./notebook-import.ts";
 const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
-const {Ship, World, TYPES}: any = await m.values(["Ship", "World", "TYPES"]);
+const {Ship, World, TYPES, seedRng}: any = await m.values(["Ship", "World", "TYPES", "seedRng"]);
 const load: any = await m.value("loadShipSpec");
 const {ROSTER}: any = await import("./corepox-tourney-specs.ts");
 const fs = await import("node:fs");
@@ -28,9 +28,15 @@ for (const line of fs.readFileSync("vendor/corepox/firebase/data/ships.json", "u
 }
 // Four start bearings, so a ship that only works head-on cannot fake a score.
 const STARTS = [[0, 26, 180], [18, 18, 225], [26, 0, 270], [-18, 18, 135]];
+// Exhaust emission is a Poisson sample and exhaust does damage, so an unseeded
+// duel is a coin flip: the same 6-ship sample scored sniper 13% and 4% on two
+// consecutive runs. Seeded per duel, so a row is reproducible and two archetypes
+// meet the same opponent under the same particle stream.
+const SEED = Number(process.env.SEED ?? 20260819);
 const duel = (A: any, B: any) => {
   let w = 0, l = 0, d = 0;
-  for (const [x, y, a] of STARTS) {
+  for (const [si, [x, y, a]] of STARTS.entries()) {
+    World.rng = seedRng(SEED + si);
     const p = new Ship(A, {team: "player", x: 0, y: 0, a: 0});
     const e = new Ship(B, {team: "enemy", x, y, a});
     const wd = new World([p, e]);

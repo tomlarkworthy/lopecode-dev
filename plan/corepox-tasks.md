@@ -79,6 +79,11 @@ Updated 2026-08-19. Ticked only when verified, not when written.
       the fold at 1280x900
 - [x] `defend` objectives read as constraints, not goals — they were struck through from t=0,
       because the core is still there on frame one
+- [x] **The simulation is stochastic and the determinism check could not see it.** Exhaust emission
+      is a Poisson sample and exhaust does damage, so any match with thrust is random; the check
+      fought two engineless ships and passed for free. `World.rng` is now swappable and
+      `seedRng` (mulberry32) is exported from the engine so every tool draws the same stream from
+      the same seed. The check now also asserts that the unseeded path is live
 
 ## Next
 - [x] Starfield background (`starfield`, parallax-free, seeded per view)

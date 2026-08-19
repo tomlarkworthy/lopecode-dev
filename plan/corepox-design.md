@@ -1681,26 +1681,30 @@ built over budget. An over-budget ship fights with parts dark, which measures th
 than the design, so they are excluded.
 
 ```
-legal in-budget corpus ships: 234; sampled 40
+legal in-budget corpus ships: 234; sampled 40      SEED=20260819
 
 archetype        win   loss   draw   of 160 duels
 wall              5     32    123   3% win
 braitenberg       2      4    154   1% win
-seeker           34     41     85   21% win
-proportional     23     37    100   14% win
-rammer           11     73     76   7% win
+seeker           34     39     87   21% win
+proportional     24     37     99   15% win
+rammer            7     70     83   4% win
 turtle            2     13    145   1% win
-sniper           36     42     82   23% win
+sniper           35     43     82   22% win
 
-roster overall 10.1% win, 21.6% loss, 68.3% draw
+roster overall 9.7% win, 21.3% loss, 69.0% draw
 ```
+
+Seeded, and it had to be — see §17. The first version of this table was run unseeded and read
+10.1 / 21.6 / 68.3 with `rammer` on 11 wins rather than 7. The overall shape survived the fix; a
+single archetype's row moved by up to 4 duels in 160.
 
 **68.3% draws.** The stalemate §8 diagnosed as time-to-kill is still the dominant outcome against
 real opponents, and it is worse for the archetypes that do not steer: `braitenberg` draws 96% of
 its duels and `turtle` 91%. `rammer` is the only one that loses more than it draws (73 losses of
 160) — it closes, and dying on contact is a decision.
 
-`sniper` is top of the roster at 23%, and it was firing **zero shots** until this morning: its range
+`sniper` is second at 22%, a duel behind `seeker`, and it was firing **zero shots** until this morning: its range
 constant was browned out (see the commit "sniper fired 0 shots because its range constant was
 browned out"). Before that fix it would have scored like `turtle`. That is a caution about the
 whole table — these numbers measure the roster as currently built, and the roster has bugs in it.
@@ -1739,3 +1743,56 @@ reproduces; without it the tool cannot run at all.
 a 60-second cap that produces two thirds draws, and a roster with at least one known bug in it as
 of this morning. What it does establish is a floor: **the hand-built roster does not beat the real
 corpus**, and the reason is steering, not weapons.
+
+## 17. The simulation is stochastic, and the determinism check did not know (2026-08-19)
+
+Two consecutive runs of the same six-ship benchmark, same sample, same code, scored `sniper` at
+13% and then 4%. The engine test had been asserting determinism the whole time and passing.
+
+Both facts have one cause. Exhaust emission is a Poisson sample — `Misc.samplePoisson` in the
+original, reproduced by Knuth's method — and exhaust **does damage**, so any match in which an
+engine thrusts is stochastic. The engine test's determinism check fought `laserpost` against
+`shooter`:
+
+```
+laserpost   Radar + LaserTurret2 + Brain + 3 Explosive     no engine
+shooter     Brain + Lazer + Explosive                      no engine
+```
+
+Neither has an engine, so the check never reached the only random path in the simulation and passed
+for free. It was written to guard the engine and it was guarding nothing.
+
+**The randomness stays** — it is faithful, and a stream of damage behind a thrusting ship is a real
+mechanic, not noise to be tidied away. What changed is that it is now *addressable*:
+
+```js
+World.rng = Math.random;       // the default, and the shipped behaviour
+World.rng = seedRng(12345);    // mulberry32, exported from corepox-engine
+```
+
+`seedRng` is exported rather than copied into each tool, so a benchmark, a test and a replay draw
+the same stream from the same seed. Verified:
+
+```
+unseeded: 24.3080/32.8709/11/14   24.3139/32.8537/11/14
+seeded:   24.3080/32.8709/11/14   24.3080/32.8709/11/14   IDENTICAL
+```
+
+The engine test now checks three things instead of one, and the third exists so this cannot go
+vacuous again:
+
+```
+PASS  seeded runs agree exactly                   -6.0091/-143.4339/5/5/231433
+PASS  unseeded runs differ (the path is live)     .../233425 vs .../229703
+PASS  engineless match is deterministic anyway    10 sampled frames identical
+```
+
+The signature is not the ship's position. A ship's own motion does not depend on its exhaust, so
+two unseeded runs of a *single* thrusting drifter end at the same coordinates to four decimal
+places — comparing positions is exactly how the check went vacuous the first time. The signature
+sums the live particle count every tick, which is the stochastic quantity itself.
+
+*Consequence for everything measured before today:* any corepox number produced from a match with
+engines carries run-to-run variance that was never stated. The archetype table in §16 moved by up
+to 4 duels in 160 between an unseeded and a seeded run. Numbers from engineless fixtures — the
+port-table work, the corpus load statistics, the campaign gate — are unaffected.

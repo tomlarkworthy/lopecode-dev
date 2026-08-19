@@ -7,8 +7,8 @@
 import {importNotebookModule} from "./notebook-import.ts";
 
 const eng = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
-const {Ship, World, DT, simulate, loadShipSpec}: any =
-  await eng.values(["Ship", "World", "DT", "simulate", "loadShipSpec"]);
+const {Ship, World, DT, simulate, loadShipSpec, seedRng}: any =
+  await eng.values(["Ship", "World", "DT", "simulate", "loadShipSpec", "seedRng"]);
 const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
 const SHIPS: any = await mis.value("SHIPS");
 
@@ -90,12 +90,38 @@ const mhp1 = mark.live.reduce((n: number, c: any) => n + c.hp, 0);
 check("a latched turret fires", mhp1 < mhp0, `mark ${mhp0} -> ${mhp1} hp in 12s`);
 check("speed", ms < 2000, `600 ticks in ${ms.toFixed(0)}ms`);
 
-// 5. determinism: same inputs, same trace. Without this nothing else here means
-//    anything, because a flaky engine can pass any single run.
+// 5. determinism. The previous version of this check fought laserpost vs shooter,
+//    neither of which has an engine -- so it never touched the one stochastic path
+//    in the simulation and passed for free. Exhaust emission is a Poisson sample
+//    and exhaust does damage, so a match with thrust is random by default. It is
+//    reproducible only through World.rng.
 console.log("\n-- determinism --");
+// the drifter at throttle 100 -- it has to actually thrust, or exhaust never emits
+const thruster = JSON.parse(JSON.stringify(SHIPS.drifter));
+thruster.components.find((c: any) => c.type === "Constant").param = "100";
+const dr = () => {
+  const a = new Ship(thruster, {team: "a", x: 0, y: 0, a: 0});
+  const b = new Ship(thruster, {team: "b", x: 0, y: 26, a: 180});
+  const w = new World([a, b]);
+  // sum the particle count every tick: exhaust emission IS the stochastic path,
+  // and a ship's own position does not depend on it, so comparing positions alone
+  // is how this check went vacuous the first time
+  let sig = 0;
+  for (let i = 0; i < 1200; i++) { w.step(); sig += w.particles.length; }
+  return [a.x.toFixed(4), a.y.toFixed(4), a.live.length, b.live.length, sig].join("/");
+};
+World.rng = Math.random;
+const u1 = dr(), u2 = dr();
+World.rng = seedRng(12345); const s1 = dr();
+World.rng = seedRng(12345); const s2 = dr();
+World.rng = Math.random;
+check("seeded runs agree exactly", s1 === s2, s1);
+// Not a defect -- the original samples Poisson too. Asserted so the check above
+// cannot quietly become vacuous again by the fixture losing its engines.
+check("unseeded runs differ (the path is live)", u1 !== u2, `${u1} vs ${u2}`);
 const r = simulate(SHIPS.laserpost, SHIPS.shooter, {ticks: 2000, start: 8, sample: 200});
 const r2 = simulate(SHIPS.laserpost, SHIPS.shooter, {ticks: 2000, start: 8, sample: 200});
-check("two runs agree frame for frame",
+check("engineless match is deterministic anyway",
   JSON.stringify(r.trace) === JSON.stringify(r2.trace),
   `${r.trace.length} sampled frames identical`);
 
