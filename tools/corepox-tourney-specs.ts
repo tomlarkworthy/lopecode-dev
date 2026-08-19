@@ -32,6 +32,10 @@ export function build(name: string, parts: Part[], links: [string,string,string,
 // them stacks on a 2-row pitch; Radar occupies px..px+1 by py..py+2; Engine is the
 // anchor cell plus the one behind it; Lazer the anchor cell plus two ahead.
 
+// Draws 21 against one core's 20, so the outermost Lazer is permanently dark.
+// Left that way on purpose: a wall of guns not being able to run all its guns is
+// the finding, not a mistake. Contrast SNIPER below, where the browned-out part
+// was the trigger and the archetype tested nothing at all.
 export const WALL = build("wall", [                 // no sensing at all
   {id:"brain", type:"Brain",    pos:[0,0]},
   {id:"k",     type:"Constant", pos:[0,-1], param:"100"},
@@ -126,6 +130,13 @@ export const TURTLE = build("turtle", [             // pure armour brick, unchan
     .map((p,i) => ({id:"a"+i, type:"Armour", pos:p})),
 ], []);
 
+// One gun, not three. The power budget landed after this roster was written and
+// SNIPER drew 25 against a single Brain's 20, so two components browned out --
+// and because power spreads by HOP DISTANCE from the core, the one that went dark
+// was `k2`, the constant holding the range threshold, out at [1,-4]. The guns
+// stayed lit with nothing telling them to fire: 0 shots in a 1500-tick match while
+// the ship closed from 18.8 to 0.6 tiles. Three Lazers is 12 of a 20 budget; a
+// sniper is a range test, not a volume test, so it keeps one.
 export const SNIPER = build("sniper", [             // fires only inside range
   {id:"brain", type:"Brain",    pos:[0,0]},
   {id:"k",     type:"Constant", pos:[0,1],  param:"100"},
@@ -139,15 +150,13 @@ export const SNIPER = build("sniper", [             // fires only inside range
   {id:"engR",  type:"Engine",   pos:[2,-3]},
   {id:"engL",  type:"Engine",   pos:[-2,-3]},
   {id:"g1",    type:"Lazer",    pos:[2,2]},
-  {id:"g2",    type:"Lazer",    pos:[3,2]},
-  {id:"g3",    type:"Lazer",    pos:[4,2]},
 ], [
   ["radar","bearing","gt","a"], ["radar","bearing","lt","a"],
   ["gt","out","mulR","a"], ["k","out","mulR","b"],
   ["lt","out","mulL","a"], ["k","out","mulL","b"],
   ["mulR","out","engL","in"], ["mulL","out","engR","in"],
   ["radar","dist","far","a"], ["k2","out","far","b"],
-  ["far","out","g1","in"], ["far","out","g2","in"], ["far","out","g3","in"],
+  ["far","out","g1","in"],
 ]);
 
 export const ROSTER = [WALL, BRAITENBERG, SEEKER, PROP, RAMMER, TURTLE, SNIPER];

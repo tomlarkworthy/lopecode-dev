@@ -99,8 +99,16 @@ Updated 2026-08-19. Ticked only when verified, not when written.
 - [x] Archetypes rebuilt on real footprints (tools/corepox-tourney-specs.ts). Wires now name
       COMPONENTS -- Ship.at() resolves by anchor cell, which moves with any layout change. All 7
       pass corepox-archetype-check.ts. Round-robin runs again
+- [x] `sniper` fires again: 0 shots -> 92. Not a steering problem. It drew 25 against one core's
+      20 and power spreads by HOP DISTANCE, so the part that went dark was `k2` at [1,-4] --
+      the constant holding the range threshold. The guns stayed lit with nothing telling them to
+      fire, through a 1500-tick match that closed from 18.8 to 0.6 tiles. One Lazer now, 17/20
 - [ ] **Retune archetype steering** — 4 of 7 barely close; gains were set when engines sat at
       (+-1,-1) and they now sit at (+-2,-3), so the torque arms doubled. Draws 81-100%
+- [ ] **Brownout order is geometric, and it can strand a trigger.** `powerUp` spreads breadth-first
+      from the Brain, nearest-first within a hop, so a Constant placed far out goes dark while the
+      guns it drives stay powered. Whether the original did this is unrecovered. Options: power by
+      dataflow depth instead, or surface the budget in the editor. Tom's call
 - [x] Composite expansion — dropped connections 5.1% -> 1.2%. Did NOT fix multi-island (prediction
       falsified). All 228 corpus instances are BrautenbourgsFirst
 - [x] Connectivity resolved: reach-2 IS the physical model (connector stalks meet in the gap cell).
