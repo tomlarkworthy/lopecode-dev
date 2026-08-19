@@ -35,11 +35,11 @@ for (const [name, mod] of PAGES) {
   if (!box) { console.log(`${name.padEnd(9)} FAIL: no board found`); bad++; await p.close(); continue; }
   await p.mouse.move(box.x, box.y);
   await p.mouse.wheel(0, -600);                      // in
-  await p.waitForTimeout(250);
+  await p.waitForTimeout(700);
   const inW = await p.evaluate(() => [...document.querySelectorAll("svg")]
     .find(s => s.querySelector("g circle"))!.viewBox.baseVal.width);
   await p.mouse.wheel(0, 1200);                      // back out past the start
-  await p.waitForTimeout(250);
+  await p.waitForTimeout(700);
   const outW = await p.evaluate(() => [...document.querySelectorAll("svg")]
     .find(s => s.querySelector("g circle"))!.viewBox.baseVal.width);
   const ok = inW < box.w * 0.95 && outW > inW * 1.5;
@@ -68,7 +68,7 @@ for (const [name, mod] of PAGES) {
     return {x: r.left + r.width / 2, y: r.top + r.height / 2}; }, qa);
   await p.mouse.move(mid.x, mid.y);
   await p.mouse.wheel(0, -500);
-  await p.waitForTimeout(300);
+  await p.waitForTimeout(700);
   await p.locator("button", {hasText: /^Armour$/}).first().click();
   const c = await p.evaluate((q: any) => {
     const [vx, vy] = q.tileToView(0, -1);
