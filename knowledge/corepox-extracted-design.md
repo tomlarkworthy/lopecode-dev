@@ -324,9 +324,11 @@ I Unity : Login encountered an error.
 
 Reproducible across a force-stop and relaunch, and the emulator has network (`ping 8.8.8.8`
 succeeds from inside it), so this is the live project refusing anonymous sign-in rather than the
-emulator. Getting past it would mean changing auth settings on a live Firebase project. **So no
-gameplay has been observed. Every finding above comes from the sprites and the recovered C#, not
-from watching the game run.**
+emulator. Getting past it would mean changing auth settings on a live Firebase project.
+
+**Superseded 2026-08-20:** Tom enabled the Anonymous provider on `corepox-staging` and the same
+build signed in on the next launch. See "The shipped game runs" below — every finding above this
+line was made without watching the game run, and two of them turned out to be wrong.
 
 **Corners.** The traces square off corners the sprites round. Measured off the top row of solid ink:
 constant 20px, armour 19px, explosive 20px. `corepox-art-round.py` rounds only paths that are an
@@ -340,6 +342,121 @@ keep their Sketch scale: no single sprite maps onto them (turret2 is cap + gear 
 is nothing to measure against. And the radar's moving parts are recorded but not built — `scan`
 tweens its localScale 0→max on a 1s infinite loop, `arrow` rotates to the target and hides when
 there is none, `trace.size.y` is set to `distance - 0.64` each frame.
+
+### The shipped game runs (2026-08-20)
+
+Anonymous auth was the only lock. With the provider enabled, the same APK in the same emulator
+gets straight in:
+
+```
+I Unity : FirebaseLoader:SigninAnonymously()
+I Unity : FirebaseLoader: HandleSigninResult
+I Unity : Login completed for o4L2XUoCe9R3NY7gS65WcNpy7DF3
+I Unity : FirebaseLoader: syncUsersRef fired
+I Unity : FirebaseLoader: New Player o4L2XUoCe9R3NY7gS65WcNpy7DF3
+```
+
+Both follow-on blockers predicted on 2026-08-19 were wrong. `syncUsersRef` never raised
+`PermissionDenied`, so the RTDB rules on `/users/$uid` admit an anonymous uid and
+`runAnonRelogin` never fired; and the `corepox-staging` RTDB instance still exists and still hands
+a new player their starter inventory. Neither needed doing.
+
+Driving is `tools/corepox-emu-drive.sh` (`tap` / `swipe` / `shot` / `skip` / `log`) against
+`emulator-5554` at 1080x2340. Screens land in `tools/screenshots/emu/`.
+
+**The tutorial campaign is 7 missions, and the port's first 7 are those 7.** Read off the
+MISSION tab (`data/corepox/shipped-ui/06-missions-top.avif`): `birthing, cocoon, run, gunner,
+connection, aiming, avoiding`, headed `tutorial  0/7`. The port's `MISSIONS` ids
+(`corepox-missions.js`) line up one-for-one in the same order, and the last two sit outside the
+tutorial chapter:
+
+```
+birthing  cocoon  run              gunner      connection  aiming  avoiding   -- shipped, "tutorial 0/7"
+PlaceBrain Cocoon ConnectionLite   ManualAim   Connection   Aim     Avoid      SideShooter TwinTurrets
+```
+
+So the "9 vs 7" is not a discrepancy. Whether each pair *plays* the same is a separate question and
+is answered mission by mission in `knowledge/corepox-shipped-ui-observed.md`.
+
+**What direct observation changed.**
+
+*The Brain drawing is 27.7% too small, and no gate was watching.* `drawComponent` scales by
+`art unit / ART_TILE` (`corepox-components.js:177`), so the viewBox does not set the rendered size —
+the ink extent does. `corepox-anchor-truth.ts` checks anchors and `corepox-art-frame.ts` checks the
+joint frame; neither looks at how big the drawing comes out, so Brain passed both while rendering
+at two thirds of a tile. `tools/corepox-art-ink.py`, written 2026-08-20, measures it directly
+against the sprite ruler (192 px = 1 tile, so 1 sprite px = 56/192 units):
+
+```
+cell         drawn w x h          sprite wants         error
+Brain          37.09 x   37.08      51.33 x   51.33     -27.7%  -27.8%   <-- OFF
+Constant       50.75 x   50.75      50.75 x   50.75      +0.0%   +0.0%
+Binary        158.81 x  106.51     162.75 x  106.75      -2.4%   -0.2%
+Radar         106.47 x  160.33     106.75 x  162.75      -0.3%   -1.5%
+Engine         47.85 x  100.73      50.75 x  105.00      -5.7%   -4.1%   <-- OFF
+Explosive      50.75 x   50.75      50.75 x   50.75      +0.0%   +0.0%
+Armour         50.75 x   50.75      50.75 x   50.75      +0.0%   +0.0%
+Hyperdrive    218.68 x  263.47     218.75 x  263.38      -0.0%   +0.0%
+```
+
+The tool bounds cubics by their control points, so a curvy drawing reads at most a hair *large* —
+never small. Every negative number above is therefore a floor, not an estimate.
+
+Engine's shortfall has a different cause from Brain's and is a bug in the earlier fit pass:
+`corepox-art-pad.py` pads the viewBox by half the *widest* stroke in the drawing, and
+`corepox-art-fit-ink.py` then removes that same amount from the extent. Engine's widest stroke is
+4.2 (an interior detail); the path that actually sets its boundary is stroked 0.84:
+
+```
+viewBox="-2.09 -2.09 51.20 104.08"          <- -2.09 = 4.2 / 2
+<path d="M0,0C0,0,0,23.83,...L0,0Z" ... stroke-width="0.84"/>   <- the boundary
+```
+
+So the correction was several times too large. The rule the pair of tools needs, and did not have:
+**the padding is set by the widest stroke, but the fit is set by the stroke on the boundary path.**
+
+*Brain needs redrawing, and now there is something to draw from.* The 2026-08-19 note called this
+from the sprite alone; the running game confirms it at three magnifications — the build-menu icon
+(`data/corepox/shipped-ui/09-brain-icon.avif`), the placed core at board scale (`data/corepox/shipped-ui/11-brain-board.avif`), and the cutscene
+render, which is the same art a metre wide (`data/corepox/shipped-ui/07-birthing.avif`). All three agree with
+`data/corepox/sprites/brain.png` and disagree with the trace. The structure is:
+
+  - a rounded-square **outer** frame, thick, pale-salmon stroke over a red glow;
+  - an amber band inside it, slotted — the teeth are cuts *through* the band, wholly enclosed by
+    the frame, never protruding past it;
+  - a dark rounded square in the middle (grey in the sprite, tinted dark on the board);
+  - two pale-cream pins, one low on the left band and one right-of-centre on the bottom band.
+    These are **baked into the sprite**, not a runtime connection indicator — the placed core shows
+    them in the same two places as the flat PNG.
+
+The current trace is a thin sharp-cornered square with the teeth reaching inward from it and no
+outer frame at all. It is a different drawing, not a mis-scaled one.
+
+*Armour is filled, not an outline.* The reward icons and the two pieces auto-placed in `cocoon`
+render as a deep-indigo fill inside a thick white-lavender neon border with a small corner radius
+(`data/corepox/shipped-ui/19-stack.avif`). `armour.png` carries a grey fill that the game tints. The port already fills
+`rgba(16,9,44,0.500)`, so this one matches.
+
+*Components sit flush.* Selecting `ARMOUR x2` places both pieces itself, above and below the core,
+with no gap at the tile boundary (`data/corepox/shipped-ui/19-armour-place.avif`). Placement is not free-hand.
+
+*A lone core rotates.* After `PLAY` in `birthing` the single placed core turns slowly on the spot
+with nothing attached (`data/corepox/shipped-ui/11-core-placed.avif` -> `data/corepox/shipped-ui/13-playing2.avif`, about 20 degrees over ~10 s).
+Whether the port does this is not yet checked.
+
+**The enemy ships carry their program on the board, and the port has nothing like it.** This is the
+largest gap direct observation has turned up. In `cocoon` each of the two mine ships
+(`data/corepox/shipped-ui/18-cocoon-clear.avif`) is drawn as two red Explosive tiles plus an attached green rounded panel
+holding a live dataflow graph: a purple `+` node, an operand bubble `1` on one side and `-48` on the
+other, an output reading `-48` in green at the junction, and animated pale beams travelling along
+the wires. A `DANGER` chip points at the group. The game is about async programming and it *shows
+the program next to the ship it runs*. The port draws components and no program. Size of this job
+is not estimated here.
+
+**The starfield is a photograph.** The board background is a nebula plate, not procedural dots
+(`data/corepox/shipped-ui/18-cocoon-clear.avif`). Relevant to the zoom annotation: the port generates 260 random circles and
+pins them to the viewport. Whether the shipped plate parallaxes or is fixed has not been measured —
+the camera did not move in any capture taken so far.
 
 ### UI.sketch is the whole screen flow
 
