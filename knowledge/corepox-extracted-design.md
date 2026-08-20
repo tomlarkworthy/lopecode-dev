@@ -490,7 +490,10 @@ over each scene, brace-matches JSON blobs and filters prompt text; it recovered 
 51 prompts across 12 missions** into `scratch/corepox-missions.json` (2026-08-18).
 
 Reconstructed order — inferred from difficulty and dependency, **not** read from the scene, since
-that is exactly the part that was binary:
+that is exactly the part that was binary. **Superseded on 2026-08-20**: the real order was read out
+of the shipped APK, and this table is wrong in both its ordering and its premise that there is one
+campaign. See "The campaign, read from the shipped build" below. Kept because the inference is what
+the port was built on and the diff is the interesting part.
 
 | # | mission | prompt | teaches |
 |---|---|---|---|
@@ -517,6 +520,97 @@ the code rather than from the pitch.
 Set against the corpus finding that Binary appears once per 15 components: the teaching existed and
 players still ended up building `Constant → Engine` bricks. Whatever went wrong is downstream of the
 tutorial, not a gap in it.
+
+## The campaign, read from the shipped build (2026-08-20)
+
+Tom, 2026-08-20: *"I feel like you are missing a lot of mission content on e.g. braitenberg. So I
+think this is an old APK"*. The APK was not the problem. `vendor/corepox_apk` is **Corepox 1.49**,
+Unity **2019.2.14f1**, and `assets/bin/Data/globalgamemanagers` carries the build's scene list
+verbatim — 17 scenes, of which **ten are missions**:
+
+```
+Assets/scenes/missions/PlaceBrain.unity      Assets/scenes/missions/Aim.unity
+Assets/scenes/missions/Cocoon.unity          Assets/scenes/missions/FollowCourse.unity
+Assets/scenes/missions/ConnectionLite.unity  Assets/scenes/missions/FollowCourseAdvanced.unity
+Assets/scenes/missions/Connection.unity      Assets/scenes/missions/FollowBoss.unity
+Assets/scenes/missions/Avoid.unity           Assets/scenes/missions/ManualAim.unity
+```
+
+`SideShooter` and `TwinTurrets` are **not in it**. They exist as scenes in the repo and the port
+ships them as missions 8 and 9; that is a divergence the port introduced, not recovered content.
+
+The campaign objects are `MonoBehaviour`s, and their string fields survive in `level0` the same way
+the mission prompts survived in the scenes. Read at 4-byte-length-prefixed offsets 11112-11896,
+they come out as ordered triples and then the campaign's own display name:
+
+```
+seed        birth       birthing    PlaceBrain
+armour      cocoon      cocoon      Cocoon
+connectlite connectlite run         ConnectionLite
+manualaim   manualaim   gunner      ManualAim
+connect     connect     connection  Connection
+aim         aim         aiming      Aim
+avoid       avoid       avoiding    Avoid
+                                    tutorial          <- campaign displayName
+follow1     Yin opposses Yang       FollowCourse
+follow2     Zero Negates Something  FollowCourseAdvanced
+followBoss  Boss: The Assassin      FollowBoss
+                                    Advanced Steering <- campaign displayName
+```
+
+**There are two campaigns, not one.** `tutorial` is the seven the port ships, in the port's order and
+under the port's display names — that part was right. `Advanced Steering` is three missions the port
+does not have at all, and its titles are the Braitenberg content: "Yin opposses Yang" against
+"Zero Negates Something" is the crossed-versus-uncrossed sensor→motor pair, stated as a mission
+title. `FollowCourse`'s recovered ship is `Radar → Binary MINUS → two Engines` with a Constant,
+which is a Braitenberg vehicle spelled out in parts.
+
+The field mapping inside a triple is **not pinned**. `Mission.cs` declares
+`intro, outro, name, displayName, scene, starRequirement`, which is five strings, and the tutorial
+rows carry four while the Advanced Steering rows carry three — an empty string serialises to a
+length of 0 and is skipped by the extractor, so which of `name`/`displayName` is absent is a guess.
+The left column is the cutscene key either way: `Mission.load` calls
+`Cutscenes.lookup(request.mission.intro)`, and `seed`/`armour`/`follow1` are cutscene names, not
+mission names. **No `starRequirement` or `minPlayerRating` value has been read**; they are ints, not
+strings, and the extractor only recovers strings.
+
+### What the cloud added, and what it did not
+
+The GCP projects are live and were scanned read-only on 2026-08-20 (`tools/cloud/`, tokens minted
+with `cloud-platform.read-only`, GETs only). `corepox-staging` holds 15 buckets:
+
+- `corepox_builds/match_linux64.zip` (34 MB, 2019-01-05) is the **headless match server** — Unity
+  2018.2.20f1, three scenes (`InitializeCommandline`, `DeathMatch`, `ShipSnapshotter`). No missions.
+- `corepox-staging-backups` is **3,487 objects, 175 GB** of daily Realtime Database dumps running
+  from 2017-11-28 to **2022-07-11**, two years past the source snapshot.
+- The rest (`corepox_datasets`, `corepox-staging-boardingparty`, …) are an ML recommender experiment
+  and terraform state.
+
+The **live** database still answers, and `assets` is the content half of it:
+`{"metadata": …, "relics": …, "ships": …}`.
+
+- `assets/relics` is 2.1 KB and holds four wired assemblies: `BrautenbourgsFirst`, `LazerHardpoint`,
+  `Minidrone`, `WeaponStation`. The local `composites.json` has **seven**, these four plus
+  `BasicOrbHomer`, `UnfinishedOrbDrone`, `UnwiredOrbDrone` — so the cloud is the smaller set. Three
+  of the four are byte-identical to the local copy after normalising key order.
+- The fourth differs, **and only in its name**: local `"Braitenberg 1"`, cloud
+  `"Brautenbourgs First"`. Same five components, same four connections. So the cloud is not a richer
+  source of Braitenberg content; it is the same vehicle under the shipped name.
+- `assets/metadata` is 128 KB and indexes **1,441 player ship designs**, created 2017-11-23 to
+  2022-02-23, 263 of them with a known creator id. That is three times the 492 designs the earlier
+  corpus analysis ran on (`knowledge/corepox-extracted-design.md`, "The corpus is the most valuable
+  artifact") — worth re-running against, and **not yet done**.
+
+So the answer to "is the missing content in the cloud" is **no**. It is in the APK, and it was
+missed. The cloud's contribution is the corpus and the shipped relic names.
+
+### The other APK
+
+`TargetAquiredWithRelicV2.apk` (Tom, 2026-08-20) is **older**, not newer: Unity **5.4.0f3** (2016),
+package `com.google.firebase.unity.auth.testapp`, five scenes and no missions at all. It is a
+development build — it ships `PlayerConnectionConfigFile`, which only a profiler-enabled build has.
+Its one point of interest is `Assets/scenes/screens/Interstellar.unity`, a screen that is **not** in
+the 1.49 scene list, so something was cut between 2016 and 2019. Not extracted.
 
 ## Behavioural hazards in the original
 

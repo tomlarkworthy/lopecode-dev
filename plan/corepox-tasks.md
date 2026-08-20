@@ -31,6 +31,26 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       Engine's silhouette was missing its 4.16 bright stroke on two of three shapes, not
       misaligned — `corepox-art-ink.py` 7/8 → 8/8. Evidence in
       `knowledge/corepox-shipped-ui-observed.md`, "Four more complaints".
+- [ ] **Port the second campaign, "Advanced Steering".** Read out of the 1.49 APK's `level0` on
+      2026-08-20: `FollowCourse` ("Yin opposses Yang"), `FollowCourseAdvanced` ("Zero Negates
+      Something"), `FollowBoss` ("Boss: The Assassin"). All three shipped, all three are already in
+      `scratch/corepox-missions.json`, and none is in the port. They are the Braitenberg content
+      (`Radar -> Binary MINUS -> two Engines`) and they need the **Composite** component, which
+      missions do not currently support. Evidence in `knowledge/corepox-extracted-design.md`,
+      "The campaign, read from the shipped build".
+- [ ] **Two campaigns, not one flat list.** The port shows 9 missions in one dropdown. The shipped
+      game groups them: `tutorial` (7) and `Advanced Steering` (3), each with a `displayName` and a
+      `minPlayerRating` gate that has not been read.
+- [ ] `SideShooter` and `TwinTurrets` are in NO campaign and not in the 1.49 scene list. The port
+      ships them as missions 8 and 9. Either mark them as an addition or drop them; right now the
+      port silently presents them as recovered content.
+- [ ] Cutscenes have keys and no text. Every mission carries an `intro`/`outro` cutscene key
+      (`seed`, `armour`, `connectlite`, `manualaim`, `connect`, `aim`, `avoid`, `follow1`,
+      `follow2`, `followBoss`). `Cutscenes.lookup` resolves them to `SceneSpec.frames`; the frames
+      have not been located.
+- [ ] Re-run the corpus analysis against **1,441** designs. `assets/metadata` in the live database
+      indexes 1,441 player ships (2017-11-23 to 2022-02-23); the "Binary once per 15 components"
+      finding was computed on 492.
 - [ ] Binary is still 2.4% narrow (`corepox-art-ink.py`) and `dx -0.023` (`corepox-art-align.py`);
       Orb, LaserTurret2 and Hyperdrive are the other three `art-align` flags. Uninvestigated.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
@@ -400,6 +420,45 @@ time sink that was rejected.
 - [ ] Repairs are the second sink (see the damage-economy ideas above). The intended tension is
       repair now against a new gun; unverified that the numbers can be made to bite
 
+### atproto: the match result is a proof, not a claim — design 2026-08-20 (Tom), nothing built
+
+Raised as "users write ship designs into their PDS, but what else, and how does it last?" The
+storage half is the boring half. **Nothing here is built.**
+
+The load-bearing observation: Corepox already requires that matches re-simulate identically —
+that requirement is why GPU particle simulation was ruled out for the renderer. That constraint,
+which looked like a cost, is exactly what removes the need for a trusted server. A match is fully
+determined by `(shipA@cid, shipB@cid, seed, engine, ruleset)`, so **anyone can recompute it**.
+
+- [ ] Results are **cached computations, not reports**. Disputes resolve by re-running, not by
+      appeal to an authority. Publishing a false result is *detectable*, so an app view can score
+      publishers by how often their results verify — spam defence with no moderation.
+- [ ] The ladder is a **pure function of the firehose**. Independent app views agree because they
+      recompute the same deterministic thing.
+- [ ] **The opponent need not participate.** A win is publishable and checkable without the loser
+      being online, which deletes async matchmaking as a server problem.
+- [ ] **Pin the engine by CID.** lopecode is already content-addressed, so the rules of a match are
+      themselves a content-addressed module and a result stays verifiable after the engine moves on.
+      This also gives seasons: a season *is* an engine CID plus constants, so changing one number
+      re-ranks the entire existing corpus by re-simulation, with no player action. Content from a
+      config change.
+
+Record types beyond `ship`: `block` (a citable subassembly — `module-selection` applied to
+circuits), `challenge` (names the opponent at a CID so it cannot be hot-swapped), `result`,
+`season`, `bounty` (objective function public, solutions checkable, winning circuits readable).
+
+**Limits, stated where they bite:**
+
+- **No secrets, ever.** A PDS record is public, so there is no fog of war on designs. Commit-reveal
+  buys blind tournaments; the default genre is chess, not poker. Decide deliberately.
+- **Sybil resistance comes from computation, not identity.** Anyone can publish infinite ships for
+  free. What is scarce is a verified win against a pinned opponent, because it cannot be faked, so
+  rank on verified results and never on publishing volume.
+- **You cannot gate anything on a PDS** — there is no server to refuse a write. Progression is
+  *validated*, not withheld: entitlement is a fold over public history that anyone can recompute,
+  and ranked/creative are two app views over the same records. Creative validates nothing, so
+  sharing and copying stay unrestricted; only the ranked view enforces possession.
+
 ### Progression: artifacts and assembly levelling — design 2026-08-20 (Tom), nothing built
 
 The atproto integration was raised as "users write ship designs into their PDS, but what else?"
@@ -539,3 +598,49 @@ Enumeration cost is bounded — the worst island in the whole corpus has 8228 co
   seventeen; players still built `Constant -> Engine` bricks
   (`knowledge/corepox-extracted-design.md:517`). **Artifact-as-loot is untested. Artifact-as-teaching
   has already failed once**, and leaning on it to solve onboarding would repeat that experiment.
+
+#### Measured: is there a metagame at all? (2026-08-20) — NEGATIVE RESULT
+
+This was the check that gates everything above. A transitive tournament has one strictly best ship
+and a ladder collapses to "who has the strongest hull"; a metagame needs cycles (A beats B beats C
+beats A). Reference points: fully transitive = 0% cyclic triads, coin-flip random = 25%.
+
+`bun tools/corepox-intransitivity.ts 32 2` — 32 corpus ships spread evenly through the 502
+that have >=6 parts and >=3 wires, every pair played 2 seeds x **both orientations** so a side
+advantage cannot manufacture a cycle. Decisive means a win fraction outside 0.5 +/- 0.1.
+
+```
+1984 matches in 1203.6s  (606.7 ms/match)
+side-A win rate across all matches: 49.3%   (50% = no positional bias)
+
+decisive pairs        299/496 (60%)
+fully decisive triads 1376
+CYCLIC triads         19 (1.4%)          transitive = 0%,  random = 25%
+ships beaten by nobody: 2      top win rate 79%,  bottom 2%
+```
+
+**1.4% against a 25% random baseline. The corpus matchup graph is very nearly a strict power
+ordering.** Ship strength is close to a scalar, and as things stand there is almost no
+rock-paper-scissors for counter-design to work with.
+
+The harness is not the explanation: side-A wins 49.3%, so there is no positional bias. And the
+thin sampling argues the same way — 4 matches per pair means noise, and noise *creates* spurious
+cycles rather than hiding real ones, so 1.4% reads as an upper bound.
+
+**What it does not say.** These are legacy designs from the original game, played on the rebuilt
+engine whose constants are partly invented (see the `Ship.SUPPLY` caveat above). It measures the
+rebuild's balance over old ships, not a designed metagame.
+
+**What it changes.** Intransitivity has to be *engineered*; it cannot be assumed to emerge from
+ship-vs-ship balance. The cheapest source is not balance tuning at all — it is **varying the
+objective**. A ship optimised to duel is bad at escort, bad at a race, bad at mining under a
+timer. That makes the encounter verb roster picked on 2026-08-19 the primary source of a
+metagame rather than flavour, and the same is true of the environmental modifiers. Before any
+ladder or economy is built on top, re-run this measurement *per verb* and check whether the
+ordering actually differs between them. If it does not, the ladder collapses whatever the loot
+system does.
+
+**Second finding, on feasibility.** At 607 ms/match a full 892-ship round-robin is 397,386 pairs =
+**~67 core-hours**. A client-side app view cannot re-simulate the whole ladder per season. Either
+the engine gets much faster, the ladder samples rather than exhausts, or it needs an indexer of
+the Contrail kind (`specs/atproto.md`).
