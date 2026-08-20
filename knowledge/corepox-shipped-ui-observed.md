@@ -403,6 +403,97 @@ Three more went in the same day off Tom's own screenshot of `aiming`:
     world, so `connection`'s rivals and `avoiding`'s mines pulled it open until the hull was a few
     pixels. It frames the player only; `minSpan` is per-mission and already sized to the fight.
 
+### Four more complaints, 2026-08-20 afternoon
+
+Verbatim: *"ok the engine or binary do not look properly aligned to their grids yet. The UX is
+aweful for connecting. I click the \"connect\" from a component and then I have to click that
+componen *again* to connect it. Zoom is always centered, so I can;t use it to pan. I don't think
+accessing menu items should change zoom levels."*
+
+  - **The Engine was not misaligned. It was missing a stroke.** Neither existing gate could answer
+    the question asked: `corepox-anchor-truth.ts` compares the declared anchor to the sprite pivot
+    (the frame), and `corepox-art-ink.py` compares drawn ink *size* to the sprite. Neither says
+    where the ink sits inside the frame, so `tools/corepox-art-align.py` was written to, and it
+    cleared both suspects — `Engine dx +0.004 dy -0.031`, `Binary dx -0.023 dy +0.006`, against
+    8 of 11 components centred to 0.08 tiles. Dumping every path's stroke found it instead:
+
+    ```
+    == Constant   stroke rgba(230,230,69,0.500) w 4.16 ; stroke rgb(230,230,207) w 0.84
+    == Armour     stroke rgba(207,207,230,0.520) w 0.84 ; stroke rgb(138,138,230) w 4.16
+    == Engine     stroke rgb(207,230,207)       w 0.84 ; stroke rgb(184,230,184) w 0.84   <- head
+                  stroke rgba(207,207,230,0.520) w 0.84 ; stroke rgb(138,138,230) w 4.2   <- arch
+                  stroke rgb(230,142,142)       w 0.84 ; stroke rgb(230,142,142) w 0.84   <- nozzle
+    ```
+
+    Every component pairs a thin pale under-stroke with a bright 4.16 one. The Engine carried 0.84
+    twice on the green head and twice on the red nozzle, so its silhouette came out narrow and did
+    not butt against its neighbours. **The viewBox is the proof, not the eye**: it is
+    `-2.09 -2.09 51.20 104.08`, and `47.01 + 4.16 = 51.17`, `99.89 + 4.16 = 104.05` — the frame was
+    already sized for a stroke that was not there. Both set to 4.16; `corepox-art-ink.py` went from
+    7/8 to **8/8**, Engine `-5.7% / -4.1%` → `+0.8% / -0.9%`. `corepox-art-align.py` is unchanged
+    by the fix, as it should be: it reads raw path coordinates and ignores stroke.
+
+    Binary is **not** fixed. It is still 2.4% narrow and `dx -0.023`, and Orb, LaserTurret2 and
+    Hyperdrive are the three `art-align` flags, all uninvestigated.
+
+  - **`connect` asked a question with one answer, and made the player answer it.** Tapping connect
+    on a Constant chequered its single port and waited for a tap on it. Constant, Engine, Explosive
+    and Lazer are all single-port — that is every wire in `run` and `connection`, the two missions
+    that teach wiring. `armConnect()` now arms `wire.from` immediately when the component has
+    exactly one port; a multi-port part (Radar's `dist`/`bearing`, Binary's `a`/`b`) still chequers
+    and still asks, because there the question is real.
+
+    **Dead end, and the gate caught it:** the first version cancelled the wire when the armed source
+    port was tapped, which is the tap most likely to come next. `corepox-qa-campaign.ts` fell from
+    9/9 to **5/9** — ConnectionLite, Connection, SideShooter and TwinTurrets each reported
+    `MISSING WIRES` with `no confirm for …`. Tapping the port you are already wired from is a no-op
+    now, and the gate is back to 9/9 by clicking.
+
+  - **The wheel is anchored on the pointer, and a drag pans.** `battlefield` gained `api.pan`,
+    added to the camera centre in both branches of `frame()`. The next auto-framed width is
+    predictable — the base span does not depend on zoom, so `w' = w · z₀/z₁` — which means holding
+    the world point under the cursor is one correcting term, `pan += (f − 0.5)(w − w')`, applied in
+    the same frame rather than as a measure-and-redraw. Measured by `tools/corepox-camera-probe.ts`
+    on `run`, wheeling at 80% across the board:
+
+    ```
+    wheel zooms in            560 -> 347 view units
+    point under cursor holds  slipped 0.3% of the view (centre-anchored would slip ~11%)
+    drag pans                 moved 58.0, wanted 57.8 view units
+    drag does not zoom        347 -> 347
+    ```
+
+    A drag that starts on a legal port is a wire, not a pan: the connect handler sets `panLock`, and
+    the camera reads it on the first pointermove, which is after the game's pointerdown has run.
+    `api.dragging` stays true through the click that follows a real drag so a pan ending over a
+    component does not also select it. A `⌖` recentre pad appears in the top-right once `api.moved()`
+    is true, and `reset()` clears the hand-set view so it never carries to the next mission.
+
+  - **Menus no longer move the camera, because the camera no longer looks at the UI.** The rule was
+    `busy = panel !== "none" || act != null || picked != null || sel != null`, so opening the info
+    panel zoomed in and closing it zoomed out. It is now `S.state === "build" || (m.live && !moved)`,
+    where `moved` is the player ship more than 2 tiles from where the mission started it. A live
+    wiring mission opens on the hull because that is where the work is; `gunner` never moves and
+    stays close, which is right for a mission fought from a standstill; a fight is wide from its
+    first frame as before.
+
+    ```
+    select+menu holds view    347x216 -> 347x216
+    info panel holds view     347 -> 347
+    view opens when the SHIP moves  560 -> 2764 view units   (ship moved 3.0 tiles)
+    ```
+
+    **Dead end worth recording:** the first version left the rule inside `render()`, and the probe
+    read `560 -> 560`. `render()` runs on UI events; the animation frame calls `view.draw()` only.
+    A rule that depends on UI state can live in the render path, and a rule that depends on where
+    the ship *is* cannot. It is `camera()` now, called from both.
+
+  - **The `<rect> attribute height … ("-3")` console error is not corepox.** Traced with
+    `tools/corepox-rect-trace.ts`, which patches `setAttribute` before boot: the stack is
+    `Tl.render` ← `Object.os [as plot]`, i.e. Observable Plot rendering into a frame with no room.
+    No corepox module references Plot; it comes from another module in the notebook's `mains`.
+    Recorded here so the next session does not hunt it inside the game again.
+
 **Not ported.** Each of these is described above and none of it is in the notebook:
 
   - **The turret's dome is a triangular peak in our art, a semicircle in the shipped game**

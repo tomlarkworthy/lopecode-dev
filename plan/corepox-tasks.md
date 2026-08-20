@@ -24,6 +24,15 @@ Updated 2026-08-20. Ticked only when verified, not when written.
 - [x] Connectors carry their value (2026-08-20): port discs with typed cog rings and live numerals,
       the Binary operator glyph, and a wire that arcs OUTSIDE the hull coloured by what flows
       through it. The old sprite wire was invisible on `run`, the mission that teaches wires.
+- [x] Camera and connect UX off four complaints (2026-08-20): the wheel is anchored on the pointer
+      and a drag pans (`api.pan`, `api.panLock`, `⌖` recentre), `connect` self-arms on a single-port
+      component, and the zoom rule looks at where the SHIP is rather than at which menu is open.
+      New gate `tools/corepox-camera-probe.ts`, 8/8; `corepox-qa-campaign.ts` still 9/9. The
+      Engine's silhouette was missing its 4.16 bright stroke on two of three shapes, not
+      misaligned — `corepox-art-ink.py` 7/8 → 8/8. Evidence in
+      `knowledge/corepox-shipped-ui-observed.md`, "Four more complaints".
+- [ ] Binary is still 2.4% narrow (`corepox-art-ink.py`) and `dx -0.023` (`corepox-art-align.py`);
+      Orb, LaserTurret2 and Hyperdrive are the other three `art-align` flags. Uninvestigated.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
@@ -390,3 +399,143 @@ time sink that was rejected.
       cannot otherwise pivot. Untested whether this makes commitment meaningless
 - [ ] Repairs are the second sink (see the damage-economy ideas above). The intended tension is
       repair now against a new gun; unverified that the numbers can be made to bite
+
+### Progression: artifacts and assembly levelling — design 2026-08-20 (Tom), nothing built
+
+The atproto integration was raised as "users write ship designs into their PDS, but what else?"
+This is the answer to the progression half. **Nothing here is built.** The corpus numbers are
+measured and dated; the mechanics are not.
+
+**Two ideas were raised and dropped the same day**, recorded so they are not re-proposed:
+
+- **Budget-tier leagues** (6/12/20/40 components as parallel ladders). Dropped — Tom: *"That will
+  not scale very far to have 4 leagues."* It fragments a player base that does not exist yet and
+  has a fixed ceiling.
+- **A component-type tech tree** (unlock Radar, then Binary, then Hyperdrive). Dropped because a
+  locked component type is a locked *idea*, and the idea is the entire content of this game.
+  Levelling replaces it: **capability is never gated, only power is.** A new player can express
+  any design they can imagine, and copying a veteran's circuit works — you get the folk version.
+
+#### What already exists, so this is not from nothing
+
+- A `Composite` carries its whole sub-ship inline in `param` and is expanded at load, translated
+  and rotated by placement (`corepox-engine.js:322-347`). Artifacts are therefore already
+  self-contained and already travel inside the ship record.
+- `composites.json` shipped **seven named fixed shapes** — Braitenberg 1 (5 components), Weapon
+  Station (13), Mini Drone (4), Lazer Turret Hardpoint (10), Devouring Love (11), Unfinished Orb
+  Drone (9). A seed roster.
+- `server/match.ts` transferred captured composites into the winner's inventory. **Capture-on-win
+  already existed in the original.**
+- `knowledge/corepox-extracted-design.md:148` already reached this conclusion from the source:
+  Composite is *"a subroutine system and a unit of reward and a tutorial device"*.
+
+#### The mechanic
+
+- [ ] An **artifact** is a frozen connected subgraph of a ship, minimum 4 components, with a rigid
+      shape that cannot be edited. Every member gets **+20% on its one natural stat** — Lazer
+      damage, Engine thrust, Armour hp. There is no roll over which stat: each type has one.
+- [ ] **The level belongs to the assembly, not the component.** An Engine does not gain
+      experience; the assembly was tuned in combat, and +20% is what tuning is worth. This is what
+      makes salvage coherent (below) and removes a whole levelled-loose-parts inventory class.
+- [ ] **Levels are integers, applied as `stat * (5 + level) / 5`.** L1 = 6/5, L2 = 7/5. Not floats:
+      `1.2` is not exactly representable in binary floating point and compounding `1.2^2` drifts
+      across platforms, which breaks cross-client verification. Same risk class as the `Math.sin`
+      flag below, and cheap to get right now.
+- [ ] **Re-looting a shape you already hold levels it rather than duplicating it.** Double-levelled
+      is extremely rare (Tom). This doubles as the anti-farm mechanic: farming your ideal block
+      yields one artifact creeping up a steepening curve, never a stack.
+- [ ] **Salvage destroys the tuning** and returns base components. Keeps the choice sharp — rigid
+      and strong, or flexible and ordinary — and guarantees no drop is worthless, which matters
+      because most drops are junk by design.
+- [ ] **Capture on defeat**, as the original did. Artifacts circulate rather than accumulate, so the
+      ladder does not stratify and holding is ongoing work.
+
+Why the +20% is modest and must stay so: if a levelled ship beats a better-designed one, the
+open-information metagame stops working, because reading the winning circuit no longer tells you
+how to beat it. Unverified — needs the intransitivity result below to even be meaningful.
+
+#### Minting is attack-side
+
+Defence-side minting was proposed (you cannot farm what you did not choose) and **rejected** —
+Tom: *"its more fun attacking to get loot, that encourages engagement."* Waiting to be attacked is
+passive. So opponent selection is back, and three rules replace it:
+
+- [ ] **No repeat attack on the same ship inside 24 hours.**
+- [ ] **Only opponents over a strength/history threshold can drop.** Beating a ship with no record
+      mints nothing, which kills the sockpuppet-feeder — the puppet must first be credible, which
+      costs real wins.
+- [ ] **The source island must be combinatorially rich.** An artifact may only come from a connected
+      island with at least T possible connected 4-subgraphs. This is the rule that defeats the
+      multi-part exploit: a ship built as five separate 4-component islands has exactly one
+      combination per island, every island fails the threshold, and it mints nothing.
+- [ ] **Sample uniformly over the enumerated combinations**, indexed by `hash(result CID) mod C` —
+      not by growing from a random seed component, which biases toward high-degree components and
+      *is* shapeable by a farmer. Uniform indexing is deterministic, verifiable by anyone
+      re-simulating, and unbiasable.
+
+A bit of farming is acceptable (Tom). The threshold sets how much, in units: if the sample is
+uniform over C combinations, hitting one *chosen* shape is `1/C`, so expected **wins** to pin a
+chosen shape is `D x C` where D is one-drop-in-D-wins. D and C multiply, so a rare drop already
+carries most of the rate limiting and C only has to be large enough that the *shape* is not yours
+to choose.
+
+#### Measured: how pinnable is a sample? (2026-08-20)
+
+`bun tools/corepox-artifact-entropy.ts 4` — counts connected 4-subgraphs per island over all 892
+corpus ships, using the engine's own reach-2 adjacency via `Ship.islands`, not a reimplementation.
+
+```
+k = 4   ships 892   islands 1048   multi-island 137/892 (15%)
+
+connected 4-subgraphs in a ship's best island
+   min 0   p25 25   median 150   p75 722   p90 2237   max 8228
+
+ships with at least one PINNABLE island (1-3 combinations):  50/892 (6%)
+
+could mint at threshold T:
+   T >=  10    753/892 (84%)      T >=  50    594/892 (67%)
+   T >=  25    672/892 (75%)      T >= 100    524/892 (59%)
+```
+
+**The exploit shape already exists in the corpus.** 6% of published ships have an island with only
+1-3 possible 4-combinations, built by players who were not trying to farm anything. So the
+threshold is not hypothetical protection.
+
+**Recommended T = 10 to 25.** It excludes every pinnable island while leaving 84-75% of real
+designs able to mint, which keeps the bottom of the ladder able to participate. Pushing T to 100
+mostly excludes ordinary players without buying much, because D is doing the rate limiting.
+Enumeration cost is bounded — the worst island in the whole corpus has 8228 combinations.
+
+#### On atproto
+
+- [ ] A ship record holds its design **inline**. Measured 2026-08-20: median 1366 bytes, p90 3183,
+      max 5183, whole 892-ship corpus 1.4 MB. No blobs and no CID dedup, unlike
+      `com.lopecode.bundle` (median block 7 KB, ~75 uploads per notebook, `specs/atproto.md`). The
+      complete design travels on the firehose.
+- [ ] **The mint must be a pure function of the replay** — drop/no-drop, which subgraph, which
+      level — all seeded from `hash(result CID)`. Then loot is verifiable by re-simulation and
+      cannot be forged, and the sampler must live inside the pinned engine, not in a client.
+- [ ] **The shape is public, the instance is scarce.** Anyone can read your artifact and hand-build
+      the same shape; it works, at base stats. Only an instance with a provenance chain back to a
+      verified mint carries the +20%. Copying stays legal, so the knowledge economy and the loot
+      economy do not fight.
+
+#### What is unverified, and what it would cost
+
+- **Per-instance stats are the real work item.** `TYPES` is a flat per-type table today
+  (`corepox-engine.js:110-133`) — every Lazer in the game is `{hp, pwr, tiles, ins, outs}` and
+  identical to every other. Levelling makes stats per-instance, which touches the whole simulation.
+  The loot bookkeeping is the easy half.
+- **Cross-platform determinism is assumed, not verified.** `Math.sin` is not bit-identical across
+  JS engines. Everything above — verifiable results, verifiable loot, a serverless ladder — rests
+  on it. The original used trig lookup tables; whether the rebuild does is not checked here.
+- **One rule still undecided:** does a partially destroyed artifact still grant its bonus?
+  Per-surviving-part is the safe default. All-or-nothing keyed to a core cell is more interesting,
+  because the artifact is public and opponents can target the keystone, but it risks making
+  artifacts not worth building around. Ship per-part, try keystone as a season rule.
+- **A prior negative result bears on this.** The composite-as-tutorial device already shipped —
+  Braitenberg 1 was handed to players precisely to teach sensor to actuator wiring — and it did not
+  work. Across 492 real designs Binary appears once per fifteen components and Radar once per
+  seventeen; players still built `Constant -> Engine` bricks
+  (`knowledge/corepox-extracted-design.md:517`). **Artifact-as-loot is untested. Artifact-as-teaching
+  has already failed once**, and leaning on it to solve onboarding would repeat that experiment.
