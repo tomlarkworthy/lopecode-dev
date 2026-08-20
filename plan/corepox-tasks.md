@@ -48,9 +48,10 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       (`seed`, `armour`, `connectlite`, `manualaim`, `connect`, `aim`, `avoid`, `follow1`,
       `follow2`, `followBoss`). `Cutscenes.lookup` resolves them to `SceneSpec.frames`; the frames
       have not been located.
-- [ ] Re-run the corpus analysis against **1,441** designs. `assets/metadata` in the live database
-      indexes 1,441 player ships (2017-11-23 to 2022-02-23); the "Binary once per 15 components"
-      finding was computed on 492.
+- [ ] Re-run the corpus analysis against **2,191** designs, **2,140 of them rated**. The live
+      database holds 2191 under `assets/ships` and 2140 ratings under `ratings/ships`; the
+      "Binary once per 15 components" finding was computed on 492 designs and no ratings. The
+      ratings are what would turn "players built bricks" into "bricks won or lost".
 - [ ] Binary is still 2.4% narrow (`corepox-art-ink.py`) and `dx -0.023` (`corepox-art-align.py`);
       Orb, LaserTurret2 and Hyperdrive are the other three `art-align` flags. Uninvestigated.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game

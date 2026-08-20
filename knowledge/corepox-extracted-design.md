@@ -597,9 +597,43 @@ The **live** database still answers, and `assets` is the content half of it:
   `"Brautenbourgs First"`. Same five components, same four connections. So the cloud is not a richer
   source of Braitenberg content; it is the same vehicle under the shipped name.
 - `assets/metadata` is 128 KB and indexes **1,441 player ship designs**, created 2017-11-23 to
-  2022-02-23, 263 of them with a known creator id. That is three times the 492 designs the earlier
-  corpus analysis ran on (`knowledge/corepox-extracted-design.md`, "The corpus is the most valuable
-  artifact") — worth re-running against, and **not yet done**.
+  2022-02-23, 263 of them with a known creator id.
+
+Counted with `tools/cloud/rtdb-census.ts`, which uses `?shallow=true` so it reads child *keys* and
+never a value — `users` is personal data and the tool must not be able to pull it:
+
+```
+  assets/ships              2191 children
+  assets/metadata/ships     1441 children
+  ratings/ships             2140 children
+  users                      865 children
+  assets/relics                4 children
+  public/news                  5 children
+  matches                      1 child
+```
+
+**The design corpus is 2,191 ships, not 492.** The "Binary appears once per fifteen components"
+finding — the one the whole composite-as-tutorial argument rests on — was computed on 492 designs
+(§"The corpus is the most valuable artifact"). 2,140 of the 2,191 carry a rating, which is the
+other half of what that analysis wanted and did not have. **Not re-run.**
+
+### A negative result on the relics
+
+The 2022-07-11 backup's `relics` subtree was extracted with `tools/cloud/rtdb-subtree.py` (byte-scan
+and brace-match, so a 569 MB dump does not have to be parsed) and compared to the live one. The
+first comparison said all four differ. **It was a formatting artifact.** The Realtime Database
+stores arrays as children keyed `"0"`, `"1"`, …; the REST API coerces dense numeric-keyed objects
+back into arrays and a backup dump does not:
+
+```
+2022 backup: "pos": {"1": 0, "0": -1}
+live       : "pos": [-1, 0]
+```
+
+After normalising dense numeric-keyed objects back to lists, **the whole subtree is identical** —
+all four relics, component for component and wire for wire. So nothing was added or lost between
+2022-07-11 and 2026-08-20, and the differ was reporting representation. Same failure mode as
+`feedback_cellwise_differ_can_be_a_formatting_artifact`.
 
 So the answer to "is the missing content in the cloud" is **no**. It is in the APK, and it was
 missed. The cloud's contribution is the corpus and the shipped relic names.
