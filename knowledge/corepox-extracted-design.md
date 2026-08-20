@@ -659,6 +659,14 @@ does not have at all, and its titles are the Braitenberg content: "Yin opposses 
 title. `FollowCourse`'s recovered ship is `Radar → Binary MINUS → two Engines` with a Constant,
 which is a Braitenberg vehicle spelled out in parts.
 
+**The port now shows the two campaigns, and took two titles off this table.** `CAMPAIGNS` in
+`@tomlarkworthy/corepox-missions` groups the picker; a mission the table does not name still appears,
+in a trailing "not in a campaign" group, so SideShooter and TwinTurrets are labelled rather than
+hidden or silently promoted. The header reads `tutorial 1/7`, `Advanced Steering 3/3` instead of a
+running `1/12`. Two mission titles were wrong against this read and are corrected: the port had
+"Zero negates something" (case) and "Boss: the Gun Boat" — the latter was the enemy composite's name
+(`SHIPS.gunBoat`), not the mission's, which is **"Boss: The Assassin"**.
+
 The field mapping inside a triple is **not pinned**. `Mission.cs` declares
 `intro, outro, name, displayName, scene, starRequirement`, which is five strings, and the tutorial
 rows carry four while the Advanced Steering rows carry three — an empty string serialises to a
@@ -764,7 +772,7 @@ object table, which is findable without parsing the format.
 
 Two items resolve to no prefab (`m_FileID` 0, so a scene object): FollowCourse's `1819882399` and
 FollowCourseAdvanced's `1417313534`, both in scenes whose `SpoilsOverride` carries a relic
-composite. Read as the relic. That gives:
+composite. Read as the relic — **wrong, corrected below**. That gave:
 
 ```
 FollowCourse          Brain 1, relic 1                                    spoil: BrautenbourgsFirst (relic)
@@ -775,13 +783,165 @@ FollowBoss            Engine 10, Binary 4, Constant 4, Radar 2, Lazer 2,  spoils
 
 **`liveMode`.** FollowCourse and FollowCourseAdvanced are `liveMode: 1` — the clock is running when
 you arrive, like Avoid. FollowBoss is `liveMode: 0` with `buildOnce: 1`: a build phase, and the
-scene means you to get exactly one. `buildOnce` is **not modelled** in the port.
+scene means you to get exactly one.
 
 That last field is what caught a wrong reading. Both live missions arrive with their core already
 placed — FollowCourse's own copy of the player ship has `Brain@[0,-2]` — so the Brain in the
-inventory is a spare. Building the port with the core moved into the inventory made both missions
-lose at t=0 the moment they went live, and the browser gate said so (`MISSING PARTS Brain@0,-2`)
-where the headless gate had passed.
+inventory looked like a spare. Building the port with the core moved into the inventory made both
+missions lose at t=0 the moment they went live, and the browser gate said so
+(`MISSING PARTS Brain@0,-2`) where the headless gate had passed.
+
+### An inventory quantity is not what the player is offered (2026-08-20)
+
+The scene's `InventoryOverride` is the ceiling, not the offer. `UIState.buildOptions` subtracts
+first, and drops the item entirely when nothing is left:
+
+```csharp
+if (composite != null)
+    placedQty = space.findComposites(c => c.model.id == composite.model.id && c.ship.team == "player").count();
+else
+    placedQty = space.findComponents(c => c.composite == null && c.name == component.name && c.ship.team == "player").count();
+if (placedQty < item.quantity) options.Add(new BuildOptionSpec(item.setQuantity(item.quantity - placedQty)));
+```
+
+Two details carry the whole result: a composite is matched by `model.id`, and a component counts
+only when `candidate.composite == null` — a part inside a composite is invisible to the count.
+
+`tools/corepox-inventory-offered.py` applies the rule to every scene, reading the initial ship's
+child list to separate loose components from composite members. The two `m_FileID` 0 items are not
+relics at all: each is a second copy of **the mission's own hull**, and the mission's own hull is
+already on the board as a `CompositeFn` of the same `model.id`.
+
+```
+FollowCourse          ship: composite UnfinishedOrbDrone + loose Brain
+    composite UnfinishedOrbDrone   qty 1  placed 1  -> NOT OFFERED
+    Brain                          qty 1  placed 1  -> NOT OFFERED
+FollowCourseAdvanced  ship: composite UnwiredOrbDrone + loose Brain, Constant x2
+    Brain                          qty 1  placed 1  -> NOT OFFERED
+    composite UnwiredOrbDrone      qty 1  placed 1  -> NOT OFFERED
+    Constant                       qty 2  placed 2  -> NOT OFFERED
+FollowBoss            ship: loose Brain
+    Brain                          qty 1  placed 1  -> NOT OFFERED
+    the other eight                                 -> OFFERED in full
+```
+
+**Both live Follow missions have an empty BUILD menu.** That is consistent with everything else
+about them — `liveMode: 1`, a brief that only ever talks about wires, and a `solution` that adds
+connections and no components. The port had been offering a spare Brain in all three and two spare
+Constants in FollowCourseAdvanced; those are cut.
+
+It also closes the open item "the build path cannot place a relic". No scene offers a placeable
+composite, because the only two composite items are cancelled by the ship carrying them. The
+`Composite` splice in `loadShipSpec` still does the work for ships that arrive containing one.
+
+The five tutorial scenes with no `InventoryOverride` at all (PlaceBrain, Cocoon, ConnectionLite,
+ManualAim, Connection, Aim, Avoid) draw on the account's carried inventory, which is `GameState` and
+not in any scene. Those quantities in the port stay authored.
+
+### The Orb is MeleeFn, and it was doing a fifth of its damage in the wrong place (2026-08-20)
+
+Tom: *"The orb doesn't seem to do damage when it is overlapping an enemy"*.
+
+`Descriptions.cs:19` says an Orb "causes massive damage to touching components, and blocks incoming
+lazer fire". The behaviour is `MeleeFn`, and it is short enough to quote whole:
+
+```csharp
+public void FixedUpdate() {
+    int n = damageArea.GetContacts(colliders);
+    for (int i = 0; i < n; i++) {
+        ShipComponent other = colliders[i].GetComponent<ShipComponent>();
+        if (other != null) other.damage(damageAmount);
+    }
+}
+```
+
+Every contact, every fixed step. `tools/corepox-orb-melee-probe.py` reads the numbers off
+`Orb.prefab`:
+
+```
+Transform 'Orb'      scale 0.33
+Transform 'weapon'   pos (0.96, 0.96)  scale 1.0
+CircleCollider2D on 'weapon'   m_Radius 1.1   m_Offset (0,0)   m_IsTrigger true
+BoxCollider2D    on 'Orb'      m_Size (3.39, 0.48)             m_IsTrigger false
+MeleeFn on 'Orb': damageAmount = 5
+```
+
+The root is at localScale 0.33, so the child numbers scale with it: the trigger is
+`1.1 * 0.33 = 0.363` world units = **0.567 tiles**, sitting `0.96 * 0.33 = 0.317` world units
+diagonally off the pivot = **0.495 tiles** — the centre of the Orb's own 2×2, to within a rounding.
+(The non-trigger `BoxCollider2D` is the body: `3.39 x 0.48` at 0.33 = 1.748 × 0.248 tiles, the rail
+along the joint edge, which is what the art work measured independently.) `DT` is already 0.02, so
+`damageAmount` needs no rescaling — 5 per tick is 250 dmg/s, the same rate as ramming.
+
+The port had:
+
+```js
+const [wx, wy] = s.worldOf(c);
+const n = this.nearestEnemy(s, wx, wy);
+if (n && n.d < 1.2) n.ship.damage(n.comp, 1);
+```
+
+Three errors compounding, and the reported symptom is the first one:
+
+- `worldOf(c)` is the component's **origin tile**, and the Orb is 2×2. The damage circle sat half a
+  tile off in both axes. An enemy against the far corner is 1.4 tiles from the origin tile — outside
+  the test — while looking thoroughly overlapped, all the more so because the Orb is *drawn* 4.19
+  tiles across.
+- `nearestEnemy` returns one component. Four enemy parts inside the trigger took damage on one.
+- 1 damage where the prefab says 5.
+
+Now: centre on the centroid of `c.tiles` (which are absolute ship cells, already rotated by `c.dir`,
+so this holds for a turned Orb), radius `ORB_R + HIT_R = 0.567 + 0.5 = 1.067` tiles, 5 damage to
+every enemy component inside. Targets are modelled as one `HIT_R` disc at their origin tile, which
+is how the particle path already models them — a beam and an Orb agree about what they are touching.
+
+`tools/corepox-orb-damage-probe.ts` walks a one-tile enemy across a stationary Orb with `collide`
+stubbed out, because ramming also does 5 per contact per tick and would be indistinguishable:
+
+```
+        -1.5   -1 -0.5    0  0.5    1  1.5
+  -1.5     0    0    0    0    0    0    0
+    -1     0    0    0    5    0    0    0
+  -0.5     0    0    5    5    5    0    0
+     0     0    5    5    5    5    5    0
+   0.5     0    0    5    5    5    0    0
+     1     0    0    0    5    0    0    0
+   1.5     0    0    0    0    0    0    0
+
+symmetric about the Orb's centre: true
+two components inside, damage each: [5,5]
+```
+
+**Blast radius.** This is a balance change, not only a bug fix: an Orb now does 5× the damage to
+every part it touches instead of 1× to one. Any corpus arena number computed before today was
+computed against the old Orb, and 228 corpus ships carry one.
+
+### buildOnce, modelled (2026-08-20)
+
+`buildOnce` is FollowBoss and only FollowBoss (`data/corepox/mission-settings.json`, twelve scenes).
+It does two things and neither is "you may not edit":
+
+- `hasBuildBuildOptions()` is `settings.buildOnce && settings.hasPlayed ? false : ...`, and its only
+  callers are `setBottomRight(... ? UIAction.Build : null)`. So pressing play takes the **BUILD**
+  button away and nothing else. Move, rotate, delete and wire are options on the `Selected` menu,
+  and FollowBoss's `InitialSettingsOverride` leaves `no_building`, `no_removing` and
+  `no_connection_creation` all 0.
+- `MissionController.call(modifiedShip)` saves the ship as `current_json` on every change while
+  `!hasPlayed()`, and the retry pad calls `MissionResponse.retry(request, current_json)`. So a retry
+  hands back the ship you took into the fight, not the bare core the scene starts from.
+
+The port models both: `stock()` returns `[]` once `S.hasPlayed`, and `play()` snapshots the spec and
+the remaining inventory into a per-mission `kept` map that `reset()` restores. The inventory rides
+along because a retry re-applies the override and then subtracts `placedQty`, which is the same
+number the session is already holding.
+
+`tools/corepox-buildonce-probe.ts` drives it in a browser and asserts the difference rather than the
+behaviour of one mission:
+
+```
+ok   Cocoon      stock 1->1  parts 1->2 restart 1     <- buildOnce 0: build stays, restart forgets
+ok   FollowBoss  stock 9->0  parts 1->2 restart 2     <- buildOnce 1: build goes, restart remembers
+```
 
 What is still authored: the wires the player is expected to add (a scene stores no connections for
 a loosely placed component), and the reference `solution` builds, which are one answer each.

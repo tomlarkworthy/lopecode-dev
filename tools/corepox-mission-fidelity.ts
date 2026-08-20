@@ -48,14 +48,28 @@ const SUBCLASS: Record<string, any> = {
   // The three Follow scenes, straight out of data/corepox/mission-settings.json.
   // Their InventoryOverride items are PPtr<GameObject> into the component prefabs;
   // tools/corepox-prefab-ids.py resolves each m_PathID by finding the prefab that
-  // declares it. Two items resolve to no prefab (m_FileID 0, so a scene object):
-  // FollowCourse's 1819882399 and FollowCourseAdvanced's 1417313534, both in
-  // scenes whose SpoilsOverride carries a relic composite. Read as the relic.
-  FollowCourse:   {inventory: {Brain: 1}, envelope: grid(5, 7)},
-  FollowCourseAdvanced: {inventory: {Brain: 1, Constant: 2}, envelope: grid(5, 7),
+  // declares it.
+  //
+  // These are the OFFERED quantities, not the override's. UIState.buildOptions
+  // subtracts what the player ship already carries and drops an item that is fully
+  // accounted for -- composites by model.id, components only when
+  // `candidate.composite == null`. tools/corepox-inventory-offered.py applies the
+  // rule to all twelve scenes; it also settles what the two m_FileID 0 items are.
+  // They are NOT relics: each is a second copy of the mission's own hull, and each
+  // mission's ship is already that hull as a CompositeFn, so neither is offered.
+  //
+  //   FollowCourse          composite UnfinishedOrbDrone 1/1, Brain 1/1  -> nothing
+  //   FollowCourseAdvanced  Brain 1/1, composite UnwiredOrbDrone 1/1, Constant 2/2
+  //                                                                     -> nothing
+  //   FollowBoss            Brain 1/1 cancelled, the other eight offered in full
+  //
+  // Both live Follow missions therefore have an empty BUILD menu, which is what
+  // liveMode 1 and a brief that only talks about wires already said.
+  FollowCourse:   {inventory: {}, envelope: grid(5, 7)},
+  FollowCourseAdvanced: {inventory: {}, envelope: grid(5, 7),
                    spoils: {Orb: 1, Binary: 1}},
   FollowBoss:     {inventory: {Engine: 10, Binary: 4, Constant: 4, Radar: 2, Lazer: 2,
-                               LaserTurret2: 2, Orb: 2, Armour: 2, Brain: 1},
+                               LaserTurret2: 2, Orb: 2, Armour: 2},
                    envelope: grid(5, 7), spoils: {Orb: 1, Binary: 1}},
   TwinTurrets:    {inventory: {Explosive: 3, Engine: 3, Constant: 3, Lazer: 2, Armour: 4},
                    envelope: grid(5, 5)},
@@ -116,8 +130,15 @@ const DIVERGENT: Record<string, Record<string, string>> = {
   // was everything the player had. It is not.
   // FollowCourseAdvanced and FollowBoss each report one ship more than we place,
   // and it is the same row in both.
-  FollowCourseAdvanced: {enemies: "the same inert Orb Drone Chassis sits at (1.93, 6.06) in BOTH scenes, has no core and no wires, and is read as the scene copy the relic inventory item points at -- not a fourth ship"},
-  FollowBoss: {enemies: "the same inert Orb Drone Chassis sits at (1.93, 6.06) in BOTH scenes, has no core and no wires, and is read as the scene copy the relic inventory item points at -- not a fourth ship"},
+  // A second UnwiredOrbDrone is parked at (1.93, 6.06) in both scenes with no core
+  // and no wires. FollowCourse parks its spare hull at (648.79, -512.56) instead,
+  // which the 200-tile filter already drops; these two are close enough to read as
+  // a ship and are not one. FollowCourseAdvanced's composite inventory item points
+  // at this object -- which is how it was identified -- and it is never offered
+  // (tools/corepox-inventory-offered.py). FollowBoss has the same parked copy and
+  // no item pointing at it at all.
+  FollowCourseAdvanced: {enemies: "an inert parked copy of the Orb Drone Chassis at (1.93, 6.06), no core and no wires -- the scene template, not a fourth ship"},
+  FollowBoss: {enemies: "an inert parked copy of the Orb Drone Chassis at (1.93, 6.06), no core and no wires -- the scene template, not a fourth ship"},
   SideShooter: {inventory: "balanced around the carried account inventory; roles swapped",
                 enemies: "balanced around the carried account inventory; roles swapped"},
   // TwinTurrets keeps the scene's post placement -- the two laserposts are the

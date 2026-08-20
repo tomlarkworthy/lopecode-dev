@@ -120,11 +120,35 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       (braitenberg 4 islands, seeker 5, proportional 5, rammer 6, sniper 6) are multiple bodies, so
       every balance number measured over ROSTER is measuring debris. Same cause as the ladder --
       hand-authored layouts that predate the real footprints and the joint rule.
-- [ ] **A cut ship in level flight keeps formation.** `Ship.detach` gives the fragment
-      `f.vx,f.vy = parent.velAt(piece)` and `f.w = parent.w`, so with no spin both pieces carry
-      identical velocity forever: measured +0.000 tiles of separation in 3s, against +1.000 at
-      rest (collision push) and +0.477 spinning. Whether the original applied a separation
-      impulse is not recorded.
+- [x] **A split moved everything, and that was the "glitch on losing components".** Tom, 2026-08-20:
+      "when ships lose components their positions seem to glitch. There was quite a lot of math went
+      into preserving inertia to make splitting work correctly, that work seems to be absent."
+      It was absent. `Ship.detach` set `f.x = this.x`, copying the parent's ORIGIN onto the fragment.
+      That is right in Unity, where `Ship.cs:504 newGameObject.transform.position =
+      this.transform.position` works because a transform origin is not a centre of mass. Here
+      `ship.x,y` IS the centre of mass -- it is why `reindex` has to move the origin when a part dies
+      -- so the fragment landed at the PARENT's centre of mass instead of its own:
+
+        a cut 6-tile bar          every part jumps 2.10 tiles
+        a carrier releasing a
+        drone 8 tiles forward     every part jumps 4.25 tiles
+        under spin                145% of the ship's linear momentum invented from nothing
+
+      A corpus carrier ("97. Brain - 25p 14g") was the report: its 12-part drone spawned INSIDE the
+      hull, the Explosives went off on contact, and 6 parts died in the first half second. Fixed, it
+      separates cleanly and all 29 parts are alive 3s later.
+      The fix is `Ship.cs:498 split()` verbatim: place each body at its OWN centre of mass, and give
+      each the pre-split velocity sampled at that centre (`GetRelativePointVelocity` against `cm0`).
+      The parent needs it too -- it keeps its old velocity at its OLD centre otherwise. Both bodies
+      keep `w0`; that does not conserve angular momentum and it is what the original does.
+      Gate: `tools/corepox-split-inertia.ts` -- nothing moves, linear momentum exact.
+      `reindex` was already correct: losing a part with no split moves nothing, spinning or not.
+      **A stale expectation fell out of this.** `corepox-split-probe.ts` asserted that a cut ship's
+      halves "drift apart at rest" and passed on +1.000 tiles. That was the bug: the fragment spawned
+      inside the hull and the collision push shoved it out. `split()` applies NO separation impulse,
+      so two halves that left with the same velocity hold formation, and the probe now says so. That
+      also answers the old open question here -- "whether the original applied a separation impulse
+      is not recorded". It is recorded, in `Ship.cs:498`, and it does not.
 - [ ] **Measure the hull/port layer.** With the particle draw fixed, a frame still costs 67-76ms at
       6x throttle while carrying 4-66 particles, so the cost is elsewhere -- most likely the
       per-frame port numerals (`valueNode`). That is the layer that decides whether ships of
@@ -139,6 +163,17 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       turned out to be readable: player flags and transforms, the 5x7 envelope, the inventories
       (via `tools/corepox-prefab-ids.py`) and `liveMode`. See
       `knowledge/corepox-extracted-design.md`, "Advanced Steering, ported".
+- [x] The `<rect> attribute height: A negative value is not valid. ("-3")` console error is fixed,
+      2026-08-20, and it was never corepox. `tools/corepox-plot-caller-probe.ts` hooks `Plot.plot`
+      in every booted module and attributes each bad rect to the call it happened inside:
+      **@tomlarkworthy/debugger-2**, 1966 plots in 70s, 121 bad rects. Its two `Plot.rect` marks use
+      a fixed `insetTop: 7, insetBottom: 7` on a band scale, and a few rows makes the band narrower
+      than 14px (4 rows -> 11px -> "-3"). Now the margins are pinned and the inset is computed from
+      the band. Probe reads 0 bad rects over 2103 plots. Pushed to the lopecode canonical and to
+      corepox.html. (An earlier session blamed `local-change-history`; that was wrong -- it also
+      calls Plot, but it made no call in this run.)
+      Separately: debugger-2 replots ~30x/second while booted, which is the known 30fps pin. Not
+      touched.
 - [x] `buildOnce` modelled, 2026-08-20. FollowBoss is the only scene of twelve that sets it, and it
       does exactly two things: `hasBuildBuildOptions` hides the BUILD button once `hasPlayed`
       (nothing else — move/rotate/delete/wire are `Selected` options and the scene allows them all),
@@ -186,8 +221,13 @@ Updated 2026-08-20. Ticked only when verified, not when written.
 - [ ] The Orb glow blends additively with the ship's own art but still occludes the board, because
       `shipNode` puts component art inside the `cp-bloom` group and a filter isolates. Faithful
       additive needs the glow painted outside that group, like `LaserTurret2` is special-cased.
-- [ ] Orb damage radius disagrees with the shipped collider: engine says 1.2 tiles, the weapon's
-      `CircleCollider2D` works out at 0.567. The 1.2 came from Tom, the 0.567 is measured.
+- [x] Orb damage rewritten from `MeleeFn`, 2026-08-20, on Tom's report "the orb doesn't seem to do
+      damage when it is overlapping an enemy". Was `nearestEnemy < 1.2` from the ORIGIN tile for 1
+      damage; the trigger is a `CircleCollider2D` r=1.1 at (0.96, 0.96) under a root at scale 0.33,
+      so 0.567 tiles centred on the 2x2, and `damageAmount` is 5, applied to EVERY contact every
+      FixedUpdate. Zone verified symmetric about the Orb's centre and 1.067 tiles across by
+      `tools/corepox-orb-damage-probe.ts`. **Balance change** -- any corpus arena number predating
+      this was measured against a fifth-strength Orb, and 228 corpus ships carry one.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
@@ -421,6 +461,45 @@ One of these leans on structure that already exists:
       The pilot only ever commands engines that are **on the Brain's own island, powered, and unwired**
       (Tom's rule, 2026-08-20: "it should not be able to control disconnected components, only its own
       island"). Islands are read from `Ship.islands()`, so wiring an engine is what hands it to a program.
+- [x] **Relic registry: a design may NAME a prefab instead of carrying it** (Tom, 2026-08-20 —
+      "so we need a relic registry as well for resolving those"). `loadShipSpec` already spliced a
+      `Composite`, which carries its whole sub-ship inline in `param`. 436 of the 2191 corpus designs
+      instead name the prefab as a component type, and `new Ship` threw on them:
+
+      ```
+      LazerHardpoint      417 designs      BrautenbourgsFirst  225 designs
+      DevouringLove         4 designs      (tools/scratch/unimpl.ts, 2026-08-20; the sets overlap)
+      ```
+
+      New engine cell `RELICS`, and the splice resolves a sub-ship from either source. It runs to a
+      fixpoint with a depth cap of 4 rather than once, because a relic may hold a Composite — none of
+      the four shipped ones does, and the cap is also what stops a relic that names itself.
+
+      ```
+      tools/corepox-corpus-load.ts     before          after
+        constructed                    1755 / 2191     2187 / 2191  (99.8%)
+        failures                       LazerHardpoint, BrautenbourgsFirst, DevouringLove
+                                                       4x DevouringLove only
+      ```
+
+      The four definitions are lifted verbatim from the corpus pack's own `relics` field —
+      BrautenbourgsFirst, LazerHardpoint, Minidrone, WeaponStation — not re-recovered. It is a copy
+      because the pack is a shipyard FileAttachment and the shipyard imports the engine, so
+      `tools/corepox-relic-parity.ts` compares the two component by component and wire by wire and
+      exits non-zero on drift. It also asserts the converse: DevouringLove is still the only type any
+      design names that has neither an implementation nor a definition. Minidrone and WeaponStation
+      are shipped but named by no corpus design.
+
+      Spliced designs fight, they do not merely construct (`tools/scratch/relic-fight.ts`):
+
+      ```
+      7AF4D35F  8c raw -> 17c  4w loaded   beats gunBoat at the 30s limit
+      3947FF75 26c raw -> 39c 13w loaded   beats gunBoat at 19.6s
+      ```
+
+      Consumers that filtered on `TYPES` alone had to learn about relics too, or they would keep
+      hiding 432 buildable designs: `corpusIndex.blocked` in the shipyard, `duelRoster` in the duel
+      module, and the lab's "cannot be built" message, which said 436 and now says 4.
 - [x] **`loadShipSpec` discarded a wire's declared port name** — reported by Tom 2026-08-20 as
       "gunBoat does not shoot". It re-derived every port from the cell the wire ends on, which is
       wrong whenever two ports of one component are addressed through the same cell. gunBoat's two
