@@ -1,0 +1,294 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG particle bench</title>
+<style>
+  html,body{margin:0;background:#000;overflow:hidden}
+  svg,canvas{position:absolute;inset:0;width:1280px;height:720px;display:block}
+  #hud{position:absolute;left:8px;top:8px;color:#8fd0ff;font:12px monospace;z-index:9}
+</style>
+<div id="hud"></div>
+<svg id="svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <!-- the shipped corepox neon, verbatim from @tomlarkworthy/corepox-assets -->
+    <filter id="cp-bloom" x="-75%" y="-75%" width="250%" height="250%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="n"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9"   result="w"/>
+      <feMerge><feMergeNode in="w"/><feMergeNode in="n"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="g-dot">
+      <stop offset="0"   stop-color="#ffffff"/>
+      <stop offset="0.4" stop-color="#8fd0ff"/>
+      <stop offset="1"   stop-color="#8fd0ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="g-streak" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#3a7fd0" stop-opacity="0"/>
+    </linearGradient>
+    <symbol id="s-dot" viewBox="-1 -1 2 2"><circle r="1" fill="#8fd0ff"/></symbol>
+    <symbol id="s-tri" viewBox="-1 -1 2 2"><path d="M0 -1 L.87 .8 L-.87 .8 Z" fill="#8fd0ff"/></symbol>
+  </defs>
+  <g id="root"></g>
+</svg>
+<canvas id="cv" width="1280" height="720" style="display:none"></canvas>
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const W = 1280, H = 720, R = 4;
+const svg = document.getElementById("svg"), root = document.getElementById("root");
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const hud = document.getElementById("hud");
+
+// ---- the particle state every technique draws from. One sim, so the only thing
+// that differs between runs is the DRAW. Ballistic + wrap, like exhaust: constant
+// velocity, short life, alpha ramps down over the life.
+let P = [];
+function seed(n) {
+  P = Array.from({length: n}, () => {
+    const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 140;
+    return {x: Math.random() * W, y: Math.random() * H,
+            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            age: Math.random(), ttl: 0.6 + Math.random() * 0.8};
+  });
+}
+function step(dt) {
+  for (const p of P) {
+    p.x += p.vx * dt; p.y += p.vy * dt; p.age += dt / p.ttl;
+    if (p.age > 1) { p.age = 0; p.x = Math.random() * W; p.y = Math.random() * H; }
+    if (p.x < 0) p.x += W; else if (p.x > W) p.x -= W;
+    if (p.y < 0) p.y += H; else if (p.y > H) p.y -= H;
+  }
+}
+const alpha = p => (1 - p.age).toFixed(2);
+const ang = p => Math.atan2(p.vy, p.vx) * 180 / Math.PI;
+
+// ---- helpers -------------------------------------------------------------
+function clear() { root.textContent = ""; root.removeAttribute("filter"); cv.style.display = "none"; svg.style.display = "block"; }
+function pool(tag, n, init) {
+  const g = document.createElementNS(NS, "g"); root.appendChild(g);
+  const els = [];
+  for (let i = 0; i < n; i++) { const e = document.createElementNS(NS, tag); init(e, i); g.appendChild(e); els.push(e); }
+  return {g, els};
+}
+const BUCKETS = 8;
+const RAMP = ["#ffffff","#dff0ff","#bfe2ff","#9fd4ff","#7fc0f5","#5f9ad8","#3f6fb0","#274a80"];
+
+// ---- techniques ----------------------------------------------------------
+// Each returns {draw()}. setup cost is not measured; only the per-frame draw is.
+const TECH = {};
+
+TECH["circle-recreate"] = () => {           // what corepox-render does today
+  const g = document.createElementNS(NS, "g"); root.appendChild(g);
+  return {draw() {
+    g.textContent = "";
+    for (const p of P) {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", p.x.toFixed(1)); c.setAttribute("cy", p.y.toFixed(1));
+      c.setAttribute("r", R); c.setAttribute("fill", "#8fd0ff");
+      c.setAttribute("opacity", alpha(p));
+      g.appendChild(c);
+    }
+  }};
+};
+
+TECH["circle-attr"] = () => {
+  const {els} = pool("circle", P.length, e => { e.setAttribute("r", R); e.setAttribute("fill", "#8fd0ff"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i], e = els[i];
+    e.setAttribute("cx", p.x.toFixed(1)); e.setAttribute("cy", p.y.toFixed(1)); } }};
+};
+
+TECH["circle-attr-opacity"] = () => {       // + a per-particle fade
+  const {els} = pool("circle", P.length, e => { e.setAttribute("r", R); e.setAttribute("fill", "#8fd0ff"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i], e = els[i];
+    e.setAttribute("cx", p.x.toFixed(1)); e.setAttribute("cy", p.y.toFixed(1));
+    e.setAttribute("opacity", alpha(p)); } }};
+};
+
+TECH["circle-transform"] = () => {
+  const {els} = pool("circle", P.length, e => { e.setAttribute("r", R); e.setAttribute("fill", "#8fd0ff"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i];
+    els[i].setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`); } }};
+};
+
+TECH["circle-css-transform"] = () => {
+  const {els} = pool("circle", P.length, e => { e.setAttribute("r", R); e.setAttribute("fill", "#8fd0ff"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i];
+    els[i].style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px)`; } }};
+};
+
+TECH["circle-gradient"] = () => {           // radial-gradient fill instead of flat
+  const {els} = pool("circle", P.length, e => { e.setAttribute("r", R); e.setAttribute("fill", "url(#g-dot)"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i], e = els[i];
+    e.setAttribute("cx", p.x.toFixed(1)); e.setAttribute("cy", p.y.toFixed(1)); } }};
+};
+
+TECH["ellipse-streak"] = () => {            // stretched along velocity = motion blur
+  const {els} = pool("ellipse", P.length, e => { e.setAttribute("rx", R * 2.5); e.setAttribute("ry", R * 0.7); e.setAttribute("fill", "#8fd0ff"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i];
+    els[i].setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang(p).toFixed(0)})`); } }};
+};
+
+TECH["poly-tri"] = () => {
+  const {els} = pool("polygon", P.length, e => { e.setAttribute("points", "0,-5 4.3,4 -4.3,4"); e.setAttribute("fill", "#8fd0ff"); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i];
+    els[i].setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang(p).toFixed(0)})`); } }};
+};
+
+TECH["use-symbol"] = () => {
+  const {els} = pool("use", P.length, e => {
+    e.setAttribute("href", "#s-dot"); e.setAttribute("width", R * 2); e.setAttribute("height", R * 2); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i], e = els[i];
+    e.setAttribute("x", (p.x - R).toFixed(1)); e.setAttribute("y", (p.y - R).toFixed(1)); } }};
+};
+
+TECH["use-symbol-tri"] = () => {
+  const {els} = pool("use", P.length, e => {
+    e.setAttribute("href", "#s-tri"); e.setAttribute("width", R * 2); e.setAttribute("height", R * 2);
+    e.setAttribute("x", -R); e.setAttribute("y", -R); });
+  return {draw() { for (let i = 0; i < P.length; i++) { const p = P[i];
+    els[i].setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang(p).toFixed(0)})`); } }};
+};
+
+TECH["path-dots"] = () => {                 // ONE node: dots as round-capped zero-length segments
+  const e = document.createElementNS(NS, "path"); root.appendChild(e);
+  e.setAttribute("stroke", "#8fd0ff"); e.setAttribute("stroke-width", R * 2);
+  e.setAttribute("stroke-linecap", "round"); e.setAttribute("fill", "none");
+  return {draw() {
+    let d = "";
+    for (const p of P) d += `M${p.x.toFixed(1)} ${p.y.toFixed(1)}h0`;
+    e.setAttribute("d", d);
+  }};
+};
+
+TECH["path-dots-buckets"] = () => {         // 8 nodes: one per alpha/colour step
+  const els = RAMP.map(col => { const e = document.createElementNS(NS, "path"); root.appendChild(e);
+    e.setAttribute("stroke", col); e.setAttribute("stroke-width", R * 2);
+    e.setAttribute("stroke-linecap", "round"); e.setAttribute("fill", "none"); return e; });
+  const buf = new Array(BUCKETS);
+  return {draw() {
+    for (let i = 0; i < BUCKETS; i++) buf[i] = "";
+    for (const p of P) {
+      let b = (p.age * BUCKETS) | 0; if (b > BUCKETS - 1) b = BUCKETS - 1;
+      buf[b] += `M${p.x.toFixed(1)} ${p.y.toFixed(1)}h0`;
+    }
+    for (let i = 0; i < BUCKETS; i++) els[i].setAttribute("d", buf[i]);
+  }};
+};
+
+TECH["path-streak-buckets"] = () => {       // 8 nodes, each dot a short velocity streak
+  const els = RAMP.map(col => { const e = document.createElementNS(NS, "path"); root.appendChild(e);
+    e.setAttribute("stroke", col); e.setAttribute("stroke-width", R * 1.4);
+    e.setAttribute("stroke-linecap", "round"); e.setAttribute("fill", "none"); return e; });
+  const buf = new Array(BUCKETS);
+  return {draw() {
+    for (let i = 0; i < BUCKETS; i++) buf[i] = "";
+    for (const p of P) {
+      let b = (p.age * BUCKETS) | 0; if (b > BUCKETS - 1) b = BUCKETS - 1;
+      buf[b] += `M${p.x.toFixed(1)} ${p.y.toFixed(1)}l${(p.vx * 0.05).toFixed(1)} ${(p.vy * 0.05).toFixed(1)}`;
+    }
+    for (let i = 0; i < BUCKETS; i++) els[i].setAttribute("d", buf[i]);
+  }};
+};
+
+TECH["path-arcs"] = () => {                 // ONE node, real filled circles via arcs
+  const e = document.createElementNS(NS, "path"); root.appendChild(e);
+  e.setAttribute("fill", "#8fd0ff");
+  return {draw() {
+    let d = "";
+    for (const p of P) {
+      const x = p.x.toFixed(1), y = p.y.toFixed(1);
+      d += `M${x} ${y}m${-R} 0a${R} ${R} 0 1 0 ${R * 2} 0a${R} ${R} 0 1 0 ${-R * 2} 0`;
+    }
+    e.setAttribute("d", d);
+  }};
+};
+
+TECH["path-tris"] = () => {                 // ONE node, filled triangles, rotated in JS
+  const e = document.createElementNS(NS, "path"); root.appendChild(e);
+  e.setAttribute("fill", "#8fd0ff");
+  return {draw() {
+    let d = "";
+    for (const p of P) {
+      const s = Math.hypot(p.vx, p.vy) || 1, ux = p.vx / s, uy = p.vy / s;
+      const nx = -uy, ny = ux, L = R * 2.2, B = R * 0.9;
+      d += `M${(p.x + ux * L).toFixed(1)} ${(p.y + uy * L).toFixed(1)}`
+        +  `L${(p.x + nx * B).toFixed(1)} ${(p.y + ny * B).toFixed(1)}`
+        +  `L${(p.x - nx * B).toFixed(1)} ${(p.y - ny * B).toFixed(1)}Z`;
+    }
+    e.setAttribute("d", d);
+  }};
+};
+
+TECH["path-dots-gradstroke"] = () => {      // one node, gradient stroke instead of flat
+  const e = document.createElementNS(NS, "path"); root.appendChild(e);
+  e.setAttribute("stroke", "url(#g-streak)"); e.setAttribute("stroke-width", R * 2);
+  e.setAttribute("stroke-linecap", "round"); e.setAttribute("fill", "none");
+  return {draw() {
+    let d = "";
+    for (const p of P) d += `M${p.x.toFixed(1)} ${p.y.toFixed(1)}h0`;
+    e.setAttribute("d", d);
+  }};
+};
+
+// --- the same two, under the shipped neon filter --------------------------
+TECH["path-dots-bloom"] = () => { const t = TECH["path-dots"](); root.setAttribute("filter", "url(#cp-bloom)"); return t; };
+TECH["path-dots-buckets-bloom"] = () => { const t = TECH["path-dots-buckets"](); root.setAttribute("filter", "url(#cp-bloom)"); return t; };
+TECH["circle-attr-bloom"] = () => { const t = TECH["circle-attr"](); root.setAttribute("filter", "url(#cp-bloom)"); return t; };
+TECH["circle-recreate-bloom"] = () => { const t = TECH["circle-recreate"](); root.setAttribute("filter", "url(#cp-bloom)"); return t; };
+
+TECH["canvas2d"] = () => {                  // control: what a raster surface costs
+  svg.style.display = "none"; cv.style.display = "block";
+  return {draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#8fd0ff";
+    for (const p of P) { ctx.globalAlpha = 1 - p.age; ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 6.283); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }};
+};
+
+TECH["css-anim-spawn"] = () => {            // declarative: JS only spawns/reaps
+  const g = document.createElementNS(NS, "g"); root.appendChild(g);
+  const st = document.createElementNS(NS, "style");
+  st.textContent = `@keyframes fly{from{opacity:1}to{opacity:0}} .fp{animation:fly var(--t) linear forwards}`;
+  g.appendChild(st);
+  const live = [];
+  return {draw() {
+    // hold the population at P.length: reap the expired, spawn the shortfall
+    for (let i = live.length - 1; i >= 0; i--) if (performance.now() > live[i].die) { live[i].el.remove(); live.splice(i, 1); }
+    while (live.length < P.length) {
+      const p = P[live.length % P.length];
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("r", R); c.setAttribute("fill", "#8fd0ff"); c.setAttribute("class", "fp");
+      c.style.setProperty("--t", p.ttl + "s");
+      c.style.transform = `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px)`;
+      c.style.transition = `transform ${p.ttl}s linear`;
+      g.appendChild(c);
+      requestAnimationFrame(() => { c.style.transform =
+        `translate(${(p.x + p.vx * p.ttl).toFixed(1)}px,${(p.y + p.vy * p.ttl).toFixed(1)}px)`; });
+      live.push({el: c, die: performance.now() + p.ttl * 1000});
+    }
+  }};
+};
+
+// ---- harness -------------------------------------------------------------
+// Metric is the FRAME INTERVAL, not JS time: a technique can be cheap in script
+// and still miss vsync in raster/composite, and only the interval sees that.
+// `js` is reported alongside so the two costs can be told apart.
+window.run = async function run(name, n, frames = 100, warm = 25) {
+  clear();
+  seed(n);
+  const t = TECH[name]();
+  const iv = [], js = [];
+  let last = 0, i = 0;
+  return new Promise(res => {
+    const tick = now => {
+      step(1 / 60);
+      const a = performance.now(); t.draw(); const b = performance.now();
+      if (last && i >= warm) { iv.push(now - last); js.push(b - a); }
+      last = now; i++;
+      hud.textContent = `${name} n=${n} ${i}/${frames + warm}`;
+      if (i < frames + warm) requestAnimationFrame(tick); else res({name, n, iv, js});
+    };
+    requestAnimationFrame(tick);
+  });
+};
+window.TECHS = Object.keys(TECH);
+</script>

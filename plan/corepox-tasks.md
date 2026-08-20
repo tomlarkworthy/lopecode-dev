@@ -31,6 +31,17 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       Engine's silhouette was missing its 4.16 bright stroke on two of three shapes, not
       misaligned — `corepox-art-ink.py` 7/8 → 8/8. Evidence in
       `knowledge/corepox-shipped-ui-observed.md`, "Four more complaints".
+- [x] Engine exhaust redrawn as one path per colour (2026-08-20). The old `fx` layer built a node
+      per particle each frame inside the bloomed group -- the worst of 22 techniques measured
+      (13fps at n=2000, 6x throttle; the lane draw is 120fps at 2.3ms). Bloom turns out to be
+      free (priced per filter-region area, not per particle) and per-particle opacity and
+      gradients are the expensive embellishments. Sheet, ceiling and the corpus arithmetic for
+      1000s of components are in `knowledge/svg-particle-performance.md`; bench is
+      `tools/bench/svg-particles.*`. Gates: qa-campaign 9/9, camera-probe pass, boot 0 errors.
+- [ ] **Measure the hull/port layer.** With the particle draw fixed, a frame still costs 67-76ms at
+      6x throttle while carrying 4-66 particles, so the cost is elsewhere -- most likely the
+      per-frame port numerals (`valueNode`). That is the layer that decides whether ships of
+      1000s of components are possible, not the exhaust.
 - [ ] **Port the second campaign, "Advanced Steering".** Read out of the 1.49 APK's `level0` on
       2026-08-20: `FollowCourse` ("Yin opposses Yang"), `FollowCourseAdvanced` ("Zero Negates
       Something"), `FollowBoss` ("Boss: The Assassin"). All three shipped, all three are already in
