@@ -38,6 +38,20 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       gradients are the expensive embellishments. Sheet, ceiling and the corpus arithmetic for
       1000s of components are in `knowledge/svg-particle-performance.md`; bench is
       `tools/bench/svg-particles.*`. Gates: qa-campaign 9/9, camera-probe pass, boot 0 errors.
+- [x] The 2191-design corpus is in the notebook (2026-08-20). `corpus.json.gz` (394 KB) rides as a
+      file attachment on `@tomlarkworthy/corepox-shipyard`, which unpacks it in userspace with
+      DecompressionStream; `unpackCorpus` is a hand port of the inverse in
+      `tools/cloud/corpus-pack.py` and `tools/corepox-corpus-parity.ts` holds the two to
+      bit-identical output over all 2191 designs and 2196 ratings. The lab arena picks a side from
+      either the authored ships or the corpus, over a datalist labelled with parts/wires/rating/
+      matches played, and matches them with the real `World.step`. Gate:
+      `tools/corepox-corpus-arena.mjs`.
+- [ ] **436 of the 2191 designs cannot be built.** They name components this engine does not
+      implement: `LazerHardpoint` (278), `BrautenbourgsFirst` (154), `DevouringLove` (4). The
+      picker marks them and the arena says which component is missing instead of throwing, but
+      "match any two ships in the corpus" is 1755 of 2191 until those three are ported. Measured
+      by `tools/corepox-corpus-load.ts`, which also reports 655 of 18028 wires dropped (3.6%) and
+      274 of the 1755 loading as more than one island.
 - [ ] **Measure the hull/port layer.** With the particle draw fixed, a frame still costs 67-76ms at
       6x throttle while carrying 4-66 particles, so the cost is elsewhere -- most likely the
       per-frame port numerals (`valueNode`). That is the layer that decides whether ships of
@@ -254,6 +268,31 @@ One of these leans on structure that already exists:
       Unknown: whether the solver can be written so its failures read as *the ship's* fault rather
       than the solver's. The CoM/torque-arm finding (42% of corpus heavy ships steer badly) is the
       test case.
+- [x] **The solver works, and its failures are the ship's.** Measured 2026-08-20, `tools/corepox-autopilot.ts`.
+      `Ship.force` is linear in throttle, so throttles -> (ax, ay, alpha) is a constant 3xn matrix and
+      allocation is a box-constrained least squares over f in [0,1]^n (median n = 3 engines, max 13;
+      `tools/corepox-actuation.ts`). Flying 200 corpus ships to a waypoint 25 tiles off, 40s cap,
+      arrival < 3 tiles, engine wires cut so the pilot owns the nozzles:
+
+      ```
+                              arrived   median   ships that can only yaw one way
+        power budget ON        45.0%     12.6s    17.8% arrived  (n=73)
+        power budget OFF       70.5%     12.6s     3.1% arrived  (n=32)
+      ```
+
+      The split is the point: **83.3% of ships that can torque both ways arrive, against 3.1% of those
+      that cannot.** The solver does not distinguish them — it is handed the same matrix and returns
+      the best throttle set either way — so the failure is the build's, which is what
+      `:251` said had to be true and could not be assumed.
+      Two findings fell out of getting there, both recorded as comments at the site:
+      the sign of `geom.unit` (+Y down, clockwise from up) put every ship's thrust 180 degrees out
+      while heading error read near zero; and an unpowered engine still accepts an input it will
+      never act on, so leaving brownout-out engines in the matrix made the allocator commit thrust
+      to dead nozzles and sit still.
+- [ ] **Brownout costs 25pp of pilotability** (45.0% -> 70.5%, same run as above) and turns 41 of 200
+      ships into one-way-yaw hulls that cannot be flown at all. Not an argument to remove it — it is
+      an argument that the invented-mechanic decision at the top of this section is now load-bearing
+      for the piloted mode, not just for combat balance.
 - [ ] **Wiring becomes automation, not a prerequisite.** If the player has hands, a wire must buy
       something hands cannot do at the same time (point defence while dodging, a range gate while
       turning). Undesigned. Falsifiable early: if a wire only replicates a key press, it is a chore.
