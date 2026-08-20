@@ -17,7 +17,8 @@ p.on("console", m => { if (m.type() === "error") errs.push(m.text()); });
 p.on("pageerror", e => errs.push("pageerror: " + e.message));
 await p.goto("file://" + process.cwd() + "/lopebooks/notebooks/corepox.html" +
   "#view=R100(S100(@tomlarkworthy/corepox-game))");
-await p.waitForFunction(() => document.body.innerText.includes("1/9"), {timeout: 60000});
+// the HUD counter is "1/<n>", and n moves whenever a mission is added
+await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
 
 const qa = () => p.evaluateHandle(() => {
   const m = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/corepox-game");

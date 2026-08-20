@@ -56,18 +56,26 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       6x throttle while carrying 4-66 particles, so the cost is elsewhere -- most likely the
       per-frame port numerals (`valueNode`). That is the layer that decides whether ships of
       1000s of components are possible, not the exhaust.
-- [ ] **Port the second campaign, "Advanced Steering".** Read out of the 1.49 APK's `level0` on
-      2026-08-20: `FollowCourse` ("Yin opposses Yang"), `FollowCourseAdvanced` ("Zero Negates
-      Something"), `FollowBoss` ("Boss: The Assassin"). All three shipped, all three are already in
-      `scratch/corepox-missions.json`, and none is in the port. They are the Braitenberg content
-      (`Radar -> Binary MINUS -> two Engines`) and they need the **Composite** component, which
-      missions do not currently support. Evidence in `knowledge/corepox-extracted-design.md`,
-      "The campaign, read from the shipped build".
-- [ ] **Two campaigns, not one flat list.** The port shows 9 missions in one dropdown. The shipped
+- [x] **Port the second campaign, "Advanced Steering".** `FollowCourse` ("Yin opposses Yang"),
+      `FollowCourseAdvanced` ("Zero negates something"), `FollowBoss` ("Boss: the Gun Boat"), done
+      2026-08-20. `corepox-play-missions.ts` 12/12, `corepox-qa-campaign.ts` 12/12 by clicking,
+      `corepox-mission-fidelity.ts` all 12 match. The blocker written here -- "they need the
+      Composite component, which missions do not currently support" -- was wrong twice over:
+      `loadShipSpec` has spliced Composites since the corpus work, and the scenes place the
+      relevant hulls expanded anyway. What they actually needed was the scene override data, which
+      turned out to be readable: player flags and transforms, the 5x7 envelope, the inventories
+      (via `tools/corepox-prefab-ids.py`) and `liveMode`. See
+      `knowledge/corepox-extracted-design.md`, "Advanced Steering, ported".
+- [ ] `buildOnce: 1` is not modelled. FollowBoss is the only mission that sets it: the scene means
+      you to get one build phase, and the port lets you rebuild between attempts.
+- [ ] The build path cannot place a **relic**. FollowCourse and FollowCourseAdvanced both offer one
+      in the inventory (a `PPtr` to a scene composite), and `commitBuild` takes a bare type name,
+      so only the Brain is offered. Placing a relic means placing a `Composite` with its `param`.
+- [ ] **Two campaigns, not one flat list.** The port shows 12 missions in one dropdown. The shipped
       game groups them: `tutorial` (7) and `Advanced Steering` (3), each with a `displayName` and a
       `minPlayerRating` gate that has not been read.
 - [ ] `SideShooter` and `TwinTurrets` are in NO campaign and not in the 1.49 scene list. The port
-      ships them as missions 8 and 9. Either mark them as an addition or drop them; right now the
+      ships them as missions 11 and 12. Either mark them as an addition or drop them; right now the
       port silently presents them as recovered content.
 - [ ] Cutscenes have keys and no text. Every mission carries an `intro`/`outro` cutscene key
       (`seed`, `armour`, `connectlite`, `manualaim`, `connect`, `aim`, `avoid`, `follow1`,

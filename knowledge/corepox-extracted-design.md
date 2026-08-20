@@ -165,6 +165,12 @@ Radar.prefab       binary     LaserTurret2, Lazer, Orb — all binary
 11 of 14 component prefabs are Unity **binary**-serialised, so `maxHp`, `hyperspeed`, occupancy
 footprints and connector offsets are not extractable without opening the project in Unity.
 
+**Narrowed 2026-08-20.** Binary serialisation is not opaque for everything. A prefab's own object
+ids are readable as raw int64s, which is enough to invert `PPtr` references pointing *at* it —
+`tools/corepox-prefab-ids.py` uses that to decode every mission's `InventoryOverride` into component
+names (see "Advanced Steering, ported"). The field *values* inside a binary prefab are still gone;
+what is recoverable is identity, not tuning.
+
 Worse, the two readable ones disagree with the shipped data: `Brain.prefab` says `maxHp: 20`, and
 every Brain in all 492 corpus ships carries `"hp":50`. One of those is stale and the source does not
 say which.
@@ -510,6 +516,10 @@ the port was built on and the diff is the interesting part.
 | 11 | TwinTurrets | `destroy enemy cores` | two independent loops |
 | 12 | SideShooter | `defend your core` | free-form combat |
 
+The three `Follow*` rows above are wrong in every column that matters — they are one campaign
+later, they teach the opposite of what the prompts suggested, and the player flies the ship the
+table calls the lesson. See "Advanced Steering, ported (2026-08-20)".
+
 **The `FollowCourse` scene contains a Composite named `Brautenbourgs First`, and a prompt reading
 `Braitenberg 1`.** Braitenberg vehicles are the canonical toy for teaching that crossing two
 sensor→motor wires turns avoidance into pursuit. So the original design *already* used a pre-built
@@ -573,6 +583,119 @@ The left column is the cutscene key either way: `Mission.load` calls
 `Cutscenes.lookup(request.mission.intro)`, and `seed`/`armour`/`follow1` are cutscene names, not
 mission names. **No `starRequirement` or `minPlayerRating` value has been read**; they are ints, not
 strings, and the extractor only recovers strings.
+
+### Advanced Steering, ported (2026-08-20)
+
+All three are in the port and all three complete by clicking:
+`corepox-play-missions.ts` 12/12 with the reference build, `corepox-qa-campaign.ts` 12/12 through the
+browser UI, `corepox-mission-fidelity.ts` "all 12 missions match the original".
+
+They are the **best-recovered missions in the game**, and the reason is that they have no
+`MissionController` subclass under `Assets/scripts/scenes/missions/`. Everything the subclass would
+have held in C# is instead sitting in the scene as an override component, and overrides serialise
+as data. Four things came out that the earlier write-up above lists as unrecoverable:
+
+**Who the player is.** `data/corepox/scene-transforms.json` carries a `player` flag per ship, set
+from `MissionController.initialShip`, plus `tx`/`ty` in tile coordinates — the same pair that puts
+Avoid's mine at `-9.73`, which is how the units were checked. It contradicted every reading arrived
+at from the prompt lists:
+
+```
+FollowCourse          player = UnfinishedOrbDrone  (3.12, 0)     enemy = Brautenbourgs First (-2.55, -11.52) a=149.36
+FollowCourseAdvanced  player = UnwiredOrbDrone     (0, 1.56)     enemy = Brautenbourgs First (15.16, -16.09) a=226.62
+FollowBoss            player = Brain               (0, 0)        enemies = GunBoatBoss (35.94, -19.22), Spike (-46.88, 1.56), Spike (1.56, 46.88)
+```
+
+You fly the *unfinished* drone and the Braitenberg vehicle is the enemy — the opposite of the
+reading the prompts suggested, where "Brautenbourgs First/Brain" looked like a label on your own
+ship. Positions in the port are enemy-minus-player, because `newSession` always starts you at the
+origin. Two rows per scene sit at `(648.79, -512.56)`; those are inactive template copies, and the
+fidelity gate now filters anything past 200 tiles.
+
+**The build envelope.** `BuildOverrideSquare` 5 wide by 7 high, all three.
+
+**The inventory.** An `InventoryOverride` item is a `PPtr<GameObject>` — `m_FileID` into the scene's
+external references and `m_PathID` into that prefab. The externals table needs the `.meta` guids and
+the recovered tree has none, so the map was built the other way round:
+`tools/corepox-prefab-ids.py` searches every prefab for the id itself. `Armour.prefab` and
+`Brain.prefab` are text YAML and declare it as an anchor (`--- !u!1 &1235298670980640`); the other
+nine are binary format 20 with the type tree inlined, and carry it as a little-endian int64 in the
+object table, which is findable without parsing the format.
+
+```
+1235298670980640  Armour        184678            Radar
+161910            Brain         186134            Binary
+146962            Lazer         193166            Explosive
+158382            Engine        195828            LaserTurret2
+169670            Constant      1417436553097400  Orb
+```
+
+Two items resolve to no prefab (`m_FileID` 0, so a scene object): FollowCourse's `1819882399` and
+FollowCourseAdvanced's `1417313534`, both in scenes whose `SpoilsOverride` carries a relic
+composite. Read as the relic. That gives:
+
+```
+FollowCourse          Brain 1, relic 1                                    spoil: BrautenbourgsFirst (relic)
+FollowCourseAdvanced  Brain 1, relic 1, Constant 2                        spoils: Orb, Binary
+FollowBoss            Engine 10, Binary 4, Constant 4, Radar 2, Lazer 2,  spoils: Orb, Binary
+                      LaserTurret2 2, Orb 2, Armour 2, Brain 1
+```
+
+**`liveMode`.** FollowCourse and FollowCourseAdvanced are `liveMode: 1` — the clock is running when
+you arrive, like Avoid. FollowBoss is `liveMode: 0` with `buildOnce: 1`: a build phase, and the
+scene means you to get exactly one. `buildOnce` is **not modelled** in the port.
+
+That last field is what caught a wrong reading. Both live missions arrive with their core already
+placed — FollowCourse's own copy of the player ship has `Brain@[0,-2]` — so the Brain in the
+inventory is a spare. Building the port with the core moved into the inventory made both missions
+lose at t=0 the moment they went live, and the browser gate said so (`MISSING PARTS Brain@0,-2`)
+where the headless gate had passed.
+
+What is still authored: the wires the player is expected to add (a scene stores no connections for
+a loosely placed component), and the reference `solution` builds, which are one answer each.
+FollowBoss's is searched rather than chosen — `tools/corepox-boss-search.ts` rejects layouts that
+overlap, come apart or exceed the core's 20 power, then simulates. Every fixed-`Lazer` hull it tried
+killed nothing in 240s, because a ship that steers by bearing never lines a fixed gun up; swapping
+in the auto-aiming `LaserTurret2` takes a core in 41s and loses no parts.
+
+### The a/b question, settled, and an engine bug it found (2026-08-20)
+
+`FollowCourse`'s enemy composite carries the values the game last saved into it, and they are a
+four-way cross-check nobody had used:
+
+```
+TIMES  a=102.83528137207031   <- a radar angle
+       b=180.0                <- the Constant at [2,1]
+       output=18758.390625
+MINUS  b=18758.390625         <- the TIMES output
+       output=-19004.55078125
+```
+
+`loadShipSpec` resolved **every one of those to the opposite port**. Both Binaries in that composite
+are sideways (`dir: "left"` and `dir: "right"`), and two rotations in `loadShipSpec` were the
+forward rotation where they should have been its inverse — invisible for `up`/`down`, which are
+their own inverses, and exactly backwards for `left`/`right`. `rotTile` is the authority, since it
+is what decides where a component's cells actually land; `find()` maps world→local and must invert
+it, and the Composite splice maps local→world and must match it. Neither did.
+
+`tools/corepox-rot-probe.ts` loads all 892 corpus ships under each convention:
+
+```
+baseline               wired 4621  dropped 63 (1.35%)  multi-island 137  overlapping 53
+find swapped           wired 4559  dropped 125 (2.67%) multi-island 137  overlapping 53
+find+splice swapped    wired 4683  dropped  1 (0.02%)  multi-island 100  overlapping  0
+```
+
+Fixing only `find` makes it worse, which is why this survived: the splice still places sub-components
+the wrong way round, so the port cells stop matching. **Fifty-three player-saved ships self-overlapped
+before and none do after** — a ship a player built and saved cannot self-overlap, so zero is the
+answer that has to be right. Blast radius checked: `corepox-play-missions` unchanged at 9/9 before
+the new missions, `corepox-spec-fidelity`, `corepox-type-fidelity`, `corepox-selfoverlap` and
+`corepox-engine-test` all unchanged.
+
+The comment on `PORTS.Binary` had claimed FollowCourse's TIMES Binary as independent confirmation
+that `a` is the left cell. Under the old rotation it confirmed nothing — it resolved the radar into
+`b`. It does now.
 
 ### What the cloud added, and what it did not
 

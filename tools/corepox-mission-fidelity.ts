@@ -45,6 +45,18 @@ const SUBCLASS: Record<string, any> = {
   ManualAim:      {spoils: {LaserTurret2: 1}},
   // Base MissionController + the scene's own overrides
   SideShooter:    {inventory: {Lazer: 1, Armour: 1}, envelope: grid(3, 3), spoils: {Lazer: 1}},
+  // The three Follow scenes, straight out of data/corepox/mission-settings.json.
+  // Their InventoryOverride items are PPtr<GameObject> into the component prefabs;
+  // tools/corepox-prefab-ids.py resolves each m_PathID by finding the prefab that
+  // declares it. Two items resolve to no prefab (m_FileID 0, so a scene object):
+  // FollowCourse's 1819882399 and FollowCourseAdvanced's 1417313534, both in
+  // scenes whose SpoilsOverride carries a relic composite. Read as the relic.
+  FollowCourse:   {inventory: {Brain: 1}, envelope: grid(5, 7)},
+  FollowCourseAdvanced: {inventory: {Brain: 1, Constant: 2}, envelope: grid(5, 7),
+                   spoils: {Orb: 1, Binary: 1}},
+  FollowBoss:     {inventory: {Engine: 10, Binary: 4, Constant: 4, Radar: 2, Lazer: 2,
+                               LaserTurret2: 2, Orb: 2, Armour: 2, Brain: 1},
+                   envelope: grid(5, 7), spoils: {Orb: 1, Binary: 1}},
   TwinTurrets:    {inventory: {Explosive: 3, Engine: 3, Constant: 3, Lazer: 2, Armour: 4},
                    envelope: grid(5, 5)},
 };
@@ -102,6 +114,10 @@ const DIVERGENT: Record<string, Record<string, string>> = {
   // the gun with (LaserFn.cs:18 fires only on trigger.value > 0, and no component
   // prefab carries a value override). That reasoning assumed the InventoryOverride
   // was everything the player had. It is not.
+  // FollowCourseAdvanced and FollowBoss each report one ship more than we place,
+  // and it is the same row in both.
+  FollowCourseAdvanced: {enemies: "the same inert Orb Drone Chassis sits at (1.93, 6.06) in BOTH scenes, has no core and no wires, and is read as the scene copy the relic inventory item points at -- not a fourth ship"},
+  FollowBoss: {enemies: "the same inert Orb Drone Chassis sits at (1.93, 6.06) in BOTH scenes, has no core and no wires, and is read as the scene copy the relic inventory item points at -- not a fourth ship"},
   SideShooter: {inventory: "balanced around the carried account inventory; roles swapped",
                 enemies: "balanced around the carried account inventory; roles swapped"},
   // TwinTurrets keeps the scene's post placement -- the two laserposts are the
@@ -152,7 +168,13 @@ for (const ms of MISSIONS) {
     // `player` is set from MissionController.initialShip, not guessed from names --
     // in SideShooter and TwinTurrets the player is a lone Brain and the armed ship
     // is the enemy, which is the opposite of how they are shipped here.
-    const foes = rows.filter(r => !r.player);
+    // Positions in the file are absolute; ours are relative to the player, because
+    // newSession always starts you at the origin. And a scene keeps inactive
+    // template copies parked hundreds of tiles out -- FollowCourse has two at
+    // (648.79, -512.56) -- so anything past the arena is not an enemy.
+    const me = rows.find(r => r.player) ?? {tx: 0, ty: 0};
+    const foes = rows.filter(r => !r.player && Math.hypot(r.tx, r.ty) < 200)
+                     .map(r => ({...r, tx: r.tx - me.tx, ty: r.ty - me.ty}));
     const got = (ms.enemies ?? []).map((e: any) => e);
     if (foes.length !== got.length)
       lines.push(`  enemies: ${got.length}, scene has ${foes.length} (${foes.map(f => f.go).join(", ")})`);
