@@ -7,7 +7,16 @@ const p = await b.newPage({viewport: {width: 1200, height: 900}});
 await p.goto("file://" + process.cwd() + "/lopebooks/notebooks/corepox.html" +
   "#view=R100(S100(@tomlarkworthy/corepox-game))");
 await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
+// A mission's intro cutscene covers the board (corepox-game `cutscene`), so a
+// tool that drives the board has to get past it the way a player does.
+const skipIntro = async () => {
+  for (let i = 0; i < 8 && await p.locator(".cpx-cutscene").count(); i++) {
+    await p.click(".cpx-cutscene"); await p.waitForTimeout(90);
+  }
+};
+await skipIntro();
 await p.selectOption("select", "2");            // run: a Constant, an Engine, one wire to make
+await skipIntro();
 await p.waitForTimeout(1500);
 
 // the game's OWN svg, via the QA seam. Picking it out of the document by size
@@ -88,6 +97,7 @@ say(armed.startsWith("armed"), `connect self-arms         ${armed}`);
 // menu does. `run` is live from frame one and its ship sits still until the Engine
 // is wired, so the widening is attributable to motion and nothing else.
 await p.selectOption("select", "2");
+await skipIntro();
 await p.waitForTimeout(1200);
 const B7 = await box();
 const started = await p.evaluate((q: any) => {

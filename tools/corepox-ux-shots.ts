@@ -9,6 +9,14 @@ p.on("console", m => { if (m.type() === "error") console.log("CONSOLE", m.text()
 await p.goto("file://" + process.cwd() +
   "/lopebooks/notebooks/corepox.html#view=R100(S100(@tomlarkworthy/corepox-game))");
 await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
+// A mission's intro cutscene covers the board (corepox-game `cutscene`), so a
+// tool that drives the board has to get past it the way a player does.
+const skipIntro = async () => {
+  for (let i = 0; i < 8 && await p.locator(".cpx-cutscene").count(); i++) {
+    await p.click(".cpx-cutscene"); await p.waitForTimeout(90);
+  }
+};
+await skipIntro();
 const shot = (n: string) => p.screenshot({path: `tools/screenshots/ux-${n}.png`});
 const qa = (fn: string, ...a: any[]) => p.evaluate(([f, args]: any) => {
   const root: any = [...document.querySelectorAll("div")].find((d: any) => d.qa);
@@ -28,6 +36,7 @@ await p.waitForTimeout(2500); await shot("5-playing");
 
 // mission 3 (run): the wire. live, so no play button.
 await p.selectOption("select", "2");
+await skipIntro();
 await p.waitForTimeout(1500);
 await qa("open", 0, 1);                                      // tap the Constant
 await p.waitForTimeout(400); await shot("6-menu");

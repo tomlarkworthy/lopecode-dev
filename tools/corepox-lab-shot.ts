@@ -10,6 +10,14 @@ p.on("pageerror", e => errs.push("pageerror: " + e.message));
 await p.goto("file://" + process.cwd() +
   "/lopebooks/notebooks/corepox.html#view=R100(S100(@tomlarkworthy/corepox-lab))");
 await p.waitForFunction(() => document.body.innerText.includes("objectives"), {timeout: 60000});
+// A mission's intro cutscene covers the board (corepox-game `cutscene`), so a
+// tool that drives the board has to get past it the way a player does.
+const skipIntro = async () => {
+  for (let i = 0; i < 8 && await p.locator(".cpx-cutscene").count(); i++) {
+    await p.click(".cpx-cutscene"); await p.waitForTimeout(90);
+  }
+};
+await skipIntro();
 await p.waitForTimeout(1500);
 
 const view = (name: string) => p.evaluateHandle((n) => {
@@ -20,6 +28,7 @@ const view = (name: string) => p.evaluateHandle((n) => {
 // ---- level editor: drag an enemy -----------------------------------------
 // Mission 3 (Cocoon) is the first with enemies to drag.
 await p.selectOption("select", {index: 3});
+await skipIntro();
 await p.waitForTimeout(800);
 const lvl = await view("levelEditor");
 const before = await p.evaluate((q: any) => structuredClone(q.mission().enemies?.[0]), lvl);

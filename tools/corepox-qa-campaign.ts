@@ -19,6 +19,14 @@ await p.goto("file://" + process.cwd() + "/lopebooks/notebooks/corepox.html" +
   "#view=R100(S100(@tomlarkworthy/corepox-game))");
 // the HUD counter is "1/<n>", and n moves whenever a mission is added
 await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
+// A mission's intro cutscene covers the board (corepox-game `cutscene`), so a
+// tool that drives the board has to get past it the way a player does.
+const skipIntro = async () => {
+  for (let i = 0; i < 8 && await p.locator(".cpx-cutscene").count(); i++) {
+    await p.click(".cpx-cutscene"); await p.waitForTimeout(90);
+  }
+};
+await skipIntro();
 
 const qa = () => p.evaluateHandle(() => {
   const m = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/corepox-game");
@@ -81,6 +89,7 @@ for (let i = 0; i < MISSIONS.length; i++) {
   if (only && m.id !== only) continue;
   ran++;
   await p.selectOption("select", String(i));
+  await skipIntro();
   await p.waitForTimeout(700);
 
   const handed = m.ship ?? {components: [], connections: []};

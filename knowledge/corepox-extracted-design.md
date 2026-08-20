@@ -668,6 +668,54 @@ The left column is the cutscene key either way: `Mission.load` calls
 mission names. **No `starRequirement` or `minPlayerRating` value has been read**; they are ints, not
 strings, and the extractor only recovers strings.
 
+### The cutscenes are one TextAsset, and it is recovered (2026-08-20)
+
+The whole shipped script is 1103 bytes. `Cutscenes.load` does
+`Resources.Load<TextAsset>("cutscenes")`, so it survives in the APK as a TextAsset
+of that name, and `tools/corepox-apk-sprite-png.py`'s sibling walk over
+`vendor/corepox_apk/base/assets/bin/Data` finds it in `3c75bcdb…`. Written out to
+`data/corepox/cutscenes.yaml`; **9 scenes, 11 frames, every one of them
+`BrainProfile`**:
+
+```
+seed         I REMEMBER....  /  MY MOTHER WAS SEED SHIP #342164
+armour       I MUST SHELTER MYSELF FROM HARM
+connectlite  I CAN CREATE CIRCUITRY
+manualaim    I MUST KILL TO SURVIVE
+connect      I MUST MOVE TO SURVIVE
+avoid        COLLISION COURSE DETECTED  /  I MUST TURN MYSELF AROUND
+aim          I MUST SENSE INCOMING DANGERS AND REACT
+follow1      WHEN I COMBINE WITH THE FALLEN, I RELIVE THEIR PAST
+follow2      I MUST LEARN HOW TO SURVIVE, IN ORDER TO SURVIVE
+```
+
+`Mission.load` looks the scene up by the mission's `intro` field and the campaign
+read above gives that field per mission, so the mapping needs no guessing.
+**`followBoss` is a key with no scene** — `Cutscenes.lookup` returns null and
+FollowBoss plays no cutscene. That is shipped behaviour, not a gap in the
+recovery. SideShooter and TwinTurrets have no key at all, which is consistent with
+their not being in a campaign.
+
+The behaviour is `CutsceneController`, and it is small enough to quote:
+`animateMainText` yields `WaitForSecondsRealtime(.2f)` per word and plays
+`event:/COMPUTER_SPEAKING` on word 1; `call(UIAction.Next)` calls `next()`, which
+**advances the frame whether or not the line has finished typing**. The port is
+faithful to that, including the impatience trap. No audio — none of the FMOD banks
+are recovered.
+
+`Mission.cs` also declares an **`outro`** beside `intro`. No outro key appears in
+the campaign read and `cutscenes.yaml` has no scene that is not an intro, so
+either the outros were never written or the campaign rows carry an empty string.
+Not resolved.
+
+**The portrait is drawn, not shipped.** `BrainProfile` is a 1265x1290 PNG
+(`data/corepox/sprites/BrainProfile.png`, 361 KB) of the Brain chip with circuit
+traces radiating off it. The chip is already a symbol in the sheet, so the port
+draws `componentNode({type: "Brain"})` at 2.1x under 40 generated stepped
+polylines in four greens, and the cutscene costs no attachment bytes. The traces
+are hashed off the trace index rather than `Math.random`, because a cell that
+recomputes must not redraw a different picture.
+
 ### Advanced Steering, ported (2026-08-20)
 
 All three are in the port and all three complete by clicking:

@@ -18,6 +18,14 @@ for (const [name, mod] of PAGES) {
   await p.goto("file://" + process.cwd() +
     `/lopebooks/notebooks/corepox.html#view=R100(S100(${mod}))`);
   await p.waitForFunction(() => !!document.querySelector("svg[viewBox]"), {timeout: 60000});
+  // A mission's intro cutscene covers the board (corepox-game `cutscene`), so a
+  // tool that drives the board has to get past it the way a player does.
+  const skipIntro = async () => {
+    for (let i = 0; i < 8 && await p.locator(".cpx-cutscene").count(); i++) {
+      await p.click(".cpx-cutscene"); await p.waitForTimeout(90);
+    }
+  };
+  await skipIntro();
   await p.waitForTimeout(4000);
   // The first mission starts with an EMPTY ship; pick one that has something on
   // the board so the test also covers the ordinary framed case.

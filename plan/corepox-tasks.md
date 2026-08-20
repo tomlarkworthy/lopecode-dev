@@ -83,10 +83,15 @@ Updated 2026-08-20. Ticked only when verified, not when written.
 - [ ] `SideShooter` and `TwinTurrets` are in NO campaign and not in the 1.49 scene list. The port
       ships them as missions 11 and 12. Either mark them as an addition or drop them; right now the
       port silently presents them as recovered content.
-- [ ] Cutscenes have keys and no text. Every mission carries an `intro`/`outro` cutscene key
-      (`seed`, `armour`, `connectlite`, `manualaim`, `connect`, `aim`, `avoid`, `follow1`,
-      `follow2`, `followBoss`). `Cutscenes.lookup` resolves them to `SceneSpec.frames`; the frames
-      have not been located.
+- [x] Cutscenes recovered and ported, 2026-08-20. The frames were a `Resources` TextAsset named
+      `cutscenes`, 1103 bytes, in the APK -> `data/corepox/cutscenes.yaml`: 9 scenes, 11 frames,
+      every profile `BrainProfile`. `followBoss` is a key with no scene, so FollowBoss plays no
+      cutscene -- shipped behaviour, not a gap. In the port as `MISSIONS[i].intro`, typed a word
+      per 200ms behind a tap-to-advance overlay; the portrait is drawn from the Brain symbol plus
+      40 generated traces rather than shipping the 361 KB PNG. qa-campaign still 12/12.
+- [ ] `outro` is declared on `Mission.cs` beside `intro` and nothing has been found for it: no
+      outro key in the campaign read, no non-intro scene in cutscenes.yaml. Either never written
+      or an empty string in the campaign rows.
 - [ ] Re-run the corpus analysis against **2,191** designs, **2,140 of them rated**. The live
       database holds 2191 under `assets/ships` and 2140 ratings under `ratings/ships`; the
       "Binary once per 15 components" finding was computed on 492 designs and no ratings. The
@@ -361,6 +366,50 @@ One of these leans on structure that already exists:
 - [ ] Architecture sketch, untried: the player is another source node — a `Pilot` component whose
       output ports are driven by input instead of by upstream wires. Enemy ships stay wired ships,
       one simulation, and headless tools substitute a scripted pilot.
+
+### Controls — one surface, six gestures, no rule (raised 2026-08-20, Tom)
+
+> "We have a lot of different controls fighting like pan and zoom, vs auto-pilot. I think we need
+> more thought into the control systems including placement menus, connector drag placement,
+> placing components."
+
+Deferred on purpose: the right scheme depends on what the game turns out to be, so this is a record
+of what is currently bound and where it collides, not a proposal. Everything below is read off the
+code, line numbers as of 2026-08-20.
+
+What the board listens to today:
+
+```
+  wheel                       zoom                  corepox-render.js:659
+  left-drag on empty space    pan camera            corepox-render.js:676-696  (suppressed by panLock)
+  left-drag from a port       draw a wire           corepox-game.js:1041-1055  (connect mode only)
+  left-drag while playing     waypoint + heading    corepox-game.js:1022-1040
+  click                       place / move / select corepox-game.js:1013, clickTile at :588
+  F held (window)             fire                  corepox-game.js:229-230
+```
+
+Six behaviours on one pointer, disambiguated by mode and by what happens to be underneath. The
+specific collisions, worst first:
+
+- **Panning is gone while playing.** The pilot's drag takes empty space (`:1022`), which is exactly
+  where a pan starts. Introduced by the manual-control work; a camera you cannot move during a match
+  is a regression, not a trade.
+- **`panLock` is a shared latch with two independent writers** — the pilot handler (`:1028`, cleared
+  `:1039`) and the connect handler (`:1047`, cleared `:1050`). Release order decides who wins. Nothing
+  today makes both fire on one drag, but nothing prevents it either.
+- **Your own hull is a hole in the map.** A tap that lands on the ship is routed to the editor
+  (`:1024`), so a waypoint cannot be placed there. Right for building, wrong for a waypoint just past
+  your own nose.
+- **F is bound to `window`.** In a lopepage layout that means typing "f" in another pane's editor
+  fires the guns. It needs to be scoped to the board, or to focus.
+- **No cancel.** There is no gesture that clears a waypoint or aborts a half-drawn wire.
+- **Touch is unconsidered.** No pinch, and a one-finger drag is already claimed three ways.
+
+Two things worth deciding before any of the above, because they set the shape:
+- Is build-during-play staying? `editable()` (`:571`) says yes, and it is why the editor and the pilot
+  compete for the same gestures at the same time. If building were modal the conflict mostly vanishes.
+- Does the pilot keep the drag? Waypoint-and-heading is one gesture doing two jobs; a tap for the
+  waypoint and a separate control for facing would give the drag back to the camera.
 
 ### Heat
 - [ ] Heat as a per-component scalar diffusing over the component-adjacency graph — the same graph
