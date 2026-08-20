@@ -484,6 +484,90 @@ So the UI is recoverable too. **Caveat, and it is load-bearing:** these are port
 for a free-to-play game with ad gates and unlock counters. They are a source of *visual language*
 and of *what screens the game needed* — not a layout to reproduce in a desktop notebook.
 
+### The Orb is a glow, not a diagram (2026-08-20)
+
+Tom, on mission 8: *"The orb graphic is completely wrong, this is apparent in Yin Opposses Yang
+mission"*. It was four purple rings in a 2x2 box — the components page's own **occupancy sketch**,
+one ring per cell, which had been wired up as if it were ship art. No sprite in the APK looks
+anything like it.
+
+`Orb.prefab` is the ruler, and it is the only component prefab whose root is not at scale 1:
+
+```
+Orb            localScale 0.33      sprite `orb`         339 x 48 px @ ppu 100   material pulse
+ \_ weapon     localPos (0.96,0.96) sprite `orb_weapon`  813 x 813 px @ ppu 100  material addative
+```
+
+A tile is 0.64 world units (`Metric.Tile2Pixel`, and the collider sizes agree — Constant 0.550,
+Engine 0.550 x 1.200, LaserTurret2 1.193 x 0.602), so at 0.33:
+
+- **the glow** is `8.13 * 0.33 = 2.683` world = **4.192 tiles across**, centred at
+  `(0.96,0.96) * 0.33 = 0.495` tiles up and right of the origin tile — the middle of the 2x2.
+- **the rail** is `3.39 x 0.48 * 0.33` = **1.748 x 0.248 tiles**, centred `(+0.433, -0.322)`, which
+  lays it along the bottom edge of the footprint.
+
+Three independent numbers say the 0.33 is real and not an editor leftover:
+
+1. the root `BoxCollider2D` is `3.39 x 0.48` — the rail, not the 2x2, so the component's clickable
+   body really is that thin bar and the rest is light;
+2. `JOINTS.Orb` puts all four joints on the bottom side of the bottom row, which is where the rail
+   lands and nowhere near where the four rings were;
+3. the weapon's `CircleCollider2D` radius `1.1 * 0.33 = 0.567` tiles falls at r/R 0.27 of the glow,
+   which is exactly where the sprite stops being white and starts being magenta.
+
+The gradient in `art_Orb` is a radial sample of `data/corepox/sprites/orb_weapon.png` about
+(406,406), r/R against straight RGBA:
+
+```
+   r/R     R    G    B    A
+  0.00   251  253  251  255     white core, flat
+  0.24   251  253  251  255
+  0.27   245  136  226  254     white -> magenta, and the damage collider is here
+  0.30   252  102  227  246
+  0.50   202   65  178  208
+  0.74   146   49  130  126
+  0.97   121   44  107   13
+```
+
+`addative` resolves to Unity's **Mobile/Particles/Additive** (`Blend SrcAlpha One`), so the glow adds
+light rather than painting over — the path carries `mix-blend-mode:plus-lighter`. **Limit:** the
+component art sits inside the ship's `cp-bloom` group in `shipNode`, and a filter isolates, so the
+orb blends additively with the ship's own art (the rail washes to white under it, as it should) but
+still occludes the board behind it. Faithful additive would need the glow painted outside that group.
+
+`corepox-art-ink.py` gates the size at 234.75 art units and carries the ppu/scale derivation, because
+nothing else in the pipeline knows the Orb is the exception.
+
+**The damage radius does not match.** `corepox-engine` gives the Orb contact damage within 1.2 tiles;
+the shipped `CircleCollider2D` works out at 0.567. Not changed — the 1.2 came from Tom — but the two
+numbers disagree by 2x and only one of them is measured.
+
+### A paint server in a display:none `<svg>` does not paint (2026-08-20)
+
+The Orb's gradient was correct and invisible for an hour. `symbolSheet` parked the symbol sheet in
+`<svg style="display:none">`, and Blink builds no layout object for such a root, therefore no paint
+server for anything in its `<defs>`. A three-step probe (`tools/corepox-orb-probe.ts`) separated it:
+
+```
+$ bun tools/corepox-orb-probe.ts     # centre pixel of a circle filled url(#cpx-orb-glow)
+sheet display:none                 -> (0, 0, 0)
+host visible, sheet display:none   -> (0, 0, 0)
+sheet laid out, defs in <symbol>   -> (251, 253, 251)
+```
+
+A clone of the same gradient moved into a rendered `<defs>` painted straight away, which is what
+ruled out the markup. The sheet is now `position:absolute;width:0;height:0;overflow:hidden`.
+
+**Filters are not affected**, and that asymmetry is why this survived: `cp-bloom` resolved out of the
+same hidden defs the whole time, which is why every board screenshot before this has neon on it. The
+sheet looked like it worked because for five months everything referencing it was a filter.
+
+**Rejected fix, recorded so it is not tried again:** the first hypothesis was that `<symbol>` was the
+problem, and `symbolSheet` hoisted each drawing's `<defs>` into the sheet's own. It made no
+difference, because the sheet was still hidden. Re-tested afterwards with the sheet laid out — a
+gradient inside the `<symbol>` and a gradient in the sheet's `<defs>` paint identical pixels — so the
+hoist was removed and the drawing keeps its own `<defs>`.
+
 ## The campaign, recovered from binary scenes
 
 `Campaign.cs` holds `List<Mission> missions` as a serialised `MonoBehaviour` field, so the ordering

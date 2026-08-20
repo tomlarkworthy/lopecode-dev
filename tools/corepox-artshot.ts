@@ -4,7 +4,7 @@ import {chromium} from "playwright";
 const b = await chromium.launch();
 const p = await b.newPage({viewport: {width: 1280, height: 900}});
 await p.goto("file://" + process.cwd() + "/lopebooks/notebooks/corepox.html#view=R100(S100(@tomlarkworthy/corepox-game))");
-await p.waitForFunction(() => document.body.innerText.includes("1/9"), {timeout: 60000});
+await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
 for (const m of process.argv.slice(2)) {
   await p.selectOption("select", m);
   await p.waitForTimeout(1500);

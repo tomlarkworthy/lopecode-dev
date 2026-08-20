@@ -8,7 +8,7 @@ const p = await b.newPage({viewport: {width: 1280, height: 900}});
 p.on("console", m => { if (m.type() === "error") console.log("CONSOLE", m.text().slice(0, 200)); });
 await p.goto("file://" + process.cwd() +
   "/lopebooks/notebooks/corepox.html#view=R100(S100(@tomlarkworthy/corepox-game))");
-await p.waitForFunction(() => document.body.innerText.includes("1/9"), {timeout: 60000});
+await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
 const shot = (n: string) => p.screenshot({path: `tools/screenshots/ux-${n}.png`});
 const qa = (fn: string, ...a: any[]) => p.evaluate(([f, args]: any) => {
   const root: any = [...document.querySelectorAll("div")].find((d: any) => d.qa);

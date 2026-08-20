@@ -20,6 +20,18 @@ FOR = {"Brain": "brain", "Constant": "constant", "Binary": "binary",
        "Radar": "radar", "Engine": "engine", "Explosive": "explosive",
        "Armour": "armour", "Hyperdrive": "hyperdrive"}
 
+# The Orb cannot share the ruler above: its prefab is the only one not at scale 1
+# and its sprite is not at ppu 300. Orb.prefab (Assets/prefabs/components/Resources)
+# has root localScale 0.33 and a child `weapon` drawing orb_weapon, 813 px @ ppu 100.
+# A glow has no ink threshold -- the alpha runs to zero at the rect edge, so the
+# whole rect IS the extent. Converting to the ppu-300 pixels U expects:
+#   813 * (300/100) * 0.33 = 804.9 px = 4.192 tiles across.
+# Verified twice over: the rail sprite `orb` (339 x 48) comes out 1.75 x 0.25 tiles
+# at the same 0.33, which is the size of the root BoxCollider2D, and the weapon's
+# CircleCollider2D radius 1.1 comes out at r/R 0.27, where the white core ends.
+SPECIAL = {"Orb": "orb_weapon"}
+SPECIAL_PX = {"Orb": (813 * 3 * 0.33, 813 * 3 * 0.33)}
+
 src = open(SRC).read()
 tol = float(sys.argv[sys.argv.index("--tol") + 1]) if "--tol" in sys.argv else 0.04
 
@@ -48,16 +60,18 @@ def ink(body):
 
 bad = 0
 print(f"{'cell':<12} {'drawn w x h':<20} {'sprite wants':<20} {'error'}")
-for name, key in FOR.items():
+for name, key in list(FOR.items()) + list(SPECIAL.items()):
     b = cell(name)
     if b is None: print(f"{name:<12} NO CELL"); bad += 1; continue
     # a y-mirror <g> does not change extents, so the flat path scan is enough
     dw, dh = ink(b)
-    wx, wy = INK[key][2] * U, INK[key][3] * U
+    px = SPECIAL_PX[name] if name in SPECIAL else (INK[key][2], INK[key][3])
+    wx, wy = px[0] * U, px[1] * U
     ex, ey = dw / wx - 1, dh / wy - 1
     flag = "" if max(abs(ex), abs(ey)) <= tol else "   <-- OFF"
     if flag: bad += 1
     print(f"{name:<12} {dw:7.2f} x {dh:7.2f}    {wx:7.2f} x {wy:7.2f}    "
           f"{ex*100:+6.1f}% {ey*100:+6.1f}%{flag}")
-print(f"\n{len(FOR)-bad}/{len(FOR)} within {tol*100:.0f}% of the shipped sprite")
+n = len(FOR) + len(SPECIAL)
+print(f"\n{n-bad}/{n} within {tol*100:.0f}% of the shipped sprite")
 sys.exit(1 if bad else 0)

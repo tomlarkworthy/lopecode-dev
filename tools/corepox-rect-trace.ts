@@ -22,7 +22,7 @@ p.on("console", m => { const t = m.text();
   else if (m.type() === "error") console.log("ERR " + t.slice(0, 200)); });
 await p.goto("file://" + process.cwd() + "/lopebooks/notebooks/corepox.html" +
   "#view=R100(S100(@tomlarkworthy/corepox-game))");
-await p.waitForFunction(() => document.body.innerText.includes("1/9"), {timeout: 60000});
+await p.waitForFunction(() => /\b1\/\d+\b/.test(document.body.innerText), {timeout: 60000});
 // walk the UI the campaign walks: build panel, a row, a component menu, info
 for (const i of ["0", "5"]) {
   await p.selectOption("select", i); await p.waitForTimeout(1200);

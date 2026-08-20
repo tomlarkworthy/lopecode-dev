@@ -4,7 +4,7 @@
 import {importNotebookModule} from "./notebook-import.ts";
 
 const eng = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
-const parts: any = await eng.values(["Ship","World","TYPES","PORTS","geom","DT"]);
+const parts: any = await eng.values(["Ship","World","TYPES","PORTS","geom","DT","pilot"]);
 const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
 const MISSIONS: any[] = await mis.value("MISSIONS");
 const game = await importNotebookModule("modules/@tomlarkworthy/corepox-game.js",

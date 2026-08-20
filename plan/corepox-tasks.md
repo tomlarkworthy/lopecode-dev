@@ -86,7 +86,18 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       "Binary once per 15 components" finding was computed on 492 designs and no ratings. The
       ratings are what would turn "players built bricks" into "bricks won or lost".
 - [ ] Binary is still 2.4% narrow (`corepox-art-ink.py`) and `dx -0.023` (`corepox-art-align.py`);
-      Orb, LaserTurret2 and Hyperdrive are the other three `art-align` flags. Uninvestigated.
+      LaserTurret2 and Hyperdrive are the other two `art-align` flags. Uninvestigated.
+- [x] Orb redrawn from the shipped sprites, 2026-08-20. Was four purple rings, which was the
+      components page's occupancy sketch. `Orb.prefab` root is the only component at localScale
+      0.33: the glow is `orb_weapon` at 4.192 tiles across centred on the 2x2, the body is `orb`,
+      a 1.748 x 0.248 tile rail along the bottom edge where the four joints are. `art-align` 0.005
+      tiles; `art-ink` gates the size at 234.75 art units. Gradient sampled off the PNG; material
+      is Mobile/Particles/Additive so the path carries `mix-blend-mode:plus-lighter`.
+- [ ] The Orb glow blends additively with the ship's own art but still occludes the board, because
+      `shipNode` puts component art inside the `cp-bloom` group and a filter isolates. Faithful
+      additive needs the glow painted outside that group, like `LaserTurret2` is special-cased.
+- [ ] Orb damage radius disagrees with the shipped collider: engine says 1.2 tiles, the weapon's
+      `CircleCollider2D` works out at 0.567. The 1.2 came from Tom, the 0.567 is measured.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
@@ -301,6 +312,34 @@ One of these leans on structure that already exists:
       ships into one-way-yaw hulls that cannot be flown at all. Not an argument to remove it — it is
       an argument that the invented-mechanic decision at the top of this section is now load-bearing
       for the piloted mode, not just for combat balance.
+- [x] **Manual control is in the game view.** 2026-08-20. `pilot`/`pilotActuators`/`pilotAllocate`/
+      `flightModel` are cells of `@tomlarkworthy/corepox-engine`; `stepSession` calls `pilot` when a
+      caller has set `S.cmd`, and `viewof game` sets it from the pointer while `S.state === "playing"`
+      — tap names a waypoint, drag names a waypoint plus the heading to arrive on, F holds fire. A tap
+      that lands on your own hull is left to the editor. Verified in the browser on mission 8
+      (`tools/scratch/play-manual.mjs`): waypoint ring drawn, player transform
+      `translate(0.0 0.0) rotate(0.00)` -> `translate(-16.3 -93.9) rotate(-39.73)` in 5s, no console errors.
+      `tools/corepox-mission-pilot.ts` drives all twelve missions through the same `stepSession` path:
+      the three hulls with free engines fly (ConnectionLite/Connection 12.0 tiles, FollowCourse 17.3,
+      FollowCourseAdvanced 16.1); the seven with none do not move, which is correct — there is nothing
+      to command. No mission outcome changed.
+      The pilot only ever commands engines that are **on the Brain's own island, powered, and unwired**
+      (Tom's rule, 2026-08-20: "it should not be able to control disconnected components, only its own
+      island"). Islands are read from `Ship.islands()`, so wiring an engine is what hands it to a program.
+- [ ] **`newSession` bypasses `loadShipSpec`** — found 2026-08-20 while checking the missions, and it
+      predates the pilot. Every other path loads a spec through `loadShipSpec`; `corepox-game.js:46`
+      passes the raw mission spec to `new Ship()`. The two disagree:
+
+      ```
+        Avoid          raw conns 3  loaded 1  (2 dropped)   free engines raw 0, loaded 1
+        FollowCourse   raw conns 4  loaded 0  (4 dropped)   free engines raw 2, loaded 2
+      ```
+
+      So mission player ships run with connections the loader rejects, and — because the pilot reads
+      "is this engine wired?" off `ship.conns` — Avoid's engine looks like a program's and the pilot
+      will not touch it. Unresolved on purpose: it is not obvious whether the loader is right to drop
+      them or the missions are right to keep them, and mission fidelity is recovered work. Whoever
+      decides should also check `Composite`, which `loadShipSpec` expands and `newSession` would not.
 - [ ] **Wiring becomes automation, not a prerequisite.** If the player has hands, a wire must buy
       something hands cannot do at the same time (point defence while dodging, a range gate while
       turning). Undesigned. Falsifiable early: if a wire only replicates a key press, it is a chore.
