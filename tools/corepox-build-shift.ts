@@ -32,8 +32,11 @@ const read = () => p.evaluate(() => {
 });
 
 const before = await read();
-// pick the first part in the tray, then click an empty dashed cell
-await p.locator("button", {hasText: /×\d/}).first().click();
+// wrench, first row of CHOOSE BUILD OPTION, then a ghost -- the shipped flow,
+// which is what the UI does since 2026-08-20
+await p.locator('button[title="build"]').first().click();
+await p.waitForTimeout(300);
+await p.locator('div[style*="border:1.5px solid #ff6b5a"]').first().click();
 await p.waitForTimeout(300);
 const cell = await p.evaluate(() => {
   const root: any = [...document.querySelectorAll("*")].find((e: any) => e.qa)!;

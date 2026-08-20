@@ -14,7 +14,7 @@ const which = process.argv[2] ?? "Aim";
 await p.selectOption("select", {label: (await p.evaluate((w) =>
   [...document.querySelector("select").options].find(o => o.text.endsWith(w)).text, which))});
 await p.waitForTimeout(1200);
-await p.locator("button", {hasText: /play/}).first().click();
+await p.locator('button[title="play"]').first().click();
 await p.waitForTimeout(Number(process.argv[3] ?? 12000));
 console.log(await p.evaluate(() => document.body.innerText.match(/\d\/9[\s\S]{0,220}/)?.[0]));
 console.log("console errors:", errs.slice(0, 8));

@@ -41,6 +41,26 @@ const btn = async (re: RegExp) => {
   if (!(await l.count())) return false;
   await l.click(); await p.waitForTimeout(200); return true;
 };
+const byTitle = async (t: string) => {
+  const l = p.locator(`button[title="${t}"]`).first();
+  if (!(await l.count())) return false;
+  await l.click(); await p.waitForTimeout(200); return true;
+};
+// The shipped flow, and now the port's: wrench -> CHOOSE BUILD OPTION -> a row ->
+// ghosts on the board -> tap one. There is no parts tray to click any more, which
+// is why this gate had to be rewritten with the UI
+// (knowledge/corepox-shipped-ui-observed.md, "Building").
+const chooseBuild = async (type: string) => {
+  if (!await byTitle("build")) return false;
+  const row = p.locator(`div:text-is("${type.toUpperCase()}")`).first();
+  if (!(await row.count())) { await btn(/CANCEL/); return false; }
+  await row.click(); await p.waitForTimeout(200); return true;
+};
+// Selecting a component opens its menu; the menu is where every verb lives.
+const openMenu = async (px: number, py: number) => {
+  await clickTile(px, py);
+  return (await p.locator("button", {hasText: /^\s*i\s*info\s*$/}).count()) > 0;
+};
 const shipNow = () => p.evaluate(() => {
   const m = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/corepox-game");
   for (const [k, v] of m._scope) if (k === "viewof game")
@@ -72,9 +92,8 @@ for (let i = 0; i < MISSIONS.length; i++) {
 
   // BUILD -- pick the part in the tray, click the destination cell
   if (toPlace.length) {
-    await btn(/^build$/);
     for (const c of toPlace) {
-      if (!await btn(new RegExp("^" + c.type + " ×"))) { steps.push(`no ${c.type} in tray`); continue; }
+      if (!await chooseBuild(c.type)) { steps.push(`no ${c.type} in stock`); continue; }
       await clickTile(c.pos[0], c.pos[1]);
       steps.push(`place ${c.type}@${c.pos}`);
     }
@@ -85,18 +104,18 @@ for (let i = 0; i < MISSIONS.length; i++) {
     const h = (handed.components ?? []).find((x: any) => key(x) === key(c));
     if (h && (h.dir ?? 0) === c.dir) continue;
     if (!(m.allow?.rotate)) continue;
-    await btn(/^rotate$/);
+    if (!await openMenu(c.pos[0], c.pos[1])) { steps.push(`no menu at ${c.pos}`); continue; }
     for (let k = 0; k < 4; k++) {
       const s: any = await shipNow();
       const now = (s.ship.components.find((x: any) => x.pos[0] === c.pos[0] && x.pos[1] === c.pos[1]) ?? {}).dir ?? 0;
       if (now === c.dir) break;
-      await clickTile(c.pos[0], c.pos[1]);
+      await btn(/rotate/);
     }
+    await btn(/CANCEL/);
     steps.push(`rotate ${c.type}@${c.pos}->${c.dir}`);
   }
   // CONNECT -- click the source connector cell, then the sink connector cell
   if (toWire.length) {
-    await btn(/^connect$/);
     for (const w of toWire) {
       const a = (typeof w.from === "string" ? JSON.parse(w.from) : w.from);
       const z = (typeof w.to === "string" ? JSON.parse(w.to) : w.to);
@@ -124,8 +143,13 @@ for (let i = 0; i < MISSIONS.length; i++) {
       const off = await cellOf(a, w.fromPort ?? "out", false);
       const off2 = await cellOf(z, w.toPort ?? "in", true);
       if (!off || !off2) { steps.push(`no cell for ${JSON.stringify(w)}`); continue; }
+      if (!await openMenu(a[0], a[1])) { steps.push(`no menu at ${a}`); continue; }
+      if (!await btn(/connect/)) { steps.push(`connect disabled at ${a}`); continue; }
       await clickTile(off[0], off[1]);
       await clickTile(off2[0], off2[1]);
+      // The proposal is not the connection: it has to be confirmed, exactly as the
+      // shipped game makes you tap FINISH CONNECTING.
+      if (!await byTitle("finish connecting")) steps.push(`no confirm for ${a}->${z}`);
       steps.push(`wire ${a}.${w.fromPort} -> ${z}.${w.toPort}`);
     }
   }
@@ -140,16 +164,26 @@ for (let i = 0; i < MISSIONS.length; i++) {
     return !o || String(o.param) !== String(c.param);
   });
   if (toSet.length && m.allow?.modify) {
-    await btn(/^modify$/);
     for (const c of toSet) {
-      await clickTile(c.pos[0], c.pos[1]);
-      const inp = p.locator("input:visible").last();   // not lopepage's command palette
-      if (await inp.count()) {
-        await inp.fill(String(c.param));
-        await inp.dispatchEvent("change");   // the field commits on change, as it does on blur
-        await p.waitForTimeout(150);
-        steps.push(`set ${c.type}@${c.pos} = ${c.param}`);
-      } else steps.push(`no input for ${c.type}@${c.pos}`);
+      if (!await openMenu(c.pos[0], c.pos[1])) { steps.push(`no menu at ${c.pos}`); continue; }
+      if (c.type === "Binary") { await btn(new RegExp("^" + c.param + "$")); await btn(/CANCEL/);
+                                 steps.push(`set ${c.type}@${c.pos} = ${c.param}`); continue; }
+      // A stepper, not a text field. Walking there in +-10 and +-1 is the whole
+      // point: it is what the player has to do, and a mission whose answer cannot
+      // be reached by stepping is not solvable however good the engine is.
+      const want = Number(c.param) || 0;
+      let ok = false;
+      for (let k = 0; k < 80; k++) {
+        const s: any = await shipNow();
+        const now = Number((s.ship.components.find((x: any) =>
+          x.pos[0] === c.pos[0] && x.pos[1] === c.pos[1]) ?? {}).param) || 0;
+        if (now === want) { ok = true; break; }
+        const d = want - now;
+        await btn(new RegExp("^" + (d >= 10 ? "\\+10" : d > 0 ? "\\+1" : d <= -10 ? "-10" : "-1") + "$"));
+      }
+      await btn(/CANCEL/);
+      steps.push(ok ? `step ${c.type}@${c.pos} to ${c.param}`
+                    : `could not step ${c.type}@${c.pos} to ${c.param}`);
     }
   }
 
@@ -161,16 +195,16 @@ for (let i = 0; i < MISSIONS.length; i++) {
   const missW = (sol.connections ?? []).filter((w: any) => !bw.has(ckey(norm(w))))
     .map((w: any) => `${w.from}.${w.fromPort}->${w.to}.${w.toPort}`);
 
-  await btn(/play/);
+  await byTitle("play");
   // poll for the verdict instead of guessing a wall-clock: the browser steps at
   // rAF speed, so a fixed wait either wastes minutes or clips a slow mission
   let txt = "";
   for (let k = 0; k < 80; k++) {
     txt = await p.evaluate(() => document.body.innerText);
-    if (/MISSION COMPLETE|LOST|OUT OF TIME/i.test(txt)) break;
+    if (/VICTORY|DEFEAT|OUT OF TIME/i.test(txt)) break;
     await p.waitForTimeout(500);
   }
-  const won = /MISSION COMPLETE/i.test(txt);
+  const won = /VICTORY/i.test(txt);
   console.log(`${String(i + 1).padStart(2)}. ${m.id.padEnd(14)} ${won ? "WIN " : "----"}` +
     `  built ${(sol.components ?? []).length - missing.length}/${(sol.components ?? []).length} parts` +
     ` ${(sol.connections ?? []).length - missW.length}/${(sol.connections ?? []).length} wires`);

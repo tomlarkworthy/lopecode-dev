@@ -60,14 +60,26 @@ const DIVERGENT: Record<string, Record<string, string>> = {
   ConnectionLite: {inventory:
     "the scene lets you rebuild the core and engine mid-tutorial; ours arrive built"},
   Connection: {inventory:
-    "the scene lets you rebuild the core and engine mid-tutorial; ours arrive built"},
+    "the scene lets you rebuild the core and engine mid-tutorial; ours arrive built",
+    // Divergence FROM THE SCENE, TOWARD THE SHIPPED GAME, which is the direction
+    // this gate cannot see: Connection.unity has no other ships, but the retail
+    // build flies two rivals alongside, each running the finished program with its
+    // Constant at 100 (data/corepox/shipped-ui/51-s.avif, 2026-08-20). Neither
+    // carries a weapon, so they cannot change the outcome -- they change what the
+    // mission is ABOUT, from a wiring exercise to a race.
+    enemies: "the shipped build races you against two rivals; the scene has none"},
   // Avoid.unity's InitialSettingsOverride hides Build/Modify/Connect, which leaves
   // the level unfinishable: with the scene's own wiring one engine fires at a time
   // and the ship loops 3.6 tiles across (tools/corepox-drifter-arc.ts), while the
   // scene's jump zone is 4.69 tiles astern. AvoidMission.cs hands out engines and
   // constants and a 3x3 box, so the override is taken as the stale half.
   Avoid: {envelope: "AvoidMission's 3x3 box is unreachable (Build hidden) and unusable " +
-                    "anyway -- Engine is two cells and every free cell's second cell is taken"},
+                    "anyway -- Engine is two cells and every free cell's second cell is taken",
+          // Same direction: the scene has one mine, the shipped arena hangs three
+          // across the top. The flankers sit at +-6.4 tiles, outside the drifter's
+          // measured 3.6-tile loop, so the reference solution still wins in 4.7s
+          // (tools/corepox-play-missions.ts).
+          enemies: "the shipped arena hangs three mines across the top; the scene has one"},
   // The scene's arc is centred on +4 degrees and this hull cannot hit off the
   // boresight -- the radar is 3 tiles behind the turret, which throws a shot at 18
   // tiles by 9.5 degrees. Every centred arc wins and every off-centre one loses

@@ -9,8 +9,10 @@ const say = async (n: string) => console.log(`--- ${n}\n` +
   (await p.evaluate(() => document.body.innerText)).split("\n").slice(0, 12).join("\n"));
 
 await say("mission 1, opened"); await shot("1-open");
-// place the brain the way a player would: click the tray, click a cell
-await p.locator("button", {hasText: /^Brain ×/}).first().click();
+// place the brain the way a player does now: wrench, the BRAIN row, then a ghost
+await p.locator('button[title="build"]').first().click();
+await p.waitForTimeout(300);
+await p.locator('div:text-is("BRAIN")').first().click();
 await p.waitForTimeout(200); await shot("2-picked");
 const pt = await p.evaluate(() => {
   const m = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/corepox-game");
@@ -21,10 +23,10 @@ const pt = await p.evaluate(() => {
 });
 await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(300);
 await say("brain placed"); await shot("3-placed");
-await p.locator("button", {hasText: /play/}).first().click();
+await p.locator('button[title="play"]').first().click();
 for (let i = 0; i < 40; i++) {
   await p.waitForTimeout(500);
-  if (/MISSION COMPLETE|LOST/.test(await p.evaluate(() => document.body.innerText))) break;
+  if (/VICTORY|DEFEAT/.test(await p.evaluate(() => document.body.innerText))) break;
 }
 await say("after the verdict"); await shot("4-won");
 await b.close();

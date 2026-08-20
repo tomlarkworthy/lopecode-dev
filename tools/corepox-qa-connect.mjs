@@ -33,7 +33,7 @@ console.log("wires now:", await p.evaluate(() =>
 console.log("after wiring:", await p.evaluate(() =>
   document.body.innerText.match(/connect [\s\S]{0,60}/)?.[0]));
 await p.screenshot({path:"tools/screenshots/cp-game-connect.png"});
-await p.locator("button", {hasText: /play/}).first().click();
+await p.locator('button[title="play"]').first().click();
 await p.waitForTimeout(12000);
 console.log(await p.evaluate(() => document.body.innerText.match(/\d\/9[\s\S]{0,200}/)?.[0]));
 console.log("console errors:", errs.slice(0,6));

@@ -9,7 +9,7 @@ const mission = Number(process.argv[2] ?? 5), shots = Number(process.argv[3] ?? 
 await p.selectOption("select", String(mission));
 await p.waitForTimeout(1200);
 await p.screenshot({path: `tools/screenshots/corepox-m${mission}-edit.png`});
-await p.locator("button", {hasText: /play/}).first().click();
+await p.locator('button[title="play"]').first().click();
 for (let i = 0; i < shots; i++) {
   await p.waitForTimeout(3000);
   await p.screenshot({path: `tools/screenshots/corepox-m${mission}-t${i}.png`});

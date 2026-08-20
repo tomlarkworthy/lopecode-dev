@@ -348,3 +348,55 @@ and the actuators.
   - Nothing was measured about timing — thrust per unit of Constant, mine speed, scan period in
     seconds. The scan looks like about a second, which is consistent with the C#, but it was not
     timed.
+
+## What the port does with this, as of 2026-08-20
+
+The observations above were made to be spent. This section is the ledger: what changed in the
+notebook the same day, and what is still only written down. Both halves matter — the second one is
+the work list.
+
+**Ported.** All of these are in `lopebooks/notebooks/corepox.html` and driven by
+`tools/corepox-qa-campaign.ts`, which plays all nine missions by clicking (9/9 after the rewrite,
+same as before it).
+
+| shipped thing | where it now lives |
+|---|---|
+| tap a component → 3×2 action menu, disabled where inapplicable | `corepox-game._MENU_ACTIONS`, `menuPanel()` |
+| wrench → `CHOOSE BUILD OPTION` rows with icon, name, `xN`, `i` | `buildPanel()` |
+| ghosts of the real component at every legal cell, tap one | `paintOverlay()`, `legalCells()` |
+| Constant stepper, value propagating live | `menuPanel()`, ±1 / ±10 pads |
+| connect: chequered legal ports, grey illegal, pale proposal curve, `FINISH CONNECTING` | `paintOverlay()`, `commitWire()` |
+| objective pills with a ✓/✗ circle | `paintHud()` |
+| jump zone as a yellow perspective funnel with a leader-line chip | `paintOverlay()` |
+| `KILL` chips on the mission's target | `boardChip()` |
+| the wire as a bright curve arcing **outside** the hull, coloured by its value | `corepox-render._wireNode` |
+| board zoom near the shipped tile size | `battlefield` `api.pad`, `view.pad` |
+| three mines in `avoiding`, two rivals in `connection`, shipped mission names | `corepox-missions` |
+
+Two of those were bugs the observation found rather than features it added:
+
+  - **The wire was invisible on the mission that teaches wires.** It was the recovered
+    `connection-N-0` sprite, which bows about 4% of its length, drawn *under* the hull — so on
+    `run` it ran straight through the Brain and could not be seen at all. `40-wire.avif` shows the
+    shipped wire arcing clear of the hull and crossing the Constant's own box, so it is now a cubic
+    with controls offset 0.36 L, drawn over the hull. Measurement and the discarded sprite are
+    recorded in the cell.
+  - **The team tint was destroying the value colouring.** `hue-rotate(190deg)` sat on the whole ship
+    group, so a positive connector's green came out the same magenta a negative one paints. Found by
+    `tools/corepox-wire-probe.ts`, which read `rgb(190,255,119)` off the paths under a filter that
+    then moved them. The tint is on the hull only now.
+
+**Not ported.** Each of these is described above and none of it is in the notebook:
+
+  - **Joints as lime-green pins.** Two per shared edge, ~0.22 × 0.09 tiles, coming loose as debris
+    when a ship breaks. Measured in `32-joints.avif`; nothing draws them.
+  - **The turret's dashed yellow line of fire** (`55-aiming.avif`) and **the radar's scan ping**
+    (`65-s2.avif`). The engine has both states; the renderer draws neither.
+  - **The thumbnail of the ship with the proposed wire routed**, bottom-left during connect.
+  - **The cutscene**, the mission list with its star counts, and the `VICTORY` panel's reward cards.
+    The port shows spoils as one line of text.
+  - **`move` is best-effort.** It re-anchors the component and shifts every wire that ended on it,
+    but the shipped game's move affordance was never watched closely enough to say whether that is
+    what it does.
+  - **Which side a wire bows to.** One frame, one direction. A rule that routed around the hull
+    would need the ship's occupancy and no observation demands one yet.

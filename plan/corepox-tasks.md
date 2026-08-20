@@ -1,6 +1,6 @@
 # Corepox — working task list
 
-Updated 2026-08-19. Ticked only when verified, not when written.
+Updated 2026-08-20. Ticked only when verified, not when written.
 
 ## Now
 - [x] Recover original source (partial clone; `vendor/corepox`)
@@ -16,6 +16,14 @@ Updated 2026-08-19. Ticked only when verified, not when written.
 - [x] Value labels on connectors — `valueNode`, live per frame. Verified in a screenshot of Aim:
       the incoming rocket's Engine reads 40.0 while it flies
 - [x] Live battle view — `battlefield`, animated, framing camera, reconciled per frame
+- [x] UI rebuilt on the shipped flow (2026-08-20): selection-driven menus instead of a modal
+      toolbar, wrench → build panel → ghosts, chequered ports with a confirm tick, objective pills,
+      perspective jump-zone funnels. Driven end to end by `tools/corepox-qa-campaign.ts`, 9/9.
+      What it was measured against, and what is still missing, is the ledger at the end of
+      `knowledge/corepox-shipped-ui-observed.md`.
+- [x] Connectors carry their value (2026-08-20): port discs with typed cog rings and live numerals,
+      the Binary operator glyph, and a wire that arcs OUTSIDE the hull coloured by what flows
+      through it. The old sprite wire was invisible on `run`, the mission that teaches wires.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
@@ -179,3 +187,206 @@ Updated 2026-08-19. Ticked only when verified, not when written.
 - [ ] Campaign from the 12 recovered missions
 - [ ] atproto: `com.corepox.ship`, ladder as re-simulating index
 - [ ] Seed ladder with the 492 recovered player ships
+
+## Direction: piloted roguelike — ideas, not decisions (raised 2026-08-19)
+
+Raised in conversation after the comparable-game study (`plan/corepox-design.md` §comparables,
+Cosmoteer deep dive). **Nothing here is measured and nothing is decided.** Each item names what
+would settle it. The one already-settled thing is what these replace: async ladder-as-content is
+out, because the study found no successful game on that loop.
+
+**Caveat added 2026-08-20 (Tom): power/brownout is not a real mechanic.** `Ship.SUPPLY` and
+`powerUp()` exist in the rebuilt engine but were INVENTED during the rebuild, not recovered from
+the original — the same category as the three inventions already rolled back (power for brainless
+hulls, recoil, impulse impact damage). Nothing below should rest on them until that is decided.
+Where an idea was justified by brownout, the justification is struck.
+
+One of these leans on structure that already exists:
+
+- an encounter spawner already exists — `AimMission`'s `CircleSpawn` on a ring around the player,
+  ported at `corepox-game.js:115-124` with arc, count and period.
+
+### Control
+- [ ] **Piloting as intent, not keys.** Player presses turn / go-to-waypoint; a solver actuates
+      whatever surfaces the ship has (engines, turrets) to attempt it. Keeps the build load-bearing
+      — a badly placed engine pilots badly — without asking the player to author a control loop.
+      Unknown: whether the solver can be written so its failures read as *the ship's* fault rather
+      than the solver's. The CoM/torque-arm finding (42% of corpus heavy ships steer badly) is the
+      test case.
+- [ ] **Wiring becomes automation, not a prerequisite.** If the player has hands, a wire must buy
+      something hands cannot do at the same time (point defence while dodging, a range gate while
+      turning). Undesigned. Falsifiable early: if a wire only replicates a key press, it is a chore.
+- [ ] Architecture sketch, untried: the player is another source node — a `Pilot` component whose
+      output ports are driven by input instead of by upstream wires. Enemy ships stay wired ships,
+      one simulation, and headless tools substitute a scripted pilot.
+
+### Heat
+- [ ] Heat as a per-component scalar diffusing over the component-adjacency graph — the same graph
+      power and structural breakup already need. Rate per material: copper fast, armour slow.
+      High heat does damage.
+- [ ] Intended effect, unverified: a duty cycle on lasers without nerfing laser damage, and a second
+      job for armour (heat sink) that is independent of the TTK fix. Whether it actually moves the
+      wall archetype is a tourney question, not an argument.
+- [ ] Order matters: heat on top of a flat power model will not read. Power first.
+
+### Damage economy
+- [ ] Post-battle repair costs, so damage persists across a run and a pyrrhic win is a real outcome.
+- [ ] Nanobot repair: bots consume nano particles and move through the ship to repair. This is the
+      Cosmoteer corridor mechanic — resources as visible moving objects with routes and latency —
+      applied to repair rather than to ammo. Unknown: whether Corepox's tile density leaves room for
+      anything to walk.
+
+### Weapons
+- [ ] **EMP that triggers connections** — an attack at the signal layer rather than the HP layer:
+      inject spurious values into wires. No other game in the study attacks the player's *program*.
+      Undesigned, and probably the most Corepox-specific idea on this page.
+- [ ] **Ion beam shaped by fields** (Tom, 2026-08-20) — a projectile whose path bends through
+      emitted fields rather than flying straight. Aiming stops being a bearing calculation and
+      becomes a field-placement problem, which is wiring-shaped: a field emitter takes an input the
+      same way `Lazer` takes `fire` and `LaserTurret2` takes `angle`. Unknown whether a curved
+      shot can be made legible enough for a player to aim deliberately rather than by trial.
+
+### Fields — raised 2026-08-20 (Tom), no physics for this exists
+
+- [ ] **Components held off-hull by electromagnetic force**, orbiting rather than bolted on.
+      Today a detached component is a failure state — `splitDetached()` makes it its own body — and
+      this would make detachment a *design choice*. It is the mechanic the decoy/splitter and swarm
+      playstyles above are currently missing a reason for
+- [ ] The concrete first case is already in the component table: `Orb` is 2x2, hp 75, pwr 2, joins
+      on ONE side only, and does contact damage to anything touching it (`corepox-engine.js:971-975`).
+      A component that already wants to be on the end of something. Tethered by a field it is a
+      flail; the recovered game never gave it that
+- [ ] **A field that fails drops what it was holding** — visible, dramatic, and it makes the
+      tether a real risk. What makes it fail is open; the brownout answer is struck with the rest
+      of the power model
+- [ ] Physics not yet designed: connectivity today is rigid (reach-2 joints, islands). A held
+      component needs a soft constraint — spring, orbit, or a constraint solver — and whatever it
+      is has to stay reproducible tick-for-tick, because match outcomes are meant to re-simulate
+      (see the trig-table entry under `## Next`)
+
+### Run structure
+- [ ] FTL-shaped run: node graph of events, one currency, fame as score, 20-40 minutes, no galaxy
+      map and no trading (explicitly rejected as a time sink). Meta-progression unknown.
+- [ ] Encounter roster from the 892-ship corpus, tiered by measured strength
+      (`tools/corepox-tourney.ts`, `tools/corepox-archetype-vs-corpus.ts`) rather than by hand.
+      This is the reason the content problem that sank the comparables (Nimbatus "repetitive",
+      Reassembly "no end-game") may not apply here.
+
+### Encounters — roster picked 2026-08-19 (Tom), none built
+
+Two axes, so variety is a product rather than a sum: **verbs** (what you are doing) x
+**environmental modifiers** (what the sky is doing to you). The corpus supplies opponents inside a
+verb; it supplies no verbs, so verbs are authored. Verbs the engine has already shown, from the 9
+recovered missions: aim/track (`Aim`, `ManualAim`, `TwinTurrets`), evade (`Avoid`), survive a spawn
+ring (`Aim`), timed fuse (`delayBomb` spec), course-following (`FollowCourse`, no campaign slot).
+
+Verbs:
+- [ ] **Duel** — corpus ship, tiered by measured strength (`tools/corepox-tourney.ts`)
+- [ ] **Escort** — keep a moving freighter alive; the enemy wants something that is not you.
+      `defend` objectives exist and were fixed once already (they read as constraints, not goals)
+- [ ] **Mining** — ore against a clock. No enemy, so it is where heat can be taught before it kills
+- [ ] **Debris field** — traverse, environment damage, no enemy. Tests the pilot solver alone.
+      `FollowCourse` is the closest recovered mission and has no campaign slot
+- [ ] **Race** — course + clock. The one node where mass is a pure liability, which is the only
+      counter-pressure to "more guns" that does not come from a combat rule. Open: against a clock
+      or against a rival ship. A rival is more legible; unmeasured
+- [ ] **Rescue** — reach a target under a clock, then tow it. Towing changes CoM mid-node, so a ship
+      that steered well empty may not steer loaded. Reuses the CoM/torque-arm work; unverified that
+      the mass model takes an attached load
+- [ ] **Infiltrate, then escape under fire** — two phases whose builds conflict (quiet and small vs
+      armoured and fast). The only node on this list that cannot be answered by one build, which is
+      why it is worth the extra work. Detection could ride on enemy `Radar`, which already computes
+      bearing and dist
+
+Modifiers (apply to any verb; must be visible BEFORE the player commits to the node, or they cannot
+rebuild in response — which is the whole point of having them):
+- [ ] **Stellar heat** — ambient heat per tick, scaled by proximity. Depends on the heat system
+- [ ] **Cosmic rays** — random signal injection into wires. Same mechanism as the EMP weapon idea:
+      write it once, consume it as both a hazard and a weapon
+- [ ] ~~**Drain field** — cuts Brain supply, forcing brownouts~~ — struck 2026-08-20: rests on the
+      invented power model. Revisit only if power is confirmed as a real mechanic
+- [ ] Open: whether debris works as a modifier as well as a verb, and how many modifiers one node
+      may carry
+
+### Playstyles — framing 2026-08-19 (Tom), none verified
+
+A roguelike needs several builds that all win differently. The generative rule, and the one the
+game's own history proves: **a playstyle exists only if some system other than damage is a
+bottleneck.** At 138s TTK the only lever that moved anything was more lasers, so there was exactly
+one playstyle and the players found it (`plan/corepox-design.md` §1.3).
+
+Bottlenecks available to design against:
+
+```
+power          20 per Brain, hop-order brownout   INVENTED in the rebuild -- see caveat
+mass/handling  CoM, torque arms                   42% of corpus heavy ships steer badly
+heat           -                                  PROPOSED
+attention      what hands cannot do at once       arrives with piloting
+detection      Radar bearing/dist                 EXISTS
+```
+
+Each playstyle below should answer a different one. None is verified viable.
+
+- [ ] **Sniper / artillery** — beats detection with a range gate. Best in self-play (81% win),
+      never confirmed against the corpus
+- [ ] **Glass cannon** — massed weapons, no armour. Needs a cost other than mass to be a real
+      choice; the power framing is struck (see caveat)
+- [ ] **Distributed / redundant** — spread the critical components so no single hit ends the ship.
+      Justified by damage geometry, not by power
+- [ ] **Tank** — armour as plate and heat sink. Currently dominated; needs heat before it can earn
+      its mass. `ships.json` says armour marks the heaviest, best-piloted corpus ships
+- [ ] **Ram / kinetic** — impact damage is flat 5 per contact per tick (250/s). Blocked on
+      steering (`rammer` CoM 2.8:1)
+- [ ] **Speed / hit-and-run** — thrust-to-mass, Hyperdrive (6% of corpus). Rewarded by every node
+      with a clock
+- [ ] **Evasion** — Radar-driven avoidance wiring rather than thrust. The `Avoid` mission is this
+- [ ] **Automation / high intelligence** — beats attention. The reason to keep the wiring layer once
+      the player has hands, and it only pays in nodes where two things need doing at once (Escort,
+      Infiltrate). Sniper's `Radar -> Binary(LT) -> Lazer` gate is the existing proof it can beat
+      brute force
+- [ ] **Decoy / splitter** — shed a body to draw fire. `splitDetached()` exists and the renderer
+      already shows mid-match bodies
+- [ ] **Swarm** — several minimal Brain+Engine+Lazer bodies released as independents. Multi-island
+      ships already load and `alive` requires a powered Brain per body, so sub-bodies are already
+      well defined. Decoy and swarm are the two styles no comparable game can copy, because
+      elsewhere breakup is a death state rather than a build
+- [ ] **Bomber** — Explosive area damage instead of penetration. 25.4% corpus adoption; the designed
+      campaign ships ran Explosive 25 against Lazer 1
+- [ ] **Economic** — a run-layer style, not a ship one: take risky nodes, run lean, buy late.
+      Needs currency and repair sinks to exist first
+
+Gate, when there is something to test: write each as a ship spec and run it against the 892-ship
+corpus (`tools/corepox-archetype-vs-corpus.ts`). Require rough parity. A style that cannot reach it
+is a trap, and shipping traps is what makes roguelike builds feel bad.
+
+Status against that gate, 2026-08-19: **zero confirmed viable.** Last measurement was roster 10.1%
+win / 21.6% loss / 68.3% draw against the corpus, and one real 9-part player ship took 24 of 28
+duels against the whole roster. The steering retune under `## Next` is on the critical path for all
+of them — four of seven archetypes barely reach engagement range, so most of these have never
+actually been tested.
+
+### Shop and economy — sketch 2026-08-19 (Tom), nothing exists
+
+No currency, no inventory and no between-node persistence exist today. Guard, from the same
+conversation that rejected the galaxy map: one currency, no buy-low-sell-high, no price differences
+between nodes. A shop is a spend point, not a market — the moment it becomes a market it is the
+time sink that was rejected.
+
+- [ ] **Sell composites — pre-wired sub-assemblies.** `LazerHardpoint` already reads
+      bearing -> angle, dist -> fire as one unit. Bought as a part it hands a new player working
+      automation they did not wire, and opening it up is how they learn the wiring layer. This is
+      the entry-toll problem (see From the Depths, `plan/corepox-design.md` comparables) solved by
+      the economy instead of by a tutorial, and it gives the composite mechanic a job in the run —
+      it is currently 24.6% corpus adoption with only 7 examples and no purpose beyond atproto
+- [ ] ~~**A Brain is budget, not a gun**~~ — struck 2026-08-20, same caveat
+- [ ] **A purchase can be unusable until the ship is re-laid-out** — hull space has to be found. Elsewhere a shop purchase is a stat increase; here it is a spatial
+      problem handed to the editor, which is where the game is
+- [ ] **Loot the ship you killed** — a duel drops one of that corpus ship's actual components.
+      Makes 892 anonymous opponents individual and ties acquisition to the encounter
+- [ ] **Escalating prices within a visit**, from Build & Battle: each purchase makes the remaining
+      options dearer this round, one may be banked for later. Commitment without a class system —
+      the run's playstyle is discovered rather than chosen, which is the point if playstyles are
+- [ ] **Sell back at a loss.** Corepox builds are spatial, so a player who has built into a corner
+      cannot otherwise pivot. Untested whether this makes commitment meaningless
+- [ ] Repairs are the second sink (see the damage-economy ideas above). The intended tension is
+      repair now against a new gun; unverified that the numbers can be made to bite
