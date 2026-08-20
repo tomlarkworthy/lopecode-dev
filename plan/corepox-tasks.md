@@ -58,6 +58,29 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       was drawn, in near-black. The engine now records `ttl0` at emit (no rng consumed, determinism
       unaffected) and the lane is `ttl/ttl0`. Gate is `tools/corepox-exhaust-probe.mjs`, which
       asserts lane OCCUPANCY -- "did the renderer write anything" passed throughout the bug.
+- [ ] **Connectivity runs on distance, not joints — the binding mechanic is lost.** Tom,
+      2026-08-20: "the game mechanic is components bind together via joints (which are not
+      currently visualized). This mechanic seems to have been lost." Confirmed:
+      `Ship.islands()` walks `NEIGHBOURS` (reach-2 tile distance) and the recovered `JOINTS`
+      table is read by **nothing but** `corepox-components`, the table editor. Nothing in the
+      simulation or the renderer touches it (`grep JOINTS modules/@tomlarkworthy/*.js`).
+      What that costs: severing is a function of distance, so destroying ONE component never
+      cuts a ship — reach 2 spans the hole — and a cut needs two adjacent cells gone. Measured
+      with `tools/corepox-split-probe.ts` (a 6-tile bar: one hole → 1 island, two → 2 bodies)
+      and over combat: 3 of 20 matches between single-island corpus designs produce a split.
+      The split machinery itself is fine — `splitDetached`/`detach` do become independent
+      bodies — so this is a connectivity-rule problem, not a physics one.
+      **It is not a drop-in switch.** `tools/corepox-joint-connectivity.ts` scores the recovered
+      table at 26-30% of the 892 corpus ships forming one piece, against reach-2's 70%, and it
+      reports `LaserTurret2: FAILED` alignment and was written against the old art frame. So
+      either the table or the frame is still wrong; wiring it in today would shatter most saved
+      ships at t=0. Next step is to DRAW the joints (they are unvisualized, and the drawing is
+      the instrument for finding which ones are misplaced), not to switch the rule.
+- [ ] **A cut ship in level flight keeps formation.** `Ship.detach` gives the fragment
+      `f.vx,f.vy = parent.velAt(piece)` and `f.w = parent.w`, so with no spin both pieces carry
+      identical velocity forever: measured +0.000 tiles of separation in 3s, against +1.000 at
+      rest (collision push) and +0.477 spinning. Whether the original applied a separation
+      impulse is not recorded.
 - [ ] **Measure the hull/port layer.** With the particle draw fixed, a frame still costs 67-76ms at
       6x throttle while carrying 4-66 particles, so the cost is elsewhere -- most likely the
       per-frame port numerals (`valueNode`). That is the layer that decides whether ships of
