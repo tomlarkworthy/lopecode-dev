@@ -21,9 +21,9 @@ for (const line of fs.readFileSync("vendor/corepox/firebase/data/ships.json", "u
   if (dropped.length) continue;
   let s: any; try { s = new Ship(spec, {team: "b"}); } catch { continue }
   if (s.overlaps() || s.islands().length !== 1 || s.comps.length < 6) continue;
-  const draw = s.live.reduce((n: number, c: any) => n + (TYPES[c.type].pwr ?? 1), 0);
-  const supply = s.live.filter((c: any) => c.type === "Brain").length * Ship.SUPPLY;
-  if (!supply || draw > supply) continue;
+  // was also filtered to "power draw inside its own supply" until the power budget
+  // was removed on 2026-08-20; a core is now the only requirement
+  if (!s.live.some((c: any) => c.type === "Brain")) continue;
   foes.push({id: line.slice(0, i), spec});
 }
 // Four start bearings, so a ship that only works head-on cannot fake a score.

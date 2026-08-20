@@ -93,6 +93,33 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       ship that is several joint-islands is split by `splitDetached` on the next step anyway, so
       this only matters for the tick before the split. Left alone deliberately -- changing it
       changes balance.
+- [x] **Power budget removed.** Tom, 2026-08-20: "what is this powerUp, I think it is hallucinations
+      and should be removed." It is an invention, and the record is unambiguous: `ShipComponentStats`
+      has three fields (`hyperspeed`, `maxHp`, `panel`), and grepping the whole of `Assets/scripts`
+      for power/energy/supply returns NOTHING. It had spread into flavour text -- the port described
+      Orb as "stores power for the components that draw more than the core makes" where
+      `Descriptions.cs:19` says "causes massive damage to touching components, and blocks incoming
+      lazer fire". That description is now the original's.
+      The evidence that justified it does not stand either. It was fitted (design §8.5) to the gun
+      ladder in §8.3, and that chassis is not a ship: the T-tetromino Binaries sit inside the Brain
+      and the Radar, 10 overlapping cells at one gun and 16 at eight, at every rung.
+      `tools/corepox-guns.ts` now checks that and refuses to print win rates.
+      A/B on today's build, three reps, stable to 1pp: budget ON 60/59/60/61, budget OFF
+      58/66/61/65. No monotonic runaway in either arm.
+      Out with it: `powerUp()`, `Ship.SUPPLY`, `TYPES[t].pwr`, `c.powered`, `ship.power`, the
+      renderer's 0.35 dimming, the shipyard `pwr` readout, the components table `pwr` column, and
+      `tools/corepox-power.ts` / `corepox-pwr2.ts`. `alive` is now just "has a live Brain".
+      **The opportunity cost of a gun is structural now**: `JOINTS.Lazer` is the aft cell only, so
+      the peripheral slots that made a wall of lasers cheap are the ones nothing will hold. Whether
+      that is enough is UNMEASURED and needs a chassis that is a ship (open, below).
+- [ ] **Rebuild the gun-ladder chassis on the real footprints.** `tools/corepox-guns.ts` is the only
+      instrument for "does adding a gun keep paying", and it refuses to run: its hull was authored
+      when every component was 1x1 and has 10-16 overlapping cells. Until it is rebuilt, §8.3-§8.5
+      of the design doc cannot be cited and the structural cost of a gun under joints is untested.
+- [ ] **The archetype roster shatters under joints.** `tools/corepox-archetype-check.ts`: 5 of 7
+      (braitenberg 4 islands, seeker 5, proportional 5, rammer 6, sniper 6) are multiple bodies, so
+      every balance number measured over ROSTER is measuring debris. Same cause as the ladder --
+      hand-authored layouts that predate the real footprints and the joint rule.
 - [ ] **A cut ship in level flight keeps formation.** `Ship.detach` gives the fragment
       `f.vx,f.vy = parent.velAt(piece)` and `f.w = parent.w`, so with no spin both pieces carry
       identical velocity forever: measured +0.000 tiles of separation in 3s, against +1.000 at
@@ -112,17 +139,29 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       turned out to be readable: player flags and transforms, the 5x7 envelope, the inventories
       (via `tools/corepox-prefab-ids.py`) and `liveMode`. See
       `knowledge/corepox-extracted-design.md`, "Advanced Steering, ported".
-- [ ] `buildOnce: 1` is not modelled. FollowBoss is the only mission that sets it: the scene means
-      you to get one build phase, and the port lets you rebuild between attempts.
-- [ ] The build path cannot place a **relic**. FollowCourse and FollowCourseAdvanced both offer one
-      in the inventory (a `PPtr` to a scene composite), and `commitBuild` takes a bare type name,
-      so only the Brain is offered. Placing a relic means placing a `Composite` with its `param`.
-- [ ] **Two campaigns, not one flat list.** The port shows 12 missions in one dropdown. The shipped
-      game groups them: `tutorial` (7) and `Advanced Steering` (3), each with a `displayName` and a
-      `minPlayerRating` gate that has not been read.
-- [ ] `SideShooter` and `TwinTurrets` are in NO campaign and not in the 1.49 scene list. The port
-      ships them as missions 11 and 12. Either mark them as an addition or drop them; right now the
-      port silently presents them as recovered content.
+- [x] `buildOnce` modelled, 2026-08-20. FollowBoss is the only scene of twelve that sets it, and it
+      does exactly two things: `hasBuildBuildOptions` hides the BUILD button once `hasPlayed`
+      (nothing else — move/rotate/delete/wire are `Selected` options and the scene allows them all),
+      and `MissionController.call` saves the pre-play ship so `retry` gives it back. Both in the
+      port; `tools/corepox-buildonce-probe.ts` asserts the difference against Cocoon
+      (`stock 1->1 restart forgets` vs `stock 9->0 restart remembers`).
+- [x] The relic item is **never offered**, 2026-08-20 — so there is nothing to place. The two
+      `m_FileID` 0 inventory items are not relics: each is a second copy of the mission's own hull,
+      and `UIState.buildOptions` cancels an item whose `model.id` is already on the player ship.
+      `tools/corepox-inventory-offered.py` applies the rule to all twelve scenes. Both live Follow
+      missions come out with an **empty** BUILD menu, which is what `liveMode: 1` and a wires-only
+      brief already said. Cut the spare Brain from all three Follow missions and the two spare
+      Constants from FollowCourseAdvanced.
+- [x] **Two campaigns, not one flat list**, 2026-08-20. `CAMPAIGNS` in corepox-missions drives an
+      `<optgroup>` picker and a per-campaign header counter (`tutorial 1/7`, `Advanced Steering 3/3`).
+      Option values stay the global mission index so nothing driving the select by number changed.
+      `minPlayerRating` is still unread — it is an int and the extractor only recovers strings.
+- [x] `SideShooter` and `TwinTurrets` are labelled, 2026-08-20. They appear in a trailing
+      "not in a campaign" group rather than being hidden or numbered into the arc. A mission the
+      table does not name still shows up, so nothing can silently vanish from the picker.
+- [x] Two mission titles corrected against the campaign read, 2026-08-20: "Zero negates something"
+      -> "Zero Negates Something", and "Boss: the Gun Boat" -> **"Boss: The Assassin"**. The former
+      was the enemy composite's name (`SHIPS.gunBoat`), not the mission's.
 - [x] Cutscenes recovered and ported, 2026-08-20. The frames were a `Resources` TextAsset named
       `cutscenes`, 1103 bytes, in the APK -> `data/corepox/cutscenes.yaml`: 9 scenes, 11 frames,
       every profile `BrainProfile`. `followBoss` is a key with no scene, so FollowBoss plays no
@@ -382,6 +421,25 @@ One of these leans on structure that already exists:
       The pilot only ever commands engines that are **on the Brain's own island, powered, and unwired**
       (Tom's rule, 2026-08-20: "it should not be able to control disconnected components, only its own
       island"). Islands are read from `Ship.islands()`, so wiring an engine is what hands it to a program.
+- [x] **`loadShipSpec` discarded a wire's declared port name** — reported by Tom 2026-08-20 as
+      "gunBoat does not shoot". It re-derived every port from the cell the wire ends on, which is
+      wrong whenever two ports of one component are addressed through the same cell. gunBoat's two
+      wires both end on `[1, 4]`, the turret's `angle` cell (`fire` is `[2, 4]`), so `dist -> fire`
+      was rewritten to `angle` and the trigger was never written:
+
+      ```
+      gunBoat, 6s against a stationary target 14 tiles away (tools/scratch/gunboat.ts)
+        before   raw 52 beam-ticks   loaded 0    gun.in = {"angle":10.84}
+        after    raw 52 beam-ticks   loaded 52   gun.in = {"angle":null,"fire":null}
+      ```
+
+      Fix: a declared `fromPort`/`toPort` is kept when the component at that cell actually has that
+      port, and cell re-derivation is the fallback. The fallback is what the recovered corpus needs —
+      its 3781 wires carry no port names at all. Blast radius measured over all 913 specs (2191
+      corpus designs plus the mission ships) by `tools/corepox-port-fidelity.ts`: 9 wires declare a
+      port, 0 are still rewritten, and `manualAim` / `laserpost` / `shooter` beam-ticks are unchanged
+      (112 / 108 / 106, identical raw and loaded). Drops are untouched — `find()` decides those and
+      it was not changed — so the `newSession` entry below still stands.
 - [ ] **`newSession` bypasses `loadShipSpec`** — found 2026-08-20 while checking the missions, and it
       predates the pilot. Every other path loads a spec through `loadShipSpec`; `corepox-game.js:46`
       passes the raw mission spec to `new Ship()`. The two disagree:

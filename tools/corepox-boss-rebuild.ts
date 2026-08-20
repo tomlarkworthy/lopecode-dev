@@ -81,7 +81,6 @@ function evaluate(comps: any[]) {
   if (best && best.left === 0 && best.t <= STOP) return;
   const spec = {components: comps, connections: wire(comps)};
   let p: any; try { p = new Ship({name: "p", ...spec}, {team: "player", x: 0, y: 0, a: 0}); } catch { return; }
-  if (p.comps.some((k: any) => !k.powered)) return;
   simulated++;
   if (simulated % 2000 === 0) console.log(`  ... ${found} layouts, ${simulated} simulated, best ${best ? best.left + " left @" + best.t.toFixed(1) + "s" : "none"}`);
   const es = m.enemies.map((e: any) => new Ship(e.spec, {team: "enemy", x: e.x, y: e.y, a: e.a}));
@@ -99,5 +98,5 @@ function evaluate(comps: any[]) {
   }
 }
 grow(0, [{type: "Brain", pos: [0, 0]}]);
-console.log(`\n${found} joint-bound layouts, ${simulated} powered and simulated`);
+console.log(`\n${found} joint-bound layouts, ${simulated} simulated`);
 if (best) console.log(JSON.stringify(best.spec));

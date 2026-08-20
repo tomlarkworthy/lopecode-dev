@@ -1,7 +1,18 @@
 // Does adding guns to a fixed, well-piloted chassis keep paying? If yes, guns have
 // no opportunity cost and the wall of lasers is rational.
+//
+// READ THE REFUSAL BEFORE THE NUMBERS. This chassis was authored when every
+// component was assumed 1x1, and under the real footprints it is not a ship: the
+// T-tetromino Binaries sit inside the Brain and inside the Radar, 10 overlapping
+// cells at one gun and 16 at eight (measured 2026-08-20). The monotonic ladder it
+// produced -- 11/36/58/67/78, plan/corepox-design.md S8.3 -- is what the power
+// budget was invented to fix, and it was measured on a hull that cannot be built.
+// Rebuilding the chassis on the real footprints is an open task; until then this
+// tool refuses rather than printing a number that looks like evidence.
 import {importNotebookModule} from "./notebook-import.ts";
-const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+// ENGINE points this at a variant engine, so a rule change can be A/B'd in one
+// session against one build rather than compared to a number from a past one.
+const m = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const Ship: any = await m.value("Ship"); const World: any = await m.value("World");
 
 const C=(t:string,p:number[],e:any={})=>({type:t,pos:p,dir:"up",...e});
@@ -23,9 +34,19 @@ function chassis(nGuns:number){
       w_([2,1],"out",[0,-1],"in"),...guns.map(g=>w_([2,1],"out",g,"in"))]};
 }
 const LADDER=[1,2,3,5,8].map(chassis);
-// sanity: every rung must be one connected island
+// sanity: every rung must be a ship -- one joint-bound body, no shared cells
+let broken=0;
 for(const c of LADDER){const s=new Ship(c,{team:"a"});
-  if(s.islands().length>1) console.log("!! DISCONNECTED:",c.name);}
+  const at=new Map<string,number>();
+  for(const k of s.comps) for(const [x,y] of k.tiles) at.set(x+","+y,(at.get(x+","+y)??0)+1);
+  const clash=[...at.values()].filter(v=>v>1).length;
+  const isl=s.islands().length;
+  if(clash||isl>1){broken++; console.log(`!! ${c.name}: ${clash} overlapping cells, ${isl} islands`);}}
+if(broken){
+  console.log(`\n${broken}/${LADDER.length} rungs are not buildable ships. Refusing to report win
+rates -- see the header. Set FORCE=1 to measure anyway, knowing what is being measured.`);
+  if(!process.env.FORCE) process.exit(1);
+}
 
 function match(A:any,B:any,seed:number){
   const r=(n:number)=>((Math.sin(seed*12.9898+n*78.233)*43758.5453)%1+1)%1;

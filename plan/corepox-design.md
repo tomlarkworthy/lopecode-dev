@@ -143,11 +143,16 @@ each other with. That gap is not closable from the recovered data.
 directly: combat "doesn't involve pecking away at a health meter; instead, the object is to tear
 off parts of enemy ships until landing a hit on their command center."
 
-Corepox has the mechanism already and does not use it. `corepox-engine.js:119 powerUp()` flood-fills
-from the Brains and marks everything unreachable as unpowered — a severed limb stops computing but
-keeps its mass. `Connectivity.cs:99 disjointSets()` in the original does the same over *joints*
-rather than tile adjacency. What is missing is that severing is never worth aiming for, because a
-20 HP Brain sits behind 800 HP of shell that is not actually in the way.
+Corepox has the mechanism already and does not use it. `powerUp()` flood-fills from the Brains and
+marks everything unreachable as unpowered — a severed limb stops computing but keeps its mass.
+`Connectivity.cs:99 disjointSets()` in the original does the same over *joints* rather than tile
+adjacency. What is missing is that severing is never worth aiming for, because a 20 HP Brain sits
+behind 800 HP of shell that is not actually in the way.
+
+*Both halves of that paragraph are now done and it is kept for the record.* `Ship.islands()` runs
+on joints as of 2026-08-20, and `powerUp()` was removed the same day — a severed limb becomes its
+own ship on the next step, which is what the original does, so there was nothing left for the
+flood fill to mark.
 
 Three changes, in dependency order:
 
@@ -342,6 +347,14 @@ the centre of mass does not move, round-robin between rungs:
 Strictly monotonic. Piloting is a fixed setup cost; once paid, every further slot goes to a gun,
 because nothing trades against it. That is the whole wall-of-lasers problem in five rows.
 
+**RETRACTED 2026-08-20 — the chassis is not a ship.** It was authored when every component was
+assumed 1x1. Under the real footprints the T-tetromino Binaries sit inside the Brain and inside
+the Radar: 10 overlapping cells at one gun, 16 at eight, at every rung. Under joints the 8-gun
+rung is also two islands. `corepox-guns.ts` now measures that first and refuses to print win rates
+(`FORCE=1` overrides, knowing what is being measured). The five rows above, and the supply sweep
+in §8.5 that was fitted to them, were measured on a hull that cannot be built. Rebuilding the
+chassis on the real footprints is open work; nothing in §8.3-§8.5 should be cited until it is.
+
 ### 8.4 Recoil: a dead end, measured
 
 The obvious fix is to make firing kick the ship off its own aim. Sweeping the impulse constant:
@@ -411,6 +424,42 @@ failure mode: killing a Brain mid-fight browns out the far end of the ship. That
 **Open:** brownout order is currently pure hop distance, so which component dies is not the
 player's choice. Either expose priority in the designer or power declared-critical parts first.
 Undecided, and it is the next thing to settle before this ships.
+
+**REMOVED 2026-08-20, on Tom's call.** Two reasons, and the first is the one that matters.
+
+*It is not in the game.* `ShipComponentStats` has exactly three fields — `hyperspeed`, `maxHp`,
+`panel`. There is no power, energy, supply or draw anywhere in `Assets/scripts` (grep returns
+nothing; the only hits in the whole tree are FMOD and DOTween). A component's cost in the original
+is its mass and its slot in a limited inventory, and nothing else. `Descriptions.cs` gives Orb
+"causes massive damage to touching components, and blocks incoming lazer fire" — the port had
+rewritten it as "stores power for the components that draw more than the core makes", which is
+flavour text invented to explain an invented mechanic. That is how far it had spread.
+
+*And the evidence for it does not stand.* The sweep above was fitted to §8.3's ladder, which is
+retracted. Re-measured today on the same build, budget on against budget off, three reps each and
+stable to 1pp:
+
+```
+ guns              1    2    3    5    8
+ budget ON        60   59   60   61   (10)     spread 2pp
+ budget OFF       58   66   61   65   ( 0)     spread 8pp
+```
+
+The 8-gun rung is parenthesised because it is two islands under joints, so its number is a
+shattered ship's, not a gunship's. There is no monotonic runaway in either arm — the 67pp
+ladder the budget was invented to flatten is not present in today's build with the budget gone.
+8pp against 2pp is a real difference and it is not the problem that was being solved.
+
+What came out with it: `powerUp()`, `Ship.SUPPLY`, `TYPES[t].pwr`, `c.powered`, `ship.power`, the
+renderer's 0.35 dimming of unpowered parts, the shipyard's `pwr` readout, the component table's
+`pwr` column, and `tools/corepox-power.ts` / `corepox-pwr2.ts`, which had no subject left.
+`this.alive` is now `live.some(c => c.type === "Brain")`.
+
+**The opportunity cost of a gun is now structural, and that is the better answer.** Under joints a
+part has to reach a face that will have it, and `JOINTS.Lazer` is the aft cell only — four slots.
+The peripheral positions that made a wall of lasers cheap are exactly the ones nothing will hold.
+That is a cost the player can see on the grid rather than a number rationed behind their back.
+Whether it is *enough* is unmeasured, and needs a chassis that is a ship.
 
 ## 9. Port recovery — the corpus runs
 
@@ -1287,12 +1336,15 @@ with no enemy present and 45 (5%) kill themselves outright, against 15% / 4% bef
 The power budget, recoil and impulse collision damage were all added on 2026-08-18 for balance
 (§8). Each broke a recovered level, and each was a different kind of mistake.
 
-**Power budget — wrong for brainless ships.** `ProximityMine` and `DelayBomb` have no Brain. The
-budget is supplied per Brain, so they got nothing: not powered, and `ship.alive` gated stepping, so
-they did not drift, compute, or even register as targets. The budget models a core rationing
-supply; with no core there is nothing to ration. `powerUp` now powers a brainless hull fully, and
-stepping is gated on `live.length` rather than `alive`. The budget itself is kept — it is what
-compressed the gun-ladder spread from 67pp to 20pp.
+**Power budget — wrong for brainless ships, and then removed entirely.** `ProximityMine` and
+`DelayBomb` have no Brain. The budget is supplied per Brain, so they got nothing: not powered, and
+`ship.alive` gated stepping, so they did not drift, compute, or even register as targets. The
+budget models a core rationing supply; with no core there is nothing to ration. That was patched
+by powering a brainless hull fully and gating stepping on `live.length`.
+**The budget itself came out on 2026-08-20** — there is no power system anywhere in the original
+(`ShipComponentStats` is `hyperspeed`, `maxHp`, `panel`), and the gun ladder it was justified by is
+retracted. See §8.5. Note what the patch had already told us: a mechanic that has to special-case
+the ships the game ships with is a mechanic the game does not have.
 
 **Recoil — not in the original at all.** `LaserFn` and `TurretFn` emit a `Damage` particle and
 never touch the rigidbody. With recoil on, ManualAim *solves itself*: the turret's own kick rotates

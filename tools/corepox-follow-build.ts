@@ -15,16 +15,15 @@ for (const key of ["braitenbergRelic", "unfinishedOrbDrone", "orbDroneChassis"])
   const c = SHIPS[key];
   const {spec, dropped} = load({name: c.name, components: c.components, connections: c.connections});
   const at = new Map<string, string>();
-  let pwr = 0;
   for (const k of spec.components) {
-    const T = TYPES[k.type]; pwr += T.pwr;
+    const T = TYPES[k.type];
     const d = typeof k.dir === "number" ? k.dir : (DIRS[k.dir ?? "up"] ?? 0);
     for (const t of T.tiles) { const [rx, ry] = rotTile(t, d);
       at.set((k.pos[0]+rx)+","+(k.pos[1]+ry), k.type); }
   }
   const xs = [...at.keys()].map(s => +s.split(",")[0]), ys = [...at.keys()].map(s => +s.split(",")[1]);
   const x0 = Math.min(...xs)-1, x1 = Math.max(...xs)+1, y0 = Math.min(...ys)-1, y1 = Math.max(...ys)+1;
-  console.log("=== " + key + "  " + c.name + "  pwr " + pwr + "  dropped " + dropped.length);
+  console.log("=== " + key + "  " + c.name + "  dropped " + dropped.length);
   for (let y = y1; y >= y0; y--) {
     let row = String(y).padStart(3) + " ";
     for (let x = x0; x <= x1; x++) row += (at.get(x+","+y) ?? ".")[0] + " ";

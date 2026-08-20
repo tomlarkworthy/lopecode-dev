@@ -50,7 +50,6 @@ for (const c of layouts) {
   let p: any;
   try { p = new Ship({name: "p", ...c}, {team: "player", x: 0, y: 0, a: 0}); } catch { continue; }
   if (p.overlaps() || p.islands().length > 1) continue;
-  if (p.comps.some((k: any) => !k.powered)) continue;
   tried++;
   const es = m.enemies.map((e: any) => new Ship(e.spec, {team: "enemy", x: e.x, y: e.y, a: e.a}));
   const w = new World([p, ...es]);

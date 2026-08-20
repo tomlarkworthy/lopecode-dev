@@ -20,10 +20,11 @@ for(const spec of ROSTER){
 
 // Structurally legal is not the same as functional: a layout can be one body with
 // every wire landing and still never thrust, if the dataflow does not reach an
-// engine or the power budget browns it out. Fly each one at a stationary turtle.
+// engine. (It could also be browned out, until the power budget was removed on
+// 2026-08-20.) Fly each one at a stationary turtle.
 const World:any=await m.value("World");
 const TURTLE=ROSTER.find((r:any)=>r.name==="turtle");
-console.log("\n            thrust-ticks  shots  closed(tiles)  powered/parts");
+console.log("\n            thrust-ticks  shots  closed(tiles)");
 for(const spec of ROSTER){
   const a=new Ship(spec,{team:"a",x:0,y:-14,a:0});
   const b=new Ship(TURTLE,{team:"b",x:0,y:14,a:180});
@@ -37,6 +38,5 @@ for(const spec of ROSTER){
     if(!a.alive||!b.alive) break;
   }
   const d1=Math.hypot(a.x-b.x,a.y-b.y);
-  const pw=a.live.filter((c:any)=>c.powered).length;
-  console.log(`${spec.name.padEnd(13)} ${String(thrust).padStart(9)} ${String(shots).padStart(6)} ${(d0-d1).toFixed(1).padStart(13)} ${String(pw+"/"+a.comps.length).padStart(14)}`);
+  console.log(`${spec.name.padEnd(13)} ${String(thrust).padStart(9)} ${String(shots).padStart(6)} ${(d0-d1).toFixed(1).padStart(13)}`);
 }

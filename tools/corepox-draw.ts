@@ -98,7 +98,7 @@ for(const type of Object.keys(TYPES)){
   const T=TYPES[type];
   const nj=jointsOf(s.comps[0]).length;
   const np=Object.keys(PORTS[type]?.outs??{}).length+Object.keys(PORTS[type]?.ins??{}).length;
-  sheet.push(drawShip(s,`${type} — ${T.tiles.length} cell${T.tiles.length>1?"s":""}, ${nj} joints, ${np} connector${np===1?"":"s"}, pwr ${T.pwr}, hp ${T.hp}`,true));
+  sheet.push(drawShip(s,`${type} — ${T.tiles.length} cell${T.tiles.length>1?"s":""}, ${nj} joints, ${np} connector${np===1?"":"s"}, hp ${T.hp}`,true));
 }
 // --- rotations of one component, to check the rotation convention ---
 const rots:string[]=[];
