@@ -386,7 +386,34 @@ Two of those were bugs the observation found rather than features it added:
     `tools/corepox-wire-probe.ts`, which read `rgb(190,255,119)` off the paths under a filter that
     then moved them. The tint is on the hull only now.
 
+Three more went in the same day off Tom's own screenshot of `aiming`:
+
+  - **The barrel hung off the panel.** It turned about the anchor (111,124), which is the gear ring
+    at the centre of the angle-port cell. The art joins the two at the dome: the barrel's butt quad
+    centroid is (144.95, 93.56) and the panel's peak sits on the top edge between (111, 91.73) and
+    (172.43, 91.73), midpoint (141.7, 91.73) — 3 units apart, which is what says the butt is the
+    hinge. `ART_TURRET_DEG` moved with it, 64.2 → 68.82, because the authored angle is measured
+    from the hinge (`atan2(119.1, 46.2)` to the muzzle tip at (264.05, 47.41)); the old value came
+    off the anchor and the corner of a bounding box.
+  - **A port vanished when it had no value.** A Radar with no target sets `dist`/`bearing` to `NaN`,
+    and the renderer hid the whole disc — so the component the mission is about had no visible
+    outputs, and connect mode chequered a ring around nothing. `63-ports.avif` has a disc on every
+    port of that ship. A port is a socket now: it draws regardless and reads `–` when empty.
+  - **The camera followed the opponents.** `framed = null` meant it had to contain every ship in the
+    world, so `connection`'s rivals and `avoiding`'s mines pulled it open until the hull was a few
+    pixels. It frames the player only; `minSpan` is per-mission and already sized to the fight.
+
 **Not ported.** Each of these is described above and none of it is in the notebook:
+
+  - **The turret's dome is a triangular peak in our art, a semicircle in the shipped game**
+    (`46-barrel31.avif` against `art_LaserTurret2`, whose panel path is
+    `L111,91.73 L143.46,57.53 L172.43,91.73`). The recovered Sketch file is a different design pass,
+    the same way its radar trace was — Tom's note on `h_Radar`, "I think we shipped something with
+    a circle for the 2x2 top part". The barrel's butt is meant to be hidden inside that dome and
+    ours overhangs.
+  - **The aim indicator does not turn.** The pale-green triangle at (139.6,111.6)-(154.8,109.8) is
+    authored into `turret2-base`; in `46-barrel31.avif` it sits inside the dome pointing along the
+    barrel. Moving it means splitting the art a third time.
 
   - **Joints as lime-green pins.** Two per shared edge, ~0.22 × 0.09 tiles, coming loose as debris
     when a ship breaks. Measured in `32-joints.avif`; nothing draws them.
