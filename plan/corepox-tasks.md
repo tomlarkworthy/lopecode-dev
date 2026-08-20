@@ -58,24 +58,41 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       was drawn, in near-black. The engine now records `ttl0` at emit (no rng consumed, determinism
       unaffected) and the lane is `ttl/ttl0`. Gate is `tools/corepox-exhaust-probe.mjs`, which
       asserts lane OCCUPANCY -- "did the renderer write anything" passed throughout the bug.
-- [ ] **Connectivity runs on distance, not joints — the binding mechanic is lost.** Tom,
-      2026-08-20: "the game mechanic is components bind together via joints (which are not
-      currently visualized). This mechanic seems to have been lost." Confirmed:
-      `Ship.islands()` walks `NEIGHBOURS` (reach-2 tile distance) and the recovered `JOINTS`
-      table is read by **nothing but** `corepox-components`, the table editor. Nothing in the
-      simulation or the renderer touches it (`grep JOINTS modules/@tomlarkworthy/*.js`).
-      What that costs: severing is a function of distance, so destroying ONE component never
-      cuts a ship — reach 2 spans the hole — and a cut needs two adjacent cells gone. Measured
-      with `tools/corepox-split-probe.ts` (a 6-tile bar: one hole → 1 island, two → 2 bodies)
-      and over combat: 3 of 20 matches between single-island corpus designs produce a split.
-      The split machinery itself is fine — `splitDetached`/`detach` do become independent
-      bodies — so this is a connectivity-rule problem, not a physics one.
-      **It is not a drop-in switch.** `tools/corepox-joint-connectivity.ts` scores the recovered
-      table at 26-30% of the 892 corpus ships forming one piece, against reach-2's 70%, and it
-      reports `LaserTurret2: FAILED` alignment and was written against the old art frame. So
-      either the table or the frame is still wrong; wiring it in today would shatter most saved
-      ships at t=0. Next step is to DRAW the joints (they are unvisualized, and the drawing is
-      the instrument for finding which ones are misplaced), not to switch the rule.
+- [x] **Connectivity now runs on JOINTS.** Done 2026-08-20 on Tom's instruction ("switch to joint
+      based connectivity ... all those statements were made early on in the porting process and
+      are stale"). The mating rule is not a judgement call: `Metrics.cs:361 CoordDir8.opposing()`
+      returns the SAME POINT reached from the neighbouring cell (`UP_LEFT` at (x,y) mates
+      `DOWN_LEFT` at (x,y+1)), and `Connectivity.cs:99 disjointSets -> connected -> adjacent`
+      does nothing but look that up. So two components are bound when their joint POINTS coincide
+      and only then -- **there is no gap rule**, and the drawn stalks are cosmetic. `Metrics.cs:258
+      offset_x/offset_y` also gives the eight slot offsets literally, and they are exactly what
+      `JOINTS` and `corepox-components` were already written to: slot 0 is the half nearer the
+      smaller coordinate. `Ship.jointsOf` rotates the slot as a point through the same `rotTile`
+      the tiles go through.
+      **The control, not the corpus, is what says this is right.** All 48 developer ships (the port
+      roster plus every mission fleet, from the game's own prefabs) are ONE body under joints:
+      48/48, `tools/corepox-joint-rule.ts`. Player saves are 62%, against reach-2's 89%, and the
+      shortfall is not a defect -- `ShipComponent.cs:117 canPlace` only tests occupancy, so the
+      editor never required a design to be joined up. Joints is a strict refinement of reach-2
+      (0 of 890 ships bind under joints and not under distance), which the gate asserts.
+      What it buys: ONE destroyed component now cuts a ship, and touching is no longer binding --
+      an Armour against an Orb's flank is not part of the ship, against its aft edge it is.
+      `tools/corepox-split-probe.ts` holds both. `islandsByDistance()` is kept for the comparison.
+      Rejected on the way: negating every `dir` to match `Coord.rotateClockwise`'s (x,y)->(-y,x)
+      (ours is (y,-x)) makes it WORSE, 46% against 62% -- the ported rotation sense is right.
+      `Composite` is the one type with no joint entry and it is unreachable: `loadShipSpec`
+      splices every one of the corpus's 228 instances into sub-components, 0 survive.
+      Fallout, fixed: FollowBoss's reference solution loaded as 3 islands and the campaign gate
+      timed out. Rebuilt (see the comment in `corepox-missions.js`) -- 7 parts, first kill 18.6s
+      against the old 41s. Two searches could NOT repair the old shape, which is the finding:
+      `corepox-boss-search.ts` gets 490 joint-bound layouts out of 4,898,880 and its best kills
+      nothing, and `corepox-boss-rebuild.ts` (adds rotation) does no better. Under joints a hull
+      is a chain -- every part has to reach a face that will have it.
+      Still on distance: `Ship.powerUp` spreads power over `NEIGHBOURS`, so power can cross a
+      non-existent joint. Power is a port invention (there is no power system in the C#), and a
+      ship that is several joint-islands is split by `splitDetached` on the next step anyway, so
+      this only matters for the tick before the split. Left alone deliberately -- changing it
+      changes balance.
 - [ ] **A cut ship in level flight keeps formation.** `Ship.detach` gives the fragment
       `f.vx,f.vy = parent.velAt(piece)` and `f.w = parent.w`, so with no spin both pieces carry
       identical velocity forever: measured +0.000 tiles of separation in 3s, against +1.000 at
@@ -236,17 +253,22 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       dataflow depth instead, or surface the budget in the editor. Tom's call
 - [x] Composite expansion — dropped connections 5.1% -> 1.2%. Did NOT fix multi-island (prediction
       falsified). All 228 corpus instances are BrautenbourgsFirst
-- [x] Connectivity resolved: reach-2 IS the physical model (connector stalks meet in the gap cell).
-      Joints are NOT the gap (4-way is their ceiling and fails), footprints are NOT the gap
-      (best sweep 33% costs 48% overlap). Engine dominates the residual bridging pairs
+- [~] **WRONG, superseded 2026-08-20: "reach-2 IS the physical model (connector stalks meet in the
+      gap cell)".** `Metrics.cs:361 opposing()` mates a joint with the neighbouring CELL, so there
+      is no gap rule in the original at all. Reach-2 was a stand-in fitted to a corpus statistic,
+      and stating it as the physical model is how a stand-in becomes the remembered design.
 - [x] Engine 2x1 (nozzle behind), Lazer 3x1 (barrel forward) — earlier 1x1 call was a world-space
       vs local-space measurement bug. multi-island 22% -> 17%
 - [x] Joints recovered off the SVG art (tools/corepox-joints-from-art.py). Engine came out as
       N[0,1] E[0] W[0] = exactly the "4 on top and top/left/right" Tom described from memory
-- [~] **RETIRED: wire JOINTS into powerUp/islands.** It contradicts the entry above it. Re-measured
-      2026-08-19 after the frame landing: joint stalks meeting in the gap cell leave 7/838 ships
-      (1%) in one piece and plain joint adjacency 235/838 (28%), against reach-2's 84%. Doing this
-      would take connectivity from 84% to 32%. `tools/corepox-joint-connectivity.ts`
+- [x] **UN-RETIRED and DONE 2026-08-20: JOINTS is the connectivity rule.** The 2026-08-19 numbers
+      here (1% for stalks-in-the-gap, 28% for adjacency, against reach-2's 84%) were measured
+      through `corepox-joint-connectivity.ts`, which fits an art-frame-to-engine-frame alignment
+      per type and reported `LaserTurret2: FAILED`. JOINTS has since been restated in engine frame
+      and drawn in `corepox-components`, so no alignment is needed and the rule reads the table
+      directly: 62% of player saves and 48/48 developer ships. See the live entry above. The
+      retirement was correct on its evidence and wrong about the cause -- the frame was the
+      problem, not the rule.
 - [x] Brain joints = full 8 (Tom). Unblocked 485 ships for testing, up from 10
 - [x] Radar joints CONFIRMED blind: Tom's "4 on the 2-length side + closest round the corner = 6"
       matches the art-derived table exactly. Engine confirmed the same way
@@ -383,12 +405,77 @@ One of these leans on structure that already exists:
       (ManualAim's turret does gain `angle: 0` during a run; that is its own Constant, not the pilot.)
       This is also the answer to the item below — radar-aimed point defence while you fly the hull is
       something hands cannot do at the same time, so it is a wire worth building.
+- [x] **WASD drives directly** (Tom asked, 2026-08-20). Same allocator, different demand: instead of
+      deriving a wrench from a waypoint the keys name one outright, as a fraction of the authority the
+      build has in that direction. So the keys a hull cannot honour do nothing, measured
+      (`tools/scratch/drive-check.ts`, 3s per key from rest):
+
+      ```
+        FollowCourse    W  ->  2.95 tiles/s      S  ->  0.00      A/D  ->  -+8 deg/s   [yaw 35/36]
+        ConnectionLite  W  ->  4.94 tiles/s      S  ->  0.00      A/D  ->   0 deg/s    [yaw  0/0]
+      ```
+
+      S does nothing on either because neither can thrust aft; A/D do nothing on ConnectionLite because
+      its single centred engine has no torque arm. Same "the failure is the build's" property as the
+      waypoint mode, now legible one key at a time. Verified in the browser on mission 8:
+      `rotate 0.00 -> 1.99` under D, `translate (0,-5.1) -> (2.1,-51.4)` under W, `rotate 3.66 -> 1.97`
+      under A (`tools/scratch/wasd-final.mjs`). A key press clears the waypoint and a waypoint clears
+      the keys — they command the same nozzles, so only one may hold them.
+      Torque weight drops from 8 to 2 under direct drive: starving thrust to serve a held turn key
+      reads as an unresponsive ship, where under a waypoint attitude-first is what makes the burn useful.
 - [ ] **Wiring becomes automation, not a prerequisite.** If the player has hands, a wire must buy
       something hands cannot do at the same time (point defence while dodging, a range gate while
       turning). Undesigned. Falsifiable early: if a wire only replicates a key press, it is a chore.
 - [ ] Architecture sketch, untried: the player is another source node — a `Pilot` component whose
       output ports are driven by input instead of by upstream wires. Enemy ships stay wired ships,
       one simulation, and headless tools substitute a scripted pilot.
+
+### Duel: one match, callable from anywhere (built 2026-08-20)
+
+`@tomlarkworthy/corepox-duel`. Tom asked for a standalone module with programmatic invocation so the
+map's encounters and a multiplayer session can be callers rather than reimplementations.
+
+```js
+runDuel({                                        // headless -> {winner, seconds, ticks, a, b, duel}
+  a: {spec, control: "auto" | "wired" | "human"},
+  b: {spec},                                     // default "wired": it flies its own program
+  placement: {separation: 18, bearing: 30},      // tiles, degrees; explicit x/y/a per ship wins
+  mode: "elimination" | "attrition" | "survival",
+  backdrop: {...} | false,                       // corepox-backdrops params, seeded off `seed`
+  limit: 60, seed: 1
+})
+newDuel(cfg) / stepDuel(D)                       // the same match one tick at a time
+duelView(cfg, {height, span, speed, onEnd})      // backdrop + battlefield + scoreboard
+```
+
+Verified (`tools/corepox-duel-check.ts`), and the three controls are what make it reusable:
+
+```
+  liteCore control=wired   separation 30.0 -> 30.0 tiles after 10s   (nothing drives its engine)
+  liteCore control=auto    separation 30.0 ->  5.0 tiles after 10s   (closes to the 6-tile standoff)
+  human, thrust held 5s    speed 5.17 tiles/s                        (caller writes D.cmd.a)
+  same seed twice          b@10s vs b@10s -> IDENTICAL
+```
+
+`auto` is `chaseCmd` — close to a standoff, hold the nose on the target, fire inside 26 tiles and 25
+degrees. Deliberately dumb: it exists so an unwired corpus hull can be a credible enemy without
+hand-authoring a control program for each of the 892.
+
+**Three copies of "run a match" existed and they disagree about who is alive.** `simulate`
+(`corepox-engine.js`) and `tools/corepox-match.ts` both use `Ship.alive`, which requires a powered
+Brain — so a brainless device is dead on the first tick, and a ProximityMine loses every match it is
+in before it has done anything. `runMatch` (`corepox-lab.js:414`) uses the better rule: a ship that
+*arrived* with a Brain needs one, a ship that never had one is alive while it has parts. The duel
+module takes the lab's rule.
+
+- [ ] Migrate the other three onto `runDuel`. **Not done deliberately**: the aliveness rule differs, so
+      moving `tools/corepox-match.ts` over will move the recorded intransitivity result (1.4% cyclic,
+      measured 2026-08-20) — the pairs it changes are exactly the ones involving brainless ships. That
+      is a re-measurement, not a refactor, and it should be done as one.
+- [ ] Most `SHIPS` pairs still draw. A full pairwise sweep with `control: "auto"` and a 45s limit
+      (`tools/scratch/duel-matrix.ts`) found ~14 pairs that resolve after 3s; the demo default
+      (manualAim vs gunBoat, ~10.6s, both sides ending on 3 parts) was picked off it. The lab's arena
+      recorded the same thing independently. Whether that is a TTK problem or a roster problem is open.
 
 ### Controls — one surface, six gestures, no rule (raised 2026-08-20, Tom)
 
@@ -428,11 +515,22 @@ specific collisions, worst first:
 - **No cancel.** There is no gesture that clears a waypoint or aborts a half-drawn wire.
 - **Touch is unconsidered.** No pinch, and a one-finger drag is already claimed three ways.
 
-Two things worth deciding before any of the above, because they set the shape:
-- Is build-during-play staying? `editable()` (`:571`) says yes, and it is why the editor and the pilot
-  compete for the same gestures at the same time. If building were modal the conflict mostly vanishes.
-- Does the pilot keep the drag? Waypoint-and-heading is one gesture doing two jobs; a tap for the
-  waypoint and a separate control for facing would give the drag back to the camera.
+Found while adding WASD, both now fixed, both worth remembering as the shape of this problem:
+- **A focused `<select>` ate the drive keys.** The mission dropdown keeps focus after a change, and a
+  focused select both swallows the keys and jumps its options on a letter -- pressing "d" changed the
+  mission. It now blurs on change, and a pointerdown on the board takes focus back from anything holding it.
+- **The intro cutscene swallows everything.** `start()` (`:739`) only runs after the cutscene finishes,
+  so a live mission sits in `build` with the board visible and every control inert until the intro is
+  dismissed. Nothing is wrong and it looks exactly like the controls being broken; it cost three
+  debugging rounds here and it will cost a player the same confusion.
+
+One thing decided, one still open:
+- **Build-during-play stays** (Tom, 2026-08-20): "it adds immersion", and it will be on for some game
+  modes. So the editor and the pilot competing for the same gestures at the same time is a permanent
+  condition to design for, not a conflict to remove by making building modal.
+- **Does the pilot keep the drag?** Waypoint-and-heading is one gesture doing two jobs; a tap for the
+  waypoint and a separate control for facing would give the drag back to the camera. Now that WASD
+  exists, the drag is no longer the only way to fly, which makes giving it up cheaper than it was.
 
 ### Heat
 - [ ] Heat as a per-component scalar diffusing over the component-adjacency graph — the same graph

@@ -3,7 +3,10 @@
 // once with the ship the player is handed (must NOT win immediately).
 import {importNotebookModule} from "./notebook-import.ts";
 
-const eng = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+// ENGINE points this at a variant engine. That is how the FollowBoss timeout was
+// pinned on the connectivity switch rather than guessed at: the same missions run
+// against a copy with islands() swapped back to the distance rule pass 12/12.
+const eng = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const parts: any = await eng.values(["Ship","World","TYPES","PORTS","geom","DT","pilot"]);
 const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
 const MISSIONS: any[] = await mis.value("MISSIONS");
