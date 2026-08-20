@@ -52,6 +52,12 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       "match any two ships in the corpus" is 1755 of 2191 until those three are ported. Measured
       by `tools/corepox-corpus-load.ts`, which also reports 655 of 18028 wires dropped (3.6%) and
       274 of the 1755 loading as more than one island.
+- [x] Exhaust was invisible after the lane change, and fixed (2026-08-20). Brightness was bucketed
+      on raw remaining `ttl`; exhaust is born with `ttl = World.rng()`, so the steady-state density
+      is 2(1-x) and 23% of the plume sat in the dimmest lane against 1.6% in white. Every particle
+      was drawn, in near-black. The engine now records `ttl0` at emit (no rng consumed, determinism
+      unaffected) and the lane is `ttl/ttl0`. Gate is `tools/corepox-exhaust-probe.mjs`, which
+      asserts lane OCCUPANCY -- "did the renderer write anything" passed throughout the bug.
 - [ ] **Measure the hull/port layer.** With the particle draw fixed, a frame still costs 67-76ms at
       6x throttle while carrying 4-66 particles, so the cost is elsewhere -- most likely the
       per-frame port numerals (`valueNode`). That is the layer that decides whether ships of
@@ -340,6 +346,15 @@ One of these leans on structure that already exists:
       will not touch it. Unresolved on purpose: it is not obvious whether the loader is right to drop
       them or the missions are right to keep them, and mission fidelity is recovered work. Whoever
       decides should also check `Composite`, which `loadShipSpec` expands and `newSession` would not.
+- [x] **Turrets are not auto-controlled** (Tom, 2026-08-20). The line: a fixed `Lazer` points where
+      the hull points, so its trigger carries no aiming decision and the pilot may pull it; a
+      `LaserTurret2` has an aim, and the aim is what a wire is for. So `pilot` writes `in` on unwired
+      `Lazer`/`Explosive` and nothing at all on a turret — verified by snapshotting `c.in` on the
+      turret missions and calling `pilot` with the world stopped, which is the only way to tell its
+      writes from `propagate`'s: **pilot-only delta NONE** on both ManualAim and Aim.
+      (ManualAim's turret does gain `angle: 0` during a run; that is its own Constant, not the pilot.)
+      This is also the answer to the item below — radar-aimed point defence while you fly the hull is
+      something hands cannot do at the same time, so it is a wire worth building.
 - [ ] **Wiring becomes automation, not a prerequisite.** If the player has hands, a wire must buy
       something hands cannot do at the same time (point defence while dodging, a range gate while
       turning). Undesigned. Falsifiable early: if a wire only replicates a key press, it is a chore.

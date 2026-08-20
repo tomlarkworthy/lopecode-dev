@@ -93,6 +93,44 @@ number. Untested.
 
 ## Dead ends
 
+**Bucketing brightness on remaining `ttl` made the whole plume dark.** Exhaust is born with
+`ttl = World.rng()`, already in 0..1, so it looks like it can index an 8-lane ramp directly with no
+birth ttl recorded. It cannot. A population born uniform on [0,1) and dying at 0 has a
+steady-state remaining-life density of 2(1-x), so the lanes fill like this:
+
+```
+lane 0 (#20406e, near-black navy)  23.4%
+lane 1                             20.3%
+lane 2                             17.2%
+lane 3                             14.1%
+lane 4                             10.9%
+lane 5                              7.8%
+lane 6                              4.7%
+lane 7 (#ffffff)                    1.6%
+```
+
+Exactly inverted from a plume. Tom, on a screenshot of a ship under thrust: "there are no visible
+particles leaving the engine". Sampled ttls at that moment were 0.028, 0.039, 0.102, 0.095, 0.022 --
+every one of them lane 0.
+
+**Every particle was being drawn correctly the whole time.** A `setAttribute` trap over the running
+arena recorded 1656 writes of `d` on the exhaust lanes, 337 of them non-empty, the last being
+`M59.4 6.2h0M51.4 -301.0h0`. Coordinates, lane count, node count and frame cost were all exactly as
+designed. So "is the renderer drawing anything" was the wrong question, and the gate that asks it
+passes while the plume is invisible. `tools/corepox-exhaust-probe.mjs` asserts the **distribution**
+across lanes instead, which is the thing that decides visibility.
+
+The fix is `ttl / ttl0`, which is uniform across the ramp by construction, plus lifting the dim end
+of the ramp off black (`#3f6fb0`, roughly where the old flat `#8fd0ff` at opacity 0.5 sat over
+black) so the tail of the plume stays at least as visible as the whole plume used to be. After:
+6/7/9/9/8/8/9/8 across the eight lanes.
+
+Two things nearly hid this. The bench sim seeds `age` uniformly and never reproduces the
+steady-state skew, so every bench shot looked right. And the in-game A/B reported "66 particles" on
+mission `avoiding` -- those were **not particles**: the DOM counter was matching backdrop paths
+inside a bloomed group. Neither number was wrong about what it measured; both were about something
+else.
+
 **CSS/SMIL spawn-and-forget collapsed.** Declarative animation looks like the free option — JS only
 spawns and reaps, the compositor runs the motion. It held 120fps at 1000 and then fell off a cliff:
 29fps at 2000, **2fps at 4000** (median frame 600ms, p90 1083ms). Each element carries its own
@@ -193,10 +231,14 @@ Gates after the change: `corepox-qa-campaign.ts` 9/9, `corepox-camera-probe.ts` 
 This is the finding that most changes what to do next. In the real notebook at 6x throttle:
 
 ```
-mission "avoiding", 66 particles     before 75.9ms  ->  after 75.7ms   (1.00x)
-mission "aiming",    4 particles     before 67.2ms  ->  after 67.3ms   (1.00x)
+mission "avoiding"                   before 75.9ms  ->  after 75.7ms   (1.00x)
+mission "aiming"                     before 67.2ms  ->  after 67.3ms   (1.00x)
 800 particles injected via the QA seam   157.6ms  ->  125.3ms   (1.26x)
 ```
+
+The per-mission particle counts those first two rows were labelled with (66 and 4) came from a DOM
+counter that was also matching backdrop paths, so treat them as "few", not as measurements. The
+headless census below is the trustworthy count.
 
 At the counts the tutorial campaign reaches, the particle draw is not measurable in the frame — a
 frame costs 67-76ms at 6x throttle while carrying 4 to 66 particles. The change buys headroom at the
