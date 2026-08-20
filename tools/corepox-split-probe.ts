@@ -62,11 +62,13 @@ const aft   = islandsOf([{type: "Orb", pos: [0, 0], dir: "up"}, {type: "Armour",
 console.log(`  Armour against the Orb's flank   islands ${flank}`);
 console.log(`  Armour against the Orb's aft     islands ${aft}`);
 
-console.log("\nwhat the split gives each piece (Ship.detach):");
-console.log("  position  f.x = parent.x, f.y = parent.y      -- same origin");
+console.log("\nwhat the split gives each piece (Ship.detach, after Ship.cs:498):");
+console.log("  position  each body placed at ITS OWN centre of mass -- nothing moves");
 console.log("  angle     f.a = parent.a                      -- same heading");
-console.log("  velocity  f.vx,f.vy = parent.velAt(piece)     -- differs ONLY under spin");
-console.log("  spin      f.w = parent.w                      -- same");
+console.log("  velocity  the pre-split velocity AT that body's centre of mass");
+console.log("  spin      f.w = parent.w                      -- both keep w0, as the original does");
+console.log("  impulse   NONE. split() applies no separation kick, so two halves with the");
+console.log("            same velocity stay in formation until something acts on them.");
 
 let fail = 0;
 const say = (ok: boolean, s: string) => { if (!ok) fail++; console.log((ok ? "ok   " : "FAIL ") + s); };
@@ -75,12 +77,19 @@ say(one.afterIslands === 2, "ONE destroyed component cuts the bar (reach-2 dista
 say(one.bodies === 2, "and the world gains a body");
 say(rest.bodies === 2, "a two-tile cut also becomes two bodies");
 // The gap ALONE proves nothing -- the pieces start apart because that is what a
-// cut is. What a player sees is the gap GROWING.
+// cut is. What matters is how it CHANGES.
 const sep = (r: any) => r.g3 - r.g0;
-say(sep(rest) > 0.5, `pieces drift apart at rest (+${sep(rest).toFixed(3)} tiles in 3s)`);
-say(sep(spun) > 0.3, `pieces drift apart while spinning (+${sep(spun).toFixed(3)} tiles in 3s)`);
+// At rest with no spin the halves must NOT separate. This assertion used to read
+// `> 0.5` and passed on +1.000 tiles, which was the bug: detach placed the fragment
+// at the PARENT's centre of mass, so it spawned inside the hull and the collision
+// push shoved it out. That is why a cut ship looked like it exploded and why a
+// corpus carrier's drone destroyed its own hull on launch. Nothing separates two
+// bodies that left with the same velocity -- Ship.cs:498 applies no impulse.
+say(Math.abs(sep(rest)) < 1e-3, `pieces hold formation at rest (${sep(rest).toFixed(3)} tiles in 3s)`);
+say(sep(spun) > 0.3, `pieces separate under spin, which is the only thing that separates them ` +
+                     `(+${sep(spun).toFixed(3)} tiles in 3s)`);
 say(flank === 2, "a component against an Orb's flank is NOT bound");
 say(aft === 1, "a component against an Orb's aft IS bound");
-console.log(`note  drifting in a straight line: +${sep(drift).toFixed(3)} tiles in 3s -- both ` +
-            `pieces inherit the same velocity, so a cut ship in level flight keeps formation`);
+console.log(`note  drifting in a straight line: ${sep(drift).toFixed(3)} tiles in 3s -- the same ` +
+            `result as at rest, and for the same reason`);
 process.exit(fail ? 1 : 0);

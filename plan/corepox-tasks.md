@@ -116,10 +116,36 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       instrument for "does adding a gun keep paying", and it refuses to run: its hull was authored
       when every component was 1x1 and has 10-16 overlapping cells. Until it is rebuilt, §8.3-§8.5
       of the design doc cannot be cited and the structural cost of a gun under joints is untested.
-- [ ] **The archetype roster shatters under joints.** `tools/corepox-archetype-check.ts`: 5 of 7
-      (braitenberg 4 islands, seeker 5, proportional 5, rammer 6, sniper 6) are multiple bodies, so
-      every balance number measured over ROSTER is measuring debris. Same cause as the ladder --
-      hand-authored layouts that predate the real footprints and the joint rule.
+- [x] **Canonical testers are corpus ships now, chosen on measured behaviour.** Tom, 2026-08-20:
+      "we have much better ships in the corpus now anyway. We should find a better set to be our
+      canonical testers." The seven hand-built archetypes had to go: 5 of 7 are several bodies under
+      the real footprints and the joint rule (`corepox-archetype-check.ts` -- sniper 6 islands,
+      rammer 6, seeker 5, proportional 5, braitenberg 4), so every balance number measured over
+      ROSTER was measuring debris. Same cause as the gun ladder.
+      `tools/corepox-canon.ts` picks the replacement under two rules, both of them lessons from that
+      failure: a candidate must be a LEGAL ship by the engine's own checks, and it must be filed on
+      what it DOES against a fixed target, never on its name. 2191 designs -> 1343 legal and
+      distinct (byte-identical resaves deduped) -> fingerprinted over 30s against a stationary
+      5x5 armour bag -> 14 ships in 7 buckets, written to `data/corepox/canon.json`:
+
+        brawler   closes AND damages     18p (11502 matches), 10p (10602)
+        carrier   several bodies at t=0  29p (16149), 25p (13535)
+        shedder   one body, then several 19p (16425), 6p (11008)
+        gunship   damages from range     6p (20849), 13p (10509)
+        rammer    closes, no damage      7p (4898), 11p (4875)
+        drifter   moves, achieves none   19p (13974), 5p (12120)
+        turtle    does not move          3p (14036), 7p (6374)
+
+      Every one is a design real players flew thousands of recorded matches with. `--check`
+      re-fingerprints the saved set and fails if any ship stops being legal or changes bucket --
+      run it after any engine change. `corepox-tourney.ts` uses CANON by default;
+      `ROSTER=archetypes` gets the old set back for comparison and says it is broken.
+      Note the bucket rule that had to be added: `bodies > 1` at the END of a fight caught 912 of
+      1343 ships, because under joints almost anything sheds a part. Only the island count at t=0
+      separates a ship BUILT to release a drone from one that merely comes apart.
+- [ ] **Rebuild or retire the seven hand-built archetypes.** They are still in
+      `corepox-tourney-specs.ts` and still broken. Either re-author them on the real footprints so
+      the named strategies survive, or drop them and let CANON be the only roster.
 - [x] **A split moved everything, and that was the "glitch on losing components".** Tom, 2026-08-20:
       "when ships lose components their positions seem to glitch. There was quite a lot of math went
       into preserving inertia to make splitting work correctly, that work seems to be absent."

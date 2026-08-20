@@ -1,12 +1,34 @@
-// Round-robin self-play over hand-built archetypes, to find what dominates.
-// Imports the real engine cells; nothing is reimplemented here.
+// Round-robin self-play to find what dominates. Imports the real engine cells;
+// nothing is reimplemented here.
+//
+// Two rosters. The default is now CANON -- fourteen real corpus designs picked on
+// measured behaviour by tools/corepox-canon.ts, every one of them a legal ship.
+// ROSTER=archetypes gets the seven hand-built ones back, and they are BROKEN: five
+// of the seven are several bodies under the real footprints and the joint rule
+// (sniper is 6 islands), so that arm is measuring debris. It is kept only so the
+// two can be compared while the archetypes are rebuilt.
 import {importNotebookModule} from "./notebook-import.ts";
 
 const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
 const Ship: any = await m.value("Ship");
 const World: any = await m.value("World");
 
-import {ROSTER} from "./corepox-tourney-specs.ts";   // layouts live there so they can be validated
+import {ROSTER as ARCHETYPES} from "./corepox-tourney-specs.ts";
+import {CANON} from "./corepox-canon.ts";
+const USE_ARCH = process.env.ROSTER === "archetypes";
+const ROSTER: any[] = USE_ARCH ? ARCHETYPES : CANON.map(c => c.spec);
+if (!ROSTER.length) throw new Error("corepox-tourney: no roster -- run `bun tools/corepox-canon.ts` first");
+{
+  // Overlapping cells is illegal. Several islands is NOT -- a carrier arrives in
+  // pieces on purpose, and calling that broken is how the archetypes got away with
+  // being broken for so long. Report them apart.
+  const over = ROSTER.filter(r => new Ship(r, {team: "a"}).overlaps());
+  const multi = ROSTER.filter(r => new Ship(r, {team: "a"}).islands().length > 1);
+  console.log(`roster: ${USE_ARCH ? "archetypes (hand-built)" : "canon (corpus, measured)"}, ` +
+    `${ROSTER.length} ships, ${multi.length} of them multi-body at t=0` +
+    (over.length ? `\n  ILLEGAL, cells shared between components: ${over.map(r => r.name).join(" ")}` : ""));
+  if (over.length && !process.env.FORCE) { console.log("  refusing -- FORCE=1 to measure anyway"); process.exit(1); }
+}
 
 // ---- match ----------------------------------------------------------------
 const TICKS = 60 * 50;   // 60s at DT=0.02
@@ -24,7 +46,7 @@ function match(A: any, B: any, seed: number) {
   return {res: 0.5, dmgA, dmgB, t: w.t};
 }
 
-const SEEDS = 12;
+const SEEDS = Number(process.env.SEEDS ?? (ROSTER.length > 8 ? 4 : 12));
 const score: Record<string, number> = {}, played: Record<string, number> = {};
 const dealt: Record<string, number> = {}, taken: Record<string, number> = {};
 const draws: Record<string, number> = {};

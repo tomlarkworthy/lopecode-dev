@@ -1,0 +1,272 @@
+{
+ "selected": "2026-08-20",
+ "note": "chosen by tools/corepox-canon.ts on measured behaviour; --check re-verifies",
+ "ships": [
+  {
+   "id": "5F4821A4C97CCAC40A87BCEBDAAA9CA7",
+   "label": "brawler-18p",
+   "bucket": "brawler",
+   "parts": 18,
+   "islands0": 1,
+   "matches": 11502,
+   "rating": 17.9169,
+   "f": {
+    "dmg": 175,
+    "closed": 12.32,
+    "path": 34.82,
+    "turned": 227,
+    "beamTicks": 3199,
+    "bodies": 1,
+    "parts": 18,
+    "lost": 1
+   }
+  },
+  {
+   "id": "16131D746FCB1780FA4B4EAA211AADB6",
+   "label": "brawler-10p",
+   "bucket": "brawler",
+   "parts": 10,
+   "islands0": 1,
+   "matches": 10602,
+   "rating": 13.29,
+   "f": {
+    "dmg": 62,
+    "closed": 13.87,
+    "path": 15.01,
+    "turned": 261,
+    "beamTicks": 0,
+    "bodies": 1,
+    "parts": 10,
+    "lost": 0
+   }
+  },
+  {
+   "id": "B26658D8D0AC2532DAA9B4E1EC57658F",
+   "label": "carrier-29p",
+   "bucket": "carrier",
+   "parts": 29,
+   "islands0": 3,
+   "matches": 16149,
+   "rating": 26.3898,
+   "f": {
+    "dmg": 240,
+    "closed": 9.41,
+    "path": 18.13,
+    "turned": 186,
+    "beamTicks": 1935,
+    "bodies": 4,
+    "parts": 29,
+    "lost": 3
+   }
+  },
+  {
+   "id": "21418737D013BB2E6C9C5DBD97EFAAE5",
+   "label": "carrier-25p",
+   "bucket": "carrier",
+   "parts": 25,
+   "islands0": 4,
+   "matches": 13535,
+   "rating": 19.7166,
+   "f": {
+    "dmg": 155,
+    "closed": 5.54,
+    "path": 10.07,
+    "turned": 96,
+    "beamTicks": 8854,
+    "bodies": 4,
+    "parts": 25,
+    "lost": 1
+   }
+  },
+  {
+   "id": "24C87D385E6AEAAF259552AD69C0219E",
+   "label": "drifter-19p",
+   "bucket": "drifter",
+   "parts": 19,
+   "islands0": 1,
+   "matches": 13974,
+   "rating": 12.9096,
+   "f": {
+    "dmg": 0,
+    "closed": 0,
+    "path": 54.81,
+    "turned": 78,
+    "beamTicks": 0,
+    "bodies": 1,
+    "parts": 19,
+    "lost": 0
+   }
+  },
+  {
+   "id": "072557852E9920C7342E51A1CBDF71DC",
+   "label": "drifter-5p",
+   "bucket": "drifter",
+   "parts": 5,
+   "islands0": 1,
+   "matches": 12120,
+   "rating": 16.4976,
+   "f": {
+    "dmg": 0,
+    "closed": 0,
+    "path": 90.63,
+    "turned": 0,
+    "beamTicks": 1422,
+    "bodies": 1,
+    "parts": 5,
+    "lost": 0
+   }
+  },
+  {
+   "id": "CD0A0D5BD53B0D71CBCC2241A16F3017",
+   "label": "gunship-6p",
+   "bucket": "gunship",
+   "parts": 6,
+   "islands0": 1,
+   "matches": 20849,
+   "rating": 16.9637,
+   "f": {
+    "dmg": 20,
+    "closed": 2.61,
+    "path": 76.9,
+    "turned": 907,
+    "beamTicks": 1673,
+    "bodies": 1,
+    "parts": 6,
+    "lost": 0
+   }
+  },
+  {
+   "id": "224AF6BF421CC7B69D24A72C127785CA",
+   "label": "gunship-13p",
+   "bucket": "gunship",
+   "parts": 13,
+   "islands0": 1,
+   "matches": 10509,
+   "rating": 21.7683,
+   "f": {
+    "dmg": 45,
+    "closed": 3.1,
+    "path": 7.64,
+    "turned": 95,
+    "beamTicks": 2935,
+    "bodies": 1,
+    "parts": 13,
+    "lost": 1
+   }
+  },
+  {
+   "id": "5D12924DEB63F9A066BE7F131A46612F",
+   "label": "rammer-7p",
+   "bucket": "rammer",
+   "parts": 7,
+   "islands0": 1,
+   "matches": 4898,
+   "rating": 21.9527,
+   "f": {
+    "dmg": 0,
+    "closed": 12.56,
+    "path": 68.51,
+    "turned": 673,
+    "beamTicks": 2844,
+    "bodies": 1,
+    "parts": 7,
+    "lost": 1
+   }
+  },
+  {
+   "id": "4B5823E12727171D9CD0247EB763F896",
+   "label": "rammer-11p",
+   "bucket": "rammer",
+   "parts": 11,
+   "islands0": 1,
+   "matches": 4875,
+   "rating": 17.2476,
+   "f": {
+    "dmg": 0,
+    "closed": 12.8,
+    "path": 104.01,
+    "turned": 505,
+    "beamTicks": 1422,
+    "bodies": 1,
+    "parts": 11,
+    "lost": 0
+   }
+  },
+  {
+   "id": "FD96E630BD9C9477CC0C910DEB0E8B97",
+   "label": "shedder-19p",
+   "bucket": "shedder",
+   "parts": 19,
+   "islands0": 1,
+   "matches": 16425,
+   "rating": 19.889,
+   "f": {
+    "dmg": 45,
+    "closed": 4.85,
+    "path": 20.08,
+    "turned": 186,
+    "beamTicks": 2386,
+    "bodies": 2,
+    "parts": 19,
+    "lost": 7
+   }
+  },
+  {
+   "id": "7E4EB35CC6B7633591035E8AB77FAC7A",
+   "label": "shedder-6p",
+   "bucket": "shedder",
+   "parts": 6,
+   "islands0": 1,
+   "matches": 11008,
+   "rating": 16.5259,
+   "f": {
+    "dmg": 45,
+    "closed": 14.82,
+    "path": 97.48,
+    "turned": 334,
+    "beamTicks": 281,
+    "bodies": 2,
+    "parts": 6,
+    "lost": 1
+   }
+  },
+  {
+   "id": "4DB3D72D39E11B13156C0327C9E35D72",
+   "label": "turtle-3p",
+   "bucket": "turtle",
+   "parts": 3,
+   "islands0": 1,
+   "matches": 14036,
+   "rating": 16,
+   "f": {
+    "dmg": 0,
+    "closed": 0,
+    "path": 0,
+    "turned": 0,
+    "beamTicks": 1422,
+    "bodies": 1,
+    "parts": 3,
+    "lost": 0
+   }
+  },
+  {
+   "id": "3FDEC178928A6D6FF2C8734E2B3B3B8C",
+   "label": "turtle-7p",
+   "bucket": "turtle",
+   "parts": 7,
+   "islands0": 1,
+   "matches": 6374,
+   "rating": 10.8254,
+   "f": {
+    "dmg": 0,
+    "closed": 0,
+    "path": 0,
+    "turned": 0,
+    "beamTicks": 1844,
+    "bodies": 1,
+    "parts": 7,
+    "lost": 0
+   }
+  }
+ ]
+}
