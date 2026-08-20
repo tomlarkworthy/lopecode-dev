@@ -617,6 +617,55 @@ finding — the one the whole composite-as-tutorial argument rests on — was co
 (§"The corpus is the most valuable artifact"). 2,140 of the 2,191 carry a rating, which is the
 other half of what that analysis wanted and did not have. **Not re-run.**
 
+### The corpus, extracted and packed (2026-08-20)
+
+`tools/cloud/rtdb-extract.py` pulls the `assets` and `ratings` subtrees out of the 569 MB dump and
+normalises the numeric-keyed objects, so a local copy and a live fetch are interchangeable.
+`tools/cloud/rtdb-verify.ts` then checked ten designs spread across the key order against the live
+database — **10/10 identical**, so the 2022-07-11 backup is current.
+
+What came out: **2,191 designs, 2,140 ratings, 4 relics**, 6.8 MB of JSON.
+
+The ratings are **TrueSkill**, not a win count: `{mu, sigma, rating, n}` with `n` the number of
+matches, up to 4,945 for a single design. `rating` is the conservative estimate. That is the half
+the 492-design analysis did not have.
+
+Packed to **394 KB gzipped, losslessly** (`tools/cloud/corpus-pack.py`, verified field-for-field by
+`corpus-verify.py`), which is 8.7% of the notebook and small enough to be a file attachment.
+Almost all of the 6.8 MB is repeated key names — `type`, `pos`, `dir`, `overrides`, `name`, `value`
+once per component, 45,804 times. Dictionary the strings, flatten each record to a fixed tuple, and
+what is left compresses 17×.
+
+**The first pack was lossy and the round-trip caught it.** It dropped `overrides` as runtime state.
+`overrides` is on 24,977 components, is never empty, and looks like
+`[{"name": "output", "value": 180}]` — it is a Constant's actual value. Dropping it would have
+thrown away what most of the designs say while reporting "2191/2191 identical", because the
+comparison only checked the fields the packer had chosen to keep. The verifier compares every
+field now, in both directions, and reports the override count as its own line. 33,624 carried.
+
+Five ratings name a design that is not in `assets/ships`, each with ~4,850 matches. They are carried
+as `orphanRatings` rather than dropped: heavily played ships whose spec is gone is evidence that the
+corpus is incomplete, and silently discarding them would hide that.
+
+### What the ratings say, at a glance
+
+Not the re-analysis — one histogram, over the 1,455 designs with a rating and at least 30 matches:
+
+```
+                 n     parts/ship   Binary   Radar   Constant   Engine   Armour
+  bottom 25%    363        7.1        4.6%    6.0%     19.7%     22.7%     6.2%
+  top 25%       363       30.7        7.3%    4.4%     17.2%     21.8%    15.1%
+```
+
+Corpus-wide, Binary is 1 per 16.6 components (the 492-design figure was 1 per 15, so that holds).
+But **the top quartile carries 59% more Binary than the bottom** (7.3% against 4.6%) and two and a
+half times the Armour, on ships four times the size. The earlier reading — "the teaching existed and
+players still built `Constant -> Engine` bricks" — is unchanged as a statement about the *median*
+design, but the bricks are also what **loses**. That is a different claim from the one in
+§"The corpus is the most valuable artifact" and it is **one histogram, not an analysis**: size
+confounds everything here, a 30-part ship has more of every component, and no attempt has been made
+to separate composition from mass.
+
 ### A negative result on the relics
 
 The 2022-07-11 backup's `relics` subtree was extracted with `tools/cloud/rtdb-subtree.py` (byte-scan
