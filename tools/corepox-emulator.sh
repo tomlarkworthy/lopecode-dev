@@ -12,6 +12,28 @@
 #   tools/corepox-emulator.sh shot out.png
 #   tools/corepox-emulator.sh tap X Y
 #   tools/corepox-emulator.sh stop
+#
+# STATE 2026-08-20: this gets the game running -- Unity 2019.2.14f1, il2cpp,
+# arm64, "ApplicationInfo larkworthy.corepox version 1.49" in logcat, splash
+# video decoded and drawn at 30fps -- and then it stops at the login:
+#
+#   I Unity : FirebaseLoader:SigninAnonymously()
+#   I Unity : FirebaseLoader: HandleSigninResult
+#   I Unity : Login encountered an error.
+#
+# Reproducible across a force-stop and relaunch. The emulator has network (ping
+# 8.8.8.8 succeeds from inside), so this is the live Firebase project refusing
+# anonymous sign-in, not the emulator. Getting past it means changing the auth
+# settings on a LIVE project (corepox-dev / corepox-staging), which is not
+# something to do unasked. So no gameplay has been observed here; every art and
+# behaviour finding so far came from the APK's sprites and the recovered C#.
+#
+# Three sandbox workarounds are load-bearing and not obvious:
+#   * -feature -Vulkan       swiftshader's Vulkan path dies with "Failed to find
+#                            memory type for ColorBuffers"
+#   * HOME=$ROOT/home        the emulator writes .emulator_console_auth_token and
+#     TMPDIR=$ROOT/tmp       a jwks dir under $HOME/Library/Caches, both blocked
+#   * rm *.lock              a crashed run leaves the AVD locked
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD/vendor/android-sdk
@@ -30,12 +52,13 @@ setup)
   yes | sdkmanager --sdk_root="$ROOT" --licenses >/dev/null || true
   sdkmanager --sdk_root="$ROOT" "platform-tools" "emulator" "$IMG"
   echo no | avdmanager create avd -n "$AVD" -k "$IMG" -d pixel_5 --force
-  # Unity wants a real GPU path; swiftshader is the fallback if host fails.
+  # Unity wants a real GPU path. swiftshader_indirect died here with "Failed to
+  # find memory type for ColorBuffers", so host (Metal) is the default; GPU=... overrides.
   echo "hw.lcd.density=440"  >> "$ANDROID_AVD_HOME/$AVD.avd/config.ini"
   echo "hw.keyboard=yes"     >> "$ANDROID_AVD_HOME/$AVD.avd/config.ini"
   ;;
 boot)
-  emulator -avd "$AVD" -no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect \
+  emulator -avd "$AVD" -no-snapshot -no-boot-anim -no-audio -gpu ${GPU:-host} \
            -netdelay none -netspeed full >"$ROOT/emulator.log" 2>&1 &
   adb -s "$SERIAL" wait-for-device
   until [ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; do

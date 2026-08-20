@@ -310,6 +310,24 @@ point. Now `SENSOR` + `Ship.sensorOf`. Checked against the other components: `En
 `ExplosiveFn`, `TurretFn` and `MeleeFn` all use `this.transform.position`, and `center` appears
 nowhere else in `Assets/scripts/game/components/`, so Radar is the only one.
 
+**The shipped build runs in an emulator, but not past its login.** `tools/corepox-emulator.sh`
+stands one up entirely under `vendor/android-sdk` — SDK, JDK and AVD, nothing installed on the
+machine, since homebrew cannot run under the sandbox and the phone on the desk is not a test rig.
+The game starts (`ApplicationInfo larkworthy.corepox version 1.49`, Unity 2019.2.14f1, il2cpp,
+arm64, splash video decoded at 30fps) and then stops:
+
+```
+I Unity : FirebaseLoader:SigninAnonymously()
+I Unity : FirebaseLoader: HandleSigninResult
+I Unity : Login encountered an error.
+```
+
+Reproducible across a force-stop and relaunch, and the emulator has network (`ping 8.8.8.8`
+succeeds from inside it), so this is the live project refusing anonymous sign-in rather than the
+emulator. Getting past it would mean changing auth settings on a live Firebase project. **So no
+gameplay has been observed. Every finding above comes from the sprites and the recovered C#, not
+from watching the game run.**
+
 **Corners.** The traces square off corners the sprites round. Measured off the top row of solid ink:
 constant 20px, armour 19px, explosive 20px. `corepox-art-round.py` rounds only paths that are an
 axis-aligned rectangle covering most of their own viewBox, which is the body.
