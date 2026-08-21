@@ -1409,7 +1409,144 @@ duels against the whole roster. The steering retune under `## Next` is on the cr
 of them — four of seven archetypes barely reach engagement range, so most of these have never
 actually been tested.
 
-### Shop and economy — sketch 2026-08-19 (Tom), nothing exists
+### The run economy — played and it does not work (Tom, 2026-08-21). Nothing here is built
+
+Tom played a run: "the boss is OP for what components we have and there are few chances to get
+more components". Before any of the ideas below, the arithmetic, because two of the three
+complaints are not tuning — they are a missing feature and a formula.
+
+`tools/corepox-econ-audit.ts`, over three run seeds at `galaxy 2, jumps 7`:
+
+```
+start hull  wiredCore: 3 parts, 1 wire  [Brain Engine Constant]
+start hold  Engine 2, Lazer 2, Armour 4, Constant 2, Radar 1 = 11 spares
+start scrap 214
+
+seed 41  greedy path escort -> duel -> infiltrate -> rescue -> duel -> debris -> boss
+         scrap on that path 515  (start 214 -> 729), parts won <= 7
+         boss band = 5 + col*2 + 12 = 29 parts
+```
+
+- **The boss is a 29-part ship and the player cannot field more than 20.** `encounterFoe` picks
+  by size: `band = 5 + col*2 + R.band`, and `boss.band = 12` on top of the column's own +12. The
+  player's ceiling at that node is 3 (hull) + 11 (starting hold) + 6 (one part per win, six nodes
+  before the boss) = 20, and that is bolting on literally everything ever owned, including the
+  Constants. The gap is structural, not a difficulty curve.
+- **Scrap has no sink. There is no shop.** `ENCOUNTER_RULES.shop` is `{battle: false, scrap: 0}`
+  and `runEncounter` resolves it as a stop; the only reader of `PART_COST` is the salvage
+  weighting. `refitCheck` gates on part *counts* in the hold, never on scrap. So the panel's
+  "buy parts / sell salvage" and REFIT's "Costs scrap; costs no time" are both promises with no
+  implementation, and a run ends holding ~730 of a currency that was never spendable.
+- **The part roll is worth about 16 scrap and is usually not a weapon.** Spoils are one item
+  weighted `1/max(5, cost)`, so: Constant 32.0%, Armour 16.0%, Binary 13.3%, Explosive 8.9%,
+  Engine 8.0%, Radar 6.4%, Lazer 5.3%, Orb 4.6%, LaserTurret2 2.9%, Hyperdrive 2.7%. Expected
+  value **16.0 scrap**, P(weapon) **21.7%** — so a whole run's part income is ~96 scrap of value
+  and **~1.3 weapons**, against 515 scrap that cannot be spent on anything.
+
+That is the shape of "few chances to get more components", measured: the currency you earn most
+of is the one with no sink, and the currency that matters arrives at one cheap item per node.
+
+**Fix the shop before tuning anything.** Until scrap has a sink, no economy change is
+measurable — every number below is unfalsifiable while the only real income channel is a
+21.7%-weapon roll.
+
+#### What Tom proposed
+
+Recorded as said, 2026-08-21. None of it is built.
+
+- **Fitting a component costs money, and removing one costs money too** — "so you want a ship
+  that does not change too much as it's expensive refitting it".
+- **Do not be stingy with component rewards**, because the upkeep is already a headwind.
+- **"Scrap" is the wrong word.** Maybe **metal** and **energy**.
+- **The ship generates resources every turn, depending on its loadout** — "so you have to pilot
+  an economy too?"
+- **The point of all of it**: a map turn with economic consequences makes movement a dimension of
+  choice alongside combat.
+
+#### Reactions, with what they cost
+
+- **Two resources are only two if they do different jobs.** If metal and energy both buy parts
+  they are one currency with an exchange step. The split that carries its weight is
+  **metal = stock, energy = flow**: metal is conserved and buys/repairs/welds; energy is produced
+  and consumed *per jump* by the loadout and does not bank (or banks to a small cap). Then a
+  heavy ship is expensive to *move*, which is the headwind, and route choice becomes an energy
+  question while refit stays a metal question. Falsifiable: if a player can convert one to the
+  other at a stable rate, this collapses back to one currency and the second was a tax on
+  attention.
+- **Note what "energy" is not.** The game being ported has no power system —
+  `ShipComponentStats` is `{hyperspeed, maxHp, panel}` and a per-tick power budget invented during
+  the rebuild was removed on 2026-08-20 as unsourced. A per-jump strategic resource is a
+  *designed addition* and should be labelled one, not smuggled in as fidelity. It is also a
+  different object from the per-tick budget that failed: it is charged once per map turn, not
+  inside the physics loop, so it cannot make a brainless hull refuse to move.
+- **Charging for removal punishes the editor, which is where the game is.** Tom's aim —
+  commitment, a hull with an identity — is right, but a flat removal fee taxes exactly the
+  experimentation the build screen exists for. Three ways to keep the commitment and not the tax,
+  cheapest first: free at REFIT/SHOP nodes and costly in the field; a per-jump allowance of one
+  free part moved; a cost that scales with joints changed rather than parts touched, so
+  re-siting a wing is dear and swapping one plate is not. Recommendation: the first two together
+  — the node types already exist and the allowance is one integer on `camp`.
+- **Do not charge twice for a bad fight.** `survivingHull` already deletes the parts shot off
+  you: attrition is an existing metal sink. If voluntary removal also costs, a player who is
+  losing pays the fee *and* the parts. Destroyed slots should clear free.
+- **Naming**: `ore` is already a real thing in the mining node and pays into `scrap` today. If
+  the currency becomes **metal**, ore should refine into metal rather than sit beside it, or
+  there are three currencies by accident.
+- **Per-turn generation needs a readout or it cannot be piloted.** "+12 energy/jump" belongs on
+  the refit bench next to the HOLD chips, live as the player builds — the bench already renders
+  chips, so this is cheap, and without it the loadout-to-income link is invisible and the player
+  is not making a choice, they are being surprised.
+- **Where the generation comes from, three options.** A dedicated Reactor part: legible, and it
+  is a tax slot every build must pay. Every component carrying a small yield and a small upkeep:
+  richer, composition matters, invisible without the readout above. Income from what you *did*
+  last turn — ore cut, ship killed: ties the economy to play rather than to inventory, and needs
+  no new part. Recommendation: the third plus a Reactor, and keep per-component upkeep out of the
+  first version.
+- **The real risk of per-turn upkeep is the death spiral.** Income tied to loadout is a feedback
+  loop: a bad fight costs parts, fewer parts earn less, the next fight is worse. Sublinear
+  upkeep, a floored income, or a rubber-banded boss all break it — but a rubber band contradicts
+  the principle the pilot is built on, that the failure is the build's. Flagging the tension
+  rather than resolving it.
+
+#### Other ideas this opens up
+
+- **Economic verbs on the map, so route and loadout interact.** A node that pays energy and no
+  metal (a gas skim), one that pays metal and no energy (a wreck), one that pays only if you are
+  carrying the right component (a refinery that wants a Radar). Today every node pays the same
+  currency, so the loadout has no say in which node is worth visiting.
+- **Make some edges cost more than others.** The map is columns and edges already; a long jump
+  or a hazard-covered column charging more energy turns the board from a menu into a plan.
+  `genRun` already places STELLAR HEAT and COSMIC RAYS and **nothing consumes them** — they are
+  drawn, labelled with an effect, and read by no other module. That is a free hook.
+- **Weight the salvage roll by what you fought, not by price.** "Loot the ship you killed" is
+  already on the older sketch; the measured 21.7%-weapon rate is the argument for it. A duel
+  against a gunboat should drop a gun.
+- **Sell the hold.** The inverse sink: if metal buys parts, parts should return metal at a loss,
+  or a player who has built into a corner has no way to pivot and the commitment is a trap
+  rather than a decision.
+- **The boss band should be a function of the run, not a constant.** `+12` was picked with no
+  reference to what a run can accumulate. If income changes, this number has to be re-derived
+  from it, and the honest version is to compute the band from the player's *available* parts at
+  that column rather than from the column index.
+- **Sweep it, do not tune it.** The whole run is headless: `newRunCampaign` + `runEncounter` play
+  a node without a screen, so an economy can be swept over seeds the way the mining field was.
+  Worth a `corepox-econ-run.ts` reporting metal in/out, parts in/out and boss win rate per seed
+  before any number is chosen. (`tools/corepox-econ.ts` already exists and its hit-rate column
+  carries no information — do not read it as a baseline.)
+
+#### Against the 2026-08-19 guard
+
+The older sketch below fixed one currency, no market, no price differences between nodes,
+because a market is the time sink that was rejected with the galaxy map. Two resources is a
+departure and should be argued for, not assumed: it is defensible only while metal and energy
+cannot be traded for each other and no node prices anything differently from another. The moment
+either is true, this is the market that was rejected.
+
+### Shop and economy — sketch 2026-08-19 (Tom), the spend point still does not exist
+
+Superseded in part by the section above. Its opening sentence is now wrong: currency and
+inventory both exist (`newCampaign`, `applySpoils`, `refitCheck`). What does not exist is the
+spend point it was written about — see the audit above.
 
 No currency, no inventory and no between-node persistence exist today. Guard, from the same
 conversation that rejected the galaxy map: one currency, no buy-low-sell-high, no price differences
