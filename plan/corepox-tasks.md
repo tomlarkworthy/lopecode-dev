@@ -800,7 +800,21 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       given a permanently red gate on unchanged code — and the natural reading of that is "the
       last change broke mining". A seeded single-draw gate is repeatable and still arbitrary; the
       verdict has to come from an aggregate over several pins (median, or k of n) if it is to mean
-      anything. Suggested to the peer, not imposed — it is their tool.
+      anything. Suggested to the peer, not imposed — it is their tool; they took it and made the
+      pooled run (5 layouts x 4 rng pins, rng 7 among them) the default, with `--fast` for the
+      single pin and an assertion label that says out loud when it is running cheap.
+
+      One caveat on the pooled gate, from the same sweep: its two bars are not two checks. Pieces
+      and fields-paid move together across all eight pins —
+
+      ```
+      paid  5/5  5/5  4/5  4/5  4/5  4/5  3/5  3/5
+      pcs    18   18   12    9    9    9    9    4
+      ```
+
+      — rank-identical, because both read the same draw. Pooling protects against picking an
+      unlucky pin; it does not turn one measurement into two. The honest reading is one metric
+      with a 4-to-18-piece spread on unchanged code.
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
