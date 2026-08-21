@@ -1,10 +1,19 @@
 // Play the whole campaign through the browser with real clicks. The headless gate
 // (corepox-play-missions.ts) hands the engine a finished ship, so it passes even
 // when the thing a player actually touches is broken -- that is how the anchor-only
-// port picker survived 9/9. This drives the UI instead: pick a part, click a tile,
-// click a connector then another, type a number in.
+// port picker survived 9/9. This drives the UI instead.
+//
+// Rewritten 2026-08-21 for the "Shipyard Concepts" board. Every step here is now a
+// DRAG, because the menus it used to click are gone: a part is dragged off a shelf
+// chip onto a ghost, a wire is dragged from one port to another, and a Constant is
+// scrubbed off its own disc. That is the point of the rewrite -- the old gate went
+// on passing against buttons the player can no longer see.
+//
+// Instrumented copy of corepox-qa-campaign.ts: counts what a player must DO. A
+// drag counts as one, because a gesture is the unit the redesign trades taps for
+// -- counting its intermediate pointermoves would report the new board as more
+// expensive than the menus it replaced, which is the opposite of the truth.
 import {chromium} from "playwright";
-// Instrumented copy of corepox-qa-campaign.ts: counts the taps a player must make.
 let TAPS = 0, PHASE = "nav";
 const BY: Record<string, number> = {};
 let BY0: Record<string, number> = {};
@@ -50,6 +59,44 @@ const pt = async (px: number, py: number) => {
 const clickTile = async (px: number, py: number) => {
   const c = await pt(px, py); tap(); await p.mouse.click(c.x, c.y); await p.waitForTimeout(160);
 };
+// A port's DRAWN point, from the game's own drawnPorts, named by COMPONENT and
+// PORT rather than by cell -- on a Constant the cell centre belongs to the value
+// disc, and on FollowCourse a rotated Binary's `out` shares cell (0,-1) with the
+// Radar's `dist`. Asking by cell picked whichever was first in `live` order.
+const portPt = async (anchor: number[], name: string, kind: string) => {
+  const h = await qa();
+  return await p.evaluate(([q, anchor, name, kind]: any) => {
+    const v = q.portPoint(anchor, name, kind);
+    if (!v) return null;
+    const svg = q.svg(), r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+    return {x: r.left + (v[0] - vb.x) / vb.width * r.width,
+            y: r.top + (v[1] - vb.y) / vb.height * r.height};
+  }, [h, anchor, name, kind] as any);
+};
+const pxPerTile = async () => {
+  const a = await pt(0, 0), b = await pt(1, 0);
+  return Math.max(8, Math.hypot(b.x - a.x, b.y - a.y));
+};
+// The DESTINATION is resolved after the press, not before it. Arming a chip paints
+// ghosts, and `camera()` feeds those ghosts in as focus points, so the viewBox
+// moves between the moment a point is computed and the moment the finger arrives:
+// Cocoon placed 2 of 3, TwinTurrets 7 of 9 and FollowBoss 1 of 7 against endpoints
+// measured a frame too early (2026-08-21). Recomputing mid-drag costs one extra
+// round trip and removes the whole class.
+const dragTo = async (from: any, toFn: () => Promise<any>, steps = 12) => {
+  tap();
+  await p.mouse.move(from.x, from.y);
+  await p.mouse.down();
+  await p.mouse.move(from.x + 9, from.y + 9);       // arm, and let the camera settle
+  await p.waitForTimeout(140);
+  const to = await toFn();
+  for (let i = 1; i <= steps; i++)
+    await p.mouse.move(from.x + (to.x - from.x) * i / steps,
+                       from.y + (to.y - from.y) * i / steps);
+  await p.waitForTimeout(60);
+  await p.mouse.up();
+  await p.waitForTimeout(180);
+};
 const btn = async (re: RegExp) => {
   const l = p.locator("button", {hasText: re}).first();
   if (!(await l.count())) return false;
@@ -71,20 +118,39 @@ const byTitle = async (t: string) => {
   }
   await p.waitForTimeout(200); return true;
 };
-// The shipped flow, and now the port's: wrench -> CHOOSE BUILD OPTION -> a row ->
-// ghosts on the board -> tap one. There is no parts tray to click any more, which
-// is why this gate had to be rewritten with the UI
-// (knowledge/corepox-shipped-ui-observed.md, "Building").
-const chooseBuild = async (type: string) => {
-  if (!await byTitle("build")) return false;
-  const row = p.locator(`div:text-is("${type.toUpperCase()}")`).first();
-  if (!(await row.count())) { await btn(/CANCEL/); return false; }
-  tap(); await row.click(); await p.waitForTimeout(200); return true;
+// PLACE: carry the chip out of the shelf and drop it on the ghost. One gesture,
+// which is the claim turn 7c makes ("3 taps / part -> 1") and therefore the thing
+// worth testing -- a tap-to-stick path would not notice if the drag were dead.
+const placedAt = async (type: string, px: number, py: number) => {
+  const s: any = await shipNow();
+  return (s.ship.components ?? []).some((c: any) =>
+    c.type === type && c.pos[0] === px && c.pos[1] === py);
 };
-// Selecting a component opens its menu; the menu is where every verb lives.
+const placePart = async (type: string, px: number, py: number) => {
+  let found = false;
+  // Verified, and retried. A drag that lands a cell out is a silent miss -- the
+  // old gate reported `place Armour@0,1` for a part that never arrived.
+  for (let k = 0; k < 3; k++) {
+    const chip = p.locator(`[data-part="${type}"]`).first();
+    if (!(await chip.count())) break;
+    found = true;
+    const b = await chip.boundingBox();
+    if (!b) break;
+    await dragTo({x: b.x + b.width / 2, y: b.y + b.height / 2}, () => pt(px, py));
+    await p.keyboard.press("Escape");        // put back whatever stayed armed
+    if (await placedAt(type, px, py)) return true;
+  }
+  return found ? false : false;
+};
+// Selecting a component floats its verbs beside it; there is no menu to open.
 const openMenu = async (px: number, py: number) => {
   await clickTile(px, py);
-  return (await p.locator("button", {hasText: /^\s*i\s*info\s*$/}).count()) > 0;
+  return (await p.locator("[data-verb]").count()) > 0;
+};
+const verb = async (id: string) => {
+  const l = p.locator(`[data-verb="${id}"]`).first();
+  if (!(await l.count())) return false;
+  tap(); await l.click(); await p.waitForTimeout(200); return true;
 };
 const shipNow = () => p.evaluate(() => {
   const m = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/corepox-game");
@@ -121,8 +187,8 @@ for (let i = 0; i < MISSIONS.length; i++) {
   // BUILD -- pick the part in the tray, click the destination cell
   if (toPlace.length) {
     for (const c of toPlace) {
-      if (!await chooseBuild(c.type)) { steps.push(`no ${c.type} in stock`); continue; }
-      await clickTile(c.pos[0], c.pos[1]);
+      if (!await placePart(c.type, c.pos[0], c.pos[1])) {
+        steps.push(`no ${c.type} in stock`); continue; }
       steps.push(`place ${c.type}@${c.pos}`);
     }
   }
@@ -138,9 +204,9 @@ for (let i = 0; i < MISSIONS.length; i++) {
       const s: any = await shipNow();
       const now = (s.ship.components.find((x: any) => x.pos[0] === c.pos[0] && x.pos[1] === c.pos[1]) ?? {}).dir ?? 0;
       if (now === c.dir) break;
-      await btn(/rotate/);
+      await verb("rotate");
     }
-    await btn(/CANCEL/);
+    await p.keyboard.press("Escape");
     steps.push(`rotate ${c.type}@${c.pos}->${c.dir}`);
   }
   PHASE = "wire";
@@ -149,38 +215,30 @@ for (let i = 0; i < MISSIONS.length; i++) {
     for (const w of toWire) {
       const a = (typeof w.from === "string" ? JSON.parse(w.from) : w.from);
       const z = (typeof w.to === "string" ? JSON.parse(w.to) : w.to);
-      const cellOf = (anchor: any, port: string, sink: boolean) =>
-        p.evaluate(([anchor, port, sink]: any) => {
-          const m = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/corepox-game");
-          let PORTS: any, qa: any;
-          for (const [k, v] of m._scope) {
-            if (k === "PORTS") PORTS = (v as any)._value;
-            if (k === "viewof game") qa = (v as any)._value.qa;
-          }
-          const c = qa.session().player.live.find((c: any) =>
-            c.px === anchor[0] && c.py === anchor[1]);
-          if (!c) return null;
-          const o = ((sink ? PORTS[c.type]?.ins : PORTS[c.type]?.outs) ?? {})[port];
-          if (!o) return null;
-          const d = ((Math.round((c.dir ?? 0) / 90) % 4 + 4) % 4) * 90;
-          const rot: any = {0: (x: number, y: number) => [x, y],
-                            90: (x: number, y: number) => [-y, x],
-                            180: (x: number, y: number) => [-x, -y],
-                            270: (x: number, y: number) => [y, -x]};
-          const [dx, dy] = rot[d](o[0], o[1]);
-          return [c.px + dx, c.py + dy];
-        }, [anchor, port, sink] as any);
-      const off = await cellOf(a, w.fromPort ?? "out", false);
-      const off2 = await cellOf(z, w.toPort ?? "in", true);
-      if (!off || !off2) { steps.push(`no cell for ${JSON.stringify(w)}`); continue; }
-      if (!await openMenu(a[0], a[1])) { steps.push(`no menu at ${a}`); continue; }
-      if (!await btn(/connect/)) { steps.push(`connect disabled at ${a}`); continue; }
-      await clickTile(off[0], off[1]);
-      await clickTile(off2[0], off2[1]);
-      // The proposal is not the connection: it has to be confirmed, exactly as the
-      // shipped game makes you tap FINISH CONNECTING.
-      if (!await byTitle("finish connecting")) steps.push(`no confirm for ${a}->${z}`);
-      steps.push(`wire ${a}.${w.fromPort} -> ${z}.${w.toPort}`);
+      // The gate no longer resolves cells itself. It used to re-derive the PORTS
+      // rotation here, which is a copy of the game's own and drifted the moment a
+      // cell could carry two ports: `cellOf` answered (0,-1) for FollowCourse's
+      // rotated Binary and the board read that cell as the Radar's.
+      const off = await portPt(a, w.fromPort ?? "out", "out");
+      const off2 = await portPt(z, w.toPort ?? "in", "in");
+      if (!off || !off2) { steps.push(`no port for ${JSON.stringify(w)}`); continue; }
+      // One drag, port to port. Release on an exact port commits; the confirm tick
+      // only appears when the release was near two sinks and on neither, so it is
+      // tried and not required. Verified and retried for the same reason a
+      // placement is: a drag that lands short is a silent miss, and reporting the
+      // step as done is how FollowCourse's wrong wire went unnoticed.
+      const wired = async () => {
+        const s: any = await shipNow();
+        return (s.ship.connections ?? []).some((k: any) => ckey(norm(k)) === ckey(norm(w)));
+      };
+      let ok = false;
+      for (let k = 0; k < 3 && !ok; k++) {
+        await dragTo(await portPt(a, w.fromPort ?? "out", "out"),
+                     () => portPt(z, w.toPort ?? "in", "in"));
+        await byTitle("finish connecting");
+        ok = await wired();
+      }
+      steps.push(`${ok ? "wire" : "MISSED wire"} ${a}.${w.fromPort} -> ${z}.${w.toPort}`);
     }
   }
   // MODIFY -- select the component, type the value. Computed from the LIVE ship,
@@ -196,28 +254,60 @@ for (let i = 0; i < MISSIONS.length; i++) {
   PHASE = "param";
   if (toSet.length && m.allow?.modify) {
     for (const c of toSet) {
-      if (!await openMenu(c.pos[0], c.pos[1])) { steps.push(`no menu at ${c.pos}`); continue; }
-      if (c.type === "Binary") { await btn(new RegExp("^" + c.param + "$")); await btn(/CANCEL/);
-                                 steps.push(`set ${c.type}@${c.pos} = ${c.param}`); continue; }
-      // A stepper, not a text field. Walking there in +-10 and +-1 is the whole
-      // point: it is what the player has to do, and a mission whose answer cannot
-      // be reached by stepping is not solvable however good the engine is.
-      const want = Number(c.param) || 0;
-      let ok = false;
-      for (let k = 0; k < 80; k++) {
+      const read = async () => {
         const s: any = await shipNow();
-        const now = Number((s.ship.components.find((x: any) =>
-          x.pos[0] === c.pos[0] && x.pos[1] === c.pos[1]) ?? {}).param) || 0;
-        if (now === want) { ok = true; break; }
-        const d = want - now;
-        await btn(new RegExp("^" + (d >= 10 ? "\\+10" : d > 0 ? "\\+1" : d <= -10 ? "-10" : "-1") + "$"));
+        const h = (s.ship.components ?? []).find((x: any) =>
+          x.pos[0] === c.pos[0] && x.pos[1] === c.pos[1]) ?? {};
+        return c.type === "Binary" ? String(h.param ?? "") : (Number(h.param) || 0);
+      };
+      // A Binary's operator is an enum: the disc cycles it in place, one tap each.
+      if (c.type === "Binary") {
+        let ok = false;
+        for (let k = 0; k < 8; k++) {
+          if (await read() === c.param) { ok = true; break; }
+          await clickTile(c.pos[0], c.pos[1]);
+        }
+        steps.push(ok ? `cycle ${c.type}@${c.pos} to ${c.param}`
+                      : `could not cycle ${c.type}@${c.pos} to ${c.param}`);
+        continue;
       }
-      await btn(/CANCEL/);
-      steps.push(ok ? `step ${c.type}@${c.pos} to ${c.param}`
-                    : `could not step ${c.type}@${c.pos} to ${c.param}`);
+      // A Constant is scrubbed off its own disc, in ONE press. The loop is closed
+      // inside the drag -- pull out to set a rate from the size of the remaining
+      // error, move up or down, read, repeat -- which is what makes the test
+      // independent of however the ramp is calibrated on the day.
+      const want = Number(c.param) || 0;
+      const disc = await pt(c.pos[0], c.pos[1]);
+      const T = await pxPerTile();
+      tap();                                  // one press, one gesture
+      await p.mouse.move(disc.x, disc.y);
+      await p.mouse.down();
+      let y = disc.y, ok = false;
+      for (let k = 0; k < 160; k++) {
+        const now = await read() as number;
+        if (now === want) { ok = true; break; }
+        const err = want - now;
+        // dist(rate) inverts the module's rate = 10^((dist - 0.6) / 1.7)
+        const rate = Math.max(1, Math.min(100, Math.abs(err) / 3));
+        const outT = 0.6 + 1.7 * Math.log10(rate);
+        y += (err > 0 ? -1 : 1) * T * 0.2;
+        await p.mouse.move(disc.x + outT * T, y);
+      }
+      await p.mouse.up();
+      await p.waitForTimeout(150);
+      // The last unit, on the pads the design keeps for exactly this.
+      if (!ok && await openMenu(c.pos[0], c.pos[1]))
+        for (let k = 0; k < 12; k++) {
+          const now = await read() as number;
+          if (now === want) { ok = true; break; }
+          await btn(new RegExp("^" + (want > now ? "\\+" : "−") + "$"));
+        }
+      await p.keyboard.press("Escape");
+      steps.push(ok ? `scrub ${c.type}@${c.pos} to ${c.param}`
+                    : `could not scrub ${c.type}@${c.pos} to ${c.param}`);
     }
   }
 
+  PHASE = "play";
   // did the UI actually produce the solution?
   const built: any = await shipNow();
   const bc = new Set((built.ship.components ?? []).map(full));
@@ -226,7 +316,7 @@ for (let i = 0; i < MISSIONS.length; i++) {
   const missW = (sol.connections ?? []).filter((w: any) => !bw.has(ckey(norm(w))))
     .map((w: any) => `${w.from}.${w.fromPort}->${w.to}.${w.toPort}`);
 
-  await byTitle("play");
+  await byTitle("launch") || await byTitle("resume");
   // poll for the verdict instead of guessing a wall-clock: the browser steps at
   // rAF speed, so a fixed wait either wastes minutes or clips a slow mission
   // 160 x 500ms = 80s of wall clock. It was 40s, which was enough while every
@@ -256,6 +346,17 @@ for (let i = 0; i < MISSIONS.length; i++) {
              (dead.length ? ` lost ${dead.join(",")}` : "");
     }, await qa());
     console.log(`      VERDICT ${verdict}  ${state}`);
+    // Where the UI left the ship. A hull built part by part does not sit where the
+    // same hull built in one go sits (`rebuild` pins the parts already down), and
+    // for FollowBoss that difference alone is the match -- see
+    // tools/corepox-build-pose.ts. Printed on every failure because a spec that
+    // matches the solution exactly, losing anyway, reads as a UI fault until you
+    // can see the pose.
+    console.log(`      POSE ` + await p.evaluate((q: any) => {
+      const P = q.session().player;
+      return `x ${P.x.toFixed(3)} y ${P.y.toFixed(3)} a ${P.a.toFixed(1)}` +
+             `  com ${P.cx.toFixed(3)},${P.cy.toFixed(3)}`;
+    }, await qa()));
     console.log(`      BUILT ORDER ${(built.ship.components ?? []).map(full).join(" ")}`);
     console.log(`      SPEC  ORDER ${(sol.components ?? []).map(full).join(" ")}`);
     console.log(`      BUILT WIRES ${(built.ship.connections ?? []).map((w: any) => ckey(norm(w))).join(" ")}`);

@@ -607,3 +607,141 @@ Four checks, all of which exist today:
    Guards against a tempo change (§8) quietly making a mission impossible.
 4. **A person playing FollowBoss.** None of the above measures whether building under fire feels
    good. Nothing does except playing it.
+
+---
+
+## 12. What was built — 2026-08-21
+
+The board in `@tomlarkworthy/corepox-game` is now the design's. Imported from the Claude Design
+project `f9a1c3c2` ("Shipyard Concepts") with the `claude_design` MCP: turn 7 is the board, turn 7b
+the press table, turn 7c the three metered flows, turn 8 the 390×844 phone. Both layouts are live
+behind a `DESKTOP` / `PHONE` toggle on the mission bar.
+
+### 12.1 The counts, re-run
+
+`tools/corepox-tap-count.ts` was rewritten alongside the interface (§11.2 said it would have to be),
+so it now drives shelf chips, port drags and value discs instead of the menus. A drag counts as
+**one**, because a gesture is the unit the redesign trades taps for.
+
+```
+                       before   after
+PlaceBrain                  4       2   build 1  play 1
+Cocoon                      7       3   build 2  play 1
+ConnectionLite              5       2   wire 1   play 1
+ManualAim                  11       2   param 1  play 1
+Connection                 17       3   wire 1  param 1  play 1
+Aim                        11       3   wire 2   play 1
+Avoid                       7       2   param 1  play 1
+FollowCourse               10       3   wire 2   play 1
+FollowCourseAdvanced       30       7   wire 6   play 1
+FollowBoss                 64      16   build 6  wire 6  param 3  play 1
+SideShooter                29       6   build 2  wire 2  param 1  play 1
+TwinTurrets                41      10   build 6  wire 2  param 1  play 1
+```
+
+Per action, against the §1 table:
+
+| action | before | after |
+|---|---|---|
+| place one part | 3 | **1** — drag off the chip, or tap a ghost while it is stuck |
+| draw one wire | 5 | **1** — press a port, release on a port |
+| set a Constant to 100 | 12 | **1** — one press on its disc |
+| set a Binary operator | 3 | **1** — tap the disc, it cycles |
+
+FollowCourseAdvanced's thirty consecutive taps under fire (§1) are **six drags**, and every one of
+them now pauses the clock while it happens (§12.3). FollowBoss's 64 is 16.
+
+Check the arithmetic the same way §1 does: FollowBoss places 6 parts (6), draws 6 wires (6), scrubs
+one Constant (1) and cycles one Binary to MINUS (2, because PLUS→MINUS is read then tapped), plus one
+to launch = **16**. Nothing is a fixed-length flow any more except the launch.
+
+### 12.2 Where the design's model needed a decision the mock did not make
+
+Three collisions only show up once the press table is real:
+
+1. **A Constant is one cell and two targets.** Its port and its value disc both want it. Routing at
+   tile resolution gave the whole tile to the port and the disc could never be pressed: one full
+   scrub drag moved the value `100 -> 100` (`tools/corepox-board-shots.ts`). The cell is split
+   instead — the disc owns a 0.32-tile bullseye, the port takes the ring around it and is drawn
+   pushed out to the cell edge along the way the component faces.
+2. **Two ports can share a cell.** FollowCourse's Binary at `(-1,-1)` is turned 90°, which puts its
+   `out` on `(0,-1)` — where the Radar's `dist` already is. The old modal flow hid this, because
+   tapping `connect` on a component scoped the legal set to that component; a modeless board has no
+   such scope and wired the wrong one in silence, six attempts out of six. Colliding ports now fan
+   apart toward their own component's anchor and the press resolves to the nearest **point**, not to
+   a tile. A wire endpoint names a component and a port, never a cell.
+3. **The shelf cannot float over the board.** The mock draws it at `bottom: 0` over the board svg,
+   which on a mission whose ship sits low in frame eats the ship: FollowBoss's last wire could not be
+   started at all, because the Binary's `out` port was drawn at page y=687 and the shelf covered
+   584–700 (`tools/scratch/followboss-wire.ts` — the press resolved to no port, no component and no
+   selection). The shelf now gets its own band. The phone layout never had the fault, because there
+   the shelf already sat above a thumb bar.
+
+### 12.3 Pause, implemented as §4 recovered it
+
+`World.step()` already separates the two halves the mechanic needs — `propagate` + `evaluate` is the
+program, `integrate` / particles / `collide` / `splitDetached` is the bodies — so the kinematic step
+is the first two and nothing else. No engine change was required.
+
+Two corrections the first implementation needed, both measured:
+
+- **`isKinematic` has to freeze velocity, not just position.** `Ship.force` writes straight to
+  `vx/vy/w` rather than into an accumulator that `integrate()` drains, so skipping `integrate` alone
+  left an Engine building speed for the whole pause and firing the ship across the board the instant
+  it resumed. Avoid lost at t=10.5s off a correct 5-part 3-wire build that the same gate had won
+  before the pause existed.
+- **`Explosive` is skipped while paused.** `detonate()` is the only damage an `evaluate` can do on
+  its own, and `ShipComponent.damage()` no-ops under a pause in the C# (§4.3). Without the skip a
+  charged bomb kills your own ship while you are invulnerable.
+
+Entering a pause is still a side effect of an edit and never a button: `editPause()` is called from
+every mutator, and the only control offered is a resume.
+
+### 12.4 What the gates say
+
+| gate | result |
+|---|---|
+| `corepox-play-missions.ts` | 12/12 winnable, 0/12 winnable with no input |
+| `corepox-mission-fidelity.ts` | all 12 match the original |
+| `corepox-qa-campaign.ts` | **11/12**, every part and every wire built by dragging |
+| `corepox-board-shots.ts` | chip drag places, port drag wires, disc scrubs, phone renders, clean console |
+| `lope-preflight.ts` | 0 new findings from `corepox-game` |
+
+The one red is FollowBoss, and it is not the interface. It builds 7/7 parts and 6/6 wires, matching
+the reference solution part for part, and then loses at t=5.0s. See §12.5.
+
+### 12.5 A ship built part by part does not sit where the same ship built in one go sits
+
+`rebuild` compensates for the centre of mass moving as parts go down, so the parts already on the
+board stay under the player's fingers — the alternative was reported as *"when i place a component
+the center of the ship shifts"*. The consequence is that the finished hull is positioned so the
+**seed's** centre of mass is still at the world origin, not the finished hull's.
+
+Measured, in the browser (`tools/scratch/pose-read.ts`):
+
+```
+FollowBoss    x -0.429 y 0.679        fresh construction puts the same hull at x 0 y 0
+TwinTurrets   x -0.444 y 0.722
+```
+
+`tools/corepox-build-pose.ts` runs each mission's own reference solution at both poses in the same
+engine, so the pose is the only variable:
+
+```
+FollowBoss    fresh WIN  14.7s    ui(-0.429,0.679)  LOSS 5.0s   <-- POSE-FRAGILE
+TwinTurrets   fresh WIN  26.5s    ui(-0.444,0.722)  ----  60s   <-- POSE-FRAGILE
+```
+
+FollowBoss is confirmed end to end: LOSS at 5.0s headless, and the campaign loses it in the browser
+at t=5.0s. TwinTurrets is **not** confirmed — the browser wins it from the same pose — so that
+mission sits near a boundary and the A/B is a warning about it, not a verdict on it.
+
+`corepox-play-missions.ts` constructs fresh and therefore cannot see any of this; it reports
+FollowBoss winnable. That is the gap the new tool fills.
+
+**Not fixed here, and deliberately.** Two repairs are available and neither is this task's:
+re-seating the ship at `play()` so the launched hull matches the searched one, which changes game
+behaviour; or searching solutions at the pose the UI actually produces, which belongs to whoever
+owns `corepox-boss-rebuild.ts`. `corepox-qa-campaign.ts` now prints the built pose on every failure,
+because a spec that matches the solution exactly and loses anyway reads as a UI fault until you can
+see it.
