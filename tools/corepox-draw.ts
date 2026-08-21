@@ -9,7 +9,7 @@
 import {importNotebookModule} from "./notebook-import.ts";
 const m=await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
 const Ship:any=await m.value("Ship"); const load:any=await m.value("loadShipSpec");
-const TYPES:any=await m.value("TYPES"); const JOINTS:any=await m.value("JOINTS");
+const TYPES:any=await m.value("TYPES");
 const PORTS:any=await m.value("PORTS"); const rotTile:any=await m.value("rotTile");
 const fs=await import("node:fs");
 const STAMP=new Date().toISOString().slice(0,10);
@@ -18,20 +18,6 @@ const COL:any={Brain:"#ff9f43",Constant:"#ffe14d",Binary:"#ff6b9d",Radar:"#4dd47
   Engine:"#6ec6ff",Lazer:"#ff5a4a",Explosive:"#ff3860",Armour:"#c9d4e6",
   Orb:"#c17bff",LaserTurret2:"#ff8c42",Hyperdrive:"#4ddbd4",Composite:"#9aa5b1"};
 const CELL=44, PAD=2.5;
-const TURN=["N","E","S","W"];   // clockwise, visually
-function jointsOf(c:any){
-  const tbl=JOINTS[c.type]; if(!tbl) return [];
-  const t=(Math.round((c.dir??0)/90)%4+4)%4;
-  const out:any[]=[];
-  for(const key of Object.keys(tbl)){
-    const [ax,ay]=key.split(",").map(Number);
-    const [rx,ry]=rotTile([ax,ay], c.dir??0);
-    for(const side of Object.keys(tbl[key]))
-      for(const slot of tbl[key][side])
-        out.push([c.px+rx, c.py+ry, TURN[(TURN.indexOf(side)+t)%4], slot]);
-  }
-  return out;
-}
 function portCell(c:any,name:string,kind:string){
   const tbl=PORTS[c.type]?.[kind]; if(!tbl||!tbl[name]) return null;
   const [x,y]=rotTile(tbl[name], c.dir??0);
@@ -57,13 +43,12 @@ function drawShip(ship:any, title:string, allPorts=false){
     parts.push(`<path d="M${X(c.px)+CELL/2-5},${Y(c.py)+CELL/2} h10 M${X(c.px)+CELL/2},${Y(c.py)+CELL/2-5} v10" stroke="${col}" stroke-width="2"/>`);
     const lbl=c.type.replace("LaserTurret2","Turret")+(c.param?" "+c.param:"")+(c.dir?" ↻"+c.dir:"");
     parts.push(`<text x="${X(c.px)+CELL/2}" y="${Y(c.py)+CELL/2-8}" fill="${col}" font-size="8.5" font-family="monospace" text-anchor="middle" paint-order="stroke" stroke="#0d1420" stroke-width="3">${lbl}</text>`);
-    for(const [jx,jy,side,slot] of jointsOf(c)){
-      const off=slot===0?0.28:0.72;
-      let px=0,py=0;
-      if(side==="N"){px=off;py=0;} else if(side==="S"){px=off;py=1;}
-      else if(side==="W"){px=0;py=off;} else {px=1;py=off;}
-      parts.push(`<circle cx="${X(jx)+px*CELL}" cy="${Y(jy)+py*CELL}" r="3.6" fill="#5ef2a0" stroke="#0d1420"/>`);
-    }
+    // Ship.jointList, not a copy of the table walk: this file used to hold its own,
+    // at its own 0.28/0.72 along the edge, and it drifted from what the game draws
+    // the moment the convention moved to the thirds (2026-08-21). mx,my are the
+    // DRAWN point; x,y are the mating key, which nothing here needs.
+    for(const j of ship.jointList(c))
+      parts.push(`<circle cx="${X(j.mx)+CELL/2}" cy="${Y(j.my)+CELL/2}" r="3.6" fill="#5ef2a0" stroke="#0d1420"/>`);
   }
   // Every connector is an input or an output and occupies one 1x1 slot of the
   // footprint (Tom). On the sheet, draw them all; on a ship, only the wired ones,
@@ -96,7 +81,7 @@ for(const type of Object.keys(TYPES)){
   if(type==="Composite") continue;
   const s=new Ship({name:type,components:[{type,pos:[0,0]}],connections:[]},{team:"a"});
   const T=TYPES[type];
-  const nj=jointsOf(s.comps[0]).length;
+  const nj=s.jointList(s.comps[0]).length;
   const np=Object.keys(PORTS[type]?.outs??{}).length+Object.keys(PORTS[type]?.ins??{}).length;
   sheet.push(drawShip(s,`${type} — ${T.tiles.length} cell${T.tiles.length>1?"s":""}, ${nj} joints, ${np} connector${np===1?"":"s"}, hp ${T.hp}`,true));
 }
