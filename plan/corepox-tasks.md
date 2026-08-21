@@ -321,6 +321,54 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       loses at 57.1s); `FollowCourse` and `FollowCourseAdvanced` recovered only once the Orb melee
       was fixed. Gate is `tools/corepox-hitbox.ts`, 11/11, which fails 7 of 11 against the engine
       as it was.
+
+      Two reference solutions had to be re-found, and one of the two searches learned something
+      the other gates could not see. `FollowBoss`'s chain is not slow now, it is **stuck**: the
+      Gun Boat sits at 125 of 320 hp from t=45s to t=210s at a range of 22 tiles, where the
+      radar→turret parallax miss stops the shots landing, and both Spikes fly away
+      (`tools/corepox-boss-trace.ts`). Both Spikes also lead with an Orb, and `Descriptions.cs`
+      says an Orb "blocks incoming lazer fire" — so the shielding a beam now respects is the
+      design working. `corepox-boss-rebuild.ts` re-ran with a **buildability** filter it never
+      had: the shipped UI places a part facing up and rotates it afterwards, so a rotated part
+      needs somewhere to sit in its up-facing footprint at the moment it goes down. That rules out
+      **35,301 of 36,685** joint-bound layouts, 96%, and the first answer found without it put a
+      LaserTurret2 whose up-facing footprint covers the mission's own Brain — headless gate green,
+      `corepox-qa-campaign.ts` red at 5/7 parts with "no menu at -2,-2". The search now stops at
+      the first layout that satisfies the objective (`destroy n: 1`), which it reached after
+      simulating 1,384 of them. Win in 39.8s.
+
+      Two gate repairs came with it, both recorded where they live: `corepox-qa-campaign.ts` polls
+      for a verdict for 80s rather than 40s (every reference solution used to win inside ~10s of
+      simulated time; TwinTurrets' re-solve takes 28.5s and the browser runs at roughly wall
+      speed, so a real win was being read as no verdict), and it now prints the verdict it saw.
+      `corepox-orb-damage-probe.ts` asserted the centre-measured reach that had to go, and now
+      asserts a touching cell at exactly 1.0 is damaged.
+
+      `data/corepox/canon.json` was re-selected on the new physics. It is stable: **12 of the 14**
+      testers keep their bucket and their place, `brawler-10p → brawler-6p` and
+      `rammer-11p → rammer-12p` are the only swaps, and `corepox-canon.ts --check` is 14/14.
+- [x] **`BEAM_R` 0.75 → 0.25**, 2026-08-21, same day, on Tom's second report: "maybe the radar
+      geometry is off, FD96E630 self intersects with its own radar and dies, but that seems like a
+      collision bounds bug". It is not the Radar's bounds. That ship's Lazer at `[3,1]` fires up
+      the `x = 3` column; the Radar's cells at `x = 2` are 1.0 tile away, and `HIT_R + BEAM_R` was
+      1.25 — so a 2.5-tile-wide beam ate whatever sat beside the barrel. Three of its components
+      were losing 5hp/s to its own guns; at 0.25 one is, and that one is a Lazer firing straight up
+      its own turret's column, which is that player's design.
+
+      0.75 was a *chosen* number defended by one argument — that Aim, the mission which exists to
+      teach the radar→turret wire, needs the width. **Falsified by playing it**: Aim wins at 0.75,
+      0.5, 0.25, 0.1 and 0, in 26.8s to 27.6s. `corepox-parallax.ts`, which produced the ±10°
+      window the choice rested on, holds the target still; the rocket does not. The replacement is
+      bracketed rather than chosen — `< 0.5` so a beam misses the cell beside the barrel, and
+      `> ~0.1` because `corepox-solve.ts` finds 0 of TwinTurrets' 140 legal builds winning at 0
+      against 1 of 140 at 0.25, 0.4 and 0.75. Details and the prefab argument for "small" are in
+      `plan/corepox-design.md` §13.5.
+
+      Blast radius again: `FollowBoss` needed its third solution of the day (16 upright layouts,
+      one winner, 34.1s) and the corpus self-harm sweep came back to where it started —
+      **347 ships / 1901 components**, against 349/1892 before any of today's work and 362/2003
+      with solid footprints and the wide beam. The whole of that increase was guns eating their
+      own hulls.
 - [ ] `tools/corepox-econ.ts` reports 0 shots landed in every pairing and always has: it counts
       `w.beams.filter(hitOk)` *after* `stepParticles` has already dropped the beam that hit. The
       hit-rate column has never carried information. Not fixed, not load-bearing for any gate.
@@ -410,6 +458,14 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       RGB (230,230,104). Now: two strokes at 0.198 and 0.297 tiles, dash period 0.3125 tiles,
       starting a tile out. `tools/screenshots/radar-9.png`.
 - [ ] `corepox-designer` — place / rotate / wire
+- [x] The shipyard browses the whole corpus (2026-08-21). "start from" listed only the 21 authored
+      `SHIPS` — Tom: *"currently its just named ones and not the hex ones"*. It now uses the same
+      roster the duel picks from, moved down into `corepox-shipyard` because `CORPUS` lives there:
+      21 missions + 2187 buildable corpus designs, labelled `CD0A0D5B · 6p 1g 2e · 20849m`.
+      `shipEditor` now runs every spec through `loadShipSpec`, which is what makes a corpus design
+      loadable at all — without it only 3228 of 12044 wires resolve and 453 of 2187 designs throw
+      (`tools/corepox-roster-probe.ts`). The roster's own part count was re-derived from the loader
+      at the same time; the hand-rolled relic expansion it replaced was wrong on 464 of 2187.
 - [x] Fix the stalemate — diagnosed as TTK (138s kill in a 60s match), not piloting.
       Raycast bug + HP collapse + impact damage + body splitting. Draws 76-98% -> 32-81%.
 - [x] Design study: self-play, corpus mining, comparable-game research -> `plan/corepox-design.md`
