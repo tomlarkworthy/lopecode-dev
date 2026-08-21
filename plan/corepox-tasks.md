@@ -189,6 +189,15 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       turned out to be readable: player flags and transforms, the 5x7 envelope, the inventories
       (via `tools/corepox-prefab-ids.py`) and `liveMode`. See
       `knowledge/corepox-extracted-design.md`, "Advanced Steering, ported".
+- [x] `@tomlarkworthy/debugger-2` dropped from `bootconf.mains`, 2026-08-21, on Tom's report that it
+      slows the game down. It does, by **15x**: measured from the game's own per-frame `input` event
+      with the arms interleaved (`tools/corepox-frame-budget.ts`, Aim playing, 10s windows), 8.1/s
+      at a 124ms rAF p50 with it, 120.1/s at 8.3ms without. Worse than the 24-30fps the idle
+      measurement on tarot showed, because its cost scales with dataflow events and a reactive game
+      ticks 120 times a second. The module BLOCK stays in the file (36 KB, 0.69%) -- nothing
+      imports it, but blank-notebook's fork gallery lists it in `catalogue`, and a spawn would then
+      ask for a block that is not there. corepox.html was the only notebook in either content repo
+      that booted it.
 - [x] The `<rect> attribute height: A negative value is not valid. ("-3")` console error is fixed,
       2026-08-20, and it was never corepox. `tools/corepox-plot-caller-probe.ts` hooks `Plot.plot`
       in every booted module and attributes each bad rect to the call it happened inside:
