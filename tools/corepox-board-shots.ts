@@ -80,6 +80,9 @@ const end = await pt(0, -1);
 await p.mouse.move(end.x, end.y); await p.mouse.up();
 await p.waitForTimeout(400);
 await shot("5-wired");
+// A wire is a STRUCTURAL edit, so it takes a pause. `run` is live:true, so there
+// was a clock running to take it from.
+say("paused by the wire (structural)", await qa("paused"));
 const wires1 = await p.evaluate(() => {
   const root: any = [...document.querySelectorAll("div")].find((d: any) => d.qa);
   return root.qa.session().player.conns.length;
@@ -97,6 +100,7 @@ const val = () => p.evaluate(() => {
   const c = root.qa.session().player.live.find((x: any) => x.type === "Constant");
   return c ? Number(c.param) : null;
 });
+say("paused on arrival at gunner", await qa("paused"));
 const v0 = await val();
 const disc = await pt(0, 0);
 await p.mouse.move(disc.x, disc.y);
@@ -109,9 +113,13 @@ await p.waitForTimeout(300);
 const v1 = await val();
 say("constant, one scrub drag", `${v0} -> ${v1}`);
 
-// ---- 4. pause is entered by editing ----------------------------------------
-say("paused after the edit", await qa("paused"));
-await shot("7-kinematic");
+// ---- 4. a scrub does NOT pause ---------------------------------------------
+// Tom, 2026-08-21: "I think its better if the game is not paused on adjusting
+// values like constant. You need the feedback". This is the assertion that says
+// the exemption is still wired -- if a later change routes setParam back through
+// editPause it reads `true` here and nothing else in the suite would notice.
+say("paused by the scrub (should be false)", await qa("paused"));
+await shot("7-live-scrub");
 
 // ---- 5. selection verbs, anchored ------------------------------------------
 await qa("open", 0, 1);

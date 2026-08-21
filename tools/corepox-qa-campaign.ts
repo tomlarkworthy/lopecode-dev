@@ -299,6 +299,16 @@ for (let i = 0; i < MISSIONS.length; i++) {
   const missW = (sol.connections ?? []).filter((w: any) => !bw.has(ckey(norm(w))))
     .map((w: any) => `${w.from}.${w.fromPort}->${w.to}.${w.toPort}`);
 
+  // Where the UI left the ship, read at LAUNCH -- reading it after the verdict
+  // reports where the wreck ended up, which is not the question. A hull built part
+  // by part does not sit where the same hull built in one go sits (`rebuild` pins
+  // the parts already down), and for FollowBoss that difference alone is the match:
+  // tools/corepox-build-pose.ts.
+  const pose = await p.evaluate((q: any) => {
+    const P = q.session().player;
+    return `x ${P.x.toFixed(3)} y ${P.y.toFixed(3)} a ${P.a.toFixed(1)}` +
+           `  com ${P.cx.toFixed(3)},${P.cy.toFixed(3)}`;
+  }, await qa());
   await byTitle("launch") || await byTitle("resume");
   // poll for the verdict instead of guessing a wall-clock: the browser steps at
   // rAF speed, so a fixed wait either wastes minutes or clips a slow mission
@@ -329,17 +339,9 @@ for (let i = 0; i < MISSIONS.length; i++) {
              (dead.length ? ` lost ${dead.join(",")}` : "");
     }, await qa());
     console.log(`      VERDICT ${verdict}  ${state}`);
-    // Where the UI left the ship. A hull built part by part does not sit where the
-    // same hull built in one go sits (`rebuild` pins the parts already down), and
-    // for FollowBoss that difference alone is the match -- see
-    // tools/corepox-build-pose.ts. Printed on every failure because a spec that
-    // matches the solution exactly, losing anyway, reads as a UI fault until you
-    // can see the pose.
-    console.log(`      POSE ` + await p.evaluate((q: any) => {
-      const P = q.session().player;
-      return `x ${P.x.toFixed(3)} y ${P.y.toFixed(3)} a ${P.a.toFixed(1)}` +
-             `  com ${P.cx.toFixed(3)},${P.cy.toFixed(3)}`;
-    }, await qa()));
+    // Printed on every failure, because a spec that matches the solution exactly
+    // and loses anyway reads as a UI fault until you can see the pose.
+    console.log(`      POSE AT LAUNCH ${pose}`);
     console.log(`      BUILT ORDER ${(built.ship.components ?? []).map(full).join(" ")}`);
     console.log(`      SPEC  ORDER ${(sol.components ?? []).map(full).join(" ")}`);
     console.log(`      BUILT WIRES ${(built.ship.connections ?? []).map((w: any) => ckey(norm(w))).join(" ")}`);

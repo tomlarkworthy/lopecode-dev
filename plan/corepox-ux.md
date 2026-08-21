@@ -697,6 +697,17 @@ Two corrections the first implementation needed, both measured:
 Entering a pause is still a side effect of an edit and never a button: `editPause()` is called from
 every mutator, and the only control offered is a resume.
 
+**One verb is exempt, and it diverges from §4.1 on purpose.** Adjusting a value does *not* pause.
+Tom, 2026-08-21: *"I think its better if the game is not paused on adjusting values like constant.
+You need the feedback"*. A Constant is the one edit whose effect can only be judged by watching —
+turn the turret's angle and you want to see where it points; raise the thrust and you want to see
+the ship move. Pausing hides exactly the thing being tuned. The structural edits (place, move,
+rotate, delete, wire, cut) still pause, because there the pause is what buys the time to make them.
+
+That is a real cost, not a free choice: a live mission's clock now runs for the whole of a scrub, so
+the six `live: true` missions pay for tuning in seconds rather than in taps. §12.4 records what the
+campaign gate says about it.
+
 ### 12.4 What the gates say
 
 | gate | result |
@@ -705,10 +716,16 @@ every mutator, and the only control offered is a resume.
 | `corepox-mission-fidelity.ts` | all 12 match the original |
 | `corepox-qa-campaign.ts` | **11/12**, every part and every wire built by dragging |
 | `corepox-board-shots.ts` | chip drag places, port drag wires, disc scrubs, phone renders, clean console |
+| `corepox-board-shots.ts`, on the pause rule | wire → `paused true`; scrub → `paused false` |
 | `lope-preflight.ts` | 0 new findings from `corepox-game` |
 
 The one red is FollowBoss, and it is not the interface. It builds 7/7 parts and 6/6 wires, matching
 the reference solution part for part, and then loses at t=5.0s. See §12.5.
+
+Re-run after the scrub exemption (§12.3): **11/12, unchanged**. The four `live: true` missions that
+now pay for a Constant in seconds rather than in taps — ConnectionLite, ManualAim, Connection,
+Avoid — all still win with the clock running through the whole scrub. That is what makes the
+exemption affordable; it was not assumed.
 
 ### 12.5 A ship built part by part does not sit where the same ship built in one go sits
 
