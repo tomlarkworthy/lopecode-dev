@@ -26,6 +26,12 @@ const duel = await importNotebookModule("modules/@tomlarkworthy/corepox-duel.js"
   overrides: {...E, SHIPS, md: (s: any) => String(s), htl: {html: () => {}},
               battlefield: null, backdrop: null, invalidation: new Promise(() => {})}});
 const runDuel: any = await duel.value("runDuel");
+// World.rng is Math.random and nothing in the game sets it (corepox-engine.js:1025;
+// `seedRng` has one caller in the repo). Exhaust particles draw from it and carry
+// EXHAUST_DMG, so an unseeded run is not repeatable -- corepox-mining-check.ts swung
+// 2/5 to 5/5 seeds on identical input before this was found. Seeded here so the
+// numbers in the header and in the plan can be reproduced.
+(await eng.value("World") as any).rng = (await eng.value("seedRng") as any)(20260821);
 const yard = await importNotebookModule("modules/@tomlarkworthy/corepox-shipyard.js", {
   overrides: {TYPES: await eng.value("TYPES"), TYPE_ALIAS: await eng.value("TYPE_ALIAS"),
               RELICS: await eng.value("RELICS"), loadShipSpec: E.loadShipSpec, SHIPS, TILE: 1}});

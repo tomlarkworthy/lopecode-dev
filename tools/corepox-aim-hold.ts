@@ -27,6 +27,12 @@ const duel = await importNotebookModule("modules/@tomlarkworthy/corepox-duel.js"
 const newDuel: any = await duel.value("newDuel");
 const stepDuel: any = await duel.value("stepDuel");
 const chaseCmd: any = await duel.value("chaseCmd");
+// World.rng is Math.random and nothing in the game sets it (corepox-engine.js:1025;
+// `seedRng` has one caller in the repo). Exhaust particles draw from it and carry
+// EXHAUST_DMG, so an unseeded run is not repeatable -- corepox-mining-check.ts swung
+// 2/5 to 5/5 seeds on identical input before this was found. Seeded here so the
+// numbers in the header and in the plan can be reproduced.
+(await eng.value("World") as any).rng = (await eng.value("seedRng") as any)(20260821);
 const geom = E.geom, DT = E.DT;
 const pilotActuators: any = await eng.value("pilotActuators");
 

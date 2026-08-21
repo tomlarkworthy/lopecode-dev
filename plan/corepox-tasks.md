@@ -728,6 +728,56 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       threw `Identifier 'chip' has already been declared` — the bench gate reported it as a console
       error while every assertion still passed, which is the whole reason it collects them.
 
+- [x] **`World.rng` is `Math.random` and nothing seeds it — duels replay, mining does not**
+      (2026-08-21). Found while checking whether an engine push had moved a peer's mining gate
+      from 5/5 to 3/5. It had not. Five consecutive runs of `tools/corepox-mining-check.ts` on
+      one unmodified engine:
+
+      ```
+      run 1   5/5   18 pieces   630 scrap
+      run 2   5/5   18          585
+      run 3   2/5    6          180     FAIL
+      run 4   4/5   13          390
+      run 5   5/5   10          300
+      ```
+
+      Same tool, same build, same input. The reverted arm's 3/5 sits inside that spread, so the
+      A/B could not have decided anything either way.
+
+      `corepox-engine.js:1025` sets `World.rng = Math.random`. `seedRng` is exported and has
+      exactly one caller in the repo — `tools/corepox-engine-test.ts`, which seeds for its own
+      check and restores `Math.random` afterwards. Nothing in corepox-duel, corepox-mining or
+      corepox-duel-encounter touches it.
+
+      `tools/corepox-replay.ts` separates the claim from the assumption, because "the engine is
+      nondeterministic" and "this gate is nondeterministic" are different statements and only the
+      second was observed. Same seed, three runs, on `World.rng` as it ships:
+
+      ```
+      gunBoat vs aimPlayer               same
+      laserpost vs orbDroneChassis_hull  same
+      shooter vs proximityMine           same
+      spike vs drifter                   same
+      gunBoat vs laserpost               same
+
+      mining, seed 3    DIFFERENT   scrap   0 /  30 /  30
+      mining, seed 23   DIFFERENT   scrap 120 / 135 /  90
+      ```
+
+      So duels **are** reproducible unseeded — the duel path draws from `World.rng` only where the
+      draw does not reach the outcome — and seeding makes mining reproducible too. The defect is
+      scoped to the exhaust-on-rock path: a miner thrusts continuously, each exhaust particle is a
+      Poisson draw from `World.rng`, and it carries `EXHAUST_DMG` onto the rock being cut. How
+      much rock a run breaks is therefore a coin-flip sum, not a consequence of the ship.
+
+      Consequence for tuning, not yet acted on: `rockHp 5` / `oreSpread 5` were chosen against an
+      instrument that swings 2/5–5/5 on identical input. One-line fix for any such gate —
+      `World.rng = seedRng(<fixed>)` before the runs. Applied here to `tools/corepox-attrition.ts`
+      and `tools/corepox-aim-hold.ts` so the numbers quoted in "The map arc" below can be
+      reproduced; both are unchanged in character after seeding (winner loses 0.0% of its parts in
+      100% of wins; gunBoat still holds 80° of aim error and 8% inside the fire arc). The mining
+      gate itself was left alone — it is a peer's tool and they have the finding.
+
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
       Gate is `tools/corepox-play-missions.ts` (exits non-zero otherwise). Was 5/9 and 1/9
