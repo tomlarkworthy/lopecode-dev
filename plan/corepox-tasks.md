@@ -350,6 +350,56 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       `brawler-18p → brawler-6p`, `gunship-13p → gunship-19p`, `rammer-7p → rammer-6p`,
       `shedder-19p → shedder-18p`, `shedder-6p → shedder-10p` -- and `rammer-11p` keeps its place
       in the bucket while moving within it. `corepox-canon.ts --check` is 14/14 on the new file.
+- [ ] **A pinned `face` is dropped when a waypoint is commanded too**, found 2026-08-21 by the
+      session building the mining node, confirmed here on the duel's stock AI. Not fixed.
+
+      The `cmd.drive` branch was normalised on 2026-08-21 (entry below) and the `cmd.target`
+      branch was deliberately left on flat `[1, 1, G.torque]` with `G.torque = 8`. The reasoning
+      written into the drive branch applies to the waypoint branch as well: a torque row two
+      orders of magnitude smaller than the linear rows means the allocator serves position and
+      treats rotation as rounding. When the two demands **agree** that is a trade; when the
+      waypoint is perpendicular to the heading it is a rout. Their miner — commanded
+      `{target: ring point, face: bearing-to-seam}` — flew the orbit nose-first at ~80° of
+      heading error on five held-out seeds and fired the whole run into empty space.
+
+      `chaseCmd` is the duel's stock opponent and it pins `face: brg` on every tick, so it has
+      the same shape. It should be mild, because its target lies **along** the bearing
+      (`self + unit(brg)*k`) — translation and heading agree. `tools/corepox-aim-hold.ts` says it
+      is mild for one hull and a rout for two:
+
+      ```
+      attacker            engines   travelled     |err| mean  median   inside the 25 deg arc
+      gunBoat                 2 eng   17.0 tiles         80      90            8%
+      orbDroneChassis_hull    2 eng   17.5 tiles          5       6          100%
+      drifter                 1 eng    1.9 tiles         85      90            3%
+      ```
+
+      They agree only if the hull's best thrust axis is its nose. `pilot` takes the
+      `cmd.face != null` branch, which rotates the world demand into the body frame and does
+      **not** gate the burn on heading agreement the way the `face == null` branch does, so a
+      hull whose `R.phi` is off-nose flies at an angle and the heading demand competes at weight
+      8 and loses.
+
+      **What it costs**: `chaseCmd` gates `fire` on that same 25° arc, so the stock opponent is
+      declining 92% and 97% of the shots it wants to take. Every headless campaign number
+      measured with `control: "auto"` — including the economy audit — is therefore pessimistic
+      about the player's side by an unknown amount.
+
+      **Not fixed on purpose.** Raising the waypoint torque weight is a balance change that moves
+      every mission and every corpus flight result, so it wants the mission gates and a corpus
+      A/B, not a one-line edit. The other session took the app-level route instead: within 4
+      tiles of the ring point their `minerCmd` returns `{target: null, face: bearing}`, so the
+      linear rows are zero and the turn is all there is to allocate (0% → 49% inside 20° on their
+      worst seed). That is available to any caller and needs no shared change.
+
+      **Fixture warning, because this probe walked into it.** Three of the six hulls first
+      measured scored 0° error and 100% inside the arc while measuring nothing: `aimPlayer` and
+      `laserpost` have no engine at all, and `spike`'s engines are wired, which `pilotActuators`
+      skips — so the pilot wrote nothing and the ship either sat at its starting heading or flew
+      its own program. A zero heading error is what perfect aim and a ship that never turned look
+      like from the outside. The tool now prints free-engine count and distance travelled and
+      labels those rows as not a measurement.
+
 - [x] **The flight model turned the wrong amount, in both directions**, 2026-08-21. Tom: "I am not
       convinced the auto thrust works properly. I seem to turn very slowly sometimes and pressing
       forwards turns the ship even though it has the capability not to turn, are the thrusts moments
