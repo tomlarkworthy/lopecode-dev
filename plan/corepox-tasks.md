@@ -421,12 +421,21 @@ Updated 2026-08-21. Ticked only when verified, not when written.
 
       **There is no arrival deadband**, checked because a second session reported the pilot parking
       about three tiles short of a waypoint. `tools/corepox-arrival.ts`: the same command on a hull
-      that can push along two axes and is free to turn settles at **0.00 tiles**. The fixture that
-      stalled has two engines pointing the same way — one thrust line — with `face` pinned, so it
-      reaches the projection of the target onto that line and stops, which is all it can do. Swept
-      round a 10-tile circle at `face: 45` it does not leave the spot at all for targets at 90° and
-      135°, throttles [0,0]. Pinning `face` on a single-axis hull is the constraint; the pilot is
-      not declining to arrive.
+      that can push **both ways along its thrust line** and is free to turn settles at **0.00
+      tiles**. What that needs is reverse, not a second axis — both fixtures report `rocket=true`
+      on axis (0,-1). The one that stalled has two engines pointing the same way, with `face`
+      pinned, so it reaches the projection of the target onto that line and stops, which is all it
+      can do. Swept round a 10-tile circle at `face: 45` it does not leave the spot at all for
+      targets at 90° and 135°, throttles [0,0]. Pinning `face` on a hull that cannot reverse is the
+      constraint; the pilot is not declining to arrive.
+
+      The tool prints each fixture's island sizes and engine count next to the result, because a
+      component placed where nothing bonds to it is discarded by `splitDetached` at t=0 and the hull
+      that flies is not the hull that was written. That is not hypothetical: it is what the reported
+      stall turned out to be — two lateral engines at px ±2 with nothing at ±1, thrown away before
+      the first tick, so every run taken after "I added lateral thrust" was still the single-axis
+      hull. A benchmark should certify its fixture is legal by the system's own rules before it
+      reports, and this one now does.
 
       The allocator's *waypoint* weights (`G.torque = 8`) were left alone. They now sit on a torque
       row `mass` times bigger, which is where the +2pp of corpus arrivals comes from; retuning them
