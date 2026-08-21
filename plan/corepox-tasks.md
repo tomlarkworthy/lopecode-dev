@@ -350,6 +350,75 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       `brawler-18p → brawler-6p`, `gunship-13p → gunship-19p`, `rammer-7p → rammer-6p`,
       `shedder-19p → shedder-18p`, `shedder-6p → shedder-10p` -- and `rammer-11p` keeps its place
       in the bucket while moving within it. `corepox-canon.ts --check` is 14/14 on the new file.
+- [x] **The flight model turned the wrong amount, in both directions**, 2026-08-21. Tom: "I am not
+      convinced the auto thrust works properly. I seem to turn very slowly sometimes and pressing
+      forwards turns the ship even though it has the capability not to turn, are the thrusts moments
+      calculated properly? Is A and D turn of strafe, I would expect turn but please confirm this."
+
+      **A and D are turn.** `humanControl`'s table is `{w:[1,0], s:[-1,0], a:[0,-1], d:[0,1]}` read
+      as `[thrust, yaw]`, so A/D write yaw and nothing writes a lateral demand — there is no strafe
+      key. Space fires, a click on the field sets a waypoint, and any WASD press clears `target` and
+      `face`. Unchanged; confirmed by reading, not altered.
+
+      Two separate defects behind the other two complaints.
+
+      **1. The torque row was divided by mass.** `pilotActuators` built each engine's column as
+      `ux = dx/mass, uy = dy/mass, t = (lx*uy - ly*ux)/I`, but `Ship.force` divides only the linear
+      term — `vx += fx/mass*k` against `w += (r x f)/I * k/D`. So the pilot's model understated every
+      hull's turn authority by exactly its own mass, which is why the complaint is "sometimes": the
+      error is the ship's size.
+
+      ```
+      tools/corepox-thrust-moment.ts -- fires the engines and reads the integrator back
+      before   measured yaw / model yaw = mass exactly, 400/400 corpus ships within 2%
+      after    measured yaw / model yaw = 1.000, range 1.000..1.000, 400/400
+      ```
+
+      The linear row was already right (median measured/model speed 1.000), which is what makes the
+      one-character fix safe: `t: (lx*dy - ly*dx)/ship.I`, off the raw unit vector. `yawP` feeds
+      `wWant = sqrt(2*amax*sweep)`, so the turn profile was commanding a slower turn than the build
+      could hold. Fixing the row alone: a 90° `cmd.face` turn settles **1.12x faster** (median over
+      12 ships), and corpus waypoint flight improves — `tools/corepox-autopilot.ts 400 --all` goes
+      **69.8% -> 71.8% arrived**, and **83.5% -> 86.1%** among ships that can torque both ways.
+
+      **2. Under WASD, yaw asked for zero TORQUE and the weights made rotation an afterthought.**
+      The drive branch demanded `b = [axis*thrust*along, yaw*availableTorque]` at `wt = [1,1,2]`.
+      Zero torque is not zero rate: it declines to *add* spin but never takes away the spin the
+      hull's own asymmetry is producing. And the flat weights compare a linear row in tiles/s^2
+      against a torque row two orders of magnitude smaller, so the allocator served position and
+      treated rotation as rounding — which is the "turn very slowly", not the mass error.
+
+      yaw is now a **rate** demand (`alpha = G.rate*(yaw*yawP*TAU - ship.w)/KA`, so yaw = 0 means
+      hold this heading) and both demands are asked for as a fraction of *this hull's* own
+      authority, which also makes the feel independent of ship size. `tools/corepox-drive-yaw.ts`
+      A/Bs four demand shapes over the 40 corpus ships that can torque both ways and move:
+
+      ```
+      holding W, unwanted spin      4.77 -> 0.15 deg/s median,  19/40 -> 1/40 above 5 deg/s
+      holding W already spinning
+        at 60 deg/s, after 3s       6.39 -> 0.18 deg/s
+      holding D, turn rate          4.25 -> 21.68 deg/s          5.1x
+      W and D together              6.61 -> 21.40 deg/s turn, speed 2.87 -> 1.89 tiles/s
+      forward speed holding W       100% -> 96% of the old median
+      ```
+
+      That last line is the price and it is deliberate: an asymmetric hull cannot make full thrust
+      and no torque at once, so flying straight costs 4% of the median build's speed. A symmetric
+      one pays nothing — `corepox-duel-check.ts` reports 5.17 tiles/s under held thrust before and
+      after, to the digit.
+
+      **What still spins is the build's failure, not the pilot's.** 3 of the 12 sampled hulls hold W
+      and still turn faster than 5 deg/s; one of them has no reverse torque at all, so no throttle
+      vector cancels its own thrust asymmetry.
+
+      Not affected: determinism (`corepox-determinism.ts` identical across 3 runs),
+      `corepox-engine-test.ts` all checks, missions 12/12 winnable with the reference solutions and
+      0/12 winnable with no input at all.
+
+      The allocator's *waypoint* weights (`G.torque = 8`) were left alone. They now sit on a torque
+      row `mass` times bigger, which is where the +2pp of corpus arrivals comes from; retuning them
+      is a balance decision and wants the mission gates, not a corpus statistic.
+
 - [x] **The refit bench shows what you are about to fight, and its LAUNCH is above the board**,
       2026-08-21. Tom: "I've made the ship but how do I start the mission in a duel encounter. Also
       I would expect to see the enemy during the build stage of the encounter." — then, having

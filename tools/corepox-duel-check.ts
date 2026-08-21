@@ -1,7 +1,7 @@
 // Exercise the duel module headlessly: every mode, both controls, and a rematch
 // check that the same seed and placement give the same fight.
 import {importNotebookModule} from "./notebook-import.ts";
-const eng = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+const eng = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const E: any = {};
 for (const n of ["Ship", "World", "geom", "DT", "pilot", "loadShipSpec"]) E[n] = await eng.value(n);
 const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js", {overrides: {md: (s: any) => String(s)}});

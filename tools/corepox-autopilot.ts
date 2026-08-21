@@ -2,7 +2,7 @@
 // (cells pilotActuators / pilotAllocate / flightModel / pilot) -- this file only
 // drives it, so there is no second copy to drift.
 import {importNotebookModule} from "./notebook-import.ts";
-const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+const m = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const Ship: any = await m.value("Ship");
 const World: any = await m.value("World");
 const load: any = await m.value("loadShipSpec");
