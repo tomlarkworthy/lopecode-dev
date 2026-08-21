@@ -350,6 +350,45 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       `brawler-18p → brawler-6p`, `gunship-13p → gunship-19p`, `rammer-7p → rammer-6p`,
       `shedder-19p → shedder-18p`, `shedder-6p → shedder-10p` -- and `rammer-11p` keeps its place
       in the bucket while moving within it. `corepox-canon.ts --check` is 14/14 on the new file.
+- [x] **A hit shows**, 2026-08-21. Tom: "One missing feature from the port is a component should
+      flash when damaged, so it's clear it is happening." `ShipComponent.damage()` ends with
+      `StartCoroutine("displayDamage")`, and `displayDamage` is six lines that do **two** things the
+      port had neither of:
+
+      ```csharp
+      material.shader = Shaders.highlight;
+      yield return new WaitForSeconds(.1f);
+      material.shader = Shaders.normal;
+      spriteRenderer.color = new Color(1, 1, 1, (float) this.hp / stats.maxHp);
+      ```
+
+      So: a tenth of a second of flat highlight, and then a permanent alpha of `hp/maxHp`. The
+      second one is the bigger gap — damage was completely invisible between "full" and "gone".
+
+      `Sprites/Highlight` is a Unity built-in and is **not** in the decompile, so flat white is
+      inferred from the name, not read. `brightness(0) invert(1)` is the SVG equivalent: every
+      opaque pixel goes white, alpha untouched. The 0.1s is read.
+
+      The fade is floored at **0.35** rather than the original's bare `hp/maxHp`, and that is a
+      deviation on purpose: these drawings are neon line art on black where the sprites were
+      filled, and below about a third a part stops reading as damaged and starts reading as gone.
+
+      Gated by `tools/corepox-damage-flash.ts`, which samples the live DOM on every animation frame
+      from inside the page, because a screenshot cannot gate a 100ms event. On Aim, over 8s:
+      **7–8 flashes, mean 137–161ms** each (overlapping hits extend one), lit on 14–15% of frames,
+      never more than 2 components at once, and damaged parts settle across the whole range
+      0.35–0.98. One frame was caught on camera in `tools/screenshots/corepox-damage-flash.png`.
+
+      The fixture choice is itself a finding. Twin turrets looks like the obvious mission — both
+      posts open fire on the handed ship immediately — but that ship loses in 1.4s and most of its
+      parts go from full hp to zero in one event, and a fatal hit is not drawn (the component is
+      hidden the same frame). It reports **0 flashes while damage is plainly happening**. The first
+      version of the probe also counted hidden nodes and read 97% of frames lit on that mission,
+      because the loop stops on DEFEAT and freezes the filter on dead parts. Aim's armour takes
+      graze damage and survives it, which is the case the flash exists for.
+
+      Costs nothing: `corepox-frame-budget.ts` reads 119.9/s, p50 raf gap 8.3ms, against 119.7/s
+      before. The filter is written only when the lit state CHANGES, not every frame.
 - [x] **Five components redrawn from the design doc**, 2026-08-21. Tom: "I have refreshed the
       graphics for many of the components", pointing at a claude.ai design project, *Shipyard
       Concepts*, imported through the design MCP and kept at
@@ -697,6 +736,34 @@ One of these leans on structure that already exists:
       The pilot only ever commands engines that are **on the Brain's own island, powered, and unwired**
       (Tom's rule, 2026-08-20: "it should not be able to control disconnected components, only its own
       island"). Islands are read from `Ship.islands()`, so wiring an engine is what hands it to a program.
+- [x] **The refit bench framed the origin, not the hull** (Tom, 2026-08-21 — "I can't see to add
+      connection or access the component menu at all"). Nothing was broken: modes switched, the
+      wire logic ran, the parameter panel opened. The board was zoomed so far out that a 3-part
+      hull rendered ~130px tall on a 414px board and the connect affordances — circles at
+      `TILE * 0.22` — were dots (`tools/screenshots/bench-connect.png`, before and after).
+
+      Cause: `battlefield`'s `frame()` collects ONE point per ship, its origin cell, so with
+      nothing else to see the whole board span came from `api.pad`, which defaults to 6 tiles a
+      side. The comment at corepox-render.js:520 already said this — "the knob that actually sets
+      the zoom on a small ship … minSpan below that does nothing" — and named the campaign editor
+      as the thing that drops it. `shipEditor` never did.
+
+      Two changes, the second only because of the first. `shipEditor` now feeds every occupied
+      tile through `view.focus`, which `frame()` already honours, so the margin is a margin again;
+      and it takes a `pad` option, left at 6 so no existing view moves, which the refit bench sets
+      to 2.
+
+      Driven in a browser through the map, `tools/corepox-bench-drive.ts` — every click goes
+      through the editor's own `qa` tile map, never a re-derived one:
+
+      ```
+      hull Brain@0,0:up Constant@0,1:up Engine@0,-1:up   wires 0,1out->0,-1in
+        rotate    Engine@0,-1:up -> Engine@0,-1:right
+        connect   output -> input, wire committed
+        build     Lazer from the hold lands, 3 -> 4 parts, hold Lazer 2 -> 1
+        modify    clicking the Constant opens "Constant at 0,1" with 1 input
+      ```
+
 - [x] **`@tomlarkworthy/corepox-duel-encounter`: the map now fights** (Tom, 2026-08-21 — "wire in
       corepox-dual to the map … see and change the build of their ship before battle … a consistent
       inventory (and resources) throughout the journey"). A new module rather than a bigger duel
