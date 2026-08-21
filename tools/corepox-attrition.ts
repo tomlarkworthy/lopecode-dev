@@ -30,6 +30,16 @@ const yard = await importNotebookModule("modules/@tomlarkworthy/corepox-shipyard
   overrides: {TYPES: await eng.value("TYPES"), TYPE_ALIAS: await eng.value("TYPE_ALIAS"),
               RELICS: await eng.value("RELICS"), loadShipSpec: E.loadShipSpec, SHIPS, TILE: 1}});
 const specOfShip: any = await yard.value("specOfShip");
+const encMod = await importNotebookModule("modules/@tomlarkworthy/corepox-duel-encounter.js", {
+  overrides: {Ship: E.Ship, World: E.World, geom: E.geom, DT: E.DT,
+              TYPES: await eng.value("TYPES"), TYPE_ALIAS: await eng.value("TYPE_ALIAS"),
+              RELICS: await eng.value("RELICS"), loadShipSpec: E.loadShipSpec,
+              shipNode: null, TILE: 1, shipEditor: null, specOfShip, CORPUS: {ships: {}},
+              runDuel: null, duelView: null, newDuel: null, stepDuel: null,
+              humanControl: null, SHIPS, miningView: null, runMining: null,
+              md: (s: any) => String(s), htl: {html: () => {}},
+              invalidation: new Promise(() => {})}});
+const survivingHull: any = await encMod.value("survivingHull");
 
 const ROSTER = ["gunBoat", "laserpost", "aimPlayer", "proximityMine", "spike",
                 "orbDroneChassis_hull", "unfinishedOrbDrone_hull", "shooter", "drifter"];
@@ -92,19 +102,23 @@ const med = srt[srt.length >> 1] / 100;
 for (let k = 1; k <= 6; k++) { keep *= (1 - med); if (k % 2 === 0) console.log(`  after ${k} wins  ${(100 * keep).toFixed(0)}% of the hull left`); }
 
 // ---- and what the campaign carries between nodes ---------------------------
-// `survivingHull` is commented "After the battle the hull IS the survivors ... parts
-// shot off are not in the hold either, they are gone." It calls specOfShip, which
-// maps ship.COMPS -- and a destroyed component stays in comps at hp 0 (Ship.damage
-// never splices; the split path at :976 kills into the parent rather than removing).
+// Until 2026-08-21 this section reported NOTHING PERSISTS: `survivingHull` was
+// `specOfShip` alone, which maps ship.COMPS, and a destroyed component stays in
+// comps at hp 0 (Ship.damage never splices; the split path at :976 kills into the
+// parent rather than removing). The destroyed part came back whole at the next node.
 console.log("\nwhat survives to the next node:");
 const s2 = new E.Ship(E.loadShipSpec(SHIPS.gunBoat).spec, {team: "a", x: 0, y: 0, a: 0});
 const v = s2.comps.find((c: any) => c.type === "Armour") ?? s2.comps[1];
+const h = s2.comps.find((c: any) => c.type === "Engine");
 s2.damage(v, v.hp);
-const back = specOfShip(s2, "hull");
-console.log(`  gunBoat with one ${v.type} destroyed: comps ${s2.comps.length}, live ${s2.live.length}`);
-console.log(`  survivingHull gives back ${back.components.length} components ` +
-            `[${back.components.map((c: any) => c.type).join(" ")}]`);
-console.log(`  the spec carries hp: ${"hp" in (back.components[0] ?? {})}`);
-console.log(back.components.length === s2.comps.length && !("hp" in (back.components[0] ?? {}))
-  ? "  -> NOTHING PERSISTS. The destroyed part returns, at full hp, at the next node."
-  : "  -> something persists; re-read this tool's assumptions");
+s2.damage(h, 7);
+const back = survivingHull(s2, "hull");
+const kept = back.components.find((c: any) => c.pos[0] === h.px && c.pos[1] === h.py);
+console.log(`  gunBoat, one ${v.type} destroyed and one ${h.type} down to ${h.hp}/${h.maxHp}:`);
+console.log(`    comps ${s2.comps.length}, live ${s2.live.length}`);
+console.log(`    survivingHull -> ${back.components.length} components, ` +
+            `${back.connections.length} of ${s2.conns.length} wires`);
+console.log(`    the damaged survivor carries dmg ${kept?.dmg ?? "NONE"}`);
+console.log(back.components.length < s2.comps.length && kept?.dmg
+  ? "  -> damage persists: the dead are dropped and the living keep their wounds"
+  : "  -> NOTHING PERSISTS -- see tools/corepox-carry.ts, which gates this");

@@ -697,6 +697,36 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       present (`tools/screenshots/boot-corepox-lab.png`, `boot-corepox-shipyard.png`). The
       shipyard's own intro cell still described the retired flow ("Click a part then a cell to
       place it, drag nothing") and was rewritten to describe the rail.
+- [x] **The tempo chip is turn 9's, and the refit bench draws it too** (2026-08-21). Two things
+      were wrong, and only one of them was a colour.
+
+      The hues were a traffic light and turn 9 is not: read back out of
+      `Shipyard Concepts.dc.html`, the live chip is
+
+      ```
+      border:1px solid rgba(255,92,114,.5); background:rgba(255,92,114,.08)
+      color:#ff5c72  LIVE      clock runs · damage lands
+      ```
+
+      and HARD is `#e8ecf5`. So LIVE was green — "everything is fine" about the only state where
+      damage lands — and HARD was amber — "warning" about the state that cannot hurt you. The chip
+      also tints its own border and ground from the hue and is an 8px rectangle, not a pill.
+
+      The second was the "one screen" claim itself. `CLOCK` and the chip markup lived in
+      corepox-game, so a refit bench drew no chip at all, and turn 9b's first stated difference —
+      "The tempo chip reads HARD, and the resume control reads `LAUNCH ▶` instead of ▶. Same
+      control, same corner." — was true in the code and invisible on screen. Both moved to
+      corepox-board as `CLOCK` + `tempoChip(mode, {t, mob})`; `shipEditor` takes `tempo` and the
+      duel encounter passes `"build"`. `t: null` draws no clock column, because a chip reading
+      `0.0s` beside HARD says the match has started when it has not.
+
+      The encounter's own header lost its `scrap` chip in the refit phase only — the rail's head
+      carries `◆ 214` and the header carried `scrap 214` 30px away, which reads as two numbers.
+
+      `tools/screenshots/clock-build.png`, `clock-live.png`, `bench-corepox-duel-encounter.png`.
+      Caught in passing: `chrome({mob, pad, chip})` already binds `chip`, so the first version
+      threw `Identifier 'chip' has already been declared` — the bench gate reported it as a console
+      error while every assertion still passed, which is the whole reason it collects them.
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
@@ -1532,7 +1562,8 @@ tools/corepox-attrition.ts -- 54 decisive wired duels over 9 roster ships, 22 ti
   survivingHull, one Armour destroyed  ->   7 of 7 components returned, at full hp
 ```
 
-- **Nothing persists between nodes.** `survivingHull` is commented *"After the battle the hull IS
+- **Nothing persists between nodes.** *(Fixed 2026-08-21 — see the ordered list at the end of
+  this section. What follows is what was measured before the fix.)* `survivingHull` is commented *"After the battle the hull IS
   the survivors … parts shot off are not in the hold either, they are gone."* It calls
   `specOfShip`, which maps `ship.comps` — and `Ship.damage` never splices, it sets hp to 0, while
   the split path (`corepox-engine.js:976`) kills components into the parent rather than removing
@@ -1581,6 +1612,21 @@ Build the arc on these rather than on imitation.
   with a right answer — *it fires when `dist < 20`, so fight it at 25* — which is a roguelike verb
   neither comparable can copy. Slay the Spire hides intents on purpose; here the information is
   the content.
+
+  **The reveal should be earned, and the price should be hull space** (Tom, 2026-08-21): an
+  upgrade, or simply *having a Radar fitted*. That is the better version of the idea and it is
+  this game's idiom rather than a roguelike's — information is bought in **cells**, not in
+  currency, so intel competes with guns for the same space, and a Radar gets a second job on top
+  of the bearing/dist it already feeds in combat. It tiers naturally: no Radar, nothing; a Radar,
+  the foe's silhouette and part count; something better, the wiring. `encounterFoe` is already
+  pure in `(node, camp.seed)`, so the whole thing is a gate on a panel that exists — no new
+  simulation.
+
+  One consequence to take deliberately: the bench draws the foe **unconditionally** today
+  (shipped 2026-08-21), so this *removes* something the player currently has. Fine for a run
+  structure, but it is a takeaway and not an addition, and a player who has never seen the panel
+  will not know what the Radar bought them. Whatever gates it has to advertise itself when it is
+  missing — an empty AGAINST panel that says *fit a Radar* beats no panel.
 - **Rewards can be capabilities, not statistics.** A Binary is a new sentence in the language, not
   +5 damage. That is progression without a tech tree, which was already rejected for gating ideas.
 - **A reward can be unusable until the hull is re-laid-out.** The spatial version of "this card
@@ -1611,9 +1657,47 @@ Build the arc on these rather than on imitation.
 
 Each one unlocks the next, and the numbers are the reason.
 
-1. **Carry hp, and carry destroyed parts, between nodes.** A change in `specOfShip` /
-   `survivingHull`. Unlocks attrition, gives repairs something to price, and makes damage a
-   decision. Almost nothing else on this list means anything without it.
+1. ~~**Carry hp, and carry destroyed parts, between nodes.**~~ **Built 2026-08-21.** Four
+   modules, and one of them was not on the list.
+
+   The spec gained `dmg`, damage carried in, as a field **separate from `hp`**: `hp` in a spec
+   declares the part's maximum — a mining field builds its rock at `rockHp` per tile — so
+   reusing it for a wound would make the part read as full and cap its repair at whatever was
+   left of it. The constructor is now
+   `hp: max(0, (c.hp ?? T.hp) - (c.dmg ?? 0)), maxHp: c.hp ?? T.hp`.
+
+   `survivingHull` drops the destroyed components and the wires that touched them, and keeps
+   the survivors' damage. `specOfShip` writes `dmg` **only when there is damage**, so an
+   undamaged ship serialises byte for byte as before — 21 roster ships checked, none gains a
+   field, which is what keeps saved designs, `shipSource` and the corpus round-trip out of it.
+
+   **The module that was not on the list**: `shipBoard`'s own `specOf` in
+   `@tomlarkworthy/corepox-board` is the writer the refit bench actually round-trips through,
+   not `specOfShip` — two copies of one rule, and corepox-board sits below corepox-shipyard in
+   the import graph so it cannot call the other. It wrote `hp: c.hp`, the *current* value, into
+   the field the constructor reads as the *maximum*. That was invisible for as long as campaign
+   hulls were never damaged and became a compounding bug the moment they were: a hull edited at
+   43/50 came back as 43/43, and every later refit ratcheted the ceiling down again. Found by
+   reading the bench's data path rather than by a test, then gated.
+
+   Two gates, because the two writers need different instruments:
+   - `tools/corepox-carry.ts` — headless, 11 assertions: the dead part is gone by position, its
+     wires went with it, the survivor carries `dmg`, reloading gives the damaged hp with the
+     full `maxHp`, spec → Ship → spec is a fixed point, no undamaged ship gains a field, and a
+     severed bar keeps only its own island. The fixture picks a **wired** component to destroy,
+     so the wire assertion cannot pass on "0 of 0".
+   - `tools/corepox-bench-carry.ts` — in a browser, because `shipEditor` needs a DOM. Loads a
+     wounded hull into the real bench and asserts it comes back at 43 hp with `maxHp` 50, and
+     that a second round trip is a fixed point.
+
+   Unchanged: engine-test, determinism (identical across 3 runs), missions 12/12 winnable and
+   0/12 no-input, encounter-check, duel-check, preflight 0 NEW, qa-campaign 11/12 with
+   FollowBoss still the only failure.
+
+   **Known hole, recorded not fixed.** The hold is `{type: count}`, so removing a damaged part
+   in the bench and putting it back repairs it for free. Closing it means the hold tracking
+   damaged instances, which reaches `partsOf`, `refitCheck` and the chips. Under Tom's proposed
+   energy-per-placement the laundering would at least cost energy, but that is unbuilt.
 2. **Fix the boss arithmetic.** Until a run is winnable, no other change can be evaluated.
 3. **Make the sink real** — the shop, or better the factory component, which does the same job
    from inside the hull.
