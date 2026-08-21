@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics=""><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#05060a;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace}
+a{color:#4fd8e8}a:hover{color:#9af0fa}
+.dv-turn{padding:44px 48px 36px;border-bottom:1px solid rgba(255,255,255,.07);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+.dv-tid{font:700 10px 'JetBrains Mono',monospace;padding:3px 7px;background:#e8ecf5;color:#05060a;border-radius:4px;text-decoration:none}
+.dv-tname{font:500 13px/1.2 'JetBrains Mono',monospace;color:#e8ecf5}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:700 10.5px 'JetBrains Mono',monospace;padding:3px 7px;background:rgba(255,255,255,.1);color:#e8ecf5;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)}
+.dv-card{max-width:100%;background:#07080d;border:1px solid rgba(255,255,255,.09);border-radius:10px;overflow:hidden;position:relative}
+.dv-opt:target .dv-oid{background:#4fd8e8;color:#05060a}
+.dv-next{margin:24px 0 0;font:11.5px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.42)}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(.94)}50%{opacity:1;transform:scale(1.04)}}
+@keyframes flow{to{stroke-dashoffset:-40}}
+@keyframes flick{0%,100%{opacity:.85}40%{opacity:.35}70%{opacity:1}}
+@keyframes sweep{0%{transform:rotate(-52deg)}100%{transform:rotate(52deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes marchbox{to{stroke-dashoffset:-16}}
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.7}}
+@keyframes haze{0%,100%{opacity:.45}50%{opacity:.8}}
+@keyframes halo{0%{opacity:.55;transform:scale(.9)}100%{opacity:0;transform:scale(1.5)}}
+@keyframes creep{to{stroke-dashoffset:-24}}
+@keyframes breathe{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes crawl16{from{stroke-dashoffset:0}to{stroke-dashoffset:-16}}
+</style></helmet>
+
+<svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true"><defs>
+<symbol id="m-hull" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M20 7H80L93 20V80L80 93H20L7 80V20Z"></path><path d="M25 25H75V75H25Z" opacity=".28" stroke-width="2"></path><path d="M25 38H75M25 62H75" opacity=".18" stroke-width="1.5"></path></g><g fill="currentColor" opacity=".55"><rect x="44" y="2" width="12" height="5" rx="1"></rect><rect x="44" y="93" width="12" height="5" rx="1"></rect><rect x="2" y="44" width="5" height="12" rx="1"></rect><rect x="93" y="44" width="5" height="12" rx="1"></rect></g><g fill="currentColor" opacity=".3"><circle cx="33" cy="33" r="2.4"></circle><circle cx="67" cy="33" r="2.4"></circle><circle cx="33" cy="67" r="2.4"></circle><circle cx="67" cy="67" r="2.4"></circle></g></symbol>
+<symbol id="m-core" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M35 6H65L94 35V65L65 94H35L6 65V35Z" stroke-width="3"></path><circle cx="50" cy="50" r="27" stroke-width="1.6" opacity=".45" stroke-dasharray="3 6" style="animation:spin 14s linear infinite;transform-origin:50px 50px"></circle><circle cx="50" cy="50" r="18" stroke-width="2" opacity=".8" style="animation:pulse 2.6s ease-in-out infinite;transform-origin:50px 50px"></circle></g><circle cx="50" cy="50" r="7.5" fill="currentColor" style="animation:pulse 2.6s ease-in-out infinite;transform-origin:50px 50px"></circle><g stroke="currentColor" stroke-width="2.5" opacity=".5"><path d="M50 6V20M50 80V94M6 50H20M80 50H94"></path></g></symbol>
+<symbol id="m-thruster" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M30 5H70L80 55H20Z"></path><path d="M20 55H80L72 74H28Z"></path></g><g fill="none" stroke="currentColor" stroke-width="1.6" opacity=".3"><path d="M36 14H64M33 28H67M30 42H70"></path></g><g fill="none" stroke="currentColor" stroke-width="3" style="animation:flick .55s steps(2,end) infinite"><path d="M34 76 50 98 66 76"></path><path d="M43 76 50 88 57 76" opacity=".7"></path></g></symbol>
+<symbol id="m-laser" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M42 22a8 8 0 0 1 16 0V56H42Z"></path><path d="M24 56H76L86 94H14Z"></path></g><path d="M50 52V16" stroke="currentColor" stroke-width="5" stroke-dasharray="5 6" opacity=".9" style="animation:flow .8s linear infinite"></path><g fill="none" stroke="currentColor" stroke-width="1.6" opacity=".35"><path d="M30 70H70M27 82H73"></path></g><g fill="currentColor" opacity=".6"><rect x="36" y="60" width="6" height="6"></rect><rect x="58" y="60" width="6" height="6"></rect></g></symbol>
+<symbol id="m-shield" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M50 6 88 27V63L50 94 12 63V27Z" stroke-width="3"></path><path d="M50 20 74 33v27L50 80 26 60V33Z" stroke-width="1.6" opacity=".35"></path><path d="M22 40a34 34 0 0 1 56 0" stroke-width="2.4" opacity=".85" style="animation:pulse 3s ease-in-out infinite;transform-origin:50px 50px"></path><path d="M28 54a26 26 0 0 0 44 0" stroke-width="2" opacity=".5"></path></g><circle cx="50" cy="47" r="5" fill="currentColor" opacity=".8"></circle></symbol>
+<symbol id="m-sensor" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M12 62a38 26 0 0 1 76 0Z"></path><path d="M50 62V88M34 92H66"></path></g><g fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><path d="M26 62a24 16 0 0 1 48 0M38 62a12 8 0 0 1 24 0"></path></g><path d="M50 58 50 8" stroke="currentColor" stroke-width="2" opacity=".75" style="animation:sweep 2.4s ease-in-out infinite alternate;transform-origin:50px 58px"></path><circle cx="50" cy="58" r="4" fill="currentColor"></circle></symbol>
+<symbol id="m-battery" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M18 18H82V82H18Z"></path><path d="M38 8H62V18H38Z"></path></g><g fill="currentColor"><rect x="28" y="58" width="44" height="12" rx="2" opacity=".9"></rect><rect x="28" y="42" width="44" height="12" rx="2" opacity=".55"></rect><rect x="28" y="26" width="44" height="12" rx="2" opacity=".2" style="animation:pulse 2s ease-in-out infinite"></rect></g></symbol>
+<symbol id="m-armour" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3.5"><path d="M8 24 34 8H66L92 24V76L66 92H34L8 76Z"></path></g><g fill="none" stroke="currentColor" stroke-width="1.6" opacity=".28"><path d="M22 74 74 22M34 82 82 34M14 62 62 14"></path></g><g fill="currentColor" opacity=".45"><circle cx="22" cy="30" r="3"></circle><circle cx="78" cy="30" r="3"></circle><circle cx="22" cy="70" r="3"></circle><circle cx="78" cy="70" r="3"></circle></g></symbol>
+<symbol id="m-drill" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M26 54H74L82 92H18Z"></path><path d="M50 4 66 54H34Z"></path></g><path d="M40 44H60M37 34H63M44 24H56" stroke="currentColor" stroke-width="3" opacity=".85" style="animation:flow 1s linear infinite" stroke-dasharray="4 5"></path><g fill="currentColor" opacity=".5"><rect x="30" y="66" width="40" height="5" rx="2"></rect><rect x="34" y="78" width="32" height="5" rx="2"></rect></g></symbol>
+<symbol id="n-duel" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4"><path d="M24 3 45 24 24 45 3 24Z"></path><path d="M14 14 34 34M34 14 14 34" opacity=".85"></path></g></symbol>
+<symbol id="n-escort" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 20h18v14H4Z"></path><path d="M28 20 40 27 28 34"></path><path d="M2 13a24 12 0 0 1 44 0" stroke-dasharray="6 5" opacity=".75"></path></g></symbol>
+<symbol id="n-mining" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4"><path d="M11 17 21 5 37 8 45 22 38 39 17 43 5 31Z"></path><path d="M21 5 24 21 45 22M24 21 17 43" stroke-width="1.4" opacity=".45"></path></g><g fill="currentColor" opacity=".8"><circle cx="14" cy="26" r="2.6"></circle><circle cx="31" cy="30" r="2.2"></circle></g></symbol>
+<symbol id="n-debris" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 11 16 5 21 16 10 21Z"></path><path d="M27 13 40 8 45 21 32 27Z"></path><path d="M13 31 27 28 31 41 17 44Z"></path></g></symbol>
+<symbol id="n-race" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 11 17 24 6 37" opacity=".4"></path><path d="M20 11 31 24 20 37" opacity=".7"></path><path d="M34 11 45 24 34 37"></path></g></symbol>
+<symbol id="n-rescue" viewBox="0 0 48 48"><circle cx="24" cy="24" r="5" fill="currentColor"></circle><g fill="none" stroke="currentColor" stroke-width="2.2"><path d="M24 12a12 12 0 0 1 0 24" opacity=".85"></path><path d="M24 5a19 19 0 0 1 0 38" opacity=".5" stroke-dasharray="8 6"></path><path d="M24 12a12 12 0 0 0 0 24" opacity=".4"></path></g></symbol>
+<symbol id="n-infiltrate" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4"><path d="M22 6H6v36h16" stroke-dasharray="6 5" opacity=".7"></path><path d="M22 6h8v36h-8"></path><path d="M20 24h24M37 17l7 7-7 7"></path></g></symbol>
+<symbol id="n-shop" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4"><path d="M24 4 44 24 24 44 4 24Z"></path><path d="M24 16 32 24 24 32 16 24Z" opacity=".8"></path></g></symbol>
+<symbol id="n-repair" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 5h18l9 19-9 19H15L6 24Z"></path><path d="M24 15v18M15 24h18" opacity=".85"></path></g></symbol>
+<symbol id="n-boss" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.6"><path d="M24 1l5 8 9-4-1 10 10 4-7 7 7 7-10 4 1 10-9-4-5 8-5-8-9 4 1-10-10-4 7-7-7-7 10-4-1-10 9 4Z"></path><circle cx="24" cy="24" r="9" stroke-width="2"></circle></g><circle cx="24" cy="24" r="4" fill="currentColor"></circle></symbol>
+<symbol id="n-unknown" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-dasharray="7 6"></circle><text x="24" y="32" fill="currentColor" font-family="'JetBrains Mono',monospace" font-size="24" font-weight="700" text-anchor="middle">?</text></symbol>
+<filter id="neb" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="4" seed="7"></feTurbulence><feDisplacementMap in="SourceGraphic" scale="60"></feDisplacementMap><feGaussianBlur stdDeviation="18"></feGaussianBlur></filter>
+<pattern id="starfield" width="140" height="120" patternUnits="userSpaceOnUse"><circle cx="18" cy="26" r="1" fill="#fff" opacity=".55"></circle><circle cx="96" cy="12" r="1.4" fill="#dfe7ff" opacity=".4"></circle><circle cx="63" cy="74" r="0.8" fill="#fff" opacity=".35"></circle><circle cx="124" cy="96" r="1.1" fill="#cfe3ff" opacity=".5"></circle><circle cx="34" cy="104" r="0.7" fill="#fff" opacity=".3"></circle></pattern>
+<filter id="bloomA" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4"></feGaussianBlur></filter>
+<pattern id="rayhatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(58)"><path d="M0 0v12" stroke="#b3b0ff" stroke-width="1.6" opacity=".7"></path></pattern>
+</defs></svg>
+
+<section class="dv-turn" id="t5">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">Components on the real lattice — joints at the thirds, shared between parts</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="5a"><div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Leads land on the joints, so the art explains the wiring</div>
+<div class="dv-card" style="width:960px;padding:26px;background:#06080d">
+<div style="display:flex;gap:28px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="260" height="260" viewBox="0 0 120 120">
+<rect x="4" y="4" width="112" height="112" fill="none" stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"></rect>
+<g fill="none" stroke="#1b222b" stroke-width="1"><path d="M41 4v112M79 4v112M4 41h112M4 79h112"></path></g>
+<g fill="#56e39f" opacity="{{ jointOp }}"><circle cx="41" cy="4" r="4"></circle><circle cx="79" cy="4" r="4"></circle><circle cx="116" cy="41" r="4"></circle><circle cx="116" cy="79" r="4"></circle><circle cx="79" cy="116" r="4"></circle><circle cx="41" cy="116" r="4"></circle><circle cx="4" cy="79" r="4"></circle><circle cx="4" cy="41" r="4"></circle></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">1 cell · 8 joints at ⅓ and ⅔</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="260" height="260" viewBox="0 0 120 120" style="filter:drop-shadow(0 0 8px rgba(255,154,60,.35))">
+<g fill="#ffc42e" opacity=".6"><rect x="20" y="8" width="5" height="7"></rect><rect x="28" y="8" width="5" height="7"></rect><rect x="54" y="8" width="5" height="7"></rect><rect x="62" y="8" width="5" height="7"></rect><rect x="90" y="8" width="5" height="7"></rect><rect x="98" y="8" width="5" height="7"></rect><rect x="20" y="105" width="5" height="7"></rect><rect x="28" y="105" width="5" height="7"></rect><rect x="54" y="105" width="5" height="7"></rect><rect x="62" y="105" width="5" height="7"></rect><rect x="90" y="105" width="5" height="7"></rect><rect x="98" y="105" width="5" height="7"></rect><rect x="8" y="20" width="7" height="5"></rect><rect x="8" y="28" width="7" height="5"></rect><rect x="8" y="54" width="7" height="5"></rect><rect x="8" y="62" width="7" height="5"></rect><rect x="8" y="90" width="7" height="5"></rect><rect x="8" y="98" width="7" height="5"></rect><rect x="105" y="20" width="7" height="5"></rect><rect x="105" y="28" width="7" height="5"></rect><rect x="105" y="54" width="7" height="5"></rect><rect x="105" y="62" width="7" height="5"></rect><rect x="105" y="90" width="7" height="5"></rect><rect x="105" y="98" width="7" height="5"></rect></g>
+<rect x="14" y="14" width="92" height="92" rx="14" fill="#241706" stroke="#ffb066" stroke-width="2.6"></rect>
+<rect x="19" y="19" width="82" height="82" rx="10" fill="none" stroke="#ffc42e" stroke-width="1" opacity=".3"></rect>
+<g fill="none" stroke="#ffc42e" stroke-width="1.4" opacity=".7"><path d="M41 20v16M79 20v16M100 41H84M100 79H84M41 100V84M79 100V84M20 41h16M20 79h16"></path></g>
+<g filter="url(#bloomA)" style="animation:breathe 3.2s ease-in-out infinite"><rect x="40" y="40" width="40" height="40" fill="#ffc42e"></rect></g>
+<rect x="36" y="36" width="48" height="48" fill="none" stroke="#ffc42e" stroke-width="1.2" opacity=".3"></rect>
+<rect x="36" y="36" width="48" height="48" fill="none" stroke="#ffe08a" stroke-width="1.4" stroke-dasharray="6 10" opacity=".85" style="animation:crawl16 1.6s linear infinite"></rect>
+<g fill="#ffc42e" opacity=".8"><rect x="39" y="34" width="4" height="4"></rect><rect x="77" y="34" width="4" height="4"></rect><rect x="82" y="39" width="4" height="4"></rect><rect x="82" y="77" width="4" height="4"></rect><rect x="77" y="82" width="4" height="4"></rect><rect x="39" y="82" width="4" height="4"></rect><rect x="34" y="77" width="4" height="4"></rect><rect x="34" y="39" width="4" height="4"></rect></g>
+<rect x="44" y="44" width="32" height="32" fill="#0d0803" stroke="#ffe08a" stroke-width="2"></rect>
+<g fill="none" stroke="#ffc42e" stroke-width="1" opacity=".22"><path d="M44 54h32M44 66h32M56 44v32M68 44v32"></path></g>
+<path d="M44 50V44h6" fill="none" stroke="#ff9a3c" stroke-width="2"></path>
+<g fill="none" stroke="#ffc42e" stroke-width="1" opacity=".18"><path d="M22 26h20M98 26H78M22 94h20M98 94H78"></path></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">art · traces, vias, die — no joints</div></div>
+
+<div style="flex:0 0 300px;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#ff9a3c">Brain</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">1 cell · hp 20 · art brain</div></div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">The part draws no joint hardware — that is the shipyard's job, and appears only when a neighbour agrees. What the Brain does draw is one orthogonal trace per joint position, running from the body edge to a square via ring around the die: right angles only, no curves, no glow. The centre is deliberately empty: a mark there would read as an input socket, and the Brain has none. Two pin densities carry the chip read — six short dim pins per edge are decorative package pins, while the two full-length bright pads are the actual joints. Because it is the module the whole ship depends on, the die carries a soft bloom that breathes and the via ring crawls slowly, so the eye finds it first on a crowded hull.</div>
+<div style="display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02);font:400 10px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">
+<div>joints/edge <span style="color:#e8ecf5">2</span> · at ⅓ and ⅔ of the edge</div>
+<div>corners <span style="color:#e8ecf5">never</span> carry a joint</div>
+<div>lead pitch follows the joints, not the art</div>
+</div>
+</div>
+
+</div>
+</div></div>
+
+</div>
+<div class="dv-opt" id="5b"><div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>Engine — 4 joints, all on the mounting cell; the bell edge takes none</div>
+<div class="dv-card" style="width:960px;padding:26px;background:#06080d">
+<div style="display:flex;gap:28px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="135" height="261" viewBox="0 0 120 232">
+<rect x="4" y="4" width="112" height="224" fill="none" stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"></rect>
+<path d="M4 116h112" stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"></path>
+<g fill="none" stroke="#1b222b" stroke-width="1"><path d="M41 4v112M79 4v112M4 41h112M4 79h112"></path></g>
+<g fill="#56e39f" opacity="{{ jointOp }}"><circle cx="41" cy="4" r="4"></circle><circle cx="79" cy="4" r="4"></circle><circle cx="4" cy="41" r="4"></circle><circle cx="116" cy="41" r="4"></circle></g>
+<g fill="#3a4450"><circle cx="4" cy="79" r="3"></circle><circle cx="116" cy="79" r="3"></circle><circle cx="4" cy="154" r="3"></circle><circle cx="116" cy="154" r="3"></circle><circle cx="4" cy="192" r="3"></circle><circle cx="116" cy="192" r="3"></circle><circle cx="41" cy="228" r="3"></circle><circle cx="79" cy="228" r="3"></circle></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">2 cells · 4 live, 8 blanked</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="135" height="261" viewBox="0 0 120 232" style="filter:drop-shadow(0 0 8px rgba(79,216,232,.3))">
+<path d="M42 116Q42 140 31 154Q23.5 164 23.5 180H96.5Q96.5 164 89 154Q78 140 78 116Z" fill="#0a0a1c" stroke="#8f8cff" stroke-width="3"></path>
+<path d="M52 118Q52 142 42 156Q36 166 36 180M68 118Q68 142 78 156Q84 166 84 180" fill="none" stroke="#8f8cff" stroke-width="1.2" opacity=".3"></path>
+<path d="M24 176H96V212Q96 220 88 220H32Q24 220 24 212Z" fill="#3d0f14" stroke="#ff5c72" stroke-width="4"></path>
+<path d="M14 34Q14 14 40 14L80 14Q106 14 106 34L106 70Q106 98 86 108Q78 112 78 116L42 116Q42 112 34 108Q14 98 14 70Z" fill="#08161b" stroke="#4fd8e8" stroke-width="2"></path>
+<g fill="none" stroke="#4fd8e8" stroke-width="1.2" opacity=".28"><path d="M20 86h80M26 98h68"></path></g>
+<circle cx="60" cy="60" r="17" fill="#04070a" stroke="#ff9a3c" stroke-width="2"></circle>
+<circle cx="60" cy="60" r="11" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle>
+<text x="60" y="65" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">0.0</text>
+<g fill="none" stroke="#ff9a3c" stroke-width="1.3" opacity=".5"><path d="M41 16v10h19M79 16v10H60M16 41h12v11M104 41H92v11M60 26v18"></path></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">art · flat where it mounts, round where it can't</div></div>
+
+<div style="flex:0 0 300px;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#4fd8e8">Engine</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">2 cells · hp 50 · art engine-3</div></div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">Only the top cell mounts. Its two top-edge and two upper-side joints are live; the two lower joints on that same cell and the six around the bell are blanked, because anything bolted there would sit in the exhaust. The blanked positions still exist on the lattice — they read as dim grey so the player can see the part is deliberately one-sided rather than mis-drawn.</div>
+<div style="display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02);font:400 10px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">
+<div><span style="color:#56e39f">●</span> live joint — always this green</div>
+<div><span style="color:#3a4450">●</span> blanked — no attachment here</div>
+<div>a joint bridges two parts, so it never takes either one's hue</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:9px;padding:12px;border:1px solid rgba(255,154,60,.28);border-radius:8px;background:rgba(255,154,60,.05)">
+<div style="font:400 9.5px 'JetBrains Mono',monospace;letter-spacing:.14em;color:rgba(255,154,60,.8)">INPUT SOCKET — SHARED</div>
+<div style="display:flex;gap:14px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;align-items:center;gap:5px"><svg width="34" height="34" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#04070a" stroke="#ff9a3c" stroke-width="2"></circle><circle cx="16" cy="16" r="10" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle><text x="16" y="21" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="10" font-weight="700" text-anchor="middle">0.0</text></svg><span style="font:400 9px 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)">float</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:5px"><svg width="34" height="34" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#04070a" stroke="#ff9a3c" stroke-width="2"></circle><circle cx="16" cy="16" r="10" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle><text x="16" y="21" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">01</text></svg><span style="font:400 9px 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)">bool</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:5px"><svg width="34" height="34" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#04070a" stroke="#ff9a3c" stroke-width="2"></circle><circle cx="16" cy="16" r="10" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle><path d="M9 20 16 11l7 9" fill="none" stroke="#ff9a3c" stroke-width="1.8"></path></svg><span style="font:400 9px 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)">vector</span></div>
+<div style="flex:1;font:400 9.5px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5);padding-top:2px">One orange circle, always centred on its cell, always the same size. A circle takes a wire from any bearing, which a square cannot — wiring is omnidirectional. Only the inner glyph changes with type, and short traces run from it toward the live joints so the eye follows signal to metal.</div>
+</div>
+</div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)">The bell mouth is the only red on the part: a hot inner throat, a red rim on the lower lip, and three short danger ticks past the edge. It marks the emission face as hazardous without filling the cavity, so emitted particles stay the only motion down there.</div>
+</div>
+
+</div>
+</div></div>
+
+
+<div class="dv-opt" id="5c"><div class="dv-olabel"><a class="dv-oid" href="#5c">5c</a>Abutting — only the joint both parts share is drawn</div>
+<div class="dv-card" style="width:960px;padding:26px;background:#06080d">
+<div style="display:flex;gap:28px;align-items:flex-start">
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="410" height="410" viewBox="0 0 236 236">
+<g fill="none" stroke="#151b22" stroke-width="1"><rect x="4" y="4" width="112" height="112"></rect><rect x="116" y="4" width="112" height="112"></rect><rect x="116" y="116" width="112" height="112"></rect><rect x="4" y="116" width="112" height="112" stroke="#0e1319"></rect></g>
+<g style="filter:drop-shadow(0 0 14px rgba(255,154,60,.55))"><g fill="#ffc42e" opacity=".6"><rect x="20" y="8" width="5" height="7"></rect><rect x="28" y="8" width="5" height="7"></rect><rect x="54" y="8" width="5" height="7"></rect><rect x="62" y="8" width="5" height="7"></rect><rect x="90" y="8" width="5" height="7"></rect><rect x="98" y="8" width="5" height="7"></rect><rect x="20" y="105" width="5" height="7"></rect><rect x="28" y="105" width="5" height="7"></rect><rect x="54" y="105" width="5" height="7"></rect><rect x="62" y="105" width="5" height="7"></rect><rect x="90" y="105" width="5" height="7"></rect><rect x="98" y="105" width="5" height="7"></rect><rect x="8" y="20" width="7" height="5"></rect><rect x="8" y="28" width="7" height="5"></rect><rect x="8" y="54" width="7" height="5"></rect><rect x="8" y="62" width="7" height="5"></rect><rect x="8" y="90" width="7" height="5"></rect><rect x="8" y="98" width="7" height="5"></rect><rect x="105" y="20" width="7" height="5"></rect><rect x="105" y="28" width="7" height="5"></rect><rect x="105" y="54" width="7" height="5"></rect><rect x="105" y="62" width="7" height="5"></rect><rect x="105" y="90" width="7" height="5"></rect><rect x="105" y="98" width="7" height="5"></rect></g>
+<rect x="14" y="14" width="92" height="92" rx="14" fill="#241706" stroke="#ffb066" stroke-width="2.6"></rect>
+<rect x="19" y="19" width="82" height="82" rx="10" fill="none" stroke="#ffc42e" stroke-width="1" opacity=".3"></rect>
+<g fill="none" stroke="#ffc42e" stroke-width="1.4" opacity=".7"><path d="M41 20v16M79 20v16M100 41H84M100 79H84M41 100V84M79 100V84M20 41h16M20 79h16"></path></g>
+<g filter="url(#bloomA)" style="animation:breathe 3.2s ease-in-out infinite"><rect x="40" y="40" width="40" height="40" fill="#ffc42e"></rect></g>
+<rect x="36" y="36" width="48" height="48" fill="none" stroke="#ffc42e" stroke-width="1.2" opacity=".3"></rect>
+<rect x="36" y="36" width="48" height="48" fill="none" stroke="#ffe08a" stroke-width="1.4" stroke-dasharray="6 10" opacity=".85" style="animation:crawl16 1.6s linear infinite"></rect>
+<g fill="#ffc42e" opacity=".8"><rect x="39" y="34" width="4" height="4"></rect><rect x="77" y="34" width="4" height="4"></rect><rect x="82" y="39" width="4" height="4"></rect><rect x="82" y="77" width="4" height="4"></rect><rect x="77" y="82" width="4" height="4"></rect><rect x="39" y="82" width="4" height="4"></rect><rect x="34" y="77" width="4" height="4"></rect><rect x="34" y="39" width="4" height="4"></rect></g>
+<rect x="44" y="44" width="32" height="32" fill="#0d0803" stroke="#ffe08a" stroke-width="2"></rect>
+<g fill="none" stroke="#ffc42e" stroke-width="1" opacity=".22"><path d="M44 54h32M44 66h32M56 44v32M68 44v32"></path></g>
+<path d="M44 50V44h6" fill="none" stroke="#ff9a3c" stroke-width="2"></path>
+<g fill="none" stroke="#ffc42e" stroke-width="1" opacity=".18"><path d="M22 26h20M98 26H78M22 94h20M98 94H78"></path></g></g>
+<g transform="translate(112,0)" style="filter:drop-shadow(0 0 8px rgba(79,216,232,.28))"><path d="M42 116Q42 140 31 154Q23.5 164 23.5 180H96.5Q96.5 164 89 154Q78 140 78 116Z" fill="#0a0a1c" stroke="#8f8cff" stroke-width="3"></path>
+<path d="M52 118Q52 142 42 156Q36 166 36 180M68 118Q68 142 78 156Q84 166 84 180" fill="none" stroke="#8f8cff" stroke-width="1.2" opacity=".3"></path>
+<path d="M24 176H96V212Q96 220 88 220H32Q24 220 24 212Z" fill="#3d0f14" stroke="#ff5c72" stroke-width="4"></path>
+<path d="M14 34Q14 14 40 14L80 14Q106 14 106 34L106 70Q106 98 86 108Q78 112 78 116L42 116Q42 112 34 108Q14 98 14 70Z" fill="#08161b" stroke="#4fd8e8" stroke-width="2"></path>
+<g fill="none" stroke="#4fd8e8" stroke-width="1.2" opacity=".28"><path d="M20 86h80M26 98h68"></path></g>
+<circle cx="60" cy="60" r="17" fill="#04070a" stroke="#ff9a3c" stroke-width="2"></circle>
+<circle cx="60" cy="60" r="11" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle>
+<text x="60" y="65" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">0.0</text>
+<g fill="none" stroke="#ff9a3c" stroke-width="1.3" opacity=".5"><path d="M41 16v10h19M79 16v10H60M16 41h12v11M104 41H92v11M60 26v18"></path></g></g>
+<g opacity="{{ jointOp }}"><rect x="107" y="33" width="18" height="16" rx="5" fill="#06120d" stroke="#56e39f" stroke-width="2"></rect><path d="M116 33v16" stroke="#56e39f" stroke-width="1" opacity=".45"></path><circle cx="116" cy="41" r="3" fill="#56e39f"></circle></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">Brain + Engine · 1 shared joint of 12</div></div>
+<div style="flex:0 0 300px;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#e8ecf5">The seam</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">2 parts · 3 cells</div></div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">The Brain's right edge offers joints at both thirds, but the Engine only mounts on its upper one, so a single green dot appears where they agree. Every other lattice position stays unmarked — no ghost dots, no half-lit sockets.</div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">Neither part draws any joint hardware of its own. The joint is one symmetric capsule straddling the grid edge, half in each cell, so it belongs to the pair rather than to either component — and a part in isolation shows none at all.</div>
+<div style="display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02);font:400 10px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">
+<div>all art sits <span style="color:#e8ecf5">inside</span> the footprint — package pins stop 4px short of the boundary</div>
+<div>nothing a part draws ever crosses into a neighbour's cell</div>
+<div>the joint capsule is the only thing that straddles</div>
+</div>
+</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="5d"><div class="dv-olabel"><a class="dv-oid" href="#5d">5d</a>Lazer — 1×3, mounts only on its base, deliberately plain</div>
+<div class="dv-card" style="width:960px;padding:26px;background:#06080d">
+<div style="display:flex;gap:28px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="110" height="319" viewBox="0 0 120 348">
+<rect x="4" y="4" width="112" height="336" fill="none" stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"></rect>
+<g stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"><path d="M4 116h112M4 228h112"></path></g>
+<g fill="#56e39f" opacity="{{ jointOp }}"><circle cx="4" cy="302" r="4"></circle><circle cx="116" cy="302" r="4"></circle><circle cx="41" cy="340" r="4"></circle><circle cx="79" cy="340" r="4"></circle></g>
+<g fill="#3a4450"><circle cx="41" cy="4" r="3"></circle><circle cx="79" cy="4" r="3"></circle><circle cx="4" cy="41" r="3"></circle><circle cx="116" cy="41" r="3"></circle><circle cx="4" cy="79" r="3"></circle><circle cx="116" cy="79" r="3"></circle><circle cx="4" cy="153" r="3"></circle><circle cx="116" cy="153" r="3"></circle><circle cx="4" cy="190" r="3"></circle><circle cx="116" cy="190" r="3"></circle><circle cx="4" cy="265" r="3"></circle><circle cx="116" cy="265" r="3"></circle></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">3 cells · 4 live, 12 blanked</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="110" height="319" viewBox="0 0 120 348" style="filter:drop-shadow(0 0 5px rgba(255,92,114,.25))">
+<path d="M48 124V10H72V124Z" fill="#0d0509" stroke="#ff5c72" stroke-width="2.2"></path>
+
+<g fill="none" stroke="#ff5c72" stroke-width="1" opacity=".3"><path d="M52 44h16M52 62h16"></path></g>
+<path d="M38 230V128Q38 118 48 118H72Q82 118 82 128V230Z" fill="#0d0509" stroke="#ff5c72" stroke-width="2.2"></path>
+<path d="M14 334V286Q14 252 30 246L38 242V230H82V242L90 246Q106 252 106 286V334Q106 340 100 340H20Q14 340 14 334Z" fill="#0d0509" stroke="#ff5c72" stroke-width="2.2"></path>
+<g fill="#ff5cf0" opacity=".8"><rect x="48" y="140" width="24" height="6" rx="1"></rect><rect x="48" y="154" width="24" height="6" rx="1"></rect><rect x="48" y="168" width="24" height="6" rx="1"></rect><rect x="48" y="182" width="24" height="6" rx="1"></rect><rect x="48" y="196" width="24" height="6" rx="1"></rect><rect x="48" y="210" width="24" height="6" rx="1"></rect></g>
+<g fill="none" stroke="#ff5c72" stroke-width="1" opacity=".28"><path d="M44 132h32M44 224h32"></path></g>
+<g fill="none" stroke="#ff5c72" stroke-width="1" opacity=".3"><path d="M56 60h8M56 88h8M22 320h76"></path></g>
+<circle cx="60" cy="284" r="17" fill="#04070a" stroke="#ff9a3c" stroke-width="2"></circle>
+<circle cx="60" cy="284" r="11" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle>
+<text x="60" y="289" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">01</text>
+<g fill="none" stroke="#ff9a3c" stroke-width="1.2" opacity=".45"><path d="M60 300v22M44 284H26v14M76 284h18v14"></path></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">art · base, shaft, muzzle</div></div>
+
+<div style="flex:0 0 300px;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#ff5c72">Lazer</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">3 cells · art lazer-2 · bool in</div></div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">Only the base cell mounts: two joints on the bottom edge and one low on each side. Everything above is barrel, so the silhouette narrows in two steps and stays narrow — a part that can only be bolted down by its foot, read at a glance.</div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">Held back on purpose. Thin 2.2px strokes, no bloom, no animation, and the only accent is a short ladder of six magenta capacitor plates on the shaft. Next to the Brain it should look like the cheap option it is.</div>
+<div style="display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02);font:400 10px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">
+<div>socket <span style="color:#ff9a3c">01</span> — bool fire trigger, centred on the base cell</div>
+<div>three flats total, all on the base; everything else curves or angles away</div>
+</div>
+</div>
+
+</div>
+</div></div>
+
+<div class="dv-opt" id="5e"><div class="dv-olabel"><a class="dv-oid" href="#5e">5e</a>LaserTurret2 — 12-cell sweep, 2×1 base, angle + fire</div>
+<div class="dv-card" style="width:960px;padding:26px;background:#06080d">
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="236" height="236" viewBox="0 0 456 456">
+<g fill="none" stroke="#141a21" stroke-width="1"><path d="M4 4h448v448H4z"></path><path d="M116 4v448M228 4v448M340 4v448M4 116h448M4 228h448M4 340h448"></path></g>
+<g fill="rgba(255,154,60,.07)" stroke="#ff9a3c" stroke-width="1.6" stroke-dasharray="6 5" opacity=".55">
+<rect x="122" y="10" width="100" height="100" rx="8"></rect><rect x="234" y="10" width="100" height="100" rx="8"></rect>
+<rect x="10" y="122" width="100" height="100" rx="8"></rect><rect x="122" y="122" width="100" height="100" rx="8"></rect><rect x="234" y="122" width="100" height="100" rx="8"></rect><rect x="346" y="122" width="100" height="100" rx="8"></rect>
+<rect x="10" y="234" width="100" height="100" rx="8"></rect><rect x="122" y="234" width="100" height="100" rx="8"></rect><rect x="234" y="234" width="100" height="100" rx="8"></rect><rect x="346" y="234" width="100" height="100" rx="8"></rect>
+</g>
+<g fill="rgba(205,217,79,.1)" stroke="#cdd94f" stroke-width="2.2"><rect x="122" y="346" width="100" height="100" rx="8"></rect><rect x="234" y="346" width="100" height="100" rx="8"></rect></g>
+<g fill="#56e39f" opacity="{{ jointOp }}"><circle cx="153" cy="452" r="6"></circle><circle cx="191" cy="452" r="6"></circle><circle cx="265" cy="452" r="6"></circle><circle cx="303" cy="452" r="6"></circle><circle cx="116" cy="377" r="6"></circle><circle cx="116" cy="415" r="6"></circle><circle cx="340" cy="377" r="6"></circle><circle cx="340" cy="415" r="6"></circle></g>
+<g fill="#3a4450"><circle cx="153" cy="340" r="4"></circle><circle cx="191" cy="340" r="4"></circle><circle cx="265" cy="340" r="4"></circle><circle cx="303" cy="340" r="4"></circle></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">12 cells occupied · 2 mount · 8 joints</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="236" height="236" viewBox="0 0 456 456" style="filter:drop-shadow(0 0 7px rgba(255,92,114,.25))">
+<path d="M228 350 L88 214" fill="none" stroke="#cdd94f" stroke-width="1" opacity=".18" stroke-dasharray="5 6"></path>
+<path d="M228 350 L424 236" fill="none" stroke="#cdd94f" stroke-width="1" opacity=".18" stroke-dasharray="5 6"></path>
+<path d="M88 214A198 198 0 0 1 424 236" fill="none" stroke="#cdd94f" stroke-width="1" opacity=".16" stroke-dasharray="5 6"></path>
+<path d="M122 354V446Q122 452 130 452H326Q334 452 334 446V354Q334 346 326 346H130Q122 346 122 354Z" fill="#0f1006" stroke="#cdd94f" stroke-width="2.4"></path>
+<circle cx="228" cy="352" r="40" fill="#131505" stroke="#cdd94f" stroke-width="3"></circle>
+<circle cx="228" cy="352" r="32" fill="none" stroke="#cdd94f" stroke-width="1.2" opacity=".45"></circle>
+<g fill="#cdd94f" opacity=".7"><circle cx="228" cy="320" r="3"></circle><circle cx="251" cy="329" r="3"></circle><circle cx="260" cy="352" r="3"></circle><circle cx="251" cy="375" r="3"></circle><circle cx="228" cy="384" r="3"></circle><circle cx="205" cy="375" r="3"></circle><circle cx="196" cy="352" r="3"></circle><circle cx="205" cy="329" r="3"></circle></g>
+<g transform="rotate(-34 228 352)">
+<circle cx="228" cy="352" r="20" fill="#0d0509" stroke="#ff5c72" stroke-width="2.4"></circle>
+<path d="M228 332 L266 324 L266 380 L228 372Z" fill="#0d0509" stroke="#ff5c72" stroke-width="2.2"></path>
+<path d="M266 330H330Q338 330 338 338V366Q338 374 330 374H266Z" fill="#0d0509" stroke="#ff5c72" stroke-width="2.2"></path>
+<g fill="#ff5cf0" opacity=".8"><rect x="276" y="341" width="6" height="22" rx="1"></rect><rect x="288" y="341" width="6" height="22" rx="1"></rect><rect x="300" y="341" width="6" height="22" rx="1"></rect><rect x="312" y="341" width="6" height="22" rx="1"></rect><rect x="324" y="341" width="6" height="22" rx="1"></rect></g>
+<path d="M338 340H422V364H338Z" fill="#0d0509" stroke="#ff5c72" stroke-width="2.2"></path>
+<path d="M414 344v16" stroke="#ff5cf0" stroke-width="2.5" opacity=".75"></path>
+</g>
+<circle cx="228" cy="352" r="8" fill="#0d0509" stroke="#cdd94f" stroke-width="2.4"></circle>
+<circle cx="228" cy="352" r="3" fill="#cdd94f"></circle>
+<circle cx="179" cy="399" r="18" fill="#04070a" stroke="#ff9a3c" stroke-width="2.2"></circle>
+<circle cx="179" cy="399" r="11.5" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle>
+<text x="179" y="404" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">0.0</text>
+<text x="179" y="436" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="12" text-anchor="middle">angle</text>
+<circle cx="284" cy="399" r="18" fill="#04070a" stroke="#ff9a3c" stroke-width="2.2"></circle>
+<circle cx="284" cy="399" r="11.5" fill="none" stroke="#ff9a3c" stroke-width="1" opacity=".45"></circle>
+<text x="284" y="404" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">01</text>
+<text x="284" y="436" fill="#ff9a3c" font-family="'JetBrains Mono',monospace" font-size="12" text-anchor="middle">fire</text>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">art · plate, pivot, arm at −34°</div></div>
+
+<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#cdd94f">LaserTurret2</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">12 cells · hp 50 · art turret2</div></div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">Two materials do the explaining. The olive plate and its pivot are the part that exists physically — it mounts, it takes damage, it is only 2×1. The dashed orange cells are the sweep it claims, drawn as reserved space rather than structure, so nobody reads twelve cells of armour.</div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">Eight joints sit on the plate's sides and bottom; the top edge carries none, because the arm swings through it. That is the same rule as the Engine's bell, applied to a moving part instead of a hot one.</div>
+<div style="display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02);font:400 10px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">
+<div>one socket per cell — <span style="color:#ff9a3c">0.0</span> angle, <span style="color:#ff9a3c">01</span> fire</div>
+<div>arm borrows the Lazer's barrel so the weapon family reads together</div>
+<div>dashed arc + rays show the swept envelope, not a hitbox</div>
+</div>
+</div>
+
+</div>
+</div></div>
+
+<div class="dv-opt" id="5f"><div class="dv-olabel"><a class="dv-oid" href="#5f">5f</a>Radar — 2×3, mounts on its skirt, two outputs</div>
+<div class="dv-card" style="width:960px;padding:26px;background:#06080d">
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="164" height="246" viewBox="0 0 232 348">
+<rect x="4" y="4" width="224" height="336" fill="none" stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"></rect>
+<g stroke="#2b3440" stroke-width="1" stroke-dasharray="4 4"><path d="M4 116h224M4 228h224M116 4v336"></path></g>
+<g fill="#56e39f" opacity="{{ jointOp }}"><circle cx="41" cy="340" r="4.5"></circle><circle cx="79" cy="340" r="4.5"></circle><circle cx="153" cy="340" r="4.5"></circle><circle cx="191" cy="340" r="4.5"></circle><circle cx="4" cy="302" r="4.5"></circle><circle cx="228" cy="302" r="4.5"></circle></g>
+<g fill="#3a4450"><circle cx="41" cy="4" r="3"></circle><circle cx="79" cy="4" r="3"></circle><circle cx="153" cy="4" r="3"></circle><circle cx="191" cy="4" r="3"></circle><circle cx="4" cy="41" r="3"></circle><circle cx="4" cy="79" r="3"></circle><circle cx="4" cy="153" r="3"></circle><circle cx="4" cy="190" r="3"></circle><circle cx="4" cy="265" r="3"></circle><circle cx="228" cy="41" r="3"></circle><circle cx="228" cy="79" r="3"></circle><circle cx="228" cy="153" r="3"></circle><circle cx="228" cy="190" r="3"></circle><circle cx="228" cy="265" r="3"></circle></g>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">6 cells · 6 live, 14 blanked</div></div>
+
+<div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+<svg width="164" height="246" viewBox="0 0 232 348" style="filter:drop-shadow(0 0 7px rgba(124,231,192,.3))">
+<circle cx="116" cy="118" r="106" fill="#04120c" stroke="#7ce7c0" stroke-width="3"></circle>
+<circle cx="116" cy="118" r="94" fill="none" stroke="#7ce7c0" stroke-width="1" opacity=".18"></circle>
+<circle cx="116" cy="118" r="58" fill="none" stroke="#7ce7c0" stroke-width="1" opacity=".14"></circle>
+<path d="M116 118 116 26" stroke="#7ce7c0" stroke-width="2" opacity=".4" style="animation:spin 6s linear infinite;transform-origin:116px 118px"></path>
+<circle cx="116" cy="118" r="5" fill="none" stroke="#7ce7c0" stroke-width="1.6"></circle>
+<path d="M58 238Q116 270 174 238Q198 268 208 302Q210 332 210 332Q210 340 200 340H32Q22 340 22 332Q24 302 34 268Q44 252 58 238Z" fill="#0e0c04" stroke="#ffe066" stroke-width="3"></path>
+<path d="M66 252Q116 278 166 252" fill="none" stroke="#ffe066" stroke-width="1.2" opacity=".28"></path>
+<g fill="none" stroke="#ffe066" stroke-width="1" opacity=".22"><path d="M18 322h196"></path></g>
+<circle cx="60" cy="292" r="17" fill="#04070a" stroke="#8fe64a" stroke-width="2.2"></circle>
+<circle cx="60" cy="292" r="11" fill="none" stroke="#8fe64a" stroke-width="1" opacity=".4"></circle>
+<g stroke="#8fe64a" stroke-width="1.6"><path d="M60 283v18M51 292h18"></path></g>
+<text x="60" y="330" fill="#8fe64a" font-family="'JetBrains Mono',monospace" font-size="12" text-anchor="middle">dist</text>
+<circle cx="172" cy="292" r="17" fill="#04070a" stroke="#8fe64a" stroke-width="2.2"></circle>
+<circle cx="172" cy="292" r="11" fill="none" stroke="#8fe64a" stroke-width="1" opacity=".4"></circle>
+<path d="M172 292 L172 281" stroke="#8fe64a" stroke-width="1.8"></path>
+<path d="M168 285l4-5 4 5" fill="none" stroke="#8fe64a" stroke-width="1.6"></path>
+<text x="172" y="330" fill="#8fe64a" font-family="'JetBrains Mono',monospace" font-size="11" text-anchor="middle">bearing</text>
+</svg>
+<div style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">art · dome on skirt</div></div>
+
+<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:14px;padding-top:6px">
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#7ce7c0">Radar</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">6 cells · hp 25 · art radar</div></div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">The dome is glass and the skirt is structure, so only the skirt takes joints: four along its bottom edge and one on each side. Its top edge is a cradle struck concentric with the dome but held clear of it, so an even gap runs the whole way round — the dome sits in a socket rather than on a shelf. From that narrow neck the skirt tapers outward and down, arriving flat exactly where the four bottom joints are and reaching full width only at the two side joints.</div>
+<div style="font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">This is the one part that earns a sweep — it is the sensor, and a slow rotating line is what a player expects. It runs at a third of the Brain's brightness so it reads as ambient, not urgent.</div>
+<div style="display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02);font:400 10px/1.6 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">
+<div><span style="color:#ff9a3c">●</span> orange — input · <span style="color:#8fe64a">●</span> green — output</div>
+<div><span style="color:#8fe64a">⊕</span> dist — crosshair · <span style="color:#8fe64a">↑</span> bearing — needle</div>
+<div>green matches the wire colour: signal leaving the part</div>
+</div>
+</div>
+
+</div>
+</div></div>
+
+<p class="dv-next">Try next: "the Orb next" · "blanked joints should be invisible, not grey" · "show engine + brain wired together"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Galaxy map — run layer for Corepox</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Act 2 of 3 — the route as a circuit board: nodes are chips, paths are wires</div>
+<div class="dv-card" style="width:1600px;height:900px;background:#04050a">
+<svg width="1600" height="900" viewBox="0 0 1600 900" style="position:absolute;inset:0">
+<rect width="1600" height="900" fill="#04050a"></rect>
+<g opacity=".55"><ellipse cx="380" cy="240" rx="300" ry="200" fill="#2a1150" filter="url(#neb)"></ellipse><ellipse cx="1180" cy="700" rx="340" ry="200" fill="#0d3350" filter="url(#neb)"></ellipse></g>
+<rect width="1600" height="900" fill="url(#starfield)"></rect>
+<g stroke="#e8ecf5" opacity=".5"><g stroke-width="1"><path d="M262 118v-26M262 118v26M236 118h26M288 118h-26" opacity=".55"></path></g><circle cx="262" cy="118" r="1.8" fill="#fff" stroke="none"></circle></g>
+<g stroke="#cfe3ff" opacity=".45"><path d="M1042 168v-20M1042 168v20M1022 168h20M1062 168h-20" stroke-width="1"></path><circle cx="1042" cy="168" r="1.6" fill="#fff" stroke="none"></circle></g>
+<g opacity=".3"><circle cx="1470" cy="250" r="118" fill="#170e2a" stroke="#8f8cff" stroke-width="1.2"></circle><g stroke="#8f8cff" stroke-width="1" opacity=".55"><path d="M1356 218c60 22 168 22 228 0M1354 282c60-22 170-22 230 0M1370 180c50 30 150 30 200 0"></path></g><g fill="none" stroke="#b3b0ff" stroke-width="1" opacity=".5"><ellipse cx="1470" cy="256" rx="188" ry="44"></ellipse><ellipse cx="1470" cy="256" rx="164" ry="36"></ellipse><ellipse cx="1470" cy="256" rx="212" ry="52"></ellipse></g></g>
+<g opacity=".28" transform="translate(140,690)"><ellipse cx="0" cy="0" rx="86" ry="30" fill="none" stroke="#4fd8e8" stroke-width="1.6"></ellipse><ellipse cx="0" cy="0" rx="46" ry="15" fill="none" stroke="#4fd8e8" stroke-width="1.2"></ellipse><g stroke="#4fd8e8" stroke-width="1" opacity=".7"><path d="M-64 -16 -28 -8M64 -16 28 -8M-64 16 -28 8M64 16 28 8"></path></g><circle cx="0" cy="0" r="8" fill="none" stroke="#4fd8e8" stroke-width="1.4"></circle></g>
+
+<g style="animation:haze 7s ease-in-out infinite"><ellipse cx="880" cy="170" rx="280" ry="160" fill="#ff6a2e" opacity=".14" filter="url(#neb)"></ellipse></g>
+<ellipse cx="880" cy="170" rx="268" ry="150" fill="none" stroke="#ff9a3c" stroke-width="1.4" stroke-dasharray="10 8" opacity=".5" style="animation:creep 3s linear infinite"></ellipse>
+<g style="animation:haze 9s ease-in-out infinite"><ellipse cx="920" cy="640" rx="300" ry="170" fill="#7d5cff" opacity=".13" filter="url(#neb)"></ellipse></g>
+<ellipse cx="920" cy="640" rx="288" ry="158" fill="none" stroke="#b3b0ff" stroke-width="1.4" stroke-dasharray="4 7" opacity=".55"></ellipse>
+<g opacity=".34"><ellipse cx="920" cy="640" rx="286" ry="156" fill="url(#rayhatch)"></ellipse></g>
+
+<g fill="none" stroke-linecap="round">
+<path d="M120 450C190 430 230 380 290 340" stroke="#4a3a10" stroke-width="7"></path><path d="M120 450C190 430 230 380 290 340" stroke="#ffc42e" stroke-width="2.6"></path>
+<path d="M290 340C350 320 400 310 460 300" stroke="#4a3a10" stroke-width="7"></path><path d="M290 340C350 320 400 310 460 300" stroke="#ffc42e" stroke-width="2.6"></path>
+<path d="M120 450C180 500 230 560 290 600" stroke="#1b2028" stroke-width="6"></path>
+<path d="M290 600C350 580 400 550 460 520" stroke="#1b2028" stroke-width="6"></path>
+<path d="M290 340C350 380 400 470 460 520" stroke="#1b2028" stroke-width="6"></path>
+<path d="M460 300C520 260 570 220 630 200" stroke="#0f3b44" stroke-width="8"></path><path d="M460 300C520 260 570 220 630 200" stroke="#4fd8e8" stroke-width="3" stroke-dasharray="12 10" style="animation:flow 1.4s linear infinite"></path>
+<path d="M460 300C520 330 570 370 630 400" stroke="#0f3b44" stroke-width="8"></path><path d="M460 300C520 330 570 370 630 400" stroke="#4fd8e8" stroke-width="3" stroke-dasharray="12 10" style="animation:flow 1.4s linear infinite"></path>
+<path d="M460 520C520 490 570 430 630 400" stroke="#1b2028" stroke-width="6"></path>
+<path d="M630 200C690 170 740 155 800 150" stroke="#232a33" stroke-width="5"></path>
+<path d="M630 200C690 250 740 300 800 330" stroke="#232a33" stroke-width="5"></path>
+<path d="M630 400C690 370 740 345 800 330" stroke="#232a33" stroke-width="5"></path>
+<path d="M630 400C690 450 740 510 800 540" stroke="#232a33" stroke-width="5"></path>
+<path d="M800 150C860 175 910 210 960 240" stroke="#232a33" stroke-width="5"></path>
+<path d="M800 330C860 300 910 265 960 240" stroke="#232a33" stroke-width="5"></path>
+<path d="M800 330C860 380 910 425 960 460" stroke="#232a33" stroke-width="5"></path>
+<path d="M800 540C860 510 910 480 960 460" stroke="#232a33" stroke-width="5"></path>
+<path d="M800 540C860 590 910 630 960 660" stroke="#232a33" stroke-width="5"></path>
+<path d="M960 240C1030 280 1080 350 1130 400" stroke="#232a33" stroke-width="5"></path>
+<path d="M960 460C1030 445 1080 420 1130 400" stroke="#232a33" stroke-width="5"></path>
+<path d="M960 660C1030 600 1080 460 1130 400" stroke="#232a33" stroke-width="5"></path>
+</g>
+
+<g style="color:#3f4c58"><circle cx="120" cy="450" r="30" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-mining" x="98" y="428" width="44" height="44"></use><path d="M138 468l6 6 10-13" fill="none" stroke="#ffc42e" stroke-width="2.4" opacity=".8"></path></g>
+<g style="color:#3f4c58"><circle cx="290" cy="340" r="30" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-duel" x="268" y="318" width="44" height="44"></use><path d="M308 358l6 6 10-13" fill="none" stroke="#ffc42e" stroke-width="2.4" opacity=".8"></path></g>
+<g style="color:#1e242c"><circle cx="290" cy="600" r="30" fill="#06080d" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-debris" x="268" y="578" width="44" height="44"></use><path d="M276 586 304 614M304 586 276 614" stroke="#c05a68" stroke-width="2.6" opacity=".85"></path></g>
+<g style="color:#1e242c"><circle cx="460" cy="520" r="30" fill="#06080d" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-escort" x="438" y="498" width="44" height="44"></use><path d="M446 506 474 534M474 506 446 534" stroke="#c05a68" stroke-width="2.6" opacity=".85"></path></g>
+
+<g style="color:#ffc42e;filter:drop-shadow(0 0 10px currentColor)">
+<circle cx="460" cy="300" r="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="9 9" opacity=".9" style="animation:spin 12s linear infinite;transform-origin:460px 300px"></circle>
+<circle cx="460" cy="300" r="32" fill="#12100a" stroke="currentColor" stroke-width="2.4"></circle>
+<use href="#n-shop" x="436" y="276" width="48" height="48"></use>
+</g>
+<text x="460" y="364" fill="#ffc42e" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1.5">YOU ARE HERE</text>
+
+<g onClick="{{ selRace }}" style="cursor:pointer;color:#4fd8e8;filter:drop-shadow(0 0 9px currentColor)">
+<circle cx="630" cy="200" r="40" fill="none" stroke="currentColor" stroke-width="2" opacity=".5" style="animation:halo 2.4s ease-out infinite;transform-origin:630px 200px"></circle>
+<circle cx="630" cy="200" r="30" fill="#081419" stroke="currentColor" stroke-width="2.4"></circle>
+<use href="#n-race" x="608" y="178" width="44" height="44"></use>
+</g>
+<text x="630" y="256" fill="#4fd8e8" font-family="'JetBrains Mono',monospace" font-size="10.5" text-anchor="middle" letter-spacing="1">RACE</text>
+<g onClick="{{ selRescue }}" style="cursor:pointer;color:#56e39f;filter:drop-shadow(0 0 9px currentColor)">
+<circle cx="630" cy="400" r="40" fill="none" stroke="currentColor" stroke-width="2" opacity=".5" style="animation:halo 2.4s ease-out .8s infinite;transform-origin:630px 400px"></circle>
+<circle cx="630" cy="400" r="30" fill="#08140f" stroke="currentColor" stroke-width="2.4"></circle>
+<use href="#n-rescue" x="608" y="378" width="44" height="44"></use>
+</g>
+<text x="630" y="456" fill="#56e39f" font-family="'JetBrains Mono',monospace" font-size="10.5" text-anchor="middle" letter-spacing="1">RESCUE</text>
+
+<g style="color:#6f7c88"><circle cx="800" cy="150" r="28" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-infiltrate" x="780" y="130" width="40" height="40"></use></g>
+<g style="color:#6f7c88"><circle cx="800" cy="330" r="28" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-repair" x="780" y="310" width="40" height="40"></use></g>
+<g style="color:#6f7c88"><circle cx="800" cy="540" r="28" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-mining" x="780" y="520" width="40" height="40"></use></g>
+<g style="color:#6f7c88"><circle cx="960" cy="240" r="28" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-duel" x="940" y="220" width="40" height="40"></use></g>
+<g style="color:#6f7c88"><circle cx="960" cy="460" r="28" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-unknown" x="940" y="440" width="40" height="40"></use></g>
+<g style="color:#6f7c88"><circle cx="960" cy="660" r="28" fill="#080b11" stroke="currentColor" stroke-width="1.4"></circle><use href="#n-debris" x="940" y="640" width="40" height="40"></use></g>
+
+<g style="color:#ff5cf0;filter:drop-shadow(0 0 14px currentColor)">
+<circle cx="1130" cy="400" r="52" fill="#150a18" stroke="currentColor" stroke-width="2.6"></circle>
+<circle cx="1130" cy="400" r="62" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".45" stroke-dasharray="3 8" style="animation:spin 20s linear infinite;transform-origin:1130px 400px"></circle>
+<use href="#n-boss" x="1096" y="366" width="68" height="68"></use>
+</g>
+<text x="1130" y="482" fill="#ff5cf0" font-family="'JetBrains Mono',monospace" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="2.5">CORE WARDEN</text>
+<text x="1130" y="500" fill="rgba(232,236,245,.45)" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle" letter-spacing="1">galaxy II boss</text>
+</svg>
+
+<div style="position:absolute;left:640px;top:112px;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid rgba(255,154,60,.55);border-radius:6px;background:rgba(255,106,46,.14);backdrop-filter:blur(3px)">
+<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1c3 3-3 4 0 6s4-2 4-2c1 4-2 8-4 8s-5-3-4-7 4-2 4-5Z" fill="none" stroke="#ff9a3c" stroke-width="1.4"></path></svg>
+<span style="font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.18em;color:#ff9a3c">STELLAR HEAT</span>
+<span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(255,196,46,.7)">+2 heat/s to every component</span>
+</div>
+<div style="position:absolute;left:660px;top:790px;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid rgba(179,176,255,.5);border-radius:6px;background:rgba(125,92,255,.16);backdrop-filter:blur(3px)">
+<svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 12 7 2l1 6 4-4-4 8-1-5Z" fill="none" stroke="#b3b0ff" stroke-width="1.4"></path></svg>
+<span style="font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.18em;color:#b3b0ff">COSMIC RAYS</span>
+<span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(179,176,255,.75)">random connection misfires</span>
+</div>
+
+<div style="position:absolute;left:0;right:0;top:0;height:58px;display:flex;align-items:stretch;background:linear-gradient(180deg,rgba(6,8,14,.96),rgba(6,8,14,.6));border-bottom:1px solid rgba(255,255,255,.1);backdrop-filter:blur(6px)">
+<div style="display:flex;align-items:center;gap:11px;padding:0 18px;border-right:1px solid rgba(255,255,255,.1)"><span style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.28em;color:#e8ecf5">COREPOX</span><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.35);letter-spacing:.1em">RUN 041</span></div>
+<div style="flex:1;display:flex;align-items:center;gap:20px;padding:0 20px">
+<div style="display:flex;align-items:center;gap:8px;opacity:.4"><span style="font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.14em;color:#e8ecf5">GALAXY I</span><span style="font:400 10px 'JetBrains Mono',monospace;color:#56e39f">cleared</span></div>
+<div style="width:1px;height:22px;background:rgba(255,255,255,.12)"></div>
+<div style="display:flex;align-items:center;gap:10px"><span style="font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:#ffc42e">GALAXY II</span>
+<div style="display:flex;gap:4px">
+<div style="width:22px;height:5px;border-radius:2px;background:#ffc42e"></div><div style="width:22px;height:5px;border-radius:2px;background:#ffc42e"></div><div style="width:22px;height:5px;border-radius:2px;background:#ffc42e"></div><div style="width:22px;height:5px;border-radius:2px;background:rgba(255,196,46,.22)"></div><div style="width:22px;height:5px;border-radius:2px;background:rgba(255,196,46,.22)"></div><div style="width:22px;height:5px;border-radius:2px;background:rgba(255,196,46,.22)"></div><div style="width:22px;height:5px;border-radius:2px;background:rgba(255,92,240,.35)"></div>
+</div>
+<span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">3 / 7 jumps</span></div>
+<div style="width:1px;height:22px;background:rgba(255,255,255,.12)"></div>
+<div style="display:flex;align-items:center;gap:8px;opacity:.3"><span style="font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.14em;color:#e8ecf5">GALAXY III</span><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.6)">locked</span></div>
+</div>
+<div style="display:flex;align-items:center;gap:18px;padding:0 20px;border-left:1px solid rgba(255,255,255,.1)">
+<span style="font:500 11px 'JetBrains Mono',monospace;color:#ffc42e">◆ 214</span>
+<span style="font:500 11px 'JetBrains Mono',monospace;color:#56e39f">HULL 82%</span>
+<span style="font:400 11px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">18:24</span>
+</div>
+</div>
+
+<div style="position:absolute;right:0;top:58px;bottom:0;width:320px;background:linear-gradient(270deg,rgba(6,8,14,.97),rgba(6,8,14,.82));border-left:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px);padding:22px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:12px">
+<sc-if value="{{ isShop }}"><svg width="40" height="40" viewBox="0 0 48 48" style="color:#ffc42e;filter:drop-shadow(0 0 7px currentColor)"><use href="#n-shop"></use></svg></sc-if>
+<sc-if value="{{ isRace }}"><svg width="40" height="40" viewBox="0 0 48 48" style="color:#4fd8e8;filter:drop-shadow(0 0 7px currentColor)"><use href="#n-race"></use></svg></sc-if>
+<sc-if value="{{ isRescue }}"><svg width="40" height="40" viewBox="0 0 48 48" style="color:#56e39f;filter:drop-shadow(0 0 7px currentColor)"><use href="#n-rescue"></use></svg></sc-if>
+<div><div style="font:700 14px 'JetBrains Mono',monospace;letter-spacing:.12em;color:#e8ecf5">{{ selName }}</div><div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4);letter-spacing:.08em">{{ selKind }}</div></div>
+</div>
+<div style="font:400 11px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.62)">{{ selDesc }}</div>
+<div style="display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.02)">
+<div style="font:400 9.5px 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(232,236,245,.35)">ON SUCCESS</div>
+<div style="font:500 11px 'JetBrains Mono',monospace;color:#ffc42e">{{ selR1 }}</div>
+<div style="font:500 11px 'JetBrains Mono',monospace;color:#56e39f">{{ selR2 }}</div>
+</div>
+<div style="display:flex;gap:9px;align-items:flex-start;padding:12px;border:1px solid rgba(255,154,60,.3);border-radius:8px;background:rgba(255,106,46,.07);font:400 10.5px/1.6 'JetBrains Mono',monospace;color:#ffb066"><span>▲</span><span>{{ selHaz }}</span></div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.35)"><span>ROUTE LOCK</span><span>choosing is permanent</span></div>
+<div style="text-align:center;padding:14px 0;border:1.5px solid #4fd8e8;border-radius:8px;font:700 12px 'JetBrains Mono',monospace;letter-spacing:.18em;color:#4fd8e8;cursor:pointer;box-shadow:0 0 20px rgba(79,216,232,.18)" style-hover="background:rgba(79,216,232,.16)">JUMP ▶</div>
+<div style="text-align:center;padding:11px 0;border:1px solid rgba(255,255,255,.14);border-radius:8px;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:rgba(232,236,245,.55);cursor:pointer" style-hover="border-color:rgba(255,255,255,.35)">OPEN SHIPYARD ⚒</div>
+</div>
+</div>
+
+<div style="position:absolute;left:18px;bottom:18px;display:flex;gap:20px;padding:12px 16px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(6,8,14,.85);backdrop-filter:blur(6px)">
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="font:400 9px 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(232,236,245,.3)">NODE STATE</div>
+<div style="display:flex;gap:14px">
+<div style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#080b11" stroke="#3f4c58" stroke-width="1.2"></circle><path d="M4.5 8.5 7 11l4.5-6" fill="none" stroke="#ffc42e" stroke-width="1.6"></path></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">visited</span></div>
+<div style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#ffc42e" stroke-width="1.4" stroke-dasharray="4 4"></circle><circle cx="8" cy="8" r="3" fill="#ffc42e"></circle></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">current</span></div>
+<div style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="#4fd8e8" stroke-width="1.6"></circle><circle cx="8" cy="8" r="3" fill="#4fd8e8"></circle></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">reachable</span></div>
+<div style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#06080d" stroke="#1e242c" stroke-width="1.2"></circle><path d="M4 4 12 12M12 4 4 12" stroke="#c05a68" stroke-width="1.8"></path></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.35)">locked out</span></div>
+</div>
+</div>
+<div style="width:1px;background:rgba(255,255,255,.1)"></div>
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="font:400 9px 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(232,236,245,.3)">PATH</div>
+<div style="display:flex;gap:14px">
+<div style="display:flex;align-items:center;gap:6px"><svg width="26" height="10" viewBox="0 0 26 10"><path d="M1 5h24" stroke="#ffc42e" stroke-width="2.4"></path></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">taken</span></div>
+<div style="display:flex;align-items:center;gap:6px"><svg width="26" height="10" viewBox="0 0 26 10"><path d="M1 5h24" stroke="#4fd8e8" stroke-width="2.4" stroke-dasharray="6 5"></path></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">choosable</span></div>
+<div style="display:flex;align-items:center;gap:6px"><svg width="26" height="10" viewBox="0 0 26 10"><path d="M1 5h24" stroke="#232a33" stroke-width="2.4"></path></svg><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.35)">later</span></div>
+</div>
+</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>The 11 verbs — silhouette test at map size and at squint size</div>
+<div class="dv-card" style="width:760px;padding:24px;background:#06080d">
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#ff5c72;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-duel"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#ff5c72">DUEL</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#ff5c72;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-escort"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#ff5c72">ESCORT</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#ff5c72;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-infiltrate"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#ff5c72">INFILTRATE</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#4fd8e8;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-race"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#4fd8e8">RACE</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#4fd8e8;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-debris"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#4fd8e8">DEBRIS</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#56e39f;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-rescue"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#56e39f">RESCUE</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#ffc42e;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-mining"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#ffc42e">MINING</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#ffc42e;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-shop"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#ffc42e">SHOP</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#56e39f;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-repair"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#56e39f">REFIT</span></div>
+<div style="border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#b3b0ff;filter:drop-shadow(0 0 6px currentColor)"><use href="#n-unknown"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#b3b0ff">UNKNOWN</span></div>
+<div style="border:1px solid rgba(255,92,240,.25);border-radius:8px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(255,92,240,.05)"><svg width="46" height="46" viewBox="0 0 48 48" style="color:#ff5cf0;filter:drop-shadow(0 0 7px currentColor)"><use href="#n-boss"></use></svg><span style="font:500 9.5px 'JetBrains Mono',monospace;color:#ff5cf0">BOSS</span></div>
+</div>
+<div style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(255,255,255,.12)">
+<div style="font:400 9.5px 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(232,236,245,.32);margin-bottom:10px">SQUINT TEST — 22px, colour removed</div>
+<div style="display:flex;gap:16px;flex-wrap:wrap;color:#8b95a3">
+<svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-duel"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-escort"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-infiltrate"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-race"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-debris"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-rescue"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-mining"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-shop"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-repair"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-unknown"></use></svg><svg width="22" height="22" viewBox="0 0 48 48"><use href="#n-boss"></use></svg>
+</div>
+<div style="margin-top:14px;font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)">Silhouettes split into four families before colour is applied: fights are closed angular figures (diamond, bracket, walled box), traversal is open directional strokes (chevrons, shards), economy is a diamond/asteroid pair, support is a hexagonal nut and a broadcast pulse. Colour then only confirms what the shape already said.</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="3c"><div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Three ways to draw a hazard region — pick one per hazard, or one language for both</div>
+<div class="dv-card" style="width:760px;padding:22px;background:#06080d">
+<div style="display:flex;gap:14px">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<svg width="230" height="180" viewBox="0 0 230 180" style="border-radius:6px;background:#04050a"><rect width="230" height="180" fill="url(#starfield)"></rect><ellipse cx="140" cy="90" rx="110" ry="80" fill="#ff6a2e" opacity=".16" filter="url(#neb)"></ellipse><ellipse cx="140" cy="90" rx="104" ry="74" fill="none" stroke="#ff9a3c" stroke-width="1.3" stroke-dasharray="9 7" opacity=".55"></ellipse><g style="color:#6f7c88"><circle cx="150" cy="70" r="20" fill="#080b11" stroke="currentColor" stroke-width="1.3"></circle><use href="#n-duel" x="136" y="56" width="28" height="28"></use></g><g style="color:#6f7c88"><circle cx="90" cy="122" r="20" fill="#080b11" stroke="currentColor" stroke-width="1.3"></circle><use href="#n-mining" x="76" y="108" width="28" height="28"></use></g></svg>
+<div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">A · nebula wash — softest, reads as place</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<svg width="230" height="180" viewBox="0 0 230 180" style="border-radius:6px;background:#04050a"><rect width="230" height="180" fill="url(#starfield)"></rect><ellipse cx="140" cy="90" rx="104" ry="74" fill="url(#rayhatch)" opacity=".3"></ellipse><ellipse cx="140" cy="90" rx="104" ry="74" fill="none" stroke="#b3b0ff" stroke-width="1.3" stroke-dasharray="4 6" opacity=".6"></ellipse><g style="color:#6f7c88"><circle cx="150" cy="70" r="20" fill="#080b11" stroke="currentColor" stroke-width="1.3"></circle><use href="#n-duel" x="136" y="56" width="28" height="28"></use></g><g style="color:#6f7c88"><circle cx="90" cy="122" r="20" fill="#080b11" stroke="currentColor" stroke-width="1.3"></circle><use href="#n-mining" x="76" y="108" width="28" height="28"></use></g></svg>
+<div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">B · hatch field — reads as interference</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<svg width="230" height="180" viewBox="0 0 230 180" style="border-radius:6px;background:#04050a"><rect width="230" height="180" fill="url(#starfield)"></rect><g opacity=".5"><path d="M40 26h190M40 42h190M40 58h190M40 74h190M40 90h190M40 106h190M40 122h190M40 138h190" stroke="#ff9a3c" stroke-width="1" opacity=".22"></path></g><path d="M36 18 230 18 230 150 36 150Z" fill="none" stroke="#ff9a3c" stroke-width="1.2" stroke-dasharray="14 6" opacity=".5"></path><path d="M36 96h194" stroke="#ffc42e" stroke-width="1.6" opacity=".7" style="animation:creep 2s linear infinite" stroke-dasharray="18 10"></path><g style="color:#6f7c88"><circle cx="150" cy="70" r="20" fill="#080b11" stroke="currentColor" stroke-width="1.3"></circle><use href="#n-duel" x="136" y="56" width="28" height="28"></use></g><g style="color:#6f7c88"><circle cx="90" cy="122" r="20" fill="#080b11" stroke="currentColor" stroke-width="1.3"></circle><use href="#n-mining" x="76" y="108" width="28" height="28"></use></g></svg>
+<div style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">C · scan band — reads as system, most legible edges</div></div>
+</div>
+<div style="margin-top:16px;font:400 10.5px/1.7 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)"><a class="dv-oid" href="#3a">3a</a> currently uses A for stellar heat and A+B stacked for cosmic rays, so the two hazards differ in texture as well as hue — important where they overlap.</div>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "hazards should overlap in the middle so I can see how that reads" · "the boss needs to feel further away — add a jump-gate before it" · "show a node's mission-preview popover on hover"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Earlier menu explorations</span></div>
+<div class="dv-opts">
+
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Radial action dial — replaces the modal that covers your ship</div>
+<div class="dv-card" style="width:520px;height:520px;background:radial-gradient(90% 70% at 50% 45%,#0e1020 0%,#05060a 70%)">
+<div style="position:absolute;inset:0" onClick="{{ closeDial }}"></div>
+<div style="position:absolute;left:14px;top:14px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.14em;color:rgba(232,236,245,.35)">TAP THE LAZER</div>
+<div style="position:absolute;left:50px;top:50px;width:420px;height:420px">
+  <sc-if value="{{ dial }}" hint-placeholder-val="{{ true }}">
+  <div>
+  <svg width="420" height="420" viewBox="0 0 420 420" style="position:absolute;inset:0;pointer-events:none"><g fill="none" stroke="#4fd8e8"><circle cx="210" cy="210" r="146" stroke-width="1" opacity=".25" stroke-dasharray="2 8"></circle><circle cx="210" cy="210" r="92" stroke-width="1" opacity=".18"></circle></g></svg>
+  <div onClick="{{ pickInfo }}" style="position:absolute;left:166px;top:28px;width:88px;height:74px;border:1.5px solid #ffc42e;border-radius:9px;background:rgba(255,196,46,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;box-shadow:0 0 18px rgba(255,196,46,.18)" style-hover="background:rgba(255,196,46,.2);box-shadow:0 0 28px rgba(255,196,46,.45)"><div style="font:700 16px 'JetBrains Mono',monospace;color:#ffc42e">i</div><div style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#ffc42e">INFO</div><div style="position:absolute;top:5px;right:7px;font:700 8px 'JetBrains Mono',monospace;color:rgba(255,196,46,.5)">1</div></div>
+  <div onClick="{{ pickConnect }}" style="position:absolute;left:292px;top:101px;width:88px;height:74px;border:1.5px solid #4fd8e8;border-radius:9px;background:rgba(79,216,232,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;box-shadow:0 0 18px rgba(79,216,232,.18)" style-hover="background:rgba(79,216,232,.2);box-shadow:0 0 28px rgba(79,216,232,.45)"><div style="font:700 15px 'JetBrains Mono',monospace;color:#4fd8e8">∞</div><div style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#4fd8e8">CONNECT</div><div style="position:absolute;top:5px;right:7px;font:700 8px 'JetBrains Mono',monospace;color:rgba(79,216,232,.5)">2</div></div>
+  <div style="position:absolute;left:292px;top:246px;width:88px;height:74px;border:1.5px solid rgba(255,92,114,.22);border-radius:9px;background:rgba(255,92,114,.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:not-allowed"><div style="font:700 15px 'JetBrains Mono',monospace;color:rgba(255,92,114,.3)">✂</div><div style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:rgba(255,92,114,.3)">CUT</div><div style="position:absolute;bottom:-16px;left:0;right:0;text-align:center;font:400 8.5px 'JetBrains Mono',monospace;color:rgba(255,92,114,.45)">no link here</div></div>
+  <div onClick="{{ pickDelete }}" style="position:absolute;left:166px;top:318px;width:88px;height:74px;border:1.5px solid #ff5c72;border-radius:9px;background:rgba(255,92,114,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;box-shadow:0 0 18px rgba(255,92,114,.18)" style-hover="background:rgba(255,92,114,.22);box-shadow:0 0 28px rgba(255,92,114,.5)"><div style="font:700 15px 'JetBrains Mono',monospace;color:#ff5c72">✕</div><div style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#ff5c72">DELETE</div><div style="position:absolute;top:5px;right:7px;font:700 8px 'JetBrains Mono',monospace;color:rgba(255,92,114,.5)">6</div></div>
+  <div onClick="{{ pickRotate }}" style="position:absolute;left:40px;top:246px;width:88px;height:74px;border:1.5px solid #56e39f;border-radius:9px;background:rgba(86,227,159,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;box-shadow:0 0 18px rgba(86,227,159,.18)" style-hover="background:rgba(86,227,159,.2);box-shadow:0 0 28px rgba(86,227,159,.45)"><div style="font:700 15px 'JetBrains Mono',monospace;color:#56e39f">↻</div><div style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#56e39f">ROTATE</div><div style="position:absolute;top:5px;right:7px;font:700 8px 'JetBrains Mono',monospace;color:rgba(86,227,159,.5)">5</div></div>
+  <div onClick="{{ pickMove }}" style="position:absolute;left:40px;top:101px;width:88px;height:74px;border:1.5px solid #56e39f;border-radius:9px;background:rgba(86,227,159,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;box-shadow:0 0 18px rgba(86,227,159,.18)" style-hover="background:rgba(86,227,159,.2);box-shadow:0 0 28px rgba(86,227,159,.45)"><div style="font:700 15px 'JetBrains Mono',monospace;color:#56e39f">✛</div><div style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#56e39f">MOVE</div><div style="position:absolute;top:5px;right:7px;font:700 8px 'JetBrains Mono',monospace;color:rgba(86,227,159,.5)">4</div></div>
+  </div>
+  </sc-if>
+  <div onClick="{{ openDial }}" style="position:absolute;left:150px;top:150px;width:120px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+    <svg viewBox="0 0 100 100" width="96" height="96" style="color:#ff5c72;filter:drop-shadow(0 0 12px currentColor)"><use href="#m-laser"></use></svg>
+    <svg width="120" height="120" viewBox="0 0 120 120" style="position:absolute;inset:0;pointer-events:none"><rect x="6" y="6" width="108" height="108" rx="10" fill="none" stroke="#ff5c72" stroke-width="1.5" stroke-dasharray="8 8" opacity=".8" style="animation:marchbox 1.2s linear infinite"></rect></svg>
+  </div>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:16px;text-align:center;font:400 10.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.45)"><sc-if value="{{ act }}" hint-placeholder-val="{{ true }}"><span style="color:#4fd8e8">{{ actLabel }}</span></sc-if></div>
+<div style="position:absolute;right:14px;bottom:14px;font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.3)">ESC / tap space to close</div>
+</div></div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Mission HUD + part tray — objectives as a state, not a list</div>
+<div class="dv-card" style="width:820px;height:430px;background:radial-gradient(70% 80% at 78% 20%,#160b1e 0%,#05060a 65%)">
+<div style="position:absolute;inset:0;overflow:hidden">
+<div style="position:absolute;left:12%;top:22%;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite"></div>
+<div style="position:absolute;left:34%;top:64%;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.4"></div>
+<div style="position:absolute;left:58%;top:33%;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 4.5s ease-in-out infinite"></div>
+<div style="position:absolute;left:81%;top:71%;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.5"></div>
+<div style="position:absolute;left:69%;top:14%;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 3.8s ease-in-out infinite"></div>
+</div>
+<div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:stretch;height:46px;background:linear-gradient(180deg,rgba(8,10,18,.96),rgba(8,10,18,.55));border-bottom:1px solid rgba(255,255,255,.09);backdrop-filter:blur(6px)">
+<div style="display:flex;align-items:center;gap:12px;padding:0 16px;border-right:1px solid rgba(255,255,255,.09)"><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.35);letter-spacing:.1em">08/09</span><span style="font:700 13px 'JetBrains Mono',monospace;color:#e8ecf5;letter-spacing:.04em">SIDE SHOOTER</span></div>
+<div style="flex:1;display:flex;align-items:center;padding:0 16px;font:400 11.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.55)">It only fires forwards. You get to decide where forwards points.</div>
+<div style="display:flex;align-items:center;gap:10px;padding:0 14px;border-left:1px solid rgba(255,255,255,.09);font:500 10.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5);cursor:pointer">CHAPTERS ▾</div>
+</div>
+<div style="position:absolute;left:16px;top:62px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:10px;padding:8px 14px 8px 10px;border:1px solid rgba(86,227,159,.35);border-radius:999px;background:rgba(86,227,159,.07)"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#56e39f" stroke-width="1.5" opacity=".45"></circle><path d="M4.5 8.2 7 10.6 11.6 5.6" fill="none" stroke="#56e39f" stroke-width="2"></path></svg><span style="font:500 11px 'JetBrains Mono',monospace;color:rgba(232,236,245,.45);text-decoration:line-through">destroy <span style="color:#ff5c72;text-decoration:line-through">enemy core</span></span></div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 14px 8px 10px;border:1px solid rgba(79,216,232,.5);border-radius:999px;background:rgba(79,216,232,.09);box-shadow:0 0 18px rgba(79,216,232,.12)"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#4fd8e8" stroke-width="1.5"></circle><circle cx="8" cy="8" r="2.6" fill="#4fd8e8" style="animation:pulse 2s ease-in-out infinite;transform-origin:8px 8px"></circle></svg><span style="font:500 11px 'JetBrains Mono',monospace;color:#e8ecf5">defend your <span style="color:#56e39f">core</span></span><span style="font:400 10px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4)">· 2 hits left</span></div>
+</div>
+<div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0">
+<svg viewBox="0 0 100 100" width="74" height="74" style="color:#ff5c72;filter:drop-shadow(0 0 10px currentColor)"><use href="#m-laser"></use></svg>
+<div style="display:flex;gap:0"><svg viewBox="0 0 100 100" width="74" height="74" style="color:#ffc42e;filter:drop-shadow(0 0 10px currentColor)"><use href="#m-core"></use></svg><svg viewBox="0 0 100 100" width="74" height="74" style="color:#4fd8e8;filter:drop-shadow(0 0 10px currentColor)"><use href="#m-thruster"></use></svg></div>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:88px;display:flex;align-items:center;gap:12px;padding:0 16px;background:linear-gradient(0deg,rgba(8,10,18,.97),rgba(8,10,18,.45));border-top:1px solid rgba(255,255,255,.09);backdrop-filter:blur(6px)">
+<div onClick="{{ playIt }}" style="width:56px;height:56px;flex:none;border:1.5px solid #56e39f;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#56e39f;font:400 18px 'JetBrains Mono',monospace;cursor:pointer;box-shadow:0 0 22px rgba(86,227,159,.22)" style-hover="background:rgba(86,227,159,.16)">▶</div>
+<div style="flex:1;display:flex;gap:8px;overflow:hidden">
+<div onClick="{{ pickHull }}" style="width:66px;height:60px;border:1.5px solid rgba(143,140,255,.55);border-radius:8px;background:rgba(143,140,255,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;position:relative" style-hover="background:rgba(143,140,255,.2)"><svg viewBox="0 0 100 100" width="30" height="30" style="color:#8f8cff"><use href="#m-hull"></use></svg><span style="font:400 8.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">◆4 ×7</span></div>
+<div onClick="{{ pickCell }}" style="width:66px;height:60px;border:1.5px solid rgba(198,255,92,.55);border-radius:8px;background:rgba(198,255,92,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer" style-hover="background:rgba(198,255,92,.2)"><svg viewBox="0 0 100 100" width="30" height="30" style="color:#c6ff5c"><use href="#m-battery"></use></svg><span style="font:400 8.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">◆14 ×2</span></div>
+<div onClick="{{ pickLazer }}" style="width:66px;height:60px;border:1.5px solid #ff5c72;border-radius:8px;background:rgba(255,92,114,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;box-shadow:0 0 18px rgba(255,92,114,.28)"><svg viewBox="0 0 100 100" width="30" height="30" style="color:#ff5c72;filter:drop-shadow(0 0 5px currentColor)"><use href="#m-laser"></use></svg><span style="font:400 8.5px 'JetBrains Mono',monospace;color:#ff5c72">◆18 ×1</span></div>
+<div onClick="{{ pickThruster }}" style="width:66px;height:60px;border:1.5px solid rgba(79,216,232,.55);border-radius:8px;background:rgba(79,216,232,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer" style-hover="background:rgba(79,216,232,.2)"><svg viewBox="0 0 100 100" width="30" height="30" style="color:#4fd8e8"><use href="#m-thruster"></use></svg><span style="font:400 8.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.5)">◆12 ×3</span></div>
+<div style="width:66px;height:60px;border:1.5px dashed rgba(255,255,255,.14);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(232,236,245,.28)"><span style="font:400 15px 'JetBrains Mono',monospace">⌾</span><span style="font:400 8px 'JetBrains Mono',monospace">CH 9</span></div>
+<div style="width:66px;height:60px;border:1.5px dashed rgba(255,255,255,.14);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(232,236,245,.28)"><span style="font:400 15px 'JetBrains Mono',monospace">⌾</span><span style="font:400 8px 'JetBrains Mono',monospace">CH 11</span></div>
+</div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;padding-right:4px"><span style="font:400 9.5px 'JetBrains Mono',monospace;color:rgba(232,236,245,.4);letter-spacing:.1em">SELECTED</span><span style="font:700 12px 'JetBrains Mono',monospace;color:#e8ecf5">{{ trayName }}</span></div>
+<div style="width:56px;height:56px;flex:none;border:1.5px solid #ffc42e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#ffc42e;font:400 17px 'JetBrains Mono',monospace;cursor:pointer;box-shadow:0 0 22px rgba(255,196,46,.22)" style-hover="background:rgba(255,196,46,.16)">⚒</div>
+</div>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "build the dial from <a class="dv-oid" href="#1b">1b</a> into the real ship canvas" · "show the planet screens turned up too"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1420,&quot;height&quot;:900},&quot;showJoints&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Component sheet&quot;}}">
+const LABELS = {
+  info: "INFO — Lazer: 5 power, fires forwards, 0.4s cycle",
+  connect: "CONNECT — pick a neighbouring port to link",
+  move: "MOVE — drag to a green slot",
+  rotate: "ROTATE — 90° clockwise, forwards follows",
+  delete: "DELETE — refunds ◆9 of ◆18"
+};
+const NODES = {
+  shop: { name: "KEPLER DRIFT", kind: "SHOP · current position", glyph: "#n-shop", color: "#ffc42e",
+    desc: "A scrap market bolted to a dead relay. Components and single-use wiring mods, priced by how badly the last crew needed them.",
+    r1: "◆ spend — 6 components in stock", r2: "1 free connection reroute",
+    haz: "Both onward routes cross a hazard region. Read the wash before you commit." },
+  race: { name: "THE NARROWS", kind: "RACE · 2 jumps to boss", glyph: "#n-race", color: "#4fd8e8",
+    desc: "Beat a rival hull through a collapsing lane. No weapons fire — thrust, mass and nerve only.",
+    r1: "◆ 45 purse", r2: "Engine-3 blueprint",
+    haz: "Route enters STELLAR HEAT: +2 heat/s to every component for the whole leg." },
+  rescue: { name: "LIFEBOAT 9", kind: "RESCUE · 3 jumps to boss", glyph: "#n-rescue", color: "#56e39f",
+    desc: "A drifting hab with a live core. Cut it free under fire, then carry the mass home.",
+    r1: "◆ 20 + salvage roll", r2: "Hull repair 15%",
+    haz: "Downstream nodes sit under COSMIC RAYS: your logic connections misfire at random." }
+};
+class Component extends DCLogic {
+  state = { dial: true, act: null, tray: "LAZER", node: "shop" };
+  componentDidMount() {
+    this._k = (e) => { if (e.key === "Escape" || e.key === " ") this.setState({ dial: false, act: null }); };
+    window.addEventListener("keydown", this._k);
+  }
+  componentWillUnmount() { window.removeEventListener("keydown", this._k); }
+  pick(k) { this.setState({ act: k }); }
+  renderVals() {
+    return {
+      dial: this.state.dial,
+      act: !!this.state.act,
+      actLabel: LABELS[this.state.act] || "",
+      trayName: this.state.tray,
+      jointOp: (this.props.showJoints ?? true) ? 0.95 : 0,
+      selName: NODES[this.state.node].name,
+      selKind: NODES[this.state.node].kind,
+      selDesc: NODES[this.state.node].desc,
+      selR1: NODES[this.state.node].r1,
+      selR2: NODES[this.state.node].r2,
+      selHaz: NODES[this.state.node].haz,
+      isShop: this.state.node === "shop",
+      isRace: this.state.node === "race",
+      isRescue: this.state.node === "rescue",
+      selRace: () => this.setState({ node: "race" }),
+      selRescue: () => this.setState({ node: "rescue" }),
+      openDial: () => this.setState({ dial: true, act: null }),
+      closeDial: () => this.setState({ dial: false, act: null }),
+      pickInfo: () => this.pick("info"),
+      pickConnect: () => this.pick("connect"),
+      pickMove: () => this.pick("move"),
+      pickRotate: () => this.pick("rotate"),
+      pickDelete: () => this.pick("delete"),
+      pickHull: () => this.setState({ tray: "HULL" }),
+      pickCell: () => this.setState({ tray: "CELL" }),
+      pickLazer: () => this.setState({ tray: "LAZER" }),
+      pickThruster: () => this.setState({ tray: "THRUSTER" }),
+      playIt: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>

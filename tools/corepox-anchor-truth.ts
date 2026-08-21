@@ -12,6 +12,12 @@
 // and the trace's own scale is a check on the whole chain: W / tilesWide should be
 // TILE for every symbol, or the trace is not the sprite.
 //
+// Five parts stopped being traces on 2026-08-21. Brain, Engine, Lazer, Radar and
+// LaserTurret2 are drawn ON the lattice now, from Tom's design doc, so they fill a
+// whole cell where the sprite filled 0.9 of one and their anchor is the centre of
+// cell [0,0] by construction. They read 3.3-3.7 units off here, and that is the
+// redraw, not an error -- the sprite is no longer the authority for those five.
+//
 //   tools/.venv-unity/bin/python tools/corepox-apk-sprites.py   # first
 //   bun tools/corepox-anchor-truth.ts
 import {loadAssets, loadComponents as loadComponents_} from "./corepox-assets-headless.ts";
