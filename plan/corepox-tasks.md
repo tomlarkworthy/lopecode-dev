@@ -415,6 +415,19 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       `corepox-engine-test.ts` all checks, missions 12/12 winnable with the reference solutions and
       0/12 winnable with no input at all.
 
+      **Verified in the browser** after the module block reached `corepox.html`:
+      `corepox-qa-campaign.ts` 11/12, the same 11 as before the change, with FollowBoss still the
+      only failure and failing the same way (builds 7/7 parts and 6/6 wires, then loses the fight).
+
+      **There is no arrival deadband**, checked because a second session reported the pilot parking
+      about three tiles short of a waypoint. `tools/corepox-arrival.ts`: the same command on a hull
+      that can push along two axes and is free to turn settles at **0.00 tiles**. The fixture that
+      stalled has two engines pointing the same way — one thrust line — with `face` pinned, so it
+      reaches the projection of the target onto that line and stops, which is all it can do. Swept
+      round a 10-tile circle at `face: 45` it does not leave the spot at all for targets at 90° and
+      135°, throttles [0,0]. Pinning `face` on a single-axis hull is the constraint; the pilot is
+      not declining to arrive.
+
       The allocator's *waypoint* weights (`G.torque = 8`) were left alone. They now sit on a torque
       row `mass` times bigger, which is where the +2pp of corpus arrivals comes from; retuning them
       is a balance decision and wants the mission gates, not a corpus statistic.
