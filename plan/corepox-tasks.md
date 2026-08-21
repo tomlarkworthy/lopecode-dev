@@ -985,12 +985,18 @@ One of these leans on structure that already exists:
       parameters should be density and and volume of [rocks] and ore"). A MINING node on the map now
       opens a field instead of resolving as a stop.
 
-      **A rock is a ship.** `rockSpec` random-walks a connected blob of `Armour` on team `rock` and
-      replaces some of its cells with real components. Nothing new was added to the engine: a rock
-      splits because `World.splitDetached()` already turns a hull cut in two into two hulls, and ore
-      comes loose the same way. That is also what makes ore *have to be dug out* rather than picked
-      up — a piece is collectable only when its body is down to at most 3 live cells with no `Armour`
-      left (`loosePiece`), so the plates around it are the cost.
+      **The generator described here was replaced the same day** — see the mineral-types entry
+      below. What survived is the encounter shell (the node, the clock, the spoils path, the view)
+      and the two findings marked below as such. What did not is the rock itself.
+
+      **A rock was a ship made of ship parts.** `rockSpec` random-walked a connected blob of
+      `Armour` on team `rock` and replaced some of its cells with real components. Nothing new was
+      added to the engine: a rock splits because `World.splitDetached()` already turns a hull cut in
+      two into two hulls, and ore came loose the same way. That was also what made ore *have to be
+      dug out* rather than picked up — a piece was collectable only when its body was down to at
+      most 3 live cells with no `Armour` left (`loosePiece`), so the plates around it were the cost.
+      Tom's verdict on it: "I could not find any ore in the astroids. Its weird having lazers in
+      there."
 
       Ore therefore cannot go anywhere. Two bugs, both from getting "buried" wrong:
 
@@ -1023,7 +1029,8 @@ One of these leans on structure that already exists:
       `LaserTurret2` clamps to ±90 of its mounting, so a hull with no free engine can only mine what
       is already in front of it. `laserpost` sat for 60 s with its turret commanded to −138° and
       pinned at the stop (`tools/scratch/mine-trace.ts`); of the mission ships only `spike`, which
-      rams, mined at all. Two unwired engines are what let the pilot turn.
+      rams, mined at all. Two unwired engines are what let the pilot turn. (It has four now, and the
+      two that were added did not work for two days — see below.)
 
       Rocks are rejection-sampled apart. Two dropped on the same spot are in contact and `collide`
       charges them 5 a tick for it, so a field that looked untouched had already shed a body before
@@ -1051,10 +1058,10 @@ One of these leans on structure that already exists:
       `Generators` G in 204 cells here), so only the permutation case fires. 9 findings on the
       reintroduced bug, **0 across all 233 notebooks** in both content repos.
 
-      Not done: the field has no quota and no hazard, `MINING_ORE` prices are invented, and the
-      `MINER` rig is not offered anywhere — the starting `wiredCore` cannot be steered (its engine
-      is driven by its own wire) and so mines nothing until the player refits, which is the intended
-      loop but is taught by nothing.
+      Still true after the redesign: the POINT-for-ANGLE bug and the gate written against it, the
+      rejection sampling, the haul-replaces-spoils path, and the `dep-mismatch` preflight check.
+      Superseded: everything about how a rock is generated, and `MINING_ORE`, which used to
+      name ship-part types and now names the two mineral ones.
 - [x] **Relic registry: a design may NAME a prefab instead of carrying it** (Tom, 2026-08-20 —
       "so we need a relic registry as well for resolving those"). `loadShipSpec` already spliced a
       `Composite`, which carries its whole sub-ship inline in `param`. 436 of the 2191 corpus designs
@@ -1533,6 +1540,98 @@ Recorded as said, 2026-08-21. None of it is built.
   Worth a `corepox-econ-run.ts` reporting metal in/out, parts in/out and boss win rate per seed
   before any number is chosen. (`tools/corepox-econ.ts` already exists and its hit-rate column
   carries no information — do not read it as a baseline.)
+
+#### Second pass (Tom, 2026-08-21): put the economy in the build
+
+- **A factory component**: makes parts in exchange for metal, +1 part per jump.
+- **Energy is used to place parts.**
+- **Energy generators, or batteries to store energy.**
+- **Energy + metal for repairs.**
+- **Hard missions like rescue need to reward artifacts to be worth doing.**
+
+**This is a better shape than the one above.** The previous pass put the economy in the wallet —
+two currencies, upkeep, a shop. These four put it in the *hull*: a factory, a generator and a
+battery are components, so they take cells, take mass, and compete with guns for the same space.
+That makes the economy a build problem, which is where this game already lives, and it means
+"pilot an economy" is not a second screen — it is the ship.
+
+The costs, one at a time.
+
+- **The factory is the missing sink, and it is a better one than a shop.** A run earns 515 scrap
+  it cannot spend and ~6 parts it desperately needs (measured above); a factory converts the
+  first into the second at a rate you control, and it does it *without* the run having to route
+  through a SHOP node. It also doubles part income — 6 jumps at +1 is the same order as the whole
+  salvage curve.
+- **But on the current board the factory is not a route decision.** `genRun` gives every path the
+  same length: seven columns, one node taken per column. A per-jump yield therefore pays the same
+  whatever route is chosen, so it changes what you build and not where you go. To make it the
+  map-turn mechanic Tom is after, one of these has to change: paths differ in length, or the
+  factory's yield depends on the node it jumps *from* (a DEBRIS or MINING field feeds it, a
+  RESCUE does not). The second is better — it makes route and loadout argue with each other,
+  which was the stated goal.
+- **What the factory produces has to be chosen at the last refit, not rolled.** A random output
+  is a slot machine, and a free choice on arrival is a shop with a delay. A part named when you
+  commit and delivered on arrival is a commitment device, which is the same thing Tom wants from
+  expensive refitting, obtained from a component instead of from a fee.
+- **The factory needs a rule against making factories**, or the first purchase every run is a
+  second factory and the curve is exponential. Cheapest version: a factory cannot produce its
+  own type.
+- **Energy-for-placement is better than metal-for-placement**, which is what the section above
+  proposed. It makes refitting compete with *moving and fighting* rather than with buying, so a
+  player who rebuilds heavily arrives depleted — the cost lands where the player can feel it.
+- **Energy needs a second consumer or it is just slower metal.** Placement alone makes it a
+  one-purpose token. Repairs are one (below). The jump itself is the other, and there is a
+  component already waiting for that job — see Hyperdrive below.
+- **Generator and battery are the stock/flow split, relocated into components**, and that is the
+  right place for it. Metal stays the only banked number; energy is produced per jump by
+  generators and held only to the capacity of the batteries fitted. The consequence is the one
+  Tom asked for, and it falls out rather than being imposed: **a hull with no battery cannot save
+  up for a big refit, so it must refit little and often.** A hull that wants one big rebuild has
+  to carry the capacity to afford it, in cells, all run.
+- **Placement must be free onto a destroyed slot**, for the same reason as before: `survivingHull`
+  already deletes what was shot off, so a player who is losing would otherwise pay the fee *and*
+  the parts. A player rebuilt down to nothing with no energy is a soft-lock.
+- **Repair may not need to exist as a third mechanic.** Under factory-plus-placement, replacing a
+  destroyed part is already priced: metal to make it, energy to fit it. What is *not* covered is a
+  part that survived damaged — components carry `hp` and now `maxHp`, so topping one up is a real
+  and distinct verb. Recommendation: repair restores hp on surviving parts and costs energy only;
+  replacement is the factory loop and costs metal and energy. Two verbs, two prices, no overlap —
+  rather than a repair system that duplicates the factory.
+- **Every economy component is a slot not spent on a gun, and the ship is already too small.**
+  The ceiling measured above is 20 parts against a 29-part boss. Adding a factory, a generator
+  and a battery spends three of those twenty before a shot is fired, so the economy makes the
+  boss problem worse before it makes it better. The factory pays back — one slot returns about
+  six parts over a full run, so it is a clear buy on jump 1 and a clear loss on jump 5, which is
+  a real decision curve. The generator and battery only *enable* spending, so their payback is
+  indirect and they are the ones most likely to be a trap. Worth measuring before drawing them.
+
+**Hard missions and artifacts.**
+
+- **Rescue is not a hard mission. It is the easiest node in the game.** `ENCOUNTER_RULES` gives
+  `race`, `debris` and `rescue` `battle: false`, and `runEncounter` returns
+  `{verdict: "win"}` for any node that is not a battle. All three are a click that pays 35–50.
+  Attaching artifacts to "hard missions" is the right instinct, but the difficulty has to be
+  built before the reward means anything — otherwise it is a free artifact per run.
+- **INFILTRATE already advertises an artifact roll it does not do.** `NODE_KINDS.infiltrate.r2`
+  is `"+ artifact roll"` and `encounterSpoils` gives it the same price-weighted salvage roll as a
+  DUEL. Same promise-with-no-implementation pattern as the shop, in the same module.
+- **A run node minting artifacts bypasses every anti-farm rule the artifact design has.** The
+  ladder design (§ Progression) is deliberately attack-side, with four rules — no repeat attack
+  inside 24h, a strength threshold on the target, a combinatorial-richness threshold on the source
+  island, and uniform indexed sampling — precisely so a shape cannot be farmed. An encounter is a
+  pure function of `(camp.seed, node.id)`, which is exactly what makes a good seed replayable.
+  Two ways out: run-minted artifacts live and die inside the run, contributing to that run's power
+  curve and never entering the persistent inventory; or a run-minted artifact carries a proof of
+  the run and is subject to the same thresholds. The first is much cheaper and is probably right
+  for a single-player curve.
+
+**Hyperdrive is the jump component and it is currently inert.** `TYPES.Hyperdrive` is 14 tiles,
+hp 200, one `in` port, recovered from the real prefab and confirmed against the sprite to within
+0.1 of a tile — and there is **no `case "Hyperdrive"` in the component tick**. It does nothing, in
+the largest footprint in the game, in 57 corpus ships. If the jump costs energy, this is the part
+that spends it, and that is the one economy component that does not have to be invented or drawn.
+It also gives the map turn a component to argue about: 14 cells is an enormous commitment, so a
+cheaper jump has to be worth it.
 
 #### Against the 2026-08-19 guard
 
