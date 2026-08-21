@@ -390,7 +390,12 @@ Updated 2026-08-21. Ticked only when verified, not when written.
         points coincide, and the drawn point is ±1/6. Nothing physical reads the drawn one.
 - [x] **The board shows joints**, 2026-08-21, from the same doc (option 5c). A joint belongs to the
       PAIR, so it is drawn once, straddling the cell edge with half in each cell, and only where two
-      placed parts agree; a part on its own shows none. It is drawn in build mode only.
+      parts agree; a part on its own shows none. Every ship, and in battle as well as in build --
+      Tom: "I can't see the new joints being drawn during battle", because the first version sat
+      behind the `editable()` gate. It is drawn off `s.live`, so a joint vanishes the moment either
+      part it binds is destroyed, which is the ship coming apart shown a frame before the split
+      does it. It costs nothing measurable: `corepox-frame-budget.ts` on Aim reads **119.7/s before
+      and 119.8/s after**, p50 raf gap 8.3 ms both ways.
 
       This makes visible the rule that decides whether a ship is one body — until now nothing on the
       board said anything about it, and a player could bolt a Radar to the side of a core, see them
