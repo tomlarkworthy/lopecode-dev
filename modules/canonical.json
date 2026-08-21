@@ -140,6 +140,14 @@
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null
   },
+  "@tomlarkworthy/corepox-duel": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-duel-encounter": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
   "@tomlarkworthy/corepox-engine": {
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null

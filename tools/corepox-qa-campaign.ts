@@ -53,7 +53,18 @@ const btn = async (re: RegExp) => {
 const byTitle = async (t: string) => {
   const l = p.locator(`button[title="${t}"]`).first();
   if (!(await l.count())) return false;
-  await l.click(); await p.waitForTimeout(200); return true;
+  // A gate that dies on a 30s Playwright timeout says "not visible" and nothing
+  // about WHAT is covering it. Leave the frame behind.
+  try { await l.click({timeout: 8000}); }
+  catch (e) {
+    const shot = `tools/screenshots/qa-campaign-${t}-blocked.png`;
+    await p.screenshot({path: shot});
+    console.log(`      ${t} BUTTON NOT CLICKABLE -> ${shot}`);
+    console.log(`      open buttons: ` + JSON.stringify(
+      (await p.locator("button:visible").allTextContents()).slice(0, 24)));
+    return false;
+  }
+  await p.waitForTimeout(200); return true;
 };
 // The shipped flow, and now the port's: wrench -> CHOOSE BUILD OPTION -> a row ->
 // ghosts on the board -> tap one. There is no parts tray to click any more, which
@@ -208,8 +219,12 @@ for (let i = 0; i < MISSIONS.length; i++) {
   await byTitle("play");
   // poll for the verdict instead of guessing a wall-clock: the browser steps at
   // rAF speed, so a fixed wait either wastes minutes or clips a slow mission
+  // 160 x 500ms = 80s of wall clock. It was 40s, which was enough while every
+  // reference solution won inside ~10s of simulated time; TwinTurrets' 2026-08-21
+  // re-solve takes 28.5s and the browser runs the sim at roughly wall speed, so a
+  // real win was being read as no verdict at all.
   let txt = "";
-  for (let k = 0; k < 80; k++) {
+  for (let k = 0; k < 160; k++) {
     txt = await p.evaluate(() => document.body.innerText);
     if (/VICTORY|DEFEAT|OUT OF TIME/i.test(txt)) break;
     await p.waitForTimeout(500);
@@ -219,6 +234,22 @@ for (let i = 0; i < MISSIONS.length; i++) {
     `  built ${(sol.components ?? []).length - missing.length}/${(sol.components ?? []).length} parts` +
     ` ${(sol.connections ?? []).length - missW.length}/${(sol.connections ?? []).length} wires`);
   if (!won || missing.length || missW.length) {
+    const verdict = (txt.match(/VICTORY|DEFEAT|OUT OF TIME/i) ?? ["no verdict in 80s"])[0];
+    const state = await p.evaluate((q: any) => {
+      const S = q.session();
+      const sum = (t: string) => S.world.ships.filter((s: any) => s.team === t)
+        .map((s: any) => s.live.length).join("+") || "0";
+      const dead = S.world.ships.filter((s: any) => s.team === "player")
+        .flatMap((s: any) => s.comps.filter((c: any) => c.hp <= 0)
+          .map((c: any) => `${c.type}@${c.px},${c.py}`));
+      return `t=${S.world.t.toFixed(1)}s player ${sum("player")} enemy ${sum("enemy")}` +
+             (dead.length ? ` lost ${dead.join(",")}` : "");
+    }, await qa());
+    console.log(`      VERDICT ${verdict}  ${state}`);
+    console.log(`      BUILT ORDER ${(built.ship.components ?? []).map(full).join(" ")}`);
+    console.log(`      SPEC  ORDER ${(sol.components ?? []).map(full).join(" ")}`);
+    console.log(`      BUILT WIRES ${(built.ship.connections ?? []).map((w: any) => ckey(norm(w))).join(" ")}`);
+    console.log(`      SPEC  WIRES ${(sol.connections ?? []).map((w: any) => ckey(norm(w))).join(" ")}`);
     for (const s of steps) console.log(`      · ${s}`);
     if (missing.length) console.log(`      MISSING PARTS ${missing.join(" ")}`);
     if (missW.length) console.log(`      MISSING WIRES ${missW.join(" ")}`);

@@ -344,9 +344,12 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       `corepox-orb-damage-probe.ts` asserted the centre-measured reach that had to go, and now
       asserts a touching cell at exactly 1.0 is damaged.
 
-      `data/corepox/canon.json` was re-selected on the new physics. It is stable: **12 of the 14**
-      testers keep their bucket and their place, `brawler-10p → brawler-6p` and
-      `rammer-11p → rammer-12p` are the only swaps, and `corepox-canon.ts --check` is 14/14.
+      `data/corepox/canon.json` was re-selected on the new physics, and solid footprints moved it
+      more than the earlier draft of this entry claimed: **9 of the 14** ships survive the
+      re-selection. Every bucket keeps its slot count; five members change --
+      `brawler-18p → brawler-6p`, `gunship-13p → gunship-19p`, `rammer-7p → rammer-6p`,
+      `shedder-19p → shedder-18p`, `shedder-6p → shedder-10p` -- and `rammer-11p` keeps its place
+      in the bucket while moving within it. `corepox-canon.ts --check` is 14/14 on the new file.
 - [x] **`BEAM_R` 0.75 → 0.25**, 2026-08-21, same day, on Tom's second report: "maybe the radar
       geometry is off, FD96E630 self intersects with its own radar and dies, but that seems like a
       collision bounds bug". It is not the Radar's bounds. That ship's Lazer at `[3,1]` fires up

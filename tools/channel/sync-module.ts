@@ -113,22 +113,100 @@ function expandTargets(rawTargets: string[], sourcePath: string): string[] {
   return out;
 }
 
+/**
+ * Top-level `<script id=…>` spans.
+ *
+ * `@tomlarkworthy/exporter-3` writes notebooks, so its own source contains literal
+ * script openers — 10 of them in `lopecode-newsletter-002` (`bootconf.json`,
+ * `networking_script`, `streaming_sentinel`, `${ id }`, …) plus a second
+ * `<!-- Bootloader -->`. A regex or an `indexOf`/`lastIndexOf` finds those phantoms
+ * and writes *inside* exporter-3's block, which parses as a syntax error and takes
+ * every consumer of the module down with it.
+ *
+ * Scanning is safe because a block that emits script tags has to escape its own
+ * closer (an unescaped `</script>` would have ended the block in the HTML parser),
+ * so the first `</script>` after an opener really is that block's end. Stepping to
+ * it skips the phantoms.
+ */
+export function blockSpans(html: string): { id: string; start: number; end: number }[] {
+  const spans: { id: string; start: number; end: number }[] = [];
+  const CLOSE = "</script>";
+  let i = 0;
+  for (;;) {
+    const at = html.indexOf("<script", i);
+    if (at === -1) return spans;
+    const gt = html.indexOf(">", at);
+    if (gt === -1) return spans;
+    const close = html.indexOf(CLOSE, gt);
+    const end = close === -1 ? html.length : close + CLOSE.length;
+    const m = /^<script\s+id="([^"]+)"/.exec(html.slice(at, gt + 1));
+    if (m) spans.push({ id: m[1], start: at, end });
+    i = end;
+  }
+}
+
+function findSpan(html: string, id: string) {
+  return blockSpans(html).find((s) => s.id === id) ?? null;
+}
+
+/** True if `at` falls inside some block's source rather than the document body. */
+function insideABlock(html: string, at: number): boolean {
+  return blockSpans(html).some((s) => at > s.start && at < s.end);
+}
+
+/** Write guard for the whole phantom class.
+ *
+ * Must be differential: several modules legitimately carry `<script id="…">` in their
+ * own source (claude-code-pairing has one at +74586, exporter-3 has ten), so "contains
+ * an opener" is the normal state and only an *increase* is the bug. The incoming block
+ * may carry its own, so the expectation is prev + whatever it brings. Checked before
+ * the write, so a detected splice never reaches disk.
+ */
+function nestedOpeners(html: string): number {
+  let n = 0;
+  for (const s of blockSpans(html)) {
+    n += (html.slice(s.start + 1, s.end).match(/<script id="/g) ?? []).length;
+  }
+  return n;
+}
+
+/**
+ * Structural, not count-based. A first version compared nested-opener counts with a
+ * budget for whatever the incoming block carried — and markdown-wiki's doc attachments
+ * carry openers of their own, so a genuine splice hid inside the allowance and cost
+ * `maintaining-…md` its place in the DOM. What actually matters is that no block which
+ * was top-level stops being top-level: that is exactly "something swallowed it", and it
+ * is what the browser's parser will do too.
+ */
+function guardedWrite(
+  path: string, prev: string, next: string, incoming: string, what: string
+): void {
+  const was = new Set(blockSpans(prev).map((s) => s.id));
+  const now = new Set(blockSpans(next).map((s) => s.id));
+  const lost = [...was].filter((id) => !now.has(id));
+  if (lost.length) {
+    throw new Error(
+      `${what} would swallow ${lost.length} top-level block(s) in ${path}: ` +
+      `${lost.slice(0, 5).join(", ")}. Refusing to write — see blockSpans.`
+    );
+  }
+  if (nestedOpeners(next) > nestedOpeners(prev) + (incoming.match(/<script id="/g) ?? []).length) {
+    throw new Error(`${what} would nest a block inside another in ${path}. Refusing to write.`);
+  }
+  writeFileSync(path, next);
+}
+
 export function extractModuleScriptTag(html: string, moduleId: string): string | null {
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
-  );
-  const m = html.match(pattern);
-  return m ? m[0] : null;
+  const span = findSpan(html, moduleId);
+  return span ? html.slice(span.start, span.end) : null;
 }
 
 export function extractModuleContent(html: string, moduleId: string): string | null {
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>([\\s\\S]*?)</script>`
-  );
-  const m = html.match(pattern);
-  return m ? m[1].replace(/^\n/, "").replace(/\n$/, "") : null;
+  const span = findSpan(html, moduleId);
+  if (!span) return null;
+  const block = html.slice(span.start, span.end);
+  const body = block.slice(block.indexOf(">") + 1, block.lastIndexOf("</script>"));
+  return body.replace(/^\n/, "").replace(/\n$/, "");
 }
 
 /**
@@ -166,30 +244,35 @@ export function inject(
 ): InjectResult {
   let html = readFileSync(targetPath, "utf8");
 
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const scriptPattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
-  );
-  const existing = html.match(scriptPattern);
+  const span = findSpan(html, moduleId);
 
   let next: string;
   let kind: InjectResult;
-  if (existing) {
-    if (existing[0] === scriptBlock) return "unchanged";
-    const idx = html.indexOf(existing[0]);
-    next = html.slice(0, idx) + scriptBlock + html.slice(idx + existing[0].length);
+  if (span) {
+    const existing = html.slice(span.start, span.end);
+    if (existing === scriptBlock) return "unchanged";
+    next = html.slice(0, span.start) + scriptBlock + html.slice(span.end);
     kind = "updated";
   } else {
     if (!insertOk) return "skipped";
-    const bootconfMarker = "<!-- Bootloader -->";
-    const bootconfIdx = html.lastIndexOf(bootconfMarker);
+    // First marker OUTSIDE any block: exporter-3's source carries a second one,
+    // and the lastIndexOf this used to do selected that phantom, splicing the
+    // insert into the middle of exporter-3. See blockSpans.
+    const marker = "<!-- Bootloader -->";
+    let bootconfIdx = -1;
+    for (let from = 0; ; ) {
+      const at = html.indexOf(marker, from);
+      if (at === -1) break;
+      if (!insideABlock(html, at)) { bootconfIdx = at; break; }
+      from = at + marker.length;
+    }
     if (bootconfIdx === -1) {
-      throw new Error("Could not find '<!-- Bootloader -->' marker in HTML");
+      throw new Error("Could not find a document-level '<!-- Bootloader -->' marker in HTML");
     }
     next = html.slice(0, bootconfIdx) + scriptBlock + "\n\n" + html.slice(bootconfIdx);
     kind = "inserted";
   }
-  writeFileSync(targetPath, next);
+  guardedWrite(targetPath, html, next, scriptBlock, `inject(${moduleId})`);
   return kind;
 }
 
@@ -376,7 +459,7 @@ function attachmentsOf(src: string): string[] {
  *  only module blocks (JS mime, <=2 path segments), so it cannot see attachments —
  *  using it here made every attachment look absent. */
 function allIds(html: string): string[] {
-  return [...html.matchAll(/<script\s+id="([^"]+)"/g)].map((m) => m[1]);
+  return blockSpans(html).map((s) => s.id);
 }
 
 /** Every block id the canonical owns by prefix — its attachments plus any content
@@ -392,7 +475,8 @@ function insertBefore(targetPath: string, moduleId: string, block: string): bool
   const anchor = extractModuleScriptTag(html, moduleId);
   if (!anchor) return false;
   const at = html.indexOf(anchor);
-  writeFileSync(targetPath, html.slice(0, at) + block + "\n\n" + html.slice(at));
+  const next = html.slice(0, at) + block + "\n\n" + html.slice(at);
+  guardedWrite(targetPath, html, next, block, `insertBefore(${moduleId})`);
   return true;
 }
 
@@ -406,9 +490,8 @@ function idsIn(path: string): Set<string> {
 }
 
 function rawBlock(html: string, id: string): string | null {
-  const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const m = html.match(new RegExp(`<script\\s+id="${esc}"[^>]*>[\\s\\S]*?</script>`));
-  return m ? m[0] : null;
+  const span = findSpan(html, id);
+  return span ? html.slice(span.start, span.end) : null;
 }
 
 export type ResyncOpts = {

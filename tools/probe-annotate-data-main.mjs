@@ -4,7 +4,7 @@
 import { chromium } from 'playwright';
 import { resolve } from 'path';
 
-const file = resolve(process.argv[2] || 'lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve(process.argv[2] || 'lopecode/notebooks/quick_start.html');
 const DATA = '@tomlarkworthy/annotate-data';
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();

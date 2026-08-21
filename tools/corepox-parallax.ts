@@ -5,7 +5,7 @@
 // LazerHardpoint composite the mission awards does the same -- so the design only
 // works dead ahead. This measures how far off axis it survives.
 import {importNotebookModule} from "./notebook-import.ts";
-const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+const m = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const {Ship, World, DT, geom, UNITS}: any = await m.values(["Ship","World","DT","geom","UNITS"]);
 const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
 const MISSIONS: any[] = await mis.value("MISSIONS");

@@ -180,7 +180,7 @@ Three actions:
 | `export_notebook` | Calls `exportToHTML()`, extracts `.source`, overwrites the notebook's HTML file on disk. |
 | `fork_notebook` | Same call, but writes to a sibling file (`notebook--TIMESTAMP.html`). Useful for checkpoints. |
 
-At the time of this draft, `tools/channel/lopecode-channel.ts` references "exporter-2" in lines 153, 213, 560 — three docstrings that will need updating once the v3 cutover happens. The handler code itself imports whichever version the live notebook has loaded; it is not pinned to a specific exporter version.
+At the time of this draft, `lopecode-plugin/src/lopecode-channel.ts` references "exporter-2" in lines 153, 213, 560 — three docstrings that will need updating once the v3 cutover happens. The handler code itself imports whichever version the live notebook has loaded; it is not pinned to a specific exporter version.
 
 ## Cross-cutting gotchas
 
@@ -206,7 +206,7 @@ This pulls the module's published version from Observable, which uses whatever e
 
 1. **Promote staging to published.** Copy `lopebooks/notebooks/@tomlarkworthy_exporter-3.html` to `lopecode/notebooks/...`, or re-jumpgate from Observable. This brings `exportModuleJS` into the published copy.
 2. **Migrate dependent notebooks.** On Observable, edit each notebook's import of `@tomlarkworthy/exporter-2` → `@tomlarkworthy/exporter-3`. Then `bulk-jumpgate` to re-export them. This produces large diffs (per the format-diff section above).
-3. **Update the channel server docstrings** (`tools/channel/lopecode-channel.ts` lines 153, 213, 560).
+3. **Update the channel server docstrings** (`lopecode-plugin/src/lopecode-channel.ts` lines 153, 213, 560).
 4. **Update knowledge-doc cross-references** (this doc, plus `live-collaboration-with-claude-code-pairing.md` lines 168, 187, 197, 325, 355, 427).
 5. **Verify per-notebook `*.json` specs** regenerate with `@tomlarkworthy/exporter-3` rather than `-2` in their `modules` keys (the structured kb's `kb_contains_module` view will then surface the swap automatically).
 
@@ -229,7 +229,7 @@ Primary (live source code):
 - `lopecode-dev/{lopecode,lopebooks}/notebooks/@*.json` — per-notebook specs; `modules` keys confirm exporter-2 is currently load-bearing (queryable via `kb_contains_module`)
 - `lopecode-dev/knowledge/maintaining-and-updating-lopecode-and-lopebook-content-repositories.md:160` — exporter v1 retirement
 - `lopecode-dev/knowledge/bulk-exporting-lopebooks.md:49` — references "exporter v1"
-- `lopecode-dev/tools/channel/lopecode-channel.ts:153,213,560` — pairing-channel docstrings still referencing v2
+- `lopecode-dev/lopecode-plugin/src/lopecode-channel.ts:153,213,560` — pairing-channel docstrings still referencing v2
 
 Secondary (mempalace session pointers, under `~/.claude/projects/-Users-tom-larkworthy-dev-lopecode-dev/`):
 - `5ebfbfae-…jsonl` — Observable-compatibility debugging session

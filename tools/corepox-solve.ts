@@ -2,7 +2,7 @@
 // A hand-picked "reference solution" only proves I can imagine one; this proves
 // the level is solvable with what the level actually hands the player.
 import {importNotebookModule} from "./notebook-import.ts";
-const eng = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+const eng = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const {Ship, World, DT, geom}: any = await eng.values(["Ship","World","DT","geom"]);
 const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
 const MISSIONS: any[] = await mis.value("MISSIONS");

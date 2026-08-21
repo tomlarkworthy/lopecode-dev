@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
 
-const file = resolve(process.argv[2] || 'lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve(process.argv[2] || 'lopecode/notebooks/quick_start.html');
 
 // The exporter's own source carries a TEMPLATE bootconf, so take the last block that parses.
 const readBootconf = (html) => {

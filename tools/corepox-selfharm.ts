@@ -2,7 +2,7 @@
 // shrapnel hit any component except the emitter, so a core behind a nozzle or a
 // bomb inside the hull is a self-inflicted loss with no enemy present.
 import {importNotebookModule} from "./notebook-import.ts";
-const m = await importNotebookModule("modules/@tomlarkworthy/corepox-engine.js");
+const m = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const Ship:any=await m.value("Ship"); const World:any=await m.value("World");
 const load:any=await m.value("loadShipSpec");
 const fs=await import("node:fs");

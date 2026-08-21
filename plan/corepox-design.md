@@ -276,7 +276,10 @@ You offered to change the game entirely. Two things the measurements say to keep
 3. **Impact damage** — done, and it did not exist before in either codebase. The original left
    `component.damage(5)` with a literal `// TODO force based impact damage` (`Ship.cs:586`), and
    my engine had no ship-ship collision at all, which is why the `rammer` archetype could not ram.
-   Now resolved as an impulse with damage proportional to normal impulse (`World.collide()`).
+   Now resolved as an impulse (`World.collide()`). Damage-proportional-to-impulse was itself
+   dropped on 2026-08-20 for the original's flat 5 per contact per tick; and on 2026-08-21 the
+   test moved from anchors to CELLS, with the impulse applied once per ship pair rather than once
+   per component pair. See "Footprints are solid" in `plan/corepox-tasks.md`.
 4. **Renderer does not show splits.** `battlefield()` builds ship nodes once at construction, so
    bodies created mid-match by `splitDetached()` are simulated but invisible. Known, not fixed.
 5. Hinge joints on top of the existing `joints` model.
@@ -1392,6 +1395,45 @@ so the sprite's own size is not recoverable and the numbers are consistent under
 `BEAM_R = 0.75` tiles is therefore **chosen, not measured**, and is commented as such in `UNITS`.
 It opens the window to ±25°, which is what makes the wire the mission teaches actually work. If the
 collider size is ever recovered, this is the number to check first.
+
+*Re-measured 2026-08-21:* the window is **±10°**, not ±25° — 10° destroys at both 8 and 16 tiles,
+15° survives. The table above (10° surviving) is older still, so the window has moved twice and
+neither move was recorded. It did **not** move when footprints became solid: `corepox-parallax.ts`
+prints hit-for-hit identical rows against the engine before and after that change, which is why
+`BEAM_R` was left alone there. The ±25° figure has no measurement behind it that survives.
+
+**`BEAM_R` came down to 0.25 on 2026-08-21, and the argument above is what was wrong with it.**
+The window is real — swept on Aim's own hull, it is ±10° at 0.75, ±5° at 0.5, dead-ahead-only at
+0.25 and 0.1:
+
+```
+BEAM_R   0.75   0.5    0.25   0.1
+window   ±10°   ±5°    0°     0°
+```
+
+But `corepox-parallax.ts` holds the target **still**, and Aim's rocket does not hold still — it
+closes head on. Playing the actual mission at each width, Aim wins at every one of them: 26.8s,
+26.8s, 27.2s, 27.6s, and 27.6s at zero. The level the width was chosen for does not need the width.
+
+What the width did do was damage whatever sat one tile to the *side* of a barrel, because
+`HIT_R + BEAM_R = 1.25`. Tom, on corpus ship FD96E630: "self intersects with its own radar and
+dies, but that seems like a collision bounds bug". It was not the Radar's bounds — that ship's
+Lazer at `[3,1]` fires up the `x = 3` column and the Radar's cells at `x = 2` are 1.0 tile away.
+Three of its components were losing 5hp/s to its own guns; at 0.25 one is, and that one is a Lazer
+firing straight up its own turret's column, which is the ship's design and not the engine's.
+
+So the constant is now bracketed by two things the game has to do rather than by one thing it turns
+out not to need:
+
+| constraint | source | bound |
+|---|---|---|
+| a beam must not hit the component one tile to the side | FD96E630 | `< 0.5` |
+| TwinTurrets must stay solvable with the parts it hands you | `corepox-solve.ts`: 0 of 140 builds win at 0, 1 of 140 at 0.25, the same 1 at 0.4 and at 0.75 | `> ~0.1` |
+
+0.25 is the bottom of the bracket. Still fitted, still the first number to check if the collider is
+ever recovered — but the prefab does argue small: `shaft.localScale = (100, 1, 1)` puts the tail at
+one world unit, so the sprite is 0.01 units long at unit scale, and its **y is not scaled at all**.
+
 
 Two consequences fall out and both are authentic. `CircleSpawn` carries `angle_min_deg` and
 `angle_max_deg` as scene fields — a fixed turret only covers its own half-plane, so the spawn arc

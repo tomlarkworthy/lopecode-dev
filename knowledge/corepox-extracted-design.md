@@ -973,7 +973,7 @@ wrong, and the reason is the same defect one level up: measuring from a single p
   already `0.707` out stops **0.36 tiles short of the Orb's own edge**. That was survivable only
   while hulls could interpenetrate. Once every cell blocks, two ships come to rest at a cell
   separation of 1.0 and a centre-measured Orb reaches nothing at all: an Orb driven into a Brain
-  at 20 tiles/s left it on full health (`tools/scratch-ram.ts`, and it is why FollowCourse --
+  at 20 tiles/s left it on full health (`tools/corepox-ram.ts`, and it is why FollowCourse --
   which is won by ramming an Orb drone into a core -- went from a 10s win to a 60s timeout). The
   reach is now measured from each of the Orb's four **cells**, giving 1.067 against contact at
   1.0. That is what "touching" means, and `MeleeFn` is `damageArea.GetContacts`, i.e. touching.
