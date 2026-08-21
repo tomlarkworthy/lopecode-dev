@@ -350,6 +350,28 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       `brawler-18p → brawler-6p`, `gunship-13p → gunship-19p`, `rammer-7p → rammer-6p`,
       `shedder-19p → shedder-18p`, `shedder-6p → shedder-10p` -- and `rammer-11p` keeps its place
       in the bucket while moving within it. `corepox-canon.ts --check` is 14/14 on the new file.
+- [x] **The refit bench shows what you are about to fight, and its LAUNCH is above the board**,
+      2026-08-21. Tom: "I've made the ship but how do I start the mission in a duel encounter. Also
+      I would expect to see the enemy during the build stage of the encounter." — then, having
+      found it: "ok I found the button I just needed to scroll, but combining the enemy with the
+      dual is still relevant".
+
+      LAUNCH was the last child of the bench, under the ship editor, and the editor's board is as
+      tall as the layer it opens in — so on the map the only control that ends the phase was off
+      the bottom of the screen with nothing to say it was there. It now sits on the HOLD row, top
+      right, with `revert` beside it. Reproduced and then verified with
+      `tools/corepox-encounter-shot.ts`, which drives the map the way a player does (select a
+      reachable node, JUMP, wait for the bench).
+
+      The opponent is drawn on the bench from the same spec the battle will load, via the board's
+      own `shipNode`, so it wears the team tint it will wear in the fight. This is safe to show a
+      phase early because `encounterFoe` is a pure function of `(node, camp.seed)` and **not** of
+      your hull — refitting between the preview and the battle cannot change the answer.
+
+      One bug on the way, worth the note because it is silent: `loadShipSpec` returns `{spec, …}`
+      and handing that wrapper to `new Ship` builds a hull with **no components** — no error, an
+      empty `<svg>` with a viewBox of `"Infinity Infinity 1 1"`. The probe that printed the viewBox
+      is what found it; the panel looked merely empty.
 - [x] **A hit shows**, 2026-08-21. Tom: "One missing feature from the port is a component should
       flash when damaged, so it's clear it is happening." `ShipComponent.damage()` ends with
       `StartCoroutine("displayDamage")`, and `displayDamage` is six lines that do **two** things the
@@ -736,6 +758,39 @@ One of these leans on structure that already exists:
       The pilot only ever commands engines that are **on the Brain's own island, powered, and unwired**
       (Tom's rule, 2026-08-20: "it should not be able to control disconnected components, only its own
       island"). Islands are read from `Ship.islands()`, so wiring an engine is what hands it to a program.
+- [x] **A selection menu, because the shipped board has no modes** (Tom, 2026-08-21 — "on DUEL
+      REFIT I am unable to access the component menu to make connections", the second report of the
+      same thing). The zoom fix below made the ports visible; it did not make them findable. The
+      interaction was still `shipEditor`'s: pick a MODE from a toolbar, then click. What Tom is
+      reaching for is the one corepox-game already documents at corepox-game.js:217 — "The shipped
+      board has no modes. It has a SELECTION, and the selection's menu says what can be done to it."
+
+      `shipEditor` gained a `select` mode carrying that: tap a part, its menu appears in the tray
+      as `Constant at 0,1 · rotate · wire → · <param> · remove`. `wire →` primes `wireFrom` from
+      that component's output and switches to connect, so wiring is one click to start and one to
+      land instead of finding an unlabelled dot first; when the wire lands it drops back to the
+      menu, because the component is still what the player is working on. The rotate and erase
+      spec edits are now written once and shared by the menu and the mode, so they cannot drift.
+
+      Added as a mode, not as a replacement — default stays `build`, so the shipyard and the lab do
+      not move. The refit bench opens in `select`.
+
+      `tools/corepox-bench-menu.ts` drives it without ever clicking a mode button, which is the
+      point of the test:
+
+      ```
+      the bench opens on the selection, not a mode        mode=select
+      tapping a part selects it                           {"px":0,"py":1}
+      its menu names it                                   Constant at 0,1
+      menu offers                                         rotate | wire → | remove
+      the wire is already primed                          wiring from 0,1 (out) — click an input
+      drops back to the menu when the wire lands          mode=select
+      rotate from the menu                                Engine@0,-1:up -> Engine@0,-1:right
+      remove from the menu                                3 -> 2 parts
+      ```
+
+      `tools/corepox-bench-drive.ts` still passes, so the mode bar is intact.
+
 - [x] **The refit bench framed the origin, not the hull** (Tom, 2026-08-21 — "I can't see to add
       connection or access the component menu at all"). Nothing was broken: modes switched, the
       wire logic ran, the parameter panel opened. The board was zoomed so far out that a 3-part
@@ -815,11 +870,13 @@ One of these leans on structure that already exists:
 
       **The map's posted reward is the reward paid.** `ENCOUNTER_RULES.scrap` and `NODE_KINDS.r1`
       are two files apart, so `tools/corepox-encounter-check.ts` parses the panel string and asserts
-      the number: duel 40, escort 65, infiltrate 90, race 50, debris 35, rescue 45, mining 120.
+      the number: duel 40, escort 65, infiltrate 90, race 50, debris 35, rescue 45. Mining posts no
+      number (updated 2026-08-21, below) and the check asserts that it does not.
 
       Limits, stated rather than stubbed: SHOP and REFIT resolve as a stop with no transaction, and
-      RACE / DEBRIS / RESCUE / MINING have no course, field, beacon or seam — `ENCOUNTER_RULES`
-      marks them `battle: false` instead of running a duel and calling it a race. A node that posts
+      RACE / DEBRIS / RESCUE have no course, field or beacon — `ENCOUNTER_RULES`
+      marks them `battle: false` instead of running a duel and calling it a race. (MINING was on
+      that list until 2026-08-21; it now runs.) A node that posts
       no reward now pays none (a SHOP was handing out a free part per visit).
 
       Foes come from the corpus by SIZE, not rating: difficulty is how much ship is pointed at you,
@@ -832,6 +889,81 @@ One of these leans on structure that already exists:
 
       Not done: the shop, the non-duel node types, and a way to spend scrap. Scrap accumulates and
       buys nothing yet.
+- [x] **`@tomlarkworthy/corepox-mining`: the seam** (Tom, 2026-08-21 — "let's do the mining
+      encounter next. Should be timed, with asteroids that split, and ore as parts inside it. free
+      parameters should be density and and volume of [rocks] and ore"). A MINING node on the map now
+      opens a field instead of resolving as a stop.
+
+      **A rock is a ship.** `rockSpec` random-walks a connected blob of `Armour` on team `rock` and
+      replaces some of its cells with real components. Nothing new was added to the engine: a rock
+      splits because `World.splitDetached()` already turns a hull cut in two into two hulls, and ore
+      comes loose the same way. That is also what makes ore *have to be dug out* rather than picked
+      up — a piece is collectable only when its body is down to at most 3 live cells with no `Armour`
+      left (`loosePiece`), so the plates around it are the cost.
+
+      Ore therefore cannot go anywhere. Two bugs, both from getting "buried" wrong:
+
+      ```
+      four-neighbour interior  ore grew the rock to find room; rockVolume 4 and 8 BOTH gave 107 parts
+      >=2 neighbours          rockVolume 4 -> 35 parts, 8 -> 72, 16 -> 141   (deepest cell first)
+      Armour in the ore list   "loose" is defined as no Armour left, so an Armour ore was uncollectable
+      ```
+
+      **Four free parameters**, and `rockHp` is the one that was not asked for. A `LaserTurret2`
+      fires once a second for 5 (`UNITS.BEAM_CYCLE`, `BEAM_DMG`), so a 100 hp plate is 20 seconds of
+      one gun: every armed mission ship collected nothing in 90 s (`tools/scratch/mine-ships.ts`).
+      Rock is softer than armour plate or a seam is not workable in the time on the clock.
+
+      **The bug that every other check passed through.** `minerCmd` handed `pilot` a POINT where
+      `pilot` wants an ANGLE (`cmd.face ?? ship.a`), so `geom.norm([x,y] - ship.a)` was NaN, the
+      allocator asked for no torque, and the miner drifted broadside firing forward:
+
+      ```
+      before   180 shots, 4 hits, 20 damage in 60s        rock hp 1265 -> 1265   scrap 0
+      after    same seed, same hull, face = bearing       rock hp 1265 ->  690   scrap 70
+               ore {"Constant":4,"Lazer":1,"Engine":1}
+      ```
+
+      Everything above it passed while the field paid nothing, so `tools/corepox-mining-check.ts`
+      now ends with the gate that would have failed: a hull that can cut brings scrap back, and —
+      the control — the same hull with nothing steering it brings none.
+
+      **`MINER`**, a starter rig, exists because the failure was legible and worth keeping. A
+      `LaserTurret2` clamps to ±90 of its mounting, so a hull with no free engine can only mine what
+      is already in front of it. `laserpost` sat for 60 s with its turret commanded to −138° and
+      pinned at the stop (`tools/scratch/mine-trace.ts`); of the mission ships only `spike`, which
+      rams, mined at all. Two unwired engines are what let the pilot turn.
+
+      Rocks are rejection-sampled apart. Two dropped on the same spot are in contact and `collide`
+      charges them 5 a tick for it, so a field that looked untouched had already shed a body before
+      the clock started — 9 rocks, 10 bodies at t=0.
+
+      **Mining pays the haul, not a posted number.** `applySpoils` takes an optional haul that
+      replaces the rolled spoils; without it the node paid the same 120 whether the seam was worked
+      or drifted past. `NODE_KINDS.mining.r1` is now "scrap = what you cut", and
+      `corepox-encounter-check.ts` asserts *both* directions: a `mine: true` node must post no
+      number, every other kind must post one that matches. `runEncounter` grew the same branch, so
+      the node played headless pays what the node played on screen pays — a check written against
+      the old stop-resolving path would have been vacuous.
+
+      Verified in the browser through the map (seed 1, galaxy 2): JUMP into MINING → refit bench →
+      60 s field in the layer → spoils → "back to the map ▶" with the marker on 1/7 jumps and the
+      node struck through.
+
+      **A preflight hole this opened, now closed.** Adding a `miningView` parameter to
+      `encounterView` without adding its input shifted every later argument by one slot: `htl`
+      received `encCss`, a string, and the cell died with "htl.html is not a function" — with **0
+      preflight findings**. `unused-dep` and `undeclared-ref` both stay silent on a pure shift,
+      because each displaced dep still lands on a parameter the body uses and the inserted name is
+      still in the parameter list. New `dep-mismatch` check: a parameter that holds *another of this
+      cell's own input names* is always a shift. A free rename is not (`(G, _) => G.input(_)` names
+      `Generators` G in 204 cells here), so only the permutation case fires. 9 findings on the
+      reintroduced bug, **0 across all 233 notebooks** in both content repos.
+
+      Not done: the field has no quota and no hazard, `MINING_ORE` prices are invented, and the
+      `MINER` rig is not offered anywhere — the starting `wiredCore` cannot be steered (its engine
+      is driven by its own wire) and so mines nothing until the player refits, which is the intended
+      loop but is taught by nothing.
 - [x] **Relic registry: a design may NAME a prefab instead of carrying it** (Tom, 2026-08-20 —
       "so we need a relic registry as well for resolving those"). `loadShipSpec` already spliced a
       `Composite`, which carries its whole sub-ship inline in `param`. 436 of the 2191 corpus designs
@@ -1104,7 +1236,8 @@ Verbs:
 - [ ] **Duel** — corpus ship, tiered by measured strength (`tools/corepox-tourney.ts`)
 - [ ] **Escort** — keep a moving freighter alive; the enemy wants something that is not you.
       `defend` objectives exist and were fixed once already (they read as constraints, not goals)
-- [ ] **Mining** — ore against a clock. No enemy, so it is where heat can be taught before it kills
+- [x] **Mining** — ore against a clock (built 2026-08-21, above). No enemy, so it is where heat
+      can be taught before it kills; heat is still not built
 - [ ] **Debris field** — traverse, environment damage, no enemy. Tests the pilot solver alone.
       `FollowCourse` is the closest recovered mission and has no campaign slot
 - [ ] **Race** — course + clock. The one node where mass is a pure liability, which is the only
