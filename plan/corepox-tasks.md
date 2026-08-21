@@ -778,6 +778,30 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       100% of wins; gunBoat still holds 80° of aim error and 8% inside the fire arc). The mining
       gate itself was left alone — it is a peer's tool and they have the finding.
 
+      **The pin makes it repeat; it does not make it pass.** The peer pinned
+      `World.rng = seedRng(20260821)` and got three byte-identical 4/5 runs. Sweeping the pin
+      alone — their tool copied to `tools/scratch`, one `sed` on the seed literal, nothing else
+      changed — the verdict moves with the integer:
+
+      ```
+      rng 20260821  4/5 seeds  PASS      <- the pinned one
+      rng 1  5/5 PASS   rng 2  4/5 PASS   rng 3  4/5 PASS   rng 4  3/5 PASS
+      rng 5  5/5 PASS   rng 6  4/5 PASS   rng 7  3/5 FAIL
+      ```
+
+      rng 7 clears `paid >= 3` and fails the line after it:
+
+      ```
+        ok  most fields pay                                    3/5 seeds
+      FAIL  and the haul is several pieces, not a lucky one    4 pieces, 120 scrap
+      ```
+
+      Both bars sit inside the distribution rather than below it, so a different pin would have
+      given a permanently red gate on unchanged code — and the natural reading of that is "the
+      last change broke mining". A seeded single-draw gate is repeatable and still arbitrary; the
+      verdict has to come from an aggregate over several pins (median, or k of n) if it is to mean
+      anything. Suggested to the peer, not imposed — it is their tool.
+
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
       Gate is `tools/corepox-play-missions.ts` (exits non-zero otherwise). Was 5/9 and 1/9
