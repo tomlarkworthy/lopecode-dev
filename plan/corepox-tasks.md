@@ -651,6 +651,52 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
       20s wall (corepox-qa-aim.mjs). lopebooks@2949e16f
+- [x] **The two bench gates were testing furniture the player can no longer see** (2026-08-21).
+      Turn 9 of "Shipyard Concepts" retired the mode rail and the tray — "Refit is not a mode with
+      its own furniture — it is this board with the clock in HARD and the hold full" — and the
+      encounters moved onto the shared `shipBoard`. `corepox-bench-drive.ts` then failed honestly:
+
+      ```
+      TimeoutError: click: Timeout 30000ms exceeded.
+        - waiting for getByRole('button', { name: /^rotate$/ })
+      ```
+
+      `corepox-bench-menu.ts` did not fail, which was worse — it asserted on `q.mode() === "select"`
+      and on tray text, and `shipEditor`'s compat `qa.mode` answers `"select"` unconditionally.
+      A gate that passes by reading a constant is not a gate.
+
+      Both deleted, replaced by `tools/corepox-bench-board.ts`, which goes in through the MAP
+      (`[data-node="n1-1"]` → `[data-act="jump"]`) and drives the board's own gestures — a chip
+      dragged off the rail, a port dragged to a port, a disc scrubbed:
+
+      ```
+      the bench opens on a rail of parts                     5 rows
+      the rail is the campaign's hold, not a palette         Armour:4 Constant:2 Engine:2 Lazer:2 Radar:1
+      one drag off the rail places a part                    3 -> 4 parts
+      and the hold pays for it                               Armour 4 -> 3
+      the rail runs the Armour down to nothing               Constant:2 Engine:2 Lazer:2 Radar:1
+      and an exhausted row places nothing                    7 parts, unchanged
+      one drag from a port to a port makes a wire            1 -> 2
+      dragging a Constant's disc scrubs it                   100 -> 113
+      LAUNCH is inside the viewport                          y=485..525 of 1000
+      ```
+
+      Two things the rewrite had to learn. The destination of a drag must be resolved AFTER the
+      press, because arming a chip paints ghosts and the ghosts feed the camera, so the viewBox
+      moves between computing a point and arriving at it. And "any out port → any in port" is not
+      a wire test on this hull: the bench opens on Brain/Constant/Engine whose single legal wire is
+      already in the spec, so the drag re-made the wire that was there and the count never moved —
+      read as a failure for one run until the gate started wiring into a part it had placed itself.
+
+      The overdraft assertion is new, and it is the one the old bench could not make: the editor
+      used to let a design overdraw and reloaded the last affordable one afterwards. The rail never
+      offers a part the hold does not hold, so an exhausted row is inert.
+- [x] The lab and the shipyard roster still render on the rewritten `shipEditor` (2026-08-21,
+      `tools/scratch/lab-boot.ts`). Neither passes `parts`, so the hold is every non-mineral type
+      at `Infinity` and the rail reads `∞` — 11 rows, 0 console errors, camera cluster and foot
+      present (`tools/screenshots/boot-corepox-lab.png`, `boot-corepox-shipyard.png`). The
+      shipyard's own intro cell still described the retired flow ("Click a part then a cell to
+      place it, drag nothing") and was rewritten to describe the rail.
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
@@ -916,8 +962,8 @@ One of these leans on structure that already exists:
       Added as a mode, not as a replacement — default stays `build`, so the shipyard and the lab do
       not move. The refit bench opens in `select`.
 
-      `tools/corepox-bench-menu.ts` drives it without ever clicking a mode button, which is the
-      point of the test:
+      `tools/corepox-bench-menu.ts` (deleted 2026-08-21) drives it without ever clicking a mode
+      button, which is the point of the test:
 
       ```
       the bench opens on the selection, not a mode        mode=select
@@ -931,6 +977,10 @@ One of these leans on structure that already exists:
       ```
 
       `tools/corepox-bench-drive.ts` still passes, so the mode bar is intact.
+
+      Superseded 2026-08-21: the mode bar and both gates are gone — see the bench-gate entry in
+      §Now. This entry is kept because the reasoning behind selection-over-modes is what turn 9
+      then generalised to the whole board.
 
 - [x] **The refit bench framed the origin, not the hull** (Tom, 2026-08-21 — "I can't see to add
       connection or access the component menu at all"). Nothing was broken: modes switched, the
@@ -949,8 +999,9 @@ One of these leans on structure that already exists:
       and it takes a `pad` option, left at 6 so no existing view moves, which the refit bench sets
       to 2.
 
-      Driven in a browser through the map, `tools/corepox-bench-drive.ts` — every click goes
-      through the editor's own `qa` tile map, never a re-derived one:
+      Driven in a browser through the map, `tools/corepox-bench-drive.ts` (deleted 2026-08-21,
+      replaced by `corepox-bench-board.ts`) — every click goes through the editor's own `qa` tile
+      map, never a re-derived one:
 
       ```
       hull Brain@0,0:up Constant@0,1:up Engine@0,-1:up   wires 0,1out->0,-1in
@@ -1466,6 +1517,114 @@ duels against the whole roster. The steering retune under `## Next` is on the cr
 of them — four of seven archetypes barely reach engagement range, so most of these have never
 actually been tested.
 
+### The map arc — the run has no spine, measured (2026-08-21)
+
+Tom, 2026-08-21: think about the large map arc and what it needs to be fun like Slay the Spire
+or FTL. Before borrowing any device, what a run actually is today. All of this is measured, and
+most of it was a surprise.
+
+```
+tools/corepox-attrition.ts -- 54 decisive wired duels over 9 roster ships, 22 tiles apart
+  the winner loses a part in                 0% of wins
+  the winner takes ANY hp damage in         11% of wins
+  median fight length                       4.5 s
+  pairings that DRAW at the 60s limit       50%
+  survivingHull, one Armour destroyed  ->   7 of 7 components returned, at full hp
+```
+
+- **Nothing persists between nodes.** `survivingHull` is commented *"After the battle the hull IS
+  the survivors … parts shot off are not in the hold either, they are gone."* It calls
+  `specOfShip`, which maps `ship.comps` — and `Ship.damage` never splices, it sets hp to 0, while
+  the split path (`corepox-engine.js:976`) kills components into the parent rather than removing
+  them. `specOfShip` writes `type/pos/dir/param/overrides` and **no hp**. So a destroyed component
+  comes back at the next node, whole. The comment describes a design that was not built, and two
+  entries in the economy section below were written trusting it — corrected there.
+- **Winning is free even before that.** The winner is untouched in 89% of fights.
+- **Half the board is not played.** `race`, `debris`, `rescue`, `mining`, `shop`, `repair` and
+  `unknown` are `battle: false`, and `runEncounter` returns a win for any non-battle node. Ten of
+  the 22 draws in `genRun`'s pool are fights; the rest are a click that pays.
+- **A loss ends the run outright** (`over: "destroyed"`), so the only feedback a run carries is
+  binary and terminal.
+- **Every path is the same length**: seven columns, one node taken per column.
+- **The boss is 29 parts against a ceiling of 20** (economy section below).
+
+A run is therefore six independent 4.5-second coin flips, half of them a click, followed by a
+boss that arithmetic says cannot be beaten — and the hull that arrives is the hull that left,
+whatever happened on the way. **No state carries, so there is no arc.** That is one finding, not
+six, and it is upstream of every balance question.
+
+#### The four devices, and which ones are missing
+
+1. **Something you carry that gets worse.** FTL's hull, Slay the Spire's HP and deck bloat. This
+   is the spine: it makes winning a *cost*, which is what turns "which node" from a payout
+   question into a risk question. Corepox has the strongest available version — losing a
+   component is a **capability** loss, not a number going down — and currently has none of it,
+   twice over: nothing is lost, and what is lost does not carry. **Carrying hp in the spec is the
+   cheapest change in this document and the one the rest depends on.**
+2. **A clock that forces the pace.** The rebel fleet is FTL's single most important structural
+   device: it turns a tour into a race, makes a detour cost something, and makes "leave now" a
+   decision. Nothing here does this — and it would fix "every path is the same length" without
+   redesigning the board.
+3. **Legible, optional risk.** A Slay the Spire elite is visibly harder, visibly better paid, and
+   skippable. Corepox posts a reward and no difficulty; `band` exists and is never shown; and the
+   risk at a battle node is not "a hard fight", it is "the run ends".
+4. **A boss you prepare for, not one you arrive at.** Slay the Spire shows the act boss from the
+   first room. The refit bench already draws the foe for the node being entered (2026-08-21) —
+   showing the *boss* from turn 1 is a small step from code that exists.
+
+#### What corepox has that neither comparable has
+
+Build the arc on these rather than on imitation.
+
+- **The opponent's program is public.** 892 corpus ships with readable wiring, and the bench
+  already renders the foe. Showing its **circuit** before the fight makes encounter prep a puzzle
+  with a right answer — *it fires when `dist < 20`, so fight it at 25* — which is a roguelike verb
+  neither comparable can copy. Slay the Spire hides intents on purpose; here the information is
+  the content.
+- **Rewards can be capabilities, not statistics.** A Binary is a new sentence in the language, not
+  +5 damage. That is progression without a tech tree, which was already rejected for gating ideas.
+- **A reward can be unusable until the hull is re-laid-out.** The spatial version of "this card
+  does not fit my deck", already in the 2026-08-19 sketch.
+- **Failure is structural.** A hull can be cut in two and keep flying as two bodies. Neither
+  comparable has partial structural failure, and it is the most legible possible form of carried
+  damage — you can *see* what the run has cost you.
+
+#### Failure modes to design against
+
+- **The optimal line.** If one route dominates, the map is a menu with extra steps. A clock and
+  per-node economics are what prevent it.
+- **The unwinnable run** — FTL's worst failure mode. 29-against-20 means corepox is not
+  occasionally in that state, it is always in it.
+- **The fight as a formality.** 4.5 seconds means the build decided the fight and the fight
+  reported the result. If combat has no middle, the battle node is the least interesting node on
+  the board, which inverts the whole design. Caveat on that number: nine roster hulls of 3–16
+  parts, wired, from a fixed 22-tile separation. Corpus ships are larger and may fight longer —
+  worth re-measuring there before treating 4.5s as the game's TTK. Note also that
+  `plan/corepox-design.md` §1.2 diagnosed the *opposite* problem in the pre-port build, so this
+  may be an over-correction rather than an original defect.
+- **The dead node.** Half the roster pairings draw at the 60s limit, and a draw pays nothing —
+  `encounterSpoils` returns `{scrap: 0, parts: {}}` for any verdict that is not a win. A node that
+  can end in nothing is a node the player wishes they had skipped.
+- Already recorded from the comparables: Nimbatus "repetitive", Reassembly "no end-game".
+
+#### The order I would do it in
+
+Each one unlocks the next, and the numbers are the reason.
+
+1. **Carry hp, and carry destroyed parts, between nodes.** A change in `specOfShip` /
+   `survivingHull`. Unlocks attrition, gives repairs something to price, and makes damage a
+   decision. Almost nothing else on this list means anything without it.
+2. **Fix the boss arithmetic.** Until a run is winnable, no other change can be evaluated.
+3. **Make the sink real** — the shop, or better the factory component, which does the same job
+   from inside the hull.
+4. **Give combat a middle.** The two numbers to move are 4.5s and 11%-of-winners-scratched. Most
+   design risk, most payoff, and the tourney tools are the right instrument.
+5. **Add the clock.**
+6. **Show the boss, and the enemy's circuit, from turn 1.**
+
+1–3 are arithmetic and plumbing. 4 is a balance question. 5–6 are new interface. Nothing here is
+built.
+
 ### The run economy — played and it does not work (Tom, 2026-08-21). Nothing here is built
 
 Tom played a run: "the boss is OP for what components we have and there are few chances to get
@@ -1543,9 +1702,13 @@ Recorded as said, 2026-08-21. None of it is built.
   free part moved; a cost that scales with joints changed rather than parts touched, so
   re-siting a wing is dear and swapping one plate is not. Recommendation: the first two together
   — the node types already exist and the allowance is one integer on `camp`.
-- **Do not charge twice for a bad fight.** `survivingHull` already deletes the parts shot off
-  you: attrition is an existing metal sink. If voluntary removal also costs, a player who is
-  losing pays the fee *and* the parts. Destroyed slots should clear free.
+- **Do not charge twice for a bad fight.** ~~`survivingHull` already deletes the parts shot off
+  you: attrition is an existing metal sink.~~ **Corrected 2026-08-21**: it does not. `specOfShip`
+  maps `ship.comps`, destroyed components stay in `comps` at hp 0, and the spec carries no hp — a
+  destroyed part comes back whole at the next node (`tools/corepox-attrition.ts`, and the arc
+  section above). There is no existing sink. The recommendation survives the correction and
+  becomes conditional: **if** attrition is made to persist, voluntary removal must not be charged
+  on top of it, and destroyed slots must clear free.
 - **Naming**: `ore` is already a real thing in the mining node and pays into `scrap` today. If
   the currency becomes **metal**, ore should refine into metal rather than sit beside it, or
   there are three currencies by accident.
@@ -1638,9 +1801,10 @@ The costs, one at a time.
   Tom asked for, and it falls out rather than being imposed: **a hull with no battery cannot save
   up for a big refit, so it must refit little and often.** A hull that wants one big rebuild has
   to carry the capacity to afford it, in cells, all run.
-- **Placement must be free onto a destroyed slot**, for the same reason as before: `survivingHull`
-  already deletes what was shot off, so a player who is losing would otherwise pay the fee *and*
-  the parts. A player rebuilt down to nothing with no energy is a soft-lock.
+- **Placement must be free onto a destroyed slot** — conditional on attrition existing at all,
+  which today it does not (see the correction above and the arc section). Once it does: a player
+  who is losing would otherwise pay the placement fee *and* the parts, and a player rebuilt down
+  to nothing with no energy is a soft-lock.
 - **Repair may not need to exist as a third mechanic.** Under factory-plus-placement, replacing a
   destroyed part is already priced: metal to make it, energy to fit it. What is *not* covered is a
   part that survived damaged — components carry `hp` and now `maxHp`, so topping one up is a real
