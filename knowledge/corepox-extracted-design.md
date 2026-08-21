@@ -366,6 +366,61 @@ in `corepox-render`'s `locks` group at the measured widths and colour, dashed on
 period, starting a tile out. Screenshot: `tools/screenshots/radar-9.png` (both radars locked, 23.9s
 into FollowBoss).
 
+**Pause is a game mechanic, not a convenience, and building is how you enter it (2026-08-21).**
+Recovered while answering Tom's *"there is no pause, and there was one, I think in some modes
+building should pause"* — which turned out to describe what shipped.
+
+Every edit verb calls `Controller.Instance.pause()` on its way in, and it is a side effect rather
+than a button: `Build` state's `init()` (`UIState.cs:669`, immediately before `BuildDialog.show`),
+`clickMove` (`:471`), `clickRotate` (`:479`), `clickDelete` (`:497`). `clickConnect`,
+`clickDisconnect` and `clickInfo` do **not**. The split is consistent: build, move, rotate and
+delete change the ship's mass and geometry mid-flight; connect and cut change only the dataflow.
+`UIAction.Play` resumes, and says what the pause was for —
+
+```csharp
+// If the player has mutated the ship while paused, it might now be disconnected
+if (Controller.Instance.game.playerShip) Controller.Instance.game.playerShip.maybeSplit();
+```
+
+**There are two pauses.** `Controller.pause()` branches on `uiSettings.kinematicPauses`:
+
+```csharp
+if (uiSettings.kinematicPauses) {
+    foreach (Ship ship in space.ships.Keys) ship.body.isKinematic = true;
+    Time.timeScale = timeScale;   // Even paused have simulation running for kinematic mdoe
+} else {
+    Time.timeScale = 0;
+}
+```
+
+So a *kinematic* pause freezes the bodies and leaves the clock alone — turrets turn, radars scan,
+dataflow propagates, particles fly, and only the ships stop moving. It is set in exactly one gameplay
+place, `LiveDesignMission.cs:55`, which is the ship editor reached from the menu (the shipped
+equivalent of `corepox-shipyard`); `ShipSnapshotController` sets it too, for server-side rendering.
+Everything else takes the `UISettings.cs:5` default of `false` and gets `Time.timeScale = 0`.
+
+**And a pause is invulnerability.** `ShipComponent.damage()`:
+
+```csharp
+if (Controller.Instance.paused) {
+    StartCoroutine("displayDamage");     // the flash plays, the hp does not move
+} else if (this.hp > 0) { this.hp -= amount; ... }
+```
+
+`Ship.thrust()` early-returns while paused as well (`Ship.cs:439`). So pausing to build costs the
+initiative — you also stop moving and stop shooting — which is what makes giving it away for free on
+every build safe.
+
+**Live missions had no pause button.** `UIStates.IDLE.init()` sets bottom-left to `null` when
+`settings.liveMode`, to `Play` when already paused, and to `Pause` otherwise. In a live mission the
+only way to stop the clock is to start an edit; `Selected.init()` then offers `▶` to resume. The
+observed UI recorded "▶ play, ⏸ pause while running" without noticing that live missions get
+neither.
+
+None of this is in the port. `corepox-game` has `▶` in `build`, a clock in `playing`, and no pause
+at all — so edits during a live mission are made while damage lands and a modal covers the board.
+Written up for the designer in `plan/corepox-ux.md` §4 and §8.
+
 **The shipped build runs in an emulator, but not past its login.** `tools/corepox-emulator.sh`
 stands one up entirely under `vendor/android-sdk` — SDK, JDK and AVD, nothing installed on the
 machine, since homebrew cannot run under the sandbox and the phone on the desk is not a test rig.

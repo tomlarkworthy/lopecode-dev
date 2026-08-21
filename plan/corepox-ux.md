@@ -142,13 +142,124 @@ Two things fall out of this that the designer should know:
 
 ---
 
-## 4. There is no pause, and there was one
+## 4. There is no pause — and in the original, **building was** the pause
 
-The shipped game had `▶ play` and `⏸ pause while running` in the bottom-left
-(`knowledge/corepox-shipped-ui-observed.md`, "The board"). The port has `▶` in build and a clock in
-play, and no pause anywhere (`corepox-game`, `corners.bl`).
+Tom, reading the first draft of this brief: *"There is no pause, and there was one, I think in some
+modes building should pause."* That is not a new idea. It is what shipped, and the recovered C# is
+more specific than the proposal it replaces. Everything in this section is read out of
+`vendor/corepox/Meritocracy/Assets/scripts`, not inferred.
 
-So the current answer to "how do I build during a fight" is: you do not stop, you just tap faster
+### 4.1 Every edit verb paused the game, automatically
+
+`UIState.cs`. Not a button the player presses — a side effect of starting to edit:
+
+```
+Build state init()      Controller.Instance.pause();  then BuildDialog.show(...)     UIState.cs:669
+clickMove()             Controller.Instance.pause();                                 UIState.cs:471
+clickRotate()           Controller.Instance.pause();                                 UIState.cs:479
+clickDelete()           Controller.Instance.pause();                                 UIState.cs:497
+clickConnect()          -- no pause --                                               UIState.cs:~440
+clickDisconnect()       -- no pause --
+clickInfo()             -- no pause --
+```
+
+**The asymmetry is the interesting part, and it is consistent.** Build, move, rotate and delete all
+change the ship's *mass and geometry* while it is flying. Connect and cut change only the dataflow.
+Only the first group stops the world.
+
+`UIAction.Play` resumes, and the comment on it says what the pause is protecting against:
+
+```csharp
+// If the player has mutated the ship while paused, it might now be disconnected
+if (Controller.Instance.game.playerShip)
+    Controller.Instance.game.playerShip.maybeSplit();
+Controller.Instance.play();
+```
+
+### 4.2 There are two kinds of pause, and the mission picks one
+
+`Controller.pause()`, on `uiSettings.kinematicPauses`:
+
+```csharp
+public void pause() {
+    paused = true;
+    if (uiSettings.kinematicPauses) {
+        foreach (Ship ship in space.ships.Keys) ship.body.isKinematic = true;
+        Time.timeScale = timeScale;   // Even paused have simulation running for kinematic mdoe
+    } else {
+        Time.timeScale = 0;
+    }
+}
+```
+
+- **Hard pause** (`kinematicPauses = false`) — `Time.timeScale = 0`. Everything stops. This is the
+  default (`UISettings.cs:5`) and therefore what every campaign mission gets.
+- **Kinematic pause** (`kinematicPauses = true`) — the ships' rigidbodies freeze but *the clock keeps
+  running*. Turrets still turn, radars still scan, dataflow still propagates, particles still fly.
+  The only thing that stops is the ships moving. Set in exactly one place:
+  `LiveDesignMission.cs:55` — the ship editor reached from the menu, which is the shipped equivalent
+  of `corepox-shipyard`. (`ShipSnapshotController` sets it too, for server-side rendering.)
+
+The comment's typo — *"mdoe"* — is quoted because it is the author's own note that this is a
+deliberate mode and not an accident.
+
+**Kinematic pause is a better idea than the "bullet time" this brief proposed in its first draft,
+and it is already designed.** It answers the same question — how do you edit a live dataflow without
+either freezing it or being shot — but it separates the two things a player needs to watch. The
+*program* keeps running so you can see what your wire does. The *fight* stops so you are not hit
+while doing it.
+
+### 4.3 Pause is invulnerability, and that is the balancing cost
+
+`ShipComponent.damage()`:
+
+```csharp
+public void damage(int amount) {
+    if (Controller.Instance.paused) {
+        // No damage taken on pause
+        StartCoroutine("displayDamage");     // the flash still plays
+    } else if (this.hp > 0) {
+        this.hp -= amount;
+        ...
+```
+
+So while paused you take **no damage at all** — the hit flashes and does nothing. `Ship.thrust()`
+early-returns while paused too (`Ship.cs:439`), so you cannot fly either.
+
+This is the piece that makes auto-pause-on-build safe to give away: pausing to build is not free,
+because you also stop moving, stop shooting and give up the initiative. It is a *stance*, not a
+timeout.
+
+### 4.4 Live missions had no pause button
+
+`UIStates.IDLE.init()`:
+
+```csharp
+if (settings.liveMode) {
+    Controller.Instance.play();
+    this.setBottomLeft(null);          // no play/pause control at all
+} else if (Controller.Instance.paused) {
+    this.setBottomLeft(UIAction.Play);
+} else {
+    this.setBottomLeft(UIAction.Pause);
+}
+```
+
+In a live mission the only way to stop the clock is to **start an edit**. Once an edit has paused
+you, the selection menu does offer `▶` to resume (`Selected.init()` sets bottom-left on
+`Controller.Instance.paused`). So the control exists, it just cannot be reached without first
+committing to doing something.
+
+That is a real design decision and it should be preserved deliberately or overturned deliberately —
+not lost again.
+
+### 4.5 What the port has
+
+None of it. `corepox-game` has `▶` in `build` and a clock in `playing`, and no pause anywhere
+(`corners.bl`). Edits during play do not stop the world, and damage lands while the build panel
+covers the board.
+
+So the current answer to *"how do I build during a fight"* is: you do not stop, you just tap faster
 through modals. That is the whole of it.
 
 ---
@@ -181,7 +292,8 @@ fifteen. The game threw that away to match the shipped modal.
 What the replacement has to satisfy. R1–R4 are hard; R5–R8 are what "immersive" has to cash out to.
 
 - **R1 — Building during play is the normal case, not the exception.** Six of twelve missions start
-  live. Nothing may require the clock to stop.
+  live. Building may *stop* the clock — that is what shipped and it is wanted (§4) — but nothing may
+  require the player to have stopped it *first*, and no mission may be unbuildable while live.
 - **R2 — Per-mission capability gating survives.** `allow: {build, connect, modify, rotate}` must
   still be able to show one verb and hide five without the interface reading as broken.
 - **R3 — Nothing full-screen while the clock runs.** The board is the game; a panel over it during a
@@ -206,12 +318,18 @@ into 6, and FollowBoss's 64 into roughly 15.
 Recommended, with the alternatives and their costs. The designer should feel free to reject any of
 it — but should read §3 and §6 as constraints rather than suggestions.
 
-### 7.1 Two modes, not six — and they are about the clock, not about verbs
+### 7.1 One mode axis, and it is the clock — not the verb
 
 ```
-PAUSED        the clock is stopped. Free camera. All permitted edits available.
-LIVE          the clock runs. Free camera. All permitted edits available.
+LIVE          the clock runs, ships move, damage lands.
+KINEMATIC     the clock runs, ships are frozen, no damage.   the program keeps going
+HARD          the clock is stopped.                          nothing moves at all
 ```
+
+All three shipped (§4.2). Which of the two pauses a mission uses is a per-mission property; the
+transition into one is a side effect of starting a build-class edit, not a button. **Free camera and
+every permitted edit are available in all three** — that is the change from today, where the overlay
+states are their own mode axis on top of this one.
 
 That is the whole mode axis. `win` and `loss` are end screens, not modes. Everything the current
 `panel` / `act` / `picked` / `wire` variables encode becomes **transient gesture state** — what your
@@ -221,8 +339,10 @@ finger is currently doing — rather than a mode you enter and must leave.
 thing that makes building-under-fire feel bad, and R1 says that is the normal case. The cost of
 dropping it is that the pointer has to be disambiguated some other way — §7.2.
 
-**What `▶` becomes.** A pause/resume toggle available in every mission, including the live ones.
-This is a restoration, not an invention (§4). It also gives the game a tempo lever it currently
+**What `▶` becomes.** The transition between the two is mostly *implicit*: starting a build-class
+edit pauses, exactly as the shipped game did, and `▶` resumes (§4.1). Whether a manual pause button
+also exists is a per-mission decision the original made deliberately — live missions had none
+(§4.4). This is a restoration, not an invention, and it hands the game a tempo lever it currently
 lacks: see §8.
 
 ### 7.2 What a press means: decided by what is under it, not by a mode
@@ -359,30 +479,72 @@ already. So:
 
 ---
 
-## 8. Realtime building, and the tempo question
+## 8. Realtime building, and the tempo dial
 
-This is the part that is genuinely undecided, and it is the most interesting decision in the brief.
-Three options, and the game plays differently under each.
+The first draft of this brief presented this as three competing options and recommended an invented
+one ("bullet time"). §4 replaced that with recovered design, so this section is now about **which of
+the shipped settings each mission gets**, not about inventing a mechanic.
 
-- **Hard pause.** `▶`/`⏸` stops the world; build freely; resume. Safe, restores shipped behaviour,
-  and makes building free — which means the fight and the workshop never actually interact.
-- **No pause, ever.** Maximum tension; every edit is made under fire. Requires §7 to land almost
-  perfectly, because a fumbled gesture now costs a hit. High risk.
-- **Bullet time.** The clock runs slow — not stopped — while a build gesture is live, and returns to
-  full speed on release. Building has a *cost in tempo* rather than being free or being frantic.
+### 8.1 The dial, as recovered
 
-**Recommendation: bullet time, with hard pause available as an explicit control.** The argument is
-not comfort, it is that it gives the game a resource it does not currently have. `plan/corepox-design.md`
-§8.5 already found that the missing lever is *opportunity cost* — "guns have no opportunity cost" is
-the recorded diagnosis for why the metagame is nearly a strict power ordering. Time-under-edit is
-another such cost, and it is free to add.
+Three settings, all of which shipped, and they are per-mission:
 
-**This is a hypothesis, not a finding.** It has never been tried and it changes the difficulty of
-every live mission. It needs playtesting before anything is built around it, and the twelve
-reference solutions in `corepox-missions` are the regression net —
-`tools/corepox-play-missions.ts` will say immediately if a tempo change makes a mission unwinnable.
+| setting | the clock | ships move | you take damage | shipped on |
+|---|---|---|---|---|
+| **running** | runs | yes | yes | everything, until an edit verb is used |
+| **kinematic pause** | **runs** | no | no | `LiveDesignMission` — the ship editor |
+| **hard pause** | stopped | no | no | every campaign mission (`UISettings` default) |
 
----
+And the transition into a pause is not a button. It is `Build` / `move` / `rotate` / `delete`
+(§4.1). `connect` and `cut` do not pause.
+
+### 8.2 What should be decided
+
+**Decided, because it shipped and because Tom has asked for it:** starting a build-class edit pauses
+the game, and which kind of pause is a per-mission property. `corepox-missions` already carries
+`live` and `allow` per mission, so this is a third field of the same kind — the port has the right
+shape for it already.
+
+**Open, and this is the actual design question:** *which* missions get the kinematic pause rather
+than the hard one. The shipped answer was "none of them — kinematic is for the editor only". But the
+port has six `live: true` missions where you are wiring under fire, and kinematic pause is exactly
+the setting for that: your program keeps running so you can watch the wire you just drew do
+something, while the fight stops so you are not killed watching it.
+
+A first proposal, to be argued with rather than implemented:
+
+```
+PlaceBrain, Cocoon              hard      teaching placement; nothing to watch run
+ConnectionLite, Connection      kinematic the wire IS the lesson; it must be visibly live
+ManualAim, Aim, Avoid           kinematic modify missions: you are watching a value propagate
+FollowCourse, FollowCourseAdv   kinematic wiring under fire, which is the case this exists for
+FollowBoss, SideShooter,        hard      real fights with a real build phase; buildOnce already
+TwinTurrets                               makes the build a commitment
+```
+
+The claim behind the middle rows is testable and nobody has tested it: **that watching your dataflow
+run while the ship is frozen is what teaches the dataflow.** If it is true, the wiring tutorials
+should use kinematic pause. If it is false, hard pause everywhere is simpler and shipped.
+
+### 8.3 What this does not settle
+
+- **Whether `connect` and `cut` should stay unpaused.** They shipped that way and the reasoning
+  reconstructs (they do not change mass or geometry, so `maybeSplit()` is not needed). But wiring is
+  the slowest action in the port — 5 taps, 30 of them in FollowCourseAdvanced (§1) — and it is the
+  one that most needs the clock stopped. **Recommendation: pause on connect too, at least while the
+  wire drag is live.** This is a deliberate departure from the shipped behaviour and should be
+  labelled as one.
+- **Whether a Constant scrub pauses** (§7.5's open question). Same dial, same argument; kinematic
+  pause is the obvious answer, because the whole point of scrubbing is watching the value propagate.
+- **Whether live missions keep the shipped "no pause button" rule** (§4.4). It is a strong
+  design decision — you cannot stop the clock without committing to an action — and it interacts
+  with everything above.
+
+### 8.4 The regression net
+
+Any change here changes the difficulty of every live mission. The twelve reference solutions in
+`corepox-missions` are the net: `tools/corepox-play-missions.ts` will say immediately if a tempo
+change makes a mission unwinnable, and `tools/corepox-tap-count.ts` will say what it cost in taps.
 
 ## 9. Constraints the design must respect
 
