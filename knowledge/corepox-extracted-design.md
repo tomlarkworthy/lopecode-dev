@@ -316,6 +316,56 @@ point. Now `SENSOR` + `Ship.sensorOf`. Checked against the other components: `En
 `ExplosiveFn`, `TurretFn` and `MeleeFn` all use `this.transform.position`, and `center` appears
 nowhere else in `Assets/scripts/game/components/`, so Radar is the only one.
 
+**The radar sightline is a drawn object, and it was wired to the wrong cell (2026-08-21).** Two
+findings from the same report — *"the enemy with a gun turret is not aiming at the player properly …
+the radar is not tracking"*.
+
+The aiming half was a silently dropped wire. `Ship.at(x, y)` matches
+`comps.find(c => c.px === x && c.py === y)` — the **anchor**, never the rest of the footprint.
+`loadShipSpec` normalises cell→anchor for the recovered corpus, but `newSession` hands a MISSIONS
+spec straight to `new Ship` and skips that path. `SHIPS.gunBoat`'s bearing wire read
+`{from: [1, 1], fromPort: "bearing"}` — the Radar's bearing *cell*, not its anchor `[0, 1]` — so it
+resolved to nothing and was dropped without a warning. The dist wire was on the anchor and did land,
+which is why the turret fired continuously and never turned. Fixed by addressing the anchor;
+`tools/corepox-wire-anchors.ts` now gates every wire in MISSIONS (74 wires, 0 bad) and
+`tools/corepox-turret-track.ts` prints truth bearing against what the turret received:
+
+```
+  t   truth   radar.bearing  in.angle  turret  aim-err   dist  lock
+5.0    26.2           23.7      23.6    22.6      3.6   25.1 yes
+10.0    39.6           41.2      41.1    40.2     -0.6   22.9 yes
+15.0    52.9           55.4      55.3    54.1     -1.1   17.9 yes
+20.0    71.4           68.3      68.2    68.1      3.2   14.5 yes  radar.hp 0
+```
+
+The consequence is a real difficulty change: on the notebook's engine FollowBoss's reference
+solution went from a comfortable win to **48.1s of a 60s limit** (`corepox-play-missions.ts`,
+2026-08-21). That is fidelity, not a regression — the original aimed.
+
+The legibility half is a shipped asset, not a debug overlay, and it had been guessed at. `RadarFn`'s
+`trace` PPtr resolves (`tools/corepox-radar-trace-probe.py`) to a SpriteRenderer on a GameObject
+named `radar_trace`:
+
+```
+m_Size = {"x": 0.19, "y": 10.0}   m_DrawMode = 2 (Tiled)   m_Color = white   m_SortingOrder = 0
+Transform pos {"x": 0.0, "y": 0.64}   parent `arrow` at (0.32, 0.96), scale 1 all the way to the root
+```
+
+`arrow` is the transform that rotates onto the target, and `RadarFn` sets `trace.size.y =
+nearest.distance - 0.64f`, with the sprite pivot at the bottom (`m_Pivot.y = 0.0`). So the trace
+**starts one tile out from the sensor** and ends exactly on the target. The sprite itself
+(`data/corepox/sprites/radar_trace.png`, dumped 2026-08-21, 57x60px at 300ppu = 0.19 x 0.2 world
+units) is opaque on rows 15..44 — a **50% duty cycle**, which is where the dotted look comes from —
+core ink across 38 of its 57 columns at RGB (230, 230, 104), with a faint halo either side peaking
+at alpha 28/255. In tile units (1 tile = 0.64 world units): dash period 0.3125, core width 0.198,
+halo width 0.297.
+
+The port had a sightline already, but every number in it was invented: `#4dd47a` green,
+`stroke-width 2`, `dasharray "10 12"`, `opacity 0.3`, starting at the sensor. It is now two strokes
+in `corepox-render`'s `locks` group at the measured widths and colour, dashed on the measured
+period, starting a tile out. Screenshot: `tools/screenshots/radar-9.png` (both radars locked, 23.9s
+into FollowBoss).
+
 **The shipped build runs in an emulator, but not past its login.** `tools/corepox-emulator.sh`
 stands one up entirely under `vendor/android-sdk` — SDK, JDK and AVD, nothing installed on the
 machine, since homebrew cannot run under the sandbox and the phone on the desk is not a test rig.
@@ -915,6 +965,42 @@ two components inside, damage each: [5,5]
 **Blast radius.** This is a balance change, not only a bug fix: an Orb now does 5× the damage to
 every part it touches instead of 1× to one. Any corpus arena number computed before today was
 computed against the old Orb, and 228 corpus ships carry one.
+
+**Amended 2026-08-21, when footprints became solid.** Two of the three sentences above are now
+wrong, and the reason is the same defect one level up: measuring from a single point.
+
+- *Reach.* `ORB_R + HIT_R = 1.067` tiles about the centre of a square whose own cell centres are
+  already `0.707` out stops **0.36 tiles short of the Orb's own edge**. That was survivable only
+  while hulls could interpenetrate. Once every cell blocks, two ships come to rest at a cell
+  separation of 1.0 and a centre-measured Orb reaches nothing at all: an Orb driven into a Brain
+  at 20 tiles/s left it on full health (`tools/scratch-ram.ts`, and it is why FollowCourse --
+  which is won by ramming an Orb drone into a core -- went from a 10s win to a 60s timeout). The
+  reach is now measured from each of the Orb's four **cells**, giving 1.067 against contact at
+  1.0. That is what "touching" means, and `MeleeFn` is `damageArea.GetContacts`, i.e. touching.
+- *Targets.* Modelled per cell too, not as one disc at the target's origin tile. A Radar with a
+  cell dead centre inside an Orb but its anchor 2.00 tiles away took nothing.
+- *Teams.* The port skipped same-team ships. `MeleeFn.FixedUpdate` has no team check -- it damages
+  every `ShipComponent` the trigger touches. What it cannot touch is its **own ship**: all of a
+  ship's components share one `Rigidbody2D` and Unity generates no contacts between colliders on
+  the same body. So the exemption is the ship, not the team, and a friendly that drifts into your
+  Orb takes 5 a tick. (Tom, 2026-08-21: "perhaps a component from the same team does not collide?
+  That seems wrong as well".)
+
+The zone is wider and squarer for it -- same 1.067, but from four centres instead of one:
+
+```
+        -1.5   -1 -0.5    0  0.5    1  1.5
+  -1.5     0    0    5    0    5    0    0
+    -1     0    5    5    5    5    5    0
+  -0.5     5    5    5    5    5    5    5
+     0     0    5    5    5    5    5    0
+   0.5     5    5    5    5    5    5    5
+     1     0    5    5    5    5    5    0
+   1.5     0    0    5    0    5    0    0
+```
+
+Held by `tools/corepox-orb-damage-probe.ts` (which now asserts the reach from a cell, and that
+`(1.5, 0.5)` -- exactly touching -- is damaged) and by `tools/corepox-hitbox.ts`.
 
 ### buildOnce, modelled (2026-08-20)
 

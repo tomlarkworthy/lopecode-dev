@@ -8,7 +8,7 @@ import {importNotebookModule} from "./notebook-import.ts";
 // against a copy with islands() swapped back to the distance rule pass 12/12.
 const eng = await importNotebookModule(process.env.ENGINE ?? "modules/@tomlarkworthy/corepox-engine.js");
 const parts: any = await eng.values(["Ship","World","TYPES","PORTS","geom","DT","pilot"]);
-const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.js");
+const mis = await importNotebookModule(process.env.MISSIONS ?? "modules/@tomlarkworthy/corepox-missions.js");
 const MISSIONS: any[] = await mis.value("MISSIONS");
 const game = await importNotebookModule("modules/@tomlarkworthy/corepox-game.js",
   {overrides: {...parts, MISSIONS, battlefield: null, TILE: 56, objectiveHtml: null}});

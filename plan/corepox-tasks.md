@@ -1,6 +1,6 @@
 # Corepox — working task list
 
-Updated 2026-08-20. Ticked only when verified, not when written.
+Updated 2026-08-21. Ticked only when verified, not when written.
 
 ## Now
 - [x] Recover original source (partial clone; `vendor/corepox`)
@@ -263,6 +263,67 @@ Updated 2026-08-20. Ticked only when verified, not when written.
       FixedUpdate. Zone verified symmetric about the Orb's centre and 1.067 tiles across by
       `tools/corepox-orb-damage-probe.ts`. **Balance change** -- any corpus arena number predating
       this was measured against a fifth-strength Orb, and 228 corpus ships carry one.
+- [x] **Footprints are solid**, 2026-08-21. Tom: "Collisions are not working properly. Very
+      apparent on radar where nodes can totally overlap that circular component. Also it seems
+      like lazer can shoot things in the interior which is incorrect." Three separate tests --
+      ship-vs-ship contact, the particle path, and the Orb's melee -- modelled a component as ONE
+      disc at its `worldOf` **anchor**. A Radar is six cells and an Orb four, so most of both was
+      empty space; and a cell sitting *dead centre* on another was skipped outright, because
+      `d === 0` gave no contact normal to read off and the code `continue`d. `tools/corepox-hitbox.ts`
+      parks an Armour on each cell of a hull component in turn and reads the contact off the hull's
+      hp (movement is no good -- two cells at zero depth get no separating push):
+
+      ```
+      before                                     after
+      Radar   6 cells, 2 solid, 4 passable  [.##...]    6 solid  [######]
+      Orb     4 cells, 2 solid, 2 passable  [.##.]      4 solid  [####]
+      Lazer   3 cells, 1 solid, 2 passable  [.#.]       3 solid  [###]
+      Engine  2 cells, 1 solid, 1 passable  [.#]        2 solid  [##]
+      Binary  4 cells, 3 solid, 1 passable  [#.##]      4 solid  [####]
+      ```
+
+      The beam picked its victim by **closest approach to an anchor**, not by what it reached
+      first. A shot crossing a Radar's far row passes 2.00 tiles from that Radar's anchor -- outside
+      the 1.25 reach entirely -- so it went straight through and killed the Brain sheltering behind
+      it. It is now a swept point-vs-disc **entry** test against every cell, smallest entry
+      parameter along the segment wins, which is what `behaviour/DamageBeam.cs:59` does (a beam is
+      a trigger; it damages the first collider it enters). The original never had any of this: each
+      component carries a Box or Polygon collider covering the whole part (`fx/Placement.cs:30`)
+      and `Ship.cs:581` resolves each contact point back to a **cell** via `worldToCoord` →
+      `isOccupied`.
+
+      Two things had to move with it, or the fix would have been a net regression:
+
+      - **Impulse once per ship pair, damage per component pair.** Unity resolves one collision
+        between two rigid bodies however many colliders touch. Applying a full impulse and a full
+        depenetration per *component* pair multiplies both by the contact area the moment a flush
+        hull starts registering six pairs instead of one; the campaign went 9/12 → 8/12 on that
+        alone. Damage stays per pair, matching `OnCollisionStay2D`'s `component.damage(5)` per
+        contact point.
+      - **The Orb's melee is measured from its cells, not its centre** — see
+        `knowledge/corepox-extracted-design.md`, "Amended 2026-08-21". A 1.067-tile radius about a
+        square whose cells are 0.707 out cannot reach a touching cell at 1.0, so the moment hulls
+        stopped interpenetrating the Orb became inert: an Orb rammed into a Brain at 20 tiles/s
+        left it untouched. And the melee's same-team exemption was a port invention -- `MeleeFn`
+        has no team check, only the implicit one that a ship's components share a `Rigidbody2D` and
+        generate no contacts with each other. It is now scoped to the ship (Tom, same day:
+        "perhaps a component from the same team does not collide? That seems wrong as well").
+
+      Cost: no measurable one. 8 ships in contact, 2000 ticks: 91.0µs → 83.5µs a tick, because the
+      per-component broad phase pays for the inner loops. Beams are not weaker either --
+      `corepox-parallax.ts` is identical off-axis, hit for hit, at both ranges.
+
+      **Blast radius, stated because it is large.** Every ship is now the size of its whole
+      footprint to every beam and every hull, in both directions, so any balance number measured
+      before today is stale. Measured consequences: self-harm over the 878-ship corpus flown alone
+      is 349 → 362 ships and 1892 → 2003 components; `TwinTurrets` fell from 19 of 140 legal builds
+      winning to **1**, and was re-solved (engine behind the core at `[0,-1]`; the old flank mount
+      loses at 57.1s); `FollowCourse` and `FollowCourseAdvanced` recovered only once the Orb melee
+      was fixed. Gate is `tools/corepox-hitbox.ts`, 11/11, which fails 7 of 11 against the engine
+      as it was.
+- [ ] `tools/corepox-econ.ts` reports 0 shots landed in every pairing and always has: it counts
+      `w.beams.filter(hitOk)` *after* `stepParticles` has already dropped the beam that hit. The
+      hit-rate column has never carried information. Not fixed, not load-bearing for any gate.
 - [x] Persist: sync modules to `corepox.html`, verify boot. corepox-missions + corepox-game
       inserted, canonical, in bootconf mains, spec minted, sitemap updated. Boots with 0 console
       errors; mission 1 completes through the DOM (corepox-qa-play.mjs); Aim runs 17.9s of sim in
@@ -337,6 +398,17 @@ Updated 2026-08-20. Ticked only when verified, not when written.
 - [x] Dashed target lines — each live Radar draws a sightline to what it is looking at. The
       endpoints are `c.lock`, set where the engine computes bearing and dist, so the line cannot
       disagree with the numbers printed on the component
+- [x] The Gun Boat's turret did not aim (2026-08-21). `SHIPS.gunBoat`'s bearing wire addressed the
+      Radar's bearing CELL `[1,1]` instead of its ANCHOR `[0,1]`, and `Ship.at` only matches the
+      anchor, so it was dropped in silence — the dist wire landed, so the gun fired without ever
+      turning. `tools/corepox-wire-anchors.ts` now gates all 74 MISSIONS wires. Costs real
+      difficulty: FollowBoss's reference solution now wins at 48.1s of 60.
+- [x] The sightline redrawn to the shipped asset (2026-08-21). Was invented — green #4dd47a,
+      width 2, dash "10 12", opacity 0.3, starting at the sensor. `RadarFn.trace` resolves to a
+      `radar_trace` SpriteRenderer, Tiled, m_Size (0.19, 10), on the `arrow` at local (0, 0.64),
+      with `size.y = distance - 0.64`. Sprite is 57x60 at 300ppu, opaque rows 15..44 (50% duty),
+      RGB (230,230,104). Now: two strokes at 0.198 and 0.297 tiles, dash period 0.3125 tiles,
+      starting a tile out. `tools/screenshots/radar-9.png`.
 - [ ] `corepox-designer` — place / rotate / wire
 - [x] Fix the stalemate — diagnosed as TTK (138s kill in a 60s match), not piloting.
       Raycast bug + HP collapse + impact damage + body splitting. Draws 76-98% -> 32-81%.
