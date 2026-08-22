@@ -3,6 +3,142 @@
 Updated 2026-08-22. Ticked only when verified, not when written.
 
 ## Now
+- [x] **`collide()` created energy, and the surplus was all rotational — fixed** (reported by Tom 2026-08-22:
+      "collisions cause energy gain, which should not happen, close ship collisions start
+      accelerating everything to insane and unrealistic levels"). Reproduced and measured;
+      `bun tools/corepox-collision-energy.ts` **exits 1 on purpose** — it is the failing gate for
+      whoever fixes this, not a broken test.
+
+      The instrument needs no control run. `Ship.integrate` applies drag `1/(1+DT)` unconditionally
+      (`corepox-engine.js:995`) and nothing in a world of unwired Armour hulls can add momentum, so
+      total kinetic energy is monotonically decreasing unless `collide` puts some in. **Any tick
+      where the total rises is created energy.**
+
+      Two identical 4x4 bricks, face to face, both on `y = 0`, one closing at 12. Symmetry allows
+      exactly one outcome: a straight bounce, zero spin.
+
+      ```
+      tick     a.vx     b.vx        a.w        b.w   KE linear   KE spin    KE total
+         8   10.041    0.000       0.00       0.00       80.66      0.00       80.66
+         9    0.615    9.229     297.44    -297.44       68.44    114.98      183.42   <-- KE UP
+        10   -4.265   13.917     151.45    -151.45      169.49     29.81      199.30   <-- KE UP
+      ```
+
+      **2.27x in a single tick**, and the split says exactly where it came from: linear KE went
+      *down* 80.66 -> 68.44, which is what a bounce must do and confirms momentum is conserved
+      (checked by hand: `jmag = 1.2 * 10.04 / (1/1.6 + 1/1.6) = 9.64`, delivered
+      `9.64 / (1.6 * 0.64) = 9.41`, and a.vx 10.04 -> 0.63 matches the measured 0.615 after drag).
+      Every joule of the surplus is the **114.98 of spin that appeared out of nothing** — on a
+      collision that by symmetry must produce none.
+
+      Three mechanisms, and they compound:
+
+      1. **A whole contact patch is resolved at ONE point, chosen by iteration order.**
+         `collide` keeps `deep`, the deepest cell pair, tie-broken by `if (!deep || d < deep.d)`
+         (`corepox-engine.js:1319`). Four cell pairs of a flush 4x4 face are exactly equidistant, so
+         a symmetric hit is resolved as a **corner strike**. That is where the ±297 deg/s comes from.
+         The comment above it is right that Unity resolves one collision per body pair — but Unity
+         resolves it over the contact *manifold*, not at one arbitrary corner.
+      2. **`jmag`'s denominator omits the angular terms, so the rotation is free.**
+         `jmag = -(1+e) * rel / (1/mA + 1/mB)` is the *linear* impulse; the correct 2D form divides
+         by `1/mA + 1/mB + (rA x n)^2/IA + (rB x n)^2/IB`. The impulse is then applied at an offset
+         via `force`, which spends it on linear *and* angular motion while only the linear part was
+         paid for. For the 4x4 brick (mass 1.60, I 4.27) at a 2-tile lever the angular term is 0.937
+         against `1/m = 0.625`, so the true denominator is **~2.5x larger** and `jmag` is that many
+         times too big whenever the hit is off-centre — which, per (1), is always.
+      3. **`force()` scales every impulse by `1/UNITS.W = 1.5625x`.** That factor is deliberate and
+         documented for THRUST (`corepox-engine.js:913-917`), but `jmag` is an analytic impulse with
+         a restitution baked in. On its own it turns `e = 0.2` into `(1+e) * 1.5625 - 1 = 0.875`.
+
+      **The runaway Tom describes is the feedback between them.** At tick 10 a second impulse fires
+      while the hulls still overlap, and linear KE jumps 68.44 -> 169.49: the spin created on tick 9
+      makes the contact point move fast, `velAt` reports a large `rel`, and a larger `rel` buys a
+      larger `jmag`, which creates more spin. Each tick of sustained contact feeds the next. That is
+      why it is *close* collisions that blow up rather than glancing ones.
+
+      **The fix**, licensed by Tom 2026-08-22 — "we are not on unity anymore so all those old things
+      are not relevant" — which is what makes it a fix rather than a compatibility argument. Each
+      defect gets its standard answer:
+
+      1. **One impulse per body pair, at the CENTROID of the manifold.** `collide` now accumulates
+         every contacting cell pair and applies a single impulse at the average contact point along
+         the average normal, with `rel` read at that same point. A flush face-on hit is then
+         symmetric, because the centroid of a symmetric contact sits on the line of centres and the
+         lever arm is zero.
+      2. **The standard 2D denominator.** `j = -(1+e) * rel / (1/mA + 1/mB + (rA x n)^2/IA +
+         (rB x n)^2/IB)`. This is the term whose absence let the rotation be free, and it is provably
+         energy non-increasing for `e <= 1`.
+      3. **A new `Ship.impulse(wx, wy, jx, jy)`** that applies a velocity change directly. The
+         collision no longer goes through `force()`, whose `1/UNITS.W = 1.5625x` is a deliberate
+         *thrust* tuning. `0.2` moved out of the expression into `UNITS.RESTITUTION`.
+
+      **Blast radius: `force()` is untouched**, so thrust, top speed and turn rates are unchanged and
+      no mission balance moves with this. What does change is ramming, which is now roughly 4x
+      gentler per contact (1.5625x from (3) and ~2.5x from (2) at a typical lever) — `RAM_DMG` is
+      unchanged and still 250/s, so the damage a ram deals is the same; only the shove is.
+
+      The same fixture after the fix, and it now matches theory instead of contradicting it:
+
+      ```
+      tick     a.vx     b.vx        a.w        b.w   KE linear   KE spin    KE total
+         8   10.041    0.000       0.00       0.00       80.66      0.00       80.66
+         9    3.938    5.907       0.00      -0.00       40.31      0.00       40.31
+      ```
+
+      Zero spin on the symmetric hit. Relative velocity reverses 10.041 -> 1.969, a ratio of
+      **-0.196 against the 0.2 restitution asked for**, and KE 80.66 -> 40.31 is 0.50x against the
+      `(1+e^2)/2 = 0.52` an equal-mass bounce predicts, the remainder being one tick of drag. The
+      gate reports `0/240 rising ticks` on every row of both sweeps.
+
+      **Two dead ends recorded so they are not repeated.** At the shipped 100hp the two hulls
+      *annihilated* each other before bouncing (RAM_DMG is 250/s, Armour is 100hp) and every row read
+      `KE out 0.00x` — a conservation test cannot read a total whose terms are being deleted, so the
+      probe hulls carry `hp: 1e9`. And reading "KE before vs KE after" across a long window measures
+      the **drag**, which takes everything to zero in a few hundred ticks whether or not the ships
+      ever meet; the per-tick rise is the only reading that isolates `collide`.
+
+      **The one gate that could plausibly have broken is mining, and it got better.** The MINER
+      earns most of its scrap by *ramming* seams (`collide` deals 250/s against 15/s from a beam),
+      so a 4x gentler shove was the regression to look for. `bun tools/corepox-mining-check.ts`,
+      20 runs over 5 fields x 4 rng pins:
+
+      ```
+                       before (2026-08-21)      after (2026-08-22)
+      runs that paid   20/20                    20/20
+      pieces           93                       113
+      scrap            3060                     3930
+      ```
+
+      Up 21% on pieces, not down — a hull that bounces off a chunk gets another pass at it instead
+      of burying itself in the rock. `corepox-encounter-check.ts` PASSes with a byte-identical run
+      trace. Synced to `lopebooks/notebooks/corepox.html` at `f592ab68ac22`; preflight against
+      `tools/preflight-baseline.json` reports **0 NEW, 0 resolved**.
+
+- [ ] **`collide` and `stepParticles` are the two things to tune.** 41% and 43% of the tick in an
+      8-ship melee of the largest hulls (measured 2026-08-22, `bun tools/corepox-melee-bench.ts`);
+      everything else including the whole reactive dataflow is under 10% combined. Noted at the site
+      of the work as TUNING TARGET comments on both methods in `corepox-engine.js`. Nothing is tuned
+      yet, and the full evidence — operation counts, the shattering that drives them, and what the
+      scaling sweep could NOT establish — is in "Where the frame goes with big ships" below.
+
+      **Re-measured after the collision fix, and the fix is not what costs the frame.** The manifold
+      accumulation added no measurable per-pair cost — it got cheaper per pair, and the total rose
+      only because more debris now survives:
+
+      ```
+                        before (2026-08-21)   after collision fix (2026-08-22)
+      clean ms/tick            29.46                  26.11
+      collide ms/tick          12.67  (41.1%)         14.10  (43.7%)
+      collide ship pairs       12090                  15051
+      us per ship pair          1.048                  0.937
+      ships at t=6s              156                    174
+      ```
+
+      The tick got *cheaper overall* (29.46 -> 26.11) while carrying 12% more ships. Softer bounces
+      leave more separate pieces alive, which is exactly the input `collide`'s O(ships^2) broad phase
+      is quadratic in — so the ranking below is unchanged and the case for fixing the broad phase is
+      slightly stronger than it was.
+
 - [ ] **Chunks should come apart more easily** (Tom, 2026-08-21, after playing the destructible-ore
       field: "yes it was fun, I think we need to tweak asteroid generation to make them fall apart
       easier but that can be another session"). The verdict on the encounter is that it works; this
@@ -1048,6 +1184,57 @@ Updated 2026-08-22. Ticked only when verified, not when written.
       `armour-seam.png`. That is a half-migrated look, not a bug, and it resolves when the rest of
       turn 5's sheet lands. `tools/corepox-art-extract.ts` still maps `Armour: "armour-2"`; that is
       correct and was left alone — it extracts the *Unity* art, and armour-2 is what that art is.
+- [x] **A panned camera kept following the scene** (Tom, 2026-08-22 — "Its quite hard using the
+      camera controls. After panning I think the camera should dettach from the scene instead of
+      trying to follow all the components"). He is describing the data model exactly: `api.pan` was
+      an OFFSET from the auto-frame, and `frame()` recomputes the bounding box of every framed ship
+      origin plus every focus point on every draw. So a panned camera still slid whenever a part
+      was placed, a ship moved, or the ghosts under a picked chip changed the box — and the width
+      moved too, because `w` comes from that same box.
+
+      `api.free = {cx, cy, w}` detaches it. Set on the first real drag — not on the pointerdown, so
+      a 4px wobble on a click cannot take the camera off a fight — from the auto-frame's own answer
+      with pan and zoom taken back out (`cx - pan`, `cam.w * zoom`), so the camera does not jump at
+      the moment it detaches and the in-progress drag's origin stays valid. Cleared by `resetView`
+      (the ⌖ pad) and by a board loading a new session. `api.moved()` now also reports true while
+      detached, so the ⌖ pad is offered for as long as it is the only way back.
+
+      `tools/corepox-camera-detach.ts`, and the point of it is the CONTROL — "the viewBox did not
+      change" passes for a scene that never changed. The same action (arming a rail chip, whose
+      ghosts are fed to the camera as focus points) is performed attached and detached:
+
+      ```
+      CONTROL — attached, arming a chip moves the camera   -616 -383 1232 767 -> -280 -174 560 348, 396px
+      detached, arming the same chip leaves it alone       -450 -277 1232 767 -> -450 -277 1232 767, 0px
+      re-attached after ⌖, the camera follows again        396px
+      ```
+
+      The control also shows how violent the old behaviour was: arming a chip did not merely nudge
+      the camera, it took the view from 1232 units wide to 560. The first draft of this gate
+      asserted on the ship flying instead and passed vacuously — an unbuilt hull never moves,
+      `0,0 -> 0,0 = 0.00 tiles`.
+
+      **The other half of "hard to use" is not fixed, because it is a gesture question, not a
+      camera one.** A bare drag is almost never the camera on this board: `startGesture` gives a
+      press on a part to a MOVE, and in `playing` it gives a press on empty sky to the FLY command
+      (corepox-board.js:779, `kind: "fly"`, which takes the pan lock). Measured on the refit bench,
+      2026-08-22 — the same 180px drag pans **0** units starting on a part and **95** starting on
+      sky in BUILD, with the hull centre 34px from the centre of the board; and **0** from anywhere
+      while playing. So the pan pad latch is the only route in a live match, and near-enough the
+      only route over a built hull. Whether a bare drag should pan more often is Tom's call.
+
+      `tools/corepox-camera-probe.ts` went 6/8 → 7/8 on the back of that. Two of its steps were
+      stale rather than broken, and both were verified pre-existing by reverting the detach hunk
+      and re-running — identical failures. Step 2 dragged bare from the centre of the board and now
+      space-latches; it also recentres afterwards, because since this change a pan detaches and
+      every later step would otherwise be measuring a camera that has been told to stop listening.
+      Step 8 ("view opens when the SHIP moves") is still red and is NOT a camera fact: its own
+      build sequence reports `conns: 0` and `ship moved only 0.00 tiles in 15s`, so it never
+      reaches the thing it asserts. Left open — the campaign gate already proves wiring works by
+      clicking, 11/12.
+
+      Gates after: `corepox-camera-detach.ts` PASS, `corepox-board-shots.ts` clean,
+      `corepox-bench-board.ts` PASS, `corepox-qa-campaign.ts` 11/12.
 
 - [x] **`World.rng` is `Math.random` and nothing seeds it — duels replay, mining does not**
       (2026-08-21). Found while checking whether an engine push had moved a peer's mining gate
@@ -1191,6 +1378,51 @@ Updated 2026-08-22. Ticked only when verified, not when written.
       Not done, deliberately: the map's `encounterView` still ends a node with its old chip card.
       `spoilsPopup` was built where both can reach it, but wiring the run layer is a second
       change with its own gate and Tom asked for the mission popup.
+
+- [x] **The run layer ends on the same frame, and the node commits on the BUTTON**
+      (2026-08-22). `encounterView`'s result card is now `spoilsPopup` — the same element the
+      mission campaign ends on, which is the design's own argument for it: one layout, and the
+      outcome read off the colour and the noun rather than off a second screen.
+
+      The load-bearing change is not the pixels. `done()` used to call `applySpoils` on arrival
+      and then draw a card describing what had already happened; the taken card is part of the
+      spoils, so the commit now waits for the button. Gated directly, because it is the kind of
+      thing that looks fine and is not:
+
+      ```
+      race:  hold before {"Engine":3,"Lazer":2,"Armour":4,"Constant":2,"Radar":1}  scrap 214
+        offered: Constant×3 (common)   LaserTurret2 (rare)   Armour×3 (common)
+        ok  nothing is banked before the button    scrap 214, hold unchanged
+        ok  and the node is not marked visited yet
+        ok  the taken card is in the hold (LaserTurret2 ×1)
+        ok  the cards not taken are gone           Constant, Armour
+        ok  scrap is paid with it                  214 -> 264
+      ```
+
+      `spoilsOffer` replaces the single weighted roll, and `encounterSpoils` is now defined
+      **through** it — the headless payment is the top card of the same offer, so a script and a
+      player cannot be paid by two different rules. Rarity and stack size come out of `PART_COST`
+      rather than a table beside it (`<=12` common, `<=30` uncommon, else rare; `<=10` arrives ×3,
+      `<=18` ×2), so a common card is a real alternative rather than a consolation. Consequence
+      worth stating: a winning node now pays a stack where it used to pay one part, which is a
+      deliberate loosening of the run economy, not a side effect.
+
+      PERFECT out here is the hull untouched — not a cell destroyed and not a cell scratched,
+      which is rarer than surviving, because the run layer has no objectives to be perfect about.
+      A draw is turn 11's SURVIVED: salvage only, no cards, "there is nothing to loot from a fight
+      you left". A station keeps UNDOCKED.
+
+      New gate `tools/corepox-encounter-spoils.ts`, PASS over two kinds — RACE for the card path
+      (it resolves instantly) and DUEL for the draw path. It clicks LAUNCH through the DOM: the
+      notebook's own cell chrome sits over the bench and a pointer click lands on the chrome
+      instead, silently, which is what the first version of the gate timed out on.
+
+      `corepox-encounter-check` PASS, `corepox-spoils-check` PASS, `corepox-qa-campaign` 11/12
+      unchanged, preflight 24 before and after. Screenshot `tools/screenshots/spoils-encounter.png`.
+
+      Layout note: with neither objectives nor a hull to draw — a race, a stop, a station — the
+      ledger is the whole left column, so it sits at the top rather than being pushed to the
+      bottom of a column sized for a damage plate.
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
