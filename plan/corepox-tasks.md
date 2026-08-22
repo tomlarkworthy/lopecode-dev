@@ -1,8 +1,272 @@
 # Corepox — working task list
 
-Updated 2026-08-21. Ticked only when verified, not when written.
+Updated 2026-08-22. Ticked only when verified, not when written.
 
 ## Now
+- [ ] **Chunks should come apart more easily** (Tom, 2026-08-21, after playing the destructible-ore
+      field: "yes it was fun, I think we need to tweak asteroid generation to make them fall apart
+      easier but that can be another session"). The verdict on the encounter is that it works; this
+      is the one thing that does not.
+
+      Not a mystery — a chunk is built to be *hard* to break apart, by three decisions that each
+      had their own reason and compound:
+
+      - **Every mineral type has a full-perimeter `JOINTS` entry**, both slots on all four sides
+        (`corepox-engine.js:313-323`). It was added because a type with no entry bonds to nothing
+        and a 53-piece chunk read as **53 islands** — but the fix went to the maximum, so every
+        touching pair of pieces is bonded and `splitDetached` needs a cut right across the body to
+        separate anything.
+      - **`hug` packs the chunk.** `grow` takes the best of 8 candidates scored by how many
+        neighbours each already has, which took fill from 45% to 64% and turned a comb into a lump.
+        Compact means high average bond count per piece.
+      - **The Phase-1 SEAL** fills every free cell touching an ore, exhaustively over shape x
+        rotation x alignment. That is what puts seams at depth 2-5, and it is also a shell of
+        maximally-bonded rock around exactly the thing the player is trying to reach.
+
+      Levers, cheapest first, none tried: thin the `JOINTS` tables so mineral pieces bond on fewer
+      faces (a spar joined only end-to-end would shear along its length); weaken or randomise
+      `hug` so chunks grow lumpier-but-looser; make the seal one layer instead of exhaustive; or
+      add a `fracture` parameter that deletes a fraction of bonds at generation, which is the most
+      direct expression of "falls apart easier" and the easiest to expose as a slider.
+
+      **Measure it with a rate, and pin the rng first.** `paid`-per-run cannot tell a swarm build
+      from a big one, and that distinction is what the design is about — the number wanted is
+      pieces per second per gun. `corepox-mining-check.ts` already pins `World.rng` and pools over
+      5 layouts x 4 pins; its bars (10 runs, 20 pieces) are now read at 20/20 and 93 and no longer
+      discriminate, so they need resetting against whatever this change does.
+
+- [x] **The station is a board with prices on it** (2026-08-22, from the `Shipyard Concepts.dc.html`
+      design project, turn 10a/10b). A `shop` or `repair` node now docks instead of opening the free
+      refit bench: `encounterView` routes `R.station` straight to `dock()` rather than `refit()`,
+      because the bench and the station are the same gesture and opening both let the hold be spent
+      before the shop was ever seen.
+
+      New module `@tomlarkworthy/corepox-station` (canonical in lopebooks). It does not fork the
+      board — it hands `shipBoard` an inventory whose rows carry a `price`, plus `onBuy` / `onSell` /
+      `balance`, so **the gesture that moves a part on the hull is the gesture that sells it**
+      (Tom's choice, "Full drag-to-rail"). `overRail` in `corepox-board.js` tests the pointer against
+      the rail's own box, and only a `hull` drag can be sold: a rail row cannot be sell-dragged back
+      into the rail it came from.
+
+      The hold is **derived, not read off the board**, which is the one invariant worth stating:
+
+          hold = hold0 + hull0 - hullNow + bought - sold
+
+      Everything is conserved except a buy (a part appears on the hull) and a sell (one leaves the
+      run), so two counters are the whole bookkeeping and the rail and the campaign cannot disagree
+      mid-drag.
+
+      Verified in Chromium 2026-08-22 on the `shop` node of `viewof encounterDemo`, reading the
+      station root's `.value` between steps:
+
+      ```
+      dock          214 scrap  hull [Brain, Engine, Constant]  hold {Engine:3,Lazer:2,Armour:4,Constant:2,Radar:1}
+      buy Radar     291        hull [..., Radar]               hold unchanged   -> a bought part is not a held one
+      sell Brain    364        hull [Engine, Constant]         hold unchanged   -> a sold part leaves the RUN
+      revert        214        hull [Brain, Engine, Constant]  hold unchanged
+      UNDOCK        card reads "UNDOCKED / scrap 291 / hull 2 parts", campaign carries both forward
+      ```
+
+      Brain sells for 150 against `STATION_PRICES.Brain = 300`: selling is `floor(price / 2)` on all
+      13 priced types, asserted in `corepox-encounter-check.ts` so the market can never become a
+      place to launder scrap. Zero page errors over the session.
+
+      Three defects found by looking at it rather than by reasoning about it, all in the same
+      family — *drawn is not the same as visible*:
+
+      - **`htl.html` escapes an interpolated string.** `stationArt` built its plates, windows,
+        hatches and clamp as markup strings and interpolated them; the document got the literal text
+        `<rect .../>` and the station rendered as an empty glow. `querySelectorAll("g[opacity] rect")`
+        returned **0** with eleven plates built. Fixed by assembling the source and parsing it with
+        `DOMParser` as `image/svg+xml` — which needs the `xmlns` the template does not carry.
+      - **The board paints over anything behind it.** `battlefield` gives its svg an opaque
+        `background:#05070a` across its full width (`corepox-render.js:552`), so art at a lower
+        z-index is not dimmed, it is gone. The art already puts its mass at `0.78w` expecting the
+        board to sit clear; the board is now inset by a 23% gutter and the right quarter is the
+        station.
+      - **The clamp arm had to be its own layer.** Drawn with the body it was clipped at the board's
+        edge and read as a stub with a bolt on the end. Body behind (z 1), arm in front (z 5,
+        `pointer-events:none`), which is also what the design asked for: the arm reaches to where the
+        hull is, so the pause has a cause on screen and HARD needs no modal.
+
+      Headless: `runEncounter` grows a station branch that pays nothing and reports
+      `{berth, stock, quote}` — a bare verdict would have let a station with an empty rail pass.
+      `corepox-encounter-check.ts` covers the visit (nothing paid, nothing taken from the hold, still
+      logged), the six-item stock with **28/28 draws** carrying something unaffordable at 214 scrap,
+      determinism in seed + node id, no mineral ever for sale, the half-price rule, both rails, and
+      the repair quote at its rate. Preflight: 0 new findings.
+
+      Still open, and flagged as such in the module: **the repair berth is extrapolation.** The
+      design names it and does not draw it — its own "try next" line is "design the repair berth".
+      What ships is the smallest thing consistent with the frame: the rail swaps to the hold alone
+      and the patch is one priced action (`ceil(dmg * 0.6)`) on the board's action bar, rather than
+      an invented rail gesture. SALVAGE is drawn locked with "act 2" on it, because a lock with no
+      date reads as broken rather than as coming.
+
+- [x] **A rail row is not identified by its type** (2026-08-22, reported by Tom on the first play of
+      the station: "AFTER BUYING TWO ENGINES AND PLACING THEM, I WAS UNABLE TO PLACE ANOTHER ENGINE
+      even though I had it in the hold"). Not an inventory bug — the hold was right the whole time.
+
+      `picked` is a TYPE string, and `commitBuild` resolved it with
+      `S.inventory.find(i => i.type === picked)` (`corepox-board.js`, pre-fix). That was safe for
+      every rail before the station, because a hold has one row per type. A market rail has two:
+
+      ```
+      MARKET:Engine ◆95   YOUR HOLD:Engine x2
+      ```
+
+      and `stationRail` lists the priced shelf first, so `find` always returned the market row.
+      Every Engine was bought at 95 even with three sitting in the hold, and once the balance fell
+      under 95 `onBuy` returned false and the placement was refused with no feedback at all — the
+      hold row still read 3 and still looked armed, because the highlight was `picked === i.type`
+      and lit **both** rows.
+
+      Fixed by resolving to a ROW. `armChip` records `pickedRow` alongside `picked`; `spendRow(type)`
+      returns that row while it is still in the inventory and still spendable, and otherwise falls
+      back to `liveRow`, which prefers the unpriced shelf. The three rail-highlight sites read the
+      same function, so the shelf about to be charged is the one that is lit.
+
+      Both directions replayed in Chromium 2026-08-22, from the demo dock (214 scrap, hold Engine 3,
+      market Engine ◆95):
+
+      ```
+      tap MARKET, place x3   214 -> 119 -> 24 -> 24    hold 3,3,3 -> 2   hull engines 1 -> 4
+                             the third is NOT refused: the market went unaffordable and it
+                             came out of the hold, and the lit row moved MARKET -> YOUR HOLD
+      tap YOUR HOLD, place   214 -> 214                hold 3 -> 2
+                             free even though the market could afford one
+      ```
+
+      Guarded headlessly in `corepox-encounter-check.ts` at the precondition rather than the symptom
+      — "the same type can sit on two shelves at once" and "the PRICED one is listed first, which is
+      why order cannot decide it". If a later change makes the rail type-unique those fail, and the
+      type-keyed lookup becomes safe again; while they pass, `spendRow` has to stay.
+
+- [x] **The rail keeps its scroll across a placement** (2026-08-22, Tom: "the shelf scroll gets reset
+      after placement which is quite annoying"). `render()` does `shelf?.remove(); shelf =
+      shelfNode()`, so the scroller is a NEW element every frame and a new element starts at 0. The
+      chip stays armed on purpose so several parts can be placed in a row (turn 7c, "3 taps / part ->
+      1"), which is exactly the case the reset punished; and the station is what made the rail long
+      enough to scroll at all — six market goods stacked over the hold is 11 rows in a 283px column.
+
+      The offset is remembered on the board, not on the node, because the node it belongs to no
+      longer exists by the time it is needed: `keepScroll` claims the scroller as the shelf is built,
+      and `render()` restores it after `stage.append`, since `scrollTop` on a detached node is a
+      no-op. The restored value is then re-read rather than trusted — a shorter list clamps the
+      assignment, and a stale offset would snap back the next time the list grew.
+
+      Verified in Chromium 2026-08-22 on the market rail (11 rows, 283px tall, 302px of scroll),
+      scrolled to 240 and then placing:
+
+      ```
+      arm from the hold shelf   240 -> 240
+      place                     240 -> 240   scroller node replaced: sameNode false, old one detached
+      place again               240 -> 240
+      ```
+
+      The node-identity line is the part worth keeping: it shows the rail really is rebuilt, so the
+      offset is being restored rather than merely never disturbed.
+
+- [ ] **Where the frame goes with big ships** (measured 2026-08-22, `tools/corepox-melee-bench.ts`).
+      Instrument first, and it drives the real melee — `newDuel({ships})` over the real
+      `World.step` — so nothing here is a model of the engine, it is the engine.
+
+      The scene: the **8 largest distinct corpus hulls** (203/202/202/200/183/183/179/170 parts,
+      461 tiles at the top, 17 guns each), auto pilots, ring at separation 26. Node/bun, this
+      machine, median of 5:
+
+      ```
+      28.69 ms/tick   172% of a 60fps frame   35 ticks/s
+      live parts 1522 -> 1013, ships 8 -> 156
+      ```
+
+      **It does not fit in a frame, and it is not the dataflow.** The reactive layer that looks like
+      the expensive part is 3%:
+
+      ```
+      stepParticles (every shot in flight)     13.26 ms/tick   43.0%
+      collide       (hull vs hull)             12.67 ms/tick   41.1%
+      splitDetached (did a ship break)          2.76 ms/tick    9.0%
+      evaluate      (per component)             0.90 ms/tick    2.9%   212064 calls
+      propagate     (wires -> outputs)          0.03 ms/tick    0.1%
+      integrate     (forces -> motion)          0.01 ms/tick    0.0%
+      orb contact + step loop (remainder)       1.22 ms/tick    3.9%
+      ```
+
+      Timings carry a stopwatch cost of 2.15 ms/tick (instrumented median 30.84 vs clean 28.69) and
+      it is reported rather than assumed away. The operation COUNTS below are exact and free, and
+      they are what actually names the problem:
+
+      ```
+      Ship.worldOf         417383 calls/tick    two Math.sin/cos + one array, every call
+      Ship.worldTiles       25557 calls/tick    each allocates a fresh array of arrays
+      Ship.islands            164 calls/tick    one per ship per tick
+      Ship.damage              44 calls/tick
+      collide ship pairs    12090 /tick         O(ships^2) before any component is looked at
+      particle x ship       72228 /tick         every shot tested against every ship
+      ```
+
+      Four problem areas, in the order the evidence ranks them:
+
+      1. **`worldOf` recomputes the ship's rotation 417k times a tick** (`corepox-engine.js:869-873`).
+         `this.a` cannot change inside the collision or particle phase, so those are 835k sin/cos and
+         417k two-element arrays per tick computing the same two numbers. This is the single biggest
+         count in the run and it is spread across both of the top two phases.
+      2. **The world shatters, and `collide` is O(ships²) before it looks at anything.** 8 ships
+         become **164 within 0.8s** — 203-part sprawling hulls come apart into islands as soon as
+         shots land, and `splitDetached` re-homes each island into a new `Ship`. `collide`'s outer
+         loop is every pair (`corepox-engine.js:1274-1276`), so 12,090 pairs/tick before the 900-unit
+         broad phase rejects any of them. The broad phase is on ship CENTRES at 30 tiles, which a
+         461-tile hull exceeds on its own.
+      3. **`splitDetached` floods every ship every tick** (`corepox-engine.js:1336-1343`) — 164
+         `islands()` calls against 44 `damage()` calls, so roughly 120 full flood-fills per tick are
+         provably answering a question nothing asked. `islands()` builds a string-keyed `Map` per
+         joint and an O(group²) bond list (`:802-826`), so it is not a cheap 120.
+      4. **`worldTiles` is allocated inside the inner loop.** `collide` hoists `A.worldTiles(ca)` out
+         but calls `B.worldTiles(cb)` per (ca, cb) pair (`:1288-1297`); `stepParticles` calls
+         `s.worldTiles(c)` per particle per surviving component (`:1230`). 25,557 array-of-array
+         allocations a tick is GC pressure that no profiler line will attribute to either phase.
+
+      **What could not be measured this way, and why.** The scaling sweep does not read as a law:
+
+      ```
+      n=2 405 parts 24.32 ms/tick   n=3 607 parts 5.52   n=4 807 parts 7.99   n=12 2163 parts 27.11
+      6 ships x 203 parts (1173) 26.06 ms/tick   6 ships x 80 parts (472) 28.70 ms/tick
+      ```
+
+      Three ships cost a fifth of two, and six small ships cost more than six large ones. The fixture
+      is not controlled: whether a given roster shatters, closes to contact, and puts hundreds of
+      particles in the air dominates everything roster size does. **Cost tracks fight state, not part
+      count** — which is consistent with the ranking above, since every one of the four areas is
+      driven by ship count after shattering, particles in flight, or contact pairs. A real size law
+      needs a fixture that holds those fixed (no fire, no contact, forced island count), and that
+      does not exist yet.
+
+      Not attempted: any fix. Tom, 2026-08-22: "dont try and fix anything, jsut find the problem
+      areas."
+
+- [x] **The duel generalises to N sides** (2026-08-22, Tom: "Maybe our stand alone dual can be
+      generalized to have n opponents instead of strictly 2"). `newDuel({ships: [...]})` is the
+      N-side form and `{a, b}` is the same thing with two entries, so there is one code path and the
+      two-ship duel is a melee of two. `a` and `b` remain on the returned object as aliases for the
+      first two sides, because `runEncounter`, `duelView` and every mode read them by name and a duel
+      must not change shape to gain a third opponent.
+
+      - `meleePlacement(n, {separation})` puts N on a ring with the neighbour chord equal to the
+        separation a duel would have used, `R = sep / (2 sin(pi/n))`. At n = 2 that is `sep / 2`,
+        which is exactly where `duelPlacement` puts the two ships — the half-turn offset is what
+        keeps index 0 on the "a" side of the line rather than mirrored across it.
+      - A free-for-all is N teams, not one: the default team is the side's own id.
+      - `nearestFoe` picks the target, because with two sides the enemy is "the other one" and with N
+        it has to be chosen. It searches the ROSTER, not the world — `splitDetached` puts debris in
+        `world.ships` and a pilot chasing a shard of its own wreck is not a target.
+      - New `melee` mode decides on TEAM, so a 6-way free-for-all and a 3v3 are the same mode.
+      - `duelView`'s HUD is one readout per side instead of two hard-coded ones; the first two keep
+        A's and B's colours so a duel looks unchanged.
+
+      Regression: `corepox-encounter-check.ts` PASS, printing the same foe ids, verdicts and scrap as
+      before the refactor — the 2-side path is untouched.
+
 - [x] Recover original source (partial clone; `vendor/corepox`)
 - [x] Recover vector art (`design.sketch` history + `corepox_art` repo)
 - [x] `tools/sketch2svg.py` — Sketch JSON → SVG, incl. `--groups` for the components page
@@ -727,6 +991,63 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       Caught in passing: `chrome({mob, pad, chip})` already binds `chip`, so the first version
       threw `Identifier 'chip' has already been declared` — the bench gate reported it as a console
       error while every assertion still passed, which is the whole reason it collects them.
+- [x] **Armour and the joint mark, off turn 5h** (Tom, 2026-08-22 — "There are improved armour and
+      joint graphics that need copying into the build in the design"). Re-fetched
+      `Shipyard Concepts.dc.html`: 215.6KB against 167KB on 2026-08-21, one new turn (10, the
+      station — the other session is already on it, `stationView`/`stationStock`/`repairQuote`) and
+      one new option, **5h Armour — 1 cell, all 8 joints live, and it tiles**. Turns 8 and 9 changed
+      only where they draw an Armour chip: the hexagon `M8 22 44 8l36 14v44L44 80 8 66Z` became the
+      chamfered plate.
+
+      Two changes, and neither was the one I expected going in.
+
+      **The plate.** 5h names the defect precisely — "a single cell read as a button and a field of
+      them read as a bubble sheet" — and `tools/screenshots/armour-before.png` is that sentence: 24
+      rounded squares with gutters. What replaced it is a chamfered plate whose corners are cut at
+      45°, so four plates leave a dark diamond between them. The diamond is negative space; nothing
+      draws it.
+
+      The part that was not a path edit: **the art box had to grow.** Every recovered symbol is
+      authored in a 46.59-unit box on a 56-unit cell, so no part has ever reached its own cell edge
+      and plates *cannot* abut — `armour-zoom.png` at the intermediate step shows a clear gutter
+      with the new chamfer already in. A `use` maps art unit `u` to `u - viewBoxMinX - anchor`, so a
+      plate spanning −28..28 needs `viewBox -2.08 -2.08 60.16 60.16` and `SYMBOL_FOR` anchor 30.08:
+      art 0 → −28, art 56 → +28, exactly. Geometry is 5h's at ×0.5 — chamfer 9, inner outline inset
+      6 chamfer 7, rivets at 6.5/49.5 r 1.5, ribs at y 21/28/35 across x 13..43.
+
+      One departure, stated: 5h strokes the outline at 3 (→1.5 here) and this uses 3.4. The design
+      is a flat mock; our sheet is stamped through `cp-bloom` beside eleven parts still on the
+      recovered art at 4.16, where 1.5 reads as a different game. The alternative — take 5h's weight
+      and restroke everything — is right, and it is turn 5's whole component sheet, not this change.
+
+      **The joint mark, which was drawn the wrong way round.** It ran long ACROSS the seam
+      (`0.16 × 0.24` tile, 2.4 stroke, filled centre disc), which draws a rung *between* two cells.
+      5c: "one symmetric capsule straddling the grid edge, half in each cell"; 9a: "joint = one 3px
+      seam mark". 5c's own rect is `3 × 13 rx 1.5` at an 84 pitch — 0.036 and 0.155 of a tile — so
+      it is long ALONG the seam and thin across, flat `#56e39f` at .45, no stroke and no hub,
+      because anything with a rim reads as a part rather than as something belonging to the pair.
+      Roughly a quarter of the previous ink: on the 5×5 wall the marks used to be the subject.
+
+      The joint *model* needed nothing — `Ship.jointList` has returned `{mx, my, edge}` (drawn
+      position at the thirds, plus which way the shared edge runs) since 2026-08-21, and `JOINTS`
+      already agrees with turn 5 part for part: Engine 4, Lazer 4, Radar 6, Binary 12,
+      LaserTurret2 8, Armour 8.
+
+      ```
+      before  tools/screenshots/armour-before.png   rounded rings, gutters, lozenge joints
+      after   tools/screenshots/armour-seam.png     flush plates, dark diamonds, seam capsules
+      chip    tools/screenshots/chip-armour.png     26px rail chip, shot at dsf 4
+      sheet   tools/screenshots/comp-armour.png     "1 cell · hp 100 · art armour-3", 8 joints
+      ```
+
+      Gates after: `corepox-bench-board.ts` PASS, `corepox-board-shots.ts` clean,
+      `lope-preflight.ts` 2 NEW and both robocoop-5-srctools, none from corepox.
+
+      **Armour is now the only part that fills its cell**, so it abuts its neighbours and every
+      other part still sits inside a 46.59 box with a visible margin — see the Brain in
+      `armour-seam.png`. That is a half-migrated look, not a bug, and it resolves when the rest of
+      turn 5's sheet lands. `tools/corepox-art-extract.ts` still maps `Armour: "armour-2"`; that is
+      correct and was left alone — it extracts the *Unity* art, and armour-2 is what that art is.
 
 - [x] **`World.rng` is `Math.random` and nothing seeds it — duels replay, mining does not**
       (2026-08-21). Found while checking whether an engine push had moved a peer's mining gate
@@ -815,6 +1136,61 @@ Updated 2026-08-21. Ticked only when verified, not when written.
       — rank-identical, because both read the same draw. Pooling protects against picking an
       unlucky pin; it does not turn one measurement into two. The honest reading is one metric
       with a 4-to-18-piece spread on unchanged code.
+
+- [x] **A mission that is cleared now PAYS, and the payment is a choice** (2026-08-22).
+      "Shipyard Concepts" turn 11, imported from the design project and implemented.
+
+      The defect first: `m.spoils` was drawn as a line of text on the victory overlay
+      (`corepox-game`, "no spoils" otherwise) and reached no inventory anywhere. Every mission
+      starts from its own authored `inventory`, so a part "won" at mission 5 did not exist at
+      mission 6. That is Tom's "there are few chances to get more components", and it is most of
+      why the boss reads as overtuned — you fight The Assassin with exactly the parts its own
+      mission hands you.
+
+      Two changes. A win offers **three cards and takes one** — the mission's authored spoils
+      plus two drawn alternates, the rest burn — and what is taken is **carried into the missions
+      after it**. Paid once per mission id, so replaying a cleared mission is not a farm.
+
+      ```
+      offered: Armour×2 (common)   Engine (common)   Radar (uncommon)
+      took Engine ×1  ->  carried [{"type":"Engine","n":1}]
+      next mission's rail: ["Armour×2","Engine×1"]
+      ```
+
+      PERFECT — every objective, no cells lost — is turn 11's fourth outcome and buys a fourth
+      card with a guaranteed uncommon-or-better. It is the only place in the campaign where
+      flying well pays more than flying adequately.
+
+      One frame does all four outcomes, as the design asks: a coloured hairline, a verb, a
+      fixed-width ledger column, and a right column that is either the choice or a summary.
+      `spoilsPopup` and `damagePlate` live in corepox-board so the map's encounters can call the
+      same frame later; `partIcon` was extracted from `shipBoard`'s closure rather than copied,
+      so the card and the build rail cannot disagree about what an Orb looks like.
+
+      Damage is drawn on the hull, not listed (turn 11). `shipNode` could not be reused for it —
+      it hides a destroyed component (`display:none`) and the destroyed ones are the subject —
+      so `damagePlate` draws live parts through `componentNode` and dead cells as hatched red cells
+      on the same grid the repair will happen on.
+
+      The hint bar states the deficit and does not recommend: "your hull is short 18 cells —
+      LaserTurret2, Radar went with them". A card that replaces a lost type is *marked*, which is
+      as far as turn 11 goes ("it informs the choice without making it").
+
+      Gates. `tools/corepox-spoils-check.ts` (new, browser) PASS — the popup appears, three cards,
+      one type never offered twice, the taken card is banked and appears in the next mission's
+      rail, the two not taken are gone, a cleared mission offers nothing the second time, a loss
+      offers no cards and retries the same mission, and a **reloaded** run offers the same three
+      cards (determinism has to be checked across a reload, because a win — taken or passed —
+      consumes that mission's one payment). `corepox-qa-campaign.ts` 11/12, unchanged; FollowBoss
+      was already the sole failure. Preflight 24 findings before and after, none in a corepox
+      block. `corepox-camera-probe.ts` fails 2 — **checked against HEAD's notebook in the same
+      session and it fails there identically**, so it is not this change.
+
+      Screenshots: `tools/screenshots/spoils-cleared.png`, `spoils-broken.png`.
+
+      Not done, deliberately: the map's `encounterView` still ends a node with its old chip card.
+      `spoilsPopup` was built where both can reach it, but wiring the run layer is a second
+      change with its own gate and Tom asked for the mission popup.
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
@@ -1281,6 +1657,199 @@ One of these leans on structure that already exists:
       rejection sampling, the haul-replaces-spoils path, and the `dep-mismatch` preflight check.
       Superseded: everything about how a rock is generated, and `MINING_ORE`, which used to
       name ship-part types and now names the two mineral ones.
+- [x] **The belt is made of minerals, not of ship parts** (Tom, 2026-08-21 — "I could not find any
+      ore in the astroids. Its weird having lazers in there... I think rocks can be 3x1 and 2x2
+      components. Ore might be 1x1 or 1x2. They need their own component type though, we should not
+      be litering normal components in the astroid belt. I think we should be aiming for much larger
+      chunks (50 components) so it taks quite a while to get to the ore."). This replaces the model
+      in the entry above: no `Armour` walk, no real components buried in the rock.
+
+      Four new `TYPES`, all `mineral: true`, which is also what keeps them out of the shipyard and
+      lab palettes (`Object.keys(TYPES).filter(t => t !== "Composite" && !TYPES[t].mineral)`):
+
+      ```
+      RockSpar  3x1  hp from cfg   RockSlab  2x2  hp from cfg
+      Ore       1x1  hp 1e9  ore 30      OreVein   1x2  hp 1e9  ore 75
+      ```
+
+      **Ore was unshootable for six hours, and that was wrong.** `hp: 1e9` — a number no weapon
+      reaches — made mining a distinct verb: cut the rock *around* a seam until the piece floats
+      free, then fly into it. It was introduced to kill a real problem (the miner kept destroying
+      its own prize, `seam=Ore hp25 -> 5`, and the four fire-discipline rules written to stop that
+      deadlocked against each other in three different ways). It worked, and it deleted the game.
+      Tom, the same day: "We want people to shoot multiple ores to get money. Thats the fun,
+      designing a ship that optimizes swarming and mining a lot in parrallel... the game is
+      exploration and mass farming." An encounter you excavate is one seam at a time, and one seam
+      at a time is not a farm.
+
+      **Ore now breaks at twice rock's toughness per tile**, `Ore` 40 and `OreVein` 80 against
+      rock's 20, overridden per component from the field's own `rockHp` so the ratio is what the
+      engine fixes rather than the number. Shooting a seam is the harvest. New cell `cashDead`
+      snapshots the ore alive *before* `world.step()` and pays for anything at `hp <= 0` after it —
+      the test is `hp <= 0` and not "left the ship", because `splitDetached` hands a component to
+      another hull without killing it and being handed to a new hull is not being mined. Ramming
+      pays through the same path: `collide` breaks a seam exactly as a beam does. Scooping still
+      works, so a piece cut free can be flown into for the same value.
+
+      The four fire-discipline rules stayed deleted, for the opposite reason to the one that
+      deleted them. They only ever existed to serve a third model — ore breakable AND breaking it
+      a loss — which is not this one and was not the last one either.
+
+      Pooled gate, 5 field layouts x 4 rng pins, before and after:
+
+      ```
+      indestructible ore   15/20 runs paid   40 pieces   1290 scrap
+      destructible ore     20/20 runs paid   93 pieces   3060 scrap
+      ```
+
+      **A type with no `JOINTS` entry bonds to nothing.** `Ship.islands()` bonds two components only
+      where their joint points coincide, and `jointsOf` returns `[]` for a type the table does not
+      name. A 53-piece chunk therefore read as **53 islands** and would have shattered at t=0. The
+      four mineral types get a full-perimeter entry, both slots on all four sides.
+
+      **Chunks are packed, not scattered.** Placing each piece against a random free cell grew a
+      comb: 170 tiles in a 20x19 box, 45% filled. `grow` now tries eight candidates against the
+      chosen cell and takes the one with the most already-occupied neighbours (`hug`), and aligns
+      *one of the piece's own cells* on the free cell rather than its anchor — anchoring only ever
+      grows in the anchor's direction. 64% fill.
+
+      **Two phases, because a seam on the rim is not worth digging for.** Phase 1 SEAL fills every
+      free cell touching an ore; phase 2 grows the bulk. The seal has to be exhaustive over
+      (shape x 4 rotations x each of the piece's cells) rather than eight random tries — eight tries
+      often cannot cover one particular cell with a 3- or 4-tile piece, and 2 of 3 seams were still
+      showing. "Buried" is checked by flood fill from outside the bounding box, not by counting
+      neighbours: the four-neighbour test failed 2 of 3 seams on chunks that were in fact sealed,
+      because a 1-tile pocket has no rock in it and no way into it either.
+
+      At the shipped defaults, one chunk:
+
+      ```
+      53 pieces, 161 tiles: {"Ore":3,"RockSpar":42,"RockSlab":8}   1 island
+      0 of 3 seams reachable from outside without cutting rock, depths 4, 5, 2
+      ```
+
+      **The bug every measurement in this entry was nearly taken through.** `MINER` grew two lateral
+      engines because a hull whose every engine thrusts along its nose cannot orbit a chunk while
+      its guns stay on the seam. They were written at px ±2 with nothing at ±1, bonded to nothing,
+      and `splitDetached` threw them away on the first tick:
+
+      ```
+      islands 3, sizes [7,1,1]     as written, px +-2
+      islands 1, sizes [9]         at px +-1
+      ```
+
+      So every run for two days flew the single-axis rocket the comment said it must not be, and two
+      of five seeds never left the spawn point — 1.0 and 0.3 tiles in ninety seconds, throttles at 0
+      from t=15 with a target 13 tiles away. Found only because a second session could not reproduce
+      the "`pilot` parks ~3 tiles short of a waypoint" claim I had sent them and swept `pilot`
+      against a fixture that arrives and one that does not (see the flight-model entry above, and
+      `tools/corepox-arrival.ts`). That claim is **retracted**: it was one hull, and the hull was
+      broken. `corepox-mining-check.ts` now asserts `islands [9]`, 4 engines and 2 thrust axes
+      *before* it flies anything — a stalled miner and a miner that cannot strafe write the same log
+      line, so no outcome-shaped probe could have seen it.
+
+      **Every tuned number was re-taken afterwards**, because the first sweep tuned the crippled
+      hull. 18 cells x 8 seeds x 90 s, `tools/scratch/mine-sweep2.ts`:
+
+      ```
+      hp spread dens | rocks paid  pieces scrap wrecked
+       3      3 0.25 |   2.0 5/8       7   255       0
+       3      3 0.55 |   5.0 3/8       7   255       0
+       3      5 0.25 |   2.0 3/8       8   330       0
+       3      5 0.55 |   5.0 7/8      17   645       0
+       3      7 0.25 |   2.0 5/8      11   465       0
+       3      7 0.55 |   5.0 5/8      10   435       0
+       5      3 0.25 |   2.0 2/8       2    60       0
+       5      3 0.55 |   5.0 3/8       5   195       0
+       5      5 0.25 |   2.0 3/8       4   120       0
+       5      5 0.55 |   5.0 3/8       4   165       0
+       5      7 0.25 |   2.0 4/8       7   255       0
+       5      7 0.55 |   5.0 6/8       9   450       0
+       8      3 0.25 |   2.0 1/8       2    60       0
+       8      3 0.55 |   5.0 0/8       0     0       0
+       8      5 0.25 |   2.0 0/8       0     0       0
+       8      5 0.55 |   5.0 0/8       0     0       0
+       8      7 0.25 |   2.0 1/8       2    60       0
+       8      7 0.55 |   5.0 2/8       3   135       0
+      ```
+
+      A second sweep held rockHp and oreSpread and moved the clock and the density
+      (`tools/scratch/mine-sweep3.ts`, 6 seeds):
+
+      ```
+      --- duration 90
+       3      5  0.4 |   4.0 4/6      12   450       0
+       3      5 0.55 |   5.0 4/6       6   180       0
+       3      5  0.8 |   7.0 4/6      10   345       0
+      --- duration 120
+       3      5  0.4 |   4.0 2/6       9   270       0
+       3      5 0.55 |   5.0 6/6      16   570       1
+       3      5  0.8 |   7.0 4/6      13   480       0
+      --- duration 150
+       3      5  0.4 |   4.0 4/6       9   315       0
+       3      5 0.55 |   5.0 6/6      16   570       0
+       3      5  0.8 |   7.0 5/6      18   675       0
+      ```
+
+      120 and 150 return the same 16 pieces and 570 scrap from the same seeds, which says nothing
+      is collected after t=120 and a longer clock buys nothing.
+
+      `rockHp` dominates and the shipped value was on the wrong side of it: at 8 the field is
+      unmineable (1/8 across all six cells), and 5 — what the crippled-hull sweep chose — pays about
+      half what 3 does. Because the best cell of an 18-cell grid on 8 seeds is a lucky draw as often
+      as it is a finding, the candidates were re-run on 20 seeds none of the sweeps had seen
+      (`tools/scratch/mine-confirm.ts`):
+
+@@CONFIRM@@
+
+      **The instrument was not an instrument, and this is the part worth carrying forward.**
+      Every tuned number above was taken on a gate that did not repeat. `World.rng` is
+      `Math.random` (`corepox-engine.js:1025`) and nothing in the game sets it; `runMining` spends
+      its `seed` on the field layout and not on the simulation, and a thrusting hull emits exhaust
+      as a Poisson draw from `World.rng` carrying `EXHAUST_DMG` onto the rock it is cutting. Five
+      consecutive runs on identical input, found by lopecode-dev-66 after I reported a regression
+      against their engine push:
+
+      ```
+      5/5 seeds   18 pieces   630 scrap
+      5/5         18          585
+      2/5          6          180      <- below the gate's own 3/5 bar
+      4/5         13          390
+      5/5         10          300
+      ```
+
+      Pinning it made the gate repeat and not pass: swept over the pin alone on unchanged code, 8
+      pins give 3–5 of 5 fields paying and one lands below the haul bar, so which integer was typed
+      decided whether the gate was green. It now sweeps 5 layouts x 4 rng pins — including the pin
+      that used to fail — and asserts on the pooled result, with `--fast` for the single pin and an
+      assertion label that says out loud when it is running cheap.
+
+      A further correction: the two bars are **one metric**, not two. Across the eight-pin sweep
+      they rank identically (`paid 5/5 5/5 4/5 4/5 4/5 4/5 3/5 3/5`, `pcs 18 18 12 9 9 9 9 4`) —
+      the same draw read from opposite ends. They were briefly cited as two independent 1.5x
+      margins, which was wrong.
+
+      Three findings in one day, all the same shape: **the measurement was not measuring what it
+      looked like it measured.** A fixture that could not fly, an instrument that did not repeat,
+      and two metrics that were one. A held-out sample defends against overfitting a sample; it
+      does nothing about either of the other two. Checking that identical input gives identical
+      output belongs before the first sweep, not after the third wrong answer.
+
+      **What is still not done.** The field has no quota and no hazard, `MINING_ORE` prices are
+      invented, and `MINER` is not offered anywhere — the starting `wiredCore` cannot be steered
+      (its engine is driven by its own wire) and so mines nothing until the player refits, which is
+      the intended loop but is taught by nothing. The latched-orbit miner AI is kept as it stands:
+      it works, and it was written to route around a stall that turns out to have been the hull's,
+      so whether a free-to-turn miner still needs it is untested.
+
+      Nor are the parameters re-derived for the destructible model. `rockHp 3` makes a seam 6 hp,
+      two beam hits, and the field may be far too soft — the pooled gate now reads 20/20 and 93
+      pieces against bars of 10 and 20, so it no longer discriminates and would pass through a
+      large regression. The right number is a rate, pieces per second **per gun**, because
+      `paid`-per-run cannot tell a swarm build from a big one and that distinction is what the
+      design is about. Deliberately waiting on Tom playing it before measuring: twice today a
+      number was shipped off an instrument that had not been checked, and his read is evidence the
+      grid is not.
 - [x] **Relic registry: a design may NAME a prefab instead of carrying it** (Tom, 2026-08-20 —
       "so we need a relic registry as well for resolving those"). `loadShipSpec` already spliced a
       `Composite`, which carries its whole sub-ship inline in `param`. 436 of the 2191 corpus designs
