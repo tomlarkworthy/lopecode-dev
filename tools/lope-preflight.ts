@@ -129,12 +129,67 @@ const BUILTINS = new Set([
 /**
  * Cell names a module block defines. `$def(id, name, inputs, fn)` carries the name
  * (null for anonymous cells); re-exported imports come through as `main.define("n",`.
+ *
+ * A hand-written module can also define an OBSERVED cell directly, without the helper:
+ *
+ *   main.variable(observer("viewof galaxyMap")).define("viewof galaxyMap", [...], fn)
+ *
+ * The regexes here used to miss that, and the miss was not theoretical: `corepox-map`
+ * and `corepox-game` define `viewof galaxyMap` / `viewof game` exactly that way, so
+ * importing them produced two permanent false `missing-export` findings —
+ * "@tomlarkworthy/corepox-app-impl imports viewof game from @tomlarkworthy/corepox-game,
+ * which does not define it" — against a notebook that boots and runs.
+ *
+ * Matching a bare `.define("x"` would be wrong, and the corpus says how wrong. Across
+ * 233 notebooks / 12108 module blocks, `.define(` with a literal first argument appears
+ * on receivers that are OTHER modules, not the block's own exports: `runtime.define("…")`
+ * (466), `__ojs_runtime._builtin.define("…")` (466), `m.variable().define("title", …)`
+ * inside `@tomlarkworthy/modules` (696, on `rt.module()` fixtures built in a cell body),
+ * `mod.define("svgLens", …)` in `svg-lens` (8, a module made at runtime). Counting those
+ * as exports would silence real findings.
+ *
+ * So the rule is the receiver's ROOT identifier, and `main` is the whole rule: of the 367
+ * distinct module ids in both repos, 367 bind `main = runtime.module(` and zero bind
+ * nothing. The other bindings that exist (`mod` ×3, `imported` ×2, `importer`, `newMod`)
+ * are inner modules built inside cell bodies — the ones that must not count.
+ *
+ * The regex path stays as the fallback for a block acorn cannot parse, where it is still
+ * better than returning nothing.
  */
+const namesCache = new Map<string, Set<string>>();
 function definedNames(src: string): Set<string> {
+  const key = createHash("sha256").update(src).digest("hex");
+  const hit = namesCache.get(key);
+  if (hit) return hit;
   const out = new Set<string>();
+  namesCache.set(key, out);
+
   for (const m of src.matchAll(/\$def\("[^"]*",\s*"((?:[^"\\]|\\.)*)"/g)) out.add(m[1]);
-  for (const m of src.matchAll(/main\.define\("((?:[^"\\]|\\.)*)"/g))
-    if (!m[1].startsWith("module ")) out.add(m[1]);
+
+  let ast: any;
+  try { ast = acorn.parse(src, { ecmaVersion: 2022, sourceType: "module" }); }
+  catch {
+    for (const m of src.matchAll(/main\.define\("((?:[^"\\]|\\.)*)"/g))
+      if (!m[1].startsWith("module ")) out.add(m[1]);
+    return out;
+  }
+
+  walk.simple(ast, {
+    CallExpression(n: any) {
+      const c = n.callee;
+      if (c.type !== "MemberExpression" || c.computed) return;
+      if (c.property.type !== "Identifier" || c.property.name !== "define") return;
+      const arg = n.arguments[0];
+      if (!arg || arg.type !== "Literal" || typeof arg.value !== "string") return;
+      if (arg.value.startsWith("module ")) return;   // an import bridge, not an export
+      // Walk the receiver back to the identifier it roots at: `main`, `main.variable(…)`,
+      // `main.variable(observer(name))` all root at `main`; `rt.module().variable(…)` does not.
+      let o: any = c.object;
+      while (o && o.type !== "Identifier")
+        o = o.type === "CallExpression" ? o.callee : o.type === "MemberExpression" ? o.object : null;
+      if (o?.name === "main") out.add(arg.value);
+    },
+  });
   return out;
 }
 
@@ -194,6 +249,8 @@ const AMBIENT = new Set([
  *   unused-dep      declared, never referenced. The cell still WAITS on that variable, so it
  *                   inherits its failure and recomputes on its changes, for nothing.
  *   undeclared-ref  referenced, never declared and not ambient. Resolves to nothing at runtime.
+ *   dep-mismatch    input i and parameter i have different names. Binding is positional, so
+ *                   every later argument is off by a slot -- see the note at the check.
  *
  * Over-approximates what counts as bound (every declaration anywhere in the function, plus every
  * nested param) so the errors it can make are misses, not false alarms. Cells reaching `arguments`
@@ -308,6 +365,28 @@ function depSkew(src: string): Problem[] {
         if (!p) { out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} (${originOf(dep)}) but has no parameter for it` }); return; }
         if (!fn.refs.has(p)) out.push({ kind: "unused-dep", detail: `${cell} declares ${dep} (${originOf(dep)}) but never uses it` });
       });
+      // The runtime binds inputs POSITIONALLY, so inserting a parameter without
+      // inserting its dep shifts every later one by a slot and the cell runs on
+      // neighbours' values. Nothing above catches that: each shifted dep still lands
+      // on a parameter the body references, and the inserted name is still in the
+      // parameter list, so `unused-dep` and `undeclared-ref` both stay silent.
+      // Observed 2026-08-21: encounterView gained a `miningView` parameter, `htl`
+      // received `encCss` (a string) and the cell died with "htl.html is not a
+      // function" -- 0 preflight findings.
+      // A free RENAME is idiomatic and not a bug -- `(G, _) => G.input(_)` names
+      // `Generators` G in 204 cells across this corpus. What is always a bug is a
+      // parameter that holds ANOTHER of this cell's own input names: the two lists
+      // are then a permutation of each other, which is what a shift looks like.
+      const ident = (x: unknown) => typeof x === "string" && /^[A-Za-z_$][\w$]*$/.test(x);
+      const declared = new Set(inputs.filter(ident) as string[]);
+      inputs.forEach((dep, i) => {
+        const p = fn.params[i];
+        if (!ident(dep) || !ident(p) || dep === p || !declared.has(p)) return;
+        out.push({ kind: "dep-mismatch",
+                   detail: `${cell} input ${i} is ${dep} but its parameter there is ${p}, ` +
+                           `which is input ${inputs.indexOf(p)} -- every argument after ${i} is off by a slot` });
+      });
+
       const params = new Set(fn.params.filter(Boolean) as string[]);
       for (const r of fn.refs)
         if (!params.has(r) && !fn.bound.has(r) && !AMBIENT.has(r) && !/^\$\d+$/.test(r))
