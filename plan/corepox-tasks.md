@@ -1424,6 +1424,141 @@ Updated 2026-08-22. Ticked only when verified, not when written.
       ledger is the whole left column, so it sits at the top rather than being pushed to the
       bottom of a column sized for a damage plate.
 
+- [x] **Six presses that did not do what they said** (Tom, 2026-08-22, one list). All six are in
+      `bun tools/corepox-move-place.ts` (bugs 1-4, PASS, 0 console errors) and
+      `bun tools/corepox-station-repair.ts` (bug 5, PASS); bug 6 is a number, not a press.
+
+      1. **"a rotated component does not compute its footprint rotated."** `legalCells` tested
+         `TYPES[type].tiles`, which is the UNROTATED footprint, while the engine rotates the live
+         one. Measured on the refit bench: an Engine turned once goes `0,-1 0,-2` -> `0,-1 -1,-1`,
+         and the board went on offering it the anchor `(1,0)` whose second cell is the Brain. Fixed
+         by reading the footprint off the part itself (`ignore.tiles` minus its anchor), which is
+         already rotated by the constructor; a part off the rail has no rotation yet, so TYPES is
+         still right for that case and only that case.
+
+      2. **"on missions the auto player does not shoot weapons when space is pressed."** Space was
+         consumed as the pan modifier and returned early from `gameKey`, so it did nothing else --
+         while the briefing the same repo prints says "WASD to fly · space to shoot"
+         (`corepox-duel-encounter.js:568`). Space now fires whenever the clock runs and a `cmd`
+         exists, and stays the pan modifier the rest of the time. F is unchanged. Panning during a
+         match is still on the nub, the wheel and the middle button.
+
+      3. **"if a component is selected for placement, you cannot access the rotation menu for
+         anything, this feels off."** Two halves of one rule. `startGesture`'s own comment claimed
+         "a tap on a ghost places it and a tap anywhere else puts it back", and only the ghost half
+         was implemented -- a press off a ghost left the chip armed. `verbBar()` then opened with
+         `if (!c || drag || picked) return null`, so the selection that press made had no menu.
+         A press off a ghost now disarms the chip and then means what it would have meant with
+         nothing held; the bar no longer gates on `picked`.
+
+      4. **"after moving a component to leave a space, I cannot place a component back into that
+         space."** Not a press bug: a mission ENVELOPE is a fixed recorded list of anchors and it
+         does not contain the cells the mission's own ship arrived on. `bun tools/scratch/env-gap.ts`
+         over all twelve:
+
+         ```
+         Cocoon         env  2 parts  1   outside: 0,0
+         FollowCourse   env 35 parts 10   outside: 3,-2
+         FollowCourseAdv env 35 parts 16  outside: -1,4 1,5 -1,5 2,4 3,0 3,2
+         SideShooter    env  6 parts  3   outside: 0,0 0,1 1,0
+         TwinTurrets    env  9 parts  3   outside: 0,0 0,1 1,0
+         ```
+
+         Move a part off one of those and the hole is unbuildable for the rest of the mission. The
+         session now captures the ship's start cells and unions them into the envelope -- only when
+         the mission offers an envelope at all, because `envelope: []` is a mission that forbids
+         building (Connection, Aim, Avoid teach wiring) and unioning there would quietly turn it
+         into one that allows it. Verified on SideShooter: the Lazer moves off `0,1` and `0,1` comes
+         back into the ghost set.
+
+      5. **"patch in the space station doesn't seem to repair the ship"** (and before it, "after
+         repairing a node on a space station, I did not see the nodes look fixed"). PATCH wrote the
+         repaired spec to `camp.ship` and called `build()`, whose first line is
+         `keep = ed ? structuredClone(ed.value) : camp.ship` -- so with the old editor still
+         mounted the rebuild read the damaged hull straight back off it. Differential, both
+         directions, same gate: before, `PATCH is paid for 214 -> 202` passes while the hull stays
+         `Brain@0,0 1/20`; after, the hull comes back `20/20` and the berth reads NO DAMAGE.
+         One line: `ed = null` before the rebuild.
+
+      6. **"armour seems a bit too strong."** Armour 100 -> 75. Not a defect fix -- a deliberate
+         departure, and reversible in one number. What 100 buys, at `BEAM_DMG 5` per `BEAM_CYCLE 1.0s`
+         (`bun tools/corepox-armour-balance.ts`):
+
+         ```
+         part            hp   seconds of one Lazer to destroy one
+         Brain           20      4
+         Constant/Radar  25      5
+         Engine          50     10
+         Lazer           75     15
+         Armour         100     20
+         ```
+
+         One 1-cell part outlasting a mission that resolves in 3-74s
+         (`tools/corepox-play-missions.ts`) is the whole complaint. 75 is not invented: it is what
+         the game shipped before 2018-01-14, on 65 dated corpus ships from 2017-11-23
+         (`tools/corepox-hp-eras.ts`). That patch took Brain 50->20, Binary 100->25, Constant
+         50->25, Lazer 100->75, Radar 50->25, LaserTurret2 100->50 -- **Armour was the only part it
+         moved up.** 75 is 15s a plate; 50 is the next step down if it still soaks too much.
+
+         Weak evidence, stated as such: 30 seeded gun-boat duels per row show hp barely moving the
+         result (100 and 75 give an identical 12/0/18 win/loss/draw at 5 plates), because duels at
+         a 90s limit are draw-dominated and plates mostly do not die. What decides those rows is
+         the NUMBER of plates, not their hp. The arithmetic above is the load-bearing argument.
+
+         Method note worth keeping: mutating the shared `TYPES.Armour.hp` did not reach the ships
+         at all under `notebook-import` -- a fresh 1-plate hull still came out 100/100 with the
+         table at 10 (`tools/scratch/armour-duel.ts`), so the first sweep printed five identical
+         rows and read as "hp does not matter" when it had never been applied. hp is stamped on the
+         component instead (`Ship` reads `c.hp ?? T.hp`).
+
+- [ ] **Aim regressed to a DEFEAT, and it is the collision fix, not the armour change**
+      (found 2026-08-22 while gating the six above). `corepox-play-missions` reads
+      `Aim loss 24.9s` with the reference solution and `corepox-qa-campaign` agrees from the
+      browser (`built 14/14 parts 2/2 wires`, `VERDICT DEFEAT t=25.7s ... lost Brain@-1,0,
+      LaserTurret2@0,0`). Both were WIN earlier the same day.
+
+      Not the armour change: with `Armour.hp` put back to 100 and nothing else altered, Aim still
+      loses at 24.9s. One constant flips it:
+
+      ```
+      sed 's/RESTITUTION: 0.2/RESTITUTION: 0.0/' modules/@tomlarkworthy/corepox-engine.js > /tmp/e.js
+      ENGINE=/tmp/e.js bun tools/corepox-play-missions.ts      # Aim  win 26.9s
+      ```
+
+      so it is the new impulse in `collide()` that Aim's hull cannot survive.
+      aimPlayer is 11 Armour plates around a Brain and a turret; it is the most collision-exposed
+      hull in the campaign, which is presumably why it is the one that broke.
+
+- [x] **Taking the spoils IS the transition — one click back to the map** (2026-08-23, Tom:
+      "After choosing spoils we go back to the battle map instead of up to the map, so there is a
+      pointless transition there").
+
+      The map's layer carried its own exit. `exitAs("back to the map ▶")` put a control on the
+      layer bar the moment a node resolved, and that was right when the node ended on a chip card
+      with no control of its own — the comment beside it records the measurement that put it
+      there (`tools/scratch/encounter-spoils.mjs`: the layer stayed up with no button). Since the
+      node started ending on `spoilsPopup`, TAKE & JUMP already commits the campaign, so the
+      second button left the player looking at a finished battlefield to press "back to the map"
+      on a screen they had already left.
+
+      `exitAs` is gone and `onDone` calls `closeLayer()`. One click.
+
+      New gate `tools/corepox-map-return.ts` — the transition, not the spoils: JUMP from the map,
+      launch, take a card, and land back on the map.
+
+      ```
+      ok  JUMP opens the encounter layer
+      PERFECT
+      ok  taking the spoils lands back on the map, with no second click
+      ok  no 'back to the map' button is left behind
+      ok  the marker moved to the node        n0-0 -> n1-0
+      ok  and the node it came from is visited
+      ```
+
+      It prefers a race/debris/rescue node so the check does not spend a 60s duel limit proving a
+      transition, and falls back to the first reachable one. `corepox-encounter-spoils` PASS,
+      preflight 24 before and after.
+
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
       Gate is `tools/corepox-play-missions.ts` (exits non-zero otherwise). Was 5/9 and 1/9
