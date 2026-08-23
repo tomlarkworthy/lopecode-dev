@@ -1,8 +1,145 @@
 # Corepox — working task list
 
-Updated 2026-08-22. Ticked only when verified, not when written.
+Updated 2026-08-23. Ticked only when verified, not when written.
 
 ## Now
+
+- [x] **A bomb goes off however it dies — fixed 2026-08-23.** Tom: "Explosives don't trigger on
+      contact destruction." The rule sat in the particle path alone (`if (died && hit.c.type ===
+      "Explosive")` in `World.stepParticles`), so a bolt set an Explosive off and a ram or an Orb
+      killed it silently. `ShipComponent.cs:84 damage()` calls `this.destroy()` at hp<=0 and
+      `ExplosiveFn.destroy()` fires its 32 fragments before `base.destroy()` — one place, which is
+      now `Ship.damage`.
+
+      ```
+      ram a bomb, tick 5      destroyed, 0 fragments  ->  destroyed, 32 fragments
+      Orb field, tick 0                 0 fragments  ->             32 fragments
+      shot outright                    32 fragments  ->             32 fragments
+      a split (detach)                  0 fragments  ->              0 fragments
+      ```
+
+      The split case is the reason `damage(comp, n, transfer = false)` grew a flag: `Ship.detach`
+      removes a component from the parent by damaging it to 0 *after* copying it onto the fragment,
+      and a bomb that detonated every time a hull came apart would be a different game. `World`
+      claims `ship.world` every tick, not only in `add()`, because four call sites build a world by
+      pushing onto `world.ships` directly.
+
+      Gated by `tools/corepox-explosive-death.ts` — PASS on this engine, FAIL 4 on the pre-fix engine
+      extracted from HEAD, A/B in one session through `ENGINE=`. Two of that gate's first three
+      failures were the fixture, not the code, and both are written into it: `ORB_R` is 0.567 tiles
+      so a bomb at (0.9, 1.2) is outside the field, and after a split the *parent* keeps a dead copy
+      of the transferred component, so `at()` on the parent finds the corpse.
+
+      **Blast radius, measured.** `corepox-qa-campaign` is 10/12 here and 10/12 on HEAD, the same two
+      failures. Aim's browser defeat is not this change: HEAD loses it 3/3 at t=25.7s
+      deterministically, and with bombs live on contact the loss merely arrives sooner (21.0s).
+      FollowBoss is the long-standing one. `corepox-play-missions` 11/12 on both engines, only
+      SideShooter's solution time moving (16.3s -> 13.2s).
+- [ ] **CORPUS enemies disarm themselves on spawn — diagnosed 2026-08-23, not fixed.** Tom: "Some
+      CORPUS enemies have front firing lazers but seem to destroy their weapon on spawn. e.g.
+      CEC3F746 seems to spontaneously destroy themselves." Reproduced on the named ship in
+      `bun tools/corepox-spawn-selfkill.ts CEC3F746`; the corpus-wide count is
+      `bun tools/corepox-spawn-split.ts`.
+
+      **Two events, one root.** `CEC3F746A29E1519D7B380A3F87B74FA` is three components. Its local
+      occupancy, from the probe (`B` Brain, `L` Lazer, `LT` LaserTurret2):
+
+      ```
+      y=4  .   .   LT  LT  .
+      y=3  L   LT  LT  LT  LT
+      y=2  L   LT  LT  LT  LT
+      y=1  L   .   LT  LT  .
+      y=0  B   .   .   .   .
+      ```
+
+      The Lazer bonds only on its aft edge (`JOINTS.Lazer` is `{"0,0": {E:[0], S:[0,1], W:[0]}}`, one
+      cell, "only connector on the bottom"), and the turret's joints are all on its 2x1 base at
+      `(2,1)`/`(3,1)`, whose south face is empty space. Nothing mates: `islands()` reads `[2, 1]`.
+      So `splitDetached` fires on the FIRST tick and the turret leaves as its own body.
+
+      **That first part is faithful and should not be changed.** `Ship.cs:104` calls `maybeSplit()`
+      from `Awake`, and `DeathMatch.cs:132` calls it again on the first `FixedUpdate` — the original
+      splits disconnected designs at spawn too. The corpus is full of them because
+      `ShipComponent.cs:117 canPlace` only tests occupancy, so the editor never made a player join
+      their design up: **329 of 878 designs (37%) arrive as more than one body.**
+
+      **The second part is ours.** The fragment is placed at the pointwise velocity of the pre-split
+      body at its own centre of mass — which is what `Ship.cs:556` does too (`v1`/`v2` from
+      `GetRelativePointVelocity`), so that is faithful as well. For a ship at rest both are zero, and
+      the two bodies are left in exact face contact and never separate:
+
+      ```
+      closest cell pair  Lazer (-0.8333, -0.5)  <->  LaserTurret2 (0.1667, -0.5)
+        d              1        collide() skips on  d > 1,  so d === 1 COUNTS as contact
+        rel            0        collide() skips on  rel > 0, so rel === 0 COUNTS as approaching
+        impulse        applied only when rel < 0   -> none
+        depenetration  push = (1 - d) * 0.5 = 0    -> none
+        damage         RAM_DMG every tick, forever
+
+        tick   gap   A live   B live
+           1  1.000   2        1
+          12  1.000   2        1
+          20    --    1        0
+      ```
+
+      Both boundary tests are inclusive, so **a resting flush contact is scored as a collision that
+      deals damage but produces no impulse and no separation**. 5 hp/tick each way, 100 hp of Lazer,
+      dead in 20 ticks = 0.40s. The single-variable control confirms it is the only cause: with
+      `UNITS.RAM_DMG = 0` the ship ends `Brain:50+Lazer:100 | LaserTurret2:100`, everything at full
+      health.
+
+      **Instrument gotcha, recorded because it cost a wrong control.** `UNITS` must be fetched from
+      the module BEFORE `World`/`Ship`. Observing it afterwards recomputes the cell, and since
+      `_UNITS` returns a fresh object literal, the mutation lands on an object `World` never
+      captured — the first run of this control reported "RAM_DMG 0 changes nothing", which is false.
+
+      **Corpus-wide, flying each design ALONE for 5s (no enemy, no terrain), 878 designs:**
+
+      ```
+      329 (37%)  arrive as MORE THAN ONE BODY
+      102 (12%)  lose a component with no enemy present
+       50  (6%)  lose a WEAPON
+       11  (1%)  end up with NO weapon at all, having spawned armed
+       78  (9%)  lose their last Brain
+      ```
+
+      All self-inflicted damage by source, pooled: `stepParticles` 10376 hp (45%), `collide`
+      10240 hp (45%), the Orb block 2225 hp (10%), `detonate` 15 hp (0%). The top single killer is
+      `collide kills Lazer`, 31 times — which is exactly the class Tom reported.
+
+      **Two one-line candidates, both measured, neither committed.** Each was built as a scratch
+      engine (`tools/scratch/engine-strict.js`, `tools/scratch/engine-approach.js`) and run through
+      the same census:
+
+      ```
+                                          lose a part   lose a weapon   lose last Brain
+      shipped                                102 (12%)       50 (6%)          78 (9%)
+      strict contact   d >= 1 -> skip          81  (9%)       37 (4%)          76 (9%)
+      approaching only rel >= 0 -> skip        77  (9%)       34 (4%)          76 (9%)
+      ```
+
+      Both fully recover CEC3F746 (`Brain:50+Lazer:100 | LaserTurret2:100`). They differ in what
+      they claim: **strict contact** says two cells exactly one tile apart are not overlapping and
+      so are not colliding, which is a statement about geometry; **approaching only** says a contact
+      with zero closing speed is not a collision, which is a statement about dynamics and also
+      stops two hulls that have come to rest against each other from grinding. Recommendation is
+      `rel >= 0`, because the resting-grind case is the one Tom has now reported twice (this and
+      "close ship collisions start accelerating everything"), and because `d === 1` is reachable
+      only from exact arithmetic — it would not fire once a hull had rotated.
+
+      **What NEITHER fixes, and it is the larger half.** `stepParticles` self-harm is 45% of the
+      total and the two candidates move `lose last Brain` by only 78 -> 76. That is ships shooting
+      and exhausting into their own hulls, which is a separate investigation
+      (`tools/corepox-selfharm.ts` already exists for it). Do not read a fix here as fixing
+      self-destruction generally.
+
+      **Unverified.** `Ship.cs:583` gates its contact damage on
+      `isOccupied(worldToCoord(contact.point))` — the contact point has to round into a cell THIS
+      ship occupies. On a flush contact the point sits exactly on the shared cell boundary, so
+      whether the original deals damage at all in this case depends on that rounding. Our engine has
+      no analogue of the gate. Not testable without running Unity, so it is a hypothesis about why
+      the original may not have shown this, not evidence.
+
 - [x] **`collide()` created energy, and the surplus was all rotational — fixed** (reported by Tom 2026-08-22:
       "collisions cause energy gain, which should not happen, close ship collisions start
       accelerating everything to insane and unrealistic levels"). Reproduced and measured;
@@ -1558,6 +1695,80 @@ Updated 2026-08-22. Ticked only when verified, not when written.
       It prefers a race/debris/rescue node so the check does not spend a 60s duel limit proving a
       transition, and falls back to the first reachable one. `corepox-encounter-spoils` PASS,
       preflight 24 before and after.
+
+- [x] **The autopilot is opt-in now, and off by default** (Tom, 2026-08-23: "I don't like
+      auto-pilot being on by default, it gets triggered easily by panning, so can we make that
+      mode opt-in and off by default").
+
+      Turn 7b's press table gives sky-drag one meaning in both states — "go there, facing the
+      drag" — which is exactly the drag a player makes when they only want to look around. While
+      the clock ran there was no way to pan from empty sky at all, because the fly gesture took
+      the pointer and locked it.
+
+      A pad (➤) joins the camera cluster under the pan handle, drawn only while a mission is live
+      and a `cmd` exists: dim when off, amber when armed
+      (`tools/screenshots/autopilot-off.png`, `-armed.png`). Off, a press on sky arms nothing and
+      the camera's own drag-to-pan gets it, which is what a bare drag already does in BUILD.
+      Disarming also clears the standing waypoint — leaving the ship flying to a target the
+      player can no longer see or cancel is worse than the gesture it replaces. `clearGesture`
+      and `load` both reset it, so a match never starts armed.
+
+      **WASD, F and space are untouched.** They are direct commands, not a waypoint; the
+      autopilot is only the pointer half of the control scheme.
+
+      New gate `bun tools/corepox-autopilot-optin.ts`, PASS, on FollowCourse (no enemies, so the
+      hull survives long enough to drag on). It measures the complaint rather than the flag:
+
+      ```
+      off    sky drag -> waypoint null,  camera moved 103.8 view units
+      armed  sky drag -> waypoint [6.39, 3.22],  facing -63.5 deg
+      disarm -> target null, face null
+      ```
+
+      Gate note worth keeping: the first version resolved the sky point from a far TILE, which
+      landed outside the svg while the camera was framed on the hull. A press there reaches
+      nothing, and every assertion then reads "no waypoint" for the wrong reason — including the
+      armed one, which is what exposed it. The point is now taken in screen space inside the
+      board's own rect, on the far side from the hull.
+
+      `corepox-bench-board` PASS, `corepox-move-place` PASS, `corepox-camera-detach` PASS,
+      `corepox-camera-probe` 7/8 (step 8 unchanged and unrelated — its build sequence reports
+      `conns: 0`).
+
+- [x] **A run starts on a bare Brain** (Tom, 2026-08-23: "the starting ship is dumb. Just start a
+      map with a simple brain and no more").
+
+      `newRunCampaign` handed out `SHIPS.wiredCore` — Brain + Engine + Constant, **already
+      wired** — on the argument recorded in its own comment: a hull that flies and cannot shoot
+      makes the first refit a real decision. It does the opposite. It makes the first refit an
+      edit of somebody else's ship, and the wire is already drawn, so the one thing the game is
+      about has been done for you before you arrive.
+
+      Nothing is taken away — the two parts that were bolted on move into the hold:
+
+      ```
+      before  hull 3 parts, 1 wire  [Brain Engine Constant]   hold Engine 2, Lazer 2, Armour 4, Constant 2, Radar 1 = 11
+      after   hull 1 part,  0 wires [Brain]                   hold Engine 3, Lazer 2, Armour 4, Constant 3, Radar 1 = 13
+      ```
+
+      14 parts either way, and scrap is unchanged at 214, so the boss band (29 parts) is as far
+      away as it was.
+
+      Gated in `tools/corepox-encounter-check.ts`: the hull is one Brain, no wire, and
+      hull + hold still totals 14 — the last of those is what says the displaced parts went to
+      the hold rather than vanishing.
+
+      Two tools were restating the loadout instead of reading it, and both printed the old hull
+      after the change. `corepox-econ-audit.ts` had the hull and the hold transcribed as literals
+      under a header claiming it "reads the shipped tables rather than restating them"; it now
+      reads `newRunCampaign`, which resolves headlessly with only `SHIPS` supplied and so does not
+      drag in the battle stack. `corepox-bench-board.ts` assumed the starting hull carried a
+      Constant to scrub and an `out` port to wire from — a Brain and an Armour have no ports at
+      all, so the pair lookup returned null while the gate still reported "placed an Engine to
+      wire into". It now places both ends. Its `freeCell` also re-derived "any free neighbour",
+      which is only a legal anchor for a ONE-cell part; with four plates around the Brain it
+      handed an Engine a cell the board would not take. It asks `qa.legal(type)` now, so the gate
+      tests the same set the press does.
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
