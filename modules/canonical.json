@@ -132,7 +132,15 @@
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null
   },
+  "@tomlarkworthy/corepox-audio": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
   "@tomlarkworthy/corepox-backdrops": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-board": {
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null
   },
@@ -164,6 +172,10 @@
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null
   },
+  "@tomlarkworthy/corepox-mining": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
   "@tomlarkworthy/corepox-missions": {
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null
@@ -173,6 +185,10 @@
     "upstream": null
   },
   "@tomlarkworthy/corepox-shipyard": {
+    "lopebooks": "lopebooks/notebooks/corepox.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/corepox-station": {
     "lopebooks": "lopebooks/notebooks/corepox.html",
     "upstream": null
   },

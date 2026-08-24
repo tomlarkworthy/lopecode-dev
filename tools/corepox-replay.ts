@@ -25,7 +25,8 @@ const mis = await importNotebookModule("modules/@tomlarkworthy/corepox-missions.
   {overrides: {md: (s: any) => String(s)}});
 const SHIPS: any = await mis.value("SHIPS");
 const duel = await importNotebookModule("modules/@tomlarkworthy/corepox-duel.js", {
-  overrides: {...E, SHIPS, md: (s: any) => String(s), htl: {html: () => {}},
+  overrides: {...E, SHIPS, pilotInput: await eng.value("pilotInput"),
+              md: (s: any) => String(s), htl: {html: () => {}},
               battlefield: null, backdrop: null, invalidation: new Promise(() => {})}});
 const runDuel: any = await duel.value("runDuel");
 
