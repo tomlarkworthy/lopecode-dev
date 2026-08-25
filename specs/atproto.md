@@ -788,7 +788,7 @@ Steps 1–6, 8, 9, 10, 11, 12, 14, 16, 16a are done. Remaining v1 work: 7 (stand
 
 ## CI publishing (atproto as an upstream target)
 
-Added 2026-08-25. Built by two research passes + one implementation pass (Opus 5 subagents); runnable evidence in `scratch/agent-atpub/` (`t1`–`t9` probes). Status: **live** — three green credentialed runs on 2026-08-25 (lopebooks 32814392059 + 32820057761, lopecode 32819951823) publishing virtual-monorepo (×2), ledger, and lopefeed, with PDS-verified `previousVersion` chains. Armed notebooks: `@tomlarkworthy_virtual-monorepo` (lopebooks), `ledger`, `lopefeed` (lopecode).
+Added 2026-08-25. Built by two research passes + one implementation pass (Opus 5 subagents); runnable evidence in `scratch/agent-atpub/` (`t1`–`t9` probes). Status: **live** — three green credentialed runs on 2026-08-25 (lopebooks 32814392059 + 32820057761, lopecode 32819951823) publishing virtual-monorepo (×2), ledger, and lopefeed, with PDS-verified `previousVersion` chains. Armed notebooks: `@tomlarkworthy_virtual-monorepo` (lopebooks), `ledger`, `lopefeed`, `atproto` (lopecode) — atproto armed 2026-08-25 against its existing bundle (6 prior snapshots; run 32821501531: 1 uploaded / 88 reused, snapshot `atproto--3mtvc2yultkjk` chains to tip `atproto--3mnehmmt7t2xa`, description/bskyPostUri/stdDocUri carried, createdAt preserved — the publisher notebook now publishes itself).
 
 ### Declaration
 
@@ -845,7 +845,7 @@ All four items from the original checklist resolved 2026-08-25:
 3. ~~Fix the tip lookup~~ **done upstream** — both `rkeyStart` consumers in at-write fixed, verified by the live chain (table above) and offline probe `scratch/agent-atpub/t8-tipfix.ts`.
 4. Sidecar question **still open** — CI does not write `site.standard.document` / bsky post; a CI republish leaves document metadata at the previous revision.
 
-Remaining TODOs: pin the workflows' lopecode-dev checkout to a tag (currently `main`); browser-widget Tier 2 (carry-forward of `description`/`coverImage`, `createdAt` policy, CAS re-read inside at-write) awaits sign-off; `tomlarkworthy-lopecode-tour` ownership undecided; the `atproto` bundle itself is not yet declared.
+Remaining TODOs: pin the workflows' lopecode-dev checkout to a tag (currently `main`); browser-widget Tier 2 (carry-forward of `description`/`coverImage`, `createdAt` policy, CAS re-read inside at-write) awaits sign-off; `tomlarkworthy-lopecode-tour` ownership undecided. ~~Declare the `atproto` bundle~~ done 2026-08-25 (lopecode `3a0e2c7`).
 
 ## Core insight
 
