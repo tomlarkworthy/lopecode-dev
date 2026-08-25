@@ -3,11 +3,13 @@
  * atproto-publish.ts — publish a notebook HTML as a NEW REVISION of an already
  * published atproto bundle (`com.lopecode.bundle`).
  *
- * The publish MECHANISM is not reimplemented here: at-write's `extractFiles`,
- * `utils` (CID/TID) and `publishBundleVersion` are loaded out of the publisher
- * notebook HTML and run headlessly via tools/notebook-import.ts, and at-login's
- * `xrpc` supplies the authenticated transport. Only the ~90-line orchestration
- * that lives inside at-write's DOM widget (`onPublish`) is ported.
+ * The publish MECHANISM is not reimplemented here: at-write's `publishBundle`
+ * (uploads + record + version snapshot), `extractFiles`, `extractCard`,
+ * `knownCidsFromPds`, `listBundleVersions` and `notifyOfUpdate` are loaded out
+ * of the publisher notebook HTML and run headlessly via tools/notebook-import.ts;
+ * at-login's `createAppPasswordSession` + `xrpc` supply the authenticated
+ * transport. This tool adds only CI policy: declared rkeys, the idempotence
+ * gate, refuse-to-create, carry-forward defaults, and the pre-write CAS check.
  *
  * Identity comes from the notebook's sidecar `.json`, NOT from slugifying the
  * title — the shipped widget derives the rkey from the title, and 9 of the 10
@@ -42,9 +44,8 @@ import { extractModuleContent } from "./channel/sync-module.ts";
 
 const MAX_BLOCK_BYTES = 1_000_000;
 const MAX_COVER_BYTES = 1_000_000;
-const NOTIFY_URL = "https://contrail.lopecode.com/xrpc/com.lopecode.notifyOfUpdate";
 
-type Decl = { did: string; rkey: string; auto?: boolean };
+type Decl = { did: string; rkey: string; auto?: boolean; title?: string };
 
 // ---------------------------------------------------------------- args
 
@@ -120,7 +121,7 @@ async function loadPublisher(publisherPath: string) {
 
   const inertStorage = { getItem: () => null, setItem() {}, removeItem() {} };
   const aw = await importNotebookModule(awPath, {
-    overrides: { DOMParser, decodeBase64, textBytes, safeStorage: inertStorage, fetch, atob, Blob, Uint8Array },
+    overrides: { DOMParser, decodeBase64, textBytes, safeStorage: inertStorage, fetch, atob, Blob, Uint8Array, URLSearchParams },
   });
 
   // at-login's xrpc refresh path calls storage.save/clear; back it with memory so a
@@ -135,16 +136,22 @@ async function loadPublisher(publisherPath: string) {
       },
       indexedDB: {},
       resolvePds,
+      fetch,
     },
   });
 
   return {
     resolvePds,
     extractFiles: (await aw.value("extractFiles")) as (h: string) => Promise<any[]>,
+    extractCard: await aw.value("extractCard"),
     utils: await aw.value("utils"),
-    publishBundleVersion: await aw.value("publishBundleVersion"),
+    publishBundle: await aw.value("publishBundle"),
+    listBundleVersions: await aw.value("listBundleVersions"),
+    knownCidsFromPds: await aw.value("knownCidsFromPds"),
+    notifyOfUpdate: await aw.value("notifyOfUpdate"),
     resolveImageBytes: await aw.value("resolveImageBytes"),
     xrpc: await al.value("xrpc"),
+    createAppPasswordSession: await al.value("createAppPasswordSession"),
     dispose: () => { at.dispose(); aw.dispose(); al.dispose(); },
   };
 }
@@ -197,92 +204,20 @@ async function getBundle(pds: string, did: string, rkey: string) {
   return { cid: body.cid as string, value: body.value as any };
 }
 
-async function listKnownBlobs(pds: string, did: string): Promise<Set<string>> {
-  const known = new Set<string>();
-  let cursor: string | undefined;
-  do {
-    const u = new URL(`${pds}/xrpc/com.atproto.sync.listBlobs`);
-    u.searchParams.set("did", did);
-    u.searchParams.set("limit", "1000");
-    if (cursor) u.searchParams.set("cursor", cursor);
-    const { status, body } = await getJson(u.toString());
-    if (status !== 200) throw new Error(`listBlobs → ${status}`);
-    for (const c of body.cids || []) known.add(c);
-    cursor = body.cursor;
-  } while (cursor);
-  return known;
-}
-
-// publishBundleVersion's own tip lookup (at-write:1470-1484) scopes listRecords with
-// rkeyStart/rkeyEnd, which bsky.network PDSes ignore — so the previousVersion it records
-// can point at another bundle's snapshot. Compute the real tip here and warn on divergence.
-// Fixing it belongs upstream in at-write, not in this tool.
-async function versionTips(pds: string, did: string, rkey: string) {
-  const prefix = `${rkey}--`;
-  const mine: string[] = [];
-  let cursor: string | undefined;
-  for (let page = 0; page < 50; page++) {
-    const u = new URL(`${pds}/xrpc/com.atproto.repo.listRecords`);
-    u.searchParams.set("repo", did);
-    u.searchParams.set("collection", "com.lopecode.bundle.version");
-    u.searchParams.set("limit", "100");
-    if (cursor) u.searchParams.set("cursor", cursor);
-    const { status, body } = await getJson(u.toString());
-    if (status !== 200) break;
-    for (const rec of body.records || []) {
-      const rk = String(rec.uri).split("/").pop()!;
-      if (rk.startsWith(prefix)) mine.push(rec.uri);
-    }
-    cursor = body.cursor;
-    if (!cursor) break;
-  }
-  const trueTip = mine.length ? mine.slice().sort().pop()! : null;
-
-  const s = new URL(`${pds}/xrpc/com.atproto.repo.listRecords`);
-  s.searchParams.set("repo", did);
-  s.searchParams.set("collection", "com.lopecode.bundle.version");
-  s.searchParams.set("limit", "1");
-  s.searchParams.set("rkeyStart", `${rkey}--`);
-  s.searchParams.set("rkeyEnd", `${rkey}-.`);
-  s.searchParams.set("reverse", "true");
-  const { status, body } = await getJson(s.toString());
-  const shippedTip = status === 200 && body.records?.length ? (body.records[0].uri as string) : null;
-
-  return { trueTip, shippedTip, snapshots: mine.length };
-}
-
-// ------------------------------------------------------------ card + title
-
-function readCard(html: string) {
+function readCard(pub: any, html: string) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const title = doc.querySelector("title")?.textContent?.trim() || null;
-  const d =
-    doc.querySelector('meta[property="og:description"]')?.getAttribute("content") ||
-    doc.querySelector('meta[name="description"]')?.getAttribute("content");
-  const img = doc.querySelector('meta[property="og:image"]')?.getAttribute("content");
-  return {
-    title,
-    description: d && d.trim() ? d.trim().slice(0, 2000) : null,
-    coverSrc: img && img.trim() ? img.trim() : null,
-  };
+  const { description, coverSrc } = pub.extractCard(html);
+  return { title, description, coverSrc };
 }
 
 // ---------------------------------------------------------------- session
 
-async function makeSession(resolvePds: any) {
+async function makeSession(createAppPasswordSession: any) {
   const identifier = process.env.ATPROTO_IDENTIFIER;
   const password = process.env.ATPROTO_APP_PASSWORD;
   if (!identifier || !password) die("ATPROTO_IDENTIFIER and ATPROTO_APP_PASSWORD are required (or pass --dry-run)");
-  const { pds } = await resolvePds(identifier);
-  const r = await fetch(`${pds}/xrpc/com.atproto.server.createSession`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ identifier, password }),
-  });
-  if (!r.ok) throw new Error(`createSession ${r.status}`); // body may echo the password
-  const d = await r.json();
-  // authType is load-bearing: xrpc (at-login:333) branches to the DPoP path for "oauth".
-  return { did: d.did, handle: d.handle, pds, accessJwt: d.accessJwt, refreshJwt: d.refreshJwt, authType: "app-password" };
+  return createAppPasswordSession({ identifier, password });
 }
 
 // ---------------------------------------------------------------- publish
@@ -317,8 +252,10 @@ async function publishNotebook(
     );
   }
 
-  const card = readCard(html);
-  const title = card.title || prior?.value?.title;
+  const card = readCard(pub, html);
+  // decl.title pins presentation the way decl.rkey pins identity — the HTML <title>
+  // of a tool notebook is often its module id, not the published display name.
+  const title = decl.title || card.title || prior?.value?.title;
   if (!title) throw new Error(`${htmlPath}: no <title> and no prior record to inherit one from`);
   const description = card.description ?? prior?.value?.description ?? null;
 
@@ -338,8 +275,7 @@ async function publishNotebook(
     return { notebook: htmlPath, rkey, did, status: "unchanged", blocks: files.length };
   }
 
-  const known = opts.blobCache ? await listKnownBlobs(pds, did) : new Set<string>();
-  const priorByCid = new Map<string, any>((prior?.value?.files || []).map((f: any) => [f.blob?.ref?.$link, f.blob]));
+  const known: Set<string> = opts.blobCache ? await pub.knownCidsFromPds({ pds, did }) : new Set<string>();
 
   // coverImage: project the local og:image to a PDS blob (not a bundle file), else carry the
   // prior one. Oversized covers are dropped, not fatal (at-write:507).
@@ -373,7 +309,9 @@ async function publishNotebook(
   const uploadCandidates = files.filter((f: any) => !known.has(f.cid));
   const uploadBytes = uploadCandidates.reduce((a: number, f: any) => a + f.size, 0);
 
-  const tips = await versionTips(pds, did, rkey);
+  const publicXrpc = (_s: any, path: string) => fetch(`${pds}/xrpc/${path}`);
+  const snapshots = await pub.listBundleVersions({ did, xrpc: publicXrpc, rkey });
+  const trueTip = snapshots.length ? snapshots[0].uri : null;
   const wouldVersionRkey = `${rkey}--${pub.utils.genTid()}`;
   const createdAt = opts.bumpCreatedAt || !prior?.value?.createdAt ? new Date().toISOString() : prior.value.createdAt;
   const bskyPostUri = prior?.value?.bskyPostUri ?? null;
@@ -384,7 +322,7 @@ async function publishNotebook(
     console.log(`identity  ${did}`);
     console.log(`          pds ${pds}`);
     console.log(`rkey      ${rkey}  ${prior ? `EXISTS (cid ${prior.cid})` : "NEW"}`);
-    console.log(`title     ${JSON.stringify(title)}${card.title ? " (local)" : " (carried from prior)"}`);
+    console.log(`title     ${JSON.stringify(title)}${decl.title ? " (declared)" : card.title ? " (local)" : " (carried from prior)"}`);
     console.log(`blocks    ${files.length} local · ${known.size} blobs already on the PDS`);
     console.log(`          ${identical} identical · ${changed} changed · ${added} added · ${removed} removed`);
     console.log(`uploads   ${uploadCandidates.length} pending (${(uploadBytes / 1024).toFixed(0)} KB)`);
@@ -398,10 +336,7 @@ async function publishNotebook(
     );
     console.log(`          createdAt: ${createdAt}${opts.bumpCreatedAt ? " (bumped)" : " (preserved)"}`);
     console.log(`version   would create com.lopecode.bundle.version/${wouldVersionRkey}`);
-    console.log(`          ${tips.snapshots} existing snapshot(s); previousVersion ${tips.trueTip || "(none)"} (client-side tip — PDS ignores rkeyStart/rkeyEnd)`);
-    if (tips.shippedTip !== tips.trueTip) {
-      console.log(`          note: browser at-write would have recorded ${tips.shippedTip || "(none)"}; the CI xrpc shim corrects this`);
-    }
+    console.log(`          ${snapshots.length} existing snapshot(s); previousVersion ${trueTip || "(none)"}`);
   }
 
   const base = {
@@ -409,7 +344,7 @@ async function publishNotebook(
     exists: !!prior, blocks: files.length,
     identical, changed, added, removed,
     uploads: uploadCandidates.length, uploadBytes,
-    versionRkey: wouldVersionRkey, trueTip: tips.trueTip, shippedTip: tips.shippedTip,
+    versionRkey: wouldVersionRkey, trueTip,
     uri: `at://${did}/com.lopecode.bundle/${rkey}`,
     webUri: `https://${did.replace(/:/g, "-")}.lopecode.com/r/${rkey}`,
   };
@@ -428,79 +363,26 @@ async function publishNotebook(
   }
 
   const ensureScopes = async () => session; // app-password sessions have blanket repo access (at-login:568-570)
-  const force = new Set<string>();
-  let uploaded = 0, skipped = 0, result: any;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    uploaded = 0; skipped = 0;
-    const filesTable: any[] = [];
-    for (const f of files) {
-      let blob: any;
-      if (!force.has(f.cid) && known.has(f.cid)) {
-        blob = { $type: "blob", ref: { $link: f.cid }, mimeType: f.mime, size: f.size };
-        const was = priorByCid.get(f.cid);
-        if (was && (was.size !== f.size || was.mimeType !== f.mime)) {
-          console.warn(`warning: ${f.id} reuses ${f.cid} but prior record had ${was.mimeType}/${was.size}B, local is ${f.mime}/${f.size}B`);
-        }
-        skipped++;
-      } else {
-        const r = await pub.xrpc(session, "com.atproto.repo.uploadBlob", {
-          method: "POST", headers: { "content-type": f.mime }, body: f.bytes,
-        });
-        if (!r.ok) throw new Error(`uploadBlob ${f.id} → ${r.status}: ${await r.text()}`);
-        blob = (await r.json()).blob;
-        known.add(f.cid);
-        uploaded++;
-      }
-      filesTable.push({ id: f.id, encoding: f.encoding, blob });
-    }
-
-    const record = {
-      $type: "com.lopecode.bundle",
-      title,
-      files: filesTable,
-      createdAt,
-      ...(description ? { description } : {}),
-      ...(coverImage ? { coverImage } : {}),
-      ...(bskyPostUri ? { bskyPostUri } : {}),
-      ...(stdDocUri ? { stdDocUri } : {}),
-    };
-
-    try {
-      // at-write's previousVersion tip lookup sends rkeyStart/rkeyEnd, which this
-      // PDS ignores (returns the whole-collection tip, cross-linking bundles).
-      // Answer that one call from the true tip versionTips() computed; pass
-      // everything else through untouched.
-      const xrpcFixed = (sess: any, path: string, init?: any) => {
-        if (typeof path === "string" && path.startsWith("com.atproto.repo.listRecords?")
-            && path.includes("com.lopecode.bundle.version") && path.includes("rkeyStart=")) {
-          const records = tips.trueTip ? [{ uri: tips.trueTip }] : [];
-          return Promise.resolve({ ok: true, status: 200, json: async () => ({ records }) } as any);
-        }
-        return pub.xrpc(sess, path, init);
-      };
-      result = await pub.publishBundleVersion({ session, xrpc: xrpcFixed, rkey, newRecord: record, prior, ensureScopes });
-      break;
-    } catch (e: any) {
-      // A cached CID can name a blob the PDS has since GC'd. Force-reupload everything once.
-      if (attempt === 0 && /BlobNotFound|Could not find blob/i.test(e.message || String(e))) {
-        for (const f of files) { known.delete(f.cid); force.add(f.cid); }
-        continue;
-      }
-      throw e;
+  // R7: a cache-hit synthesizes the blob ref from local bytes; disagree with the
+  // prior record's entry for the same CID and something is lying.
+  const priorByCid = new Map<string, any>((prior?.value?.files || []).map((f: any) => [f.blob?.ref?.$link, f.blob]));
+  for (const f of files) {
+    const was = priorByCid.get(f.cid);
+    if (known.has(f.cid) && was && (was.size !== f.size || was.mimeType !== f.mime)) {
+      console.warn(`warning: ${f.id} reuses ${f.cid} but prior record had ${was.mimeType}/${was.size}B, local is ${f.mime}/${f.size}B`);
     }
   }
 
-  let notified: number | string = "skipped";
-  try {
-    const r = await fetch(NOTIFY_URL, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ uri: base.uri }),
-    });
-    notified = r.status;
-  } catch (e: any) {
-    notified = `failed: ${e.message}`;
-  }
+  const result = await pub.publishBundle({
+    session, xrpc: pub.xrpc, ensureScopes,
+    files, title, rkey, prior,
+    knownCids: known,
+    createdAt, description, coverImage,
+  });
+  const uploaded = result.uploaded, skipped = result.skipped;
+
+  const notified = (await pub.notifyOfUpdate(base.uri)) ?? "failed";
 
   // TODO(v1): no site.standard.publication/document and no app.bsky.feed.post sidecars.
   // The widget writes them, but their app-password compatibility is unproven; the bundle
@@ -565,7 +447,7 @@ if (targets.length === 0) {
 }
 
 const pub = await loadPublisher(resolve(opts.publisher!));
-const session = opts.dryRun ? null : await makeSession(pub.resolvePds);
+const session = opts.dryRun ? null : await makeSession(pub.createAppPasswordSession);
 
 const results: Result[] = [];
 let failed = 0;
