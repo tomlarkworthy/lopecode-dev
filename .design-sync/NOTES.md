@@ -107,3 +107,20 @@ overflow before, 0 after). A bare `1fr` grid track is a second hazard the DS can
 track grows to the 640px textarea form); conventions.md now says `minmax(0, 1fr)`.
 The driver keyed all 17 as unchanged (host style is bundle-only, not a sourceKey), so the
 render check was run by hand (`package-validate.mjs ds-bundle --render-sample 0`, 17/17).
+
+## Fourth upload (2026-08-29) — stylesheet order
+
+The designer's Theme Switcher page still overflowed on the two Range rows after the host fix.
+Rendered locally (`.ds-sync/dc-probe.mjs` serves the fetched `.dc.html` + `support.js` through
+a Playwright route): the `.inputs-…-input` div was 360px inside a 360px form next to a 120px
+label. Cause: `styles.css` emitted notebook-kit `global.css` AFTER the Inputs CSS, so its
+`input[type=range|number] {width:240px}` beat Inputs' `width:inherit` at equal specificity;
+fixed-width children give the div a min-content the label pushes out. notebook-kit itself loads
+Inputs CSS through `runtime/stdlib/inputs.css` with the runtime, i.e. after global.css, and that
+file also carries the dark-theme table overrides (the white `thead` was the same ordering bug).
+`build.mjs` now emits shared CSS, then Inputs CSS, then stdlib/inputs.css, then the theme.
+After: input div 234px, number 92 + slider 135; page scrollWidth == viewport.
+The lopecode reference notebook (`inputs-reference.html`) measures the same 120/165/188 overflow
+— the bug is inherited from lopecode's own stylesheet order, not introduced here.
+Driver gotcha: run `package-build.mjs` only through the driver, or copy the anchor BEFORE
+building — a bare build rewrites `ds-bundle/_ds_sync.json`, and the diff then sees no change.

@@ -70,10 +70,18 @@ for (const name of THEMES) {
 
 const inputsCss = readFileSync(join(here, "node_modules", "@observablehq", "inputs", "dist", "index.css"), "utf8");
 
+// notebook-kit loads Inputs CSS via stdlib/inputs.css with the runtime, i.e.
+// after global.css. Order matters: global.css sets input[type=range|number]
+// {width:240px} at the same specificity as Inputs' width:inherit; the later
+// rule wins, and with the fixed width the range row cannot shrink to fit.
+const stdlibInputsCss = readFileSync(join(NK, "..", "runtime", "stdlib", "inputs.css"), "utf8")
+  .replace(/@import url\("https:[^"]*inputs\/dist\/index.css"\);\n?/, "");
+
 writeFileSync(join(DIST, "styles.css"), [
   LICENSE_HEADER,
-  "/* @observablehq/inputs dist/index.css */", inputsCss,
   shared,
+  "/* @observablehq/inputs dist/index.css */", inputsCss,
+  "/* notebook-kit runtime/stdlib/inputs.css */", stdlibInputsCss,
   `/* default theme: ${DEFAULT_THEME} */`, themeCss(DEFAULT_THEME),
 ].join("\n"));
 
