@@ -15,7 +15,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '❌ FATAL: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; exit 2; fi"
+            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '\u274c FATAL: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; exit 2; fi"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-session-model.sh"
           }
         ]
       }
@@ -37,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "HOOK=\"${CLAUDE_PROJECT_DIR:-.}/tools/channel/post-tool-hook.sh\"; [ -x \"$HOOK\" ] && \"$HOOK\" || exit 0"
+            "command": "HOOK=\"${CLAUDE_PROJECT_DIR:-.}/lopecode-plugin/post-tool-hook.sh\"; [ -x \"$HOOK\" ] && \"$HOOK\" || exit 0"
           }
         ]
       }
@@ -48,7 +52,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '❌ BLOCKED: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; kill $PPID; exit 2; fi"
+            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '\u274c BLOCKED: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; kill $PPID; exit 2; fi"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-model-policy.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/agent-model-gate.sh"
           }
         ]
       }
