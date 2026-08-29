@@ -1,0 +1,418 @@
+[
+  {
+    "url": "http://localhost:8123/tour-lp2-B.html#view=S100(@tomlarkworthy/lopecode-tour)",
+    "sawFinal": true,
+    "contentT": null,
+    "domErrors": [],
+    "domProbe": {
+      "plainScripts": 104,
+      "bodyChildren": 107,
+      "hasTourBlock": true,
+      "hasDeferredImg": true
+    },
+    "rtLog": [],
+    "failedReqs": [
+      "blob:http://localhost:8123/7ddbaec1-bc3e-4eac-9812-af443abdce99"
+    ],
+    "http4xx": [],
+    "nav": {
+      "startTime": 0,
+      "domainLookupStart": 0.7999999523162842,
+      "domainLookupEnd": 0.7999999523162842,
+      "connectStart": 0.7999999523162842,
+      "secureConnectionStart": 0,
+      "connectEnd": 0.8999998569488525,
+      "requestStart": 0.8999998569488525,
+      "responseStart": 1.1999998092651367,
+      "responseEnd": 3887.5999999046326,
+      "domInteractive": 3900.5,
+      "domContentLoadedEventEnd": 3900.699999809265,
+      "loadEventEnd": 3901.399999856949,
+      "transferSize": 1550223,
+      "encodedBodySize": 1549923,
+      "decodedBodySize": 3042808
+    },
+    "paints": [
+      {
+        "name": "first-paint",
+        "t": 2036
+      }
+    ],
+    "lcp": null,
+    "marks": [
+      {
+        "t": 2006.5999999046326,
+        "msg": "responding"
+      },
+      {
+        "t": 2023.6999998092651,
+        "msg": "responding"
+      },
+      {
+        "t": 2026.2999999523163,
+        "msg": "responding"
+      },
+      {
+        "t": 2027.3999998569489,
+        "msg": "responding"
+      },
+      {
+        "t": 2028.5,
+        "msg": "responding"
+      },
+      {
+        "t": 2029.3999998569489,
+        "msg": "responding"
+      },
+      {
+        "t": 2030.5,
+        "msg": "responding"
+      },
+      {
+        "t": 2031.3999998569489,
+        "msg": "responding"
+      },
+      {
+        "t": 2032.2999999523163,
+        "msg": "responding"
+      },
+      {
+        "t": 2033.1999998092651,
+        "msg": "responding"
+      },
+      {
+        "t": 2034.2999999523163,
+        "msg": "responding"
+      },
+      {
+        "t": 2037.1999998092651,
+        "msg": "responding"
+      },
+      {
+        "t": 2049.899999856949,
+        "msg": "responding"
+      },
+      {
+        "t": 2050.199999809265,
+        "msg": "responding"
+      },
+      {
+        "t": 2061.0999999046326,
+        "msg": "Bootloader: loading @tomlarkworthy/lopepage-2"
+      },
+      {
+        "t": 2061.2999999523163,
+        "msg": "Bootloader: loading @tomlarkworthy/lopecode-tour"
+      },
+      {
+        "t": 2128.399999856949,
+        "msg": "background job"
+      },
+      {
+        "t": 2128.399999856949,
+        "msg": "keepalive: dynamic observe syncers"
+      },
+      {
+        "t": 2128.5,
+        "msg": "keepalive: dynamic observe range"
+      },
+      {
+        "t": 2128.5999999046326,
+        "msg": "keepalive: dynamic observe tasks"
+      },
+      {
+        "t": 2130.7999999523163,
+        "msg": "keepalive: dynamic observe toolRegistry_sync"
+      },
+      {
+        "t": 2131,
+        "msg": "keepalive: dynamic observe test_cell_map_coverage"
+      },
+      {
+        "t": 2152.5,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2152.5999999046326,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2152.699999809265,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2153,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2153,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2153,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2153.0999999046326,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2153.0999999046326,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2153.0999999046326,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2153.2999999523163,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2153.399999856949,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2153.399999856949,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2153.399999856949,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2153.399999856949,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2153.399999856949,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2153.699999809265,
+        "msg": "keepalive: dynamic observe maintain_live_cell_map"
+      },
+      {
+        "t": 2153.7999999523163,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2153.7999999523163,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2153.7999999523163,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2153.899999856949,
+        "msg": "keepalive: dynamic observe futureExportedState"
+      }
+    ],
+    "resources": [
+      {
+        "name": "https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js",
+        "type": "script",
+        "start": 3143.0999999046326,
+        "duration": 246.29999995231628,
+        "transferSize": 2137,
+        "encodedBodySize": 1837,
+        "decodedBodySize": 7408
+      }
+    ],
+    "consoleLines": [
+      {
+        "wall": 2010.1174999999998,
+        "text": "responding es-module-shims@2.6.2 JSHandle@node"
+      },
+      {
+        "wall": 2025.9190409999997,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/global.css JSHandle@node"
+      },
+      {
+        "wall": 2027.431458,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/inspector.css JSHandle@node"
+      },
+      {
+        "wall": 2028.663916,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/highlight.css JSHandle@node"
+      },
+      {
+        "wall": 2029.549333,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/plot.css JSHandle@node"
+      },
+      {
+        "wall": 2030.6246659999997,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/index.css JSHandle@node"
+      },
+      {
+        "wall": 2031.583541,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2031.7809579999998,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/theme-parchment.css JSHandle@node"
+      },
+      {
+        "wall": 2032.5929999999998,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2032.620375,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/abstract-light.css JSHandle@node"
+      },
+      {
+        "wall": 2033.315083,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2033.5217079999998,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/syntax-light.css JSHandle@node"
+      },
+      {
+        "wall": 2034.3537499999998,
+        "text": "responding file://syntax.css JSHandle@node"
+      },
+      {
+        "wall": 2035.3455829999998,
+        "text": "responding @observablehq/runtime@6.0.0 JSHandle@node"
+      },
+      {
+        "wall": 2038.5984159999998,
+        "text": "responding @observablehq/inspector@5.0.1 JSHandle@node"
+      },
+      {
+        "wall": 2051.191583,
+        "text": "responding https://cdn.jsdelivr.net/npm/@observablehq/inputs@0.12.0/dist/inputs.min.js JSHandle@node"
+      },
+      {
+        "wall": 2051.3174999999997,
+        "text": "responding https://unpkg.com/@observablehq/stdlib?module JSHandle@node"
+      },
+      {
+        "wall": 2062.482458,
+        "text": "Bootloader: loading @tomlarkworthy/lopepage-2"
+      },
+      {
+        "wall": 2062.4990829999997,
+        "text": "Bootloader: loading @tomlarkworthy/lopecode-tour"
+      },
+      {
+        "wall": 2115.856166,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2115.859625,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2115.862458,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2129.62725,
+        "text": "background job"
+      },
+      {
+        "wall": 2129.6457499999997,
+        "text": "keepalive: dynamic observe syncers"
+      },
+      {
+        "wall": 2129.696333,
+        "text": "keepalive: dynamic observe range"
+      },
+      {
+        "wall": 2129.706208,
+        "text": "keepalive: dynamic observe tasks"
+      },
+      {
+        "wall": 2131.91675,
+        "text": "keepalive: dynamic observe toolRegistry_sync"
+      },
+      {
+        "wall": 2131.927416,
+        "text": "keepalive: dynamic observe test_cell_map_coverage"
+      },
+      {
+        "wall": 2153.7287499999998,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2153.73775,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2153.748791,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2154.1244159999997,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2154.135041,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2154.154375,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2154.339583,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2154.364291,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2154.374958,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2154.443041,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2154.451708,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2154.4564579999997,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2154.554916,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2154.559875,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2154.5729579999997,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2154.599958,
+        "text": "keepalive: dynamic observe maintain_live_cell_map"
+      },
+      {
+        "wall": 2154.8212909999997,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2154.8305,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2154.8390409999997,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2154.970875,
+        "text": "keepalive: dynamic observe futureExportedState"
+      }
+    ]
+  }
+]

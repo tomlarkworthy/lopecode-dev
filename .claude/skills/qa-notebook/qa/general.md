@@ -92,7 +92,7 @@ The #1 lesson here: **trivial-input failures count as fails**. Typing `"` inside
 
 ### 11. Clean console logs
 
-Booting and exercising the documented happy path produces no `console.error` or thrown `pageerror`. Known noisy boot chatter from `runtime-sdk`/`module-map`/`editor-5`/`fakefs` is filtered by default in `qa_console_logs` (and listed in `tools/channel/lopecode-channel.ts:QA_DEFAULT_NOISE`); errors and warnings always pass through. Failed network requests for known-missing assets (`*.mov`, `blob:null/*` aborts during boot) are out of scope unless they cascade.
+Booting and exercising the documented happy path produces no `console.error` or thrown `pageerror`. Known noisy boot chatter from `runtime-sdk`/`module-map`/`editor-5`/`fakefs` is filtered by default in `qa_console_logs` (and listed in `lopecode-plugin/src/lopecode-channel.ts:QA_DEFAULT_NOISE`); errors and warnings always pass through. Failed network requests for known-missing assets (`*.mov`, `blob:null/*` aborts during boot) are out of scope unless they cascade.
 
 - **pass** — no errors, no unexpected warnings.
 - **partial** — one expected warning, OR one stray `console.error` that doesn't cascade.

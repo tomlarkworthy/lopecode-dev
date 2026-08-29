@@ -4,6 +4,401 @@ Updated 2026-08-23. Ticked only when verified, not when written.
 
 ## Now
 
+- [x] **The bank the original shipped, resynthesised — 2026-08-23.** Tom: "We had some sound
+      effects as well, put them in corepox-audio and make them easily triggered and wire in a few."
+
+      **The samples are not in the repo.** `vendor/corepox/fmod/corepox/` holds `Build/GUIDs.txt`
+      and `Metadata/` only — no `.wav`, `.ogg`, `.bank` or `.aiff` anywhere under it. What survives
+      is 20 event names with GUIDs, 171 `AudioFile` records carrying source filename, length, rate
+      and channel count, and **exactly one** event definition: `LAZER_FIRE`
+      (`Metadata/Event/{f8c946c0-…}.xml`). From that one file the round-robin size (7 sounds), the
+      event length (0.58s), the pitch offset (+0.6 st), the pitch randomiser (±2.083 st) and the
+      voice cap (maxVoices 2, stealing on) are all read off the project rather than chosen.
+
+      `@tomlarkworthy/corepox-audio` is 20 WebAudio recipes over one shared noise buffer and a
+      tanh waveshaper — no samples, no files, no new attachments. `sfx("EXPLOSION")` is the whole
+      interface; `sfx.drain(world)` plays a queue; `sfxBoard` gives every event a button and a QA
+      handle. 15 of the 20 events are matched to a filename group (`Explosion 1..4`,
+      `Menue Button 1..7`, `Component Info 1..3`, `Wires`, `Nav_*`); 5 have no recoverable source
+      and each says so in its own comment. **Every timbre is invented** — there is no reference
+      audio in the repo to check one against, and the module header says that first.
+
+      **Sound is opt-in by region, and defaults off — 2026-08-24.** Tom: "the audio is
+      firing in the background all the time and I can't find the source. I want it only for
+      the corepox-app play." Six call sites mount a `battlefield` and four are demo cells that
+      run forever: `corepox-duel` and `corepox-mining` are booted mains, so their demos were
+      firing lazers over the landing page from panes nobody had open (measured: 61 + 44 plays
+      in 12s on a default boot, attributed by stack trace to `corepox-duel:424` and
+      `corepox-mining:549`). A battlefield now plays only when it is mounted inside
+      `[data-cpx-sound]`, which `corepox-app-impl` puts on its `.cx-app` shell; `api.sound`
+      forces it either way. The region test walks through shadow boundaries, because
+      `Element.closest` stops at the shadow root and lopepage mounts panes inside one. The
+      queue is drained either way, so a silent battlefield never sits on a full ring. Default
+      boot after the change: 0 played, 3 battlefields on the landing page, all in-region.
+
+      Checked differentially rather than by absence: two identical duels mounted in the SAME
+      page, one appended to the live `.cx-app` shell and one to a detached div, played **157
+      and 0**, both rings fully drained. `tools/corepox-audio-check.ts` runs the same
+      comparison on one duel across two time windows — 102 queued / 0 played with the marker
+      off, 77 / 77 with it on — so a pass cannot come from the duel simply being quiet.
+      Driving the app's map into a real encounter headlessly is still not solved: node
+      selection works but JUMP never enables under synthetic pointer events, so the
+      end-to-end play-through is not gated.
+
+      Wired to the three events the C# fires from the combat path, at the same lines:
+      `EXPLOSION` on a Brain reaching 0hp and `Block_Break` on anything else
+      (`ShipComponent.cs:95-98`, beside the core burst), and `LAZER_FIRE` at the muzzle
+      (`LaserFn.cs:19`, `TurretFn.cs:69`). The engine only *records* — `World.sound()` pushes to a
+      24-deep ring — and `battlefield`'s draw drains it, so a headless run fills a capped array and
+      never touches WebAudio.
+
+      Gated two ways. `tools/corepox-audio-queue.ts` (no browser) holds the queue contract: the
+      right event per death, the point read BEFORE `reindex` moves the hull, a hull split is
+      silent, and the ring stays capped drained or not. `tools/corepox-audio-check.ts` renders
+      every recipe through an `OfflineAudioContext` and asserts a **non-silent, non-clipping**
+      buffer — "it did not throw" would have passed a mis-scheduled envelope, which produces exact
+      silence and no error. It also instruments the drain in a live duel: 161 queued, 161 played,
+      0 left, deepest 6 of 24.
+
+- [x] **The Radar measured from 3.0 tiles off its own ring — 2026-08-23.** Tom: "the radar dotted
+      lines are not coming from the component center. The radar should be measuring relative to its
+      center and the dotted line should be visualizing this."
+
+      `SENSOR` is written `+y FORWARD`, to match the art it was measured off. `geom.rot` is
+      documented "clockwise-positive in **+Y-DOWN** space". `sensorOf` passed the offset straight
+      through, so the sensor landed 1.5 tiles *behind* the part instead of 1.5 ahead — **3.0 tiles**
+      from the ring the renderer draws, which is worse than applying no offset at all. Fixed by
+      negating the y at the call.
+
+      Three independent sources agree on the true position, and they were checked before the sign
+      was changed: `Radar.prefab`'s `arrow` (which carries `radar_trace`, the thing RadarFn sizes to
+      `nearest.distance - 0.64`) has localPosition **(0.32, 0.96)** world units = **(0.5, 1.5)
+      tiles**; the shipped sprite puts the ring centre (+0.494, +1.494) tiles ahead of the pivot;
+      and our own drawn art agrees to 0.001 tiles. `tools/corepox-radar-sensor.ts` is a **DOM**
+      gate on purpose — it compares the engine's sensor against where the renderer actually stamps
+      the sprite, so it cannot pass by agreeing with a number this repo chose twice. Gap before
+      3.0 tiles, after 0.001.
+
+- [ ] **The radar fix costs two missions, and that is a second bug it uncovered.** The
+      reference-solution gate goes **11/12 → 9/12** (`tools/corepox-play-missions.ts`):
+
+      | variant | score | Aim | TwinTurrets | FollowBoss | SideShooter |
+      |---|---|---|---|---|---|
+      | sensor 1.5 tiles BEHIND (the bug) | 11/12 | loss 25.5s | **win 13.6s** | win 16.8s | win 13.2s |
+      | no sensor offset (control) | 10/12 | loss 25.5s | loss 1.4s | win 27.3s | win 6.6s |
+      | sensor 1.5 tiles AHEAD (correct) | 9/12 | loss 25.5s | loss 1.4s | timeout | win 6.6s |
+
+      TwinTurrets passes **only** with the sensor behind the part, and fails identically with the
+      offset removed — so the old sign was not helping the radar, it was cancelling something else.
+      The engine already documents an unresolved geometry error on the other end of that same wire
+      (`World.fire`: "half a tile of lateral bias is enough to break the two missions built around
+      the radar-to-turret wire"), and Aim and TwinTurrets are exactly those two missions. Aim was
+      already failing before any of this.
+
+      Not a ram death: `RAM_DMG = 0` still loses TwinTurrets at 1.4s. The next step is to find what
+      kills the player's Brain in 70 ticks, with the turret pivot as the first suspect.
+      `tools/corepox-mission-trace.ts` is currently broken on an over-supplied `PORTS` override and
+      needs fixing before it can attribute this.
+
+- [x] **WASDQE was dead on every ship you are taught to build — fixed 2026-08-24.** Tom: "I don't
+      think the WASDQE controls work at all. I am struggling to get anything working other than D
+      for a small ship with two turrets." `pilotActuators` skipped any Engine with a wire into it.
+      That was not a policy, it was an admission: `pilot` runs before `World.step`, and
+      `Ship.propagate` rewrites every wired input from its wire, so a throttle the pilot wrote into
+      a wired engine was gone before it was read.
+
+      What that cost, measured over every hull this game ships (`tools/corepox-drive-keys.ts`): of
+      the 26 with an engine, **18 answered no key at all** and 22 could not be turned with Q or E.
+      Among the 18 is every reference solution the campaign teaches — wiring your engines, which is
+      the point of the game, killed your controls. It also explains "nothing but D": the few hulls
+      that did answer were ones with unwired engines, and each answered only the directions its
+      build happened to have thrust in.
+
+      The claim is now applied AFTER the wires, in `propagate`, and only while a command stands:
+
+          if (this.override) for (const [c, v] of this.override) if (c.hp > 0) c.in.in = v;
+
+      `pilot` takes every engine on the core's island while `cmd.drive` or `cmd.target` is set
+      (`pilotActuators(ship, {all: true})`) and sets `ship.override` to what it wants them at; with
+      no command it sets `override` to null and a wired ship flies its program untouched, which is
+      what the campaign gate checks. The rule is one sentence: **your hands on the stick outrank the
+      program, and letting go gives it back.** It lines up with what `corepox-duel` and
+      `corepox-mining` already meant by `control === "wired"`.
+
+      After: 0 of the 21 hulls that put an engine on the core's island ignore every key, and the 4
+      that still cannot turn are single-engine centreline builds with no torque to give — the
+      failure is the build's, which is the property the rest of the flight model already has.
+      Gates: `tools/corepox-drive-keys.ts` (headless, every hull) and
+      `tools/corepox-drive-browser.ts` (real key presses on Avoid, whose engines are both wired —
+      Q turns it 131 degrees in a second and W drives it at 4.7 tiles/s, where before the fix
+      neither did anything). Campaign gate unchanged at 9/12, same three missions as the muzzle
+      change.
+
+- [x] **A rebuild dropped every part's running state, and scrubbing a Constant showed it — fixed
+      2026-08-24.** Tom: "turret angle resets itself as the constant is changed, it looks very
+      glitchy on the aim mission." `setParam` rebuilds the whole ship on every scrub, deliberately
+      (2026-08-21: pausing hides the thing being tuned), and a rebuilt component is a NEW object
+      built from the spec. `turret`, `t` and `lock` are running state no spec carries, so all three
+      were dropped on every write — the barrel snapped toward zero, and the firing cycle restarted,
+      which means a ship being tuned could not shoot at all.
+
+      `rebuild` now carries them across for a component that is still there, matched the same way
+      it already matched for `initialParams`. Gate `tools/corepox-turret-hold.ts` drives ManualAim
+      — the mission whose Constant IS wired to the turret's angle — and scrubs it from -60 to -27
+      in threes: the barrel tracks to within 0.9 degrees and the cycle runs on. The same gate
+      against the old code showed the cycle resetting (t 0.400 -> 0.080) and the barrel wandering
+      to -28 while the number had only moved to -49.
+
+- [x] **A turret's bolt leaves the barrel now — 2026-08-23.** Tom: "the turret lazer does not
+      seem to spawn lazers out of its barrel properly". `World.fire` emitted from
+      `ship.worldOf(c)`, the component's ANCHOR cell, plus `TURRET_MUZZLE` along the aim. The
+      renderer hinges the barrel at `TURRET_PIVOT`, which is the gear at the centre of the 2x1
+      base — half a tile to the +x side of the anchor and 0.39 tiles up. So the bolt was born
+      somewhere the gun is not, and because the offset is fixed in the component frame while the
+      barrel turns, the error MOVED with the aim: 0.46 tiles at 60 degrees, 1.63 at -90
+      (`tools/corepox-muzzle.ts` prints the table).
+
+      Both numbers now come from the drawing that is on screen. art_LaserTurret2 hinges the barrel
+      on the gear at (112,174) and ends it at x=209, against an anchor at (84,196) and 56 art units
+      to the tile: hinge (0.5, -0.393) tiles, barrel 1.732. `fire` takes a `hinge` offset in the
+      component's own frame; a gun that does not pivot passes nothing. Gate: drawn muzzle vs engine
+      spawn, five poses x seven turret angles, worst gap 0.000 tiles.
+
+      This was tried once before as `TYPES[c.type].pivot` and reverted because it broke Aim and
+      TwinTurrets — read at the time as evidence against offsetting at all. The offset was simply
+      the wrong one: `pivot` is [0.5, 0.5] from recollection, the art says (0.5, -0.393).
+
+- [ ] **The corrected muzzle makes turrets ACCURATE, and three missions were balanced against
+      turrets that missed.** Same day, and it is the reason the campaign gate is 9/12. Measured
+      with `tools/corepox-play-missions.ts` (now seeded, see below), engine-only change, arcs and
+      solutions untouched:
+
+      | mission | before | after |
+      |---|---|---|
+      | Aim | win 4/5 seeds | 0/5 |
+      | FollowBoss | 5/5 | 0/5 |
+      | TwinTurrets | 5/5 | 0/5 |
+
+      The cause is not self-fire (`self` beam hits went 1 -> 0 on TwinTurrets and 3 -> 0 on
+      FollowBoss) and it is not accuracy loss. It is the opposite: a Radar's sensor is the centre
+      of its 2x2 top block, +0.5 tiles across from ITS anchor, and a turret's hinge is the centre
+      of its 2x1 base, +0.5 across from its own. A radar mounted directly behind a turret therefore
+      has its sensor exactly in line with the muzzle, and the mission file already says that is the
+      point — "the radar sits directly behind the turret, which is the arrangement that zeroes the
+      aim parallax dead ahead". `SHIPS.laserpost` is wired that way verbatim from TwinTurrets.unity.
+      Firing from the anchor was defeating a designed alignment by half a tile, and every level was
+      tuned with that handicap in place. FollowBoss's boss lands 30 beam hits where it used to land
+      10; TwinTurrets' posts destroy the 5-hp Explosive the level bolts to the player's hull with
+      their first shot, and it detonates on the player's own core at 1.4s.
+
+      `tools/corepox-solve.ts TwinTurrets` finds 0 of 140 builds that win, against 1 of 140 before.
+      That search is an AUTOPILOT proxy — it does not dodge — so it is evidence the level is harder,
+      not proof a human cannot clear it. UNRESOLVED, and it is a balance call: either the three
+      levels get re-solved against an accurate gun, or the accuracy is the thing to soften.
+
+- [x] **The missions gate was one long chain of shared randomness — fixed 2026-08-23.**
+      `World.rng` defaults to `Math.random` and `tools/corepox-play-missions.ts` never set it, so
+      the twelve missions shared one stream and each result depended on how many draws the eleven
+      before it made. Changing ONE mission's spawn arc moved FollowBoss from a 16.8s win to a
+      timeout and TwinTurrets from a 13.6s win to a 1.4s loss, neither of which had been touched —
+      which is how it was found. `World.rng` is now seeded per (mission, arm, seed), and a mission
+      counts as winnable on a MAJORITY of 5 seeds rather than on one draw.
+
+      That second half matters as much as the first. Aim wins on 8 of 60 spawn arcs, the winning
+      set differs between two engines, and neighbouring arcs disagree ([-3,3] wins where [-2,2] and
+      [-4,4] lose) — so the old comment's "every arc centred on zero wins and every arc centred
+      anywhere else loses, which is parallax and not luck" was a conclusion drawn from single draws
+      of a chaotic outcome. A winning run there ends with the core on 5 hp of 20 and six beam hits
+      landed in the whole mission. The arc is left at [-6,6]; what the level needs is margin.
+
+- [x] **Every run rolls its own galaxy — 2026-08-23.** Tom: "We should get a random seed every
+      corepox-app galaxy explore map". `mapParams.seed` was `Inputs.range([1,999], {value: 41})`,
+      so the slider defaulted to 41 on every load and every player who ever opened the map explored
+      the same 7 stops. It is now `1 + Math.floor(Math.random() * 999)`; the slider still pins a
+      seed deliberately, and `genRun` is pure in it, so a run stays stable while it is played.
+
+      The second half was the landing screen. `corepox-app-impl.routePreview` called `genRun()`
+      bare, which took the generator's own default of 41 — correct only while the map's default was
+      also 41. It now takes the live `mapParams` (added to the corepox-map import loop and to the
+      cell's deps), which restores the claim the module documents: the graph on the landing IS the
+      board LAUNCH opens.
+
+      Gate: `tools/corepox-run-seed.ts` — two page loads, seed differs, and in each load the
+      landing's `RUN nnn` equals the header of the map LAUNCH mounts (655/655, 426/426). PASS.
+
+      The roll is once per page LOAD, not once per LAUNCH: the shell holds `viewof galaxyMap` as a
+      live stateful node, so recomputing `mapParams` would rebuild it and orphan whatever the
+      player had going. A per-launch reroll needs a rebuild-safe path or a NEW RUN control inside
+      the map. Not done.
+
+- [x] **The core explosion is back, and the duel waits for it — 2026-08-23.** Tom: "The prior
+      corepox has an amazing explosion animation when a brain dies. A dual should end shortly after
+      that animation plays. We should try to create that effect again but using cheap methods."
+
+      **Recovered whole, not reinvented.** `prefabs/fx/CoreExplosion.prefab` is YAML and its
+      MonoBehaviour block carries the three numbers:
+
+      ```
+      trails: 120
+      radius: 3          <- world units, /0.64 = 4.6875 tiles
+      trailTime: 1
+      repeat: 0
+      ```
+
+      `fx/Explosion.cs` is the whole effect: an initial burst sprite, then `trails` streaks on even
+      bearings with +-0.1 rad of jitter, each at `magnitude = 1 - 1/Random.Range(1, 10f)` so most
+      are short and a few reach. Each tweens outward on `Ease.OutCubic` while its colour goes to
+      clear and its length to zero on `Ease.InCubic`. `ShipComponent.cs:96` fires it in exactly one
+      place — a component reaching 0hp **whose name is "Brain"**; everything else plays
+      `Block_Break` and no effect.
+
+      What could NOT be recovered: `initial_burst_prefab` and `trail_prefab` are referenced by guid
+      and the `.meta` files are not in the repo, so the sprites themselves are unknown. The streak
+      length (0.9 tiles at magnitude 1) and the colour ramp are therefore CHOSEN, not measured.
+
+      **Cheap means no particles and no nodes.** The burst is not fed through `stepParticles`: 120
+      streaks would be 120 more particle x ship collision tests a tick, for something that must not
+      touch anything, and `stepParticles` is already 45% of the frame. Instead `World.fx` records
+      that a Brain died at a point, and the renderer draws the streaks into the per-colour lane
+      paths it already had. Measured across the burst:
+
+      ```
+      +  48ms   120 trails   reach  29px   1 colour band    592 svg nodes
+      + 263ms   120 trails   reach 140px   3 colour bands   592 svg nodes
+      + 543ms   120 trails   reach 213px   3 colour bands   592 svg nodes
+      + 924ms   120 trails   reach 236px   2 colour bands   592 svg nodes
+      ```
+
+      Node count is flat at 592 — the whole effect adds seven paths at construction and not one
+      node per frame. The reach decelerates 29 -> 140 -> 213 -> 236px, which is OutCubic, and 236px
+      is exactly `CORE_R * 0.9 * TILE` — the longest trail arriving at the prefab's radius.
+
+      The angles and magnitudes come from a hash of the trail index, not `Random`, so the same death
+      draws the same burst twice and a re-render of a replay cannot differ. No rng is drawn, so
+      `corepox-determinism.ts` is byte-identical.
+
+      **The duel now holds `CORE_TIME + 0.15s` after the verdict**, measured at 1168ms. The world is
+      NOT stepped during the hold, and that is deliberate: `onEnd` reads the winner's surviving hull
+      (`survivingHull(D.a, ...)`) to decide what they carry out, so a second of extra physics after
+      the verdict could take parts off a ship that had already won.
+
+      **Two things that were measured wrong first, both recorded.**
+
+      1. *The burst was tied to the view's `speed`.* At `speed: 8` it played the 1s effect in 125ms
+         while the hold still waited 1.15s — 146 segments on the first frame and 26 (residue, not
+         burst) on every frame after. A death explosion is a beat for the player, not a simulated
+         quantity, so it runs on WALL time; the burst and the hold then agree at any speed.
+      2. *The probe counted the exhaust plume as part of the burst.* `EXHAUST_RAMP`'s brightest lane
+         is `#ffffff` and so is `CORE_RAMP`'s, so filtering the fx layer by stroke colour reported
+         125 trails and a 535px reach for an effect that is 29px across on its first frame. The
+         core lanes now carry `data-fx="core"` and the probe addresses that.
+
+      A third was mine and the reel corrected it (below): I graded each trail's colour by how far it
+      had travelled, which gave a white-hot core with cooling tips. That is a bonfire, not a
+      detonation, and it is not what the original does -- `Explosion.cs` tints every trail from one
+      sprite and tweens them together. Reverted to ONE band for the whole burst, stepped by age.
+
+      **Colour-matched against the promo reel, 2026-08-23.** Tom: "the promo reel shows the
+      explosions." `data/corepox/video/reel-CE4bDuaCGIe.mp4`, 720x720 at 30fps. Finding the right
+      frames took two wrong turns worth recording:
+
+      1. A warm-pixel detector found flashes at 10.7s, 46.0s and 55.0s. The first two are static
+         taglines, not transients. The effect is not warm-coloured at all, so the detector was
+         looking for the wrong thing and found it only by the white core.
+      2. Re-detecting on GREEN found a bright starburst at 54.6s and 55.7s, which is where I nearly
+         matched the palette to the wrong effect. Those are on the BUILD GRID and they converge
+         INWARD -- they are `fx/Placement.cs`, the sparks that land on a component as it is placed
+         (`n` trails from a ring at `radius`, `DOColor(clear -> white)`, `DOScaleY` up then down).
+         A different effect with its own prefab. Their whole run is ~0.25s.
+
+      The core explosion is at **30.1s**, where a ship dies against open space, and it looks like
+      this (25fps, cropped to the death point):
+
+      ```
+      +0.12s   a small blazing WHITE disc, the initial_burst sprite
+      +0.25s   a ring of short radial streaks, white, interior already dark
+      +0.50s   the ring is PINK/MAGENTA and still expanding, decelerating
+      +0.90s   dim VIOLET, the streaks shortened to separated dots
+      +1.10s   gone
+      ```
+
+      Three things read straight off that: it is **white -> pink/magenta -> violet**, it is a **RING
+      with a dark interior** rather than a filled starburst, and it runs the **full second** the
+      prefab's `trailTime` says -- which also settles that the reel is not sped up, and that the
+      ~0.25s green bursts really are a different, shorter effect.
+
+      The ramp is now `#6a3a8f -> #ffffff` and the band steps on age, so the ring is one colour at
+      any instant. Streak length went 0.9 -> 0.75 tiles, which is what opens the dark interior.
+
+      **Gates.** `bun tools/corepox-core-burst.ts` holds the engine half — the event fires for a
+      Brain and not an Armour, at the Brain's world point read BEFORE `reindex` moves the hull, not
+      on a `detach` transfer, capped at `CORE_MAX`, and rng-free. `bun tools/corepox-core-burst-shot.ts`
+      holds the drawn half and the hold, in a real duel in a browser. `corepox-determinism.ts`,
+      `corepox-collision-energy.ts`, `corepox-encounter-check.ts` and `corepox-mining-check.ts` all
+      still pass, and `corepox-duel-check.ts` is byte-identical to before the change.
+
+      **One tool needed updating and it is worth knowing why.** `duelView` gained a `UNITS`
+      dependency, and `corepox-encounter-check.ts` mirrors `corepox-duel`'s engine-import list by
+      hand — so the mirror had to gain `UNITS` too, in BOTH places (the `E` map and the `pick` call;
+      `pick` filters on `n in E`, so adding it to one alone silently did nothing). `UNITS` is
+      fetched first there now, per [[feedback_notebook_import_fetch_config_cell_first]].
+- [x] **DUEL CLEARED grew past the viewport instead of scrolling its salvage — fixed 2026-08-23.**
+      Tom, with a screenshot: "When Duel cleared has multiple rows of items, the items part should
+      scroll, not the whole dialoge so that the TAK button is offscreen."
+
+      `spoilsPopup` (`corepox-board.js`) put `overflow:auto` on the whole panel, so a second row of
+      cards grew the dialog past the screen and carried the TAKE button off the bottom with it.
+
+      **Reading the report off the screenshot.** The capture is 1930x1090 and the panel is
+      `width:min(1060px,100%)` yet spans nearly the whole image, with the grid down to 2 columns —
+      both only true at a **965x545 CSS viewport at dpr 2**. That is now a case in the gate rather
+      than a guess.
+
+      **Two layouts, switched on width, because what decides it is whether the columns sit side by
+      side.** Side by side the body is `flex-wrap:nowrap`, so the columns take the panel's height,
+      the salvage grid is the only scroller and the footer stays put. Stacked (under 900px) `wrap`
+      returns and the panel scrolls whole, which is the only sane thing when each column already
+      uses the full height. It needs a real media query, so the popup carries a scoped `<style>`;
+      there is no stylesheet in `corepox-board` and `encCss` is an inline-property string, not one.
+
+      **The dead end, recorded because it looks like it should work.** `max-height:100%` on the
+      columns does nothing: a *wrapped* flex line is sized to its tallest item and
+      `align-content:stretch` only ever grows lines, so the column stayed at its content height
+      inside a shorter body and the percentage had nothing to resolve against. Measured from the
+      live chain:
+
+      ```
+      div h=605 scroll=605 flex=1 1 380px minH=0px      <- right column, would not shrink
+      div h=461 scroll=605 flex=1 1 auto   minH=0px     <- body, correctly shrunk
+      div h=522 scroll=665                             <- panel, correctly capped at the viewport
+      ```
+
+      That is what `nowrap` fixes — a single flex line takes the container's cross size.
+
+      **Gate: `bun tools/corepox-spoils-scroll.ts`.** Mounts the popup through the live runtime at
+      five viewports and asserts TAKE is inside the viewport, the panel fits, and the panel itself
+      does not scroll.
+
+      ```
+      ok   reported-965x545  965x545,  3 cards   TAKE bottom 466.5 of 545   panel 434px
+      ok   6-cards-short    1400x760,  6 cards   TAKE bottom 691   of 760   panel 668px
+      ok   6-cards-tiny     1400x560,  6 cards   TAKE bottom 518   of 560   panel 522px, grid scrolls 145px
+      ok   2-cards-tall    1400x1000,  2 cards   TAKE bottom 679  of 1000   panel 404px
+      ok   narrow-stack      720x760,  4 cards   TAKE bottom 601.5 of 760   panel 489px
+      ```
+
+      Before the fix `6-cards-tiny` read `TAKE bottom 663.3 of 560` — the button was 103px below the
+      screen. `corepox-encounter-spoils.ts` and `corepox-encounter-check.ts` both still PASS.
+
+      **No scrollbar styling, deliberately.** A clipped row with no visible bar reads as a rendering
+      fault, so a styled track was tried — but headless Chromium reports `0px bar` whichever rules
+      are set (`offsetWidth - clientWidth`, measured), so any such rule is unverifiable from here.
+      The affordance left standing is the half-visible card row the clip produces, which is in
+      `tools/screenshots/spoils-scroll-6-cards-tiny.png`. If Tom finds it unclear in a real browser,
+      a bottom fade mask is the fix that does not depend on scrollbar behaviour.
+
+      The same shape of bug was fixed in the no-cards SUMMARY branch at the same time: the summary
+      text is now the scroller and its button is pinned.
 - [x] **A bomb goes off however it dies — fixed 2026-08-23.** Tom: "Explosives don't trigger on
       contact destruction." The rule sat in the particle path alone (`if (died && hit.c.type ===
       "Explosive")` in `World.stepParticles`), so a bolt set an Explosive off and a ram or an Orb
@@ -35,7 +430,7 @@ Updated 2026-08-23. Ticked only when verified, not when written.
       deterministically, and with bombs live on contact the loss merely arrives sooner (21.0s).
       FollowBoss is the long-standing one. `corepox-play-missions` 11/12 on both engines, only
       SideShooter's solution time moving (16.3s -> 13.2s).
-- [ ] **CORPUS enemies disarm themselves on spawn — diagnosed 2026-08-23, not fixed.** Tom: "Some
+- [x] **CORPUS enemies disarm themselves on spawn — fixed 2026-08-23.** Tom: "Some
       CORPUS enemies have front firing lazers but seem to destroy their weapon on spawn. e.g.
       CEC3F746 seems to spontaneously destroy themselves." Reproduced on the named ship in
       `bun tools/corepox-spawn-selfkill.ts CEC3F746`; the corpus-wide count is
@@ -107,38 +502,71 @@ Updated 2026-08-23. Ticked only when verified, not when written.
       10240 hp (45%), the Orb block 2225 hp (10%), `detonate` 15 hp (0%). The top single killer is
       `collide kills Lazer`, 31 times — which is exactly the class Tom reported.
 
-      **Two one-line candidates, both measured, neither committed.** Each was built as a scratch
-      engine (`tools/scratch/engine-strict.js`, `tools/scratch/engine-approach.js`) and run through
-      the same census:
+      **Fixed by insetting the collision bound inside the cell.** Tom, 2026-08-23, after reading the
+      diagnosis: "all collision bounds should be inside their square, not actually right to the
+      edge, so anything with velocity 0 on start should not be touching if no movement has occured,
+      even if they do not join poroperly." That is a stronger rule than either candidate above and
+      it removes the boundary case rather than special-casing it. `UNITS.CELL_R = 0.45` is now the
+      cell's collision half-extent; `collide()` tests `d > 2 * CELL_R` and depenetrates to the same
+      threshold. Two cells one tile apart are 0.1 tiles clear, so the contact never forms.
+
+      It is a deliberate departure from the original, not a fidelity fix: `fx/Placement.cs:30` gives
+      each component a collider covering the whole part, flush to the edge.
 
       ```
-                                          lose a part   lose a weapon   lose last Brain
-      shipped                                102 (12%)       50 (6%)          78 (9%)
-      strict contact   d >= 1 -> skip          81  (9%)       37 (4%)          76 (9%)
-      approaching only rel >= 0 -> skip        77  (9%)       34 (4%)          76 (9%)
+                                        lose a part   lose a weapon   disarmed   lose last Brain
+      shipped                              102 (12%)       50 (6%)     11 (1%)        78 (9%)
+      strict contact    d >= 1 -> skip       81  (9%)       37 (4%)      9 (1%)        76 (9%)
+      approaching only  rel >= 0 -> skip     77  (9%)       34 (4%)      9 (1%)        76 (9%)
+      CELL_R 0.45                            69  (8%)       28 (3%)      8 (1%)        76 (9%)
       ```
 
-      Both fully recover CEC3F746 (`Brain:50+Lazer:100 | LaserTurret2:100`). They differ in what
-      they claim: **strict contact** says two cells exactly one tile apart are not overlapping and
-      so are not colliding, which is a statement about geometry; **approaching only** says a contact
-      with zero closing speed is not a collision, which is a statement about dynamics and also
-      stops two hulls that have come to rest against each other from grinding. Recommendation is
-      `rel >= 0`, because the resting-grind case is the one Tom has now reported twice (this and
-      "close ship collisions start accelerating everything"), and because `d === 1` is reachable
-      only from exact arithmetic — it would not fire once a hull had rotated.
+      CEC3F746 ends `Brain:50+Lazer:100 | LaserTurret2:100` — the front-firing lazer survives at
+      full health, and the turret still leaves as its own body, which is the faithful half.
 
-      **What NEITHER fixes, and it is the larger half.** `stepParticles` self-harm is 45% of the
-      total and the two candidates move `lose last Brain` by only 78 -> 76. That is ships shooting
-      and exhausting into their own hulls, which is a separate investigation
-      (`tools/corepox-selfharm.ts` already exists for it). Do not read a fix here as fixing
-      self-destruction generally.
+      **Gates, all re-run 2026-08-23 after the change:**
 
-      **Unverified.** `Ship.cs:583` gates its contact damage on
-      `isOccupied(worldToCoord(contact.point))` — the contact point has to round into a cell THIS
-      ship occupies. On a flush contact the point sits exactly on the shared cell boundary, so
-      whether the original deals damage at all in this case depends on that rounding. Our engine has
-      no analogue of the gate. Not testable without running Unity, so it is a hypothesis about why
-      the original may not have shown this, not evidence.
+      ```
+      corepox-collision-energy.ts   PASS   0/240 rising ticks, unchanged
+      corepox-hitbox.ts             PASS   11/11, including "Radar is solid on all 6 of its cells"
+      corepox-encounter-check.ts    PASS   run trace unchanged
+      corepox-determinism.ts        PASS   identical across 3 runs
+      corepox-mining-check.ts       PASS   20/20 runs, 127 pieces / 4305 scrap
+      ```
+
+      Mining is up again — 93/3060 before the collision-energy fix, 113/3930 after it, 127/4305 now.
+      A miner that stops grinding against the rock it is holding gets more passes at the seam.
+
+      **The one measurable cost.** A ram takes 8 more ticks to start, because the hulls have to
+      overlap 0.1 tiles further before contact registers. `corepox-duel-check.ts` kill time moves
+      `1s -> 1.16s`, same winner, same surviving part counts, on every mode.
+
+      **NOT applied to `HIT_R`, and that is a measured decision, not an oversight.** `HIT_R = 0.5` is
+      the same flush half-extent for *projectile* hits, so Tom's rule reads onto it. Built as
+      `tools/scratch/engine-hitr.js` with `HIT_R = 0.45` it improves the census further (69 -> 67
+      lose a part, 28 -> 24 a weapon, 8 -> 5 disarmed) and keeps `corepox-hitbox.ts` green — but it
+      costs the Aim mission outright. Five runs per arm, interleaved so load drift hits both:
+
+      ```
+      arm                     Aim, reference solution
+      shipped                 0/5 win   (loss 21.0-25.5s, varies)
+      CELL_R 0.45             3/5 win   (win 27.0s / loss 20.9-24.8s)
+      CELL_R + HIT_R 0.45     0/5 win   (loss 20.6s, all five IDENTICAL)
+      ```
+
+      The HIT_R arm does not merely lose, it loses the same way every time — the reference beam no
+      longer reaches, which is the constraint the `BEAM_R` block already records (`HIT_R + BEAM_R`
+      is the reach, and Aim is what brackets it from below). Applying the inset to hull contact and
+      not to projectile reach is the split the evidence supports. Tom's call if he wants both.
+
+      **Pre-existing failure found while gating this, NOT caused by it.**
+      `bun tools/corepox-play-missions.ts` reports `FAIL: campaign is not playable end to end`
+      on the *shipped* engine: Aim's reference solution wins 0 of 5 runs. The CELL_R change takes it
+      to 3 of 5, so this change improves it, but 3/5 is still a failing gate and the mission is
+      flaky in every arm. When it broke is not established — the engine `.js` is untracked, so there
+      is no history to bisect, and the collision-energy fix of 2026-08-22 (which made ramming ~4x
+      gentler, and Aim is a mission where a rocket closes head on) is the obvious suspect but is
+      unverified. Its own entry.
 
 - [x] **`collide()` created energy, and the surplus was all rotational — fixed** (reported by Tom 2026-08-22:
       "collisions cause energy gain, which should not happen, close ship collisions start
@@ -275,6 +703,34 @@ Updated 2026-08-23. Ticked only when verified, not when written.
       leave more separate pieces alive, which is exactly the input `collide`'s O(ships^2) broad phase
       is quadratic in — so the ranking below is unchanged and the case for fixing the broad phase is
       slightly stronger than it was.
+
+      **Re-measured again after CELL_R (2026-08-23), and the frame got MORE expensive.** Both
+      readings taken with nothing else on the machine — the stopwatch overhead is 6.18 and
+      6.43 ms/tick respectively, which is how you can tell the two runs are comparable. (A first
+      CELL_R reading taken under load showed 18.08 ms of stopwatch and was discarded.)
+
+      ```
+                             after collision fix    after CELL_R 0.45
+      clean ms/tick                 26.11                 32.62      +25%
+      ships at t=6s                   174                   179
+      live parts at t=6s              974                  1072      +10%
+      particles                      ~522                  ~546
+      collide ms/tick               14.10                 16.18      +15%
+      collide ship pairs            15051                 15931       +6%
+      us per ship pair              0.937                 1.016       +8%
+      stepParticles ms/tick         13.46                 17.70      +31%
+      particle x ship               90828                 97734       +8%
+      us per particle-ship pair     0.148                 0.181      +22%
+      ```
+
+      **This is the fix working, not a defect in it.** Hulls that used to grind each other apart now
+      survive, so the fleet carries 10% more live components. Both hot phases loop over
+      `A.live x B.live`, so cost per *pair* rises with parts-per-ship even when the pair count
+      barely moves — +8% and +22% per pair against +6% and +8% more pairs. Nothing got slower; there
+      is more of the battle left to simulate.
+
+      It does make the tuning below more urgent rather than less: 32.62 ms/tick is 2.0 frames of a
+      60fps budget in the 8-ship melee, and the two phases named are still 87% of it.
 
 - [ ] **Chunks should come apart more easily** (Tom, 2026-08-21, after playing the destructible-ore
       field: "yes it was fun, I think we need to tweak asteroid generation to make them fall apart
@@ -1648,7 +2104,7 @@ Updated 2026-08-23. Ticked only when verified, not when written.
          rows and read as "hp does not matter" when it had never been applied. hp is stamped on the
          component instead (`Ship` reads `c.hp ?? T.hp`).
 
-- [ ] **Aim regressed to a DEFEAT, and it is the collision fix, not the armour change**
+- [x] **Aim regressed to a DEFEAT for part of 2026-08-22 — gone, and not by anything I did**
       (found 2026-08-22 while gating the six above). `corepox-play-missions` reads
       `Aim loss 24.9s` with the reference solution and `corepox-qa-campaign` agrees from the
       browser (`built 14/14 parts 2/2 wires`, `VERDICT DEFEAT t=25.7s ... lost Brain@-1,0,
@@ -1665,6 +2121,14 @@ Updated 2026-08-23. Ticked only when verified, not when written.
       so it is the new impulse in `collide()` that Aim's hull cannot survive.
       aimPlayer is 11 Armour plates around a Brain and a turret; it is the most collision-exposed
       hull in the campaign, which is presumably why it is the one that broke.
+
+      **Closed 2026-08-23, and NOT by the change above.** `corepox-play-missions` reads
+      `Aim win 27.0s` and `corepox-qa-campaign` `WIN built 14/14 parts 2/2 wires` on the current
+      engine, with `RESTITUTION` still at 0.2. The engine moved underneath it in between — the
+      Explosive-on-contact-destruction work landed, which touches `damage()` and `detach()` — and
+      the `RESTITUTION 0.0` probe no longer separates anything (`win 27.0s` either way). So the
+      measurement above was real for the window it was taken in and is no longer reproducible;
+      what actually fixed it was not established, and if Aim fails again this is where to start.
 
 - [x] **Taking the spoils IS the transition — one click back to the map** (2026-08-23, Tom:
       "After choosing spoils we go back to the battle map instead of up to the map, so there is a
@@ -1769,6 +2233,48 @@ Updated 2026-08-23. Ticked only when verified, not when written.
       which is only a legal anchor for a ONE-cell part; with four plates around the Brain it
       handed an Engine a cell the board would not take. It asks `qa.legal(type)` now, so the gate
       tests the same set the press does.
+
+- [x] **Parts go down already turned** (Tom, 2026-08-23: "we should be able to place components
+      rotated, I think there should be a rotate button above the shelf, which will rotate all the
+      parts in the shelf and also when placed. Also I think the ghosts are not rotated
+      currently").
+
+      Rotation used to be a verb you applied to a part that was already down: `commitBuild` wrote
+      `dir: "up"` unconditionally, so building anything sideways was place-then-rotate, and the
+      rotate is a second selection on a part sitting in the wrong shape.
+
+      One angle belongs to the whole RAIL, not to a chip — `placeDir`, and a `↻ UP / RIGHT /
+      DOWN / LEFT` control at the top of the shelf that steps it. It reads the angle out rather
+      than only being a button, so the rail says which way it is pointing with nothing armed. It
+      is on all three rail forms: the open desktop rail, the collapsed one, and the phone shelf.
+      Four things follow it — every icon in the rail, the legal-anchor set, the ghost, and what
+      lands.
+
+      The ghosts were the confirmed half of the report, and they were wrong in two ways at once:
+      the art drew upright, and the cell outline came from the UNROTATED `TYPES[type].tiles`. The
+      art now turns on its holder, the same way a live component's holder does in
+      corepox-render's frame loop. The cells deliberately do NOT: they are drawn in the ship's
+      frame at the offsets `rotTile` reports, which is the same function the legality test used —
+      so the outline is the footprint that was tested rather than a second construction of it
+      that could disagree. A part being MOVED ghosts at the rotation it already has, not the
+      rail's.
+
+      New gate `bun tools/corepox-place-rotated.ts`, PASS. The Engine is the part that shows it,
+      because two cells make up and right different shapes rather than the same square twice:
+
+      ```
+      rail UP     Engine anchors [1,0] [-1,0] [1,-1] [-1,-1] [1,-2] [-1,-2] [0,-3] [1,1] [-1,1]
+      rail RIGHT  Engine anchors [-1,0] [-1,-1] [-1,-2] [0,-3] [-1,1] [0,2]
+      press at [-1,0] with the rail RIGHT  ->  Engine@-1,0:90  cells "-1,0 -2,0"
+      ```
+
+      The last line is the whole claim: `:90`, and the pair runs sideways.
+      `tools/screenshots/rot-up.png` and `rot-right.png` are the two states of the shelf and the
+      ghost field.
+
+      `corepox-bench-board` PASS, `corepox-move-place` PASS, `corepox-autopilot-optin` PASS,
+      `corepox-board-shots` clean including the phone shelf, `corepox-qa-campaign` 11/12
+      (FollowBoss only).
 
 ## Campaign (done 2026-08-19)
 - [x] All 9 missions playable: 9/9 win with a reference solution, 0/9 win with no input.
@@ -3428,3 +3934,17 @@ system does.
 **~67 core-hours**. A client-side app view cannot re-simulate the whole ladder per season. Either
 the engine gets much faster, the ladder samples rather than exhausts, or it needs an indexer of
 the Contrail kind (`specs/atproto.md`).
+
+- [ ] **The placement sparks are a second recovered effect, unbuilt** (found 2026-08-23 while
+      colour-matching the core explosion). `fx/Placement.cs` + `FxAtlas.placement`: when a component
+      is placed, `n` sparks appear on a ring of `radius` around it, converge INWARD onto points
+      sampled from the component's own collider on `Ease.InCubic`, fade `clear -> white` linearly,
+      and stretch on `DOScaleY(baseScaling * 10)` for the first half then back for the second. The
+      component's own graphics start at `Color.clear` and fade up over `dwellTime` at the end, so
+      the part assembles out of the sparks.
+
+      Visible in `data/corepox/video/reel-CE4bDuaCGIe.mp4` at **54.6s and 55.7s**, on the build
+      grid, pale green, whole run ~0.25s. The prefab's `n` / `radius` / `trailTime` / `dwellTime`
+      have NOT been read yet -- only `CoreExplosion.prefab` was opened. It would sit on the same
+      `World.fx` + lane-path machinery the core explosion already uses, and the board is where a
+      player spends most of their time.

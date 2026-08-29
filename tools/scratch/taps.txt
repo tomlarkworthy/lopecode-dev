@@ -1,0 +1,45 @@
+ 1. PlaceBrain     WIN   built 1/1 parts 0/0 wires
+TAPS    4  PlaceBrain            1 parts  0 wires   build 3  param 1
+ 2. Cocoon         WIN   built 3/3 parts 0/0 wires
+TAPS    7  Cocoon                3 parts  0 wires   build 6  param 1
+ 3. ConnectionLite WIN   built 3/3 parts 1/1 wires
+TAPS    5  ConnectionLite        3 parts  1 wires   build 0  param 0  wire 5
+ 4. ManualAim      WIN   built 3/3 parts 1/1 wires
+TAPS   11  ManualAim             3 parts  1 wires   build 0  param 11  wire 0
+ 5. Connection     WIN   built 3/3 parts 1/1 wires
+TAPS   17  Connection            3 parts  1 wires   build 0  param 12  wire 5
+ 6. Aim            WIN   built 14/14 parts 2/2 wires
+TAPS   11  Aim                  14 parts  2 wires   build 0  param 1  wire 10
+ 7. Avoid          WIN   built 5/5 parts 3/3 wires
+TAPS    7  Avoid                 5 parts  3 wires   build 0  param 7  wire 0
+ 8. FollowCourse   WIN   built 10/10 parts 6/6 wires
+TAPS   10  FollowCourse         10 parts  6 wires   build 0  param 0  wire 10
+ 9. FollowCourseAdvanced WIN   built 16/16 parts 6/6 wires
+TAPS   30  FollowCourseAdvanced 16 parts  6 wires   build 0  param 0  wire 30
+10. FollowBoss     ----  built 7/7 parts 6/6 wires
+      VERDICT DEFEAT  t=5.0s player 6 enemy 6+7+6 lost Brain@0,0
+      BUILT ORDER Brain@0,0 Radar@-2,0 LaserTurret2@1,0 Constant@-2,-1=100 Binary@0,-1=MINUS Engine@-2,-2 Engine@1,-2
+      SPEC  ORDER Brain@0,0 Radar@-2,0 LaserTurret2@1,0 Constant@-2,-1=100 Binary@0,-1=MINUS Engine@-2,-2 Engine@1,-2
+      BUILT WIRES -2,0|bearing|1,0|angle -2,0|dist|1,0|fire -2,0|bearing|-2,-2|in -2,0|bearing|0,-1|b -2,-1|out|0,-1|a 0,-1|out|1,-2|in
+      SPEC  WIRES -2,0|bearing|1,0|angle -2,0|dist|1,0|fire -2,0|bearing|-2,-2|in -2,0|bearing|0,-1|b -2,-1|out|0,-1|a 0,-1|out|1,-2|in
+      · place Radar@-2,0
+      · place LaserTurret2@1,0
+      · place Constant@-2,-1
+      · place Binary@0,-1
+      · place Engine@-2,-2
+      · place Engine@1,-2
+      · wire -2,0.bearing -> 1,0.angle
+      · wire -2,0.dist -> 1,0.fire
+      · wire -2,0.bearing -> -2,-2.in
+      · wire -2,0.bearing -> 0,-1.b
+      · wire -2,-1.out -> 0,-1.a
+      · wire 0,-1.out -> 1,-2.in
+      · step Constant@-2,-1 to 100
+      · set Binary@0,-1 = MINUS
+TAPS   64  FollowBoss            7 parts  6 wires   build 18  param 16  wire 30
+11. SideShooter    WIN   built 5/5 parts 2/2 wires
+TAPS   29  SideShooter           5 parts  2 wires   build 6  param 13  wire 10
+12. TwinTurrets    WIN   built 9/9 parts 2/2 wires
+TAPS   41  TwinTurrets           9 parts  2 wires   build 18  param 13  wire 10
+
+11/12 completed by clicking, not by handing the engine a ship

@@ -2,8 +2,12 @@
 // played a run: "the boss is OP for what components we have and there are few
 // chances to get more components."
 //
-// Reads the shipped tables rather than restating them: SHIPS.wiredCore for the
-// starting hull, genRun for the board. ENCOUNTER_RULES' scrap column is duplicated
+// Reads the shipped tables rather than restating them: newRunCampaign for the
+// starting loadout, genRun for the board. The hull and hold were transcribed here
+// as literals until 2026-08-23, when the run start changed to a bare Brain and this
+// went on printing the old three-part hull. Only newRunCampaign's own DEPENDENCIES
+// are supplied (SHIPS), so reading it does not drag in the battle stack the rest of
+// corepox-duel-encounter needs. ENCOUNTER_RULES' scrap column is duplicated
 // here as RULES because importing corepox-duel-encounter headlessly pulls in the
 // battle stack; tools/corepox-encounter-check.ts is the gate that holds the map
 // panel and ENCOUNTER_RULES to the same numbers, so a drift shows up there.
@@ -19,12 +23,16 @@ const genRun: any = await map.value("genRun");
 
 const RULES: any = {duel: 40, escort: 65, infiltrate: 90, boss: 200, race: 50,
                     debris: 35, rescue: 45, mining: 0, shop: 0, repair: 0, unknown: 0};
-const wc = SHIPS.wiredCore;
-console.log("start hull  wiredCore:", wc.components.length, "parts,",
-            wc.connections.length, "wires  [" +
-            [...new Set(wc.components.map((c: any) => c.type))].join(" ") + "]");
-console.log("start hold  Engine 2, Lazer 2, Armour 4, Constant 2, Radar 1 = 11 spares");
-console.log("start scrap 214\n");
+const enc = await importNotebookModule("modules/@tomlarkworthy/corepox-duel-encounter.js",
+  {overrides: {SHIPS, md: (s: any) => String(s), htl: {html: () => {}},
+               invalidation: new Promise(() => {})}});
+const start = (await enc.value("newRunCampaign") as any)(41);
+const hull = start.ship.components;
+console.log("start hull ", hull.length, "parts,", start.ship.connections.length, "wires  [" +
+            [...new Set(hull.map((c: any) => c.type))].join(" ") + "]");
+console.log("start hold ", Object.entries(start.parts).map(([t, n]) => `${t} ${n}`).join(", "),
+            "=", Object.values(start.parts).reduce((a: any, b: any) => a + b, 0), "spares");
+console.log("start scrap", start.scrap, "\n");
 
 for (const seed of [41, 7, 99]) {
   const run = genRun({seed, galaxy: 2, jumps: 7});

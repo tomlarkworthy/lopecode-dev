@@ -53,15 +53,36 @@ say(zoomed < 0.9, `wheel zooms in           ${B0.w.toFixed(0)} -> ${B1.w.toFixed
 say(slip < 0.03, `point under cursor holds  slipped ${(slip * 100).toFixed(1)}% of the view` +
     `  (centre-anchored zoom would slip ~${(Math.abs(0.80 - 0.5) * (1 - zoomed) * 100).toFixed(0)}%)`);
 
-// 2. drag pans
+// 2. drag pans -- WITH THE SPACE LATCH, and the qualifier is the finding.
+// This dragged bare from the centre of the board and panned 0, twice over. On
+// this board a bare drag is never the camera: `startGesture` gives a press on a
+// part to a MOVE, and in `playing` it gives a press on empty sky to the FLY
+// command (corepox-board.js:779, `kind: "fly"`, which takes the pan lock). The
+// camera drag is space-latched or the pan pad. Measured on the refit bench,
+// 2026-08-22: the same 180px drag pans 0 units from a part and 95 from sky in
+// BUILD, and 0 from anywhere while playing.
+//
+// So this step now drives the gesture the board actually offers. Whether a bare
+// drag SHOULD pan more often is Tom's call and is open -- it is the second half
+// of "quite hard using the camera controls", and it is a gesture question, not a
+// camera one.
 const B2 = await box();
-await p.mouse.move(B2.l + B2.rw / 2, B2.t + B2.rh / 2);
+const mid = [B2.l + B2.rw / 2, B2.t + B2.rh / 2];
+await p.keyboard.down("Space");
+await p.mouse.move(mid[0], mid[1]);
 await p.mouse.down();
-await p.mouse.move(B2.l + B2.rw / 2 - 200, B2.t + B2.rh / 2, {steps: 8});
+await p.mouse.move(mid[0] - 200, mid[1], {steps: 8});
 await p.mouse.up();
+await p.keyboard.up("Space");
 await p.waitForTimeout(400);
 const B3 = await box();
 const want = 200 / B2.rw * B2.w, got = B3.x - B2.x;
+// Put the camera back before anything downstream measures it. Since 2026-08-22 a
+// pan DETACHES the camera from the scene, so every later step here -- and step 8
+// in particular, which asks the view to open when the ship moves -- would be
+// asking a camera that has been told to stop listening.
+await p.locator('button[title="recentre"]').first().click().catch(() => {});
+await p.waitForTimeout(700);
 say(Math.abs(got - want) / want < 0.15, `drag pans                 moved ${got.toFixed(1)}, wanted ${want.toFixed(1)} view units`);
 say(Math.abs(B3.w - B2.w) < 1, `drag does not zoom        ${B2.w.toFixed(0)} -> ${B3.w.toFixed(0)}`);
 

@@ -97,3 +97,22 @@ vendor/corepox_art/
 vendor/corepox_apk/
 vendor/android-sdk/
 vendor/corepox_cloud/
+
+# design-sync (claude.ai/design) machine state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+
+# macOS AppleDouble sidecars
+._*
+**/._*
+# git worktrees
+/worktrees/
+# nested git repos (not submodules)
+/openrouter-gateway/
+/scratch/foc-wiki-pr/
+/scratch/notebook-kit-fork/
+# >50MB binary
+/scratch/corepox-art/design.sketch

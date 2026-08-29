@@ -130,7 +130,10 @@ const placePart = async (type: string, px: number, py: number) => {
     await p.keyboard.press("Escape");        // put back whatever stayed armed
     if (await placedAt(type, px, py)) return true;
   }
-  return found ? false : false;
+  // The two failures are not the same failure and used to print the same line:
+  // "no X in stock" was reported for a part whose chip was right there and whose
+  // drag had landed, because the ship the gate reads had not caught up.
+  return found ? "missed" : "no-chip";
 };
 // Selecting a component floats its verbs beside it; there is no menu to open.
 const openMenu = async (px: number, py: number) => {
@@ -175,8 +178,11 @@ for (let i = 0; i < MISSIONS.length; i++) {
   // BUILD -- pick the part in the tray, click the destination cell
   if (toPlace.length) {
     for (const c of toPlace) {
-      if (!await placePart(c.type, c.pos[0], c.pos[1])) {
-        steps.push(`no ${c.type} in stock`); continue; }
+      const r = await placePart(c.type, c.pos[0], c.pos[1]);
+      if (r !== true) {
+        steps.push(r === "no-chip" ? `no ${c.type} chip in the hold`
+                                   : `MISSED place ${c.type}@${c.pos} (3 drags)`);
+        continue; }
       steps.push(`place ${c.type}@${c.pos}`);
     }
   }

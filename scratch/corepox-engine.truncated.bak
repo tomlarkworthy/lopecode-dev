@@ -1,0 +1,794 @@
+// Corepox simulation core. No DOM, no rendering -- so it runs headless in node
+// (tools/notebook-import.ts) and can be reused as the ladder verifier.
+//
+// ONE angle convention, because the original had two that cancelled (see
+// knowledge/corepox-extracted-design.md): coordinates are SVG-style with +Y
+// DOWN, a heading `a` is DEGREES with 0 = screen-up and positive = clockwise,
+// so unit(a) = (sin a, -cos a) and the 2D cross rx*Fy - ry*Fx is positive
+// clockwise, matching `a`.
+
+const _DT = function _DT(){return(
+0.02
+)};
+
+// Unity worked in WORLD units at Metric.Tile2Pixel = 0.64 world units per tile
+// (Metrics.cs:6). This engine lays components out in TILES, so every constant
+// lifted from the original has to be divided by 0.64 to land in tile units. They
+// are collected here rather than inlined, because getting one of them wrong is
+// invisible -- it just makes the game feel different.
+const _UNITS = function _UNITS(){return(
+{
+  W: 0.64,                    // world units per tile (Metric.Tile2Pixel)
+  // LaserFn.cs:22 emits a beam at local (0, 1.8) with local velocity (0, 20) and
+  // ttl 1.3s. So a bolt TRAVELS -- 20/0.64 = 31.25 tiles/s for 1.3s = 40.6 tiles
+  // of range -- and can miss a moving target. `beam.length = 100` is the visual
+  // shaft scale, not the range; treating it as an instant 100-tile raycast made
+  // every gun hitscan and is most of why guns dominated self-play.
+  BEAM_SPEED: 20 / 0.64, BEAM_TTL: 1.3, BEAM_MUZZLE: 1.8 / 0.64, BEAM_LEN: 1 / 0.64,
+  BEAM_CYCLE: 1.0, BEAM_DMG: 5,          // FIRE_S 0.1 + RECHARGE_S 0.9
+  // ExplosiveFn.cs: 32 particles on a circle at 2 world u/s, ttl 3s, 5 dmg each.
+  FRAG_N: 32, FRAG_SPEED: 2 / 0.64, FRAG_TTL: 3, FRAG_DMG: 5, FRAG_CHARGE: 0.1,
+  // EngineFn.emitParticle: exhaust spawns 1.6 tiles behind the nozzle moving aft
+  // at 1 world u/s with ttl U(0,1), carrying Damage's default dmg of 1. Poisson
+  // rate EMIT * magnitude * dt, magnitude 0..100 -- 2 per tick at full thrust.
+  EXHAUST_SPEED: 1 / 0.64, EXHAUST_BACK: 1.6, EXHAUST_DMG: 1, EXHAUST_RATE: 1,
+  HIT_R: 0.5                  // a component is one tile across
+}
+)};
+
+const _TYPES = function _TYPES(){return(
+// HP is the SHIPPED table, recovered 2026-08-19. maxHp lives in the binary Unity
+// prefabs, but every serialised ship carries each component's current hp, and
+// assets.json carries a creation_date per ship -- so the values can be dated
+// rather than guessed. 303 of 892 ships are dated, spanning 2017-11-23..2018-02-24,
+// and they show one balance patch on 2018-01-14 (tools/corepox-hp-eras.ts):
+//
+//   type          before 2018-01-14   after      n
+//   Armour              75             100      499
+//   Binary             100              25      196
+//   Constant            50              25      760
+//   LaserTurret2       100              50      116
+//   Lazer              100              75      863
+//   Radar               50              25      219
+//   Brain               50              20      272   (nerfed earlier, 2017-11-29)
+//   Engine              50              50      981   (unchanged)
+//   Hyperdrive / Orb    --         200 / 75          (both first appear 2018-01-14)
+//
+// The patch made everything fragile except Armour, which got tougher -- Armour 100
+// against a Brain 20 is 5:1, so the game became about EXPOSING a core rather than
+// out-shooting a shell. That matches Tom's memory of Armour being good, and the
+// earlier "no player used Armour" reading came from the wrong dump (S1.3).
+{
+  Brain:        {hp: 20, pwr: 0,  tiles: [[0,0]], ins: [],                    outs: []},
+  Constant:     {hp: 25, pwr: 1,  tiles: [[0,0]], ins: [],                    outs: ["out"]},
+  // T-tetromino. Corpus spacing: two Binaries never sit within +-3 cells (vs
+  // Constants at 513 pairs one cell apart), and the T anchor here is the sharp
+  // minimum of the overlap search (4.3% vs 17.3% for the next best).
+  Binary:       {hp: 25, pwr: 1,  tiles: [[-1,0],[0,0],[1,0],[0,-1]],
+                 ins: ["a","b"], outs: ["out"]},
+  // 2x3. Overlap search minimum is sharp: 1.5% at this anchor, 42.7% next.
+  Radar:        {hp: 25, pwr: 2,  tiles: [[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]],
+                 ins: [], outs: ["dist","bearing"]},
+  // 2x1, nozzle behind (Tom). Local-frame corpus shadow agrees: two same-dir
+  // Engines never sit 1 apart along their own axis (0 pairs) but do at 2 (17),
+  // while 624 sit side by side. Direction from overlap: -y 22.9% vs +y 54.5%.
+  Engine:       {hp: 50, pwr: 2,  tiles: [[0,0],[0,-1]], ins: ["in"], outs: []},
+  // 3x1, barrel forward (Tom). Shadow: blocked at +-1 AND +-2 along its own axis,
+  // open at +-3, 884 side by side. Direction from overlap: +y 5.8% vs -y 53.7%.
+  Lazer:        {hp: 75, pwr: 4,  tiles: [[0,0],[0,1],[0,2]], ins: ["in"], outs: []},
+  Explosive:    {hp: 5, pwr: 1,   tiles: [[0,0]], ins: ["in"],                outs: []},
+  // 2x2 (Tom). Corpus-consistent: this anchor costs +0.56pp of overlap over 1x1
+  // (13.68% vs 13.12%) where every other 2x2 anchor and 3x3 cost more. Tom also
+  // reports two connectors on one side; Descriptions.cs gives Orb no input or
+  // output semantics, so they are not modelled.
+  Orb:          {hp: 75, pwr: 2,  tiles: [[0,0],[1,0],[0,1],[1,1]],
+                 ins: [], outs: []},
+  Armour:       {hp: 100, pwr: 0, tiles: [[0,0]], ins: [],                    outs: []},
+  // 12 cells, verbatim from TurretFn.Awake() -- the shipped occupancy, with the
+  // ASCII in that comment matching cell for cell:
+  //    XX        y=3      x=0..1
+  //   XXXX       y=1..2   x=-1..2
+  //    0X        y=0      x=0..1   <- the 2x1 BASE Tom described
+  // Both readings were right: the base is the 2x1 that carries the joints, and
+  // the rest is the arc the gun sweeps, which the prefab reserves so nothing can
+  // be built into it. pivot is the centre of the 2x2 over the base and the row
+  // above it (Tom: "the rotation point is in the middle if it was a 2x2").
+  LaserTurret2: {hp: 50, pwr: 6, pivot: [0.5, 0.5],
+                 tiles: [[-1,1],[-1,2],[0,1],[0,2],[1,1],[1,2],[2,1],[2,2],
+                         [0,0],[1,0],[0,3],[1,3]],
+                 ins: ["fire","angle"], outs: []},
+  // A 2x4 hammer head joined to a 3x2 stem, joints placed sparsely (Tom). Rests
+  // entirely on Tom: only 57 instances exist and every anchor scores ~50% overlap
+  // against a 46.9% baseline, so the corpus cannot resolve it. Art is 248x299
+  // (~4x4.8 cells), consistent with 4 wide x 5 long.
+  Hyperdrive:   {hp: 200, pwr: 4, ins: ["in"], outs: [],
+                 // Hammerhead FORWARD, stem aft (Tom, on the drawing). Was drawn
+                 // head-aft; every y is negated from that reading.
+                 tiles: [[-1,4],[0,4],[1,4],[2,4],[-1,3],[0,3],[1,3],[2,3],
+                         [0,2],[1,2],[0,1],[1,1],[0,0],[1,0]]},
+  Composite:    {hp: 25, pwr: 1,  tiles: [[0,0]], ins: [],                    outs: []}
+}
+)};
+
+const _BINOPS = function _BINOPS(){return(
+{
+  PLUS:   (a,b) => a + b,
+  MINUS:  (a,b) => a - b,
+  TIMES:  (a,b) => a * b,
+  DIVIDE: (a,b) => b !== 0 ? a / b : 1,   // original: a/0 === 1
+  LT:     (a,b) => a <  b ? 1 : 0,
+  GT:     (a,b) => a >  b ? 1 : 0,
+  EQ:     (a,b) => a === b ? 1 : 0,
+  AND:    (a,b) => Math.min(a, b),        // original used Mathf.Min
+  OR:     (a,b) => Math.max(a, b)         // ...and Mathf.Max
+}
+)};
+
+
+// Ports are GRID CELLS, not named properties: a connection addresses the cell a
+// port sits in ({"from":[2,1],"to":[4,0]}), and the offsets lived in Unity binary
+// prefabs that did not survive. Recovered instead by constraint propagation over
+// 7,544 connection endpoints in 778 real ships (tools/corepox-ports.py):
+// this table explains 99.2% of them, and reproduces all four connections of
+// `BrautenbourgsFirst` in components/Resources/composites.json exactly.
+// Ports lie ON the component's own tiles (Engine's input is its own (0,0)), which
+// constrains them once footprints are known: Binary's output is the T's stem at
+// (0,-1), and Radar's two outputs must fall inside its 2x3 body, ruling out (2,0).
+// Which Radar port is which was settled by experiment: fighting 40 real corpus
+// ships, bearing@(1,0) gives 15% that close on their target, dist@(1,0) gives 3%.
+
+// Structural joints, distinct from the signal PORTS above. Each component CELL has
+// 8 joint slots -- two per side -- which is what CoordDir8 encodes and what Tom's
+// screenshot shows: connector dots along one cell edge sit ~89px apart against a
+// 178px cell pitch, i.e. two per edge. So "the engine is 2x2" is in CONNECTOR
+// units; one component cell is 2x2 connector slots. Components stay 1x1 on the
+// component grid (492 corpus engine pairs sit one cell apart, impossible for a
+// 2x2 body).
+//
+// Reading rule, from Tom: a CURVED corner in the art does not admit a connector.
+// The vector art is in corepox-assets, so the remaining joint arrays are readable
+// off the SVG paths rather than guessable -- straight edge segments take joints,
+// curved ones do not. Not yet done.
+//
+// Slots per side, named from the component's own up: [near, far] going clockwise.
+// UNPOPULATED slots are the point -- an engine has none on its nozzle end.
+const _JOINTS = function _JOINTS(){return(
+{
+  // Recovered from the vector art by tools/corepox-joints-from-art.py, using Tom's
+  // rule: a CURVED corner does not admit a connector, a straight boundary segment
+  // does. Two slots per cell side, eight around a 1x1 -- which is what CoordDir8
+  // encodes, and matches the in-game screenshot (dots ~89px apart against a 178px
+  // cell pitch). Slot 0 is the first half of a side going +x / +y.
+  //
+  // Independently reproduces what Tom reported from memory:
+  //   Engine "4 joints on the top and top/left/right" -> N:[0,1] E:[0] W:[0] = 4
+  //   Lazer  "only connector on the bottom"           -> base cell only (4, see below)
+  //   Binary "the strange joint"                      -> stem has NO top, sides only
+  //
+  // Cells are in art order (+y is DOWN, the mounting end of Engine/Lazer last).
+  Engine:    {"0,0": {N: [0,1], E: [0], W: [0]}},
+  // Lazer: 4 joints, not the art's 6 (Tom, on the drawing). Two across the back
+  // edge plus the aft-biased corner slot on each side -- the same arrangement the
+  // art gives Radar, whose "closest join around the corner" Tom confirmed blind.
+  Lazer:     {"0,2": {E: [1], S: [0,1], W: [1]}},
+  Binary:    {"1,0": {E: [1], W: [1]},
+              "0,1": {N: [0,1], S: [1], W: [0]},
+              "1,1": {S: [0,1]},
+              "2,1": {N: [0,1], E: [0], S: [0]}},
+  // Radar CONFIRMED by Tom independently of the art: "joins on one of the 2 length
+  // sides (4 joins) plus the closest join around the corner (so 6 joints total)".
+  // That is exactly S[0,1] on both base cells plus W[1] and E[1]. The art-derived
+  // table and Tom's memory agree without either being fitted to the other.
+  Radar:     {"0,2": {S: [0,1], W: [1]}, "1,2": {E: [1], S: [0,1]}},
+  // Orb: 2x2, ONE side connected = 4 joints (Tom). The art-derived table gave all
+  // four outward faces (16); that reading is wrong -- the orb symbol is the one
+  // that renders as a thin line, so its outline is unreliable.
+  Orb:       {"0,1": {S: [0,1]}, "1,1": {S: [0,1]}},
+  Armour:    {"0,0": {N: [0,1], E: [0,1], S: [0,1], W: [0,1]}},
+  Constant:  {"0,0": {N: [0,1], E: [0,1], S: [0,1], W: [0,1]}},
+  Explosive: {"0,0": {N: [0,1], E: [0,1], S: [0,1], W: [0,1]}},
+  // Brain: 1x1, full 8 like Constant (Tom). The art tool returns 0 slots for it
+  // because the brain symbol is 82x77 for one cell -- its pins overhang the cell,
+  // so the bounding box is not the body and the face lines land off the outline.
+  Brain:     {"0,0": {N: [0,1], E: [0,1], S: [0,1], W: [0,1]}},
+  // LaserTurret2: 2x1 base, 8 joints (Tom) -- "leave one of the 2 length sides
+  // open, but that's where the gun pokes out". A 2x1 perimeter is 4+4+2+2 = 12
+  // slots; opening one long side leaves exactly 8.
+  LaserTurret2: {"0,0": {S: [0,1], W: [0,1]}, "1,0": {S: [0,1], E: [0,1]}}
+  // Hyperdrive: still not recovered.
+}
+)};
+
+const _PORTS = function _PORTS(){return(
+{
+  Constant:     {outs: {out: [0, 0]},                     ins: {}},
+  Radar:        {outs: {bearing: [1, 0], dist: [0, 0]},   ins: {}},
+  Binary:       {outs: {out: [0, -1]},                    ins: {a: [1, 0], b: [-1, 0]}},
+  Engine:       {outs: {},                                ins: {in: [0, 0]}},
+  Lazer:        {outs: {},                                ins: {in: [0, 0]}},
+  Explosive:    {outs: {},                                ins: {in: [0, 0]}},
+  LaserTurret2: {outs: {},                                ins: {fire: [0, 0], angle: [-1, 0]}},
+  Hyperdrive:   {outs: {},                                ins: {in: [0, 0]}}
+}
+)};
+
+// Binary's output is seen at both (0,+1) and (0,-1) in the corpus (364 endpoints
+// at the second). Treated as an alternate rather than a separate type.
+const _PORT_ALT = function _PORT_ALT(){return(
+{Binary: {outs: {out: [0, 1]}}, Radar: {outs: {dist: [2, 0]}}}
+)};
+
+const _geom = function _geom(){return(
+{
+  D: Math.PI / 180,
+  unit: (a) => [Math.sin(a * Math.PI / 180), -Math.cos(a * Math.PI / 180)],
+  // rotate a ship-local offset into world, clockwise-positive in +Y-down space
+  rot: ([x, y], a) => {
+    const s = Math.sin(a * Math.PI / 180), c = Math.cos(a * Math.PI / 180);
+    return [x * c - y * s, x * s + y * c];
+  },
+  norm: (a) => { a %= 360; if (a > 180) a -= 360; if (a < -180) a += 360; return a; },
+  // bearing from p to q, 0 = up, clockwise positive
+  bearing: (px, py, qx, qy) => Math.atan2(qx - px, -(qy - py)) * 180 / Math.PI
+}
+)};
+
+const _DIRS = function _DIRS(){return(
+Object.assign({up: 0, right: 90, down: 180, left: 270}, {
+  // A live component carries `dir` in DEGREES, not as a name. Reading `c.dirName`
+  // (which never existed) silently treated every rotated part as "up".
+  name: (deg) => ["up", "right", "down", "left"][(Math.round(deg / 90) % 4 + 4) % 4]
+})
+)};
+
+const _rotTile = function _rotTile(){return(
+// grid tile rotated clockwise by dir (degrees, multiples of 90)
+([x, y], deg) => {
+  let n = ((Math.round(deg / 90) % 4) + 4) % 4, p = [x, y];
+  for (let i = 0; i < n; i++) p = [p[1], -p[0]];
+  return p;
+}
+)};
+
+
+// Corpus ships address ports by grid cell. Resolve each endpoint to (component,
+// portName) using the recovered PORTS table, so ships.json loads unmodified.
+const _loadShipSpec = function _loadShipSpec(PORTS, PORT_ALT, DIRS){return(
+(raw) => {
+  raw = {...raw, components: (raw.components ?? []).map(
+    c => ({...c, type: String(c.type).replace(/\(Clone\)$/, "")}))};
+  // A Composite is a sub-ship, and every instance carries its whole definition
+  // inline in `param` (all 228 in the corpus are BrautenbourgsFirst). Splice its
+  // components in, translated and rotated by the placement, so the parts are real
+  // parts. Left as a 1x1 stub it was the single biggest cause of ships loading in
+  // pieces: 43-48% of broken ships contained one vs 8-16% of whole ships.
+  {
+    const R = {up: (x, y) => [x, y], right: (x, y) => [-y, x],
+               down: (x, y) => [-x, -y], left: (x, y) => [y, -x]};
+    const TURN = {up: 0, right: 90, down: 180, left: 270};
+    const NAME = ["up", "right", "down", "left"];
+    const out = [], extra = [];
+    for (const c of raw.components) {
+      if (c.type !== "Composite") { out.push(c); continue; }
+      let sub = null;
+      try { sub = typeof c.param === "string" ? JSON.parse(c.param) : c.param; } catch {}
+      if (!sub?.components) { out.push(c); continue; }
+      const r = R[c.dir ?? "up"] ?? R.up, t = TURN[c.dir ?? "up"] ?? 0;
+      const map = ([x, y]) => { const [a, b] = r(x, y);
+        return [c.pos[0] + a, c.pos[1] + b]; };
+      for (const sc of sub.components)
+        out.push({...sc, pos: map(sc.pos),
+          dir: NAME[(((TURN[sc.dir ?? "up"] ?? 0) + t) / 90) % 4]});
+      for (const k of sub.connections ?? [])
+        extra.push({from: map(k.from), to: map(k.to)});
+    }
+    raw = {...raw, components: out,
+           connections: [...(raw.connections ?? []), ...extra]};
+  }
+  const rot = {up: (x, y) => [x, y], right: (x, y) => [y, -x],
+               down: (x, y) => [-x, -y], left: (x, y) => [-y, x]};
+  const comps = raw.components ?? [];
+  const find = (cell, kind) => {
+    for (const alt of [PORTS, PORT_ALT]) {
+      for (const c of comps) {
+        const tbl = alt[c.type]?.[kind === "out" ? "outs" : "ins"];
+        if (!tbl) continue;
+        const [lx, ly] = (rot[c.dir ?? "up"] ?? rot.up)(
+          cell[0] - c.pos[0], cell[1] - c.pos[1]);
+        for (const name of Object.keys(tbl))
+          if (tbl[name][0] === lx && tbl[name][1] === ly) return {c, name};
+      }
+    }
+    return null;
+  };
+  const conns = [], dropped = [];
+  for (const k of raw.connections ?? []) {
+    const a = find(k.from, "out"), b = find(k.to, "in");
+    if (!a || !b) { dropped.push(k); continue; }
+    conns.push({from: a.c.pos, fromPort: a.name, to: b.c.pos, toPort: b.name});
+  }
+  return {spec: {...raw, connections: conns}, dropped};
+}
+)};
+
+const _NEIGHBOURS = function _NEIGHBOURS(){return(
+// Structural reach is TWO cells, and that is the physical model, not a fudge.
+// Tom's screenshot shows connectors as green dots sitting IN THE GAP between two
+// components, two per cell edge, eight around a 1x1 -- which is what CoordDir8
+// encodes (a cell plus one of 8 perimeter slots). The stalks project outward, so
+// two components separated by one empty cell join when their stalks meet in it.
+// Between component BODIES that is a reach of two.
+// Checked against the alternatives on 892 corpus ships, composites expanded:
+//   4-way 34% multi-island, 8-way 30%, reach-2 17% (with real Engine/Lazer footprints)
+// and no footprint assignment rescues 4-way -- the best is 33% and it costs 48%
+// overlapping components. Growing Engine to 1x2 or Lazer to 1x3 (which their art
+// suggests) trades 5pp of connectivity for 25pp of overlap, so both stay 1x1.
+// What is still NOT recovered is WHICH of the 8 slots each component populates
+// (`joints: CoordDir8[]`, lost with the binary prefabs), so reach 2 is uniform
+// here where the original was per-component.
+(() => { const n = []; for (let x = -2; x <= 2; x++) for (let y = -2; y <= 2; y++)
+  if (x || y) n.push([x, y]); return n; })()
+)};
+
+const _Ship = function _Ship(NEIGHBOURS, TYPES, DIRS, rotTile, geom, BINOPS, DT, UNITS){return(
+class Ship {
+  static SUPPLY = 20;   // power per Brain
+  constructor(spec, {team = "a", x = 0, y = 0, a = 0} = {}) {
+    this.team = team; this.name = spec.name ?? "ship";
+    this.x = x; this.y = y; this.a = a;
+    this.vx = 0; this.vy = 0; this.w = 0;
+    this.comps = (spec.components ?? []).map((c, i) => {
+      const T = TYPES[c.type];
+      if (!T) throw new Error("corepox-engine: unknown component " + c.type);
+      const dir = typeof c.dir === "number" ? c.dir : (DIRS[c.dir ?? "up"] ?? 0);
+      return {
+        i, type: c.type, px: c.pos[0], py: c.pos[1], dir,
+        hp: c.hp ?? T.hp, param: c.param, out: {}, in: {}, t: 0, powered: true,
+        tiles: T.tiles.map(t => { const [rx, ry] = rotTile(t, dir);
+                                  return [c.pos[0] + rx, c.pos[1] + ry]; })
+      };
+    });
+    this.conns = (spec.connections ?? []).map(k => ({...k}));
+    this.reindex();
+    this.order = this.topo();
+  }
+
+  get live() { return this.comps.filter(c => c.hp > 0); }
+
+  reindex() {
+    const live = this.live;
+    this.tileCount = live.reduce((n, c) => n + c.tiles.length, 0);
+    // Mass is per COMPONENT (Constants.MASS_SCALE), spread uniformly over that
+    // component's own tiles. Charging 0.1 per TILE made a Radar (6 tiles) six times
+    // heavier than a Constant once real footprints landed, and real corpus ships
+    // stopped closing on their targets (15% -> 5%).
+    this.mass = Math.max(0.1, live.length * 0.1);
+    let cx = 0, cy = 0;
+    for (const c of live) {
+      const mt = 0.1 / c.tiles.length;
+      for (const [tx, ty] of c.tiles) { cx += mt * tx; cy += mt * ty; }
+    }
+    const M = live.length * 0.1;
+    this.cx = M ? cx / M : 0;
+    this.cy = M ? cy / M : 0;
+    // Parallel axis: Icm + d^2*m. Dropping Icm understates inertia by 6-13%,
+    // worst on compact ships, because a tile on the centre of mass then
+    // contributes nothing. Ship.cs:562 carries the same formula as a comment.
+    let I = 0;
+    for (const c of live) {
+      const mt = 0.1 / c.tiles.length;
+      for (const [tx, ty] of c.tiles) {
+        const dx = tx - this.cx, dy = ty - this.cy;
+        I += mt * (dx * dx + dy * dy + 1 / 6);
+      }
+    }
+    this.I = Math.max(0.05, I);
+    this.powerUp();
+    this.alive = live.some(c => c.type === "Brain" && c.powered);
+  }
+
+  // 4-connected flood fill over occupied tiles. Anything not reachable from a
+  // Brain keeps its mass but stops computing -- the fragment is dead weight.
+  // NOTE: a real split would give each island its own rigid body; not done yet.
+  // Power is a BUDGET, not just connectivity. Each Brain supplies SUPPLY; every
+  // component draws TYPES[t].pwr. The flood runs breadth-first from the Brains and
+  // pays in hop order, so a component nearer a Brain is powered first -- placement
+  // is priority, and losing a Brain browns out the far end of the ship.
+  // Added 2026-08-18: without a budget, guns cost nothing and more guns always won
+  // (11/36/58/67/78% up an 8-gun ladder). See plan/corepox-design.md S1.3.
+  powerUp() {
+    const at = new Map();
+    for (const c of this.live) for (const [tx, ty] of c.tiles) at.set(tx + "," + ty, c);
+    for (const c of this.comps) c.powered = false;
+    const brains = this.live.filter(c => c.type === "Brain");
+    let budget = brains.length * Ship.SUPPLY;
+    let q = brains.slice();
+    const seen = new Set(q.map(c => c.i));
+    while (q.length) {
+      const next = [];
+      // stable within a hop: nearest-to-origin first, then declaration order
+      q.sort((a, b) => (a.px*a.px + a.py*a.py) - (b.px*b.px + b.py*b.py) || a.i - b.i);
+      for (const c of q) {
+        const cost = TYPES[c.type].pwr ?? 1;
+        if (cost > budget) continue;                 // browned out; keeps its mass
+        budget -= cost; c.powered = true;
+        for (const [tx, ty] of c.tiles)
+          for (const [dx, dy] of NEIGHBOURS) {
+            const n = at.get((tx + dx) + "," + (ty + dy));
+            if (n && !seen.has(n.i)) { seen.add(n.i); next.push(n); }
+          }
+      }
+      q = next;
+    }
+    this.power = budget;
+  }
+
+  islands() {
+    const at = new Map(), out = [], seen = new Set();
+    for (const c of this.live) for (const [tx, ty] of c.tiles) at.set(tx + "," + ty, c);
+    for (const start of this.live) {
+      if (seen.has(start.i)) continue;
+      const grp = [], q = [start]; seen.add(start.i);
+      while (q.length) {
+        const c = q.pop(); grp.push(c);
+        for (const [tx, ty] of c.tiles)
+          for (const [dx, dy] of NEIGHBOURS) {
+            const n = at.get((tx + dx) + "," + (ty + dy));
+            if (n && !seen.has(n.i)) { seen.add(n.i); q.push(n); }
+          }
+      }
+      out.push(grp);
+    }
+    return out;
+  }
+
+  at(x, y) { return this.comps.find(c => c.px === x && c.py === y); }
+
+  topo() {
+    const dep = new Map(this.comps.map(c => [c.i, []]));
+    for (const k of this.conns) {
+      const s = this.at(k.from[0], k.from[1]), d = this.at(k.to[0], k.to[1]);
+      if (s && d) dep.get(d.i).push(s.i);
+    }
+    const seen = new Set(), out = [];
+    const visit = (i, stack) => {
+      if (seen.has(i) || stack.has(i)) return;      // cycle -> last tick's value
+      stack.add(i);
+      for (const d of dep.get(i)) visit(d, stack);
+      stack.delete(i); seen.add(i); out.push(i);
+    };
+    for (const c of this.comps) visit(c.i, new Set());
+    return out;
+  }
+
+  worldOf(c) {
+    const lx = c.px - this.cx, ly = -(c.py - this.cy);
+    const s = Math.sin(this.a * geom.D), k = Math.cos(this.a * geom.D);
+    return [this.x + lx * k - ly * s, this.y + lx * s + ly * k];
+  }
+
+  // Unity applied force at a world-unit position to a world-unit inertia. Working
+  // in tiles, the lever arm is 1/0.64 too long and the inertia 1/0.64^2 too small,
+  // so BOTH accelerations pick up the same 1/0.64 factor. The ratio is unchanged --
+  // turn radius is identical either way -- but absolute speeds are 1.5625x, and
+  // that is the difference between matching the original's pace and not.
+  force(wx, wy, fx, fy) {
+    const k = DT / UNITS.W;
+    this.vx += fx / this.mass * k;
+    this.vy += fy / this.mass * k;
+    const rx = wx - this.x, ry = wy - this.y;
+    this.w += (rx * fy - ry * fx) / this.I * k / geom.D;
+  }
+
+  propagate() {
+    for (const k of this.conns) {
+      const s = this.at(k.from[0], k.from[1]), d = this.at(k.to[0], k.to[1]);
+      if (!s || !d || s.hp <= 0 || d.hp <= 0 || !s.powered || !d.powered) continue;
+      const sp = k.fromPort ?? TYPES[s.type].outs[0];
+      const dp = k.toPort   ?? TYPES[d.type].ins[0];
+      if (sp && dp) d.in[dp] = s.out[sp];
+    }
+  }
+
+  // velocity of the material point at (wx,wy), including spin
+  velAt(wx, wy) {
+    const rx = wx - this.x, ry = wy - this.y, wr = this.w * geom.D;
+    return [this.vx - wr * ry, this.vy + wr * rx];
+  }
+
+  // Detach one island into its own Ship, inheriting the velocity it had at its
+  // own centre. The original did this too (Ship.cs:592 maybeSplit) -- a severed
+  // fragment must fly off, not ride along as dead weight.
+  detach(grp) {
+    const keep = new Set(grp.map(c => c.i));
+    const spec = {name: this.name + "-frag", components: grp.map(c => ({
+      // c.dir is DEGREES on a live component, not a name -- reading c.dirName here
+      // (undefined) reset every rotated part to "up" on a split.
+      type: c.type, pos: [c.px, c.py], dir: DIRS.name(c.dir), param: c.param, hp: c.hp
+    })), connections: this.conns.filter(k =>
+      keep.has(this.at(k.from[0], k.from[1])?.i) && keep.has(this.at(k.to[0], k.to[1])?.i))};
+    const f = new Ship(spec, {team: this.team, x: this.x, y: this.y, a: this.a});
+    const [ox, oy] = this.worldOf(grp[0]);
+    const [vx, vy] = this.velAt(ox, oy);
+    f.x = this.x; f.y = this.y; f.vx = vx; f.vy = vy; f.w = this.w;
+    for (const c of grp) this.damage(c, c.hp);        // remove from the parent
+    return f;
+  }
+
+  integrate() {
+    const drag = 1 / (1 + 1.0 * DT);
+    this.vx *= drag; this.vy *= drag; this.w *= drag;
+    this.x += this.vx * DT; this.y += this.vy * DT;
+    this.a = geom.norm(this.a + this.w * DT);
+  }
+
+  damage(comp, n) {
+    comp.hp -= n;
+    if (comp.hp <= 0) { comp.hp = 0; this.reindex(); this.order = this.topo(); return true; }
+    return false;
+  }
+}
+)};
+
+const _World = function _World(Ship, TYPES, BINOPS, geom, DT, UNITS){return(
+class World {
+  static EXHAUST = true;   // off for bulk headless runs: it is most of the cost
+  constructor(ships = []) {
+    this.ships = ships; this.beams = []; this.particles = [];
+    this.t = 0; this.tick = 0;
+  }
+
+  add(ship) { this.ships.push(ship); return ship; }
+
+  nearestEnemy(ship, wx, wy) {
+    let best = null, bd = Infinity;
+    for (const s of this.ships) {
+      if (s.team === ship.team || !s.alive) continue;
+      for (const c of s.live) {
+        const [px, py] = s.worldOf(c);
+        const d2 = (px - wx) ** 2 + (py - wy) ** 2;
+        if (d2 < bd) { bd = d2; best = {x: px, y: py, ship: s, comp: c}; }
+      }
+    }
+    if (best) best.d = Math.sqrt(bd);
+    return best;
+  }
+
+  evaluate(ship, c) {
+    switch (c.type) {
+      case "Constant":
+        c.out.out = Number(c.param ?? 0) || 0;
+        break;
+      case "Binary": {
+        const f = BINOPS[c.param ?? "PLUS"] ?? BINOPS.PLUS;
+        c.out.out = f(c.in.a ?? 0, c.in.b ?? 0);
+        break;
+      }
+      case "Radar": {
+        const [wx, wy] = ship.worldOf(c);
+        const n = this.nearestEnemy(ship, wx, wy);
+        if (!n) { c.out.dist = NaN; c.out.bearing = NaN; break; }
+        // RadarFn set distanceOutput to a WORLD-unit distance, so every player
+        // program's threshold is in world units. Reporting tiles here silently
+        // rescaled every `dist < k` test in the corpus by 1/0.64.
+        c.out.dist = n.d * UNITS.W;
+        c.out.bearing = geom.norm(geom.bearing(wx, wy, n.x, n.y) - (ship.a + c.dir));
+        break;
+      }
+      case "Engine": {
+        const v = c.in.in;
+        if (v == null || Number.isNaN(v)) { c.thrust = 0; break; }
+        const f = Math.max(0, Math.min(100, v)) / 100;
+        c.thrust = f;
+        if (f > 0) {
+          const [wx, wy] = ship.worldOf(c);
+          const [ux, uy] = geom.unit(ship.a + c.dir);
+          ship.force(wx, wy, ux * f, uy * f);
+          this.exhaust(ship, c, wx, wy, ux, uy, v);
+        }
+        break;
+      }
+      case "Lazer": {
+        c.t += DT;
+        if (c.t > UNITS.BEAM_CYCLE && c.in.in > 0) {
+          c.t = 0;
+          this.fire(ship, c, ship.a + c.dir);
+        }
+        break;
+      }
+      case "LaserTurret2": {
+        c.t += DT;
+        const want = c.in.angle;
+        if (want != null && !Number.isNaN(want)) {
+          const err = geom.norm(want - (c.turret ?? 0));
+          c.turret = geom.norm((c.turret ?? 0) + Math.max(-4, Math.min(4, err * 0.25)));
+        }
+        if (c.t > UNITS.BEAM_CYCLE && c.in.fire > 0) {
+          c.t = 0;
+          this.fire(ship, c, ship.a + c.dir + (c.turret ?? 0));
+        }
+        break;
+      }
+      case "Explosive": {
+        if (c.in.in > 0) {
+          c.t += DT;
+          if (c.t > UNITS.FRAG_CHARGE) this.detonate(ship, c);
+        } else c.t = 0;
+        break;
+      }
+    }
+  }
+
+  // Firing kicks the ship back at the muzzle. This is the only thing that makes a
+  // gun cost something: an off-axis gun spins you off your own firing solution,
+  // so gun COUNT and gun PLACEMENT both trade against aim. Added 2026-08-18 after
+  // the corpus showed heavy-weapon ships were the best-piloted ones (92% engines,
+  // 70% radar) -- guns were pure upside. See plan/corepox-design.md S1.3.
+  recoil(ship, c, wx, wy, a) {
+    const [ux, uy] = geom.unit(a);
+    const k = 8;
+    ship.force(wx, wy, -ux * k, -uy * k);
+  }
+
+  // Every weapon in the original was the same object: a Damage with a velocity, a
+  // ttl and a dmg, which hits the first component it touches that is not its own
+  // emitter (DamageParticle.cs:12 `component != this.owner`). Note what that does
+  // NOT exclude -- your own ship. Your exhaust burns your own tail, your own
+  // shrapnel shreds you, and a bolt from your rear gun can hit your own nose.
+  emit(ship, comp, kind, x, y, vx, vy, ttl, dmg, extra = {}) {
+    const [sx, sy] = ship.velAt(x, y);          // particles inherit ship velocity
+    this.particles.push({kind, ship, comp, x, y, vx: vx + sx, vy: vy + sy,
+                         ttl, dmg, ...extra});
+  }
+
+  fire(ship, c, a) {
+    const [ux, uy] = geom.unit(a);
+    const [cx, cy] = ship.worldOf(c);
+    const x = cx + ux * UNITS.BEAM_MUZZLE, y = cy + uy * UNITS.BEAM_MUZZLE;
+    this.emit(ship, c, "beam", x, y, ux * UNITS.BEAM_SPEED, uy * UNITS.BEAM_SPEED,
+              UNITS.BEAM_TTL, UNITS.BEAM_DMG, {a});
+    this.recoil(ship, c, cx, cy, a);
+  }
+
+  exhaust(ship, c, wx, wy, ux, uy, magnitude) {
+    if (!World.EXHAUST) return;
+    // Misc.samplePoisson(EMIT * magnitude * dt). Poisson by Knuth; at full thrust
+    // lambda is 2, so this is a stream, not an occasional spark.
+    const lam = UNITS.EXHAUST_RATE * Math.max(0, Math.min(100, magnitude)) * DT;
+    let n = 0, p = Math.random(), L = Math.exp(-lam);
+    while (p > L && n < 8) { n++; p *= Math.random(); }
+    for (let i = 0; i < n; i++)
+      this.emit(ship, c, "exhaust",
+                wx - ux * UNITS.EXHAUST_BACK, wy - uy * UNITS.EXHAUST_BACK,
+                -ux * UNITS.EXHAUST_SPEED, -uy * UNITS.EXHAUST_SPEED,
+                Math.random(), UNITS.EXHAUST_DMG);
+  }
+
+  // ExplosiveFn.destroy(): 32 fragments evenly around a circle, then the component
+  // removes itself. It fires on destruction too, not only on trigger, which is why
+  // a hit on a loaded bomb takes its neighbours with it.
+  detonate(ship, c) {
+    if (c.spent) return;
+    c.spent = true;
+    const [wx, wy] = ship.worldOf(c);
+    for (let i = 0; i < UNITS.FRAG_N; i++) {
+      const r = (i * Math.PI * 2) / UNITS.FRAG_N;
+      this.emit(ship, c, "frag", wx, wy,
+                Math.sin(r) * UNITS.FRAG_SPEED, -Math.cos(r) * UNITS.FRAG_SPEED,
+                UNITS.FRAG_TTL, UNITS.FRAG_DMG);
+    }
+    ship.damage(c, c.hp);
+  }
+
+  // Move every particle, then damage the first component its swept segment
+  // crosses. A bolt covers 0.625 tiles a tick against a half-tile component, so
+  // the test has to be against the segment, not the point, or fast shots tunnel.
+  stepParticles() {
+    const alive = [];
+    for (const b of this.particles) {
+      const x0 = b.x, y0 = b.y;
+      b.x += b.vx * DT; b.y += b.vy * DT; b.ttl -= DT;
+      // a beam is a bolt of finite length; its tail can hit too
+      let tx = x0, ty = y0;
+      if (b.kind === "beam") { tx = x0 - b.vx / UNITS.BEAM_SPEED * UNITS.BEAM_LEN;
+                               ty = y0 - b.vy / UNITS.BEAM_SPEED * UNITS.BEAM_LEN; }
+      const sx = b.x - tx, sy = b.y - ty, ss = sx * sx + sy * sy;
+      let hit = null, best = Infinity;
+      for (const s of this.ships) {
+        if (!s.live.length) continue;
+        const ddx = s.x - b.x, ddy = s.y - b.y;
+        if (ddx * ddx + ddy * ddy > 2500) continue;                  // broad phase
+        for (const c of s.live) {
+          if (c === b.comp) continue;                    // never its own emitter
+          const [px, py] = s.worldOf(c);
+          let t = ss ? ((px - tx) * sx + (py - ty) * sy) / ss : 0;
+          t = t < 0 ? 0 : t > 1 ? 1 : t;
+          const qx = tx + sx * t - px, qy = ty + sy * t - py;
+          const d2 = qx * qx + qy * qy;
+          if (d2 > UNITS.HIT_R * UNITS.HIT_R || d2 >= best) continue;
+          best = d2; hit = {s, c, t, px, py};
+        }
+      }
+      if (hit) {
+        b.hx = hit.px; b.hy = hit.py; b.hitOk = true;
+        hit.s.damage(hit.c, b.dmg);
+        if (hit.c.type === "Explosive" && hit.c.hp <= 0) this.detonate(hit.s, hit.c);
+      } else if (b.ttl > 0) alive.push(b);
+    }
+    this.particles = alive;
+    this.beams = this.particles.filter(b => b.kind === "beam");
+  }
+
+  // Tile-vs-tile contact between ships, resolved as an impulse, with damage
+  // proportional to the normal impulse. The original left this as a flat
+  // component.damage(5) per contact and a "TODO force based impact damage"
+  // (Ship.cs:586) -- so ramming never actually worked there.
+  collide() {
+    const live = this.ships.filter(s => s.alive || s.live.length);
+    for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) {
+      const A = live[i], B = live[j];
+      const dx = B.x - A.x, dy = B.y - A.y;
+      if (dx*dx + dy*dy > 900) continue;                       // broad phase
+      for (const ca of A.live) for (const cb of B.live) {
+        const [ax, ay] = A.worldOf(ca), [bx, by] = B.worldOf(cb);
+        let nx = bx - ax, ny = by - ay;
+        const d = Math.hypot(nx, ny);
+        if (d > 1 || d === 0) continue;                        // one tile across
+        nx /= d; ny /= d;
+        const [avx, avy] = A.velAt(ax, ay), [bvx, bvy] = B.velAt(bx, by);
+        const rel = (bvx - avx) * nx + (bvy - avy) * ny;
+        if (rel > 0) continue;                                 // separating
+        const mA = 1 / A.mass, mB = 1 / B.mass;
+        const jmag = -(1 + 0.2) * rel / (mA + mB);             // restitution 0.2
+        A.force(ax, ay, -nx * jmag / DT, -ny * jmag / DT);
+        B.force(bx, by,  nx * jmag / DT,  ny * jmag / DT);
+        const dmg = jmag * 2;                                  // impact damage
+        if (dmg >= 1) { A.damage(ca, dmg); B.damage(cb, dmg); }
+        const push = (1 - d) * 0.5;                            // depenetrate
+        A.x -= nx * push; A.y -= ny * push;
+        B.x += nx * push; B.y += ny * push;
+      }
+    }
+  }
+
+  // A ship cut in two becomes two ships.
+  splitDetached() {
+    for (const s of [...this.ships]) {
+      if (!s.live.length) continue;
+      const isl = s.islands();
+      if (isl.length < 2) continue;
+      isl.sort((a, b) => b.length - a.length);
+      for (const grp of isl.slice(1)) this.ships.push(s.detach(grp));
+    }
+  }
+
+  step() {
+    for (const ship of this.ships) {
+
+      if (!ship.alive) continue;
+      ship.propagate();
+      for (const i of ship.order) {
+        const c = ship.comps[i];
+        if (c.hp > 0 && c.powered) this.evaluate(ship, c);
+      }
+      ship.integrate();
+    }
+    // A real raycast. Testing only the nearest component (as this did until
+    // 2026-08-18) made a shot aimed dead-on at any other component miss, which
+    // held 86% of self-play matches to a draw.
+    for (const b of this.beams) {
+      const [ux, uy] = geom.unit(b.a);
+      let hit = null, ht = Infinity;
+      for (const s of this.ships) {
+        if (s.team === b.ship.team || !s.alive) continue;
+        for (const c of s.live) {
+          const [px, py] = s.worldOf(c);
+          const t = (px - b.x) * ux + (py - b.y) * uy;          // along the ray
+          if (t <= 0 || t > b.len || t >= ht) continue;
+          const perp = Math.abs((px - b.x) * -uy + (py - b.y) * ux);
+          if (perp > 0.5) continue;                             // half a tile
+          ht = t; hit = {s, c, px, py};
+        }
+      }
+      if (hit) { b.hx = hit.px; b.hy = hit.py; hit.s.damage(hit.c, b.dmg); b.hitOk = true; }
+    }

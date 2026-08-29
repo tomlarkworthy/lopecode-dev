@@ -27,7 +27,10 @@ await p.click('[data-act="jump"]');
 await p.waitForTimeout(2500);
 // Playwright scrolls the page to reach the JUMP button at the bottom of the board;
 // put the map back at the top before looking at the layer it opened.
-await p.evaluate(() => window.scrollTo(0, 0));
+await p.evaluate(() => {  // the pane scrolls, not the window
+  for (const e of document.querySelectorAll("*")) if (e.scrollTop) e.scrollTop = 0;
+  window.scrollTo(0, 0);
+});
 await p.screenshot({ path: "tools/screenshots/encounter-refit.png" });
 const bench = await p.evaluate(() => {
   const t = document.body.innerText;
@@ -38,7 +41,10 @@ console.log("refit bench:", JSON.stringify(bench));
 // launch into the battle
 await p.getByRole("button", { name: /LAUNCH/ }).click();
 await p.waitForTimeout(3000);
-await p.evaluate(() => window.scrollTo(0, 0));
+await p.evaluate(() => {  // the pane scrolls, not the window
+  for (const e of document.querySelectorAll("*")) if (e.scrollTop) e.scrollTop = 0;
+  window.scrollTo(0, 0);
+});
 await p.screenshot({ path: "tools/screenshots/encounter-battle.png" });
 console.log("battle:", await p.evaluate(() => {
   const t = document.body.innerText;

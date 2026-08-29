@@ -499,6 +499,10 @@ async function main() {
       if (theme && specObj.bootconf) {
         specObj.bootconf.theme = theme;
       }
+      // publish targets are a human declaration, not derivable from the HTML.
+      if (spec?.publish) {
+        specObj.publish = spec.publish;
+      }
       try {
         const meta = await fetchObservableMetadata(primarySourceUrl);
         if (meta) {

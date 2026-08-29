@@ -1,0 +1,10 @@
+import { importNotebookModule } from '../tools/notebook-import.ts';
+import fs from 'fs';
+const html = fs.readFileSync('scratch/understated-disk.html', 'utf8');
+const svg = html.slice(html.indexOf('<svg'), html.indexOf('</svg>') + 6);
+const m = await importNotebookModule('modules/@tomlarkworthy/svg-lens.js', {});
+const parseDoc = await m.value('parseDoc');
+const childrenLens = await m.value('childrenLens');
+const doc = parseDoc(svg);
+console.log('parseDoc OK, top-level els:', childrenLens([0]).get(svg).length);
+console.log('PARSE OK');

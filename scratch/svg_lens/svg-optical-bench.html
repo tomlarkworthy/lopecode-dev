@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Optical Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDF1E8; --grid:#DAE1D2; --ink:#131A22;
+    --code-bg:#10161E; --code-text:#C9D4DF;
+    --blue:#2F6BFF; --violet:#8A63D2; --amber:#FFB224;
+    --ok:#2FBF71; --bad:#FF5C5C; --muted:#7A8794;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    background:var(--ink);color:var(--code-text);
+    display:flex;flex-direction:column;min-height:100vh;
+  }
+  header{
+    padding:14px 16px 10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;
+    border-bottom:1px solid #232D38;
+  }
+  header h1{font-size:17px;font-weight:700;letter-spacing:.02em;color:#F2F6FA}
+  header h1 .lens-mark{color:var(--blue)}
+  header p{font-size:12.5px;color:var(--muted);flex-basis:100%}
+  .laws{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .law-chip{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border-radius:20px;
+    border:1px solid #2A3644;color:var(--muted);display:flex;gap:5px;align-items:center;white-space:nowrap;
+  }
+  .law-chip .tick{color:var(--ok);font-weight:700}
+  .law-chip.broken{border-color:var(--bad)}
+  .law-chip.broken .tick{color:var(--bad)}
+  .law-chip .count{color:#8FA3B8}
+
+  main{flex:1;display:grid;grid-template-rows:minmax(260px,46vh) auto 1fr}
+  @media(min-width:880px){
+    main{grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr}
+    #bench-wrap{grid-row:1/3}
+    #statusbar{grid-column:2}
+    #code-wrap{grid-column:2}
+  }
+
+  #bench-wrap{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      var(--paper);
+    background-size:24px 24px;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    touch-action:none;overflow:hidden;min-height:260px;
+  }
+  #bench{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:12px}
+  #bench svg{max-width:100%;max-height:100%;display:block}
+  #bench [data-grabbable]{cursor:grab}
+  .hint{
+    position:absolute;left:10px;bottom:8px;font-size:11px;color:#6d7a68;
+    font-family:'IBM Plex Mono',monospace;pointer-events:none;
+  }
+  #focus-ring{position:absolute;pointer-events:none;border:1.5px dashed var(--blue);border-radius:3px;display:none}
+  #overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+  .h-anchor{fill:#fff;stroke:var(--blue);stroke-width:2;pointer-events:all;cursor:grab;touch-action:none}
+  .h-ctrl{fill:var(--paper);stroke:var(--violet);stroke-width:1.5;pointer-events:all;cursor:grab;touch-action:none}
+  .h-hit{fill:transparent;stroke:none;pointer-events:all;cursor:grab;touch-action:none}
+  .h-link{stroke:var(--violet);stroke-dasharray:3 3;stroke-width:1;fill:none;opacity:.7}
+
+  #statusbar{
+    display:flex;align-items:center;gap:10px;padding:8px 14px;
+    background:#0C1219;border-top:1px solid #232D38;border-bottom:1px solid #232D38;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);
+    min-height:38px;flex-wrap:wrap;
+  }
+  #put-readout{color:#9FB4C9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  #put-readout b{color:var(--amber);font-weight:500}
+  button{
+    font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;
+    background:transparent;color:#AFC0D2;border:1px solid #2A3644;border-radius:6px;
+    padding:4px 10px;cursor:pointer;
+  }
+  button:hover{border-color:var(--blue);color:#fff}
+  button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  #err{color:var(--bad);display:none}
+
+  #code-wrap{position:relative;background:var(--code-bg);min-height:220px}
+  #backdrop,#code{
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.55;
+    padding:14px 16px;white-space:pre-wrap;word-break:break-all;
+    position:absolute;inset:0;overflow:auto;
+  }
+  #backdrop{color:transparent;pointer-events:none;z-index:0}
+  #code{background:transparent;color:var(--code-text);border:none;resize:none;width:100%;height:100%;z-index:1;caret-color:var(--amber)}
+  #code:focus{outline:none}
+  mark{background:var(--amber);color:transparent;border-radius:2px}
+  @media(prefers-reduced-motion:no-preference){
+    mark{animation:settle 1.1s ease-out forwards}
+    @keyframes settle{0%{background:var(--amber)}100%{background:rgba(255,178,36,.28)}}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="lens-mark">&#10681;</span> SVG Optical Bench</h1>
+  <div class="laws">
+    <span class="law-chip" id="chip-getput">GetPut <span class="tick">&#10003;</span> <span class="count">0</span></span>
+    <span class="law-chip" id="chip-putget">PutGet <span class="tick">&#10003;</span> <span class="count">0</span></span>
+  </div>
+  <p>Drag a shape to move it. Tap a polygon or path to edit its points. Every frame is a lens put — both laws re-checked live.</p>
+</header>
+
+<main>
+  <div id="bench-wrap">
+    <div id="bench"></div>
+    <svg id="overlay"></svg>
+    <div id="focus-ring"></div>
+    <span class="hint">canvas = get(source)</span>
+  </div>
+
+  <div id="statusbar">
+    <button id="reset">Reset example</button>
+    <span id="err">source doesn&rsquo;t parse &mdash; canvas frozen at last good state</span>
+    <span id="put-readout">put: &mdash;</span>
+  </div>
+
+  <div id="code-wrap">
+    <div id="backdrop" aria-hidden="true"></div>
+    <textarea id="code" spellcheck="false" aria-label="SVG source"></textarea>
+  </div>
+</main>
+
+<script>
+/* ================= lens core (ported from svg-lens) ================= */
+const I = [1,0,0,1,0,0];
+const matEq = (a,b) => a.every((v,i)=>v===b[i]);
+const mul = (m,n) => [
+  m[0]*n[0]+m[2]*n[1], m[1]*n[0]+m[3]*n[1],
+  m[0]*n[2]+m[2]*n[3], m[1]*n[2]+m[3]*n[3],
+  m[0]*n[4]+m[2]*n[5]+m[4], m[1]*n[4]+m[3]*n[5]+m[5]
+];
+const inv = m => {
+  const d = m[0]*m[3]-m[1]*m[2];
+  return [m[3]/d,-m[1]/d,-m[2]/d,m[0]/d,(m[2]*m[5]-m[3]*m[4])/d,(m[1]*m[4]-m[0]*m[5])/d];
+};
+const DEG = Math.PI/180;
+
+function parseNums(s){
+  const t = s.trim();
+  if(t==='') return [];
+  return t.split(/[\s,]+/).filter(p=>p!=='').map(p=>{
+    const n = Number(p);
+    if(Number.isNaN(n)) throw new Error('bad number '+p);
+    return n;
+  });
+}
+function opToMat(name,a){
+  switch(name){
+    case 'matrix': if(a.length!==6) throw 0; return a;
+    case 'translate': return [1,0,0,1,a[0],a[1]??0];
+    case 'scale': return [a[0],0,0,a[1]??a[0],0,0];
+    case 'rotate': {
+      const c=Math.cos(a[0]*DEG), s=Math.sin(a[0]*DEG), r=[c,s,-s,c,0,0];
+      if(a.length===1) return r;
+      return mul(mul([1,0,0,1,a[1],a[2]],r),[1,0,0,1,-a[1],-a[2]]);
+    }
+    case 'skewX': return [1,0,Math.tan(a[0]*DEG),1,0,0];
+    case 'skewY': return [1,Math.tan(a[0]*DEG),0,1,0,0];
+    default: throw new Error('unknown op '+name);
+  }
+}
+function parseTransform(s){
+  const re=/([a-zA-Z]+)\s*\(([^)]*)\)/g;
+  let m=I, match;
+  while((match=re.exec(s))!==null) m=mul(m,opToMat(match[1],parseNums(match[2])));
+  if(s.replace(re,'').replace(/[\s,]/g,'')!=='') throw new Error('unparseable transform');
+  return m;
+}
+const printTransform = m => 'matrix(' + m.map(String).join(' ') + ')';
+
+/* points lens pieces */
+function parsePoints(s){
+  const ns = parseNums(s);
+  if(ns.length%2!==0) throw new Error('odd points');
+  const out=[]; for(let i=0;i<ns.length;i+=2) out.push([ns[i],ns[i+1]]);
+  return out;
+}
+const printPoints = ps => ps.map(p=>p[0]+','+p[1]).join(' ');
+const pointsEq = (a,b) => a.length===b.length && a.every((p,i)=>p[0]===b[i][0]&&p[1]===b[i][1]);
+
+/* path lens pieces */
+const UNIT = {M:2,L:2,T:2,H:1,V:1,C:6,S:4,Q:4,A:7,Z:0};
+function parsePath(d){
+  const re=/([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+  const cmds=[]; let m;
+  while((m=re.exec(d))!==null){
+    const a=parseNums(m[2]), u=UNIT[m[1].toUpperCase()];
+    if(u===0){ if(a.length!==0) throw new Error('Z takes no args'); }
+    else if(a.length===0 || a.length%u!==0) throw new Error(m[1]+' bad arg count');
+    cmds.push({c:m[1],a});
+  }
+  if(d.replace(re,'').replace(/[\s,]/g,'')!=='') throw new Error('unparseable path');
+  return cmds;
+}
+const printPath = cmds => cmds.map(k => k.a.length ? k.c+' '+k.a.map(String).join(' ') : k.c).join(' ');
+const pathEq = (p,q) => p.length===q.length &&
+  p.every((k,i)=>k.c===q[i].c && k.a.length===q[i].a.length && k.a.every((v,j)=>v===q[i].a[j]));
+
+/* ============ string-level tokenizer: elements with attr byte spans ============ */
+function tokenize(src){
+  const els=[]; let i=0;
+  while((i=src.indexOf('<',i))!==-1){
+    if(src.startsWith('<!--',i)){ const e=src.indexOf('-->',i); i = e===-1?src.length:e+3; continue; }
+    if(src[i+1]==='/'||src[i+1]==='?'||src[i+1]==='!'){ const e=src.indexOf('>',i); i = e===-1?src.length:e+1; continue; }
+    const m=/^<([a-zA-Z][\w:-]*)/.exec(src.slice(i));
+    if(!m){ i++; continue; }
+    let j=i+m[0].length; const attrs={};
+    while(j<src.length){
+      while(j<src.length && /\s/.test(src[j])) j++;
+      if(j>=src.length || src[j]==='>' || (src[j]==='/'&&src[j+1]==='>')) break;
+      const am=/^([\w:-]+)\s*=\s*("([^"]*)"|'([^']*)')/.exec(src.slice(j));
+      if(am){
+        const vs=j+am[0].length-am[2].length+1, ve=j+am[0].length-1;
+        attrs[am[1]]={start:vs,end:ve,value:am[3]!==undefined?am[3]:am[4]};
+        j+=am[0].length;
+      } else {
+        const bm=/^[\w:-]+/.exec(src.slice(j));
+        j += bm ? bm[0].length : 1;
+      }
+    }
+    els.push({tag:m[1],attrs,insertPos:j});
+    i = j + (src[j]==='/'?2:1);
+  }
+  return els;
+}
+
+/* ============ generic attribute splice with the skip rule ============ */
+function spliceAttr(src, idx, name, newVal){
+  const el = tokenize(src)[idx];
+  const a = el.attrs[name];
+  if(a){
+    if(a.value===newVal) return {src, span:null};
+    return {src: src.slice(0,a.start)+newVal+src.slice(a.end), span:[a.start,a.start+newVal.length]};
+  }
+  const ins = ' '+name+'="'+newVal+'"';
+  return {src: src.slice(0,el.insertPos)+ins+src.slice(el.insertPos), span:[el.insertPos,el.insertPos+ins.length]};
+}
+function attrVal(src, idx, name){
+  const el = tokenize(src)[idx];
+  return el && el.attrs[name] ? el.attrs[name].value : null;
+}
+
+/* --- the three concrete lenses over the whole document string --- */
+const lenses = {
+  transform: {
+    get: (src,idx)=>{ const v=attrVal(src,idx,'transform'); return v?parseTransform(v):I; },
+    put: (m,src,idx)=>{
+      const cur = lenses.transform.get(src,idx);
+      if(matEq(m,cur)) return {src,span:null};
+      return spliceAttr(src,idx,'transform',printTransform(m));
+    },
+    eq: matEq, label:'transform',
+  },
+  points: {
+    get: (src,idx)=>parsePoints(attrVal(src,idx,'points')),
+    put: (ps,src,idx)=>{
+      if(pointsEq(ps,lenses.points.get(src,idx))) return {src,span:null};
+      return spliceAttr(src,idx,'points',printPoints(ps));
+    },
+    eq: pointsEq, label:'points',
+  },
+  path: {
+    get: (src,idx)=>parsePath(attrVal(src,idx,'d')),
+    put: (cmds,src,idx)=>{
+      if(pathEq(cmds,lenses.path.get(src,idx))) return {src,span:null};
+      return spliceAttr(src,idx,'d',printPath(cmds));
+    },
+    eq: pathEq, label:'d',
+  },
+};
+
+/* ============ handle enumeration ============ */
+function pointsHandles(src, idx){
+  return parsePoints(attrVal(src,idx,'points'))
+    .map((p,i)=>({key:'p'+i, kind:'anchor', x:p[0], y:p[1], i}));
+}
+function pathHandles(src, idx){
+  const cmds = parsePath(attrVal(src,idx,'d'));
+  let cx=0, cy=0, sx=0, sy=0;
+  const hs=[];
+  cmds.forEach((cmd,ci)=>{
+    const U = cmd.c.toUpperCase(), u = UNIT[U];
+    const rel = cmd.c !== U;
+    if(u===0){ cx=sx; cy=sy; return; }
+    for(let o=0;o<cmd.a.length;o+=u){
+      const bx=cx, by=cy, A=cmd.a;
+      const abs=(ix,iy)=> rel? [bx+A[o+ix], by+A[o+iy]] : [A[o+ix],A[o+iy]];
+      const K = (ix,iy)=> ci+':'+o+':'+ix+':'+iy;
+      switch(U){
+        case 'M': case 'L': case 'T': {
+          const [x,y]=abs(0,1);
+          hs.push({key:K(0,1),ci,o,ix:0,iy:1,kind:'anchor',x,y,rel,base:[bx,by]});
+          cx=x; cy=y; if(U==='M'&&o===0){sx=x;sy=y;}
+          break;}
+        case 'H': {
+          const x = rel? bx+A[o] : A[o];
+          hs.push({key:K(0,-1),ci,o,ix:0,iy:-1,kind:'anchor',x,y:cy,rel,base:[bx,by]});
+          cx=x; break;}
+        case 'V': {
+          const y = rel? by+A[o] : A[o];
+          hs.push({key:K(-1,0),ci,o,ix:-1,iy:0,kind:'anchor',x:cx,y,rel,base:[bx,by]});
+          cy=y; break;}
+        case 'C': {
+          const c1=abs(0,1), c2=abs(2,3), e=abs(4,5);
+          hs.push({key:K(0,1),ci,o,ix:0,iy:1,kind:'ctrl',x:c1[0],y:c1[1],rel,base:[bx,by],link:[bx,by]});
+          hs.push({key:K(2,3),ci,o,ix:2,iy:3,kind:'ctrl',x:c2[0],y:c2[1],rel,base:[bx,by],link:e});
+          hs.push({key:K(4,5),ci,o,ix:4,iy:5,kind:'anchor',x:e[0],y:e[1],rel,base:[bx,by]});
+          cx=e[0]; cy=e[1]; break;}
+        case 'S': case 'Q': {
+          const q=abs(0,1), e=abs(2,3);
+          hs.push({key:K(0,1),ci,o,ix:0,iy:1,kind:'ctrl',x:q[0],y:q[1],rel,base:[bx,by],link:e});
+          hs.push({key:K(2,3),ci,o,ix:2,iy:3,kind:'anchor',x:e[0],y:e[1],rel,base:[bx,by]});
+          cx=e[0]; cy=e[1]; break;}
+        case 'A': {
+          const e = rel? [bx+A[o+5],by+A[o+6]] : [A[o+5],A[o+6]];
+          hs.push({key:K(5,6),ci,o,ix:5,iy:6,kind:'anchor',x:e[0],y:e[1],rel,base:[bx,by]});
+          cx=e[0]; cy=e[1]; break;}
+      }
+    }
+  });
+  return hs;
+}
+
+/* apply a handle move (element-local coords) and return a fresh doc */
+function applyHandle(mode, src, idx, key, lx, ly){
+  if(mode==='points'){
+    const hs = pointsHandles(src, idx);
+    const h = hs.find(h=>h.key===key); if(!h) return {src,span:null,view:null};
+    const pts = parsePoints(attrVal(src,idx,'points'));
+    pts[h.i]=[lx,ly];
+    return {...lenses.points.put(pts,src,idx), view:pts, lens:lenses.points};
+  }
+  const hs = pathHandles(src, idx);
+  const h = hs.find(h=>h.key===key); if(!h) return {src,span:null,view:null};
+  const cmds = parsePath(attrVal(src,idx,'d'));
+  const A = cmds[h.ci].a;
+  if(h.ix>=0) A[h.o+h.ix] = h.rel ? lx - h.base[0] : lx;
+  if(h.iy>=0) A[h.o+h.iy] = h.rel ? ly - h.base[1] : ly;
+  return {...lenses.path.put(cmds,src,idx), view:cmds, lens:lenses.path};
+}
+
+/* ================= state ================= */
+const EXAMPLE = '<svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg">\n' +
+'  <!-- comments, odd spacing and readable transforms all\n' +
+'       survive dragging: the lens rewrites only what must change -->\n' +
+'  <circle cx="60" cy="52" r="24" fill="#F5B840"\n' +
+'          stroke="#D99A17" stroke-width="3"/>\n' +
+'  <polygon points="20,190  110,80  200,190" fill="#5B7A5E"/>\n' +
+'  <polygon points="150,190 230,96 310,190" fill="#41584A"/>\n' +
+'  <g transform="translate(228 128) rotate(-4)">\n' +
+'    <rect x="-26" y="10" width="52" height="44" fill="#B25B3A"/>\n' +
+'    <polygon points="-34,12 0,-18 34,12" fill="#7A3B25"/>\n' +
+'  </g>\n' +
+'  <path d="M 10 30 C 50 12, 84 44, 128 26 S 200 8, 244 30 q 20 -12 40 -2"\n' +
+'        fill="none" stroke="#4C7FD1" stroke-width="3" stroke-linecap="round"/>\n' +
+'  <rect x="0" y="188" width="320" height="8" fill="#3E4A3B"/>\n' +
+'</svg>';
+
+let src = EXAMPLE;
+let lastGoodSrc = src;
+let counts = {getput:0, putget:0};
+let broken = {getput:false, putget:false};
+let focusIdx = null, focusMode = null;   // 'points' | 'path'
+let handleEls = new Map();               // key -> {circle, line?}
+
+const bench    = document.getElementById('bench');
+const wrap     = document.getElementById('bench-wrap');
+const overlay  = document.getElementById('overlay');
+const code     = document.getElementById('code');
+const backdrop = document.getElementById('backdrop');
+const readout  = document.getElementById('put-readout');
+const errEl    = document.getElementById('err');
+const ring     = document.getElementById('focus-ring');
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const snap = v => Math.round(v*2)/2;
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function validate(s){
+  const doc = new DOMParser().parseFromString(s,'image/svg+xml');
+  return !doc.querySelector('parsererror') && doc.documentElement.nodeName==='svg';
+}
+function elems(){
+  return Array.from(bench.querySelectorAll('*')).filter(n=>n.namespaceURI===SVGNS);
+}
+function render(){
+  bench.innerHTML = lastGoodSrc;
+  const svg = bench.querySelector('svg');
+  if(svg){
+    svg.removeAttribute('width'); svg.removeAttribute('height');
+    for(const el of svg.querySelectorAll('circle,rect,ellipse,polygon,polyline,path,line,text,image'))
+      el.setAttribute('data-grabbable','');
+  }
+}
+function setCode(span){
+  code.value = src;
+  if(span){
+    backdrop.innerHTML = esc(src.slice(0,span[0]))+'<mark>'+esc(src.slice(span[0],span[1]))+'</mark>'+esc(src.slice(span[1]));
+  } else backdrop.innerHTML='';
+  backdrop.scrollTop=code.scrollTop; backdrop.scrollLeft=code.scrollLeft;
+}
+function setChips(){
+  for(const k of ['getput','putget']){
+    const chip=document.getElementById('chip-'+k);
+    chip.querySelector('.count').textContent=counts[k];
+    chip.querySelector('.tick').textContent=broken[k]?'\u2717':'\u2713';
+    chip.classList.toggle('broken',broken[k]);
+  }
+}
+function checkLaws(lens, next, idx, view){
+  const gp = lens.put(lens.get(next,idx), next, idx).src === next;
+  const pg = lens.eq(lens.get(next,idx), view);
+  counts.getput++; counts.putget++;
+  if(!gp) broken.getput=true;
+  if(!pg) broken.putget=true;
+  setChips();
+}
+
+/* ---- handle overlay ---- */
+function currentHandles(){
+  if(focusIdx===null) return [];
+  try{
+    return focusMode==='points' ? pointsHandles(src,focusIdx) : pathHandles(src,focusIdx);
+  }catch(e){ return []; }
+}
+function toWrap(el, x, y){
+  const p = el.getScreenCTM().transformPoint(new DOMPoint(x,y));
+  const r = wrap.getBoundingClientRect();
+  return [p.x-r.left, p.y-r.top];
+}
+function buildHandles(){
+  overlay.innerHTML=''; handleEls=new Map();
+  if(focusIdx===null) return;
+  const el = elems()[focusIdx]; if(!el || !el.getScreenCTM()) return;
+  const coarse = matchMedia('(pointer:coarse)').matches;
+  const hs = currentHandles();
+  for(const h of hs){                                   // links under circles
+    if(!h.link) continue;
+    const ln=document.createElementNS(SVGNS,'line');
+    ln.setAttribute('class','h-link');
+    overlay.appendChild(ln);
+    handleEls.set(h.key+'~link', ln);
+  }
+  for(const h of hs){
+    const c=document.createElementNS(SVGNS,'circle');
+    c.setAttribute('r', h.kind==='anchor' ? (coarse?10:7) : (coarse?8:5.5));
+    c.setAttribute('class', h.kind==='anchor'?'h-anchor':'h-ctrl');
+    c.dataset.key=h.key;
+    overlay.appendChild(c);
+    handleEls.set(h.key,c);
+    const hit=document.createElementNS(SVGNS,'circle'); // generous touch target on top
+    hit.setAttribute('r', coarse?20:13);
+    hit.setAttribute('class','h-hit');
+    hit.dataset.key=h.key;
+    overlay.appendChild(hit);
+    handleEls.set(h.key+'~hit',hit);
+  }
+  updateHandlePositions();
+}
+function updateHandlePositions(){
+  if(focusIdx===null) return;
+  const el = elems()[focusIdx]; if(!el || !el.getScreenCTM()) return;
+  for(const h of currentHandles()){
+    const c=handleEls.get(h.key); if(!c) continue;
+    const [x,y]=toWrap(el,h.x,h.y);
+    c.setAttribute('cx',x); c.setAttribute('cy',y);
+    const hit=handleEls.get(h.key+'~hit');
+    if(hit){ hit.setAttribute('cx',x); hit.setAttribute('cy',y); }
+    const ln=handleEls.get(h.key+'~link');
+    if(ln && h.link){
+      const [x2,y2]=toWrap(el,h.link[0],h.link[1]);
+      ln.setAttribute('x1',x); ln.setAttribute('y1',y);
+      ln.setAttribute('x2',x2); ln.setAttribute('y2',y2);
+    }
+  }
+}
+function setFocus(idx, mode){
+  focusIdx=idx; focusMode=mode; buildHandles();
+}
+function clearFocus(){
+  focusIdx=null; focusMode=null; overlay.innerHTML=''; handleEls=new Map();
+}
+
+/* ================= body drag: transform lens ================= */
+let drag=null;
+
+function findGrabbable(x,y){
+  const probe=(px,py)=>{
+    const el=document.elementFromPoint(px,py);
+    return el && el.closest ? el.closest('[data-grabbable]') : null;
+  };
+  let t=probe(x,y);
+  if(t) return t;
+  const R=12;                                   // fat-finger ring for thin strokes
+  for(const [dx,dy] of [[R,0],[-R,0],[0,R],[0,-R],[R,R],[-R,R],[R,-R],[-R,-R]]){
+    t=probe(x+dx,y+dy);
+    if(t) return t;
+  }
+  return null;
+}
+
+bench.addEventListener('pointerdown', e=>{
+  const svg=bench.querySelector('svg');
+  if(!svg || src!==lastGoodSrc){ return; }
+  const target=findGrabbable(e.clientX,e.clientY);
+  if(!target || !svg.contains(target)){ clearFocus(); return; }
+
+  const idx=elems().indexOf(target);
+  const toks=tokenize(src);
+  if(idx<0 || idx>=toks.length || toks[idx].tag!==target.localName) return;
+
+  const rs=svg.getScreenCTM(), ps=target.parentNode.getScreenCTM();
+  if(!rs||!ps) return;
+  const R=[rs.a,rs.b,rs.c,rs.d,rs.e,rs.f];
+  const P=mul(inv(R),[ps.a,ps.b,ps.c,ps.d,ps.e,ps.f]);
+
+  drag={idx,P,Pinv:inv(P),M0:lenses.transform.get(src,idx),Rinv:inv(R),
+        x0:e.clientX,y0:e.clientY,el:target,started:false,
+        thresh: e.pointerType==='mouse' ? 3 : 10,   // finger jitter is not a drag
+        tag:target.localName};
+  bench.setPointerCapture(e.pointerId);
+});
+
+bench.addEventListener('pointermove', e=>{
+  if(!drag) return;
+  const dx=e.clientX-drag.x0, dy=e.clientY-drag.y0;
+  if(!drag.started && Math.hypot(dx,dy)<drag.thresh) return;
+  drag.started=true;
+
+  const Ri=drag.Rinv;
+  const ux=snap(Ri[0]*dx+Ri[2]*dy), uy=snap(Ri[1]*dx+Ri[3]*dy);
+  const Mp=mul(drag.Pinv, mul([1,0,0,1,ux,uy], mul(drag.P,drag.M0)));
+
+  const {src:next,span}=lenses.transform.put(Mp,src,drag.idx);
+  checkLaws(lenses.transform,next,drag.idx,Mp);
+
+  if(next!==src){
+    src=next; lastGoodSrc=next;
+    render(); setCode(span);
+    readout.innerHTML='put: <b>'+esc(printTransform(Mp)).slice(0,58)+'</b> \u2192 '+drag.tag+'/transform';
+    updateHandlePositions();
+    const nel=elems()[drag.idx];
+    if(nel){
+      drag.el=nel;
+      const b=nel.getBoundingClientRect(), w=wrap.getBoundingClientRect();
+      ring.style.cssText='display:block;left:'+(b.left-w.left-5)+'px;top:'+(b.top-w.top-5)+'px;width:'+(b.width+10)+'px;height:'+(b.height+10)+'px';
+    }
+  }
+});
+
+function endDrag(e){
+  if(!drag) return;
+  const wasTap = !drag.started && e.type==='pointerup';
+  const {idx,tag}=drag;
+  drag=null;
+  ring.style.display='none';
+  setTimeout(()=>{backdrop.innerHTML='';},1200);
+  if(wasTap){
+    if((tag==='polygon'||tag==='polyline') && attrVal(src,idx,'points')!==null){
+      try{ parsePoints(attrVal(src,idx,'points')); setFocus(idx,'points');
+           readout.innerHTML='editing <b>'+tag+'/points</b> \u2014 drag handles, tap empty canvas to finish'; return; }catch(_){}
+    }
+    if(tag==='path' && attrVal(src,idx,'d')!==null){
+      try{ parsePath(attrVal(src,idx,'d')); setFocus(idx,'path');
+           readout.innerHTML='editing <b>path/d</b> \u2014 drag handles, tap empty canvas to finish'; return; }catch(_){}
+    }
+    clearFocus();
+  }
+}
+bench.addEventListener('pointerup', endDrag);
+bench.addEventListener('pointercancel', endDrag);
+
+/* ================= handle drag: points / path lenses ================= */
+let hdrag=null;
+
+overlay.addEventListener('pointerdown', e=>{
+  const key=e.target.dataset && e.target.dataset.key;
+  if(!key || focusIdx===null) return;
+  e.stopPropagation(); e.preventDefault();
+  e.target.setPointerCapture(e.pointerId);
+  hdrag={key, idx:focusIdx, mode:focusMode};
+});
+overlay.addEventListener('pointermove', e=>{
+  if(!hdrag) return;
+  const el=elems()[hdrag.idx]; if(!el) return;
+  const ctm=el.getScreenCTM(); if(!ctm) return;
+  const p=ctm.inverse().transformPoint(new DOMPoint(e.clientX,e.clientY));
+  const lx=snap(p.x), ly=snap(p.y);
+
+  const r=applyHandle(hdrag.mode,src,hdrag.idx,hdrag.key,lx,ly);
+  if(!r.view) return;
+  checkLaws(r.lens,r.src,hdrag.idx,r.view);
+
+  if(r.src!==src){
+    src=r.src; lastGoodSrc=r.src;
+    render(); setCode(r.span);
+    readout.innerHTML='put: <b>'+hdrag.key+' \u21a6 '+lx+','+ly+'</b> \u2192 '+r.lens.label;
+    updateHandlePositions();
+  }
+});
+function endHDrag(){ if(hdrag){ hdrag=null; setTimeout(()=>{backdrop.innerHTML='';},1200);} }
+overlay.addEventListener('pointerup', endHDrag);
+overlay.addEventListener('pointercancel', endHDrag);
+
+/* ================= text edits: the other direction ================= */
+code.addEventListener('input', ()=>{
+  src=code.value;
+  clearFocus();
+  if(validate(src)){
+    lastGoodSrc=src; errEl.style.display='none'; render();
+  } else {
+    errEl.style.display='inline';
+  }
+  backdrop.innerHTML='';
+});
+code.addEventListener('scroll', ()=>{
+  backdrop.scrollTop=code.scrollTop; backdrop.scrollLeft=code.scrollLeft;
+});
+
+document.getElementById('reset').addEventListener('click', ()=>{
+  src=lastGoodSrc=EXAMPLE;
+  counts={getput:0,putget:0}; broken={getput:false,putget:false};
+  errEl.style.display='none'; readout.textContent='put: \u2014';
+  clearFocus(); render(); setCode(null); setChips();
+});
+window.addEventListener('resize', ()=>{ updateHandlePositions(); });
+
+/* ================= boot ================= */
+render(); setCode(null); setChips();
+</script>
+</body>
+</html>
