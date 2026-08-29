@@ -15,11 +15,24 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '\u274c FATAL: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; exit 2; fi"
+            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '❌ FATAL: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; exit 2; fi"
           },
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-session-model.sh"
+          },
+          {
+            "type": "command",
+            "command": "echo 'KNOWLEDGE INDEX — hard-won context from past work; skipping a relevant file is how the same bug ships twice.'; echo ''; echo 'RULE (mandatory, every task — not just the first): before your first action on any non-trivial task, scan this list and read every file whose name matches the task domain. In your first message on each task, name the files you read, or state that none match.'; echo ''; echo 'Available:'; ls \"$CLAUDE_PROJECT_DIR\"/knowledge/*.md 2>/dev/null | xargs -n1 basename | sed 's/^/  - /'"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-reset-on-compact.sh"
           }
         ]
       }
@@ -44,6 +57,24 @@
             "command": "HOOK=\"${CLAUDE_PROJECT_DIR:-.}/lopecode-plugin/post-tool-hook.sh\"; [ -x \"$HOOK\" ] && \"$HOOK\" || exit 0"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-track-read.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-track-bash-read.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -52,7 +83,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '\u274c BLOCKED: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; kill $PPID; exit 2; fi"
+            "command": "if [ \"${METADEV:-}\" != \"1\" ]; then echo '❌ BLOCKED: Claude must be launched via metadev (safehouse sandbox). Run ./metadev instead of claude directly.' >&2; kill $PPID; exit 2; fi"
           },
           {
             "type": "command",
@@ -62,6 +93,15 @@
       }
     ],
     "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|mcp__lopecode__(create_module|export_notebook|save_notebook)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/learnings-gate.sh"
+          }
+        ]
+      },
       {
         "matcher": "Agent|Task",
         "hooks": [

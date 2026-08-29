@@ -1,3 +1,8 @@
+---
+triggers:
+  - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/js-toolchain\.js"
+---
+
 # js-toolchain: Notebook Kit 2.0 cell compile/decompile
 
 `@tomlarkworthy/js-toolchain` is the Notebook Kit 2.0 (Observable Notebooks 2.0) counterpart

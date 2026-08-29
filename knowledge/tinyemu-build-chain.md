@@ -1,3 +1,8 @@
+---
+triggers:
+  - "(^Bash |^|[;&|] )(make|emmake|emcc)( |$).*tinyemu"
+---
+
 # TinyEMU Build Chain
 
 ## Current State (Modernized, April 2026)

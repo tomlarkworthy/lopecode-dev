@@ -1,3 +1,8 @@
+---
+triggers:
+  - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/exporter(-[0-9]+)?\.js"
+---
+
 # `@tomlarkworthy/exporter` — runtime self-serialization
 
 A series of notebooks (`exporter`, `exporter-2`, `exporter-3`) that capture the live Observable runtime into a single self-contained HTML file. The current canonical version is `@tomlarkworthy/exporter-3`. All versions serve the same goal; later versions refactor the implementation.

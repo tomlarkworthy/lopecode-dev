@@ -1,3 +1,9 @@
+---
+triggers:
+  - "(^Bash |^|[;&|] )node +(--experimental-vm-modules +)?tools/lope-push-ws\.js"
+  - "(^Bash |^|[;&|] )node +tools/lope-push-files\.js"
+---
+
 # Pushing Cells to ObservableHQ
 
 ## Background

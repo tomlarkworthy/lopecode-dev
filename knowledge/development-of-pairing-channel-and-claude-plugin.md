@@ -1,3 +1,8 @@
+---
+triggers:
+  - "^(Edit|Write|MultiEdit) .*lopecode-plugin/src/"
+---
+
 # Development of Pairing Channel & Claude Plugin
 
 How the channel server, notebook pairing module, and dynamic MCP tools fit together. Read this when modifying any part of the Claude Code <-> notebook bridge.

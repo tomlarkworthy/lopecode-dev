@@ -64,9 +64,10 @@ byte counts are exact; treat the token figure as an order of magnitude.
 - Never paste large command output, logs, or file dumps into the main context; run them in a
   subagent, or redirect to a file and have a subagent summarize.
 
-No lopecode skill currently sets `context: fork` — checked across every
-`.claude/skills/*/SKILL.md` on 2026-08-28, all seven carry only `name`/`description`/`version`.
-Converting the mechanical ones is open work, not something this port did.
+`qa-notebook` is the one lopecode skill that forks (`context: fork` / `model: opus`,
+set 2026-08-29). The rest cannot: `bug-fix` stops for approval between phases,
+`lopeteam` and `lopeteam-reflect` are human-gated, `document` writes prose for humans,
+`/improve` and `/reflect` analyse the session's own context.
 
 ## Compact at task boundaries
 
@@ -90,17 +91,21 @@ session; everything below is for humans. Policy was 3.7 kB, meta 4 kB, and the w
 body was billed as cache read on every turn until 2026-08-29.
 
 Ported 2026-08-28 from `taktile/learnings/effective-use-of-fable.md`. The policy is
-taktile's; the numbers were re-verified against this repo, and the enforcement was cut
-down to the two hooks that work without taktile's learnings-gate (see *What was not
-ported*).
+taktile's; the numbers were re-verified against this repo. The first port (2026-08-28)
+carried only the three model hooks; the learnings gate followed on 2026-08-29 (see
+*Ported 2026-08-29*).
 
-Two hooks, wired in `.claude/settings.json`:
+Hooks, wired in `.claude/settings.json`:
 
 | hook | script | effect |
 |---|---|---|
 | `SessionStart` | `scripts/learnings-session-model.sh` | caches the `model` field from hook stdin so the model is resolvable on turn 1, before the transcript has an assistant entry |
 | `UserPromptSubmit` | `scripts/learnings-model-policy.sh` | once per session, if the model matches `fable`, prints this file's body (frontmatter stripped) into context |
-| `PreToolUse(Agent\|Task)` | `scripts/agent-model-gate.sh` | on a Fable session, exit 2 on an Agent spawn with no `model` set; `subagent_type: fork` is exempt |
+| `PreToolUse(Agent\|Task)` | `scripts/agent-model-gate.sh` | on a Fable session, exit 2 on an Agent spawn with no `model` set or with `model: fable`; `subagent_type: fork` is exempt. It does not judge `opus` versus `sonnet` — that is this document's job |
+| `SessionStart` | inline `ls knowledge/*.md` | prints the knowledge index and the read-before-acting rule |
+| `PreToolUse(Bash\|Edit\|Write\|Agent\|mcp__lopecode__…)` | `scripts/learnings-gate.sh` | exit 2 when the call's match string hits a `triggers:` regex in a `knowledge/*.md` not yet read this session |
+| `PostToolUse(Read)`, `PostToolUse(Bash)` | `scripts/learnings-track-read.sh`, `scripts/learnings-track-bash-read.sh` | credit a read of `knowledge/*.md` (Read tool, or `cat`/`sed`/`grep` naming the file) to the per-session index |
+| `SessionStart(compact)` | `scripts/learnings-reset-on-compact.sh` | drop read credit older than 30 s and re-arm the policy injector |
 
 Model resolution lives in `scripts/lib/learnings-match-string.sh` (`lms_resolve_model`): it
 reads the last non-`<synthetic>` `"model":"…"` from the tail of the transcript, falling back
@@ -113,27 +118,28 @@ frontmatter is stripped by an `awk` that skips to the second `---` and stops at 
 `<!-- injection-ends -->` marker; a file with no frontmatter injects *nothing*, silently,
 and a file with no marker injects everything. Keep both.
 
-## What was not ported, and why
+## Ported 2026-08-29
 
-Taktile drives this file from a general learnings gate: 74 files in `learnings/`, each with
-`triggers:` regexes matched against a per-call match string, a per-session read-tracking
-index fed by `PostToolUse(Read)` and `PostToolUse(Bash)`, a `SessionStart(compact)` reset,
-a trigger linter (`check-learnings-triggers.sh`, 235 lines) and a test suite
-(`test-learnings-hooks.sh`, 902 lines). A gated call is *blocked* until the matching
-learning has been read this session.
+The learnings gate that drives this file in taktile — `triggers:` regexes in frontmatter,
+a per-session read index, a compact reset, and the linter `check-learnings-triggers.sh` —
+was ported the day after the model hooks, retargeted from `learnings/` to `knowledge/`.
+Fourteen of the 23 `knowledge/*.md` carry `triggers:`; the rest (concepts, quality
+criteria, design records) have no action to gate on. The linter passes on all 23 regexes.
+Trigger rules are the seven in the header comment of `scripts/learnings-gate.sh`; run the
+linter after editing any frontmatter. Taktile's 902-line `test-learnings-hooks.sh` was not
+ported; the gate was checked by hand (block on unread `sync-module.ts`, allow after Read,
+allow after `sed` credit, read-only Bash exempt).
 
-That was left out. Cost of leaving it out: the `triggers:` block above is inert — nothing
-matches it, and the enforcement is the injection plus the Agent gate, not a block-until-read.
-Cost of taking it: it imposes frontmatter and trigger-regex discipline on all 22 existing
-`knowledge/*.md`, and the trigger rules are subtle enough that taktile needed a linter and a
-900-line test to keep them from firing on prose (see the header comment in
-`taktile/scripts/learnings-gate.sh` — seven numbered rules, each recorded as learned from a
-measured false positive).
+Why it was ported: session `51833f32` (started 2026-08-24, before either port) ran 573
+turns on Fable, spawned three research subagents on `opus` where `sonnet` was the policy,
+and at 07:27 on 2026-08-29 wrote a memory encoding "mechanical → Opus". Injection alone,
+arriving at turn ~400 of a long session, did not correct it; a block-until-read gate would
+have.
 
-`scripts/lib/learnings-match-string.sh` was copied **verbatim** rather than slimmed, so that
-adding the gate later is a settings change and not a rewrite. About 60% of it — the read-only
-Bash allowlist, the write-path exemptions, the MCP content extraction — is unused by the two
-hooks that are wired up.
+`qa-notebook` now forks (`context: fork` / `model: opus`). The other skills cannot:
+`bug-fix` stops for approval between phases, `lopeteam` and `lopeteam-reflect` are
+human-gated, `document` writes prose for humans, `/improve` and `/reflect` analyse the
+session's own context.
 
 ## Verification, 2026-08-29
 

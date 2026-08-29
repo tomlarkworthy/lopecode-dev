@@ -1,3 +1,8 @@
+---
+triggers:
+  - "^mcp__lopecode__(create_module|export_notebook|save_notebook)( |$)"
+---
+
 # Live Collaboration with Claude Code Pairing
 
 Pair program with Claude directly from a Lopecode notebook. Chat, watch reactive variables, define cells, manipulate the DOM, run tests — all through a two-way channel between the browser and Claude Code.

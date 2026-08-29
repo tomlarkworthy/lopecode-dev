@@ -2,6 +2,8 @@
 name: qa-notebook
 description: Use when the user asks to "QA a notebook", "find issues in this notebook", "/qa-notebook", "smoke-test this notebook", or wants Claude to autonomously open a lopecode notebook in a browser, explore it, and report bugs. Drives the qa_* tools (Playwright Chromium) plus the existing lopecode introspection tools (list_cells, get_variable, watch_variable) to cross-check what the user sees against what the runtime thinks is happening. Anchors evaluation on qa/general.md and per-notebook guidance in qa/per-notebook/<slug>.md.
 version: 0.2.0
+context: fork
+model: opus
 ---
 
 # QA a Lopecode Notebook
