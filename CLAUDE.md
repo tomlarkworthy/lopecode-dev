@@ -71,6 +71,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | `knowledge/training-robocoop-5.md` | Benchmark-driven robocoop-5 improvement: system-vs-raw arms, fidelity anchoring, failure autopsy, what moved numbers, deployment chain |
 | `knowledge/resyncing-modules-across-the-corpus.md` | Pushing a canonical out to the consumers that embed an older copy: verifying direction before sweeping, the dependency-gap and block-ordering hazards, the browserless `lope-preflight.ts` gate and why it is differential |
 | `knowledge/diagnosing-new-observable-platform-differences.md` | Debugging our notebooks on `new.observablehq.com` (notebook-kit runtime): viewed-vs-imported environments, the `newobs-*.ts` probe tools, offline repro against `vendor/notebook-kit`, in-flight fix testing, per-importer import resolution, known `Mutable`/`FileAttachment`/naming differences |
+| `knowledge/designer-resources-for-notebooks.md` | Lopecode's inputs + themes as a Claude Design system: what is in `lopecode/design`, how `/design-sync` is run against it, the three overflow defects and their measurements, how to check a designer's bound copy is current, what is not done |
 
 ### Which Tool to Use
 
