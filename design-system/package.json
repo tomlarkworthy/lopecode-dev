@@ -2,6 +2,7 @@
   "name": "@lopecode/design-system",
   "version": "0.1.0",
   "private": true,
+  "license": "ISC",
   "description": "React wrappers over Observable Inputs, themed with lopecode's notebook-kit themes",
   "type": "module",
   "main": "dist/index.js",

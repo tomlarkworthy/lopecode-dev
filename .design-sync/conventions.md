@@ -1,6 +1,6 @@
 # Lopecode Design System — conventions
 
-This library is the input vocabulary of lopecode notebooks: React wrappers over Observable Inputs, styled by notebook-kit theme tokens. There are no utility classes and no styling props — style with the CSS custom properties below and the `Theme` wrapper.
+This library is the input vocabulary of lopecode notebooks: React wrappers over Observable Inputs, styled by notebook-kit theme tokens. The CSS is Observable, Inc.'s, redistributed under ISC: `@observablehq/inputs` (https://github.com/observablehq/inputs) and `@observablehq/notebook-kit` (https://observablehq.com/notebook-kit/). There are no utility classes and no styling props — style with the CSS custom properties below and the `Theme` wrapper.
 
 ## Wrap every design in `Theme`
 

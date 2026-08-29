@@ -7,6 +7,13 @@
 // tokens/theme-*.css      every theme scoped to [data-lc-theme="<name>"]
 import { build } from "esbuild";
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+
+const LICENSE_HEADER = `/*!
+ * Lopecode Design System styles. Derived from:
+ *   @observablehq/inputs (ISC, Copyright 2021-2024 Observable, Inc.) https://github.com/observablehq/inputs
+ *   @observablehq/notebook-kit (ISC, Copyright 2025 Observable, Inc.) https://observablehq.com/notebook-kit/
+ * See LICENSE-THIRD-PARTY.md.
+ */`;
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,12 +65,13 @@ const themeCss = (name) => inlineImports(`theme-${name}.css`);
 const scoped = (css, name) => css.replace(/:root\b/g, `[data-lc-theme="${name}"]`);
 
 for (const name of THEMES) {
-  writeFileSync(join(TOKENS, `theme-${name}.css`), scoped(themeCss(name), name));
+  writeFileSync(join(TOKENS, `theme-${name}.css`), LICENSE_HEADER + "\n" + scoped(themeCss(name), name));
 }
 
 const inputsCss = readFileSync(join(here, "node_modules", "@observablehq", "inputs", "dist", "index.css"), "utf8");
 
 writeFileSync(join(DIST, "styles.css"), [
+  LICENSE_HEADER,
   "/* @observablehq/inputs dist/index.css */", inputsCss,
   shared,
   `/* default theme: ${DEFAULT_THEME} */`, themeCss(DEFAULT_THEME),
