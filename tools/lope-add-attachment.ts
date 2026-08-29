@@ -17,6 +17,7 @@
 // not from the document.
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
+import { findSpan } from "./lib/notebook-blocks.ts";
 
 const [html, moduleId, file] = process.argv.slice(2);
 const arg = (k: string, d: string) => {
@@ -35,11 +36,14 @@ const mime = arg("--mime", MIME[name.split(".").pop() ?? ""] ?? "application/oct
 
 const src = readFileSync(html, "utf8");
 const id = `${moduleId}/${name}`;
-if (src.includes(`id="${id}"`)) { console.log(`already present: ${id}`); process.exit(0); }
+// findSpan, not `includes`/a regex: a module's own source can carry a literal
+// `<script id="…">`, and matching one of those phantoms either skips the insert or
+// splices the attachment INSIDE another block. See tools/lib/notebook-blocks.ts.
+if (findSpan(src, id)) { console.log(`already present: ${id}`); process.exit(0); }
 
-const anchor = new RegExp(`<script\\b[^>]*\\bid="${moduleId.replace(/[/@-]/g, m => "\\" + m)}"[^>]*>`);
-const at = src.search(anchor);
-if (at < 0) { console.error(`module block not found: ${moduleId}`); process.exit(1); }
+const span = findSpan(src, moduleId);
+if (!span) { console.error(`module block not found: ${moduleId}`); process.exit(1); }
+const at = span.start;
 
 const bytes = readFileSync(file);
 // `id` FIRST: that is the order exporter-3 writes, and lope-preflight's block

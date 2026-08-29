@@ -43,10 +43,11 @@
  *   bun tools/lope-sync.ts spec-sync [--check] [--rebuild]  sibling .json specs
  *   bun tools/lope-sync.ts hash-mains [--write]   declare modules only the boot hash holds
  */
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, rmSync, realpathSync } from "fs";
 import { join, resolve, relative, dirname, basename } from "path";
 import { createHash } from "crypto";
 import { execFileSync } from "child_process";
+import { blocks, blockSpans, blockContent, findSpan, guardedWrite } from "./lib/notebook-blocks.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPOS = ["lopecode", "lopebooks"];
@@ -451,8 +452,7 @@ function cmdCheckout(moduleId: string, repo?: string, force = false): number {
   }
 
   const html = readFileSync(join(ROOT, c.rel), "utf8");
-  const re = new RegExp(`<script\\s+id="${moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>([\\s\\S]*?)</script>`);
-  const content = html.match(re)![1].replace(/^\n/, "").replace(/\n$/, "");
+  const content = blockContent(html, moduleId)!;
 
   mkdirSync(dirname(abs), { recursive: true });
   writeFileSync(abs, content);
@@ -1026,6 +1026,133 @@ function cmdInitCanonical(write: boolean): number {
   return 0;
 }
 
+// ------------------------------------------------------------------- blocks
+//
+// A notebook is a flat list of top-level `<script id=…>` blocks and these three
+// commands work on that list directly, without going through a module's canonical.
+// They all locate blocks with tools/lib/notebook-blocks.ts — a regex sees phantom
+// openers inside a block's own source (2,947 of them across the corpus) and a
+// hand-rolled remover built on one cut 3,477 bytes out of an unrelated block.
+
+const attr = (attrs: string, name: string) =>
+  new RegExp(`${name}="([^"]*)"`).exec(attrs)?.[1] ?? "";
+
+export function cmdLsBlocks(path: string, json: boolean): number {
+  if (!existsSync(path)) { console.error(`No such file: ${path}`); return 1; }
+  const bs = blocks(readFileSync(path, "utf8")).map((b) => ({
+    id: b.id,
+    start: b.start,
+    end: b.end,
+    bytes: b.end - b.start,
+    mime: attr(b.attrs, "data-mime"),
+    encoding: attr(b.attrs, "data-encoding"),
+  }));
+  if (json) { console.log(JSON.stringify(bs, null, 2)); return 0; }
+  for (const b of bs) {
+    const w = b.encoding ? `${b.mime}/${b.encoding}` : b.mime;
+    console.log(`${b.id.padEnd(52)} ${String(b.start).padStart(9)}-${String(b.end).padEnd(9)} ${String(b.bytes).padStart(9)}  ${w}`);
+  }
+  console.log(`${bs.length} top-level block(s)`);
+  return 0;
+}
+
+/** Remove a top-level block, plus the `\n\n` separator insertBefore/inject writes
+ *  after one. Dry run unless --write. */
+export function cmdRmBlock(path: string, id: string, write: boolean, all: boolean): number {
+  if (!existsSync(path)) { console.error(`No such file: ${path}`); return 1; }
+  const html = readFileSync(path, "utf8");
+  const hits = blockSpans(html).filter((s) => s.id === id);
+  if (!hits.length) { console.error(`No top-level block with id ${id} in ${path}`); return 1; }
+  if (hits.length > 1 && !all) {
+    console.error(
+      `${id} occurs ${hits.length} times at top level in ${path} ` +
+      `(${hits.map((s) => `${s.start}-${s.end}`).join(", ")}).\n` +
+      `Only the first is live — the runtime resolves by id. Pass --all to remove every copy.`
+    );
+    return 1;
+  }
+  let next = html;
+  let removed = 0;
+  for (const s of [...hits].reverse()) {
+    let end = s.end;
+    if (next.slice(end, end + 2) === "\n\n") end += 2;
+    console.log(`${write ? "removing" : "would remove"} ${id}  ${s.start}-${end}  ${end - s.start} bytes`);
+    next = next.slice(0, s.start) + next.slice(end);
+    removed += end - s.start;
+  }
+  if (!write) {
+    console.log(`(dry run — pass --write to apply; ${removed} bytes, ${html.length} -> ${html.length - removed})`);
+    return 0;
+  }
+  guardedWrite(path, html, next, "", `rm-block(${id})`, [id]);
+  console.log(`Wrote ${path}  ${html.length} -> ${next.length} bytes`);
+  return 0;
+}
+
+/** Stage ONLY one module's block from the working tree, leaving the rest of the
+ *  notebook at HEAD and the working tree untouched. Notebooks are 1-50MB and a
+ *  save-in-place rewrites unrelated bytes, so `git add` on the file commits far more
+ *  than the module you edited. */
+export function cmdStage(moduleId: string, notebook: string): number {
+  if (!existsSync(notebook)) { console.error(`No such file: ${notebook}`); return 1; }
+  // realpath both sides: `rev-parse --show-toplevel` resolves symlinks (macOS
+  // /var -> /private/var), and a mismatched pair makes `relative` emit `../../..`,
+  // which git then rejects as outside the repository.
+  const abs = realpathSync(resolve(notebook));
+  const sub = realpathSync(execFileSync("git", ["-C", dirname(abs), "rev-parse", "--show-toplevel"],
+    { encoding: "utf8" }).trim());
+  const rel = relative(sub, abs);
+  const head = execFileSync("git", ["-C", sub, "show", `HEAD:${rel}`],
+    { encoding: "utf8", maxBuffer: 1 << 30 });
+  const work = readFileSync(abs, "utf8");
+
+  const hSpan = findSpan(head, moduleId);
+  const wSpan = findSpan(work, moduleId);
+  if (!hSpan) { console.error(`${moduleId} has no block in HEAD:${rel} — stage adds nothing, use git add.`); return 1; }
+  if (!wSpan) { console.error(`${moduleId} has no block in the working tree copy of ${rel}`); return 1; }
+
+  // The real gate. Comparing spans structurally rather than reading `git diff`
+  // output: a hunk header tells you line numbers, not whether they fall inside the
+  // block, and a 50MB one-line-per-block file makes that reading useless anyway.
+  if (head.slice(0, hSpan.start) !== work.slice(0, wSpan.start)) {
+    console.error(`${rel} differs from HEAD BEFORE the ${moduleId} block — refusing to stage a partial file.`);
+    return 1;
+  }
+  if (head.slice(hSpan.end) !== work.slice(wSpan.end)) {
+    console.error(`${rel} differs from HEAD AFTER the ${moduleId} block — refusing to stage a partial file.`);
+    return 1;
+  }
+  if (head.slice(hSpan.start, hSpan.end) === work.slice(wSpan.start, wSpan.end)) {
+    console.log(`${moduleId} in ${rel} is unchanged from HEAD — nothing to stage.`);
+    return 0;
+  }
+
+  const built = head.slice(0, hSpan.start) + work.slice(wSpan.start, wSpan.end) + head.slice(hSpan.end);
+  const bSpan = findSpan(built, moduleId)!;
+  if (built.slice(0, bSpan.start) !== head.slice(0, hSpan.start) ||
+      built.slice(bSpan.end) !== head.slice(hSpan.end)) {
+    console.error(`Built blob differs from HEAD outside the ${moduleId} block. Refusing.`);
+    return 1;
+  }
+
+  const tmp = join(ROOT, "modules", `.stage-${md5(rel + moduleId)}.tmp`);
+  writeFileSync(tmp, built);
+  let sha: string;
+  try {
+    sha = execFileSync("git", ["-C", sub, "hash-object", "-w", "--path", rel, tmp],
+      { encoding: "utf8" }).trim();
+  } finally { rmSync(tmp, { force: true }); }
+  const mode = execFileSync("git", ["-C", sub, "ls-files", "-s", "--", rel], { encoding: "utf8" })
+    .trim().split(/\s+/)[0] || "100644";
+  execFileSync("git", ["-C", sub, "update-index", "--cacheinfo", `${mode},${sha},${rel}`]);
+  console.log(
+    `Staged ${moduleId} in ${rel} (${relative(ROOT, sub) || "."})\n` +
+    `  block ${hSpan.end - hSpan.start} -> ${wSpan.end - wSpan.start} bytes, blob ${short(sha)}, mode ${mode}\n` +
+    `  working tree untouched; everything outside the block stays at HEAD`
+  );
+  return 0;
+}
+
 // ---------------------------------------------------------------------- CLI
 
 if (import.meta.main) {
@@ -1066,6 +1193,18 @@ if (import.meta.main) {
     case "init-canonical":
       code = cmdInitCanonical(flag("--write"));
       break;
+    case "ls-blocks":
+      if (!positional[0]) { console.error("Usage: lope-sync ls-blocks <notebook.html> [--json]"); code = 1; break; }
+      code = cmdLsBlocks(positional[0], flag("--json"));
+      break;
+    case "rm-block":
+      if (!positional[0] || !positional[1]) { console.error("Usage: lope-sync rm-block <notebook.html> <id> [--write] [--all]"); code = 1; break; }
+      code = cmdRmBlock(positional[0], positional[1], flag("--write"), flag("--all"));
+      break;
+    case "stage":
+      if (!opt("--module") || !opt("--notebook")) { console.error("Usage: lope-sync stage --module <@a/b> --notebook <notebook.html>"); code = 1; break; }
+      code = cmdStage(opt("--module")!, opt("--notebook")!);
+      break;
     default:
       console.error(
         "Usage:\n" +
@@ -1076,7 +1215,10 @@ if (import.meta.main) {
         "  bun tools/lope-sync.ts prune [--write]\n" +
         "  bun tools/lope-sync.ts spec-sync [--check] [--rebuild] [notebook.html ...]\n" +
         "  bun tools/lope-sync.ts hash-mains [--write] [notebook.html ...]\n" +
-        "  bun tools/lope-sync.ts init-canonical [--write]"
+        "  bun tools/lope-sync.ts init-canonical [--write]\n" +
+        "  bun tools/lope-sync.ts ls-blocks <notebook.html> [--json]\n" +
+        "  bun tools/lope-sync.ts rm-block <notebook.html> <id> [--write] [--all]\n" +
+        "  bun tools/lope-sync.ts stage --module <@a/b> --notebook <notebook.html>"
       );
       code = 1;
   }

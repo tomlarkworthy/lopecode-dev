@@ -36,6 +36,12 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, watch, statSync }
 import { resolve, extname, relative, join } from "path";
 import { Glob } from "bun";
 import { loadIndex, saveIndex, loadCanonical, shaOfBlock, deriveIndex, reposOf } from "../lope-sync.ts";
+import {
+  blockSpans, findSpan, rawBlock, blockContent, insideABlock, nestedOpeners, guardedWrite,
+} from "../lib/notebook-blocks.ts";
+
+// Re-exported: the block locator moved to tools/lib/notebook-blocks.ts, importers keep working.
+export { blockSpans, guardedWrite, nestedOpeners };
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -113,100 +119,12 @@ function expandTargets(rawTargets: string[], sourcePath: string): string[] {
   return out;
 }
 
-/**
- * Top-level `<script id=…>` spans.
- *
- * `@tomlarkworthy/exporter-3` writes notebooks, so its own source contains literal
- * script openers — 10 of them in `lopecode-newsletter-002` (`bootconf.json`,
- * `networking_script`, `streaming_sentinel`, `${ id }`, …) plus a second
- * `<!-- Bootloader -->`. A regex or an `indexOf`/`lastIndexOf` finds those phantoms
- * and writes *inside* exporter-3's block, which parses as a syntax error and takes
- * every consumer of the module down with it.
- *
- * Scanning is safe because a block that emits script tags has to escape its own
- * closer (an unescaped `</script>` would have ended the block in the HTML parser),
- * so the first `</script>` after an opener really is that block's end. Stepping to
- * it skips the phantoms.
- */
-export function blockSpans(html: string): { id: string; start: number; end: number }[] {
-  const spans: { id: string; start: number; end: number }[] = [];
-  const CLOSE = "</script>";
-  let i = 0;
-  for (;;) {
-    const at = html.indexOf("<script", i);
-    if (at === -1) return spans;
-    const gt = html.indexOf(">", at);
-    if (gt === -1) return spans;
-    const close = html.indexOf(CLOSE, gt);
-    const end = close === -1 ? html.length : close + CLOSE.length;
-    const m = /^<script\s+id="([^"]+)"/.exec(html.slice(at, gt + 1));
-    if (m) spans.push({ id: m[1], start: at, end });
-    i = end;
-  }
-}
-
-function findSpan(html: string, id: string) {
-  return blockSpans(html).find((s) => s.id === id) ?? null;
-}
-
-/** True if `at` falls inside some block's source rather than the document body. */
-function insideABlock(html: string, at: number): boolean {
-  return blockSpans(html).some((s) => at > s.start && at < s.end);
-}
-
-/** Write guard for the whole phantom class.
- *
- * Must be differential: several modules legitimately carry `<script id="…">` in their
- * own source (claude-code-pairing has one at +74586, exporter-3 has ten), so "contains
- * an opener" is the normal state and only an *increase* is the bug. The incoming block
- * may carry its own, so the expectation is prev + whatever it brings. Checked before
- * the write, so a detected splice never reaches disk.
- */
-function nestedOpeners(html: string): number {
-  let n = 0;
-  for (const s of blockSpans(html)) {
-    n += (html.slice(s.start + 1, s.end).match(/<script id="/g) ?? []).length;
-  }
-  return n;
-}
-
-/**
- * Structural, not count-based. A first version compared nested-opener counts with a
- * budget for whatever the incoming block carried — and markdown-wiki's doc attachments
- * carry openers of their own, so a genuine splice hid inside the allowance and cost
- * `maintaining-…md` its place in the DOM. What actually matters is that no block which
- * was top-level stops being top-level: that is exactly "something swallowed it", and it
- * is what the browser's parser will do too.
- */
-function guardedWrite(
-  path: string, prev: string, next: string, incoming: string, what: string
-): void {
-  const was = new Set(blockSpans(prev).map((s) => s.id));
-  const now = new Set(blockSpans(next).map((s) => s.id));
-  const lost = [...was].filter((id) => !now.has(id));
-  if (lost.length) {
-    throw new Error(
-      `${what} would swallow ${lost.length} top-level block(s) in ${path}: ` +
-      `${lost.slice(0, 5).join(", ")}. Refusing to write — see blockSpans.`
-    );
-  }
-  if (nestedOpeners(next) > nestedOpeners(prev) + (incoming.match(/<script id="/g) ?? []).length) {
-    throw new Error(`${what} would nest a block inside another in ${path}. Refusing to write.`);
-  }
-  writeFileSync(path, next);
-}
-
 export function extractModuleScriptTag(html: string, moduleId: string): string | null {
-  const span = findSpan(html, moduleId);
-  return span ? html.slice(span.start, span.end) : null;
+  return rawBlock(html, moduleId);
 }
 
 export function extractModuleContent(html: string, moduleId: string): string | null {
-  const span = findSpan(html, moduleId);
-  if (!span) return null;
-  const block = html.slice(span.start, span.end);
-  const body = block.slice(block.indexOf(">") + 1, block.lastIndexOf("</script>"));
-  return body.replace(/^\n/, "").replace(/\n$/, "");
+  return blockContent(html, moduleId);
 }
 
 /**
@@ -487,11 +405,6 @@ function idsIn(path: string): Set<string> {
   let s = idCache.get(path);
   if (!s) idCache.set(path, (s = new Set(allIds(readFileSync(path, "utf8")))));
   return s;
-}
-
-function rawBlock(html: string, id: string): string | null {
-  const span = findSpan(html, id);
-  return span ? html.slice(span.start, span.end) : null;
 }
 
 export type ResyncOpts = {

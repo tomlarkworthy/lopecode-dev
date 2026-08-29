@@ -41,20 +41,13 @@ import { execFile } from "child_process";
 import { createHash } from "crypto";
 import * as acorn from "acorn";
 import * as walk from "acorn-walk";
+import { blocks, type Block } from "./lib/notebook-blocks.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPOS = ["lopecode", "lopebooks"];
 const transpiler = new Bun.Transpiler({ loader: "js" });
 
-type Block = { id: string; attrs: string; content: string };
 type Problem = { kind: string; detail: string };
-
-function blocks(html: string): Block[] {
-  const out: Block[] = [];
-  for (const m of html.matchAll(/<script\s+id="([^"]+)"([^>]*)>([\s\S]*?)<\/script>/g))
-    out.push({ id: m[1], attrs: m[2], content: m[3].replace(/^\n/, "").replace(/\n$/, "") });
-  return out;
-}
 
 /** A first-party module block: JS source, not a file attachment, not a packed bundle.
  *  `data-encoding` blocks (base64+gzip vendored libs like es-module-shims) carry
@@ -64,10 +57,12 @@ const isModuleBlock = (b: Block) =>
   !/data-encoding=/.test(b.attrs) &&
   b.id.split("/").length <= 2;
 
-/** bootconf.json, skipping the exporter's own template (which contains `${...}`). */
+/** bootconf.json, skipping the exporter's own template (which contains `${...}`).
+ *  Iterates every block with that id, not just the first: a notebook can carry a
+ *  second, unparseable one. */
 function bootconf(html: string): any | null {
-  for (const m of html.matchAll(/<script\s+id="bootconf\.json"[^>]*>([\s\S]*?)<\/script>/g)) {
-    try { return JSON.parse(m[1].trim()); } catch { /* template */ }
+  for (const b of blocks(html).filter((b) => b.id === "bootconf.json")) {
+    try { return JSON.parse(b.content.trim()); } catch { /* template */ }
   }
   return null;
 }
