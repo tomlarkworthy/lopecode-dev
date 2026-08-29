@@ -124,3 +124,13 @@ The lopecode reference notebook (`inputs-reference.html`) measures the same 120/
 — the bug is inherited from lopecode's own stylesheet order, not introduced here.
 Driver gotcha: run `package-build.mjs` only through the driver, or copy the anchor BEFORE
 building — a bare build rewrites `ds-bundle/_ds_sync.json`, and the diff then sees no change.
+
+## Moved (2026-08-29): canonical source is now lopecode/design
+
+The package, previews, conventions and a verified `ds-bundle/` live in the `lopecode` repo at
+`design/` (commit cb777fc), with notebook-kit's style sources vendored so no submodule is needed
+and `config.json` unpinned so a stranger's `/design-sync` creates their own project. The live
+project 69267aa4 was re-anchored from that build (bundleSha12 23e3fae52aab). Building there gives
+different hashes from building here only because `lopecode/design/package.json` is
+`"type": "module"` (esbuild emits `"use strict"` in previews and a different entry comment).
+Sync from `lopecode/design` from now on; `lopecode-dev/design-system` is the stale twin.
