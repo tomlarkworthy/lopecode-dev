@@ -116,3 +116,6 @@ ds-bundle/
 /scratch/notebook-kit-fork/
 # >50MB binary
 /scratch/corepox-art/design.sketch
+
+# /improve-bulk sweep output (machine artifact; the age hook reads its mtime)
+/scratch/bulk-improve/

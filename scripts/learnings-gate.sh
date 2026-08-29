@@ -187,7 +187,7 @@ for f in "$LEARN_DIR"/*.md; do
     BLOCKED+=("knowledge/$(basename "$f")")
     BLOCKED_WHY+=("$matched_pat")
   fi
-  FIRE_ROWS="${FIRE_ROWS}$(date +%s)	${SESSION_ID}	${decision}	${TOOL:-Bash}	learnings/$(basename "$f")	$(lms_one_line "$matched_pat")	${CWD}	${SNIPPET}	${row_tag}
+  FIRE_ROWS="${FIRE_ROWS}$(date +%s)	${SESSION_ID}	${decision}	${TOOL:-Bash}	knowledge/$(basename "$f")	$(lms_one_line "$matched_pat")	${CWD}	${SNIPPET}	${row_tag}
 "
 done
 
