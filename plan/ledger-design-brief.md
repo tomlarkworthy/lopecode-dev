@@ -1,145 +1,222 @@
-# Ledger redesign — design brief
+# Ledger redesign — design brief (v2, 2026-08-29)
 
-Written 2026-08-29 for the designer who did **Lopefeed Dark** (Claude Design project
-`019de8ff-e26d-76b0-8278-169b9d2296c1`, bound to the Lopecode Design System). Ledger is the second half
-of the same job: the author page, and now also a panel that opens *inside* the feed. Please add the
-Ledger artboards to that project so the two share tokens and card grammar.
+v1 of this brief (same day) was misread: it discussed the feed at length and the designer produced
+feed/ledger composites, a pane divider, and dropped the owner tools. v2 is Ledger only. Everything in
+§1 is a hard boundary; everything in §2–§4 must appear in the artboards.
 
-Evidence: the `@tomlarkworthy/ledger` module source (1283 lines, 27 cells; line refs below are into
-it), `specs/atproto.md`, and renders of https://lopecode.com/@larkworthy.bsky.social taken 2026-08-29
-(`ledger-live-2026-08-29-1280.png`, `-390.png`; `ledger-context-lopefeed-2026-08-29.png` is the shipped
-dark feed for context). Survey: `plan/ledger-survey-2026-08-29.md`.
+## 1. Scope — read first
 
-## What Ledger is
+**Design one thing: the `@tomlarkworthy/ledger` page, the profile page of one author.** It lives at
+`lopecode.com/@handle`.
 
-The profile page of one author on lopecode.com: `lopecode.com/@handle` (the apex Worker proxies it to
-the published `ledger` bundle, `lopecode.com/src/worker.js` L15–26). Everything an author has published
-as `com.lopecode.bundle`, plus the only signed-in surface in the system: when the viewer's atproto
-session DID equals the page's DID (`isOwner`, L298) the table becomes multi-select and a sticky bar
-offers bulk delete, link/unlink the companion Bluesky post, and publish/unpublish to standard.site.
+**Not your concern, do not draw it:**
 
-Rendered today (one `ledgerView` cell, L1–89, top to bottom):
+- The Lopefeed. It is finished (`Lopefeed Dark` in this project). Do not redesign it, do not put it on
+  an artboard with the Ledger, do not compose the two.
+- The frame around the Ledger: tab bar, panes, splitters, dividers, "aside" layout. The host application
+  (lopepage) puts the Ledger into a pane and handles all of that. You are designing the *contents of one
+  pane*, edge to edge, on a plain `--theme-background`.
+- The sign-in popover (handle / app-password / OAuth form). It is a shared widget from another module.
+  Draw only its trigger button in the signed-out state (§3.3).
+
+**What that pane is:** a scrolling column of `--theme-background` with the Ledger inside. It is shown
+at two widths and must work at both without horizontal clipping:
+
+- **860px** — the page on its own (desktop). Artboards at this width.
+- **380px** — the same page in a narrow pane (a phone, or a side pane on desktop). Artboards at this
+  width. There is no separate "mobile design": it is the one design reflowed.
+
+**Theme:** `Theme near-midnight`. Colours only from `var(--theme-…)`; fonts only `--serif`,
+`--sans-serif`, `--monospace`. Controls are `LopecodeDS.*` components. No hex. The feed used
+`--serif` for reading text and `--monospace` for bylines, metadata and buttons; keep that.
+
+## 2. What the page contains — the inventory
+
+Everything below exists in the shipped page today (source lines are into the module; screenshots
+`ledger-live-2026-08-29-1280.png` / `-390.png` in this zip show it at 1280 and 390). Nothing here is
+optional unless marked *(drop)*. The current page is cream-on-dark with zero theme tokens, a 1060px
+table clipped in a 390px pane, and its controls hand-drawn — that is what you are replacing.
+
+### 2.1 Identity (header, L17–57)
+
+| element | value today | note |
+|---|---|---|
+| avatar | `bskyProfile.avatar`, 64px | may be missing → monogram |
+| display name | `bskyProfile.displayName` ("tom larkworthy") | |
+| handle | `@larkworthy.bsky.social` | + a link out to `bsky.app/profile/<handle>` |
+| bio | `bskyProfile.description` ("Computers and decentralization.") | may be empty |
+| stats | `10 bundles · 93 modules · 316 files · 12.0M payload · 651 bsky.followers` | files = unique blobs |
+| DID | `did:plc:j7nm3lrd5h7fm3sfhcv3lhfv` | plumbing; must remain findable and copyable |
+| PDS host | `earthstar.us-east.host.bsky.network` | plumbing; may be null for non-`did:plc` |
+
+### 2.2 Publish cadence (L59–70, L90–122)
+
+A 12-week histogram of publishes, one bar per week, count label under bars, current week emphasised.
+Today it is a fixed 720px Plot frame showing two bars. *(You may shrink or replace it with a compact
+mark; you may not drop the information "when did this author last publish, how often".)*
+
+### 2.3 The bundle table (L792–869) — the centre of the page
+
+`Inputs.table` (DS `Table`), one row per published bundle, newest first, sortable by any column
+header. 30 rows before its internal scroller. Columns, in order, with their formats:
+
+| column | content | format |
+|---|---|---|
+| title | bundle title, a link to the live notebook (`webUrl`) | `(untitled)` when the record has none |
+| when | `createdAt` | `2026-07-11 15:11` |
+| bsky | companion Bluesky post | `♥49 ↻8` as a link when linked; a marked dot "not posted to Bluesky" when not; `…` while counts load |
+| files | file count | integer |
+| size | total bytes | `2.4M` / `12K` |
+| modules | count of `@user/name` JavaScript modules | integer |
+| rkey | record key | mono, e.g. `tomlarkworthy-virtual-monorepo` |
+| cid | content id | truncated `bafyreibup…` |
+
+Rows: whole-row click toggles selection when selectable; hover highlight; selected highlight.
+
+**Selection rule:** the table is **multi-select (checkbox column) only when the viewer is the owner**
+(§3.2). Visitors get no checkboxes and no bulk bar.
+
+Above the table: `com.lopecode.bundle · 10 records` (left) and a hint (right) that reads
+`click any header to sort` for visitors and `check rows to select · delete in bulk` for the owner.
+
+### 2.4 Owner tools — the bulk bar (L306–729)
+
+Appears **only** when `isOwner` **and** ≥1 row is selected. Sticky at the bottom of the pane. Two
+layers:
+
+**A. Selection summary + destructive action** (any selection count):
 
 ```
-header      avatar 64px · displayName (serif) · @handle ⇄ bsky link      did:plc:… / pds hostname (right)
-stat strip  10 bundles · 93 modules · 316 files · 12.0M payload · 651 bsky.followers
-bio         "Computers and decentralization."
-auth strip  ● SIGN IN TO MANAGE RECORDS · OR BROWSE A LEDGER BELOW   [view ______][View]   [● SIGN IN ▾]
-cadence     PUBLISH CADENCE · LAST 12 WEEKS   (Plot.rectY, 12 weekly bars, fixed 720px wide)
-table       COM.LOPECODE.BUNDLE · 10 RECORDS            click any header to sort
-            title | when | bsky | files | size | modules | rkey | cid      (Inputs.table, rows:30)
-bulk bar    (owner only, when rows selected) Delete N · bsky post URL + Compose/Link/Unlink ·
-            std.site URL/title/description + Publish/Unpublish · Cancel
+02 SELECTED   payload 4.8M · collection com.lopecode.bundle
+              action 2 × com.atproto.repo.deleteRecord [· promote <title>  when exactly 1]
+                                                       [cancel] [Delete 2 records]
 ```
 
-## Defects in the live render (2026-08-29)
+- `Delete N record(s)`: destructive. Native confirm today: *"Delete N bundle(s) from your atproto
+  repo? This cannot be undone."* Then the button reads `Deleting…`, both buttons disabled, and a status
+  reports `N deleted` or `N deleted · M failed`. Design the confirm, the in-progress and the result.
+- `cancel`: clears the selection.
 
-1. **Cream card in dark chrome.** 17 hex colours (100 uses), 30 literal `font-family` declarations,
-   zero `--theme-*` tokens (`grep -c -- '--theme'` → 0) — inside a notebook that boots the
-   *ocean-floor* dark theme. Same defect the feed had; fixed there by construction.
-2. **Unusable at 390px.** The table is 1060px wide in a 390px viewport and lopepage-2 clips instead of
-   scrolls, so 7 of 8 columns are unreachable; the did/pds block truncates mid-word ("east."); the
-   View button is off-screen; the cadence chart keeps its 720px width and is cropped.
-3. **Invisible input.** The "view" field renders light-on-light (theme input CSS assumes a dark ground).
-4. **Runtime leaks below the card.** `cadenceChart = SVGSVGElement`, `stats = Object {…}` render as
-   raw inspector rows under the page (visible in the 1280 render).
-5. **Plumbing in reading order.** `did:plc:…`, PDS hostname, rkey and cid columns sit in the header and
-   the table; a reader wants title, when, what it is.
-6. **The cadence chart says almost nothing.** Two bars in a 720×70 frame for this author; every author
-   today has ≤10 bundles.
-7. **Actions are spread over a 400-line bespoke bar** (L306–729): 8 buttons, 5 text fields, 1 textarea,
-   all hand-built `htl`. Only `Inputs.table` is an Observable Input.
-8. **No versions.** `com.lopecode.bundle.version` is documented in the notebook's own prose (L1077) but
-   never read; the feed already shows version chains, the author page does not.
+**B. Promote — only when exactly one row is selected.** Two sub-panels:
 
-## The new requirement: Ledger as an aside of the feed
+*B1. Bluesky companion post*
 
-Clicking an author's handle on the feed currently opens `bsky.app/profile/…` (feed `card` cell). It
-should open the author's Ledger **inline**: on desktop a panel beside the feed, on a phone stacked
-beneath the card list. Ledger will be bundled into the feed notebook for this (marginal cost 60 KB on a
-2.5 MB file: the feed already ships `at-login`, `at-write`, `atproto` and `lopepage-2`).
+```
+state line:   linked · https://bsky.app/profile/…/post/…      |  ● not posted
+row:          bsky  [Compose ↗] [URL input: https://bsky.app/profile/…/post/…] [Link | Change] [Unlink]
+message line: (below)
+```
 
-How lopecode does this today, so the panel is designed for what exists: a blog notebook
-(`@tomlarkworthy/lopecode-tour`, cell `aside`, L594–599) links to a lopepage-2 layout hash
-`#view=R100(S50(main),S50(other))`, which lopepage-2 renders as a horizontal flex split with a draggable
-divider and a tab strip per pane. Two constraints follow:
+- `Compose ↗` opens Bluesky's composer prefilled with the title + URL in a new tab, then focuses the
+  URL field and shows *"Composer opened — paste the resulting Bluesky URL."*
+- `Link` (reads `Change` when already linked) validates the pasted URL (*"paste a
+  https://bsky.app/profile/…/post/… URL first"*), shows `resolving…`, may open an OAuth permission
+  popup the first time (scope `repo:com.lopecode.bundle.crossRef`), then `✓ linked` or `error: …`.
+- `Unlink` only when linked; confirms *"Unlink Bluesky post from "<title>"?"*, then `unlinking…`,
+  `✓ unlinked`.
 
-- lopepage-2 has **no responsive behaviour** (`matchMedia|@media` → 0 hits in its source): a row
-  split stays side-by-side at 390px. "Underneath on mobile" is new work either in lopepage-2 or by
-  having the feed host the panel itself with a media query. Design the panel so it works as *both*: a
-  ~40% column at ≥1000px, full-width block under the list at ≤600px.
-- The panel is the ledger *module* rendered narrow, not a separate mini-design. One Ledger layout that
-  reflows from 380px (panel) to 860px (own page).
+*B2. standard.site publication (federated discovery) + vanity URL*
 
-States the aside needs: closed (today's feed); open beside the feed at 1280 with the clicked author;
-open beneath the list at 390; switching author (click a second handle — the panel re-targets, it does
-not stack); close affordance; loading (handle → DID → profile → bundles is 4 requests, ~1s).
+```
+row:     std.site ↗  [URL input, prefilled with the bundle's default web URL]  [▸ Publish… | ▸ Update… | ▾ Cancel]  [Unpublish]
+form:    (disclosed by ▸ Publish…)   title [text, prefilled]   desc [textarea, 3 rows, "description (shown in feeds)"]   [Publish]
+after:   at://did:plc:…/site.standard.document/<rkey>   (link, shown when published)
+message: (below)
+```
 
-## Constraints
+- On selection the page probes whether this bundle is already published (`getStdDoc`) and prefills
+  title/description from the existing record; the button reads `▸ Update…` and `Unpublish` appears
+  when it is. Probe failure: *"state check failed: …"*.
+- `Publish` validates an absolute URL (*"paste an absolute URL (https://…)"*, *"invalid URL"*), may
+  open one OAuth popup for three scopes, shows `publishing…`, then *"✓ published · indexers can
+  discover this bundle"* and collapses the form; or `error: …`.
+- `Unpublish` confirms *"Unpublish "<title>" from standard.site discovery? The bundle itself stays on
+  your PDS — only the site.standard.document is deleted."*, then `unpublishing…`, `✓ unpublished`.
+- If the URL differs from the default web URL it becomes the bundle's `webUrl` (the title link in the
+  table changes).
 
-- **Design system only.** Same rules as the feed: `LopecodeDS.*` for controls, `var(--theme-…)` for
-  every colour, the three DS font stacks (`--serif` reading text, `--monospace` plumbing/controls — the
-  shipped feed put its buttons on mono to match; keep that), `Theme near-midnight`. No hex.
-- **Same card grammar as the feed.** A bundle on the author page and a bundle on the feed are the same
-  thing; the reader should recognise it. Reuse the feed's byline/title/summary/actions/disclosures
-  vocabulary; do not reinvent a table grammar for the same record. (The dense table is the *owner's*
-  tool, see M4.)
-- **Two audiences on one page.** A visitor deciding what to open; the owner managing records. The owner
-  surface appears only when signed in as that DID (`isOwner`). Design both, and the transition
-  (sign in → same page, more affordances; no route change).
-- **Data is only what the record carries** — per bundle: `title`, `description`, `createdAt`, file
-  list (count, unique-blob size, module count), `cid`, `rkey`, `bskyPostUri` (+ like/repost/reply
-  counts via `getPosts`), `previousVersion` chain, standard.site link. Per author:
-  `handle`, `displayName`, `description`, `avatar`, `followersCount`, DID, PDS host. No views, no tags,
-  no follow button (there is no lopecode social graph).
-- **It will be rebuilt in htl + Observable Inputs**, so DS components are cheap and bespoke widgets
-  cost; name every bespoke widget you introduce (the feed brief's rule 4).
-- The page must also stand alone at `lopecode.com/@handle` — bookmarkable, and it is what a Bluesky
-  link card lands on.
+Controls to use: DS `Button`, `TextInput`, `TextareaInput`, `Form`. Messages are inline text, not
+toasts (the page has no toast system). Destructive buttons need a visibly different treatment; the DS
+`Button` has no variant prop, so state how (token-styled wrapper).
 
-## Must have
+### 2.5 Auth strip (L730–788) and "view another ledger"
 
-| # | feature | why |
-|---|---|---|
-| M1 | Dark, token-only Ledger under near-midnight, in the feed's vocabulary | defect 1; one theme everywhere |
-| M2 | Reflows 380 → 860px with no clipped content; the aside states above | defect 2; the new requirement |
-| M3 | Identity block: avatar, name, handle, bio, publish count, first/last published; DID + PDS demoted to a disclosure or copyable footer | defect 5 |
-| M4 | Visitor view = list of bundle cards (feed grammar, sorted newest); owner view = the dense selectable table with the bulk bar, as a DS `Table` | two audiences; the table is the management tool, not the reading view |
-| M5 | Owner actions as DS `Button`/`TextInput`/`TextareaInput`/`Form`: Delete N (destructive, confirm), link/unlink bsky post, publish/unpublish to standard.site, cancel selection | M7 of the feed brief said "signed-in actions live in Ledger" — this is that surface |
-| M6 | Sign-in state: signed-out invite (one line, not a banner), signed-in-as-owner marker, signed-in-as-someone-else (no owner tools) | `authStrip` L730–788 |
-| M7 | Version chain per bundle, same disclosure as the feed | defect 8 |
-| M8 | Search over the author's bundles (`Search`, columns title/module ids) once the list passes ~12 | feed parity |
+Three states of one strip:
 
-## Want
+| state | shows |
+|---|---|
+| signed out | `● sign in to manage records · or browse a ledger below` + the viewer form + the **sign-in trigger button** (`● sign in ▾`, opens the shared popover — not yours) |
+| signed in, own ledger | `● this is your ledger` (green marker) · `session · <handle>` · `scope · bundle:write, bundle:delete` · `select rows below to delete in bulk` + viewer form |
+| signed in, someone else's ledger | `● viewing another ledger` (muted marker) · `session · <handle>` · `scope · …` + viewer form; **no** owner tools |
 
-| # | feature | notes |
-|---|---|---|
-| W1 | Cadence as a small inline mark (sparkline-per-author or "N this month · N total") rather than the 720px histogram | defect 6; a chart is a bespoke widget — only if it earns its place |
-| W2 | "View another ledger" as a `TextInput` + `Button` at the foot, not a banner in the header | today it's the first control on the page |
-| W3 | Bluesky engagement (♥ ↻ 💬) on the card byline when a companion post exists | data is already fetched (`bskyEngagement`, L947) |
-| W4 | Empty states: author with 0 bundles; handle that does not resolve; DID with no PDS (`pds` null for non-`did:plc`) | all three occur |
-| W5 | Loading skeleton for the aside (4 sequential requests) | |
+Viewer form: `view [text: "did:plc:… or handle.bsky.social", prefilled with the current handle] [View]`
+— navigates to that author's ledger. Today it is the first control on the page; it can move (foot,
+disclosure) but must exist.
 
-## Not in scope
+Note the sign-in trigger renders as a 32px `● sign in ▾` button and, when signed in, a session chip
+`@handle · oauth · pkce` with a `sign out` inside its popover — draw only the trigger/chip.
 
-Editing a bundle's title (rename = delete + re-publish, unresolved in `specs/atproto.md` step 15).
-Follower graphs or social actions. Changing any atproto record shape. The lopepage-2 tab bar (it frames
-both pages; it is already dark).
+### 2.6 Bundle-level facts not shown today *(add)*
 
-## Deliverables
+- **Versions.** Each bundle has a `previousVersion` chain (`com.lopecode.bundle.version`); the feed
+  shows `vN` and a VERSIONS disclosure. The Ledger shows nothing. Add a version count/`vN` to the row
+  or a per-row disclosure; the owner table stays the primary surface.
+- **Description.** Records carry `description`; the table has no column for it. Show it somewhere a
+  visitor can read it (row expansion, or a second line under the title).
 
-1. Ledger page at 860px (own page): visitor, signed-in owner with 3 rows selected and the bulk bar
-   open, signed-in non-owner.
-2. Feed + Ledger aside at 1280 (panel beside the list) and at 390 (panel beneath), with the feed as
-   shipped in Lopefeed Dark.
-3. Ledger at 380px panel width: identity block, list, owner table (how does the 8-column table
-   survive — horizontal scroll inside the panel, or a column subset?).
-4. Empty and loading states (W4, W5).
-5. The list of bespoke widgets and why a DS component could not do each.
+### 2.7 Data available (nothing else exists)
 
-## Open questions
+Per bundle: `title`, `description`, `createdAt`, `files[] {id, mimeType, size}`, `cid`, `rkey`,
+`webUrl` / `defaultWebUrl`, `bsky {url, uri, linkedAt}` + `{likeCount, repostCount, replyCount}`,
+`standard {url}`, `previousVersion`. Per author: `handle`, `displayName`, `description`, `avatar`,
+`followersCount`, DID, PDS host. No view counts, no tags, no followers list, no follow button.
 
-- Should the owner's dense table replace the card list when signed in, or sit beneath it as a
-  "Manage" section? (Replace halves the page; beneath keeps the visitor view stable.)
-- Keep the "Ledger" name and the `com.lopecode.bundle · N records` ledger metaphor, or drop it with
-  the cream look as the feed dropped "№ / vol."?
+Loading: handle → DID → profile → bundles → crossRefs → engagement is 5 sequential requests (~1–2s).
+Caps: 100 bundles, no paging. Empty: an author with 0 bundles; a handle that does not resolve.
+
+## 3. Rules
+
+- **3.1 Reflow, never clip.** At 380px the 8-column table cannot fit. Decide and draw: horizontal
+  scroll inside the table, a column subset with the rest in a row disclosure, or a card-per-row
+  fallback. The bulk bar must also fit at 380px with all its controls reachable.
+- **3.2 Owner gating.** Selection checkboxes, bulk bar, promote panels: `isOwner` only. Everything
+  else identical for visitors and owners.
+- **3.3 Sign-in popover is out of scope**; its trigger is in.
+- **3.4 Plumbing demoted, not deleted.** DID, PDS, rkey, cid, at-URIs stay on the page in
+  `--monospace`, out of the first read (disclosure, footer, secondary column).
+- **3.5 Name every bespoke widget** (anything not a DS component and not plain text/layout) and say
+  why a DS component could not do it. Expected: avatar, cadence mark, sticky bar container, status
+  messages.
+- **3.6 Single page.** No routes, no modals other than the native confirms listed (you may propose an
+  inline confirm instead; say so).
+
+## 4. Deliverables — artboards, each named exactly
+
+At **860px**:
+
+1. `ledger-visitor-860` — signed out; identity, cadence, 10-row table, auth strip, viewer form.
+2. `ledger-owner-idle-860` — signed in as owner, nothing selected.
+3. `ledger-owner-selected-3-860` — 3 rows selected; bulk bar layer A only.
+4. `ledger-owner-selected-1-860` — 1 row selected; layers A + B1 + B2 with the std.site form
+   **disclosed** and the bundle **already linked and published** (`Change`/`Unlink`, `▸ Update…`,
+   `Unpublish`, at-URI visible).
+5. `ledger-owner-deleting-860` — confirm state and the `Deleting…` / `2 deleted · 1 failed` result.
+6. `ledger-other-860` — signed in, viewing someone else's ledger (no owner tools).
+
+At **380px**:
+
+7. `ledger-visitor-380`
+8. `ledger-owner-selected-1-380` — the full promote stack at narrow width.
+
+States (either width):
+
+9. `ledger-loading` — skeleton for the 5-request load.
+10. `ledger-empty` — author with 0 bundles; and `ledger-unresolved` — handle not found.
+
+Plus a text note: the bespoke-widget list (3.5) and the 380px table decision (3.1).
+
+## 5. Open questions (answer in the note, do not block on them)
+
+- May the cadence histogram become a one-line mark (`2 this month · 10 total · last 2026-07-11`)?
+- Should the promote panel (B) open as a per-row disclosure in the table instead of inside the sticky
+  bar? Both are acceptable; the sticky bar is what exists.
