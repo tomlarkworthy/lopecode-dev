@@ -87,6 +87,20 @@ scratch/rmbt/clt.js
 scratch/rmbt/clt2.js
 tools/usb-probe
 scratch/rmbt/calshots/*.gray
-tools/robocoop-5/rc5-bundle.html
-tools/robocoop-5/eval/polyglot/results/trajectories/
-tools/robocoop-5/eval/tau/results/trajectories/
+tools/.venv-unity/
+
+# Recovered Corepox originals: 2.8 GiB of Unity project, art, and the shipped
+# APK. The Unity tree also carries live GCP service-account keys, so none of it
+# goes near a commit.
+vendor/corepox/
+vendor/corepox_art/
+vendor/corepox_apk/
+vendor/android-sdk/
+vendor/corepox_cloud/
+
+# design-sync (claude.ai/design) machine state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
