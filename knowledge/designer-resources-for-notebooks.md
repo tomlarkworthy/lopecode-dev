@@ -105,6 +105,13 @@ overflow was defect 3 above.
   (path changes per Claude Code version), `chromium_headless_shell-1169` in
   `~/Library/Caches/ms-playwright/` (`npx playwright install` hung; a direct fetch of the zip worked).
 - `tokensGlob` is relative to the tokens *package*, not the repo.
+- Anything the design agent adds inside the project by hand (it added `/* @kind font */` on the
+  four font/spacing tokens and a root `LICENSE-THIRD-PARTY.md`, three times) is overwritten by the
+  next sync. Both now come from the repo (lopecode `b878009`): `build.mjs` annotates `--serif`,
+  `--sans-serif`, `--monospace` (`font`) and `--max-width` (`spacing`), and `guidelinesGlob:
+  ["LICENSE-THIRD-PARTY.md"]` ships the licence as `guidelines/LICENSE-THIRD-PARTY.md` — the only
+  plan path that carries a loose file (a user-supplied glob bypasses the converter's LICENSE
+  exclusion; a root path is outside the plan's writes).
 
 ## Not done
 
