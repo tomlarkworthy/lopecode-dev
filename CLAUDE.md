@@ -56,7 +56,13 @@ lopecode-dev/
 
 ### Knowledge Directory
 
-Detailed tool reference and workflow guides. Read the relevant file when you need specifics:
+Detailed tool reference and workflow guides. Read the relevant file when you need specifics.
+
+Each file's frontmatter carries a `scope:`. `local-development` means this checkout only;
+`in-notebook` additionally ships it into the `@tomlarkworthy/markdown-wiki` content blocks via
+`bun tools/sync-wiki.ts --write`. Both are enforced — `scripts/check-learnings-triggers.sh`
+rejects a doc with no scope or an unknown value, and `sync-wiki.ts` with no arguments exits
+nonzero when a notebook's copy differs from the tagged set.
 
 | File | When to read |
 |------|-------------|
@@ -97,6 +103,7 @@ Detailed tool reference and workflow guides. Read the relevant file when you nee
 | Export notebook via jumpgate | `lope-jumpgate.js` | ~7s |
 | Push cells to ObservableHQ | `node --experimental-vm-modules tools/lope-push-ws.js` | ~5s |
 | Push file attachments to ObservableHQ | `node tools/lope-push-files.js` (names are one-shot per document) | ~1s each |
+| **Ship the knowledge docs into the notebook wiki** | `sync-wiki.ts` — pushes every `scope: in-notebook` doc into `@tomlarkworthy/markdown-wiki`; no args = check, exit 1 on drift | ~3s |
 | Bulk export notebooks | `lope-bulk-jumpgate.js` | ~7s each |
 | Smoke test notebooks in Node.js | `bulk-smoke-test.js` | ~5s each |
 | QC bulk exports against reference | `bulk-export-qc.js` | Instant |

@@ -1,3 +1,9 @@
+---
+scope: [local-development, in-notebook]
+triggers:
+  - "^mcp__lopecode__(create_module|export_notebook|save_notebook)( |$)"
+---
+
 # Live Collaboration with Claude Code Pairing
 
 Pair program with Claude directly from a Lopecode notebook. Chat, watch reactive variables, define cells, manipulate the DOM, run tests — all through a two-way channel between the browser and Claude Code.
@@ -16,14 +22,31 @@ There are two entry points depending on where the user starts.
 
 ### Starting from Claude Code (CLI-first) — Preferred
 
-```bash
-# One-time setup (requires Bun: https://bun.sh)
-bun install -g @lopecode/channel
-claude mcp add lopecode bunx @lopecode/channel
+Install as a plugin. This route touches npm not at all — the repo is its own marketplace and
+`dist/` is committed, so the install is a clone with no build step:
 
-# Start Claude Code with channels enabled
+```
+/plugin marketplace add tomlarkworthy/lopecode-plugin
+/plugin install lopecode-channel@lopecode-plugins
+```
+
+Then restart with the channel enabled:
+
+```bash
+claude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins
+```
+
+Verified 2026-08-18 on Claude Code 2.1.233. The flag is what makes pairing two-way; without it
+Claude still drives the notebook, but the notebook's chat box reaches nobody. From npm instead:
+
+```bash
+claude mcp add lopecode -- npx -y @lopecode/channel
 claude --dangerously-load-development-channels server:lopecode
 ```
+
+A plugin install runs from a fresh clone with no `node_modules`, so playwright is not resolvable
+and the nine `qa_*` browser tools are absent — 21 tools rather than 30. `open_url` does not need
+playwright, so pairing is unaffected.
 
 Then ask Claude: **"Open a lopecode notebook"**
 
@@ -41,17 +64,16 @@ claude --dangerously-load-development-channels server:lopecode
 
 If you see the `@tomlarkworthy/claude-code-pairing` module panel in a notebook but don't have Claude Code connected:
 
-1. **Install Bun** if you don't have it: https://bun.sh
-2. **Install the channel plugin**:
-   ```bash
-   bun install -g @lopecode/channel
-   claude mcp add lopecode bunx @lopecode/channel
+1. **Install the plugin** in Claude Code:
    ```
-3. **Start Claude Code with channels**:
-   ```bash
-   claude --dangerously-load-development-channels server:lopecode
+   /plugin marketplace add tomlarkworthy/lopecode-plugin
+   /plugin install lopecode-channel@lopecode-plugins
    ```
-4. **Ask Claude** to connect to your notebook. Claude will provide a `&cc=TOKEN` URL — paste it into your notebook's address bar, or ask Claude to open a fresh notebook.
+2. **Restart Claude Code with the channel enabled**:
+   ```bash
+   claude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins
+   ```
+3. **Ask Claude** to connect to your notebook. Claude will provide a `&cc=TOKEN` URL — paste it into your notebook's address bar, or ask Claude to open a fresh notebook.
 
 The pairing module panel shows connection status. When connected, you'll see a chat interface and a watch table showing live variable values.
 
@@ -61,7 +83,7 @@ The pairing module panel shows connection status. When connected, you'll see a c
 Browser (Notebook)  ←→  WebSocket  ←→  Channel Server (Bun)  ←→  MCP stdio  ←→  Claude Code
 ```
 
-- **Channel Server** (`tools/channel/lopecode-channel.ts`): Bridges WebSocket to MCP. Translates MCP tool calls into WebSocket commands, and WebSocket notifications into MCP notifications. Stateless — all intelligence is in the notebook module and runtime-sdk.
+- **Channel Server** (`lopecode-plugin/src/lopecode-channel.ts`): Bridges WebSocket to MCP. Translates MCP tool calls into WebSocket commands, and WebSocket notifications into MCP notifications. Stateless — all intelligence is in the notebook module and runtime-sdk.
 - **Notebook Module** (`@tomlarkworthy/claude-code-pairing`): Observable module with chat UI, watch table, command handler. Dispatches commands to runtime-sdk functions.
 - **Runtime SDK** (`@tomlarkworthy/runtime-sdk`): The authoritative implementation of metaprogramming operations — `realize`, `observe`, `createModule`, `deleteModule`, `lookupVariable`, etc. The channel module calls these; it does not reimplement them.
 
@@ -141,7 +163,7 @@ These are the tools Claude sees. Each is a thin wrapper that sends a command to 
 Notebooks can declare MCP tools that Claude Code discovers at runtime. These appear in Claude's tool list alongside the static tools above. See `knowledge/development-of-pairing-channel-and-claude-plugin.md` for full architecture details.
 
 Currently registered dynamic tools:
-- **`setup_file_sync`** — declared by `@tomlarkworthy/file-sync`, returns sync status and auto-watches `syncStatus`
+- **`setup_file_sync`** — declared by `@tomlarkworthy/claude-code-pairing` (not by file-sync: a provider cell only runs where something observes it, and file-sync is a bootconf main in 1 notebook of 232), returns sync status and auto-watches `syncStatus`
 
 Dynamic tools are registered during the WebSocket pair handshake and updated via `register-tools` messages. The channel server emits `notifications/tools/list_changed` so Claude refreshes its tool list. Tool calls are routed back to the originating notebook's handler.
 
@@ -364,7 +386,7 @@ User says "pair without a browser" or `/pair-headless <notebook>`. The `pair-hea
 The host writes a PID file at `/tmp/lope-headless-<TOKEN>.pid` and self-terminates when the pairing WebSocket to the channel server closes (channel down → host gone, no leak). `/pair-stop` reads the PID file and SIGTERMs the host. Use this when running long automated authoring sessions where keeping a foreground tab is disruptive; keep the headed flow (1) for visual debugging.
 
 ### 2. Initial connection (notebook-first)
-User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install Bun, install the channel plugin, start Claude Code with `--dangerously-load-development-channels server:lopecode`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
+User opens a lopecode notebook and sees the claude-code-pairing panel but has no connection. The panel shows setup instructions: install the plugin from the marketplace, then start Claude Code with `--dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins`. Once Claude is running, the user asks Claude to connect and the notebook auto-pairs.
 
 ### 3. Convert web notebook to local file
 User has a notebook open from GitHub Pages. Guide them to open the exporter-2 panel (`&open=@tomlarkworthy/exporter-2`) and use the fork button to save to disk.
@@ -466,7 +488,7 @@ tools/channel/
 - **Delete module support** — implement `delete_module` MCP tool + runtime-sdk `deleteModule` function
 - **Marketplace submission** — submit plugin to Claude's marketplace or self-host
 - **Hash param preservation** — fix bootloader hash mangling ([#140](https://github.com/tomlarkworthy/lopecode/issues/140))
-- **File-sync "defined more than once" bug** — when file-sync applies a module containing import bridges, `filesToNotebook` can hit duplicate definitions. See `plan/claude-pairing-notebook-file-sync.md` Step 6
+- **File-sync "defined more than once"** — `filesToNotebook` re-applies a module wholesale, so the import bridges and module defines that sit outside the `$def` pattern re-run as side effects of `define()` and redefine names that already exist (`RuntimeError: <name> is defined more than once`). Recorded fix direction: only `$def`-registered cells carry a `pid` and should be synced — structural wiring should never come back from disk. Still open 2026-08-17: `filesToNotebook` has no `"@variable"` or `"module @"` guard. Hits any sync set where one module imports another, so it is not specific to pairing
 
 ## Development
 
@@ -475,7 +497,7 @@ tools/channel/
 Integration tests exercise the WebSocket protocol (pairing, commands, notifications, health endpoint) by spawning the channel server as a subprocess and connecting via plain WebSocket. No browser or Claude Code needed.
 
 ```bash
-bun test tests/channel/lopecode-channel.test.ts
+bun test lopecode-plugin/tests/lopecode-channel.test.ts
 ```
 
 ### Local Testing (manual)
@@ -483,7 +505,7 @@ bun test tests/channel/lopecode-channel.test.ts
 Start the server standalone and connect a notebook:
 
 ```bash
-bun run tools/channel/lopecode-channel.ts
+bun run lopecode-plugin/src/lopecode-channel.ts
 # stderr shows: pairing token: LOPE-PORT-XXXX
 # Check http://127.0.0.1:PORT/health for connection status
 ```

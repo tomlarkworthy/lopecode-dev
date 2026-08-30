@@ -36,6 +36,12 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, watch, statSync }
 import { resolve, extname, relative, join } from "path";
 import { Glob } from "bun";
 import { loadIndex, saveIndex, loadCanonical, shaOfBlock, deriveIndex, reposOf } from "../lope-sync.ts";
+import {
+  blockSpans, findSpan, rawBlock, blockContent, insideABlock, nestedOpeners, guardedWrite,
+} from "../lib/notebook-blocks.ts";
+
+// Re-exported: the block locator moved to tools/lib/notebook-blocks.ts, importers keep working.
+export { blockSpans, guardedWrite, nestedOpeners };
 
 const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -114,21 +120,11 @@ function expandTargets(rawTargets: string[], sourcePath: string): string[] {
 }
 
 export function extractModuleScriptTag(html: string, moduleId: string): string | null {
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
-  );
-  const m = html.match(pattern);
-  return m ? m[0] : null;
+  return rawBlock(html, moduleId);
 }
 
 export function extractModuleContent(html: string, moduleId: string): string | null {
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>([\\s\\S]*?)</script>`
-  );
-  const m = html.match(pattern);
-  return m ? m[1].replace(/^\n/, "").replace(/\n$/, "") : null;
+  return blockContent(html, moduleId);
 }
 
 /**
@@ -166,30 +162,35 @@ export function inject(
 ): InjectResult {
   let html = readFileSync(targetPath, "utf8");
 
-  const escaped = moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const scriptPattern = new RegExp(
-    `<script\\s+id="${escaped}"[^>]*>[\\s\\S]*?</script>`
-  );
-  const existing = html.match(scriptPattern);
+  const span = findSpan(html, moduleId);
 
   let next: string;
   let kind: InjectResult;
-  if (existing) {
-    if (existing[0] === scriptBlock) return "unchanged";
-    const idx = html.indexOf(existing[0]);
-    next = html.slice(0, idx) + scriptBlock + html.slice(idx + existing[0].length);
+  if (span) {
+    const existing = html.slice(span.start, span.end);
+    if (existing === scriptBlock) return "unchanged";
+    next = html.slice(0, span.start) + scriptBlock + html.slice(span.end);
     kind = "updated";
   } else {
     if (!insertOk) return "skipped";
-    const bootconfMarker = "<!-- Bootloader -->";
-    const bootconfIdx = html.lastIndexOf(bootconfMarker);
+    // First marker OUTSIDE any block: exporter-3's source carries a second one,
+    // and the lastIndexOf this used to do selected that phantom, splicing the
+    // insert into the middle of exporter-3. See blockSpans.
+    const marker = "<!-- Bootloader -->";
+    let bootconfIdx = -1;
+    for (let from = 0; ; ) {
+      const at = html.indexOf(marker, from);
+      if (at === -1) break;
+      if (!insideABlock(html, at)) { bootconfIdx = at; break; }
+      from = at + marker.length;
+    }
     if (bootconfIdx === -1) {
-      throw new Error("Could not find '<!-- Bootloader -->' marker in HTML");
+      throw new Error("Could not find a document-level '<!-- Bootloader -->' marker in HTML");
     }
     next = html.slice(0, bootconfIdx) + scriptBlock + "\n\n" + html.slice(bootconfIdx);
     kind = "inserted";
   }
-  writeFileSync(targetPath, next);
+  guardedWrite(targetPath, html, next, scriptBlock, `inject(${moduleId})`);
   return kind;
 }
 
@@ -273,6 +274,35 @@ function extractToJs(targetPath: string, moduleId: string, jsPath: string): void
   console.log(`Extracted ${moduleId} from ${targetPath} → ${jsPath}`);
 }
 
+/**
+ * A module's attachments are separate `<script id="<module>/<name>">` blocks, and a
+ * `--source` .js working copy contains none of them — so inserting a module into a
+ * notebook that never had it left the attachments behind and the module dead at
+ * boot (measured: installing `@tomlarkworthy/prosemirror` gave two
+ * `missing-attachment` findings from lope-preflight). Carry them from the declared
+ * canonical, which is the only place they are known to be current. Only blocks this
+ * module *owns*; a missing dependency module is a different repair
+ * (`--all-canonical --carry-deps`) and preflight names it either way.
+ */
+function carryOwnedBlocks(moduleId: string, targetPath: string): string[] {
+  const decl = loadCanonical()[moduleId];
+  if (!decl) return [];
+  const tRel = relative(REPO_ROOT, targetPath);
+  const repo = tRel.split("/")[0];
+  const canonRel = decl[repo] ?? Object.values(decl)[0];
+  const canonHtml = readFileSync(join(REPO_ROOT, canonRel), "utf8");
+  const carried: string[] = [];
+  for (const id of ownedBlockIds(canonHtml, moduleId)) {
+    if (idsIn(targetPath).has(id)) continue;
+    const b = rawBlock(canonHtml, id);
+    if (b && insertBefore(targetPath, moduleId, b)) {
+      idCache.delete(targetPath);
+      carried.push(id.slice(moduleId.length + 1));
+    }
+  }
+  return carried;
+}
+
 function syncAll(
   sourcePath: string,
   targetPaths: string[],
@@ -293,13 +323,16 @@ function syncAll(
       console.log(`Skipped ${t}: no <script id="${moduleId}"> block (pass --insert-ok to add the module to this target)`);
       return;
     }
-    const size = (statSync(t).size / 1024 / 1024).toFixed(2);
     console.log(
       result === "updated"
         ? `Updated existing ${moduleId} module`
         : `Inserted new ${moduleId} module`
     );
-    console.log(`Wrote ${t} (${size} MB)`);
+    if (result === "inserted") {
+      const carried = carryOwnedBlocks(moduleId, t);
+      if (carried.length) console.log(`  carried ${carried.length} attachment(s): ${carried.join(", ")}`);
+    }
+    console.log(`Wrote ${t} (${(statSync(t).size / 1024 / 1024).toFixed(2)} MB)`);
     return;
   }
 
@@ -308,7 +341,7 @@ function syncAll(
     try {
       const r = inject(scriptBlock, target, moduleId, insertOk);
       if (r === "updated") updated++;
-      else if (r === "inserted") inserted++;
+      else if (r === "inserted") { inserted++; carryOwnedBlocks(moduleId, target); }
       else if (r === "skipped") skipped++;
       else unchanged++;
       if (verbose) console.log(`${r.padEnd(9)} ${target}`);
@@ -344,7 +377,7 @@ function attachmentsOf(src: string): string[] {
  *  only module blocks (JS mime, <=2 path segments), so it cannot see attachments —
  *  using it here made every attachment look absent. */
 function allIds(html: string): string[] {
-  return [...html.matchAll(/<script\s+id="([^"]+)"/g)].map((m) => m[1]);
+  return blockSpans(html).map((s) => s.id);
 }
 
 /** Every block id the canonical owns by prefix — its attachments plus any content
@@ -360,7 +393,8 @@ function insertBefore(targetPath: string, moduleId: string, block: string): bool
   const anchor = extractModuleScriptTag(html, moduleId);
   if (!anchor) return false;
   const at = html.indexOf(anchor);
-  writeFileSync(targetPath, html.slice(0, at) + block + "\n\n" + html.slice(at));
+  const next = html.slice(0, at) + block + "\n\n" + html.slice(at);
+  guardedWrite(targetPath, html, next, block, `insertBefore(${moduleId})`);
   return true;
 }
 
@@ -371,12 +405,6 @@ function idsIn(path: string): Set<string> {
   let s = idCache.get(path);
   if (!s) idCache.set(path, (s = new Set(allIds(readFileSync(path, "utf8")))));
   return s;
-}
-
-function rawBlock(html: string, id: string): string | null {
-  const esc = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const m = html.match(new RegExp(`<script\\s+id="${esc}"[^>]*>[\\s\\S]*?</script>`));
-  return m ? m[0] : null;
 }
 
 export type ResyncOpts = {

@@ -1,0 +1,365 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Corepox spike — SVG + piloting</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1014;color:#c9d3dd;
+            font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #wrap{display:flex;height:100%}
+  #stage{flex:1;min-width:0}
+  #hud{width:290px;padding:12px;border-left:1px solid #222a33;overflow:auto}
+  h1{font-size:13px;margin:0 0 10px;color:#e8eef5;letter-spacing:.04em}
+  .row{display:flex;justify-content:space-between;padding:2px 0}
+  .k{color:#7d8b99}
+  .v{color:#e8eef5}
+  .good{color:#5fd08a}.bad{color:#e8635a}
+  hr{border:0;border-top:1px solid #222a33;margin:10px 0}
+  button{background:#1a2029;color:#c9d3dd;border:1px solid #2d3742;padding:4px 8px;
+         border-radius:3px;cursor:pointer;font:inherit;margin:2px 2px 2px 0}
+  button:hover{background:#232b36}
+  svg{display:block;width:100%;height:100%}
+</style>
+<div id="wrap">
+  <div id="stage"><svg id="svg" viewBox="-60 -40 120 80" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <div id="hud">
+    <h1>COREPOX SPIKE</h1>
+    <div class="row"><span class="k">fps</span><span class="v" id="fps">–</span></div>
+    <div class="row"><span class="k">sim ms/frame</span><span class="v" id="simms">–</span></div>
+    <div class="row"><span class="k">dom ms/frame</span><span class="v" id="domms">–</span></div>
+    <div class="row"><span class="k">svg nodes</span><span class="v" id="nodes">–</span></div>
+    <div class="row"><span class="k">ships</span><span class="v" id="nships">–</span></div>
+    <hr>
+    <div class="row"><span class="k">seeker→target</span><span class="v" id="dist">–</span></div>
+    <div class="row"><span class="k">closed</span><span class="v" id="closed">–</span></div>
+    <div class="row"><span class="k">bearing</span><span class="v" id="bearing">–</span></div>
+    <hr>
+    <button onclick="reset(1)">1 duel</button>
+    <button onclick="reset(8)">8</button>
+    <button onclick="reset(24)">24</button>
+    <button onclick="reset(60)">60</button>
+    <hr>
+    <div id="verdict" style="white-space:pre-wrap;color:#7d8b99"></div>
+  </div>
+</div>
+<script>
+// ---------------------------------------------------------------------------
+// Conventions (the single fix for the original's two cancelling systems):
+//   SVG coords, +Y is DOWN.  Heading a is DEGREES, 0 = screen-up, +ve = clockwise.
+//   unit(a) = (sin a, -cos a).   2D cross rx*Fy - ry*Fx is +ve clockwise, matching a.
+// ---------------------------------------------------------------------------
+const D = Math.PI / 180, TILE = 1.0, DT = 0.02;
+const unit = a => [Math.sin(a * D), -Math.cos(a * D)];
+const norm = a => { a %= 360; if (a > 180) a -= 360; if (a < -180) a += 360; return a; };
+const DIR = { up: 0, right: 90, down: 180, left: 270 };
+
+// --- component vocabulary (recovered mechanism set, invented stats) ---------
+const TYPES = {
+  Brain:    { hp: 50,  fill: '#e8c95f', ins: [],            outs: [] },
+  Constant: { hp: 50,  fill: '#4a5866', ins: [],            outs: ['out'] },
+  Binary:   { hp: 50,  fill: '#6b8fb5', ins: ['a', 'b'],    outs: ['out'] },
+  Radar:    { hp: 50,  fill: '#5fd08a', ins: [],            outs: ['dist', 'bearing'] },
+  Engine:   { hp: 50,  fill: '#e8825a', ins: ['in'],        outs: [] },
+  Lazer:    { hp: 95,  fill: '#e8635a', ins: ['in'],        outs: [] },
+  Armour:   { hp: 150, fill: '#39434e', ins: [],            outs: [] },
+};
+
+let uid = 0;
+class Ship {
+  constructor(spec, team, x, y, a) {
+    this.id = ++uid; this.team = team; this.name = spec.name;
+    this.x = x; this.y = y; this.a = a; this.vx = 0; this.vy = 0; this.w = 0;
+    this.dead = false;
+    this.comps = spec.components.map((c, i) => ({
+      i, type: c.type, px: c.pos[0], py: c.pos[1], dir: DIR[c.dir ?? 'up'],
+      hp: c.hp ?? TYPES[c.type].hp, param: c.param,
+      out: {}, in: {}, t: 0,
+    }));
+    this.conns = (spec.connections ?? []).map(c => ({ ...c }));
+    this.reindex();
+    this.order = this.topo();
+  }
+  reindex() {
+    this.live = this.comps.filter(c => c.hp > 0);
+    this.mass = Math.max(0.1, this.live.length * 0.1);
+    let cx = 0, cy = 0;
+    for (const c of this.live) { cx += c.px; cy += c.py; }
+    this.cx = this.live.length ? cx / this.live.length : 0;
+    this.cy = this.live.length ? cy / this.live.length : 0;
+    let I = 0;
+    for (const c of this.live) {
+      const dx = (c.px - this.cx) * TILE, dy = (c.py - this.cy) * TILE;
+      I += 0.1 * (dx * dx + dy * dy);
+    }
+    this.I = Math.max(0.05, I);
+    this.alive = this.live.some(c => c.type === 'Brain');
+  }
+  // deps: a component depends on whatever feeds its inputs
+  topo() {
+    const at = new Map(this.comps.map(c => [c.px + ',' + c.py, c]));
+    const dep = new Map(this.comps.map(c => [c.i, []]));
+    for (const k of this.conns) {
+      const src = at.get(k.from[0] + ',' + k.from[1]), dst = at.get(k.to[0] + ',' + k.to[1]);
+      if (src && dst) dep.get(dst.i).push(src.i);
+    }
+    const seen = new Set(), out = [];
+    const visit = (i, stack) => {
+      if (seen.has(i)) return;
+      if (stack.has(i)) return;            // cycle: use last tick's value
+      stack.add(i);
+      for (const d of dep.get(i)) visit(d, stack);
+      stack.delete(i); seen.add(i); out.push(i);
+    };
+    for (const c of this.comps) visit(c.i, new Set());
+    return out;
+  }
+  worldOf(c) {
+    const [s, k] = [Math.sin(this.a * D), Math.cos(this.a * D)];
+    const lx = (c.px - this.cx) * TILE, ly = -(c.py - this.cy) * TILE;
+    return [this.x + lx * k - ly * s, this.y + lx * s + ly * k];
+  }
+  force(wx, wy, fx, fy) {
+    this.vx += fx / this.mass * DT; this.vy += fy / this.mass * DT;
+    const rx = wx - this.x, ry = wy - this.y;
+    this.w += (rx * fy - ry * fx) / this.I * DT / D;
+  }
+  integrate() {
+    const d = 1 / (1 + 1.0 * DT);
+    this.vx *= d; this.vy *= d; this.w *= d;
+    this.x += this.vx * DT; this.y += this.vy * DT; this.a = norm(this.a + this.w * DT);
+  }
+}
+
+// --- world -----------------------------------------------------------------
+let ships = [], beams = [], frame = 0, startDist = 0;
+
+function nearestEnemy(ship, wx, wy) {
+  let best = null, bd = Infinity;
+  for (const s of ships) {
+    if (s.team === ship.team || !s.alive) continue;
+    for (const c of s.live) {
+      const [px, py] = s.worldOf(c);
+      const d = (px - wx) ** 2 + (py - wy) ** 2;
+      if (d < bd) { bd = d; best = [px, py, s, c]; }
+    }
+  }
+  return best ? { x: best[0], y: best[1], ship: best[2], comp: best[3], d: Math.sqrt(bd) } : null;
+}
+
+function step() {
+  beams.length = 0;
+  for (const ship of ships) {
+    if (!ship.alive) continue;
+    // 1. propagate wires from last tick's outputs
+    const at = new Map(ship.comps.map(c => [c.px + ',' + c.py, c]));
+    for (const k of ship.conns) {
+      const src = at.get(k.from[0] + ',' + k.from[1]), dst = at.get(k.to[0] + ',' + k.to[1]);
+      if (!src || !dst || src.hp <= 0 || dst.hp <= 0) continue;
+      dst.in[k.toPort ?? TYPES[dst.type].ins[0]] = src.out[k.fromPort ?? TYPES[src.type].outs[0]];
+    }
+    // 2. evaluate in dependency order
+    for (const i of ship.order) {
+      const c = ship.comps[i];
+      if (c.hp <= 0) continue;
+      evaluate(ship, c);
+    }
+    ship.integrate();
+  }
+  // 3. beams damage
+  for (const b of beams) {
+    const hit = nearestEnemy(b.ship, b.x, b.y);
+    if (hit && hit.d < b.len) {
+      const bearing = norm(Math.atan2(hit.x - b.x, -(hit.y - b.y)) / D - b.a);
+      if (Math.abs(bearing) < 6) {
+        hit.comp.hp -= b.dmg; b.hx = hit.x; b.hy = hit.y;
+        if (hit.comp.hp <= 0) hit.ship.reindex();
+      }
+    }
+  }
+  frame++;
+}
+
+function evaluate(ship, c) {
+  switch (c.type) {
+    case 'Constant': c.out.out = +(c.param ?? 100); break;
+    case 'Binary': {
+      const a = c.in.a ?? 0, b = c.in.b ?? 0;
+      const f = c.param ?? 'PLUS';
+      c.out.out = f === 'PLUS' ? a + b : f === 'MINUS' ? a - b
+        : f === 'TIMES' ? a * b : f === 'DIVIDE' ? (b !== 0 ? a / b : 1)
+        : f === 'LT' ? (a < b ? 1 : 0) : f === 'GT' ? (a > b ? 1 : 0)
+        : f === 'EQ' ? (a === b ? 1 : 0) : f === 'AND' ? Math.min(a, b) : Math.max(a, b);
+      break;
+    }
+    case 'Radar': {
+      const [wx, wy] = ship.worldOf(c);
+      const n = nearestEnemy(ship, wx, wy);
+      if (!n) { c.out.dist = NaN; c.out.bearing = NaN; break; }
+      c.out.dist = n.d;
+      c.out.bearing = norm(Math.atan2(n.x - wx, -(n.y - wy)) / D - (ship.a + c.dir));
+      break;
+    }
+    case 'Engine': {
+      const v = c.in.in;
+      if (Number.isNaN(v) || v == null) break;
+      const f = Math.max(0, Math.min(100, v)) / 100;
+      if (f <= 0) break;
+      const [wx, wy] = ship.worldOf(c);
+      const [ux, uy] = unit(ship.a + c.dir);
+      ship.force(wx, wy, ux * f, uy * f);
+      c.thrust = f;
+      break;
+    }
+    case 'Lazer': {
+      c.t += DT;
+      const v = c.in.in;
+      if (c.t > 1.0 && v > 0) {
+        c.t = 0;
+        const [wx, wy] = ship.worldOf(c);
+        beams.push({ ship, x: wx, y: wy, a: ship.a + c.dir, len: 100, dmg: 5, life: 3 });
+      }
+      break;
+    }
+  }
+}
+
+// --- ship designs ----------------------------------------------------------
+// A real Corepox program: radar bearing drives differential thrust.
+// Engine on the LEFT rear torques clockwise (nose right), so fire it when bearing > 0.
+const SEEKER = {
+  name: 'seeker',
+  components: [
+    { type: 'Brain',    pos: [0, 0] },
+    { type: 'Radar',    pos: [0, 1] },
+    { type: 'Constant', pos: [2, 1], param: '100' },
+    { type: 'Binary',   pos: [1, 1], param: 'GT' },      // bearing > 0  -> turn right
+    { type: 'Binary',   pos: [-1, 1], param: 'LT' },     // bearing < 0  -> turn left
+    { type: 'Binary',   pos: [1, 0], param: 'TIMES' },   // gate * 100
+    { type: 'Binary',   pos: [-1, 0], param: 'TIMES' },
+    { type: 'Engine',   pos: [-1, -1] },                 // left rear  -> clockwise
+    { type: 'Engine',   pos: [1, -1] },                  // right rear -> anticlockwise
+    { type: 'Engine',   pos: [0, -1] },                  // centre: forward
+    { type: 'Lazer',    pos: [0, 2] },
+    { type: 'Armour',   pos: [0, -2] },
+  ],
+  connections: [
+    { from: [0, 1], fromPort: 'bearing', to: [1, 1], toPort: 'a' },
+    { from: [0, 1], fromPort: 'bearing', to: [-1, 1], toPort: 'a' },
+    { from: [1, 1], fromPort: 'out', to: [1, 0], toPort: 'a' },
+    { from: [2, 1], fromPort: 'out', to: [1, 0], toPort: 'b' },
+    { from: [-1, 1], fromPort: 'out', to: [-1, 0], toPort: 'a' },
+    { from: [2, 1], fromPort: 'out', to: [-1, 0], toPort: 'b' },
+    { from: [1, 0], fromPort: 'out', to: [-1, -1], toPort: 'in' },  // right-gate -> LEFT engine
+    { from: [-1, 0], fromPort: 'out', to: [1, -1], toPort: 'in' },  // left-gate  -> RIGHT engine
+    { from: [2, 1], fromPort: 'out', to: [0, -1], toPort: 'in' },   // always-on forward
+    { from: [2, 1], fromPort: 'out', to: [0, 2], toPort: 'in' },    // always-fire lazer
+  ],
+};
+const DRONE = {
+  name: 'drone',
+  components: [
+    { type: 'Brain', pos: [0, 0] }, { type: 'Armour', pos: [0, 1] },
+    { type: 'Armour', pos: [1, 0] }, { type: 'Armour', pos: [-1, 0] },
+    { type: 'Armour', pos: [0, -1] },
+  ],
+  connections: [],
+};
+
+// --- render ----------------------------------------------------------------
+const svg = document.getElementById('svg');
+const nodes = new Map();
+function build() {
+  svg.innerHTML = '';
+  nodes.clear();
+  for (const s of ships) {
+    const g = document.createElementNS(svg.namespaceURI, 'g');
+    for (const c of s.comps) {
+      const r = document.createElementNS(svg.namespaceURI, 'rect');
+      r.setAttribute('x', (c.px - 0.45)); r.setAttribute('y', (-c.py - 0.45));
+      r.setAttribute('width', .9); r.setAttribute('height', .9);
+      r.setAttribute('rx', .15);
+      r.setAttribute('fill', TYPES[c.type].fill);
+      r.setAttribute('stroke', s.team === 'a' ? '#7fd8ff' : '#ff9a7f');
+      r.setAttribute('stroke-width', .06);
+      g.appendChild(r); c.node = r;
+    }
+    svg.appendChild(g); nodes.set(s, g);
+  }
+  const bl = document.createElementNS(svg.namespaceURI, 'g');
+  bl.id = 'beams'; svg.appendChild(bl);
+}
+function draw() {
+  for (const s of ships) {
+    const g = nodes.get(s);
+    g.setAttribute('transform',
+      `translate(${s.x.toFixed(2)} ${s.y.toFixed(2)}) rotate(${s.a.toFixed(1)}) ` +
+      `translate(${(-s.cx).toFixed(2)} ${s.cy.toFixed(2)})`);
+    for (const c of s.comps) {
+      if (c.hp <= 0 && c.node.style.display !== 'none') c.node.style.display = 'none';
+    }
+  }
+  const bl = document.getElementById('beams');
+  bl.innerHTML = '';
+  for (const b of beams) {
+    const [ux, uy] = unit(b.a);
+    const l = document.createElementNS(svg.namespaceURI, 'line');
+    l.setAttribute('x1', b.x.toFixed(2)); l.setAttribute('y1', b.y.toFixed(2));
+    l.setAttribute('x2', (b.hx ?? b.x + ux * 30).toFixed(2));
+    l.setAttribute('y2', (b.hy ?? b.y + uy * 30).toFixed(2));
+    l.setAttribute('stroke', '#e8635a'); l.setAttribute('stroke-width', .12);
+    l.setAttribute('opacity', .85);
+    bl.appendChild(l);
+  }
+}
+
+// --- loop + measurement ----------------------------------------------------
+let simT = 0, domT = 0, frames = 0, last = performance.now(), fpsAcc = [];
+function reset(n) {
+  uid = 0; ships = []; frame = 0;
+  for (let i = 0; i < n; i++) {
+    const R = 28 + (i % 4) * 5, th = (i / n) * Math.PI * 2;
+    ships.push(new Ship(SEEKER, 'a', Math.cos(th) * R, Math.sin(th) * R, norm(-th / D + 90)));
+    ships.push(new Ship(DRONE, 'b', Math.cos(th + 0.4) * -R * .5, Math.sin(th + 0.4) * -R * .5, 0));
+  }
+  build();
+  startDist = dist();
+  document.getElementById('nships').textContent = ships.length;
+  document.getElementById('verdict').textContent = '';
+}
+function dist() {
+  const s = ships.find(s => s.name === 'seeker' && s.alive);
+  const n = s && nearestEnemy(s, s.x, s.y);
+  return n ? n.d : NaN;
+}
+function tick() {
+  const t0 = performance.now();
+  step();
+  const t1 = performance.now();
+  draw();
+  const t2 = performance.now();
+  simT += t1 - t0; domT += t2 - t1; frames++;
+  if (frames >= 30) {
+    const now = performance.now(), fps = 30000 / (now - last);
+    fpsAcc.push(fps); if (fpsAcc.length > 8) fpsAcc.shift();
+    const med = [...fpsAcc].sort((a, b) => a - b)[fpsAcc.length >> 1];
+    document.getElementById('fps').textContent = med.toFixed(0);
+    document.getElementById('simms').textContent = (simT / frames).toFixed(2);
+    document.getElementById('domms').textContent = (domT / frames).toFixed(2);
+    document.getElementById('nodes').textContent = svg.querySelectorAll('*').length;
+    const d = dist();
+    document.getElementById('dist').textContent = isNaN(d) ? '–' : d.toFixed(1);
+    const closed = ((startDist - d) / startDist * 100);
+    const ce = document.getElementById('closed');
+    ce.textContent = isNaN(closed) ? '–' : closed.toFixed(0) + '%';
+    ce.className = 'v ' + (closed > 50 ? 'good' : closed > 0 ? '' : 'bad');
+    const s = ships.find(s => s.name === 'seeker' && s.alive);
+    const rad = s && s.comps.find(c => c.type === 'Radar');
+    document.getElementById('bearing').textContent =
+      rad && !isNaN(rad.out.bearing) ? rad.out.bearing.toFixed(1) + '°' : '–';
+    window.__spike = { fps: med, sim: simT / frames, dom: domT / frames, closed, dist: d,
+                       nodes: svg.querySelectorAll('*').length, ships: ships.length, frame };
+    simT = domT = frames = 0; last = now;
+  }
+  requestAnimationFrame(tick);
+}
+reset(1);
+tick();
+</script>

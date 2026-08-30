@@ -1,0 +1,1230 @@
+{
+ "Aim": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 1204531550
+    },
+    "current_json": "",
+    "enemy": 0,
+    "focus": {
+     "m_FileID": 0,
+     "m_PathID": 1784777673
+    },
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1784910242
+    },
+    "liveMode": 0,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 949467168
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 1623920560
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 1123058749
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "spawner": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "settings": [
+   {
+    "highlight_customize": 0,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "no_building": 0,
+    "no_connection_creation": 0,
+    "no_removing": 0,
+    "pause": 1,
+    "restart_whenever": 0
+   }
+  ],
+  "spawn": [
+   {
+    "angle_max_deg": 10.0,
+    "angle_min_deg": -2.0,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "period": 5.0,
+    "radius": 18.0,
+    "spawn_angle_offset_deg": 90.0,
+    "spawnee": {
+     "m_FileID": 23,
+     "m_PathID": 187624
+    },
+    "t": 5.0,
+    "team": "",
+    "type": 0
+   }
+  ]
+ },
+ "Avoid": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 733959361
+    },
+    "constant": {
+     "m_FileID": 0,
+     "m_PathID": 857252284
+    },
+    "current_json": "",
+    "focus": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 322931641
+    },
+    "liveMode": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 748290144
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "offset": {
+     "x": 0.0,
+     "y": 3.0,
+     "z": 0.0
+    },
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "winRecycler1": {
+     "m_FileID": 0,
+     "m_PathID": 1745040673
+    }
+   }
+  ],
+  "settings": [
+   {
+    "highlight_customize": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "no_building": 1,
+    "no_connection_creation": 1,
+    "no_removing": 1,
+    "pause": 0,
+    "restart_whenever": 1
+   }
+  ]
+ },
+ "Cocoon": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 480340193
+    },
+    "current_json": "",
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 114343859348140858
+    },
+    "liveMode": 0,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1563457817
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "Cocoon",
+      "intro": "",
+      "name": "Cocoon",
+      "outro": "",
+      "scene": "Cocoon",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ]
+ },
+ "Connection": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 1928260085
+    },
+    "connectPopup": {
+     "m_FileID": 0,
+     "m_PathID": 2067508913
+    },
+    "constant": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "current_json": "",
+    "dragBeginPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1135050498
+    },
+    "dragEndPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1604284340
+    },
+    "finishDragPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1462616979
+    },
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1784910242
+    },
+    "liveMode": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1458140478
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 1858227394
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 2129216116
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "playerShipRecycler": {
+     "m_FileID": 0,
+     "m_PathID": 640568539
+    },
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "selectConstantPopup": {
+     "m_FileID": 0,
+     "m_PathID": 7950869
+    },
+    "slidePopup": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ]
+ },
+ "ConnectionLite": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 1928260085
+    },
+    "connectPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1644809215
+    },
+    "constant": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "current_json": "",
+    "dragBeginPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1135050498
+    },
+    "dragEndPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1604284340
+    },
+    "finishDragPopup": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1784910242
+    },
+    "liveMode": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 577267071
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 1659639202
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "playerShipRecycler": {
+     "m_FileID": 0,
+     "m_PathID": 1055642639
+    },
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "selectConstantPopup": {
+     "m_FileID": 0,
+     "m_PathID": 7950869
+    },
+    "slidePopup": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ]
+ },
+ "FollowBoss": {
+  "envelope": [
+   {
+    "height": 7,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "width": 5
+   }
+  ],
+  "inventory": [
+   {
+    "items": [
+     {
+      "item": {
+       "m_FileID": 30,
+       "m_PathID": 186134
+      },
+      "quantity": 4,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 31,
+       "m_PathID": 158382
+      },
+      "quantity": 10,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 32,
+       "m_PathID": 169670
+      },
+      "quantity": 4,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 33,
+       "m_PathID": 161910
+      },
+      "quantity": 1,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 34,
+       "m_PathID": 1417436553097400
+      },
+      "quantity": 2,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 35,
+       "m_PathID": 184678
+      },
+      "quantity": 2,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 36,
+       "m_PathID": 146962
+      },
+      "quantity": 2,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 37,
+       "m_PathID": 1235298670980640
+      },
+      "quantity": 2,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 38,
+       "m_PathID": 195828
+      },
+      "quantity": 2,
+      "visibility": 0
+     }
+    ],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "mission": [
+   {
+    "buildOnce": 1,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "current_json": "",
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1922309364
+    },
+    "liveMode": 0,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1488711117
+     }
+    ],
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "spoils": [
+   {
+    "composites": [],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "spoils": [
+     {
+      "name": "Orb",
+      "type": "component"
+     },
+     {
+      "name": "Binary",
+      "type": "component"
+     }
+    ]
+   }
+  ]
+ },
+ "FollowCourse": {
+  "envelope": [
+   {
+    "height": 7,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "width": 5
+   }
+  ],
+  "inventory": [
+   {
+    "items": [
+     {
+      "item": {
+       "m_FileID": 0,
+       "m_PathID": 1819882399
+      },
+      "quantity": 1,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 34,
+       "m_PathID": 161910
+      },
+      "quantity": 1,
+      "visibility": 0
+     }
+    ],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "current_json": "",
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1922309364
+    },
+    "liveMode": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1415280366
+     }
+    ],
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "spoils": [
+   {
+    "composites": [
+     "{         \"id\": \"BrautenbourgsFirst\",         \"name\":\"Braitenberg 1\",         \"components\":[{\"type\":\"Engine\",\"pos\":[-1,0],\"dir\":\"up\",\"hp\":50},{\"type\":\"Radar\",\"pos\":[0,1],\"dir\":\"up\",\"hp\":50},{\"type\":\"Engine\",\"pos\":[4,0],\"dir\":\"up\",\"hp\":50},{\"type\":\"Binary\",\"pos\":[2,0],\"dir\":\"down\",\"hp\":100,\"param\":\"MINUS\"},{\"type\":\"Constant\",\"pos\":[0,0],\"dir\":\"up\",\"hp\":50}],         \"connections\":[{\"from\":[2,1],\"to\":[4,0]},{\"from\":[0,0],\"to\":[3,0]},{\"from\":[1,1],\"to\":[1,0]},{\"from\":[1,1],\"to\":[-1,0]}]     }"
+    ],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "spoils": [
+     {
+      "name": "BrautenbourgsFirst",
+      "type": "relic"
+     }
+    ]
+   }
+  ]
+ },
+ "FollowCourseAdvanced": {
+  "envelope": [
+   {
+    "height": 7,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "width": 5
+   }
+  ],
+  "inventory": [
+   {
+    "items": [
+     {
+      "item": {
+       "m_FileID": 32,
+       "m_PathID": 161910
+      },
+      "quantity": 1,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 0,
+       "m_PathID": 1417313534
+      },
+      "quantity": 1,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 33,
+       "m_PathID": 169670
+      },
+      "quantity": 2,
+      "visibility": 0
+     }
+    ],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "current_json": "",
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1922309364
+    },
+    "liveMode": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1508959578
+     }
+    ],
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "spoils": [
+   {
+    "composites": [],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "spoils": [
+     {
+      "name": "Orb",
+      "type": "component"
+     },
+     {
+      "name": "Binary",
+      "type": "component"
+     }
+    ]
+   }
+  ]
+ },
+ "ManualAim": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "current_json": "",
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1784910242
+    },
+    "liveMode": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 140502547
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 583372195
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "settings": [
+   {
+    "highlight_customize": 1,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "no_building": 1,
+    "no_connection_creation": 1,
+    "no_removing": 1,
+    "pause": 0,
+    "restart_whenever": 0
+   }
+  ],
+  "spoils": [
+   {
+    "composites": [],
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "spoils": [
+     {
+      "name": "LaserTurret2",
+      "type": "component"
+     }
+    ]
+   }
+  ]
+ },
+ "PlaceBrain": {
+  "mission": [
+   {
+    "buildOnce": 0,
+    "buildPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1116236381
+    },
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 480340193
+    },
+    "current_json": "",
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "liveMode": 0,
+    "m_PrefabAsset": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "m_PrefabInstance": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1578659895
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "pickPopup": {
+     "m_FileID": 0,
+     "m_PathID": 382528164
+    },
+    "playPopup": {
+     "m_FileID": 0,
+     "m_PathID": 112463894
+    },
+    "request": {
+     "initial_json": "",
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "vacancyPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1396473412
+    },
+    "winPopup": {
+     "m_FileID": 0,
+     "m_PathID": 1136062472
+    }
+   }
+  ]
+ },
+ "SideShooter": {
+  "envelope": [
+   {
+    "height": 3,
+    "width": 3
+   }
+  ],
+  "inventory": [
+   {
+    "items": [
+     {
+      "item": {
+       "m_FileID": 14,
+       "m_PathID": 1235298670980640
+      },
+      "quantity": 1,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 15,
+       "m_PathID": 146962
+      },
+      "quantity": 1,
+      "visibility": 0
+     }
+    ]
+   }
+  ],
+  "mission": [
+   {
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1922309364
+    },
+    "liveMode": 0,
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1935525594
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 1285436887
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     },
+     {
+      "m_FileID": 0,
+      "m_PathID": 0
+     }
+    ],
+    "request": {
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "spoils": [
+   {
+    "composites": [],
+    "spoils": [
+     {
+      "name": "Lazer",
+      "type": "component"
+     }
+    ]
+   }
+  ]
+ },
+ "TwinTurrets": {
+  "envelope": [
+   {
+    "height": 5,
+    "width": 5
+   }
+  ],
+  "inventory": [
+   {
+    "items": [
+     {
+      "item": {
+       "m_FileID": 13,
+       "m_PathID": 193166
+      },
+      "quantity": 3,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 14,
+       "m_PathID": 158382
+      },
+      "quantity": 3,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 15,
+       "m_PathID": 169670
+      },
+      "quantity": 3,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 16,
+       "m_PathID": 146962
+      },
+      "quantity": 2,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 17,
+       "m_PathID": 1235298670980640
+      },
+      "quantity": 4,
+      "visibility": 0
+     },
+     {
+      "item": {
+       "m_FileID": 18,
+       "m_PathID": 184678
+      },
+      "quantity": 0,
+      "visibility": 0
+     }
+    ]
+   }
+  ],
+  "mission": [
+   {
+    "camera": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    },
+    "initialShip": {
+     "m_FileID": 0,
+     "m_PathID": 1922309364
+    },
+    "liveMode": 0,
+    "objectives": [
+     {
+      "m_FileID": 0,
+      "m_PathID": 1419530119
+     }
+    ],
+    "request": {
+     "mission": {
+      "displayName": "",
+      "intro": "",
+      "name": "",
+      "outro": "",
+      "scene": "",
+      "starRequirement": 0
+     },
+     "skipIntro": 0
+    },
+    "space": {
+     "m_FileID": 0,
+     "m_PathID": 0
+    }
+   }
+  ],
+  "spoils": [
+   {
+    "composites": [
+     "{         \"id\": \"WeaponStation\",         \"name\":\"Weapon Station\",         \"components\":[{\"type\":\"Engine\",\"pos\":[-1,-1],\"dir\":\"right\"},{\"type\":\"Engine\",\"pos\":[2,-1],\"dir\":\"left\"},{\"type\":\"Radar\",\"pos\":[0,-1],\"dir\":\"up\"},{\"type\":\"Binary\",\"pos\":[0,-2],\"dir\":\"up\",\"param\":\"MINUS\"},{\"type\":\"Constant\",\"pos\":[2,-2],\"dir\":\"up\",\"param\":\"0\"},{\"type\":\"Armour\",\"pos\":[0,2],\"dir\":\"up\"},{\"type\":\"Armour\",\"pos\":[1,2],\"dir\":\"up\"},{\"type\":\"Armour\",\"pos\":[2,2],\"dir\":\"up\"},{\"type\":\"Armour\",\"pos\":[-1,2],\"dir\":\"up\"},{\"type\":\"Explosive\",\"pos\":[-1,1],\"dir\":\"up\"},{\"type\":\"Explosive\",\"pos\":[-1,0],\"dir\":\"up\"},{\"type\":\"Explosive\",\"pos\":[2,1],\"dir\":\"up\"},{\"type\":\"Explosive\",\"pos\":[2,0],\"dir\":\"up\"}],         \"connections\":[{\"from\":[1,-1],\"to\":[1,-2]},{\"from\":[0,-3],\"to\":[-1,-1]},{\"from\":[1,-1],\"to\":[2,-1]},{\"from\":[2,-2],\"to\":[-1,-2]}]     }"
+    ],
+    "spoils": [
+     {
+      "name": "WeaponStation",
+      "type": "relic"
+     }
+    ]
+   }
+  ]
+ }
+}

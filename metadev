@@ -36,6 +36,7 @@ SAFEHOUSE_ARGS=(
     --add-dirs-ro=~/.duckdb
     --add-dirs-ro=~/Library/Application\ Support/pypoetry
     --add-dirs-ro=~/.ssh
+    --add-dirs-ro=~/dev/taktile
     --add-dirs-ro=~/.zshrc
     --add-dirs=~/.claude
     --add-dirs=~/.claude-personal

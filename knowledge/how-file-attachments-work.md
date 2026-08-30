@@ -1,3 +1,10 @@
+---
+scope: [local-development, in-notebook]
+triggers:
+  - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/fileattachments\.js"
+  - "(^Bash |^|[;&|] )node +tools/lope-push-files\.js"
+---
+
 # How File Attachments Work in Lopecode
 
 File attachments let notebooks embed binary and text assets (images, CSS, gzipped JS libraries, JSON state) directly in the HTML file. This document covers storage, resolution, runtime access, and serialization.

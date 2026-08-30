@@ -1,0 +1,146 @@
+[
+ {
+  "id": "86BCDEFCAC55C5344E1EAC9BDB6EE1E4",
+  "n": 7,
+  "draw": 12,
+  "supply": 20,
+  "radar": true,
+  "spec": {
+   "angularVelocity": 0,
+   "components": [
+    {
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "pos": [
+      3,
+      1
+     ],
+     "type": "Brain"
+    },
+    {
+     "dir": "up",
+     "hp": 95,
+     "overrides": [
+      {
+       "name": "input",
+       "value": 1
+      }
+     ],
+     "param": "",
+     "pos": [
+      0,
+      0
+     ],
+     "type": "Lazer"
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      5,
+      -1
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      3,
+      -1
+     ],
+     "dir": "down",
+     "hp": 100,
+     "param": "MINUS",
+     "overrides": []
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      1,
+      -1
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    }
+   ],
+   "name": "New Game Object",
+   "connections": [
+    {
+     "from": [
+      3,
+      -1
+     ],
+     "fromPort": "out",
+     "to": [
+      5,
+      -1
+     ],
+     "toPort": "in"
+    },
+    {
+     "from": [
+      1,
+      -1
+     ],
+     "fromPort": "out",
+     "to": [
+      3,
+      -1
+     ],
+     "toPort": "a"
+    },
+    {
+     "from": [
+      1,
+      0
+     ],
+     "fromPort": "bearing",
+     "to": [
+      3,
+      -1
+     ],
+     "toPort": "b"
+    },
+    {
+     "from": [
+      1,
+      0
+     ],
+     "fromPort": "bearing",
+     "to": [
+      0,
+      -1
+     ],
+     "toPort": "in"
+    }
+   ]
+  }
+ }
+]

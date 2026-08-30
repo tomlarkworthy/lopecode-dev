@@ -1,0 +1,41 @@
+a chunk, at the shipped defaults
+  ok  rockVolume counts PIECES, and they are all there   53 pieces, 161 tiles: {"Ore":3,"RockSpar":42,"RockSlab":8}
+  ok  nothing in a chunk is a ship part   Ore,RockSpar,RockSlab
+  ok  the shapes are 3x1, 2x2, 1x1, 1x2   spar 3 slab 4 ore 1 vein 2
+  ok  oreVolume sets the seams   Ore,Ore,Ore
+  ok  the chunk is one island   1
+  ok  no seam can be reached from outside without cutting rock   0 exposed of 3
+  ok  and every one is at least two pieces deep   depths 4,5,2
+
+ore breaks, and breaking it pays
+  ok  a seam is twice as tough per tile as the rock over it   ore 6/tile vs rock 3/tile
+  ok  2 beam hits break a seam of 6 hp   hp 6 -> 0
+  ok  a seam shot dead pays what TYPES says it is worth   ["Ore"] -> 30 scrap, collected {"Ore":1}
+  ok  and a live seam pays nothing   0
+  ok  killing the rock bonded to it cuts it loose   1 loose piece(s): Ore
+  ok  flying into it collects it   {"got":["Ore"],"scrap":30}
+  ok  and it pays what TYPES says the piece is worth   30 = 30
+  ok  and it leaves the field
+
+free parameters, one field each
+  density=0.15: 1 chunks, 53 pieces, 3 seams | density=0.25: 2 chunks, 106 pieces, 6 seams | density=0.5: 5 chunks, 265 pieces, 15 seams
+  rockVolume=20: 4 chunks, 92 pieces, 12 seams | rockVolume=50: 4 chunks, 212 pieces, 12 seams | rockVolume=90: 4 chunks, 372 pieces, 12 seams
+  oreVolume=1: 4 chunks, 204 pieces, 4 seams | oreVolume=3: 4 chunks, 212 pieces, 12 seams | oreVolume=6: 4 chunks, 224 pieces, 24 seams
+  ok  density scales the chunk count   0.15 -> 1, 0.5 -> 5
+  ok  rockVolume scales the rock in the field   20 -> 92 pieces, 90 -> 372
+  ok  oreVolume scales the seams   1 -> 4, 6 -> 24
+
+the MINER hull, before it flies
+  ok  every authored component is bonded to the hull   islands [9], 9 live, 4 engines, 2 thrust axis/axes
+  ok  and it can thrust off its own nose line, which is what lets it orbit a chunk while its guns stay on the seam   engine dirs [0,0,90,270]
+
+5 fields x 4 rng pins, MINER on auto, and an unsteered control
+  rng 20260821  5/5 fields paid, 29 pieces
+  rng 1         5/5 fields paid, 28 pieces
+  rng 4         5/5 fields paid, 18 pieces
+  rng 7         5/5 fields paid, 18 pieces
+  ok  half the fields pay, pooled over layout and rng   20/20 runs
+  ok  and the haul averages a piece a run or better   93 pieces in 20 runs, 3060 scrap
+  ok  an unsteered hull mines nothing   0
+
+PASS

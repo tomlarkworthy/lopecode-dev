@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en-GB" data-theme="dark">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script nonce="879e1351b41979a4bb67e07948d78895">
+		// Set dark/light theme on initial load (stops FOUC)
+		!function(){try{var t=localStorage.getItem("theme")||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t)}catch(t){document.documentElement.setAttribute("data-theme","dark")}}();
+	</script>
+	<link rel="preload" href="https://barrd.dev/app/themes/barrd/assets/fonts/Inter.var.woff2" as="font" type="font/woff2" crossorigin>
+	<link rel="preload" href="https://barrd.dev/app/themes/barrd/assets/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
+	<meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+
+	<title>Parallel development without the headaches using Git worktree : barrd.dev</title>
+	<meta name="description" content="Git worktree, run multiple branches in parallel directories to juggle features, hotfixes and testing without stashing or constant checkouts." />
+	<link rel="canonical" href="https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/" />
+	<meta property="og:locale" content="en_GB" />
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content="Parallel development without the headaches using Git worktree : barrd.dev" />
+	<meta property="og:description" content="Git worktree, run multiple branches in parallel directories to juggle features, hotfixes and testing without stashing or constant checkouts." />
+	<meta property="og:url" content="https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/" />
+	<meta property="og:site_name" content="barrd.dev" />
+	<meta property="og:image" content="https://barrd.dev/app/uploads/Parallel-Development-Without-The-Headaches-Using-Git-Worktree.webp" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:type" content="image/webp" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/","url":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/","name":"Parallel development without the headaches using Git worktree : barrd.dev","isPartOf":{"@id":"https://barrd.dev/#website"},"primaryImageOfPage":{"@id":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/#primaryimage"},"image":{"@id":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/#primaryimage"},"thumbnailUrl":"https://barrd.dev/app/uploads/Parallel-Development-Without-The-Headaches-Using-Git-Worktree.webp","datePublished":"2026-01-01T08:31:34+00:00","description":"Git worktree, run multiple branches in parallel directories to juggle features, hotfixes and testing without stashing or constant checkouts.","breadcrumb":{"@id":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/#breadcrumb"},"inLanguage":"en-GB","potentialAction":[{"@type":"ReadAction","target":["https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/"]}]},{"@type":"ImageObject","inLanguage":"en-GB","@id":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/#primaryimage","url":"https://barrd.dev/app/uploads/Parallel-Development-Without-The-Headaches-Using-Git-Worktree.webp","contentUrl":"https://barrd.dev/app/uploads/Parallel-Development-Without-The-Headaches-Using-Git-Worktree.webp","width":1200,"height":630},{"@type":"BreadcrumbList","@id":"https://barrd.dev/article/parallel-development-without-the-headaches-using-git-worktree/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://barrd.dev/"},{"@type":"ListItem","position":2,"name":"Articles","item":"https://barrd.dev/articles/"},{"@type":"ListItem","position":3,"name":"Technical","item":"https://barrd.dev/category/technical/"},{"@type":"ListItem","position":4,"name":"Parallel development without the headaches using Git worktree"}]},{"@type":"WebSite","@id":"https://barrd.dev/#website","url":"https://barrd.dev/","name":"barrd.dev","description":"Mostly Harmless","publisher":{"@id":"https://barrd.dev/#/schema/person/bba8cbea844ecc5aa6aa594eff91f889"},"potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://barrd.dev/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-GB"},{"@type":["Person","Organization"],"@id":"https://barrd.dev/#/schema/person/bba8cbea844ecc5aa6aa594eff91f889","name":"Dave","image":{"@type":"ImageObject","inLanguage":"en-GB","@id":"https://barrd.dev/#/schema/person/image/","url":"https://barrd.dev/app/uploads/Dave-Ashton-Court.jpg","contentUrl":"https://barrd.dev/app/uploads/Dave-Ashton-Court.jpg","width":1024,"height":768,"caption":"Dave"},"logo":{"@id":"https://barrd.dev/#/schema/person/image/"},"description":"Dave is a Bristol based Scottish Expat who has 20+ years experience of web development. Loves playing guitar, reading books, watching Sci-Fi and tinkering with tech.","sameAs":["https://barrd.dev"]}]}</script>
+
+
+<link rel='dns-prefetch' href='//static.cloudflareinsights.com' />
+<link rel="alternate" title="oEmbed (JSON)" type="application/json+oembed" href="https://barrd.dev/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fbarrd.dev%2Farticle%2Fparallel-development-without-the-headaches-using-git-worktree%2F" />
+<link rel="alternate" title="oEmbed (XML)" type="text/xml+oembed" href="https://barrd.dev/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fbarrd.dev%2Farticle%2Fparallel-development-without-the-headaches-using-git-worktree%2F&#038;format=xml" />
+<style id='barrd-copycode-inline-css'>
+
+			.copycode_tt {
+				background: var(--yellow);
+				position: absolute;
+				display: none;
+				color: var(--yellow-text);
+				padding: 0 8px;
+				opacity: 0;
+				box-shadow: var(--bs);
+			}
+			.clicked {
+				background: var(--green);
+				color: var(--green-text);
+			}
+			.mouseover_anim {
+				animation: fadeInAnimation ease 0.2s forwards;
+			}
+			.mouseout_anim {
+				animation: fadeOutAnimation ease 0.2s;
+			}
+			@keyframes fadeInAnimation {
+				0% { opacity: 0; }
+				100% { opacity: 1; }
+			}
+			@keyframes fadeOutAnimation {
+				0% { opacity: 1; }
+				100% { opacity: 0; }
+			}
+		
+/*# sourceURL=barrd-copycode-inline-css */
+</style>
+<link rel='stylesheet' id='barrd-style-css' href='https://barrd.dev/app/themes/barrd/assets/css/style.min.css?ver=1771689789' media='all' />
+<script src="https://barrd.dev/app/themes/barrd/assets/js/glightbox.min.js?ver=1763660179" id="glightbox-js"></script>
+<link rel="https://api.w.org/" href="https://barrd.dev/wp-json/" /><link rel="alternate" title="JSON" type="application/json" href="https://barrd.dev/wp-json/wp/v2/article/1259" /><link rel="icon" href="https://barrd.dev/app/uploads/cropped-cowboy-hat-150x150.png" sizes="32x32" />
+<link rel="icon" href="https://barrd.dev/app/uploads/cropped-cowboy-hat-300x300.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://barrd.dev/app/uploads/cropped-cowboy-hat-300x300.png" />
+<meta name="msapplication-TileImage" content="https://barrd.dev/app/uploads/cropped-cowboy-hat-300x300.png" />
+	<meta name="fediverse:creator" content="@barrd@mastodon.social">
+	<link rel="me" href="https://mastodon.social/@barrd">
+	<link rel="icon" href="https://barrd.dev/favicon.svg" type="image/svg+xml">
+</head>
+<body class="wp-singular article-template-default single single-article postid-1259 wp-theme-barrd">
+<div id="top"></div>
+<div id="wrapper">
+	<a class="screen-reader-text" href="#main-content">Skip to Content</a>
+	<header id="header">
+		<div class="container">
+			<div class="head-logo ">
+				<a href="https://barrd.dev" rel="home" >
+					<div class="">
+						<svg viewBox="0 0 64 64" aria-hidden="true" role="img">
+<path d="M61.574 34.729l-.899-.385a48.639 48.639 0 00-10.418-3.125L48.521 20.22A4.976 4.976 0 0043.582 16H42a41.5 41.5 0 00-8.118.804l-2.12.423-4.64-1.856A5.198 5.198 0 0020 20.192c0 2.936-.901 5.75-2.607 8.139l-.2.28c-.298.418-.565.851-.823 1.289l-5.747-.821A7.759 7.759 0 009.515 29h-.687a7.77 7.77 0 00-5.535 2.293A7.883 7.883 0 001 36.828v1.344c0 2.061.836 4.078 2.293 5.535A21.34 21.34 0 0018.485 50c7.68 0 15.412-1.729 22.359-4.998l.903-.425a50.577 50.577 0 0111.602-3.827l7.761-1.552a2.353 2.353 0 00.464-4.469zm-12.816-.184c.073.467-.194.926-.636 1.092a57.804 57.804 0 01-13.105 3.229l-3.752.469a45.08 45.08 0 01-10.571.07 6.719 6.719 0 01-4.628-2.631l.238-1.193c.029-.143.075-.28.108-.422l.85.243a41.536 41.536 0 0022.134.196l9.143-2.438zm-29.939-4.772l.2-.28a15.91 15.91 0 002.98-9.301 3.197 3.197 0 014.38-2.963l1.459.583A39.4 39.4 0 0124 18v2a41.5 41.5 0 008.118-.804l2.156-.431A39.45 39.45 0 0142 18h1.582a2.987 2.987 0 012.964 2.532l1.679 10.64-9.345 2.492a39.743 39.743 0 01-21.069-.188l-.819-.234a14.938 14.938 0 011.827-3.469zm41.898 7.464l-7.76 1.552a52.601 52.601 0 00-12.061 3.978l-.903.425A50.834 50.834 0 0118.485 48a19.353 19.353 0 01-13.778-5.707A5.868 5.868 0 013 38.172v-1.344c0-1.534.622-3.036 1.707-4.121A5.789 5.789 0 018.828 31h.687c.274 0 .552.02.824.059l5.064.723a17.005 17.005 0 00-1.06 3.406l-.323 1.616c-.052.26.001.53.148.751a8.732 8.732 0 006.324 3.84 47.138 47.138 0 0011.02-.076l3.752-.469a59.834 59.834 0 0013.56-3.34 3.01 3.01 0 001.908-3.277l-.144-.91a46.63 46.63 0 019.299 2.86l.897.385a.35.35 0 01-.067.669z" /></svg>					</div>
+					<div class="ws-nowrap">barrd.dev</div>
+				</a>
+			</div>
+			<nav aria-label="Header Navigation">
+				<ul id="header-menu" class="menu"><li id="menu-item-30" class="left menu-item menu-item-type-post_type menu-item-object-page menu-item-30"><a href="https://barrd.dev/about/" title="About Dave">About</a></li>
+<li id="menu-item-85" class="left menu-item menu-item-type-post_type menu-item-object-page menu-item-85"><a href="https://barrd.dev/articles/" title="Article Posts">Articles</a></li>
+<li id="menu-item-28" class="left menu-item menu-item-type-post_type menu-item-object-page menu-item-28"><a href="https://barrd.dev/contact/" title="Get in touch with Dave">Contact</a></li>
+<li id="menu-item-67" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-67"><a href="https://barrd.dev/search/" title="Search the site">Search</a></li>
+</ul>			</nav>
+			<div id="mode-toggle-container">
+				<button
+					type="button"
+					data-theme-toggle
+					id="mode-toggle"
+					class="btn-toggle"
+					aria-label="Toggle Light/Dark Mode">
+				</button>
+			</div>
+		</div>
+	</header>
+	<aside id="navigation">
+		<nav aria-label="Aside Navigation">
+			<ul id="aside-menu" class="menu"><li class="left menu-item menu-item-type-post_type menu-item-object-page menu-item-30"><a href="https://barrd.dev/about/" title="About Dave">About</a></li>
+<li class="left menu-item menu-item-type-post_type menu-item-object-page menu-item-85"><a href="https://barrd.dev/articles/" title="Article Posts">Articles</a></li>
+<li class="left menu-item menu-item-type-post_type menu-item-object-page menu-item-28"><a href="https://barrd.dev/contact/" title="Get in touch with Dave">Contact</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-67"><a href="https://barrd.dev/search/" title="Search the site">Search</a></li>
+</ul>		</nav>
+	</aside>
+	<main id="main">
+		<nav id="breadcrumbs" aria-label="Breadcrumbs Navigation"><span><span><a href="https://barrd.dev/">Home</a></span> » <span><a href="https://barrd.dev/articles/">Articles</a></span> » <span><a href="https://barrd.dev/category/technical/">Technical</a></span></span></nav>		<section id="main-content">
+
+		
+<article id="post-1259" class="post-1259 article type-article status-publish has-post-thumbnail hentry category-technical topic-tech-stack">
+	<h1>Parallel development without the headaches using Git worktree</h1>
+		<div class="meta-container">
+		<div>
+						<span>Created on</span>
+			<br>
+			<time datetime="2026-01-01">
+				<span class="dt-full">Jan 1st 2026</span>
+				<span class="mb-short">01/01/26</span>
+			</time>
+		</div>
+		<div>
+			<span>No updates</span><br>&hellip;		</div>
+	</div>
+	<div class="words-minutes">
+		<div>
+			<svg><use href="/app/themes/barrd/assets/img/icons.svg#clock" /></svg>
+		</div>
+		<div>
+				Approx ~10 minutes reading time for 1,916 words.
+			</div>
+	</div>
+
+	
+<h2 class="wp-block-heading">Introduction</h2>
+
+
+
+<p>Recently whilst tinkering with a particularly tricky project, I came across Git’s <code><a href="https://git-scm.com/docs/git-worktree" target="_blank" rel="noreferrer noopener nofollow">worktree</a></code> feature. A tool that lets you work on multiple branches simultaneously, each in its own directory, all sharing the same underlying repository history.</p>
+
+
+
+<p>Simple visualisation;</p>
+
+
+
+<pre class="wp-block-code"><code>~/Herd/
+├── my-project/          # main worktree, branch `main`
+│   └── .git/            # main git directory
+├── my-project-feature/  # linked worktree, branch `feature/login-form`
+└── my-project-hotfix/   # linked worktree, branch `hotfix/payment-bug`</code></pre>
+
+
+
+<p>All the directories above share the same commit history and are linked to the same <code>.git</code> <a href="https://github.blog/open-source/git/gits-database-internals-i-packed-object-store" target="_blank" rel="noreferrer noopener">object database</a> even though each has its own working directory state.</p>
+
+
+
+<p>Each directory behaves like a normal checkout, you edit files, commit and push as usual, but you avoid constantly hopping branches in a single working tree.</p>
+
+
+	<section class="aside-image">
+		<header>
+			<H2>The difference between Git branch and worktree</H2>
+		</header>
+	<figure class="w-20 left">
+	<a href="https://git-scm.com/" class="ext-svg" title="SVG Image" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92 92" role="img" aria-labelledby="svgTitle-Git svgDesc-Git">
+  <title id="svgTitle-Git">Git Logo</title>
+  <desc id="svgDesc-Git">Git version control logo shown as a branching diagram inside a tilted black square.</desc>
+  <defs><path d="M0 .113h91.887V92H0Zm0 0" /></defs><g><path fill="var(--tc)" d="M90.156 41.965 50.036 1.848a5.913 5.913 0 0 0-8.368 0l-8.332 8.332 10.566 10.566a7.03 7.03 0 0 1 7.23 1.684 7.04 7.04 0 0 1 1.673 7.277l10.183 10.184a7.03 7.03 0 0 1 7.278 1.672 7.04 7.04 0 0 1 0 9.957 7.045 7.045 0 0 1-9.961 0 7.04 7.04 0 0 1-1.532-7.66l-9.5-9.497V59.36a7.04 7.04 0 0 1 1.86 11.29 7.04 7.04 0 0 1-9.957 0 7.04 7.04 0 0 1 0-9.958 7 7 0 0 1 2.308-1.539V33.926a7 7 0 0 1-2.308-1.535 7.05 7.05 0 0 1-1.516-7.7L29.242 14.273 1.734 41.777a5.92 5.92 0 0 0 0 8.371L41.855 90.27a5.92 5.92 0 0 0 8.368 0l39.933-39.934a5.925 5.925 0 0 0 0-8.371" /></g></svg></a></figure>
+<p>
+Traditionally, working on multiple branches meant a lot of <code>git checkout</code> and <code>git stash</code> constantly saving your place, switching context and hoping you didn’t lose anything important. It’s easy to get lost, especially when a production bug interrupts your flow. With <code>git worktree</code> you can add a new working directory for any branch (existing or new) and keep your workstreams separate. For example;</p>
+</section>
+
+
+<pre class="wp-block-code"><code># Add an existing branch as a worktree
+git worktree add ../my-project-feature feature-branch
+
+# Or create a new branch and worktree in one go
+git worktree add -b new-feature ../my-project-new-feature</code></pre>
+
+
+
+<p>This creates new directories at the same level as your main project, checked out to the branches you specify. You can now edit files, commit and push in each directory independently without touching your main working directory.</p>
+
+
+
+<p>Here’s how your setup might look;</p>
+
+
+
+<pre class="wp-block-code"><code>my-project/              # main worktree, branch `main`
+my-project-feature/      # worktree for `feature-branch`
+my-project-new-feature/  # worktree for `new-feature`</code></pre>
+
+
+
+<p>One important limitation&nbsp;is that the same branch cannot be checked out in more than one worktree at the same time. Each worktree must have a unique branch checked out. In practice, that encourages a tidy mapping of <em>“one task, one branch, one directory”,</em> which makes it easier to stay oriented mentally.</p>
+
+
+
+<h2 class="wp-block-heading">Practical example, juggling a feature and a hotfix</h2>
+
+
+
+<p>Here’s a realistic scenario, you&#8217;re working on a checkout feature when a production bug <em>appears.</em></p>
+
+
+
+<p>Initial layout;</p>
+
+
+
+<pre class="wp-block-code"><code>~/Herd/
+└── shop/           # main worktree, branch `main`
+    └── .git/</code></pre>
+
+
+
+<p>Create a feature worktree;</p>
+
+
+
+<pre class="wp-block-code"><code>cd ~/Herd/shop
+git worktree add -b feature/checkout ../shop-checkout</code></pre>
+
+
+
+<p>New layout;</p>
+
+
+
+<pre class="wp-block-code"><code>~/Herd/
+├── shop/           # main worktree, branch `main`
+│   └── .git/
+└── shop-checkout/  # linked worktree, branch `feature/checkout`</code></pre>
+
+
+
+<p>You can easily develop the checkout feature in <code>shop-checkout</code> while keeping <code>shop</code> on <code>main</code> for quick reviews.</p>
+
+
+
+<h3 class="wp-block-heading">A production bug appears, create a hotfix worktree</h3>
+
+
+
+<pre class="wp-block-code"><code>cd ~/Herd/shop
+git worktree add -b hotfix/payment-fail ../shop-payment-hotfix</code></pre>
+
+
+
+<p>Your layout becomes;</p>
+
+
+
+<pre class="wp-block-code"><code>~/Herd/
+├── shop/                 # main worktree, branch `main`
+├── shop-checkout/        # feature worktree, `feature/checkout`
+└── shop-payment-hotfix/  # hotfix worktree, `hotfix/payment-fail`</code></pre>
+
+
+
+<p>At this point you can;</p>
+
+
+
+<ul class="wp-block-list">
+<li>Fix and test the production bug in the <code>shop-payment-hotfix</code> worktree.</li>
+
+
+
+<li>Continue to iterate on <code>feature/checkout</code> in the <code>shop-checkout</code> worktree.</li>
+
+
+
+<li>Keep <code>shop</code> free on <code>main</code> for merges and any code reviews.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">How to merge a worktree into another branch</h2>
+
+
+
+<p>Merging changes from a worktree branch is just like any other Git merge, but the context is clearer because each branch lives in its own directory. Here’s a typical workflow for merging the feature branch into <code>main</code>;</p>
+
+
+
+<ol class="wp-block-list">
+<li>Finish your work in the feature worktree and commit your changes.</li>
+
+
+
+<li>Switch to your main worktree directory;</li>
+</ol>
+
+
+
+<pre class="wp-block-code"><code>cd ../my-project &amp;&amp; git checkout main</code></pre>
+
+
+
+<ol start="3" class="wp-block-list">
+<li>Merge the feature branch;</li>
+</ol>
+
+
+
+<pre class="wp-block-code"><code>git merge feature-branch</code></pre>
+
+
+
+<ol start="4" class="wp-block-list">
+<li>Resolve any conflicts, then push.</li>
+</ol>
+
+
+
+<p>
+Because each worktree is dedicated to a single branch, it&#8217;s much harder to accidentally commit to the wrong branch or lose your place when a hotfix interrupts your feature work… anyway, that&#8217;s the theory. <span class="grey">😉</span>
+</p>
+
+
+
+<h2 class="wp-block-heading">Inspecting your current worktrees</h2>
+
+
+
+<p>Before you start removing or pruning anything, it helps to see what worktrees Git currently knows about;</p>
+
+
+
+<pre class="wp-block-code"><code>git worktree list</code></pre>
+
+
+
+<p>Example output;</p>
+
+
+
+<pre class="wp-block-code"><code>/Users/barrd/Herd/shop                 66c16256 &#91;main]
+/Users/barrd/Herd/shop-checkout        0c8ba118 &#91;feature/checkout]
+/Users/barrd/Herd/shop-payment-hotfix  a16e4be2 &#91;hotfix/payment-fail]</code></pre>
+
+
+
+<p>You can mentally map this to something like;</p>
+
+
+
+<pre class="wp-block-code"><code>&#91;main]                → /home/user/Herd/shop
+&#91;feature/checkout]    → /home/user/Herd/shop-checkout
+&#91;hotfix/payment-fail] → /home/user/Herd/shop-payment-hotfix</code></pre>
+
+
+
+<p>It&#8217;s now obvious which branches are checked out and where thus helping to avoid trying to reuse a branch that is already attached to another worktree.</p>
+
+
+
+<h2 class="wp-block-heading">How to remove a worktree</h2>
+
+
+
+<p>Once you’re done with a worktree, it’s good practice to tidy up. To do so safely, after committing or stashing any changes;</p>
+
+
+
+<pre class="wp-block-code"><code>git worktree remove ../my-project-feature</code></pre>
+
+
+
+<p>This only works on clean worktrees (no uncommitted changes or untracked files) unless you pass <code>--force</code> and it cannot remove the main worktree.</p>
+
+
+
+<div class="tip-section">
+	<p><strong class="red-text">Remember</strong><br />
+Removing a worktree only deletes the working directory, it does not delete the branch itself. Always check with <code>git status</code> in that worktree before removing to avoid losing uncommitted work.</p>
+</div>
+
+
+
+<h2 class="wp-block-heading">Cleaning up stale worktrees with prune</h2>
+
+
+
+<p>If you’ve deleted a worktree directory manually, Git still keeps metadata for it under the main repositories <code>worktrees</code> directory. In that case, <code>git worktree list</code> will show entries marked as missing.</p>
+
+
+
+<p>You can clean up those stale entries with;</p>
+
+
+
+<pre class="wp-block-code"><code>git worktree prune</code></pre>
+
+
+
+<p>To only prune entries that have been unused for some time, you can add an expiry;</p>
+
+
+
+<pre class="wp-block-code"><code>git worktree prune --expire 7.days.ago</code></pre>
+
+
+
+<p>Using <code>--expire now</code> removes all stale worktree metadata immediately, which can be handy in a local development environment where you frequently nuke old unneeded directories.</p>
+
+
+
+<h2 class="wp-block-heading">Final thoughts</h2>
+
+
+
+<p>It&#8217;s been around since <code>v2.5</code>, which was ~10 years ago and I&#8217;d never used it… But it&#8217;s now transformed my workflow, especially when juggling parallel features and urgent hotfixes. It keeps all the elements compartmentalised, reduces context switching and means stashing has become a rare exception.</p>
+
+
+
+<p>For simple, sequential work, traditional branching is still the way to go but if you ever find yourself wishing you could be in two places at once, give <code>git worktree</code> a try.</p>
+
+
+
+<p>If you&#8217;ve any favourite workflow variations you take advantage of <a href="https://barrd.dev/contact/">please get in touch</a> and let me know.</p>
+
+	<div class="end-of-article">
+		<p class="liner grey-text">
+			// End of Article
+		</p>
+	</div>
+	<h2 id="article-information">Article Information</h2>
+		<div class="line-height-two">
+		<strong>Category</strong>: <a href="https://barrd.dev/category/technical/" title="See all Technical posts"> Technical</a>
+		<br><strong>Topic: </strong><a href="https://barrd.dev/topics/tech-stack/" title="See more Tech-Stack posts">#Tech-Stack</a>	</div>
+
+		<section id="further-reading-links" class="stack">
+		<h3 id="footer-further-reading">
+			Further Reading		</h3>
+		<ul>
+					<li>
+				<a href="https://github.blog/open-source/git/gits-database-internals-i-packed-object-store" target="_blank" rel="noreferrer noopener">
+					Git’s Database Internals				</a>
+									<span class="small-font after-text">(github.blog)</span>
+							</li>
+						<li>
+				<a href="https://git-scm.com/docs/git-worktree" target="_blank" rel="noreferrer noopener">
+					Git Worktree Docs				</a>
+									<span class="small-font after-text">(git-scm.com)</span>
+							</li>
+					</ul>
+	</section>
+		<section id="related-articles-pages" class="stack">
+		<h3 id="footer-related-articles">
+			Related Articles / Pages		</h3>
+		<ul>
+						<li>
+					<a href="https://barrd.dev/article/git-switch-a-replacement-for-stash/">
+						Git switch &#8211; a replacement for stash if on wrong branch					</a>
+					<span class="small-font after-text">(Article)</span>
+				</li>
+								<li>
+					<a href="https://barrd.dev/article/remove-unused-php-versions-from-laravel-herd/">
+						Remove unused PHP versions from Laravel Herd					</a>
+					<span class="small-font after-text">(Article)</span>
+				</li>
+								<li>
+					<a href="https://barrd.dev/article/using-laravel-herd-whilst-keeping-valet-and-php-monitor/">
+						Using Laravel Herd whilst keeping Valet and PHP Monitor					</a>
+					<span class="small-font after-text">(Article)</span>
+				</li>
+								<li>
+					<a href="https://barrd.dev/article/starship-blazing-fast-cross-shell-prompt/">
+						Starship, blazing fast cross shell prompt					</a>
+					<span class="small-font after-text">(Article)</span>
+				</li>
+						</ul>
+	</section>
+	
+	
+<style nonce="879e1351b41979a4bb67e07948d78895">
+	#author-popup {
+		display: none;
+	}
+</style>
+<div id="author-popup">
+	<h2>Dave A.K.A. &#039;barrd&#039;</h2>
+	<div class="description">
+		<p>Dave is a Bristol based Scottish Expat who has 20+ years experience of web development. Loves playing guitar, reading books, watching Sci-Fi and tinkering with tech.</p>
+	</div>
+</div>
+
+	<section id="author-info" class="stack">
+					<h3 id="about-the-author">About Dave A.K.A. &#039;barrd&#039;</h3>
+					<div class="container">
+			<figure class="image">
+				<a href="https://barrd.dev/app/uploads/Dave-Chocolate-Path-Bristol-aspect-ratio-768-768-1.jpg.webp" class="glightbox-author border-radius-50" title="Author Image: Dave A.K.A. &#039;barrd&#039;">
+					<img src="https://barrd.dev/app/uploads/Dave-Chocolate-Path-Bristol-aspect-ratio-768-768-1-300x300.jpg.webp" alt="Image for Dave A.K.A. &#039;barrd&#039;" width="300" height="300" loading="lazy">
+				</a>
+			</figure>
+			<div class="data">
+				<div class="wrapper">
+					<div class="text line-clamp">
+						Dave is a Bristol based Scottish Expat who has 20+ years experience of web development. Loves playing guitar, reading books, watching Sci-Fi and tinkering with tech.					</div>
+										<p>
+						<a href="#author-popup" class="glightbox-author inline-block author-link external-link" aria-describedby="about-the-author">Read more about Dave</a>
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+<script nonce="879e1351b41979a4bb67e07948d78895">
+		const author_lightbox = GLightbox({
+		selector: '.glightbox-author'
+	});
+		author_lightbox.on('open', () => {
+		lastFocusedElement = document.activeElement;
+	});
+		author_lightbox.on('close', () => {
+		lastFocusedElement.focus();
+	});
+</script>
+</article>
+
+
+	<section id="posts-prev-next" role="navigation">
+		<div class="post-previous">
+
+			<a tabindex="-1" class="no-underline inline-block" title="Previous post: WordPress ACF blocks: Simplify the editor with slide-out field panels" href="https://barrd.dev/article/wordpress-acf-blocks-simplify-the-editor-with-slide-out-field-panels/"><h3 class="footer-nav"><svg><use href="/app/themes/barrd/assets/img/icons.svg#arrow-left" /></svg> Back</h3></a>
+		<a class="block" title="Previous post: WordPress ACF blocks: Simplify the editor with slide-out field panels" href="https://barrd.dev/article/wordpress-acf-blocks-simplify-the-editor-with-slide-out-field-panels/">WordPress ACF blocks: Simplify the editor with slide-out field panels</a>
+		</div><div class="post-next">		<a tabindex="-1" class="no-underline inline-block" title="Next post: Secure localhost with no warnings using mkcert &amp; BrowserSync" href="https://barrd.dev/article/secure-localhost-with-no-warnings-using-mkcert-browsersync/"><h3 class="footer-nav">Next <svg><use href="/app/themes/barrd/assets/img/icons.svg#arrow-right" /></svg></h3></a>
+		<a class="block" title="Next post: Secure localhost with no warnings using mkcert &amp; BrowserSync" href="https://barrd.dev/article/secure-localhost-with-no-warnings-using-mkcert-browsersync/">Secure localhost with no warnings using mkcert &amp; BrowserSync</a>
+		</div></section>
+			<noscript>
+				<p class="align-right">
+					<a href="#top" class="arrow-up">Back to Top</a>
+				</p>
+			</noscript>
+				</section>
+	</main>
+		<div id="placeholder"></div>
+	<footer id="footer">
+		<div class="container">
+			<div class="nav">
+				<span>General</span>
+				<nav aria-label="Footer Navigation One">
+					<ul id="menu-footer-one" class="menu"><li id="menu-item-1289" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1289"><a href="https://barrd.dev/contact/">Contact</a></li>
+<li id="menu-item-1290" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1290"><a href="https://barrd.dev/search/">Search</a></li>
+<li id="menu-item-1288" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1288"><a href="https://barrd.dev/accessibility-statement/">Accessibility</a></li>
+<li id="menu-item-1287" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-privacy-policy menu-item-1287"><a rel="privacy-policy" href="https://barrd.dev/privacy-policy/">Privacy</a></li>
+</ul>				</nav>
+			</div>
+			<div class="nav">
+				<span>Read</span>
+				<nav aria-label="Footer Navigation Two">
+					<ul id="menu-footer-two" class="menu"><li id="menu-item-1292" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1292"><a href="https://barrd.dev/articles/">Articles</a></li>
+<li id="menu-item-1293" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1293"><a href="https://barrd.dev/projects/">Projects</a></li>
+<li id="menu-item-1294" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1294"><a href="https://barrd.dev/sitemap/">Sitemap</a></li>
+<li id="menu-item-1291" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-1291"><a target="_blank" href="/article/feed/">RSS</a></li>
+</ul>				</nav>
+			</div>
+			<div class="nav">
+				<span>About</span>
+				<nav aria-label="Footer Navigation Three">
+					<ul id="menu-footer-three" class="menu"><li id="menu-item-1295" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1295"><a href="https://barrd.dev/about/">About</a></li>
+<li id="menu-item-1296" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1296"><a href="https://barrd.dev/about/colophon/">Colophon</a></li>
+<li id="menu-item-1297" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1297"><a href="https://barrd.dev/about/travel/">Travels</a></li>
+<li id="menu-item-1298" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-1298"><a href="https://barrd.dev/about/dave-uses-hardware-software/">Uses</a></li>
+</ul>				</nav>
+			</div>
+			<div class="social">
+				<span>Social</span>
+				<ul>
+					<li>
+						<a href="https://bsky.app/profile/barrd.dev" target="_blank" rel="noopener">Bluesky</a>
+					</li>
+					<li>
+						<a href="https://github.com/barrd" target="_blank" rel="noopener">GitHub</a>
+					</li>
+					<li>
+						<a href="https://www.linkedin.com/in/barrd" target="_blank" rel="noopener">LinkedIn</a>
+					</li>
+					<li>
+						<a href="https://mastodon.social/@barrd" target="_blank" rel="noopener">Mastodon</a>
+					</li>
+				</ul>
+			</div>
+			<div class="head-logo info ">
+				<a href="https://barrd.dev" rel="home" >
+					<div class="">
+						<svg viewBox="0 0 64 64" aria-hidden="true" role="img">
+<path d="M61.574 34.729l-.899-.385a48.639 48.639 0 00-10.418-3.125L48.521 20.22A4.976 4.976 0 0043.582 16H42a41.5 41.5 0 00-8.118.804l-2.12.423-4.64-1.856A5.198 5.198 0 0020 20.192c0 2.936-.901 5.75-2.607 8.139l-.2.28c-.298.418-.565.851-.823 1.289l-5.747-.821A7.759 7.759 0 009.515 29h-.687a7.77 7.77 0 00-5.535 2.293A7.883 7.883 0 001 36.828v1.344c0 2.061.836 4.078 2.293 5.535A21.34 21.34 0 0018.485 50c7.68 0 15.412-1.729 22.359-4.998l.903-.425a50.577 50.577 0 0111.602-3.827l7.761-1.552a2.353 2.353 0 00.464-4.469zm-12.816-.184c.073.467-.194.926-.636 1.092a57.804 57.804 0 01-13.105 3.229l-3.752.469a45.08 45.08 0 01-10.571.07 6.719 6.719 0 01-4.628-2.631l.238-1.193c.029-.143.075-.28.108-.422l.85.243a41.536 41.536 0 0022.134.196l9.143-2.438zm-29.939-4.772l.2-.28a15.91 15.91 0 002.98-9.301 3.197 3.197 0 014.38-2.963l1.459.583A39.4 39.4 0 0124 18v2a41.5 41.5 0 008.118-.804l2.156-.431A39.45 39.45 0 0142 18h1.582a2.987 2.987 0 012.964 2.532l1.679 10.64-9.345 2.492a39.743 39.743 0 01-21.069-.188l-.819-.234a14.938 14.938 0 011.827-3.469zm41.898 7.464l-7.76 1.552a52.601 52.601 0 00-12.061 3.978l-.903.425A50.834 50.834 0 0118.485 48a19.353 19.353 0 01-13.778-5.707A5.868 5.868 0 013 38.172v-1.344c0-1.534.622-3.036 1.707-4.121A5.789 5.789 0 018.828 31h.687c.274 0 .552.02.824.059l5.064.723a17.005 17.005 0 00-1.06 3.406l-.323 1.616c-.052.26.001.53.148.751a8.732 8.732 0 006.324 3.84 47.138 47.138 0 0011.02-.076l3.752-.469a59.834 59.834 0 0013.56-3.34 3.01 3.01 0 001.908-3.277l-.144-.91a46.63 46.63 0 019.299 2.86l.897.385a.35.35 0 01-.067.669z" /></svg>					</div>
+					<div class="ws-nowrap">barrd.dev</div>
+				</a>
+				<div class="copy">
+					&copy; <code>2022-2026</code>
+				</div>
+			</div>
+		</div>
+	</footer>
+</div>
+<button id="back2top" aria-label="Back to Top">
+	<svg aria-hidden="true" focusable="false"><use href="/app/themes/barrd/assets/img/icons.svg#arrow-left" /></svg>
+</button>
+
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp/wp-*.php","/wp/wp-admin/*","/app/uploads/*","/app/*","/app/plugins/*","/app/themes/barrd/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+		<div class="copycode_tt" role="tooltip" aria-live="polite" aria-hidden="true">Click to Copy</div>
+		<script id="barrd-copycode-js-after">
+			document.addEventListener('DOMContentLoaded', () => {
+				const copycode_tt = document.querySelector('.copycode_tt');
+				if (!copycode_tt) return;
+
+				const copycode_get_element_position = (el) => {
+					const rect = el.getBoundingClientRect();
+					const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+					const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+					return { top: rect.top + scrollTop - 30, left: rect.left + scrollLeft };
+				};
+
+				const copycode_copy_text = async (text) => {
+					if (navigator.clipboard && window.isSecureContext) {
+						return await navigator.clipboard.writeText(text);
+					}
+
+					const el = document.createElement('textarea');
+					el.value = text;
+					el.setAttribute('aria-hidden', 'true');
+					el.style.cssText = 'position: absolute; left: -9999px;';
+					document.body.appendChild(el);
+					el.select();
+					document.execCommand('copy');
+					document.body.removeChild(el);
+				};
+
+				const copycode_show_tooltip = (element, message, isSuccess) => {
+					const position = copycode_get_element_position(element);
+					copycode_tt.textContent = message;
+					copycode_tt.classList.remove('mouseout_anim', 'clicked');
+
+					if (isSuccess) {
+						copycode_tt.classList.add('clicked');
+					}
+
+					copycode_tt.style.display = 'block';
+					copycode_tt.setAttribute('aria-hidden', 'false');
+					copycode_tt.classList.add('mouseover_anim');
+					copycode_tt.style.top = position.top + 'px';
+					copycode_tt.style.left = position.left + 'px';
+				};
+
+				const copycode_hide_tooltip = () => {
+					copycode_tt.classList.remove('mouseover_anim');
+					copycode_tt.classList.add('mouseout_anim');
+					copycode_tt.setAttribute('aria-hidden', 'true');
+				};
+
+				const copycode_apply = (element) => {
+					const copyHandler = async (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+
+						try {
+							await copycode_copy_text(element.textContent);
+							copycode_show_tooltip(element, 'Copied!', true);
+							setTimeout(copycode_hide_tooltip, 2000);
+						} catch (err) {
+							console.error('Failed to copy text:', err);
+						}
+					};
+
+					element.addEventListener('click', copyHandler);
+
+					element.addEventListener('keydown', (e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							copyHandler(e);
+						}
+					});
+
+					element.addEventListener('mouseenter', () => {
+						copycode_show_tooltip(element, 'Click to Copy', false);
+					});
+
+					element.addEventListener('mouseleave', () => {
+						if (!copycode_tt.classList.contains('clicked')) {
+							copycode_hide_tooltip();
+						}
+					});
+
+					element.addEventListener('focus', () => {
+						copycode_show_tooltip(element, 'Click to Copy', false);
+					});
+
+					element.addEventListener('blur', () => {
+						if (!copycode_tt.classList.contains('clicked')) {
+							copycode_hide_tooltip();
+						}
+					});
+				};
+
+				document.querySelectorAll('.wp-block-code code').forEach((element) => {
+					element.setAttribute('role', 'button');
+					element.setAttribute('tabindex', '0');
+					element.setAttribute('aria-label', 'Click to Copy');
+					copycode_apply(element);
+				});
+			});
+		
+//# sourceURL=barrd-copycode-js-after
+</script>
+<script src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "563610001bd94aba86e95eed2b1bd81b"}' id="cloudflare-web-analytics-js" defer data-wp-strategy="defer"></script>
+<script nonce="879e1351b41979a4bb67e07948d78895">
+		const calculateSettingAsThemeString=({localStorageTheme:e,systemSettingDark:t})=>null!==e?e:t.matches?"dark":"light",updateButton=({buttonEl:e,isDark:t})=>{e&&(t=t?"Change to light theme":"Change to dark theme",e.setAttribute("aria-label",t))},updateThemeOnHtmlEl=({theme:e})=>{const t=document.querySelector("html");t&&t.setAttribute("data-theme",e)},initThemeToggle=()=>{const l=document.querySelector("[data-theme-toggle]");if(l){l.setAttribute("role","button"),l.setAttribute("tabindex","0");var t=window.matchMedia("(prefers-color-scheme: dark)");let e=null;try{e=localStorage.getItem("theme")}catch(e){console.error("Failed to access localStorage:",e)}let a=calculateSettingAsThemeString({localStorageTheme:e,systemSettingDark:t});updateButton({buttonEl:l,isDark:"dark"===a}),updateThemeOnHtmlEl({theme:a});var o=e=>{e.preventDefault();var t="dark"===a?"light":"dark";try{localStorage.setItem("theme",t)}catch(e){console.error("Failed to save theme preference:",e)}updateButton({buttonEl:l,isDark:"dark"==t}),updateThemeOnHtmlEl({theme:t}),a=t};l.addEventListener("click",o),l.addEventListener("keydown",e=>{"Enter"!==e.key&&" "!==e.key||o(e)})}else console.warn("Theme toggle button not found")};"loading"===document.readyState?document.addEventListener("DOMContentLoaded",initThemeToggle):initThemeToggle();
+			const lightbox = GLightbox({selector: '.glightbox'});
+				lightbox.on('open', () => {
+			lastFocusedElement = document.activeElement;
+		});
+				lightbox.on('close', () => {
+			lastFocusedElement.focus();
+		});
+			const isOverflown = (element) => {
+		return element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
+	};
+	const codes = document.querySelectorAll('.wp-block-code code');
+	codes.forEach((code) => {
+		if (isOverflown(code)) {
+			code.setAttribute('tabindex', '0');
+		}
+	});
+		document.querySelectorAll('a[aria-current="page"]').forEach((anchor) => {
+		anchor.setAttribute('tabindex', '-1');
+	});
+	</script>
+<script nonce="879e1351b41979a4bb67e07948d78895">
+		// Throttled back-to-top using requestAnimationFrame
+	// @see https://web.dev/articles/debounce-your-input-handlers
+	"use strict";function BACK2TOP(t,n,o="all",e="300",s="ease-in-out",i=0){const c=t.addEventListener("click",(function(){document.getElementById("top").scrollIntoView({behavior:"smooth"})}));let scheduled=false;window.addEventListener("scroll",(function(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{if(document.body.scrollTop>n||document.documentElement.scrollTop>n){const n={opacity:"1",visibility:"visible",transform:"translateY(0)",transition:`${o} ${e}ms ${s} ${i}ms`};Object.assign(t.style,n)}else{const n={opacity:"0",visibility:"hidden",transform:"translateY(100%)",transition:`${o} ${e}ms ${s} ${i}ms`};Object.assign(t.style,n)}scheduled=false})}),{passive:true});return c}const button=document.querySelector("#back2top");BACK2TOP(button,250);
+</script>
+
+<!--
+Random Quote: 
+You cannot get smart people to work extremely hard just for money.
+-->
+</body>
+</html>

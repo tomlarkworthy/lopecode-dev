@@ -1,0 +1,324 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <defs><radialGradient id="g1" cx="0.499" cy="0.500" r="0.501"><stop offset="0.000" stop-color="rgb(250,252,252)"/><stop offset="0.213" stop-color="rgb(250,252,252)"/><stop offset="0.248" stop-color="rgb(251,253,253)"/><stop offset="0.257" stop-color="rgb(255,204,238)"/><stop offset="0.262" stop-color="rgb(245,137,227)"/><stop offset="0.309" stop-color="rgba(255,87,227,0.950)"/><stop offset="0.369" stop-color="rgba(245,81,217,0.900)"/><stop offset="0.445" stop-color="rgba(217,69,192,0.850)"/><stop offset="0.611" stop-color="rgba(171,58,152,0.750)"/><stop offset="0.735" stop-color="rgba(145,49,129,0.500)"/><stop offset="1.000" stop-color="rgba(117,43,105,0.000)"/></radialGradient></defs>
+  <symbol id="cp-old" viewBox="0 0 482.00 1450.00">
+    <g transform="matrix(1.0000 0.0000 0.0000 1.0000 317.00 203.00)"><use href="#cp-brain" width="82.00" height="77.00"/></g>
+    <g transform="matrix(0.3090 0.9511 -0.9511 0.3090 455.74 1256.11)"><use href="#cp-lazer" width="82.00" height="197.00"/></g>
+    <path d="M229.67,1446.72L321.00,1331.00L413.20,1446.72L229.67,1446.72Z" fill="rgba(0,0,0,0.300)"/>
+    <path d="M229.67,1446.72L321.00,1331.00L413.20,1446.72L229.67,1446.72Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M229.67,1446.72L321.00,1331.00L413.20,1446.72L229.67,1446.72Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M349.56,1402.57L351.41,1408.28L364.75,1400.79L349.56,1402.57Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M349.56,1402.57L351.41,1408.28L364.75,1400.79L349.56,1402.57Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <g transform="matrix(0.3090 0.9511 -0.9511 0.3090 344.78 1407.27)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.2079 0.9781 -0.9781 -0.2079 345.45 1420.20)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.9511 0.3090 -0.3090 -0.9511 328.73 1438.78)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.6691 0.7431 -0.7431 -0.6691 339.58 1431.73)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.9781 -0.2079 0.2079 -0.9781 315.80 1439.45)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.7431 -0.6691 0.6691 -0.7431 304.27 1433.58)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.2079 -0.9781 0.9781 0.2079 296.55 1409.80)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.6691 -0.7431 0.7431 0.6691 302.42 1398.27)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.9511 -0.3090 0.3090 0.9511 313.27 1391.22)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.9781 0.2079 -0.2079 0.9781 326.20 1390.55)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.7431 0.6691 -0.6691 0.7431 337.73 1396.42)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.3090 -0.9511 0.9511 -0.3090 297.22 1422.73)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <path d="M13.67,1441.72L105.00,1326.00L197.20,1441.72L13.67,1441.72Z" fill="rgb(0,0,0)"/>
+    <path d="M70.00,55.00C70.00,55.11 70.00,55.89 70.00,56.00C69.92,59.40 68.00,63.00 66.00,65.00C64.00,67.00 60.00,70.00 55.00,70.00L55.00,65.00C55.17,65.00 55.84,65.01 56.00,65.00C58.16,64.88 60.68,63.41 62.33,61.76C63.78,60.31 64.64,58.49 64.91,56.61C64.97,56.17 65.00,55.44 65.00,55.00L70.00,55.00ZM70.00,15.00C70.00,14.89 70.00,14.11 70.00,14.00C69.92,10.60 68.00,7.00 66.00,5.00C64.00,3.00 60.00,0.00 55.00,0.00L55.00,5.00C55.17,5.00 55.84,4.99 56.00,5.00C58.16,5.12 60.68,6.59 62.33,8.24C63.78,9.69 64.63,11.51 64.91,13.39C64.97,13.83 65.00,14.56 65.00,15.00L70.00,15.00ZM70.00,15.00L65.00,15.00L65.00,55.00L70.00,55.00L70.00,15.00ZM0.00,55.00C0.00,55.11 -0.00,55.89 0.00,56.00C0.08,59.40 2.00,63.00 4.00,65.00C6.00,67.00 10.00,70.00 15.00,70.00L15.00,65.00C14.84,65.00 14.17,65.01 14.00,65.00C11.84,64.88 9.32,63.41 7.67,61.76C6.22,60.31 5.37,58.49 5.10,56.61C5.03,56.17 5.00,55.44 5.00,55.00L0.00,55.00ZM0.00,15.00C0.00,14.89 -0.00,14.11 0.00,14.00C0.08,10.60 2.00,7.00 4.00,5.00C6.00,3.00 10.00,0.00 15.00,0.00L15.00,5.00C14.84,5.00 14.17,4.99 14.00,5.00C11.84,5.12 9.32,6.59 7.67,8.24C6.22,9.69 5.37,11.51 5.10,13.39C5.03,13.83 5.00,14.56 5.00,15.00L0.00,15.00ZM0.00,15.00L5.00,15.00L5.00,55.00L0.00,55.00L0.00,15.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+    <path d="M9.00,9.00L61.00,9.00L61.00,61.00L9.00,61.00L9.00,9.00Z" fill="rgb(0,0,0)"/>
+    <path d="M33.00,31.00L33.00,20.00L29.00,20.00L35.00,14.00L41.00,20.00L37.00,20.00L37.00,31.00L33.00,31.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M39.00,33.00L50.00,33.00L50.00,29.00L56.00,35.00L50.00,41.00L50.00,37.00L39.00,37.00L39.00,33.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M31.00,33.00L20.00,33.00L20.00,29.00L14.00,35.00L20.00,41.00L20.00,37.00L31.00,37.00L31.00,33.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M33.00,39.00L33.00,50.00L29.00,50.00L35.00,56.00L41.00,50.00L37.00,50.00L37.00,39.00L33.00,39.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-buildcomponent" viewBox="0 0 600.00 93.00">
+    <path d="M16.00,89.00L0.00,73.00L0.00,17.00L17.00,1.00L22.00,6.00L8.00,20.00L8.00,70.00L21.00,83.00L16.00,89.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M547.00,0.00L600.00,52.50L600.00,84.00L200.00,85.00L200.00,0.00L547.00,0.00Z" fill="rgb(0,0,0)"/>
+    <path d="M153.00,89.00L169.00,73.00L169.00,17.00L152.00,1.00L147.00,6.00L161.00,20.00L161.00,70.00L148.00,83.00L153.00,89.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M169.00,38.00L192.02,38.00L192.02,1.99L552.01,1.99L598.53,48.51L598.53,92.02L191.77,92.02L191.77,42.99L169.00,43.00L169.00,38.00ZM547.00,10.00L590.00,52.50L590.00,84.00L200.00,85.00L200.00,10.00L547.00,10.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+    <path d="M196.00,6.00L211.03,6.00L196.00,6.00L196.00,16.00L196.00,6.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M21.00,12.00L149.00,12.00L149.00,76.00L21.00,76.00L21.00,12.00Z" fill="rgb(216,216,216)" stroke="rgb(151,151,151)" stroke-width="0.5" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-orb" viewBox="0 0 271.00 271.00">
+    <path d="M0.00,0.00L271.00,0.00L271.00,271.00L0.00,271.00L0.00,0.00Z" fill="url(#g1)"/>
+    <path d="M81.00,197.00L192.00,197.00L192.00,192.00L183.94,183.94L88.00,183.94L81.00,192.00L81.00,197.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-explosive-2" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-constant-2" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-armour" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(16,9,44,0.500)" stroke="rgba(207,207,230,0.520)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(138,138,230)" stroke-width="5" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-engine-2" viewBox="0 0 56.00 119.00">
+    <path d="M0.00,0.00C0.00,0.00 0.00,28.39 0.00,28.39C0.00,44.62 7.60,56.95 28.00,56.95C48.40,56.95 56.00,43.35 56.00,28.39C56.00,28.39 56.00,-0.00 56.00,-0.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00C0.00,0.00 0.00,28.39 0.00,28.39C0.00,44.62 7.60,56.95 28.00,56.95C48.40,56.95 56.00,43.35 56.00,28.39C56.00,28.39 56.00,-0.00 56.00,-0.00L0.00,0.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M5.30,96.86C5.30,96.86 4.07,58.40 27.97,58.56C51.88,58.73 50.67,96.86 50.67,96.86" fill="rgba(16,9,44,0.500)" stroke="rgba(207,207,230,0.520)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M5.30,96.86C5.30,96.86 4.07,58.40 27.97,58.56C51.88,58.73 50.67,96.86 50.67,96.86" fill="none" stroke="rgb(138,138,230)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M6.00,96.00L50.00,96.00L50.00,118.00L6.00,118.00L6.00,96.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M6.00,97.00L50.00,97.00L50.00,119.00L6.00,119.00L6.00,97.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-hyperdrive" viewBox="0 0 248.00 299.00">
+    <path d="M-0.00,84.00L-0.00,120.00L64.00,120.00L64.00,248.00L184.00,248.00L184.00,120.00L248.00,120.00L248.00,84.00L164.00,0.00L84.00,0.00L-0.00,84.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M-0.00,84.00L-0.00,120.00L64.00,120.00L64.00,248.00L184.00,248.00L184.00,120.00L248.00,120.00L248.00,84.00L164.00,0.00L84.00,0.00L-0.00,84.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M81.00,120.00L97.00,120.00L97.00,240.00L81.00,240.00L81.00,120.00ZM116.00,120.00L132.00,120.00L132.00,240.00L116.00,240.00L116.00,120.00ZM151.00,120.00L167.00,120.00L167.00,240.00L151.00,240.00L151.00,120.00ZM81.00,256.00C81.00,279.75 100.25,299.00 124.00,299.00C147.75,299.00 167.00,279.75 167.00,256.00L81.00,256.00ZM81.00,104.00C81.00,80.25 100.25,61.00 124.00,61.00C147.75,61.00 167.00,80.25 167.00,104.00L81.00,104.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+    <path d="M81.00,120.00L97.00,120.00L97.00,240.00L81.00,240.00L81.00,120.00ZM116.00,120.00L132.00,120.00L132.00,240.00L116.00,240.00L116.00,120.00ZM151.00,120.00L167.00,120.00L167.00,240.00L151.00,240.00L151.00,120.00ZM81.00,256.00C81.00,279.75 100.25,299.00 124.00,299.00C147.75,299.00 167.00,279.75 167.00,256.00L81.00,256.00ZM81.00,104.00C81.00,80.25 100.25,61.00 124.00,61.00C147.75,61.00 167.00,80.25 167.00,104.00L81.00,104.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+  </symbol>
+  <symbol id="cp-turret2" viewBox="0 0 270.00 159.00">
+    <path d="M261.83,41.30L245.54,44.04L242.54,48.32L215.02,58.34L206.62,58.20L157.44,76.10L137.10,76.08L148.48,107.35L163.93,93.96L213.12,76.06L220.00,70.36L246.99,60.54L252.04,61.89L266.27,53.52L261.83,41.30Z" fill="none" stroke="rgb(230,115,115)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M261.83,41.30L245.54,44.04L242.54,48.32L215.02,58.34L206.62,58.20L157.44,76.10L137.52,76.08L129.44,96.75L148.95,107.47L163.93,93.96L213.12,76.06L220.00,70.36L246.99,60.54L252.04,61.89L266.27,53.52L261.83,41.30Z" fill="rgba(0,0,0,0.300)" stroke="rgb(230,115,115)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M164.18,80.03L166.58,86.61" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M183.92,72.85L186.31,79.43" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M190.50,70.46L192.89,77.03" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M197.07,68.06L199.47,74.64" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M203.65,65.67L206.05,72.25" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M170.76,77.64L173.16,84.22" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M177.34,75.24L179.73,81.82" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M9.56,0.50L6.56,16.75L9.56,21.03L9.56,50.32L6.56,58.16L6.56,110.50L-0.41,129.61L32.86,129.61L25.56,110.50L25.56,58.16L22.56,49.75L22.56,21.03L25.56,16.75L22.56,0.50L9.56,0.50Z" fill="none" stroke="rgb(230,115,115)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M9.56,0.50L6.56,16.75L9.56,21.03L9.56,50.32L6.56,58.16L6.56,110.50L-0.27,129.21L16.39,143.87L33.14,129.21L25.56,110.50L25.56,58.16L22.56,49.75L22.56,21.03L25.56,16.75L22.56,0.50L9.56,0.50Z" fill="rgba(0,0,0,0.300)" stroke="rgb(230,115,115)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M12.56,105.50L19.56,105.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12.56,84.50L19.56,84.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12.56,77.50L19.56,77.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12.56,70.50L19.56,70.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12.56,63.50L19.56,63.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12.56,98.50L19.56,98.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M12.56,91.50L19.56,91.50" fill="none" stroke="rgb(230,115,230)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M83.03,153.01L83.03,91.73L111.00,91.73L143.46,57.53L172.43,91.73L203.89,91.73L203.89,152.59L83.03,153.01Z" fill="rgba(0,0,0,0.298)"/>
+    <path d="M83.03,153.01L83.03,91.73L111.00,91.73L143.46,57.53L172.43,91.73L203.89,91.73L203.89,152.59L83.03,153.01Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M83.03,153.01L83.03,91.73L111.00,91.73L143.46,57.53L172.43,91.73L203.89,91.73L203.89,152.59L83.03,153.01Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M139.56,111.57L141.41,117.28L154.75,109.79L139.56,111.57Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M139.56,111.57L141.41,117.28L154.75,109.79L139.56,111.57Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <g transform="matrix(0.3090 0.9511 -0.9511 0.3090 134.78 116.27)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.2079 0.9781 -0.9781 -0.2079 135.45 129.20)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.9511 0.3090 -0.3090 -0.9511 118.73 147.78)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.6691 0.7431 -0.7431 -0.6691 129.58 140.73)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.9781 -0.2079 0.2079 -0.9781 105.80 148.45)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.7431 -0.6691 0.6691 -0.7431 94.27 142.58)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.2079 -0.9781 0.9781 0.2079 86.55 118.80)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.6691 -0.7431 0.7431 0.6691 92.42 107.27)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.9511 -0.3090 0.3090 0.9511 103.27 100.22)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.9781 0.2079 -0.2079 0.9781 116.20 99.55)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.7431 0.6691 -0.6691 0.7431 127.73 105.42)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.3090 -0.9511 0.9511 -0.3090 87.22 131.73)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+  </symbol>
+  <symbol id="cp-binary-3" viewBox="0 0 184.00 120.00">
+    <path d="M0.00,64.00L64.00,64.00L64.00,0.00L120.00,0.00L120.00,64.00L184.00,64.00L184.00,120.00L0.00,120.00L0.00,64.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,64.00L64.00,64.00L64.00,0.00L120.00,0.00L120.00,64.00L184.00,64.00L184.00,120.00L0.00,120.00L0.00,64.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M92.00,120.00C107.46,120.00 120.00,107.46 120.00,92.00C120.00,76.54 107.46,64.00 92.00,64.00C76.54,64.00 64.00,76.54 64.00,92.00C64.00,107.46 76.54,120.00 92.00,120.00ZM39.00,93.00L63.00,93.00L63.00,91.00L39.00,91.00L39.00,93.00ZM145.00,91.00L121.00,91.00L121.00,93.00L145.00,93.00L145.00,91.00ZM93.00,63.00L93.00,39.00L91.00,39.00L91.00,63.00L93.00,63.00Z" fill="none" stroke="rgb(169,71,255)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+    <path d="M92.00,120.00C107.46,120.00 120.00,107.46 120.00,92.00C120.00,76.54 107.46,64.00 92.00,64.00C76.54,64.00 64.00,76.54 64.00,92.00C64.00,107.46 76.54,120.00 92.00,120.00ZM39.00,93.00L63.00,93.00L63.00,91.00L39.00,91.00L39.00,93.00ZM145.00,91.00L121.00,91.00L121.00,93.00L145.00,93.00L145.00,91.00ZM93.00,63.00L93.00,39.00L91.00,39.00L91.00,63.00L93.00,63.00Z" fill="none" stroke="rgb(169,71,255)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+  </symbol>
+  <symbol id="cp-binary-outline" viewBox="0 0 184.00 120.00">
+    <path d="M0.00,64.00L64.00,64.00L64.00,0.00L120.00,0.00L120.00,64.00L184.00,64.00L184.00,120.00L0.00,120.00L0.00,64.00Z" fill="rgb(255,255,255)"/>
+  </symbol>
+  <symbol id="cp-radar-2" viewBox="0 0 120.00 185.00">
+    <path d="M20.00,111.94C20.00,111.94 0.00,142.84 0.00,157.00C-0.00,171.16 0.00,185.00 0.00,185.00L120.00,185.00C120.00,185.00 120.00,170.04 120.00,157.00C120.00,143.96 100.00,111.94 100.00,111.94L20.00,111.94ZM60.00,129.00C97.56,129.00 128.00,98.56 128.00,61.00C128.00,23.44 97.56,-7.00 60.00,-7.00C22.44,-7.00 -8.00,23.44 -8.00,61.00C-8.00,98.56 22.44,129.00 60.00,129.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round" fill-rule="evenodd"/>
+    <path d="M20.00,111.94C20.00,111.94 0.00,142.84 0.00,157.00C-0.00,171.16 0.00,185.00 0.00,185.00L120.00,185.00C120.00,185.00 120.00,170.04 120.00,157.00C120.00,143.96 100.00,111.94 100.00,111.94L20.00,111.94ZM60.00,129.00C97.56,129.00 128.00,98.56 128.00,61.00C128.00,23.44 97.56,-7.00 60.00,-7.00C22.44,-7.00 -8.00,23.44 -8.00,61.00C-8.00,98.56 22.44,129.00 60.00,129.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+    <path d="M0.00,1.00L120.00,1.00L120.00,121.00L0.00,121.00L0.00,1.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,1.00L120.00,1.00L120.00,121.00L0.00,121.00L0.00,1.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M59.00,60.00L61.00,60.00L61.00,62.00L59.00,62.00L59.00,60.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M59.00,60.00L61.00,60.00L61.00,62.00L59.00,62.00L59.00,60.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M60.00,0.00L60.00,10.00" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M60.00,0.00L60.00,10.00" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,22.00L100.00,22.00L100.00,101.00L20.00,101.00L20.00,22.00Z" fill="none" stroke="rgb(35,155,68)" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M88.00,34.00L94.00,34.00L94.00,40.00L88.00,40.00L88.00,34.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-turret-gear" viewBox="0 0 54.00 73.00">
+    <path d="M24.00,15.00L30.00,15.00L27.00,0.00L24.00,15.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M24.00,15.00L30.00,15.00L27.00,0.00L24.00,15.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <g transform="matrix(1.0000 0.0000 0.0000 1.0000 27.00 21.00)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.8660 0.5000 -0.5000 0.8660 39.50 24.35)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.0000 1.0000 -1.0000 0.0000 52.00 46.00)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.5000 0.8660 -0.8660 0.5000 48.65 33.50)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.5000 0.8660 -0.8660 -0.5000 48.65 58.50)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.8660 0.5000 -0.5000 -0.8660 39.50 67.65)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.8660 -0.5000 0.5000 -0.8660 14.50 67.65)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-0.5000 -0.8660 0.8660 -0.5000 5.35 58.50)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.0000 -1.0000 1.0000 0.0000 2.00 46.00)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.5000 -0.8660 0.8660 0.5000 5.35 33.50)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(0.8660 -0.5000 0.5000 0.8660 14.50 24.35)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+    <g transform="matrix(-1.0000 0.0000 -0.0000 -1.0000 27.00 71.00)"><use href="#cp-tooth" width="10.00" height="4.00"/></g>
+  </symbol>
+  <symbol id="cp-vacancy" viewBox="0 0 64.00 64.00">
+    <path d="M0.00,0.00L64.00,0.00L64.00,64.00L0.00,64.00L0.00,0.00Z" fill="none" stroke="rgb(138,138,230)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L64.00,0.00L64.00,64.00L0.00,64.00L0.00,0.00Z" fill="rgba(16,9,44,0.500)" stroke="rgba(207,207,230,0.520)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-output-2" viewBox="0 0 20.00 20.00">
+    <path d="M10.00,20.00C15.52,20.00 20.00,15.52 20.00,10.00C20.00,4.48 15.52,0.00 10.00,0.00C4.48,0.00 0.00,4.48 0.00,10.00C0.00,15.52 4.48,20.00 10.00,20.00Z" fill="none" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M10.00,20.00C15.52,20.00 20.00,15.52 20.00,10.00C20.00,4.48 15.52,0.00 10.00,0.00C4.48,0.00 0.00,4.48 0.00,10.00C0.00,15.52 4.48,20.00 10.00,20.00Z" fill="rgb(19,76,19)" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-input-2" viewBox="0 0 20.00 20.00">
+    <path d="M10.00,20.00C15.52,20.00 20.00,15.52 20.00,10.00C20.00,4.48 15.52,0.00 10.00,0.00C4.48,0.00 0.00,4.48 0.00,10.00C0.00,15.52 4.48,20.00 10.00,20.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M10.00,20.00C15.52,20.00 20.00,15.52 20.00,10.00C20.00,4.48 15.52,0.00 10.00,0.00C4.48,0.00 0.00,4.48 0.00,10.00C0.00,15.52 4.48,20.00 10.00,20.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-vacancy-2" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00ZM24.00,12.00L24.00,24.00L12.00,24.00L12.00,32.00L24.00,32.00L24.00,44.00L32.00,44.00L32.00,32.00L44.00,32.00L44.00,24.00L32.00,24.00L32.00,12.00L24.00,12.00Z" fill="rgb(230,230,64)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round" fill-rule="evenodd"/>
+  </symbol>
+  <symbol id="cp-explosive-3" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-constant-3" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-explosive-4" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-constant-4" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-armour-2" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(16,9,44,0.500)" stroke="rgba(207,207,230,0.520)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(138,138,230)" stroke-width="5" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-engine-3" viewBox="0 0 56.00 119.00">
+    <path d="M0.00,0.00C0.00,0.00 0.00,28.39 0.00,28.39C0.00,44.62 7.60,56.95 28.00,56.95C48.40,56.95 56.00,43.35 56.00,28.39C56.00,28.39 56.00,-0.00 56.00,-0.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00C0.00,0.00 0.00,28.39 0.00,28.39C0.00,44.62 7.60,56.95 28.00,56.95C48.40,56.95 56.00,43.35 56.00,28.39C56.00,28.39 56.00,-0.00 56.00,-0.00L0.00,0.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M5.30,96.86C5.30,96.86 4.07,58.40 27.97,58.56C51.88,58.73 50.67,96.86 50.67,96.86" fill="rgba(16,9,44,0.500)" stroke="rgba(207,207,230,0.520)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M5.30,96.86C5.30,96.86 4.07,58.40 27.97,58.56C51.88,58.73 50.67,96.86 50.67,96.86" fill="none" stroke="rgb(138,138,230)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M6.00,96.00L50.00,96.00L50.00,118.00L6.00,118.00L6.00,96.00Z" fill="rgb(78,19,19)" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M6.00,97.00L50.00,97.00L50.00,119.00L6.00,119.00L6.00,97.00Z" fill="none" stroke="rgb(230,142,142)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-build-zone" viewBox="0 0 64.00 64.00">
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-build-zone-2" viewBox="0 0 64.00 64.00">
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-builder" viewBox="0 0 40.00 56.00">
+    <path d="M8.00,36.00L16.00,36.00L16.00,44.00L8.00,44.00L8.00,36.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M8.00,12.00L16.00,12.00L16.00,20.00L8.00,20.00L8.00,12.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M8.00,36.00L16.00,36.00L16.00,44.00L8.00,44.00L8.00,36.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M8.00,12.00L16.00,12.00L16.00,20.00L8.00,20.00L8.00,12.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M28.00,28.00C34.63,28.00 40.00,22.63 40.00,16.00C40.00,9.37 34.63,4.00 28.00,4.00C21.37,4.00 16.00,9.37 16.00,16.00C16.00,22.63 21.37,28.00 28.00,28.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M28.00,52.00C34.63,52.00 40.00,46.63 40.00,40.00C40.00,33.37 34.63,28.00 28.00,28.00C21.37,28.00 16.00,33.37 16.00,40.00C16.00,46.63 21.37,52.00 28.00,52.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L0.00,56.00L8.00,56.00L8.00,0.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L0.00,56.00L8.00,56.00L8.00,0.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-builder-2" viewBox="0 0 40.00 56.00">
+    <path d="M8.00,36.00L16.00,36.00L16.00,44.00L8.00,44.00L8.00,36.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M8.00,12.00L16.00,12.00L16.00,20.00L8.00,20.00L8.00,12.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M8.00,36.00L16.00,36.00L16.00,44.00L8.00,44.00L8.00,36.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M8.00,12.00L16.00,12.00L16.00,20.00L8.00,20.00L8.00,12.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M28.00,28.00C34.63,28.00 40.00,22.63 40.00,16.00C40.00,9.37 34.63,4.00 28.00,4.00C21.37,4.00 16.00,9.37 16.00,16.00C16.00,22.63 21.37,28.00 28.00,28.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M28.00,52.00C34.63,52.00 40.00,46.63 40.00,40.00C40.00,33.37 34.63,28.00 28.00,28.00C21.37,28.00 16.00,33.37 16.00,40.00C16.00,46.63 21.37,52.00 28.00,52.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L0.00,56.00L8.00,56.00L8.00,0.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgba(230,230,69,0.500)" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L0.00,56.00L8.00,56.00L8.00,0.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(230,230,207)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-builder-beam" viewBox="0 0 36.00 32.00">
+    <path d="M4.00,4.00L36.00,4.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M4.00,28.00L36.00,28.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M4.00,8.00C6.21,8.00 8.00,6.21 8.00,4.00C8.00,1.79 6.21,0.00 4.00,0.00C1.79,0.00 0.00,1.79 0.00,4.00C0.00,6.21 1.79,8.00 4.00,8.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M4.00,32.00C6.21,32.00 8.00,30.21 8.00,28.00C8.00,25.79 6.21,24.00 4.00,24.00C1.79,24.00 0.00,25.79 0.00,28.00C0.00,30.21 1.79,32.00 4.00,32.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-energy-store" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M16.00,28.00C22.63,28.00 28.00,22.63 28.00,16.00C28.00,9.37 22.63,4.00 16.00,4.00C9.37,4.00 4.00,9.37 4.00,16.00C4.00,22.63 9.37,28.00 16.00,28.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M40.00,28.00C46.63,28.00 52.00,22.63 52.00,16.00C52.00,9.37 46.63,4.00 40.00,4.00C33.37,4.00 28.00,9.37 28.00,16.00C28.00,22.63 33.37,28.00 40.00,28.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M16.00,52.00C22.63,52.00 28.00,46.63 28.00,40.00C28.00,33.37 22.63,28.00 16.00,28.00C9.37,28.00 4.00,33.37 4.00,40.00C4.00,46.63 9.37,52.00 16.00,52.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M40.00,52.00C46.63,52.00 52.00,46.63 52.00,40.00C52.00,33.37 46.63,28.00 40.00,28.00C33.37,28.00 28.00,33.37 28.00,40.00C28.00,46.63 33.37,52.00 40.00,52.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-energy-store-2" viewBox="0 0 56.00 56.00">
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="rgba(0,0,0,0.298)" stroke="rgb(207,230,207)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L56.00,0.00L56.00,56.00L0.00,56.00L0.00,0.00Z" fill="none" stroke="rgb(184,230,184)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M16.00,28.00C22.63,28.00 28.00,22.63 28.00,16.00C28.00,9.37 22.63,4.00 16.00,4.00C9.37,4.00 4.00,9.37 4.00,16.00C4.00,22.63 9.37,28.00 16.00,28.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M40.00,28.00C46.63,28.00 52.00,22.63 52.00,16.00C52.00,9.37 46.63,4.00 40.00,4.00C33.37,4.00 28.00,9.37 28.00,16.00C28.00,22.63 33.37,28.00 40.00,28.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M16.00,52.00C22.63,52.00 28.00,46.63 28.00,40.00C28.00,33.37 22.63,28.00 16.00,28.00C9.37,28.00 4.00,33.37 4.00,40.00C4.00,46.63 9.37,52.00 16.00,52.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M40.00,52.00C46.63,52.00 52.00,46.63 52.00,40.00C52.00,33.37 46.63,28.00 40.00,28.00C33.37,28.00 28.00,33.37 28.00,40.00C28.00,46.63 33.37,52.00 40.00,52.00Z" fill="none" stroke="rgb(144,19,254)" stroke-width="2" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-build-zone-3" viewBox="0 0 64.00 64.00">
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-build-zone-4" viewBox="0 0 64.00 64.00">
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,20.00L64.00,20.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M0.00,44.00L64.00,44.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,64.00L20.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,64.00L44.00,0.00" fill="none" stroke="rgb(190,255,119)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,24.00C22.21,24.00 24.00,22.21 24.00,20.00C24.00,17.79 22.21,16.00 20.00,16.00C17.79,16.00 16.00,17.79 16.00,20.00C16.00,22.21 17.79,24.00 20.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,24.00C46.21,24.00 48.00,22.21 48.00,20.00C48.00,17.79 46.21,16.00 44.00,16.00C41.79,16.00 40.00,17.79 40.00,20.00C40.00,22.21 41.79,24.00 44.00,24.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M20.00,48.00C22.21,48.00 24.00,46.21 24.00,44.00C24.00,41.79 22.21,40.00 20.00,40.00C17.79,40.00 16.00,41.79 16.00,44.00C16.00,46.21 17.79,48.00 20.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M44.00,48.00C46.21,48.00 48.00,46.21 48.00,44.00C48.00,41.79 46.21,40.00 44.00,40.00C41.79,40.00 40.00,41.79 40.00,44.00C40.00,46.21 41.79,48.00 44.00,48.00Z" fill="rgb(254,255,253)" stroke="rgb(157,236,69)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-gaussian-line-2" viewBox="0 0 30.00 12.00">
+    <path d="M0.00,0.00L30.00,0.00L30.00,12.00L0.00,12.00L0.00,0.00Z" fill="none" stroke="rgba(255,0,38,0.300)" stroke-width="25" stroke-linejoin="round" opacity="0.300"/>
+    <path d="M0.00,0.00L30.00,0.00L30.00,12.00L0.00,12.00L0.00,0.00Z" fill="none" stroke="rgb(255,0,38)" stroke-width="10" stroke-linejoin="round" opacity="0.700"/>
+    <path d="M0.00,0.00L30.00,0.00L30.00,12.00L0.00,12.00L0.00,0.00Z" fill="none" stroke="rgb(255,0,111)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M0.00,0.00L30.00,0.00L30.00,12.00L0.00,12.00L0.00,0.00Z" fill="none" stroke="rgb(255,252,254)" stroke-width="1" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-radar-outline" viewBox="0 0 120.00 184.00">
+    <path d="M20.00,110.94C20.00,110.94 0.00,141.84 0.00,156.00C-0.00,170.16 0.00,184.00 0.00,184.00L120.00,184.00C120.00,184.00 120.00,169.04 120.00,156.00C120.00,142.96 100.00,110.94 100.00,110.94L20.00,110.94ZM60.00,128.00C97.56,128.00 128.00,97.56 128.00,60.00C128.00,22.44 97.56,-8.00 60.00,-8.00C22.44,-8.00 -8.00,22.44 -8.00,60.00C-8.00,97.56 22.44,128.00 60.00,128.00ZM18.00,75.24L102.00,75.24L102.00,148.84L18.00,148.84L18.00,75.24ZM0.00,0.00L120.00,0.00L120.00,120.00L0.00,120.00L0.00,0.00Z" fill="rgb(255,255,255)" fill-rule="evenodd"/>
+  </symbol>
+  <symbol id="cp-lazer-2" viewBox="0 0 56.00 169.00">
+    <path d="M22.00,0.00L19.00,16.24L22.00,20.52L22.00,49.81L19.00,57.66L19.00,110.00L0.00,112.50L-0.00,168.07L56.00,168.07L56.00,112.50L37.00,110.00L37.00,57.66L34.00,49.25L34.00,20.52L37.00,16.24L34.00,0.00L22.00,0.00Z" fill="rgba(0,0,0,0.300)" stroke="rgb(230,115,115)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M24.00,108.00L32.00,108.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,87.00L32.00,87.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,80.00L32.00,80.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,73.00L32.00,73.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,66.00L32.00,66.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,59.00L32.00,59.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,101.00L32.00,101.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M24.00,94.00L32.00,94.00" fill="none" stroke="rgb(230,115,230)" stroke-width="4" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="cp-lazer-outline" viewBox="0 0 56.00 169.00">
+    <path d="M22.00,0.00L19.00,16.24L22.00,20.52L22.00,49.81L19.00,57.66L19.00,110.00L0.00,112.50L-0.00,168.07L56.00,168.07L56.00,112.50L37.00,110.00L37.00,57.66L34.00,49.25L34.00,20.52L37.00,16.24L34.00,0.00L22.00,0.00Z" fill="rgb(255,255,255)"/>
+  </symbol>
+</svg>

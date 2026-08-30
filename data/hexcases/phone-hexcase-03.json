@@ -1,0 +1,131 @@
+{
+ "name": "phone-hexcase-03",
+ "w": 960,
+ "h": 1280,
+ "labelled": true,
+ "pinned": false,
+ "difficulty": 1,
+ "truth": [
+  {
+   "id": 56,
+   "x": 346.9,
+   "y": 498,
+   "radiusPx": 86.3,
+   "state": "read"
+  },
+  {
+   "id": 11,
+   "x": 167,
+   "y": 583.7,
+   "radiusPx": 104.7,
+   "state": "read"
+  },
+  {
+   "id": 22,
+   "x": 234,
+   "y": 812.2,
+   "radiusPx": 129.4,
+   "state": "read"
+  },
+  {
+   "id": 29,
+   "x": 640.8,
+   "y": 852.8,
+   "radiusPx": 149.4,
+   "state": "read"
+  },
+  {
+   "id": 37,
+   "x": 811.9,
+   "y": 621.2,
+   "radiusPx": 120.5,
+   "state": "read"
+  }
+ ],
+ "cfg": {
+  "stride": 4,
+  "edgeThreshold": 12,
+  "minRows": 3,
+  "minVotes": 2,
+  "voteRatio": 2,
+  "minAxisRatio": 0.333333333333333,
+  "minCover": 0.3,
+  "maxASpread": 0.35,
+  "gapFrac": 0.3,
+  "maxWidth": 960,
+  "bothAxes": false
+ },
+ "capture": {
+  "counts": {
+   "read": 6,
+   "located": 0,
+   "misplaced": 0,
+   "missing": 1
+  },
+  "offTarget": 0,
+  "rmsPx": 2.25,
+  "looPx": 10.4,
+  "looFrac": 0.116,
+  "mmPerPx": 0.267,
+  "distanceMm": 242,
+  "tiltDeg": 55,
+  "ms": 67.1
+ },
+ "labelQuality": [
+  {
+   "id": 56,
+   "src": "measured",
+   "dirs": 11,
+   "lineRms": 92.66,
+   "planeResid": null,
+   "score": 12.5,
+   "inFrame": true,
+   "ok": false
+  },
+  {
+   "id": 11,
+   "src": "measured",
+   "dirs": 5,
+   "lineRms": 1.77,
+   "planeResid": null,
+   "score": 92,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 22,
+   "src": "measured",
+   "dirs": 6,
+   "lineRms": 2.88,
+   "planeResid": null,
+   "score": 125.2,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 29,
+   "src": "measured",
+   "dirs": 6,
+   "lineRms": 3.94,
+   "planeResid": null,
+   "score": 115.2,
+   "inFrame": true,
+   "ok": true
+  },
+  {
+   "id": 37,
+   "src": "measured",
+   "dirs": 4,
+   "lineRms": 11.99,
+   "planeResid": null,
+   "score": 90.5,
+   "inFrame": true,
+   "ok": true
+  }
+ ],
+ "golden": true,
+ "goldenThr": 12,
+ "planeTrusted": false,
+ "planeRms": null,
+ "labelledBy": "dense-label: 12 directions, stride 1, per-frame edge threshold; plane by RANSAC; pixel contrast veto"
+}

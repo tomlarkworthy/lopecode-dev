@@ -1,0 +1,276 @@
+
+@@ headline_md
+### Fast Multi-Target Circular Barcode Pose Tracking
+
+@@ hexTaster
+hexcase-5ivq-04, 960×720, read here in 3.6ms at stride 4 on 6 workers, median of 5 after a warm-up: 6 of 7 barcodes decoded. Solid rings carry an id, dashed ones located but did not decode. The whole bank, and what the settings above cost it, is §3.
+
+@@ toc
+About
+The Scanner
+§1 The barcode
+§2 Multiple barcodes
+§3 Evaluation
+§3.1 The label set
+§3.2 Near misses
+§3.3 Score at the current settings
+§4 Detection
+§4.1 The circular barcode pattern
+§4.2 One scanline, 3 degrees-of-freedom
+§4.3 Combine scanlines
+§4.3.1 Scanning orthogonally
+§4.4 From barcodes to a pose
+§4.5 Making it fast
+§4.6 Making it even faster, and fast to start
+§4.7 Relabelling
+§4.7.1 The ring lattice refinement
+§5 Next steps
+
+@@ 
+### About
+Part V of a super long [younger me, 2012] and infrequently worked on project for fast optical localization. In this installment I added
+Detect multiple circular barcodes in the scene
+Decode them so each has an unambiguous code for matching
+Compile into WASM via AssemblyScript for fast performance
+Use Web Workers for parallelism
+Fuse multiple barcodes to get a pose
+Less than 2ms per frame on MacBook, 16ms on phone 🤙 which is complete overkill for the browser as both max out at 30 f.p.s. for webcams, however, the long term aim is for hardware.
+There are lots of optical tracking systems, including circular barcodes. The unique thing about this one is the design around single scan lines, so barcodes can be recognized with appropriate hardware as pixels leave the camera's MIPI. This is potentially hundreds of times faster than the frames per second rating of a camera.
+
+@@ priorWork
+2012-05
+Optical localization to 0.1mm, no problemo
+Where it started. Cheap high-speed optical positioning for a robot's end effector, on a webcam.
+II
+2023-06
+Simplifying Pose Estimation with Circular Barcodes
+The geometry, in a three.js camera simulator. A circular barcode reads the same along any chord through its centre, so a 2D pose search becomes a 1D pattern match on one row of pixels.
+III
+2025-08
+Fast 1D Circular Barcode Matching
+Centre and tilt of one barcode from one scan row of a simulated frame, by recovering the Möbius transform — the exact 1D projective map — from an anchor search, a DP alignment and a least-squares refit.
+IV
+2026-08
+Realtime Multi-Barcode Tracking
+Several barcodes at independent poses, on live frames. Strided rows so each barcode is near-centred on one of them, and a cross-ratio test in place of the anchor SVD.
+This notebook
+Printed barcodes that carry their own position, decoded from a live camera, fused into a plane pose.
+
+@@ 
+### The Scanner
+
+@@ 
+This lets you run the barcode matcher a few ways
+wave your mobile displaying the pattern §2 in front of your webcam on a laptop running this notebook
+print out the pattern §2 on paper and track with this notebook on your mobile
+connect Claude Code to the notebook live on your laptop and let it drive and take measurements (also /remote-control from Claude Code from mobile)
+download the notebook as a single file and let Claude Code choose how to edit and run it
+
+@@ 
+### §1 The barcode
+
+@@ barcodeEncoding_md
+A circular barcode is a set of concentric rings. With Manchester Encoding of 6 bits, every bit has at least one intensity change (an edge). These edges can help position the barcode on a scan line and also double as a digital label.
+
+@@ 
+### §2 Multiple barcodes
+
+@@ hexTarget_md
+If the layout of the barcodes is known, their combination gives a homography estimate. There is no matching ambiguity because the barcodes label themselves.
+
+@@ 
+### §3 Evaluation
+
+@@ 
+### §3.1 The label set
+
+@@ 
+Each banked frame is labelled with the correct barcode centres, and §3.3 scores the fast detector against them. The correct centres were determined with a much more expensive algorithm, concentric ring matching under perspective, and eyeballed for correctness of fit, see §4.7.
+
+@@ 
+### §3.2 Near misses
+
+@@ hexBank_md
+The banked frame was captured by the rig's auto capture, looking for hard cases where some of the barcodes were correct but not all. Images were taken in a few different cluttered environments, some including barcode-like features such as venetian blinds and railings.
+
+@@ 
+### §3.3 Score at the current settings
+
+@@ 
+Every frame above, replayed at the rig's current controls, scored against §3.1's labels.
+
+@@ 
+### §4 Detection
+
+@@ algo_md
+§4.1
+The circular encoding
+§4.2
+One scanline
+§4.3
+Frame fusion
+§4.4
+The plane
+The barcode is designed so it is easy to recognize and localize from a single scan line of pixels. The encoding gives it a label and edges for sharp positioning.
+
+@@ 
+### §4.1 The circular barcode pattern
+
+@@ redesign_md
+A scan row goes through each ring twice. Once on the way into the centre, and once out. The order is symmetric. So there is a match for each edge crossing across a mirror down the middle: an involution (a function that is its own inverse).
+Once you adjust for the perspective (Möbius transform, Part III), those pairs are on a straight line defining the tilt angle of the scanline relative to the camera.
+
+@@ 
+### §4.2 One scanline, 3 degrees-of-freedom
+
+@@ row_md
+One scanline is enough to determine 3 of the 6 position/orientation degrees of freedom for the barcode in 3D space.
+centre position along line
+x offset
+width on line
+z offset
+tilt
+rotation around y
+The first step towards pose retrieval is edge detection
+
+@@ rowWalkFrame
+hexcase-5ivq-04 · 960×720 · row y = 411 · 97 of 120 scanned rows lock at least one barcode, 36 of them decode an id · this row locks 4, 1 of them with an id. Click or drag on the frame to move the scan row. Green carries an id, amber is located but undecoded — for the circles and for the strip alike. Magenta dashed rims are the frame's recorded labels, drawn as the ellipse the sheet's own homography puts them on: ground truth, not something the detector produced.
+
+@@ rowWalkEdges
+106 edges out of 960 pixels. Blue rises, amber falls — the sign is not decoration, it is what carries the bit at a mid tooth. Sub-pixel positions are worth the trouble: integer ones cost about 0.03 of cross ratio at small barcode scales, which is past what the gate downstream tolerates.
+
+@@ 
+After edge detection, adjacent edges are grouped. Barcode geometry bounds the problem space.
+
+@@ pruningTable
+minEdges
++5
+an involution needs three pairs, so five edges cannot lock whatever they are
+minSpan
+14px
+no change
+a barcode narrower than this has its rings inside one pixel of each other
+gapFrac
+0.2
+the widest gap INSIDE one barcode is the dark disc, 2·6 of a 2·28.5 span — at most 0.21 of it, so a wider gap separates barcodes rather than rings
+maxEdges
+36
+one barcode presents at most 2·(nT+1) = 30 edges; more than that plus slack is more than one barcode, so split
+groupCap
+33
++7
+the same bound as a refusal to OFFER: an over-cap run cannot be one barcode, and fitting it is the expensive case
+opposite signs, P inside both pairs, Q outside the span ±2%, tolPx 1.1, ≥6 inliers
+no involution fits
+tooth index within [0, 14], positive slope, ≥3 lattice inliers and within 2 of the pairs offered
+no lattice assignment
+lattice support ≥ 5
+too little support
+one lock per foot: |Δfoot| < 0.6 · max(wHalf)
+duplicate or rival
+Relaxing a gate can ADD groups it was refusing or REMOVE ones it was forcing a split into, which is why the column is signed. Values are recomputed from the layout, not copied. The stages themselves are drawn in §4.2.
+
+@@ rowWalkGroups
+4 candidate groups, 4 of them lock. The split rule is the widest gap: inside one barcode the widest gap is the dark disc, at most 0.21 of the barcode's own span, so anything wider separates barcodes rather than rings. The threshold sits below that bound on purpose, which sometimes cuts a real barcode in half — so the unsplit run is offered as well, and brackets overlap. A wrong split loses a barcode; a wrong merge just fails to lock and is discarded.
+
+@@ 
+Surviving groups have a clear involution around a reflection point P, a very distinctive pattern stemming from the properties of an orientated set of concentric rings, that is preserved even if the scanline is off-centre to the barcode.
+
+@@ rowWalkLock
+no id emitted · support 9 · d = 11.05 · 3 of 6 bits read directly, 2 violations, 5 checks · A = 6.034e-4, B = -7.368e-2
+no id emitted · support 6 · d = 6.50 · 4 of 6 bits read directly, 0 violations, 7 checks · A = 1.445e-3, B = -6.099e-2
+no id emitted · support 6 · d = 6.29 · 2 of 6 bits read directly, 1 violation, 7 checks · A = 1.099e-3, B = -4.350e-2
+id 56 111000 · support 11 · d = 7.36 · 6 of 6 bits read directly, 0 violations, 6 checks · A = 5.217e-6, B = -2.827e-4
+
+@@ 
+Once P is cracked the slope is a fit and the barcode can be fully read if all its edges are observable. It is probably true that some of the bits of the barcode can be decoded even if the scan is off-centre, but not tried here.
+
+@@ 
+### §4.3 Combine scanlines
+
+@@ cascade_md
+Adjacent parallel scanlines can be joined if their P are close
+A lock joins the nearest open cluster whose last row is within 4 · stride above it and whose last P is within max(10px, 0.35 · wHalf) — the window drawn on the figure below — and otherwise opens its own. The match is on P and never on the decoded id, because rows that locate but fail to decode are exactly what the ellipse fit is made of.
+A cluster becomes a barcode on three independent things: at least 3 rows, an id with at least 2 votes that beats the runner-up 2:1, and a pose fitManPose calls plausible. Clutter reliably produces one of the three and rarely two. If two clusters claim the same id the better-evidenced one keeps it, on rows, then vote margin, then coverage, so one id stays one piece of paper.
+
+@@ combineDiagram
+Stage 1 returned 55 locks over 90 rows at stride 6. Stage 2 joined 52 of them into 3 barcodes and 1 that located but did not decode; 3 never reached three rows and are dropped. The polyline is not part of the algorithm — it just shows which locks ended up in the same group. Right: the largest barcode, one blue line per scanned row, its P as a dot, and the join window ± 16px drawn on the last row to join. The ellipse is what the group becomes — fitted from the rows' own chord offsets, axis-aligned because a row scan recovers two half-axes and not a rotation.
+
+@@ 
+### §4.3.1 Scanning orthogonally
+
+@@ axes_md
+A row scan measures a barcode's x and extrapolates its y, and a column scan of the same frame inverts that. Both cost two scans, both run on the worker pool, and they often disagree on the centre. They have to decode the same id to be paired at all, so all the merge has to do is choose: it takes the column pass's y unless the row pass decoded with a strictly larger vote margin.
+Summed absolute y error over the 37 barcodes the bank fuses from both passes, against an oracle that reads the frozen label and always picks the closer pass:
+oracle
+14.2px
+by vote margin
+18.3px
+by scanline count
+25.5px
+by coverage
+34.6px
+always the column pass
+45.1px
+always the row pass
+49.9px
+Blue reads the answer key, so it is a floor and not a rule. Green is what ships, and it closes 87% of the distance to that floor from the better fixed pass. The two greys below it are rules that were tried.
+
+@@ 
+### §4.4 From barcodes to a pose
+
+@@ 
+As the barcodes have labels the hexagonal grid of 7 barcodes can be trivially fitted allowing more spatial fusion for pose estimation in 6 DOF space.
+As each barcode fit also carries the local scale a and b, only two barcodes are needed to determine a plane, and the live pose fits with them.
+
+@@ 
+### §4.5 Making it fast
+
+@@ pool_md
+Multiple scan lines can be processed in parallel. In this notebook we farm out the work to web workers to make use of multi-core computation available on laptops and mobiles.
+
+@@ 
+### §4.6 Making it even faster, and fast to start
+
+@@ 
+AI rewrote the web worker algorithms in AssemblyScript and shipped an in-browser AssemblyScript Compiler. This makes it faster, and avoids the initial slow down you get with unoptimized Javascript when first run on a page.
+The AssemblyScript compiler is included in this notebook as @tomlarkworthy/assembly-script, which owns asc, assemblyscript, long and binaryen.
+It is a module inside this file, so nothing is fetched to compile. Its Observable original is observablehq.com/@tomlarkworthy/assembly-script.
+
+@@ warmupCurveChart
+Warm-up, pooled, two independent runs of each implementation. One pass is the 16-frame bank; a fresh pool is built at frame 0 and then left alone. JavaScript starts around 13 ms/frame and descends a staircase — the plateaus are V8 promoting the kernel through its compiler tiers — taking several hundred frames to approach its floor, and the two runs disagree about where that floor is (2.9 vs 3.7 ms). At 30fps the flat part of the red curve is ten to twenty seconds away. WebAssembly is at its floor by the third pass in both runs and stays there. 2026-08-04 · headless Chromium 136 · 14 cores, 6 workers · stride 4 · 16 bank frames.
+
+@@ wasmRebuildReport
+asc 0.28.20 · compiled in 218ms
+Byte for byte identical to the binary saved in this file — 6883 bytes.
+
+@@ 
+### §4.7 Relabelling
+
+@@ 
+The bank's reference labels (§3.1) are computed from a slower, more accurate offline procedure: row stride 1 instead of 4, a sweep over the edge threshold, and a sub-pixel refinement stage.
+The edge threshold is chosen per frame.
+Every centre is refined on its own ring lattice.
+The plane is fitted by exhaustive RANSAC over the 4-subsets.
+The plane may flag a measurement, but not replace one.
+
+@@ 
+### §4.7.1 The ring lattice refinement
+
+@@ 
+For lattice refinement, all edges of the barcode, through every scan line, in 12 directions are used to fit a perspective distorted concentric ring model, with an ink bleed parameter.
+Fit the whole set at once:
+c is the centre in the image, A the inverse of the local plane-to-image map, and δ a single ink-bleed offset. Seven parameters against thousands of observations.
+δ is identifiable. Thickening the ink moves a dark→light boundary outward and a light→dark boundary inward. The involution pairs require ss[f] === -ss[e], so both edges of a pair take the same signed shift, and consecutive teeth alternate polarity. Across the bank, ink bleed fits 0.06mm.
+An affine A is not enough. Under a homography concentric circles map to ellipses that are not concentric: the imaged ellipse of a ring drifts toward the vanishing point as the ring grows. An affine fit has no term for that, so on a tilted sheet it carries a bias. Two additional perspective parameters remove the bias, solved as a second stage after the converged affine fit.
+Measured against a synthetic image, adding perspective correction takes the relabelling from a median error of 0.118px to 0.010px, and its worst case from 0.721px to 0.027px.
+
+@@ 
+Some helpers for development
+
+@@ 
+### §5 Next steps
+
+@@ next_md
+There is more we can do to improve accuracy in realtime applications e.g. adaptive tuning of the edge detector parameters, or adjustment of scanlines focus across frames. We do not use frame similarity information at all!
+My primary next goal however is running faster than 30 frames per second. This does not appear to be easily achieved with browser, so next work will attempt to apply this algorithm to real hardware like the Arducam 100fps Mono Global Shutter USB Camera, 720P OV9281 UVC Webcam Module which has hardware support for changing scan line settings and capture rate.

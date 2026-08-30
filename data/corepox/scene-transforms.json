@@ -1,0 +1,274 @@
+{
+ "Aim": [
+  {
+   "go": "player",
+   "ship": "player",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": -0.0
+  }
+ ],
+ "Avoid": [
+  {
+   "go": "SteerableDrifterV2",
+   "ship": "SteerableDrifterV2",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": -0.0
+  },
+  {
+   "go": "ProximityMine",
+   "ship": "ProximityMine",
+   "player": false,
+   "wx": 0.0,
+   "wy": 6.23,
+   "tx": 0.0,
+   "ty": -9.73,
+   "a": -0.0
+  }
+ ],
+ "Cocoon": [
+  {
+   "go": "DelayBomb",
+   "ship": "?",
+   "player": false,
+   "wx": -0.64,
+   "wy": -2.0,
+   "tx": -1.0,
+   "ty": 3.12,
+   "a": -180.0
+  },
+  {
+   "go": "DelayBomb1",
+   "ship": "?",
+   "player": false,
+   "wx": 0.64,
+   "wy": 2.0,
+   "tx": 1.0,
+   "ty": -3.12,
+   "a": -0.0
+  },
+  {
+   "go": "Brain",
+   "ship": "Brain",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": -0.0
+  }
+ ],
+ "Connection": [
+  {
+   "go": "DisconnectedRocketCore",
+   "ship": "DisconnectedRocketCore",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": -0.0
+  }
+ ],
+ "ConnectionLite": [
+  {
+   "go": "LiteDisconnectedRocketCore",
+   "ship": "LiteDisconnectedRocketCore",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": -0.0
+  }
+ ],
+ "FollowBoss": [
+  {
+   "go": "Spike",
+   "ship": "?",
+   "player": false,
+   "wx": -30.0,
+   "wy": -1.0,
+   "tx": -46.88,
+   "ty": 1.56,
+   "a": 90.0
+  },
+  {
+   "go": "GunBoatBoss",
+   "ship": "?",
+   "player": false,
+   "wx": 23.0,
+   "wy": 12.3,
+   "tx": 35.94,
+   "ty": -19.22,
+   "a": 226.62
+  },
+  {
+   "go": "UnwiredOrbDrone",
+   "ship": "?",
+   "player": false,
+   "wx": 1.233,
+   "wy": -3.878,
+   "tx": 1.93,
+   "ty": 6.06,
+   "a": -0.0
+  },
+  {
+   "go": "Spike",
+   "ship": "?",
+   "player": false,
+   "wx": 1.0,
+   "wy": -30.0,
+   "tx": 1.56,
+   "ty": 46.88,
+   "a": -0.0
+  },
+  {
+   "go": "Brain",
+   "ship": "?",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": 0.0
+  }
+ ],
+ "FollowCourse": [
+  {
+   "go": "BrautenbourgsFirst",
+   "ship": "?",
+   "player": false,
+   "wx": 415.224,
+   "wy": 328.04,
+   "tx": 648.79,
+   "ty": -512.56,
+   "a": -0.0
+  },
+  {
+   "go": "Brautenbourgs First",
+   "ship": "?",
+   "player": false,
+   "wx": -1.63,
+   "wy": 7.37,
+   "tx": -2.55,
+   "ty": -11.52,
+   "a": 149.36
+  },
+  {
+   "go": "UnfinishedOrbDrone",
+   "ship": "?",
+   "player": false,
+   "wx": 415.224,
+   "wy": 328.04,
+   "tx": 648.79,
+   "ty": -512.56,
+   "a": -0.0
+  },
+  {
+   "go": "UnfinishedOrbDrone",
+   "ship": "UnfinishedOrbDrone",
+   "player": true,
+   "wx": 2.0,
+   "wy": 0.0,
+   "tx": 3.12,
+   "ty": -0.0,
+   "a": 0.0
+  }
+ ],
+ "FollowCourseAdvanced": [
+  {
+   "go": "BrautenbourgsFirst",
+   "ship": "?",
+   "player": false,
+   "wx": 9.7,
+   "wy": 10.3,
+   "tx": 15.16,
+   "ty": -16.09,
+   "a": 226.62
+  },
+  {
+   "go": "UnwiredOrbDrone",
+   "ship": "?",
+   "player": false,
+   "wx": 1.233,
+   "wy": -3.878,
+   "tx": 1.93,
+   "ty": 6.06,
+   "a": -0.0
+  },
+  {
+   "go": "UnwiredOrbDrone",
+   "ship": "?",
+   "player": true,
+   "wx": 0.0,
+   "wy": -1.0,
+   "tx": 0.0,
+   "ty": 1.56,
+   "a": 0.0
+  }
+ ],
+ "ManualAim": [],
+ "PlaceBrain": [],
+ "SideShooter": [
+  {
+   "go": "Brain",
+   "ship": "Brain",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": 0.0
+  },
+  {
+   "go": "enemyShip",
+   "ship": "shooter",
+   "player": false,
+   "wx": 0.0,
+   "wy": 4.0,
+   "tx": 0.0,
+   "ty": -6.25,
+   "a": -180.0
+  }
+ ],
+ "TwinTurrets": [
+  {
+   "go": "enemyShipA",
+   "ship": "laserpost",
+   "player": false,
+   "wx": -4.14,
+   "wy": 6.24,
+   "tx": -6.47,
+   "ty": -9.75,
+   "a": 144.87
+  },
+  {
+   "go": "Brain",
+   "ship": "Brain",
+   "player": true,
+   "wx": 0.0,
+   "wy": 0.0,
+   "tx": 0.0,
+   "ty": -0.0,
+   "a": 0.0
+  },
+  {
+   "go": "enemyShipB",
+   "ship": "laserpost",
+   "player": false,
+   "wx": 4.32,
+   "wy": 6.07,
+   "tx": 6.75,
+   "ty": -9.48,
+   "a": -156.42
+  }
+ ]
+}

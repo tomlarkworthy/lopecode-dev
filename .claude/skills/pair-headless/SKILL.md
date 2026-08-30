@@ -20,7 +20,7 @@ Do **not** use this for visual debugging or QA — `/qa-notebook` and the standa
 
 ## Start: `/pair-headless <notebook> [--fakefs-root <path>]`
 
-The user provides either a notebook path (e.g. `lopecode/notebooks/@tomlarkworthy_blank-notebook.html`) or a notebook id (e.g. `@tomlarkworthy/blank-notebook`). If just an id, resolve it to `lopecode/notebooks/<slug>.html` (replacing `/` with `_`). Verify the file exists before continuing.
+The user provides either a notebook path (e.g. `lopecode/notebooks/quick_start.html`) or a notebook id (e.g. `@tomlarkworthy/blank-notebook`). If just an id, resolve it to `lopecode/notebooks/<slug>.html` (replacing `/` with `_`). Verify the file exists before continuing.
 
 If the user wants `file-sync` active in the headless session, they pass `--fakefs-root <path>` (or you ask). Without this, `showDirectoryPicker` cannot prompt and `file-sync` will sit at "Waiting for directory…".
 

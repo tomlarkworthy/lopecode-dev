@@ -104,3 +104,18 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+# macOS AppleDouble sidecars
+._*
+**/._*
+# git worktrees
+/worktrees/
+# nested git repos (not submodules)
+/openrouter-gateway/
+/scratch/foc-wiki-pr/
+/scratch/notebook-kit-fork/
+# >50MB binary
+/scratch/corepox-art/design.sketch
+
+# /improve-bulk sweep output (machine artifact; the age hook reads its mtime)
+/scratch/bulk-improve/

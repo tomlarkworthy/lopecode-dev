@@ -1,0 +1,546 @@
+{
+ "UnfinishedOrbDrone": {
+  "from": "vendor/corepox/Meritocracy/Assets/scenes/missions/FollowCourse.unity",
+  "spec": {
+   "id": "UnfinishedOrbDrone",
+   "name": "Unfinished Orb Drone",
+   "components": [
+    {
+     "type": "Binary",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "left",
+     "param": "TIMES",
+     "overrides": [
+      {
+       "name": "a",
+       "value": 102.83528137207031
+      },
+      {
+       "name": "b",
+       "value": 180.0
+      },
+      {
+       "name": "output",
+       "value": 18758.390625
+      }
+     ]
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": [
+      {
+       "name": "distance",
+       "value": 9.182044982910156
+      },
+      {
+       "name": "angle",
+       "value": 102.83528137207031
+      }
+     ]
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      -1,
+      -1
+     ],
+     "dir": "right",
+     "param": "MINUS",
+     "overrides": [
+      {
+       "name": "b",
+       "value": 18758.390625
+      },
+      {
+       "name": "output",
+       "value": -19004.55078125
+      }
+     ]
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      -1,
+      2
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      1,
+      2
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      2,
+      1
+     ],
+     "dir": "up",
+     "param": "180",
+     "overrides": [
+      {
+       "name": "output",
+       "value": 180.0
+      }
+     ]
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      -1,
+      1
+     ],
+     "dir": "up",
+     "param": "0",
+     "overrides": []
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      -2,
+      -2
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": [
+      {
+       "name": "input",
+       "value": 0.009999999776482582
+      }
+     ]
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      3,
+      -2
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": [
+      {
+       "name": "input",
+       "value": 0.009999999776482582
+      }
+     ]
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      1,
+      -1
+     ],
+     "to": [
+      2,
+      -2
+     ]
+    },
+    {
+     "from": [
+      3,
+      -1
+     ],
+     "to": [
+      -1,
+      -2
+     ]
+    },
+    {
+     "from": [
+      2,
+      1
+     ],
+     "to": [
+      2,
+      0
+     ]
+    },
+    {
+     "from": [
+      -1,
+      1
+     ],
+     "to": [
+      -1,
+      0
+     ]
+    }
+   ]
+  }
+ },
+ "UnwiredOrbDrone": {
+  "from": "vendor/corepox/Meritocracy/Assets/scenes/missions/FollowCourseAdvanced.unity",
+  "spec": {
+   "id": "UnwiredOrbDrone",
+   "name": "Orb Drone Chassis",
+   "components": [
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      1
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      3
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      2
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      0,
+      4
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Orb",
+     "pos": [
+      -2,
+      4
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      2
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      1,
+      3
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -2,
+      1
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      -1,
+      1
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      -2,
+      0
+     ],
+     "dir": "up",
+     "param": "TIMES",
+     "overrides": []
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      1,
+      0
+     ],
+     "dir": "up",
+     "param": "MINUS",
+     "overrides": []
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      -3,
+      -1
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up",
+     "param": "",
+     "overrides": []
+    }
+   ],
+   "connections": []
+  }
+ },
+ "LazerHardpoint": {
+  "from": "vendor/corepox/Meritocracy/Assets/scripts/scenes/missions/AimMission.cs",
+  "spec": {
+   "id": "LazerHardpoint",
+   "name": "Lazer Turret Hardpoint",
+   "components": [
+    {
+     "type": "LaserTurret2",
+     "pos": [
+      0,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      0,
+      -1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      -1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      0
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      -1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      0
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      1
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      2,
+      2
+     ],
+     "dir": "up"
+    },
+    {
+     "type": "Armour",
+     "pos": [
+      -1,
+      2
+     ],
+     "dir": "up"
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      1,
+      -1
+     ],
+     "to": [
+      0,
+      2
+     ]
+    },
+    {
+     "from": [
+      0,
+      -1
+     ],
+     "to": [
+      1,
+      2
+     ]
+    }
+   ]
+  }
+ },
+ "BrautenbourgsFirst": {
+  "from": "firebase/data/ships.json",
+  "spec": {
+   "id": "BrautenbourgsFirst",
+   "name": "Brautenbourgs First",
+   "components": [
+    {
+     "type": "Engine",
+     "pos": [
+      -1,
+      0
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Radar",
+     "pos": [
+      0,
+      1
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Engine",
+     "pos": [
+      4,
+      0
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    },
+    {
+     "type": "Binary",
+     "pos": [
+      2,
+      0
+     ],
+     "dir": "down",
+     "hp": 100,
+     "param": "MINUS",
+     "overrides": []
+    },
+    {
+     "type": "Constant",
+     "pos": [
+      0,
+      0
+     ],
+     "dir": "up",
+     "hp": 50,
+     "param": "",
+     "overrides": []
+    }
+   ],
+   "connections": [
+    {
+     "from": [
+      2,
+      1
+     ],
+     "to": [
+      4,
+      0
+     ]
+    },
+    {
+     "from": [
+      0,
+      0
+     ],
+     "to": [
+      3,
+      0
+     ]
+    },
+    {
+     "from": [
+      1,
+      1
+     ],
+     "to": [
+      1,
+      0
+     ]
+    },
+    {
+     "from": [
+      1,
+      1
+     ],
+     "to": [
+      -1,
+      0
+     ]
+    }
+   ]
+  }
+ }
+}

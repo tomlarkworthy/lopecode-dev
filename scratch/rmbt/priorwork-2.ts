@@ -1,0 +1,12 @@
+import { readFileSync, writeFileSync } from "node:fs";
+const P = "modules/@tomlarkworthy/coded-landmark-tracking.js";
+let s = readFileSync(P, "utf8");
+const i = s.indexOf("const _priorwork = function ");
+const j = s.indexOf("\nconst _", i + 10);
+if (i < 0 || j < 0) throw new Error("priorWork cell not found");
+s = s.slice(0, i) + readFileSync("scratch/rmbt/priorwork-2.js", "utf8").replace(/\s*$/, "\n") + s.slice(j + 1);
+const defs = s.split("\n").filter((l) => l.trim().startsWith("$def(")).length;
+if (defs !== 178) throw new Error(`$def count ${defs}`);
+if (!s.includes(`main.builtin("FileAttachment"`)) throw new Error("FileAttachment builtin lost");
+writeFileSync(P, s);
+console.log("priorWork renumbered");

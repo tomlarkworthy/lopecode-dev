@@ -1,3 +1,7 @@
+---
+scope: [local-development, in-notebook]
+---
+
 # Lopecode Internal Networking
 
 ## Overview

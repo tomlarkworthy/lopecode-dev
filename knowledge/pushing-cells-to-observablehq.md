@@ -1,3 +1,10 @@
+---
+scope: [local-development, in-notebook]
+triggers:
+  - "(^Bash |^|[;&|] )node +(--experimental-vm-modules +)?tools/lope-push-ws\.js"
+  - "(^Bash |^|[;&|] )node +tools/lope-push-files\.js"
+---
+
 # Pushing Cells to ObservableHQ
 
 ## Background
@@ -146,6 +153,31 @@ and the insert phase unrun — the notebook was missing its import cell and ever
 404/409/429/5xx six times with backoff; the errored event is not applied, so resending the same
 version is safe. If a push still dies partway, re-run it — `--delete-first` is monotonic — and
 check `GET /document/{slug}` for the node count before assuming the mirror is fine.
+
+### A connection goes quiet after ~57 saves
+
+Separate failure from the 404 above, and pacing does not help. The socket simply stops sending
+`saveconfirm`. Measured 2026-08-14 pushing 165 cells to `@tomlarkworthy/coded-landmark-tracking`:
+
+```
+run 1  --pace 700   died on `Timeout waiting for saveconfirm v58`     57 ops
+run 2  --pace 700   56 deletes + 2 inserts, died on v115              58 ops
+```
+
+Same count both times, and run 2 died on the *second* insert of a cell run 1 had already written
+without complaint — so it is the connection and not a cell the server rejects.
+
+**A timed-out save is not applied.** After run 2 died on v115 the document read `version 114`,
+`nodes 1`, with the v114 insert present and nothing at 115. That is what makes reconnect-then-resend
+safe rather than a duplicate-insert risk.
+
+`lope-push-ws.js` now retires the socket every 40 saves and treats a confirm timeout as a dead
+socket — reconnecting re-reads the version from the API instead of assuming either outcome. The 165
+cells then went up in one run through four reconnects.
+
+Neither failure was recoverable by re-running, which is why the tool had to change: a full push
+inserts everything again from scratch, and `--cells` cannot address the ~60 anonymous md cells
+needed to fill the gap.
 
 ## What does not survive the trip
 

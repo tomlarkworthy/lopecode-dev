@@ -1,0 +1,18 @@
+import { chromium } from 'playwright';
+const url = process.argv[2];
+const b = await chromium.launch({ headless: true });
+const ctx = await b.newContext();
+const pg = await ctx.newPage();
+const failed = [];
+pg.on('requestfailed', r => failed.push(r.url()));
+const resp404 = [];
+pg.on('response', r => { if (r.status() >= 400) resp404.push(r.status()+' '+r.url()); });
+await pg.goto(url, { waitUntil: 'commit' });
+await pg.waitForTimeout(12000);
+const local = u => u.replace(/^https?:\/\/[^/]+\//,'');
+const dedup = a => [...new Set(a)];
+console.log('=== requestfailed (network-rejected) ===');
+for (const u of dedup(failed).slice(0,30)) console.log('  '+local(u));
+console.log('\n=== HTTP >=400 responses ===');
+for (const u of dedup(resp404).slice(0,30)) console.log('  '+u.replace(/https?:\/\/[^/]+\//,''));
+await b.close();

@@ -806,11 +806,28 @@ async function pushViaWS(decompiled, targetUrl, options) {
 
   // Connect to WebSocket
   log('Connecting to Observable WebSocket...');
-  const conn = await connectWS(notebookId, cookies, docVersion, options);
+  let conn = await connectWS(notebookId, cookies, docVersion, options);
   log(`Connected at version ${conn.version}`);
 
   try {
     let { version, subversion } = conn;
+
+    // A connection stops answering after ~57 saves. Measured 2026-08-14 pushing 165 cells to
+    // @tomlarkworthy/coded-landmark-tracking: run 1 died on `saveconfirm v58` (57 ops), run 2
+    // after 56 deletes + 2 inserts on v115 (58 ops). Neither is a cell the server dislikes --
+    // it is the same count both times. So retire the socket before it goes quiet, and treat a
+    // confirm timeout as a dead socket rather than a failed save.
+    const SAVES_PER_CONNECTION = 40;
+    let savesOnConn = 0;
+    const reconnect = async () => {
+      try { conn.ws.close(); } catch (_) {}
+      const fresh = await fetchNotebook(slug, cookies);
+      conn = await connectWS(notebookId, cookies, fresh.version || fresh.latest_version, options);
+      version = conn.version;
+      subversion = conn.subversion;
+      savesOnConn = 0;
+      log(`Reconnected at version ${version}`);
+    };
 
     if ((options.cells || options.cellsMatchBody) && !options.noDelete) {
       // --- In-place cell replacement mode ---
@@ -827,19 +844,25 @@ async function pushViaWS(decompiled, targetUrl, options) {
       const saveEvent = async (makeEvent, what) => {
         let delay = 1500;
         for (let attempt = 1; ; attempt++) {
+          if (savesOnConn >= SAVES_PER_CONNECTION) await reconnect();
           const newVersion = version + 1;
           conn.send({ type: 'save', events: [makeEvent(newVersion)], edits: [], version, subversion });
           try {
             const confirm = await waitForConfirm(conn.ws, newVersion, options);
             version = confirm.version;
             subversion = confirm.subversion;
+            savesOnConn++;
             await new Promise((r) => setTimeout(r, options.pace || 0));
             return newVersion;
           } catch (err) {
-            if (attempt >= 6 || !/status (404|409|429|50\d)/.test(err.message)) throw err;
+            const dead = /Timeout waiting for saveconfirm/.test(err.message);
+            if (attempt >= 6 || !(dead || /status (404|409|429|50\d)/.test(err.message))) throw err;
             log(`${what}: ${err.message} — retry ${attempt}/6 in ${delay}ms`);
             await new Promise((r) => setTimeout(r, delay));
             delay = Math.min(delay * 2, 20000);
+            // A timeout means the socket went quiet; the save may or may not have landed, so
+            // re-read the version from the API rather than assuming either.
+            if (dead) await reconnect();
           }
         }
       };

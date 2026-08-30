@@ -1,3 +1,7 @@
+---
+scope: [local-development, in-notebook]
+---
+
 # Querying and Maintaining the Lopecode Structured Knowledgebase
 
 Two complementary stores hold structured knowledge about lopecode-dev:

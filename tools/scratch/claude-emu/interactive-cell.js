@@ -211,10 +211,40 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
         ptyIn(b);
         e.preventDefault(); e.stopImmediatePropagation();
       }, true);
+      // A soft keyboard is not a keyboard: Android sends keydown{key:"Unidentified",
+      // keyCode:229} and delivers the text on beforeinput, so the handler above types
+      // nothing on a phone. Take the text from the input events instead, and keep both
+      // the textarea and xterm's own input path out of it so nothing is sent twice.
+      const EDIT_BYTES = {
+        insertLineBreak: "\r", insertParagraph: "\r",
+        deleteContentBackward: "\x7f", deleteWordBackward: "\x17", deleteContentForward: "\x1b[3~",
+      };
+      let composing = false;
+      const clearTA = () => { const a = document.activeElement; if (a && a.tagName === "TEXTAREA") a.value = ""; };
+      const stop = (e) => { if (e.cancelable) e.preventDefault(); e.stopImmediatePropagation(); };
+      document.addEventListener("compositionstart", (e) => { if (inTerm()) { composing = true; e.stopImmediatePropagation(); } }, true);
+      document.addEventListener("compositionend", (e) => {
+        if (!inTerm()) return;
+        composing = false;
+        if (e.data) ptyIn(e.data);   // predictive text commits the whole word here
+        clearTA(); e.stopImmediatePropagation();
+      }, true);
+      document.addEventListener("beforeinput", (e) => {
+        if (!inTerm() || composing) return; // mid-composition text is provisional
+        const t = /^insert(Text|ReplacementText)$/.test(e.inputType) ? (e.data || "") : EDIT_BYTES[e.inputType];
+        if (!t) return;
+        ptyIn(t); stop(e); clearTA();
+      }, true);
       document.addEventListener("paste", (e) => {
         if (!inTerm()) return;
-        try { const t = (e.clipboardData || window.clipboardData).getData("text"); if (t) ptyIn(t); } catch {}
         e.preventDefault(); e.stopImmediatePropagation();
+        const cd = e.clipboardData || window.clipboardData;
+        // An image: cli.js reads those by shelling out to xclip/osascript, which cannot
+        // work here. Hand the bytes to the frame and press ctrl+v on the user's behalf —
+        // the clipboard shim answers that shell-out from them. See browser-native/src/clipboard.mjs.
+        const item = [...((cd && cd.items) || [])].find((it) => it.kind === "file" && /^image\//.test(it.type));
+        if (item) { pasteImage(item.getAsFile()); return; }
+        try { const t = cd.getData("text"); if (t) ptyIn(t); } catch {}
       }, true);
       termHost.tabIndex = 0;
       termHost.addEventListener("mousedown", () => { try { term.focus(); } catch {} });
@@ -719,6 +749,21 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // ---- stdio bridge (parent xterm <-> frame cli.js) ----
   let frame = null;
   function ptyIn(d) { try { const w = frame && frame.contentWindow; if (w && w.__ptyIn) w.__ptyIn(d); } catch {} }
+  // Base64, not the bytes: a Uint8Array built in this realm is a foreign object inside
+  // the frame. Ctrl+V goes in after the stash so cli.js finds an image when it looks.
+  async function pasteImage(file) {
+    if (!file) return;
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+      const w = frame && frame.contentWindow;
+      if (!w) return;
+      w.__CLIPBOARD_IMAGE = { base64: btoa(bin), mediaType: file.type || "image/png" };
+      ptyIn("\x16");
+    } catch {}
+  }
+  window.__pasteImage = (f) => pasteImage(f);
   // Map a keydown to the bytes a PTY expects (xterm-256color).
   function keyToBytes(e) {
     const k = e.key;
@@ -759,6 +804,12 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "<!doctype html><meta charset=utf-8><body><script>",
 "(async () => {",
 "  const P = window.parent, FILES = P.__DIST_FILES, CLI_SRC = P.__CLI_SRC, CFG = P.__runConfig, MAP = P.__IMPORT_MAP;",
+"  // The base URL cli.js is pointed at when the translator answers for it. Deliberately",
+"  // a reserved .invalid name: Chrome classifies a .local host as the LOCAL NETWORK and",
+"  // prompts the user for permission the moment anything addresses one — cli.js warms the",
+"  // connection with `fetch(ANTHROPIC_BASE_URL, {method:'HEAD'})` on startup, which is a",
+"  // request nobody asked for and (as http://cli.local) produced that prompt on every load.",
+"  const CLI_BASE = 'https://cli.invalid';",
 "  const say = (m) => { try { P.__frameLog && P.__frameLog(m); } catch {} };",
 "  // interactive + host-fs wiring MUST be set before any shim import.",
 "  globalThis.__INTERACTIVE = true;",
@@ -818,7 +869,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "      // No ANTHROPIC_API_KEY: the seeded claude.ai credential already satisfies cli.js, and",
 "      // setting both raises a permanent 'Auth conflict' banner. The translator replaces",
 "      // whatever Authorization it sends with the real provider key anyway.",
-"      globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: 'http://cli.local', ANTHROPIC_API_KEY: '', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '', DISABLE_TELEMETRY: '' };",
+"      globalThis.__ENV_OVERRIDES = { ANTHROPIC_BASE_URL: CLI_BASE, ANTHROPIC_API_KEY: '', CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '', DISABLE_TELEMETRY: '' };",
 "      installTranslator(CFG.key, CFG.model, CFG.base);",
 "    }",
 "    installMCP(CFG.mcp);",
@@ -899,7 +950,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    // the real network and fails DNS (observed: 'HTTP Connection failed: Failed to",
 "    // fetch' with the interceptor installed and never consulted).",
 "    const urlOf = (input) => { try { return typeof input === 'string' ? input : (input && typeof input.url === 'string' ? input.url : String(input || '')); } catch { return ''; } };",
-"    const host = (() => { try { return new URL(mcpUrl).host; } catch { return 'notebook.local'; } })();",
+"    const host = (() => { try { return new URL(mcpUrl).host; } catch { return 'notebook.invalid'; } })();",
 "    globalThis.fetch = async (input, init) => {",
 "      const url = urlOf(input);",
 "      // Feature gates have to be evaluated for the channel gate to be satisfiable, which",
@@ -994,7 +1045,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "    async function bodyText(input, init) { if (init && init.body != null) return typeof init.body === 'string' ? init.body : await new Response(init.body).text(); if (input && typeof input.text === 'function') return await input.clone().text(); return '{}'; }",
 "    globalThis.fetch = async (input, init) => {",
 "      const url = typeof input === 'string' ? input : (input && input.url) || '';",
-"      let path; try { path = new URL(url, 'http://cli.local').pathname; } catch { path = url; }",
+"      let path; try { path = new URL(url, CLI_BASE).pathname; } catch { path = url; }",
 "      if (path.endsWith('/count_tokens')) { let body = {}; try { body = JSON.parse(await bodyText(input, init)); } catch {} return new Response(JSON.stringify({ input_tokens: estimateTokens(body) }), { status: 200, headers: { 'content-type': 'application/json' } }); }",
 "      if (path.endsWith('/v1/messages')) {",
 "        let body; try { body = JSON.parse(await bodyText(input, init)); } catch (e) { return new Response(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'bad json' } }), { status: 400, headers: { 'content-type': 'application/json' } }); }",
@@ -1009,6 +1060,10 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
 "        say('<- OpenRouter finish=' + (oai.choices && oai.choices[0] && oai.choices[0].finish_reason));",
 "        return new Response(buildSSE(oai, body.model || model), { status: 200, headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' } });",
 "      }",
+"      // Anything else addressed to the stand-in base is answered here, never forwarded:",
+"      // cli.js HEADs it on startup to warm the connection, and forwarding that put a",
+"      // request to a host nobody serves on the wire.",
+"      if (url.indexOf(CLI_BASE) === 0) return new Response('', { status: 200 });",
 "      return real(input, init);",
 "    };",
 "  }",
@@ -1022,7 +1077,7 @@ function _claudeCodeBrowser(FileAttachment, runtime, importShim, createModule, c
   // serves them at MCP_URL (intercepted, never a real request) and cli.js is pointed at
   // it with --mcp-config. An external pairing session over `cc=` still works alongside;
   // this is what fills the gap when no token was supplied.
-  const MCP_URL = "http://notebook.local/mcp";
+  const MCP_URL = "https://notebook.invalid/mcp";
   window.__MCPLOG = [];
 
   // ---- the notebook's change stream, forwarded into the session ----

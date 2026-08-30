@@ -1,3 +1,10 @@
+---
+scope: [local-development]
+triggers:
+  - "(^Bash |^|[;&|] )bun +tools/robocoop[a-z0-9-]*/"
+  - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/robocoop-5\.js"
+---
+
 # Training robocoop-5 against industry benchmarks
 
 How robocoop-5 is improved: measure the SYSTEM (harness + model) against a raw-model baseline on

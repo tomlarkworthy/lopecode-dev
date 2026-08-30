@@ -1,3 +1,7 @@
+---
+scope: [local-development]
+---
+
 # Designer resources for notebooks
 
 A record of getting lopecode's input vocabulary in front of designers who work in
