@@ -157,28 +157,81 @@ crossRef link and has no publish widget on the page.
 - Whether app-password sessions can write `site.standard.*` (CI blocker, step 9).
 - Why 9/10 live bundles lack sidecar URIs (browser-never vs. pre-carry-forward republish).
 
-## Status 2026-08-30 — steps 1–9 and 11 done, not deployed
+## Status 2026-08-30 — shipped and verified live
 
-| step | landed in | verified by |
-|---|---|---|
-| 1 `.well-known` → TID pub; `at:standard.site:pub` meta | `lopecode.com` branch `publishing-simplify`, `render/src/publication.mjs` | built worker against live PDS: `200 at://…/site.standard.publication/3mndgo4hhre22`; 18 render unit tests |
-| 2 feed reads `bskyPostUri`, `sort=createdAt&order=desc` | `feed/src/skeleton.mjs` | 6 unit tests; real contrail payload → one item. The one live `bskyPostUri` (`…/3mnehmlq3sd2d`) is a deleted post, so the custom feed is empty until a bundle is re-shared |
-| 3 `did-` prefix | at-write `didHost` cell, used at both sites | code read |
-| 4 `did-*.lopecode.com/` → Ledger | `src/worker.js` commit `45f4f1e` | — |
-| 5 Ledger reads `bundle.stdDocUri`; std publish/unpublish UI removed (always-on) | `@tomlarkworthy/ledger` | headless Chromium: 10 rows, `std ✓` on `atproto`, 0 errors |
-| 6 Ledger bsky column reads `bundle.bskyPostUri`; crossRef code deleted; owner "Adopt legacy links" → at-write `adoptLegacyCrossRefs` | ledger + at-write | not run against the PDS (needs a session) |
-| 7 bylines: render page pill + `<link rel=author>` (suppressed on `/` and `/@handle` via `x-lopecode-byline: off`); Lopefeed byline → `lopecode.com/@handle`; Ledger → `← Lopefeed` | render worker, lopefeed, ledger | worker driven in node; lopefeed `card()` under linkedom |
-| 8 `publisher()` mounted in the Ledger for the owner; `publishEntry` deleted | ledger, at-write | not exercised (needs a session) |
-| 9 CI writes pub + doc before the bundle; carries `bskyPostRef`; backfills bundles lacking `stdDocUri` even when files are unchanged | `tools/atproto-publish.ts`, `tests/tools/atproto-publish.test.ts` | 5 tests against the real at-write cells with a faked PDS; no credentialed run |
-| 11 cascading delete (`deleteBundleCascade`, post opt-in); Lopefeed version chain removed; feed `sort` | at-write, ledger, lopefeed, feed | code read |
+Deployed and checked against the live PDS and lopecode.com the same day. What the map above
+described as broken now behaves as §4 specifies, with two exceptions named at the end.
 
-Also fixed while there: at-write never wrote `updatedAt` on a doc rewrite and never wrote `bskyPostRef` (the doc is written before the post exists — now rewritten once more after the post, with its CID); a republish with Share off dropped `bskyPostRef`. `Inputs.table` skips `format` for null cells, so the Ledger carries `''` sentinels.
+**Verified live** (`curl`, 2026-08-30, after the Cloudflare deploy):
 
-Not done: step 10 (backfill) needs the owner's session — see "To finish" below. `did:web` authors still unroutable (a dotted subdomain is outside the wildcard cert; `didHost` now throws for them).
+```
+did-plc-….lopecode.com/.well-known/site.standard.publication
+  -> at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/site.standard.publication/3mndgo4hhre22   (was: /self)
+did-plc-….lopecode.com/r/ledger
+  -> <link rel="site.standard.document" href="at://…/site.standard.document/3muc3bw3tgh2w">
+     <link rel="author" href="https://lopecode.com/@larkworthy.bsky.social">
+     byline pill "by @larkworthy.bsky.social"
+did-plc-….lopecode.com/                              -> 200 (Ledger; was 404)
+lopecode.com/                                        -> feed, byline pill suppressed (0 occurrences)
+```
 
-**To finish, in order:**
-1. Push `lopecode.com` `publishing-simplify` (auto-deploys), then check `curl https://did-plc-….lopecode.com/.well-known/site.standard.publication` returns the TID URI and `/r/atproto` carries `<link rel="site.standard.document">`.
-2. Open `lopecode.com/@larkworthy.bsky.social`, sign in, click "Adopt legacy links" (4 crossRefs → `bskyPostUri`), then publish each of the 9 bundles without a doc from the Ledger's publish section (or push a no-op change to the armed ones — CI now backfills the doc).
-3. Run site-validator.fly.dev on `at://…/site.standard.document/3mndgo4lxe72o`.
-4. Delete `site.standard.publication/self` and the 4 slug-keyed docs once nothing points at them.
-5. Rebase the Ledger redesign draft (`tools/scratch/ledger-redesign-wip-20260830.js`) onto the new canonical; update `plan/ledger-design-brief.md` §2.3 (bsky column reads the bundle; std column; publish section) before handover.
+The verification chain closes in both directions for every TID document: document `site` =
+publication `3mndgo4hhre22`, publication `url` + document `path` = the render route, and the page
+at that route carries the document's own AT-URI. That is what standard.site's `/docs/verification`
+asks for. The validator at site-validator.fly.dev has no API endpoint (`/api/validate` 404s) and the
+UI needs a browser, so it has not been driven — the chain was checked by hand instead.
+
+**CI now writes the sidecars.** The workflows check out `lopecode-dev` at `ref: main`, so this only
+took effect once main carried the merge — the push-triggered run at 09:26 raced ahead of it and
+still logged `stdDocUri: none`. A dispatched run afterwards:
+
+```
+sidecars  site.standard.publication upsert · site.standard.document create (new TID) · no app.bsky.feed.post from CI
+sidecars  document created at://…/site.standard.document/3muc3bw3tgh2w
+          publication at://…/site.standard.publication/3mndgo4hhre22 (unchanged)
+published at://…/com.lopecode.bundle/ledger
+```
+
+Note `89 identical · 0 changed` on that run: the bundle's content was unchanged, and it republished
+anyway. That is the backfill exception working — without it no push would ever bind a `stdDocUri`
+onto a bundle whose files never change again.
+
+**Backfill, step 10, done for every armed notebook.** 5 of 10 bundles now carry a document
+(`ledger`, `lopefeed`, `newsletter-001`, `tomlarkworthy-virtual-monorepo`, `atproto`), all five
+pointing at the TID publication. `workflow_dispatch` was ported from lopecode to lopebooks to make
+this possible — a bundle that needs backfilling is by definition one no push will republish.
+
+**Built on top of a parallel session's work, not over it.** Between the survey and the fix,
+`lopecode/main` gained the Ledger dark redesign (#211), an in-page "clicking an author opens their
+Ledger beside the feed" aside (#212) and a lazy-fetch Ledger fix (#213). The first commit of this
+work was written against the pre-redesign canonical and would have reverted all three. It was reset
+and the functional changes re-applied onto the redesign: the Ledger's new controls are built from
+its `lg-*` tokens rather than the old hand-drawn styling, and the Lopefeed byline keeps #212's
+in-page aside instead of the plain `lopecode.com/@handle` link this plan originally specified. The
+lesson generalises — a module-level 3-way merge, not a file-level one, is the only tractable way to
+reconcile two sessions' work on the same notebook.
+
+**Still open:**
+
+- **The feed Worker is not deployed.** `lopecode-feed` is a separate Worker from the git-integrated
+  root, and the push did not redeploy it; `getFeedSkeleton` still returns post URIs derived from the
+  bundle rkey. Needs `wrangler deploy` from `lopecode.com/feed/` (no Cloudflare credentials on this
+  machine, and wrangler cannot install under the sandbox). Until then the custom feed stays broken —
+  and note the one live `bskyPostUri` points at a post that has since been deleted, so the feed will
+  be empty even once deployed, until a bundle is re-shared.
+- **5 bundles have no document** (`coding-tools`, `parameter-svg`, `tomlarkworthy-at-login`,
+  `tomlarkworthy-lopecode-tour`, `tomlarkworthy-malleable`). They are not armed in either content
+  repo, so CI will not reach them; they need a republish from the Ledger's publish section.
+- **2 legacy slug-keyed documents** (`tomlarkworthy-malleable`, `tomlarkworthy-lopecode-tour`) still
+  point at `site.standard.publication/self`, which `.well-known` no longer answers, so they fail
+  verification. Deliberately not deleted: deleting them removes those bundles' standard.site presence
+  entirely, and republishing the two bundles fixes them properly. Delete `self` only after that.
+- **The GitHub Pages build for `lopecode` has been failing since 2026-08-29**, before any of this
+  work — Jekyll tries to render `design/**/*.prompt.md`, added with the design system. Unrelated to
+  publishing, but it means the Pages-hosted notebooks are stale. A `.nojekyll` file or a `_config.yml`
+  exclude fixes it.
+- Owner-session paths are still code-reviewed only: `deleteBundleCascade`, `adoptLegacyCrossRefs`
+  and a browser publish were exercised against a fake session in headless Chromium, never with real
+  credentials.
+- The working checkout could not be switched to `main`: three other interactive sessions share it
+  and hold 44 uncommitted files, 4 of which the merge touches. `main` has everything regardless.
