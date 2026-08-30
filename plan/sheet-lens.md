@@ -110,6 +110,22 @@ Three things fall out that were not designed for:
 
 Cost: one extra variable per *named* cell. Anonymous positional formulas stay one cell each.
 
+## Deleting the sheet
+
+The claim the whole design rests on, run 2026-08-30 in Chromium: delete the `widget` cell (the
+only cell that calls `sheet()`), then perturb an input with no sheet on the page.
+
+```
+before delete   A1 120  B1 24  C1 144  C3 114  E1 0.2
+after delete    A1 120  B1 24  C1 144  C3 114  E1 0.2      document.querySelectorAll('.sh-frame').length -> 0
+A2.define(() => 999), sheet still absent
+                B2 199.8   C2 1198.8
+```
+
+`B2 = A2 * taxRate` and `C2 = A2 + B2` recomputed with no container in existence, which is the
+falsifiable form of "the sheet is a lens". What is lost is the `format:` map, since that is the
+one thing the sheet cell owns (`C1` reverts from `$144.00` to `144`).
+
 ## Sparseness
 
 Only defined cells are variables, and only defined cells have DOM. The grid lines are a CSS
@@ -122,6 +138,91 @@ document.querySelectorAll('.sh-viz > .observablehq').length  ->  11
 
 nodes, not 144. Extent is `max(defined, minimum)` and grows as cells are added, so the sheet is
 open-ended rather than bounded.
+
+## Overflow is a rule, not a format
+
+Asked whether a DOM node should be allowed to overflow its cell box as a formatting option or as
+a general rule. It has to be a general rule, because it is a different lens from formatting:
+formatting is `value -> text`, overflow is `content -> footprint`. A per-cell span stored in the
+sheet would be `layout:` creeping back in, and `layout:` is the thing this design exists to
+delete.
+
+The rule is Excel's, generalised: **content spills into empty neighbours and clips at the first
+occupied one.** Nothing is stored. The size *request* comes from the node itself
+(`E3 = Inputs.range(...)` asks for 368px), and how much of it is granted is a function of which
+neighbours are in scope — a Map lookup, since scope is sparse. CSS does the rest with no
+measurement pass:
+
+```js
+node.style.minWidth  = CW - 1 + "px";
+node.style.maxWidth  = CW * freeSpan(occupied, a.col, a.row, 1, 0) - 1 + "px";
+```
+
+Vertical spill is granted only to cells whose value is a DOM node, so a long string widens but
+does not push down through a column.
+
+Measured 2026-08-30 on `viewof E3`, whose natural width is 368px:
+
+```
+neighbours F3..T3 empty   maxWidth 1407px (SPILL_MAX 16)   rendered 368px
+G3 = 7 committed          maxWidth  175px (E3+F3)          rendered 175px
+G3 deleted                                                 rendered 368px
+```
+
+`SPILL_MAX = 16` is a cap so a runaway value cannot paint over the whole sheet. The 175px reading
+is the load-bearing one: it is the only evidence that the clip is driven by occupancy rather than
+by the node's own size.
+
+## The formula bar is one editor-5 CodeMirror
+
+The first bar was a plain `<input>`, and it had the defect that motivates a formula bar in the
+first place: putting the caret inside an existing expression and typing was a *whole-cell* edit,
+not a text edit. It is now one `EditorView` for the entire sheet, retargeted on selection.
+
+`cellEditor(variable, {pinned})` — editor-5's own per-cell component — is the wrong reuse. It
+clones a whole hotbar shell per instance through `cloneViaSandbox`, which is the right cost for an
+editor that owns a cell and the wrong cost for a strip that changes address on every arrow key.
+The pieces to take are editor-5's exported extensions plus the CodeMirror bundle from
+`@tomlarkworthy/codemirror-6-v2`:
+
+```js
+observableJS_language,
+codemirror.syntaxHighlighting(observableJS_highlightStyle),
+codemirror.autocompletion({ override: [sheetCompletions, literalCompletions] }),
+```
+
+`sheetCompletions` walks `module._scope` and offers every name in it, tagged `cell` for
+`A1`-shaped names and `named` for the rest, so the completion list *is* the sheet's namespace.
+`literalCompletions` is editor-5's, carried over unchanged.
+
+Verified 2026-08-30, in Chromium, through real clicks and keystrokes (not synthetic events):
+
+```
+click F5, type "A1 * tax"     tooltip open, options ["taxRate  named"]
+Tab                           doc "A1 * taxRate"       (completion accepted, no commit)
+Enter                         history op:"new"  pid _3zvtv7  _inputs ["A1","taxRate"]  F5 renders 24
+                              selection -> F6, focus back on the frame, bar cleared
+click into the bar at the end of "A1 * taxRate", type " + 1", Enter
+                              history op:"upd"  SAME pid _3zvtv7  "(A1 * taxRate + 1)"
+```
+
+The `op:"upd"` on an unchanged pid is the point of the whole section: a caret edit redefines the
+existing variable rather than replacing it, so undo, diff and export see one cell with a history.
+
+The keymap has to hand back to the completion, because a `keymap.of([...])` listed before
+`autocompletion()` outranks `completionKeymap` and would otherwise swallow Enter, Tab and Escape
+whenever the tooltip is open:
+
+```js
+{ key: "Enter",  run: (v) => codemirror.acceptCompletion(v) || (commitBar(), true) },
+{ key: "Tab",    run: (v) => codemirror.acceptCompletion(v) || (commitBar(1, 0), true) },
+{ key: "Escape", run: (v) => codemirror.closeCompletion(v)  || (syncBarForce(), frame.focus(), true) }
+```
+
+The format chooser is now `Inputs.select(FORMATS, {format: f => f || "plain"})` rather than a
+hand-rolled `<select>`. Note `Inputs.select` returns a `<form>`, not the `<select>` — it is
+wrapped in a flex div and the `<select>` inside is width-pinned, or the form stretches to the
+whole bar (measured at 208px before the pin, 90px after).
 
 ## Copy and paste
 
@@ -187,7 +288,7 @@ clipboard integration. Playwright's `keyboard.press('Meta+C')` was tried first a
 Chromium's built-in clipboard commands are not driven by CDP-injected key events, so the copy
 handler never fired and the paste was a silent no-op. Cross-application copy/paste is untested.
 
-## Three bugs the browser found that reading the code did not
+## Four bugs the browser found that reading the code did not
 
 Recorded because each is a class, not an incident.
 
@@ -218,6 +319,22 @@ the editor's empty value → delete the cell. The channel reported it before the
 
 Fixed with an explicit `editing` flag. The general rule: **never derive state from a computed
 style you did not write.**
+
+**2b. A key handler on the container swallows the editor inside it.** The same class again, one
+level up. The frame's `keydown` handler treats any single character as "start editing this cell",
+so every keystroke typed into the newly embedded CodeMirror bubbled out of the editor, hit that
+handler, was `preventDefault()`ed, and moved focus to the in-cell input. The symptom was that the
+bar looked focused and would not accept text:
+
+```
+document.activeElement  ->  .sh-input, value "A1 * taxR"
+CodeMirror doc          ->  unchanged
+```
+
+`if (bar.contains(e.target)) return;` at the top of the frame handler, and the same guard on
+`copy`/`paste` so a copy in the bar stays a text copy. **A container that owns the keyboard has to
+name the regions it does not own** — there is no capture-phase trick that fixes this, because the
+editor is a legitimate descendant.
 
 **3. `decompile` is async.** It returns a `Promise<string>`, so the formula bar, the editor seed
 and the clipboard handler were all calling `.indexOf` on a Promise —
@@ -255,8 +372,7 @@ arrangement that works for the clipboard one.
    `ascendants` in runtime-sdk give the referrer set exactly.
 4. **Column/row insert and delete.** Mass rename plus referrer rewrite. Well-defined, and the
    operation most likely to be slow or fragile.
-5. **editor-5 in the formula bar**, replacing the plain `<input>`.
-6. **Extracting the writer.** `svg-lens`, `grid-container`, `editable-md`, `sticky` and now
+5. **Extracting the writer.** `svg-lens`, `grid-container`, `editable-md`, `sticky` and now
    `sheet` each hand-roll "re-read the definition, splice, compile, redefine, record to
    local-change-history". `knowledge/svg-editor-architecture.md` §3 already flagged this as worth
    extracting; a fifth caller is enough.
@@ -276,3 +392,5 @@ arrangement that works for the clipboard one.
 - **Shadowing.** A local `const A1` inside a cell body is excluded correctly by the parser's scope
   analysis, so the rewriter is safe — but this was reasoned from `cell.references` semantics and
   **not tested**.
+- **Formats, and only formats, die with the sheet.** See the deletion test above; the `format:`
+  map is the one thing the container owns.
