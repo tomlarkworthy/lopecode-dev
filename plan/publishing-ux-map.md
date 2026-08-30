@@ -213,12 +213,15 @@ reconcile two sessions' work on the same notebook.
 
 **Still open:**
 
-- **The feed Worker is not deployed.** `lopecode-feed` is a separate Worker from the git-integrated
-  root, and the push did not redeploy it; `getFeedSkeleton` still returns post URIs derived from the
-  bundle rkey. Needs `wrangler deploy` from `lopecode.com/feed/` (no Cloudflare credentials on this
-  machine, and wrangler cannot install under the sandbox). Until then the custom feed stays broken —
-  and note the one live `bskyPostUri` points at a post that has since been deleted, so the feed will
-  be empty even once deployed, until a bundle is re-shared.
+- ~~**The feed Worker is not deployed.**~~ **Resolved 2026-08-30.** `lopecode-feed` is a separate
+  Worker from the git-integrated root, so a push to main redeployed apex and render and left feed on
+  the old code for hours, silently. Fixed by `.github/workflows/deploy-workers.yml`, which deploys
+  each sibling whose directory changed, gated on its own tests and `tsc --noEmit`. Run at
+  `2026-08-30T11:28:38Z` — `completed/success`. `getFeedSkeleton` now reads `value.bskyPostUri`
+  rather than deriving a URI from the bundle rkey. The feed is still *empty*, and that is not a code
+  fault: the one live `bskyPostUri` names a post that has since been deleted, so the AppView
+  answers 0 items until a bundle is re-shared.
+
 - **5 bundles have no document** (`coding-tools`, `parameter-svg`, `tomlarkworthy-at-login`,
   `tomlarkworthy-lopecode-tour`, `tomlarkworthy-malleable`). They are not armed in either content
   repo, so CI will not reach them; they need a republish from the Ledger's publish section.
@@ -233,5 +236,48 @@ reconcile two sessions' work on the same notebook.
 - Owner-session paths are still code-reviewed only: `deleteBundleCascade`, `adoptLegacyCrossRefs`
   and a browser publish were exercised against a fake session in headless Chromium, never with real
   credentials.
-- The working checkout could not be switched to `main`: three other interactive sessions share it
-  and hold 44 uncommitted files, 4 of which the merge touches. `main` has everything regardless.
+- ~~The working checkout could not be switched to `main`.~~ **Resolved 2026-08-30** — parent and
+  `lopecode.com` are both on `main`, with the three concurrent sessions' uncommitted files intact.
+
+## 6. Card media (2026-08-30) — PR, not yet merged
+
+Every post needs a title, a description and an image, on atproto *and* in the served page's
+Open Graph tags. The binding constraint measured here was **generation, not storage**: 1 of 234
+notebooks has an `og:image` today. `content.json` already holds 143/143 descriptions and 27
+thumbnails, so the backfill is a data migration rather than authoring work.
+
+**Decided.** The notebook `<head>` is the authority, not `content.json`; the atproto records mirror
+it, because that is what standard.site consumes. `content.json` becomes *generated* from heads, and
+its replicated fields are retired.
+
+**Shipped as [lopecode.com#9](https://github.com/tomlarkworthy/lopecode.com/pull/9)** — lexicon
+`com.lopecode.media`, the `lopecode-media` Worker on `images.lopecode.com`, and render emitting
+`og:video` / `og:image:alt` / `twitter:card`. The one change to existing output:
+
+```
+before  og:image = ${pds}/xrpc/com.atproto.sync.getBlob?did=…&cid=…
+after   og:image = https://images.lopecode.com/<did>/<cid>
+```
+
+atproto supports PDS migration, and a scraper that has cached a card never re-reads it — so the
+"before" URL breaks permanently on a move, silently. The proxy resolves DID→PDS per request.
+
+The rkey of a `com.lopecode.media` record **is** its poster blob's CID. That makes authorisation a
+single `getRecord` against the key already in the URL (`poster.ref.$link !== rkey` → 404, on the
+video path too), leaves `com.lopecode.bundle` unchanged because `coverImage` is already that blob,
+and makes records immutable in practice. Measured: media 24 tests, render 36 tests, both
+`tsc --noEmit` exit 0; live-driven against the real PDS under `wrangler dev`, where a real
+`did:plc` 404s on `RecordNotFound` while `did:web:no-such-host.invalid` 502s — the split is what
+shows the authorisation check firing rather than the network failing.
+
+**Not verified:** no happy-path serve. No `com.lopecode.media` record exists yet, so byte delivery,
+the real `content-type`/etag values and 304 revalidation rest on unit tests alone.
+
+**Merge order:** apex redeploys itself through Workers Builds on push to main, and `wrangler.jsonc`
+now binds `lopecode-media`. Deploy the media Worker before merging, or apex's deploy is expected to
+fail on a dangling binding — reasoned from wrangler's binding validation, not observed.
+
+**Deferred deliberately:** `modern-screenshot` poster generation (it struggles with complex DOMs, so
+posters are upload-or-pick-from-the-notebook only); the `content.json` retirement itself, which
+rewrites 143 multi-MB notebooks and needs its own PR; 9 of the existing thumbnails are mp4s and need
+`ffmpeg -frames:v 1` poster frames.
