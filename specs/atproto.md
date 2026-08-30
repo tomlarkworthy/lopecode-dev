@@ -520,13 +520,14 @@ Out of scope: module/moduleVersion split, capability enforcement, custom non-Blu
 
 ### Records written per publish
 
-Up to three records, all to the author's PDS. Full shapes are in [Schemas (v1)](#schemas-v1):
+Up to four records, all to the author's PDS. Full shapes are in [Schemas (v1)](#schemas-v1):
 
 | Record | Trigger | Purpose |
 |---|---|---|
-| `com.lopecode.bundle` | always | Canonical artifact — the file table the user just published. Slug rkey. |
-| `site.standard.document` | always | Web-metadata representation: `title`/`description`/`coverImage` + `content[com.lopecode.runtime]` referencing the bundle. Makes every publish richly unfurlable (Bluesky plain-URL paste, standard.site readers) and gives the post something to reference. TID rkey, stored on the bundle as `docUri`. |
-| `app.bsky.feed.post` | opt-in ("Share to Bluesky") | Companion post linking to the per-DID web-proxy URL; `associatedRefs` → the document. The only record that **broadcasts** (timeline, replies, reposts, notifications). TID rkey, stored as `bskyPostUri`. |
+| `site.standard.publication` | always, browser and CI | The author's single publication, upserted at its TID (`url` = the DID subdomain, `name` = `@handle`). Written first: the document's `site` field is its AT-URI. |
+| `site.standard.document` | always, browser and CI | Web-metadata representation: `title`/`description`/`coverImage`, `path` = `/r/<slug>`. Makes every publish richly unfurlable (Bluesky plain-URL paste, standard.site readers) and gives the post something to reference. TID rkey, stored on the bundle as `stdDocUri` and re-used as `priorDocUri` so a republish updates in place. |
+| `com.lopecode.bundle` | always, browser and CI | Canonical artifact — the file table the user just published. Slug rkey. Written last, so it bakes in the `stdDocUri` the two records above produced. |
+| `app.bsky.feed.post` | opt-in ("Share to Bluesky"), **browser only** | Companion post linking to the per-DID web-proxy URL; `associatedRefs` → the document + publication. The only record that **broadcasts** (timeline, replies, reposts, notifications), so CI never writes one; a CI republish carries the existing `bskyPostUri` and the document's `bskyPostRef` forward. TID rkey, stored as `bskyPostUri`. |
 
 **The bundle + document are always written together — they *are* the publish.** Neither broadcasts: both are public records in the author's repo, same category as any other notebook they've published. The opt-in line is drawn at the `app.bsky.feed.post`, because that's the only record that pushes into followers' feeds — drafts and experiments shouldn't auto-spam. (The earlier design also gated the document on Share; that was wrong: it left plain-URL pastes with no rich card, since [step 7d](#next-steps)'s `<link rel>` had nothing to point at, and forced a create-doc-then-post ordering. Always-writing the document removes both problems.) Sidecar URIs aren't derivable from the slug — both are TID-keyed and stored back on the bundle (`docUri`, `bskyPostUri`); see [Sidecar rkey convention](#sidecar-rkey-convention).
 
@@ -813,7 +814,7 @@ Why the sidecar and not elsewhere: 233/233 notebooks have one, the pre-commit ho
 
 ### The tool: `tools/atproto-publish.ts`
 
-Imports the publisher cells headlessly rather than copying them (CLAUDE.md tip 17). Since the 2026-08-25 Tier 1 refactor the publish core itself is a library cell: `publishBundle` / `extractFiles` / `extractCard` / `knownCidsFromPds` / `notifyOfUpdate` / `listBundleVersions` / `utils` from `@tomlarkworthy/at-write`, `xrpc` + `createAppPasswordSession` from `@tomlarkworthy/at-login`, `resolvePds` from `@tomlarkworthy/atproto` — all extracted at runtime from the `--publisher` HTML (the canonical `lopecode/notebooks/atproto.html`) via `sync-module.ts`'s exported `extractModuleContent` — the corpus's byte-span block extractor, which handles phantom nested `<script id="` occurrences an ad-hoc regex gets wrong — and loaded via `notebook-import.ts` with overrides (`DOMParser` from linkedom, in-memory `safeStorage`, `indexedDB: {}`). What remains tool-side is CI policy, not publishing mechanics: declaration resolution, the no-op gate, `--allow-new` refusal, carry-forward, the pre-write CAS re-read (582→464 lines across the refactor; the browser widget's `onPublish` calls the same `publishBundle`). The on-disk notebook HTML **is** the exporter-3 serializer output, so `extractFiles(html)` under linkedom reproduces published blob CIDs byte-for-byte — the standing assumption the whole tool rests on, re-checked on every run by the CID diff against the live record.
+Imports the publisher cells headlessly rather than copying them (CLAUDE.md tip 17). Since the 2026-08-25 Tier 1 refactor the publish core itself is a library cell: `publishBundle` / `extractFiles` / `extractCard` / `knownCidsFromPds` / `notifyOfUpdate` / `listBundleVersions` / `utils` / the standard.site writers `publishToStdSite` + `publishStdPub` + `publishStdDoc` + `getStdDoc` from `@tomlarkworthy/at-write`, `xrpc` + `createAppPasswordSession` from `@tomlarkworthy/at-login`, `resolvePds` from `@tomlarkworthy/atproto` — all extracted at runtime from the `--publisher` HTML (the canonical `lopecode/notebooks/atproto.html`) via `sync-module.ts`'s exported `extractModuleContent` — the corpus's byte-span block extractor, which handles phantom nested `<script id="` occurrences an ad-hoc regex gets wrong — and loaded via `notebook-import.ts` with overrides (`DOMParser` from linkedom, in-memory `safeStorage`, `indexedDB: {}`). What remains tool-side is CI policy, not publishing mechanics: declaration resolution, the no-op gate, `--allow-new` refusal, carry-forward, the pre-write CAS re-read (582→464 lines across the refactor; the browser widget's `onPublish` calls the same `publishBundle`). The on-disk notebook HTML **is** the exporter-3 serializer output, so `extractFiles(html)` under linkedom reproduces published blob CIDs byte-for-byte — the standing assumption the whole tool rests on, re-checked on every run by the CID diff against the live record.
 
 Behaviour that deliberately differs from the browser widget:
 
@@ -827,8 +828,10 @@ Behaviour that deliberately differs from the browser widget:
 | `createdAt` | bumped every publish | preserved (opt-out `--bump-created-at`) | a CI rebuild must not re-float recency feeds |
 | concurrent-publish protection | none on the bundle (see CAS correction above) | re-`getRecord` before write, abort on CID drift | pre-check is the best available without touching at-write |
 | `previousVersion` | ~~wrong-bundle tip (PDS ignores `rkeyStart`/`rkeyEnd`)~~ **fixed upstream 2026-08-25**: paged `${rkey}--` prefix scan in `publishBundleVersion` and `listBundleVersions` | same fixed cells (tool's client shim removed) | verified live: CI snapshot `--3mtvb3w5ad2ip` chains to `--3mtv4s26jncgz` |
-| sidecars (`site.standard.*`, bsky post) | written alongside | **not written** (TODO in tool) | app-password compat unproven; bundle is the canonical artifact |
+| `site.standard.publication` + `site.standard.document` | written before the bundle | same, same order (2026-08-30) | app-password sessions have unrestricted repo write — scopes exist only for OAuth, and `ensureScopes` returns the session untouched for `authType !== 'oauth'` — so there was nothing to prove; a sidecar failure warns and the bundle still publishes |
+| `app.bsky.feed.post` | opt-in ("Share to Bluesky") | never | it is the only record that broadcasts into followers' feeds |
 | `bskyPostUri` / `stdDocUri` | carried | carried | binding must survive republish |
+| unchanged content, no `stdDocUri` on the bundle | n/a | **not** a no-op: writes the document and republishes to bind it | the backfill path for bundles published before CI wrote sidecars (9/10 live on 2026-08-30) |
 
 `--dry-run` needs no credentials (all reads public; identity from the declaration). `--changed <paths-file>` maps changed files → stems → declarations, skipping undeclared/unarmed notebooks, hard-failing on a malformed armed declaration or two sidecars claiming one `(did, rkey)`. Deletion of the `.html` is a skip — unpublish stays manual (`deleteBundle`).
 
@@ -847,7 +850,7 @@ All four items from the original checklist resolved 2026-08-25:
 1. ~~Set secrets~~ **done** — `ATPROTO_IDENTIFIER` + `ATPROTO_APP_PASSWORD` set on both repos by Tom (`larkworthy.bsky.social`).
 2. ~~Watch the first armed run~~ **done** — run 32814392059: upload → `applyWrites` → notify 200, all green; the `BlobNotFound` retry path was not exercised (no blob eviction occurred).
 3. ~~Fix the tip lookup~~ **done upstream** — both `rkeyStart` consumers in at-write fixed, verified by the live chain (table above) and offline probe `scratch/agent-atpub/t8-tipfix.ts`.
-4. Sidecar question **still open** — CI does not write `site.standard.document` / bsky post; a CI republish leaves document metadata at the previous revision.
+4. ~~Sidecar question~~ **closed 2026-08-30** — CI writes `site.standard.publication` + `site.standard.document` before the bundle, in the widget's order, so a CI republish updates document metadata in place and the bundle carries `stdDocUri`. CI still writes no bsky post. Covered by `tests/tools/atproto-publish.test.ts` (real publisher cells, faked PDS); not yet exercised against the live PDS by a credentialed run.
 
 Remaining TODOs: pin the workflows' lopecode-dev checkout to a tag (currently `main`); browser-widget Tier 2 (carry-forward of `description`/`coverImage`, `createdAt` policy, CAS re-read inside at-write) awaits sign-off; `tomlarkworthy-lopecode-tour` ownership undecided. ~~Declare the `atproto` bundle~~ done 2026-08-25 (lopecode `3a0e2c7`).
 
