@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
 
-const file = resolve('lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve('lopecode/notebooks/quick_start.html');
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 950 } });
 const page = await ctx.newPage();

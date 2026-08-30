@@ -1,10 +1,15 @@
+---
+triggers:
+  - "^(Edit|Write|MultiEdit) .*lopecode-plugin/src/"
+---
+
 # Development of Pairing Channel & Claude Plugin
 
 How the channel server, notebook pairing module, and dynamic MCP tools fit together. Read this when modifying any part of the Claude Code <-> notebook bridge.
 
 ## Architecture Principle: Keep the Channel Server Thin
 
-The channel server (`tools/channel/lopecode-channel.ts`) is a **dumb pipe**. It translates between MCP stdio and WebSocket — nothing more. All application logic lives in the notebook.
+The channel server (`lopecode-plugin/src/lopecode-channel.ts`) is a **dumb pipe**. It translates between MCP stdio and WebSocket — nothing more. All application logic lives in the notebook.
 
 ```
 Claude Code  <--MCP stdio-->  Channel Server  <--WebSocket-->  Notebook
@@ -100,13 +105,19 @@ The channel server updates `dynamicTools` and emits `tools/list_changed`.
 - `cc_ws` depends on `viewof mcpTools` (the DOM element, stable) and reads `.value` imperatively
 - `cc_handle_call_tool` depends on `viewof mcpTools` (stable) and reads `$0.value` at call time
 - A separate updater cell pushes new values: `$0.value = new Map([...]); $0.dispatchEvent(new Event("input"))`
-- The updater reacts to `fileSyncTools` changes, but `cc_ws` does not — the viewof element is the same object
+- The updater reacts to `mcpToolProviders` (`plugins.get("mcp-tools")`) changes, but `cc_ws` does not — the viewof element is the same object. It also holds the last non-empty set: a provider re-running clears then re-adds, so the registry reads empty in between and publishing that would wipe the tool list
 
 This pattern applies whenever you need to pass changing data to `cc_ws` or `cc_command_handlers` without triggering reconnection. The `$0`/`$1` convention in compiled cells refers to `viewof` elements passed as dependencies.
 
 ## File-Sync Integration
 
-`@tomlarkworthy/file-sync` provides the `setup_file_sync` dynamic MCP tool. When called:
+`@tomlarkworthy/claude-code-pairing` provides the `setup_file_sync` dynamic MCP tool, registering it
+through `@tomlarkworthy/plugin-registry` (`plugins.add("mcp-tools", …)`) and consuming its own
+registration via `plugins.get("mcp-tools")`. It lived in file-sync until 2026-08-17, imported as a
+`fileSyncTools` cell — but that cell was never added, so the import dangled in all 232 notebooks,
+and moving the provider into file-sync instead would have been worse: a `plugins.add` cell only runs
+where something observes it, and file-sync is a bootconf main in 1 notebook of 232 against pairing's
+20. When called:
 
 - If `directory` is null: returns instructions to click "Pick sync directory"
 - If active: returns sync status (directory name, path, module list) + `watches: [{name: "syncStatus", ...}]` to auto-attach a watcher

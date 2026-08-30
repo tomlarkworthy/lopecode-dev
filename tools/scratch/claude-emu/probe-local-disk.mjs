@@ -1,10 +1,18 @@
 // /local-disk end to end. The native picker cannot be driven headlessly, so the handle is
 // synthetic — everything downstream of showDirectoryPicker() is the real code path.
+// AGENT=1 adds a final stage: a real model turn that must actually explore the mount.
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
+const HERE = "/Users/tom.larkworthy/dev/lopecode-dev/tools/scratch/claude-emu";
 const NB = "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Caged_Code.html";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1200, height: 900 } });
+if (process.env.AGENT) {
+  const key = readFileSync(HERE + "/or-key.txt", "utf8").trim();
+  await p.addInitScript((k) => { try { localStorage.setItem("openrouter_key", k); } catch {} }, key);
+  p.on("response", (r) => { if (/chat\/completions/.test(r.url())) console.log("[upstream]", r.status(), r.url().slice(0, 60)); });
+}
 await p.goto("file://" + NB + "#view=S100(@tomlarkworthy/claude-code-browser)", { waitUntil: "load", timeout: 60000 });
 await p.waitForFunction(() => window.__termHealth && window.__termHealth().renderedChars > 0, { timeout: 90000 }).catch(() => {});
 await sleep(4000);
@@ -68,6 +76,15 @@ const inside = await p.evaluate(async () => {
     out.wroteViaRename = true;
   } catch (e) { out.wroteViaRename = "ERR " + e.message; }
   out.claudeMdMentionsMount = /local-disk/.test(String(w.__vol.toJSON()["/home/user/project/CLAUDE.md"] || ""));
+  // The route the Glob and Grep TOOLS take: cli.js spawns a vendored `rg`. Without the
+  // in-process ripgrep the agent cannot enumerate a mount at all.
+  const cp = w.__REG && w.__REG.child_process;
+  const rg = (args) => new Promise((res) => cp.execFile("/vendor/ripgrep/rg", args, { cwd: "/home/user/project" },
+    (e, stdout) => res(String(stdout || "").split("\n").filter(Boolean))));
+  out.globAll = await rg(["--files", "--glob", "**/*", "--sort=modified", "--no-ignore", "--hidden", "/local-disk"]);
+  out.globJs = await rg(["--files", "--glob", "**/*.js", "--no-ignore", "--hidden", "/local-disk"]);
+  out.grep = await rg(["--hidden", "--max-columns", "500", "-l", "answer", "/local-disk"]);
+  out.grepContent = await rg(["--hidden", "-n", "overwritten", "/local-disk"]);
   return out;
 });
 console.log("inside session:", JSON.stringify(inside, null, 1));
@@ -77,4 +94,19 @@ console.log("landed on the fake disk:", await p.evaluate(() => {
   const f = src.__entries.find((e) => e.name === "from-cli.txt");
   return f ? f.__written : "NOT WRITTEN";
 }));
+// The user-visible half: a model that has to find the files itself.
+if (process.env.AGENT) {
+  await p.click("#cb-term");
+  await p.keyboard.type("List every file under /local-disk using the Glob tool, then reply DONE", { delay: 8 });
+  await p.keyboard.press("Enter");
+  const t0 = Date.now();
+  let buf = "";
+  while (Date.now() - t0 < 180000) {
+    await sleep(2000);
+    buf = await p.evaluate(() => (window.__dumpTerm ? window.__dumpTerm() : ""));
+    if ((buf.match(/DONE/g) || []).length >= 2) break; // 1st is the echoed prompt
+  }
+  console.log("---- agent turn ----\n" + buf.split("\n").slice(-40).join("\n"));
+  console.log("glob tool used:", /Glob|Search\(/.test(buf), "| errored:", /Error searching files|ENOENT|No files found/.test(buf));
+}
 await b.close(); process.exit(0);

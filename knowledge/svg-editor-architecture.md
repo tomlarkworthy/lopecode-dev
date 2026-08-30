@@ -1,3 +1,8 @@
+---
+triggers:
+  - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/svg-lens\.js"
+---
+
 # SVG editor architecture
 
 Design note for turning `@tomlarkworthy/svg-lens` (lawful lenses, one gesture, one attribute) into a

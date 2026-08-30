@@ -1,3 +1,10 @@
+---
+triggers:
+  - "(^Bash |^|[;&|] )bun +tools/channel/sync-module\.ts"
+  - "(^Bash |^|[;&|] )bun +tools/lope-sync\.ts +(pull|push|checkout)( |$)"
+  - "(^Bash |^|[;&|] )bun +tools/lope-preflight\.ts"
+---
+
 # Resyncing modules across the corpus
 
 A module is embedded in up to 220 notebooks and most copies are old. This is the

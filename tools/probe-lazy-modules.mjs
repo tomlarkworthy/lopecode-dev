@@ -1,7 +1,7 @@
 // Are the fresh runtime's `module X` variables actually being forced before export?
 import { chromium } from 'playwright';
 import { resolve } from 'path';
-const file = resolve('lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve('lopecode/notebooks/quick_start.html');
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage();
 p.on('console', (m) => { if (/blank-notebook/.test(m.text())) console.log('  [page]', m.text().slice(0, 160)); });

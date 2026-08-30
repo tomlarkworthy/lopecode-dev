@@ -1,0 +1,21 @@
+# Per-notebook QA guidance: visualizer
+
+`@tomlarkworthy/visualizer` — infrastructure notebook. Provides `visualizer(runtime, opts)`: renders a runtime module's live cells into a `<div>` hosted *inside* the notebook (an inversion of the usual "set up the div before starting the runtime" pattern). Exports `visualizer`, `lopeviz_handle_css`. No interactive controls; the only demonstrable feature is the worked example cell `_4`, which renders `@tomlarkworthy/runtime-sdk`'s cells into a yellow `.runtimeSdk` box with `detachNodes: true`.
+
+## What "working" looks like
+- Fresh load shows formatted markdown prose + the yellow "Runtime SDK" box with runtime-sdk's cells rendered inside it. `viewof visualizers` is a `Set` of live root divs; `inspectors`/`syncers` are `Map`s keyed 1:1 by root; `visualizersToDelete` should be `Set(0)` at rest (it's a drain buffer, not a leak).
+
+## Landmines for the QA agent (read before poking the runtime)
+- **Do NOT force-compute cells with `module.value(name)` here.** This notebook's cells hold live DOM nodes. Forcing them attaches a reachable=`true` observer, which (a) throws `Cannot create property 'fulfilled' on boolean 'true'` inside runtime-sdk's `observe()`, and (b) **irreversibly collapses the rendered view** to `▸ HTMLDivElement {}` triangles. A fresh reload is the only recovery. For #16 (no errored cells), prefer a passive `_error` scan on a clean load, or accept that the steady-state scan is empty and don't mass-force. If you must force, do it last and reload afterward.
+- **Observer churn ≠ a loop.** Each `syncers` recompute tears down + rebuilds runtime-sdk `observe()` helper variables, logging a `del` op to `local-change-history` (seen as pid `_59vo1b`, `_name: null`). A burst of these correlates with *your* recompute-triggering evals, not a free-running thrash. Confirm idle by checking `history` stops growing when you stop touching the runtime; a clean boot shows `history = Array(0)`.
+- **To test #15 (rerunnability) safely:** re-dispatch `viewof visualizers`'s `input` event a few times and snapshot the DOM before/after — it should be identical. This exercises `syncers` idempotency without the reachable=`true` corruption. (Verified converging 2026-07-12.)
+
+## Known standing issues (verify for regression / fix)
+- **Rerender leaves the latest visualizer empty (CONFIRMED, user-reported, 2026-07-12).** A DOM node has one parent, so a cell whose value is a live DOM node lives in exactly one root. On rerender / second view, the **default** `detachNodes:false` does not reclaim a node already parented in the stale root, so the newest view attaches nothing; on disposal, `disposeRoot`'s `v._observer.fulfilled(v._value)` re-emit does not hand the node to the newest live root, so it orphans in the removed stale subtree. Deterministic repro (offscreen roots + per-cell `rootX.contains(v._value)` tally): A(detach:true) owns 24 → B(default) attaches 0, all stay in A → dispose A → nodes orphaned, B still 0. With `detachNodes:true` on both, B correctly steals all 24. Fix lives in `_syncers` + runtime-sdk `observe`: arbitration must favor the newest live root. Only the shipped yellow example (single root, detach:true) dodges it.
+- **Builtin imports render `from "<unknown 0.NNN>"`.** The `syncers` builtin-skip guard checks `ii.specifier === "builtin"`, but builtin import cells have `ii.specifier === undefined` (marker is `cell.name === "module builtin"` / `ii.from` starts with `"<unknown"`). One garbage import line shows at the top of any rendered module. Low severity, but visible.
+- **Prose overstated content (FIXED 2026-07-12).** Cell `_8` claimed "in this notebook we also provide examples around the minicell" — no such example exists. Reworded to reference the external minicell notebook (`modules/@tomlarkworthy/visualizer.js`, synced to the canonical HTML). Verify it stays fixed; not yet pushed to ObservableHQ.
+- **No test cells.** No `test_*`; convergence / `detachNodes` / export-ordering claims are untested.
+
+## Boot chatter that is NOT a bug
+- `@import rules are not allowed here` warnings (constructed-stylesheet red herring), `notebookwebhook.mov` 404, and `blob:null/*` `ERR_ABORTED` during boot — all expected, out of scope.
+- No `debugger;` statements in the module.

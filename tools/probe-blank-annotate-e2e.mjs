@@ -9,6 +9,9 @@ writeFileSync(LOG, '');
 const log = (m) => appendFileSync(LOG, m + '\n');
 
 const file = resolve(process.argv[2] || 'tools/staging/blank-annotate-test.html');
+// The prose to drag over. Any notebook that boots annotate can be checked by naming a phrase
+// its own page renders; the default is blank-notebook's.
+const TARGET_TEXT = process.argv[3] || 'single self-contained HTML file';
 const browser = await chromium.launch({ headless: true, args: ['--disable-web-security'] });
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 const errs = [];
@@ -26,13 +29,13 @@ if (await item.count()) { await item.click({ timeout: 5000 }).catch((e) => log('
 else log('no Annotate entry in the open menu');
 await page.waitForTimeout(1000);
 
-const box = await page.evaluate(() => {
-  const el = [...document.querySelectorAll('p, li')].find((n) => n.textContent.includes('single self-contained HTML file'));
+const box = await page.evaluate((needle) => {
+  const el = [...document.querySelectorAll('p, li')].find((n) => n.textContent.includes(needle));
   if (!el) return null;
   const r = el.getBoundingClientRect();
   return { x: r.left, y: r.top, w: r.width, h: r.height };
-});
-if (!box) { log('target prose not found'); await browser.close(); process.exit(1); }
+}, TARGET_TEXT);
+if (!box) { log('target prose not found: ' + TARGET_TEXT); await browser.close(); process.exit(1); }
 log('dragging over ' + JSON.stringify(box));
 await page.mouse.move(box.x + 4, box.y + box.h / 2);
 await page.mouse.down();

@@ -1,7 +1,7 @@
 // Probe: which builtins does a booted lopecode notebook actually expose? (Plot? d3? Inputs?)
 import { chromium } from 'playwright';
 
-const url = 'file://' + process.cwd() + '/lopecode/notebooks/@tomlarkworthy_blank-notebook.html';
+const url = 'file://' + process.cwd() + '/lopecode/notebooks/quick_start.html';
 const browser = await chromium.launch();
 const page = await browser.newPage();
 page.on('console', (m) => { if (m.type() === 'error') console.log('[console error]', m.text().slice(0, 200)); });

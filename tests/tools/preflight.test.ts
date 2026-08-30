@@ -123,3 +123,39 @@ test("placeBefore ignores a block whose owner is not a module in this document",
   const html = boot([]) + att("@nobody/here/doc.md");
   expect(placeBefore(html).moved).toEqual([]);
 });
+
+// An observed cell defined WITHOUT the `$def` helper. corepox-map and corepox-game both
+// write their views this way, and the regex the gate used to rely on could not see it,
+// so importing them produced permanent false `missing-export` findings.
+const observedDefine = (name: string) =>
+  `export default function define(runtime, observer) {\n` +
+  `  const main = runtime.module();\n` +
+  `  main.variable(observer(${JSON.stringify(name)})).define(${JSON.stringify(name)}, ["html"], (html) => html\`<i></i>\`);\n` +
+  `  return main;\n}`;
+const importerOf = (mod: string, name: string) =>
+  `export default function define(runtime, observer) {\n` +
+  `  const main = runtime.module();\n` +
+  `  main.define("module ${mod}", async () => runtime.module((await import("/${mod}.js?v=4")).default));\n` +
+  `  main.define(${JSON.stringify(name)}, ["module ${mod}", "@variable"], (_, v) => v.import(${JSON.stringify(name)}, _));\n` +
+  `  return main;\n}`;
+
+test("a cell defined through main.variable(observer(n)).define(n, ...) counts as an export", () => {
+  const html = boot(["@a/importer"]) + mod("@a/b", observedDefine("viewof galaxyMap")) +
+    mod("@a/importer", importerOf("@a/b", "viewof galaxyMap"));
+  expect(kinds(html)).toEqual([]);
+});
+
+test("a define on a module built inside a cell body is not that block's export", () => {
+  // `@tomlarkworthy/modules` and `svg-lens` both call `.define("name", ...)` on modules they
+  // create at runtime; counting those would silence real missing exports.
+  const inner =
+    `export default function define(runtime, observer) {\n` +
+    `  const main = runtime.module();\n` +
+    `  main.variable(observer()).define(null, [], () => {\n` +
+    `    const mod = runtime.module();\n` +
+    `    mod.variable().define("galaxyMap", [], () => 1);\n` +
+    `    return mod;\n  });\n  return main;\n}`;
+  const html = boot(["@a/importer"]) + mod("@a/b", inner) +
+    mod("@a/importer", importerOf("@a/b", "galaxyMap"));
+  expect(kinds(html)).toEqual(["missing-export"]);
+});

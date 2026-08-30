@@ -1,0 +1,37 @@
+
+231 notebook(s) checked; 231 with findings, 734 finding(s), 734 in the boot closure
+    717  missing-export
+     17  missing-attachment
+
+vs baseline tools/preflight-baseline.json:  48 NEW, 5 resolved
+  NEW  missing-export         import_wizards.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         import_wizards.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         import_wizards.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_annotate.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         @tomlarkworthy_annotate.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_annotate.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_aws-dashboard.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         @tomlarkworthy_aws-dashboard.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_aws-dashboard.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_compile-dataflow.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         @tomlarkworthy_compile-dataflow.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_compile-dataflow.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         @tomlarkworthy_exporter-3.html  @tomlarkworthy/observablejs-toolchain imports moduleMap from @tomlarkworthy/cell-map, which does not define it
+  NEW  missing-export         Caged_Code.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         Caged_Code.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         Caged_Code.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         assembly_script.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         assembly_script.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         assembly_script.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         linux-claude.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         linux-claude.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         linux-claude.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         tomlarkworthy_coded-landmark-tracking.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-export         tomlarkworthy_coded-landmark-tracking.html  @tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         tomlarkworthy_coded-landmark-tracking.html  @tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it
+  NEW  missing-export         tomlarkworthy_flat-trace.html  @tomlarkworthy/claude-code-pairing imports fileSyncTools from @tomlarkworthy/file-sync, which does not define it
+  NEW  missing-attachment     tomlarkworthy_flat-trace.html  @tomlarkworthy/assembly-script needs binaryen-slim-131.wasm.gz
+  NEW  missing-attachment     tomlarkworthy_flat-trace.html  @tomlarkworthy/coded-landmark-tracking-data needs hexframe-1.png
+  NEW  missing-attachment     tomlarkworthy_flat-trace.html  @tomlarkworthy/coded-landmark-tracking-data needs hexframe-2.png
+  NEW  missing-attachment     tomlarkworthy_flat-trace.html  @tomlarkworthy/coded-landmark-tracking-data needs hexframe-3.png
+  … 18 more

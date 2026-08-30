@@ -24,6 +24,12 @@ const IN = resolve(arg("in", "lopebooks/notebooks/tomlarkworthy_coded-landmark-t
 const OUT = resolve(arg("out", "scratch/rmbt/sip-out.html"));
 const HASH = arg("hash", "#view=R100(S100(@tomlarkworthy/coded-landmark-tracking))");
 const SETTLE = Number(arg("settle", "45000"));
+// The prerender is a clone of the RENDERED page, so the export waits for cells to be on
+// screen. "More than 20 cells" is a fine proxy for a notebook whose module IS the content,
+// but not for one whose landing module is a few cells in front of an imported app — pass
+// --ready-cells, or --ready-selector for something the page only shows once it is alive.
+const READY_CELLS = Number(arg("ready-cells", "20"));
+const READY_SELECTOR = arg("ready-selector", "");
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -41,7 +47,9 @@ await page.waitForFunction(() => !!(window as any).__ojs_runtime, { timeout: 300
 // The prerender is a clone of the RENDERED page, so wait for cells to actually
 // be on screen, not merely for the runtime to exist.
 await page.waitForFunction(
-  () => document.querySelectorAll("#lopepage-2 .observablehq").length > 20,
+  ([n, sel]) => document.querySelectorAll("#lopepage-2 .observablehq").length > (n as number)
+    && (!sel || !!document.querySelector(sel as string)),
+  [READY_CELLS, READY_SELECTOR] as const,
   { timeout: 300000 }
 );
 await page.waitForTimeout(SETTLE);

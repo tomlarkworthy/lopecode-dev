@@ -5,11 +5,22 @@
  *
  * The publish MECHANISM is not reimplemented here: at-write's `publishBundle`
  * (uploads + record + version snapshot), `extractFiles`, `extractCard`,
- * `knownCidsFromPds`, `listBundleVersions` and `notifyOfUpdate` are loaded out
- * of the publisher notebook HTML and run headlessly via tools/notebook-import.ts;
- * at-login's `createAppPasswordSession` + `xrpc` supply the authenticated
- * transport. This tool adds only CI policy: declared rkeys, the idempotence
- * gate, refuse-to-create, carry-forward defaults, and the pre-write CAS check.
+ * `knownCidsFromPds`, `listBundleVersions`, `notifyOfUpdate` and the
+ * standard.site writers (`publishToStdSite` → `publishStdPub` + `publishStdDoc`,
+ * `getStdDoc`) are loaded out of the publisher notebook HTML and run headlessly
+ * via tools/notebook-import.ts; at-login's `createAppPasswordSession` + `xrpc`
+ * supply the authenticated transport. This tool adds only CI policy: declared
+ * rkeys, the idempotence gate, refuse-to-create, carry-forward defaults, and the
+ * pre-write CAS check.
+ *
+ * Records written, in the browser widget's order (at-write `onPublish`):
+ * `site.standard.publication` (upsert, TID) → `site.standard.document` (the TID
+ * on the prior bundle's `stdDocUri`, else a fresh one) → `com.lopecode.bundle`
+ * (+ version snapshot), so the bundle bakes in the document's URI and the
+ * rendered page can emit `<link rel="site.standard.document">`. A sidecar
+ * failure warns and still publishes the bundle. CI never writes an
+ * `app.bsky.feed.post`: that record broadcasts into followers' feeds and stays a
+ * deliberate human action.
  *
  * Identity comes from the notebook's sidecar `.json`, NOT from slugifying the
  * title — the shipped widget derives the rkey from the title, and 9 of the 10
@@ -150,6 +161,10 @@ async function loadPublisher(publisherPath: string) {
     knownCidsFromPds: await aw.value("knownCidsFromPds"),
     notifyOfUpdate: await aw.value("notifyOfUpdate"),
     resolveImageBytes: await aw.value("resolveImageBytes"),
+    publishToStdSite: await aw.value("publishToStdSite"),
+    publishStdPub: await aw.value("publishStdPub"),
+    publishStdDoc: await aw.value("publishStdDoc"),
+    getStdDoc: await aw.value("getStdDoc"),
     xrpc: await al.value("xrpc"),
     createAppPasswordSession: await al.value("createAppPasswordSession"),
     dispose: () => { at.dispose(); aw.dispose(); al.dispose(); },
@@ -202,6 +217,28 @@ async function getBundle(pds: string, did: string, rkey: string) {
   if (status === 404 || (status === 400 && body?.error === "RecordNotFound")) return null;
   if (status !== 200) throw new Error(`getRecord ${rkey} → ${status} ${body?.error ?? ""}`);
   return { cid: body.cid as string, value: body.value as any };
+}
+
+// The document's bskyPostRef, so a republish preserves it: prefer the live
+// document's own ref, else resolve the bundle's bskyPostUri to a strongRef.
+// CI never creates a post, so this is carry-forward only.
+async function carriedBskyPostRef(
+  pub: any, session: any, pds: string, did: string,
+  priorDocUri: string | null, priorPostUri: string | null,
+) {
+  if (priorDocUri) {
+    try {
+      const got = await pub.getStdDoc({ session, xrpc: pub.xrpc, rkey: priorDocUri.split("/").pop() });
+      if (got?.value?.bskyPostRef) return got.value.bskyPostRef;
+    } catch { /* a missing/unreadable doc is not a reason to fail the publish */ }
+  }
+  if (priorPostUri) {
+    const rk = priorPostUri.split("/").pop()!;
+    const u = `${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=app.bsky.feed.post&rkey=${encodeURIComponent(rk)}`;
+    const { status, body } = await getJson(u);
+    if (status === 200 && body?.cid) return { $type: "com.atproto.repo.strongRef", uri: priorPostUri, cid: body.cid };
+  }
+  return null;
 }
 
 function readCard(pub: any, html: string) {
@@ -270,9 +307,19 @@ async function publishNotebook(
   const added = [...localCids].filter(([id]) => !priorCids.has(id)).length;
   const removed = [...priorCids].filter(([id]) => !localCids.has(id)).length;
 
-  if (prior && sameFiles && title === prior.value.title && (description ?? null) === (prior.value.description ?? null)) {
+  const unchanged =
+    !!prior && sameFiles && title === prior.value.title && (description ?? null) === (prior.value.description ?? null);
+  // …except when the bundle carries no stdDocUri: it then has no standard.site
+  // document, so /r/<rkey> emits no <link rel="site.standard.document"> and no
+  // indexer can verify it. Write the document and republish to record its URI —
+  // the backfill path for bundles published before sidecars were written here.
+  const backfill = unchanged && !prior!.value.stdDocUri;
+  if (unchanged && !backfill) {
     log(`${basename(htmlPath)}: no change (${files.length} blocks identical, title and description unchanged) — not publishing`);
     return { notebook: htmlPath, rkey, did, status: "unchanged", blocks: files.length };
+  }
+  if (backfill) {
+    log(`${basename(htmlPath)}: content unchanged but the bundle has no stdDocUri — writing the standard.site records and republishing to bind them`);
   }
 
   const known: Set<string> = opts.blobCache ? await pub.knownCidsFromPds({ pds, did }) : new Set<string>();
@@ -335,6 +382,10 @@ async function publishNotebook(
       ` · stdDocUri: ${stdDocUri ? "carried" : "none"}`,
     );
     console.log(`          createdAt: ${createdAt}${opts.bumpCreatedAt ? " (bumped)" : " (preserved)"}`);
+    console.log(
+      `sidecars  site.standard.publication upsert · site.standard.document ` +
+      `${stdDocUri ? `update ${stdDocUri}` : "create (new TID)"} · no app.bsky.feed.post from CI`,
+    );
     console.log(`version   would create com.lopecode.bundle.version/${wouldVersionRkey}`);
     console.log(`          ${snapshots.length} existing snapshot(s); previousVersion ${trueTip || "(none)"}`);
   }
@@ -374,26 +425,68 @@ async function publishNotebook(
     }
   }
 
+  // standard.site sidecars, written BEFORE the bundle exactly as the widget does
+  // (at-write onPublish): the publication is upserted at its TID, the document is
+  // updated in place at the prior bundle's stdDocUri (or created), and the URI it
+  // returns is baked into the bundle record below. App-password sessions have
+  // unrestricted repo write — scopes exist only for OAuth, and at-login's
+  // ensureScopes returns the session untouched for authType !== 'oauth'
+  // (at-login:562-570) — so there is nothing here the CI session cannot write.
+  // A sidecar failure warns and still publishes the bundle: the bundle is the
+  // canonical artifact and a missing document is recoverable on the next run.
+  // No app.bsky.feed.post: that is the one record that broadcasts.
+  const baseUrl = `https://${did.replace(/:/g, "-")}.lopecode.com`;
+  let newStdDocUri: string | null = stdDocUri;
+  let stdPubUri: string | null = null;
+  let sidecarWarning: string | null = null;
+  try {
+    const std = await pub.publishToStdSite(
+      {
+        session, xrpc: pub.xrpc, ensureScopes,
+        rkey, priorDocUri: stdDocUri ?? undefined,
+        title, baseUrl,
+        description: description ?? undefined,
+        coverImage: coverImage ?? undefined,
+        // publishStdDoc rewrites the record whole, so an existing bskyPostRef is
+        // dropped unless handed back.
+        bskyPostRef: (await carriedBskyPostRef(pub, session, pds, did, stdDocUri, bskyPostUri)) ?? undefined,
+        pubName: `@${session.handle || did}`,
+        pubUrl: baseUrl,
+      },
+      { publishStdPub: pub.publishStdPub, publishStdDoc: pub.publishStdDoc },
+    );
+    stdPubUri = std.publication?.uri ?? null;
+    if (!opts.json) {
+      console.log(`sidecars  document ${stdDocUri && std.uri === stdDocUri ? "updated" : "created"} ${std.uri}`);
+      console.log(`          publication ${stdPubUri}${std.publication?.skipped ? " (unchanged)" : ""}`);
+    }
+    newStdDocUri = std.uri;
+  } catch (e: any) {
+    sidecarWarning = e.message || String(e);
+    console.warn(`warning: standard.site sidecars failed for ${rkey}: ${sidecarWarning} — publishing the bundle anyway`);
+  }
+
   const result = await pub.publishBundle({
     session, xrpc: pub.xrpc, ensureScopes,
     files, title, rkey, prior,
     knownCids: known,
     createdAt, description, coverImage,
+    stdDocUri: newStdDocUri,
   });
   const uploaded = result.uploaded, skipped = result.skipped;
 
   const notified = (await pub.notifyOfUpdate(base.uri)) ?? "failed";
-
-  // TODO(v1): no site.standard.publication/document and no app.bsky.feed.post sidecars.
-  // The widget writes them, but their app-password compatibility is unproven; the bundle
-  // (the canonical artifact) is written here and sidecars stay a manual, browser-side step.
 
   if (!opts.json) {
     console.log(`published ${base.uri}`);
     console.log(`          ${base.webUri}`);
     console.log(`          ${uploaded} uploaded · ${skipped} reused · version ${result?.versionRkey || "(first publish)"} · notify ${notified}`);
   }
-  return { ...base, status: "published", uploaded, skipped, versionRkey: result?.versionRkey ?? null, notify: notified };
+  return {
+    ...base, status: "published", uploaded, skipped,
+    versionRkey: result?.versionRkey ?? null, notify: notified,
+    stdDocUri: newStdDocUri, stdPubUri, sidecarWarning,
+  };
 }
 
 // ------------------------------------------------------------ changed mode
@@ -409,58 +502,65 @@ function stemsFromChangedFile(path: string): string[] {
   return stems;
 }
 
+export { loadPublisher, publishNotebook, readDeclaration, stemsFromChangedFile };
+export type { Decl, Opts };
+
 // --------------------------------------------------------------------- main
 
-const opts = parseArgs(process.argv.slice(2));
+// Guarded so the module can be imported by tests without running the CLI.
+if (import.meta.main) {
 
-if (opts.repoRoot) assertNoDuplicateTargets(resolve(opts.repoRoot));
+  const opts = parseArgs(process.argv.slice(2));
 
-type Job = { html: string; sidecar: string };
-const jobs: Job[] = [];
+  if (opts.repoRoot) assertNoDuplicateTargets(resolve(opts.repoRoot));
 
-if (opts.file) {
-  const html = resolve(opts.file);
-  if (!existsSync(html)) die(`${opts.file}: not found`);
-  jobs.push({ html, sidecar: html.replace(/\.html$/, ".json") });
-} else {
-  const root = resolve(opts.repoRoot!);
-  for (const stem of stemsFromChangedFile(resolve(opts.changed!))) {
-    const html = join(root, "notebooks", `${stem}.html`);
-    const sidecar = join(root, "notebooks", `${stem}.json`);
-    if (!existsSync(html)) { console.error(`skip ${stem}: .html not on disk (unpublish is manual)`); continue; }
-    jobs.push({ html, sidecar });
+  type Job = { html: string; sidecar: string };
+  const jobs: Job[] = [];
+
+  if (opts.file) {
+    const html = resolve(opts.file);
+    if (!existsSync(html)) die(`${opts.file}: not found`);
+    jobs.push({ html, sidecar: html.replace(/\.html$/, ".json") });
+  } else {
+    const root = resolve(opts.repoRoot!);
+    for (const stem of stemsFromChangedFile(resolve(opts.changed!))) {
+      const html = join(root, "notebooks", `${stem}.html`);
+      const sidecar = join(root, "notebooks", `${stem}.json`);
+      if (!existsSync(html)) { console.error(`skip ${stem}: .html not on disk (unpublish is manual)`); continue; }
+      jobs.push({ html, sidecar });
+    }
   }
-}
 
-const targets: { job: Job; decl: Decl }[] = [];
-for (const job of jobs) {
-  const { decl, armed } = readDeclaration(job.sidecar);
-  if (!decl) { if (opts.changed) continue; die(`${job.sidecar}: no publish.atproto declaration`); }
-  if (!armed) { console.error(`skip ${basename(job.html)}: declared but not armed (publish.atproto.auto !== true)`); continue; }
-  targets.push({ job, decl });
-}
-
-if (targets.length === 0) {
-  if (!opts.json) console.log("nothing to publish");
-  else console.log(JSON.stringify({ results: [] }, null, 2));
-  process.exit(0);
-}
-
-const pub = await loadPublisher(resolve(opts.publisher!));
-const session = opts.dryRun ? null : await makeSession(pub.createAppPasswordSession);
-
-const results: Result[] = [];
-let failed = 0;
-for (const { job, decl } of targets) {
-  try {
-    results.push(await publishNotebook(pub, job.html, decl, opts, session));
-  } catch (e: any) {
-    failed++;
-    results.push({ notebook: job.html, rkey: decl.rkey, status: "error", error: e.message });
-    console.error(`FAIL ${basename(job.html)}: ${e.message}`);
+  const targets: { job: Job; decl: Decl }[] = [];
+  for (const job of jobs) {
+    const { decl, armed } = readDeclaration(job.sidecar);
+    if (!decl) { if (opts.changed) continue; die(`${job.sidecar}: no publish.atproto declaration`); }
+    if (!armed) { console.error(`skip ${basename(job.html)}: declared but not armed (publish.atproto.auto !== true)`); continue; }
+    targets.push({ job, decl });
   }
-}
 
-if (opts.json) console.log(JSON.stringify({ results }, null, 2));
-pub.dispose();
-process.exit(failed ? 1 : 0);
+  if (targets.length === 0) {
+    if (!opts.json) console.log("nothing to publish");
+    else console.log(JSON.stringify({ results: [] }, null, 2));
+    process.exit(0);
+  }
+
+  const pub = await loadPublisher(resolve(opts.publisher!));
+  const session = opts.dryRun ? null : await makeSession(pub.createAppPasswordSession);
+
+  const results: Result[] = [];
+  let failed = 0;
+  for (const { job, decl } of targets) {
+    try {
+      results.push(await publishNotebook(pub, job.html, decl, opts, session));
+    } catch (e: any) {
+      failed++;
+      results.push({ notebook: job.html, rkey: decl.rkey, status: "error", error: e.message });
+      console.error(`FAIL ${basename(job.html)}: ${e.message}`);
+    }
+  }
+
+  if (opts.json) console.log(JSON.stringify({ results }, null, 2));
+  pub.dispose();
+  process.exit(failed ? 1 : 0);
+}

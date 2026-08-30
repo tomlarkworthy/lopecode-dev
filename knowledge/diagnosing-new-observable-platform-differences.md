@@ -1,3 +1,8 @@
+---
+triggers:
+  - "(^Bash |^|[;&|] )bun +tools/newobs-[a-z-]+\.ts"
+---
+
 # Diagnosing new.observablehq.com Platform Differences
 
 `new.observablehq.com` runs our notebooks on the **notebook-kit** runtime + stdlib.

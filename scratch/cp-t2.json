@@ -1,0 +1,4933 @@
+[
+  {
+    "url": "http://localhost:8123/tour-t2.html#view=S100(@tomlarkworthy/lopecode-tour)",
+    "sawFinal": true,
+    "contentT": 4937.700000047684,
+    "nav": {
+      "startTime": 0,
+      "domainLookupStart": 4.099999904632568,
+      "domainLookupEnd": 4.099999904632568,
+      "connectStart": 4.099999904632568,
+      "secureConnectionStart": 0,
+      "connectEnd": 4.400000095367432,
+      "requestStart": 5,
+      "responseStart": 40,
+      "responseEnd": 4136.599999904633,
+      "domInteractive": 4140.5,
+      "domContentLoadedEventEnd": 4140.700000047684,
+      "loadEventEnd": 4141.299999952316,
+      "transferSize": 1625578,
+      "encodedBodySize": 1625278,
+      "decodedBodySize": 3147533
+    },
+    "paints": [
+      {
+        "name": "first-paint",
+        "t": 2552
+      },
+      {
+        "name": "first-contentful-paint",
+        "t": 2664
+      }
+    ],
+    "lcp": 4884,
+    "marks": [
+      {
+        "t": 2500.5999999046326,
+        "msg": "responding"
+      },
+      {
+        "t": 2532.5999999046326,
+        "msg": "responding"
+      },
+      {
+        "t": 2535.7000000476837,
+        "msg": "responding"
+      },
+      {
+        "t": 2536.7999999523163,
+        "msg": "responding"
+      },
+      {
+        "t": 2537.5999999046326,
+        "msg": "responding"
+      },
+      {
+        "t": 2538.4000000953674,
+        "msg": "responding"
+      },
+      {
+        "t": 2539.9000000953674,
+        "msg": "responding"
+      },
+      {
+        "t": 2540.7000000476837,
+        "msg": "responding"
+      },
+      {
+        "t": 2541.4000000953674,
+        "msg": "responding"
+      },
+      {
+        "t": 2542.0999999046326,
+        "msg": "responding"
+      },
+      {
+        "t": 2543.0999999046326,
+        "msg": "responding"
+      },
+      {
+        "t": 2550.5,
+        "msg": "responding"
+      },
+      {
+        "t": 2563,
+        "msg": "responding"
+      },
+      {
+        "t": 2563.2999999523163,
+        "msg": "responding"
+      },
+      {
+        "t": 2573.4000000953674,
+        "msg": "Bootloader: loading @tomlarkworthy/lopepage"
+      },
+      {
+        "t": 2573.5999999046326,
+        "msg": "Bootloader: loading @tomlarkworthy/lopecode-tour"
+      },
+      {
+        "t": 2640.4000000953674,
+        "msg": "keepalive: dynamic observe tasks"
+      },
+      {
+        "t": 2640.5999999046326,
+        "msg": "background job"
+      },
+      {
+        "t": 2640.5999999046326,
+        "msg": "keepalive: dynamic observe syncers"
+      },
+      {
+        "t": 2640.7000000476837,
+        "msg": "keepalive: dynamic observe range"
+      },
+      {
+        "t": 2676.0999999046326,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2676.2000000476837,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2676.2999999523163,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2676.2999999523163,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2676.4000000953674,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2676.4000000953674,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2676.4000000953674,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2676.5,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2676.5,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2676.9000000953674,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2676.9000000953674,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2676.9000000953674,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2677,
+        "msg": "keepalive: dynamic observe maintain_live_cell_map"
+      },
+      {
+        "t": 2677.0999999046326,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2677.0999999046326,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2677.0999999046326,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2708.2999999523163,
+        "msg": "Loading codemirror from"
+      },
+      {
+        "t": 2723.5999999046326,
+        "msg": "notebookImports"
+      },
+      {
+        "t": 2723.7999999523163,
+        "msg": "notebookImportVariables"
+      },
+      {
+        "t": 2724,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 2736.4000000953674,
+        "msg": "code_editor_view"
+      },
+      {
+        "t": 2739.2000000476837,
+        "msg": "code_editor"
+      },
+      {
+        "t": 2739.2999999523163,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 4002.9000000953674,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4003.0999999046326,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4003.0999999046326,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4181.599999904633,
+        "msg": "keepalive: dynamic observe toolRegistry_sync"
+      },
+      {
+        "t": 4181.799999952316,
+        "msg": "keepalive: dynamic observe test_cell_map_coverage"
+      },
+      {
+        "t": 4196.099999904633,
+        "msg": "keepalive: dynamic observe futureExportedState"
+      },
+      {
+        "t": 4198.5,
+        "msg": "keepalive: dynamic observe futureExportedState"
+      },
+      {
+        "t": 4212.900000095367,
+        "msg": "modules"
+      },
+      {
+        "t": 4215.299999952316,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4215.5,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4215.5,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4256.799999952316,
+        "msg": "jest/expect version 24.0.0"
+      },
+      {
+        "t": 4464.599999904633,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4465.799999952316,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4508.700000047684,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 4514.900000095367,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 4515.700000047684,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4515.700000047684,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4515.700000047684,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4517.099999904633,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4531.5,
+        "msg": "modules"
+      },
+      {
+        "t": 4533.799999952316,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4533.799999952316,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4533.799999952316,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4782.5,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4783.700000047684,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4793.5,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 4806.900000095367,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4809.5,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4809.5,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4809.5,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4813.400000095367,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4831.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4831.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4832.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.599999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4833.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4900.400000095367,
+        "msg": "code_editor_view"
+      },
+      {
+        "t": 4906.099999904633,
+        "msg": "code_editor"
+      },
+      {
+        "t": 4906.799999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4907.400000095367,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 4919.299999952316,
+        "msg": "modules"
+      },
+      {
+        "t": 4922.200000047684,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4922.200000047684,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4922.200000047684,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4922.900000095367,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 5170.599999904633,
+        "msg": "generate summary"
+      },
+      {
+        "t": 5171.900000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 5172,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 5172,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 5172,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 5176.900000095367,
+        "msg": "removing visualizer"
+      },
+      {
+        "t": 5177.200000047684,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 5246.200000047684,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 5267.799999952316,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 5277.299999952316,
+        "msg": "modules"
+      },
+      {
+        "t": 5280.900000095367,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 5280.900000095367,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 5280.900000095367,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 5478.799999952316,
+        "msg": "generate summary"
+      },
+      {
+        "t": 5479.900000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 5484.200000047684,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 5484.299999952316,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 5484.299999952316,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 5485.099999904633,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 5507.900000095367,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 5536,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.099999904633,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5536.299999952316,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 5542.299999952316,
+        "msg": "modules"
+      },
+      {
+        "t": 5546.5,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 5546.5,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 5546.5,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 5547,
+        "msg": "generate summary"
+      },
+      {
+        "t": 5548,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 5548,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 5548,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 5548,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 5548.400000095367,
+        "msg": "removing visualizer"
+      },
+      {
+        "t": 5548.799999952316,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 5607.200000047684,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 5634.299999952316,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 5640.200000047684,
+        "msg": "modules"
+      },
+      {
+        "t": 5643.599999904633,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 5643.700000047684,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 5643.700000047684,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 5644.099999904633,
+        "msg": "generate summary"
+      },
+      {
+        "t": 5644.900000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 5648.5,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 5648.5,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 5648.5,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 5649.099999904633,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 5673.400000095367,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 5702.299999952316,
+        "msg": "modules"
+      },
+      {
+        "t": 5705.700000047684,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 5705.700000047684,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 5705.700000047684,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 5706.099999904633,
+        "msg": "generate summary"
+      },
+      {
+        "t": 5706.900000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 5707.200000047684,
+        "msg": "removing visualizer"
+      },
+      {
+        "t": 5707.5,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 5767.299999952316,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 5794.099999904633,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 5800,
+        "msg": "modules"
+      },
+      {
+        "t": 5803.599999904633,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 5803.599999904633,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 5803.700000047684,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 5804,
+        "msg": "generate summary"
+      },
+      {
+        "t": 5804.900000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 5810.700000047684,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      }
+    ],
+    "resources": [
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/lite-youtube-embed.js?v=4",
+        "type": "fetch",
+        "start": 2579,
+        "duration": 1060.5,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/manipulate.js?v=4",
+        "type": "fetch",
+        "start": 2579.0999999046326,
+        "duration": 1360.8000001907349,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/exporter-3.js?v=4",
+        "type": "fetch",
+        "start": 2579.0999999046326,
+        "duration": 1576.9000000953674,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/robocoop-3.js?v=4",
+        "type": "fetch",
+        "start": 2579.0999999046326,
+        "duration": 1577.1000001430511,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/local-change-history.js?v=4",
+        "type": "fetch",
+        "start": 2590.5,
+        "duration": 1395.0999999046326,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/spectral-layout.js?v=4",
+        "type": "fetch",
+        "start": 2611.5999999046326,
+        "duration": 1023.1000001430511,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/summarizejs.js?v=4",
+        "type": "fetch",
+        "start": 2621.2000000476837,
+        "duration": 877.7999999523163,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/observable-notes.js?v=4",
+        "type": "fetch",
+        "start": 2725.5999999046326,
+        "duration": 913.2000000476837,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/robocoop-2.js?v=4",
+        "type": "fetch",
+        "start": 2725.5999999046326,
+        "duration": 1148.9000000953674,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/jest-expect-standalone.js?v=4",
+        "type": "fetch",
+        "start": 2725.7000000476837,
+        "duration": 1107.7999999523163,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://api.observablehq.com/@tomlarkworthy/file-sync.js?v=4",
+        "type": "fetch",
+        "start": 2725.7999999523163,
+        "duration": 909.7000000476837,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://static.observableusercontent.com/files/8bd75cc58f0b5a781b331c6cbcc4c8f8d4e6daf8e1c7cf8752beb1d2bf60d67c9bc9118623d848af860d11006569d755ab2d86d693371f620c8c180df5963e8b",
+        "type": "fetch",
+        "start": 3645.7999999523163,
+        "duration": 1089.4000000953674,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js",
+        "type": "script",
+        "start": 4223.299999952316,
+        "duration": 471.40000009536743,
+        "transferSize": 2137,
+        "encodedBodySize": 1837,
+        "decodedBodySize": 7408
+      },
+      {
+        "name": "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov",
+        "type": "video",
+        "start": 4231.700000047684,
+        "duration": 712.8999998569489,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://static.observableusercontent.com/files/8bd75cc58f0b5a781b331c6cbcc4c8f8d4e6daf8e1c7cf8752beb1d2bf60d67c9bc9118623d848af860d11006569d755ab2d86d693371f620c8c180df5963e8b",
+        "type": "fetch",
+        "start": 4264.599999904633,
+        "duration": 470.90000009536743,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://openai-proxy.endpointservices.workers.dev/v1/responses",
+        "type": "fetch",
+        "start": 4514.799999952316,
+        "duration": 4412.600000143051,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://static.observableusercontent.com/files/44a994984be925455541ea84ec6b0c4ac2a0a77b36d929488143676c7876feaa8c75c9212ac08426ddee2de1e894294f40aac0106776eb2bd224021b6b48843a",
+        "type": "fetch",
+        "start": 4738.200000047684,
+        "duration": 718.3999998569489,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://i.ytimg.com/vi_webp/In_BjcsDlfY/sddefault.webp",
+        "type": "img",
+        "start": 4937.5,
+        "duration": 1321.2000000476837,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov",
+        "type": "video",
+        "start": 4944.5,
+        "duration": 621.5,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://static.observableusercontent.com/files/8bd75cc58f0b5a781b331c6cbcc4c8f8d4e6daf8e1c7cf8752beb1d2bf60d67c9bc9118623d848af860d11006569d755ab2d86d693371f620c8c180df5963e8b",
+        "type": "fetch",
+        "start": 5470.700000047684,
+        "duration": 0.20000004768371582,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://static.observableusercontent.com/files/44a994984be925455541ea84ec6b0c4ac2a0a77b36d929488143676c7876feaa8c75c9212ac08426ddee2de1e894294f40aac0106776eb2bd224021b6b48843a",
+        "type": "fetch",
+        "start": 5472,
+        "duration": 0.20000004768371582,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov",
+        "type": "video",
+        "start": 5674.799999952316,
+        "duration": 2851.5,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://openai-proxy.endpointservices.workers.dev/v1/responses",
+        "type": "fetch",
+        "start": 8929.799999952316,
+        "duration": 1646.9000000953674,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://openai-proxy.endpointservices.workers.dev/v1/responses",
+        "type": "fetch",
+        "start": 10652.5,
+        "duration": 19944.099999904633,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      }
+    ],
+    "consoleLines": [
+      {
+        "wall": 2505.051875,
+        "text": "responding es-module-shims@2.6.2 JSHandle@node"
+      },
+      {
+        "wall": 2534.867583,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/global.css JSHandle@node"
+      },
+      {
+        "wall": 2537.752,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/inspector.css JSHandle@node"
+      },
+      {
+        "wall": 2538.389416,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/highlight.css JSHandle@node"
+      },
+      {
+        "wall": 2539.166583,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/plot.css JSHandle@node"
+      },
+      {
+        "wall": 2540.044416,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/index.css JSHandle@node"
+      },
+      {
+        "wall": 2541.44625,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2541.741375,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/theme-parchment.css JSHandle@node"
+      },
+      {
+        "wall": 2542.023458,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2542.249541,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/abstract-light.css JSHandle@node"
+      },
+      {
+        "wall": 2542.786833,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 2543.068625,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/syntax-light.css JSHandle@node"
+      },
+      {
+        "wall": 2543.818458,
+        "text": "responding file://syntax.css JSHandle@node"
+      },
+      {
+        "wall": 2544.679625,
+        "text": "responding @observablehq/runtime@6.0.0 JSHandle@node"
+      },
+      {
+        "wall": 2552.796541,
+        "text": "responding @observablehq/inspector@5.0.1 JSHandle@node"
+      },
+      {
+        "wall": 2564.966208,
+        "text": "responding https://cdn.jsdelivr.net/npm/@observablehq/inputs@0.12.0/dist/inputs.min.js JSHandle@node"
+      },
+      {
+        "wall": 2565.080291,
+        "text": "responding https://unpkg.com/@observablehq/stdlib?module JSHandle@node"
+      },
+      {
+        "wall": 2575.5775,
+        "text": "Bootloader: loading @tomlarkworthy/lopepage"
+      },
+      {
+        "wall": 2575.59025,
+        "text": "Bootloader: loading @tomlarkworthy/lopecode-tour"
+      },
+      {
+        "wall": 2642.750791,
+        "text": "keepalive: dynamic observe tasks"
+      },
+      {
+        "wall": 2642.772125,
+        "text": "background job"
+      },
+      {
+        "wall": 2642.784666,
+        "text": "keepalive: dynamic observe syncers"
+      },
+      {
+        "wall": 2642.799083,
+        "text": "keepalive: dynamic observe range"
+      },
+      {
+        "wall": 2678.469208,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2678.4865,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2678.498166,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2678.507333,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2678.514125,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2678.527625,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2678.53925,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2678.548208,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2678.657416,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2678.982833,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2679.047291,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2679.063708,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2679.073041,
+        "text": "keepalive: dynamic observe maintain_live_cell_map"
+      },
+      {
+        "wall": 2679.07975,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2679.100625,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2679.134125,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2710.054916,
+        "text": "Loading codemirror from blob:http://localhost:8123/479d7157-e34b-4b21-860d-40477e1bbb1a"
+      },
+      {
+        "wall": 2725.176916,
+        "text": "notebookImports"
+      },
+      {
+        "wall": 2726.269125,
+        "text": "notebookImportVariables"
+      },
+      {
+        "wall": 2726.279625,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 2728.892416,
+        "text": "Error: Parse error file://@tomlarkworthy/exporter-3:1436:37\n    at te (<anonymous>:2:1023)\n    at Os (<anonymous>:1:26631)\n    at <anonymous>:12:1173"
+      },
+      {
+        "wall": 2738.051166,
+        "text": "code_editor_view"
+      },
+      {
+        "wall": 2740.850458,
+        "text": "code_editor"
+      },
+      {
+        "wall": 2740.872916,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 2741.476083,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 2741.558541,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 2741.569875,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 2741.581708,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 3727.253208,
+        "text": "error loading module module @tomlarkworthy/manipulate Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.272041,
+        "text": "error loading module module @tomlarkworthy/robocoop-3 Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.2872909999996,
+        "text": "error loading module module @tomlarkworthy/robocoop-2 Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.304166,
+        "text": "error loading module module @tomlarkworthy/local-change-history Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.421458,
+        "text": "error loading module module @tomlarkworthy/jest-expect-standalone Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.4363329999996,
+        "text": "error loading module module @tomlarkworthy/jest-expect-standalone Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.4487499999996,
+        "text": "error loading module module @tomlarkworthy/local-change-history Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3727.4617909999997,
+        "text": "error loading module module @tomlarkworthy/jest-expect-standalone Error: timeout\n    at file://@tomlarkworthy/module-map:377:43"
+      },
+      {
+        "wall": 3734.7858749999996,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 3734.8907499999996,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 3734.909791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 3734.959583,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 3735.0091249999996,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 3735.0487080000003,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4005.062666,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4005.139166,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4005.159125,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4179.790625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4179.889333,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4179.976416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4180.076958,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4180.156291,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4180.167958,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4180.286125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4180.302041,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4180.395916,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4183.574958,
+        "text": "keepalive: dynamic observe toolRegistry_sync"
+      },
+      {
+        "wall": 4183.593333,
+        "text": "keepalive: dynamic observe test_cell_map_coverage"
+      },
+      {
+        "wall": 4197.93125,
+        "text": "keepalive: dynamic observe futureExportedState"
+      },
+      {
+        "wall": 4200.29675,
+        "text": "keepalive: dynamic observe futureExportedState"
+      },
+      {
+        "wall": 4202.154875,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4202.181958,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4202.691625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4202.853916,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4202.97075,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4202.98075,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4202.992583,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4203.003041,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4203.011666,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4203.01975,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4213.706166,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4213.77575,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4213.8595,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4213.945916,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.005958,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.070875,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.081083,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.137083,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.169791,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.213666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4214.433083,
+        "text": "modules"
+      },
+      {
+        "wall": 4216.862666,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4216.903708,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4216.94725,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4258.66225,
+        "text": "jest/expect version 24.0.0"
+      },
+      {
+        "wall": 4466.7535,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4466.769583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 4466.779875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4466.973916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4466.991291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4467.000375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 4467.012583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: <TIMEOUT LOADING TITLE>}"
+      },
+      {
+        "wall": 4467.022875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 4467.032458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 4467.041541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 4467.179583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4467.189458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 4467.199083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 4467.209625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 4467.226958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 4467.239708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 4467.248875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4467.344541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 4467.355458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 4467.364083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 4467.374791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 4467.382833,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 4467.395708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 4467.500166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 4467.508458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4467.517833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 4467.53425,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 4467.542708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4467.552083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 4467.559583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 4467.654666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 4467.662541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4467.674166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 4467.681958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 4467.689625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 4467.702166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 4467.710041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 4467.808958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 4467.8180409999995,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 4467.828208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 4467.836833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4467.846083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4467.8565,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 4467.864666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 4467.957125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 4467.967083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 4467.974208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4467.981875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 4467.989458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 4468.005125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4468.013166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 4468.091458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 4468.099666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 4468.110958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 4468.119416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 4468.126833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 4468.13325,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4510.903625,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 4516.755958,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 4517.199125,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4517.212041,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4517.2275,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4518.585958,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4525.916,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4525.968,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.104791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.137666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.23875,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.279166,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.333958,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.341666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.419291,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4526.500791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.383375,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.443291,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.478416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.514291,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.576541,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.611416,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.660708,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.669125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.696916,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.785333,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4532.876208,
+        "text": "modules"
+      },
+      {
+        "wall": 4535.361416,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4535.370416,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4535.375291,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4784.908666,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4785.140708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 4785.158458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4785.170583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4785.182208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4785.194208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 4785.205416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: <TIMEOUT LOADING TITLE>}"
+      },
+      {
+        "wall": 4785.222166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 4785.351166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 4785.362791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 4785.3725,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4785.3815,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 4785.40675,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 4785.416875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 4785.432291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 4785.544958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 4785.556708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4785.567958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 4785.577458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 4785.588416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 4785.598458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 4785.738833,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 4785.752041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 4785.764416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 4785.774458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4785.784958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 4785.799791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 4785.810333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4785.918958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 4785.931166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 4785.941583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 4785.950708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4785.963583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 4785.972958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 4785.982041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 4786.188625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 4786.218416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 4786.238875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 4786.252708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 4786.263541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 4786.285125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4786.295875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4786.51175,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 4786.520875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 4786.530208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 4786.544875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 4786.557541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 4786.565791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 4786.574958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 4786.689916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 4786.701041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 4786.710333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 4786.719625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 4786.7275,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 4786.738916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 4786.750875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 4786.767833,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4795.371416,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 4808.64225,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4811.026208,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4811.034333,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4811.074625,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4814.946,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4833.726583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.73825,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.746625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.756625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.876875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.885583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.892791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.927875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.9395,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4833.946541,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.074916,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.086625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.097958,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.105708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.1149159999995,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.395208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.444041,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.452458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.460125,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.46575,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.471375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.658,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.66525,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.682208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.693791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.701,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.708375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.812333,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.820583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.825833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.831666,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.83675,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.84175,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.929291,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.934625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.939958,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.945041,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.949833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4834.955125,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.044916,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.050416,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.055583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.064541,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.071,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.076,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.155458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.1645,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.173416,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.179,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.186,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.277208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.286,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.29175,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.297291,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.302583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.308083,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.368958,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.376708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.384,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.391833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.400791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.477708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.483083,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.487958,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.496041,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.508,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.515791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.575833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.581333,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.586708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.5914999999995,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.597791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.671583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.679333,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.6845,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.689791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.695208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.709208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.771625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.780041,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.787375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.795375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.801666,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.807375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.8755,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.880458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.885166,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.890208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.89525,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.901833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.955375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.960208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.965625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.973458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4835.978875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.062375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.071,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.076166,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.088208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.093833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.101458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.1625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.167583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.188166,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.194791,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.200291,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.2075,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.229625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4836.23475,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4879.04325,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.089833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.148125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.165833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.312666,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.361916,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.369583,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.386125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.464291,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4879.653583,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4902.025666,
+        "text": "code_editor_view"
+      },
+      {
+        "wall": 4907.627208,
+        "text": "code_editor"
+      },
+      {
+        "wall": 4908.429916,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4908.824416,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 4920.745666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.757416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.87575,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.887833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.895291,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.902875,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.916458,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.924208,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.931583,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.938791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 4920.951208,
+        "text": "modules"
+      },
+      {
+        "wall": 4923.774708,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4923.780833,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4923.785041,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4924.331583,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 5173.1175,
+        "text": "generate summary"
+      },
+      {
+        "wall": 5173.242916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5173.279875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5173.296666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5173.315041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5173.330708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 5173.341208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: <TIMEOUT LOADING TITLE>}"
+      },
+      {
+        "wall": 5173.5875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5173.601333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5173.611958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5173.624208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5173.634125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5173.646333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5173.656833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5173.802375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5173.812458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 5173.822416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5173.8345,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5173.846666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5173.855666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5173.986416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5173.996833,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 5174.00875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5174.021291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 5174.031541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5174.041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5174.051208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5174.2935,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5174.303125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 5174.313916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 5174.323708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 5174.3325,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5174.342958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5174.355291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5174.574791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5174.588416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5174.598333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5174.639125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5174.64975,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5174.66025,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 5174.669083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5174.792708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5174.801875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5174.812125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 5174.821333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5174.833791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5174.843083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5174.851666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 5174.962708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5174.9745,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5174.987625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5174.997375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5175.007291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5175.019,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5175.027583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5175.076875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5175.08775,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 5175.092666,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 5175.100375,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 5175.105,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 5178.980583,
+        "text": "removing visualizer JSHandle@node"
+      },
+      {
+        "wall": 5179.006666,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 5247.834458,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 5249.108958,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.140125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.260333,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.558791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.625166,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.636,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.656416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.760041,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.851458,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5249.880125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5269.431625,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 5277.93725,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5277.966625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.062625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.169375,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.299458,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.325916,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.357041,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.401541,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.519541,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.623166,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5278.747333,
+        "text": "modules"
+      },
+      {
+        "wall": 5282.313125,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 5282.338458,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 5282.343083,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 5480.661625,
+        "text": "generate summary"
+      },
+      {
+        "wall": 5480.96075,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5480.97025,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5480.983166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5480.992,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5481.001458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 5481.013791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: Writable FileAttachments}"
+      },
+      {
+        "wall": 5481.022125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5481.185041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5481.19325,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5481.203791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5481.21225,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5481.219708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5481.226958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5481.24275,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5481.368916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 5481.380458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5481.391833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5481.401416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5481.409041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5481.425041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5481.527333,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 5481.534708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5481.542791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 5481.557375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5481.571625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5481.582875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5481.590375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5481.697458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 5481.7055,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 5481.712375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 5481.720208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5481.734125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5481.747333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5481.75875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5481.862041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5481.871916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5481.882083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5481.888958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5481.896416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 5481.903458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5481.910166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5482.017416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5482.029541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 5482.038291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5482.045208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5482.054916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5482.062458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 5482.069416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5482.160208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5482.170083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5482.181416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5482.191541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5482.198666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5482.209958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5482.217291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5482.231708,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 5485.939416,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 5485.952375,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 5485.956833,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 5486.505791,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 5509.487875,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 5511.348833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.389083,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.471833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.566666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.687541,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.766625,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.793875,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.825125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.8595,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5511.948833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5537.804125,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.816166,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.822041,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.827458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.836125,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.91025,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.91575,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.922875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.927625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.932291,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.990125,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5537.9955,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5538.000166,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5538.013041,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5538.01875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 5543.146208,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.188583,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.250666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.32475,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.415791,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.504708,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.513708,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.587083,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.6135,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.68475,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5543.817208,
+        "text": "modules"
+      },
+      {
+        "wall": 5548.077958,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 5548.101291,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 5548.1055,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 5548.448583,
+        "text": "generate summary"
+      },
+      {
+        "wall": 5548.621583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5548.629541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5548.716833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5548.734625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5548.743958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 5548.7505,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: Writable FileAttachments}"
+      },
+      {
+        "wall": 5548.832625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5548.847416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5548.855208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5548.860916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5548.867041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5548.979583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5548.989791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5548.998666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5549.006458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 5549.017958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5549.026833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5549.036,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5549.139083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5549.146875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5549.154083,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 5549.16175,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5549.168958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 5549.17525,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5549.189791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5549.286208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5549.293833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5549.301041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 5549.30675,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 5549.312041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 5549.317208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5549.324041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5549.415875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5549.423375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5549.429541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5549.436625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5549.44375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5549.451416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5549.458416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 5549.549625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5549.554666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5549.563125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5549.5715,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 5549.578375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5549.585125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5549.590458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5549.665666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 5549.671166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5549.6785,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5549.683916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5549.68875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5549.697208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5549.705041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5549.745916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5549.751208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5549.753791,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 5549.7585,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 5549.761208,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 5549.763666,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 5550.085166,
+        "text": "removing visualizer JSHandle@node"
+      },
+      {
+        "wall": 5550.18675,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 5608.855125,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 5613.484416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.559375,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.656833,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.759791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.893583,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.931541,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.97175,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5613.990625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5614.080625,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5614.288208,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5635.951583,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 5640.887416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5640.949791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5640.994291,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.101583,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.22575,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.29275,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.302375,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.355,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.400291,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.471625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5641.627625,
+        "text": "modules"
+      },
+      {
+        "wall": 5645.312833,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 5645.321666,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 5645.326708,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 5645.542208,
+        "text": "generate summary"
+      },
+      {
+        "wall": 5645.720041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5645.862916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5645.87025,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5645.880791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5645.887958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 5645.896458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: Writable FileAttachments}"
+      },
+      {
+        "wall": 5645.905833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5646.052833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5646.059958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5646.088958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5646.099625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5646.13175,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5646.138208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5646.15375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5646.303625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 5646.310541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5646.319208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5646.329625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5646.335666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5646.341708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5646.454416,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 5646.460916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5646.467458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 5646.473333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5646.479458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5646.488,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5646.494958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5646.580333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 5646.589833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 5646.596458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 5646.603083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5646.611583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5646.617958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5646.626375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5646.710208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5646.717541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5646.725958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5646.734,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5646.740125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 5646.746875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5646.752541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5646.841875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5646.853,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 5646.862375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5646.902333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5646.913125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5646.924833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 5646.930791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5647.022416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5647.028625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5647.034666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5647.04325,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5647.049875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5647.055708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5647.064541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5647.074583,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 5650.032833,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 5650.037416,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 5650.041166,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 5650.560625,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 5675.083541,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 5676.4495,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5676.550875,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5676.588083,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5676.773625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5676.876125,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5676.919833,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5676.9495,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5677.138166,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5677.218458,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5677.240125,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.125791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.137458,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.183416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.224791,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.336333,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.388166,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.424166,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.435291,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.466916,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.726541,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5703.741708,
+        "text": "modules"
+      },
+      {
+        "wall": 5707.203375,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 5707.208333,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 5707.236125,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 5707.602083,
+        "text": "generate summary"
+      },
+      {
+        "wall": 5707.679625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5707.685416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5707.7946249999995,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5707.800125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5707.805333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 5707.81325,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: Writable FileAttachments}"
+      },
+      {
+        "wall": 5707.820791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5707.826458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5707.922041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5707.927708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5707.932708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5707.939125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5707.9465,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5707.951791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5707.957708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 5708.05575,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5708.0665,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5708.075083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5708.080291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5708.088833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5708.096291,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 5708.103458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5708.191541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 5708.197416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5708.202875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5708.207833,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5708.214166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5708.219375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 5708.229458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 5708.309125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 5708.316208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5708.322041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5708.329458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5708.334583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5708.341875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5708.348541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5708.436791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5708.443083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5708.447916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 5708.454875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5708.460166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5708.467166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5708.471958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 5708.544166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5708.552958,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5708.558625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5708.563416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 5708.568625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5708.575291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5708.58275,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5708.663083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5708.668041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5708.672708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5708.6825,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5708.687583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5708.691916,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 5708.852541,
+        "text": "removing visualizer JSHandle@node"
+      },
+      {
+        "wall": 5708.992375,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 5768.987791,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 5773.375,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.497416,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.680875,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.722291,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.844875,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.872041,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.906708,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5773.923625,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5774.025708,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5774.146666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5795.666333,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 5800.798,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5800.885041,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5800.925208,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.001875,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.13025,
+        "text": "error loading module module 2 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.193791,
+        "text": "error loading module module 4 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.23425,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.27775,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.303666,
+        "text": "error loading module module 6 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.399666,
+        "text": "error loading module module @tomlarkworthy/exporter-3 SyntaxError: Unexpected end of input"
+      },
+      {
+        "wall": 5801.523875,
+        "text": "modules"
+      },
+      {
+        "wall": 5805.096541,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 5805.121,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 5805.134041,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 5805.431666,
+        "text": "generate summary"
+      },
+      {
+        "wall": 5805.613041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5805.783583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5805.79275,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5805.804708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5805.813,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-change-history, variable: Variable, module: Module, title: Local Change History}"
+      },
+      {
+        "wall": 5805.821208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/fileattachments, variable: Variable, module: Module, title: Writable FileAttachments}"
+      },
+      {
+        "wall": 5805.985291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5805.997708,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5806.005291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/inspector, variable: Variable, module: Module, title: @observablehq/inspector@5.0.1}"
+      },
+      {
+        "wall": 5806.018291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5806.027125,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5806.034541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5806.042625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5806.19925,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5806.208166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/openai-responses-api, variable: Variable, module: Module, title: 👋 Hello, OpenAI Responses API}"
+      },
+      {
+        "wall": 5806.215666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5806.226416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5806.235666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5806.243625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5806.384916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5806.396541,
+        "text": "error building module dependancy map undefined {type: module variable, name: d/1f41fef8b019cf4e@94, variable: Variable, module: Module, title: Observable Inspector}"
+      },
+      {
+        "wall": 5806.403,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5806.40875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/whisper-input, variable: Variable, module: Module, title: OpenAI Whisper Input}"
+      },
+      {
+        "wall": 5806.414416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5806.423041,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5806.429,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5806.51775,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5806.525291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/lightning-fs-4-6-0, variable: Variable, module: Module, title: lightning-fs@4.6.0}"
+      },
+      {
+        "wall": 5806.531,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/isomorphic-git-1-30-1, variable: Variable, module: Module, title: Isomorphic-git@1.30.1}"
+      },
+      {
+        "wall": 5806.536666,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jszip-3-10-1, variable: Variable, module: Module, title: jszip@3.10.1}"
+      },
+      {
+        "wall": 5806.5425,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5806.550583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observable-runtime-v6, variable: Variable, module: Module, title: Observable Runtime (v6)}"
+      },
+      {
+        "wall": 5806.557083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/flow-queue, variable: Variable, module: Module, title: Convert cell computation to a Promise with cell flowQueue}"
+      },
+      {
+        "wall": 5806.640083,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5806.648291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/observablejs-toolchain, variable: Variable, module: Module, title: Bidirectional Observable JS <=> Runtime Toolchain}"
+      },
+      {
+        "wall": 5806.656583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/view, variable: Variable, module: Module, title: Composing viewofs with the view literal}"
+      },
+      {
+        "wall": 5806.664416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5806.670625,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5806.681875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dom-view, variable: Variable, module: Module, title: DOM view}"
+      },
+      {
+        "wall": 5806.6875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5806.777791,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5806.785,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5806.791875,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/themes, variable: Variable, module: Module, title: Themes}"
+      },
+      {
+        "wall": 5806.799208,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/dataflow-templating, variable: Variable, module: Module, title: Dataflow Templating}"
+      },
+      {
+        "wall": 5806.80775,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cell-map, variable: Variable, module: Module, title: cellMap}"
+      },
+      {
+        "wall": 5806.815416,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/runtime-sdk, variable: Variable, module: Module, title: Runtime SDK}"
+      },
+      {
+        "wall": 5806.821333,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/robocoop-2, variable: Variable, module: Module, title: Roboco-op 2.1: Notebook collaborator}"
+      },
+      {
+        "wall": 5806.900583,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/summarizejs, variable: Variable, module: Module, title: SummarizeJS}"
+      },
+      {
+        "wall": 5806.906375,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/module-map, variable: Variable, module: Module, title: Module map}"
+      },
+      {
+        "wall": 5806.911916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/reversible-attachment, variable: Variable, module: Module, title: Reversible attachment}"
+      },
+      {
+        "wall": 5806.917458,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/local-storage-view, variable: Variable, module: Module, title: localStorageView: Non-invasive local persistance}"
+      },
+      {
+        "wall": 5806.922916,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/modern-screenshot, variable: Variable, module: Module, title: modern-screenshot@4.6.6}"
+      },
+      {
+        "wall": 5806.928166,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/tabbed-pane-view, variable: Variable, module: Module, title: Tabbed Pane View}"
+      },
+      {
+        "wall": 5806.935291,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/cells-to-clipboard, variable: Variable, module: Module, title: Save source to clipboard}"
+      },
+      {
+        "wall": 5806.960541,
+        "text": "error building module dependancy map undefined {type: module variable, name: @tomlarkworthy/jest-expect-standalone, variable: Variable, module: Module, title: jest-expect-standalone@24.0.2}"
+      },
+      {
+        "wall": 5806.9635,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 5812.997,
+        "text": "keepalive: dynamic observe editor_jobs"
+      }
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const b = await chromium.launch({ headless: true });
+const page = await (await b.newContext()).newPage();
+const ext: string[] = [];
+page.on("request", (r) => { const u = r.url(); if (!u.startsWith("file:") && !u.startsWith("blob:") && !u.startsWith("data:")) ext.push(r.method() + " " + u.slice(0, 110)); });
+await page.goto(`file://${resolve("lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html")}#view=S100(@tomlarkworthy/coded-landmark-tracking)`, { waitUntil: "networkidle", timeout: 300000 });
+await page.waitForTimeout(8000);
+await b.close();
+console.log(ext.length ? [...new Set(ext)].join("\n") : "no off-file requests");

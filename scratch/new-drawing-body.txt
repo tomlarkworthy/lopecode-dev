@@ -1,0 +1,37 @@
+svgLens(svg`<svg viewBox="0 0 320 200" width="100%" style="max-height:420px;">
+  <!-- Optical-illusion playbox. Each piece has animated black bars; drag and rotate them
+       in the lens and overlap them to conjure moiré. Rotating a piece turns its bars too. -->
+  <defs>
+    <linearGradient id="barsA" x1="0" y1="0" x2="0.09" y2="0" spreadMethod="repeat">
+      <stop offset="0" stop-color="#111"/><stop offset="0.5" stop-color="#111"/>
+      <stop offset="0.5" stop-color="#111" stop-opacity="0"/><stop offset="1" stop-color="#111" stop-opacity="0"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="0 0; 0.09 0" dur="1.7s" repeatCount="indefinite"/>
+    </linearGradient>
+    <linearGradient id="barsB" x1="0" y1="0" x2="0.09" y2="0" spreadMethod="repeat">
+      <stop offset="0" stop-color="#111"/><stop offset="0.5" stop-color="#111"/>
+      <stop offset="0.5" stop-color="#111" stop-opacity="0"/><stop offset="1" stop-color="#111" stop-opacity="0"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="0.09 0; 0 0" dur="2.1s" repeatCount="indefinite"/>
+    </linearGradient>
+    <linearGradient id="barsFine" x1="0" y1="0" x2="0.05" y2="0" spreadMethod="repeat">
+      <stop offset="0" stop-color="#111"/><stop offset="0.5" stop-color="#111"/>
+      <stop offset="0.5" stop-color="#111" stop-opacity="0"/><stop offset="1" stop-color="#111" stop-opacity="0"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="0 0; 0.05 0" dur="1.3s" repeatCount="indefinite"/>
+    </linearGradient>
+    <radialGradient id="ringsA" cx="0.5" cy="0.5" r="0.11" spreadMethod="repeat">
+      <stop offset="0" stop-color="#111"/><stop offset="0.5" stop-color="#111"/>
+      <stop offset="0.5" stop-color="#111" stop-opacity="0"/><stop offset="1" stop-color="#111" stop-opacity="0"/>
+      <animate attributeName="r" values="0.11;0.13;0.11" dur="4.5s" repeatCount="indefinite"/>
+    </radialGradient>
+    <radialGradient id="ringsB" cx="0.5" cy="0.5" r="0.12" spreadMethod="repeat">
+      <stop offset="0" stop-color="#111"/><stop offset="0.5" stop-color="#111"/>
+      <stop offset="0.5" stop-color="#111" stop-opacity="0"/><stop offset="1" stop-color="#111" stop-opacity="0"/>
+      <animate attributeName="r" values="0.12;0.10;0.12" dur="5.3s" repeatCount="indefinite"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="320" height="200" fill="#e9e9e9"/>
+  <rect x="-44" y="-44" width="88" height="88" fill="url(#barsA)" transform="translate(74 86)"/>
+  <rect x="-44" y="-44" width="88" height="88" fill="url(#barsB)" transform="translate(108 96) rotate(11)"/>
+  <circle cx="0" cy="0" r="44" fill="url(#ringsA)" transform="translate(226 76)"/>
+  <circle cx="0" cy="0" r="44" fill="url(#ringsB)" transform="translate(252 94)"/>
+  <circle cx="0" cy="0" r="33" fill="url(#barsFine)" transform="translate(150 160)"/>
+</svg>`)

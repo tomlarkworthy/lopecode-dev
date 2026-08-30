@@ -1,0 +1,48 @@
+- scene: seed
+  frames:
+    - profile: BrainProfile
+      mainText: "I REMEMBER...."
+    - profile: BrainProfile
+      mainText: "MY MOTHER WAS SEED SHIP #342164"
+      
+- scene: armour
+  frames:
+    - profile: BrainProfile
+      mainText: "I MUST SHELTER MYSELF FROM HARM"
+
+- scene: connectlite
+  frames:
+    - profile: BrainProfile
+      mainText: "I CAN CREATE CIRCUITRY"
+
+- scene: manualaim
+  frames:
+    - profile: BrainProfile
+      mainText: "I MUST KILL TO SURVIVE"
+
+- scene: connect
+  frames:
+    - profile: BrainProfile
+      mainText: "I MUST MOVE TO SURVIVE"
+
+- scene: avoid
+  frames:
+    - profile: BrainProfile
+      mainText: "COLLISION COURSE DETECTED"  
+    - profile: BrainProfile
+      mainText: "I MUST TURN MYSELF AROUND"  
+
+- scene: aim
+  frames:
+    - profile: BrainProfile
+      mainText: "I MUST SENSE INCOMING DANGERS AND REACT"
+
+- scene: follow1
+  frames:
+    - profile: BrainProfile
+      mainText: "WHEN I COMBINE WITH THE FALLEN, I RELIVE THEIR PAST"
+
+- scene: follow2
+  frames:
+    - profile: BrainProfile
+      mainText: "I MUST LEARN HOW TO SURVIVE, IN ORDER TO SURVIVE"

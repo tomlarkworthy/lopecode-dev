@@ -1,0 +1,3152 @@
+{
+ "$": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    153.0,
+    249.0
+   ]
+  }
+ ],
+ "AND": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    33.0,
+    40.0
+   ]
+  }
+ ],
+ "Arena1": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1383.0,
+    1236.0
+   ]
+  }
+ ],
+ "ArenaFrame": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1551.0,
+    1386.0
+   ]
+  }
+ ],
+ "Back": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "Background": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    32.0,
+    32.0
+   ]
+  }
+ ],
+ "BalanceBackground": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    516.0,
+    177.0
+   ]
+  }
+ ],
+ "BattleButton": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1551.0,
+    432.0
+   ]
+  }
+ ],
+ "BlueButton": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    120.0,
+    330.0
+   ]
+  }
+ ],
+ "BrainProfile": [
+  {
+   "file": "sharedassets12.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    1265.0,
+    1290.0
+   ]
+  }
+ ],
+ "BuildComponentLHS": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    81.0,
+    282.0
+   ]
+  }
+ ],
+ "BuildComponentRHS": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1371.0,
+    288.0
+   ]
+  }
+ ],
+ "Cancel": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    693.0,
+    213.0
+   ]
+  }
+ ],
+ "CompletedMission": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "ConnectDone": [
+  {
+   "file": "869e1c167c4c3458eb26caaa67730084",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "DIVIDE": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    31.0,
+    27.0
+   ]
+  }
+ ],
+ "EQ": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    31.0,
+    20.0
+   ]
+  }
+ ],
+ "EmptyStar": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    279.0,
+    264.0
+   ]
+  }
+ ],
+ "Flag": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    213.0,
+    216.0
+   ]
+  }
+ ],
+ "FullStar": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    279.0,
+    264.0
+   ]
+  }
+ ],
+ "GT": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    31.0,
+    32.0
+   ]
+  }
+ ],
+ "HorzYellowLine": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 284.4444274902344,
+   "rect": [
+    0.0,
+    0.0,
+    2048.0,
+    9.0
+   ]
+  }
+ ],
+ "Hyperspeed": [
+  {
+   "file": "sharedassets9.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "Info": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    225.0,
+    225.0
+   ]
+  }
+ ],
+ "InfoPointer": [
+  {
+   "file": "sharedassets2.assets",
+   "offset": [
+    39.59043884277344,
+    0.0
+   ],
+   "pivot": [
+    0.7749335765838623,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    144.0,
+    66.0
+   ]
+  }
+ ],
+ "InfoPointer2": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    144.0,
+    66.0
+   ]
+  }
+ ],
+ "Inventory": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    477.0,
+    603.0
+   ]
+  }
+ ],
+ "LT": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    31.0,
+    32.0
+   ]
+  }
+ ],
+ "Lazer": [
+  {
+   "file": "d824bda2dd5814267b163634f6d355b2",
+   "offset": [
+    0.0,
+    -166.40762329101562
+   ],
+   "pivot": [
+    0.5,
+    0.17561866343021393
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    174.0,
+    513.0
+   ]
+  }
+ ],
+ "Lock": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    174.0,
+    222.0
+   ]
+  }
+ ],
+ "LockMission": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "LootEmpty": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    501.0,
+    627.0
+   ]
+  }
+ ],
+ "MINUS": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    18.0,
+    7.0
+   ]
+  }
+ ],
+ "MatchupPopupBackground": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 284.4364929199219,
+   "rect": [
+    0.0,
+    0.0,
+    2048.0,
+    1590.0
+   ]
+  }
+ ],
+ "MissionBox": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1374.0,
+    330.0
+   ]
+  }
+ ],
+ "No": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    693.0,
+    213.0
+   ]
+  }
+ ],
+ "OR": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    5.0,
+    51.0
+   ]
+  }
+ ],
+ "ObjectiveCheck": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    207.0,
+    204.0
+   ]
+  }
+ ],
+ "ObjectiveFrame": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    243.0,
+    243.0
+   ]
+  }
+ ],
+ "Ok": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    693.0,
+    213.0
+   ]
+  }
+ ],
+ "PLUS": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    31.0,
+    31.0
+   ]
+  }
+ ],
+ "Panel": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    291.0,
+    291.0
+   ]
+  }
+ ],
+ "PlayerInfoBackdrop": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1821.0,
+    246.0
+   ]
+  }
+ ],
+ "Preferences": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    237.0,
+    222.0
+   ]
+  }
+ ],
+ "PreviewUnit": [
+  {
+   "file": "60164b04dbf054561b15706e75cffe5e",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    64.0,
+    64.0
+   ]
+  }
+ ],
+ "ProgressFrame": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    51.0,
+    75.0
+   ]
+  }
+ ],
+ "ProgressHistory": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    27.0,
+    27.0
+   ]
+  }
+ ],
+ "ProgressNegative": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    27.0,
+    27.0
+   ]
+  }
+ ],
+ "ProgressPositive": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    27.0,
+    27.0
+   ]
+  }
+ ],
+ "Retry": [
+  {
+   "file": "95f0eb91aa2ac42eeb47fe5028c2013c",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "Save": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "Settings": [
+  {
+   "file": "f19163668a9014f839aa6ed2f7bc6b99",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    117.0,
+    110.0
+   ]
+  }
+ ],
+ "ShipPreviewBackground": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1998.0,
+    1806.0
+   ]
+  }
+ ],
+ "SkipBck": [
+  {
+   "file": "ec5511051306d47329615876ebc75b26",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "Spanner": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    213.0,
+    210.0
+   ]
+  }
+ ],
+ "Star": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    216.0,
+    201.0
+   ]
+  }
+ ],
+ "Subtitle": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1998.0,
+    264.0
+   ]
+  }
+ ],
+ "Surrender": [
+  {
+   "file": "4aa7f7f468588463983f10b127de5352",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "TIMES": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    28.0,
+    28.0
+   ]
+  }
+ ],
+ "UIBoxBlue": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    123.0,
+    123.0
+   ]
+  }
+ ],
+ "UIMask": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    32.0,
+    32.0
+   ]
+  }
+ ],
+ "UnitySplash-cube": [
+  {
+   "file": "unity default resources",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    2048.0,
+    1024.0
+   ]
+  }
+ ],
+ "VS": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    366.0,
+    366.0
+   ]
+  }
+ ],
+ "WatchAd": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    1269.0,
+    912.0
+   ]
+  }
+ ],
+ "Won": [
+  {
+   "file": "ea7a4e36b9f264ed1bb68cf2d13cd3a7",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "Yes": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    693.0,
+    213.0
+   ]
+  }
+ ],
+ "_2dxFX_FlameTXT": [
+  {
+   "file": "5abf4696e4d186d4390fe5599489aa02",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    512.0
+   ]
+  }
+ ],
+ "_2dxFX_PixelDieTXT": [
+  {
+   "file": "57e31558d949d9644a1337175d41730e",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    512.0
+   ]
+  }
+ ],
+ "armour": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    228.0,
+    228.0
+   ]
+  }
+ ],
+ "backdropBox": [
+  {
+   "file": "sharedassets11.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 166.06607055664062,
+   "rect": [
+    0.0,
+    0.0,
+    1106.0,
+    2047.9998779296875
+   ]
+  }
+ ],
+ "background": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 160.00001525878906,
+   "rect": [
+    0.0,
+    0.0,
+    2.0,
+    2048.0
+   ]
+  }
+ ],
+ "binary": [
+  {
+   "file": "350e7bfa0398d4c678d618a360795958",
+   "offset": [
+    0.0,
+    95.34573364257812
+   ],
+   "pivot": [
+    0.5,
+    0.7336905002593994
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    600.0,
+    408.0
+   ]
+  }
+ ],
+ "brain": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    246.0,
+    246.0
+   ]
+  }
+ ],
+ "connect_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    315.0,
+    315.0
+   ]
+  }
+ ],
+ "connector_highlight": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    144.0,
+    144.0
+   ]
+  }
+ ],
+ "constant": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    222.0,
+    222.0
+   ]
+  }
+ ],
+ "cross": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    84.0,
+    84.0
+   ]
+  }
+ ],
+ "delete_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    321.0,
+    321.0
+   ]
+  }
+ ],
+ "disconnect_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    315.0,
+    315.0
+   ]
+  }
+ ],
+ "dmg_particle": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    3.0,
+    3.0
+   ]
+  }
+ ],
+ "engine": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    93.14999389648438
+   ],
+   "pivot": [
+    0.5,
+    0.7300000190734863
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    216.0,
+    405.0
+   ]
+  }
+ ],
+ "explosive": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    216.0,
+    216.0
+   ]
+  }
+ ],
+ "glow": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    70.0,
+    70.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -128.0,
+    -320.0
+   ],
+   "pivot": [
+    0.10736196488142014,
+    0.04929577559232712
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    326.0,
+    710.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -64.0,
+    -128.0
+   ],
+   "pivot": [
+    0.17676767706871033,
+    0.10736196488142014
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    198.0,
+    326.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -143.0,
+    -384.0
+   ],
+   "pivot": [
+    0.09831460565328598,
+    0.04176611080765724
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    356.0,
+    838.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -111.0,
+    -256.0
+   ],
+   "pivot": [
+    0.11986301094293594,
+    0.06013745814561844
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    292.0,
+    582.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    -64.0
+   ],
+   "pivot": [
+    0.5,
+    0.17676767706871033
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    70.0,
+    198.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -157.0,
+    -448.0
+   ],
+   "pivot": [
+    0.0911458358168602,
+    0.036231882870197296
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    384.0,
+    966.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -90.5,
+    -192.0
+   ],
+   "pivot": [
+    0.13944223523139954,
+    0.07709251344203949
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    251.0,
+    454.0
+   ]
+  }
+ ],
+ "hyperdrive": [
+  {
+   "file": "3b6ff9e987ce6491da52beb25dcdb663",
+   "offset": [
+    95.04000854492188,
+    -18.9000244140625
+   ],
+   "pivot": [
+    0.6200000047683716,
+    0.47999998927116394
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    792.0,
+    945.0
+   ]
+  }
+ ],
+ "hyperdrive_angle_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    780.0,
+    897.0
+   ]
+  }
+ ],
+ "hyperdrive_target_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    207.0,
+    255.0
+   ]
+  }
+ ],
+ "info_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    315.0,
+    315.0
+   ]
+  }
+ ],
+ "input": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    108.0,
+    108.0
+   ]
+  }
+ ],
+ "joint": [
+  {
+   "file": "2a244dabe5cc145c8a4725de8e0160d0",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    30.0,
+    21.0
+   ]
+  }
+ ],
+ "lazer_beam_end": [
+  {
+   "file": "6b3e35a8861154befa29929c26618def",
+   "offset": [
+    -3.5,
+    0.0
+   ],
+   "pivot": [
+    0.0,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    7.0,
+    14.0
+   ]
+  }
+ ],
+ "lazer_beam_hit": [
+  {
+   "file": "7ef777a39390946e6a40577caaef0117",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    15.0,
+    16.0
+   ]
+  }
+ ],
+ "lazer_beam_shaft": [
+  {
+   "file": "c855f0b1c3da64a01bf64bda3eb72b44",
+   "offset": [
+    0.5,
+    0.0
+   ],
+   "pivot": [
+    1.0,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    1.0,
+    14.0
+   ]
+  }
+ ],
+ "left_arrow": [
+  {
+   "file": "9f1f0e1b35c244f56a4b29c71a35f290",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    165.0,
+    321.0
+   ]
+  }
+ ],
+ "link": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    327.0
+   ]
+  }
+ ],
+ "live_design_back": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    64.0,
+    64.0
+   ]
+  }
+ ],
+ "mauveBackground": [
+  {
+   "file": "sharedassets12.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 71.11111450195312,
+   "rect": [
+    0.0,
+    0.0,
+    1.0,
+    2048.0
+   ]
+  }
+ ],
+ "move_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    321.0,
+    321.0
+   ]
+  }
+ ],
+ "next": [
+  {
+   "file": "616f4f4b918064bb9ada9380ac695dbd",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "orb": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -84.02425384521484,
+    62.399993896484375
+   ],
+   "pivot": [
+    0.2521408498287201,
+    1.7999999523162842
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    339.0,
+    48.0
+   ]
+  }
+ ],
+ "orb_weapon": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    813.0,
+    813.0
+   ]
+  }
+ ],
+ "output": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    108.0,
+    108.0
+   ]
+  }
+ ],
+ "pause": [
+  {
+   "file": "d809a30f70ad4456ea4f9566f899e182",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "play": [
+  {
+   "file": "0eedbf3e94f88488f9ce6d3a8ce8d3f5",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "prev": [
+  {
+   "file": "e31832feb92464736a125636b65a16e4",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "primary": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "radar": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -95.2199935913086,
+    -189.94500732421875
+   ],
+   "pivot": [
+    0.27000001072883606,
+    0.1850000023841858
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    414.0,
+    603.0
+   ]
+  }
+ ],
+ "radar_arrow": [
+  {
+   "file": "547883cefeb544638af1a8780a6b01ae",
+   "offset": [
+    0.0,
+    -90.66600036621094
+   ],
+   "pivot": [
+    0.5,
+    0.0860000029206276
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    66.0,
+    219.0
+   ]
+  }
+ ],
+ "radar_enemy_ping": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    24.0,
+    24.0
+   ]
+  }
+ ],
+ "radar_ping": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    240.0,
+    237.0
+   ]
+  }
+ ],
+ "radar_trace": [
+  {
+   "file": "e8d426483878c4f7991ec807101966ef",
+   "offset": [
+    1.0878009796142578,
+    -30.0
+   ],
+   "pivot": [
+    0.5190842151641846,
+    0.0
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    57.0,
+    60.0
+   ]
+  }
+ ],
+ "red_ui": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    69.0,
+    69.0
+   ]
+  }
+ ],
+ "right_arrow": [
+  {
+   "file": "75ce3bdfc0a9d4a488a0b5d90dca4abd",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    165.0,
+    321.0
+   ]
+  }
+ ],
+ "rotate": [
+  {
+   "file": "9d08cafd39d1f453fb78a9de2202ed0a",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "rotate_hud": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    321.0,
+    321.0
+   ]
+  }
+ ],
+ "round_ok": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    300.0,
+    300.0
+   ]
+  }
+ ],
+ "shape": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -90.5,
+    -192.0
+   ],
+   "pivot": [
+    0.13944223523139954,
+    0.07709251344203949
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    251.0,
+    454.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -128.0,
+    -320.0
+   ],
+   "pivot": [
+    0.10736196488142014,
+    0.04929577559232712
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    326.0,
+    710.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -143.0,
+    -384.0
+   ],
+   "pivot": [
+    0.09831460565328598,
+    0.04176611080765724
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    356.0,
+    838.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -64.0,
+    -128.0
+   ],
+   "pivot": [
+    0.17676767706871033,
+    0.10736196488142014
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    198.0,
+    326.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    -64.0
+   ],
+   "pivot": [
+    0.5,
+    0.17676767706871033
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    70.0,
+    198.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -111.0,
+    -256.0
+   ],
+   "pivot": [
+    0.11986301094293594,
+    0.06013745814561844
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    292.0,
+    582.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    70.0,
+    70.0
+   ]
+  },
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -157.0,
+    -448.0
+   ],
+   "pivot": [
+    0.0911458358168602,
+    0.036231882870197296
+   ],
+   "ppu": 200.0,
+   "rect": [
+    0.0,
+    0.0,
+    384.0,
+    966.0
+   ]
+  }
+ ],
+ "slider_background": [
+  {
+   "file": "e8b2605c24be14077bc64ee06e5bed91",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    1101.0,
+    78.0
+   ]
+  }
+ ],
+ "slider_knob": [
+  {
+   "file": "d8417472533214477a2565c2993f3ce1",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    321.0,
+    321.0
+   ]
+  }
+ ],
+ "spanner": [
+  {
+   "file": "48c4d4198098b4dddb60e022fd364248",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    351.0,
+    330.0
+   ]
+  }
+ ],
+ "spark": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    81.0,
+    81.0
+   ]
+  }
+ ],
+ "splash": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 92.87982177734375,
+   "rect": [
+    0.0,
+    0.0,
+    1984.0,
+    2048.0
+   ]
+  }
+ ],
+ "splashBackground": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    3.0,
+    3.0
+   ]
+  }
+ ],
+ "stars2": [
+  {
+   "file": "sharedassets2.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 62.06060791015625,
+   "rect": [
+    0.0,
+    0.0,
+    2048.0,
+    2048.0
+   ]
+  }
+ ],
+ "swipe": [
+  {
+   "file": "abfb5714f87fd4f36b331651ec5d98e3",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    38.0,
+    56.0
+   ]
+  }
+ ],
+ "tabSmallOff": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    195.0,
+    210.0
+   ]
+  }
+ ],
+ "tabSmallOn": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    195.0,
+    210.0
+   ]
+  }
+ ],
+ "tab_off": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    474.0,
+    384.0
+   ]
+  }
+ ],
+ "tab_on": [
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    474.0,
+    384.0
+   ]
+  }
+ ],
+ "target": [
+  {
+   "file": "31cb1593cdd424b12873973b18ce0be8",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    65.0,
+    64.0
+   ]
+  },
+  {
+   "file": "sharedassets1.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    228.0,
+    225.0
+   ]
+  }
+ ],
+ "tick": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    96.0,
+    78.0
+   ]
+  }
+ ],
+ "turret2_cap": [
+  {
+   "file": "9554d285d033e472fb47211f9a24c421",
+   "offset": [
+    -93.49049377441406,
+    -31.760482788085938
+   ],
+   "pivot": [
+    0.2758021652698517,
+    0.3930623531341553
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    417.0,
+    297.0
+   ]
+  }
+ ],
+ "turret2_lazer": [
+  {
+   "file": "5536a87672c5e40adbcc9d67617ba4d1",
+   "offset": [
+    -2.323333740234375,
+    -178.02813720703125
+   ],
+   "pivot": [
+    0.48664748668670654,
+    0.12441320717334747
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    174.0,
+    474.0
+   ]
+  }
+ ],
+ "turret_gear": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    -36.10699462890625
+   ],
+   "pivot": [
+    0.5,
+    0.36627039313316345
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    198.0,
+    270.0
+   ]
+  }
+ ],
+ "ui_tip": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    -195.0,
+    0.0
+   ],
+   "pivot": [
+    0.0,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    390.0,
+    333.0
+   ]
+  }
+ ],
+ "vacancy": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    252.0,
+    252.0
+   ]
+  }
+ ],
+ "vacancy2": [
+  {
+   "file": "sharedassets0.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 300.0,
+   "rect": [
+    0.0,
+    0.0,
+    276.0,
+    276.0
+   ]
+  }
+ ],
+ "wormhole1": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole2": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole3": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole4": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole5": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole6": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole7": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ],
+ "wormhole8": [
+  {
+   "file": "sharedassets4.assets",
+   "offset": [
+    0.0,
+    0.0
+   ],
+   "pivot": [
+    0.5,
+    0.5
+   ],
+   "ppu": 100.0,
+   "rect": [
+    0.0,
+    0.0,
+    512.0,
+    384.0
+   ]
+  }
+ ]
+}

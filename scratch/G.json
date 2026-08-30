@@ -1,0 +1,2273 @@
+[
+  {
+    "url": "http://localhost:8123/tour-lp2-G.html#view=S100(@tomlarkworthy/lopecode-tour)",
+    "sawFinal": true,
+    "contentT": 4477.200000047684,
+    "domErrors": [],
+    "domProbe": {
+      "plainScripts": 104,
+      "bodyChildren": 108,
+      "hasTourBlock": true,
+      "hasDeferredImg": true
+    },
+    "rtLog": [],
+    "failedReqs": [
+      "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov"
+    ],
+    "http4xx": [
+      "503 https://openai-proxy.endpointservices.workers.dev/v1/responses"
+    ],
+    "nav": {
+      "startTime": 0,
+      "domainLookupStart": 6.300000190734863,
+      "domainLookupEnd": 6.400000095367432,
+      "connectStart": 6.400000095367432,
+      "secureConnectionStart": 0,
+      "connectEnd": 6.700000047683716,
+      "requestStart": 7.400000095367432,
+      "responseStart": 45,
+      "responseEnd": 3977.600000143051,
+      "domInteractive": 3981,
+      "domContentLoadedEventEnd": 3981.2000000476837,
+      "loadEventEnd": 4974.200000047684,
+      "transferSize": 1562333,
+      "encodedBodySize": 1562033,
+      "decodedBodySize": 3042945
+    },
+    "paints": [
+      {
+        "name": "first-paint",
+        "t": 148
+      },
+      {
+        "name": "first-contentful-paint",
+        "t": 4384
+      }
+    ],
+    "lcp": 4384,
+    "marks": [
+      {
+        "t": 99.40000009536743,
+        "msg": "responding"
+      },
+      {
+        "t": 132.70000004768372,
+        "msg": "responding"
+      },
+      {
+        "t": 136,
+        "msg": "responding"
+      },
+      {
+        "t": 136.90000009536743,
+        "msg": "responding"
+      },
+      {
+        "t": 138,
+        "msg": "responding"
+      },
+      {
+        "t": 138.80000019073486,
+        "msg": "responding"
+      },
+      {
+        "t": 140,
+        "msg": "responding"
+      },
+      {
+        "t": 140.70000004768372,
+        "msg": "responding"
+      },
+      {
+        "t": 141.5,
+        "msg": "responding"
+      },
+      {
+        "t": 142.30000019073486,
+        "msg": "responding"
+      },
+      {
+        "t": 143.20000004768372,
+        "msg": "responding"
+      },
+      {
+        "t": 146.90000009536743,
+        "msg": "responding"
+      },
+      {
+        "t": 729.3000001907349,
+        "msg": "responding"
+      },
+      {
+        "t": 746.4000000953674,
+        "msg": "responding"
+      },
+      {
+        "t": 752,
+        "msg": "Bootloader: loading @tomlarkworthy/lopepage-2"
+      },
+      {
+        "t": 752.3000001907349,
+        "msg": "Bootloader: loading @tomlarkworthy/lopecode-tour"
+      },
+      {
+        "t": 1958,
+        "msg": "keepalive: dynamic observe range"
+      },
+      {
+        "t": 1958.1000001430511,
+        "msg": "keepalive: dynamic observe tasks"
+      },
+      {
+        "t": 1958.4000000953674,
+        "msg": "background job"
+      },
+      {
+        "t": 1958.4000000953674,
+        "msg": "keepalive: dynamic observe syncers"
+      },
+      {
+        "t": 2350.2000000476837,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2350.300000190735,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2350.4000000953674,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2350.800000190735,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2350.800000190735,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2350.800000190735,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2350.800000190735,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2350.9000000953674,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2350.9000000953674,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2351.4000000953674,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2351.5,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2351.5,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2351.600000143051,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2351.600000143051,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2351.600000143051,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2351.600000143051,
+        "msg": "keepalive: dynamic observe maintain_live_cell_map"
+      },
+      {
+        "t": 2351.800000190735,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 2351.800000190735,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 2351.800000190735,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 2491.5,
+        "msg": "keepalive: dynamic observe toolRegistry_sync"
+      },
+      {
+        "t": 2491.800000190735,
+        "msg": "keepalive: dynamic observe test_cell_map_coverage"
+      },
+      {
+        "t": 2936.800000190735,
+        "msg": "Loading codemirror from"
+      },
+      {
+        "t": 2967.800000190735,
+        "msg": "code_editor_view"
+      },
+      {
+        "t": 2971.600000143051,
+        "msg": "code_editor"
+      },
+      {
+        "t": 3580.300000190735,
+        "msg": "jest/expect version 24.0.0"
+      },
+      {
+        "t": 3609.100000143051,
+        "msg": "keepalive: dynamic observe futureExportedState"
+      },
+      {
+        "t": 3801.9000000953674,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 3802.2000000476837,
+        "msg": "notebookImports"
+      },
+      {
+        "t": 3802.4000000953674,
+        "msg": "notebookImportVariables"
+      },
+      {
+        "t": 3802.7000000476837,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 3825,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 3969.300000190735,
+        "msg": "modules"
+      },
+      {
+        "t": 3971.600000143051,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 3971.600000143051,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 3971.7000000476837,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4221.200000047684,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4221.600000143051,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4284.800000190735,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 4285.400000095367,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4285.5,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4285.5,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4285.800000190735,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4295,
+        "msg": "modules"
+      },
+      {
+        "t": 4296.800000190735,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4296.900000095367,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4296.900000095367,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4297.200000047684,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4297.200000047684,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4302.5,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 4312.100000143051,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4312.900000095367,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4312.900000095367,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4312.900000095367,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4326.600000143051,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4339.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4392,
+        "msg": "code_editor_view"
+      },
+      {
+        "t": 4395,
+        "msg": "code_editor"
+      },
+      {
+        "t": 4395.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4395.800000190735,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 4405.5,
+        "msg": "modules"
+      },
+      {
+        "t": 4407.200000047684,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4407.300000190735,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4407.300000190735,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4407.600000143051,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4407.700000047684,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4407.800000190735,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4407.800000190735,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4407.800000190735,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4408.100000143051,
+        "msg": "removing visualizer"
+      },
+      {
+        "t": 4408.200000047684,
+        "msg": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "t": 4409.100000143051,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4468.600000143051,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 4491.300000190735,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4499.700000047684,
+        "msg": "modules"
+      },
+      {
+        "t": 4502.200000047684,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4502.200000047684,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4502.200000047684,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4502.600000143051,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4502.900000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4506.5,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4506.5,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4506.5,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4508.100000143051,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4527.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4527.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.300000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.600000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.600000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4528.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.400000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.5,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.600000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.600000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.600000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.700000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.800000190735,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4529.900000095367,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.100000143051,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4530.200000047684,
+        "msg": "selectVariable"
+      },
+      {
+        "t": 4533.5,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4558.600000143051,
+        "msg": "modules"
+      },
+      {
+        "t": 4561.400000095367,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4561.5,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4561.5,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4561.800000190735,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4561.800000190735,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4561.900000095367,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4561.900000095367,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4561.900000095367,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4562.100000143051,
+        "msg": "removing visualizer"
+      },
+      {
+        "t": 4562.300000190735,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4614.800000190735,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 4636.300000190735,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4639.100000143051,
+        "msg": "modules"
+      },
+      {
+        "t": 4641,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4641,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4641.100000143051,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4641.400000095367,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4641.400000095367,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4644.900000095367,
+        "msg": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "t": 4644.900000095367,
+        "msg": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "t": 4644.900000095367,
+        "msg": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "t": 4645.400000095367,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4661,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4679.5,
+        "msg": "modules"
+      },
+      {
+        "t": 4681.800000190735,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4681.900000095367,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4681.900000095367,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4682.200000047684,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4682.200000047684,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4682.300000190735,
+        "msg": "removing visualizer"
+      },
+      {
+        "t": 4682.700000047684,
+        "msg": "module_definition_variables"
+      },
+      {
+        "t": 4734.600000143051,
+        "msg": "creating visualizer"
+      },
+      {
+        "t": 4758.300000190735,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "t": 4761.5,
+        "msg": "modules"
+      },
+      {
+        "t": 4763.600000143051,
+        "msg": "notebookImportMatches"
+      },
+      {
+        "t": 4763.600000143051,
+        "msg": "pageImportMatch"
+      },
+      {
+        "t": 4763.600000143051,
+        "msg": "resolve_modules"
+      },
+      {
+        "t": 4764,
+        "msg": "generate summary"
+      },
+      {
+        "t": 4764,
+        "msg": "submit_summary"
+      },
+      {
+        "t": 4768.5,
+        "msg": "keepalive: dynamic observe editor_jobs"
+      }
+    ],
+    "resources": [
+      {
+        "name": "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov",
+        "type": "video",
+        "start": 2991.4000000953674,
+        "duration": 382.90000009536743,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov",
+        "type": "video",
+        "start": 3374.300000190735,
+        "duration": 313.39999985694885,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov",
+        "type": "video",
+        "start": 3687.9000000953674,
+        "duration": 1604,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js",
+        "type": "script",
+        "start": 3977.100000143051,
+        "duration": 306.2000000476837,
+        "transferSize": 2224,
+        "encodedBodySize": 1924,
+        "decodedBodySize": 7408
+      },
+      {
+        "name": "https://openai-proxy.endpointservices.workers.dev/v1/responses",
+        "type": "fetch",
+        "start": 4284.600000143051,
+        "duration": 1544.8999998569489,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      },
+      {
+        "name": "https://i.ytimg.com/vi_webp/In_BjcsDlfY/sddefault.webp",
+        "type": "img",
+        "start": 4498.400000095367,
+        "duration": 475,
+        "transferSize": 0,
+        "encodedBodySize": 0,
+        "decodedBodySize": 0
+      }
+    ],
+    "consoleLines": [
+      {
+        "wall": 104.29329200000006,
+        "text": "responding es-module-shims@2.6.2 JSHandle@node"
+      },
+      {
+        "wall": 135.03100000000006,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/global.css JSHandle@node"
+      },
+      {
+        "wall": 137.70445800000005,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/inspector.css JSHandle@node"
+      },
+      {
+        "wall": 138.79037500000004,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/highlight.css JSHandle@node"
+      },
+      {
+        "wall": 139.7711250000001,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/plot.css JSHandle@node"
+      },
+      {
+        "wall": 140.55658300000005,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/index.css JSHandle@node"
+      },
+      {
+        "wall": 141.65370800000005,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 141.8018330000001,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/theme-parchment.css JSHandle@node"
+      },
+      {
+        "wall": 142.3772080000001,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 142.5177500000001,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/abstract-light.css JSHandle@node"
+      },
+      {
+        "wall": 143.262333,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 143.45625000000007,
+        "text": "responding https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/syntax-light.css JSHandle@node"
+      },
+      {
+        "wall": 144.0875420000001,
+        "text": "responding file://syntax.css JSHandle@node"
+      },
+      {
+        "wall": 144.9452920000001,
+        "text": "responding @observablehq/runtime@6.0.0 JSHandle@node"
+      },
+      {
+        "wall": 148.7186250000001,
+        "text": "responding @observablehq/inspector@5.0.1 JSHandle@node"
+      },
+      {
+        "wall": 731.3479580000001,
+        "text": "responding https://cdn.jsdelivr.net/npm/@observablehq/inputs@0.12.0/dist/inputs.min.js JSHandle@node"
+      },
+      {
+        "wall": 748.5086670000001,
+        "text": "responding https://unpkg.com/@observablehq/stdlib?module JSHandle@node"
+      },
+      {
+        "wall": 753.968417,
+        "text": "Bootloader: loading @tomlarkworthy/lopepage-2"
+      },
+      {
+        "wall": 753.980458,
+        "text": "Bootloader: loading @tomlarkworthy/lopecode-tour"
+      },
+      {
+        "wall": 1382.7556670000001,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 1382.8182920000002,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 1382.826333,
+        "text": "@import rules are not allowed here. See https://github.com/WICG/construct-stylesheets/issues/119#issuecomment-588352418."
+      },
+      {
+        "wall": 1960.206667,
+        "text": "keepalive: dynamic observe range"
+      },
+      {
+        "wall": 1960.229875,
+        "text": "keepalive: dynamic observe tasks"
+      },
+      {
+        "wall": 1960.300083,
+        "text": "background job"
+      },
+      {
+        "wall": 1960.313,
+        "text": "keepalive: dynamic observe syncers"
+      },
+      {
+        "wall": 2352.300625,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2352.353333,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2352.374833,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2352.576583,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2352.590292,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2352.600417,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2352.706125,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2352.7355000000002,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2352.74775,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2353.646583,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2353.686792,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2353.707833,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2353.718833,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2353.7261670000003,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2353.7333750000003,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2353.73975,
+        "text": "keepalive: dynamic observe maintain_live_cell_map"
+      },
+      {
+        "wall": 2353.817958,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 2353.831958,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 2353.839583,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 2493.701333,
+        "text": "keepalive: dynamic observe toolRegistry_sync"
+      },
+      {
+        "wall": 2493.710375,
+        "text": "keepalive: dynamic observe test_cell_map_coverage"
+      },
+      {
+        "wall": 2938.7423750000003,
+        "text": "Loading codemirror from blob:http://localhost:8123/fbc77102-7005-438f-94f4-6e3caebe529c"
+      },
+      {
+        "wall": 2969.6693330000003,
+        "text": "code_editor_view"
+      },
+      {
+        "wall": 2973.4347080000002,
+        "text": "code_editor"
+      },
+      {
+        "wall": 3582.2369999999996,
+        "text": "jest/expect version 24.0.0"
+      },
+      {
+        "wall": 3611.145083,
+        "text": "keepalive: dynamic observe futureExportedState"
+      },
+      {
+        "wall": 3803.796417,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 3804.018667,
+        "text": "notebookImports"
+      },
+      {
+        "wall": 3804.1012080000005,
+        "text": "notebookImportVariables"
+      },
+      {
+        "wall": 3804.4480829999998,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 3827.6530829999997,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 3971.0441670000005,
+        "text": "modules"
+      },
+      {
+        "wall": 3973.263375,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 3973.3840000000005,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 3973.391792,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4223.229208000001,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4223.324124999999,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4286.888833000001,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 4287.109042,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4287.116250000001,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4287.144833,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4287.4100419999995,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4296.719375000001,
+        "text": "modules"
+      },
+      {
+        "wall": 4299.377708,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4299.394042,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4299.403625000001,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4299.517125,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4299.522542000001,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4304.285,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 4313.943083,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4314.625583000001,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4314.638875000001,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4314.646833000001,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4328.544542,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4341.142625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4393.83625,
+        "text": "code_editor_view"
+      },
+      {
+        "wall": 4396.711667,
+        "text": "code_editor"
+      },
+      {
+        "wall": 4397.143083000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4397.447625000001,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 4407.16475,
+        "text": "modules"
+      },
+      {
+        "wall": 4409.076292,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4409.083833000001,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4409.0888749999995,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4409.284707999999,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4409.362125,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4409.41625,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4409.468833000001,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4409.474875,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4409.957458000001,
+        "text": "removing visualizer JSHandle@node"
+      },
+      {
+        "wall": 4409.988083,
+        "text": "keepalive: dynamic observe check_for_code_change"
+      },
+      {
+        "wall": 4410.761375,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4470.591125000001,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 4493.085666999999,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4501.423083,
+        "text": "modules"
+      },
+      {
+        "wall": 4503.859917,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4503.875042,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4503.9012920000005,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4504.185125,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4504.442208,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4508.289542,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4508.296833,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4508.302625,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4509.846083,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4529.694041999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4529.714250000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4529.973667,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4529.98475,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4529.991833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.0105,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.148917,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.1572080000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.165833000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.173667000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.214207999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.347374999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.3591670000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.367082999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.3755,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.3892080000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.534874999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.5465,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.578708000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.586292,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.594083,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.7564170000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.763833000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.7732080000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.785667,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.7942920000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.973292000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.982916999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.989374999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4530.998167,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.004792,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.189875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.207333,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.213917000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.221,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.227000000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.347750000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.356750000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.363125,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.386082999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.3986669999995,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.521583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.53275,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.539708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.546708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.555417,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.789375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.796958000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.804125000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.814875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.822749999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.929625000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.936792,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.942666999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.9479169999995,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4531.955207999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.031166999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.046833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.053207999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.05975,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.064667000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.134292000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.1396669999995,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.144958000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.149958,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.155167000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.222625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.227375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.2325,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.237333000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.241916999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.294750000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.3017500000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.308583,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.313167,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.3192500000005,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.378542,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.383292,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.387875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.392833,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.397292,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.468042,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.475208,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.47975,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.484291999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.489292,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.552,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.557457999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.564667000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.569541999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.577667,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.627333,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.638457999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.643292000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.647708,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.654333,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.708042,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.712708000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.719625,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.726375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.730874999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.789542,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.794250000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.799000000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.804958000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.809332999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.860457999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.865207999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.872458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.879542000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.884292000001,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.93375,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.938875,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.943417,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.948042,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.955416999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.993791999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4532.998374999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4533.003124999999,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4533.007458,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4533.014417,
+        "text": "selectVariable Variable"
+      },
+      {
+        "wall": 4535.223833,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4560.303833,
+        "text": "modules"
+      },
+      {
+        "wall": 4563.189958000001,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4563.197042,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4563.2021669999995,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4563.397708,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4563.4767919999995,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4563.538417,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4563.559625,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4563.563582999999,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4563.840167,
+        "text": "removing visualizer JSHandle@node"
+      },
+      {
+        "wall": 4563.93125,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4616.723250000001,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 4638.036167,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4640.8139169999995,
+        "text": "modules"
+      },
+      {
+        "wall": 4642.728333000001,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4642.740125,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4642.746958,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4643.037375,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4643.061,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4646.574167000001,
+        "text": "keepalive: dynamic observe submit_summary"
+      },
+      {
+        "wall": 4646.58,
+        "text": "keepalive: dynamic observe sync_modules"
+      },
+      {
+        "wall": 4646.5885,
+        "text": "keepalive: dynamic observe currentModules"
+      },
+      {
+        "wall": 4647.027542,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4662.872208000001,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4681.131958,
+        "text": "modules"
+      },
+      {
+        "wall": 4683.512875,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4683.523583,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4683.528875,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4683.792208000001,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4683.8165420000005,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4684.185417000001,
+        "text": "removing visualizer JSHandle@node"
+      },
+      {
+        "wall": 4684.306167000001,
+        "text": "module_definition_variables"
+      },
+      {
+        "wall": 4736.585958,
+        "text": "creating visualizer"
+      },
+      {
+        "wall": 4760.133083000001,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 4763.219958,
+        "text": "modules"
+      },
+      {
+        "wall": 4765.375375,
+        "text": "notebookImportMatches"
+      },
+      {
+        "wall": 4765.38125,
+        "text": "pageImportMatch"
+      },
+      {
+        "wall": 4765.3865000000005,
+        "text": "resolve_modules"
+      },
+      {
+        "wall": 4765.634916999999,
+        "text": "generate summary"
+      },
+      {
+        "wall": 4765.650583000001,
+        "text": "submit_summary"
+      },
+      {
+        "wall": 4770.2415,
+        "text": "keepalive: dynamic observe editor_jobs"
+      },
+      {
+        "wall": 5831.8658749999995,
+        "text": "Failed to load resource: the server responded with a status of 503 ()"
+      }
+    ]
+  }
+]

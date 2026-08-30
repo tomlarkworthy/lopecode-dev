@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf8"><style>
+  html,body{margin:0;height:100%;background:#07070b;display:grid;place-items:center}
+  svg{width:min(92vw,760px)}
+</style></head><body>
+<svg viewBox="0 0 320 180" width="100%" style="max-height:460px" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.4" r="0.9">
+      <stop offset="0" stop-color="#0e1319"/><stop offset="1" stop-color="#07070b"/>
+    </radialGradient>
+    <filter id="softword" x="-40%" y="-80%" width="180%" height="260%"><feGaussianBlur stdDeviation="2.4"/></filter>
+    <linearGradient id="laser" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#5f7480"/>
+      <stop offset="0.42" stop-color="#5f7480"/>
+      <stop offset="0.5" stop-color="#eafdff"/>
+      <stop offset="0.58" stop-color="#5f7480"/>
+      <stop offset="1" stop-color="#5f7480"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-1.25 0; 1.25 0" dur="3.4s" repeatCount="indefinite"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="320" height="180" fill="#07070b"/>
+  <rect x="0" y="0" width="320" height="180" fill="url(#bg)"/>
+
+  <g transform="translate(86 95)">
+    <animateTransform attributeName="transform" type="scale" additive="sum"
+      values="1 1; 1 1; 0.71 1; 0 1; -0.71 1; -1 1; -0.71 1; 0 1; 0.71 1; 1 1"
+      keyTimes="0;0.7;0.7375;0.775;0.8125;0.85;0.8875;0.925;0.9625;1"
+      dur="4s" repeatCount="indefinite"/>
+    <g transform="translate(-60 -60)" fill="none" stroke-width="1.6" stroke-linejoin="round">
+      <animate attributeName="opacity" values="1;1;0.5;1;0.5;1" keyTimes="0;0.7;0.775;0.85;0.925;1" dur="4s" repeatCount="indefinite"/>
+      <path d="M26 22 H84 L98 36 V94 A4 4 0 0 1 94 98 H26 A4 4 0 0 1 22 94 V26 A4 4 0 0 1 26 22 Z" stroke="#7dd3d8"/>
+      <path d="M46 22 V44 H74 V22" stroke="#41626b"/>
+      <path d="M38 98 V68 A2 2 0 0 1 40 66 H80 A2 2 0 0 1 82 68 V98" stroke="#41626b"/>
+      <path d="M46 76 H74" stroke="#7dd3d8" stroke-linecap="round"/>
+      <circle cx="60" cy="34" r="2.2" fill="#7dd3d8" stroke="none"/>
+    </g>
+  </g>
+
+  <text x="152" y="92" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="22" letter-spacing="2" fill="#7dd3d8" opacity="0.13" filter="url(#softword)">lopecode</text>
+  <text x="152" y="92" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="22" letter-spacing="2"><tspan fill="#4c6f77">lope</tspan><tspan fill="#e9f2f6">code</tspan></text>
+
+  <text x="153" y="112" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" letter-spacing="3" fill="url(#laser)">SVG LENS EDITOR</text>
+</svg>
+</body></html>

@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { resolve } from 'path';
-const file = resolve('lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve('lopecode/notebooks/quick_start.html');
 const b = await chromium.launch({ headless: true });
 const p = await b.newPage({ viewport: { width: 1300, height: 1400 } });
 await p.goto(`file://${file}`, { waitUntil: 'domcontentloaded', timeout: 90000 });

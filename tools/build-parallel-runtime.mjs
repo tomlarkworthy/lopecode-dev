@@ -3,7 +3,7 @@
 import fs from "node:fs";
 const NAME = "@tomlarkworthy/parallel-runtime";
 const OUT = "notebooks/@tomlarkworthy_parallel-runtime.html";
-let h = fs.readFileSync("lopecode/notebooks/@tomlarkworthy_blank-notebook.html", "utf8");
+let h = fs.readFileSync("lopecode/notebooks/quick_start.html", "utf8");
 const mod = fs.readFileSync("modules/@tomlarkworthy/parallel-runtime.js", "utf8");
 const patch = fs.readFileSync("tools/parallel-runtime-patch.js", "utf8");
 const CT = "</" + "script>";

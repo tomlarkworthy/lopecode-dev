@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { writeFileSync, statSync } from 'fs';
 
-const file = resolve(process.argv[2] || 'lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve(process.argv[2] || 'lopecode/notebooks/quick_start.html');
 const OUT = resolve('scratch/fork-slim.html');
 // A "blog post" template: prose + annotations, no agent, no atproto, no wizards.
 const KEEP = [

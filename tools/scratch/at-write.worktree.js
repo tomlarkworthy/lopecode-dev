@@ -944,7 +944,7 @@ const _8igsoj = function _publishEntry(lopeTokens,MutationObserver)
         });
         const links = document.createElement('div');
         links.style.cssText = `display:flex;gap:14px;font-family:${ T.mono };font-size:11px;color:${ T.inkMute }`;
-        links.innerHTML = `<a href="https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_at-write.html" target="_blank" style="color:${ T.link }">↗ open at-write</a><a href="https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_blank-notebook.html" target="_blank" style="color:${ T.link }">↗ blank template</a>`;
+        links.innerHTML = `<a href="https://tomlarkworthy.github.io/lopecode/notebooks/@tomlarkworthy_at-write.html" target="_blank" style="color:${ T.link }">↗ open at-write</a><a href="https://tomlarkworthy.github.io/lopecode/notebooks/quick_start.html" target="_blank" style="color:${ T.link }">↗ blank template</a>`;
         right.append(status, btn, links);
         root.append(left, right);
         return root;

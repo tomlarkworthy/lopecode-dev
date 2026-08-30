@@ -1,0 +1,20 @@
+corpus candidates 502, sampled 32, 2 seeds x 2 orientations per pair
+1984 matches in 1203.6s  (606.7 ms/match)
+side-A win rate across all matches: 49.3%  (50% = no positional bias)
+
+decisive pairs        299/496 (60%)
+fully decisive triads 1376
+CYCLIC triads         19 (1.4%)
+   transitive = 0%,  coin-flip random = 25%
+
+ships beaten by nobody (Condorcet-ish kings): 2  Brain, Brain
+top by win rate:
+    79%  Brain
+    70%  Brain
+    63%  Brain
+    63%  Brain
+    63%  
+bottom:
+    10%  Brain
+     2%  Brain
+     2%  

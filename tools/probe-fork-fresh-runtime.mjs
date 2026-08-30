@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { writeFileSync, statSync } from 'fs';
 
-const file = resolve(process.argv[2] || 'lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve(process.argv[2] || 'lopecode/notebooks/quick_start.html');
 const OUT = resolve('scratch/fork-fresh.html');
 const KEEP = [
   '@tomlarkworthy/lopepage-2',

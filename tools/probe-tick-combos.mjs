@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
 
-const file = resolve('lopecode/notebooks/@tomlarkworthy_blank-notebook.html');
+const file = resolve('lopecode/notebooks/quick_start.html');
 const OPT = [
   '@tomlarkworthy/annotate',
   '@tomlarkworthy/svg-lens',

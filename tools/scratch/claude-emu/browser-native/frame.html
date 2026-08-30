@@ -69,7 +69,7 @@
   globalThis.__termSize = { cols: SIZE.cols, rows: SIZE.rows };
   globalThis.__ARGV = ["/usr/bin/node", "/cli.js"]; // interactive: NO -p
   globalThis.__ENV_OVERRIDES = {
-    ANTHROPIC_BASE_URL: "http://cli.local",
+    ANTHROPIC_BASE_URL: "https://cli.invalid",
     ANTHROPIC_API_KEY: "sk-ant-browser-native",
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
   };
@@ -147,7 +147,7 @@
     function bodyText(input, init) { if (init && init.body != null) return typeof init.body === "string" ? Promise.resolve(init.body) : new Response(init.body).text(); if (input && typeof input.text === "function") return input.clone().text(); return Promise.resolve("{}"); }
     globalThis.fetch = function (input, init) {
       var url = typeof input === "string" ? input : (input && input.url) || "";
-      var path; try { path = new URL(url, "http://cli.local").pathname; } catch (e) { path = url; }
+      var path; try { path = new URL(url, "https://cli.invalid").pathname; } catch (e) { path = url; }
       if (path.endsWith("/count_tokens")) { return bodyText(input, init).then(function (t) { var body = {}; try { body = JSON.parse(t); } catch (e) {} return new Response(JSON.stringify({ input_tokens: estimateTokens(body) }), { status: 200, headers: { "content-type": "application/json" } }); }); }
       if (path.endsWith("/v1/messages")) {
         return bodyText(input, init).then(function (t) {
