@@ -229,7 +229,32 @@ PY_ERRORS=$(printf '%s\n' "$PY_OUT" | $GREP -o '^__ERRORS__[0-9]*' | head -1 | t
 PY_NOTES=$(printf '%s\n' "$PY_OUT" | $GREP -o '^__NOTES__[0-9]*' | head -1 | tr -dc '0-9')
 ERRORS=$((ERRORS + ${PY_ERRORS:-0}))
 
+# ── check 6: every doc declares a scope, from the closed set ───────────────
+# `scope:` says where a doc is allowed to go. `local-development` means this
+# checkout only; `in-notebook` additionally ships it into the markdown-wiki
+# content blocks (tools/sync-wiki.ts). An untagged doc is an error rather than
+# a default, because a silent default is exactly how the wiki set drifted to 13
+# of 25 files with no record of which omissions were decisions.
+SCOPED=0
+for f in "$LEARN_DIR"/*.md; do
+  [ -f "$f" ] || continue
+  line=$(sed -n '/^---$/,/^---$/p' "$f" | $GREP -m1 '^scope:' || true)
+  if [ -z "$line" ]; then
+    report "$(basename "$f"): no scope: — declare [local-development] and/or [in-notebook]"
+    continue
+  fi
+  SCOPED=$((SCOPED+1))
+  vals=$(printf '%s' "$line" | sed 's/^scope: *//; s/^\[//; s/\]$//; s/,/ /g')
+  [ -n "$(printf '%s' "$vals" | tr -d ' ')" ] || report "$(basename "$f"): scope: is empty"
+  for v in $vals; do
+    case "$v" in
+      local-development|in-notebook) ;;
+      *) report "$(basename "$f"): unknown scope value $v (expected local-development or in-notebook)" ;;
+    esac
+  done
+done
+
 TOTAL=$(wc -l < "$PATS" | tr -d ' ')
 echo ""
-echo "checked $TOTAL trigger/when-cwd/when-model regexes in $(basename "$LEARN_DIR")/: $ERRORS error(s), ${PY_NOTES:-0} unanchored literal(s) (--notes to list)"
+echo "checked $TOTAL trigger/when-cwd/when-model regexes and $SCOPED scope declaration(s) in $(basename "$LEARN_DIR")/: $ERRORS error(s), ${PY_NOTES:-0} unanchored literal(s) (--notes to list)"
 [ "$ERRORS" -eq 0 ]

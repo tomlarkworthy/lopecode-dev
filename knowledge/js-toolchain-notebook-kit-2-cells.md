@@ -1,4 +1,5 @@
 ---
+scope: [local-development, in-notebook]
 triggers:
   - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/js-toolchain\.js"
 ---

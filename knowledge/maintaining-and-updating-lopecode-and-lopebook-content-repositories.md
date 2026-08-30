@@ -1,4 +1,5 @@
 ---
+scope: [local-development, in-notebook]
 triggers:
   - "(^Bash |^|[;&|] )(node|bun) +tools/lope-jumpgate\.js"
   - "(^Bash |^|[;&|] )(node|bun) +tools/lope-browser-runner\.ts"

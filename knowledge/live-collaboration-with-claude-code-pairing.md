@@ -1,4 +1,5 @@
 ---
+scope: [local-development, in-notebook]
 triggers:
   - "^mcp__lopecode__(create_module|export_notebook|save_notebook)( |$)"
 ---

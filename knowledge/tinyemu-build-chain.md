@@ -1,4 +1,5 @@
 ---
+scope: [local-development, in-notebook]
 triggers:
   - "(^Bash |^|[;&|] )(make|emmake|emcc)( |$).*tinyemu"
 ---

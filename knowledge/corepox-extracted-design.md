@@ -1,3 +1,7 @@
+---
+scope: [local-development]
+---
+
 # Corepox: what was recovered from the original source
 
 Archaeology record, 2026-08-18. The original Corepox — an Android game where you wire up an

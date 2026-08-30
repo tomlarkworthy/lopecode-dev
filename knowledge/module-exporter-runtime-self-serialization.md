@@ -1,4 +1,5 @@
 ---
+scope: [local-development, in-notebook]
 triggers:
   - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/exporter(-[0-9]+)?\.js"
 ---

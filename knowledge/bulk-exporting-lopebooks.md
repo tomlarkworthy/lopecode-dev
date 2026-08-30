@@ -1,4 +1,5 @@
 ---
+scope: [local-development, in-notebook]
 triggers:
   - "(^Bash |^|[;&|] )(node|bun) +tools/(lope-bulk-jumpgate|bulk-export-qc|bulk-smoke-test)\.js"
 ---

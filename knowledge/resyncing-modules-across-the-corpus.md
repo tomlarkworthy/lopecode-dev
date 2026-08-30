@@ -1,4 +1,5 @@
 ---
+scope: [local-development]
 triggers:
   - "(^Bash |^|[;&|] )bun +tools/channel/sync-module\.ts"
   - "(^Bash |^|[;&|] )bun +tools/lope-sync\.ts +(pull|push|checkout)( |$)"

@@ -1,3 +1,7 @@
+---
+scope: [local-development]
+---
+
 # What a particle costs in SVG
 
 Measured 2026-08-20 for the corepox engine exhaust, on an Apple M4 Max / macOS 26.6, Chromium

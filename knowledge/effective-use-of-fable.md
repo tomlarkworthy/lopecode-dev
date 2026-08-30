@@ -1,4 +1,5 @@
 ---
+scope: [local-development]
 topics: using Claude Fable 5 economically; routing token-heavy work through subagents; subagent model selection; Fable pricing
 triggers:
   - "^(Edit|Write|MultiEdit|NotebookEdit) "

@@ -1,3 +1,7 @@
+---
+scope: [local-development]
+---
+
 # Authoring a blog lopebook (editable + atproto-publishable)
 
 Recipe for a prose lopebook on **lopepage-2** where every paragraph is edit-in-place (SHIFT+ENTER) and the notebook can publish itself to atproto. No browser needed to scaffold; open it only to write/publish.

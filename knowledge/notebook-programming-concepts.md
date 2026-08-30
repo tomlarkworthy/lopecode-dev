@@ -1,3 +1,7 @@
+---
+scope: [local-development, in-notebook]
+---
+
 # Lopecode Development Guide
 
 This guide covers the internal architecture and development patterns for working with lopecode notebooks.

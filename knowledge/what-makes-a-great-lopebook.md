@@ -1,3 +1,7 @@
+---
+scope: [local-development, in-notebook]
+---
+
 # What Makes a Great Lopebook
 
 A lopebook is a self-contained, single-file HTML notebook built on the Observable runtime. Great lopebooks are reliable, portable, and teach effectively. This guide defines the quality bar for notebooks included in the lopebooks collection.

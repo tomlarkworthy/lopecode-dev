@@ -1,4 +1,5 @@
 ---
+scope: [local-development]
 triggers:
   - "(^Bash |^|[;&|] )bun +tools/newobs-[a-z-]+\.ts"
 ---

@@ -1,3 +1,7 @@
+---
+scope: [local-development]
+---
+
 # The shipped Corepox, observed running (2026-08-20)
 
 What the retail APK actually looks like and how it behaves, captured from the emulator on

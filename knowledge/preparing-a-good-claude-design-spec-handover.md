@@ -1,4 +1,5 @@
 ---
+scope: [local-development]
 topics: writing a design brief for the Claude Design agent; handing a lopecode surface to a designer; what a brief must contain; packaging the brief as a zip
 triggers:
   - "^(Edit|Write|MultiEdit) .*plan/[a-z0-9-]*brief[a-z0-9-]*\.md"

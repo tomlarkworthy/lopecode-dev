@@ -1,4 +1,5 @@
 ---
+scope: [local-development]
 triggers:
   - "^(Edit|Write|MultiEdit) .*modules/@tomlarkworthy/svg-lens\.js"
 ---
@@ -2078,11 +2079,13 @@ concrete before/after — and every change keeps the 59 laws green as the regres
 makes "refactor only" safe.
 
 The findings below were spotted by reading; they are **not** trusted to be complete. The method for
-finding the rest was a full census: **`knowledge/svg-lens-cell-inventory.md`** has one row per cell
-(all 341, LOC/CC and *user job* + *how* filled), then the `user` column cross-referenced for overlaps.
+finding the rest was a full census — one row per cell (all 341 at the time, LOC/CC and *user job* +
+*how* filled), then the `user` column cross-referenced for overlaps. Regenerate it with
+`tools/svglens-wip/inventory-workflow.js` (merge with `merge-inventory.ts`); the 2026-07-24 run is
+kept as `tools/svglens-wip/census-result.json`.
 
 **Census complete 2026-07-24** (20-agent workflow over the census). It confirmed the fill overlap and
-found five more; the ranked dedupe queue lives in the inventory doc.
+found five more; the ranked dedupe queue and its outcome are below.
 
 **Dedupe done 2026-07-24: 5 of 6 refactored, #6 declined.** Every change kept the 59 laws + 6 bundle
 invariants green and was live-verified in a real runtime. The shared logic now lives in two new cells,
