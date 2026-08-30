@@ -343,6 +343,88 @@ await, because a `copy` listener must populate `clipboardData` synchronously. Th
 cache refreshed whenever the scope changes, which serves all three call sites and is the only
 arrangement that works for the clipboard one.
 
+## The UX layer (2026-08-30)
+
+Asked what would stop a spreadsheet user in the first minute, the answer was three things
+none of Tom's list named, then his list. Everything below is in `lopebooks e4c9ba7a` and was
+verified in Chromium with the pairing channel's `history` feed as the witness.
+
+**Pinning: `$A$1` is a name.** `$` is legal in a JS identifier, so a pinned reference is an
+ordinary variable whose meaning is a parse of its name. The sheet defines each one it sees as an
+alias to the plain address and deletes an alias whose `_outputs` is empty. Paste holds a pinned
+component fixed. Measured: `D13 = $A$13 * taxRate` pasted at (0,0) offset unchanged;
+`F9 = $A9*taxRate` pasted (+1,+3) → `$A12`. 21 pinned/plain names during a run, one alias
+(`$A$13`) alive at next boot.
+
+**Case: `c2` means C2, but `d3` means d3.** `runtime._builtin._scope` has exactly one
+address-shaped key, `d3`. A reference is uppercased only when the typed name resolves to nothing
+(`nameIsTaken`: builtin scope or a `_type === 1` module variable). `F7 = "d3.max([1,9,4])"` →
+`_inputs ["d3"]`, value 9.
+
+**Text labels.** A bare name that resolves to nothing, or words that fail to parse
+(`/^[\p{L}\p{N}_\s.,;'!?-]+$/u`), is stored as a string literal; a broken formula (`A1 +`)
+stays broken. `F2 = "Total"`, `F3 = "Total revenue"` observed as `new` ops. Cost, stated:
+a forward reference to a not-yet-defined *named* cell (`taxRate` before it exists) becomes the
+string `"taxRate"`; address-shaped names are exempt so `= B9` before B9 exists still works.
+Number entry (`1,200`, `50%`, `$40`) was proposed and rejected by Tom — a second syntax over
+the host language.
+
+**Ranges.** `A4:C4` is not JavaScript. `expandRanges` rewrites it before parsing into
+`[A4, B4, C4]` (row-major, flat), so what the runtime holds is an array of ordinary references
+and every dependency is real; `collapseRanges` walks the AST for a full-rectangle array literal
+with uniform pins and renders it back — display only, nothing stored in range form. Verified:
+typed `d3.sum(a4:c4)` → `_inputs ["d3","A4","B4","C4"]`, definition `d3.sum([A4, B4, C4])`;
+selecting A7 shows `d3.sum(A4:C4)`. The expander is a scanner, not a parser: it only knows
+where strings, templates and comments are. The colon must be unspaced, so `x ? a1 : b2` stays a
+ternary; a range inside an object literal is not supported; 4096 cells is the cap.
+
+**Click-to-reference.** While an editor has the caret, a grid click writes the address into it
+if the text before the caret ends in an operator, bracket or comma (`wantsRef`); a drag widens
+it to a range; `preventDefault` on pointerdown keeps the editor's focus. Otherwise the click is a
+plain click and commits. Verified in both editors: in-cell `A4+` then click B4 → `A4+B4`; bar
+`d3.max(` then drag A4→C4 → `d3.max(A4:C4`, selection still A7, commit was `upd` on the same
+pid `_sha7`.
+
+**Undo.** Every user mutation is a `transact([{addr, src}])` recorded as
+`[{addr, before, after}]`; undo and redo are plain `writeSource` calls of a stored source, with
+no text transforms. Paste, fill, cut and range-delete are one entry each. `srcCache` is written
+by the writer at commit time, so `before` is exact even when `decompile` has not caught up.
+History lives per module in a `WeakMap` in the outer closure: saving a format or a size rewrites
+the sheet cell and rebuilds the sheet, and a column resize must not erase history. Verified:
+Cmd+Z after a three-cell fill emitted three `del` ops from one keystroke (history 11 → 14);
+Shift+Cmd+Z restored `F3`. Cmd+Z inside the bar is text undo from `codemirror.minimalSetup`
+(the bundle exports no `history`; `minimalSetup` carries it).
+
+**Fill.** A handle at the selection corner; the source range repeats along whichever axis the
+pointer left it on, each copy shifted by its offset — paste in a loop through `transposeCell`,
+so pins and named cells behave as on paste. Verified: F8 `F7+1` filled to F11 → `F8+1`,
+`F9+1`, `F10+1` = 3, 4, 5, selection grew to `F8:F11`.
+
+**Sizing.** A column is `auto` unless `size.cols` names it; auto is the widest text value in
+the column, capped at 260px. A DOM value does not widen its column — it spills, which is the
+overflow rule and the reason the demo prose does not blow column A to 650px. Rows are fixed
+unless named. Drag a header divider to set, double-click to clear; persisted into the sheet
+cell beside `format`. Verified: B 88 → 148px and `size: {"cols":{"B":148},"rows":{}}` written
+by `saveState`; double-click → 88. Sizes are presentation state, the same category as
+`format:`, and the argument for the sheet owning them is the same.
+
+A defect the first build had: auto-fit read `node.scrollWidth`, which is never less than the
+node's own `min-width`, so every relayout fed the column's width back as content and grew it
+2px — A–D read 95px after one boot. The inner span is measured instead.
+
+The grid is now one viewport-sized `<canvas>` that is `position: sticky` inside the scroll
+content and redrawn on scroll: variable widths cost nothing, and a 200-row sheet costs no more
+than a 20-row one (a full-extent canvas at 2× DPR would have been ~100 MB at that size).
+
+**The cheap ones.** Cmd+X is copy plus range delete in one undo entry. Enter after a run of
+Tabs returns to the column the run started in (H2, Tab, Tab, Enter → H3). Escape clears a range.
+The format select applies to the whole selection.
+
+**Fixed in passing.** `literalCompletions` from editor-5 is `(state, pos) => …`, not a
+CodeMirror `CompletionSource`; it had been passed to `override` unwrapped and threw
+`lineAt of undefined` on every bar blur since the bar was built. `setPointerCapture` is guarded:
+a pointer released mid-handler has no id, and a synthetic one never had one.
+
 ## What was decided against
 
 - **`instantiateDataflow` / `cloneDataflow`** (`plan/dataflow-templating-2.md`) also copies a
@@ -361,21 +443,17 @@ arrangement that works for the clipboard one.
 
 ## Not built, in the order I would build it
 
-1. **`A1:A10`.** The one place sugar is unavoidable. Expand at commit time — the bar accepts
-   `A1:A10`, the stored source becomes `[A1,A2,…,A10]`, the bar renders it back. The code stays
-   honest JS with real dependencies and survives deleting the sheet; the cost is source length, so
-   ranges are bounded at a few dozen. Past that the notebook-native answer is one cell holding an
-   array, which is a *different* lens (a table over one array-valued cell) and should be named
-   separately rather than smuggled in here.
-2. **Fill-down**, which is `paste` repeated — no new machinery.
-3. **Cut-paste**, which is the *other* rewrite: referrers follow the cell. `descendants` /
+1. **Cut-paste with referrers following.** Cut today is copy + delete; the *other* rewrite —
+   every cell that referenced the moved one is retargeted — is not done. `descendants` /
    `ascendants` in runtime-sdk give the referrer set exactly.
-4. **Column/row insert and delete.** Mass rename plus referrer rewrite. Well-defined, and the
+2. **Column/row insert and delete.** Mass rename plus referrer rewrite. Well-defined, and the
    operation most likely to be slow or fragile.
+3. **Auto row height for DOM values.** Rows are fixed or named; a tall `md` cell spills
+   downward rather than growing its row. Probably right, but untested with users.
+4. **Formats travelling with a copied cell.** See Limits.
 5. **Extracting the writer.** `svg-lens`, `grid-container`, `editable-md`, `sticky` and now
-   `sheet` each hand-roll "re-read the definition, splice, compile, redefine, record to
-   local-change-history". `knowledge/svg-editor-architecture.md` §3 already flagged this as worth
-   extracting; a fifth caller is enough.
+   `sheet` each hand-roll "re-read the definition, splice, compile, redefine". `sheet` now has
+   the cleanest version (`writeSource` + `transact`), which is the one to extract.
 
 ## Limits
 
@@ -392,5 +470,7 @@ arrangement that works for the clipboard one.
 - **Shadowing.** A local `const A1` inside a cell body is excluded correctly by the parser's scope
   analysis, so the rewriter is safe — but this was reasoned from `cell.references` semantics and
   **not tested**.
-- **Formats, and only formats, die with the sheet.** See the deletion test above; the `format:`
-  map is the one thing the container owns.
+- **Formats and sizes, and only those, die with the sheet.** See the deletion test above; the
+  `format:` and `size:` maps are the two things the container owns.
+- **Undo history is in memory.** It survives a sheet rebuild (per-module `WeakMap`) but not a
+  reload; it is not written into the notebook and `local-change-history` is not replayed.
