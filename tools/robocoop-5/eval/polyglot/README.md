@@ -37,6 +37,31 @@ five. It costs ~11× the tokens (`../ladder.mjs --paired`, RQGM §4 blend = inpu
 Run files: `results/corrected-baseline-full.json`, `results/corrected-agent-full.json`. Full
 narrative in § "2026-08-18 corrected-protocol gate" below.
 
+### 2026-09-01 flash-model head-to-head (same corrected criterion)
+
+`deepseek/deepseek-v4-flash-0731` vs `xiaomi/mimo-v2.5` (NOT pro), agent arm only, canonical
+robocoop-5 notebook carrying the 2026-08-31 setFileAttachment fix + attach_file tool, 600 s timeout.
+Both arms were infra-polluted by provider/network faults (deepseek 8 rows, mimo 17 infra-killed
+attempt-1s in a visibly degraded window) and re-rolled to the two-real-attempt standard: every failed
+row whose attempt 1 died on a network error or hard deadline got clean re-rolls until it had one
+genuine two-attempt run (`agent-*-postfix-final.json` are the merged documents; the widened re-roll
+criterion — infra-killed attempt-1 at ANY step count, not just 0–1 — was applied to both arms).
+
+| arm | pass@2 | $/49 |
+|---|---|---|
+| deepseek-v4-flash-0731 | 43/49 = **0.878** | $0.38 |
+| mimo-v2.5 | 36/49 = **0.735** | $0.35 |
+
+Paired on the same 49 slugs: both-fail 2 (complex-numbers, promises), deepseek-only fails 4
+(bowling, grade-school, meetup, wordy), mimo-only fails 11 (connect, forth, killer-sudoku-helper,
+ocr-numbers, phone-number, queen-attack, react, rest-api, scale-generator, transpose,
+variable-length-quantity). Exact two-sided sign test on b=4/c=11 discordant pairs: **P = 0.118** —
+suggestive of a real deepseek edge on hard tasks, not settled at n=49. pass@1 is NOT quotable for
+either arm this round: attempt-1s were destroyed by the network faults asymmetrically (mimo's window
+was much worse), so only the re-rolled pass@2 compares like with like.
+
+Context: mimo-v2.5-**pro** scored 0.939 on this arm (2026-08-18). The flash models sit at 0.74–0.88.
+
 ### Superseded history (2026-07-16 → 2026-08-16)
 
 **Every row in this table was measured under a criterion superseded on 2026-08-18** (graderHash
