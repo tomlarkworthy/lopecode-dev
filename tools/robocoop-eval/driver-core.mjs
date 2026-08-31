@@ -10,6 +10,12 @@
 //   settleMs           — post-turn settle before force-compute (sync applies need less than a poll loop)
 //   seedFiles(page, files)   — apply evalDef.setup.files to the live notebook
 //   collectFiles(page)       — return {path: contents} for snapshot.files
+//   collectAttachments(page) — OPTIONAL: return [{module,name,mimeType,size,text}] for snapshot.attachments
+// ORACLE MODE (`opts.oracle`, per-eval `evalDef.oracle`): instead of sending the question to a model, the
+// driver executes a scripted REFERENCE SOLUTION — a list of {tool, args} steps run against the live tool
+// registry — and snapshots the result. Scoring an eval's own reference solution proves the criteria are
+// satisfiable (a legal instance) and costs no tokens. It is a gate on the EVAL, never a measurement of
+// the agent.
 // The api key is NEVER logged.
 
 import { chromium } from "playwright";
@@ -21,6 +27,7 @@ export async function createDriver({
   layout,
   timeoutMs = 120000,
   headed = false,
+  oracle = false,
   harness,
 } = {}) {
   if (!notebookPath) throw new Error("createDriver requires notebookPath");
@@ -59,10 +66,15 @@ export async function createDriver({
       // the OUTCOME (the fetched value living in a cell) is reproducible.
       if (evalDef?.setup?.routes) {
         for (const r of evalDef.setup.routes) {
+          // bodyBase64 serves BYTES (a gzipped bundle); body serves text. Playwright's fulfill takes
+          // either a string or a Buffer, and a gzip payload must not go through JSON.stringify.
+          const body = r.bodyBase64 != null
+            ? Buffer.from(r.bodyBase64, "base64")
+            : typeof r.body === "string" ? r.body : JSON.stringify(r.body);
           await context.route(r.url, (route) => route.fulfill({
             status: r.status ?? 200,
             contentType: r.contentType ?? "application/json",
-            body: typeof r.body === "string" ? r.body : JSON.stringify(r.body),
+            body,
           }));
         }
       }
@@ -99,8 +111,9 @@ export async function createDriver({
       );
 
       // Step 3 (b): belt-and-suspenders — if `client` is still null, drive the viewof elements directly,
-      // then poll until `client` is a real (non-null) OpenRouter client.
-      const clientReady = await page.evaluate(
+      // then poll until `client` is a real (non-null) OpenRouter client. Oracle runs never send, so they
+      // skip both model-facing gates (no key needed) and wait only for the tool registry + host seam.
+      const clientReady = oracle ? true : await page.evaluate(
         async ({ key, mdl, pollMs, maxMs }) => {
           const reg = globalThis.__ojs_runtime;
 
@@ -184,7 +197,39 @@ export async function createDriver({
       // `viewof model`, whose <select> options now come from a LIVE OpenRouter catalog fetch (up to ~8s), so
       // it settles noticeably after `client`. Observe it + poll until send() exists — kills the prior
       // "session unavailable" boot race (which produced misleading steps=0 / 0-score evals).
-      const sessionReady = await page.evaluate(
+      const sessionReady = oracle ? await page.evaluate(
+        async ({ pollMs, maxMs, readyToolId, extraForceVars }) => {
+          const reg = globalThis.__ojs_runtime;
+          const allVars = () => {
+            const out = []; const seen = new Set();
+            for (const m of reg.mains.values()) {
+              const rt = m && m._runtime;
+              if (!rt || seen.has(rt)) continue;
+              seen.add(rt);
+              for (const v of rt._variables) out.push(v);
+            }
+            return out;
+          };
+          const byName = (n) => allVars().find((v) => v._name === n);
+          const ready = () => {
+            const tv = byName("toolsView");
+            const arr = tv && tv._value && Array.isArray(tv._value.value) ? tv._value.value : [];
+            if (readyToolId && !arr.some((t) => t && t.id === readyToolId)) return false;
+            return extraForceVars.every((n) => byName(n)?._value != null);
+          };
+          const deadline = Date.now() + maxMs;
+          while (Date.now() < deadline) {
+            if (ready()) return true;
+            for (const n of ["toolsView", "hostSetup", ...extraForceVars]) {
+              const v = byName(n);
+              try { if (v && v._module && typeof v._module.value === "function") v._module.value(n).catch(() => {}); } catch {}
+            }
+            await new Promise((r) => setTimeout(r, pollMs));
+          }
+          return ready();
+        },
+        { pollMs: 250, maxMs: 60000, readyToolId: harness.readyToolId ?? null, extraForceVars: harness.extraForceVars ?? [] },
+      ) : await page.evaluate(
         async ({ pollMs, maxMs, wantModel, readyToolId, extraForceVars }) => {
           const reg = globalThis.__ojs_runtime;
           const allVars = () => {
@@ -234,7 +279,9 @@ export async function createDriver({
       );
 
       if (!sessionReady) {
-        partial.error = "session did not initialize (no session.send after client ready)";
+        partial.error = oracle
+          ? "oracle: tool registry / host seam did not become ready"
+          : "session did not initialize (no session.send after client ready)";
         partial.console = consoleEvents;
         return partial;
       }
@@ -256,7 +303,7 @@ export async function createDriver({
       // Step 6: send the question (raced against timeout) and build the WorldSnapshot — all in-page so
       // we have synchronous access to live runtime values.
       const snapshot = await page.evaluate(
-        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume }) => {
+        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume, oracleSteps }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -320,9 +367,46 @@ export async function createDriver({
           const startedAt = Date.now();
           const result = { ok: true, error: null, question, model, durationMs: 0, steps: 0, finishReason: null };
 
+          // --- ORACLE: run the scripted reference solution instead of asking a model ---
+          const oracleCalls = [];
+          const oracleMessages = [];
+          if (oracleSteps) {
+            oracleMessages.push({ role: "user", content: question });
+            // toolsView recomputes whenever modules change, so a tool can be transiently absent.
+            const toolsNow = () => {
+              const tv = findValue("toolsView");
+              return Array.isArray(tv?.value) ? tv.value : [];
+            };
+            for (const step of oracleSteps) {
+              if (step.assistant != null) {
+                oracleMessages.push({ role: "assistant", content: String(step.assistant) });
+                continue;
+              }
+              let tool = null;
+              for (let i = 0; i < 40 && !tool; i++) {
+                tool = toolsNow().find((t) => t && t.id === step.tool);
+                if (!tool) await new Promise((r) => setTimeout(r, 250));
+              }
+              if (!tool) {
+                result.ok = false;
+                result.error = "oracle: tool not registered: " + step.tool;
+                break;
+              }
+              const out = await tool.execute(step.args || {}, {});
+              oracleCalls.push({ name: step.tool, arguments: step.args || {} });
+              oracleMessages.push({ role: "assistant", content: "", tool_calls: [{ function: { name: step.tool, arguments: JSON.stringify(step.args || {}) } }] });
+              oracleMessages.push({ role: "tool", content: String(out?.output ?? "") });
+              if (step.settleMs) await new Promise((r) => setTimeout(r, step.settleMs));
+            }
+            result.steps = oracleCalls.length;
+            result.finishReason = "oracle";
+          }
+
           // --- send the question, raced against the timeout ---
-          const session = findValue("session");
-          if (!session || typeof session.send !== "function") {
+          const session = oracleSteps ? null : findValue("session");
+          if (oracleSteps) {
+            // no model turn
+          } else if (!session || typeof session.send !== "function") {
             result.ok = false;
             result.error = "session unavailable or has no send()";
           } else {
@@ -364,7 +448,9 @@ export async function createDriver({
           if (!result.usage && session && session.usage) result.usage = { ...session.usage };  // fallback (e.g. on timeout)
 
           // --- conversation + toolCalls (build even on timeout for partial diagnostics) ---
-          const messages = session && Array.isArray(session.messages) ? session.messages : [];
+          const messages = oracleSteps
+            ? oracleMessages
+            : (session && Array.isArray(session.messages) ? session.messages : []);
           result.conversation = messages.map((m) => {
             const out = { role: m.role, content: m.content ?? "" };
             if (Array.isArray(m.tool_calls)) out.tool_calls = m.tool_calls;
@@ -372,7 +458,7 @@ export async function createDriver({
             return out;
           });
           // steps fallback = count of assistant messages this conversation.
-          if (!result.steps) {
+          if (!result.steps && !oracleSteps) {
             result.steps = messages.filter((m) => m.role === "assistant").length;
           }
           result.toolCalls = [];
@@ -392,7 +478,7 @@ export async function createDriver({
           // An empty turn (no assistant messages at all) means the session never ran — a transient
           // boot/key/network race, NOT a legitimate "agent did nothing". Flag it so the run is retried
           // and criteria short-circuit to run-failed rather than scoring a misleading partial.
-          if (result.ok && result.conversation.length === 0) {
+          if (result.ok && !oracleSteps && result.conversation.length === 0) {
             result.ok = false;
             result.error = "empty turn: session produced no messages (transient)";
           }
@@ -471,7 +557,8 @@ export async function createDriver({
           return result;
         },
         { question, model, timeoutMs, targetModules, followups: evalDef.followups || [],
-          forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800, resume },
+          forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800, resume,
+          oracleSteps: oracle ? (evalDef.oracle || []) : null },
       );
 
       // --- files via the harness seam (after settle + force-compute, so file state is final) ---
@@ -485,6 +572,21 @@ export async function createDriver({
         }
       } catch (e) {
         snapshot.error = snapshot.error || ("file snapshot failed: " + (e?.message ?? e));
+      }
+
+      // --- file attachments via the optional harness seam. The vendoring evals grade on this:
+      // bytes living in a module's FileAttachment map (what the exporter serializes) is what makes a
+      // notebook self-contained, and no source check can distinguish it from a runtime CDN fetch. ---
+      if (harness.collectAttachments) {
+        try {
+          const atts = await harness.collectAttachments(page);
+          snapshot.attachments = Array.isArray(atts) ? atts : [];
+        } catch (e) {
+          snapshot.attachments = [];
+          snapshot.error = snapshot.error || ("attachment snapshot failed: " + (e?.message ?? e));
+        }
+      } else {
+        snapshot.attachments = [];
       }
 
       snapshot.console = consoleEvents;

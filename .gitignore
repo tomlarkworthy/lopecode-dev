@@ -119,3 +119,7 @@ ds-bundle/
 
 # /improve-bulk sweep output (machine artifact; the age hook reads its mtime)
 /scratch/bulk-improve/
+
+# Raised-cap eval bundles: a copy of the canonical notebook with one setting patched
+# (maxStepsPerTurn). 2.7MB each and regenerable in one command — never committed.
+tools/robocoop-5/eval/robocoop-5-eval*.html

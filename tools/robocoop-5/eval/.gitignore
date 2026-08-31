@@ -1,4 +1,6 @@
-polyglot-src/
+polyglot-src/*
+!polyglot-src/javascript/
+!polyglot-src/README.md
 robocoop-5-eval.html
 tau-src/
 tau/results/

@@ -48,6 +48,20 @@ function resolveTarget(snapshot, args = {}) {
   return { text: assistantText(snapshot), label: "assistant answer" };
 }
 
+// Attachment filters shared by attachment_exists / attachment_contains.
+function filterAttachments(all, args = {}) {
+  const re = args.nameMatches ? new RegExp(args.nameMatches) : null;
+  return all.filter((a) =>
+    (args.name == null || a.name === args.name) &&
+    (args.module == null || a.module === args.module) &&
+    (re == null || re.test(a.name)) &&
+    (args.minBytes == null || (a.size || 0) >= args.minBytes));
+}
+
+function describeAttachment(a) {
+  return `${a.module}/${a.name} (${a.size || 0}B)`;
+}
+
 function countChar(str, ch) {
   let n = 0;
   for (let i = 0; i < str.length; i++) if (str[i] === ch) n++;
@@ -364,8 +378,20 @@ export const CRITERIA = {
     let outer;
     try { outer = new Function(...cell.params, cell.body); }
     catch (e) { return fail(`cell ${args.name} does not compile: ${e.message}`); }
+    // Resolve the cell's inputs the way resolveCellValue (and the runtime) does — lib stub, else a
+    // SIBLING cell in the same file — instead of only LIB_STUBS. Without this a decomposed solution
+    // (`romanTable` + `toRoman`, `tokenize` + `wordCount`) got `undefined` for its own helper cell and
+    // the returned closure threw on the first case ("romanTable is not iterable"), i.e. the criterion
+    // penalised exactly the decomposition this prompt mandates. Measured 2026-08-31: cost
+    // deepseek-v4-flash algo-roman and algo-word-count, both correct in the live runtime.
     let fn;
-    try { fn = outer(...cell.params.map((p) => LIB_STUBS[p])); }
+    try {
+      fn = outer(...cell.params.map((p) => {
+        if (p in LIB_STUBS) return LIB_STUBS[p];
+        const sib = resolveCellValue(text, p, {}, new Set([args.name]));
+        return sib.error ? undefined : sib.value;
+      }));
+    }
     catch (e) { return fail(`cell ${args.name} threw building the fn: ${e.message}`); }
     if (typeof fn !== "function") return fail(`cell ${args.name} is not a function (${typeof fn})`);
     for (const c of args.cases || []) {
@@ -488,6 +514,38 @@ export const CRITERIA = {
       : fail(`cell ${who} = ${worst} loc (> ${args.maxLoc}) — monolithic`);
   },
 
+  // The notebook HOLDS the bytes as a module FileAttachment. This is the surface the exporter
+  // serializes, so it is the difference between "vendored into the file" and "fetched at runtime":
+  // a cell that imports off a CDN passes every source check but leaves nothing here.
+  // Filters: name (exact), nameMatches (regex), module (id). Bare = any attachment at all.
+  attachment_exists(snapshot, args = {}) {
+    const all = snapshot.attachments || [];
+    const hits = filterAttachments(all, args);
+    return hits.length
+      ? ok(`attachment ${describeAttachment(hits[0])} exists`)
+      : fail(`no attachment matches ${JSON.stringify(args)} (${all.length} attachment(s): ` +
+             all.map(describeAttachment).slice(0, 8).join(", ") + ")");
+  },
+
+  // A file attachment's DECODED TEXT contains the needle — proves the stored bytes are the library
+  // itself, not an empty placeholder. Only attachments small enough to be decoded carry `text`
+  // (see driver `collectAttachments`); a needle checked against a huge/binary blob will not match.
+  attachment_contains(snapshot, args = {}) {
+    const all = snapshot.attachments || [];
+    const hits = filterAttachments(all, args);
+    if (!hits.length)
+      return fail(`no attachment matches ${JSON.stringify(args)} to search for "${args.needle}"`);
+    const needle = args.ignoreCase ? String(args.needle).toLowerCase() : String(args.needle);
+    const hit = hits.find((a) => {
+      const t = typeof a.text === "string" ? (args.ignoreCase ? a.text.toLowerCase() : a.text) : "";
+      return t.includes(needle);
+    });
+    return hit
+      ? ok(`attachment ${describeAttachment(hit)} contains "${args.needle}"`)
+      : fail(`no attachment contains "${args.needle}" (searched ` +
+             hits.map(describeAttachment).slice(0, 8).join(", ") + ")");
+  },
+
   tool_used(snapshot, args) {
     const min = args.minTimes ?? 1;
     const n = (snapshot.toolCalls || []).filter((c) => c.name === args.name).length;
@@ -576,10 +634,23 @@ function escapeRe(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// A turn that ran out of CLOCK still leaves a real, gradeable world behind: the driver force-computes
+// cells and collects files/modules/attachments after the timeout just as it does after a clean finish.
+// Scoring it as a blanket failure throws that away — measured 2026-08-30, where two whole runs
+// (mimo-v2.5 at a 300s cap, glm-4.7-flash at 1800s) reported 0.00 on every criterion including
+// `tool_call_matches`, which the transcripts show was satisfied. Grading the surviving state turns
+// those into a LOWER BOUND on what the agent achieved instead of no signal at all.
+// Distinct from a run that never started — no session, or an empty turn — where the world is
+// meaningless and the short-circuit still applies.
+const TURN_CAP_RE = /session\.send timed out after \d+ms/;
+export function isTurnCapTimeout(snapshot) {
+  return snapshot.ok === false && TURN_CAP_RE.test(snapshot.error || "");
+}
+
 export function runCriterion(name, snapshot, args = {}) {
   const fn = CRITERIA[name];
   if (!fn) throw new Error(`unknown criterion: ${name}`);
-  if (snapshot.ok === false) {
+  if (snapshot.ok === false && !isTurnCapTimeout(snapshot)) {
     return { score: 0, pass: false, feedback: "run failed: " + snapshot.error };
   }
   return fn(snapshot, args);

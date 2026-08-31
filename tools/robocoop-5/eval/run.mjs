@@ -2,7 +2,9 @@
 // Live eval CLI for robocoop-5 — thin config over the shared runner (tools/robocoop-eval/run-cli.mjs).
 // criteria/score are imported from the robocoop-4 harness: same yardstick for both agents.
 //   node tools/robocoop-5/eval/run.mjs [--only <id>] [--ids <a,b>] [--category <cat>] [--model <m>]
-//       [--timeout <ms>] [--headed] [--json <path>] [--fail-under <0..1>] [--notebook <path>]
+//       [--timeout <ms>] [--headed] [--json <path>] [--fail-under <0..1>] [--notebook <path>] [--oracle]
+// --oracle runs each eval's own scripted reference solution instead of a model: no key, no tokens, and
+// anything under 1.00 means the EVAL is broken (see eval-README "Reference-solution gate").
 
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -20,4 +22,5 @@ process.exit(await runEvalCli({
   defaultNotebook: join(repoRoot, "lopebooks", "notebooks", "@tomlarkworthy_robocoop-5.html"),
   resultsDir: join(here, "results"),
   envCandidates: [join(here, "..", ".env"), join(repoRoot, "tools", "robocoop-4", ".env"), join(repoRoot, ".env")],
+  extraFlags: [{ flag: "--oracle", key: "oracle" }],
 }));

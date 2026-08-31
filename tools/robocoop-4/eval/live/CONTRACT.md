@@ -60,6 +60,15 @@ const snapshot = {
   errors: [                 // every variable currently in error: "<moduleId>:<varName>: <message>"
     "@user/foo:bad: Plot is not defined",
   ],
+  attachments: [            // module FileAttachments — [] unless the harness supplies collectAttachments
+    { module: "@user/chunker",   // owning module id, re-derived from runtime.mains (the notebook's own
+                                 //   all_module_files inventory labels unnameable modules "main")
+      name: "tiny-chunk.js",
+      mimeType: null,        // string|null — null when the entry stores a bare blob URL
+      size: 519,             // bytes AS STORED (a gzip attachment reports its compressed size)
+      text: "/*! tiny-chunk…", // decoded UTF-8, or null when size > 256 KiB
+      gzipped: false },        // true when text came back through DecompressionStream (see below)
+  ],
   console: [                // console errors/warnings captured DURING the turn
     { type: "error", text: "…" },
   ],
@@ -156,6 +165,16 @@ search `conversation` assistant text):
 - `renders_svg` {module, name} — that variable isSvg OR valuePreview includes "<svg".
 - `uses_plot` {module?,var?,file?} — source references `Plot.` (chart task).
 - `no_runtime_errors` {} — snapshot.errors is empty.
+- `attachment_exists` {name?, nameMatches?, module?, minBytes?} — some entry of `snapshot.attachments`
+  matches every filter given (bare = any attachment at all).
+- `attachment_contains` {needle, ignoreCase?, +the same filters} — a matching attachment's decoded
+  `text` contains needle. Only attachments the driver decoded carry `text`; a needle checked against a
+  large or non-text blob cannot match. GZIP IS TRANSPARENT: an attachment whose mime is gzip or whose
+  name ends `.gz` is piped through `DecompressionStream` before `text` is captured, because every JS
+  attachment in the corpus is stored compressed and storing one that way is a correct answer, not a
+  different one. (Added 2026-08-30: a mimo-v2.5 run vendored a legitimate `paintbox.umd.js.gz` and lost
+  this criterion against binary.) To require compression, use `attachment_exists` {nameMatches: "\\.gz$"}
+  or `minBytes` — `size` is still the STORED size.
 - `tool_used` {name, minTimes?} — ≥ minTimes(default 1) toolCalls with that name.
 - `tool_not_used` {name} — zero toolCalls with that name.
 - `max_steps` {n} — snapshot.steps ≤ n (efficiency).

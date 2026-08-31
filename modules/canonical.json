@@ -655,6 +655,10 @@
   "@tomlarkworthy/sequencer": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sequencer.html"
   },
+  "@tomlarkworthy/sheet": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sheet.html",
+    "upstream": null
+  },
   "@tomlarkworthy/sign-a-pdf": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html"
   },

@@ -142,6 +142,40 @@ import {
 
 `setFileAttachment` works by extracting the internal `Map` from the `FileAttachment` builtin (via a clever hack that temporarily monkey-patches `Map.prototype.get`) and inserting the new file's blob URL.
 
+### The implicit-variable trap (fixed 2026-08-31)
+
+Until 2026-08-31 `setFileAttachment` silently no-op'd from the cells' point of view whenever any
+cell had referenced `FileAttachment` **before** the module had the builtin. The runtime's
+`module_resolve` caches a named implicit variable in `module._scope` on first reference
+(`@observablehq/runtime` `src/module.js:142`), and for a module with no `FileAttachment` builtin
+that variable is an import of the Library's throwing `NoFileAttachments`. `module._scope` is
+checked *before* `_builtins` on every subsequent resolve, so the `module.builtin('FileAttachment',
+…)` that `setFileAttachment` performs never reaches the cells — the write lands in a map nothing
+reads, and the function reported success. Reproduced headlessly in
+`tools/scratch/fa-noop-repro.mjs`:
+
+```
+1. before attach:    {"ok":false,"e":"Error: File not found: pkg.js"}
+   guard: _builtins.get('FileAttachment') = undefined
+2. after current fix attempt: {"ok":false,"e":"Error: File not found: pkg.js"}
+3. scope var exists: true  type: 2  value name: NoFileAttachments
+```
+
+A second defect shares the mechanism: even on the working path, `map.set()` mutates a Map no
+variable depends on, so a cell that already threw `File not found` was never recomputed after the
+attach. This is what cost agents ~20 steps of runtime archaeology per vendoring eval (the 2026-08-30
+robocoop-5 trajectories called `setFileAttachment` correctly at step 3–10 and then debugged the
+"failure" until step ~90).
+
+The fix, in `setFileAttachment` and `removeFileAttachment`: after writing the map, redefine the
+cached implicit variable (`module._scope.get('FileAttachment')`, only when `_type === 2`
+TYPE_IMPLICIT — a user-defined cell named `FileAttachment` is left alone and warned about), which
+both repoints it at the real resolver and marks its dependents dirty. `setFileAttachment` also
+read-back verifies via `getFileAttachments(module).has(file.name)` and throws instead of
+succeeding silently. Verified in `tools/scratch/fa-fix-verify.mjs` (4 scenarios: broken case,
+stale-recompute, attach-before-reference, user-shadowed) and `tools/scratch/fa-module-check.mjs`
+(the real compiled cells, headless runtime); robocoop-5 vendoring oracle 1.00 over 5 in-browser.
+
 ### The getFileAttachmentsMap hack
 
 The runtime's `FileAttachment` function closes over a private `Map`. To access it, `getFileAttachmentsMap` temporarily replaces `Map.prototype.get` and `Map.prototype.has`, calls `FileAttachment("")` (which internally calls `map.has(name)`), captures `this` (the map), then restores the original methods:

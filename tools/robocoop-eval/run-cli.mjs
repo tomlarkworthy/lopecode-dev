@@ -1,7 +1,8 @@
 // Shared live-eval CLI for the robocoop harnesses. A thin per-harness run.mjs passes its config:
 //   runEvalCli({ argv, evals, createDriver, defaultNotebook, resultsDir, envCandidates, extraFlags })
 // Flags: [--only <id>] [--ids <a,b>] [--category <cat>] [--model <m>] [--timeout <ms>] [--headed]
-//        [--json <path>] [--fail-under <0..1>] [--notebook <path>] + any harness extraFlags (booleans).
+//        [--json <path>] [--fail-under <0..1>] [--notebook <path>] [--concurrency <n>]
+//        + any harness extraFlags (booleans).
 
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -30,7 +31,7 @@ function loadEnv(candidates) {
 function parseArgs(argv, extraFlags) {
   const flags = {
     only: null, ids: null, category: null, model: null, timeout: null,
-    headed: false, json: null, failUnder: 0, notebook: null,
+    headed: false, json: null, failUnder: 0, notebook: null, concurrency: 1,
   };
   for (const f of extraFlags) flags[f.key] = false;
   for (let i = 0; i < argv.length; i++) {
@@ -45,6 +46,7 @@ function parseArgs(argv, extraFlags) {
       case '--json': flags.json = argv[++i]; break;
       case '--fail-under': flags.failUnder = Number(argv[++i]); break;
       case '--notebook': flags.notebook = argv[++i]; break;
+      case '--concurrency': flags.concurrency = Number(argv[++i]); break;
       default: {
         const extra = extraFlags.find((f) => f.flag === a);
         if (extra) { flags[extra.key] = true; break; }
@@ -65,7 +67,9 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
   loadEnv(envCandidates);
   const flags = parseArgs(argv, extraFlags);
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  // Oracle runs never reach OpenRouter (the driver executes a scripted reference solution), so they
+  // need no key — the placeholder only satisfies createDriver's argument check.
+  const apiKey = process.env.OPENROUTER_API_KEY || (flags.oracle ? "oracle-no-key" : "");
   if (!apiKey) {
     console.error('OPENROUTER_API_KEY is not set. Add it to a .env the harness searches, or pass it ' +
       'inline: OPENROUTER_API_KEY=... node run.mjs');
@@ -96,15 +100,47 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
 
   const scoredAll = [];
   const gepa = [];
-  try {
-    for (const evalDef of evals) {
+  // Transcripts/console can echo the key; redact any OpenRouter token before persisting.
+  const redact = (t) => {
+    let r = t.replace(/sk-or-[A-Za-z0-9-]{8,}/g, "sk-or-REDACTED");
+    if (apiKey) r = r.split(apiKey).join("sk-or-REDACTED");
+    return r;
+  };
+  const writePartial = (evalsOut, gepaOut) => {
+    try {
+      mkdirSync(dirname(jsonPath), { recursive: true });
+      const out = { model, when: new Date().toISOString(), evals: evalsOut, gepa: gepaOut };
+      writeFileSync(jsonPath, redact(JSON.stringify(out, null, 2)));
+    } catch {}   // persistence must never take the run down
+  };
+  // Evals are INDEPENDENT (own browser context, own notebook boot, own fixtures), and a turn is ~100%
+  // model latency — 2996s of per-eval duration measured against a 2996s wall clock on 2026-08-30, i.e.
+  // the local machine idles through the whole run. So concurrency buys close to linear wall-clock at
+  // almost no CPU cost. Default stays 1: sequential is the reproducible baseline, and the scored order
+  // is restored below either way so results never depend on completion order.
+  const CONCURRENCY = Math.max(1, Number(flags.concurrency) || 1);
+  const runOne = async (evalDef) => {
       let snapshot;
       // Transient failures (empty turn, network "Failed to fetch", boot/timeout race) are NOT eval
       // signal — retry up to 3 attempts before accepting a failed run.
       const MAX_ATTEMPTS = 3;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
-          snapshot = await driver.runQuestion(evalDef);
+          // HARD DEADLINE around the whole question, not just session.send. The turn timeout lives
+          // inside page.evaluate; if the RENDERER wedges (a cell the agent wrote spinning, a crashed
+          // page), page.evaluate never returns — Playwright puts no default timeout on it — and the
+          // run hangs with no output. Observed 2026-08-30: a deepseek-v4-flash run sat 44min against a
+          // 30min cap with OpenRouter usage flat to 9 decimal places, i.e. zero calls in flight.
+          const deadlineMs = (flags.timeout || 180000) + 300000;
+          let deadlineTimer;
+          const deadline = new Promise((_, rej) => {
+            deadlineTimer = setTimeout(
+              () => rej(new Error(`eval wedged: no result within ${deadlineMs}ms (renderer hang?)`)),
+              deadlineMs);
+          });
+          try {
+            snapshot = await Promise.race([driver.runQuestion(evalDef), deadline]);
+          } finally { clearTimeout(deadlineTimer); }
         } catch (err) {
           // Driver-level failure: synthesize a failed snapshot so scoring still produces a row.
           snapshot = {
@@ -115,8 +151,16 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
         }
         if (snapshot.ok !== false) break;
         // Quota/credit/auth errors (402/401/429-daily) won't clear on retry — fail fast.
+        // Nor does the TURN CAP: `session.send timed out after Nms` means the agent was still working
+        // when --timeout expired, and an identical re-run expires identically. Measured 2026-08-30 on
+        // xiaomi/mimo-v2.5: all 5 vendoring-patterns evals burned 3 attempts each this way, 1500s and
+        // 120 OpenRouter calls for one run's worth of signal. Raise --timeout instead.
         if (/\b(402|401)\b|insufficient|requires more credits|daily limit|quota/i.test(snapshot.error || "")) {
           console.log(`  ✗ ${evalDef.id} non-retryable: ${String(snapshot.error).slice(0, 120)}`);
+          break;
+        }
+        if (/session\.send timed out after \d+ms/.test(snapshot.error || "")) {
+          console.log(`  ✗ ${evalDef.id} hit the turn cap (${String(snapshot.error).slice(0, 80)}) — not retried; raise --timeout`);
           break;
         }
         if (attempt < MAX_ATTEMPTS) {
@@ -138,24 +182,39 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
       };
       scoredAll.push(scored);
       gepa.push(toGepaRecord(scored, snapshot));
+      // A turn-capped row IS scored (criteria.mjs grades the surviving world state) but the agent was
+      // still working — mark it so the number is read as a lower bound, not a finished attempt.
+      writePartial(scoredAll, gepa);   // a later wedge must not discard what already finished
+      const capped = /session\.send timed out after \d+ms/.test(snapshot.error || "");
       console.log(
         `${statusLabel(scored)}  ${scored.id}  ${scored.aggregate.toFixed(2)}  ` +
-        `steps=${snapshot.steps}  (${scored.passed}/${scored.total})`,
+        `steps=${snapshot.steps}  (${scored.passed}/${scored.total})${capped ? "  [turn cap — lower bound]" : ""}`,
       );
+      // An oracle run scores the eval's own reference solution: anything below 1.00 is a BROKEN EVAL
+      // (unsatisfiable criterion, drifted ground truth), so print the failing criteria immediately.
+      if (flags.oracle) {
+        for (const r of scored.results) if (!r.pass) console.log(`      ✗ [${r.name}] ${r.feedback}`);
+      }
+  };
+  try {
+    if (CONCURRENCY === 1) {
+      for (const evalDef of evals) await runOne(evalDef);
+    } else {
+      console.log(`running ${evals.length} eval(s) ${CONCURRENCY} at a time`);
+      const queue = [...evals];
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+        for (let next = queue.shift(); next; next = queue.shift()) await runOne(next);
+      }));
+      // Completion order is nondeterministic under concurrency; report in the declared eval order.
+      const rank = new Map(evals.map((e, i) => [e.id, i]));
+      scoredAll.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+      gepa.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
     }
   } finally {
     await driver.close();
   }
 
-  const out = { model, when: new Date().toISOString(), evals: scoredAll, gepa };
-  mkdirSync(dirname(jsonPath), { recursive: true });
-  // Transcripts/console can echo the key; redact any OpenRouter token before persisting.
-  const redact = (s) => {
-    let r = s.replace(/sk-or-[A-Za-z0-9-]{8,}/g, "sk-or-REDACTED");
-    if (apiKey) r = r.split(apiKey).join("sk-or-REDACTED");
-    return r;
-  };
-  writeFileSync(jsonPath, redact(JSON.stringify(out, null, 2)));
+  writePartial(scoredAll, gepa);
   console.log(`\nwrote ${jsonPath}`);
 
   const mean = scoredAll.reduce((s, e) => s + e.aggregate, 0) / scoredAll.length;

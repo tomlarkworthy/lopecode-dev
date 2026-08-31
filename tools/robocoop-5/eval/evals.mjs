@@ -4,8 +4,17 @@
 //  - tool_call_matches criteria pinned to the bash tool → tool-agnostic equivalents (grep is a TOOL here)
 //  - self-knowledge questions that referenced the bash shell / just-bash attachment → robocoop-5 facts
 // Everything else (long-edit, editor-lifecycle, drive-ui, build-tool, …) runs verbatim.
+//
+// APPENDED after the shared set, rc5-only, so a mean over the whole list is no longer comparable with a
+// robocoop-4 mean — compare per-category, or filter with --category:
+//  - CAPABILITY evals, categories "vendoring" and "reflection" (evals-capability.mjs)
+//  - VENDORING PATTERN evals, category "vendoring-patterns" (evals-vendoring-patterns.mjs) — one per
+//    npm package shape, each asserting the in-notebook wiki doc was read AND that it produced a working
+//    dependency.
 
 import { EVALS as RC4_EVALS } from "../../robocoop-4/eval/live/evals.mjs";
+import { CAPABILITY_EVALS } from "./evals-capability.mjs";
+import { VENDORING_PATTERN_EVALS } from "./evals-vendoring-patterns.mjs";
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 
@@ -88,6 +97,8 @@ function patchCriteria(e) {
   return e;
 }
 
-export const EVALS = RC4_EVALS.map((e) =>
-  REPLACE[e.id] ? clone(REPLACE[e.id]) : patchCriteria(clone(e))
-);
+export const EVALS = [
+  ...RC4_EVALS.map((e) => (REPLACE[e.id] ? clone(REPLACE[e.id]) : patchCriteria(clone(e)))),
+  ...CAPABILITY_EVALS,
+  ...VENDORING_PATTERN_EVALS,
+];
