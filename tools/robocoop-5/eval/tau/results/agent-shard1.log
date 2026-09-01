@@ -1,0 +1,70 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 57  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+PASS  task 58  steps=22 (160s)
+PASS  task 59  steps=17 (101s)
+PASS  task 60  steps=30 (156s)
+PASS  task 61  steps=20 (182s)
+PASS  task 62  steps=- (229s)  err=page.evaluate: TypeError: network error
+FAIL  task 63  steps=- (66s)  err=fetch failed
+PASS  task 64  steps=26 (258s)
+PASS  task 65  steps=17 (114s)
+PASS  task 66  steps=35 (279s)
+PASS  task 67  steps=37 (261s)
+PASS  task 68  steps=28 (301s)
+FAIL  task 69  steps=38 (261s)  r_actions=false r_outputs=true
+PASS  task 70  steps=22 (185s)
+FAIL  task 71  steps=- (334s)  err=page.evaluate: TypeError: network error
+FAIL  task 72  steps=- (66s)  err=fetch failed
+FAIL  task 73  steps=- (1805s)  err=fetch failed
+FAIL  task 74  steps=68 (658s)  r_actions=false r_outputs=true
+FAIL  task 75  steps=- (139s)  err=page.evaluate: TypeError: network error
+FAIL  task 76  steps=- (155s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+PASS  task 77  steps=18 (179s)
+FAIL  task 78  steps=- (333s)  err=page.evaluate: TypeError: network error
+FAIL  task 79  steps=- (133s)  err=page.evaluate: TypeError: network error
+FAIL  task 80  steps=- (67s)  err=page.evaluate: TypeError: network error
+FAIL  task 81  steps=- (219s)  err=page.evaluate: TypeError: network error
+PASS  task 82  steps=28 (328s)
+PASS  task 83  steps=21 (158s)
+PASS  task 84  steps=34 (234s)
+PASS  task 85  steps=26 (167s)
+FAIL  task 86  steps=- (148s)  err=page.evaluate: TypeError: network error
+FAIL  task 87  steps=13 (81s)  r_actions=false r_outputs=true
+FAIL  task 88  steps=- (499s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+FAIL  task 89  steps=26 (259s)  r_actions=false r_outputs=true
+FAIL  task 90  steps=60 (395s)  r_actions=false r_outputs=true
+FAIL  task 91  steps=- (236s)  err=page.evaluate: TypeError: network error
+FAIL  task 92  steps=- (71s)  err=page.evaluate: TypeError: network error
+PASS  task 93  steps=21 (309s)
+PASS  task 94  steps=18 (135s)
+FAIL  task 95  steps=- (77s)  err=page.evaluate: TypeError: network error
+PASS  task 96  steps=36 (383s)
+PASS  task 97  steps=28 (220s)
+FAIL  task 98  steps=27 (211s)  r_actions=false r_outputs=true
+FAIL  task 99  steps=31 (481s)  r_actions=false r_outputs=true
+FAIL  task 100  steps=- (103s)  err=page.evaluate: TypeError: network error
+FAIL  task 101  steps=87 (641s)  r_actions=false r_outputs=true
+FAIL  task 102  steps=37 (343s)  r_actions=false r_outputs=true
+FAIL  task 103  steps=- (103s)  err=page.evaluate: TypeError: network error
+FAIL  task 104  steps=- (163s)  err=page.evaluate: TypeError: network error
+FAIL  task 105  steps=- (185s)  err=page.evaluate: TypeError: network error
+PASS  task 106  steps=- (164s)  err=page.evaluate: TypeError: network error
+FAIL  task 107  steps=- (16s)  err=page.evaluate: TypeError: network error
+FAIL  task 108  steps=29 (288s)  r_actions=false r_outputs=true
+PASS  task 109  steps=15 (110s)
+PASS  task 110  steps=46 (434s)
+FAIL  task 111  steps=- (79s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+PASS  task 112  steps=27 (349s)
+PASS  task 113  steps=49 (494s)
+FAIL  task 114  steps=- (59s)  err=page.evaluate: TypeError: network error
+
+pass@1: 25/57 = 0.439
+wrote results/agent-shard1.json

@@ -1,0 +1,35 @@
+model: xiaomi/mimo-v2.5-pro  problems: 15  notebook: /Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+  ..scale-generator attempt1 fail steps=12 (168s)
+PASS@2  scale-generator  steps=12+4 (277s)
+  ..simple-linked-list attempt1 fail steps=11 (55s)
+PASS@2  simple-linked-list  steps=11+4 (92s)
+  ..space-age attempt1 fail steps=7 (36s)
+PASS@2  space-age  steps=7+3 (65s)
+  ..state-of-tic-tac-toe attempt1 fail steps=5 (302s) runError=session.send timed out after 300000ms
+PASS@2  state-of-tic-tac-toe  steps=5+26 (578s)
+  ..sum-of-multiples attempt1 pass steps=7 (29s)
+PASS@1  sum-of-multiples  steps=7+0 (29s)
+  ..tournament attempt1 pass steps=8 (54s)
+PASS@1  tournament  steps=8+0 (54s)
+  ..transpose attempt1 fail steps=6 (63s)
+PASS@2  transpose  steps=6+25 (365s)
+  ..triangle attempt1 pass steps=10 (54s)
+PASS@1  triangle  steps=10+0 (54s)
+  ..twelve-days attempt1 fail steps=5 (23s)
+PASS@2  twelve-days  steps=5+8 (65s)
+  ..two-bucket attempt1 fail steps=6 (93s)
+PASS@2  two-bucket  steps=6+5 (135s)
+  ..variable-length-quantity attempt1 fail steps=9 (69s)
+PASS@2  variable-length-quantity  steps=9+4 (103s)
+  ..word-search attempt1 pass steps=11 (103s)
+PASS@1  word-search  steps=11+0 (103s)
+  ..wordy attempt1 fail steps=6 (29s)
+PASS@2  wordy  steps=6+4 (50s)
+  ..zebra-puzzle attempt1 pass steps=18 (75s)
+PASS@1  zebra-puzzle  steps=18+0 (75s)
+  ..zipper attempt1 pass steps=9 (86s)
+PASS@1  zipper  steps=9+0 (86s)
+
+pass@1: 6/15 = 0.400
+pass@2: 15/15 = 1.000
+wrote results/corrected-agent-shard34.json

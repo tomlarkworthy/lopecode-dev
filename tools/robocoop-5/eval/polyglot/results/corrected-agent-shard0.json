@@ -1,0 +1,474 @@
+{
+ "arm": "agent",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "stamp": {
+  "stampVersion": 1,
+  "notebookPath": "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "coreModuleHashes": {
+   "@tomlarkworthy/robocoop-5": "07ea8e6fd2ee",
+   "@tomlarkworthy/robocoop-5-context": "30aedf2b64c0",
+   "@tomlarkworthy/robocoop-5-core": "f5098f921863",
+   "@tomlarkworthy/robocoop-5-engine": "5e182005cbfb",
+   "@tomlarkworthy/robocoop-5-srctools": "75331fb3231f",
+   "@tomlarkworthy/robocoop-5-tools": "68bc0c4834e8"
+  },
+  "runnerHash": "cacf207c5e4f",
+  "problemsJsonHash": "0184c1046234",
+  "graderHash": "f5993b70a0b8"
+ },
+ "pass1": 5,
+ "pass2": 16,
+ "total": 17,
+ "results": [
+  {
+   "slug": "affine-cipher",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 5,
+   "steps2": 4,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 5,
+    "promptTokens": 58883,
+    "completionTokens": 5019,
+    "cachedTokens": 50688,
+    "costUSD": 0.0081138318
+   },
+   "candidate1": "const _gcd = function gcd(){return(\n  function gcd(a, b) {\n    a = Math.abs(a); b = Math.abs(b);\n    while (b) { [a, b] = [b, a % b]; }\n    return a;\n  }\n)};\n\nconst _mmi = function mmi(){return(\n  function mmi(a, m) {\n    let [old_r, r] = [a, m];\n    let [old_s, s] = [1, 0];\n    while (r !== 0) {\n      const q = Math.trunc(old_r / r);\n      [old_r, r] = [r, old_r - q * r];\n      [old_s, s] = [s, old_s - q * s];\n    }\n    return ((old_s % m) + m) % m;\n  }\n)};\n\nconst _encode = function encode(gcd, mmi){return(\n  function encode(phrase, key) {\n    const { a, b } = key;\n    const m = 26;\n    if (gcd(a, m) !== 1) throw new Error(\"a and m must be coprime\");\n    const cleaned = phrase.toLowerCase().replace(/[^a-z0-9]/g, \"\");\n    let result = \"\";\n    for (const ch of cleaned) {\n      if (ch >= \"a\" && ch <= \"z\") {\n        const i = ch.charCodeAt(0) - 97;\n        result += String.fromCharCode(((a * i + b) % m + m) % m + 97);\n      } else {\n        result += ch;\n      }\n    }\n    return result.match(/.{1,5}/g).join(\" \");\n  }\n)};\n\nconst _decode = function decode(gcd, mmi){return(\n  function decode(phrase, key) {\n    const { a, b } = key;\n    const m = 26;\n    if (gcd(a, m) !== 1) throw new Error(\"a and m must be coprime\");\n    const aInv = mmi(a, m);\n    const cleaned = phrase.replace(/\\s/g, \"\");\n    let result = \"\";\n    for (const ch of cleaned) {\n      if (ch >= \"a\" && ch <= \"z\") {\n        const y = ch.charCodeAt(0) - 97;\n        result += String.fromCharCode(((aInv * (y - b)) % m + m) % m + 97);\n      } else {\n        result += ch;\n      }\n    }\n    return result;\n  }\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_gcd\", \"gcd\", [], _gcd);\n  $def(\"_mmi\", \"mmi\", [], _mmi);\n  $def(\"_encode\", \"encode\", [\"gcd\", \"mmi\"], _encode);\n  $def(\"_decode\", \"decode\", [\"gcd\", \"mmi\"], _decode);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Affine cipher > encode > encode with a not coprime to m\n  expect(received).toThrowError(expected)\n  \n  Expected substring: \"a and m must be coprime.\"\n  Received message:   \"a and m must be coprime\"\n  \n        25 |     const { a, b } = key;\n        26 |     const m = 26;\n      > 27 |     if (gcd(a, m) !== 1) throw new Error(\"a and m must be coprime\");\n           |                                ^\n        28 |     const cleaned = phrase.toLowerCase().replace(/[^a-z0-9]/g, \"\");\n        29 |     let result = \"\";\n        30 |     for (const ch of cleaned) {\n  \n        at encode (affine-cipher.js:27:32)\n        at __spec.cjs:50:9\n        at Object.<anonymous> (../../node_modules/expect/build/toThrowMatchers.js:74:11)\n        at Object.throwingMatcher [as toThrowError] (../../node_modules/expect/build/index.js:320:21)\n        at Object.fn (__spec.cjs:51:10)\n        at runScope (__testlib.cjs:73:27)\n        at async runScope (__testlib.cjs:80:31)\n        at async runScope (__testlib.cjs:80:31)\n        at async __run (__testlib.cjs:89:3)\n  46 |     xtest('encode with a not coprime to m', () => {\n  47 |       expect(() => {\n  48 |         encode('This is a test.', { a: 6, b: 17 });\n> 49 |       }).toThrowError('a and m must be coprime.');\n     |          ^\n  50 |     });\n  51 |   });\n  52 |   describe('decode', () => {\nFAIL: Affine cipher > decode > decode with a not coprime to m\n  expect(received).toThrowError(expected)\n  \n  Expected substring: \"a and m must be coprime.\"\n  Received message:   \"a and m must be coprime\"\n  \n        44 |     const { a, b } = key;\n        45 |     const m = 26;\n      > 46 |     if (gcd(a, m) !== 1) throw new Error(\"a and m must be coprime\");\n           |                                ^\n        47 |     const aInv = mmi(a, m);\n        48 |     const cleaned = phrase.replace(/\\s/g, \"\");\n        49 |     let result = \"\";\n  \n        at decode (affine-cipher.js:46:32)\n        at __spec.cjs:91:9\n        at Object.<anonymous> (../../node_modules/",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 4,
+    "promptTokens": 64955,
+    "completionTokens": 774,
+    "cachedTokens": 54272,
+    "costUSD": 0.0055158642
+   },
+   "candidate2": "const _gcd = function gcd(){return(\n  function gcd(a, b) {\n    a = Math.abs(a); b = Math.abs(b);\n    while (b) { [a, b] = [b, a % b]; }\n    return a;\n  }\n)};\n\nconst _mmi = function mmi(){return(\n  function mmi(a, m) {\n    let [old_r, r] = [a, m];\n    let [old_s, s] = [1, 0];\n    while (r !== 0) {\n      const q = Math.trunc(old_r / r);\n      [old_r, r] = [r, old_r - q * r];\n      [old_s, s] = [s, old_s - q * s];\n    }\n    return ((old_s % m) + m) % m;\n  }\n)};\n\nconst _encode = function encode(gcd, mmi){return(\n  function encode(phrase, key) {\n    const { a, b } = key;\n    const m = 26;\n    if (gcd(a, m) !== 1) throw new Error(\"a and m must be coprime.\");\n    const cleaned = phrase.toLowerCase().replace(/[^a-z0-9]/g, \"\");\n    let result = \"\";\n    for (const ch of cleaned) {\n      if (ch >= \"a\" && ch <= \"z\") {\n        const i = ch.charCodeAt(0) - 97;\n        result += String.fromCharCode(((a * i + b) % m + m) % m + 97);\n      } else {\n        result += ch;\n      }\n    }\n    return result.match(/.{1,5}/g).join(\" \");\n  }\n)};\n\nconst _decode = function decode(gcd, mmi){return(\n  function decode(phrase, key) {\n    const { a, b } = key;\n    const m = 26;\n    if (gcd(a, m) !== 1) throw new Error(\"a and m must be coprime.\");\n    const aInv = mmi(a, m);\n    const cleaned = phrase.replace(/\\s/g, \"\");\n    let result = \"\";\n    for (const ch of cleaned) {\n      if (ch >= \"a\" && ch <= \"z\") {\n        const y = ch.charCodeAt(0) - 97;\n        result += String.fromCharCode(((aInv * (y - b)) % m + m) % m + 97);\n      } else {\n        result += ch;\n      }\n    }\n    return result;\n  }\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_gcd\", \"gcd\", [], _gcd);\n  $def(\"_mmi\", \"mmi\", [], _mmi);\n  $def(\"_encode\", \"encode\", [\"gcd\", \"mmi\"], _encode);\n  $def(\"_decode\", \"decode\", [\"gcd\", \"mmi\"], _decode);\n  return main;\n}\n",
+   "durationMs": 64394
+  },
+  {
+   "slug": "alphametics",
+   "pass1": true,
+   "pass2": true,
+   "steps1": 12,
+   "steps2": 0,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 12,
+    "promptTokens": 134891,
+    "completionTokens": 3790,
+    "cachedTokens": 126528,
+    "costUSD": 0.007390705799999999
+   },
+   "candidate1": "const _doc = function doc(md){return(\nmd`# Alphametics Solver\n\nGiven an alphametics puzzle like \\`SEND + MORE = MONEY\\`, finds the digit assignment that makes the equation true.`\n)};\n\nconst _solve = function solve(){return(\n  function solve(puzzle) {\n    const parts = puzzle.split(/\\s*\\+\\s*|\\s*=\\s*/);\n    const addends = parts.slice(0, -1).map(w => w.trim());\n    const result = parts[parts.length - 1].trim();\n\n    const letters = [...new Set(puzzle.match(/[A-Z]/g))];\n    const n = letters.length;\n\n    if (n > 10) return null;\n\n    const leadingLetters = new Set([...addends, result].map(w => w[0]));\n\n    const used = new Array(10).fill(false);\n    const mapping = {};\n\n    const wordToNum = (word) => {\n      let num = 0;\n      for (const ch of word) {\n        num = num * 10 + mapping[ch];\n      }\n      return num;\n    };\n\n    function backtrack(idx) {\n      if (idx === n) {\n        const sum = addends.reduce((acc, w) => acc + wordToNum(w), 0);\n        return sum === wordToNum(result) ? {...mapping} : null;\n      }\n\n      const letter = letters[idx];\n      const start = leadingLetters.has(letter) ? 1 : 0;\n\n      for (let d = start; d <= 9; d++) {\n        if (!used[d]) {\n          mapping[letter] = d;\n          used[d] = true;\n          const res = backtrack(idx + 1);\n          if (res) return res;\n          used[d] = false;\n        }\n      }\n\n      return null;\n    }\n\n    return backtrack(0);\n  }\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_doc\", \"doc\", [\"md\"], _doc);\n  $def(\"_solve\", \"solve\", [], _solve);\n  return main;\n}\n",
+   "durationMs": 61919
+  },
+  {
+   "slug": "beer-song",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 11,
+   "steps2": 6,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 11,
+    "promptTokens": 154856,
+    "completionTokens": 4713,
+    "cachedTokens": 143680,
+    "costUSD": 0.009479117999999998
+   },
+   "candidate1": "const _recite = function recite(){\n  function bottleText(n) {\n    if (n === 0) return \"no more bottles\";\n    if (n === 1) return \"1 bottle\";\n    return `${n} bottles`;\n  }\n\n  function verse(n) {\n    if (n === 0) {\n      return \"No more bottles of beer on the wall, no more bottles of beer.\\nGo to the store and buy some more, 99 bottles of beer on the wall.\";\n    }\n    if (n === 1) {\n      return \"1 bottle of beer on the wall, 1 bottle of beer.\\nTake it down and pass it around, no more bottles of beer on the wall.\";\n    }\n    return `${n} bottles of beer on the wall, ${n} bottles of beer.\\nTake one down and pass it around, ${bottleText(n - 1)} of beer on the wall.`;\n  }\n\n  return (initialBottlesCount, takeDownCount) => {\n    const verses = [];\n    for (let i = 0; i < takeDownCount; i++) {\n      verses.push(verse(initialBottlesCount - i));\n    }\n    return verses.join(\"\\n\\n\");\n  };\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_recite\", \"recite\", [], _recite);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Beer Song > verse > single verse > first generic verse\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"99 bottles of beer on the wall, 99 bottles of beer.\", \"Take one down and pass it around, 98 bottles of beer on the wall.\"]\n  Received: \"99 bottles of beer on the wall, 99 bottles of beer.\n  Take one down and pass it around, 98 bottles of beer on the wall.\"\n   4 |   describe('verse', () => {\n   5 |     describe('single verse', () => {\n   6 |       test('first generic verse', () => {\n>  7 |         expect(recite(99, 1)).toEqual([\n     |                               ^\n   8 |           '99 bottles of beer on the wall, 99 bottles of beer.',\n   9 |           'Take one down and pass it around, 98 bottles of beer on the wall.',\n  10 |         ]);\nFAIL: Beer Song > verse > single verse > last generic verse\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"3 bottles of beer on the wall, 3 bottles of beer.\", \"Take one down and pass it around, 2 bottles of beer on the wall.\"]\n  Received: \"3 bottles of beer on the wall, 3 bottles of beer.\n  Take one down and pass it around, 2 bottles of beer on the wall.\"\n  11 |       });\n  12 |\n  13 |       xtest('last generic verse', () => {\n> 14 |         expect(recite(3, 1)).toEqual([\n     |                              ^\n  15 |           '3 bottles of beer on the wall, 3 bottles of beer.',\n  16 |           'Take one down and pass it around, 2 bottles of beer on the wall.',\n  17 |         ]);\nFAIL: Beer Song > verse > single verse > verse with 2 bottles\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"2 bottles of beer on the wall, 2 bottles of beer.\", \"Take one down and pass it around, 1 bottle of beer on the wall.\"]\n  Received: \"2 bottles of beer on the wall, 2 bottles of beer.\n  Take one down and pass it around, 1 bottle of beer on the wall.\"\n  18 |       });\n  19 |\n  20 |       xtest('verse with 2 bottles', () => {\n> 21 |         expect(recite(2, 1)).toEqual([\n    ",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 6,
+    "promptTokens": 149871,
+    "completionTokens": 1478,
+    "cachedTokens": 122560,
+    "costUSD": 0.013607361
+   },
+   "candidate2": "const _recite = function recite(){\n  function bottleText(n) {\n    if (n === 0) return \"no more bottles\";\n    if (n === 1) return \"1 bottle\";\n    return `${n} bottles`;\n  }\n\n  function verse(n) {\n    if (n === 0) {\n      return [\"No more bottles of beer on the wall, no more bottles of beer.\", \"Go to the store and buy some more, 99 bottles of beer on the wall.\"];\n    }\n    if (n === 1) {\n      return [\"1 bottle of beer on the wall, 1 bottle of beer.\", \"Take it down and pass it around, no more bottles of beer on the wall.\"];\n    }\n    return [`${n} bottles of beer on the wall, ${n} bottles of beer.`, `Take one down and pass it around, ${bottleText(n - 1)} of beer on the wall.`];\n  }\n\n  return (initialBottlesCount, takeDownCount) => {\n    const lines = [];\n    for (let i = 0; i < takeDownCount; i++) {\n      if (i > 0) lines.push(\"\");\n      lines.push(...verse(initialBottlesCount - i));\n    }\n    return lines;\n  };\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_recite\", \"recite\", [], _recite);\n  return main;\n}\n",
+   "durationMs": 83657
+  },
+  {
+   "slug": "binary",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 6,
+   "steps2": 3,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 6,
+    "promptTokens": 51910,
+    "completionTokens": 1659,
+    "cachedTokens": 42240,
+    "costUSD": 0.00614840016
+   },
+   "candidate1": "const _Binary = function Binary(){return(\nclass Binary {\n  constructor(binaryStr) {\n    this.binaryStr = binaryStr;\n  }\n\n  toDecimal() {\n    const str = this.binaryStr;\n    if (typeof str !== 'string' || !/^[01]+$/.test(str)) {\n      return 0;\n    }\n    let result = 0;\n    for (let i = 0; i < str.length; i++) {\n      result = result * 2 + (str.charCodeAt(i) - 48);\n    }\n    return result;\n  }\n}\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Binary\", \"Binary\", [], _Binary);\n  return main;\n}\n",
+   "testOutput1": "FAIL: binary > invalid inputs are null\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: null\n  Received: 0\n  28 |\n  29 |   xtest('invalid inputs are null', () => {\n  30 |     // \"2 is not a valid binary digit\n> 31 |     expect(new Binary('2').toDecimal()).toEqual(null);\n     |                                         ^\n  32 |\n  33 |     // a number containing a non-binary digit is invalid\n  34 |     expect(new Binary('01201').toDecimal()).toEqual(null);\n\nTests: 1 failed, 0 skipped, 9 passed",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 3,
+    "promptTokens": 34107,
+    "completionTokens": 439,
+    "cachedTokens": 28608,
+    "costUSD": 0.003175663728
+   },
+   "candidate2": "const _Binary = function Binary(){return(\nclass Binary {\n  constructor(binaryStr) {\n    this.binaryStr = binaryStr;\n  }\n\n  toDecimal() {\n    const str = this.binaryStr;\n    if (typeof str !== 'string' || !/^[01]+$/.test(str)) {\n      return null;\n    }\n    let result = 0;\n    for (let i = 0; i < str.length; i++) {\n      result = result * 2 + (str.charCodeAt(i) - 48);\n    }\n    return result;\n  }\n}\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Binary\", \"Binary\", [], _Binary);\n  return main;\n}\n",
+   "durationMs": 57305
+  },
+  {
+   "slug": "book-store",
+   "pass1": true,
+   "pass2": true,
+   "steps1": 13,
+   "steps2": 0,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 13,
+    "promptTokens": 229454,
+    "completionTokens": 21252,
+    "cachedTokens": 193920,
+    "costUSD": 0.034644642
+   },
+   "candidate1": "const _cost = function cost(){\n  const discounts = [0, 800, 1520, 2160, 2560, 3000];\n  \n  return function cost(books) {\n    if (books.length === 0) return 0;\n    \n    // Count occurrences of each distinct book\n    const countMap = {};\n    for (const book of books) {\n      countMap[book] = (countMap[book] || 0) + 1;\n    }\n    // Sort descending so greedy grouping picks the most-represented books\n    const counts = Object.values(countMap).sort((a, b) => b - a);\n    \n    const memo = new Map();\n    \n    function minCost(c) {\n      const key = c.join(',');\n      if (memo.has(key)) return memo.get(key);\n      \n      const total = c.reduce((s, v) => s + v, 0);\n      if (total === 0) return 0;\n      \n      let best = Infinity;\n      const distinct = c.filter(v => v > 0).length;\n      \n      // Try every possible group size from 1 up to distinct books available\n      for (let g = 1; g <= distinct; g++) {\n        const next = c.slice();\n        for (let i = 0; i < g; i++) next[i]--;\n        next.sort((a, b) => b - a);\n        const candidate = discounts[g] + minCost(next);\n        if (candidate < best) best = candidate;\n      }\n      \n      memo.set(key, best);\n      return best;\n    }\n    \n    return minCost(counts);\n  };\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_cost\", \"cost\", [], _cost);\n  return main;\n}\n",
+   "durationMs": 248141
+  },
+  {
+   "slug": "bottle-song",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 10,
+   "steps2": 7,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 10,
+    "promptTokens": 102780,
+    "completionTokens": 3531,
+    "cachedTokens": 93888,
+    "costUSD": 0.0072779868000000005
+   },
+   "candidate1": "const _capitalize = function capitalize(){return(\n  s => s.charAt(0).toUpperCase() + s.slice(1)\n)};\nconst _numberWord = function numberWord(){return(\n  n => {\n    const words = [\"no\",\"one\",\"two\",\"three\",\"four\",\"five\",\"six\",\"seven\",\"eight\",\"nine\",\"ten\"];\n    return words[n];\n  }\n)};\nconst _bottlePhrase = function bottlePhrase(numberWord){return(\n  n => {\n    const word = numberWord(n);\n    if (n === 1) return \"one green bottle\";\n    return `${word} green bottles`;\n  }\n)};\nconst _verse = function verse(numberWord, bottlePhrase, capitalize){return(\n  (n) => {\n    const start = capitalize(bottlePhrase(n));\n    const end = bottlePhrase(n - 1);\n    return [\n      `${start} hanging on the wall,`,\n      `${start} hanging on the wall,`,\n      `And if one green bottle should accidentally fall,`,\n      `There'll be ${end} hanging on the wall.`\n    ].join(\"\\n\");\n  }\n)};\nconst _recite = function recite(verse){return(\n  (initialBottlesCount, takeDownCount) => {\n    const verses = [];\n    for (let i = 0; i < takeDownCount; i++) {\n      verses.push(verse(initialBottlesCount - i));\n    }\n    return verses.join(\"\\n\\n\");\n  }\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_capitalize\", \"capitalize\", [], _capitalize);\n  $def(\"_numberWord\", \"numberWord\", [], _numberWord);\n  $def(\"_bottlePhrase\", \"bottlePhrase\", [\"numberWord\"], _bottlePhrase);\n  $def(\"_verse\", \"verse\", [\"numberWord\", \"bottlePhrase\", \"capitalize\"], _verse);\n  $def(\"_recite\", \"recite\", [\"verse\"], _recite);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Bottle Song > verse > single verse > first generic verse\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"Ten green bottles hanging on the wall,\", \"Ten green bottles hanging on the wall,\", \"And if one green bottle should accidentally fall,\", \"There'll be nine green bottles hanging on the wall.\"]\n  Received: \"Ten green bottles hanging on the wall,\n  Ten green bottles hanging on the wall,\n  And if one green bottle should accidentally fall,\n  There'll be nine green bottles hanging on the wall.\"\n  10 |           `And if one green bottle should accidentally fall,`,\n  11 |           `There'll be nine green bottles hanging on the wall.`,\n  12 |         ];\n> 13 |         expect(recite(10, 1)).toEqual(expected);\n     |                               ^\n  14 |       });\n  15 |\n  16 |       xtest('last generic verse', () => {\nFAIL: Bottle Song > verse > single verse > last generic verse\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"Three green bottles hanging on the wall,\", \"Three green bottles hanging on the wall,\", \"And if one green bottle should accidentally fall,\", \"There'll be two green bottles hanging on the wall.\"]\n  Received: \"Three green bottles hanging on the wall,\n  Three green bottles hanging on the wall,\n  And if one green bottle should accidentally fall,\n  There'll be two green bottles hanging on the wall.\"\n  20 |           `And if one green bottle should accidentally fall,`,\n  21 |           `There'll be two green bottles hanging on the wall.`,\n  22 |         ];\n> 23 |         expect(recite(3, 1)).toEqual(expected);\n     |                              ^\n  24 |       });\n  25 |\n  26 |       xtest('verse with 2 bottles', () => {\nFAIL: Bottle Song > verse > single verse > verse with 2 bottles\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"Two green bottles hanging on the wall,\", \"Two green bottles hanging on the wall,\", \"And if one green bottle should accidentally fall,\", \"There'll be one gr",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 7,
+    "promptTokens": 112003,
+    "completionTokens": 2977,
+    "cachedTokens": 100928,
+    "costUSD": 0.007770955800000001
+   },
+   "candidate2": "const _capitalize = function capitalize(){return(\n  s => s.charAt(0).toUpperCase() + s.slice(1)\n)};\nconst _numberWord = function numberWord(){return(\n  n => {\n    const words = [\"no\",\"one\",\"two\",\"three\",\"four\",\"five\",\"six\",\"seven\",\"eight\",\"nine\",\"ten\"];\n    return words[n];\n  }\n)};\nconst _bottlePhrase = function bottlePhrase(numberWord){return(\n  n => {\n    const word = numberWord(n);\n    if (n === 1) return \"one green bottle\";\n    return `${word} green bottles`;\n  }\n)};\nconst _verse = function verse(numberWord, bottlePhrase, capitalize){return(\n  (n) => {\n    const start = capitalize(bottlePhrase(n));\n    const end = bottlePhrase(n - 1);\n    return [\n      `${start} hanging on the wall,`,\n      `${start} hanging on the wall,`,\n      `And if one green bottle should accidentally fall,`,\n      `There'll be ${end} hanging on the wall.`\n    ];\n  }\n)};\nconst _recite = function recite(verse){return(\n  (initialBottlesCount, takeDownCount) => {\n    const lines = [];\n    for (let i = 0; i < takeDownCount; i++) {\n      if (i > 0) lines.push(\"\");\n      lines.push(...verse(initialBottlesCount - i));\n    }\n    return lines;\n  }\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_capitalize\", \"capitalize\", [], _capitalize);\n  $def(\"_numberWord\", \"numberWord\", [], _numberWord);\n  $def(\"_bottlePhrase\", \"bottlePhrase\", [\"numberWord\"], _bottlePhrase);\n  $def(\"_verse\", \"verse\", [\"numberWord\", \"bottlePhrase\", \"capitalize\"], _verse);\n  $def(\"_recite\", \"recite\", [\"verse\"], _recite);\n  return main;\n}\n",
+   "durationMs": 168404
+  },
+  {
+   "slug": "bowling",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 8,
+   "steps2": 5,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 8,
+    "promptTokens": 81627,
+    "completionTokens": 2566,
+    "cachedTokens": 75840,
+    "costUSD": 0.005022789
+   },
+   "candidate1": "const _Bowling = function Bowling(){return(\nclass Bowling {\n  constructor() {\n    this.rolls = [];\n  }\n\n  roll(pins) {\n    this.rolls.push(pins);\n  }\n\n  score() {\n    let total = 0;\n    let rollIndex = 0;\n    for (let frame = 0; frame < 10; frame++) {\n      if (this.rolls[rollIndex] === 10) { // strike\n        total += 10 + (this.rolls[rollIndex + 1] || 0) + (this.rolls[rollIndex + 2] || 0);\n        rollIndex += 1;\n      } else if ((this.rolls[rollIndex] || 0) + (this.rolls[rollIndex + 1] || 0) === 10) { // spare\n        total += 10 + (this.rolls[rollIndex + 2] || 0);\n        rollIndex += 2;\n      } else { // open frame\n        total += (this.rolls[rollIndex] || 0) + (this.rolls[rollIndex + 1] || 0);\n        rollIndex += 2;\n      }\n    }\n    return total;\n  }\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Bowling\", \"Bowling\", [], _Bowling);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Bowling > Check game rules. > rolls cannot score negative points\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Negative roll is invalid\"\n  \n  Received function did not throw\n  154 |       const bowling = new Bowling();\n  155 |       expect(() => {\n  156 |         bowling.roll(-1);\n> 157 |       }).toThrow(new Error('Negative roll is invalid'));\n      |          ^\n  158 |     });\n  159 |\n  160 |     xtest('a roll cannot score more than 10 points', () => {\nFAIL: Bowling > Check game rules. > a roll cannot score more than 10 points\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Pin count exceeds pins on the lane\"\n  \n  Received function did not throw\n  161 |       const bowling = new Bowling();\n  162 |       expect(() => {\n  163 |         bowling.roll(11);\n> 164 |       }).toThrow(new Error('Pin count exceeds pins on the lane'));\n      |          ^\n  165 |     });\n  166 |\n  167 |     xtest('two rolls in a frame cannot score more than 10 points', () => {\nFAIL: Bowling > Check game rules. > two rolls in a frame cannot score more than 10 points\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Pin count exceeds pins on the lane\"\n  \n  Received function did not throw\n  169 |       bowling.roll(5);\n  170 |       expect(() => {\n  171 |         bowling.roll(6);\n> 172 |       }).toThrow(new Error('Pin count exceeds pins on the lane'));\n      |          ^\n  173 |     });\n  174 |\n  175 |     xtest('bonus roll after a strike in the last frame cannot score more than 10 points', () => {\nFAIL: Bowling > Check game rules. > bonus roll after a strike in the last frame cannot score more than 10 points\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Pin count exceeds pins on the lane\"\n  \n  Received function did not throw\n  180 |       });\n  181 |       expect(() => {\n  182 |         bowling.roll(11);\n> 183 |       }).toThrow(new Error('Pin count exceeds pins on the lane'));\n      |          ^\n  184 |     });\n  185 |\n  186 |     xt",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 5,
+    "promptTokens": 113864,
+    "completionTokens": 11605,
+    "cachedTokens": 93376,
+    "costUSD": 0.019344783600000002
+   },
+   "candidate2": "const _Bowling = function Bowling(){return(\nclass Bowling {\n  constructor() {\n    this.rolls = [];\n    this._frame = 1;\n    this._rollInFrame = 1;\n    this._pinsStanding = 10;\n    this._gameOver = false;\n  }\n\n  roll(pins) {\n    if (this._gameOver) throw new Error(\"Cannot roll after game is over\");\n    if (pins < 0) throw new Error(\"Negative roll is invalid\");\n    if (pins > this._pinsStanding) throw new Error(\"Pin count exceeds pins on the lane\");\n\n    this.rolls.push(pins);\n    this._pinsStanding -= pins;\n\n    if (this._frame < 10) {\n      if (pins === 10 || this._rollInFrame === 2) {\n        this._frame++;\n        this._rollInFrame = 1;\n        this._pinsStanding = 10;\n      } else {\n        this._rollInFrame = 2;\n      }\n    } else {\n      // Frame 10 logic\n      if (this._rollInFrame === 1) {\n        if (pins === 10) {\n          this._pinsStanding = 10;\n        }\n        this._rollInFrame = 2;\n      } else if (this._rollInFrame === 2) {\n        if (this._f10Roll1() === 10) {\n          // First was strike: if second is also strike, reset pins\n          this._pinsStanding = (pins === 10) ? 10 : (10 - pins);\n          this._rollInFrame = 3;\n        } else if (this._pinsStanding === 0) {\n          // Spare: bonus roll with fresh pins\n          this._pinsStanding = 10;\n          this._rollInFrame = 3;\n        } else {\n          // Open frame in 10th: game over\n          this._gameOver = true;\n        }\n      } else {\n        // Third roll (bonus): game over\n        this._gameOver = true;\n      }\n    }\n  }\n\n  _f10Roll1() {\n    let idx = 0;\n    for (let f = 0; f < 9; f++) {\n      idx += (this.rolls[idx] === 10) ? 1 : 2;\n    }\n    return this.rolls[idx];\n  }\n\n  score() {\n    if (!this._gameOver) throw new Error(\"Score cannot be taken until the end of the game\");\n    let total = 0;\n    let rollIndex = 0;\n    for (let frame = 0; frame < 10; frame++) {\n      if (this.rolls[rollIndex] === 10) {\n        total += 10 + this.rolls[rollIndex + 1] + this.rolls[rollIndex + 2];\n        rollIndex += 1;\n      } else if (this.rolls[rollIndex] + this.rolls[rollIndex + 1] === 10) {\n        total += 10 + this.rolls[rollIndex + 2];\n        rollIndex += 2;\n      } else {\n        total += this.rolls[rollIndex] + this.rolls[rollIndex + 1];\n        rollIndex += 2;\n      }\n    }\n    return total;\n  }\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Bowling\", \"Bowling\", [], _Bowling);\n  return main;\n}\n",
+   "durationMs": 157830
+  },
+  {
+   "slug": "complex-numbers",
+   "pass1": true,
+   "pass2": true,
+   "steps1": 6,
+   "steps2": 0,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 6,
+    "promptTokens": 61027,
+    "completionTokens": 2988,
+    "cachedTokens": 55296,
+    "costUSD": 0.0052916106
+   },
+   "candidate1": "const _ComplexNumber = function ComplexNumber(){\n  class ComplexNumber {\n    constructor(real = 0, imag = 0) {\n      this._real = real;\n      this._imag = imag;\n    }\n\n    get real() {\n      return this._real;\n    }\n\n    get imag() {\n      return this._imag;\n    }\n\n    add(other) {\n      return new ComplexNumber(this._real + other._real, this._imag + other._imag);\n    }\n\n    sub(other) {\n      return new ComplexNumber(this._real - other._real, this._imag - other._imag);\n    }\n\n    mul(other) {\n      return new ComplexNumber(\n        this._real * other._real - this._imag * other._imag,\n        this._imag * other._real + this._real * other._imag\n      );\n    }\n\n    div(other) {\n      const denom = other._real ** 2 + other._imag ** 2;\n      return new ComplexNumber(\n        (this._real * other._real + this._imag * other._imag) / denom,\n        (this._imag * other._real - this._real * other._imag) / denom\n      );\n    }\n\n    get abs() {\n      return Math.sqrt(this._real ** 2 + this._imag ** 2);\n    }\n\n    get conj() {\n      return new ComplexNumber(this._real, this._imag === 0 ? 0 : -this._imag);\n    }\n\n    get exp() {\n      const ea = Math.exp(this._real);\n      return new ComplexNumber(ea * Math.cos(this._imag), ea * Math.sin(this._imag));\n    }\n  }\n  return ComplexNumber;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_ComplexNumber\", \"ComplexNumber\", [], _ComplexNumber);\n  return main;\n}\n",
+   "durationMs": 33634
+  },
+  {
+   "slug": "connect",
+   "pass1": false,
+   "pass2": false,
+   "steps1": 11,
+   "steps2": 20,
+   "error": "FAIL: Judging a game of connect > illegal diagonal does not make a winner\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"\"\n  Received: \"X\"\n  35 |       '   . O X .',\n  36 |       '    X X O O',\n  37 |     ];\n> 38 |     expect(new Board(board).winner()).toEqual('');\n     |                                       ^\n  39 |   });\n  40 |\n  41 |   xtest('nobody wins crossing adjacent angles', () => {\nFAIL: Judging a game of connect > nobody wins crossing adjacent angles\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"\"\n  Received: \"X\"\n  46 |       '   . O . X',\n  47 |       '    . . O .',\n  48 |     ];\n> 49 |     expect(new Board(board).winner()).toEqual('');\n     |                                       ^\n  50 |   });\n  51 |\n  52 |   xtest('X wins crossing from left to right', () => {\nFAIL: Judging a game of connect > O wins crossing from top to bottom\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"O\"\n  Received: \"\"\n  68 |       '   X X O X',\n  69 |       '    . O X .',\n  70 |     ];\n> 71 |     expect(new Board(board).winner()).toEqual('O');\n     |                                       ^\n  72 |   });\n  73 |\n  74 |   xtest('X wins using a convoluted path', () => {\nFAIL: Judging a game of connect > X wins using a convoluted path\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"X\"\n  Received: \"\"\n  79 |       '   . X X . .',\n  80 |       '    O O O O O',\n  81 |     ];\n> 82 |     expect(new Board(boar",
+   "runError1": null,
+   "usage1": {
+    "calls": 11,
+    "promptTokens": 149461,
+    "completionTokens": 6963,
+    "cachedTokens": 131264,
+    "costUSD": 0.01481666148
+   },
+   "candidate1": "const _Board = function Board() {\n  class Board {\n    constructor(board) {\n      this.grid = [];\n      const lines = board.split('\\n').filter(line => line.trim().length > 0);\n      for (const line of lines) {\n        const row = line.trim().split(/\\s+/);\n        this.grid.push(row);\n      }\n      this.rows = this.grid.length;\n      this.cols = this.grid[0] ? this.grid[0].length : 0;\n    }\n\n    winner() {\n      // Check if O wins (top to bottom)\n      if (this.checkWin('O', 'top', 'bottom')) {\n        return 'O';\n      }\n      // Check if X wins (left to right)\n      if (this.checkWin('X', 'left', 'right')) {\n        return 'X';\n      }\n      return '';\n    }\n\n    checkWin(player, side1, side2) {\n      const starts = this.getSide(side1);\n      const ends = new Set(this.getSide(side2).map(([r, c]) => `${r},${c}`));\n\n      for (const [r, c] of starts) {\n        if (this.grid[r][c] !== player) continue;\n        if (this.bfs(player, r, c, ends)) {\n          return true;\n        }\n      }\n      return false;\n    }\n\n    getSide(side) {\n      const cells = [];\n      switch (side) {\n        case 'top':\n          for (let c = 0; c < this.cols; c++) cells.push([0, c]);\n          break;\n        case 'bottom':\n          for (let c = 0; c < this.cols; c++) cells.push([this.rows - 1, c]);\n          break;\n        case 'left':\n          for (let r = 0; r < this.rows; r++) cells.push([r, 0]);\n          break;\n        case 'right':\n          for (let r = 0; r < this.rows; r++) cells.push([r, this.cols - 1]);\n          break;\n      }\n      return cells;\n    }\n\n    bfs(player, startR, startC, ends) {\n      const visited = new Set();\n      const queue = [[startR, startC]];\n      visited.add(`${startR},${startC}`);\n\n      while (queue.length > 0) {\n        const [r, c] = queue.shift();\n        if (ends.has(`${r},${c}`)) return true;\n\n        for (const [nr, nc] of this.getNeighbors(r, c)) {\n          const key = `${nr},${nc}`;\n          if (!visited.has(key) && this.grid[nr][nc] === player) {\n            visited.add(key);\n            queue.push([nr, nc]);\n          }\n        }\n      }\n      return false;\n    }\n\n    getNeighbors(r, c) {\n      const neighbors = [];\n      // Upper row\n      if (r > 0 && c > 0) neighbors.push([r - 1, c - 1]); // upper-left\n      if (r > 0) neighbors.push([r - 1, c]);                 // upper-right\n      // Same row\n      if (c > 0) neighbors.push([r, c - 1]);                 // left\n      if (c < this.cols - 1) neighbors.push([r, c + 1]);     // right\n      // Lower row\n      if (r < this.rows - 1) neighbors.push([r + 1, c]);     // lower-left\n      if (r < this.rows - 1 && c < this.cols - 1) neighbors.push([r + 1, c + 1]); // lower-right\n      return neighbors;\n    }\n  }\n\n  return Board;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Board\", \"Board\", [], _Board);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Judging a game of connect > an empty board has no winner\n  board.split is not a function\n   9 |       '   . . . . .',\n  10 |       '    . . . . .',\n  11 |     ];\n> 12 |     expect(new Board(board).winner()).toEqual('');\n     |            ^\n  13 |   });\n  14 |\n  15 |   xtest('X can win on a 1x1 board', () => {\nFAIL: Judging a game of connect > X can win on a 1x1 board\n  board.split is not a function\n  14 |\n  15 |   xtest('X can win on a 1x1 board', () => {\n  16 |     const board = ['X'];\n> 17 |     expect(new Board(board).winner()).toEqual('X');\n     |            ^\n  18 |   });\n  19 |\n  20 |   xtest('O can win on a 1x1 board', () => {\nFAIL: Judging a game of connect > O can win on a 1x1 board\n  board.split is not a function\n  19 |\n  20 |   xtest('O can win on a 1x1 board', () => {\n  21 |     const board = ['O'];\n> 22 |     expect(new Board(board).winner()).toEqual('O');\n     |            ^\n  23 |   });\n  24 |\n  25 |   xtest('only edges does not make a winner', () => {\nFAIL: Judging a game of connect > only edges does not make a winner\n  board.split is not a function\n  24 |\n  25 |   xtest('only edges does not make a winner', () => {\n  26 |     const board = ['O O O X', ' X . . X', '  X . . X', '   X O O O'];\n> 27 |     expect(new Board(board).winner()).toEqual('');\n     |            ^\n  28 |   });\n  29 |\n  30 |   xtest('illegal diagonal does not make a winner', () => {\nFAIL: Judging a game of connect > illegal diagonal does not make a winner\n  board.split is not a function\n  35 |       '   . O X .',\n  36 |       '    X X O O',\n  37 |     ];\n> 38 |     expect(new Board(board).winner()).toEqual('');\n     |            ^\n  39 |   });\n  40 |\n  41 |   xtest('nobody wins crossing adjacent angles', () => {\nFAIL: Judging a game of connect > nobody wins crossing adjacent angles\n  board.split is not a function\n  46 |       '   . O . X',\n  47 |       '    . . O .',\n  48 |     ];\n> 49 |     expect(new Board(board).winner()).toEqual('');\n     |            ^\n  50 |   });\n  51 ",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": "session.send timed out after 300000ms",
+   "usage2": {
+    "calls": 8,
+    "promptTokens": 167826,
+    "completionTokens": 40053,
+    "cachedTokens": 136768,
+    "costUSD": 0.04934628795200001
+   },
+   "candidate2": "const _Board = function Board() {\n  class Board {\n    constructor(board) {\n      this.grid = [];\n      const lines = Array.isArray(board) ? board : board.split('\\n');\n      for (const line of lines) {\n        if (line.trim().length === 0) continue;\n        const row = line.trim().split(/\\s+/);\n        this.grid.push(row);\n      }\n      this.rows = this.grid.length;\n      this.cols = this.grid[0] ? this.grid[0].length : 0;\n    }\n\n    winner() {\n      // Check if O wins (top to bottom)\n      if (this.checkWin('O', 'top', 'bottom')) {\n        return 'O';\n      }\n      // Check if X wins (left to right)\n      if (this.checkWin('X', 'left', 'right')) {\n        return 'X';\n      }\n      return '';\n    }\n\n    checkWin(player, side1, side2) {\n      const starts = this.getSide(side1);\n      const ends = new Set(this.getSide(side2).map(([r, c]) => `${r},${c}`));\n\n      for (const [r, c] of starts) {\n        if (this.grid[r][c] !== player) continue;\n        if (this.bfs(player, r, c, ends)) {\n          return true;\n        }\n      }\n      return false;\n    }\n\n    getSide(side) {\n      const cells = [];\n      switch (side) {\n        case 'top':\n          for (let c = 0; c < this.cols; c++) cells.push([0, c]);\n          break;\n        case 'bottom':\n          for (let c = 0; c < this.cols; c++) cells.push([this.rows - 1, c]);\n          break;\n        case 'left':\n          for (let r = 0; r < this.rows; r++) cells.push([r, 0]);\n          break;\n        case 'right':\n          for (let r = 0; r < this.rows; r++) cells.push([r, this.cols - 1]);\n          break;\n      }\n      return cells;\n    }\n\n    bfs(player, startR, startC, ends) {\n      const visited = new Set();\n      const queue = [[startR, startC]];\n      visited.add(`${startR},${startC}`);\n\n      while (queue.length > 0) {\n        const [r, c] = queue.shift();\n        if (ends.has(`${r},${c}`)) return true;\n\n        for (const [nr, nc] of this.getNeighbors(r, c)) {\n          const key = `${nr},${nc}`;\n          if (!visited.has(key) && this.grid[nr][nc] === player) {\n            visited.add(key);\n            queue.push([nr, nc]);\n          }\n        }\n      }\n      return false;\n    }\n\n    getNeighbors(r, c) {\n      const neighbors = [];\n      // Upper row\n      if (r > 0 && c > 0) neighbors.push([r - 1, c - 1]); // upper-left\n      if (r > 0) neighbors.push([r - 1, c]);                 // upper-right\n      // Same row\n      if (c > 0) neighbors.push([r, c - 1]);                 // left\n      if (c < this.cols - 1) neighbors.push([r, c + 1]);     // right\n      // Lower row\n      if (r < this.rows - 1) neighbors.push([r + 1, c]);     // lower-left\n      if (r < this.rows - 1 && c < this.cols - 1) neighbors.push([r + 1, c + 1]); // lower-right\n      return neighbors;\n    }\n  }\n\n  return Board;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Board\", \"Board\", [], _Board);\n  return main;\n}\n",
+   "durationMs": 413966
+  },
+  {
+   "slug": "food-chain",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 7,
+   "steps2": 5,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 7,
+    "promptTokens": 78536,
+    "completionTokens": 4068,
+    "cachedTokens": 70720,
+    "costUSD": 0.0071937120000000005
+   },
+   "candidate1": "const _animals = function animals(){return(\n['fly', 'spider', 'bird', 'cat', 'dog', 'goat', 'cow', 'horse']\n)};\n\nconst _comments = function comments(){return({\n  fly: \"I don't know why she swallowed the fly. Perhaps she'll die.\",\n  spider: \"It wriggled and jiggled and tickled inside her.\",\n  bird: \"How absurd to swallow a bird!\",\n  cat: \"Imagine that, to swallow a cat!\",\n  dog: \"What a hog, to swallow a dog!\",\n  goat: \"Just opened her throat and swallowed a goat!\",\n  cow: \"I don't know how she swallowed a cow!\",\n  horse: \"She's dead, of course!\"\n})};\n\nconst _Song = function Song(animals, comments){return(\nclass Song {\n  verse(n) {\n    const animal = animals[n - 1];\n    if (animal === 'horse') {\n      return \"I know an old lady who swallowed a horse.\\nShe's dead, of course!\\n\";\n    }\n    const lines = [`I know an old lady who swallowed a ${animal}.`];\n    if (animal === 'fly') {\n      lines.push(comments.fly);\n      return lines.join('\\n') + '\\n';\n    }\n    lines.push(comments[animal]);\n    for (let i = n - 1; i >= 1; i--) {\n      const current = animals[i];\n      const previous = animals[i - 1];\n      let line = `She swallowed the ${current} to catch the ${previous}`;\n      if (previous === 'spider') {\n        line += \" that wriggled and jiggled and tickled inside her\";\n      }\n      line += '.';\n      lines.push(line);\n    }\n    lines.push(comments.fly);\n    return lines.join('\\n') + '\\n';\n  }\n  verses(start, end) {\n    let result = '';\n    for (let i = start; i <= end; i++) {\n      result += this.verse(i);\n      if (i < end) result += '\\n';\n    }\n    return result;\n  }\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_animals\", \"animals\", [], _animals);\n  $def(\"_comments\", \"comments\", [], _comments);\n  $def(\"_Song\", \"Song\", [\"animals\", \"comments\"], _Song);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Food Chain > multiple verses\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 1\n  + Received  + 0\n  \n    I know an old lady who swallowed a fly.\n    I don't know why she swallowed the fly. Perhaps she'll die.\n  \n    I know an old lady who swallowed a spider.\n    It wriggled and jiggled and tickled inside her.\n    She swallowed the spider to catch the fly.\n    I don't know why she swallowed the fly. Perhaps she'll die.\n  \n  -\n  109 |\n  110 | `;\n  111 |\n> 112 |     expect(song.verses(1, 2)).toEqual(expected);\n      |                               ^\n  113 |   });\n  114 |\n  115 |   xtest('the whole song', () => {\nFAIL: Food Chain > the whole song\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 1\n  + Received  + 0\n  \n    I know an old lady who swallowed a fly.\n    I don't know why she swallowed the fly. Perhaps she'll die.\n  \n    I know an old lady who swallowed a spider.\n    It wriggled and jiggled and tickled inside her.\n    She swallowed the spider to catch the fly.\n    I don't know why she swallowed the fly. Perhaps she'll die.\n  \n    I know an old lady who swallowed a bird.\n    How absurd to swallow a bird!\n    She swallowed the bird to catch the spider that wriggled and jiggled and tickled inside her.\n    She swallowed the spider to catch the fly.\n    I don't know why she swallowed the fly. Perhaps she'll die.\n  \n    I know an old lady who swallowed a cat.\n    Imagine that, to swallow a cat!\n    She swallowed the cat to catch the bird.\n    She swallowed the bird to catch the spider that wriggled and jiggled and tickled inside her.\n    She swallowed the spider to catch the fly.\n    I don't know why she swallowed the fly. Perhaps she'll die.\n  \n    I know an old lady who swallowed a dog.\n    What a hog, to swallow a dog!\n    She swallowed the dog to catch the cat.\n    She swallowed the cat to catch the bird.\n    She swallowed the bird to catch the spider that wriggled and jiggled and tickled inside her.\n    She s",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 5,
+    "promptTokens": 80571,
+    "completionTokens": 1525,
+    "cachedTokens": 69376,
+    "costUSD": 0.0064463286
+   },
+   "candidate2": "const _animals = function animals(){return(\n['fly', 'spider', 'bird', 'cat', 'dog', 'goat', 'cow', 'horse']\n)};\n\nconst _comments = function comments(){return({\n  fly: \"I don't know why she swallowed the fly. Perhaps she'll die.\",\n  spider: \"It wriggled and jiggled and tickled inside her.\",\n  bird: \"How absurd to swallow a bird!\",\n  cat: \"Imagine that, to swallow a cat!\",\n  dog: \"What a hog, to swallow a dog!\",\n  goat: \"Just opened her throat and swallowed a goat!\",\n  cow: \"I don't know how she swallowed a cow!\",\n  horse: \"She's dead, of course!\"\n})};\n\nconst _Song = function Song(animals, comments){return(\nclass Song {\n  verse(n) {\n    const animal = animals[n - 1];\n    if (animal === 'horse') {\n      return \"I know an old lady who swallowed a horse.\\nShe's dead, of course!\\n\";\n    }\n    const lines = [`I know an old lady who swallowed a ${animal}.`];\n    if (animal === 'fly') {\n      lines.push(comments.fly);\n      return lines.join('\\n') + '\\n';\n    }\n    lines.push(comments[animal]);\n    for (let i = n - 1; i >= 1; i--) {\n      const current = animals[i];\n      const previous = animals[i - 1];\n      let line = `She swallowed the ${current} to catch the ${previous}`;\n      if (previous === 'spider') {\n        line += \" that wriggled and jiggled and tickled inside her\";\n      }\n      line += '.';\n      lines.push(line);\n    }\n    lines.push(comments.fly);\n    return lines.join('\\n') + '\\n';\n  }\n  verses(start, end) {\n    let result = '';\n    for (let i = start; i <= end; i++) {\n      result += this.verse(i) + '\\n';\n    }\n    return result;\n  }\n}\n)};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_animals\", \"animals\", [], _animals);\n  $def(\"_comments\", \"comments\", [], _comments);\n  $def(\"_Song\", \"Song\", [\"animals\", \"comments\"], _Song);\n  return main;\n}\n",
+   "durationMs": 66332
+  },
+  {
+   "slug": "forth",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 20,
+   "steps2": 4,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 20,
+    "promptTokens": 249942,
+    "completionTokens": 6620,
+    "cachedTokens": 231552,
+    "costUSD": 0.014592637200000001
+   },
+   "candidate1": "const _Forth = function Forth(){\n  class Forth {\n    constructor() {\n      this._stack = [];\n      this._words = {};\n    }\n\n    evaluate(input) {\n      const tokens = input.split(/\\s+/).filter(Boolean);\n      let i = 0;\n      while (i < tokens.length) {\n        const token = tokens[i];\n        if (token === ':') {\n          // Word definition\n          i++;\n          if (i >= tokens.length) throw new Error('Invalid word definition');\n          const name = tokens[i].toLowerCase();\n          if (/^-?\\d+$/.test(name)) throw new Error('Invalid definition');\n          i++;\n          const body = [];\n          while (i < tokens.length && tokens[i] !== ';') {\n            body.push(tokens[i]);\n            i++;\n          }\n          if (i >= tokens.length) throw new Error('Invalid word definition');\n          // Store expanded body (pre-resolve nested user words at define time)\n          this._words[name] = body;\n          i++;\n        } else {\n          this._execToken(token, tokens, i);\n          i++;\n        }\n      }\n    }\n\n    _execToken(token) {\n      const lower = token.toLowerCase();\n      // Check if it's a number\n      if (/^-?\\d+$/.test(token)) {\n        this._stack.push(parseInt(token, 10));\n        return;\n      }\n      // Check user-defined words first (they can override built-ins)\n      if (this._words[lower]) {\n        for (const t of this._words[lower]) {\n          this._execToken(t);\n        }\n        return;\n      }\n      // Check built-ins\n      switch (lower) {\n        case '+': {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          this._stack.push(a + b);\n          return;\n        }\n        case '-': {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          this._stack.push(a - b);\n          return;\n        }\n        case '*': {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          this._stack.push(a * b);\n          return;\n        }\n        case '/': {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          if (b === 0) throw new Error('Division by zero');\n          this._stack.push(Math.trunc(a / b));\n          return;\n        }\n        case 'dup': {\n          if (this._stack.length < 1) throw new Error('Stack empty');\n          this._stack.push(this._stack[this._stack.length - 1]);\n          return;\n        }\n        case 'drop': {\n          if (this._stack.length < 1) throw new Error('Stack empty');\n          this._stack.pop();\n          return;\n        }\n        case 'swap': {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const a = this._stack.pop();\n          const b = this._stack.pop();\n          this._stack.push(a);\n          this._stack.push(b);\n          return;\n        }\n        case 'over': {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          this._stack.push(this._stack[this._stack.length - 2]);\n          return;\n        }\n        default:\n          throw new Error('Unknown word');\n      }\n    }\n\n    get stack() {\n      return [...this._stack];\n    }\n  }\n  return Forth;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Forth\", \"Forth\", [], _Forth);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Forth > user-defined words > can use different words with the same name\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 1\n  + Received  + 1\n  \n    Array [\n  -   5,\n  +   6,\n      6,\n    ]\n  239 |       forth.evaluate(': bar foo ;');\n  240 |       forth.evaluate(': foo 6 ;');\n  241 |       forth.evaluate('bar foo');\n> 242 |       expect(forth.stack).toEqual([5, 6]);\n      |                           ^\n  243 |     });\n  244 |\n  245 |     xtest('can define word that uses word with the same name', () => {\nFAIL: Forth > user-defined words > can define word that uses word with the same name\n  Maximum call stack size exceeded\nFAIL: Forth > user-defined words > errors if executing a non-existent word\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Unknown command\"\n  Received message: \"Unknown word\"\n  \n        104 |         }\n        105 |         default:\n      > 106 |           throw new Error('Unknown word');\n            |                 ^\n        107 |       }\n        108 |     }\n        109 |\n  \n        at Forth._execToken (forth.js:106:17)\n        at Forth.evaluate (forth.js:31:16)\n        at __spec.cjs:267:15\n        at Object.<anonymous> (../../node_modules/expect/build/toThrowMatchers.js:74:11)\n        at Object.throwingMatcher [as toThrow] (../../node_modules/expect/build/index.js:320:21)\n        at Object.fn (__spec.cjs:268:10)\n        at runScope (__testlib.cjs:73:27)\n        at async runScope (__testlib.cjs:80:31)\n        at async runScope (__testlib.cjs:80:31)\n        at async __run (__testlib.cjs:89:3)\n  263 |     xtest('errors if executing a non-existent word', () => {\n  264 |       expect(() => {\n  265 |         forth.evaluate('foo');\n> 266 |       }).toThrow(new Error('Unknown command'));\n      |          ^\n  267 |     });\n  268 |\n  269 |     xtest('only defines locally', () => {\n\nTests: 3 failed, 0 skipped, 46 passed",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 4,
+    "promptTokens": 109266,
+    "completionTokens": 11485,
+    "cachedTokens": 83776,
+    "costUSD": 0.0213816936
+   },
+   "candidate2": "const _Forth = function Forth(){\n  class Forth {\n    constructor() {\n      this._stack = [];\n      this._words = {};\n    }\n\n    evaluate(input) {\n      const tokens = input.split(/\\s+/).filter(Boolean);\n      let i = 0;\n      while (i < tokens.length) {\n        const token = tokens[i];\n        if (token === ':') {\n          i++;\n          if (i >= tokens.length) throw new Error('Invalid word definition');\n          const name = tokens[i].toLowerCase();\n          if (/^-?\\d+$/.test(name)) throw new Error('Invalid definition');\n          i++;\n          const bodyTokens = [];\n          while (i < tokens.length && tokens[i] !== ';') {\n            bodyTokens.push(tokens[i]);\n            i++;\n          }\n          if (i >= tokens.length) throw new Error('Invalid word definition');\n          this._words[name] = this._compile(bodyTokens);\n          i++;\n        } else {\n          this._execToken(token);\n          i++;\n        }\n      }\n    }\n\n    _compile(tokens) {\n      const ops = [];\n      for (const token of tokens) {\n        const lower = token.toLowerCase();\n        if (/^-?\\d+$/.test(token)) {\n          const n = parseInt(token, 10);\n          ops.push(() => this._stack.push(n));\n        } else if (this._words[lower]) {\n          // Inline user word's compiled body (lexical scoping)\n          ops.push(...this._words[lower]);\n        } else {\n          const op = this._builtinOp(lower);\n          if (!op) throw new Error('Unknown command');\n          ops.push(op);\n        }\n      }\n      return ops;\n    }\n\n    _builtinOp(name) {\n      switch (name) {\n        case '+': return () => {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          this._stack.push(a + b);\n        };\n        case '-': return () => {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          this._stack.push(a - b);\n        };\n        case '*': return () => {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          this._stack.push(a * b);\n        };\n        case '/': return () => {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const b = this._stack.pop();\n          const a = this._stack.pop();\n          if (b === 0) throw new Error('Division by zero');\n          this._stack.push(Math.trunc(a / b));\n        };\n        case 'dup': return () => {\n          if (this._stack.length < 1) throw new Error('Stack empty');\n          this._stack.push(this._stack[this._stack.length - 1]);\n        };\n        case 'drop': return () => {\n          if (this._stack.length < 1) throw new Error('Stack empty');\n          this._stack.pop();\n        };\n        case 'swap': return () => {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          const a = this._stack.pop();\n          const b = this._stack.pop();\n          this._stack.push(a);\n          this._stack.push(b);\n        };\n        case 'over': return () => {\n          if (this._stack.length < 2) throw new Error('Stack empty');\n          this._stack.push(this._stack[this._stack.length - 2]);\n        };\n        default: return null;\n      }\n    }\n\n    _execToken(token) {\n      const lower = token.toLowerCase();\n      if (/^-?\\d+$/.test(token)) {\n        this._stack.push(parseInt(token, 10));\n        return;\n      }\n      if (this._words[lower]) {\n        for (const op of this._words[lower]) op();\n        return;\n      }\n      const op = this._builtinOp(lower);\n      if (op) { op(); return; }\n      throw new Error('Unknown command');\n    }\n\n    get stack() {\n      return [...this._stack];\n    }\n  }\n  return Forth;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_Forth\", \"Forth\", [], _Forth);\n  return main;\n}\n",
+   "durationMs": 223117
+  },
+  {
+   "slug": "go-counting",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 12,
+   "steps2": 5,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 12,
+    "promptTokens": 142437,
+    "completionTokens": 14620,
+    "cachedTokens": 125104,
+    "costUSD": 0.0294135144
+   },
+   "candidate1": "const _GoCounting = function GoCounting(){return(\nclass GoCounting {\n  constructor(board) {\n    this.board = board;\n    this.width = board[0] ? board[0].length : 0;\n    this.height = board.length;\n  }\n\n  getTerritory(x, y) {\n    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {\n      return { owner: 'NONE', territory: [] };\n    }\n    if (this.board[y][x] !== ' ') {\n      return { owner: 'NONE', territory: [] };\n    }\n\n    const visited = new Set();\n    const queue = [[x, y]];\n    visited.add(`${x},${y}`);\n    const territory = [];\n    const bordering = new Set();\n\n    while (queue.length > 0) {\n      const [cx, cy] = queue.shift();\n      territory.push([cx, cy]);\n\n      for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {\n        const nx = cx + dx;\n        const ny = cy + dy;\n        const key = `${nx},${ny}`;\n        if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) continue;\n        if (visited.has(key)) continue;\n        visited.add(key);\n        const cell = this.board[ny][nx];\n        if (cell === ' ') {\n          queue.push([nx, ny]);\n        } else {\n          bordering.add(cell);\n        }\n      }\n    }\n\n    let owner = 'NONE';\n    if (bordering.size === 1) {\n      owner = bordering.has('B') ? 'BLACK' : 'WHITE';\n    }\n\n    return { owner, territory };\n  }\n\n  getTerritories() {\n    const visited = new Set();\n    const result = {\n      territoryBlack: [],\n      territoryWhite: [],\n      territoryNone: []\n    };\n\n    for (let y = 0; y < this.height; y++) {\n      for (let x = 0; x < this.width; x++) {\n        const key = `${x},${y}`;\n        if (this.board[y][x] === ' ' && !visited.has(key)) {\n          const { owner, territory } = this.getTerritory(x, y);\n          for (const [tx, ty] of territory) {\n            visited.add(`${tx},${ty}`);\n          }\n          if (owner === 'BLACK') {\n            result.territoryBlack.push(...territory);\n          } else if (owner === 'WHITE') {\n            result.territoryWhite.push(...territory);\n          } else {\n            result.territoryNone.push(...territory);\n          }\n        }\n      }\n    }\n\n    return result;\n  }\n}\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_GoCounting\", \"GoCounting\", [], _GoCounting);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Go Counting > getTerritory > Black corner territory on 5x5 board\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 2\n  + Received  + 2\n  \n    Object {\n      \"owner\": \"BLACK\",\n      \"territory\": Array [\n        Array [\n          0,\n  -       0,\n  +       1,\n        ],\n        Array [\n  +       0,\n          0,\n  -       1,\n        ],\n        Array [\n          1,\n          0,\n        ],\n      ],\n    }\n  13 |           [1, 0],\n  14 |         ],\n  15 |       };\n> 16 |       expect(goCounting.getTerritory(0, 1)).toEqual(expectedTerritory);\n     |                                             ^\n  17 |     });\n  18 |\n  19 |     xtest('White center territory on 5x5 board', () => {\nFAIL: Go Counting > getTerritory > Open corner territory on 5x5 board\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 4\n  + Received  + 4\n  \n    Object {\n      \"owner\": \"NONE\",\n      \"territory\": Array [\n        Array [\n  -       0,\n  -       3,\n  +       1,\n  +       4,\n        ],\n        Array [\n          0,\n          4,\n        ],\n        Array [\n  -       1,\n  -       4,\n  +       0,\n  +       3,\n        ],\n      ],\n    }\n  34 |           [1, 4],\n  35 |         ],\n  36 |       };\n> 37 |       expect(goCounting.getTerritory(1, 4)).toEqual(expectedTerritory);\n     |                                             ^\n  38 |     });\n  39 |\n  40 |     xtest('A stone and not a territory on 5x5 board', () => {\nFAIL: Go Counting > getTerritory > Invalid because X is too low for 5x5 board\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 1\n  + Received  + 2\n  \n    Object {\n  -   \"error\": \"Invalid coordinate\",\n  +   \"owner\": \"NONE\",\n  +   \"territory\": Array [],\n    }\n  48 |       const board = ['  B  ', ' B B ', 'B W B', ' W W ', '  W  '];\n  49 |       const goCounting = new GoCounting(board);\n  50 |       const expectedTerritory = { error: 'Invalid coordinate' };\n> 51 |       expect(goCounting.getTerritory(-1, 1)).toEqual(expectedTerr",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 5,
+    "promptTokens": 80734,
+    "completionTokens": 3041,
+    "cachedTokens": 70864,
+    "costUSD": 0.01417862
+   },
+   "candidate2": "const _GoCounting = function GoCounting(){return(\nclass GoCounting {\n  constructor(board) {\n    this.board = board;\n    this.width = board[0] ? board[0].length : 0;\n    this.height = board.length;\n  }\n\n  getTerritory(x, y) {\n    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {\n      return { error: 'Invalid coordinate' };\n    }\n    if (this.board[y][x] !== ' ') {\n      return { owner: 'NONE', territory: [] };\n    }\n\n    const visited = new Set();\n    const queue = [[x, y]];\n    visited.add(`${x},${y}`);\n    const territory = [];\n    const bordering = new Set();\n\n    while (queue.length > 0) {\n      const [cx, cy] = queue.shift();\n      territory.push([cx, cy]);\n\n      for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {\n        const nx = cx + dx;\n        const ny = cy + dy;\n        const key = `${nx},${ny}`;\n        if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) continue;\n        if (visited.has(key)) continue;\n        visited.add(key);\n        const cell = this.board[ny][nx];\n        if (cell === ' ') {\n          queue.push([nx, ny]);\n        } else {\n          bordering.add(cell);\n        }\n      }\n    }\n\n    let owner = 'NONE';\n    if (bordering.size === 1) {\n      owner = bordering.has('B') ? 'BLACK' : 'WHITE';\n    }\n\n    territory.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n\n    return { owner, territory };\n  }\n\n  getTerritories() {\n    const visited = new Set();\n    const result = {\n      territoryBlack: [],\n      territoryWhite: [],\n      territoryNone: []\n    };\n\n    for (let y = 0; y < this.height; y++) {\n      for (let x = 0; x < this.width; x++) {\n        const key = `${x},${y}`;\n        if (this.board[y][x] === ' ' && !visited.has(key)) {\n          const { owner, territory } = this.getTerritory(x, y);\n          for (const [tx, ty] of territory) {\n            visited.add(`${tx},${ty}`);\n          }\n          if (owner === 'BLACK') {\n            result.territoryBlack.push(...territory);\n          } else if (owner === 'WHITE') {\n            result.territoryWhite.push(...territory);\n          } else {\n            result.territoryNone.push(...territory);\n          }\n        }\n      }\n    }\n\n    return result;\n  }\n}\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_GoCounting\", \"GoCounting\", [], _GoCounting);\n  return main;\n}\n",
+   "durationMs": 365531
+  },
+  {
+   "slug": "grade-school",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 6,
+   "steps2": 7,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 6,
+    "promptTokens": 57549,
+    "completionTokens": 2605,
+    "cachedTokens": 52288,
+    "costUSD": 0.0047431218
+   },
+   "candidate1": "const _GradeSchool = function GradeSchool(){\n  return class GradeSchool {\n    constructor() {\n      this._roster = {};\n    }\n\n    add(name, grade) {\n      // Check if student already exists in any grade\n      for (const g in this._roster) {\n        if (this._roster[g].includes(name)) {\n          return false;\n        }\n      }\n      if (!this._roster[grade]) {\n        this._roster[grade] = [];\n      }\n      if (this._roster[grade].includes(name)) {\n        return false;\n      }\n      this._roster[grade].push(name);\n      this._roster[grade].sort();\n      return true;\n    }\n\n    grade(num) {\n      if (!this._roster[num]) return [];\n      return [...this._roster[num]];\n    }\n\n    roster() {\n      const result = {};\n      const grades = Object.keys(this._roster).map(Number).sort((a, b) => a - b);\n      for (const g of grades) {\n        result[g] = [...this._roster[g]];\n      }\n      return result;\n    }\n  };\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_GradeSchool\", \"GradeSchool\", [], _GradeSchool);\n  return main;\n}\n",
+   "testOutput1": "FAIL: School > a student can't be in two different grades\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 1\n  + Received  + 3\n  \n  - Array []\n  + Array [\n  +   \"Aimee\",\n  + ]\n  81 |     school.add('Aimee', 2);\n  82 |     school.add('Aimee', 1);\n  83 |\n> 84 |     expect(school.grade(2)).toEqual([]);\n     |                             ^\n  85 |   });\n  86 | });\n  87 |\n\nTests: 1 failed, 0 skipped, 9 passed",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 7,
+    "promptTokens": 105431,
+    "completionTokens": 4100,
+    "cachedTokens": 87744,
+    "costUSD": 0.0115767234
+   },
+   "candidate2": "const _GradeSchool = function GradeSchool(){\n  return class GradeSchool {\n    constructor() {\n      this._roster = {};\n    }\n\n    add(name, grade) {\n      // Check if student already exists in any grade\n      for (const g in this._roster) {\n        const idx = this._roster[g].indexOf(name);\n        if (idx !== -1) {\n          if (Number(g) !== grade) {\n            // Remove student from old grade (can't be in two grades)\n            this._roster[g].splice(idx, 1);\n          }\n          return false;\n        }\n      }\n      if (!this._roster[grade]) {\n        this._roster[grade] = [];\n      }\n      this._roster[grade].push(name);\n      this._roster[grade].sort();\n      return true;\n    }\n\n    grade(num) {\n      if (!this._roster[num]) return [];\n      return [...this._roster[num]];\n    }\n\n    roster() {\n      const result = {};\n      const grades = Object.keys(this._roster).map(Number).sort((a, b) => a - b);\n      for (const g of grades) {\n        result[g] = [...this._roster[g]];\n      }\n      return result;\n    }\n  };\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_GradeSchool\", \"GradeSchool\", [], _GradeSchool);\n  return main;\n}\n",
+   "durationMs": 94711
+  },
+  {
+   "slug": "grep",
+   "pass1": true,
+   "pass2": true,
+   "steps1": 33,
+   "steps2": 0,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 33,
+    "promptTokens": 717193,
+    "completionTokens": 19731,
+    "cachedTokens": 683904,
+    "costUSD": 0.0341087394
+   },
+   "candidate1": "\nconst _script = function script(){return(\n`#!/usr/bin/env node\nconst fs = require('fs');\nconst path = require('path');\n\nfunction readLines(file) {\n  const data = fs.readFileSync(path.resolve(file), { encoding: 'utf-8' });\n  return data.split(new RegExp(String.fromCharCode(92) + 'r?' + String.fromCharCode(92) + 'n'));\n}\n\nconst ARGS = process.argv;\n\nlet flags = [];\nlet pattern = null;\nlet files = [];\n\nconst args = ARGS.slice(2);\n\nlet i = 0;\nwhile (i < args.length && args[i].startsWith('-')) {\n  const flagStr = args[i].slice(1);\n  for (const f of flagStr) {\n    if (!flags.includes(f)) flags.push(f);\n  }\n  i++;\n}\n\nif (i < args.length) {\n  pattern = args[i];\n  i++;\n}\n\nfiles = args.slice(i);\n\nconst caseInsensitive = flags.includes('i');\nconst wholeLine = flags.includes('x');\nconst invert = flags.includes('v');\nconst lineNumbers = flags.includes('n');\nconst fileNamesOnly = flags.includes('l');\nconst multipleFiles = files.length > 1;\n\nfunction matches(line) {\n  let searchStr = pattern;\n  let targetLine = line;\n  if (caseInsensitive) {\n    searchStr = searchStr.toLowerCase();\n    targetLine = targetLine.toLowerCase();\n  }\n  if (wholeLine) {\n    return targetLine === searchStr;\n  }\n  return targetLine.includes(searchStr);\n}\n\nconst output = [];\n\nfor (const file of files) {\n  const lines = readLines(file);\n  let fileHasMatch = false;\n\n  for (let j = 0; j < lines.length; j++) {\n    const line = lines[j];\n    const isMatch = matches(line);\n    const selected = invert ? !isMatch : isMatch;\n\n    if (selected) {\n      fileHasMatch = true;\n      if (fileNamesOnly) break;\n\n      let outputLine = '';\n      if (multipleFiles) outputLine += file + ':';\n      if (lineNumbers) outputLine += (j + 1) + ':';\n      outputLine += line;\n      output.push(outputLine);\n    }\n  }\n\n  if (fileNamesOnly && fileHasMatch) {\n    output.push(file);\n  }\n}\n\nif (output.length > 0) {\n  console.log(output.join(String.fromCharCode(10)));\n}`\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_script\", \"script\", [], _script);\n  return main;\n}\n",
+   "durationMs": 299293
+  },
+  {
+   "slug": "house",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 8,
+   "steps2": 5,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 8,
+    "promptTokens": 92709,
+    "completionTokens": 5132,
+    "cachedTokens": 82368,
+    "costUSD": 0.0092596998
+   },
+   "candidate1": "const _House = function House(){\n  const clauses = [\n    [\"the house that Jack built\", \"\"],\n    [\"the malt\", \"lay in\"],\n    [\"the rat\", \"ate\"],\n    [\"the cat\", \"killed\"],\n    [\"the dog\", \"worried\"],\n    [\"the cow with the crumpled horn\", \"tossed\"],\n    [\"the maiden all forlorn\", \"milked\"],\n    [\"the man all tattered and torn\", \"kissed\"],\n    [\"the priest all shaven and shorn\", \"married\"],\n    [\"the rooster that crowed in the morn\", \"woke\"],\n    [\"the farmer sowing his corn\", \"kept\"],\n    [\"the horse and the hound and the horn\", \"belonged to\"]\n  ];\n\n  class House {\n    static verse(n) {\n      const idx = n - 1;\n      const lines = [`This is ${clauses[idx][0]}`];\n      for (let i = idx; i >= 1; i--) {\n        lines.push(`that ${clauses[i][1]} ${clauses[i - 1][0]}`);\n      }\n      return lines.join(\"\\n\") + \".\";\n    }\n\n    static verses(start, end) {\n      const result = [];\n      for (let i = start; i <= end; i++) {\n        result.push(House.verse(i));\n      }\n      return result.join(\"\\n\\n\");\n    }\n  }\n\n  return House;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_House\", \"House\", [], _House);\n  return main;\n}\n",
+   "testOutput1": "FAIL: House > verse one - the house that jack built\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"This is the house that Jack built.\"]\n  Received: \"This is the house that Jack built.\"\n  3 | describe('House', () => {\n  4 |   test('verse one - the house that jack built', () => {\n  5 |     const lyrics = ['This is the house that Jack built.'];\n> 6 |     expect(House.verse(1)).toEqual(lyrics);\n    |                            ^\n  7 |   });\n  8 |\n  9 |   xtest('verse two - the malt that lay', () => {\nFAIL: House > verse two - the malt that lay\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"This is the malt\", \"that lay in the house that Jack built.\"]\n  Received: \"This is the malt\n  that lay in the house that Jack built.\"\n  11 |       'This is the malt',\n  12 |       'that lay in the house that Jack built.',\n  13 |     ];\n> 14 |     expect(House.verse(2)).toEqual(lyrics);\n     |                            ^\n  15 |   });\n  16 |\n  17 |   xtest('verse three - the rat that ate', () => {\nFAIL: House > verse three - the rat that ate\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"This is the rat\", \"that ate the malt\", \"that lay in the house that Jack built.\"]\n  Received: \"This is the rat\n  that ate the malt\n  that lay in the house that Jack built.\"\n  20 |       'that ate the malt',\n  21 |       'that lay in the house that Jack built.',\n  22 |     ];\n> 23 |     expect(House.verse(3)).toEqual(lyrics);\n     |                            ^\n  24 |   });\n  25 |\n  26 |   xtest('verse four - the cat that killed', () => {\nFAIL: House > verse four - the cat that killed\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [\"This is the cat\", \"that killed the rat\", \"that ate the malt\", \"that lay in the house that Jack built.\"]\n  Received: \"This is the cat\n  that killed the rat\n  that ate the malt\n  that lay in the house that Jack built.\"\n  30 |       'that ate the malt',\n  31 |       'that lay in the hous",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 5,
+    "promptTokens": 103345,
+    "completionTokens": 1649,
+    "cachedTokens": 86592,
+    "costUSD": 0.009033916199999999
+   },
+   "candidate2": "const _House = function House(){\n  const clauses = [\n    [\"the house that Jack built\", \"\"],\n    [\"the malt\", \"lay in\"],\n    [\"the rat\", \"ate\"],\n    [\"the cat\", \"killed\"],\n    [\"the dog\", \"worried\"],\n    [\"the cow with the crumpled horn\", \"tossed\"],\n    [\"the maiden all forlorn\", \"milked\"],\n    [\"the man all tattered and torn\", \"kissed\"],\n    [\"the priest all shaven and shorn\", \"married\"],\n    [\"the rooster that crowed in the morn\", \"woke\"],\n    [\"the farmer sowing his corn\", \"kept\"],\n    [\"the horse and the hound and the horn\", \"belonged to\"]\n  ];\n\n  class House {\n    static verse(n) {\n      const idx = n - 1;\n      const lines = [`This is ${clauses[idx][0]}`];\n      for (let i = idx; i >= 1; i--) {\n        lines.push(`that ${clauses[i][1]} ${clauses[i - 1][0]}`);\n      }\n      lines[lines.length - 1] += \".\";\n      return lines;\n    }\n\n    static verses(start, end) {\n      const result = [];\n      for (let i = start; i <= end; i++) {\n        if (i > start) result.push(\"\");\n        result.push(...House.verse(i));\n      }\n      return result;\n    }\n  }\n\n  return House;\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_House\", \"House\", [], _House);\n  return main;\n}\n",
+   "durationMs": 76877
+  },
+  {
+   "slug": "killer-sudoku-helper",
+   "pass1": false,
+   "pass2": true,
+   "steps1": 7,
+   "steps2": 16,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 7,
+    "promptTokens": 86191,
+    "completionTokens": 2731,
+    "cachedTokens": 76480,
+    "costUSD": 0.006875582999999999
+   },
+   "candidate1": "const _combinations = function combinations(){return(\n  ({ sum, size, cage = [] }) => {\n    const excluded = new Set(cage);\n    const results = [];\n\n    function backtrack(start, current, remaining) {\n      if (current.length === size) {\n        if (remaining === 0) {\n          results.push(current.join(\"\"));\n        }\n        return;\n      }\n      for (let d = start; d <= 9; d++) {\n        if (excluded.has(d)) continue;\n        if (d > remaining) break;\n        current.push(d);\n        backtrack(d + 1, current, remaining - d);\n        current.pop();\n      }\n    }\n\n    backtrack(1, [], sum);\n    return results;\n  }\n)};\nconst _test_1 = function test_1(combinations){return(\n  (() => {\n    const result = combinations({ sum: 7, size: 3 });\n    const expected = [\"124\"];\n    if (JSON.stringify(result) !== JSON.stringify(expected))\n      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(result)}`);\n    return \"✅ sum=7, size=3 → 124\";\n  })()\n)};\nconst _test_2 = function test_2(combinations){return(\n  (() => {\n    const result = combinations({ sum: 10, size: 2 });\n    const expected = [\"19\", \"28\", \"37\", \"46\"];\n    if (JSON.stringify(result) !== JSON.stringify(expected))\n      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(result)}`);\n    return \"✅ sum=10, size=2 → 19,28,37,46\";\n  })()\n)};\nconst _test_3 = function test_3(combinations){return(\n  (() => {\n    const result = combinations({ sum: 10, size: 2, cage: [1, 4] });\n    const expected = [\"28\", \"37\"];\n    if (JSON.stringify(result) !== JSON.stringify(expected))\n      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(result)}`);\n    return \"✅ sum=10, size=2, cage=[1,4] → 28,37\";\n  })()\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_combinations\", \"combinations\", [], _combinations);\n  $def(\"_test_1\", \"test_1\", [\"combinations\"], _test_1);\n  $def(\"_test_2\", \"test_2\", [\"combinations\"], _test_2);\n  $def(\"_test_3\", \"test_3\", [\"combinations\"], _test_3);\n  return main;\n}\n",
+   "testOutput1": "FAIL: Trivial 1-digit cages > 1\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 3\n  + Received  + 1\n  \n    Array [\n  -   Array [\n  -     1,\n  -   ],\n  +   \"1\",\n    ]\n   9 |     };\n  10 |     const expected = [[1]];\n  11 |     const actual = combinations(inputCage);\n> 12 |     expect(actual).toEqual(expected);\n     |                    ^\n  13 |   });\n  14 |\n  15 |   xtest('2', () => {\nFAIL: Trivial 1-digit cages > 2\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 3\n  + Received  + 1\n  \n    Array [\n  -   Array [\n  -     2,\n  -   ],\n  +   \"2\",\n    ]\n  20 |     };\n  21 |     const expected = [[2]];\n  22 |     const actual = combinations(inputCage);\n> 23 |     expect(actual).toEqual(expected);\n     |                    ^\n  24 |   });\n  25 |\n  26 |   xtest('3', () => {\nFAIL: Trivial 1-digit cages > 3\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 3\n  + Received  + 1\n  \n    Array [\n  -   Array [\n  -     3,\n  -   ],\n  +   \"3\",\n    ]\n  31 |     };\n  32 |     const expected = [[3]];\n  33 |     const actual = combinations(inputCage);\n> 34 |     expect(actual).toEqual(expected);\n     |                    ^\n  35 |   });\n  36 |\n  37 |   xtest('4', () => {\nFAIL: Trivial 1-digit cages > 4\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 3\n  + Received  + 1\n  \n    Array [\n  -   Array [\n  -     4,\n  -   ],\n  +   \"4\",\n    ]\n  42 |     };\n  43 |     const expected = [[4]];\n  44 |     const actual = combinations(inputCage);\n> 45 |     expect(actual).toEqual(expected);\n     |                    ^\n  46 |   });\n  47 |\n  48 |   xtest('5', () => {\nFAIL: Trivial 1-digit cages > 5\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 3\n  + Received  + 1\n  \n    Array [\n  -   Array [\n  -     5,\n  -   ],\n  +   \"5\",\n    ]\n  53 |     };\n  54 |     const expected = [[5]];\n  55 |     const actual = combinations(inputCage);\n> 56 |     expect(actual).toEqual(expected);\n     |          ",
+   "repairMode": "warm-resume",
+   "specCarried": false,
+   "runError2": null,
+   "usage2": {
+    "calls": 16,
+    "promptTokens": 574388,
+    "completionTokens": 22624,
+    "cachedTokens": 533504,
+    "costUSD": 0.0393880344
+   },
+   "candidate2": "const _combinations = function combinations(){return(\n  ({ sum, size, cage = [], exclude = [] }) => {\n    const excluded = new Set([...cage, ...exclude]);\n    const results = [];\n\n    function backtrack(start, current, remaining) {\n      if (current.length === size) {\n        if (remaining === 0) {\n          results.push([...current]);\n        }\n        return;\n      }\n      for (let d = start; d <= 9; d++) {\n        if (excluded.has(d)) continue;\n        if (d > remaining) break;\n        current.push(d);\n        backtrack(d + 1, current, remaining - d);\n        current.pop();\n      }\n    }\n\n    backtrack(1, [], sum);\n    return results;\n  }\n)};\nconst _test_1 = function test_1(combinations){return(\n  (() => {\n    const result = combinations({ sum: 7, size: 3 });\n    const expected = [[1, 2, 4]];\n    if (JSON.stringify(result) !== JSON.stringify(expected))\n      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(result)}`);\n    return \"✅ sum=7, size=3 → [[1,2,4]]\";\n  })()\n)};\nconst _test_2 = function test_2(combinations){return(\n  (() => {\n    const result = combinations({ sum: 10, size: 2 });\n    const expected = [[1, 9], [2, 8], [3, 7], [4, 6]];\n    if (JSON.stringify(result) !== JSON.stringify(expected))\n      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(result)}`);\n    return \"✅ sum=10, size=2 → [[1,9],[2,8],[3,7],[4,6]]\";\n  })()\n)};\nconst _test_3 = function test_3(combinations){return(\n  (() => {\n    const result = combinations({ sum: 10, size: 2, cage: [1, 4] });\n    const expected = [[2, 8], [3, 7]];\n    if (JSON.stringify(result) !== JSON.stringify(expected))\n      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(result)}`);\n    return \"✅ sum=10, size=2, cage=[1,4] → [[2,8],[3,7]]\";\n  })()\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_combinations\", \"combinations\", [], _combinations);\n  $def(\"_test_1\", \"test_1\", [\"combinations\"], _test_1);\n  $def(\"_test_2\", \"test_2\", [\"combinations\"], _test_2);\n  $def(\"_test_3\", \"test_3\", [\"combinations\"], _test_3);\n  return main;\n}\n",
+   "durationMs": 310013
+  },
+  {
+   "slug": "ledger",
+   "pass1": true,
+   "pass2": true,
+   "steps1": 21,
+   "steps2": 0,
+   "error": null,
+   "runError1": null,
+   "usage1": {
+    "calls": 21,
+    "promptTokens": 363704,
+    "completionTokens": 11966,
+    "cachedTokens": 340864,
+    "costUSD": 0.021572930399999996
+   },
+   "candidate1": "const _formatDate = function formatDate() {\n  return function formatDate(date, locale) {\n    const month = (date.getMonth() + 1).toString().padStart(2, '0');\n    const day = date.getDate().toString().padStart(2, '0');\n    const year = date.getFullYear();\n    if (locale === 'nl-NL') return `${day}-${month}-${year}`;\n    return `${month}/${day}/${year}`;\n  };\n};\n\nconst _formatDescription = function formatDescription() {\n  return function formatDescription(desc) {\n    if (desc.length > 25) return `${desc.substring(0, 22)}...`;\n    return desc.padEnd(25, ' ');\n  };\n};\n\nconst _formatChange = function formatChange() {\n  return function formatChange(change, currency, locale) {\n    const amount = change / 100;\n    const options = {\n      style: 'currency',\n      currency,\n      minimumFractionDigits: 2,\n      maximumFractionDigits: 2,\n    };\n    if (locale === 'nl-NL') {\n      options.currencyDisplay = 'narrowSymbol';\n      return `${amount.toLocaleString('nl-NL', options)} `;\n    }\n    if (change < 0) return `(${Math.abs(amount).toLocaleString('en-US', options)})`;\n    return `${amount.toLocaleString('en-US', options)} `;\n  };\n};\n\nconst _getHeader = function getHeader() {\n  return function getHeader(locale) {\n    if (locale === 'nl-NL') return 'Datum'.padEnd(10, ' ') + ' | ' + 'Omschrijving'.padEnd(25, ' ') + ' | ' + 'Verandering'.padEnd(13, ' ');\n    return 'Date'.padEnd(10, ' ') + ' | ' + 'Description'.padEnd(25, ' ') + ' | ' + 'Change'.padEnd(13, ' ');\n  };\n};\n\nconst _sortEntries = function sortEntries() {\n  return function sortEntries(entries) {\n    return [...entries].sort(\n      (a, b) =>\n        a.date - b.date ||\n        a.change - b.change ||\n        a.description.localeCompare(b.description),\n    );\n  };\n};\n\nconst _createEntry = function createEntry() {\n  return function createEntry(date, description, change) {\n    return { date: new Date(date), description, change };\n  };\n};\n\nconst _formatEntries = function formatEntries(formatDate, formatDescription, formatChange, getHeader, sortEntries) {\n  return function formatEntries(currency, locale, entries) {\n    const sorted = sortEntries(entries);\n    const lines = [getHeader(locale)];\n    for (const entry of sorted) {\n      lines.push(`${formatDate(entry.date, locale)} | ${formatDescription(entry.description)} | ${formatChange(entry.change, currency, locale).padStart(13, ' ')}`);\n    }\n    return lines.join('\\n');\n  };\n};\n\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;\n  $def(\"_formatDate\", \"formatDate\", [], _formatDate);\n  $def(\"_formatDescription\", \"formatDescription\", [], _formatDescription);\n  $def(\"_formatChange\", \"formatChange\", [], _formatChange);\n  $def(\"_getHeader\", \"getHeader\", [], _getHeader);\n  $def(\"_sortEntries\", \"sortEntries\", [], _sortEntries);\n  $def(\"_createEntry\", \"createEntry\", [], _createEntry);\n  $def(\"_formatEntries\", \"formatEntries\", [\"formatDate\", \"formatDescription\", \"formatChange\", \"getHeader\", \"sortEntries\"], _formatEntries);\n  return main;\n}\n",
+   "durationMs": 144991
+  }
+ ]
+}

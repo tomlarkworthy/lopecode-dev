@@ -1,0 +1,119 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 115
+PASS  task 0  steps=11 (103s)
+PASS  task 1  steps=9 (111s)
+PASS  task 2  steps=14 (51s)
+PASS  task 3  steps=14 (154s)
+PASS  task 4  steps=15 (145s)
+FAIL  task 5  steps=10 (159s)  r_actions=false r_outputs=true
+PASS  task 6  steps=11 (132s)
+PASS  task 7  steps=9 (79s)
+PASS  task 8  steps=14 (135s)
+PASS  task 9  steps=11 (130s)
+PASS  task 10  steps=8 (80s)
+PASS  task 11  steps=12 (108s)
+PASS  task 12  steps=12 (126s)
+PASS  task 13  steps=10 (60s)
+PASS  task 15  steps=10 (55s)
+PASS  task 14  steps=10 (107s)
+PASS  task 17  steps=6 (59s)
+PASS  task 16  steps=17 (116s)
+FAIL  task 18  steps=12 (103s)  r_actions=false r_outputs=true
+PASS  task 19  steps=9 (141s)
+PASS  task 21  steps=15 (200s)
+FAIL  task 20  steps=25 (293s)  r_actions=false r_outputs=true
+PASS  task 22  steps=16 (137s)
+PASS  task 24  steps=9 (58s)
+PASS  task 25  steps=8 (49s)
+PASS  task 23  steps=26 (260s)
+PASS  task 26  steps=9 (77s)
+PASS  task 27  steps=15 (139s)
+PASS  task 29  steps=14 (121s)
+PASS  task 28  steps=13 (245s)
+PASS  task 30  steps=22 (203s)
+PASS  task 31  steps=28 (282s)
+PASS  task 32  steps=22 (181s)
+PASS  task 33  steps=12 (102s)
+FAIL  task 34  steps=11 (148s)  r_actions=true r_outputs=false
+PASS  task 35  steps=15 (204s)
+PASS  task 37  steps=17 (182s)
+FAIL  task 36  steps=- (336s)  err=empty streamed completion
+FAIL  task 38  steps=18 (233s)  r_actions=false r_outputs=true
+FAIL  task 39  steps=10 (219s)  r_actions=false r_outputs=true
+PASS  task 40  steps=8 (215s)
+PASS  task 41  steps=13 (260s)
+PASS  task 42  steps=19 (176s)
+PASS  task 44  steps=11 (133s)
+PASS  task 45  steps=11 (237s)
+PASS  task 43  steps=11 (499s)
+PASS  task 47  steps=11 (323s)
+FAIL  task 48  steps=- (1681s)  err=fetch failed
+FAIL  task 46  steps=- (2061s)  err=fetch failed
+PASS  task 49  steps=15 (521s)
+PASS  task 51  steps=10 (65s)
+PASS  task 50  steps=19 (669s)
+PASS  task 52  steps=11 (246s)
+PASS  task 53  steps=16 (199s)
+FAIL  task 54  steps=15 (209s)  r_actions=false r_outputs=true
+PASS  task 55  steps=19 (253s)
+PASS  task 56  steps=12 (112s)
+PASS  task 57  steps=7 (89s)
+PASS  task 59  steps=8 (86s)
+PASS  task 58  steps=16 (172s)
+PASS  task 60  steps=7 (93s)
+PASS  task 61  steps=8 (117s)
+FAIL  task 63  steps=- (243s)  err=fetch failed
+FAIL  task 62  steps=13 (376s)  r_actions=false r_outputs=true
+FAIL  task 64  steps=11 (162s)  r_actions=false r_outputs=true
+PASS  task 65  steps=9 (99s)
+PASS  task 66  steps=12 (178s)
+PASS  task 67  steps=10 (171s)
+PASS  task 68  steps=9 (109s)
+PASS  task 69  steps=12 (103s)
+PASS  task 70  steps=12 (90s)
+PASS  task 71  steps=14 (202s)
+PASS  task 73  steps=7 (69s)
+FAIL  task 72  steps=16 (241s)  r_actions=false r_outputs=true
+PASS  task 75  steps=8 (88s)
+FAIL  task 74  steps=15 (169s)  r_actions=false r_outputs=true
+PASS  task 77  steps=7 (65s)
+PASS  task 76  steps=23 (221s)
+FAIL  task 78  steps=12 (172s)  r_actions=false r_outputs=true
+FAIL  task 79  steps=12 (197s)  r_actions=false r_outputs=true
+PASS  task 80  steps=12 (186s)
+PASS  task 81  steps=12 (113s)
+PASS  task 83  steps=12 (116s)
+PASS  task 82  steps=16 (277s)
+PASS  task 84  steps=11 (110s)
+PASS  task 85  steps=14 (105s)
+PASS  task 86  steps=15 (91s)
+PASS  task 88  steps=11 (176s)
+PASS  task 87  steps=19 (239s)
+PASS  task 89  steps=10 (101s)
+PASS  task 90  steps=11 (116s)
+PASS  task 92  steps=10 (102s)
+FAIL  task 91  steps=14 (208s)  r_actions=false r_outputs=true
+PASS  task 94  steps=10 (125s)
+FAIL  task 93  steps=11 (178s)  r_actions=false r_outputs=true
+FAIL  task 95  steps=8 (97s)  r_actions=false r_outputs=true
+PASS  task 97  steps=12 (144s)
+FAIL  task 96  steps=- (268s)  err=no content and no tool calls
+FAIL  task 99  steps=- (178s)  err=fetch failed
+FAIL  task 98  steps=12 (303s)  r_actions=false r_outputs=true
+PASS  task 100  steps=14 (281s)
+FAIL  task 101  steps=- (497s)  err=terminated
+PASS  task 103  steps=17 (171s)
+PASS  task 102  steps=24 (692s)
+PASS  task 104  steps=23 (218s)
+FAIL  task 106  steps=10 (251s)  r_actions=false r_outputs=true
+FAIL  task 105  steps=27 (288s)  r_actions=false r_outputs=true
+PASS  task 107  steps=11 (126s)
+FAIL  task 108  steps=13 (113s)  r_actions=false r_outputs=true
+FAIL  task 109  steps=7 (59s)  r_actions=false r_outputs=true
+PASS  task 110  steps=12 (143s)
+PASS  task 111  steps=14 (159s)
+FAIL  task 112  steps=- (177s)  err=fetch failed
+PASS  task 114  steps=10 (148s)
+PASS  task 113  steps=20 (418s)
+
+pass@1: 86/115 = 0.748
+wrote results/baseline-full.json

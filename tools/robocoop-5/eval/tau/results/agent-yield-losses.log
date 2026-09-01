@@ -1,0 +1,20 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 16  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+PASS  task 7  steps=29 (249s)
+PASS  task 9  steps=18 (165s)
+PASS  task 10  steps=18 (142s)
+FAIL  task 28  steps=33 (231s)  r_actions=false r_outputs=true
+PASS  task 32  steps=38 (277s)
+FAIL  task 41  steps=21 (245s)  r_actions=false r_outputs=true
+PASS  task 49  steps=21 (241s)
+PASS  task 55  steps=33 (294s)
+PASS  task 69  steps=17 (134s)
+FAIL  task 71  steps=17 (189s)  r_actions=false r_outputs=true
+PASS  task 87  steps=18 (129s)
+FAIL  task 88  steps=- (1323s)  err=task deadline exceeded
+PASS  task 89  steps=15 (132s)
+PASS  task 90  steps=20 (171s)
+PASS  task 100  steps=26 (327s)
+PASS  task 102  steps=41 (341s)
+
+pass@1: 12/16 = 0.750
+wrote results/agent-yield-losses.json

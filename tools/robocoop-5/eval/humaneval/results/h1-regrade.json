@@ -1,0 +1,2601 @@
+{
+ "grader": "whole-program-first, 5s timeout",
+ "summary": {
+  "baseline": {
+   "total": 161,
+   "oldPass": 150,
+   "newPass": 153,
+   "rescued": [
+    "HumanEval_10_make_palindrome",
+    "HumanEval_129_minPath",
+    "HumanEval_162_string_to_md5"
+   ],
+   "broken": []
+  },
+  "agent": {
+   "total": 161,
+   "oldPass": 155,
+   "newPass": 155,
+   "rescued": [],
+   "broken": []
+  }
+ },
+ "rows": [
+  {
+   "slug": "HumanEval_0_has_close_elements",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_1_separate_paren_groups",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_2_truncate_number",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_3_below_zero",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_4_mean_absolute_deviation",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_5_intersperse",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_6_parse_nested_parens",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_7_filter_by_substring",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_8_sum_product",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_9_rolling_max",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_10_make_palindrome",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_11_string_xor",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_12_longest",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_13_greatest_common_divisor",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_14_all_prefixes",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_15_string_sequence",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_16_count_distinct_characters",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_17_parse_music",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_18_how_many_times",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_19_sort_numbers",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_20_find_closest_elements",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_21_rescale_to_unit",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_22_filter_integers",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_23_strlen",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_24_largest_divisor",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_25_factorize",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_26_remove_duplicates",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_27_flip_case",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_28_concatenate",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_29_filter_by_prefix",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_30_get_positive",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_31_is_prime",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_33_sort_third",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_34_unique",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_35_max_element",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_36_fizz_buzz",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_37_sort_even",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_39_prime_fib",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_40_triples_sum_to_zero",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_41_car_race_collision",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_42_incr_list",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_43_pairs_sum_to_zero",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_44_change_base",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_45_triangle_area",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_46_fib4",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_47_median",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_48_is_palindrome",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_49_modp",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_51_remove_vowels",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_52_below_threshold",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_53_add",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_54_same_chars",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_55_fib",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_56_correct_bracketing",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_57_monotonic",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_58_common",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_59_largest_prime_factor",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_60_sum_to_n",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_61_correct_bracketing",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_62_derivative",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_63_fibfib",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_64_vowels_count",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_65_circular_shift",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_66_digitSum",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_67_fruit_distribution",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_68_pluck",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_69_search",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_70_strange_sort_list",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_71_triangle_area",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_72_will_it_fly",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_73_smallest_change",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_74_total_match",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_75_is_multiply_prime",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_76_is_simple_power",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_77_iscube",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_78_hex_key",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_79_decimal_to_binary",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_80_is_happy",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_81_numerical_letter_grade",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_82_prime_length",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_83_starts_one_ends",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_84_solve",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_85_add",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_86_anti_shuffle",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_87_get_row",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_88_sort_array",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_89_encrypt",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_90_next_smallest",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_91_is_bored",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_92_any_int",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_93_encode",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_94_skjkasdkd",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_95_check_dict_case",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_96_count_up_to",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_97_multiply",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_98_count_upper",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_99_closest_integer",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_100_make_a_pile",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_101_words_string",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_102_choose_num",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_103_rounded_avg",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_104_unique_digits",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_105_by_length",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_106_f",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_107_even_odd_palindrome",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_108_count_nums",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_109_move_one_ball",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_110_exchange",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_111_histogram",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_112_reverse_delete",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_113_odd_count",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_114_minSubArraySum",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_115_max_fill",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_116_sort_array",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_117_select_words",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_118_get_closest_vowel",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_119_match_parens",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_120_maximum",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_121_solution",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_122_add_elements",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_123_get_odd_collatz",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_124_valid_date",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_125_split_words",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_126_is_sorted",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_127_intersection",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_128_prod_signs",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_129_minPath",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_130_tri",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_131_digits",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_132_is_nested",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_133_sum_squares",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_134_check_if_last_char_is_a_letter",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_135_can_arrange",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_136_largest_smallest_integers",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_137_compare_one",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_138_is_equal_to_sum_even",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_139_special_factorial",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_140_fix_spaces",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_141_file_name_check",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_142_sum_squares",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_143_words_in_sentence",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_144_simplify",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_145_order_by_points",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_146_specialFilter",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_147_get_max_triples",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_148_bf",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_149_sorted_list_sum",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_150_x_or_y",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_151_double_the_difference",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_152_compare",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_153_Strongest_Extension",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_154_cycpattern_check",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_155_even_odd_count",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_156_int_to_mini_roman",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_157_right_angle_triangle",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_158_find_max",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_159_eat",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_160_do_algebra",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": false,
+   "via": "whole-program",
+   "error": "node:assert:149"
+  },
+  {
+   "slug": "HumanEval_161_solve",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_162_string_to_md5",
+   "arm": "baseline",
+   "oldPass": false,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_163_generate_integers",
+   "arm": "baseline",
+   "oldPass": true,
+   "newPass": true,
+   "via": "whole-program",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_0_has_close_elements",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_1_separate_paren_groups",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_2_truncate_number",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_3_below_zero",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_4_mean_absolute_deviation",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_5_intersperse",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_6_parse_nested_parens",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_7_filter_by_substring",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_8_sum_product",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_9_rolling_max",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_10_make_palindrome",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_11_string_xor",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_12_longest",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_13_greatest_common_divisor",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_14_all_prefixes",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_15_string_sequence",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_16_count_distinct_characters",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_17_parse_music",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_18_how_many_times",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_19_sort_numbers",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_20_find_closest_elements",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_21_rescale_to_unit",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_22_filter_integers",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_23_strlen",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_24_largest_divisor",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_25_factorize",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_26_remove_duplicates",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_27_flip_case",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_28_concatenate",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_29_filter_by_prefix",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_30_get_positive",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_31_is_prime",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_33_sort_third",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_34_unique",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_35_max_element",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_36_fizz_buzz",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_37_sort_even",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_39_prime_fib",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_40_triples_sum_to_zero",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_41_car_race_collision",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_42_incr_list",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_43_pairs_sum_to_zero",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_44_change_base",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_45_triangle_area",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_46_fib4",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_47_median",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_48_is_palindrome",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_49_modp",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_51_remove_vowels",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_52_below_threshold",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_53_add",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_54_same_chars",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_55_fib",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_56_correct_bracketing",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_57_monotonic",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_58_common",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_59_largest_prime_factor",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_60_sum_to_n",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_61_correct_bracketing",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_62_derivative",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_63_fibfib",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_64_vowels_count",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_65_circular_shift",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_66_digitSum",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_67_fruit_distribution",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_68_pluck",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_69_search",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_70_strange_sort_list",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_71_triangle_area",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_72_will_it_fly",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_73_smallest_change",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_74_total_match",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_75_is_multiply_prime",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_76_is_simple_power",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_77_iscube",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_78_hex_key",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_79_decimal_to_binary",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_80_is_happy",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_81_numerical_letter_grade",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_82_prime_length",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_83_starts_one_ends",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_84_solve",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_85_add",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_86_anti_shuffle",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_87_get_row",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_88_sort_array",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_89_encrypt",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_90_next_smallest",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_91_is_bored",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_92_any_int",
+   "arm": "agent",
+   "oldPass": false,
+   "newPass": false,
+   "via": "emulator",
+   "error": "AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:"
+  },
+  {
+   "slug": "HumanEval_93_encode",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_94_skjkasdkd",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_95_check_dict_case",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_96_count_up_to",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_97_multiply",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_98_count_upper",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_99_closest_integer",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_100_make_a_pile",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_101_words_string",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_102_choose_num",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_103_rounded_avg",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_104_unique_digits",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_105_by_length",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_106_f",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_107_even_odd_palindrome",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_108_count_nums",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_109_move_one_ball",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_110_exchange",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_111_histogram",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_112_reverse_delete",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_113_odd_count",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_114_minSubArraySum",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_115_max_fill",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_116_sort_array",
+   "arm": "agent",
+   "oldPass": false,
+   "newPass": false,
+   "via": "emulator",
+   "error": "AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:"
+  },
+  {
+   "slug": "HumanEval_117_select_words",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_118_get_closest_vowel",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_119_match_parens",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_120_maximum",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_121_solution",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_122_add_elements",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_123_get_odd_collatz",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_124_valid_date",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_125_split_words",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_126_is_sorted",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_127_intersection",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_128_prod_signs",
+   "arm": "agent",
+   "oldPass": false,
+   "newPass": false,
+   "via": "emulator",
+   "error": "AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:"
+  },
+  {
+   "slug": "HumanEval_129_minPath",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_130_tri",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_131_digits",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_132_is_nested",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_133_sum_squares",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_134_check_if_last_char_is_a_letter",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_135_can_arrange",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_136_largest_smallest_integers",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_137_compare_one",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_138_is_equal_to_sum_even",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_139_special_factorial",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_140_fix_spaces",
+   "arm": "agent",
+   "oldPass": false,
+   "newPass": false,
+   "via": "emulator",
+   "error": "AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:"
+  },
+  {
+   "slug": "HumanEval_141_file_name_check",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_142_sum_squares",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_143_words_in_sentence",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_144_simplify",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_145_order_by_points",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_146_specialFilter",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_147_get_max_triples",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_148_bf",
+   "arm": "agent",
+   "oldPass": false,
+   "newPass": false,
+   "via": "emulator",
+   "error": "AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:"
+  },
+  {
+   "slug": "HumanEval_149_sorted_list_sum",
+   "arm": "agent",
+   "oldPass": false,
+   "newPass": false,
+   "via": "emulator",
+   "error": "AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:"
+  },
+  {
+   "slug": "HumanEval_150_x_or_y",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_151_double_the_difference",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_152_compare",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_153_Strongest_Extension",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_154_cycpattern_check",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_155_even_odd_count",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_156_int_to_mini_roman",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_157_right_angle_triangle",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_158_find_max",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_159_eat",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_160_do_algebra",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_161_solve",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_162_string_to_md5",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  },
+  {
+   "slug": "HumanEval_163_generate_integers",
+   "arm": "agent",
+   "oldPass": true,
+   "newPass": true,
+   "via": "emulator",
+   "error": null
+  }
+ ]
+}

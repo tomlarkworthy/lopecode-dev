@@ -1,0 +1,18 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 13  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+PASS  task 63  steps=41 (356s)
+FAIL  task 71  steps=57 (752s)  r_actions=false r_outputs=true
+FAIL  task 72  steps=33 (284s)  r_actions=false r_outputs=true
+FAIL  task 78  steps=- (1083s)  err=page.evaluate: TypeError: network error
+PASS  task 80  steps=26 (357s)
+PASS  task 86  steps=29 (376s)
+PASS  task 92  steps=25 (234s)
+PASS  task 95  steps=34 (454s)
+FAIL  task 103  steps=- (990s)  err=task deadline exceeded
+FAIL  task 104  steps=- (198s)  err=page.evaluate: TypeError: network error
+FAIL  task 105  steps=- (857s)  err=page.evaluate: Error: session.send timed out after 240000ms
+    at eval (eval at evaluate (:290:30), <anonymous>:15:66)
+PASS  task 107  steps=23 (358s)
+PASS  task 111  steps=26 (379s)
+
+pass@1: 7/13 = 0.538
+wrote results/agent-retry2b.json

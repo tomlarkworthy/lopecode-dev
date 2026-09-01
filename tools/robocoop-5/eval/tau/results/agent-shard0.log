@@ -1,0 +1,75 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 58  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+PASS  task 0  steps=23 (164s)
+PASS  task 1  steps=37 (219s)
+PASS  task 2  steps=41 (173s)
+PASS  task 3  steps=28 (147s)
+FAIL  task 4  steps=- (127s)  err=page.evaluate: TypeError: network error
+FAIL  task 5  steps=- (66s)  err=fetch failed
+PASS  task 6  steps=21 (177s)
+FAIL  task 7  steps=25 (187s)  r_actions=false r_outputs=true
+PASS  task 8  steps=30 (271s)
+FAIL  task 9  steps=85 (510s)  r_actions=false r_outputs=true
+FAIL  task 10  steps=26 (210s)  r_actions=false r_outputs=true
+PASS  task 11  steps=18 (131s)
+PASS  task 12  steps=19 (140s)
+PASS  task 13  steps=31 (318s)
+FAIL  task 14  steps=- (112s)  err=fetch failed
+FAIL  task 15  steps=- (489s)  err=page.evaluate: TypeError: network error
+FAIL  task 16  steps=- (1037s)  err=The operation was aborted due to timeout
+FAIL  task 17  steps=- (371s)  err=fetch failed
+FAIL  task 18  steps=37 (550s)  r_actions=false r_outputs=true
+FAIL  task 19  steps=- (156s)  err=page.evaluate: TypeError: network error
+FAIL  task 20  steps=- (90s)  err=page.evaluate: TypeError: network error
+PASS  task 21  steps=43 (413s)
+FAIL  task 22  steps=- (164s)  err=page.evaluate: TypeError: network error
+FAIL  task 23  steps=- (200s)  err=page.evaluate: TypeError: network error
+FAIL  task 24  steps=- (283s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+PASS  task 25  steps=21 (205s)
+PASS  task 26  steps=23 (143s)
+PASS  task 27  steps=19 (176s)
+FAIL  task 28  steps=- (326s)  err=page.evaluate: Error: session.send timed out after 240000ms
+    at eval (eval at evaluate (:290:30), <anonymous>:15:66)
+PASS  task 29  steps=33 (243s)
+FAIL  task 30  steps=- (395s)  err=page.evaluate: TypeError: network error
+PASS  task 31  steps=40 (485s)
+FAIL  task 32  steps=34 (282s)  r_actions=false r_outputs=true
+FAIL  task 33  steps=- (186s)  err=page.evaluate: TypeError: network error
+FAIL  task 34  steps=- (71s)  err=page.evaluate: TypeError: network error
+PASS  task 35  steps=35 (436s)
+FAIL  task 36  steps=- (152s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+PASS  task 37  steps=35 (346s)
+FAIL  task 38  steps=65 (455s)  r_actions=false r_outputs=true
+FAIL  task 39  steps=23 (186s)  r_actions=false r_outputs=true
+FAIL  task 40  steps=- (31s)  err=page.evaluate: TypeError: network error
+FAIL  task 41  steps=- (90s)  err=terminated
+PASS  task 42  steps=40 (473s)
+PASS  task 43  steps=50 (335s)
+PASS  task 44  steps=27 (214s)
+PASS  task 45  steps=33 (273s)
+FAIL  task 46  steps=- (242s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+FAIL  task 47  steps=- (186s)  err=page.evaluate: TypeError: Failed to fetch
+    at globalThis.fetch (file:///Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html:261:14)
+    at Object.chat (file://@tomlarkworthy/robocoop-5-core:176:29)
+    at async Object.send (file://@toml
+FAIL  task 48  steps=- (99s)  err=page.evaluate: TypeError: network error
+FAIL  task 49  steps=- (15s)  err=page.evaluate: TypeError: network error
+PASS  task 50  steps=93 (735s)
+FAIL  task 51  steps=- (111s)  err=page.evaluate: TypeError: network error
+PASS  task 52  steps=19 (239s)
+PASS  task 53  steps=42 (262s)
+PASS  task 54  steps=36 (313s)
+FAIL  task 55  steps=- (153s)  err=page.evaluate: TypeError: network error
+PASS  task 56  steps=28 (305s)
+PASS  task 57  steps=23 (195s)
+
+pass@1: 27/58 = 0.466
+wrote results/agent-shard0.json

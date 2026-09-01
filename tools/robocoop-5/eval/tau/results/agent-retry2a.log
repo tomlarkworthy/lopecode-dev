@@ -1,0 +1,14 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 10  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+FAIL  task 5  steps=89 (596s)  r_actions=false r_outputs=true
+PASS  task 14  steps=21 (233s)
+PASS  task 17  steps=44 (284s)
+FAIL  task 22  steps=- (1464s)  err=task deadline exceeded
+PASS  task 36  steps=45 (494s)
+FAIL  task 41  steps=25 (235s)  r_actions=false r_outputs=true
+PASS  task 46  steps=31 (384s)
+FAIL  task 49  steps=26 (256s)  r_actions=false r_outputs=true
+PASS  task 51  steps=15 (137s)
+FAIL  task 55  steps=39 (532s)  r_actions=false r_outputs=true
+
+pass@1: 5/10 = 0.500
+wrote results/agent-retry2a.json

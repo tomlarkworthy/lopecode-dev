@@ -1,0 +1,1034 @@
+{
+ "arm": "baseline",
+ "model": "xiaomi/mimo-v2.5-pro",
+ "stamp": {
+  "stampVersion": 1,
+  "notebookPath": null,
+  "coreModuleHashes": null,
+  "runnerHash": "91daa729586f",
+  "problemsJsonHash": "0184c1046234",
+  "graderHash": "f5993b70a0b8"
+ },
+ "offset": 0,
+ "limit": 49,
+ "pass1": 14,
+ "pass2": 41,
+ "total": 49,
+ "results": [
+  {
+   "slug": "affine-cipher",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1039,
+    "completionTokens": 654,
+    "cachedTokens": 0,
+    "costUSD": 0.00112712328,
+    "calls": 1
+   },
+   "candidate1": "const M = 26;\n\nfunction gcd(a, b) {\n  while (b !== 0) {\n    [a, b] = [b, a % b];\n  }\n  return a;\n}\n\nfunction modInverse(a, m) {\n  let [old_r, r] = [a, m];\n  let [old_s, s] = [1, 0];\n  while (r !== 0) {\n    const q = Math.floor(old_r / r);\n    [old_r, r] = [r, old_r - q * r];\n    [old_s, s] = [s, old_s - q * s];\n  }\n  return ((old_s % m) + m) % m;\n}\n\nfunction validateKey(a) {\n  if (gcd(a, M) !== 1) {\n    throw new Error('Error: keyA and alphabet size must be coprime.');\n  }\n}\n\nexport const encode = (phrase, key) => {\n  const { a, b } = key;\n  validateKey(a);\n\n  const cleaned = phrase.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let result = '';\n\n  for (const ch of cleaned) {\n    if (ch >= '0' && ch <= '9') {\n      result += ch;\n    } else {\n      const i = ch.charCodeAt(0) - 97;\n      const encoded = (a * i + b) % M;\n      result += String.fromCharCode(encoded + 97);\n    }\n  }\n\n  // Group into blocks of 5\n  const groups = [];\n  for (let i = 0; i < result.length; i += 5) {\n    groups.push(result.slice(i, i + 5));\n  }\n  return groups.join(' ');\n};\n\nexport const decode = (phrase, key) => {\n  const { a, b } = key;\n  validateKey(a);\n\n  const mmi = modInverse(a, M);\n  const cleaned = phrase.replace(/\\s/g, '');\n  let result = '';\n\n  for (const ch of cleaned) {\n    if (ch >= '0' && ch <= '9') {\n      result += ch;\n    } else {\n      const y = ch.charCodeAt(0) - 97;\n      const decoded = ((mmi * ((y - b) % M + M)) % M);\n      result += String.fromCharCode(decoded + 97);\n    }\n  }\n\n  return result;\n};\n",
+   "usage2": {
+    "promptTokens": 2461,
+    "completionTokens": 537,
+    "cachedTokens": 1024,
+    "costUSD": 0.001209933584,
+    "calls": 1
+   },
+   "candidate2": "const M = 26;\n\nfunction gcd(a, b) {\n  while (b !== 0) {\n    [a, b] = [b, a % b];\n  }\n  return a;\n}\n\nfunction modInverse(a, m) {\n  let [old_r, r] = [a, m];\n  let [old_s, s] = [1, 0];\n  while (r !== 0) {\n    const q = Math.floor(old_r / r);\n    [old_r, r] = [r, old_r - q * r];\n    [old_s, s] = [s, old_s - q * s];\n  }\n  return ((old_s % m) + m) % m;\n}\n\nfunction validateKey(a) {\n  if (gcd(a, M) !== 1) {\n    throw new Error('a and m must be coprime.');\n  }\n}\n\nexport const encode = (phrase, key) => {\n  const { a, b } = key;\n  validateKey(a);\n\n  const cleaned = phrase.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let result = '';\n\n  for (const ch of cleaned) {\n    if (ch >= '0' && ch <= '9') {\n      result += ch;\n    } else {\n      const i = ch.charCodeAt(0) - 97;\n      const encoded = (a * i + b) % M;\n      result += String.fromCharCode(encoded + 97);\n    }\n  }\n\n  const groups = [];\n  for (let i = 0; i < result.length; i += 5) {\n    groups.push(result.slice(i, i + 5));\n  }\n  return groups.join(' ');\n};\n\nexport const decode = (phrase, key) => {\n  const { a, b } = key;\n  validateKey(a);\n\n  const mmi = modInverse(a, M);\n  const cleaned = phrase.replace(/\\s/g, '');\n  let result = '';\n\n  for (const ch of cleaned) {\n    if (ch >= '0' && ch <= '9') {\n      result += ch;\n    } else {\n      const y = ch.charCodeAt(0) - 97;\n      const decoded = ((mmi * ((y - b) % M + M)) % M);\n      result += String.fromCharCode(decoded + 97);\n    }\n  }\n\n  return result;\n};\n",
+   "durationMs": 22108
+  },
+  {
+   "slug": "alphametics",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 379,
+    "completionTokens": 3921,
+    "cachedTokens": 0,
+    "costUSD": 0.00394805304,
+    "calls": 1
+   },
+   "candidate1": "export const solve = (puzzle) => {\n  // Split the puzzle into left and right sides\n  const [left, right] = puzzle.split('=').map(s => s.trim());\n  if (!left || !right) {\n    throw new Error('Invalid puzzle format');\n  }\n\n  // Split left side by '+' to get words\n  const leftWords = left.split(/\\s*\\+\\s*/).map(w => w.trim());\n  const rightWord = right.trim();\n\n  // Collect all unique letters and leading letters\n  const letters = new Set();\n  const leadingLetters = new Set();\n  const allWords = [...leftWords, rightWord];\n  for (const word of allWords) {\n    for (const ch of word) {\n      letters.add(ch);\n    }\n    if (word.length > 0) {\n      leadingLetters.add(word[0]);\n    }\n  }\n\n  const letterArray = Array.from(letters);\n  const numLetters = letterArray.length;\n  if (numLetters > 10) {\n    return null; // impossible to assign distinct digits\n  }\n\n  // Prepare for backtracking\n  const used = new Set();\n  const assignment = {};\n\n  const wordValue = (word) => {\n    let val = 0;\n    for (const ch of word) {\n      val = val * 10 + assignment[ch];\n    }\n    return val;\n  };\n\n  const backtrack = (idx) => {\n    if (idx === numLetters) {\n      // All letters assigned, check equation\n      const leftSum = leftWords.reduce((sum, w) => sum + wordValue(w), 0);\n      const rightVal = wordValue(rightWord);\n      return leftSum === rightVal;\n    }\n\n    const ch = letterArray[idx];\n    for (let d = 0; d <= 9; d++) {\n      if (used.has(d)) continue;\n      if (d === 0 && leadingLetters.has(ch)) continue;\n\n      assignment[ch] = d;\n      used.add(d);\n      if (backtrack(idx + 1)) {\n        return true;\n      }\n      used.delete(d);\n      // assignment[ch] will be overwritten later, no need to delete\n    }\n    return false;\n  };\n\n  if (backtrack(0)) {\n    return assignment;\n  }\n  return null;\n};\n",
+   "usage2": {
+    "promptTokens": 1844,
+    "completionTokens": 2067,
+    "cachedTokens": 320,
+    "costUSD": 0.00271846384,
+    "calls": 1
+   },
+   "candidate2": "export const solve = (puzzle) => {\n  // Split puzzle into left and right sides\n  const [left, right] = puzzle.split(/\\s*==\\s*/).map(s => s.trim());\n  if (!left || !right) {\n    throw new Error('Invalid puzzle format');\n  }\n\n  // Split left side by '+' to get words\n  const leftWords = left.split(/\\s*\\+\\s*/).map(w => w.trim());\n  const rightWord = right.trim();\n\n  // Collect all unique letters and leading letters\n  const letters = new Set();\n  const leadingLetters = new Set();\n  const allWords = [...leftWords, rightWord];\n  for (const word of allWords) {\n    for (const ch of word) {\n      letters.add(ch);\n    }\n    if (word.length > 0) {\n      leadingLetters.add(word[0]);\n    }\n  }\n\n  const letterArray = Array.from(letters);\n  const numLetters = letterArray.length;\n  if (numLetters > 10) {\n    return null; // impossible to assign distinct digits\n  }\n\n  // Prepare for backtracking\n  const used = new Set();\n  const assignment = {};\n\n  const wordValue = (word) => {\n    let val = 0;\n    for (const ch of word) {\n      val = val * 10 + assignment[ch];\n    }\n    return val;\n  };\n\n  const backtrack = (idx) => {\n    if (idx === numLetters) {\n      // All letters assigned, check equation\n      const leftSum = leftWords.reduce((sum, w) => sum + wordValue(w), 0);\n      const rightVal = wordValue(rightWord);\n      return leftSum === rightVal;\n    }\n\n    const ch = letterArray[idx];\n    for (let d = 0; d <= 9; d++) {\n      if (used.has(d)) continue;\n      if (d === 0 && leadingLetters.has(ch)) continue;\n\n      assignment[ch] = d;\n      used.add(d);\n      if (backtrack(idx + 1)) {\n        return true;\n      }\n      used.delete(d);\n      // assignment[ch] will be overwritten later, no need to delete\n    }\n    return false;\n  };\n\n  if (backtrack(0)) {\n    return assignment;\n  }\n  return null;\n};\n",
+   "durationMs": 120103
+  },
+  {
+   "slug": "beer-song",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 3619,
+    "completionTokens": 5458,
+    "cachedTokens": 3584,
+    "costUSD": 0.0047765874,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Beer Song' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const recite = (initialBottlesCount, takeDownCount) => {\n  const getVerse = (bottles) => {\n    if (bottles === 0) {\n      return 'No more bottles of beer on the wall, no more bottles of beer.\\nGo to the store and buy some more, 99 bottles of beer on the wall.';\n    }\n    if (bottles === 1) {\n      return '1 bottle of beer on the wall, 1 bottle of beer.\\nTake it down and pass it around, no more bottles of beer on the wall.';\n    }\n    return `${bottles} bottles of beer on the wall, ${bottles} bottles of beer.\\nTake one down and pass it around, ${bottles - 1} bottle${bottles - 1 === 1 ? '' : 's'} of beer on the wall.`;\n  };\n\n  const verses = [];\n  for (let i = initialBottlesCount; i > initialBottlesCount - takeDownCount; i--) {\n    verses.push(getVerse(i));\n  }\n  \n  return verses.join('\\n\\n');\n};\n",
+   "usage2": {
+    "promptTokens": 9786,
+    "completionTokens": 546,
+    "cachedTokens": 3584,
+    "costUSD": 0.0031857924,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Beer Song' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const recite = (initialBottlesCount, takeDownCount) => {\n  const getVerse = (bottles) => {\n    if (bottles === 0) {\n      return [\n        'No more bottles of beer on the wall, no more bottles of beer.',\n        'Go to the store and buy some more, 99 bottles of beer on the wall.',\n      ];\n    }\n    if (bottles === 1) {\n      return [\n        '1 bottle of beer on the wall, 1 bottle of beer.',\n        'Take it down and pass it around, no more bottles of beer on the wall.',\n      ];\n    }\n    return [\n      `${bottles} bottles of beer on the wall, ${bottles} bottles of beer.`,\n      `Take one down and pass it around, ${bottles - 1} bottle${bottles - 1 === 1 ? '' : 's'} of beer on the wall.`,\n    ];\n  };\n\n  const verses = [];\n  for (let i = initialBottlesCount; i > initialBottlesCount - takeDownCount; i--) {\n    if (verses.length > 0) {\n      verses.push('');\n    }\n    verses.push(...getVerse(i));\n  }\n\n  return verses;\n};\n",
+   "durationMs": 76012
+  },
+  {
+   "slug": "binary",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 517,
+    "completionTokens": 1276,
+    "cachedTokens": 0,
+    "costUSD": 0.001335015,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Binary' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Binary {\n  constructor(binary) {\n    this.binary = binary;\n  }\n\n  toDecimal() {\n    const str = this.binary;\n    \n    // Check if input is valid binary string\n    if (typeof str !== 'string' || !/^[01]+$/.test(str)) {\n      return 0;\n    }\n    \n    let result = 0;\n    for (let i = 0; i < str.length; i++) {\n      const digit = str[str.length - 1 - i];\n      if (digit === '1') {\n        result += Math.pow(2, i);\n      }\n    }\n    return result;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 892,
+    "completionTokens": 468,
+    "cachedTokens": 512,
+    "costUSD": 0.0005743032,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Binary' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Binary {\n  constructor(binary) {\n    this.binary = binary;\n  }\n\n  toDecimal() {\n    const str = this.binary;\n    \n    // Check if input is valid binary string\n    if (typeof str !== 'string' || !/^[01]+$/.test(str)) {\n      return null;\n    }\n    \n    let result = 0;\n    for (let i = 0; i < str.length; i++) {\n      const digit = str[str.length - 1 - i];\n      if (digit === '1') {\n        result += Math.pow(2, i);\n      }\n    }\n    return result;\n  }\n}\n",
+   "durationMs": 41498
+  },
+  {
+   "slug": "book-store",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 881,
+    "completionTokens": 3908,
+    "cachedTokens": 0,
+    "costUSD": 0.003783195,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'BookStore' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const cost = (books) => {\n  // Count occurrences of each book (1-5)\n  const counts = Array(5).fill(0);\n  for (const book of books) {\n    counts[book - 1]++;\n  }\n  \n  // Memoization cache\n  const memo = new Map();\n  \n  // Helper function to calculate optimal price for current counts\n  const calculatePrice = (state) => {\n    // Create cache key from state\n    const key = state.join(',');\n    if (memo.has(key)) {\n      return memo.get(key);\n    }\n    \n    // If all counts are zero, return 0\n    if (state.every(count => count === 0)) {\n      return 0;\n    }\n    \n    let minPrice = Infinity;\n    \n    // Try forming groups of different sizes (1-5)\n    for (let groupSize = 5; groupSize >= 1; groupSize--) {\n      // Check if we have enough distinct books for this group size\n      const availableBooks = state.filter(count => count > 0).length;\n      if (availableBooks < groupSize) {\n        continue;\n      }\n      \n      // Create new state by taking one of each book in the group\n      const newState = [...state];\n      let booksTaken = 0;\n      \n      for (let i = 0; i < 5 && booksTaken < groupSize; i++) {\n        if (newState[i] > 0) {\n          newState[i]--;\n          booksTaken++;\n        }\n      }\n      \n      // Calculate discount multiplier based on group size\n      let discountMultiplier;\n      switch (groupSize) {\n        case 1:\n          discountMultiplier = 1.0;\n          break;\n        case 2:\n          discountMultiplier = 0.95;\n          break;\n        case 3:\n          discountMultiplier = 0.90;\n          break;\n        case 4:\n          discountMultiplier = 0.80;\n          break;\n        case 5:\n          discountMultiplier = 0.75;\n          break;\n      }\n      \n      // Calculate price for this group (in cents)\n      const groupPrice = Math.round(groupSize * 800 * discountMultiplier);\n      \n      // Recursively calculate price for remaining books\n      const remainingPrice = calculatePrice(newState);\n      const totalPrice = groupPrice + remainingPrice;\n      \n      if (totalPrice < minPrice) {\n        minPrice = totalPrice;\n      }\n    }\n    \n    memo.set(key, minPrice);\n    return minPrice;\n  };\n  \n  return calculatePrice(counts);\n};\n",
+   "usage2": {
+    "promptTokens": 1702,
+    "completionTokens": 4172,
+    "cachedTokens": 0,
+    "costUSD": 0.00437001,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'BookStore' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const cost = (books) => {\n    // Count occurrences of each book (1-5)\n    const counts = Array(5).fill(0);\n    for (const book of books) {\n        counts[book - 1]++;\n    }\n    \n    // Memoization cache for DP\n    const memo = new Map();\n    \n    // Helper function to calculate optimal price for current counts\n    const calculatePrice = (state) => {\n        // Create cache key from state\n        const key = state.join(',');\n        if (memo.has(key)) {\n            return memo.get(key);\n        }\n        \n        // If all counts are zero, return 0\n        if (state.every(count => count === 0)) {\n            return 0;\n        }\n        \n        let minPrice = Infinity;\n        \n        // Try all possible group sizes (1-5)\n        for (let groupSize = 5; groupSize >= 1; groupSize--) {\n            // Try all combinations of available books for this group size\n            const availableBooks = state.reduce((acc, count, idx) => {\n                if (count > 0) acc.push(idx);\n                return acc;\n            }, []);\n            \n            if (availableBooks.length < groupSize) continue;\n            \n            // Generate all combinations of groupSize books from availableBooks\n            const combinations = getCombinations(availableBooks, groupSize);\n            \n            for (const combo of combinations) {\n                // Create new state by taking one of each book in the combination\n                const newState = [...state];\n                for (const bookIdx of combo) {\n                    newState[bookIdx]--;\n                }\n                \n                // Calculate discount multiplier based on group size\n                let discountMultiplier;\n                switch (groupSize) {\n                    case 1:\n                        discountMultiplier = 1.0;\n                        break;\n                    case 2:\n                        discountMultiplier = 0.95;\n                        break;\n                    case 3:\n                        discountMultiplier = 0.90;\n                        break;\n                    case 4:\n                        discountMultiplier = 0.80;\n                        break;\n                    case 5:\n                        discountMultiplier = 0.75;\n                        break;\n                }\n                \n                // Calculate price for this group (in cents)\n                const groupPrice = Math.round(groupSize * 800 * discountMultiplier);\n                \n                // Recursively calculate price for remaining books\n                const remainingPrice = calculatePrice(newState);\n                const totalPrice = groupPrice + remainingPrice;\n                \n                if (totalPrice < minPrice) {\n                    minPrice = totalPrice;\n                }\n            }\n        }\n        \n        memo.set(key, minPrice);\n        return minPrice;\n    };\n    \n    // Helper function to get all combinations of k elements from array\n    const getCombinations = (arr, k) => {\n        const result = [];\n        \n        const combine = (start, current) => {\n            if (current.length === k) {\n                result.push([...current]);\n                return;\n            }\n            \n            for (let i = start; i < arr.length; i++) {\n                current.push(arr[i]);\n                combine(i + 1, current);\n                current.pop();\n            }\n        };\n        \n        combine(0, []);\n        return result;\n    };\n    \n    return calculatePrice(counts);\n};\n",
+   "durationMs": 123531
+  },
+  {
+   "slug": "bottle-song",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 599,
+    "completionTokens": 3095,
+    "cachedTokens": 576,
+    "costUSD": 0.002986009776,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Bottle Song' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const recite = (initialBottlesCount, takeDownCount) => {\n  const numberToWord = (num) => {\n    const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];\n    return words[num] || num.toString();\n  };\n\n  const capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);\n\n  const verses = [];\n  \n  for (let i = 0; i < takeDownCount; i++) {\n    const current = initialBottlesCount - i;\n    const next = current - 1;\n    \n    const currentWord = capitalize(numberToWord(current));\n    const nextWord = numberToWord(next);\n    \n    const currentBottle = current === 1 ? 'bottle' : 'bottles';\n    const nextBottle = next === 1 ? 'bottle' : 'bottles';\n    \n    const verse = [\n      `${currentWord} green ${currentBottle} hanging on the wall,`,\n      `${currentWord} green ${currentBottle} hanging on the wall,`,\n      'And if one green bottle should accidentally fall,',\n      `There'll be ${nextWord} green ${nextBottle} hanging on the wall.`\n    ].join('\\n');\n    \n    verses.push(verse);\n  }\n  \n  return verses.join('\\n\\n');\n};\n",
+   "usage2": {
+    "promptTokens": 3075,
+    "completionTokens": 375,
+    "cachedTokens": 576,
+    "costUSD": 0.001562578416,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Bottle Song' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const recite = (initialBottlesCount, takeDownCount) => {\n  const numberToWord = (num) => {\n    const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];\n    return words[num] || num.toString();\n  };\n\n  const capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);\n\n  const lines = [];\n  \n  for (let i = 0; i < takeDownCount; i++) {\n    if (i > 0) {\n      lines.push('');\n    }\n    \n    const current = initialBottlesCount - i;\n    const next = current - 1;\n    \n    const currentWord = capitalize(numberToWord(current));\n    const nextWord = numberToWord(next);\n    \n    const currentBottle = current === 1 ? 'bottle' : 'bottles';\n    const nextBottle = next === 1 ? 'bottle' : 'bottles';\n    \n    lines.push(`${currentWord} green ${currentBottle} hanging on the wall,`);\n    lines.push(`${currentWord} green ${currentBottle} hanging on the wall,`);\n    lines.push('And if one green bottle should accidentally fall,');\n    lines.push(`There'll be ${nextWord} green ${nextBottle} hanging on the wall.`);\n  }\n  \n  return lines;\n};\n",
+   "durationMs": 165589
+  },
+  {
+   "slug": "bowling",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 773,
+    "completionTokens": 10985,
+    "cachedTokens": 0,
+    "costUSD": 0.009893205,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Bowling' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Bowling {\n  constructor() {\n    this.rolls = [];\n  }\n\n  roll(pins) {\n    if (pins < 0 || pins > 10) {\n      throw new Error('Invalid roll');\n    }\n\n    const info = this.getFrameInfo();\n\n    if (info.frame >= 10) {\n      throw new Error('Game is already complete');\n    }\n\n    if (info.frame < 9) {\n      if (info.rollInFrame === 1) {\n        const prev = this.rolls[this.rolls.length - 1];\n        if (prev + pins > 10) {\n          throw new Error('Invalid roll');\n        }\n      }\n    } else {\n      if (info.rollInFrame === 1) {\n        const prev = this.rolls[this.rolls.length - 1];\n        if (prev !== 10 && prev + pins > 10) {\n          throw new Error('Invalid roll');\n        }\n      } else if (info.rollInFrame === 2) {\n        const first = this.rolls[this.rolls.length - 2];\n        const second = this.rolls[this.rolls.length - 1];\n        if (first === 10 && second !== 10 && second + pins > 10) {\n          throw new Error('Invalid roll');\n        }\n      }\n    }\n\n    this.rolls.push(pins);\n  }\n\n  getFrameInfo() {\n    let frame = 0;\n    let i = 0;\n\n    while (i < this.rolls.length && frame < 10) {\n      if (frame === 9) {\n        const remaining = this.rolls.length - i;\n        if (remaining === 0) return { frame: 9, rollInFrame: 0 };\n        if (remaining === 1) return { frame: 9, rollInFrame: 1 };\n        if (remaining === 2) {\n          if (this.rolls[i] === 10 || this.rolls[i] + this.rolls[i + 1] === 10) {\n            return { frame: 9, rollInFrame: 2 };\n          }\n          return { frame: 10, rollInFrame: 0 };\n        }\n        return { frame: 10, rollInFrame: 0 };\n      }\n\n      if (this.rolls[i] === 10) {\n        frame++;\n        i++;\n      } else if (i + 1 < this.rolls.length) {\n        frame++;\n        i += 2;\n      } else {\n        return { frame, rollInFrame: 1 };\n      }\n    }\n\n    return { frame: frame >= 10 ? 10 : frame, rollInFrame: 0 };\n  }\n\n  score() {\n    const info = this.getFrameInfo();\n    if (info.frame < 10) {\n      throw new Error('Game is not complete');\n    }\n\n    let total = 0;\n    let i = 0;\n\n    for (let frame = 0; frame < 10; frame++) {\n      if (this.rolls[i] === 10) {\n        total += 10 + (this.rolls[i + 1] || 0) + (this.rolls[i + 2] || 0);\n        i++;\n      } else if (this.rolls[i] + this.rolls[i + 1] === 10) {\n        total += 10 + (this.rolls[i + 2] || 0);\n        i += 2;\n      } else {\n        total += this.rolls[i] + this.rolls[i + 1];\n        i += 2;\n      }\n    }\n\n    return total;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 7593,
+    "completionTokens": 973,
+    "cachedTokens": 0,
+    "costUSD": 0.004149465,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Bowling' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Bowling {\n  constructor() {\n    this.rolls = [];\n  }\n\n  roll(pins) {\n    if (pins < 0) {\n      throw new Error('Negative roll is invalid');\n    }\n\n    if (pins > 10) {\n      throw new Error('Pin count exceeds pins on the lane');\n    }\n\n    const info = this.getFrameInfo();\n\n    if (info.frame >= 10) {\n      throw new Error('Cannot roll after game is over');\n    }\n\n    if (info.frame < 9) {\n      if (info.rollInFrame === 1) {\n        const prev = this.rolls[this.rolls.length - 1];\n        if (prev + pins > 10) {\n          throw new Error('Pin count exceeds pins on the lane');\n        }\n      }\n    } else {\n      if (info.rollInFrame === 1) {\n        const prev = this.rolls[this.rolls.length - 1];\n        if (prev !== 10 && prev + pins > 10) {\n          throw new Error('Pin count exceeds pins on the lane');\n        }\n      } else if (info.rollInFrame === 2) {\n        const first = this.rolls[this.rolls.length - 2];\n        const second = this.rolls[this.rolls.length - 1];\n        if (first === 10 && second !== 10 && second + pins > 10) {\n          throw new Error('Pin count exceeds pins on the lane');\n        }\n      }\n    }\n\n    this.rolls.push(pins);\n  }\n\n  getFrameInfo() {\n    let frame = 0;\n    let i = 0;\n\n    while (i < this.rolls.length && frame < 10) {\n      if (frame === 9) {\n        const remaining = this.rolls.length - i;\n        if (remaining === 0) return { frame: 9, rollInFrame: 0 };\n        if (remaining === 1) return { frame: 9, rollInFrame: 1 };\n        if (remaining === 2) {\n          if (this.rolls[i] === 10 || this.rolls[i] + this.rolls[i + 1] === 10) {\n            return { frame: 9, rollInFrame: 2 };\n          }\n          return { frame: 10, rollInFrame: 0 };\n        }\n        return { frame: 10, rollInFrame: 0 };\n      }\n\n      if (this.rolls[i] === 10) {\n        frame++;\n        i++;\n      } else if (i + 1 < this.rolls.length) {\n        frame++;\n        i += 2;\n      } else {\n        return { frame, rollInFrame: 1 };\n      }\n    }\n\n    return { frame: frame >= 10 ? 10 : frame, rollInFrame: 0 };\n  }\n\n  score() {\n    const info = this.getFrameInfo();\n    if (info.frame < 10) {\n      throw new Error('Score cannot be taken until the end of the game');\n    }\n\n    let total = 0;\n    let i = 0;\n\n    for (let frame = 0; frame < 10; frame++) {\n      if (this.rolls[i] === 10) {\n        total += 10 + (this.rolls[i + 1] || 0) + (this.rolls[i + 2] || 0);\n        i++;\n      } else if (this.rolls[i] + this.rolls[i + 1] === 10) {\n        total += 10 + (this.rolls[i + 2] || 0);\n        i += 2;\n      } else {\n        total += this.rolls[i] + this.rolls[i + 1];\n        i += 2;\n      }\n    }\n\n    return total;\n  }\n}\n",
+   "durationMs": 180886
+  },
+  {
+   "slug": "complex-numbers",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: Complex numbers > Conjugate a purely real number\n  Maximum call stack size exceeded\n  173 |     const expected = new ComplexNumber(5, 0);\n  174 |     const actual = new ComplexNumber(5, 0).conj;\n  175 |\n> 176 |     expect(actual).toEqual(expected);\n      |                    ^\n  177 |   });\n  178 |\n  179 |   xtest('Conjugate a purely imaginary number', () => {\n\nTests: 1 failed, 0 skipped, 30 passed",
+   "usage1": {
+    "promptTokens": 883,
+    "completionTokens": 1210,
+    "cachedTokens": 0,
+    "costUSD": 0.001436805,
+    "calls": 1
+   },
+   "candidate1": "export class ComplexNumber {\n  constructor(real = 0, imag = 0) {\n    this._real = real;\n    this._imag = imag;\n  }\n\n  get real() {\n    return this._real;\n  }\n\n  get imag() {\n    return this._imag;\n  }\n\n  add(other) {\n    return new ComplexNumber(this.real + other.real, this.imag + other.imag);\n  }\n\n  sub(other) {\n    return new ComplexNumber(this.real - other.real, this.imag - other.imag);\n  }\n\n  mul(other) {\n    const real = this.real * other.real - this.imag * other.imag;\n    const imag = this.imag * other.real + this.real * other.imag;\n    return new ComplexNumber(real, imag);\n  }\n\n  div(other) {\n    const denom = other.real * other.real + other.imag * other.imag;\n    const real = (this.real * other.real + this.imag * other.imag) / denom;\n    const imag = (this.imag * other.real - this.real * other.imag) / denom;\n    return new ComplexNumber(real, imag);\n  }\n\n  get abs() {\n    return Math.sqrt(this.real ** 2 + this.imag ** 2);\n  }\n\n  get conj() {\n    return new ComplexNumber(this.real, -this.imag);\n  }\n\n  get exp() {\n    const expReal = Math.exp(this.real);\n    return new ComplexNumber(expReal * Math.cos(this.imag), expReal * Math.sin(this.imag));\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 1380,
+    "completionTokens": 1579,
+    "cachedTokens": 832,
+    "costUSD": 0.0016151052,
+    "calls": 1
+   },
+   "candidate2": "export class ComplexNumber {\n  constructor(real = 0, imag = 0) {\n    this._real = real;\n    this._imag = imag;\n  }\n\n  get real() {\n    return this._real;\n  }\n\n  get imag() {\n    return this._imag;\n  }\n\n  add(other) {\n    return new ComplexNumber(this.real + other.real, this.imag + other.imag);\n  }\n\n  sub(other) {\n    return new ComplexNumber(this.real - other.real, this.imag - other.imag);\n  }\n\n  mul(other) {\n    const real = this.real * other.real - this.imag * other.imag;\n    const imag = this.imag * other.real + this.real * other.imag;\n    return new ComplexNumber(real, imag);\n  }\n\n  div(other) {\n    const denom = other.real * other.real + other.imag * other.imag;\n    const real = (this.real * other.real + this.imag * other.imag) / denom;\n    const imag = (this.imag * other.real - this.real * other.imag) / denom;\n    return new ComplexNumber(real, imag);\n  }\n\n  get abs() {\n    return Math.sqrt(this.real ** 2 + this.imag ** 2);\n  }\n\n  get conj() {\n    return new ComplexNumber(this.real, -this.imag);\n  }\n\n  get exp() {\n    const expReal = Math.exp(this.real);\n    return new ComplexNumber(expReal * Math.cos(this.imag), expReal * Math.sin(this.imag));\n  }\n}\n\n// Make getters that return objects non-enumerable to prevent infinite recursion in deep equality checks\nfor (const prop of ['conj', 'exp', 'abs']) {\n  Object.defineProperty(ComplexNumber.prototype, prop, {\n    get: Object.getOwnPropertyDescriptor(ComplexNumber.prototype, prop).get,\n    enumerable: false,\n    configurable: true,\n  });\n}\n",
+   "durationMs": 52046
+  },
+  {
+   "slug": "connect",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: Judging a game of connect > illegal diagonal does not make a winner\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"\"\n  Received: \"X\"\n  35 |       '   . O X .',\n  36 |       '    X X O O',\n  37 |     ];\n> 38 |     expect(new Board(board).winner()).toEqual('');\n     |                                       ^\n  39 |   });\n  40 |\n  41 |   xtest('nobody wins crossing adjacent angles', () => {\nFAIL: Judging a game of connect > nobody wins crossing adjacent angles\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"\"\n  Received: \"X\"\n  46 |       '   . O . X',\n  47 |       '    . . O .',\n  48 |     ];\n> 49 |     expect(new Board(board).winner()).toEqual('');\n     |                                       ^\n  50 |   });\n  51 |\n  52 |   xtest('X wins crossing from left to right', () => {\nFAIL: Judging a game of connect > O wins crossing from top to bottom\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"O\"\n  Received: \"\"\n  68 |       '   X X O X',\n  69 |       '    . O X .',\n  70 |     ];\n> 71 |     expect(new Board(board).winner()).toEqual('O');\n     |                                       ^\n  72 |   });\n  73 |\n  74 |   xtest('X wins using a convoluted path', () => {\nFAIL: Judging a game of connect > X wins using a convoluted path\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"X\"\n  Received: \"\"\n  79 |       '   . X X . .',\n  80 |       '    O O O O O',\n  81 |     ];\n> 82 |     expect(new Board(boar",
+   "usage1": {
+    "promptTokens": 496,
+    "completionTokens": 6705,
+    "cachedTokens": 0,
+    "costUSD": 0.00604911,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Connect' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Board {\n  constructor(boardString) {\n    this.grid = this.parseBoard(boardString);\n    this.rows = this.grid.length;\n    this.cols = this.grid[0]?.length || 0;\n  }\n\n  parseBoard(boardString) {\n    const lines = boardString.split('\\n');\n    const grid = [];\n    \n    for (let i = 0; i < lines.length; i++) {\n      // Remove leading spaces (number equals to row index)\n      const line = lines[i];\n      const trimmedLine = line.substring(i);\n      \n      if (trimmedLine.trim() === '') continue;\n      \n      const cells = trimmedLine.split(' ').filter(cell => cell !== '');\n      if (cells.length > 0) {\n        grid.push(cells);\n      }\n    }\n    \n    return grid;\n  }\n\n  winner() {\n    // Check if O wins (connects top to bottom)\n    if (this.isConnected('O', true)) {\n      return 'O';\n    }\n    \n    // Check if X wins (connects left to right)\n    if (this.isConnected('X', false)) {\n      return 'X';\n    }\n    \n    return '';\n  }\n\n  isConnected(player, isVertical) {\n    const visited = Array.from({ length: this.rows }, () => \n      Array(this.cols).fill(false)\n    );\n    \n    // Get starting positions\n    const startPositions = [];\n    if (isVertical) {\n      // For O: start from top row\n      for (let col = 0; col < this.cols; col++) {\n        if (this.grid[0][col] === player) {\n          startPositions.push([0, col]);\n        }\n      }\n    } else {\n      // For X: start from left column\n      for (let row = 0; row < this.rows; row++) {\n        if (this.grid[row][0] === player) {\n          startPositions.push([row, 0]);\n        }\n      }\n    }\n    \n    // BFS\n    const queue = [...startPositions];\n    for (const [row, col] of startPositions) {\n      visited[row][col] = true;\n    }\n    \n    while (queue.length > 0) {\n      const [row, col] = queue.shift();\n      \n      // Check if we reached the target\n      if (isVertical && row === this.rows - 1) {\n        return true;\n      }\n      if (!isVertical && col === this.cols - 1) {\n        return true;\n      }\n      \n      // Get neighbors (hexagonal grid)\n      const neighbors = this.getNeighbors(row, col);\n      \n      for (const [nRow, nCol] of neighbors) {\n        if (\n          nRow >= 0 && nRow < this.rows &&\n          nCol >= 0 && nCol < this.cols &&\n          !visited[nRow][nCol] &&\n          this.grid[nRow][nCol] === player\n        ) {\n          visited[nRow][nCol] = true;\n          queue.push([nRow, nCol]);\n        }\n      }\n    }\n    \n    return false;\n  }\n\n  getNeighbors(row, col) {\n    // For a hexagonal grid in parallelogram representation\n    return [\n      [row - 1, col - 1], // top-left\n      [row - 1, col],     // top-right\n      [row, col - 1],     // left\n      [row, col + 1],     // right\n      [row + 1, col],     // bottom-left\n      [row + 1, col + 1]  // bottom-right\n    ];\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2521,
+    "completionTokens": 902,
+    "cachedTokens": 448,
+    "costUSD": 0.001863662768,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Connect' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Board {\n  constructor(boardLines) {\n    this.grid = this.parseBoard(boardLines);\n    this.rows = this.grid.length;\n    this.cols = this.grid[0]?.length || 0;\n  }\n\n  parseBoard(boardLines) {\n    // Handle both string and array input\n    const lines = Array.isArray(boardLines) ? boardLines : boardLines.split('\\n');\n    const grid = [];\n    \n    for (let i = 0; i < lines.length; i++) {\n      const line = lines[i];\n      if (!line || line.trim() === '') continue;\n      \n      // Remove leading spaces (spaces at the beginning indicate row offset)\n      const trimmedLine = line.trimStart();\n      \n      // Split by spaces and filter out empty strings\n      const cells = trimmedLine.split(' ').filter(cell => cell !== '');\n      if (cells.length > 0) {\n        grid.push(cells);\n      }\n    }\n    \n    return grid;\n  }\n\n  winner() {\n    // Check if O wins (connects top to bottom)\n    if (this.isConnected('O', true)) {\n      return 'O';\n    }\n    \n    // Check if X wins (connects left to right)\n    if (this.isConnected('X', false)) {\n      return 'X';\n    }\n    \n    return '';\n  }\n\n  isConnected(player, isVertical) {\n    const visited = Array.from({ length: this.rows }, () => \n      Array(this.cols).fill(false)\n    );\n    \n    // Get starting positions\n    const startPositions = [];\n    if (isVertical) {\n      // For O: start from top row\n      for (let col = 0; col < this.cols; col++) {\n        if (this.grid[0][col] === player) {\n          startPositions.push([0, col]);\n        }\n      }\n    } else {\n      // For X: start from left column\n      for (let row = 0; row < this.rows; row++) {\n        if (this.grid[row][0] === player) {\n          startPositions.push([row, 0]);\n        }\n      }\n    }\n    \n    // BFS\n    const queue = [...startPositions];\n    for (const [row, col] of startPositions) {\n      visited[row][col] = true;\n    }\n    \n    while (queue.length > 0) {\n      const [row, col] = queue.shift();\n      \n      // Check if we reached the target\n      if (isVertical && row === this.rows - 1) {\n        return true;\n      }\n      if (!isVertical && col === this.cols - 1) {\n        return true;\n      }\n      \n      // Get neighbors (hexagonal grid)\n      const neighbors = this.getNeighbors(row, col);\n      \n      for (const [nRow, nCol] of neighbors) {\n        if (\n          nRow >= 0 && nRow < this.rows &&\n          nCol >= 0 && nCol < this.cols &&\n          !visited[nRow][nCol] &&\n          this.grid[nRow][nCol] === player\n        ) {\n          visited[nRow][nCol] = true;\n          queue.push([nRow, nCol]);\n        }\n      }\n    }\n    \n    return false;\n  }\n\n  getNeighbors(row, col) {\n    // For a hexagonal grid in parallelogram representation\n    return [\n      [row - 1, col - 1], // top-left\n      [row - 1, col],     // top-right\n      [row, col - 1],     // left\n      [row, col + 1],     // right\n      [row + 1, col],     // bottom-left\n      [row + 1, col + 1]  // bottom-right\n    ];\n  }\n}\n",
+   "durationMs": 125645
+  },
+  {
+   "slug": "food-chain",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 814,
+    "completionTokens": 4334,
+    "cachedTokens": 0,
+    "costUSD": 0.00412467,
+    "calls": 1
+   },
+   "candidate1": "export class Song {\n  constructor() {\n    this.animals = ['fly', 'spider', 'bird', 'cat', 'dog', 'goat', 'cow', 'horse'];\n    this.comments = {\n      fly: \"I don't know why she swallowed the fly. Perhaps she'll die.\",\n      spider: \"It wriggled and jiggled and tickled inside her.\",\n      bird: \"How absurd to swallow a bird!\",\n      cat: \"Imagine that, to swallow a cat!\",\n      dog: \"What a hog, to swallow a dog!\",\n      goat: \"Just opened her throat and swallowed a goat!\",\n      cow: \"I don't know how she swallowed a cow!\",\n      horse: \"She's dead, of course!\"\n    };\n  }\n\n  verse(num) {\n    const animal = this.animals[num - 1];\n    let lines = [];\n    \n    lines.push(`I know an old lady who swallowed a ${animal}.`);\n    \n    if (num === 8) {\n      lines.push(\"She's dead, of course!\");\n      return lines.join('\\n') + '\\n';\n    }\n    \n    if (num > 1) {\n      lines.push(this.comments[animal]);\n    }\n    \n    for (let i = num - 1; i >= 1; i--) {\n      const current = this.animals[i];\n      const previous = this.animals[i - 1];\n      \n      if (previous === 'spider') {\n        lines.push(`She swallowed the ${current} to catch the ${previous} that wriggled and jiggled and tickled inside her.`);\n      } else {\n        lines.push(`She swallowed the ${current} to catch the ${previous}.`);\n      }\n    }\n    \n    lines.push(this.comments.fly);\n    \n    return lines.join('\\n') + '\\n';\n  }\n\n  verses(start, end) {\n    let result = '';\n    for (let i = start; i <= end; i++) {\n      result += this.verse(i) + '\\n';\n    }\n    return result;\n  }\n}\n",
+   "durationMs": 65441
+  },
+  {
+   "slug": "forth",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 444,
+    "completionTokens": 6084,
+    "cachedTokens": 0,
+    "costUSD": 0.00548622,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Forth' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Forth {\n  constructor() {\n    this._stack = [];\n    this._definitions = {};\n  }\n\n  evaluate(input) {\n    const tokens = input.trim().split(/\\s+/);\n    let i = 0;\n\n    while (i < tokens.length) {\n      const token = tokens[i];\n\n      if (token === ':') {\n        i++;\n        if (i >= tokens.length) throw new Error('Invalid definition');\n        const wordName = tokens[i].toLowerCase();\n        if (/^\\d+$/.test(wordName)) throw new Error('Invalid definition');\n        i++;\n        const definition = [];\n        while (i < tokens.length && tokens[i] !== ';') {\n          definition.push(tokens[i].toLowerCase());\n          i++;\n        }\n        if (i >= tokens.length) throw new Error('Invalid definition');\n        i++; // skip ';'\n\n        // Expand the definition at definition time\n        const expanded = [];\n        for (const t of definition) {\n          if (/^\\d+$/.test(t)) {\n            expanded.push(t);\n          } else if (this._definitions[t]) {\n            expanded.push(...this._definitions[t]);\n          } else {\n            expanded.push(t);\n          }\n        }\n        this._definitions[wordName] = expanded;\n      } else if (/^\\d+$/.test(token)) {\n        this._stack.push(parseInt(token, 10));\n        i++;\n      } else {\n        this._executeWord(token.toLowerCase());\n        i++;\n      }\n    }\n  }\n\n  _executeWord(word) {\n    if (this._definitions[word]) {\n      for (const t of this._definitions[word]) {\n        if (/^\\d+$/.test(t)) {\n          this._stack.push(parseInt(t, 10));\n        } else {\n          this._executeWord(t);\n        }\n      }\n      return;\n    }\n\n    switch (word) {\n      case '+':\n        this._require(2);\n        this._stack.push(this._stack.pop() + this._stack.pop());\n        break;\n      case '-':\n        this._require(2);\n        const sub = this._stack.pop();\n        this._stack.push(this._stack.pop() - sub);\n        break;\n      case '*':\n        this._require(2);\n        this._stack.push(this._stack.pop() * this._stack.pop());\n        break;\n      case '/':\n        this._require(2);\n        const divisor = this._stack.pop();\n        if (divisor === 0) throw new Error('Division by zero');\n        this._stack.push(Math.trunc(this._stack.pop() / divisor));\n        break;\n      case 'dup':\n        this._require(1);\n        this._stack.push(this._stack[this._stack.length - 1]);\n        break;\n      case 'drop':\n        this._require(1);\n        this._stack.pop();\n        break;\n      case 'swap':\n        this._require(2);\n        const top = this._stack.pop();\n        const second = this._stack.pop();\n        this._stack.push(top);\n        this._stack.push(second);\n        break;\n      case 'over':\n        this._require(2);\n        this._stack.push(this._stack[this._stack.length - 2]);\n        break;\n      default:\n        throw new Error('Unknown word');\n    }\n  }\n\n  _require(n) {\n    if (this._stack.length < n) throw new Error('Stack empty');\n  }\n\n  get stack() {\n    return this._stack;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 1900,
+    "completionTokens": 3576,
+    "cachedTokens": 0,
+    "costUSD": 0.00434713248,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Forth' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Forth {\n  constructor() {\n    this._stack = [];\n    this._definitions = {};\n  }\n\n  _isNumber(token) {\n    return /^-?\\d+$/.test(token);\n  }\n\n  evaluate(input) {\n    const tokens = input.trim().split(/\\s+/);\n    let i = 0;\n\n    while (i < tokens.length) {\n      const token = tokens[i];\n\n      if (token === ':') {\n        i++;\n        if (i >= tokens.length) throw new Error('Invalid definition');\n        const wordName = tokens[i].toLowerCase();\n        if (this._isNumber(wordName)) throw new Error('Invalid definition');\n        i++;\n        const definition = [];\n        while (i < tokens.length && tokens[i] !== ';') {\n          definition.push(tokens[i].toLowerCase());\n          i++;\n        }\n        if (i >= tokens.length) throw new Error('Invalid definition');\n        i++; // skip ';'\n\n        // Expand the definition at definition time\n        const expanded = [];\n        for (const t of definition) {\n          if (this._isNumber(t)) {\n            expanded.push(t);\n          } else if (this._definitions[t]) {\n            expanded.push(...this._definitions[t]);\n          } else {\n            expanded.push(t);\n          }\n        }\n        this._definitions[wordName] = expanded;\n      } else if (this._isNumber(token)) {\n        this._stack.push(parseInt(token, 10));\n        i++;\n      } else {\n        this._executeWord(token.toLowerCase());\n        i++;\n      }\n    }\n  }\n\n  _executeWord(word) {\n    if (this._definitions[word]) {\n      for (const t of this._definitions[word]) {\n        if (this._isNumber(t)) {\n          this._stack.push(parseInt(t, 10));\n        } else {\n          this._executeWord(t);\n        }\n      }\n      return;\n    }\n\n    switch (word) {\n      case '+':\n        this._require(2);\n        this._stack.push(this._stack.pop() + this._stack.pop());\n        break;\n      case '-':\n        this._require(2);\n        const sub = this._stack.pop();\n        this._stack.push(this._stack.pop() - sub);\n        break;\n      case '*':\n        this._require(2);\n        this._stack.push(this._stack.pop() * this._stack.pop());\n        break;\n      case '/':\n        this._require(2);\n        const divisor = this._stack.pop();\n        if (divisor === 0) throw new Error('Division by zero');\n        this._stack.push(Math.trunc(this._stack.pop() / divisor));\n        break;\n      case 'dup':\n        this._require(1);\n        this._stack.push(this._stack[this._stack.length - 1]);\n        break;\n      case 'drop':\n        this._require(1);\n        this._stack.pop();\n        break;\n      case 'swap':\n        this._require(2);\n        const top = this._stack.pop();\n        const second = this._stack.pop();\n        this._stack.push(top);\n        this._stack.push(second);\n        break;\n      case 'over':\n        this._require(2);\n        this._stack.push(this._stack[this._stack.length - 2]);\n        break;\n      default:\n        throw new Error('Unknown command');\n    }\n  }\n\n  _require(n) {\n    if (this._stack.length < n) throw new Error('Stack empty');\n  }\n\n  get stack() {\n    return this._stack;\n  }\n}\n",
+   "durationMs": 139575
+  },
+  {
+   "slug": "go-counting",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 883,
+    "completionTokens": 4853,
+    "cachedTokens": 0,
+    "costUSD": 0.00508526136,
+    "calls": 1
+   },
+   "candidate1": "export class GoCounting {\n  constructor(board) {\n    this.board = board;\n    this.height = board.length;\n    this.width = board[0].length;\n  }\n\n  getTerritory(x, y) {\n    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {\n      return { owner: 'NONE', territory: [] };\n    }\n    if (this.board[y][x] !== ' ') {\n      return { owner: 'NONE', territory: [] };\n    }\n\n    const visited = Array.from({ length: this.height }, () => Array(this.width).fill(false));\n    const queue = [[x, y]];\n    visited[y][x] = true;\n    const territory = [];\n    const adjacentColors = new Set();\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n\n    while (queue.length) {\n      const [cx, cy] = queue.shift();\n      territory.push([cx, cy]);\n\n      for (const [dx, dy] of directions) {\n        const nx = cx + dx;\n        const ny = cy + dy;\n        if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) continue;\n        const neighbor = this.board[ny][nx];\n\n        if (neighbor === ' ') {\n          if (!visited[ny][nx]) {\n            visited[ny][nx] = true;\n            queue.push([nx, ny]);\n          }\n        } else if (neighbor === 'B' || neighbor === 'W') {\n          adjacentColors.add(neighbor);\n        }\n      }\n    }\n\n    let owner = 'NONE';\n    if (adjacentColors.size === 1) {\n      owner = adjacentColors.has('B') ? 'BLACK' : 'WHITE';\n    }\n    return { owner, territory };\n  }\n\n  getTerritories() {\n    const visited = Array.from({ length: this.height }, () => Array(this.width).fill(false));\n    const result = {\n      territoryBlack: [],\n      territoryWhite: [],\n      territoryNone: []\n    };\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n\n    for (let y = 0; y < this.height; y++) {\n      for (let x = 0; x < this.width; x++) {\n        if (this.board[y][x] === ' ' && !visited[y][x]) {\n          const queue = [[x, y]];\n          visited[y][x] = true;\n          const territory = [];\n          const adjacentColors = new Set();\n\n          while (queue.length) {\n            const [cx, cy] = queue.shift();\n            territory.push([cx, cy]);\n\n            for (const [dx, dy] of directions) {\n              const nx = cx + dx;\n              const ny = cy + dy;\n              if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) continue;\n              const neighbor = this.board[ny][nx];\n\n              if (neighbor === ' ') {\n                if (!visited[ny][nx]) {\n                  visited[ny][nx] = true;\n                  queue.push([nx, ny]);\n                }\n              } else if (neighbor === 'B' || neighbor === 'W') {\n                adjacentColors.add(neighbor);\n              }\n            }\n          }\n\n          let owner = 'NONE';\n          if (adjacentColors.size === 1) {\n            owner = adjacentColors.has('B') ? 'BLACK' : 'WHITE';\n          }\n\n          if (owner === 'BLACK') {\n            result.territoryBlack.push(...territory);\n          } else if (owner === 'WHITE') {\n            result.territoryWhite.push(...territory);\n          } else {\n            result.territoryNone.push(...territory);\n          }\n        }\n      }\n    }\n    return result;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 3076,
+    "completionTokens": 1441,
+    "cachedTokens": 832,
+    "costUSD": 0.002465001632,
+    "calls": 1
+   },
+   "candidate2": "export class GoCounting {\n  constructor(board) {\n    this.board = board;\n    this.height = board.length;\n    this.width = board[0].length;\n  }\n\n  getTerritory(x, y) {\n    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {\n      return { error: 'Invalid coordinate' };\n    }\n    if (this.board[y][x] !== ' ') {\n      return { owner: 'NONE', territory: [] };\n    }\n\n    const visited = Array.from({ length: this.height }, () => Array(this.width).fill(false));\n    const queue = [[x, y]];\n    visited[y][x] = true;\n    const territory = [];\n    const adjacentColors = new Set();\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n\n    while (queue.length) {\n      const [cx, cy] = queue.shift();\n      territory.push([cx, cy]);\n\n      for (const [dx, dy] of directions) {\n        const nx = cx + dx;\n        const ny = cy + dy;\n        if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) continue;\n        const neighbor = this.board[ny][nx];\n\n        if (neighbor === ' ') {\n          if (!visited[ny][nx]) {\n            visited[ny][nx] = true;\n            queue.push([nx, ny]);\n          }\n        } else if (neighbor === 'B' || neighbor === 'W') {\n          adjacentColors.add(neighbor);\n        }\n      }\n    }\n\n    territory.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n\n    let owner = 'NONE';\n    if (adjacentColors.size === 1) {\n      owner = adjacentColors.has('B') ? 'BLACK' : 'WHITE';\n    }\n    return { owner, territory };\n  }\n\n  getTerritories() {\n    const visited = Array.from({ length: this.height }, () => Array(this.width).fill(false));\n    const result = {\n      territoryBlack: [],\n      territoryWhite: [],\n      territoryNone: []\n    };\n    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n\n    for (let y = 0; y < this.height; y++) {\n      for (let x = 0; x < this.width; x++) {\n        if (this.board[y][x] === ' ' && !visited[y][x]) {\n          const queue = [[x, y]];\n          visited[y][x] = true;\n          const territory = [];\n          const adjacentColors = new Set();\n\n          while (queue.length) {\n            const [cx, cy] = queue.shift();\n            territory.push([cx, cy]);\n\n            for (const [dx, dy] of directions) {\n              const nx = cx + dx;\n              const ny = cy + dy;\n              if (nx < 0 || nx >= this.width || ny < 0 || ny >= this.height) continue;\n              const neighbor = this.board[ny][nx];\n\n              if (neighbor === ' ') {\n                if (!visited[ny][nx]) {\n                  visited[ny][nx] = true;\n                  queue.push([nx, ny]);\n                }\n              } else if (neighbor === 'B' || neighbor === 'W') {\n                adjacentColors.add(neighbor);\n              }\n            }\n          }\n\n          territory.sort((a, b) => a[0] - b[0] || a[1] - b[1]);\n\n          let owner = 'NONE';\n          if (adjacentColors.size === 1) {\n            owner = adjacentColors.has('B') ? 'BLACK' : 'WHITE';\n          }\n\n          if (owner === 'BLACK') {\n            result.territoryBlack.push(...territory);\n          } else if (owner === 'WHITE') {\n            result.territoryWhite.push(...territory);\n          } else {\n            result.territoryNone.push(...territory);\n          }\n        }\n      }\n    }\n    return result;\n  }\n}\n",
+   "durationMs": 108363
+  },
+  {
+   "slug": "grade-school",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 504,
+    "completionTokens": 2799,
+    "cachedTokens": 0,
+    "costUSD": 0.00265437,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Grade School' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class GradeSchool {\n  constructor() {\n    this._roster = {};\n    this._students = new Set();\n  }\n\n  roster() {\n    const result = {};\n    const grades = Object.keys(this._roster).sort((a, b) => a - b);\n    for (const grade of grades) {\n      result[grade] = [...this._roster[grade]];\n    }\n    return result;\n  }\n\n  add(name, grade) {\n    if (this._students.has(name)) {\n      return false;\n    }\n    this._students.add(name);\n    \n    if (!this._roster[grade]) {\n      this._roster[grade] = [];\n    }\n    this._roster[grade].push(name);\n    this._roster[grade].sort();\n    return true;\n  }\n\n  grade(gradeNumber) {\n    if (this._roster[gradeNumber]) {\n      return [...this._roster[gradeNumber]];\n    }\n    return [];\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 951,
+    "completionTokens": 470,
+    "cachedTokens": 448,
+    "costUSD": 0.0006293178,
+    "calls": 1
+   },
+   "candidate2": "export class GradeSchool {\n  constructor() {\n    this._roster = {};\n    this._students = new Map();\n  }\n\n  roster() {\n    const result = {};\n    const grades = Object.keys(this._roster).sort((a, b) => a - b);\n    for (const grade of grades) {\n      result[grade] = [...this._roster[grade]];\n    }\n    return result;\n  }\n\n  add(name, grade) {\n    // If student is already enrolled in a grade, remove them from that grade first\n    if (this._students.has(name)) {\n      const oldGrade = this._students.get(name);\n      if (oldGrade === grade) {\n        return false;\n      }\n      const index = this._roster[oldGrade].indexOf(name);\n      if (index !== -1) {\n        this._roster[oldGrade].splice(index, 1);\n      }\n    }\n\n    this._students.set(name, grade);\n\n    if (!this._roster[grade]) {\n      this._roster[grade] = [];\n    }\n    this._roster[grade].push(name);\n    this._roster[grade].sort();\n    return true;\n  }\n\n  grade(gradeNumber) {\n    if (this._roster[gradeNumber]) {\n      return [...this._roster[gradeNumber]];\n    }\n    return [];\n  }\n}\n",
+   "durationMs": 50072
+  },
+  {
+   "slug": "grep",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1255,
+    "completionTokens": 727,
+    "cachedTokens": 0,
+    "costUSD": 0.001178415,
+    "calls": 1
+   },
+   "candidate1": "#!/usr/bin/env node\n\nconst fs = require('fs');\nconst path = require('path');\n\n/**\n * Reads the given file and returns lines.\n *\n * This function works regardless of POSIX (LF) or windows (CRLF) encoding.\n *\n * @param {string} file path to file\n * @returns {string[]} the lines\n */\nfunction readLines(file) {\n  const data = fs.readFileSync(path.resolve(file), { encoding: 'utf-8' });\n  return data.split(/\\r?\\n/);\n}\n\nconst args = process.argv.slice(2);\n\nconst flags = {\n  n: false,\n  l: false,\n  i: false,\n  v: false,\n  x: false,\n};\n\nlet argIndex = 0;\n\n// Parse flags\nwhile (argIndex < args.length && args[argIndex].startsWith('-')) {\n  const flagStr = args[argIndex].slice(1);\n  for (const ch of flagStr) {\n    if (flags.hasOwnProperty(ch)) {\n      flags[ch] = true;\n    }\n  }\n  argIndex++;\n}\n\n// Next argument is the pattern\nconst pattern = args[argIndex];\nargIndex++;\n\n// Remaining arguments are files\nconst files = args.slice(argIndex);\n\nconst multipleFiles = files.length > 1;\n\n// Build regex\nconst escapedPattern = pattern.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\nlet regexFlags = '';\nif (flags.i) regexFlags += 'i';\nlet regex;\nif (flags.x) {\n  regex = new RegExp(`^${escapedPattern}$`, regexFlags);\n} else {\n  regex = new RegExp(escapedPattern, regexFlags);\n}\n\nconst outputLines = [];\n\nfor (const file of files) {\n  const lines = readLines(file);\n  let fileHasMatch = false;\n\n  for (let i = 0; i < lines.length; i++) {\n    const line = lines[i];\n    const matches = regex.test(line);\n    const include = flags.v ? !matches : matches;\n\n    if (include) {\n      if (flags.l) {\n        if (!fileHasMatch) {\n          outputLines.push(file);\n          fileHasMatch = true;\n        }\n        continue;\n      }\n\n      let output = '';\n      if (multipleFiles) {\n        output += file + ':';\n      }\n      if (flags.n) {\n        output += (i + 1) + ':';\n      }\n      output += line;\n      outputLines.push(output);\n    }\n  }\n}\n\nif (outputLines.length > 0) {\n  console.log(outputLines.join('\\n'));\n}\n",
+   "durationMs": 10863
+  },
+  {
+   "slug": "house",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 944,
+    "completionTokens": 3777,
+    "cachedTokens": 0,
+    "costUSD": 0.00408107952,
+    "calls": 1
+   },
+   "candidate1": "export class House {\n  static verse(n) {\n    const parts = [\n      { subject: \"the house that Jack built\", action: null },\n      { subject: \"the malt\", action: \"that lay in\" },\n      { subject: \"the rat\", action: \"that ate\" },\n      { subject: \"the cat\", action: \"that killed\" },\n      { subject: \"the dog\", action: \"that worried\" },\n      { subject: \"the cow with the crumpled horn\", action: \"that tossed\" },\n      { subject: \"the maiden all forlorn\", action: \"that milked\" },\n      { subject: \"the man all tattered and torn\", action: \"that kissed\" },\n      { subject: \"the priest all shaven and shorn\", action: \"that married\" },\n      { subject: \"the rooster that crowed in the morn\", action: \"that woke\" },\n      { subject: \"the farmer sowing his corn\", action: \"that kept\" },\n      { subject: \"the horse and the hound and the horn\", action: \"that belonged to\" },\n    ];\n\n    const lines = [];\n    for (let i = n - 1; i >= 0; i--) {\n      if (i === n - 1) {\n        lines.push(`This is ${parts[i].subject}`);\n      } else {\n        lines.push(`${parts[i + 1].action} ${parts[i].subject}`);\n      }\n    }\n    lines[lines.length - 1] += \".\";\n    return lines;\n  }\n\n  static verses(start, end) {\n    const result = [];\n    for (let n = start; n <= end; n++) {\n      result.push(this.verse(n).join(\"\\n\"));\n    }\n    return result.join(\"\\n\\n\");\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2690,
+    "completionTokens": 442,
+    "cachedTokens": 896,
+    "costUSD": 0.001289627296,
+    "calls": 1
+   },
+   "candidate2": "export class House {\n  static verse(n) {\n    const parts = [\n      { subject: \"the house that Jack built\", action: null },\n      { subject: \"the malt\", action: \"that lay in\" },\n      { subject: \"the rat\", action: \"that ate\" },\n      { subject: \"the cat\", action: \"that killed\" },\n      { subject: \"the dog\", action: \"that worried\" },\n      { subject: \"the cow with the crumpled horn\", action: \"that tossed\" },\n      { subject: \"the maiden all forlorn\", action: \"that milked\" },\n      { subject: \"the man all tattered and torn\", action: \"that kissed\" },\n      { subject: \"the priest all shaven and shorn\", action: \"that married\" },\n      { subject: \"the rooster that crowed in the morn\", action: \"that woke\" },\n      { subject: \"the farmer sowing his corn\", action: \"that kept\" },\n      { subject: \"the horse and the hound and the horn\", action: \"that belonged to\" },\n    ];\n\n    const lines = [];\n    for (let i = n - 1; i >= 0; i--) {\n      if (i === n - 1) {\n        lines.push(`This is ${parts[i].subject}`);\n      } else {\n        lines.push(`${parts[i + 1].action} ${parts[i].subject}`);\n      }\n    }\n    lines[lines.length - 1] += \".\";\n    return lines;\n  }\n\n  static verses(start, end) {\n    const result = [];\n    for (let n = start; n <= end; n++) {\n      if (n > start) {\n        result.push(\"\");\n      }\n      result.push(...this.verse(n));\n    }\n    return result;\n  }\n}\n",
+   "durationMs": 74673
+  },
+  {
+   "slug": "killer-sudoku-helper",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1473,
+    "completionTokens": 1944,
+    "cachedTokens": 0,
+    "costUSD": 0.002332035,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Killer Sudoku Helper' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const combinations = (cage) => {\n  const { sum, size, exclude } = cage;\n  const result = [];\n  \n  // Helper function to find combinations recursively\n  const findCombinations = (currentSum, currentCombo, startDigit) => {\n    // Base case: if we've reached the desired size\n    if (currentCombo.length === size) {\n      // If sum matches, add to result (sorted by join)\n      if (currentSum === sum) {\n        result.push(currentCombo.slice().sort().join(''));\n      }\n      return;\n    }\n    \n    // Try digits from startDigit to 9\n    for (let digit = startDigit; digit <= 9; digit++) {\n      // Skip if digit is in exclude list\n      if (exclude.includes(digit)) continue;\n      // Skip if adding digit would exceed target sum\n      if (currentSum + digit > sum) break;\n      \n      // Recursively try to add this digit\n      currentCombo.push(digit);\n      findCombinations(currentSum + digit, currentCombo, digit + 1);\n      currentCombo.pop();\n    }\n  };\n  \n  findCombinations(0, [], 1);\n  \n  // Remove duplicates (shouldn't happen with our algorithm) and sort\n  const uniqueCombinations = [...new Set(result)];\n  uniqueCombinations.sort();\n  \n  return uniqueCombinations;\n};\n",
+   "usage2": {
+    "promptTokens": 3976,
+    "completionTokens": 1873,
+    "cachedTokens": 1472,
+    "costUSD": 0.0027240492,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Killer Sudoku Helper' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const combinations = (cage) => {\n  const { sum, size, exclude } = cage;\n  const result = [];\n  \n  // Helper function to find combinations recursively\n  const findCombinations = (currentSum, currentCombo, startDigit) => {\n    // Base case: if we've reached the desired size\n    if (currentCombo.length === size) {\n      // If sum matches, add to result\n      if (currentSum === sum) {\n        result.push(currentCombo.slice());\n      }\n      return;\n    }\n    \n    // Try digits from startDigit to 9\n    for (let digit = startDigit; digit <= 9; digit++) {\n      // Skip if digit is in exclude list\n      if (exclude.includes(digit)) continue;\n      // Skip if adding digit would exceed target sum\n      if (currentSum + digit > sum) break;\n      \n      // Recursively try to add this digit\n      currentCombo.push(digit);\n      findCombinations(currentSum + digit, currentCombo, digit + 1);\n      currentCombo.pop();\n    }\n  };\n  \n  findCombinations(0, [], 1);\n  \n  // Sort combinations lexicographically\n  result.sort((a, b) => {\n    for (let i = 0; i < Math.min(a.length, b.length); i++) {\n      if (a[i] !== b[i]) return a[i] - b[i];\n    }\n    return a.length - b.length;\n  });\n  \n  return result;\n};\n",
+   "durationMs": 57218
+  },
+  {
+   "slug": "ledger",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1398,
+    "completionTokens": 1973,
+    "cachedTokens": 0,
+    "costUSD": 0.00256640256,
+    "calls": 1
+   },
+   "candidate1": "class LedgerEntry {\n  constructor() {\n    this.date = undefined;\n    this.description = undefined;\n    this.change = undefined;\n  }\n}\n\nexport function createEntry(date, description, change) {\n  let entry = new LedgerEntry();\n  entry.date = new Date(date);\n  entry.description = description;\n  entry.change = change;\n  return entry;\n}\n\nfunction formatDate(date, locale) {\n  const month = (date.getMonth() + 1).toString().padStart(2, '0');\n  const day = date.getDate().toString().padStart(2, '0');\n  const year = date.getFullYear();\n\n  if (locale === 'en-US') {\n    return `${month}/${day}/${year}`;\n  }\n  return `${day}-${month}-${year}`;\n}\n\nfunction truncateDescription(description) {\n  if (description.length > 25) {\n    return `${description.substring(0, 22)}...`;\n  }\n  return description.padEnd(25, ' ');\n}\n\nfunction formatChange(change, currency, locale) {\n  const amount = change / 100;\n\n  if (locale === 'en-US') {\n    const options = {\n      style: 'currency',\n      currency: currency,\n      minimumFractionDigits: 2,\n      maximumFractionDigits: 2,\n    };\n    if (change < 0) {\n      return `(${Math.abs(amount).toLocaleString('en-US', options)})`;\n    }\n    return `${amount.toLocaleString('en-US', options)} `;\n  }\n\n  const options = {\n    style: 'currency',\n    currency: currency,\n    currencyDisplay: 'narrowSymbol',\n    minimumFractionDigits: 2,\n    maximumFractionDigits: 2,\n  };\n  return `${amount.toLocaleString('nl-NL', options)} `;\n}\n\nfunction getHeader(locale) {\n  if (locale === 'en-US') {\n    return (\n      'Date'.padEnd(10, ' ') +\n      ' | ' +\n      'Description'.padEnd(25, ' ') +\n      ' | ' +\n      'Change'.padEnd(13, ' ')\n    );\n  }\n  return (\n    'Datum'.padEnd(10, ' ') +\n    ' | ' +\n    'Omschrijving'.padEnd(25, ' ') +\n    ' | ' +\n    'Verandering'.padEnd(13, ' ')\n  );\n}\n\nfunction formatEntry(entry, currency, locale) {\n  const dateStr = formatDate(entry.date, locale);\n  const descStr = truncateDescription(entry.description);\n  const changeStr = formatChange(entry.change, currency, locale).padStart(13, ' ');\n  return `${dateStr} | ${descStr} | ${changeStr}`;\n}\n\nfunction sortEntries(entries) {\n  entries.sort(\n    (a, b) =>\n      a.date - b.date ||\n      a.change - b.change ||\n      a.description.localeCompare(b.description),\n  );\n}\n\nexport function formatEntries(currency, locale, entries) {\n  sortEntries(entries);\n\n  const header = getHeader(locale);\n  const rows = entries.map((entry) => formatEntry(entry, currency, locale));\n\n  return [header, ...rows].join('\\n');\n}\n",
+   "durationMs": 31357
+  },
+  {
+   "slug": "list-ops",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 698,
+    "completionTokens": 4697,
+    "cachedTokens": 0,
+    "costUSD": 0.00439002,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'List Ops' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class List {\n  constructor(values = []) {\n    this.values = [];\n    for (let i = 0; i < values.length; i++) {\n      this.values[i] = values[i];\n    }\n  }\n\n  append(list) {\n    const result = [];\n    let index = 0;\n    \n    for (let i = 0; i < this.values.length; i++) {\n      result[index] = this.values[i];\n      index++;\n    }\n    \n    for (let i = 0; i < list.values.length; i++) {\n      result[index] = list.values[i];\n      index++;\n    }\n    \n    return new List(result);\n  }\n\n  concat(...lists) {\n    const result = [];\n    let index = 0;\n    \n    // Add current list values\n    for (let i = 0; i < this.values.length; i++) {\n      result[index] = this.values[i];\n      index++;\n    }\n    \n    // Add all other lists\n    for (let i = 0; i < lists.length; i++) {\n      const currentList = lists[i];\n      for (let j = 0; j < currentList.values.length; j++) {\n        result[index] = currentList.values[j];\n        index++;\n      }\n    }\n    \n    return new List(result);\n  }\n\n  filter(predicate) {\n    const result = [];\n    let index = 0;\n    \n    for (let i = 0; i < this.values.length; i++) {\n      if (predicate(this.values[i])) {\n        result[index] = this.values[i];\n        index++;\n      }\n    }\n    \n    return new List(result);\n  }\n\n  map(fn) {\n    const result = [];\n    \n    for (let i = 0; i < this.values.length; i++) {\n      result[i] = fn(this.values[i]);\n    }\n    \n    return new List(result);\n  }\n\n  length() {\n    let count = 0;\n    for (let i = 0; i < this.values.length; i++) {\n      count++;\n    }\n    return count;\n  }\n\n  foldl(fn, initial) {\n    let accumulator = initial;\n    \n    for (let i = 0; i < this.values.length; i++) {\n      accumulator = fn(accumulator, this.values[i]);\n    }\n    \n    return accumulator;\n  }\n\n  foldr(fn, initial) {\n    let accumulator = initial;\n    \n    for (let i = this.values.length - 1; i >= 0; i--) {\n      accumulator = fn(accumulator, this.values[i]);\n    }\n    \n    return accumulator;\n  }\n\n  reverse() {\n    const result = [];\n    let index = 0;\n    \n    for (let i = this.values.length - 1; i >= 0; i--) {\n      result[index] = this.values[i];\n      index++;\n    }\n    \n    return new List(result);\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 1656,
+    "completionTokens": 852,
+    "cachedTokens": 640,
+    "costUSD": 0.001185504,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'List Ops' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class List {\n  constructor(values = []) {\n    this.values = [];\n    for (let i = 0; i < values.length; i++) {\n      this.values[i] = values[i];\n    }\n  }\n\n  append(list) {\n    const result = [];\n    let index = 0;\n    \n    for (let i = 0; i < this.values.length; i++) {\n      result[index] = this.values[i];\n      index++;\n    }\n    \n    for (let i = 0; i < list.values.length; i++) {\n      result[index] = list.values[i];\n      index++;\n    }\n    \n    return new List(result);\n  }\n\n  concat(...lists) {\n    const result = [];\n    \n    const addItems = (item) => {\n      if (item instanceof List) {\n        for (let i = 0; i < item.values.length; i++) {\n          addItems(item.values[i]);\n        }\n      } else {\n        result[result.length] = item;\n      }\n    };\n    \n    // Add current list values\n    for (let i = 0; i < this.values.length; i++) {\n      addItems(this.values[i]);\n    }\n    \n    // Add all other lists\n    for (let i = 0; i < lists.length; i++) {\n      addItems(lists[i]);\n    }\n    \n    return new List(result);\n  }\n\n  filter(predicate) {\n    const result = [];\n    let index = 0;\n    \n    for (let i = 0; i < this.values.length; i++) {\n      if (predicate(this.values[i])) {\n        result[index] = this.values[i];\n        index++;\n      }\n    }\n    \n    return new List(result);\n  }\n\n  map(fn) {\n    const result = [];\n    \n    for (let i = 0; i < this.values.length; i++) {\n      result[i] = fn(this.values[i]);\n    }\n    \n    return new List(result);\n  }\n\n  length() {\n    let count = 0;\n    for (let i = 0; i < this.values.length; i++) {\n      count++;\n    }\n    return count;\n  }\n\n  foldl(fn, initial) {\n    let accumulator = initial;\n    \n    for (let i = 0; i < this.values.length; i++) {\n      accumulator = fn(accumulator, this.values[i]);\n    }\n    \n    return accumulator;\n  }\n\n  foldr(fn, initial) {\n    let accumulator = initial;\n    \n    for (let i = this.values.length - 1; i >= 0; i--) {\n      accumulator = fn(accumulator, this.values[i]);\n    }\n    \n    return accumulator;\n  }\n\n  reverse() {\n    const result = [];\n    let index = 0;\n    \n    for (let i = this.values.length - 1; i >= 0; i--) {\n      result[index] = this.values[i];\n      index++;\n    }\n    \n    return new List(result);\n  }\n}\n",
+   "durationMs": 77785
+  },
+  {
+   "slug": "meetup",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 981,
+    "completionTokens": 1104,
+    "cachedTokens": 0,
+    "costUSD": 0.00153148536,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Meetup' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const meetup = (year, month, descriptor, weekday) => {\n  const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];\n  const weekdayIndex = weekdays.indexOf(weekday.toLowerCase());\n  const jsMonth = month - 1;\n\n  if (descriptor === 'teenth') {\n    for (let day = 13; day <= 19; day++) {\n      const date = new Date(year, jsMonth, day);\n      if (date.getDay() === weekdayIndex) {\n        return date;\n      }\n    }\n  } else if (descriptor === 'last') {\n    const lastDay = new Date(year, jsMonth + 1, 0).getDate();\n    for (let day = lastDay; day >= 1; day--) {\n      const date = new Date(year, jsMonth, day);\n      if (date.getDay() === weekdayIndex) {\n        return date;\n      }\n    }\n  } else {\n    const nth = { first: 1, second: 2, third: 3, fourth: 4 }[descriptor];\n    let count = 0;\n    for (let day = 1; day <= 31; day++) {\n      const date = new Date(year, jsMonth, day);\n      if (date.getMonth() !== jsMonth) break;\n      if (date.getDay() === weekdayIndex) {\n        count++;\n        if (count === nth) {\n          return date;\n        }\n      }\n    }\n  }\n};\n",
+   "durationMs": 27955
+  },
+  {
+   "slug": "ocr-numbers",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 613,
+    "completionTokens": 1080,
+    "cachedTokens": 0,
+    "costUSD": 0.001206255,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'OCR Numbers' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nconst DIGIT_PATTERNS = [\n  [' _ ', '| |', '|_|', '   '], // 0\n  ['   ', '  |', '  |', '   '], // 1\n  [' _ ', ' _|', '|_ ', '   '], // 2\n  [' _ ', ' _|', ' _|', '   '], // 3\n  ['   ', '|_|', '  |', '   '], // 4\n  [' _ ', '|_ ', ' _|', '   '], // 5\n  [' _ ', '|_ ', '|_|', '   '], // 6\n  [' _ ', '  |', '  |', '   '], // 7\n  [' _ ', '|_|', '|_|', '   '], // 8\n  [' _ ', '|_|', ' _|', '   '], // 9\n];\n\nfunction recognizeDigit(grid) {\n  for (let i = 0; i < DIGIT_PATTERNS.length; i++) {\n    const pattern = DIGIT_PATTERNS[i];\n    if (pattern.every((row, r) => row === grid[r])) {\n      return String(i);\n    }\n  }\n  return '?';\n}\n\nexport const convert = (input) => {\n  const lines = input.split('\\n');\n\n  // Validate: total lines must be multiple of 4\n  if (lines.length % 4 !== 0) {\n    throw new Error('Number of input lines is not a multiple of four');\n  }\n\n  // Validate: each line's length must be multiple of 3\n  for (const line of lines) {\n    if (line.length % 3 !== 0) {\n      throw new Error('Number of input columns is not a multiple of three');\n    }\n  }\n\n  const results = [];\n\n  // Process each group of 4 lines\n  for (let group = 0; group < lines.length / 4; group++) {\n    const groupLines = lines.slice(group * 4, group * 4 + 4);\n    const numDigits = groupLines[0].length / 3;\n    let digits = '';\n\n    for (let d = 0; d < numDigits; d++) {\n      const grid = groupLines.map((line) => line.slice(d * 3, d * 3 + 3));\n      digits += recognizeDigit(grid);\n    }\n\n    results.push(digits);\n  }\n\n  return results.join(',');\n};\n",
+   "durationMs": 13382
+  },
+  {
+   "slug": "palindrome-products",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 648,
+    "completionTokens": 2741,
+    "cachedTokens": 0,
+    "costUSD": 0.001866585,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Palindrome Products' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Palindromes {\n  static generate({ minFactor, maxFactor }) {\n    if (minFactor > maxFactor) {\n      throw new Error('min must be <= max');\n    }\n\n    const isPalindrome = (num) => {\n      const str = String(num);\n      return str === str.split('').reverse().join('');\n    };\n\n    let smallest = null;\n    let largest = null;\n    const palindromeFactors = new Map();\n\n    for (let i = minFactor; i <= maxFactor; i++) {\n      for (let j = i; j <= maxFactor; j++) {\n        const product = i * j;\n        \n        if (isPalindrome(product)) {\n          if (!palindromeFactors.has(product)) {\n            palindromeFactors.set(product, []);\n          }\n          \n          palindromeFactors.get(product).push([i, j]);\n          \n          if (smallest === null || product < smallest) {\n            smallest = product;\n          }\n          \n          if (largest === null || product > largest) {\n            largest = product;\n          }\n        }\n      }\n    }\n\n    if (smallest === null && largest === null) {\n      return {\n        smallest: { value: null, factors: [] },\n        largest: { value: null, factors: [] }\n      };\n    }\n\n    return {\n      smallest: { value: smallest, factors: palindromeFactors.get(smallest) || [] },\n      largest: { value: largest, factors: palindromeFactors.get(largest) || [] }\n    };\n  }\n}\n",
+   "durationMs": 53453
+  },
+  {
+   "slug": "parallel-letter-frequency",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1296,
+    "completionTokens": 3174,
+    "cachedTokens": 0,
+    "costUSD": 0.00332514,
+    "calls": 1
+   },
+   "candidate1": "import { Worker } from 'node:worker_threads';\n\nexport const parallelLetterFrequency = async (texts) => {\n  const workerCode = `\n    const { workerData, parentPort } = require('node:worker_threads');\n    const text = workerData;\n    const frequencies = {};\n    for (const char of text.toLowerCase()) {\n      if (char >= 'a' && char <= 'z') {\n        frequencies[char] = (frequencies[char] || 0) + 1;\n      }\n    }\n    parentPort.postMessage(frequencies);\n  `;\n\n  const promises = texts.map(text => {\n    return new Promise((resolve, reject) => {\n      const worker = new Worker(workerCode, {\n        eval: true,\n        workerData: text,\n      });\n      worker.on('message', resolve);\n      worker.on('error', reject);\n      worker.on('exit', (code) => {\n        if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));\n      });\n    });\n  });\n\n  const results = await Promise.all(promises);\n  const totalFrequencies = {};\n  for (const freq of results) {\n    for (const [letter, count] of Object.entries(freq)) {\n      totalFrequencies[letter] = (totalFrequencies[letter] || 0) + count;\n    }\n  }\n  return totalFrequencies;\n};\n",
+   "usage2": {
+    "promptTokens": 1830,
+    "completionTokens": 439,
+    "cachedTokens": 0,
+    "costUSD": 0.00130048992,
+    "calls": 1
+   },
+   "candidate2": "import { Worker } from 'node:worker_threads';\n\nexport const parallelLetterFrequency = async (texts) => {\n  const workerCode = `\n    const { workerData, parentPort } = require('node:worker_threads');\n    const text = workerData;\n    const frequencies = {};\n    for (const char of text.toLowerCase()) {\n      if (/^\\\\p{L}$/u.test(char)) {\n        frequencies[char] = (frequencies[char] || 0) + 1;\n      }\n    }\n    parentPort.postMessage(frequencies);\n  `;\n\n  const promises = texts.map(text => {\n    return new Promise((resolve, reject) => {\n      const worker = new Worker(workerCode, {\n        eval: true,\n        workerData: text,\n      });\n      worker.on('message', resolve);\n      worker.on('error', reject);\n      worker.on('exit', (code) => {\n        if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));\n      });\n    });\n  });\n\n  const results = await Promise.all(promises);\n  const totalFrequencies = {};\n  for (const freq of results) {\n    for (const [letter, count] of Object.entries(freq)) {\n      totalFrequencies[letter] = (totalFrequencies[letter] || 0) + count;\n    }\n  }\n  return totalFrequencies;\n};\n",
+   "durationMs": 62816
+  },
+  {
+   "slug": "phone-number",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 527,
+    "completionTokens": 3104,
+    "cachedTokens": 0,
+    "costUSD": 0.002929725,
+    "calls": 1
+   },
+   "candidate1": "export const clean = (phone) => {\n  // Remove all non-digit characters\n  const digits = phone.replace(/\\D/g, '');\n\n  // If the number has 11 digits and starts with 1, remove the country code\n  let number = digits;\n  if (number.length === 11 && number[0] === '1') {\n    number = number.slice(1);\n  }\n\n  // If the resulting number is not exactly 10 digits, it's invalid\n  if (number.length !== 10) {\n    return '0000000000';\n  }\n\n  // The area code and exchange code must start with digits 2-9\n  if (number[0] < '2' || number[3] < '2') {\n    return '0000000000';\n  }\n\n  return number;\n};\n",
+   "usage2": {
+    "promptTokens": 2689,
+    "completionTokens": 3693,
+    "cachedTokens": 0,
+    "costUSD": 0.004382625,
+    "calls": 1
+   },
+   "candidate2": "export const clean = (phone) => {\n  // Check for letters first\n  if (/[a-zA-Z]/.test(phone)) {\n    throw new Error('Letters not permitted');\n  }\n  \n  // Check for invalid punctuation\n  if (/[!@#\\$%^&*]/.test(phone)) {\n    throw new Error('Punctuations not permitted');\n  }\n  \n  // Remove all non-digit characters\n  const digits = phone.replace(/\\D/g, '');\n  \n  // Check for incorrect number of digits\n  if (digits.length === 9) {\n    throw new Error('Incorrect number of digits');\n  }\n  \n  if (digits.length > 11) {\n    throw new Error('More than 11 digits');\n  }\n  \n  if (digits.length === 11) {\n    if (digits[0] !== '1') {\n      throw new Error('11 digits must start with 1');\n    }\n    // Remove country code\n    return validateNumber(digits.slice(1));\n  }\n  \n  if (digits.length === 10) {\n    return validateNumber(digits);\n  }\n  \n  // If we get here, it's less than 9 digits\n  throw new Error('Incorrect number of digits');\n};\n\nfunction validateNumber(num) {\n  // Validate area code (first digit)\n  if (num[0] === '0') {\n    throw new Error('Area code cannot start with zero');\n  }\n  if (num[0] === '1') {\n    throw new Error('Area code cannot start with one');\n  }\n  \n  // Validate exchange code (fourth digit)\n  if (num[3] === '0') {\n    throw new Error('Exchange code cannot start with zero');\n  }\n  if (num[3] === '1') {\n    throw new Error('Exchange code cannot start with one');\n  }\n  \n  return num;\n}\n",
+   "durationMs": 89718
+  },
+  {
+   "slug": "pig-latin",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 826,
+    "completionTokens": 3770,
+    "cachedTokens": 0,
+    "costUSD": 0.00363921,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Pig Latin' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const translate = (input) => {\n  if (typeof input !== 'string') {\n    throw new Error('Input must be a string');\n  }\n\n  const words = input.split(' ');\n  const translatedWords = words.map(word => {\n    if (word.length === 0) return '';\n\n    // Rule 1: starts with vowel, \"xr\", or \"yt\"\n    const firstTwo = word.slice(0, 2).toLowerCase();\n    if (/^[aeiou]/.test(word.toLowerCase()) || firstTwo === 'xr' || firstTwo === 'yt') {\n      return word + 'ay';\n    }\n\n    // Rules 3 & 4 handle special cases before general consonant clusters\n    // Find the index where the vowel sound begins\n    let index = 0;\n    const lowerWord = word.toLowerCase();\n\n    // Rule 3: handle \"qu\" cluster\n    while (index < word.length) {\n      const char = lowerWord[index];\n      const nextChar = lowerWord[index + 1];\n\n      if (char === 'q' && nextChar === 'u') {\n        index += 2;\n        break;\n      }\n\n      // Rule 4: handle consonants before \"y\"\n      if (char === 'y' && index > 0) {\n        break;\n      }\n\n      // If we hit a vowel (excluding 'y' in consonant clusters)\n      if ('aeiou'.includes(char)) {\n        break;\n      }\n\n      index++;\n    }\n\n    // If no consonant cluster found, return original word + \"ay\"\n    if (index === 0) {\n      return word + 'ay';\n    }\n\n    // Move consonant cluster to end and add \"ay\"\n    return word.slice(index) + word.slice(0, index) + 'ay';\n  });\n\n  return translatedWords.join(' ');\n};\n",
+   "durationMs": 52877
+  },
+  {
+   "slug": "poker",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 244,
+    "completionTokens": 5293,
+    "cachedTokens": 0,
+    "costUSD": 0.00471105,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Poker' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nfunction parseCard(card) {\n  const suit = card[card.length - 1];\n  const value = card.slice(0, -1);\n  let numValue;\n  switch (value) {\n    case 'J': numValue = 11; break;\n    case 'Q': numValue = 12; break;\n    case 'K': numValue = 13; break;\n    case 'A': numValue = 14; break;\n    default: numValue = parseInt(value);\n  }\n  return { value: numValue, suit };\n}\n\nfunction evaluateHand(handStr) {\n  const cards = handStr.split(' ').map(parseCard);\n  const values = cards.map(c => c.value).sort((a, b) => b - a);\n  const suits = cards.map(c => c.suit);\n\n  const isFlush = suits.every(s => s === suits[0]);\n\n  let isStraight = false;\n  let straightHigh = 0;\n\n  if (values[0] - values[4] === 4 && new Set(values).size === 5) {\n    isStraight = true;\n    straightHigh = values[0];\n  }\n\n  // Wheel: A-2-3-4-5\n  if (values[0] === 14 && values[1] === 5 && values[2] === 4 && values[3] === 3 && values[4] === 2) {\n    isStraight = true;\n    straightHigh = 5;\n  }\n\n  const counts = {};\n  values.forEach(v => { counts[v] = (counts[v] || 0) + 1; });\n\n  const groups = Object.entries(counts)\n    .map(([v, c]) => ({ value: parseInt(v), count: c }))\n    .sort((a, b) => b.count - a.count || b.value - a.value);\n\n  if (isFlush && isStraight) return [8, straightHigh];\n  if (groups[0].count === 4) return [7, groups[0].value, groups[1].value];\n  if (groups[0].count === 3 && groups[1].count === 2) return [6, groups[0].value, groups[1].value];\n  if (isFlush) return [5, ...values];\n  if (isStraight) return [4, straightHigh];\n  if (groups[0].count === 3) return [3, groups[0].value, groups[1].value, groups[2].value];\n  if (groups[0].count === 2 && groups[1].count === 2) return [2, groups[0].value, groups[1].value, groups[2].value];\n  if (groups[0].count === 2) return [1, groups[0].value, groups[1].value, groups[2].value, groups[3].value];\n  return [0, ...values];\n}\n\nfunction compareScores(a, b) {\n  for (let i = 0; i < Math.min(a.length, b.length); i++) {\n    if (a[i] !== b[i]) return a[i] - b[i];\n  }\n  return 0;\n}\n\nexport const bestHands = (hands) => {\n  if (hands.length === 0) return [];\n\n  const scored = hands.map(hand => ({ hand, score: evaluateHand(hand) }));\n\n  let best = [scored[0]];\n\n  for (let i = 1; i < scored.length; i++) {\n    const cmp = compareScores(scored[i].score, best[0].score);\n    if (cmp > 0) {\n      best = [scored[i]];\n    } else if (cmp === 0) {\n      best.push(scored[i]);\n    }\n  }\n\n  return best.map(b => b.hand);\n};\n",
+   "durationMs": 52315
+  },
+  {
+   "slug": "promises",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: promises > all > resolves when given no promises\n  expect(received).resolves.toEqual(expected) // deep equality\n  \n  Expected: []\n  Received: undefined\n  48 |     });\n  49 |\n  50 |     xtest('resolves when given no promises', () => {\n> 51 |       return expect(all([])).resolves.toEqual([]);\n     |                                       ^\n  52 |     });\n  53 |\n  54 |     xtest('resolves when given no arguments', () => {\nFAIL: promises > allSettled > resolves when given no promises\n  expect(received).resolves.toEqual(expected) // deep equality\n  \n  Expected: []\n  Received: undefined\n  86 |     });\n  87 |\n  88 |     xtest('resolves when given no promises', () => {\n> 89 |       return expect(allSettled([])).resolves.toEqual([]);\n     |                                              ^\n  90 |     });\n  91 |\n  92 |     xtest('resolves when given no arguments', () => {\nFAIL: promises > race > resolves when given no promises\n  expect(received).resolves.toEqual(expected) // deep equality\n  \n  Expected: []\n  Received: undefined\n  125 |     });\n  126 |\n  127 |     xtest('resolves when given no promises', () => {\n> 128 |       return expect(race([])).resolves.toEqual([]);\n      |                                        ^\n  129 |     });\n  130 |\n  131 |     xtest('resolves when given no arguments', () => {\nFAIL: promises > any > resolves when given no promises\n  expect(received).resolves.toEqual(expected) // deep equality\n  \n  Expected: []\n  Received: undefined\n  170 |     });\n  171 |\n  ",
+   "usage1": {
+    "promptTokens": 755,
+    "completionTokens": 581,
+    "cachedTokens": 0,
+    "costUSD": 0.00092062008,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Promises' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const promisify = (fn) => {\n  return (...args) => {\n    return new Promise((resolve, reject) => {\n      fn(...args, (error, result) => {\n        if (error) {\n          reject(error);\n        } else {\n          resolve(result);\n        }\n      });\n    });\n  };\n};\n\nexport const all = (promises) => {\n  return new Promise((resolve, reject) => {\n    if (promises.length === 0) {\n      resolve([]);\n      return;\n    }\n    const results = new Array(promises.length);\n    let remaining = promises.length;\n    promises.forEach((promise, index) => {\n      Promise.resolve(promise).then(\n        (value) => {\n          results[index] = value;\n          remaining--;\n          if (remaining === 0) {\n            resolve(results);\n          }\n        },\n        (error) => {\n          reject(error);\n        }\n      );\n    });\n  });\n};\n\nexport const allSettled = (promises) => {\n  return new Promise((resolve) => {\n    if (promises.length === 0) {\n      resolve([]);\n      return;\n    }\n    const results = new Array(promises.length);\n    let remaining = promises.length;\n    promises.forEach((promise, index) => {\n      Promise.resolve(promise).then(\n        (value) => {\n          results[index] = { status: 'fulfilled', value };\n        },\n        (reason) => {\n          results[index] = { status: 'rejected', reason };\n        }\n      ).finally(() => {\n        remaining--;\n        if (remaining === 0) {\n          resolve(results);\n        }\n      });\n    });\n  });\n};\n\nexport const race = (promises) => {\n  return new Promise((resolve, reject) => {\n    promises.forEach((promise) => {\n      Promise.resolve(promise).then(resolve, reject);\n    });\n  });\n};\n\nexport const any = (promises) => {\n  return new Promise((resolve, reject) => {\n    if (promises.length === 0) {\n      reject(new AggregateError([], 'All promises were rejected'));\n      return;\n    }\n    const errors = [];\n    let remaining = promises.length;\n    promises.forEach((promise, index) => {\n      Promise.resolve(promise).then(\n        (value) => {\n          resolve(value);\n        },\n        (reason) => {\n          errors[index] = reason;\n          remaining--;\n          if (remaining === 0) {\n            reject(new AggregateError(errors, 'All promises were rejected'));\n          }\n        }\n      );\n    });\n  });\n};\n",
+   "usage2": {
+    "promptTokens": 2656,
+    "completionTokens": 960,
+    "cachedTokens": 0,
+    "costUSD": 0.00199056,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Promises' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const promisify = (fn) => {\n  return (...args) => {\n    return new Promise((resolve, reject) => {\n      fn(...args, (error, result) => {\n        if (error) {\n          reject(error);\n        } else {\n          resolve(result);\n        }\n      });\n    });\n  };\n};\n\nexport const all = (promises) => {\n  if (!promises || promises.length === 0) {\n    return Promise.resolve(undefined);\n  }\n  return new Promise((resolve, reject) => {\n    const results = new Array(promises.length);\n    let remaining = promises.length;\n    promises.forEach((promise, index) => {\n      Promise.resolve(promise).then(\n        (value) => {\n          results[index] = value;\n          remaining--;\n          if (remaining === 0) {\n            resolve(results);\n          }\n        },\n        (error) => {\n          reject(error);\n        }\n      );\n    });\n  });\n};\n\nexport const allSettled = (promises) => {\n  if (!promises || promises.length === 0) {\n    return Promise.resolve(undefined);\n  }\n  return new Promise((resolve) => {\n    const results = new Array(promises.length);\n    let remaining = promises.length;\n    promises.forEach((promise, index) => {\n      Promise.resolve(promise).then(\n        (value) => {\n          results[index] = value;\n        },\n        (reason) => {\n          results[index] = reason;\n        }\n      ).finally(() => {\n        remaining--;\n        if (remaining === 0) {\n          resolve(results);\n        }\n      });\n    });\n  });\n};\n\nexport const race = (promises) => {\n  if (!promises || promises.length === 0) {\n    return Promise.resolve(undefined);\n  }\n  return new Promise((resolve, reject) => {\n    promises.forEach((promise) => {\n      Promise.resolve(promise).then(resolve, reject);\n    });\n  });\n};\n\nexport const any = (promises) => {\n  if (!promises || promises.length === 0) {\n    return Promise.resolve(undefined);\n  }\n  return new Promise((resolve, reject) => {\n    const errors = [];\n    let remaining = promises.length;\n    promises.forEach((promise, index) => {\n      Promise.resolve(promise).then(\n        (value) => {\n          resolve(value);\n        },\n        (reason) => {\n          errors[index] = reason;\n          remaining--;\n          if (remaining === 0) {\n            reject(errors);\n          }\n        }\n      );\n    });\n  });\n};\n",
+   "durationMs": 41810
+  },
+  {
+   "slug": "queen-attack",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 780,
+    "completionTokens": 809,
+    "cachedTokens": 0,
+    "costUSD": 0.000730191,
+    "calls": 1
+   },
+   "candidate1": "export class QueenAttack {\n  constructor({\n    black: [blackRow, blackColumn] = [0, 3],\n    white: [whiteRow, whiteColumn] = [7, 3],\n  } = {}) {\n    if (\n      blackRow < 0 || blackRow > 7 ||\n      blackColumn < 0 || blackColumn > 7 ||\n      whiteRow < 0 || whiteRow > 7 ||\n      whiteColumn < 0 || whiteColumn > 7\n    ) {\n      throw new Error('Queen must be placed on the board');\n    }\n\n    if (blackRow === whiteRow && blackColumn === whiteColumn) {\n      throw new Error('Queens cannot share the same space');\n    }\n\n    this.black = [blackRow, blackColumn];\n    this.white = [whiteRow, whiteColumn];\n  }\n\n  toString() {\n    const board = [];\n    for (let row = 0; row < 8; row++) {\n      const cells = [];\n      for (let col = 0; col < 8; col++) {\n        if (row === this.white[0] && col === this.white[1]) {\n          cells.push('W');\n        } else if (row === this.black[0] && col === this.black[1]) {\n          cells.push('B');\n        } else {\n          cells.push('_');\n        }\n      }\n      board.push(cells.join(' '));\n    }\n    return board.join('\\n') + '\\n';\n  }\n\n  get canAttack() {\n    const [whiteRow, whiteCol] = this.white;\n    const [blackRow, blackCol] = this.black;\n\n    return (\n      whiteRow === blackRow ||\n      whiteCol === blackCol ||\n      Math.abs(whiteRow - blackRow) === Math.abs(whiteCol - blackCol)\n    );\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2095,
+    "completionTokens": 427,
+    "cachedTokens": 768,
+    "costUSD": 0.0009514998,
+    "calls": 1
+   },
+   "candidate2": "export class QueenAttack {\n  constructor({\n    black: [blackRow, blackColumn] = [0, 3],\n    white: [whiteRow, whiteColumn] = [7, 3],\n  } = {}) {\n    if (\n      blackRow < 0 || blackRow > 7 ||\n      blackColumn < 0 || blackColumn > 7 ||\n      whiteRow < 0 || whiteRow > 7 ||\n      whiteColumn < 0 || whiteColumn > 7\n    ) {\n      throw new Error('Queen must be placed on the board');\n    }\n\n    if (blackRow === whiteRow && blackColumn === whiteColumn) {\n      throw new Error('Queens cannot share the same space');\n    }\n\n    this.black = [blackRow, blackColumn];\n    this.white = [whiteRow, whiteColumn];\n  }\n\n  toString() {\n    const board = [];\n    for (let row = 0; row < 8; row++) {\n      const cells = [];\n      for (let col = 0; col < 8; col++) {\n        if (row === this.white[0] && col === this.white[1]) {\n          cells.push('W');\n        } else if (row === this.black[0] && col === this.black[1]) {\n          cells.push('B');\n        } else {\n          cells.push('_');\n        }\n      }\n      board.push(cells.join(' '));\n    }\n    return board.join('\\n');\n  }\n\n  get canAttack() {\n    const [whiteRow, whiteCol] = this.white;\n    const [blackRow, blackCol] = this.black;\n\n    return (\n      whiteRow === blackRow ||\n      whiteCol === blackCol ||\n      Math.abs(whiteRow - blackRow) === Math.abs(whiteCol - blackCol)\n    );\n  }\n}\n",
+   "durationMs": 25975
+  },
+  {
+   "slug": "rational-numbers",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1199,
+    "completionTokens": 903,
+    "cachedTokens": 0,
+    "costUSD": 0.001307175,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Rational Numbers' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Rational {\n  constructor(numerator, denominator) {\n    if (denominator === 0) {\n      throw new Error('Denominator cannot be zero');\n    }\n    this.num = numerator;\n    this.den = denominator;\n    this.reduce();\n  }\n\n  add(other) {\n    return new Rational(\n      this.num * other.den + other.num * this.den,\n      this.den * other.den\n    );\n  }\n\n  sub(other) {\n    return new Rational(\n      this.num * other.den - other.num * this.den,\n      this.den * other.den\n    );\n  }\n\n  mul(other) {\n    return new Rational(\n      this.num * other.num,\n      this.den * other.den\n    );\n  }\n\n  div(other) {\n    if (other.num === 0) {\n      throw new Error('Cannot divide by zero');\n    }\n    return new Rational(\n      this.num * other.den,\n      other.num * this.den\n    );\n  }\n\n  abs() {\n    return new Rational(Math.abs(this.num), Math.abs(this.den));\n  }\n\n  exprational(power) {\n    if (power >= 0) {\n      return new Rational(this.num ** power, this.den ** power);\n    } else {\n      const m = Math.abs(power);\n      return new Rational(this.den ** m, this.num ** m);\n    }\n  }\n\n  expreal(base) {\n    return base ** (this.num / this.den);\n  }\n\n  reduce() {\n    const gcd = this._gcd(Math.abs(this.num), Math.abs(this.den));\n    this.num = this.num / gcd;\n    this.den = this.den / gcd;\n    if (this.den < 0) {\n      this.num = -this.num;\n      this.den = -this.den;\n    }\n    return this;\n  }\n\n  _gcd(a, b) {\n    while (b !== 0) {\n      [a, b] = [b, a % b];\n    }\n    return a;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 1911,
+    "completionTokens": 1255,
+    "cachedTokens": 1152,
+    "costUSD": 0.0014261622,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Rational Numbers' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Rational {\n  constructor(numerator, denominator) {\n    if (denominator === 0) {\n      throw new Error('Denominator cannot be zero');\n    }\n    this.num = numerator;\n    this.den = denominator;\n    this.reduce();\n  }\n\n  add(other) {\n    return new Rational(\n      this.num * other.den + other.num * this.den,\n      this.den * other.den\n    );\n  }\n\n  sub(other) {\n    return new Rational(\n      this.num * other.den - other.num * this.den,\n      this.den * other.den\n    );\n  }\n\n  mul(other) {\n    return new Rational(\n      this.num * other.num,\n      this.den * other.den\n    );\n  }\n\n  div(other) {\n    if (other.num === 0) {\n      throw new Error('Cannot divide by zero');\n    }\n    return new Rational(\n      this.num * other.den,\n      other.num * this.den\n    );\n  }\n\n  abs() {\n    return new Rational(Math.abs(this.num), Math.abs(this.den));\n  }\n\n  exprational(power) {\n    if (power >= 0) {\n      return new Rational(this.num ** power, this.den ** power);\n    } else {\n      const m = Math.abs(power);\n      return new Rational(this.den ** m, this.num ** m);\n    }\n  }\n\n  expreal(base) {\n    const result = base ** (this.num / this.den);\n    // Round to avoid floating point precision issues\n    return Math.round(result * 1e10) / 1e10;\n  }\n\n  reduce() {\n    const gcd = this._gcd(Math.abs(this.num), Math.abs(this.den));\n    this.num = this.num / gcd;\n    this.den = this.den / gcd;\n    if (this.den < 0) {\n      this.num = -this.num;\n      this.den = -this.den;\n    }\n    return this;\n  }\n\n  _gcd(a, b) {\n    while (b !== 0) {\n      [a, b] = [b, a % b];\n    }\n    return a;\n  }\n}\n",
+   "durationMs": 23026
+  },
+  {
+   "slug": "react",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: React module > compute cells fire callbacks\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [4]\n  Received: undefined\n  74 |     output.addCallback(callback);\n  75 |\n  76 |     inputCell.setValue(3);\n> 77 |     expect(callback.values).toEqual([4]);\n     |                             ^\n  78 |   });\n  79 |\n  80 |   xtest('callbacks fire only when output values change', () => {\nFAIL: React module > callbacks fire only when output values change\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: []\n  Received: undefined\n  87 |     output.addCallback(callback);\n  88 |\n  89 |     inputCell.setValue(2);\n> 90 |     expect(callback.values).toEqual([]);\n     |                             ^\n  91 |\n  92 |     inputCell.setValue(4);\n  93 |     expect(callback.values).toEqual([222]);\nFAIL: React module > static callbacks fire even if their own value has not changed\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: []\n  Received: undefined\n  103 |     output.addCallback(callback);\n  104 |\n  105 |     inputCell.setValue(2);\n> 106 |     expect(callback.values).toEqual([]);\n      |                             ^\n  107 |\n  108 |     inputCell.setValue(4);\n  109 |     inputCell.setValue(2);\nFAIL: React module > callbacks can be added and removed\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: [32]\n  Received: undefined\n  137 |\n  138 |     inputCell.setValue(41);\n  139 |\n> 140 |     expect(callback1.values).toEqual",
+   "usage1": {
+    "promptTokens": 446,
+    "completionTokens": 5597,
+    "cachedTokens": 0,
+    "costUSD": 0.0055899936,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'React' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class InputCell {\n  constructor(value) {\n    this.value = value;\n    this.dependents = [];\n  }\n\n  setValue(value) {\n    if (this.value === value) return;\n    \n    this.value = value;\n    \n    // Create a queue for cells that need to be updated\n    const updateQueue = new Set(this.dependents);\n    \n    // Process updates in dependency order\n    const processed = new Set();\n    const changed = new Set();\n    \n    while (updateQueue.size > 0) {\n      // Find a cell whose dependencies have all been processed\n      let found = false;\n      for (const cell of updateQueue) {\n        if (cell.dependencies.every(dep => processed.has(dep))) {\n          const oldValue = cell.value;\n          cell.value = cell.fn(...cell.dependencies.map(dep => dep.value));\n          \n          if (oldValue !== cell.value) {\n            changed.add(cell);\n          }\n          \n          processed.add(cell);\n          updateQueue.delete(cell);\n          \n          // Add dependents of this cell to the queue\n          for (const dependent of cell.dependents) {\n            if (!processed.has(dependent) && !updateQueue.has(dependent)) {\n              updateQueue.add(dependent);\n            }\n          }\n          \n          found = true;\n          break;\n        }\n      }\n      \n      // If no cell was found, there might be a cycle (or we're done)\n      if (!found) break;\n    }\n    \n    // Trigger callbacks for cells that changed\n    for (const cell of changed) {\n      for (const cb of cell.callbacks) {\n        cb.fn(cell.value);\n      }\n    }\n  }\n}\n\nexport class ComputeCell {\n  constructor(inputCells, fn) {\n    this.fn = fn;\n    this.dependencies = inputCells;\n    this.dependents = [];\n    this.callbacks = [];\n    \n    // Calculate initial value\n    this.value = this.fn(...this.dependencies.map(dep => dep.value));\n    \n    // Register this cell as a dependent of its dependencies\n    for (const dep of this.dependencies) {\n      dep.dependents.push(this);\n    }\n  }\n\n  addCallback(cb) {\n    this.callbacks.push(cb);\n  }\n\n  removeCallback(cb) {\n    this.callbacks = this.callbacks.filter(callback => callback !== cb);\n  }\n}\n\nexport class CallbackCell {\n  constructor(fn) {\n    this.fn = fn;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2421,
+    "completionTokens": 628,
+    "cachedTokens": 0,
+    "costUSD": 0.001599495,
+    "calls": 1
+   },
+   "candidate2": "export class InputCell {\n  constructor(value) {\n    this.value = value;\n    this.dependents = [];\n  }\n\n  setValue(value) {\n    if (this.value === value) return;\n    \n    this.value = value;\n    \n    // Collect all cells that need updating in topological order\n    const visited = new Set();\n    const order = [];\n    \n    function visit(cell) {\n      if (visited.has(cell)) return;\n      visited.add(cell);\n      for (const dep of cell.dependents) {\n        visit(dep);\n      }\n      order.push(cell);\n    }\n    \n    for (const dep of this.dependents) {\n      visit(dep);\n    }\n    \n    order.reverse();\n    \n    // Update values and track which compute cells changed\n    const changed = new Set();\n    for (const cell of order) {\n      if (cell instanceof ComputeCell) {\n        const oldValue = cell.value;\n        cell.value = cell.fn(cell.dependencies);\n        if (oldValue !== cell.value) {\n          changed.add(cell);\n        }\n      }\n    }\n    \n    // Fire callbacks for cells that changed\n    for (const cell of changed) {\n      for (const cb of cell.callbacks) {\n        cb.fn(cell);\n      }\n    }\n  }\n}\n\nexport class ComputeCell {\n  constructor(inputCells, fn) {\n    this.fn = fn;\n    this.dependencies = inputCells;\n    this.dependents = [];\n    this.callbacks = [];\n    \n    // Calculate initial value - pass the array of input cells\n    this.value = this.fn(this.dependencies);\n    \n    // Register this cell as a dependent of its dependencies\n    for (const dep of this.dependencies) {\n      dep.dependents.push(this);\n    }\n  }\n\n  addCallback(cb) {\n    this.callbacks.push(cb);\n  }\n\n  removeCallback(cb) {\n    this.callbacks = this.callbacks.filter(callback => callback !== cb);\n  }\n}\n\nexport class CallbackCell {\n  constructor(fn) {\n    this.fn = fn;\n  }\n}\n",
+   "durationMs": 108159
+  },
+  {
+   "slug": "rectangles",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 363,
+    "completionTokens": 7851,
+    "cachedTokens": 0,
+    "costUSD": 0.006988275,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Rectangles' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport function count(lines) {\n  if (!lines || lines.length === 0) return 0;\n  \n  const rows = lines.length;\n  const cols = lines[0].length;\n  let count = 0;\n  \n  for (let i1 = 0; i1 < rows; i1++) {\n    for (let i2 = i1 + 1; i2 < rows; i2++) {\n      for (let j1 = 0; j1 < cols; j1++) {\n        for (let j2 = j1 + 1; j2 < cols; j2++) {\n          // Check corners\n          if (lines[i1][j1] !== '+' || \n              lines[i1][j2] !== '+' || \n              lines[i2][j1] !== '+' || \n              lines[i2][j2] !== '+') {\n            continue;\n          }\n          \n          // Check top edge\n          let valid = true;\n          for (let j = j1 + 1; j < j2; j++) {\n            if (lines[i1][j] !== '-' && lines[i1][j] !== '+') {\n              valid = false;\n              break;\n            }\n          }\n          if (!valid) continue;\n          \n          // Check bottom edge\n          for (let j = j1 + 1; j < j2; j++) {\n            if (lines[i2][j] !== '-' && lines[i2][j] !== '+') {\n              valid = false;\n              break;\n            }\n          }\n          if (!valid) continue;\n          \n          // Check left edge\n          for (let i = i1 + 1; i < i2; i++) {\n            if (lines[i][j1] !== '|' && lines[i][j1] !== '+') {\n              valid = false;\n              break;\n            }\n          }\n          if (!valid) continue;\n          \n          // Check right edge\n          for (let i = i1 + 1; i < i2; i++) {\n            if (lines[i][j2] !== '|' && lines[i][j2] !== '+') {\n              valid = false;\n              break;\n            }\n          }\n          if (!valid) continue;\n          \n          count++;\n        }\n      }\n    }\n  }\n  \n  return count;\n}\n",
+   "durationMs": 105949
+  },
+  {
+   "slug": "resistor-color-trio",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: Resistor Color Trio > Orange and orange and black\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"Resistor value: 33 ohms\"\n  Received: [Function label]\n   6 |\n   7 | describe('Resistor Color Trio', () => {\n   8 |   test('Orange and orange and black', () => {\n>  9 |     expect(new ResistorColorTrio(['orange', 'orange', 'black']).label).toEqual(\n     |                                                                        ^\n  10 |       makeLabel({ value: 33, unit: 'ohms' }),\n  11 |     );\n  12 |   });\nFAIL: Resistor Color Trio > Blue and grey and brown\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"Resistor value: 680 ohms\"\n  Received: [Function label]\n  12 |   });\n  13 |\n  14 |   xtest('Blue and grey and brown', () => {\n> 15 |     expect(new ResistorColorTrio(['blue', 'grey', 'brown']).label).toEqual(\n     |                                                                    ^\n  16 |       makeLabel({ value: 680, unit: 'ohms' }),\n  17 |     );\n  18 |   });\nFAIL: Resistor Color Trio > Red and black and red\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: \"Resistor value: 2 kiloohms\"\n  Received: [Function label]\n  18 |   });\n  19 |\n  20 |   xtest('Red and black and red', () => {\n> 21 |     expect(new ResistorColorTrio(['red', 'black', 'red']).label).toEqual(\n     |                                                                  ^\n  22 |       makeLabel({ value: 2, unit: 'kiloohms' }),\n  23 |     );\n  24 |   ",
+   "usage1": {
+    "promptTokens": 828,
+    "completionTokens": 10884,
+    "cachedTokens": 0,
+    "costUSD": 0.01085150304,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Resistor Color Trio' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nconst colorCodes = {\n  black: 0,\n  brown: 1,\n  red: 2,\n  orange: 3,\n  yellow: 4,\n  green: 5,\n  blue: 6,\n  violet: 7,\n  grey: 8,\n  white: 9\n};\n\nexport class ResistorColorTrio {\n  constructor(color1, color2, color3) {\n    const digit1 = colorCodes[color1];\n    const digit2 = colorCodes[color2];\n    const digit3 = colorCodes[color3];\n    this.resistance = (digit1 * 10 + digit2) * Math.pow(10, digit3);\n  }\n\n  label() {\n    let resistance = this.resistance;\n    if (resistance === 0) {\n      return \"0 ohms\";\n    }\n\n    const prefixes = ['ohms', 'kiloohms', 'megaohms', 'gigaohms'];\n    let value = resistance;\n    let prefixIndex = 0;\n\n    while (value >= 1000 && prefixIndex < prefixes.length - 1) {\n      value /= 1000;\n      prefixIndex++;\n    }\n\n    let numStr;\n    if (value % 1 === 0) {\n      numStr = value.toString();\n    } else {\n      numStr = value.toFixed(1);\n      if (numStr.endsWith('.0')) {\n        numStr = numStr.slice(0, -2);\n      }\n    }\n\n    let prefix = prefixes[prefixIndex];\n    if (value === 1) {\n      prefix = prefix.replace(/s$/, '');\n    }\n\n    return `${numStr} ${prefix}`;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2141,
+    "completionTokens": 2965,
+    "cachedTokens": 0,
+    "costUSD": 0.003510885,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Resistor Color Trio' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nconst colorCodes = {\n  black: 0,\n  brown: 1,\n  red: 2,\n  orange: 3,\n  yellow: 4,\n  green: 5,\n  blue: 6,\n  violet: 7,\n  grey: 8,\n  white: 9\n};\n\nexport class ResistorColorTrio {\n  constructor(colors) {\n    if (!colors || colors.length !== 3) {\n      throw new Error('invalid color');\n    }\n    \n    for (const color of colors) {\n      if (!(color in colorCodes)) {\n        throw new Error('invalid color');\n      }\n    }\n    \n    const [color1, color2, color3] = colors;\n    const digit1 = colorCodes[color1];\n    const digit2 = colorCodes[color2];\n    const digit3 = colorCodes[color3];\n    this.resistance = (digit1 * 10 + digit2) * Math.pow(10, digit3);\n  }\n\n  label() {\n    let resistance = this.resistance;\n    const units = ['ohms', 'kiloohms', 'megaohms', 'gigaohms'];\n    let unitIndex = 0;\n\n    while (resistance >= 1000 && unitIndex < units.length - 1) {\n      resistance /= 1000;\n      unitIndex++;\n    }\n\n    let valueStr;\n    if (resistance % 1 === 0) {\n      valueStr = resistance.toString();\n    } else {\n      valueStr = resistance.toFixed(1);\n      if (valueStr.endsWith('.0')) {\n        valueStr = valueStr.slice(0, -2);\n      }\n    }\n\n    return `Resistor value: ${valueStr} ${units[unitIndex]}`;\n  }\n}\n",
+   "durationMs": 231933
+  },
+  {
+   "slug": "rest-api",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 893,
+    "completionTokens": 4073,
+    "cachedTokens": 0,
+    "costUSD": 0.003931965,
+    "calls": 1
+   },
+   "candidate1": "export class RestAPI {\n  constructor(db = { users: [] }) {\n    this.db = JSON.parse(JSON.stringify(db));\n  }\n\n  get(url) {\n    const [path, queryString] = url.split('?');\n\n    if (path === '/users') {\n      let users;\n      if (queryString) {\n        const params = new URLSearchParams(queryString);\n        const names = params.get('users').split(',');\n        users = this.db.users\n          .filter(u => names.includes(u.name))\n          .sort((a, b) => a.name.localeCompare(b.name));\n      } else {\n        users = [...this.db.users].sort((a, b) => a.name.localeCompare(b.name));\n      }\n      return { users };\n    }\n  }\n\n  post(url, payload) {\n    if (url === '/add') {\n      const newUser = {\n        name: payload.user,\n        owes: {},\n        owed_by: {},\n        balance: 0,\n      };\n      this.db.users.push(newUser);\n      return { name: newUser.name, owes: {}, owed_by: {}, balance: 0 };\n    }\n\n    if (url === '/iou') {\n      const { lender, borrower, amount } = payload;\n      const lenderUser = this.db.users.find(u => u.name === lender);\n      const borrowerUser = this.db.users.find(u => u.name === borrower);\n\n      // Calculate current net debt: positive means borrower owes lender\n      let currentNet = 0;\n      if (borrowerUser.owes[lender]) {\n        currentNet += borrowerUser.owes[lender];\n      }\n      if (lenderUser.owes[borrower]) {\n        currentNet -= lenderUser.owes[borrower];\n      }\n\n      const newNet = currentNet + amount;\n\n      // Clear both directions\n      delete lenderUser.owes[borrower];\n      delete lenderUser.owed_by[borrower];\n      delete borrowerUser.owes[lender];\n      delete borrowerUser.owed_by[lender];\n\n      if (newNet > 0) {\n        borrowerUser.owes[lender] = Math.round(newNet * 100) / 100;\n        lenderUser.owed_by[borrower] = Math.round(newNet * 100) / 100;\n      } else if (newNet < 0) {\n        lenderUser.owes[borrower] = Math.round((-newNet) * 100) / 100;\n        borrowerUser.owed_by[lender] = Math.round((-newNet) * 100) / 100;\n      }\n\n      this.recalcBalance(lenderUser);\n      this.recalcBalance(borrowerUser);\n\n      return {\n        users: [lenderUser, borrowerUser].sort((a, b) =>\n          a.name.localeCompare(b.name)\n        ),\n      };\n    }\n  }\n\n  recalcBalance(user) {\n    const totalOwedBy = Object.values(user.owed_by).reduce((s, v) => s + v, 0);\n    const totalOwes = Object.values(user.owes).reduce((s, v) => s + v, 0);\n    user.balance = Math.round((totalOwedBy - totalOwes) * 100) / 100;\n  }\n}\n",
+   "durationMs": 47725
+  },
+  {
+   "slug": "robot-name",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: Robot > should set a unique name after reset\n  expect(received).toEqual(expected) // deep equality\n  \n  Expected: 10001\n  Received: 9930\n  66 |       usedNames.add(robot.name);\n  67 |     }\n  68 |\n> 69 |     expect(usedNames.size).toEqual(NUMBER_OF_ROBOTS + 1);\n     |                            ^\n  70 |   });\n  71 |\n  72 |   xtest('internal name cannot be modified', () => {\n\nTests: 1 failed, 1 skipped, 7 passed",
+   "usage1": {
+    "promptTokens": 318,
+    "completionTokens": 3430,
+    "cachedTokens": 0,
+    "costUSD": 0.00344716272,
+    "calls": 1
+   },
+   "candidate1": "// This is only a SKELETON file for the 'Robot Name' exercise. It's been\n// provided as a convenience to get your started writing code faster.\n\nexport class Robot {\n  constructor() {\n    this._name = null;\n  }\n\n  get name() {\n    if (!this._name) {\n      this._name = Robot._generateUniqueName();\n    }\n    return this._name;\n  }\n\n  reset() {\n    if (this._name) {\n      Robot._usedNames.delete(this._name);\n      this._name = null;\n    }\n  }\n\n  static _usedNames = new Set();\n\n  static _generateUniqueName() {\n    let name;\n    do {\n      name = Robot._randomLetters() + Robot._randomDigits();\n    } while (Robot._usedNames.has(name));\n    Robot._usedNames.add(name);\n    return name;\n  }\n\n  static _randomLetters() {\n    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';\n    let result = '';\n    for (let i = 0; i < 2; i++) {\n      result += letters.charAt(Math.floor(Math.random() * letters.length));\n    }\n    return result;\n  }\n\n  static _randomDigits() {\n    const digits = '0123456789';\n    let result = '';\n    for (let i = 0; i < 3; i++) {\n      result += digits.charAt(Math.floor(Math.random() * digits.length));\n    }\n    return result;\n  }\n}\n\nRobot.releaseNames = () => {\n  Robot._usedNames.clear();\n};\n",
+   "usage2": {
+    "promptTokens": 833,
+    "completionTokens": 4026,
+    "cachedTokens": 256,
+    "costUSD": 0.0037545366,
+    "calls": 1
+   },
+   "candidate2": "// This is only a SKELETON file for the 'Robot Name' exercise. It's been\n// provided as a convenience to get your started writing code faster.\n\nconst usedNames = new Set();\n\nfunction generateName() {\n  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';\n  let name;\n  do {\n    const l1 = letters[Math.floor(Math.random() * 26)];\n    const l2 = letters[Math.floor(Math.random() * 26)];\n    const d = String(Math.floor(Math.random() * 1000)).padStart(3, '0');\n    name = l1 + l2 + d;\n  } while (usedNames.has(name));\n  usedNames.add(name);\n  return name;\n}\n\nexport class Robot {\n  constructor() {\n    this._name = null;\n  }\n\n  get name() {\n    if (!this._name) {\n      this._name = generateName();\n    }\n    return this._name;\n  }\n\n  reset() {\n    if (this._name) {\n      usedNames.delete(this._name);\n      this._name = null;\n    }\n  }\n}\n\nRobot.releaseNames = () => {\n  usedNames.clear();\n};\n",
+   "durationMs": 351762
+  },
+  {
+   "slug": "say",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 553,
+    "completionTokens": 2041,
+    "cachedTokens": 0,
+    "costUSD": 0.002016225,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Say' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const say = (n) => {\n  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > 999999999999) {\n    throw new Error('Number must be an integer between 0 and 999,999,999,999.');\n  }\n\n  if (n === 0) return 'zero';\n\n  const ones = [\n    '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',\n    'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',\n    'seventeen', 'eighteen', 'nineteen'\n  ];\n\n  const tens = [\n    '', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'\n  ];\n\n  const scales = ['', 'thousand', 'million', 'billion'];\n\n  const twoDigit = (num) => {\n    if (num < 20) return ones[num];\n    const tenDigit = Math.floor(num / 10);\n    const oneDigit = num % 10;\n    return oneDigit === 0 \n      ? tens[tenDigit] \n      : `${tens[tenDigit]}-${ones[oneDigit]}`;\n  };\n\n  const threeDigit = (num) => {\n    if (num < 100) return twoDigit(num);\n    const hundredDigit = Math.floor(num / 100);\n    const remainder = num % 100;\n    return remainder === 0 \n      ? `${ones[hundredDigit]} hundred` \n      : `${ones[hundredDigit]} hundred ${twoDigit(remainder)}`;\n  };\n\n  const chunks = [];\n  let remaining = n;\n  \n  while (remaining > 0) {\n    chunks.unshift(remaining % 1000);\n    remaining = Math.floor(remaining / 1000);\n  }\n\n  const result = [];\n  const startIndex = scales.length - chunks.length;\n  \n  for (let i = 0; i < chunks.length; i++) {\n    if (chunks[i] === 0) continue;\n    \n    const chunkWords = threeDigit(chunks[i]);\n    const scaleIndex = startIndex + i;\n    \n    if (scaleIndex < scales.length && scales[scaleIndex]) {\n      result.push(`${chunkWords} ${scales[scaleIndex]}`);\n    } else {\n      result.push(chunkWords);\n    }\n  }\n\n  return result.join(' ');\n};\n",
+   "usage2": {
+    "promptTokens": 3760,
+    "completionTokens": 878,
+    "cachedTokens": 0,
+    "costUSD": 0.001679622,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Say' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const say = (n) => {\n  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > 999999999999) {\n    throw new Error('Number must be between 0 and 999,999,999,999.');\n  }\n\n  if (n === 0) return 'zero';\n\n  const ones = [\n    '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',\n    'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',\n    'seventeen', 'eighteen', 'nineteen'\n  ];\n\n  const tens = [\n    '', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'\n  ];\n\n  const scales = ['', 'thousand', 'million', 'billion'];\n\n  const twoDigit = (num) => {\n    if (num < 20) return ones[num];\n    const tenDigit = Math.floor(num / 10);\n    const oneDigit = num % 10;\n    return oneDigit === 0 \n      ? tens[tenDigit] \n      : `${tens[tenDigit]}-${ones[oneDigit]}`;\n  };\n\n  const threeDigit = (num) => {\n    if (num < 100) return twoDigit(num);\n    const hundredDigit = Math.floor(num / 100);\n    const remainder = num % 100;\n    return remainder === 0 \n      ? `${ones[hundredDigit]} hundred` \n      : `${ones[hundredDigit]} hundred ${twoDigit(remainder)}`;\n  };\n\n  const chunks = [];\n  let remaining = n;\n  \n  while (remaining > 0) {\n    chunks.unshift(remaining % 1000);\n    remaining = Math.floor(remaining / 1000);\n  }\n\n  const result = [];\n  \n  for (let i = 0; i < chunks.length; i++) {\n    if (chunks[i] === 0) continue;\n    \n    const chunkWords = threeDigit(chunks[i]);\n    const scaleIndex = chunks.length - 1 - i;\n    \n    if (scales[scaleIndex]) {\n      result.push(`${chunkWords} ${scales[scaleIndex]}`);\n    } else {\n      result.push(chunkWords);\n    }\n  }\n\n  return result.join(' ');\n};\n",
+   "durationMs": 38457
+  },
+  {
+   "slug": "scale-generator",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 1138,
+    "completionTokens": 9922,
+    "cachedTokens": 0,
+    "costUSD": 0.00912717,
+    "calls": 1
+   },
+   "candidate1": "export class Scale {\n  static SHARP_SCALE = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];\n  static FLAT_SCALE = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab'];\n  static FLAT_KEYS = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'd', 'g', 'c', 'f', 'bb', 'eb'];\n\n  constructor(tonic) {\n    this.tonic = tonic[0].toUpperCase() + tonic.slice(1);\n    this.scale = Scale.FLAT_KEYS.includes(tonic) ? Scale.FLAT_SCALE : Scale.SHARP_SCALE;\n  }\n\n  chromatic() {\n    const start = this.scale.indexOf(this.tonic);\n    return [...this.scale.slice(start), ...this.scale.slice(0, start)];\n  }\n\n  interval(intervals) {\n    let idx = this.scale.indexOf(this.tonic);\n    const result = [this.tonic];\n    const steps = { m: 1, M: 2, A: 3 };\n\n    for (const i of intervals) {\n      idx = (idx + steps[i]) % 12;\n      result.push(this.scale[idx]);\n    }\n\n    return result;\n  }\n}\n",
+   "durationMs": 174781
+  },
+  {
+   "slug": "simple-linked-list",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 590,
+    "completionTokens": 271,
+    "cachedTokens": 0,
+    "costUSD": 0.000590904,
+    "calls": 1
+   },
+   "candidate1": "export class Element {\n  constructor(value) {\n    this._value = value;\n    this._next = null;\n  }\n\n  get value() {\n    return this._value;\n  }\n\n  get next() {\n    return this._next;\n  }\n}\n\nexport class List {\n  constructor(arr) {\n    this._head = null;\n    this._length = 0;\n    if (arr) {\n      for (const val of arr) {\n        this.add(val);\n      }\n    }\n  }\n\n  add(nextValue) {\n    const element = new Element(nextValue);\n    element._next = this._head;\n    this._head = element;\n    this._length++;\n  }\n\n  get length() {\n    return this._length;\n  }\n\n  get head() {\n    return this._head;\n  }\n\n  toArray() {\n    const result = [];\n    let current = this._head;\n    while (current) {\n      result.push(current.value);\n      current = current.next;\n    }\n    return result;\n  }\n\n  reverse() {\n    const reversed = new List();\n    let current = this._head;\n    while (current) {\n      reversed.add(current.value);\n      current = current.next;\n    }\n    return reversed;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 1324,
+    "completionTokens": 1360,
+    "cachedTokens": 576,
+    "costUSD": 0.001667750976,
+    "calls": 1
+   },
+   "candidate2": "export class Element {\n  constructor(value) {\n    this._value = value;\n    this._next = null;\n  }\n\n  get value() {\n    return this._value;\n  }\n\n  get next() {\n    return this._next;\n  }\n}\n\nexport class List {\n  constructor(arr) {\n    this._head = null;\n    this._length = 0;\n    if (arr) {\n      for (const val of arr) {\n        this.add(val);\n      }\n    }\n  }\n\n  add(nextValue) {\n    // Check if nextValue is already an Element instance\n    const element = nextValue instanceof Element ? nextValue : new Element(nextValue);\n    element._next = this._head;\n    this._head = element;\n    this._length++;\n  }\n\n  get length() {\n    return this._length;\n  }\n\n  get head() {\n    return this._head;\n  }\n\n  toArray() {\n    const result = [];\n    let current = this._head;\n    while (current) {\n      result.push(current.value);\n      current = current.next;\n    }\n    return result;\n  }\n\n  reverse() {\n    const reversed = new List();\n    let current = this._head;\n    while (current) {\n      reversed.add(current.value);\n      current = current.next;\n    }\n    return reversed;\n  }\n}\n",
+   "durationMs": 34512
+  },
+  {
+   "slug": "space-age",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 848,
+    "completionTokens": 952,
+    "cachedTokens": 0,
+    "costUSD": 0.00132162048,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Space Age' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const age = (planet, seconds) => {\n  const orbitalPeriods = {\n    Mercury: 0.2408467,\n    Venus: 0.61519726,\n    Earth: 1.0,\n    Mars: 1.8808158,\n    Jupiter: 11.862615,\n    Saturn: 29.447498,\n    Uranus: 84.016846,\n    Neptune: 164.79132,\n  };\n\n  const earthYears = seconds / 31557600;\n  const planetYears = earthYears / orbitalPeriods[planet];\n\n  return Math.round(planetYears * 100) / 100;\n};\n",
+   "usage2": {
+    "promptTokens": 2132,
+    "completionTokens": 276,
+    "cachedTokens": 0,
+    "costUSD": 0.00116754,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Space Age' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const age = (planet, seconds) => {\n  const orbitalPeriods = {\n    mercury: 0.2408467,\n    venus: 0.61519726,\n    earth: 1.0,\n    mars: 1.8808158,\n    jupiter: 11.862615,\n    saturn: 29.447498,\n    uranus: 84.016846,\n    neptune: 164.79132,\n  };\n\n  const earthYears = seconds / 31557600;\n  const planetYears = earthYears / orbitalPeriods[planet];\n\n  return Math.round(planetYears * 100) / 100;\n};\n",
+   "durationMs": 26647
+  },
+  {
+   "slug": "state-of-tic-tac-toe",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 753,
+    "completionTokens": 3551,
+    "cachedTokens": 0,
+    "costUSD": 0.003416925,
+    "calls": 1
+   },
+   "candidate1": "export const gamestate = (board) => {\n  // Validate board structure\n  if (board.length !== 3) {\n    throw new Error('Invalid board: must have 3 rows');\n  }\n  for (const row of board) {\n    if (row.length !== 3) {\n      throw new Error('Invalid board: each row must have 3 characters');\n    }\n  }\n\n  // Convert board to grid array\n  const grid = board.map(row => row.split(''));\n  \n  // Count X's and O's\n  let xCount = 0;\n  let oCount = 0;\n  for (let i = 0; i < 3; i++) {\n    for (let j = 0; j < 3; j++) {\n      const cell = grid[i][j];\n      if (cell === 'X') xCount++;\n      else if (cell === 'O') oCount++;\n      else if (cell !== ' ') {\n        throw new Error('Invalid board: invalid character');\n      }\n    }\n  }\n\n  // Validate turn order\n  if (!(xCount === oCount || xCount === oCount + 1)) {\n    throw new Error('Invalid board: wrong turn order');\n  }\n\n  // Check for wins\n  const hasWin = (player) => {\n    // Check rows\n    for (let i = 0; i < 3; i++) {\n      if (grid[i][0] === player && grid[i][1] === player && grid[i][2] === player) {\n        return true;\n      }\n    }\n    // Check columns\n    for (let j = 0; j < 3; j++) {\n      if (grid[0][j] === player && grid[1][j] === player && grid[2][j] === player) {\n        return true;\n      }\n    }\n    // Check diagonals\n    if (grid[0][0] === player && grid[1][1] === player && grid[2][2] === player) {\n      return true;\n    }\n    if (grid[0][2] === player && grid[1][1] === player && grid[2][0] === player) {\n      return true;\n    }\n    return false;\n  };\n\n  const xWins = hasWin('X');\n  const oWins = hasWin('O');\n\n  // Both players cannot win\n  if (xWins && oWins) {\n    throw new Error('Invalid board: both players cannot win');\n  }\n\n  // Check if game continued after a win\n  if (xWins && xCount !== oCount + 1) {\n    throw new Error('Invalid board: game continued after X won');\n  }\n  if (oWins && xCount !== oCount) {\n    throw new Error('Invalid board: game continued after O won');\n  }\n\n  // Determine game state\n  if (xWins || oWins) {\n    return 'win';\n  }\n  if (xCount + oCount === 9) {\n    return 'draw';\n  }\n  return 'ongoing';\n};\n",
+   "usage2": {
+    "promptTokens": 3006,
+    "completionTokens": 856,
+    "cachedTokens": 0,
+    "costUSD": 0.00205233,
+    "calls": 1
+   },
+   "candidate2": "export const gamestate = (board) => {\n  // Validate board structure\n  if (board.length !== 3) {\n    throw new Error('Invalid board: must have 3 rows');\n  }\n  for (const row of board) {\n    if (row.length !== 3) {\n      throw new Error('Invalid board: each row must have 3 characters');\n    }\n  }\n\n  // Convert board to grid array\n  const grid = board.map(row => row.split(''));\n  \n  // Count X's and O's\n  let xCount = 0;\n  let oCount = 0;\n  for (let i = 0; i < 3; i++) {\n    for (let j = 0; j < 3; j++) {\n      const cell = grid[i][j];\n      if (cell === 'X') xCount++;\n      else if (cell === 'O') oCount++;\n      else if (cell !== ' ') {\n        throw new Error('Invalid board: invalid character');\n      }\n    }\n  }\n\n  // Validate turn order\n  if (xCount < oCount) {\n    throw new Error('Wrong turn order: O started');\n  }\n  if (xCount > oCount + 1) {\n    throw new Error('Wrong turn order: X went twice');\n  }\n\n  // Check for wins\n  const hasWin = (player) => {\n    // Check rows\n    for (let i = 0; i < 3; i++) {\n      if (grid[i][0] === player && grid[i][1] === player && grid[i][2] === player) {\n        return true;\n      }\n    }\n    // Check columns\n    for (let j = 0; j < 3; j++) {\n      if (grid[0][j] === player && grid[1][j] === player && grid[2][j] === player) {\n        return true;\n      }\n    }\n    // Check diagonals\n    if (grid[0][0] === player && grid[1][1] === player && grid[2][2] === player) {\n      return true;\n    }\n    if (grid[0][2] === player && grid[1][1] === player && grid[2][0] === player) {\n      return true;\n    }\n    return false;\n  };\n\n  const xWins = hasWin('X');\n  const oWins = hasWin('O');\n\n  // Check if game continued after a win\n  if (xWins && oWins) {\n    throw new Error('Impossible board: game should have ended after the game was won');\n  }\n\n  if (xWins) {\n    // X won - O should not have played after X won\n    // If X won, O should have had one fewer turn, but if the board shows\n    // O made moves after X's win, that's invalid\n    if (xCount !== oCount + 1) {\n      throw new Error('Impossible board: game should have ended after the game was won');\n    }\n    return 'win';\n  }\n\n  if (oWins) {\n    // O won - X should not have played after O won\n    if (xCount !== oCount) {\n      throw new Error('Impossible board: game should have ended after the game was won');\n    }\n    return 'win';\n  }\n\n  // No winner\n  if (xCount + oCount === 9) {\n    return 'draw';\n  }\n  return 'ongoing';\n};\n",
+   "durationMs": 66362
+  },
+  {
+   "slug": "sum-of-multiples",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 611,
+    "completionTokens": 1272,
+    "cachedTokens": 0,
+    "costUSD": 0.001372425,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Sum Of Multiples' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const sum = (limit, factors = []) => {\n  const multiples = new Set();\n  \n  for (const factor of factors) {\n    if (factor <= 0) continue;\n    for (let i = factor; i < limit; i += factor) {\n      multiples.add(i);\n    }\n  }\n  \n  return Array.from(multiples).reduce((sum, num) => sum + num, 0);\n};\n",
+   "usage2": {
+    "promptTokens": 2616,
+    "completionTokens": 2606,
+    "cachedTokens": 0,
+    "costUSD": 0.00340518,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Sum Of Multiples' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const sum = (factors, limit) => {\n  const multiples = new Set();\n  \n  for (const factor of factors) {\n    if (factor <= 0) continue;\n    for (let i = factor; i < limit; i += factor) {\n      multiples.add(i);\n    }\n  }\n  \n  return Array.from(multiples).reduce((sum, num) => sum + num, 0);\n};\n",
+   "durationMs": 48008
+  },
+  {
+   "slug": "tournament",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 677,
+    "completionTokens": 6292,
+    "cachedTokens": 0,
+    "costUSD": 0.005768535,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Tournament' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const tournamentTally = (input) => {\n  if (!input.trim()) {\n    return 'Team                           | MP |  W |  D |  L |  P';\n  }\n\n  const teams = {};\n  \n  const lines = input.split('\\n').filter(line => line.trim() !== '');\n  \n  for (const line of lines) {\n    const [team1, team2, result] = line.split(';');\n    \n    if (!teams[team1]) {\n      teams[team1] = { mp: 0, w: 0, d: 0, l: 0, p: 0 };\n    }\n    if (!teams[team2]) {\n      teams[team2] = { mp: 0, w: 0, d: 0, l: 0, p: 0 };\n    }\n    \n    teams[team1].mp++;\n    teams[team2].mp++;\n    \n    switch (result) {\n      case 'win':\n        teams[team1].w++;\n        teams[team1].p += 3;\n        teams[team2].l++;\n        break;\n      case 'loss':\n        teams[team2].w++;\n        teams[team2].p += 3;\n        teams[team1].l++;\n        break;\n      case 'draw':\n        teams[team1].d++;\n        teams[team1].p += 1;\n        teams[team2].d++;\n        teams[team2].p += 1;\n        break;\n    }\n  }\n  \n  const teamEntries = Object.entries(teams);\n  teamEntries.sort((a, b) => {\n    if (b[1].p !== a[1].p) {\n      return b[1].p - a[1].p;\n    }\n    return a[0].localeCompare(b[0]);\n  });\n  \n  const header = 'Team                           | MP |  W |  D |  L |  P';\n  const rows = teamEntries.map(([name, stats]) => {\n    return `${name.padEnd(31)}| ${stats.mp.toString().padStart(2)} | ${stats.w.toString().padStart(2)} | ${stats.d.toString().padStart(2)} | ${stats.l.toString().padStart(2)} | ${stats.p.toString().padStart(2)}`;\n  });\n  \n  return [header, ...rows].join('\\n');\n};\n",
+   "durationMs": 84950
+  },
+  {
+   "slug": "transpose",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: Transpose > single line\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 1\n  + Received  + 1\n  \n    Array [\n      \"S\",\n      \"i\",\n      \"n\",\n      \"g\",\n      \"l\",\n      \"e\",\n  -   \" \",\n  +   \"\",\n      \"l\",\n      \"i\",\n      \"n\",\n      \"e\",\n      \".\",\n    ]\n  39 |       'e',\n  40 |       '.',\n  41 |     ];\n> 42 |     expect(transpose(input)).toEqual(expected);\n     |                              ^\n  43 |   });\n  44 |\n  45 |   xtest('first line longer than second line', () => {\nFAIL: Transpose > first line longer than second line\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 2\n  + Received  + 2\n  \n    Array [\n      \"TT\",\n      \"hh\",\n      \"ee\",\n  -   \"  \",\n  +   \"\",\n      \"ff\",\n      \"oi\",\n      \"uf\",\n      \"rt\",\n      \"th\",\n  -   \"h \",\n  +   \"h\",\n      \" l\",\n      \"li\",\n      \"in\",\n      \"ne\",\n      \"e.\",\n      \".\",\n    ]\n  62 |       'e.',\n  63 |       '.',\n  64 |     ];\n> 65 |     expect(transpose(input)).toEqual(expected);\n     |                              ^\n  66 |   });\n  67 |\n  68 |   xtest('second line longer than first line', () => {\nFAIL: Transpose > second line longer than first line\n  expect(received).toEqual(expected) // deep equality\n  \n  - Expected  - 2\n  + Received  + 2\n  \n    Array [\n      \"TT\",\n      \"hh\",\n      \"ee\",\n  -   \"  \",\n  +   \"\",\n      \"fs\",\n      \"ie\",\n      \"rc\",\n      \"so\",\n      \"tn\",\n      \" d\",\n  -   \"l \",\n  +   \"l\",\n      \"il\",\n      \"ni\",\n      \"en\",\n      \".e\",\n      \" .\",\n    ]\n  85 |",
+   "usage1": {
+    "promptTokens": 404,
+    "completionTokens": 7201,
+    "cachedTokens": 0,
+    "costUSD": 0.00644061,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Transpose' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const transpose = (input) => {\n  const lines = input.split('\\n');\n  \n  if (lines.length === 0) {\n    return '';\n  }\n  \n  const maxLineLength = Math.max(...lines.map(line => line.length));\n  \n  const transposedLines = [];\n  for (let col = 0; col < maxLineLength; col++) {\n    let transposedLine = '';\n    for (let row = 0; row < lines.length; row++) {\n      if (col < lines[row].length) {\n        transposedLine += lines[row][col];\n      } else {\n        transposedLine += ' ';\n      }\n    }\n    // Remove trailing spaces but preserve leading spaces\n    transposedLine = transposedLine.replace(/\\s+$/, '');\n    transposedLines.push(transposedLine);\n  }\n  \n  return transposedLines.join('\\n');\n};\n",
+   "usage2": {
+    "promptTokens": 1987,
+    "completionTokens": 263,
+    "cachedTokens": 0,
+    "costUSD": 0.00120684312,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Transpose' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const transpose = (input) => {\n  if (input.length === 0) {\n    return [];\n  }\n  \n  const maxLineLength = Math.max(...input.map(line => line.length));\n  \n  const transposedLines = [];\n  for (let col = 0; col < maxLineLength; col++) {\n    let transposedLine = '';\n    for (let row = 0; row < input.length; row++) {\n      if (col < input[row].length) {\n        transposedLine += input[row][col];\n      } else {\n        transposedLine += ' ';\n      }\n    }\n    // Remove trailing spaces but preserve leading spaces\n    transposedLine = transposedLine.replace(/\\s+$/, '');\n    transposedLines.push(transposedLine);\n  }\n  \n  return transposedLines;\n};\n",
+   "durationMs": 107992
+  },
+  {
+   "slug": "triangle",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 486,
+    "completionTokens": 928,
+    "cachedTokens": 0,
+    "costUSD": 0.00101877,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Triangle' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Triangle {\n  constructor(...sides) {\n    if (sides.length !== 3) {\n      throw new Error('Triangle must have exactly three sides');\n    }\n    \n    const [a, b, c] = sides;\n    \n    // Check all sides are greater than 0\n    if (a <= 0 || b <= 0 || c <= 0) {\n      throw new Error('All sides must be greater than zero');\n    }\n    \n    // Check triangle inequality theorem\n    if (a + b < c || b + c < a || a + c < b) {\n      throw new Error('Sides violate triangle inequality');\n    }\n    \n    this.sides = sides;\n  }\n\n  get isEquilateral() {\n    const [a, b, c] = this.sides;\n    return a === b && b === c;\n  }\n\n  get isIsosceles() {\n    const [a, b, c] = this.sides;\n    return a === b || b === c || a === c;\n  }\n\n  get isScalene() {\n    return !this.isIsosceles;\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 1359,
+    "completionTokens": 470,
+    "cachedTokens": 0,
+    "costUSD": 0.00110407176,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Triangle' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class Triangle {\n  constructor(...sides) {\n    this.sides = sides;\n  }\n\n  get isValid() {\n    const [a, b, c] = this.sides;\n    return (\n      a > 0 &&\n      b > 0 &&\n      c > 0 &&\n      a + b >= c &&\n      b + c >= a &&\n      a + c >= b\n    );\n  }\n\n  get isEquilateral() {\n    if (!this.isValid) return false;\n    const [a, b, c] = this.sides;\n    return a === b && b === c;\n  }\n\n  get isIsosceles() {\n    if (!this.isValid) return false;\n    const [a, b, c] = this.sides;\n    return a === b || b === c || a === c;\n  }\n\n  get isScalene() {\n    if (!this.isValid) return false;\n    return !this.isIsosceles;\n  }\n}\n",
+   "durationMs": 34025
+  },
+  {
+   "slug": "twelve-days",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 902,
+    "completionTokens": 2055,
+    "cachedTokens": 0,
+    "costUSD": 0.00218022,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Twelve Days' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nconst ordinals = [\n  'first', 'second', 'third', 'fourth', 'fifth', 'sixth',\n  'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'\n];\n\nconst gifts = [\n  'a Partridge in a Pear Tree',\n  'two Turtle Doves',\n  'three French Hens',\n  'four Calling Birds',\n  'five Gold Rings',\n  'six Geese-a-Laying',\n  'seven Swans-a-Swimming',\n  'eight Maids-a-Milking',\n  'nine Ladies Dancing',\n  'ten Lords-a-Leaping',\n  'eleven Pipers Piping',\n  'twelve Drummers Drumming'\n];\n\nexport const recite = (startVerse = 1, endVerse = 12) => {\n  const verses = [];\n  \n  for (let day = startVerse; day <= endVerse; day++) {\n    const giftsList = [];\n    \n    for (let i = day - 1; i >= 0; i--) {\n      if (day > 1 && i === 0) {\n        giftsList.push('and ' + gifts[0]);\n      } else {\n        giftsList.push(gifts[i]);\n      }\n    }\n    \n    const verse = `On the ${ordinals[day - 1]} day of Christmas my true love gave to me: ${giftsList.join(', ')}.`;\n    verses.push(verse);\n  }\n  \n  return verses.join('\\n\\n');\n};\n",
+   "usage2": {
+    "promptTokens": 10550,
+    "completionTokens": 679,
+    "cachedTokens": 0,
+    "costUSD": 0.006215976,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Twelve Days' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nconst ordinals = [\n  'first', 'second', 'third', 'fourth', 'fifth', 'sixth',\n  'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'\n];\n\nconst gifts = [\n  'a Partridge in a Pear Tree',\n  'two Turtle Doves',\n  'three French Hens',\n  'four Calling Birds',\n  'five Gold Rings',\n  'six Geese-a-Laying',\n  'seven Swans-a-Swimming',\n  'eight Maids-a-Milking',\n  'nine Ladies Dancing',\n  'ten Lords-a-Leaping',\n  'eleven Pipers Piping',\n  'twelve Drummers Drumming'\n];\n\nfunction buildVerse(day) {\n  const giftsList = [];\n  for (let i = day - 1; i >= 0; i--) {\n    if (day > 1 && i === 0) {\n      giftsList.push('and ' + gifts[0]);\n    } else {\n      giftsList.push(gifts[i]);\n    }\n  }\n  return `On the ${ordinals[day - 1]} day of Christmas my true love gave to me: ${giftsList.join(', ')}.\\n`;\n}\n\nexport const recite = (startVerse, endVerse) => {\n  if (endVerse === undefined) {\n    return buildVerse(startVerse);\n  }\n  const verses = [];\n  for (let day = startVerse; day <= endVerse; day++) {\n    verses.push(buildVerse(day));\n  }\n  return verses.join('\\n');\n};\n",
+   "durationMs": 45870
+  },
+  {
+   "slug": "two-bucket",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 876,
+    "completionTokens": 8315,
+    "cachedTokens": 0,
+    "costUSD": 0.00840708144,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Two Bucket' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class TwoBucket {\n  constructor(bucketOne, bucketTwo, goal, startBucket) {\n    this.bucketOneSize = bucketOne;\n    this.bucketTwoSize = bucketTwo;\n    this.goal = goal;\n    this.startBucket = startBucket;\n  }\n\n  solve() {\n    const { bucketOneSize, bucketTwoSize, goal, startBucket } = this;\n\n    // Initial state after the first required fill\n    let startA, startB;\n    if (startBucket === 'one') {\n      startA = bucketOneSize;\n      startB = 0;\n    } else {\n      startA = 0;\n      startB = bucketTwoSize;\n    }\n\n    // Check if the initial state already meets the goal\n    if (startA === goal) {\n      return { moves: 1, goalBucket: 'one', otherBucket: startB };\n    }\n    if (startB === goal) {\n      return { moves: 1, goalBucket: 'two', otherBucket: startA };\n    }\n\n    const queue = [{ a: startA, b: startB, moves: 1 }];\n    const visited = new Set();\n    visited.add(`${startA},${startB}`);\n\n    while (queue.length > 0) {\n      const { a, b, moves } = queue.shift();\n\n      // Generate all possible next states\n      let result;\n\n      // 1. Fill bucket one\n      result = this.tryAddState(queue, visited, a, b, bucketOneSize, b, moves);\n      if (result) return result;\n\n      // 2. Fill bucket two\n      result = this.tryAddState(queue, visited, a, b, a, bucketTwoSize, moves);\n      if (result) return result;\n\n      // 3. Empty bucket one\n      result = this.tryAddState(queue, visited, a, b, 0, b, moves);\n      if (result) return result;\n\n      // 4. Empty bucket two\n      result = this.tryAddState(queue, visited, a, b, a, 0, moves);\n      if (result) return result;\n\n      // 5. Pour from bucket one to bucket two\n      const transfer12 = Math.min(a, bucketTwoSize - b);\n      result = this.tryAddState(queue, visited, a, b, a - transfer12, b + transfer12, moves);\n      if (result) return result;\n\n      // 6. Pour from bucket two to bucket one\n      const transfer21 = Math.min(b, bucketOneSize - a);\n      result = this.tryAddState(queue, visited, a, b, a + transfer21, b - transfer21, moves);\n      if (result) return result;\n    }\n\n    // No solution found (should not happen for valid inputs)\n    return null;\n  }\n\n  tryAddState(queue, visited, oldA, oldB, newA, newB, moves) {\n    // Skip no‑op actions\n    if (newA === oldA && newB === oldB) {\n      return null;\n    }\n\n    // Check forbidden state rule\n    if (this.isForbidden(newA, newB)) {\n      return null;\n    }\n\n    // Goal reached?\n    if (newA === this.goal || newB === this.goal) {\n      return {\n        moves: moves + 1,\n        goalBucket: newA === this.goal ? 'one' : 'two',\n        otherBucket: newA === this.goal ? newB : newA\n      };\n    }\n\n    // Enqueue if not visited\n    const key = `${newA},${newB}`;\n    if (!visited.has(key)) {\n      visited.add(key);\n      queue.push({ a: newA, b: newB, moves: moves + 1 });\n    }\n    return null;\n  }\n\n  isForbidden(a, b) {\n    if (this.startBucket === 'one') {\n      // Forbidden: bucket one empty and bucket two full\n      return a === 0 && b === this.bucketTwoSize;\n    } else {\n      // Forbidden: bucket one full and bucket two empty\n      return a === this.bucketOneSize && b === 0;\n    }\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2274,
+    "completionTokens": 4165,
+    "cachedTokens": 0,
+    "costUSD": 0.00461274,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Two Bucket' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport class TwoBucket {\n  constructor(bucketOne, bucketTwo, goal, startBucket) {\n    // Store parameters\n    this.bucketOneSize = bucketOne;\n    this.bucketTwoSize = bucketTwo;\n    this.goal = goal;\n    this.startBucket = startBucket;\n    \n    // Check if goal is impossible based on problem constraints\n    if (this.isImpossibleGoal()) {\n      throw new Error('Goal is impossible to reach');\n    }\n  }\n\n  isImpossibleGoal() {\n    const { bucketOneSize, bucketTwoSize, goal } = this;\n    \n    // Goal cannot be larger than both buckets\n    if (goal > Math.max(bucketOneSize, bucketTwoSize)) {\n      return true;\n    }\n    \n    // Goal must be achievable through the water pouring problem\n    // This is based on Bézout's identity: goal must be a multiple of\n    // the greatest common divisor of the two bucket sizes\n    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);\n    const g = gcd(bucketOneSize, bucketTwoSize);\n    return goal % g !== 0;\n  }\n\n  solve() {\n    const { bucketOneSize, bucketTwoSize, goal, startBucket } = this;\n\n    // Initial state after the first required fill\n    let startA, startB;\n    if (startBucket === 'one') {\n      startA = bucketOneSize;\n      startB = 0;\n    } else {\n      startA = 0;\n      startB = bucketTwoSize;\n    }\n\n    // Check if the initial state already meets the goal\n    if (startA === goal) {\n      return { moves: 1, goalBucket: 'one', otherBucket: startB };\n    }\n    if (startB === goal) {\n      return { moves: 1, goalBucket: 'two', otherBucket: startA };\n    }\n\n    const queue = [{ a: startA, b: startB, moves: 1 }];\n    const visited = new Set();\n    visited.add(`${startA},${startB}`);\n\n    while (queue.length > 0) {\n      const { a, b, moves } = queue.shift();\n\n      // Generate all possible next states\n      let result;\n\n      // 1. Fill bucket one\n      result = this.tryAddState(queue, visited, a, b, bucketOneSize, b, moves);\n      if (result) return result;\n\n      // 2. Fill bucket two\n      result = this.tryAddState(queue, visited, a, b, a, bucketTwoSize, moves);\n      if (result) return result;\n\n      // 3. Empty bucket one\n      result = this.tryAddState(queue, visited, a, b, 0, b, moves);\n      if (result) return result;\n\n      // 4. Empty bucket two\n      result = this.tryAddState(queue, visited, a, b, a, 0, moves);\n      if (result) return result;\n\n      // 5. Pour from bucket one to bucket two\n      const transfer12 = Math.min(a, bucketTwoSize - b);\n      result = this.tryAddState(queue, visited, a, b, a - transfer12, b + transfer12, moves);\n      if (result) return result;\n\n      // 6. Pour from bucket two to bucket one\n      const transfer21 = Math.min(b, bucketOneSize - a);\n      result = this.tryAddState(queue, visited, a, b, a + transfer21, b - transfer21, moves);\n      if (result) return result;\n    }\n\n    // Should not reach here for valid inputs\n    throw new Error('No solution found');\n  }\n\n  tryAddState(queue, visited, oldA, oldB, newA, newB, moves) {\n    // Skip no‑op actions\n    if (newA === oldA && newB === oldB) {\n      return null;\n    }\n\n    // Check forbidden state rule\n    if (this.isForbidden(newA, newB)) {\n      return null;\n    }\n\n    // Goal reached?\n    if (newA === this.goal || newB === this.goal) {\n      return {\n        moves: moves + 1,\n        goalBucket: newA === this.goal ? 'one' : 'two',\n        otherBucket: newA === this.goal ? newB : newA\n      };\n    }\n\n    // Enqueue if not visited\n    const key = `${newA},${newB}`;\n    if (!visited.has(key)) {\n      visited.add(key);\n      queue.push({ a: newA, b: newB, moves: moves + 1 });\n    }\n    return null;\n  }\n\n  isForbidden(a, b) {\n    if (this.startBucket === 'one') {\n      // Forbidden: bucket one empty and bucket two full\n      return a === 0 && b === this.bucketTwoSize;\n    } else {\n      // Forbidden: bucket one full and bucket two empty\n      return a === this.bucketOneSize && b === 0;\n    }\n  }\n}\n",
+   "durationMs": 201198
+  },
+  {
+   "slug": "variable-length-quantity",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 660,
+    "completionTokens": 5563,
+    "cachedTokens": 0,
+    "costUSD": 0.00566010864,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Variable Length Quantity' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const encode = (numbers) => {\n  const result = [];\n  \n  for (const num of numbers) {\n    if (num === 0) {\n      result.push(0x00);\n      continue;\n    }\n    \n    const bytes = [];\n    let n = num;\n    \n    while (n > 0) {\n      bytes.push(n & 0x7F);\n      n = n >>> 7;\n    }\n    \n    bytes.reverse();\n    \n    for (let i = 0; i < bytes.length; i++) {\n      if (i < bytes.length - 1) {\n        bytes[i] = bytes[i] | 0x80;\n      }\n    }\n    \n    result.push(...bytes);\n  }\n  \n  return result;\n};\n\nexport const decode = (bytes) => {\n  const result = [];\n  let current = 0;\n  let byteCount = 0;\n  \n  for (let i = 0; i < bytes.length; i++) {\n    const byte = bytes[i];\n    const value = byte & 0x7F;\n    const hasMore = (byte & 0x80) !== 0;\n    \n    current = (current << 7) | value;\n    byteCount++;\n    \n    if (!hasMore) {\n      result.push(current >>> 0);\n      current = 0;\n      byteCount = 0;\n    }\n  }\n  \n  return result;\n};\n",
+   "usage2": {
+    "promptTokens": 1371,
+    "completionTokens": 737,
+    "cachedTokens": 0,
+    "costUSD": 0.001237575,
+    "calls": 1
+   },
+   "candidate2": "//\n// This is only a SKELETON file for the 'Variable Length Quantity' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const encode = (numbers) => {\n  const result = [];\n  \n  for (const num of numbers) {\n    if (num === 0) {\n      result.push(0x00);\n      continue;\n    }\n    \n    const bytes = [];\n    let n = num;\n    \n    while (n > 0) {\n      bytes.push(n & 0x7F);\n      n = n >>> 7;\n    }\n    \n    bytes.reverse();\n    \n    for (let i = 0; i < bytes.length; i++) {\n      if (i < bytes.length - 1) {\n        bytes[i] = bytes[i] | 0x80;\n      }\n    }\n    \n    result.push(...bytes);\n  }\n  \n  return result;\n};\n\nexport const decode = (bytes) => {\n  const result = [];\n  let current = 0;\n  let inSequence = false;\n  \n  for (let i = 0; i < bytes.length; i++) {\n    const byte = bytes[i];\n    const value = byte & 0x7F;\n    const hasMore = (byte & 0x80) !== 0;\n    \n    current = (current << 7) | value;\n    inSequence = true;\n    \n    if (!hasMore) {\n      result.push(current >>> 0);\n      current = 0;\n      inSequence = false;\n    }\n  }\n  \n  if (inSequence) {\n    throw new Error('Incomplete sequence');\n  }\n  \n  return result;\n};\n",
+   "durationMs": 116708
+  },
+  {
+   "slug": "word-search",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 364,
+    "completionTokens": 3173,
+    "cachedTokens": 0,
+    "costUSD": 0.00291885,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Word Search' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nclass WordSearch {\n  constructor(grid) {\n    this.grid = grid;\n  }\n\n  find(words) {\n    const result = {};\n    const directions = [\n      [0, 1], [0, -1], [1, 0], [-1, 0], // right, left, down, up\n      [1, 1], [1, -1], [-1, 1], [-1, -1] // diagonals\n    ];\n\n    for (const word of words) {\n      let found = false;\n      for (let row = 0; row < this.grid.length && !found; row++) {\n        for (let col = 0; col < this.grid[0].length && !found; col++) {\n          for (const [dr, dc] of directions) {\n            if (this.checkWord(word, row, col, dr, dc)) {\n              const endRow = row + (word.length - 1) * dr;\n              const endCol = col + (word.length - 1) * dc;\n              result[word] = {\n                start: [row + 1, col + 1],\n                end: [endRow + 1, endCol + 1]\n              };\n              found = true;\n              break;\n            }\n          }\n        }\n      }\n    }\n    return result;\n  }\n\n  checkWord(word, startRow, startCol, dr, dc) {\n    const rows = this.grid.length;\n    const cols = this.grid[0].length;\n    \n    for (let i = 0; i < word.length; i++) {\n      const r = startRow + i * dr;\n      const c = startCol + i * dc;\n      \n      if (r < 0 || r >= rows || c < 0 || c >= cols || \n          this.grid[r][c] !== word[i]) {\n        return false;\n      }\n    }\n    return true;\n  }\n}\n\nexport default WordSearch;\n",
+   "durationMs": 37063
+  },
+  {
+   "slug": "wordy",
+   "pass1": false,
+   "pass2": false,
+   "error": "FAIL: Wordy > reject problem with no operands or operators\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Syntax error\"\n  Received message: \"Unknown operation\"\n  \n         8 |       !question.startsWith(\"What is \") || \n         9 |       !question.endsWith(\"?\")) {\n      > 10 |     throw new Error(\"Unknown operation\");\n           |           ^\n        11 |   }\n        12 |\n        13 |   // Empty expression after trimming -> syntax error\n  \n        at answer (wordy.js:10:11)\n        at __spec.cjs:83:18\n        at Object.<anonymous> (../../node_modules/expect/build/toThrowMatchers.js:74:11)\n        at Object.throwingMatcher [as toThrow] (../../node_modules/expect/build/index.js:320:21)\n        at Object.fn (__spec.cjs:83:38)\n        at runScope (__testlib.cjs:73:27)\n        at async runScope (__testlib.cjs:80:31)\n        at async __run (__testlib.cjs:89:3)\n  78 |   });\n  79 |\n  80 |   xtest('reject problem with no operands or operators', () => {\n> 81 |     expect(() => answer('What is?')).toThrow(new Error('Syntax error'));\n     |                                      ^\n  82 |   });\n  83 |\n  84 |   xtest('reject two operations in a row', () => {\nFAIL: Wordy > reject two numbers in a row\n  expect(received).toThrow(expected)\n  \n  Expected message: \"Syntax error\"\n  Received message: \"Unknown operation\"\n  \n        78 |         }\n        79 |       } else {\n      > 80 |         throw new Error(\"Unknown operation\");\n           |               ^\n        81 |       }\n     ",
+   "usage1": {
+    "promptTokens": 479,
+    "completionTokens": 4330,
+    "cachedTokens": 0,
+    "costUSD": 0.003975465,
+    "calls": 1
+   },
+   "candidate1": "//\n// This is only a SKELETON file for the 'Wordy' exercise. It's been provided as a\n// convenience to get you started writing code faster.\n//\n\nexport const answer = (question) => {\n  // Remove \"What is\" at the start and \"?\" at the end\n  const trimmed = question.replace(/^What is /, '').replace(/\\?$/, '').trim();\n  \n  // Check if the question is invalid\n  if (question === \"Who is the President of the United States\" || \n      !question.startsWith(\"What is \") || \n      !question.endsWith(\"?\") ||\n      trimmed === \"\") {\n    throw new Error(\"Unknown operation\");\n  }\n\n  // Tokenize the expression\n  const tokens = trimmed.split(/\\s+/);\n  let result = null;\n  let currentNum = 0;\n  let operator = null;\n\n  for (let i = 0; i < tokens.length; i++) {\n    const token = tokens[i];\n    \n    // Check if it's a number (including negative)\n    if (/^-?\\d+$/.test(token)) {\n      currentNum = parseInt(token, 10);\n      \n      // Apply any pending operation\n      if (result === null) {\n        result = currentNum;\n      } else if (operator) {\n        switch (operator) {\n          case \"plus\":\n            result += currentNum;\n            break;\n          case \"minus\":\n            result -= currentNum;\n            break;\n          case \"multiplied\":\n            result *= currentNum;\n            break;\n          case \"divided\":\n            if (currentNum === 0) {\n              throw new Error(\"Division by zero\");\n            }\n            result = Math.trunc(result / currentNum);\n            break;\n          default:\n            throw new Error(\"Unknown operation\");\n        }\n        operator = null;\n      } else {\n        // Two consecutive numbers without an operator\n        throw new Error(\"Syntax error\");\n      }\n    } \n    // Check if it's an operator\n    else if ([\"plus\", \"minus\", \"multiplied\", \"divided\"].includes(token)) {\n      if (operator !== null) {\n        throw new Error(\"Syntax error\");\n      }\n      operator = token;\n      \n      // Handle \"multiplied by\" and \"divided by\"\n      if (token === \"multiplied\" || token === \"divided\") {\n        if (i + 1 < tokens.length && tokens[i + 1] === \"by\") {\n          i++; // Skip \"by\"\n        } else {\n          throw new Error(\"Unknown operation\");\n        }\n      }\n    } \n    // Check for \"by\" that wasn't part of an operator\n    else if (token === \"by\") {\n      throw new Error(\"Unknown operation\");\n    }\n    else {\n      throw new Error(\"Unknown operation\");\n    }\n  }\n\n  // Check if we ended with an operator\n  if (operator !== null) {\n    throw new Error(\"Syntax error\");\n  }\n\n  if (result === null) {\n    throw new Error(\"Unknown operation\");\n  }\n\n  return result;\n};\n",
+   "usage2": {
+    "promptTokens": 1641,
+    "completionTokens": 4600,
+    "cachedTokens": 0,
+    "costUSD": 0.00520628184,
+    "calls": 1
+   },
+   "candidate2": "export const answer = (question) => {\n  // Remove \"What is\" at the start and \"?\" at the end\n  const trimmed = question.replace(/^What is /, '').replace(/\\?$/, '').trim();\n  \n  // Non-math questions\n  if (question === \"Who is the President of the United States\" || \n      !question.startsWith(\"What is \") || \n      !question.endsWith(\"?\")) {\n    throw new Error(\"Unknown operation\");\n  }\n\n  // Empty expression after trimming -> syntax error\n  if (trimmed === \"\") {\n    throw new Error(\"Syntax error\");\n  }\n\n  // Tokenize the expression\n  const tokens = trimmed.split(/\\s+/);\n  let result = null;\n  let expectingNumber = true;\n  let operator = null;\n\n  for (let i = 0; i < tokens.length; i++) {\n    const token = tokens[i];\n\n    if (expectingNumber) {\n      // Must be a number\n      if (/^-?\\d+$/.test(token)) {\n        const num = parseInt(token, 10);\n        if (result === null) {\n          result = num;\n        } else {\n          // Two numbers in a row without an operator\n          if (!operator) {\n            throw new Error(\"Syntax error\");\n          }\n          // Apply pending operator\n          switch (operator) {\n            case \"plus\":\n              result += num;\n              break;\n            case \"minus\":\n              result -= num;\n              break;\n            case \"multiplied\":\n              result *= num;\n              break;\n            case \"divided\":\n              if (num === 0) {\n                throw new Error(\"Division by zero\");\n              }\n              result = Math.trunc(result / num);\n              break;\n            default:\n              throw new Error(\"Unknown operation\");\n          }\n          operator = null;\n        }\n        expectingNumber = false;\n      } else {\n        // Token is not a number\n        throw new Error(\"Syntax error\");\n      }\n    } else {\n      // Must be an operator\n      if ([\"plus\", \"minus\"].includes(token)) {\n        operator = token;\n        expectingNumber = true;\n      } else if (token === \"multiplied\" || token === \"divided\") {\n        // Expect \"by\" after \"multiplied\" or \"divided\"\n        if (i + 1 < tokens.length && tokens[i + 1] === \"by\") {\n          operator = token;\n          i++; // Skip \"by\"\n          expectingNumber = true;\n        } else {\n          throw new Error(\"Unknown operation\");\n        }\n      } else {\n        throw new Error(\"Unknown operation\");\n      }\n    }\n  }\n\n  // If we end while still expecting a number (i.e., ended with an operator)\n  if (expectingNumber) {\n    throw new Error(\"Syntax error\");\n  }\n\n  return result;\n};\n",
+   "durationMs": 138748
+  },
+  {
+   "slug": "zebra-puzzle",
+   "pass1": false,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 871,
+    "completionTokens": 9905,
+    "cachedTokens": 0,
+    "costUSD": 0.0062973645,
+    "calls": 1
+   },
+   "candidate1": "export class ZebraPuzzle {\n  constructor() {\n    this.solution = this.solve();\n  }\n\n  solve() {\n    // All possible values for each category\n    const colors = ['red', 'green', 'ivory', 'yellow', 'blue'];\n    const nationalities = ['Englishman', 'Spaniard', 'Ukrainian', 'Norwegian', 'Japanese'];\n    const pets = ['dog', 'snail', 'fox', 'horse', 'zebra'];\n    const drinks = ['coffee', 'tea', 'milk', 'orange juice', 'water'];\n    const hobbies = ['dancing', 'painting', 'reading', 'football', 'chess'];\n\n    // Generate all permutations for each category\n    const permutations = this.getPermutations(colors);\n    const natPerms = this.getPermutations(nationalities);\n    const petPerms = this.getPermutations(pets);\n    const drinkPerms = this.getPermutations(drinks);\n    const hobbyPerms = this.getPermutations(hobbies);\n\n    // Try all combinations of permutations\n    for (const colorPerm of permutations) {\n      for (const natPerm of natPerms) {\n        for (const petPerm of petPerms) {\n          for (const drinkPerm of drinkPerms) {\n            for (const hobbyPerm of hobbyPerms) {\n              if (this.checkConstraints(colorPerm, natPerm, petPerm, drinkPerm, hobbyPerm)) {\n                return {\n                  color: colorPerm,\n                  nationality: natPerm,\n                  pet: petPerm,\n                  drink: drinkPerm,\n                  hobby: hobbyPerm\n                };\n              }\n            }\n          }\n        }\n      }\n    }\n    \n    return null;\n  }\n\n  getPermutations(arr) {\n    const result = [];\n    \n    const permute = (current, remaining) => {\n      if (remaining.length === 0) {\n        result.push([...current]);\n        return;\n      }\n      \n      for (let i = 0; i < remaining.length; i++) {\n        const next = remaining[i];\n        const newRemaining = [...remaining.slice(0, i), ...remaining.slice(i + 1)];\n        permute([...current, next], newRemaining);\n      }\n    };\n    \n    permute([], arr);\n    return result;\n  }\n\n  checkConstraints(color, nat, pet, drink, hobby) {\n    // Helper function to find house index by attribute value\n    const houseBy = (arr, val) => arr.indexOf(val);\n    \n    // Constraint 1: There are five houses - already satisfied by array length\n    \n    // Constraint 2: Englishman lives in red house\n    if (houseBy(nat, 'Englishman') !== houseBy(color, 'red')) {\n      return false;\n    }\n    \n    // Constraint 3: Spaniard owns dog\n    if (houseBy(nat, 'Spaniard') !== houseBy(pet, 'dog')) {\n      return false;\n    }\n    \n    // Constraint 4: Green house drinks coffee\n    if (houseBy(color, 'green') !== houseBy(drink, 'coffee')) {\n      return false;\n    }\n    \n    // Constraint 5: Ukrainian drinks tea\n    if (houseBy(nat, 'Ukrainian') !== houseBy(drink, 'tea')) {\n      return false;\n    }\n    \n    // Constraint 6: Green house is immediately to the right of ivory house\n    const ivoryIndex = houseBy(color, 'ivory');\n    const greenIndex = houseBy(color, 'green');\n    if (greenIndex !== ivoryIndex + 1) {\n      return false;\n    }\n    \n    // Constraint 7: Snail owner likes dancing\n    if (houseBy(pet, 'snail') !== houseBy(hobby, 'dancing')) {\n      return false;\n    }\n    \n    // Constraint 8: Yellow house is a painter\n    if (houseBy(color, 'yellow') !== houseBy(hobby, 'painting')) {\n      return false;\n    }\n    \n    // Constraint 9: Middle house drinks milk (index 2)\n    if (drink[2] !== 'milk') {\n      return false;\n    }\n    \n    // Constraint 10: Norwegian lives in first house (index 0)\n    if (nat[0] !== 'Norwegian') {\n      return false;\n    }\n    \n    // Constraint 11: Reading lives next to fox\n    const readingIndex = houseBy(hobby, 'reading');\n    const foxIndex = houseBy(pet, 'fox');\n    if (Math.abs(readingIndex - foxIndex) !== 1) {\n      return false;\n    }\n    \n    // Constraint 12: Painter's house is next to horse\n    const painterIndex = houseBy(hobby, 'painting');\n    const horseIndex = houseBy(pet, 'horse');\n    if (Math.abs(painterIndex - horseIndex) !== 1) {\n      return false;\n    }\n    \n    // Constraint 13: Football drinks orange juice\n    if (houseBy(hobby, 'football') !== houseBy(drink, 'orange juice')) {\n      return false;\n    }\n    \n    // Constraint 14: Japanese plays chess\n    if (houseBy(nat, 'Japanese') !== houseBy(hobby, 'chess')) {\n      return false;\n    }\n    \n    // Constraint 15: Norwegian lives next to blue house\n    const norwegianIndex = houseBy(nat, 'Norwegian');\n    const blueIndex = houseBy(color, 'blue');\n    if (Math.abs(norwegianIndex - blueIndex) !== 1) {\n      return false;\n    }\n    \n    return true;\n  }\n\n  waterDrinker() {\n    const waterIndex = this.solution.drink.indexOf('water');\n    return this.solution.nationality[waterIndex];\n  }\n\n  zebraOwner() {\n    const zebraIndex = this.solution.pet.indexOf('zebra');\n    return this.solution.nationality[zebraIndex];\n  }\n}\n",
+   "usage2": {
+    "promptTokens": 2200,
+    "completionTokens": 4587,
+    "cachedTokens": 832,
+    "costUSD": 0.0032123686,
+    "calls": 1
+   },
+   "candidate2": "export class ZebraPuzzle {\n  constructor() {\n    this.solution = this.solve();\n  }\n\n  solve() {\n    const perms = (arr) => {\n      const result = [];\n      const permute = (current, remaining) => {\n        if (remaining.length === 0) {\n          result.push(current);\n          return;\n        }\n        for (let i = 0; i < remaining.length; i++) {\n          permute([...current, remaining[i]], [...remaining.slice(0, i), ...remaining.slice(i + 1)]);\n        }\n      };\n      permute([], arr);\n      return result;\n    };\n\n    // Precompute all permutations with fixed values applied\n    // Constraint 10: Norwegian in house 0\n    // Constraint 9: milk in house 2\n    // Constraint 15: blue in house 1 (next to Norwegian in house 0)\n    const colorPerms = perms(['red', 'green', 'ivory', 'yellow']);\n    const natPerms = perms(['Englishman', 'Spaniard', 'Ukrainian', 'Japanese']);\n    const drinkPerms = perms(['coffee', 'tea', 'orange juice', 'water']);\n    const hobbyPerms = perms(['dancing', 'painting', 'reading', 'football', 'chess']);\n    const petPerms = perms(['dog', 'snail', 'fox', 'horse', 'zebra']);\n\n    for (const cp of colorPerms) {\n      const colors = [cp[0], 'blue', cp[1], cp[2], cp[3]];\n      const ivoryIdx = colors.indexOf('ivory');\n      const greenIdx = colors.indexOf('green');\n      // Constraint 6: green immediately right of ivory\n      if (greenIdx !== ivoryIdx + 1) continue;\n\n      const yellowIdx = colors.indexOf('yellow');\n      const redIdx = colors.indexOf('red');\n\n      for (const np of natPerms) {\n        const nats = ['Norwegian', np[0], np[1], np[2], np[3]];\n        // Constraint 2: Englishman in red house\n        if (nats.indexOf('Englishman') !== redIdx) continue;\n\n        const japIdx = nats.indexOf('Japanese');\n        const spaIdx = nats.indexOf('Spaniard');\n        const ukrIdx = nats.indexOf('Ukrainian');\n\n        for (const dp of drinkPerms) {\n          const drinks = [dp[0], dp[1], 'milk', dp[2], dp[3]];\n          // Constraint 4: green house drinks coffee\n          if (drinks[greenIdx] !== 'coffee') continue;\n          // Constraint 5: Ukrainian drinks tea\n          if (drinks[ukrIdx] !== 'tea') continue;\n\n          const ojIdx = drinks.indexOf('orange juice');\n\n          for (const hp of hobbyPerms) {\n            // Constraint 8: yellow house is painter\n            if (hp[yellowIdx] !== 'painting') continue;\n            // Constraint 14: Japanese plays chess\n            if (hp[japIdx] !== 'chess') continue;\n            // Constraint 13: football player drinks OJ\n            if (hp.indexOf('football') !== ojIdx) continue;\n\n            const dancingIdx = hp.indexOf('dancing');\n            const readingIdx = hp.indexOf('reading');\n            const painterIdx = hp.indexOf('painting');\n\n            for (const pp of petPerms) {\n              // Constraint 3: Spaniard owns dog\n              if (pp[spaIdx] !== 'dog') continue;\n              // Constraint 7: snail owner likes dancing\n              if (pp.indexOf('snail') !== dancingIdx) continue;\n              // Constraint 11: reading next to fox\n              if (Math.abs(readingIdx - pp.indexOf('fox')) !== 1) continue;\n              // Constraint 12: painter next to horse\n              if (Math.abs(painterIdx - pp.indexOf('horse')) !== 1) continue;\n\n              return {\n                color: colors,\n                nationality: nats,\n                pet: pp,\n                drink: drinks,\n                hobby: hp\n              };\n            }\n          }\n        }\n      }\n    }\n\n    return null;\n  }\n\n  waterDrinker() {\n    const waterIndex = this.solution.drink.indexOf('water');\n    return this.solution.nationality[waterIndex];\n  }\n\n  zebraOwner() {\n    const zebraIndex = this.solution.pet.indexOf('zebra');\n    return this.solution.nationality[zebraIndex];\n  }\n}\n",
+   "durationMs": 417762
+  },
+  {
+   "slug": "zipper",
+   "pass1": true,
+   "pass2": true,
+   "error": null,
+   "usage1": {
+    "promptTokens": 718,
+    "completionTokens": 2230,
+    "cachedTokens": 0,
+    "costUSD": 0.00248668272,
+    "calls": 1
+   },
+   "candidate1": "export class Zipper {\n  constructor(tree, trail) {\n    this._tree = tree;\n    this._trail = trail;\n  }\n\n  static fromTree(tree) {\n    if (!tree) return null;\n    return new Zipper(tree, []);\n  }\n\n  toTree() {\n    let current = this;\n    while (current._trail.length > 0) {\n      current = current.up();\n    }\n    return current._tree;\n  }\n\n  value() {\n    return this._tree.value;\n  }\n\n  left() {\n    if (!this._tree.left) return null;\n    const crumb = { tag: 'left', value: this._tree.value, right: this._tree.right };\n    return new Zipper(this._tree.left, [crumb, ...this._trail]);\n  }\n\n  right() {\n    if (!this._tree.right) return null;\n    const crumb = { tag: 'right', value: this._tree.value, left: this._tree.left };\n    return new Zipper(this._tree.right, [crumb, ...this._trail]);\n  }\n\n  up() {\n    if (this._trail.length === 0) return null;\n    const [crumb, ...rest] = this._trail;\n    let tree;\n    if (crumb.tag === 'left') {\n      tree = { value: crumb.value, left: this._tree, right: crumb.right };\n    } else {\n      tree = { value: crumb.value, left: crumb.left, right: this._tree };\n    }\n    return new Zipper(tree, rest);\n  }\n\n  setValue(value) {\n    return new Zipper(\n      { value, left: this._tree.left, right: this._tree.right },\n      this._trail\n    );\n  }\n\n  setLeft(tree) {\n    return new Zipper(\n      { value: this._tree.value, left: tree, right: this._tree.right },\n      this._trail\n    );\n  }\n\n  setRight(tree) {\n    return new Zipper(\n      { value: this._tree.value, left: this._tree.left, right: tree },\n      this._trail\n    );\n  }\n}\n",
+   "durationMs": 35968
+  }
+ ]
+}

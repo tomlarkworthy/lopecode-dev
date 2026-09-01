@@ -1,0 +1,62 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 58  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/rc5-credit-assignment/tools/robocoop-5/rc5-bundle.html
+PASS  task 0  steps=13 (96s)
+PASS  task 1  steps=14 (76s)
+PASS  task 2  steps=19 (124s)
+PASS  task 3  steps=21 (93s)
+PASS  task 4  steps=22 (104s)
+FAIL  task 5  steps=16 (135s)  r_actions=false r_outputs=true
+PASS  task 6  steps=19 (207s)
+PASS  task 7  steps=12 (129s)
+PASS  task 8  steps=24 (190s)
+PASS  task 9  steps=22 (103s)
+PASS  task 10  steps=13 (98s)
+PASS  task 11  steps=16 (74s)
+PASS  task 12  steps=19 (130s)
+PASS  task 13  steps=15 (100s)
+PASS  task 14  steps=15 (56s)
+FAIL  task 15  steps=16 (82s)  r_actions=false r_outputs=true
+PASS  task 16  steps=17 (75s)
+PASS  task 17  steps=7 (30s)
+FAIL  task 18  steps=21 (123s)  r_actions=false r_outputs=true
+PASS  task 19  steps=19 (203s)
+PASS  task 20  steps=17 (64s)
+PASS  task 21  steps=22 (133s)
+PASS  task 22  steps=26 (189s)
+PASS  task 23  steps=21 (86s)
+PASS  task 24  steps=18 (66s)
+PASS  task 25  steps=21 (107s)
+PASS  task 26  steps=13 (45s)
+PASS  task 27  steps=17 (113s)
+PASS  task 28  steps=26 (114s)
+PASS  task 29  steps=19 (149s)
+PASS  task 30  steps=30 (112s)
+PASS  task 31  steps=36 (142s)
+PASS  task 32  steps=39 (264s)
+PASS  task 33  steps=21 (152s)
+FAIL  task 34  steps=16 (78s)  r_actions=true r_outputs=false
+PASS  task 35  steps=28 (127s)
+FAIL  task 36  steps=31 (186s)  r_actions=false r_outputs=true
+PASS  task 37  steps=26 (126s)
+PASS  task 38  steps=33 (198s)
+FAIL  task 39  steps=16 (94s)  r_actions=false r_outputs=true
+PASS  task 40  steps=16 (85s)
+PASS  task 41  steps=19 (146s)
+PASS  task 42  steps=25 (130s)
+FAIL  task 43  steps=16 (110s)  r_actions=false r_outputs=true
+PASS  task 44  steps=14 (94s)
+PASS  task 45  steps=15 (158s)
+PASS  task 46  steps=17 (172s)
+PASS  task 47  steps=19 (151s)
+PASS  task 48  steps=17 (94s)
+PASS  task 49  steps=12 (101s)
+PASS  task 50  steps=31 (241s)
+PASS  task 51  steps=13 (55s)
+PASS  task 52  steps=16 (104s)
+PASS  task 53  steps=17 (115s)
+FAIL  task 54  steps=36 (248s)  r_actions=false r_outputs=true
+FAIL  task 55  steps=18 (161s)  r_actions=false r_outputs=true
+PASS  task 56  steps=19 (78s)
+PASS  task 57  steps=11 (97s)
+
+pass@1: 49/58 = 0.845
+wrote results/gate-principles-shard0.json

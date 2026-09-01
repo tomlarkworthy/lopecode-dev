@@ -1,0 +1,61 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 57  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+PASS  task 58  steps=19 (225s)
+FAIL  task 59  steps=36 (373s)  r_actions=false r_outputs=true
+FAIL  task 60  steps=14 (141s)  r_actions=false r_outputs=true
+PASS  task 61  steps=12 (140s)
+PASS  task 62  steps=26 (258s)
+PASS  task 63  steps=21 (206s)
+PASS  task 64  steps=18 (160s)
+PASS  task 65  steps=15 (136s)
+PASS  task 66  steps=29 (248s)
+PASS  task 67  steps=19 (92s)
+PASS  task 68  steps=20 (156s)
+PASS  task 69  steps=20 (186s)
+PASS  task 70  steps=16 (144s)
+PASS  task 71  steps=26 (259s)
+PASS  task 72  steps=24 (213s)
+PASS  task 73  steps=15 (124s)
+PASS  task 74  steps=22 (181s)
+PASS  task 75  steps=16 (152s)
+FAIL  task 76  steps=24 (230s)  r_actions=false r_outputs=true
+PASS  task 77  steps=12 (80s)
+PASS  task 78  steps=25 (195s)
+FAIL  task 79  steps=16 (116s)  r_actions=false r_outputs=true
+PASS  task 80  steps=17 (182s)
+PASS  task 81  steps=26 (176s)
+PASS  task 82  steps=23 (257s)
+PASS  task 83  steps=26 (174s)
+PASS  task 84  steps=20 (154s)
+PASS  task 85  steps=19 (112s)
+PASS  task 86  steps=27 (205s)
+PASS  task 87  steps=17 (88s)
+PASS  task 88  steps=20 (135s)
+PASS  task 89  steps=16 (196s)
+PASS  task 90  steps=21 (241s)
+FAIL  task 91  steps=24 (202s)  r_actions=false r_outputs=true
+FAIL  task 92  steps=22 (175s)  r_actions=false r_outputs=true
+FAIL  task 93  steps=17 (137s)  r_actions=false r_outputs=true
+PASS  task 94  steps=20 (187s)
+FAIL  task 95  steps=12 (92s)  r_actions=false r_outputs=true
+PASS  task 96  steps=15 (104s)
+PASS  task 97  steps=15 (123s)
+PASS  task 98  steps=15 (117s)
+FAIL  task 99  steps=18 (184s)  r_actions=false r_outputs=true
+PASS  task 100  steps=17 (163s)
+FAIL  task 101  steps=28 (274s)  r_actions=false r_outputs=true
+PASS  task 102  steps=35 (266s)
+PASS  task 103  steps=27 (223s)
+PASS  task 104  steps=50 (351s)
+FAIL  task 105  steps=39 (347s)  r_actions=false r_outputs=true
+FAIL  task 106  steps=21 (197s)  r_actions=false r_outputs=true
+PASS  task 107  steps=21 (130s)
+FAIL  task 108  steps=28 (200s)  r_actions=false r_outputs=true
+PASS  task 109  steps=14 (86s)
+PASS  task 110  steps=19 (304s)
+PASS  task 111  steps=20 (388s)
+PASS  task 112  steps=24 (392s)
+PASS  task 113  steps=32 (282s)
+PASS  task 114  steps=12 (116s)
+
+pass@1: 44/57 = 0.772
+wrote results/agent-final-shard1.json

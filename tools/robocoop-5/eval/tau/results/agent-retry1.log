@@ -1,0 +1,29 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 24  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/humaneval-rc5/tools/robocoop-5/eval/robocoop-5-eval.html
+FAIL  task 62  steps=48 (360s)  r_actions=false r_outputs=true
+FAIL  task 63  steps=- (2120s)  err=page.evaluate: TypeError: network error
+FAIL  task 71  steps=- (1036s)  err=The operation was aborted due to timeout
+FAIL  task 72  steps=- (665s)  err=The operation was aborted due to timeout
+PASS  task 73  steps=16 (335s)
+PASS  task 75  steps=16 (130s)
+PASS  task 76  steps=36 (278s)
+FAIL  task 78  steps=- (108s)  err=page.evaluate: TypeError: network error
+FAIL  task 79  steps=26 (355s)  r_actions=false r_outputs=true
+FAIL  task 80  steps=- (412s)  err=page.evaluate: TypeError: network error
+PASS  task 81  steps=20 (291s)
+FAIL  task 86  steps=- (302s)  err=page.evaluate: TypeError: network error
+FAIL  task 88  steps=29 (325s)  r_actions=false r_outputs=true
+FAIL  task 91  steps=79 (587s)  r_actions=false r_outputs=true
+FAIL  task 92  steps=- (117s)  err=page.evaluate: TypeError: network error
+FAIL  task 95  steps=- (375s)  err=page.evaluate: Error: session.send timed out after 240000ms
+    at eval (eval at evaluate (:290:30), <anonymous>:15:66)
+FAIL  task 100  steps=35 (420s)  r_actions=false r_outputs=true
+FAIL  task 103  steps=- (528s)  err=page.evaluate: TypeError: network error
+FAIL  task 104  steps=- (476s)  err=page.evaluate: TypeError: network error
+FAIL  task 105  steps=- (353s)  err=terminated
+PASS  task 106  steps=- (248s)  err=page.evaluate: TypeError: network error
+FAIL  task 107  steps=- (299s)  err=page.evaluate: TypeError: network error
+FAIL  task 111  steps=- (238s)  err=page.evaluate: TypeError: network error
+PASS  task 114  steps=86 (740s)
+
+pass@1: 6/24 = 0.250
+wrote results/agent-retry1.json

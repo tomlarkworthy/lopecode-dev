@@ -1,0 +1,12 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 8
+PASS  task 46  steps=12 (133s)
+PASS  task 36  steps=17 (165s)
+FAIL  task 48  steps=6 (48s)  r_actions=false r_outputs=true
+PASS  task 96  steps=15 (131s)
+PASS  task 63  steps=15 (184s)
+FAIL  task 101  steps=15 (192s)  r_actions=false r_outputs=true
+PASS  task 112  steps=14 (294s)
+FAIL  task 99  steps=26 (527s)  r_actions=false r_outputs=true
+
+pass@1: 5/8 = 0.625
+wrote results/baseline-retry.json

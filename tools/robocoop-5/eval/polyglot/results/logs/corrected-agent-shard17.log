@@ -1,0 +1,39 @@
+model: xiaomi/mimo-v2.5-pro  problems: 17  notebook: /Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+  ..list-ops attempt1 fail steps=20 (246s)
+PASS@2  list-ops  steps=20+6 (323s)
+  ..meetup attempt1 pass steps=12 (96s)
+PASS@1  meetup  steps=12+0 (96s)
+  ..ocr-numbers attempt1 pass steps=16 (165s)
+PASS@1  ocr-numbers  steps=16+0 (165s)
+  ..palindrome-products attempt1 pass steps=4 (27s)
+PASS@1  palindrome-products  steps=4+0 (27s)
+  ..parallel-letter-frequency attempt1 pass steps=10 (47s)
+PASS@1  parallel-letter-frequency  steps=10+0 (47s)
+  ..phone-number attempt1 fail steps=9 (34s)
+PASS@2  phone-number  steps=9+3 (58s)
+  ..pig-latin attempt1 pass steps=7 (25s)
+PASS@1  pig-latin  steps=7+0 (25s)
+  ..poker attempt1 fail steps=23 (161s)
+PASS@2  poker  steps=23+5 (200s)
+  ..promises attempt1 fail steps=12 (119s)
+FAIL    promises  steps=12+9 (218s)  FAIL: promises > race > resolves when given no promises
+  ..queen-attack attempt1 fail steps=7 (54s)
+PASS@2  queen-attack  steps=7+6 (123s)
+  ..rational-numbers attempt1 fail steps=11 (65s)
+PASS@2  rational-numbers  steps=11+9 (103s)
+  ..react attempt1 fail steps=13 (149s)
+FAIL    react  steps=13+12 (407s)  FAIL: React module > compute cells fire callbacks
+  ..rectangles attempt1 pass steps=16 (112s)
+PASS@1  rectangles  steps=16+0 (112s)
+  ..resistor-color-trio attempt1 fail steps=8 (52s)
+PASS@2  resistor-color-trio  steps=8+4 (76s)
+  ..rest-api attempt1 pass steps=8 (222s)
+PASS@1  rest-api  steps=8+0 (222s)
+  ..robot-name attempt1 fail steps=6 (32s)
+PASS@2  robot-name  steps=6+16 (338s)
+  ..say attempt1 fail steps=11 (49s)
+PASS@2  say  steps=11+4 (63s)
+
+pass@1: 7/17 = 0.412
+pass@2: 15/17 = 0.882
+wrote results/corrected-agent-shard17.json

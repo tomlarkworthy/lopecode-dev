@@ -1,0 +1,18 @@
+model: xiaomi/mimo-v2.5-pro  user-model: xiaomi/mimo-v2.5-pro  tasks: 14  notebook: /Users/tom.larkworthy/dev/lopecode-dev/.claude/worktrees/rc5-credit-assignment/tools/robocoop-5/rc5-bundle.html
+FAIL  task 34  steps=15 (224s)  r_actions=true r_outputs=false
+PASS  task 36  steps=22 (297s)
+PASS  task 43  steps=14 (197s)
+FAIL  task 55  steps=19 (81s)  r_actions=false r_outputs=true
+PASS  task 58  steps=21 (119s)
+FAIL  task 62  steps=19 (229s)  r_actions=false r_outputs=false
+PASS  task 63  steps=23 (164s)
+PASS  task 69  steps=14 (116s)
+PASS  task 71  steps=21 (138s)
+FAIL  task 72  steps=17 (174s)  r_actions=false r_outputs=true
+FAIL  task 74  steps=22 (192s)  r_actions=false r_outputs=true
+PASS  task 87  steps=19 (139s)
+PASS  task 94  steps=18 (166s)
+PASS  task 100  steps=24 (138s)
+
+pass@1: 9/14 = 0.643
+wrote results/ab-losses-context.json
