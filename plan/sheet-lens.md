@@ -1,7 +1,7 @@
 # Sheet: a spreadsheet as a lens over module scope
 
 Status **prototype, 2026-08-30**, branch `worktree-sheet-lens`, module
-`@tomlarkworthy/sheet` in `lopebooks/notebooks/@tomlarkworthy_sheet.html`
+`@tomlarkworthy/spreadsheet` in `lopebooks/notebooks/tomlarkworthy_spreadsheet.html`
 (lopebooks `798bf4d7`). Written from the session that built it.
 
 The brief was to layer spreadsheet concepts over ordinary notebooks with as little new

@@ -671,6 +671,9 @@
   "@tomlarkworthy/spectral-layout": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html"
   },
+  "@tomlarkworthy/spreadsheet": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_spreadsheet.html"
+  },
   "@tomlarkworthy/sticky": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky.html"
   },
