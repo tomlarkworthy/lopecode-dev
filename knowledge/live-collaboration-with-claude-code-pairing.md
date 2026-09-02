@@ -175,7 +175,17 @@ Dynamic tools are registered during the WebSocket pair handshake and updated via
 
 ## Variable Watching
 
-`watch_variable` subscribes to reactive updates via runtime-sdk's `observe()`. Changes are debounced (1s, latest value wins) and serialized via `summarizeJS`.
+`watch_variable` subscribes to reactive updates via runtime-sdk's `observe()`. Changes are debounced (1s, latest value wins) and serialized via `summarizeJS`, capped at 2000 chars.
+
+Since 2026-09-02 a watch sends less than it observes:
+
+- **Unchanged serialization, no message.** `currentModules` re-dispatches on every code change (the `sync_modules` key-set gate in module-map is not what fires it); before this it went out as 2000 chars per keystroke.
+- **An array that only grew is sent as its tail.** `cc_watchers` keeps a shallow copy of the last sent array; if every old item is still at its index (by reference), only `value.slice(from)` is serialized and the message carries `delta: {from, length}`. The server renders that as `delta="append" from="N" length="M"` attributes. Anything else (mid-array insert, replaced array, non-array) is a whole send.
+- **The first send after a (re)connect is always whole.** `setSend(fn)` resets every watcher, so a Claude session that reconnects gets the base before any delta.
+
+Verified in the canonical notebook (`@tomlarkworthy_claude-code-pairing.html`, headless QA browser, 2026-09-02): six `variable.define` calls 300ms apart while watching `history` arrived as two updates, `Array(1)` then `Array(5)`, and `currentModules` was not re-sent. Closing the socket and calling `cc_ws.connect(token)` re-sent `hash` and `currentModules` once each.
+
+`history` was a default watch until then; it is not any more. It is mutated in place per edit by `local-change-history`, so watching it re-serialized the whole array on every keystroke, and the same information already streams as `cell_change`. A bot pairing on 2026-09-02 unwatched both defaults itself: "those two were pushing on every keystroke and had nothing in them I needed." Watching `history` explicitly still works and takes the delta path.
 
 ### Auto-watches on connect
 
@@ -210,7 +220,9 @@ The pairing module uses `viewof cc_module = thisModule()` to get its own module 
 
 ## Cell Change Forwarding
 
-The `cc_change_forwarder` cell takes `history` as a direct dependency (imported from `@tomlarkworthy/local-change-history`) and polls it every second. New entries are sent to Claude as `cell_change` notifications — Claude sees every cell edit in real-time.
+`cc_change_forwarder` listens for `input` events on `viewof history` (the `Inputs.input([])` element from `@tomlarkworthy/local-change-history`), debounces 1s, and sends every entry past a high-water mark as one `cell-change` message; the server emits one `cell_change` notification per entry. The mark is reset to the current length when `cc_status` becomes `connected`, so a new consumer does not receive the boot-time `FileAttachment` entries as edits.
+
+Until 2026-09-02 the cell depended on `history` (the value) and polled it. That never sent anything: `change_listener` mutates the array in place and re-dispatches, so the value dependency re-ran the forwarder on every edit and its "initializing" branch set the mark to the current length each time. Observed: the cell's value read `change forwarder active` and `_reachable` was true, six defines grew `history` from 1 to 7, and no `cell_change` arrived. The `history` watch had been the only edit stream. A cell that must see successive values of an `Inputs.input` that is mutated in place has to depend on the `viewof` element and read `.value`, the same reason `cc_ws` depends on `viewof mcpTools` (see `development-of-pairing-channel-and-claude-plugin.md`).
 
 ## Exporting and Forking
 

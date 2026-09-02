@@ -95,6 +95,10 @@ When asking the user to paste cookies: tell them to open devtools (Cmd+Opt+I) â†
 - Each operation must use the confirmed version/subversion from the previous operation
 - The REST API at `https://api.observablehq.com/document/{slug}` returns node IDs, values, and versions
 
+### Still works after the notebook 2.0 migration
+
+Observable made Notebooks 2.0 the default and moved the 1.0 editor to `old.observablehq.com`. Pushed 5 cells to `@tomlarkworthy/claude-code-pairing` on 2026-09-02, after the switch, with the tool unchanged: `api.observablehq.com/document/{slug}` returned version 1890, `wss://ws.observablehq.com/document/{id}/edit` accepted the hello, five `modify_node` saves confirmed to version 1895, and `api.observablehq.com/@tomlarkworthy/claude-code-pairing.js?v=4` served the new cell bodies. Nothing needed the `old.` host.
+
 ## Tool: lope-push-ws.js (Preferred)
 
 ```bash
