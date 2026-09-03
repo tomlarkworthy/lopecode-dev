@@ -847,104 +847,6 @@
    "kind": "unused-dep"
   }
  ],
- "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-002.html": [
-  {
-   "detail": "@tomlarkworthy/annotate: a2Store declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/annotate: cellEditor declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: cmdToggleSmooth declares nodeAt (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: cmdToggleSmooth declares pathHandles (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: putTable declares edits (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: refsOf declares parseDoc (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: sinkRecord declares edits (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: sinksP declares tex (a stdlib builtin) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: svgAffordances declares nodeAt (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: test_copy_paste declares nodeAt (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: test_path_smooth declares parsePath (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: test_path_smooth declares pathSegments (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: test_rebase_vertex declares parsePoints (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: test_translateLens_laws declares matEq (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: test_translateLens_laws declares transformLens (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolMove declares attrVal (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolMove declares ctmMat (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolMove declares invert (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolMove declares translateLens (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolPen declares attrVal (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolScribble declares previewDelta (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/svg-lens: toolStructure declares attrVal (a cell here) but never uses it",
-   "kind": "unused-dep"
-  }
- ],
  "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
@@ -2362,6 +2264,112 @@
   },
   {
    "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/tomlarkworthy_lopecode-newsletter-002.html": [
+  {
+   "detail": "@tomlarkworthy/annotate: a2Store declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/annotate: cellEditor declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/robocoop-5-srctools: applyLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: cmdToggleSmooth declares nodeAt (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: cmdToggleSmooth declares pathHandles (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: putTable declares edits (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: refsOf declares parseDoc (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: sinkRecord declares edits (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: sinksP declares tex (a stdlib builtin) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: svgAffordances declares nodeAt (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: test_copy_paste declares nodeAt (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: test_path_smooth declares parsePath (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: test_path_smooth declares pathSegments (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: test_rebase_vertex declares parsePoints (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: test_translateLens_laws declares matEq (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: test_translateLens_laws declares transformLens (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolMove declares attrVal (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolMove declares ctmMat (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolMove declares invert (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolMove declares translateLens (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolPen declares attrVal (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolScribble declares previewDelta (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/svg-lens: toolStructure declares attrVal (a cell here) but never uses it",
    "kind": "unused-dep"
   }
  ],
