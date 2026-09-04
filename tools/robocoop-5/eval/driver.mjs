@@ -13,7 +13,7 @@ const harness = {
   settleMs: 800,
 
   async seedFiles(page, files) {
-    await page.evaluate(async (files) => {
+    return await page.evaluate(async (files) => {
       const reg = globalThis.__ojs_runtime;
       let host = null;
       for (const m of reg.mains.values()) {
@@ -24,11 +24,51 @@ const harness = {
       }
       if (!host || typeof host.seedFile !== "function")
         throw new Error("rc5_host.seedFile unavailable");
+      // A seed the host rejects (an agent-written /src file that is not an importable module, for
+      // example) must not sink the turn: skip it and report. Run 2026-09-03g lost rv's continuation to
+      // one such file.
+      const failed = [];
       for (const [path, content] of Object.entries(files)) {
         const r = await host.seedFile(path, String(content));
-        if (r && r.ok === false) throw new Error("seed failed for " + path + ": " + r.msg);
+        if (r && r.ok === false) failed.push(path + ": " + String(r.msg).slice(0, 160));
       }
+      // Never throw: on a continuation the only seeds may be the agent's own modules, and one left
+      // mid-edit at the cut-off is not importable — arm m (2026-09-03) lost mri's turn 2 to
+      // "every seed failed". The failures are returned so the next question can name them.
+      if (failed.length) console.warn("seed skipped: " + failed.join("; "));
+      return failed;
     }, files);
+  },
+
+  // Mount whatever window.showDirectoryPicker() returns at /local-disk through rc5_host.mount — the
+  // seam behind the srctools "Mount local folder" button — then wait for the tools that close over
+  // localDisk (pathLib -> fileTools -> hostSetup) to re-register against the mounted handle.
+  async mountLocalDisk(page) {
+    const name = await page.evaluate(async () => {
+      const reg = globalThis.__ojs_runtime;
+      let host = null;
+      for (const m of reg.mains.values()) {
+        const rt = m && m._runtime;
+        if (!rt) continue;
+        for (const v of rt._variables) if (v._name === "rc5_host") { host = v._value; break; }
+        if (host) break;
+      }
+      if (!host || typeof host.mount !== "function") throw new Error("rc5_host.mount unavailable");
+      const r = await host.mount();
+      if (!r || r.ok === false) throw new Error("mount failed: " + (r && r.msg));
+      return r.name;
+    });
+    await page.waitForFunction(() => {
+      const reg = globalThis.__ojs_runtime;
+      for (const m of reg.mains.values()) {
+        const rt = m && m._runtime;
+        if (!rt) continue;
+        for (const v of rt._variables) if (v._name === "localDisk") return !!(v._value && v._value.mounted);
+      }
+      return false;
+    }, null, { timeout: 15000 });
+    await page.waitForTimeout(this.settleMs);
+    return name;
   },
 
   // Attachments come from the notebook's OWN inventory cell (@tomlarkworthy/fileattachments

@@ -1,0 +1,52 @@
+{
+  "_note": "Terminal-Bench-Science v0.1 slate for the robocoop-5 port. dir is relative to TBS_ROOT (default ../tbs-src). seedRoots are container paths copied out of the task's env image and seeded into the notebook filesystem at the same absolute paths (text only). `excluded` entries are kept for the record with the reason they are out of the slate.",
+  "tasks": [
+    {
+      "slug": "ode-law-discovery",
+      "dir": "tasks/mathematical-sciences/applied-mathematics/ode-law-discovery",
+      "seedRoots": [
+        "/data"
+      ]
+    },
+    {
+      "slug": "mri-harmonization",
+      "dir": "tasks/life-sciences/neuroscience/mri-harmonization",
+      "seedRoots": [
+        "/app/data",
+        "/app/metrics.py",
+        "/app/evaluate.py"
+      ]
+    },
+    {
+      "slug": "variable-star-vetting",
+      "dir": "tasks/physical-sciences/astronomy/variable-star-vetting",
+      "seedRoots": [
+        "/root/data"
+      ]
+    },
+    {
+      "slug": "rv-astrometry-fitting",
+      "dir": "tasks/physical-sciences/astronomy/rv-astrometry-fitting",
+      "seedRoots": [
+        "/root/data"
+      ]
+    },
+    {
+      "slug": "nanoindentation-property-extraction",
+      "dir": "tasks/physical-sciences/materials-science/nanoindentation-property-extraction",
+      "seedRoots": [
+        "/workspace/data"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "slug": "spin-glass-groundstate",
+      "dir": "tasks/physical-sciences/physics/spin-glass-groundstate",
+      "seedRoots": [
+        "/root/data"
+      ],
+      "reason": "reference solution needs 800-1900 CPU-seconds per instance x 6 on 4 cores (task README); the anchor run was killed after 6981s with no artifacts (results/anchor-fast.json, 2026-09-02). Single-threaded browser JS cannot meet the budget, so a fail would measure compute, not the harness."
+    }
+  ]
+}

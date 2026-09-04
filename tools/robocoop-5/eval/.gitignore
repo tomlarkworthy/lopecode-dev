@@ -13,3 +13,9 @@ robocoop-5-eval-v2.html
 # .gitignore does not untrack — but nothing new lands here.
 polyglot/results/
 humaneval/results/
+tbs-src/
+tbs/cache/
+tbs/trajectories/
+tbs/sandbox/
+# tbs/results/: the verifier output in each result quotes hidden expected values (the canary reason tbs-src/ is ignored)
+tbs/results/

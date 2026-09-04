@@ -47,7 +47,7 @@ export async function createDriver({
   });
 
   async function runQuestion(evalDef) {
-    const question = String(evalDef?.question ?? "");
+    let question = String(evalDef?.question ?? "");
     // evalDef.resume: array of prior-conversation messages (WITHOUT the leading system prompt —
     // send() re-adds it). They are pushed into session.messages, then the turn continues with
     // send(question) — or send(null) when `question` is empty, which pushes no user message at all.
@@ -61,6 +61,14 @@ export async function createDriver({
     let page;
     try {
       const context = await browser.newContext();
+
+      // setup.localDisk {root, name?} — a faked File System Access directory (fake-local-disk.mjs)
+      // backed by the host directory `root`: window.showDirectoryPicker() resolves to it, so the
+      // notebook's ordinary "Mount local folder" path mounts it at /local-disk with no dialog.
+      if (evalDef?.setup?.localDisk?.root) {
+        const { installFakeLocalDisk } = await import("./fake-local-disk.mjs");
+        await installFakeLocalDisk(context, evalDef.setup.localDisk);
+      }
 
       // setup.routes — deterministic network fixtures: fulfill the sentinel URL with a known payload so
       // the OUTCOME (the fetched value living in a cell) is reproducible.
@@ -79,16 +87,26 @@ export async function createDriver({
         }
       }
 
+      // setup.initScript — page JS installed BEFORE the notebook boots (Playwright addInitScript), for
+      // anything the notebook's cells capture at compute time: the OpenRouter client keeps the
+      // globalThis.fetch it saw when it was created, so a wrapper installed after boot is invisible.
+      if (typeof evalDef?.setup?.initScript === "string" && evalDef.setup.initScript.trim()) {
+        await context.addInitScript(evalDef.setup.initScript);
+      }
       page = await context.newPage();
+      let cdpSession = null;
+      try { cdpSession = await context.newCDPSession(page); } catch (e) { cdpSession = null; console.warn("  ..no CDP session: " + (e?.message ?? e)); }
+      page.on("crash", () => console.warn("  ..page crashed"));
+      page.on("close", () => console.warn("  ..page closed"));
 
       // Capture errors/warnings for the whole lifetime of this page (step 5).
       page.on("console", (msg) => {
         const type = msg.type();
         if (type === "error" || type === "warning") {
-          consoleEvents.push({ type: type === "warning" ? "warning" : "error", text: msg.text() });
+          consoleEvents.push({ t: Date.now(), type: type === "warning" ? "warning" : "error", text: msg.text() });
         }
       });
-      page.on("pageerror", (e) => consoleEvents.push({ type: "error", text: e.message }));
+      page.on("pageerror", (e) => consoleEvents.push({ t: Date.now(), type: "error", text: e.message }));
 
       // (a) Seed localStorage BEFORE any script runs. localStorageView reads PLAIN strings (no JSON).
       await page.addInitScript(
@@ -287,8 +305,24 @@ export async function createDriver({
       }
 
       // Step 4: seed files (if any) before sending — through the harness's seam.
+      let seedFailures = [];
       if (evalDef?.setup?.files && Object.keys(evalDef.setup.files).length) {
-        await harness.seedFiles(page, evalDef.setup.files);
+        const r = await harness.seedFiles(page, evalDef.setup.files);
+        if (Array.isArray(r)) seedFailures = r;
+        // The agent, not the log, has to know its module did not come back as a module.
+        if (seedFailures.length && question)
+          question += "\n\nWARNING: these files of yours could not be re-applied as modules and are stored as text only — fix or rewrite them before relying on them: " + seedFailures.join("; ");
+      }
+      // setup.localDisk — mount the faked directory through the harness's own mount seam (the same
+      // code path a user's button click takes), after seeding so tools re-register once.
+      if (evalDef?.setup?.localDisk?.root) {
+        if (typeof harness.mountLocalDisk !== "function") throw new Error("harness has no mountLocalDisk seam");
+        await harness.mountLocalDisk(page);
+      }
+      // setup.init — page-side JS run once after seeding, before the question (e.g. install a
+      // helper the eval's environment note documents). A string, evaluated in the page.
+      if (typeof evalDef?.setup?.init === "string" && evalDef.setup.init.trim()) {
+        await page.evaluate(evalDef.setup.init);
       }
 
       // Modules referenced by this eval's criteria — force-compute their (possibly lazy) vars so live
@@ -302,7 +336,65 @@ export async function createDriver({
 
       // Step 6: send the question (raced against timeout) and build the WorldSnapshot — all in-page so
       // we have synchronous access to live runtime values.
-      const snapshot = await page.evaluate(
+      // evalDef.steers [{atMs, text}] — timed user messages injected into the RUNNING turn through
+      // session.steer (what a user watching the clock would type). The turn's wall clock is invisible
+      // to the model otherwise; run 2026-09-02d lost three tasks' work to the cut with nothing written.
+      const steerTimers = [];
+      for (const st of Array.isArray(evalDef?.steers) ? evalDef.steers : []) {
+        steerTimers.push(setTimeout(() => {
+          page.evaluate((text) => {
+            const reg = globalThis.__ojs_runtime;
+            for (const m of reg.mains.values()) {
+              const rt = m && m._runtime;
+              if (!rt) continue;
+              for (const v of rt._variables) if (v._name === "session" && v._value && typeof v._value.steer === "function") { v._value.steer(text); return true; }
+            }
+            return false;
+          }, st.text).catch(() => {});
+        }, st.atMs));
+      }
+      // A cell or snippet that never yields wedges the page: the in-page timeout, the steers and
+      // every evaluate hang with it, and the conversation is lost (2026-09-03h, mri: 33 min, no
+      // result). So the turn evaluate is raced against a node-side clock; on expiry the running
+      // script is terminated over CDP and the conversation is read out of the (now responsive) page.
+      let snapshot;
+      let wedgeTimer;
+      const turnT0 = Date.now();
+      // The in-page timeout fires late in a headless page (arm y 2026-09-04: every turn "wedged" at
+      // timeout + 4..128 s with the session intact), so the node-side clock must trail it by more
+      // than that or a healthy turn takes the terminate path. 180 s; the freeze watchdog covers a
+      // page that is actually stuck long before this.
+      const WEDGE_MARGIN_MS = 180000;
+      const wedged = new Promise((r) => { wedgeTimer = setTimeout(() => r("__wedged__"), timeoutMs + WEDGE_MARGIN_MS); });
+      // A page frozen by one synchronous tool call (ode 2026-09-04: 19, 28 and 21 min grid searches in
+      // eval_js) used to hold the turn until that clock. A heartbeat evaluate every 15 s now detects
+      // the freeze; unanswered for freezeMs (default 5 min) it triggers the same recovery early.
+      const freezeMs = evalDef.freezeMs ?? 300000;
+      let hbStop = false; const hbTimers = [];
+      const frozen = new Promise((resolve) => {
+        let frozenSince = null;
+        const tick = async () => {
+          if (hbStop) return;
+          const t0 = Date.now();
+          let alive = true;
+          try {
+            await Promise.race([page.evaluate(() => 1), new Promise((_, rej) => hbTimers.push(setTimeout(() => rej(new Error("hb")), 30000)))]);
+          } catch { alive = false; }
+          if (hbStop) return;
+          if (alive) frozenSince = null;
+          else {
+            frozenSince ??= t0;
+            if (Date.now() - frozenSince >= freezeMs) {
+              console.warn("  ..page unresponsive for " + Math.round((Date.now() - frozenSince) / 1000) + "s: treating the turn as wedged");
+              return resolve("__wedged__");
+            }
+          }
+          hbTimers.push(setTimeout(tick, 15000));
+        };
+        hbTimers.push(setTimeout(tick, 15000));
+      });
+      try {
+      const evaluated = page.evaluate(
         async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume, oracleSteps }) => {
           const reg = globalThis.__ojs_runtime;
 
@@ -560,18 +652,50 @@ export async function createDriver({
           forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800, resume,
           oracleSteps: oracle ? (evalDef.oracle || []) : null },
       );
+      const raced = await Promise.race([evaluated.then((v) => ({ v })), wedged, frozen]);
+      if (raced === "__wedged__") {
+        console.warn("  ..turn wedged (" + (Date.now() - turnT0) + "ms in): terminating page execution");
+        const withIn = (p, ms, l) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(l + " hung " + ms + "ms")), ms))]);
+        try {
+          const cdp = cdpSession || await withIn(context.newCDPSession(page), 20000, "newCDPSession");
+          await withIn(cdp.send("Runtime.terminateExecution"), 20000, "terminateExecution");
+          console.warn("  ..terminateExecution acknowledged");
+        } catch (e) { console.warn("  ..terminateExecution failed: " + (e?.message ?? e)); }
+        evaluated.catch(() => {});
+        snapshot = await page.evaluate(() => {
+          const reg = globalThis.__ojs_runtime;
+          let session = null;
+          for (const m of reg.mains.values()) { const rt = m && m._runtime; if (!rt) continue;
+            for (const v of rt._variables) if (v._name === "session") { session = v._value; break; } if (session) break; }
+          const messages = session && Array.isArray(session.messages) ? session.messages : [];
+          const conversation = messages.map((m) => { const o = { role: m.role, content: m.content ?? "" }; if (Array.isArray(m.tool_calls)) o.tool_calls = m.tool_calls; if (m.tool_call_id) o.tool_call_id = m.tool_call_id; return o; });
+          const toolCalls = []; for (const m of messages) if (Array.isArray(m.tool_calls)) for (const tc of m.tool_calls) { let a = {}; try { a = JSON.parse(tc.function?.arguments || "{}"); } catch {} toolCalls.push({ name: tc.function?.name, arguments: a }); }
+          return { ok: false, error: "page wedged: execution terminated after the turn timeout", question: "", model: "", durationMs: 0, steps: messages.filter((m) => m.role === "assistant").length, finishReason: "wedged", conversation, toolCalls, errors: [] };
+        }).catch((e) => ({ ok: false, error: "page wedged and unrecoverable: " + (e?.message ?? e), question: "", model: "", durationMs: 0, steps: 0, finishReason: "wedged", conversation: [], toolCalls: [], errors: [] }));
+      } else {
+        snapshot = raced.v;
+      }
+      } finally { clearTimeout(wedgeTimer); hbStop = true; for (const t of hbTimers) clearTimeout(t); for (const t of steerTimers) clearTimeout(t); }
+
+      // --- optional page-side tool timings: a setup.init that wraps tool.execute may leave
+      // [{name, start, ms}] on globalThis.__rc5ToolTimes; wall time minus this is model time. ---
+      const bounded = (p, ms, label) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(label + " timed out after " + ms + "ms")), ms))]);
+      try { snapshot.toolTimes = await bounded(page.evaluate(() => globalThis.__rc5ToolTimes || null), 30000, "toolTimes"); } catch {}
 
       // --- files via the harness seam (after settle + force-compute, so file state is final) ---
       snapshot.files = snapshot.files || {};
       try {
-        const files = await harness.collectFiles(page);
+        const files = await bounded(harness.collectFiles(page), 60000, "collectFiles");
         if (files && typeof files === "object") {
           for (const [path, contents] of Object.entries(files)) {
             if (typeof contents === "string") snapshot.files[path] = contents;
           }
         }
       } catch (e) {
-        snapshot.error = snapshot.error || ("file snapshot failed: " + (e?.message ?? e));
+        // Kept separate: when the turn already ended in an error (a timeout), a masked snapshot
+        // failure silently empties the next turn's warm seeds (arm k, 2026-09-03: 4/5 modules lost).
+        snapshot.filesError = String(e?.message ?? e);
+        snapshot.error = snapshot.error || ("file snapshot failed: " + snapshot.filesError);
       }
 
       // --- file attachments via the optional harness seam. The vendoring evals grade on this:
@@ -579,7 +703,7 @@ export async function createDriver({
       // notebook self-contained, and no source check can distinguish it from a runtime CDN fetch. ---
       if (harness.collectAttachments) {
         try {
-          const atts = await harness.collectAttachments(page);
+          const atts = await bounded(harness.collectAttachments(page), 60000, "collectAttachments");
           snapshot.attachments = Array.isArray(atts) ? atts : [];
         } catch (e) {
           snapshot.attachments = [];
@@ -590,6 +714,7 @@ export async function createDriver({
       }
 
       snapshot.console = consoleEvents;
+      snapshot.seedFailures = seedFailures;
       return snapshot;
     } catch (e) {
       partial.error = e?.message ?? String(e);
