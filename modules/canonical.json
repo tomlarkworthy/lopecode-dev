@@ -397,6 +397,10 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_local-change-history.html",
     "lopecode": "lopecode/notebooks/@tomlarkworthy_local-change-history.html"
   },
+  "@tomlarkworthy/local-disk": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+    "upstream": null
+  },
   "@tomlarkworthy/local-storage-view": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html"
   },
@@ -544,6 +548,10 @@
   },
   "@tomlarkworthy/prosemirror": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_prosemirror.html"
+  },
+  "@tomlarkworthy/pyodide": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+    "upstream": null
   },
   "@tomlarkworthy/radial-explosion": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html"
