@@ -818,5 +818,13 @@
   },
   "@tomlarkworthy/wormhole2": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wormhole2.html"
+  },
+  "@tomlarkworthy/ui-testing": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ui-testing.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/lopepage-2-tests": {
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
+    "upstream": null
   }
 }
