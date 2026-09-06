@@ -4,7 +4,7 @@ Universal criteria every notebook is scored against during a `/qa-notebook` pass
 
 Each criterion is scored **pass / partial / fail** with concrete evidence. Cite a screenshot region, `get_variable` snapshot, or console excerpt for every non-pass.
 
-## The 16 criteria
+## The 17 criteria
 
 ### 1. Clear title
 
@@ -142,10 +142,20 @@ Every cell in every booted module computes without throwing. This is distinct fr
 
 Detection snippet (run via `eval_code`): iterate `__ojs_runtime._variables`, force each named cell (`mod.value(name)` / observe), then report any with `_error`. Do **not** report "0 errored cells" from a non-forcing `_error` scan — that is the classic false-pass (a `currentStep` cell using a non-existent `Generators` method passed a passive scan, then threw the moment its DAW pane rendered).
 
+### 17. Prose provenance (public prose only)
+
+Applies to notebooks published as reading material: blog posts, newsletters, papers, the tour. Internal programming notebooks are exempt. Run the `prose-qa` skill on the notebook's main prose module; it scores every paragraph with Pangram 4 and annotates the ones at or above the threshold (default 0.7) in the live notebook. Cost is about $0.05 per 100 words, so state the credit count from the dry run in the report.
+
+- **pass** — no paragraph at or above the threshold, or every remaining flag is quoted material the author has reviewed.
+- **partial** — a few flagged paragraphs, annotations placed, author informed.
+- **fail** — the main prose module is mostly flagged (`fraction_ai` above 0.5), or the skill was skipped on a public notebook.
+
+Cite the saved report under `tools/prose-qa/reports/` as evidence.
+
 ## How to use this file
 
 1. Read it once at the start of every QA pass.
-2. Score 1–16 from the evidence collected during your matrix execution.
+2. Score 1–17 from the evidence collected during your matrix execution.
 3. Cite evidence for each non-pass; vague "looks broken" lines are not acceptable.
 4. **Force-compute before claiming no errors (#16):** lazy/unobserved cells don't error until observed, so a passive `_error` scan false-passes. Observe/open every cell first.
 5. Note any per-notebook overrides in `qa/per-notebook/<slug>.md` — that file refines (never replaces) these general criteria.

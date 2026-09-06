@@ -1,0 +1,41 @@
+annotation_prose_nl2_big_5 = annotation({
+  "pid": "_nl2_big",
+  "module": "@tomlarkworthy/lopecode-newsletter-002",
+  "quote": {
+    "prefix": "",
+    "exact": "Streaming a block also means the loader has to know when one has finished arriving. The old test",
+    "suffix": " was \"does this block have a nex"
+  },
+  "box": {
+    "dx": 320,
+    "dy": -10,
+    "w": 260
+  },
+  "source": "pangram-4",
+  "score": 0.743,
+  "label": "AI-Generated",
+  "scanned": "2026-09-06"
+})
+
+annotation_prose_nl2_big_5_note = md`**Pangram 4**: AI-Generated (score 0.74, High confidence), 2026-09-06. Rewrite with specifics and evidence, then rescore.`
+
+annotation_prose_nl2_caged_2 = annotation({
+  "pid": "_nl2_caged",
+  "module": "@tomlarkworthy/lopecode-newsletter-002",
+  "quote": {
+    "prefix": "",
+    "exact": "It pairs with its host notebook over an MCP server that lives inside the page. The frame's fetch",
+    "suffix": " interceptor answers http://note"
+  },
+  "box": {
+    "dx": 320,
+    "dy": -10,
+    "w": 260
+  },
+  "source": "pangram-4",
+  "score": 0.759,
+  "label": "AI-Generated",
+  "scanned": "2026-09-06"
+})
+
+annotation_prose_nl2_caged_2_note = md`**Pangram 4**: AI-Generated (score 0.76, High confidence), 2026-09-06. Rewrite with specifics and evidence, then rescore.`

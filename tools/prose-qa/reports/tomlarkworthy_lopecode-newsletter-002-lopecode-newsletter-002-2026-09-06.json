@@ -1,0 +1,1048 @@
+{
+  "notebook": "lopebooks/notebooks/tomlarkworthy_lopecode-newsletter-002.html",
+  "moduleId": "@tomlarkworthy/lopecode-newsletter-002",
+  "date": "2026-09-06",
+  "credits": 28,
+  "paras": [
+    {
+      "pid": "_nl2_head",
+      "cell": "header",
+      "idx": 0,
+      "text": "Lopecode News Issue #2",
+      "cuts": [],
+      "start": 0,
+      "end": 22,
+      "words": 4
+    },
+    {
+      "pid": "_nl2_head",
+      "cell": "header",
+      "idx": 1,
+      "text": "UX, Lensing and Self-Modification 2026-08-14",
+      "cuts": [],
+      "start": 24,
+      "end": 68,
+      "words": 5
+    },
+    {
+      "pid": "_nl2_spine",
+      "cell": null,
+      "idx": 0,
+      "text": "What is the point of Lopecode?",
+      "cuts": [],
+      "start": 70,
+      "end": 100,
+      "words": 6
+    },
+    {
+      "pid": "_nl2_spine",
+      "cell": null,
+      "idx": 1,
+      "text": "I ruminate a lot on what I am doing. Why build Lopecode? What is its use? Is it for me? Or is it for you? Sometimes I feel dissuaded. But then I try to use Google Docs, or Notion, or VSCode and I am annoyed that they are so limited in their scope. So Lopecode is about building the thing that I think is possible, a fluidly extendable live programming environment that can express anything. I don't think I am alone in this yearning for a better computational substrate to express computational ideas.  has come close (and is what Lopecode is based on) but with Lopecode's addition of self-modifying cells and meta-programming, Lopecode is able to express much more than Observable Notebooks can.",
+      "cuts": [
+        502
+      ],
+      "start": 102,
+      "end": 798,
+      "words": 123
+    },
+    {
+      "pid": "_nl2_spine",
+      "cell": null,
+      "idx": 2,
+      "text": "So far Lopecode is difficult to use. It's a hard project. That is ok for now; the technical foundations are important because the problem being addressed is difficult and unsolved. Fluid software needs to be free of ritual. Making Lopecode work without internet, from a single file, and be self-modifying, needs deep foundations, but I think we are past the foundations point, and now it is about actually beginning to deliver useful new experiences built in userspace only.",
+      "cuts": [],
+      "start": 800,
+      "end": 1274,
+      "words": 78
+    },
+    {
+      "pid": "_nl2_h_sourcelast",
+      "cell": null,
+      "idx": 0,
+      "text": "Source-last programming",
+      "cuts": [],
+      "start": 1276,
+      "end": 1299,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_h_sourcelast",
+      "cell": null,
+      "idx": 1,
+      "text": "I think one of the most radical ideas of Lopecode is getting rid of canonical source code. It wasn't what I thought was the main thing when I started (that was self-serialization) but it enables self-serialization, and over time, I have realized it is the thing that makes everything else possible.",
+      "cuts": [],
+      "start": 1301,
+      "end": 1599,
+      "words": 51
+    },
+    {
+      "pid": "_nl2_h_sourcelast",
+      "cell": null,
+      "idx": 2,
+      "text": "The separation between program definition and program runtime state is the wedge that separates developer from user. Source code implies building a program is different and before running a program, but for a fluidly upgradable system there should be no such separation!",
+      "cuts": [],
+      "start": 1601,
+      "end": 1871,
+      "words": 42
+    },
+    {
+      "pid": "_nl2_h_sourcelast",
+      "cell": null,
+      "idx": 3,
+      "text": "For live programming you need to be able to upgrade the system while it is running, thus the source code before the execution is no more important than source code injected at runtime. Lopecode abandons the concept of privileged source code altogether, and follows the lead of the game modders (end-user programmers in the wild), we decompile on-demand from the running system. Decompilation is the primary serialization format for Lopecode. This unlocks so much, because the specific decompilation target can be deferred, and so there is no canonical language.",
+      "cuts": [],
+      "start": 1873,
+      "end": 2434,
+      "words": 89
+    },
+    {
+      "pid": "_nl2_sourcelast",
+      "cell": null,
+      "idx": 0,
+      "text": "The runtime is the canonical artifact",
+      "cuts": [],
+      "start": 2436,
+      "end": 2473,
+      "words": 6
+    },
+    {
+      "pid": "_nl2_sourcelast",
+      "cell": null,
+      "idx": 1,
+      "text": "The academic write-up is  written for  submission. ",
+      "cuts": [
+        25,
+        38
+      ],
+      "start": 2475,
+      "end": 2526,
+      "words": 7
+    },
+    {
+      "pid": "_nl2_sourcelast",
+      "cell": null,
+      "idx": 2,
+      "text": "Lopecode is source-last: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system.",
+      "cuts": [],
+      "start": 2528,
+      "end": 2689,
+      "words": 22
+    },
+    {
+      "pid": "_nl2_sourcelast",
+      "cell": null,
+      "idx": 3,
+      "text": "The act of writing that clarified how powerful on-demand decompilation can be. We don't need to commit to a single canonical language. We can decompile to the form that is most suitable for the task at hand. This does not necessarily even mean a text-based language, but it does require a bidirectional representation.",
+      "cuts": [],
+      "start": 2691,
+      "end": 3009,
+      "words": 53
+    },
+    {
+      "pid": "_nl2_h_lenses",
+      "cell": null,
+      "idx": 0,
+      "text": "Lenses",
+      "cuts": [],
+      "start": 3011,
+      "end": 3017,
+      "words": 1
+    },
+    {
+      "pid": "_nl2_h_lenses",
+      "cell": null,
+      "idx": 1,
+      "text": "Lenses are the theoretical underpinning of bidirectional representation that I did not know about but should have. Going forward, a lot of Lopecode editors will be explicitly checked for adherence to the Lens Laws.",
+      "cuts": [],
+      "start": 3019,
+      "end": 3233,
+      "words": 34
+    },
+    {
+      "pid": "_nl2_h_lenses",
+      "cell": null,
+      "idx": 2,
+      "text": "My feeling about lenses is that they are a fundamental computer science construct, at the level of \"parsing/compiling\" but better. A parse/compile cycle must have a total, lossless intermediate representation to survive round-trips, which is why it seems fragile to be able to freely transform between representations.",
+      "cuts": [],
+      "start": 3235,
+      "end": 3553,
+      "words": 47
+    },
+    {
+      "pid": "_nl2_h_lenses",
+      "cell": null,
+      "idx": 3,
+      "text": "Lenses, on the other hand, \"cheat\", allowing partial transformation of a source representation, so you don't need a total intermediate representation anymore. They still have strict rules, which you can check, but they relax the bidirectionality problem in a way that makes them much more broadly applicable.",
+      "cuts": [],
+      "start": 3555,
+      "end": 3863,
+      "words": 47
+    },
+    {
+      "pid": "_nl2_h_svglens",
+      "cell": null,
+      "idx": 0,
+      "text": "svg-lens",
+      "cuts": [],
+      "start": 3865,
+      "end": 3873,
+      "words": 1
+    },
+    {
+      "pid": "_kcuptv8",
+      "cell": null,
+      "idx": 0,
+      "text": "The work that solidified the power of lenses in my mind was . It achieved bidirectionality between graphical editing of a program and textual editing of the serialized SVG representation — AT THE SAME TIME.",
+      "cuts": [
+        60
+      ],
+      "start": 3875,
+      "end": 4081,
+      "words": 35
+    },
+    {
+      "pid": "_94069ex",
+      "cell": null,
+      "idx": 0,
+      "text": "You can edit the code or manipulate the drawing graphically in the above cells. Both work.",
+      "cuts": [],
+      "start": 4083,
+      "end": 4173,
+      "words": 16
+    },
+    {
+      "pid": "_94069ex",
+      "cell": null,
+      "idx": 1,
+      "text": "The intermediate representation for  is \"a list of strings\". Comments and animations that were not considered by the lens code are preserved without any overt representation in the system. To me this is mind-blowing, because we can now incrementally add affordances without having to tackle the whole problem in one go.",
+      "cuts": [
+        36
+      ],
+      "start": 4175,
+      "end": 4494,
+      "words": 51
+    },
+    {
+      "pid": "_94069ex",
+      "cell": null,
+      "idx": 2,
+      "text": "Go read  (Foster et al. 2007) and  (Hofmann et al. 2012) immediately!",
+      "cuts": [
+        8,
+        34
+      ],
+      "start": 4496,
+      "end": 4565,
+      "words": 12
+    },
+    {
+      "pid": "_94069ex",
+      "cell": null,
+      "idx": 3,
+      "text": "A big benefit of finding a theoretic foundation is that lenses come with a bunch of easily verified properties and ways to combine them. SVG-lens is a bunch of smaller lenses composed together, e.g. there is a lens for \"paths\", a lens for \"parent-children lists\", and the SVG-lens system is a list of lenses that apply text mutations to a source text etc. AI is extremely good at property testing, so AI was able to scale to the fractal complexity of SVG-lens via the guard rails of property checking every step against the laws of lenses, semi-guaranteeing the orthogonal elements would assemble. A mathematical divide and conquer that seems to scale much better than writing a prose spec.",
+      "cuts": [],
+      "start": 4567,
+      "end": 5257,
+      "words": 118
+    },
+    {
+      "pid": "_nl2_lenses",
+      "cell": null,
+      "idx": 0,
+      "text": "Other lenses",
+      "cuts": [],
+      "start": 5259,
+      "end": 5271,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_lenses",
+      "cell": null,
+      "idx": 1,
+      "text": "SVG-lens proved to me the scalability of the approach, but we started applying lenses in more places.",
+      "cuts": [],
+      "start": 5273,
+      "end": 5374,
+      "words": 17
+    },
+    {
+      "pid": "_nl2_lenses",
+      "cell": null,
+      "idx": 2,
+      "text": "| surface | get | put |\n| --- | --- | --- |\n|  | a drawing from the cell's svg literal | a drag rewrites those bytes |\n|  | a value from a literal in its own source | a knob rewrites that literal |\n|  | prose from a markdown cell | an edit rewrites the cell |\n|  | source from a compiled definition | source compiles back, byte-for-byte |\n|  | a grid from the A1-shaped names in a module | typing at an address defines an ordinary cell |",
+      "cuts": [
+        46,
+        121,
+        200,
+        262,
+        341
+      ],
+      "start": 5376,
+      "end": 5813,
+      "words": 96
+    },
+    {
+      "pid": "_nl2_lenses",
+      "cell": null,
+      "idx": 3,
+      "text": "The compiler/decompiler pair that has powered Lopecode since the beginning has been rewritten using Lens theory. Two immediate benefits came out of it:",
+      "cuts": [],
+      "start": 5815,
+      "end": 5966,
+      "words": 23
+    },
+    {
+      "pid": "_nl2_lenses",
+      "cell": null,
+      "idx": 4,
+      "text": "We removed escodegen as a dependency because the problem became text splicing, not generation of code from an AST — a 38KB saving in every notebook that carries the toolchain ().",
+      "cuts": [
+        176
+      ],
+      "start": 5968,
+      "end": 6146,
+      "words": 31
+    },
+    {
+      "pid": "_nl2_lenses",
+      "cell": null,
+      "idx": 5,
+      "text": "We found and fixed several subtle bugs, and improved round-trippable coverage.",
+      "cuts": [],
+      "start": 6148,
+      "end": 6226,
+      "words": 11
+    },
+    {
+      "pid": "_nl2_h_sheet",
+      "cell": "_nl2_h_sheet",
+      "idx": 0,
+      "text": "sheet: a spreadsheet as a lens over a module",
+      "cuts": [],
+      "start": 6228,
+      "end": 6272,
+      "words": 9
+    },
+    {
+      "pid": "_nl2_h_sheet",
+      "cell": "_nl2_h_sheet",
+      "idx": 1,
+      "text": "The most advanced lens yet is . It puts a spreadsheet abstraction over a module as a normal cell. Within the spreadsheet, each positional cell, e.g. A1, is a real cell called A1 in the notebook. Because the coordinate is the name, nothing about the layout is stored anywhere — even the rule that c2 means cell C2 while d3 still means the d3 library falls out of asking whether the name already resolves (). The existing reactivity engine of the notebook environment is reused to power the spreadsheet without modification. Editing cells creates cells in the enclosing notebook.",
+      "cuts": [
+        30,
+        404
+      ],
+      "start": 6274,
+      "end": 6851,
+      "words": 99
+    },
+    {
+      "pid": "_nl2_h_sheet",
+      "cell": "_nl2_h_sheet",
+      "idx": 2,
+      "text": "You get familiar spreadsheet affordances in a spreadsheet look, but all changes are mapped to manipulations in the enclosing module. The reactive calculations are performed by the notebook environment, so you can delete the spreadsheet cell and the underlying cells remain calculating as they were. ",
+      "cuts": [],
+      "start": 6853,
+      "end": 7152,
+      "words": 45
+    },
+    {
+      "pid": "_ontewiz",
+      "cell": null,
+      "idx": 0,
+      "text": "Self-modifying cells",
+      "cuts": [],
+      "start": 7154,
+      "end": 7174,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_h_annotate",
+      "cell": null,
+      "idx": 0,
+      "text": "annotate",
+      "cuts": [],
+      "start": 7176,
+      "end": 7184,
+      "words": 1
+    },
+    {
+      "pid": "_nl2_annotate",
+      "cell": null,
+      "idx": 0,
+      "text": "We explored several alternative layouts for Lopecode recently.  lets you move a cell into a floating box attached to a target, where a target can be a DOM node, a text span, or even a point in data space when targeting a dataviz.",
+      "cuts": [
+        63
+      ],
+      "start": 7186,
+      "end": 7415,
+      "words": 43
+    },
+    {
+      "pid": "_e35cv2",
+      "cell": null,
+      "idx": 0,
+      "text": "The elements inside annotations are normal cells of a notebook. The pointer is another cell. When you configure a cell, or change its target, you are changing the source code of the cell that defines the annotation. In a sense, you are programming when you make an annotation, even though it is mostly UI driven.",
+      "cuts": [],
+      "start": 7417,
+      "end": 7729,
+      "words": 55
+    },
+    {
+      "pid": "_e35cv2",
+      "cell": null,
+      "idx": 1,
+      "text": "I am very excited by Annotate. It has been super easy to use, and a huge help in directing AI to make specific edits without switching focus. I love that the elements it creates are not affecting the primary content at all. The annotate notebook documents itself with its own annotations ().",
+      "cuts": [
+        289
+      ],
+      "start": 7731,
+      "end": 8022,
+      "words": 52
+    },
+    {
+      "pid": "_nl2_sticky",
+      "cell": null,
+      "idx": 0,
+      "text": "More self-programming cells: sticky and grid-container",
+      "cuts": [],
+      "start": 8024,
+      "end": 8078,
+      "words": 6
+    },
+    {
+      "pid": "_nl2_sticky",
+      "cell": null,
+      "idx": 1,
+      "text": " wraps any UI view and writes the value back into its own source. This means UI components remember their last setting on save.",
+      "cuts": [
+        0
+      ],
+      "start": 8080,
+      "end": 8207,
+      "words": 23
+    },
+    {
+      "pid": "_nl2_sticky",
+      "cell": null,
+      "idx": 2,
+      "text": " does the same for arrangement: named cells become atoms on a snap-to-grid surface and the layout it saves is its own source.",
+      "cuts": [
+        0
+      ],
+      "start": 8209,
+      "end": 8334,
+      "words": 22
+    },
+    {
+      "pid": "_nl2_sticky",
+      "cell": null,
+      "idx": 3,
+      "text": "Three atoms below: two sliders and the swatch row they feed. Drag them, resize them, or use the ＋ add cell menu and ✕ to change what is on the surface. The nl2_grid cell rewrites its own include: and layout: literals as you go — open its editor and watch the coordinates change while you drag. There is no layout file; the arrangement you leave behind is the source.",
+      "cuts": [],
+      "start": 8336,
+      "end": 8702,
+      "words": 69
+    },
+    {
+      "pid": "_nl2_sticky",
+      "cell": null,
+      "idx": 4,
+      "text": "The  is a big experiment in pushing grid-container to its limit.",
+      "cuts": [
+        4
+      ],
+      "start": 8704,
+      "end": 8768,
+      "words": 11
+    },
+    {
+      "pid": "_nl2_h_sip",
+      "cell": null,
+      "idx": 0,
+      "text": "UX Improvements",
+      "cuts": [],
+      "start": 8770,
+      "end": 8785,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_h_sip",
+      "cell": null,
+      "idx": 1,
+      "text": "Steady improvements have been made to the UX. I think we still have far to go, but now I actually prefer writing in Lopecode.",
+      "cuts": [],
+      "start": 8787,
+      "end": 8912,
+      "words": 24
+    },
+    {
+      "pid": "_nl2_sip",
+      "cell": null,
+      "idx": 0,
+      "text": "save-in-place",
+      "cuts": [],
+      "start": 8914,
+      "end": 8927,
+      "words": 1
+    },
+    {
+      "pid": "_nl2_sip",
+      "cell": null,
+      "idx": 1,
+      "text": " is a new burger menu addition. It has revolutionized the blog writing workflow, allowing a document to save itself to the file system, as opposed to downloading itself into the \"Downloads\" folder. It has made writing a blog post feasible. Now that I have got used to it and it works well, I want auto-save!",
+      "cuts": [
+        0
+      ],
+      "start": 8929,
+      "end": 9236,
+      "words": 55
+    },
+    {
+      "pid": "_nl2_plugins",
+      "cell": null,
+      "idx": 0,
+      "text": "Modules extend Lopepage without coordination",
+      "cuts": [],
+      "start": 9238,
+      "end": 9282,
+      "words": 5
+    },
+    {
+      "pid": "_nl2_plugins",
+      "cell": null,
+      "idx": 1,
+      "text": " allows N providers and M consumers to listen and publish to reactive named sets. 's burger menu is the first consumer;  (CMD+K) is another;  was the first external provider.",
+      "cuts": [
+        0,
+        82,
+        120,
+        141
+      ],
+      "start": 9284,
+      "end": 9458,
+      "words": 29
+    },
+    {
+      "pid": "_nl2_plugins",
+      "cell": null,
+      "idx": 2,
+      "text": "This means any userspace module can add to the burger menu, without importing lopepage-2, which might be replaced at some point in the future. The plugin-registry is about decoupling ().",
+      "cuts": [
+        184
+      ],
+      "start": 9460,
+      "end": 9646,
+      "words": 30
+    },
+    {
+      "pid": "_nl2_start",
+      "cell": null,
+      "idx": 0,
+      "text": "quick_start gets a new notebook kickstarted",
+      "cuts": [],
+      "start": 9648,
+      "end": 9691,
+      "words": 6
+    },
+    {
+      "pid": "_nl2_start",
+      "cell": null,
+      "idx": 1,
+      "text": " is a launcher that carries the most important modules (3.72MB) but supplies a UI for you to choose what you need. The landing page is a type × module matrix: pick a template down one axis, tick the modules you want across the other.",
+      "cuts": [
+        0
+      ],
+      "start": 9693,
+      "end": 9926,
+      "words": 44
+    },
+    {
+      "pid": "_nl2_h_big",
+      "cell": null,
+      "idx": 0,
+      "text": "Performance Improvements",
+      "cuts": [],
+      "start": 9928,
+      "end": 9952,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 0,
+      "text": "Streaming Async loading",
+      "cuts": [],
+      "start": 9954,
+      "end": 9977,
+      "words": 3
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 1,
+      "text": "As Lopecode has become more capable, so have my ambitions. Advanced notebooks can end up big, with large amounts of data or code. Prior versions would wait until the notebook was fully loaded before starting the runtime, and so page load was becoming very noticeable when loaded over the web (not so much when run locally).",
+      "cuts": [],
+      "start": 9979,
+      "end": 10302,
+      "words": 56
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 2,
+      "text": "Page load speed has been mitigated with streaming loading. As the runtime itself is reactive and late binding, we are able to start it eagerly, hiding missing code by delaying resolution until the resource is present without a change in the userspace programming model.",
+      "cuts": [],
+      "start": 10304,
+      "end": 10573,
+      "words": 44
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 3,
+      "text": "The order of code and file blocks in the HTML file affects when they are runnable. A page load streams from the beginning of the file, so things declared at the end can't run until their predecessors have arrived. Critical things therefore want to be first, which leaves the question of what the correct ordering actually is.",
+      "cuts": [],
+      "start": 10575,
+      "end": 10900,
+      "words": 57
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 4,
+      "text": "The solution we went for is \"main\" modules are loaded first, then in size order. Size order because it's the giant assets that tend to cause outsize page load impact, so by putting them last we minimize the effect of large files.",
+      "cuts": [],
+      "start": 10902,
+      "end": 11131,
+      "words": 42
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 5,
+      "text": "Streaming a block also means the loader has to know when one has finished arriving. The old test was \"does this block have a next sibling?\", which a still-streaming block passes the moment boot appends anything after it — so half-arrived blocks were declared complete and failed to parse. Every block now closes with an explicit marker comment instead ().",
+      "cuts": [
+        353
+      ],
+      "start": 11133,
+      "end": 11488,
+      "words": 60
+    },
+    {
+      "pid": "_nl2_big",
+      "cell": null,
+      "idx": 6,
+      "text": "The coded-landmark-tracking notebook that contains training images went from a load speed of 11 seconds to running in 4 seconds ().",
+      "cuts": [
+        129
+      ],
+      "start": 11490,
+      "end": 11621,
+      "words": 21
+    },
+    {
+      "pid": "_nl2_seo",
+      "cell": null,
+      "idx": 0,
+      "text": "Prerendering",
+      "cuts": [],
+      "start": 11623,
+      "end": 11635,
+      "words": 1
+    },
+    {
+      "pid": "_nl2_seo",
+      "cell": null,
+      "idx": 1,
+      "text": "Another problem with large notebooks is Google does not index them properly. It was becoming clear that words contained inside Lopecode notebooks were not visible to Google search. To fix this, and to also improve page load perception, we added pre-rendering of the open content on export as plain HTML ().",
+      "cuts": [
+        304
+      ],
+      "start": 11637,
+      "end": 11943,
+      "words": 51
+    },
+    {
+      "pid": "_nl2_seo",
+      "cell": null,
+      "idx": 2,
+      "text": "People not running JavaScript still see content, and it is the first content loaded on the page so it's almost instantaneous. For large notebooks if you try to interact with the page quickly you will find nothing works, but hopefully that window is quite small now because of the async streaming. Together pre-rendering and async loading have allowed us to produce some large notebooks with good performance.",
+      "cuts": [],
+      "start": 11945,
+      "end": 12353,
+      "words": 67
+    },
+    {
+      "pid": "_nl2_caged",
+      "cell": null,
+      "idx": 0,
+      "text": "Example: ",
+      "cuts": [
+        9
+      ],
+      "start": 12355,
+      "end": 12364,
+      "words": 1
+    },
+    {
+      "pid": "_nl2_caged",
+      "cell": null,
+      "idx": 1,
+      "text": "One large notebook was an experiment with bundling the real Claude Code binary in a webpage. Claude Code is written in JavaScript, so with a ton of node.js shims we are able to load it as is. Furthermore, we can hardwire its MCP tool to our existing notebook assistant and so it can do notebook authoring out of the box without running Claude Code locally.",
+      "cuts": [],
+      "start": 12366,
+      "end": 12722,
+      "words": 65
+    },
+    {
+      "pid": "_nl2_caged",
+      "cell": null,
+      "idx": 2,
+      "text": "It pairs with its host notebook over an MCP server that lives inside the page. The frame's fetch interceptor answers http://notebook.local/mcp\n/local-disk mounts a real folder from the machine into the session, read and write, through the File System Access API, so you can work with local files too.",
+      "cuts": [],
+      "start": 12724,
+      "end": 13024,
+      "words": 49
+    },
+    {
+      "pid": "_nl2_caged",
+      "cell": null,
+      "idx": 3,
+      "text": "It weighs 9MB.",
+      "cuts": [],
+      "start": 13026,
+      "end": 13040,
+      "words": 3
+    },
+    {
+      "pid": "_nl2_optical",
+      "cell": null,
+      "idx": 0,
+      "text": "Example: optical tracking",
+      "cuts": [],
+      "start": 13042,
+      "end": 13067,
+      "words": 3
+    },
+    {
+      "pid": "_nl2_optical",
+      "cell": null,
+      "idx": 1,
+      "text": " is a long-running robotics project seeking to lower the latency of pose tracking using commodity hardware. This notebook is huge! It contains pose training images and an AssemblyScript compile, and weighs over 15MB.",
+      "cuts": [
+        0
+      ],
+      "start": 13069,
+      "end": 13285,
+      "words": 33
+    },
+    {
+      "pid": "_nl2_h_agents",
+      "cell": null,
+      "idx": 0,
+      "text": "Agentic Help",
+      "cuts": [],
+      "start": 13287,
+      "end": 13299,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_h_agents",
+      "cell": null,
+      "idx": 1,
+      "text": "Lopecode can be used with agentic development practices in a variety of ways. Claude Code can connect directly to a running notebook via the Claude Code pairing module, even to one running in an Android Chrome session via ADB. You can just manipulate files directly with Claude Code without any special tooling because the plain text representation is malleable in and of itself. And we also have our own notebook-native coding harness, robocoop, which can develop functionality using an OpenRouter key.",
+      "cuts": [],
+      "start": 13301,
+      "end": 13804,
+      "words": 81
+    },
+    {
+      "pid": "_nl2_plugin_pub",
+      "cell": null,
+      "idx": 0,
+      "text": "The pairing plugin for Claude Code is published",
+      "cuts": [],
+      "start": 13806,
+      "end": 13853,
+      "words": 8
+    },
+    {
+      "pid": "_nl2_plugin_pub",
+      "cell": null,
+      "idx": 1,
+      "text": "My personal workhorse, , which allows a local Claude Code session to bidirectionally communicate with a live notebook, requires some native tooling to manage the channel. That tooling has been published as @lopecode/channel 0.5.0, and is now available in the Claude Code marketplace.",
+      "cuts": [
+        23
+      ],
+      "start": 13855,
+      "end": 14138,
+      "words": 43
+    },
+    {
+      "pid": "_nl2_plugin_pub",
+      "cell": null,
+      "idx": 2,
+      "text": "```\n/plugin marketplace add tomlarkworthy/lopecode-plugin\n/plugin install lopecode-channel@lopecode-plugins",
+      "cuts": [],
+      "start": 14140,
+      "end": 14247,
+      "words": 8
+    },
+    {
+      "pid": "_nl2_plugin_pub",
+      "cell": null,
+      "idx": 3,
+      "text": "then launch with the channel selected by its plugin tag\nclaude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins\n```",
+      "cuts": [],
+      "start": 14249,
+      "end": 14396,
+      "words": 14
+    },
+    {
+      "pid": "_nl2_phone",
+      "cell": "_nl2_phone",
+      "idx": 0,
+      "text": "Connecting to mobile phone hosted notebooks",
+      "cuts": [],
+      "start": 14398,
+      "end": 14441,
+      "words": 6
+    },
+    {
+      "pid": "_nl2_phone",
+      "cell": "_nl2_phone",
+      "idx": 1,
+      "text": "The performance of notebooks running on phones can be hit and miss; there are performance traps around advanced web features on mobile devices. I was pleased to discover it is relatively straightforward to proxy a claude-code-pairing session to a running phone using ADB and a USB cable.",
+      "cuts": [],
+      "start": 14443,
+      "end": 14730,
+      "words": 47
+    },
+    {
+      "pid": "_nl2_phone",
+      "cell": "_nl2_phone",
+      "idx": 2,
+      "text": "```bash\nadb reverse tcp:50932 tcp:50932   # port is the one stamped into the pairing token\n```",
+      "cuts": [],
+      "start": 14732,
+      "end": 14826,
+      "words": 16
+    },
+    {
+      "pid": "_nl2_phone",
+      "cell": "_nl2_phone",
+      "idx": 3,
+      "text": "Ask your Claude Code to figure it out.",
+      "cuts": [],
+      "start": 14828,
+      "end": 14866,
+      "words": 8
+    },
+    {
+      "pid": "_vayqdni",
+      "cell": null,
+      "idx": 0,
+      "text": "Agentic preamble for static file",
+      "cuts": [],
+      "start": 14868,
+      "end": 14900,
+      "words": 5
+    },
+    {
+      "pid": "_vayqdni",
+      "cell": null,
+      "idx": 1,
+      "text": "Every Lopecode file adds instructions for an agent on how to unbundle the file, and some hints on how the boot kicks off. This means vanilla coding agents are able to work with the format locally without special instructions.",
+      "cuts": [],
+      "start": 14902,
+      "end": 15127,
+      "words": 39
+    },
+    {
+      "pid": "_nl2_robocoop",
+      "cell": null,
+      "idx": 0,
+      "text": "robocoop-5, an in-notebook native agent",
+      "cuts": [],
+      "start": 15129,
+      "end": 15168,
+      "words": 5
+    },
+    {
+      "pid": "_nl2_robocoop",
+      "cell": null,
+      "idx": 1,
+      "text": " is an agent harness coded as a notebook. It connects to OpenRouter and has a wiki that teaches it the programming model. It is the 5th version in a long series, and we have been benchmarking it on off-the-shelf evals.",
+      "cuts": [
+        0
+      ],
+      "start": 15170,
+      "end": 15388,
+      "words": 40
+    },
+    {
+      "pid": "_nl2_robocoop",
+      "cell": null,
+      "idx": 2,
+      "text": "| benchmark | robocoop-5 | raw model |\n| --- | --- | --- |\n| HumanEval-JS (MultiPL-E) pass@1 | 0.963 | 0.932 |\n| aider-polyglot JS, 49 problems | 0.796 (39/49) | 0.735 (36/49) |\n| tau-bench retail, 115 tasks | 0.791 | 0.791 |",
+      "cuts": [],
+      "start": 15390,
+      "end": 15615,
+      "words": 46
+    },
+    {
+      "pid": "_nl2_robocoop",
+      "cell": null,
+      "idx": 3,
+      "text": "We can observe that the notebook environment itself helps improve LLM performance, currently quite modestly, but we theorize that the notebook can be a computational blackboard for self-correcting thinking.",
+      "cuts": [],
+      "start": 15617,
+      "end": 15823,
+      "words": 29
+    },
+    {
+      "pid": "_nl2_soon",
+      "cell": null,
+      "idx": 0,
+      "text": "Coming soon",
+      "cuts": [],
+      "start": 15825,
+      "end": 15836,
+      "words": 2
+    },
+    {
+      "pid": "_nl2_soon",
+      "cell": null,
+      "idx": 1,
+      "text": "Next focus will be on  atproto integration, and more work on the  lens and the . Follow along on , or on the .",
+      "cuts": [
+        22,
+        65,
+        79,
+        97,
+        109
+      ],
+      "start": 15838,
+      "end": 15948,
+      "words": 24
+    },
+    {
+      "pid": "_nl2_counts",
+      "cell": null,
+      "idx": 0,
+      "text": "Appendix: the year in commits",
+      "cuts": [],
+      "start": 15950,
+      "end": 15979,
+      "words": 5
+    },
+    {
+      "pid": "_nl2_counts",
+      "cell": null,
+      "idx": 1,
+      "text": "Measured 2026-08-14. Commits since issue #1 (2026-05-22): lopecode-dev 671, lopebooks 511,\nlopecode 216, lopecode-plugin 8. Corpus: 180 notebooks in lopebooks, 50 in lopecode.",
+      "cuts": [],
+      "start": 15981,
+      "end": 16156,
+      "words": 23
+    },
+    {
+      "pid": "_annotation_a2raumf6er_note",
+      "cell": "annotation_a2raumf6er_note",
+      "idx": 0,
+      "text": "this is an annotation!",
+      "cuts": [],
+      "start": 16158,
+      "end": 16180,
+      "words": 4
+    },
+    {
+      "pid": "_annotation_nl2_plot_note",
+      "cell": "annotation_nl2_plot_note",
+      "idx": 0,
+      "text": "291 commits, week of 20 July — 138 of them svg-lens. I am pinned to that datum, not to a pixel: pan the chart and I travel with it.",
+      "cuts": [],
+      "start": 16182,
+      "end": 16313,
+      "words": 29
+    }
+  ],
+  "response": {
+    "stage": "STAGE_SUCCESS",
+    "text": "Lopecode News Issue #2\nUX, Lensing and Self-Modification 2026-08-14\nWhat is the point of Lopecode?\nI ruminate a lot on what I am doing. Why build Lopecode? What is its use? Is it for me? Or is it for you? Sometimes I feel dissuaded. But then I try to use Google Docs, or Notion, or VSCode and I am annoyed that they are so limited in their scope. So Lopecode is about building the thing that I think is possible, a fluidly extendable live programming environment that can express anything. I don't think I am alone in this yearning for a better computational substrate to express computational ideas.  has come close (and is what Lopecode is based on) but with Lopecode's addition of self-modifying cells and meta-programming, Lopecode is able to express much more than Observable Notebooks can.\nSo far Lopecode is difficult to use. It's a hard project. That is ok for now; the technical foundations are important because the problem being addressed is difficult and unsolved. Fluid software needs to be free of ritual. Making Lopecode work without internet, from a single file, and be self-modifying, needs deep foundations, but I think we are past the foundations point, and now it is about actually beginning to deliver useful new experiences built in userspace only.\nSource-last programming\nI think one of the most radical ideas of Lopecode is getting rid of canonical source code. It wasn't what I thought was the main thing when I started (that was self-serialization) but it enables self-serialization, and over time, I have realized it is the thing that makes everything else possible.\nThe separation between program definition and program runtime state is the wedge that separates developer from user. Source code implies building a program is different and before running a program, but for a fluidly upgradable system there should be no such separation!\nFor live programming you need to be able to upgrade the system while it is running, thus the source code before the execution is no more important than source code injected at runtime. Lopecode abandons the concept of privileged source code altogether, and follows the lead of the game modders (end-user programmers in the wild), we decompile on-demand from the running system. Decompilation is the primary serialization format for Lopecode. This unlocks so much, because the specific decompilation target can be deferred, and so there is no canonical language.\nThe runtime is the canonical artifact\nThe academic write-up is  written for  submission.\nLopecode is source-last: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system.\nThe act of writing that clarified how powerful on-demand decompilation can be. We don't need to commit to a single canonical language. We can decompile to the form that is most suitable for the task at hand. This does not necessarily even mean a text-based language, but it does require a bidirectional representation.\nLenses\nLenses are the theoretical underpinning of bidirectional representation that I did not know about but should have. Going forward, a lot of Lopecode editors will be explicitly checked for adherence to the Lens Laws.\nMy feeling about lenses is that they are a fundamental computer science construct, at the level of \"parsing/compiling\" but better. A parse/compile cycle must have a total, lossless intermediate representation to survive round-trips, which is why it seems fragile to be able to freely transform between representations.\nLenses, on the other hand, \"cheat\", allowing partial transformation of a source representation, so you don't need a total intermediate representation anymore. They still have strict rules, which you can check, but they relax the bidirectionality problem in a way that makes them much more broadly applicable.\nsvg-lens\nThe work that solidified the power of lenses in my mind was . It achieved bidirectionality between graphical editing of a program and textual editing of the serialized SVG representation — AT THE SAME TIME.\nYou can edit the code or manipulate the drawing graphically in the above cells. Both work.\nThe intermediate representation for  is \"a list of strings\". Comments and animations that were not considered by the lens code are preserved without any overt representation in the system. To me this is mind-blowing, because we can now incrementally add affordances without having to tackle the whole problem in one go.\nGo read  (Foster et al. 2007) and  (Hofmann et al. 2012) immediately!\nA big benefit of finding a theoretic foundation is that lenses come with a bunch of easily verified properties and ways to combine them. SVG-lens is a bunch of smaller lenses composed together, e.g. there is a lens for \"paths\", a lens for \"parent-children lists\", and the SVG-lens system is a list of lenses that apply text mutations to a source text etc. AI is extremely good at property testing, so AI was able to scale to the fractal complexity of SVG-lens via the guard rails of property checking every step against the laws of lenses, semi-guaranteeing the orthogonal elements would assemble. A mathematical divide and conquer that seems to scale much better than writing a prose spec.\nOther lenses\nSVG-lens proved to me the scalability of the approach, but we started applying lenses in more places.\n| surface | get | put |\n| --- | --- | --- |\n|  | a drawing from the cell's svg literal | a drag rewrites those bytes |\n|  | a value from a literal in its own source | a knob rewrites that literal |\n|  | prose from a markdown cell | an edit rewrites the cell |\n|  | source from a compiled definition | source compiles back, byte-for-byte |\n|  | a grid from the A1-shaped names in a module | typing at an address defines an ordinary cell |\nThe compiler/decompiler pair that has powered Lopecode since the beginning has been rewritten using Lens theory. Two immediate benefits came out of it:\nWe removed escodegen as a dependency because the problem became text splicing, not generation of code from an AST — a 38KB saving in every notebook that carries the toolchain ().\nWe found and fixed several subtle bugs, and improved round-trippable coverage.\nsheet: a spreadsheet as a lens over a module\nThe most advanced lens yet is . It puts a spreadsheet abstraction over a module as a normal cell. Within the spreadsheet, each positional cell, e.g. A1, is a real cell called A1 in the notebook. Because the coordinate is the name, nothing about the layout is stored anywhere — even the rule that c2 means cell C2 while d3 still means the d3 library falls out of asking whether the name already resolves (). The existing reactivity engine of the notebook environment is reused to power the spreadsheet without modification. Editing cells creates cells in the enclosing notebook.\nYou get familiar spreadsheet affordances in a spreadsheet look, but all changes are mapped to manipulations in the enclosing module. The reactive calculations are performed by the notebook environment, so you can delete the spreadsheet cell and the underlying cells remain calculating as they were.\nSelf-modifying cells\nannotate\nWe explored several alternative layouts for Lopecode recently.  lets you move a cell into a floating box attached to a target, where a target can be a DOM node, a text span, or even a point in data space when targeting a dataviz.\nThe elements inside annotations are normal cells of a notebook. The pointer is another cell. When you configure a cell, or change its target, you are changing the source code of the cell that defines the annotation. In a sense, you are programming when you make an annotation, even though it is mostly UI driven.\nI am very excited by Annotate. It has been super easy to use, and a huge help in directing AI to make specific edits without switching focus. I love that the elements it creates are not affecting the primary content at all. The annotate notebook documents itself with its own annotations ().\nMore self-programming cells: sticky and grid-container\nwraps any UI view and writes the value back into its own source. This means UI components remember their last setting on save.\ndoes the same for arrangement: named cells become atoms on a snap-to-grid surface and the layout it saves is its own source.\nThree atoms below: two sliders and the swatch row they feed. Drag them, resize them, or use the ＋ add cell menu and ✕ to change what is on the surface. The nl2_grid cell rewrites its own include: and layout: literals as you go — open its editor and watch the coordinates change while you drag. There is no layout file; the arrangement you leave behind is the source.\nThe  is a big experiment in pushing grid-container to its limit.\nUX Improvements\nSteady improvements have been made to the UX. I think we still have far to go, but now I actually prefer writing in Lopecode.\nsave-in-place\nis a new burger menu addition. It has revolutionized the blog writing workflow, allowing a document to save itself to the file system, as opposed to downloading itself into the \"Downloads\" folder. It has made writing a blog post feasible. Now that I have got used to it and it works well, I want auto-save!\nModules extend Lopepage without coordination\nallows N providers and M consumers to listen and publish to reactive named sets. 's burger menu is the first consumer;  (CMD+K) is another;  was the first external provider.\nThis means any userspace module can add to the burger menu, without importing lopepage-2, which might be replaced at some point in the future. The plugin-registry is about decoupling ().\nquick_start gets a new notebook kickstarted\nis a launcher that carries the most important modules (3.72MB) but supplies a UI for you to choose what you need. The landing page is a type × module matrix: pick a template down one axis, tick the modules you want across the other.\nPerformance Improvements\nStreaming Async loading\nAs Lopecode has become more capable, so have my ambitions. Advanced notebooks can end up big, with large amounts of data or code. Prior versions would wait until the notebook was fully loaded before starting the runtime, and so page load was becoming very noticeable when loaded over the web (not so much when run locally).\nPage load speed has been mitigated with streaming loading. As the runtime itself is reactive and late binding, we are able to start it eagerly, hiding missing code by delaying resolution until the resource is present without a change in the userspace programming model.\nThe order of code and file blocks in the HTML file affects when they are runnable. A page load streams from the beginning of the file, so things declared at the end can't run until their predecessors have arrived. Critical things therefore want to be first, which leaves the question of what the correct ordering actually is.\nThe solution we went for is \"main\" modules are loaded first, then in size order. Size order because it's the giant assets that tend to cause outsize page load impact, so by putting them last we minimize the effect of large files.\nStreaming a block also means the loader has to know when one has finished arriving. The old test was \"does this block have a next sibling?\", which a still-streaming block passes the moment boot appends anything after it — so half-arrived blocks were declared complete and failed to parse. Every block now closes with an explicit marker comment instead ().\nThe coded-landmark-tracking notebook that contains training images went from a load speed of 11 seconds to running in 4 seconds ().\nPrerendering\nAnother problem with large notebooks is Google does not index them properly. It was becoming clear that words contained inside Lopecode notebooks were not visible to Google search. To fix this, and to also improve page load perception, we added pre-rendering of the open content on export as plain HTML ().\nPeople not running JavaScript still see content, and it is the first content loaded on the page so it's almost instantaneous. For large notebooks if you try to interact with the page quickly you will find nothing works, but hopefully that window is quite small now because of the async streaming. Together pre-rendering and async loading have allowed us to produce some large notebooks with good performance.\nExample:\nOne large notebook was an experiment with bundling the real Claude Code binary in a webpage. Claude Code is written in JavaScript, so with a ton of node.js shims we are able to load it as is. Furthermore, we can hardwire its MCP tool to our existing notebook assistant and so it can do notebook authoring out of the box without running Claude Code locally.\nIt pairs with its host notebook over an MCP server that lives inside the page. The frame's fetch interceptor answers http://notebook.local/mcp\n/local-disk mounts a real folder from the machine into the session, read and write, through the File System Access API, so you can work with local files too.\nIt weighs 9MB.\nExample: optical tracking\nis a long-running robotics project seeking to lower the latency of pose tracking using commodity hardware. This notebook is huge! It contains pose training images and an AssemblyScript compile, and weighs over 15MB.\nAgentic Help\nLopecode can be used with agentic development practices in a variety of ways. Claude Code can connect directly to a running notebook via the Claude Code pairing module, even to one running in an Android Chrome session via ADB. You can just manipulate files directly with Claude Code without any special tooling because the plain text representation is malleable in and of itself. And we also have our own notebook-native coding harness, robocoop, which can develop functionality using an OpenRouter key.\nThe pairing plugin for Claude Code is published\nMy personal workhorse, , which allows a local Claude Code session to bidirectionally communicate with a live notebook, requires some native tooling to manage the channel. That tooling has been published as @lopecode/channel 0.5.0, and is now available in the Claude Code marketplace.\n```\n/plugin marketplace add tomlarkworthy/lopecode-plugin\n/plugin install lopecode-channel@lopecode-plugins\nthen launch with the channel selected by its plugin tag\nclaude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins\n```\nConnecting to mobile phone hosted notebooks\nThe performance of notebooks running on phones can be hit and miss; there are performance traps around advanced web features on mobile devices. I was pleased to discover it is relatively straightforward to proxy a claude-code-pairing session to a running phone using ADB and a USB cable.\n```bash\nadb reverse tcp:50932 tcp:50932   # port is the one stamped into the pairing token\n```\nAsk your Claude Code to figure it out.\nAgentic preamble for static file\nEvery Lopecode file adds instructions for an agent on how to unbundle the file, and some hints on how the boot kicks off. This means vanilla coding agents are able to work with the format locally without special instructions.\nrobocoop-5, an in-notebook native agent\nis an agent harness coded as a notebook. It connects to OpenRouter and has a wiki that teaches it the programming model. It is the 5th version in a long series, and we have been benchmarking it on off-the-shelf evals.\n| benchmark | robocoop-5 | raw model |\n| --- | --- | --- |\n| HumanEval-JS (MultiPL-E) pass@1 | 0.963 | 0.932 |\n| aider-polyglot JS, 49 problems | 0.796 (39/49) | 0.735 (36/49) |\n| tau-bench retail, 115 tasks | 0.791 | 0.791 |\nWe can observe that the notebook environment itself helps improve LLM performance, currently quite modestly, but we theorize that the notebook can be a computational blackboard for self-correcting thinking.\nComing soon\nNext focus will be on  atproto integration, and more work on the  lens and the . Follow along on , or on the .\nAppendix: the year in commits\nMeasured 2026-08-14. Commits since issue #1 (2026-05-22): lopecode-dev 671, lopebooks 511,\nlopecode 216, lopecode-plugin 8. Corpus: 180 notebooks in lopebooks, 50 in lopecode.\nthis is an annotation!\n291 commits, week of 20 July — 138 of them svg-lens. I am pinned to that datum, not to a pixel: pan the chart and I travel with it.",
+    "version": "4.0",
+    "prediction": "We believe this text is mainly human-written, with some AI content.",
+    "prediction_short": "Human",
+    "fraction_ai": 0.030467497184872627,
+    "fraction_ai_assisted": 0,
+    "fraction_human": 0.9695324897766113,
+    "headline": "Mostly Human Written",
+    "num_ai_segments": 2,
+    "num_ai_assisted_segments": 0,
+    "num_human_segments": 3,
+    "windows": [
+      {
+        "text": "Lopecode News Issue #2\nUX, Lensing and Self-Modification 2026-08-14\nWhat is the point of Lopecode?\nI ruminate a lot on what I am doing. Why build Lopecode? What is its use? Is it for me? Or is it for you? Sometimes I feel dissuaded. But then I try to use Google Docs, or Notion, or VSCode and I am annoyed that they are so limited in their scope. So Lopecode is about building the thing that I think is possible, a fluidly extendable live programming environment that can express anything. I don't think I am alone in this yearning for a better computational substrate to express computational ideas.  has come close (and is what Lopecode is based on) but with Lopecode's addition of self-modifying cells and meta-programming, Lopecode is able to express much more than Observable Notebooks can.\nSo far Lopecode is difficult to use. It's a hard project. That is ok for now; the technical foundations are important because the problem being addressed is difficult and unsolved. Fluid software needs to be free of ritual. Making Lopecode work without internet, from a single file, and be self-modifying, needs deep foundations, but I think we are past the foundations point, and now it is about actually beginning to deliver useful new experiences built in userspace only.\nSource-last programming\nI think one of the most radical ideas of Lopecode is getting rid of canonical source code. It wasn't what I thought was the main thing when I started (that was self-serialization) but it enables self-serialization, and over time, I have realized it is the thing that makes everything else possible.\nThe separation between program definition and program runtime state is the wedge that separates developer from user. Source code implies building a program is different and before running a program, but for a fluidly upgradable system there should be no such separation!\nFor live programming you need to be able to upgrade the system while it is running, thus the source code before the execution is no more important than source code injected at runtime. Lopecode abandons the concept of privileged source code altogether, and follows the lead of the game modders (end-user programmers in the wild), we decompile on-demand from the running system. Decompilation is the primary serialization format for Lopecode. This unlocks so much, because the specific decompilation target can be deferred, and so there is no canonical language.\nThe runtime is the canonical artifact\nThe academic write-up is  written for  submission.\nLopecode is source-last: there is no external source code or canonical serialized representation; the only canonical representation is the live executing system.\nThe act of writing that clarified how powerful on-demand decompilation can be. We don't need to commit to a single canonical language. We can decompile to the form that is most suitable for the task at hand. This does not necessarily even mean a text-based language, but it does require a bidirectional representation.\nLenses\nLenses are the theoretical underpinning of bidirectional representation that I did not know about but should have. Going forward, a lot of Lopecode editors will be explicitly checked for adherence to the Lens Laws.\nMy feeling about lenses is that they are a fundamental computer science construct, at the level of \"parsing/compiling\" but better. A parse/compile cycle must have a total, lossless intermediate representation to survive round-trips, which is why it seems fragile to be able to freely transform between representations.\nLenses, on the other hand, \"cheat\", allowing partial transformation of a source representation, so you don't need a total intermediate representation anymore. They still have strict rules, which you can check, but they relax the bidirectionality problem in a way that makes them much more broadly applicable.\nsvg-lens\nThe work that solidified the power of lenses in my mind was . It achieved bidirectionality between graphical editing of a program and textual editing of the serialized SVG representation — AT THE SAME TIME.\nYou can edit the code or manipulate the drawing graphically in the above cells. Both work.\nThe intermediate representation for  is \"a list of strings\". Comments and animations that were not considered by the lens code are preserved without any overt representation in the system. To me this is mind-blowing, because we can now incrementally add affordances without having to tackle the whole problem in one go.\nGo read  (Foster et al. 2007) and  (Hofmann et al. 2012) immediately!\nA big benefit of finding a theoretic foundation is that lenses come with a bunch of easily verified properties and ways to combine them. SVG-lens is a bunch of smaller lenses composed together, e.g. there is a lens for \"paths\", a lens for \"parent-children lists\", and the SVG-lens system is a list of lenses that apply text mutations to a source text etc. AI is extremely good at property testing, so AI was able to scale to the fractal complexity of SVG-lens via the guard rails of property checking every step against the laws of lenses, semi-guaranteeing the orthogonal elements would assemble. A mathematical divide and conquer that seems to scale much better than writing a prose spec.\nOther lenses\nSVG-lens proved to me the scalability of the approach, but we started applying lenses in more places.\n| surface | get | put |\n| --- | --- | --- |\n|  | a drawing from the cell's svg literal | a drag rewrites those bytes |\n|  | a value from a literal in its own source | a knob rewrites that literal |\n|  | prose from a markdown cell | an edit rewrites the cell |\n|  | source from a compiled definition | source compiles back, byte-for-byte |\n|  | a grid from the A1-shaped names in a module | typing at an address defines an ordinary cell |\nThe compiler/decompiler pair that has powered Lopecode since the beginning has been rewritten using Lens theory. Two immediate benefits came out of it:\nWe removed escodegen as a dependency because the problem became text splicing, not generation of code from an AST — a 38KB saving in every notebook that carries the toolchain ().\nWe found and fixed several subtle bugs, and improved round-trippable coverage.\nsheet: a spreadsheet as a lens over a module\nThe most advanced lens yet is . It puts a spreadsheet abstraction over a module as a normal cell. Within the spreadsheet, each positional cell, e.g. A1, is a real cell called A1 in the notebook. Because the coordinate is the name, nothing about the layout is stored anywhere — even the rule that c2 means cell C2 while d3 still means the d3 library falls out of asking whether the name already resolves (). The existing reactivity engine of the notebook environment is reused to power the spreadsheet without modification. Editing cells creates cells in the enclosing notebook.\nYou get familiar spreadsheet affordances in a spreadsheet look, but all changes are mapped to manipulations in the enclosing module. The reactive calculations are performed by the notebook environment, so you can delete the spreadsheet cell and the underlying cells remain calculating as they were.\nSelf-modifying cells\nannotate\nWe explored several alternative layouts for Lopecode recently.  lets you move a cell into a floating box attached to a target, where a target can be a DOM node, a text span, or even a point in data space when targeting a dataviz.\nThe elements inside annotations are normal cells of a notebook. The pointer is another cell. When you configure a cell, or change its target, you are changing the source code of the cell that defines the annotation. In a sense, you are programming when you make an annotation, even though it is mostly UI driven.\nI am very excited by Annotate. It has been super easy to use, and a huge help in directing AI to make specific edits without switching focus. I love that the elements it creates are not affecting the primary content at all. The annotate notebook documents itself with its own annotations ().\nMore self-programming cells: sticky and grid-container\nwraps any UI view and writes the value back into its own source. This means UI components remember their last setting on save.\ndoes the same for arrangement: named cells become atoms on a snap-to-grid surface and the layout it saves is its own source.\nThree atoms below: two sliders and the swatch row they feed. Drag them, resize them, or use the ＋ add cell menu and ✕ to change what is on the surface. The nl2_grid cell rewrites its own include: and layout: literals as you go — open its editor and watch the coordinates change while you drag. There is no layout file; the arrangement you leave behind is the source.\nThe  is a big experiment in pushing grid-container to its limit.\nUX Improvements\nSteady improvements have been made to the UX. I think we still have far to go, but now I actually prefer writing in Lopecode.\nsave-in-place\nis a new burger menu addition. It has revolutionized the blog writing workflow, allowing a document to save itself to the file system, as opposed to downloading itself into the \"Downloads\" folder. It has made writing a blog post feasible. Now that I have got used to it and it works well, I want auto-save!\nModules extend Lopepage without coordination\nallows N providers and M consumers to listen and publish to reactive named sets. 's burger menu is the first consumer;  (CMD+K) is another;  was the first external provider.\nThis means any userspace module can add to the burger menu, without importing lopepage-2, which might be replaced at some point in the future. The plugin-registry is about decoupling ().\nquick_start gets a new notebook kickstarted\nis a launcher that carries the most important modules (3.72MB) but supplies a UI for you to choose what you need. The landing page is a type × module matrix: pick a template down one axis, tick the modules you want across the other.\nPerformance Improvements\nStreaming Async loading\nAs Lopecode has become more capable, so have my ambitions. Advanced notebooks can end up big, with large amounts of data or code. Prior versions would wait until the notebook was fully loaded before starting the runtime, and so page load was becoming very noticeable when loaded over the web (not so much when run locally).\nPage load speed has been mitigated with streaming loading. As the runtime itself is reactive and late binding, we are able to start it eagerly, hiding missing code by delaying resolution until the resource is present without a change in the userspace programming model.\nThe order of code and file blocks in the HTML file affects when they are runnable. A page load streams from the beginning of the file, so things declared at the end can't run until their predecessors have arrived. Critical things therefore want to be first, which leaves the question of what the correct ordering actually is.\nThe solution we went for is \"main\" modules are loaded first, then in size order. Size order because it's the giant assets that tend to cause outsize page load impact, so by putting them last we minimize the effect of large files.\nStreaming a block also means the loader has to know when one has finished arriving.",
+        "label": "Human Written",
+        "ai_assistance_score": 0.05314650014042854,
+        "confidence": "High",
+        "start_index": 0,
+        "end_index": 11152,
+        "word_count": 1893,
+        "token_length": 2354,
+        "is_humanized": false,
+        "humanizer_score": 0
+      },
+      {
+        "text": " The old test was \"does this block have a next sibling?\", which a still-streaming block passes the moment boot appends anything after it — so half-arrived blocks were declared complete and failed to parse. Every block now closes with an explicit marker comment instead ().",
+        "label": "AI-Generated",
+        "ai_assistance_score": 0.7425452470779419,
+        "confidence": "High",
+        "start_index": 11152,
+        "end_index": 11424,
+        "word_count": 45,
+        "token_length": 54,
+        "is_humanized": false,
+        "humanizer_score": 0.35555142164230347
+      },
+      {
+        "text": "\nThe coded-landmark-tracking notebook that contains training images went from a load speed of 11 seconds to running in 4 seconds ().\nPrerendering\nAnother problem with large notebooks is Google does not index them properly. It was becoming clear that words contained inside Lopecode notebooks were not visible to Google search. To fix this, and to also improve page load perception, we added pre-rendering of the open content on export as plain HTML ().\nPeople not running JavaScript still see content, and it is the first content loaded on the page so it's almost instantaneous. For large notebooks if you try to interact with the page quickly you will find nothing works, but hopefully that window is quite small now because of the async streaming. Together pre-rendering and async loading have allowed us to produce some large notebooks with good performance.\nExample:\nOne large notebook was an experiment with bundling the real Claude Code binary in a webpage. Claude Code is written in JavaScript, so with a ton of node.js shims we are able to load it as is. Furthermore, we can hardwire its MCP tool to our existing notebook assistant and so it can do notebook authoring out of the box without running Claude Code locally.\nIt pairs with its host notebook over an MCP server that lives inside the page.",
+        "label": "Human Written",
+        "ai_assistance_score": 0.027637025341391563,
+        "confidence": "High",
+        "start_index": 11424,
+        "end_index": 12730,
+        "word_count": 225,
+        "token_length": 270,
+        "is_humanized": false,
+        "humanizer_score": 0
+      },
+      {
+        "text": " The frame's fetch interceptor answers http://notebook.local/mcp\n/local-disk mounts a real folder from the machine into the session, read and write, through the File System Access API, so you can work with local files too.",
+        "label": "AI-Generated",
+        "ai_assistance_score": 0.7590367197990417,
+        "confidence": "High",
+        "start_index": 12730,
+        "end_index": 12952,
+        "word_count": 39,
+        "token_length": 49,
+        "is_humanized": false,
+        "humanizer_score": 0.5582357048988342
+      },
+      {
+        "text": "\nIt weighs 9MB.\nExample: optical tracking\nis a long-running robotics project seeking to lower the latency of pose tracking using commodity hardware. This notebook is huge! It contains pose training images and an AssemblyScript compile, and weighs over 15MB.\nAgentic Help\nLopecode can be used with agentic development practices in a variety of ways. Claude Code can connect directly to a running notebook via the Claude Code pairing module, even to one running in an Android Chrome session via ADB. You can just manipulate files directly with Claude Code without any special tooling because the plain text representation is malleable in and of itself. And we also have our own notebook-native coding harness, robocoop, which can develop functionality using an OpenRouter key.\nThe pairing plugin for Claude Code is published\nMy personal workhorse, , which allows a local Claude Code session to bidirectionally communicate with a live notebook, requires some native tooling to manage the channel. That tooling has been published as @lopecode/channel 0.5.0, and is now available in the Claude Code marketplace.\n```\n/plugin marketplace add tomlarkworthy/lopecode-plugin\n/plugin install lopecode-channel@lopecode-plugins\nthen launch with the channel selected by its plugin tag\nclaude --dangerously-load-development-channels plugin:lopecode-channel@lopecode-plugins\n```\nConnecting to mobile phone hosted notebooks\nThe performance of notebooks running on phones can be hit and miss; there are performance traps around advanced web features on mobile devices. I was pleased to discover it is relatively straightforward to proxy a claude-code-pairing session to a running phone using ADB and a USB cable.\n```bash\nadb reverse tcp:50932 tcp:50932   # port is the one stamped into the pairing token\n```\nAsk your Claude Code to figure it out.\nAgentic preamble for static file\nEvery Lopecode file adds instructions for an agent on how to unbundle the file, and some hints on how the boot kicks off. This means vanilla coding agents are able to work with the format locally without special instructions.\nrobocoop-5, an in-notebook native agent\nis an agent harness coded as a notebook. It connects to OpenRouter and has a wiki that teaches it the programming model. It is the 5th version in a long series, and we have been benchmarking it on off-the-shelf evals.\n| benchmark | robocoop-5 | raw model |\n| --- | --- | --- |\n| HumanEval-JS (MultiPL-E) pass@1 | 0.963 | 0.932 |\n| aider-polyglot JS, 49 problems | 0.796 (39/49) | 0.735 (36/49) |\n| tau-bench retail, 115 tasks | 0.791 | 0.791 |\nWe can observe that the notebook environment itself helps improve LLM performance, currently quite modestly, but we theorize that the notebook can be a computational blackboard for self-correcting thinking.\nComing soon\nNext focus will be on  atproto integration, and more work on the  lens and the . Follow along on , or on the .\nAppendix: the year in commits\nMeasured 2026-08-14. Commits since issue #1 (2026-05-22): lopecode-dev 671, lopebooks 511,\nlopecode 216, lopecode-plugin 8. Corpus: 180 notebooks in lopebooks, 50 in lopecode.\nthis is an annotation!\n291 commits, week of 20 July — 138 of them svg-lens. I am pinned to that datum, not to a pixel: pan the chart and I travel with it.",
+        "label": "Human Written",
+        "ai_assistance_score": 0.032685257494449615,
+        "confidence": "High",
+        "start_index": 12952,
+        "end_index": 16214,
+        "word_count": 538,
+        "token_length": 831,
+        "is_humanized": false,
+        "humanizer_score": 0
+      }
+    ]
+  }
+}
