@@ -542,3 +542,66 @@ tools/preflight-baseline.json` — 6 findings, all `unused-dep`, `0 NEW, 0 resol
 
 `@tomlarkworthy/at-read` is unchanged by this addendum: `cachedBlob` and `cachedBlobUrl` are
 already what ObservableHQ has at document version 20. Only foc-chat's call site moved.
+
+### 2026-09-07 — feedback round: Videos, the login card, and a feed to tail
+
+Six annotations, acted on live over the pairing channel and then saved in place. The demos tab
+is now titled Videos (`focTabLabels` plus the h1), its channel heading is a link to
+`youtube.com/@feelingofcomputing`, and a card's play button hands off to a `watch?v=` tab
+wherever YouTube refuses to embed — `file:` and localhost — instead of loading a player that
+cannot start. The Chat header lost its "real data" badge; Wiki, Projects and People still carry
+theirs, since the note was anchored to Chat alone.
+
+The header gained the atproto login card, which is `loginWidget()` from
+`@tomlarkworthy/at-login`, already embedded and previously unused. Two cells rather than one:
+
+- `focLoginHost` returns `{ el, slot }` rather than the node itself. A cell whose value **is** a
+  DOM node has its node adopted back into its own inspector slot, which is where the first
+  attempt's card went — out of the header, into the cell listing below the fold.
+- `focLoginMount` fills `slot`. `focChatView` depends only on the host, so a login re-renders
+  the card and not the 1138-message chat view.
+
+The widget anchors its popovers `left:0`, and at the right edge of a `foc-root` (`overflow:hidden`)
+the 340px panel fell outside the pane. First fix was a CSS rule matching `[style*='position:absolute']`,
+which never fired: the browser normalises an inline style to `position: absolute` with a space,
+and the rule's own text rendered in the header. It is now done in `focLoginMount`, which walks
+the widget on mount and on click, since the popover is built lazily by the click. Measured after:
+popover 340px wide, right edge 13px inside the pane.
+
+`document.hidden` pauses the runtime. Eight queued updates sat unapplied while the tab was in the
+background, which reads exactly like a wedged runtime — `_computing` true, `_updates.size` 8,
+unchanged over 3 s. `requestAnimationFrame` does not fire in a hidden tab, so `_computeSoon` never
+runs. Check `document.hidden` before diagnosing anything else.
+
+### 2026-09-07 — live sync: one collection to tail
+
+"how do we poll for live messages?" (annotation) and "do we need to go to everyones PDS?" (chat).
+Counted from the live repos before answering:
+
+```
+bot repo   social.colibri.message      1138
+bot repo   social.colibri.reaction      615
+native     messages, 5 member repos       44
+native     reactions, 4 member repos      18
+slackMirror rows                            8
+community members                          23
+```
+
+The viewer reads the bot repo, so it has the first two rows and none of the other 62. Native
+Colibri posts live in the author's own repo: Ivy's three August messages are absent from all
+1138 bot records. `listRecords` filters by repo and collection only — `channel` is a field
+inside the record — so there is no per-channel subscription, and no single repo held both
+directions.
+
+Fixed in the bridge rather than worked around in the viewer. `com.feelingofcomputing.bridge.event`
+(slack-sync `4e66389`, wiki `d3470d6`) is an append-only pointer log both halves write: `op`,
+`subject` at-uri, `cid`, `channel`, `via`, `at`, and no content. rkey is a TID minted at
+observation, so `listRecords` rkey order is event order and a reader stops at the last rkey it
+holds. The entry is written before the Slack call, so a Slack failure cannot drop from the feed
+a record that exists on atproto; the cost is a duplicate on queue retry, which a reader that
+merges by uri absorbs. `slackMirror` stays as the dedupe map — keyed by source rkey and rewritten
+in place, which is exactly why it cannot answer what changed.
+
+Not done: the viewer still reads only the bot repo. It needs one union crawl over the 23 member
+repos for the 62 native records, then a tail of the new collection. The feed itself starts empty
+at deploy.
