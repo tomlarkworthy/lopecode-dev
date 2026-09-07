@@ -499,3 +499,46 @@ Verified against `api.observablehq.com/@tomlarkworthy/at-read.js?v=4`: the foote
 
 Not done: `foc-chat` is not on ObservableHQ and was not pushed (`"upstream": null`). The
 eager-fetch cost above has no mitigation in this change.
+
+#### Addendum, same day — the eager fetch was a regression, fixed with an IntersectionObserver
+
+The change above resolved every attachment at render time, which traded a bandwidth
+regression for the cache: cold open of share-your-work went 12.3 MB to 34.8 MB. That is
+recorded in `lopebooks@25b3c56d` and is now superseded.
+
+`focAttachmentNode` no longer calls `cachedBlobUrl` when it builds the element. The cell holds
+one `IntersectionObserver` (`rootMargin: "600px"`) and a `WeakMap` of element -> loader; on
+first intersection it resolves the URL, sets `src`, and unobserves. An entry whose target is no
+longer `isConnected` is dropped in the same callback, so switching channels does not accumulate
+observed nodes. `<video>` keeps `preload="none"` and is resolved the same way.
+
+`tools/foc-viewer/blob-cache-probe.mjs` now runs three arms in one context — cold (open, do not
+scroll, dwell 8 s), scroll (walk the list to the top), reload (`page.reload()`, do not scroll).
+Both files below were run through this same script; `before` is
+`git show HEAD~1:notebooks/Feeling_of_Computing.html`:
+
+```
+before  cold    media  0/29 blob:  remote src 29  getBlob 14  12.3 MB  idb blobs  0  pageerror 0  11s
+before  scroll  media  0/29 blob:  remote src 29  getBlob 12  17.0 MB  idb blobs  0  pageerror 0  10s
+before  reload  media  0/29 blob:  remote src 29  getBlob 26  29.7 MB  idb blobs  0  pageerror 0   9s
+after   cold    media  9/29 blob:  remote src  0  getBlob  9   8.1 MB  idb blobs  9  pageerror 0  11s
+after   scroll  media 29/29 blob:  remote src  0  getBlob 20  26.8 MB  idb blobs 29  pageerror 0  10s
+after   reload  media 10/29 blob:  remote src  0  getBlob  0   0.0 MB  idb blobs 29  pageerror 0   9s
+```
+
+Cold open is now 8.1 MB against the pre-cache 12.3 MB — under it, not merely level, because the
+600px `rootMargin` is tighter than Chrome's own `loading="lazy"` distance threshold. The
+scroll arm shows the other 20 arriving once, and `idb blobs 29` says they landed in the store.
+The reload arm resolves 10 elements with zero network; the remaining 19 are below the fold and
+would resolve from the same store on scroll.
+
+`before scroll` fetching only 12 blobs is an artifact of the arm, not a finding: the pre-change
+build has no `.fc-list` scroll to drive — the images had already been requested by the browser's
+own lazy loader during the cold dwell, so the arm re-counts whatever was still in flight.
+
+Gate: `bun tools/lope-preflight.ts lopebooks/notebooks/Feeling_of_Computing.html --baseline
+tools/preflight-baseline.json` — 6 findings, all `unused-dep`, `0 NEW, 0 resolved`, exit 0.
+`bun tools/lope-sync.ts status` clean for `foc-chat` and `at-read`.
+
+`@tomlarkworthy/at-read` is unchanged by this addendum: `cachedBlob` and `cachedBlobUrl` are
+already what ObservableHQ has at document version 20. Only foc-chat's call site moved.
