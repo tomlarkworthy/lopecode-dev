@@ -423,3 +423,79 @@ Ordered by how long each took to find, not by severity.
 - Jetstream live delivery is still unverified — the mockup does a full re-crawl on open, as
   designed. No event has been observed on the wire from this repo.
 - No commit, no ObservableHQ push, and no module outside the six new ones was modified.
+
+### 2026-09-07 — at-read blob cache
+
+Symptom: reopening the Chat tab re-downloaded the attachments it had already shown. The
+by-CID IndexedDB cache the site needed already existed, but only as local variables inside
+`@tomlarkworthy/at-read`'s `reader` cell, so nothing could import it.
+
+What moved where:
+
+- `lopecode/notebooks/atproto.html` (canonical for `@tomlarkworthy/at-read`, declared in
+  `modules/canonical.json`) gains two exported cells, lifted out of `reader`'s `record.files`
+  loop: `cachedBlob(pds, did, cid) -> {bytes, cached}` and
+  `cachedBlobUrl(pds, did, cid, mimeType) -> Promise<string>`. `cachedBlobUrl` memoises the
+  promise per CID in a `Map` held in the cell, so a re-render reuses the object URL. `reader`
+  now calls `cachedBlob`; its status line ("Loaded n/N (h cached, f fetched)…") is unchanged,
+  and the `records` cache stayed inline.
+- `lopebooks/notebooks/Feeling_of_Computing.html`: `foc-chat`'s `focAttachmentNode` builds the
+  `<img>`/`<video>` with no src and fills it from
+  `cachedBlobUrl(focConfig.botPds, focConfig.botDid, cid, mime)`, imported from
+  `@tomlarkworthy/at-read`. `at-read` was already in `bootconf.mains`, so no module block was
+  added. `blobUrl` is kept for the anchor href, the non-media download link and the `.catch`
+  fallback.
+- `modules/canonical.json`: the six `foc-*` modules are now declared canonical in lopebooks
+  with `"upstream": null` — they exist only in this notebook and are not published on
+  Observable, so there is nothing to jumpgate down. Without the declaration
+  `lope-sync checkout @tomlarkworthy/foc-chat` refuses.
+
+Both syncs were `bun tools/channel/sync-module.ts --module … --source modules/… --target …`;
+neither hit a moved-canonical refusal.
+
+Probe, `node tools/foc-viewer/blob-cache-probe.mjs [file]` — one Chromium context, fresh
+profile, share-your-work (`foc=3msvih7djjbh2`), cold load then `page.reload()` of the same
+page. The `before` file is `git show HEAD:notebooks/Feeling_of_Computing.html` run through the
+same script, so the arms differ only by the module change:
+
+```
+before  cold    media  0/29 blob:  remote src 29  getBlob 14  12.3 MB  idb blobs  0  pageerror 0   8s
+before  reload  media  0/29 blob:  remote src 29  getBlob 26  29.7 MB  idb blobs  0  pageerror 0   5s
+after   cold    media 29/29 blob:  remote src  0  getBlob 29  34.8 MB  idb blobs 29  pageerror 0  13s
+after   reload  media 29/29 blob:  remote src  0  getBlob  0   0.0 MB  idb blobs 29  pageerror 0   5s
+```
+
+29 of the channel's 38 attachments render as `img`/`video`; the rest are replies not shown in
+the channel list, or non-media links. The channel totals come from a full page-through of
+`com.atproto.repo.listRecords` on the bot repo: share-your-work holds 38 attachments, 42.0 MB,
+34 images / 34.5 MB and 4 videos / 7.5 MB — the largest of the eight channels that carry any.
+
+Cost, recorded because this is not a strict win. The fetch is now eager per rendered
+attachment, where images were `loading="lazy"` and videos `preload="none"`. Cold open of
+share-your-work went 12.3 MB (what scrolled into view within the probe's 8 s) to 34.8 MB (all
+of it). Every open after the first goes to 0. Not measured: what a cold open costs on a
+channel a reader opens and immediately leaves.
+
+Gates: `bun tools/lope-preflight.ts lopecode/notebooks/atproto.html
+lopebooks/notebooks/Feeling_of_Computing.html --baseline tools/preflight-baseline.json` — 8
+findings, all `unused-dep`, `0 NEW, 0 resolved`, exit 0; the baseline was not edited.
+`bun tools/lope-sync.ts status` reports `clean` for `at-read` and `foc-chat` (the two `STALE`
+lines, `compile-dataflow` and `lopepage-2`, predate this session and were not touched).
+
+Pushed to ObservableHQ, `@tomlarkworthy/at-read`, document version 11 -> 20 via
+`tools/lope-push-ws.js --cookies-file tools/.observable-cookies.json`:
+
+- `--cells "cachedBlob,cachedBlobUrl,reader"` modified `reader` (node 9) in place and appended
+  the two new cells;
+- `--cells-match-body 'reader({defaultUri:' --cells-match-body 'Compose the iframe HTML'`
+  modified the two anonymous md cells (nodes 7 and 8) — `--cells` cannot address them, and it
+  also filters them out, so the two flags need separate invocations;
+- `--remove-nodes 13,14` then a re-insert with `--insert-before 10` moved the new cells ahead
+  of the import cell, so the published notebook keeps imports last.
+
+Verified against `api.observablehq.com/@tomlarkworthy/at-read.js?v=4`: the footer lists
+`main.variable(observer("cachedBlob"))` and `("cachedBlobUrl")`, and `reader`'s dep array is
+`["location","idb","resolvePds","cachedBlob","composeBundle","bytesToText"]`.
+
+Not done: `foc-chat` is not on ObservableHQ and was not pushed (`"upstream": null`). The
+eager-fetch cost above has no mitigation in this change.

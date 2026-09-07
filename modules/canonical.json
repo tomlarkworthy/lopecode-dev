@@ -255,6 +255,30 @@
   "@tomlarkworthy/flow-queue": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_flow-queue.html"
   },
+  "@tomlarkworthy/foc-chat": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/foc-data": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/foc-demos": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/foc-people": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/foc-projects": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
+  "@tomlarkworthy/foc-wiki": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
   "@tomlarkworthy/fsm": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fsm.html"
   },
@@ -411,7 +435,7 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html"
   },
   "@tomlarkworthy/lopecode-newsletter-002": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-002.html"
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_lopecode-newsletter-002.html"
   },
   "@tomlarkworthy/lopecode-substrate-2026": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html"
@@ -446,6 +470,10 @@
   },
   "@tomlarkworthy/matrix-background": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html"
+  },
+  "@tomlarkworthy/mermaid-lens": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_mermaid-lens.html",
+    "upstream": null
   },
   "@tomlarkworthy/micro-kernel-design": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html"
@@ -678,9 +706,6 @@
   },
   "@tomlarkworthy/spectral-layout": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html"
-  },
-  "@tomlarkworthy/spreadsheet": {
-    "lopebooks": "lopebooks/notebooks/tomlarkworthy_spreadsheet.html"
   },
   "@tomlarkworthy/sticky": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sticky.html"
