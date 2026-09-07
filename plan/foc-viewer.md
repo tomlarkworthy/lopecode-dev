@@ -699,3 +699,69 @@ credentials, so it belongs in Tom's terminal, not here.
 Channels are now ordered alphabetically rather than by message count. That also changes the
 default channel when the hash carries no `foc=`, because `focChatTarget` falls back to
 `visibleChannels[0]` — #administrivia instead of the busiest.
+
+### 2026-09-07 — replying, on editable-md's editor
+
+"don't reinvent markdown editing, we should reuse ediable-md editor."
+
+`@tomlarkworthy/editable-md` cannot be dropped in whole. Its `md` finds the cell it is the value
+of and rewrites that cell's source on save:
+
+```js
+self = [...runtime._variables].find(v => v?._value?.id == id)
+```
+
+A chat composer is created inside a render function, so there is no `self` and no cell to write
+back to. What is reusable is everything below that: `editableSchema`,
+`buildEditableMenuContent`, `editor_theme_css`, `linkifyPastedUrl`. `focComposer` imports those
+and restates only the ProseMirror plugin list, which `editable-md` keeps in a closure. Nothing
+that parses or renders markdown is duplicated.
+
+Marks become facets rather than markdown syntax, because that is what the record carries. The
+four marks `editableSchema` actually has are `strong`, `em`, `code`, `link`, read off
+`editableMarkdownSerializer.marks`, and they map onto `social.colibri.richtext.facet#bold`,
+`#italic`, `#code`, `#link`. Counts observed in the bot repo, which is what fixed the `$type`
+strings:
+
+```
+188  social.colibri.richtext.facet#mention
+116  social.colibri.richtext.facet#link
+ 23  social.colibri.richtext.facet#italic
+ 17  social.colibri.richtext.facet#bold
+  9  social.colibri.richtext.facet#code
+  1  social.colibri.richtext.facet#strikethrough
+```
+
+`focDocToPost` walks the doc and emits byte ranges. Checked against a doc opening with "héllo ",
+where a character count is wrong by one:
+
+```
+text  "héllo bold and a link\n\n- one\n- two"
+bold  bytes  7-11  slices back to "bold"
+link  bytes 16-22  slices back to "a link", uri carried
+```
+
+The record goes into the reader's own repo, shape copied from Kartik's 15:55 native reply rather
+than from the lexicon. The author sees it immediately: `focPostMessage` pushes to an outbox and
+wakes the tail, whose sleep is now interruptible. Without that the wait is the reverse bridge's
+10 s Jetstream alarm plus a 5 s poll. The echo carries the record's real rkey, so the feed's copy
+replaces it instead of duplicating.
+
+**Blocked on a deploy.** `ensureScopes(["repo:social.colibri.message"])` re-runs OAuth, and the
+authorization server checks the request against the client metadata:
+
+```
+$ curl -s https://lopecode.com/oauth/client.json | jq -r .scope
+atproto repo:com.lopecode.bundle … repo:site.standard.document
+```
+
+No `social.colibri.message`, so the upgrade fails `invalid_scope` before any consent screen.
+`lopecode.com@ef6c0ef` adds it and is deliberately not pushed — publishing that file changes the
+public OAuth client identity.
+
+Not exercised: everything from `ensureScopes` onward. The scope upgrade opens a popup and needs a
+real user gesture, so the first post has to be Tom's. What is verified is the composer rendering
+in the thread pane with the editable-md menubar (27 items) and the facet walker above.
+
+Replies only. `focComposer` takes `parent: null` for a new top-level post, but nothing calls it
+that way yet.
