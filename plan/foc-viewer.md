@@ -765,3 +765,38 @@ in the thread pane with the editable-md menubar (27 items) and the facet walker 
 
 Replies only. `focComposer` takes `parent: null` for a new top-level post, but nothing calls it
 that way yet.
+
+### 2026-09-07 — the first reply, and the four minutes that looked like a broken bridge
+
+The scope deployed, the OAuth upgrade ran, and the post landed:
+
+```
+20:38:11.412  record 3muxegfnbbv2v committed to did:plc:j7nm3lrd5h7f (rkey TID)
+20:42:25.956  Jetstream emits the commit                              254.5 s later
+20:42:41.070  bridge logs event 3muxeogskxk36 via=colibri, mirrors to Slack
+```
+
+For those four minutes the evidence pointed hard at a dead reverse tail: no bridge event named
+the post, and the last Colibri-side event was two hours old. Both were true and neither meant
+anything. There had been no native writes in those two hours, so the gap was not evidence, and
+the missing event was federation lag.
+
+`wrangler whoami` reports not authenticated on this machine, so `/tail/status` was out of reach.
+What settled it instead was that `drainOnce` is written to run outside the Worker. Replaying the
+firehose from a cursor before the post showed nothing; replaying from before an *earlier* post
+that had worked showed nine commits including one from the same repo and PDS. So Jetstream
+carried these commits in general. Re-running the target window a few minutes later showed the
+commit arriving, 254.5 s after it was written. An earlier post from the same repo that evening
+took under 2 s, so the tail's own timing was never the variable.
+
+That distinction is now a tool rather than a memory: `tail-smoke.ts --watch <iso> [seconds]`
+(slack-sync `eec9b03`) prints every commit with its `wantEvent` verdict and the gap between the
+rkey's TID and `time_us`. It needs no Cloudflare credentials, which is the point — the machine
+that notices the problem is usually not the one holding the token.
+
+The composer's local echo did its job. One copy of the post in the archive, not two: the echo
+carried the record's real rkey, so the feed's copy replaced it. Author resolved to Tom Larkworthy
+from the profile, channel and parent normalised to bare rkeys at the boundary.
+
+Reply is end to end: viewer to the author's own repo to Jetstream to the bridge to Slack, where
+it arrived as "tom larkworthy (Colibri)".
