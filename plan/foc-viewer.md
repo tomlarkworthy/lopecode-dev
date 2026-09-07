@@ -800,3 +800,96 @@ from the profile, channel and parent normalised to bare rkeys at the boundary.
 
 Reply is end to end: viewer to the author's own repo to Jetstream to the bridge to Slack, where
 it arrived as "tom larkworthy (Colibri)".
+
+### 2026-09-07 — the composer toolbar was prosemirror's, not the theme's
+
+"editable-md toolbar looks pretty out of place and not keeping with the themes" — a white bar with
+27 items over two rows, in a near-black notebook.
+
+`editor_theme_css` is the sheet that maps prosemirror's menubar onto `--theme-*`, and `focComposer`
+already listed it as a dependency with the comment "same theme sheet". It never applied. The cell is
+a `htl.html<style>` **value**; the only thing that puts it in the document is an inspector rendering
+the cell, which happens in editable-md's own notebook and in no importer. Measured in the page:
+
+```
+menubarOverride: 0     styles containing ".lope-editable-md .ProseMirror-menubar"
+pmMenubarDefault: 1    prosemirror's own "background: white; border-bottom: 1px solid silver"
+```
+
+`focComposerCss` now pushes `editor_theme_css.textContent` through `focStyle`, which does append to
+`document.head`. Same bytes, same module, no copy.
+
+The second half is scale. `buildEditableMenuContent` is built for a notebook cell — Insert (rule,
+table), Type (headings, code block), the table dropdown, `selectParentNode`. A chat message has no
+headings and no tables, and at the ~350px the thread pane gets, 27 items wrap to two rows. The
+composer builds its own content from `prosemirror.buildMenuItems`: inline marks, undo/redo, the
+block list minus `selectParentNodeItem`/`joinUpItem`. 27 items over two rows -> 9 on one.
+
+The bar is now also hidden until `:focus-within`, which is what editable-md's `hide_menu_css` does
+for notebook cells. That sheet is a cell value too, so it is equally absent here; a CSS rule scoped
+to `.fc-composer-editor` was cheaper than importing it and safer, since `hide_menu_css` keys off a
+`.is-focused` class the composer's wrapper does not have and would have hidden the bar permanently.
+
+Verified by constructing the composer's chrome in the live page from the module's own
+`prosemirror`/`editableSchema` and screenshotting both states — `currentSession` is null in a QA
+browser, so `focComposer` itself returns the sign-in stub and cannot be driven headless.
+`lope-preflight --baseline` reports no new finding for this notebook.
+
+**Not fixed, and not local to this notebook**: `editor_theme_css` and `hide_menu_css` are inert for
+every importer of `@tomlarkworthy/editable-md`, not just this composer. `foc-demos` imports `md`
+from it and has the same white menubar on its editable markdown cells. The fix at source is one
+line — have those cells append themselves to `document.head` — but it is a canonical change that
+has to reach the 30 notebooks embedding the module (`grep -rl 'id="@tomlarkworthy/editable-md"'`
+across both content repos), so it is left for a decision rather than taken here.
+
+### 2026-09-08 — "it opened with editing engaged": the exported build carries the tab's toggle
+
+Edit mode is not a property of the notebook, it is a property of whichever tab exported it.
+editor-5's `persist_attach_menu` writes the burger menu's toggle into
+`@tomlarkworthy/editor-5/cell_options.json`, `save_options` persists that attachment, and
+`viewof attachContextManu` reads it back at boot:
+
+```js
+value: (await optionsFile.json())?.__attachMenu ?? !isOnObservableCom()
+```
+
+So the flag ships with the file. Decoding the attachment out of every commit that touched the
+notebook shows it tracking the exporting tab, not any decision:
+
+```
+25b3c56d 14:34  true
+baa5b49b 14:40  true
+93cf4dd0 21:15  false
+65479b05 22:53  true      <- published
+0edfef97 22:58  true      <- published
+aa616b74 23:06  true      <- published, this is what was opened
+ed323c91 23:21  false
+4582dccc 23:50  false     <- current publish, off by luck
+```
+
+**It is not browser state.** A persistent Chromium profile, edit mode turned on the way the menu
+does it, then a reload in the same profile (`tools/scratch/probe-persist.mjs`):
+
+```
+boot 1:                {"reading":true,"cm":0,"attach":false}
+after toggle:          {"reading":false,"cm":0,"attach":true}
+boot 2 (same profile): {"reading":true,"cm":0,"attach":false}
+```
+
+Nothing in localStorage, IndexedDB or the local change history survives the reload — the baked
+attachment is the only source, which is why pinning it is sufficient.
+
+`tools/foc-viewer/fix-bootconf.py`, already the post-export normaliser for this notebook (mains
+order, default hash, pairing token, description), now decodes that block, sets
+`__attachMenu: false`, and re-encodes. It prints what it found:
+
+```
+bootconf mains: 17 | cc= removed: 1 -> 1 | description: True | __attachMenu: False -> False
+```
+
+Verified on the published file in a fresh browser context: `attachContextManu` false,
+`lp2-reading` on `<html>`, 0 CodeMirror editors, 35 inspector slots present and 0 of them visible.
+The same probe against `file://` on the working copy gives the same result.
+
+The remaining `cc=LOPE` occurrence is not a token — it is the string `cc=LOPE-…) before a URL` in
+the pairing module's own prose.
