@@ -667,3 +667,35 @@ after each await.
 
 Not done: neither the poll-rate change nor the invalidation fix has been observed running. The
 tab was hidden for the whole edit, so both are staged in the runtime and uncomputed.
+
+### 2026-09-07 — #administrivia was missing its whole live thread
+
+Reported as "missing latest posts". The channel held 33 messages and rendered 2.
+31 are replies, and 21 of those point at `3mlyairxe5d22`, which exists nowhere:
+
+```
+bot repo + 23 member repos    1187 social.colibri.message records
+getRecord 3mlyairxe5d22       RecordNotFound
+bridge events naming it       0
+```
+
+A Slack thread root from 2026-05-16T16:13:51Z was never mirrored while its replies were, the
+newest at 2026-09-07T18:18:10Z. `focChannelList` renders top-level messages and nests replies
+under them, so a reply whose parent is absent is rendered nowhere. Two threads are affected, 23
+orphaned replies; the other is 2 replies in #present-company.
+
+The first check ran `listRecords` with `limit=100` and no pagination and reported one repo
+scanned. It found the same answer, by luck. Paginating properly is what made 1187 a number worth
+quoting.
+
+`orphanThreadRoots` stands the earliest orphan up as the thread root and re-homes its siblings
+onto it. Put in `foc-data`, not in the view, so `topLevelByChannel` and `repliesByParent` both
+carry it and neither chat cell changed. After: 3 roots in #administrivia, the stand-in carrying
+20 replies through 18:18, 0 still invisible.
+
+Not fixed: the gap on atproto. Backfilling that root needs the Slack API and the bot's
+credentials, so it belongs in Tom's terminal, not here.
+
+Channels are now ordered alphabetically rather than by message count. That also changes the
+default channel when the hash carries no `foc=`, because `focChatTarget` falls back to
+`visibleChannels[0]` — #administrivia instead of the busiest.
