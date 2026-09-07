@@ -605,3 +605,65 @@ in place, which is exactly why it cannot answer what changed.
 Not done: the viewer still reads only the bot repo. It needs one union crawl over the 23 member
 repos for the 62 native records, then a tail of the new collection. The feed itself starts empty
 at deploy.
+
+### 2026-09-07 — the viewer reads the feed
+
+Backfill first, so the switch-over had something to read. Tom ran
+`packages/backfill/src/events.ts` in his own terminal — the bot's app password must not enter a
+session transcript — over the bot repo and the 23 member repos, minting each entry's rkey from
+the subject's own TID so the log stays chronological across the join. 1785 entries written.
+Audited after: 1798 events at the time of the read, rkeys ascending, every subject resolvable.
+
+The first audit reported the rkeys "not ascending" and was wrong: `listRecords` returns newest
+first unless you pass `reverse=true`. The check, not the feed, was broken.
+
+`archive` was rewritten from a full crawl into three stages:
+
+1. Yield the IndexedDB cache immediately, with its stored cursor.
+2. If there is no fresh cursor — no cache, or one older than 24 h — crawl the bot repo for the
+   two Colibri collections, read the whole feed, and fetch every native subject it names. Native
+   subjects only: the bot's own records already came from the crawl.
+3. Tail. One `listRecords` per tick against `com.feelingofcomputing.bridge.event`, stopping at
+   the last rkey held, `create`/`update`/`delete` applied by uri, subjects fetched 8 at a time.
+
+Measured on the live page, cold:
+
+```
+bootstrap    messages 1172  reactions 624  native applied 40   cursor 3mux7rvnf4s74
+full feed    1798 events    18.4 s   18 pages
+tail         0 events        0.94 s   1 request
+```
+
+Zero fetch errors, and all 31 native top-level messages resolved to a known channel. Native
+authors came out as Kartik Agaram 9, Tom Larkworthy 12, Ivy Reese 8, Jasmine Otto 1,
+curious-reader.bsky.social 1.
+
+A native message that opens with an @mention was parsing as a byline — author
+"tom larkworthy it works". The `@Name: ` prefix is a bridge artifact of one bot repo authoring
+for everyone; a native post's author *is* the repo. `parseByline` now gates the regex on
+`record.did && record.did !== botDid` and takes the name from the profile instead.
+
+**A hidden tab freezes the whole runtime, not just rendering.** Poll interval is 5 s at 0.94 s
+per quiet tick, so a foreground reader is roughly one small request every five seconds; there is
+no per-poll cost that argues for anything slower. But a background tab does not poll at all, and
+the reason is worth writing down because it looks like a hang:
+
+```
+hidden: true   rAF callbacks in 3000 ms: 0   setInterval(200 ms) callbacks: 3
+```
+
+`requestAnimationFrame` never fires, so the runtime's `_computeSoon` never runs, so a generator
+cell is never pulled past a `yield`. The tail counter froze at 6 within 200 ms of the yield that
+followed its first applied event and did not move for 104 s. Redefining `archive` while hidden
+did not even start it — no `archive-start` mark and 0 polls over 22.3 s. Timers still run, and
+Chrome throttles them to about 1 Hz, which is why the 15 s sleep was never the constraint.
+
+Consequence for the loop's shape: it yields only when the feed changed, so between changes it
+free-runs on `setTimeout` and outlives its own cell. The runtime's `gen.return()` cannot close a
+generator parked inside an `await`; it lands at the next `yield`, which may never come. Each
+redefinition was leaking a polling loop — two `tail` marks 2.2 s apart, from two generations of
+the same cell, is what exposed it. `archive` now takes `invalidation`, sets a flag, and checks it
+after each await.
+
+Not done: neither the poll-rate change nor the invalidation fix has been observed running. The
+tab was hidden for the whole edit, so both are staged in the runtime and uncomputed.
