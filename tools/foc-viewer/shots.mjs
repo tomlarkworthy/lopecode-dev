@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 const OUT = '/Users/tom.larkworthy/dev/lopecode-dev/tools/screenshots/foc-viewer';
-const FILE = 'file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_foc-viewer.html';
+const FILE = 'file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Feeling_of_Computing.html';
 const VIEW = '#view=S100(@tomlarkworthy/foc-chat,@tomlarkworthy/foc-wiki,@tomlarkworthy/foc-demos,@tomlarkworthy/foc-projects,@tomlarkworthy/foc-people)';
 fs.mkdirSync(OUT, { recursive: true });
 const errors = [];

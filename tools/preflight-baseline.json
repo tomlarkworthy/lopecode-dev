@@ -449,24 +449,6 @@
    "kind": "unused-dep"
   }
  ],
- "lopebooks/notebooks/@tomlarkworthy_foc-viewer.html": [
-  {
-   "detail": "@tomlarkworthy/annotate: cellEditor declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/annotate: a2Store declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
-   "kind": "unused-dep"
-  }
- ],
  "lopebooks/notebooks/@tomlarkworthy_fsm.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
@@ -2014,6 +1996,32 @@
   },
   {
    "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/Feeling_of_Computing.html": [
+  {
+   "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/robocoop-5-srctools: applyLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/annotate: cellEditor declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/annotate: a2Store declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
    "kind": "unused-dep"
   }
  ],

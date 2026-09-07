@@ -164,6 +164,9 @@ milliseconds found 0 matches and was abandoned; the TID decode is the right join
 ### Faked in this round, with what the real thing needs
 
 - YouTube listing: Data API key, or a snapshot tool run at export time.
+- Attachment blobs: only the record payload is in IndexedDB; images and videos load from
+  `com.atproto.sync.getBlob` URLs through the browser HTTP cache, so an offline reopen shows text
+  without pictures (asked by Tom 2026-09-07). A blob store keyed by CID is the fix.
 - People correspondence: `pages/people.md` in the wiki repo, plus a parser and the bridge reading it.
 - Claim flow: opens a prefilled GitHub issue or the edit page; the mockup previews the payload.
 - Live chat: jetstream WebSocket with reconnect; per-record cid diffing so edits and deletes
@@ -179,7 +182,7 @@ Notifications, DMs and private channels, attachments over the bridge's 5 MB cap,
 
 ### Notebook
 
-`lopebooks/notebooks/@tomlarkworthy_foc-viewer.html`, based on a copy of
+`lopebooks/notebooks/Feeling_of_Computing.html`, based on a copy of
 `lopecode/notebooks/atproto.html` (2.5 MB; carries `lopepage-2`, `atproto`, `at-read`,
 `save-in-place`, `module-selection`) with `claude-code-pairing` injected. The two fake datasets
 are embedded as cell literals rather than file attachments, to keep the mockup free of the
@@ -191,7 +194,7 @@ attachment loader-map and export hazards recorded in memory.
 
 ### 2026-09-07 — build session
 
-Deliverable: `lopebooks/notebooks/@tomlarkworthy_foc-viewer.html`, 3,319,243 bytes,
+Deliverable: `lopebooks/notebooks/Feeling_of_Computing.html`, 3,319,243 bytes,
 62 module blocks, title `Feeling of Computing`. Not committed, not pushed to ObservableHQ.
 
 Six new modules, cell counts from `check-deps.py` against the exported file:

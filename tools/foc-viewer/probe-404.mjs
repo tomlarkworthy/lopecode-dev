@@ -3,7 +3,7 @@ const b = await chromium.launch({headless:true});
 const p = await (await b.newContext({viewport:{width:1400,height:900}})).newPage();
 const bad=[];
 p.on('response', r => { if (r.status()>=400) bad.push(r.status()+' '+r.url().slice(0,120)); });
-await p.goto('file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_foc-viewer.html#view=S100(@tomlarkworthy/foc-chat,@tomlarkworthy/foc-wiki,@tomlarkworthy/foc-demos,@tomlarkworthy/foc-projects,@tomlarkworthy/foc-people)');
+await p.goto('file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/Feeling_of_Computing.html#view=S100(@tomlarkworthy/foc-chat,@tomlarkworthy/foc-wiki,@tomlarkworthy/foc-demos,@tomlarkworthy/foc-projects,@tomlarkworthy/foc-people)');
 await p.waitForSelector('.fc-msg',{timeout:90000});
 await new Promise(r=>setTimeout(r,8000));
 console.log(bad.join('\n'));

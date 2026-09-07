@@ -7,7 +7,7 @@ mods = ["@tomlarkworthy/foc-data","@tomlarkworthy/foc-chat","@tomlarkworthy/foc-
 bad = 0
 for m in mods:
     src = subprocess.run(["bun","tools/lope-reader.ts",
-        "lopebooks/notebooks/@tomlarkworthy_foc-viewer.html","--get-module",m],
+        "lopebooks/notebooks/Feeling_of_Computing.html","--get-module",m],
         capture_output=True, text=True).stdout
     defined = set(re.findall(r'\$def\("[^"]*",\s*"([^"]+)"', src))
     defined |= set(re.findall(r'main\.define\("([^"]+)"', src))
