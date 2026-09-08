@@ -409,12 +409,6 @@
    "kind": "unused-dep"
   }
  ],
- "lopebooks/notebooks/@tomlarkworthy_expression-fuzzer.html": [
-  {
-   "kind": "unused-dep",
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it"
-  }
- ],
  "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
@@ -473,18 +467,6 @@
   {
    "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
-  }
- ],
- "lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html": [
-  {
-   "kind": "unused-dep",
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it"
-  }
- ],
- "lopebooks/notebooks/@tomlarkworthy_glpk-js.html": [
-  {
-   "kind": "unused-dep",
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it"
   }
  ],
  "lopebooks/notebooks/@tomlarkworthy_grid-container.html": [
@@ -923,12 +905,6 @@
   {
    "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
-  }
- ],
- "lopebooks/notebooks/@tomlarkworthy_mathjs.html": [
-  {
-   "kind": "unused-dep",
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it"
   }
  ],
  "lopebooks/notebooks/@tomlarkworthy_matrix-background.html": [
