@@ -239,6 +239,9 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_exporter-3.html",
     "lopecode": "lopecode/notebooks/@tomlarkworthy_exporter-3.html"
   },
+  "@tomlarkworthy/expression-fuzzer": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_expression-fuzzer.html"
+  },
   "@tomlarkworthy/fast-1d-circular-barcode-matching": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html"
   },
@@ -287,6 +290,9 @@
   },
   "@tomlarkworthy/glpk-canonicalization": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_glpk-canonicalization.html"
+  },
+  "@tomlarkworthy/glpk-js": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_glpk-js.html"
   },
   "@tomlarkworthy/golden-layout-2-6-0": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_golden-layout-2-6-0.html"
@@ -468,6 +474,9 @@
   "@tomlarkworthy/markdown-wiki": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html"
   },
+  "@tomlarkworthy/mathjs": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_mathjs.html"
+  },
   "@tomlarkworthy/matrix-background": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html"
   },
@@ -477,6 +486,9 @@
   },
   "@tomlarkworthy/micro-kernel-design": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html"
+  },
+  "@tomlarkworthy/mip": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_mip.html"
   },
   "@tomlarkworthy/modern-screenshot": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_modern-screenshot.html"

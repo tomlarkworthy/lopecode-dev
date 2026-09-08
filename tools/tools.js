@@ -152,11 +152,11 @@ export async function runTestVariables({ testTimeout, filterStr, force }) {
         return;
       }
 
-      // Only force reachable if requested
-      if (force && !v._reachable) {
-        v._reachable = true;
-        actualRuntime._dirty.add(v);
-      }
+      // Installing the observer below is what makes the variable reachable. _computeNow only
+      // queues a variable whose reachability RISES, so pre-setting _reachable here made it
+      // skip the cell — it then only computed by luck, when one of its own inputs happened to
+      // be newly reachable too. Marking it dirty and leaving _reachable alone is the fix.
+      if (force) actualRuntime._dirty.add(v);
 
       const oldObserver = v._observer;
       v._observer = {
