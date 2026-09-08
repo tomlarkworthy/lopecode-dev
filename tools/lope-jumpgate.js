@@ -10,8 +10,8 @@
  *
  * Options:
  *   --source <name>      Observable notebook shorthand (default: from the existing spec's bootconf mains)
- *   --frame <name>       Frame notebook shorthand (default: from the existing spec's bootconf mains,
- *                        else @tomlarkworthy/lopepage)
+ *   --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage-2; a spec
+ *                        recording lopepage v1 is upgraded, lopepage-2 is carried as-is)
  *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
  *   --output <path>      Where to write the exported HTML (required)
  *   --hash <hash>        Hash for bootconf (default: read from the existing spec, or side-panel layout)
@@ -38,7 +38,7 @@ function parseArgs(argv) {
   const args = argv.slice(2);
   const options = {
     source: null,
-    frame: '@tomlarkworthy/lopepage',
+    frame: '@tomlarkworthy/lopepage-2',
     jumpgate: 'lopecode/notebooks/jumpgates.html',
     output: null,
     hash: null,
@@ -91,8 +91,8 @@ Options:
                        The first source is the primary (used for filename, title, default hash).
                        Optional when --output names a notebook with an existing .json
                        spec: the remaining sources are then read from its bootconf mains.
-  --frame <name>       Frame notebook shorthand (default: the lopepage variant recorded in
-                       the spec's bootconf mains, else @tomlarkworthy/lopepage)
+  --frame <name>       Frame notebook shorthand (default: @tomlarkworthy/lopepage-2; a spec
+                       recording lopepage v1 is upgraded to it, lopepage-2 is carried as-is)
   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
   --output <path>      Where to write the exported HTML (required)
   --hash <hash>        Hash for bootconf (default: read from the existing spec, or side-panel layout)
@@ -198,8 +198,14 @@ async function main() {
   if (priorMains.length && !options.frameExplicit) {
     const frames = priorMains.filter(isFrameModule);
     if (frames.length === 1) {
-      options.frame = frames[0];
-      log(`Using frame from prior bootconf: ${options.frame}`);
+      // lopepage-2 is the frame; a spec still recording v1 is a straggler from before the
+      // 2026-07-26 modernisation, so carrying it forward would re-freeze the old frame.
+      if (frames[0] === '@tomlarkworthy/lopepage') {
+        log(`Prior bootconf records ${frames[0]}; upgrading to ${options.frame} (pass --frame to override)`);
+      } else {
+        options.frame = frames[0];
+        log(`Using frame from prior bootconf: ${options.frame}`);
+      }
     } else if (frames.length > 1) {
       log(`Warning: prior bootconf records ${frames.length} frames (${frames.join(', ')}); keeping --frame ${options.frame}`);
     }

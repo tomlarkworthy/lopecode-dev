@@ -28,6 +28,10 @@
  *   bun tools/lope-preflight.ts                        # whole corpus, static, ~4s
  *   bun tools/lope-preflight.ts --json out.json        # write a baseline
  *   bun tools/lope-preflight.ts --baseline out.json    # gate: only NEW findings fail
+ *   bun tools/lope-preflight.ts --update-baseline out.json <notebook.html>...
+ *                                                      # merge those notebooks' findings into
+ *                                                      # an existing baseline (never clobbers
+ *                                                      # entries this run did not check)
  *   bun tools/lope-preflight.ts --boot                 # also really boot each notebook
  *   bun tools/lope-preflight.ts <notebook.html> ...    # specific files, verbose
  *
@@ -518,6 +522,7 @@ const argv = process.argv.slice(2);
 const flagVal = (n: string) => (argv.indexOf(n) >= 0 ? argv[argv.indexOf(n) + 1] : null);
 const jsonOut = flagVal("--json");
 const baselineIn = flagVal("--baseline");
+const baselineUpdate = flagVal("--update-baseline");
 const doBoot = argv.includes("--boot");
 const bootTimeout = Number(flagVal("--timeout") ?? 20000);
 const explicit = argv.filter((a) => a.endsWith(".html"));
@@ -580,6 +585,39 @@ if (jsonOut) {
   console.log(`wrote ${jsonOut}`);
 }
 
+// --- baseline maintenance ---------------------------------------------------
+// `--json` writes a WHOLE baseline, so pointing it at the committed one over a handful of
+// notebooks destroys the other ~240 entries. This merges instead: only the notebooks this run
+// actually looked at are rewritten, plus any whose file has since been deleted.
+if (baselineUpdate) {
+  const base: Record<string, Problem[]> = existsSync(baselineUpdate)
+    ? JSON.parse(readFileSync(baselineUpdate, "utf8"))
+    : {};
+  const same = (a: Problem[] = [], b: Problem[] = []) =>
+    a.length === b.length && a.every((p, i) => p.kind === b[i].kind && p.detail === b[i].detail);
+  const sortProblems = (ps: Problem[]) =>
+    [...ps].sort((a, b) => (a.kind + a.detail).localeCompare(b.kind + b.detail));
+
+  let added = 0, changed = 0, removed = 0;
+  for (const rel of targets) {
+    const found = report[rel] ? sortProblems(report[rel]) : null;
+    if (!found) { if (rel in base) { delete base[rel]; removed++; } continue; }
+    if (!(rel in base)) added++;
+    else if (!same(base[rel], found)) changed++;
+    base[rel] = found;
+  }
+  // a notebook deleted since the last baseline can never be re-checked, so sweep it here
+  for (const rel of Object.keys(base))
+    if (!existsSync(resolve(ROOT, rel))) { delete base[rel]; removed++; }
+
+  const out: Record<string, Problem[]> = {};
+  for (const k of Object.keys(base).sort())
+    out[k] = base[k].map((p) => ({ detail: p.detail, kind: p.kind }));
+  writeFileSync(baselineUpdate, JSON.stringify(out, null, 1) + "\n");
+  console.log(`updated ${baselineUpdate}: ${added} added, ${changed} changed, ${removed} removed, ${Object.keys(out).length} total`);
+  process.exit(0);
+}
+
 const total = [...byKind.values()].reduce((a, b) => a + b, 0);
 // Only breakage in the boot closure gates; `-lazy` findings never run.
 const blocking = [...byKind].filter(([k]) => !k.endsWith("-lazy")).reduce((a, [, n]) => a + n, 0);
@@ -609,6 +647,11 @@ if (baselineIn) {
     console.log(`  NEW  ${kind.padEnd(22)} ${rel.split("/").pop()}  ${detail}`);
   }
   if (added.length > 30) console.log(`  … ${added.length - 30} more`);
+  if (added.length) {
+    const scope = explicit.length ? ` ${explicit.join(" ")}` : "";
+    console.log(`\nfix the findings, or — if they are pre-existing and accepted — record them with:`);
+    console.log(`  bun tools/lope-preflight.ts --update-baseline ${baselineIn}${scope}`);
+  }
   process.exit(added.length ? 1 : 0);
 }
 

@@ -929,8 +929,8 @@
  ],
  "lopebooks/notebooks/@tomlarkworthy_mip.html": [
   {
-   "kind": "unused-dep",
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it"
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
   }
  ],
  "lopebooks/notebooks/@tomlarkworthy_module-map.html": [

@@ -892,7 +892,7 @@
     },
     {
       "slug": "@tomlarkworthy/blank-notebook",
-      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_blank-notebook.html",
+      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/quick_start.html",
       "title": "Blank",
       "description": "todo",
       "tags": [
@@ -944,20 +944,6 @@
       "thumbnail": null,
       "featured": false,
       "sourceUrl": "https://observablehq.com/@tomlarkworthy/debugger",
-      "sizeMb": 2.1
-    },
-    {
-      "slug": "@tomlarkworthy/debugger--claude-channel",
-      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_debugger--claude-channel.html",
-      "title": "Debugger  Claude Channel",
-      "description": "todo",
-      "tags": [
-        "all"
-      ],
-      "category": "all",
-      "thumbnail": null,
-      "featured": false,
-      "sourceUrl": "https://observablehq.com/@tomlarkworthy/debugger--claude-channel",
       "sizeMb": 2.1
     },
     {
@@ -1143,20 +1129,6 @@
       "sizeMb": 2.1
     },
     {
-      "slug": "@tomlarkworthy/ndd",
-      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_ndd.html",
-      "title": "Ndd",
-      "description": "todo",
-      "tags": [
-        "all"
-      ],
-      "category": "all",
-      "thumbnail": null,
-      "featured": false,
-      "sourceUrl": "https://observablehq.com/@tomlarkworthy/ndd",
-      "sizeMb": 2.1
-    },
-    {
       "slug": "@tomlarkworthy/neato",
       "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_neato.html",
       "title": "Neato",
@@ -1239,20 +1211,6 @@
       "featured": false,
       "sourceUrl": "https://observablehq.com/@tomlarkworthy/observable-runtime-v6",
       "sizeMb": 2.1
-    },
-    {
-      "slug": "@tomlarkworthy/observable-tour",
-      "url": "https://tomlarkworthy.github.io/lopebooks/notebooks/@tomlarkworthy_observable-tour.html",
-      "title": "Observable Tour",
-      "description": "todo",
-      "tags": [
-        "all"
-      ],
-      "category": "all",
-      "thumbnail": null,
-      "featured": false,
-      "sourceUrl": "https://observablehq.com/@tomlarkworthy/observable-tour",
-      "sizeMb": 61.7
     },
     {
       "slug": "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second",

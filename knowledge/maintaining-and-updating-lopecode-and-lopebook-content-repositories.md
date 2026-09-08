@@ -161,6 +161,98 @@ Examples:
 - `@tomlarkworthy/exporter-2` → `@tomlarkworthy_exporter-2.html`
 - `@tomlarkworthy/jumpgate` → `@tomlarkworthy_jumpgate.html`
 
+### One project, one multi-home notebook
+
+A project whose modules are only ever used together ships as a **single** notebook that is home
+to all of them. `atproto.html` hosts `at-login`/`at-read`/`at-write`; `corepox.html` hosts 16
+modules; `@tomlarkworthy_mip.html` hosts `mip`, `glpk-canonicalization`, `expression-fuzzer`,
+`glpk-js` and `mathjs`.
+
+The reason is size. Every export carries the same frame closure, so the five separate exports of
+the MIP project (2026-09-08) were 50-55 modules each and mutually near-identical, and the mip
+bundle already contained 4 of the 5 as transitive dependencies:
+
+```
+                               bytes  modules  project modules it already carried
+mip                          2814709       54  mip, glpk-canonicalization, glpk-js, mathjs
+glpk-canonicalization        2525890       51  glpk-canonicalization, mathjs
+glpk-js                      2503858       50  glpk-js
+mathjs                       2533674       50  mathjs
+expression-fuzzer            2590952       52  expression-fuzzer, glpk-canonicalization, mathjs
+                          ----------
+                            12969083
+```
+
+The merged replacement is **2741564 bytes / 55 modules** — smaller than the single largest file
+it replaced, and 4.7x less than the set. (Sizes from `git cat-file -s` at `lopebooks@338857c4`,
+the commit that shipped the five.)
+
+One run, every primary as a `--source`:
+
+```
+node tools/lope-jumpgate.js \
+  --source @tomlarkworthy/mip,@tomlarkworthy/glpk-canonicalization,@tomlarkworthy/expression-fuzzer,\
+@tomlarkworthy/glpk-js,@tomlarkworthy/mathjs,@tomlarkworthy/save-in-place,@tomlarkworthy/module-selection \
+  --no-carry-mains --theme ocean-floor \
+  --hash "#view=S100(@tomlarkworthy/mip,@tomlarkworthy/glpk-canonicalization,...)" \
+  --output lopebooks/notebooks/@tomlarkworthy_mip.html
+```
+
+- One `S100(...)` stack is one tab per module, primary first.
+- **`module-selection` and `save-in-place` go in `mains` but not in the hash.** A first attempt
+  put `module-selection` in the layout as `R100(S75(...),S25(@tomlarkworthy/module-selection))`;
+  Tom's correction was "it should not have the module-selector open". As cargo mains they stay
+  reachable from the lopepage-2 menu without taking a pane.
+- **Everything the hash names must also be a source.** The run before that one listed five
+  primaries but still referenced `module-selection` in the hash, and the block simply was not in
+  the bundle — caught by diffing the block ids, not by any error:
+  ```
+  grep -o '<script id="[^"]*"' out.html   ->  no @tomlarkworthy/module-selection, no save-in-place
+  ```
+  A hash pane naming an unembedded module is silent: the runtime is lazy, so nothing throws.
+- 7 primaries in one run exported in **~9 s** with no throttling (2026-09-08, two consecutive
+  runs). This contradicts the standing hazard in `resyncing-modules-across-the-corpus.md` that
+  even 2 primaries can trip Observable's rate limiter. Both are true — it is intermittent — so
+  try the single run first and fall back to solo-export-and-merge only when it actually fails.
+
+Then declare **every** module's canonical to be that one file in `modules/canonical.json`.
+
+### Adding or removing a notebook: what else has to change
+
+The HTML and its `.json` sidecar are not the whole change. Four other things track the notebook
+set; three are pre-commit hooks that reject the commit one at a time, so discovering them by
+trial costs a round trip each.
+
+| what | how |
+|---|---|
+| `modules/canonical.json` | one entry per module the notebook is home to |
+| `tools/preflight-baseline.json` | `bun tools/lope-preflight.ts --update-baseline tools/preflight-baseline.json <notebook.html>` — merges only the notebooks named and sweeps entries whose file is gone |
+| `<repo>/sitemap.xml` | `bun tools/build-sitemaps.ts --only <repo>` |
+| `content.json` (root **and** `lopebooks/`) | the catalogue the my-lopebooks index renders. Two copies, both need the edit |
+
+Two of those flags are load-bearing:
+
+- **`--update-baseline`, never `--json`, at the committed baseline.** `--json` writes a *whole*
+  baseline for the notebooks the run looked at (`lope-preflight.ts`, the `if (jsonOut)` block),
+  so aiming it at `tools/preflight-baseline.json` over a handful of files deletes the other ~230
+  entries. `--update-baseline` was added 2026-09-08 after two sessions hand-wrote the merge in
+  python; the second one was another session doing the same dance with `foc-viewer`.
+- **`--only <repo>`.** The bare `build-sitemaps.ts` rewrites both content repos. Running it
+  during the MIP collapse churned all 51 `lastmod` values in `lopecode/sitemap.xml`, which then
+  had to be reverted by hand.
+
+`lastmod` comes from `git log -1 --format=%cI` (`build-sitemaps.ts:42`), **not** mtime, falling
+back to today only for a path with no commit at all. A changed date is therefore a real commit,
+not noise — reverting three of them (`mermaid-lens`, `Feeling_of_Computing`, `linux-claude`) as
+suspected mtime churn during the same session was wrong: another session had committed all three
+that day, and the revert left those entries stale until the next run.
+
+`bun tools/check-content-index.ts` gates the catalogue. When it was first run (2026-09-08) it
+found 7 dangling entries nobody had noticed: `blank-notebook` (lives in `quick_start.html`, as
+`canonical.json` already recorded), a `parameteric-svg`/`parametric-svg` typo, and three slugs —
+`ndd`, `observable-tour`, `debugger--claude-channel` — whose HTML is not in the repo at all.
+`debugger--claude-channel` still has an orphaned `.json` sidecar with no `.html` beside it.
+
 ### Bulk Export with lope-bulk-jumpgate.js
 
 `tools/lope-bulk-jumpgate.js` exports multiple notebooks in one run. It drives the `@tomlarkworthy/bulk-jumpgate` module (embedded in `lopecode/notebooks/jumpgates.html` alongside `@tomlarkworthy/jumpgate`) headlessly via Playwright — each notebook gets its own fresh runtime that's disposed after export, keeping memory bounded.

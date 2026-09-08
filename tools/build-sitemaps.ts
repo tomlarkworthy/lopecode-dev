@@ -155,7 +155,9 @@ if (!ONLY) {
 if (CHECK) {
   if (problems.length) {
     console.error(`\nsitemap out of date:\n  ${problems.join("\n  ")}`);
-    console.error(`\nfix with: bun tools/build-sitemaps.ts`);
+    // Name the scope the caller was actually checking. The bare command rewrites BOTH content
+    // repos, so a hook failure in one repo would otherwise churn every lastmod in the other.
+    console.error(`\nfix with: bun tools/build-sitemaps.ts${ONLY ? ` --only ${ONLY}` : ""}`);
     process.exit(1);
   }
   console.log("sitemaps up to date");
