@@ -9,7 +9,15 @@
 > `CWDBSharing-ReadOnlyAccess-YMGFGZNS`, the console targets, the header names and the
 > `MetaSum` construction. Those name AWS's feature, not the customer, and the suffix is opaque
 > once the account id is gone. To re-run any of this you need a live share link, which is no
-> longer in the repo.
+> longer in the repo. A second pass on 2026-09-09 also generalised the region list at §7 — eight
+> regions named individually is a deployment footprint. Kept as evidence and NOT customer data: the
+> negative probes (`EC2 CPUUtilization`, the SQS and Lambda `SEARCH`es) are deliberately-unrelated
+> metrics chosen to test denial, not resources of the account.
+>
+> **The real remedy is rotation, not redaction.** Turning CloudWatch dashboard sharing off and back
+> on mints a fresh Cognito user pool, app client, sharing role suffix and password, which makes every
+> copy of the old `context` blob inert — including the ones in git history and in the five GitHub
+> `refs/pull/*` refs that no force-push can reach. Redaction only makes it harder to find.
 
 A lopecode notebook that logs into a **shared** CloudWatch dashboard (email + password mode) and
 re-renders it with Plot on a grid-container surface. Research findings, verified facts, and the gaps
@@ -343,8 +351,9 @@ The `probeResults` cell ran under the `CustomRoleArn` role. Both remaining hypot
 
 - **Public-vs-console API: refuted.** Both surfaces deny `GetMetricData`.
 - **Region scoping: refuted.** The console target was retried against all eight regions the
-  dashboard's widgets use (`us-east-1`, `us-east-2`, `eu-central-1`, `eu-west-1`, `eu-west-2`,
-  `eu-north-1`, `sa-east-1`, `ap-south-1`). Identical `AccessDeniedException` in every one.
+  dashboard's widgets use (eight of them, across North America, Europe, South America and Asia
+  Pacific; the exact list is the customer's deployment footprint and is not recorded here).
+  Identical `AccessDeniedException` in every one.
 ### SOLVED — the missing piece is a per-widget sharing token (2026-07-28)
 
 Running inside the official shared-dashboard page (same `https://cloudwatch.amazonaws.com` origin,
