@@ -118,6 +118,54 @@ lms_is_readonly_bash() {
   return 0
 }
 
+lms_is_help_only() {
+  # 0 when the command's only action is asking a program for its usage text. `--help`
+  # cannot write anything, so gating it buys nothing and costs a whole knowledge file
+  # read to learn three lines of usage — 5 of the 219 blocks ever recorded were this.
+  # Deliberately narrow: `cd` steps are allowed because the observed shape is
+  # `cd <repo>; <tool> --help | head`, but everything else must be the one help call —
+  # exactly one help flag, no other flag, and any pipe stage already read-only.
+  local cmd="$1" seg word saw_help=0 helped=0 i pipe rest
+  local -a words
+  cmd="${cmd//2>&1/ }"
+  case "$cmd" in
+    *'>'*|'`'*|*'`'*|*'$('*) return 1 ;;
+  esac
+  # `&&` chains are fine; a bare `&` backgrounds, and `||` hides a fallback command
+  case "${cmd//&&/}" in *'&'*) return 1 ;; esac
+  case "$cmd" in *'||'*) return 1 ;; esac
+  cmd="${cmd//&&/;}"
+  while IFS= read -r seg; do
+    seg="${seg#"${seg%%[![:space:]]*}"}"
+    seg="${seg%"${seg##*[![:space:]]}"}"
+    [ -z "$seg" ] && continue
+    read -r -a words <<< "$seg"
+    if [ "${words[0]}" = "cd" ] && [ "${#words[@]}" -eq 2 ]; then continue; fi
+    [ "$helped" -eq 0 ] || return 1
+    helped=1
+    pipe="${seg#*|}"; [ "$pipe" = "$seg" ] && pipe=""
+    read -r -a words <<< "${seg%%|*}"
+    [ "${#words[@]}" -ge 2 ] || return 1
+    saw_help=0
+    for ((i = 1; i < ${#words[@]}; i++)); do
+      case "${words[$i]}" in
+        --help|-h|help) saw_help=$((saw_help + 1)) ;;
+        -*) return 1 ;;
+      esac
+    done
+    [ "$saw_help" -eq 1 ] || return 1
+    if [ -n "$pipe" ]; then
+      while IFS= read -r rest; do
+        rest="${rest#"${rest%%[![:space:]]*}"}"
+        [ -z "$rest" ] && continue
+        word="${rest%%[[:space:]]*}"
+        case "$_LMS_RO_CMDS" in *" $word "*) ;; *) return 1 ;; esac
+      done <<< "${pipe//|/$'\n'}"
+    fi
+  done <<< "${cmd//;/$'\n'}"
+  [ "$helped" -eq 1 ]
+}
+
 lms_exempt_write_path() {
   # 0 when a file write targets machine-owned scratch rather than something a
   # reader or reviewer ever sees, so comms/style learnings should not gate it.
@@ -157,6 +205,10 @@ lms_build() {
       if [ "$LMS_EXEMPT" -eq 0 ] && [ -n "$LMS_CONTENT" ] \
          && lms_is_readonly_bash "$LMS_CONTENT"; then
         LMS_EXEMPT=1; LMS_EXEMPT_WHY="read-only"
+      fi
+      if [ "$LMS_EXEMPT" -eq 0 ] && [ -n "$LMS_CONTENT" ] \
+         && lms_is_help_only "$LMS_CONTENT"; then
+        LMS_EXEMPT=1; LMS_EXEMPT_WHY="help-only"
       fi
       ;;
     Edit|Write|MultiEdit)

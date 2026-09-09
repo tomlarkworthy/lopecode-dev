@@ -35,6 +35,47 @@ distance alone would have destroyed both.
 
 Last full triage: 22 minority canonicals, none behind.
 
+### That census was taken with a differ that under-reported (2026-09-09)
+
+`cellwise` split both sides with regexes until 2026-09-09, and the wrapper regex required
+a `_` prefix on the holder: `^const _[A-Za-z0-9_$]+ = `. exporter-3 names the holder after
+the pid, so a pid like `sl01` emits `const sl01 = …` and never matched. Those cells were
+never keyed, the comparison had nothing to compare, and the verdict came back **CANONICAL
+CURRENT**. Two false all-clears, both found by the rewrite:
+
+- `robocoop-5-engine` read as in sync while Observable held `specLockOn`, `specLockPrompt`
+  and `reasoningToggle`, which the canonical did not — confirmed by grepping
+  `observer("specLockOn")` on both sides, not by the tool.
+- `file-sync` read as in sync with a real one-line divergence in `jbApply`
+  (`importShim(path)` upstream against `import(path)` locally).
+
+Both sides now go through `parseVariableGroups` (lope-push-ws) with acorn, which takes each
+definition from its AST range. Comparison is on what the two compilers agree about: the cell
+**body** as a token stream plus comments (Observable emits `function _x(d){return(<expr>)}`
+where the exporter emits `function _x(d) { return <expr>; }`), the dep list as a **set**
+restricted to names that are cells or runtime builtins, and — added the same day — the set
+of **imported symbol names**.
+
+Import module *names* are not comparable: Observable writes an id-referenced notebook as
+`from "4"` where lopecode writes the slug. Measured over 201 published modules, comparing
+symbols alone gives 199 equal and 2 differing, and both differences are real
+(`ledger` importing at-write's new API, `robocoop-5-srctools` importing `py`/`localDisk`).
+
+Same 267 modules, old differ -> new:
+
+```
+in sync with Observable          141 -> 172
+shared local divergence           43 ->  16
+canonical differs, majority ok    12 ->   8
+```
+
+The 25-odd that moved were compiler formatting the text differ called real change. So read
+"none behind" above as *not contradicted by a differ that could not see a whole class of
+cell* — the census has not been retaken since the rewrite.
+
+`triage/cellwise-diff.ts <@a/b> <lopecode|lopebooks|path.js>` prints both sides of everything
+cellwise counts, including a working copy mid-merge. Reach for it before believing a verdict.
+
 ## The three ways a resync breaks a notebook
 
 Neither is visible in a source diff, which is why the gate is not optional.
@@ -124,6 +165,64 @@ is dead weight, but `blocksIn` was hashing the last, which made audit report all
 bootloader consumers permanently stale against a block that never runs. `blocksIn`
 now takes the first occurrence, matching both the runtime and `extractModuleScriptTag`.
 The duplicate blocks themselves are still there; preflight reports them as `duplicate`.
+
+## When a module diverged BOTH ways against Observable
+
+The sweep above moves a canonical out to consumers. A different case: the canonical and
+Observable have each moved since they last agreed, so neither is a refresh of the other and
+a jumpgate down would destroy real work. Worked on `robocoop-5` (6 modules in one bundle) on
+2026-09-09, `lopebooks@0470770b`.
+
+**Establish it is actually two-sided before treating it as one.** `git log -S` on the bundle
+is the cheap test — if a marker from the Observable side appears in no local commit, nothing
+was lost locally, it was simply never brought down:
+
+```
+for c in $(git -C lopebooks log --format=%h -12 -- notebooks/@tomlarkworthy_robocoop-5.html); do
+  git -C lopebooks show $c:notebooks/... | grep -c specLockOn
+done          # 0 in every commit -> the 2026-08-18 ship was never jumpgated down
+```
+
+**Then classify each divergent cell by which side has tokens the other lacks.** Tokenise both
+definitions, take the set differences, and the answer usually falls out without reading either:
+
+```
+core.createAgentSession    only-OBS: ACTUALLY, Ambient, CAVEAT …   only-LOCAL: (none)   -> take Observable
+engine.systemPrompt        only-OBS: (none)   only-LOCAL: Pyodide, Mount, DATAFLOW …    -> keep local
+core.createOpenRouterClient only-OBS: Reasoning, Sampling, WIRE …  only-LOCAL: STREAM_IDLE_MS, AbortController, ECONNRESET
+                                                                                        -> hand-merge
+```
+
+That test turned 40 apparent divergences into **21 pure additions, 10 one-sided takes and 2
+hand-merges**. A third of the apparent conflicts were not conflicts at all: all 10 of
+`robocoop-5-context`'s "differs" were compiler formatting the comparator now normalises.
+
+**Write the resolution down as a plan, not as edits.** `tools/scratch/rc5-merge.ts` takes a
+JSON plan naming every divergent cell — `take` (replace definition and dep list with
+Observable's), `add`, `custom` (a hand-merged body in a file), `import` — and splices the
+working copy by AST range, then re-parses before writing. Cells not named are kept local, so
+the plan is the record of what was decided about each one. The alternative — editing 40 cells
+by hand — leaves nothing to review and no way to tell a deliberate keep from a missed cell.
+
+**Verification, in this order.** Static checks cannot see any of this:
+
+1. `cellwise-diff` the working copy (`… <@a/b> modules/@a/b.js`) until `absent` is empty and
+   what remains is only the local-ahead set you meant to keep.
+2. `sync-module` into the canonical, then `lope-preflight --baseline <scratch copy>`. The rc5
+   merge: **0 new findings, 1 resolved** (an unused `importShim` dep dropped with `applyLib`).
+3. Boot it and force the merged cells — `lope-browser-runner <nb> --get-cell <name>`. The
+   whole point is the imports: `session` computing at all proves `zeroToolCallGate`,
+   `monitorsView`, `rc5_monitorBus`, `rc5_specGate` and `specGateCheck` all resolved.
+4. `--run-tests` against the file **and against `git show HEAD:<path>`**. 152/155 both times,
+   same three unrelated failures — that comparison is the point; an absolute count says nothing
+   (see the `--boot` note at the end of this file).
+
+**What blocks the other direction.** Pushing the local half up needs every module it imports to
+exist upstream. `@tomlarkworthy/pyodide` and `@tomlarkworthy/local-disk` both 404 on
+`api.observablehq.com`, so srctools' `run_python` work cannot go up, and `systemPrompt` was
+held back with it rather than advertise tools that Observable's build does not register.
+`robocoop-5-core` and the rest of the engine did go up and now read `== OBSERVABLE`. Check
+what a cell imports before assuming a push will land.
 
 ## Swapping the frame (lopepage -> lopepage-2)
 
@@ -229,7 +328,11 @@ document-id imports and exporter codegen inside string literals, not block ids.
 ## The `--boot` layer is differential only
 
 `--boot` really instantiates each notebook in node and runs its in-notebook tests. It
-catches what static analysis cannot, but its absolute signal is not clean: notebooks
-embedding the toolchain tests report `Module status must not be unlinked or linking`
-under the node harness on git-clean files that nobody has touched. Compare against a
+catches what static analysis cannot, but its absolute signal is not clean. Compare against a
 boot baseline; never read a raw `--boot` count as breakage.
+
+The `Module status must not be unlinked or linking` reports that notebooks embedding the
+toolchain tests used to produce on git-clean files were the harness, not the notebooks: its
+ESM registry cached raw `vm.Module`s and re-checked `status` per caller, so a concurrent
+import handed the linker a module mid-link. Fixed 2026-09-09 by memoising the link+evaluate
+promise per specifier. Any boot baseline taken before that date is measuring the old bug.

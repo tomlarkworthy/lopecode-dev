@@ -49,16 +49,40 @@ export interface Cell {
   inputs: string[];
 }
 
-/** Cells keyed by the name they are registered under. Anonymous cells are renumbered
- *  by the compiler, so they cannot be keyed and are skipped. */
-export function cells(src: string): Map<string, Cell> {
-  const named = new Map<string, Cell>();
-  const { groups } = parseVariableGroups(unembed(src), acorn);
+export interface Module {
+  /** Cells keyed by the name they are registered under. Anonymous cells are renumbered
+   *  by the compiler, so they cannot be keyed and are skipped. */
+  cells: Map<string, Cell>;
+  /** The names a module imports from its siblings. The module each one comes FROM is not
+   *  comparable — Observable writes an id-referenced notebook as `from "4"` where lopecode
+   *  writes the slug — but the names are, and a merge that forgets one leaves the cell that
+   *  needed it undefined at runtime with nothing static to see. */
+  imports: Set<string>;
+}
+
+export function parseModule(src: string): Module {
+  const { groups, preformatted } = parseVariableGroups(unembed(src), acorn);
+  const cells = new Map<string, Cell>();
   for (const group of groups ?? [])
     for (const v of group ?? [])
-      if (v?._name) named.set(v._name, { def: v._definition.trim(), inputs: v._inputs ?? [] });
-  return named;
+      if (v?._name) cells.set(v._name, { def: v._definition.trim(), inputs: v._inputs ?? [] });
+  const imports = new Set<string>();
+  for (const stmt of preformatted ?? []) {
+    const m = String(stmt).match(/^import\s*\{([^}]*)\}/);
+    if (!m) continue;
+    // `remote as local` binds the LOCAL name, which is what the cells reference
+    for (const part of m[1].split(",")) {
+      const name = part.trim().split(/\s+as\s+/).pop()?.trim();
+      // Compare on the base name. Importing `mutable x` also binds `x`, and the two
+      // compilers keep different halves of that pair, so the prefix is noise here.
+      // `_0`, `_1` … are anonymous cells the compiler renumbers, never real symbols.
+      if (name && !/^_\d+$/.test(name)) imports.add(name.replace(/^(viewof|mutable|initial) /, ""));
+    }
+  }
+  return { cells, imports };
 }
+
+export const cells = (src: string) => parseModule(src).cells;
 
 /** Two compilers, one cell. Observable wraps a cell expression as
  *  `function _x(d){return(\n<expr>\n)}`; the lopecode exporter writes
@@ -130,6 +154,28 @@ if (mods[0] === "--all-minority") {
   }).sort();
 }
 
+// One fetch per module against api.observablehq.com, and the run does nothing else
+// while it waits — measured 0.39 s/module and 18% CPU serially, so the whole corpus is
+// ~105 s of idling. Fetch ahead of the report at a fixed width; output order is the
+// argument order either way.
+const upstream = new Map<string, { status: number; text: string }>();
+await (async () => {
+  const jobs = mods.map((m) => [m, upstreamFor(m)] as const).filter(([, up]) => up.kind !== "none");
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(8, jobs.length) }, async () => {
+    for (let i = next++; i < jobs.length; i = next++) {
+      const [mod, up] = jobs[i];
+      try {
+        const res = await fetch(`https://api.observablehq.com/${up.slug}.js?v=4`);
+        upstream.set(mod, { status: res.status, text: res.ok ? await res.text() : "" });
+      } catch (e) {
+        // One dropped connection must not take the other 266 reports with it
+        upstream.set(mod, { status: 0, text: String((e as Error).message) });
+      }
+    }
+  }));
+})();
+
 for (const mod of mods) {
   const refs = idx.get(mod) ?? [];
   const counts = new Map<string, number>();
@@ -141,12 +187,12 @@ for (const mod of mods) {
     console.log(`\n### ${mod}\n  NO UPSTREAM (declared) — the notebook is the origin; nothing to compare against.`);
     continue;
   }
-  const res = await fetch(`https://api.observablehq.com/${up.slug}.js?v=4`);
-  if (!res.ok) {
+  const res = upstream.get(mod)!;
+  if (res.status !== 200) {
     console.log(`\n### ${mod}\n  observable ${res.status} — not published under ${up.slug}. Consider "upstream": null.`);
     continue;
   }
-  const obs = cells(await res.text());
+  const { cells: obs, imports: obsImports } = parseModule(res.text);
 
   const variants: [string, string][] = [];
   for (const repo of ["lopecode", "lopebooks"]) {
@@ -161,7 +207,9 @@ for (const mod of mods) {
   console.log(`\n### ${mod}   (observable: ${obs.size} named cells)`);
   const score: Record<string, number> = {};
   for (const [label, rel] of variants) {
-    const v = cells(contentOf(rel, mod)!);
+    const { cells: v, imports: vImports } = parseModule(contentOf(rel, mod)!);
+    const impAbsent = [...obsImports].filter((k) => !vImports.has(k));
+    const impExtra = [...vImports].filter((k) => !obsImports.has(k));
     const absent = [...obs.keys()].filter((k) => !v.has(k));
     const extra = [...v.keys()].filter((k) => !obs.has(k));
     const known = (n: string) => v.has(n) || obs.has(n) ||
@@ -171,13 +219,16 @@ for (const mod of mods) {
       // a cell whose body matches but whose dep list moved is a real change the old
       // text-only differ could not see; say which kind it is
       .map((k) => (sameDef(v.get(k)!, obs.get(k)!) ? `${k} (deps)` : k));
-    score[label] = absent.length + extra.length + differ.length;
+    const imp = impAbsent.length + impExtra.length;
+    score[label] = absent.length + extra.length + differ.length + imp;
     console.log(
-      `  ${label.padEnd(20)} ${score[label] === 0 ? "== OBSERVABLE" : `absent ${absent.length}  extra ${extra.length}  differ ${differ.length}`}`
+      `  ${label.padEnd(20)} ${score[label] === 0 ? "== OBSERVABLE" : `absent ${absent.length}  extra ${extra.length}  differ ${differ.length}${imp ? `  imports ${imp}` : ""}`}`
     );
     if (absent.length) console.log(`      absent: ${absent.slice(0, 8).join(", ")}`);
     if (extra.length) console.log(`      extra : ${extra.slice(0, 8).join(", ")}`);
     if (differ.length) console.log(`      differ: ${differ.slice(0, 8).join(", ")}`);
+    if (impAbsent.length) console.log(`      imports absent: ${impAbsent.slice(0, 8).join(", ")}`);
+    if (impExtra.length) console.log(`      imports extra : ${impExtra.slice(0, 8).join(", ")}`);
   }
   const canonScores = variants.filter((v) => v[0].endsWith("canonical")).map((v) => score[v[0]]);
   const majScore = score[variants[variants.length - 1][0]];

@@ -95,7 +95,8 @@ nonzero when a notebook's copy differs from the tagged set.
 | **Find modules whose copies have drifted** | `lope-sync.ts audit [--module X]` | ~1s |
 | **Check the corpus for broken notebooks (no browser)** | `lope-preflight.ts [--baseline f] [--boot]` — module graph + per-cell dep skew (`unused-dep`/`undeclared-ref`). Also a prek pre-commit hook in both content repos, judged against `tools/preflight-baseline.json`, scoped to the notebooks being committed | ~7s / ~60min |
 | **Push a canonical out to every stale consumer** | `sync-module.ts --all-canonical` (verify direction first) | ~30s |
-| Is a minority canonical ahead or behind? | `triage/cellwise.ts --all-minority` (asks Observable) | ~1s/module |
+| Is a minority canonical ahead or behind? | `triage/cellwise.ts --all-minority` (asks Observable; compares cells, deps and imported symbols) | ~15s whole corpus |
+| **Why does a cell differ from Observable?** | `triage/cellwise-diff.ts @a/b <lopecode\|lopebooks\|path.js>` — prints both sides of everything cellwise counts | ~1s |
 | Reuse a notebook module's functions in a script | `notebook-import.ts` (don't copy code) | Instant |
 | Check file attachments, generate manifest | `lope-reader.ts` | Instant |
 | One-off test run, get computed values | `lope-browser-runner.ts` | ~10s startup |
