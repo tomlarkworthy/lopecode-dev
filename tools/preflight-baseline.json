@@ -1375,10 +1375,6 @@
    "kind": "unused-dep"
   },
   {
-   "detail": "@tomlarkworthy/robocoop-5-srctools: applyLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
    "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
   }

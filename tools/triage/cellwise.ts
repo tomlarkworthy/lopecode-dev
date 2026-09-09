@@ -5,18 +5,28 @@
 //
 // Compares, per cell and immune to cell reordering, each of
 //   lopecode canonical / lopebooks canonical / the corpus majority
-// against ObservableHQ, normalising away the lopecode embedding artifacts so
-// that id mangling and formatting do not read as real change.
+// against ObservableHQ.
+//
+// Both sides are split with `parseVariableGroups` (lope-push-ws), which takes each
+// cell's definition from its acorn AST range and reads the name and dep list off the
+// `$def` / `main.variable(observer(…)).define(…)` registration. Nothing about the two
+// compilers' wrappers reaches the comparison, so there is no normalising to do: the
+// lopecode `const _pid = …;` holder, Observable's bare declaration, and the
+// materialised `(G,_) => G.input(_)` getters all reduce to the same definition text.
+// The dep list is compared too — a change that only moves deps (adding `invalidation`
+// to a cell, say) was invisible to the old text-only differ.
 //
 //   bun tools/triage/cellwise.ts @tomlarkworthy/themes ...
 //   bun tools/triage/cellwise.ts --all-minority
 import { deriveIndex, loadCanonical, upstreamFor } from "../lope-sync.ts";
+import { parseVariableGroups } from "../lope-push-ws.js";
+import * as acorn from "acorn";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
 const ROOT = resolve(import.meta.dir, "../..");
 
-function contentOf(rel: string, moduleId: string): string | null {
+export function contentOf(rel: string, moduleId: string): string | null {
   const html = readFileSync(resolve(ROOT, rel), "utf8");
   for (const m of html.matchAll(/<script\s+id="([^"]+)"([^>]*)>([\s\S]*?)<\/script>/g))
     if (m[1] === moduleId && /data-mime="application\/javascript"/.test(m[2]))
@@ -24,39 +34,83 @@ function contentOf(rel: string, moduleId: string): string | null {
   return null;
 }
 
-function norm(s: string): string {
-  s = s.split(/export default function define|^function define\(/m)[0];
-  // lopecode wraps each cell as `const _id = <fn>`; Observable emits a bare decl
-  s = s.replace(/^const _[A-Za-z0-9_$]+ = (async )?function /gm, "$1function ");
-  // materialised viewof/mutable helper cells that Observable does not emit
-  s = s.replace(/^const _[A-Za-z0-9_$]+ = \(G, _\) => G\.input\(_\);$\n?/gm, "");
-  s = s.replace(/^const _[A-Za-z0-9_$]+ = \(M, _\) => new M\(_\);$\n?/gm, "");
-  s = s.replace(/^const _[A-Za-z0-9_$]+ = _ => _\.generator;$\n?/gm, "");
-  // embedding artifacts: split close-tags, \uXXXX for non-ASCII
-  s = s.replace(/<\/scr\\ipt>/g, "</script>");
-  s = s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-  s = s.replace(/^(\)?)\};$/gm, "$1}");
-  return s;
+/** Undo the HTML embedding of a lopecode `<script type="text/plain">` block, so the
+ *  bytes parse as the JS they were before being inlined. Mirrors exporter-3's
+ *  `escapeScriptTags`, which rewrites `</script` — the close tag with no `>` yet, since
+ *  that is what ends the block — so the inverse must not require one either. */
+function unembed(s: string): string {
+  return s
+    .replace(/<\/scr\\ipt/g, "</script")
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
 }
 
-/** Split into cells keyed by declared function name. Anonymous `_NN` doc cells are
- *  renumbered by the compiler, so they are not keyed. */
-function cells(src: string) {
-  const named = new Map<string, string>();
-  let cur: string[] = [], name: string | null = null;
-  const flush = () => {
-    if (cur.length && name && !/^_\d+$/.test(name)) named.set(name, cur.join("\n").trim());
-    cur = []; name = null;
-  };
-  for (const l of norm(src).split("\n")) {
-    const m = l.match(/^(?:async )?function (\w+)\(/);
-    if (m) { flush(); name = m[1]; }
-    cur.push(l);
-  }
-  flush();
+export interface Cell {
+  def: string;
+  inputs: string[];
+}
+
+/** Cells keyed by the name they are registered under. Anonymous cells are renumbered
+ *  by the compiler, so they cannot be keyed and are skipped. */
+export function cells(src: string): Map<string, Cell> {
+  const named = new Map<string, Cell>();
+  const { groups } = parseVariableGroups(unembed(src), acorn);
+  for (const group of groups ?? [])
+    for (const v of group ?? [])
+      if (v?._name) named.set(v._name, { def: v._definition.trim(), inputs: v._inputs ?? [] });
   return named;
 }
 
+/** Two compilers, one cell. Observable wraps a cell expression as
+ *  `function _x(d){return(\n<expr>\n)}`; the lopecode exporter writes
+ *  `function _x(d)\n{\n  return <expr>;\n}` and lays the braces out differently again.
+ *  Compare the BODY — the returned expression, or the statement block when there is more
+ *  than a return — as a token stream plus its comments. Wrapper shape and indentation stop
+ *  being differences; code and prose stay one. */
+function sig(def: string): string {
+  const comments: acorn.Comment[] = [], tokens: acorn.Token[] = [];
+  let node: any;
+  try {
+    const prog: any = acorn.parse(`(${def})`, { ecmaVersion: "latest", onComment: comments, onToken: tokens });
+    node = prog.body[0]?.expression ?? prog.body[0];
+  } catch {
+    return def; // unparseable: fall back to the bytes rather than call it equal
+  }
+  let body = node?.body;
+  if (body?.type === "BlockStatement") {
+    const only = body.body.length === 1 ? body.body[0] : null;
+    if (only?.type === "ReturnStatement" && only.argument) body = only.argument;
+  }
+  const [lo, hi] = body ? [body.start, body.end] : [0, def.length + 2];
+  const within = (x: { start: number; end: number }) => x.start >= lo && x.end <= hi;
+  return tokens.filter(within).map((t) => `${t.type.label}\u0002${t.value ?? ""}`).join("\u0001") +
+    "\u0003" + comments.filter(within).map((c) => c.value.replace(/\s+/g, " ").trim()).join("\u0001");
+}
+
+export const sameDef = (a: Cell, b: Cell) => a.def === b.def || sig(a.def) === sig(b.def);
+
+// The Observable runtime's builtin scope. A dep is a real dataflow edge when it names a
+// cell in either module or one of these; anything else — `fetch`, `DOMParser`,
+// `MutationObserver` — is a free global, and the two compilers disagree about those by
+// construction (Observable omits them from the dep list, the lopecode exporter keeps them),
+// so comparing them reports a difference on every cell that touches a browser API.
+const RUNTIME_BUILTINS = new Set([
+  "invalidation", "visibility", "now", "width", "Mutable", "Generators", "Promises", "DOM",
+  "Files", "FileAttachment", "@variable", "md", "html", "svg", "tex", "dot", "mermaid", "_",
+  "d3", "Plot", "Inputs", "L", "topojson", "vl", "aq", "Arrow", "DuckDBClient", "htl",
+  "require", "resolve", "SQLite", "SQLiteDatabaseClient", "importShim",
+]);
+
+/** Dep lists compare as SETS: the parameter order is the compiler's, and each compiler
+ *  reorders it freely — the body names its inputs, so a reorder is invisible there too. */
+export function sameInputs(a: Cell, b: Cell, known: (n: string) => boolean): boolean {
+  const real = (c: Cell) =>
+    [...new Set(c.inputs.filter((i) => known(i) || RUNTIME_BUILTINS.has(i.replace(/^(viewof|mutable|initial) /, ""))))].sort();
+  return real(a).join("\u0000") === real(b).join("\u0000");
+}
+
+if (import.meta.main) await main();
+
+async function main() {
 const idx = deriveIndex();
 const canon = loadCanonical();
 
@@ -110,7 +164,13 @@ for (const mod of mods) {
     const v = cells(contentOf(rel, mod)!);
     const absent = [...obs.keys()].filter((k) => !v.has(k));
     const extra = [...v.keys()].filter((k) => !obs.has(k));
-    const differ = [...obs.keys()].filter((k) => v.has(k) && v.get(k) !== obs.get(k));
+    const known = (n: string) => v.has(n) || obs.has(n) ||
+      v.has(n.replace(/^(viewof|mutable|initial) /, "")) || obs.has(n.replace(/^(viewof|mutable|initial) /, ""));
+    const differ = [...obs.keys()]
+      .filter((k) => v.has(k) && !(sameDef(v.get(k)!, obs.get(k)!) && sameInputs(v.get(k)!, obs.get(k)!, known)))
+      // a cell whose body matches but whose dep list moved is a real change the old
+      // text-only differ could not see; say which kind it is
+      .map((k) => (sameDef(v.get(k)!, obs.get(k)!) ? `${k} (deps)` : k));
     score[label] = absent.length + extra.length + differ.length;
     console.log(
       `  ${label.padEnd(20)} ${score[label] === 0 ? "== OBSERVABLE" : `absent ${absent.length}  extra ${extra.length}  differ ${differ.length}`}`
@@ -135,4 +195,5 @@ for (const mod of mods) {
     : best > majScore ? `both differ; MAJORITY is closer (${majScore} vs ${best}) — canonical may be behind, read the cells`
     : `both differ from Observable equally (${best}) — a shared local divergence, not a skew`
   ));
+}
 }

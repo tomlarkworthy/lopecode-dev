@@ -1,0 +1,6 @@
+{
+  "@tomlarkworthy/robocoop-5": {
+    "take": ["robocoop_5"],
+    "import": { "reasoningToggle": "@tomlarkworthy/robocoop-5-engine" }
+  }
+}

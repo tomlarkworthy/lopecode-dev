@@ -280,7 +280,9 @@ function parseVariableGroups(content, acorn) {
     }
 
     if (!definition) {
-      const inlineMatch = defineBody.match(/,\s*(\([^)]*\)\s*=>.*?)$/);
+      // materialised getters are written inline; the single-param ones have no parens
+      // (`_ => _.generator`), so accept both arrow head shapes
+      const inlineMatch = defineBody.match(/,\s*((?:\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)\s*=>.*?)$/);
       if (inlineMatch) {
         definition = inlineMatch[1].trim();
       }
@@ -293,6 +295,21 @@ function parseVariableGroups(content, acorn) {
         .filter(s => s);
     }
 
+    if (definition) {
+      allDefinesWithPos.push({ _name: varName, _definition: definition, _inputs: inputs, _pos: match.index });
+    }
+  }
+
+  // Observable registers a cell nothing observes — a `mutable x` initialiser is the common
+  // case — with a bare `main.define(...)`, no observer wrapper. Those used to be dropped, so
+  // an `initial x` cell went missing from the parse. The 4th-argument-is-an-identifier shape
+  // keeps import registrations (whose last argument is a `v => v.import(...)` arrow) out.
+  const bareDefineRegex = /(?:^|[^.\w])main\.define\("([^"]+)",\s*(?:\[([^\]]*)\],\s*)?([A-Za-z_$][A-Za-z0-9_$]*)\)/g;
+  while ((match = bareDefineRegex.exec(scanContent)) !== null) {
+    const varName = match[1];
+    if (varName.startsWith('module ')) continue;
+    const inputs = (match[2] ?? '').split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(s => s);
+    const definition = cellFunctions.get(match[3]);
     if (definition) {
       allDefinesWithPos.push({ _name: varName, _definition: definition, _inputs: inputs, _pos: match.index });
     }
