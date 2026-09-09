@@ -1,10 +1,16 @@
 // Hypothesis: the CWDBSharing role's cloudwatch:* statements carry an aws:Referer condition
 // scoped to https://cloudwatch.amazonaws.com/. Browsers can't set Referer; Node can.
 // Usage: CW_IDTOKEN=... node tools/probe-cw-referer.mjs
+// Pool ids belong to whoever owns the shared dashboard — read them from the share link's
+// `context` blob (the U and I fields) rather than baking a customer's in. Anonymised 2026-09-09.
 const IDTOK = process.env.CW_IDTOKEN;
-const POOL_ID = 'us-east-1_REsoKtwzI';
-const IDENTITY_POOL = 'us-east-1:8a154425-663a-470f-9fac-f4de1d480f7c';
+const POOL_ID = process.env.CW_POOL_ID;              // context.U, e.g. us-east-1_XXXXXXXXX
+const IDENTITY_POOL = process.env.CW_IDENTITY_POOL;  // context.I, e.g. us-east-1:<uuid>
 const REGION = 'us-east-1';
+if (!IDTOK || !POOL_ID || !IDENTITY_POOL) {
+  console.log('need CW_IDTOKEN, CW_POOL_ID and CW_IDENTITY_POOL (the U and I fields of the share link context)');
+  process.exit(1);
+}
 
 const claims = JSON.parse(Buffer.from(IDTOK.split('.')[1], 'base64url').toString());
 const now = Math.floor(Date.now() / 1000);

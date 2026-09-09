@@ -1,5 +1,16 @@
 # AWS CloudWatch dashboard viewer — research + design
 
+> **Anonymised 2026-09-09.** The customer's AWS account id (3 occurrences), the dashboard name
+> (2) and the viewer login (1) were replaced with `<ACCOUNT>`, `<DASHBOARD>` and
+> `<viewer-account>@<customer>`; the live share link baked into
+> `lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html` (`defaultShareLink`, in the module cell
+> and again in the prerender snapshot) was replaced with a synthetic context of the same shape.
+> AWS-minted identifiers are **kept deliberately** as evidence of the mechanism: the sharing role
+> `CWDBSharing-ReadOnlyAccess-YMGFGZNS`, the console targets, the header names and the
+> `MetaSum` construction. Those name AWS's feature, not the customer, and the suffix is opaque
+> once the account id is gone. To re-run any of this you need a live share link, which is no
+> longer in the repo.
+
 A lopecode notebook that logs into a **shared** CloudWatch dashboard (email + password mode) and
 re-renders it with Plot on a grid-container surface. Research findings, verified facts, and the gaps
 that need a real share link to close.
@@ -193,7 +204,7 @@ self-contained file.
 
 ## 7. Gaps
 
-Probed against a real share link (dashboard `Optimize`, account `533310436915`, `M: UsrPwSingle`).
+Probed against a real share link (dashboard `<DASHBOARD>`, account `<ACCOUNT>`, `M: UsrPwSingle`).
 
 ### Closed
 
@@ -215,8 +226,8 @@ Cognito's SRP has three details worth recording, all of them implemented:
 
 ### Closed by a real sign-in (2026-07-28)
 
-Signed in successfully as `taktile-internal-dashboard-viewer@taktile.com` against the `Optimize`
-share (account `533310436915`). The whole client-side chain is **proven working**:
+Signed in successfully as `<viewer-account>@<customer>` against the `<DASHBOARD>`
+share (account `<ACCOUNT>`). The whole client-side chain is **proven working**:
 SRP-6a → id token → `GetId` → `GetCredentialsForIdentity` → SigV4 → a real 200 response with data.
 
 3. **`cloudwatch:GetDashboard` is NOT granted.** Auto-discovery of widgets is impossible; the
@@ -313,7 +324,7 @@ a `viewof`, so `update_cell` refuses it and it needs `define_cell` plus a file-l
 
 Do **not** re-issue the earlier advice to grant `cloudwatch:GetMetricData` on `"Resource": "*"`
 without that evidence: it would give everyone holding the link and password read access to every
-metric in account `533310436915`, which is a real widening of access and the owner's decision to
+metric in account `<ACCOUNT>`, which is a real widening of access and the owner's decision to
 make.
 
 #### Result of the remaining tests (2026-07-28, signed-in session)
