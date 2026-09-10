@@ -192,7 +192,7 @@ At the time of this draft, `lopecode-plugin/src/lopecode-channel.ts` references 
 
 These apply regardless of version:
 
-- **Browser-only.** `exportToHTML` depends on DOM serialization paths that LinkeDOM does not fully implement. Round-trip tests in Node time out. For headless export, use Playwright (`tools/lope-jumpgate.js`) rather than a Node DOM shim.
+- **Browser-only.** `exportToHTML` depends on DOM serialization paths the headless DOM does not fully implement. Round-trip tests in Node time out. For headless export, use Playwright (`tools/lope-jumpgate.js`) rather than a Node DOM shim.
 - **Observation gating** (full export). The export pipeline is gated on a `task` cell that fires only on user click. `_module_specs` and dependent cells are not computed until a real export is requested. Forcing computation via `eval_code` (`v._reachable = true; v._computeNow()`) is required when calling from automation. v3's `exportModuleJS` (staging only) bypasses this — no `task` dependency.
 - **Empty `mains` after dynamic module creation.** Modules created via `create_module` over the pairing channel without subsequent observation are silently omitted because they are not in `runtime.mains`. Observe (display in the layout) before exporting.
 - **Bootconf hash is a default, not an override.** The bootloader applies `conf.hash` only if `location.hash` is empty (`if (conf.hash && !location.hash) location.hash = conf.hash`). A hash already in the URL (e.g. `&cc=TOKEN`) is preserved; opening with no hash falls back to the bootconf layout.

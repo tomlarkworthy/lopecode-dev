@@ -9,6 +9,11 @@
  * Boot still needs the runtime's normal settle loop because modules register
  * async — that's unavoidable. Once boot is done we switch to pure observation.
  *
+ * A test_* cell that returns "skipped: <why>" (or {skipped: true, reason}) is
+ * reported as SKIPPED, never as passed: a run that executed nothing must not read
+ * like a run that passed. Against a --baseline, a test that used to pass and now
+ * skips is a regression, listed separately as "silenced".
+ *
  * Reports are emitted in CTRF (Common Test Report Format) — https://ctrf.io/
  * Lopecode-specific fields (cell value preview, original "timeout" state) live
  * under each test's `extra` block and the top-level `extra.lopecode`.
@@ -21,12 +26,13 @@
  *   --report <path>     Write CTRF JSON report (for regression diffing)
  *   --baseline <path>   Compare against a previous CTRF report; exit 1 on regression
  *   --timeout <ms>      Per-test safety timeout (default 10000)
+ *   --hash <#…>         Override location.hash (arms hash-gated suites)
  *   --verbose           Forward runtime debug logs
  *
  * Exit codes:
  *   0 - All tests passed and (when --baseline given) no regressions
  *   1 - Tests failed/timed out, or regression detected vs --baseline
- *   2 - Could not load notebook or no tests found
+ *   2 - Could not load notebook, no tests found, or every test skipped
  */
 
 import { loadNotebook } from "./lope-runtime.js";
@@ -41,9 +47,10 @@ interface Args {
   baseline: string | null;
   timeout: number;
   verbose: boolean;
+  hash: string | null;
 }
 
-type LopecodeState = "passed" | "failed" | "timeout";
+type LopecodeState = "passed" | "failed" | "timeout" | "skipped";
 
 interface TestResult {
   name: string;
@@ -52,6 +59,23 @@ interface TestResult {
   durationMs: number;
   value?: string;
   error?: string;
+  reason?: string;
+}
+
+// A test that declines to run must not report as one that ran. The corpus already
+// says so in the value — `return "skipped: no layout engine"` — so that is the
+// marker, promoted here from prose to a state. An object form is accepted too.
+function skipReason(value: unknown): string | null {
+  if (typeof value === "string") {
+    const m = /^\s*skipped\s*:\s*(.*)$/is.exec(value);
+    return m ? m[1].trim() : null;
+  }
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    if (o.skipped === true || o.__skip === true)
+      return String(o.reason ?? o.why ?? "no reason given");
+  }
+  return null;
 }
 
 type CtrfStatus = "passed" | "failed" | "skipped" | "pending" | "other";
@@ -97,6 +121,7 @@ const USAGE = `Usage: bun tools/lope-tests.ts <notebook.html> [options]
   --report <f>     Write CTRF JSON report to <f>
   --baseline <f>   Compare to baseline CTRF report; exit 1 on regression
   --timeout <ms>   Per-test safety timeout (default 10000)
+  --hash <#…>      Override location.hash (arms hash-gated suites)
   --verbose        Print runtime logs`;
 
 function parseArgs(argv: string[]): Args {
@@ -107,6 +132,7 @@ function parseArgs(argv: string[]): Args {
     baseline: null,
     timeout: 10000,
     verbose: false,
+    hash: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -117,6 +143,7 @@ function parseArgs(argv: string[]): Args {
     else if (a === "--report") out.report = argv[++i];
     else if (a === "--baseline") out.baseline = argv[++i];
     else if (a === "--timeout") out.timeout = Number(argv[++i]);
+    else if (a === "--hash") out.hash = argv[++i];
     else if (a === "--verbose") out.verbose = true;
     else if (!a.startsWith("--") && !out.notebook) out.notebook = a;
     else {
@@ -138,6 +165,7 @@ process.on("unhandledRejection", () => {});
 
 const execution = await loadNotebook(args.notebook, {
   settleTimeout: 30000,
+  ...(args.hash ? { hash: args.hash } : {}),
   log: args.verbose ? (m: string) => console.error(m) : () => {},
 });
 
@@ -172,7 +200,10 @@ const promises = testVars.map((v) => {
 
     if (v._value !== undefined) {
       clearTimeout(tid);
-      finish({ name, module: mod, state: "passed", durationMs: 0, value: String(v._value).slice(0, 200) });
+      const why = skipReason(v._value);
+      finish(why === null
+        ? { name, module: mod, state: "passed", durationMs: 0, value: String(v._value).slice(0, 200) }
+        : { name, module: mod, state: "skipped", durationMs: 0, reason: why });
       return;
     }
     if (v._error !== undefined) {
@@ -183,7 +214,10 @@ const promises = testVars.map((v) => {
     v._observer = {
       fulfilled: (val: any) => {
         clearTimeout(tid);
-        finish({ name, module: mod, state: "passed", durationMs: Date.now() - t0, value: String(val).slice(0, 200) });
+        const why = skipReason(val);
+        finish(why === null
+          ? { name, module: mod, state: "passed", durationMs: Date.now() - t0, value: String(val).slice(0, 200) }
+          : { name, module: mod, state: "skipped", durationMs: Date.now() - t0, reason: why });
       },
       rejected: (err: any) => {
         clearTimeout(tid);
@@ -191,10 +225,10 @@ const promises = testVars.map((v) => {
       },
       pending: () => {},
     };
-    if (!v._reachable) {
-      v._reachable = true;
-      (execution.runtime as any)._dirty?.add(v);
-    }
+    // Do NOT preset _reachable: runtime_computeNow queues a variable only when its
+    // reachability RISES, and `true > true` is false. The observer above is what
+    // raises it; this just marks it dirty. See lope-runtime's runTests.
+    (execution.runtime as any)._dirty?.add(v);
   });
 });
 
@@ -210,9 +244,10 @@ for (const r of results) {
     console.log(`\n${r.module}`);
     lastModule = r.module;
   }
-  const tag = r.state === "passed" ? "  ✓" : r.state === "failed" ? "  ✗" : "  ⧖";
+  const tag = r.state === "passed" ? "  ✓" : r.state === "failed" ? "  ✗" : r.state === "skipped" ? "  ∅" : "  ⧖";
   const dur = r.durationMs ? ` (${r.durationMs}ms)` : "";
   console.log(`${tag} ${r.name}${dur}`);
+  if (r.reason) console.log(`      skipped: ${r.reason}`);
   if (r.error) console.log(`      ${r.error.replace(/\n/g, "\n      ")}`);
 }
 
@@ -221,11 +256,13 @@ const summary = {
   passed: results.filter((r) => r.state === "passed").length,
   failed: results.filter((r) => r.state === "failed").length,
   timeout: results.filter((r) => r.state === "timeout").length,
+  skipped: results.filter((r) => r.state === "skipped").length,
 };
 const stop = Date.now();
 const elapsed = stop - start;
 console.log(
-  `\nTests: ${summary.passed} passed, ${summary.failed} failed, ${summary.timeout} timed out, ${summary.total} total`
+  `\nTests: ${summary.passed} passed, ${summary.failed} failed, ${summary.timeout} timed out, ` +
+  `${summary.skipped} skipped, ${summary.total} total`
 );
 console.log(`Time:  ${(elapsed / 1000).toFixed(2)}s`);
 
@@ -233,7 +270,7 @@ function toCtrf(): CtrfReport {
   const tests: CtrfTest[] = results.map((r) => {
     // CTRF status enum doesn't have "timeout"; map to "failed" and preserve
     // the original lopecode state under `extra` for fidelity.
-    const status: CtrfStatus = r.state === "passed" ? "passed" : "failed";
+    const status: CtrfStatus = r.state === "passed" ? "passed" : r.state === "skipped" ? "skipped" : "failed";
     const extra: Record<string, unknown> = { lopecodeState: r.state };
     if (r.value !== undefined) extra.value = r.value;
     const test: CtrfTest = {
@@ -243,7 +280,8 @@ function toCtrf(): CtrfReport {
       suite: r.module,
       extra,
     };
-    if (r.state === "timeout") test.message = `Timed out after ${r.durationMs}ms`;
+    if (r.state === "skipped") test.message = r.reason ?? "skipped";
+    else if (r.state === "timeout") test.message = `Timed out after ${r.durationMs}ms`;
     else if (r.error) test.message = r.error;
     return test;
   });
@@ -260,7 +298,7 @@ function toCtrf(): CtrfReport {
         tests: summary.total,
         passed: summary.passed,
         failed: summary.failed + summary.timeout,
-        skipped: 0,
+        skipped: summary.skipped,
         pending: 0,
         other: 0,
         start,
@@ -304,28 +342,39 @@ if (args.baseline) {
   const currentTests = currentReport.results.tests;
 
   const basePassed = new Map(baselineTests.map((t) => [passedKey(t), t.status === "passed"]));
-  const nowPassed = new Map(currentTests.map((t) => [passedKey(t), t.status === "passed"]));
+  const nowStatus = new Map(currentTests.map((t) => [passedKey(t), t.status]));
+  const nowPassed = (k: string) => nowStatus.get(k) === "passed";
 
   const regressions: string[] = [];
+  // A test that used to run and now declines to is the one regression a suite can
+  // inflict on itself silently, so it is counted but named apart from a failure.
+  const silenced: string[] = [];
   const recoveries: string[] = [];
   const added: string[] = [];
   const removed: string[] = [];
   for (const [k, prev] of basePassed) {
-    if (!nowPassed.has(k)) removed.push(k);
-    else if (prev && !nowPassed.get(k)) regressions.push(k);
-    else if (!prev && nowPassed.get(k)) recoveries.push(k);
+    if (!nowStatus.has(k)) removed.push(k);
+    else if (prev && !nowPassed(k)) (nowStatus.get(k) === "skipped" ? silenced : regressions).push(k);
+    else if (!prev && nowPassed(k)) recoveries.push(k);
   }
-  for (const k of nowPassed.keys()) if (!basePassed.has(k)) added.push(k);
+  for (const k of nowStatus.keys()) if (!basePassed.has(k)) added.push(k);
 
   console.log("\n=== regression check ===");
   console.log(`regressions: ${regressions.length}`);
   for (const r of regressions) console.log(`  ✗ ${r}`);
+  console.log(`silenced:    ${silenced.length}`);
+  for (const r of silenced) console.log(`  ∅ ${r} (was passing, now skips)`);
   console.log(`recoveries:  ${recoveries.length}`);
   for (const r of recoveries) console.log(`  ✓ ${r}`);
   if (added.length) console.log(`added:       ${added.length}`);
   if (removed.length) console.log(`removed:     ${removed.length}`);
-  regressed = regressions.length > 0;
+  regressed = regressions.length + silenced.length > 0;
 }
 
 const failed = summary.failed + summary.timeout > 0;
+// A run in which nothing executed is not a pass, however green the summary looks.
+if (summary.total > 0 && summary.passed + summary.failed + summary.timeout === 0) {
+  console.error("Every test skipped — nothing was executed.");
+  process.exit(2);
+}
 process.exit(regressed || failed ? 1 : 0);

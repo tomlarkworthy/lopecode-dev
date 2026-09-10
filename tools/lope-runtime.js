@@ -1,14 +1,14 @@
 /**
  * lope-runtime.js - Load lopecode notebooks in Node.js
  *
- * Mirrors the browser bootstrap using LinkeDOM + vm.SourceTextModule.
+ * Mirrors the browser bootstrap using happy-dom + vm.SourceTextModule.
  * Provides direct programmatic access to the Observable Runtime.
  *
  * Usage:
  *   import { loadNotebook } from './lope-runtime.js';
  *   const execution = await loadNotebook('path/to/notebook.html', { settleTimeout: 5000 });
  *   // execution.runtime  — Observable Runtime instance
- *   // execution.document — LinkeDOM document (the virtual DOM)
+ *   // execution.document — the DOM document (happy-dom)
  *   // execution.context  — vm.Context (the JS execution environment)
  *   // execution.bootconf — parsed bootconf.json
  *   // execution.dispose() — cleanup
@@ -20,7 +20,7 @@ import fs from "fs";
 import path from "path";
 import zlib from "zlib";
 import vm from "vm";
-import { parseHTML } from "linkedom";
+import { Window } from "happy-dom";
 import {
   IDBFactory, IDBKeyRange, IDBCursor, IDBCursorWithValue,
   IDBDatabase, IDBIndex, IDBObjectStore, IDBOpenDBRequest,
@@ -70,10 +70,51 @@ export async function loadNotebook(notebookPath, options = {}) {
 
   // ---- 1. Parse HTML ----
   const rawHtml = fs.readFileSync(absPath, "utf-8");
-  const { document, window: linkedomWindow } = parseHTML(rawHtml);
+  // A DOM environment at the notebook's own URL, so baseURI, location, history and
+  // localStorage are the real thing rather than shims. Scripts are not evaluated here —
+  // the bootloader is run below, in the vm context.
+  const windowUrl = `file://${absPath}${overrideSearch || ""}`;
+  const windowSettings = {
+    disableJavaScriptEvaluation: true,
+    disableJavaScriptFileLoading: true,
+    disableCSSFileLoading: true,
+  };
+  // Script execution is ours (see the queue below) — it has to happen in the vm context,
+  // not happy-dom's. Dropping HTMLScriptElement's own connect/attribute hooks makes a
+  // <script src> behave like any other element on insert, so happy-dom never races us
+  // with its own load/error events.
+  const dropScriptLoader = (w) => {
+    for (const sym of Object.getOwnPropertySymbols(w.HTMLScriptElement.prototype)) {
+      if (sym.description !== "cloneNode") delete w.HTMLScriptElement.prototype[sym];
+    }
+  };
+  let domWindow = new Window({ url: windowUrl, settings: windowSettings });
+  dropScriptLoader(domWindow);
+  domWindow.document.write(rawHtml);
 
-  // Set baseURI to the file:// URL of the notebook (mirrors browser behavior)
-  try { Object.defineProperty(document, "baseURI", { value: `file://${absPath}`, configurable: true }); } catch {}
+  // happy-dom 20.x abandons the rest of the document when it meets a <style> inside an
+  // <svg> — which is exactly what Observable Plot emits. Seven corpus notebooks bake a
+  // Plot chart into their prerender snapshot, and the parse silently loses every script
+  // block after it. The page itself deletes that snapshot on boot (lope-prerender-cleanup),
+  // so re-parsing without it costs nothing the runtime would have kept.
+  if (!domWindow.document.querySelector("script[id]") && /<script[^>]*\sid=/i.test(rawHtml)) {
+    const marker = rawHtml.indexOf('id="lope-prerender"');
+    const start = marker > 0 ? rawHtml.lastIndexOf("<div", marker) : -1;
+    const end = rawHtml.indexOf('<script id="lope-prerender-cleanup"');
+    if (start > 0 && end > start) {
+      log("prerender snapshot dropped: happy-dom cannot parse <style> inside <svg>");
+      domWindow.close();
+      domWindow = new Window({ url: windowUrl, settings: windowSettings });
+      dropScriptLoader(domWindow);
+      domWindow.document.write(rawHtml.slice(0, start) + rawHtml.slice(end));
+    }
+  }
+  if (!domWindow.document.querySelector("script[id]") && /<script[^>]*\sid=/i.test(rawHtml)) {
+    throw new Error(`DOM parse produced no script blocks for ${absPath}`);
+  }
+
+  const document = domWindow.document;
+  for (const [k, v] of Object.entries(initialLocalStorage)) domWindow.localStorage.setItem(k, String(v));
 
   // Build script index
   const scriptMap = new Map();
@@ -174,25 +215,6 @@ export async function loadNotebook(notebookPath, options = {}) {
     const noSlash = specifier.replace(/^\//, "").replace(/\.js(\?.*)?$/, "");
     if (scriptMap.has(noSlash) || document.getElementById(noSlash)) return noSlash;
     return null;
-  }
-
-  // ---- 2. Shims ----
-  if (typeof linkedomWindow.IntersectionObserver !== "function")
-    linkedomWindow.IntersectionObserver = class { observe(){} disconnect(){} unobserve(){} };
-  if (typeof linkedomWindow.ResizeObserver !== "function")
-    linkedomWindow.ResizeObserver = class { observe(){} disconnect(){} unobserve(){} };
-  if (typeof linkedomWindow.requestAnimationFrame !== "function") {
-    linkedomWindow.requestAnimationFrame = (cb) => setTimeout(cb, 16);
-    linkedomWindow.cancelAnimationFrame = (id) => clearTimeout(id);
-  }
-
-  // LinkeDOM uses NodeList everywhere; alias HTMLCollection for libraries that check it
-  if (!linkedomWindow.HTMLCollection) {
-    linkedomWindow.HTMLCollection = linkedomWindow.NodeList || class HTMLCollection extends Array {};
-  }
-  // SVGElement may be missing
-  if (!linkedomWindow.SVGElement) {
-    linkedomWindow.SVGElement = linkedomWindow.Element || class {};
   }
 
   // ---- 3. Script execution queue (for d3-require AMD) ----
@@ -343,24 +365,6 @@ export async function loadNotebook(notebookPath, options = {}) {
     }
   }
 
-  // ---- 6. localStorage / location ----
-  const lsData = new Map(Object.entries(initialLocalStorage));
-  const localStorageShim = {
-    getItem: (k) => lsData.get(k) ?? null,
-    setItem: (k, v) => lsData.set(k, String(v)),
-    removeItem: (k) => lsData.delete(k),
-    clear: () => lsData.clear(),
-    get length() { return lsData.size; },
-    key: (i) => [...lsData.keys()][i] ?? null,
-  };
-
-  const locationShim = {
-    href: "http://localhost/", hash: "", search: overrideSearch || "",
-    pathname: "/", hostname: "localhost", protocol: "http:",
-    origin: "http://localhost", host: "localhost", port: "",
-    toString() { return this.href; },
-  };
-
   // ---- 7. vm.Context ----
   // Suppress console.trace (some libs dump huge traces)
   const quietConsole = Object.create(console);
@@ -368,64 +372,49 @@ export async function loadNotebook(notebookPath, options = {}) {
     log(`trace: ${a.map(x => String(x?.message || x).slice(0, 100)).join(" ")}`);
   };
 
-  const moduleRegistry = new Map();
+  // The DOM environment already defines the browser globals — copy what it has rather
+  // than enumerating a hand-picked subset that drifts from a real browser. Only the
+  // node-side globals it lacks, and the notebook's own hooks, are layered on top.
+  const domGlobals = {};
+  {
+    // `eval` and `Function` must stay the vm realm's own: shadowing them with the outer
+    // realm's turns a direct eval into an indirect one, so `eval("x = …")` writes to the
+    // wrong global (observablejs-toolchain's importFake relies on direct eval).
+    const seen = new Set(["window", "self", "globalThis", "constructor", "happyDOM", "eval", "Function"]);
+    for (let o = domWindow; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
+      for (const name of Object.getOwnPropertyNames(o)) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        let v;
+        try { v = domWindow[name]; } catch { continue; }
+        // Methods (setTimeout, atob, requestAnimationFrame, …) need their receiver;
+        // constructors must NOT be bound or they lose their static properties.
+        if (typeof v === "function" && !Object.prototype.hasOwnProperty.call(v, "prototype")) {
+          try { v = v.bind(domWindow); } catch {}
+        }
+        domGlobals[name] = v;
+      }
+    }
+  }
 
-  sharedContext = vm.createContext({
-    console: quietConsole, setTimeout, clearTimeout, setInterval, clearInterval,
-    URL: PatchedURL, URLSearchParams, Map, Set, WeakMap, WeakSet,
-    Promise, Symbol, Proxy, Reflect,
-    Error, TypeError, RangeError, SyntaxError, ReferenceError, URIError, EvalError,
-    Array, Object, String, Number, Boolean, RegExp, Date, Math, JSON,
-    parseInt, parseFloat, isNaN, isFinite, encodeURI, decodeURI,
-    encodeURIComponent, decodeURIComponent, escape, unescape,
-    undefined, NaN, Infinity,
-    ArrayBuffer, SharedArrayBuffer, Uint8Array, Uint16Array, Uint32Array,
-    Int8Array, Int16Array, Int32Array, Float32Array, Float64Array,
-    BigInt, BigInt64Array, BigUint64Array, DataView,
-    TextEncoder, TextDecoder,
-    TextEncoderStream, TextDecoderStream,
-    Blob, Response, Request, Headers,
-    ReadableStream, WritableStream, TransformStream,
-    DecompressionStream, CompressionStream,
-    crypto,
-    structuredClone, queueMicrotask, atob, btoa,
-    AbortController, AbortSignal,
-    Event: linkedomWindow.Event || Event,
-    EventTarget: linkedomWindow.EventTarget || EventTarget,
-    CustomEvent: linkedomWindow.CustomEvent || CustomEvent,
-    InputEvent: linkedomWindow.InputEvent || class InputEvent extends (linkedomWindow.Event || Event) { constructor(type, opts) { super(type, opts); } },
-    fetch: patchedFetch,
-    document,
-    window: undefined, globalThis: undefined, self: undefined,
-    // Window-level event listeners (used by Observable stdlib's resize/width cells)
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: (e) => true,
-    requestAnimationFrame: linkedomWindow.requestAnimationFrame,
-    cancelAnimationFrame: linkedomWindow.cancelAnimationFrame,
-    MutationObserver: linkedomWindow.MutationObserver || class { observe(){} disconnect(){} takeRecords(){ return []; } },
-    IntersectionObserver: linkedomWindow.IntersectionObserver,
-    ResizeObserver: linkedomWindow.ResizeObserver,
-    HTMLElement: linkedomWindow.HTMLElement || class {},
-    HTMLScriptElement: linkedomWindow.HTMLScriptElement || class {},
-    Element: linkedomWindow.Element || class {},
-    Node: linkedomWindow.Node || class {},
-    NodeList: linkedomWindow.NodeList || class {},
-    HTMLCollection: linkedomWindow.HTMLCollection,
-    SVGElement: linkedomWindow.SVGElement,
-    Text: linkedomWindow.Text || class {},
-    Comment: linkedomWindow.Comment || class {},
-    DocumentFragment: linkedomWindow.DocumentFragment || class {},
-    DOMParser: linkedomWindow.DOMParser || class {},
-    NamedNodeMap: linkedomWindow.NamedNodeMap || class {},
-    localStorage: localStorageShim,
-    location: locationShim,
-    navigator: { userAgent: "lopecode-node/1.0", locks: null },
+  sharedContext = vm.createContext(Object.assign(domGlobals, {
+    // node-side globals the DOM window does not carry
+    Proxy, Reflect, structuredClone, SharedArrayBuffer,
+    BigInt64Array, BigUint64Array,
+    TextEncoderStream, TextDecoderStream, DecompressionStream, CompressionStream,
+    MessageChannel, MessagePort,
     indexedDB: new IDBFactory(),
     IDBKeyRange, IDBCursor, IDBCursorWithValue, IDBDatabase,
     IDBIndex, IDBObjectStore, IDBOpenDBRequest, IDBRequest,
     IDBTransaction, IDBVersionChangeEvent,
-    CSS: { escape: (s) => String(s).replace(/([^\w-])/g, "\\$1") },
+    // I/O primitives stay node's: the vm plumbing (fetch, streams, blob: imports)
+    // is node's, and mixing in happy-dom's own Blob breaks URL.createObjectURL.
+    Blob, File, FormData, Response, Request, Headers,
+    ReadableStream, WritableStream, TransformStream,
+    AbortController, AbortSignal, crypto,
+    console: quietConsole,
+    URL: PatchedURL,          // tracks blob: URLs so import() can resolve them
+    fetch: patchedFetch,      // notebook-local URLs resolve to embedded content
     lopecode: {
       dvfBytes,
       contentSync: (id) => {
@@ -448,7 +437,7 @@ export async function loadNotebook(notebookPath, options = {}) {
         return { status: 200, mime: info.mime, bytes: new Uint8Array(bytes) };
       },
     },
-  }, { name: "lopecode" });
+  }), { name: "lopecode" });
 
   sharedContext.globalThis = sharedContext;
   sharedContext.window = sharedContext;
@@ -457,120 +446,83 @@ export async function loadNotebook(notebookPath, options = {}) {
   // Patch appendChild now that sharedContext exists
   if (document.head) patchAppendChild(document.head);
   if (document.body) patchAppendChild(document.body);
-  if (linkedomWindow.HTMLElement?.prototype) patchAppendChild(linkedomWindow.HTMLElement.prototype);
+  if (domWindow.HTMLElement?.prototype) patchAppendChild(domWindow.HTMLElement.prototype);
 
-  // ---- 8. importModuleDynamically ----
-  async function importModuleDynamically(specifier, referrer) {
-    log(`import("${specifier.slice(0, 80)}") from ${referrer?.identifier || "?"}`);
+  // ---- 8. Module map ----
+  // One record per resolved specifier, and one link+evaluate promise per record — the
+  // contract a browser's module map has. The previous version cached the raw Module and
+  // re-checked `status` in every caller, so a second import arriving while the first was
+  // still linking either got back an unevaluated module (its namespace empty, so
+  // `runtime.module(ns.default)` produced a module with no cells) or handed a "linking"
+  // module to the vm linker, which throws "Module status must not be unlinked or
+  // linking". Both symptoms were the same missing memo.
+  const moduleRegistry = new Map();  // key -> Promise<Module>, linked and evaluated
+  const moduleRecords = new Map();   // key -> Module, possibly unlinked
 
+  const registryKey = (specifier) => resolveSpecifier(specifier) || specifier;
+
+  // Construct (and cache) a module record. Never links or evaluates: the vm links the
+  // whole graph itself, so the linker must hand back records rather than finished
+  // modules — that is what lets an import cycle terminate.
+  async function moduleRecord(specifier) {
+    const key = registryKey(specifier);
+    if (moduleRecords.has(key)) return moduleRecords.get(key);
+
+    let mod = null;
     const resolvedId = resolveSpecifier(specifier);
     if (resolvedId) {
       const result = decompressSource(resolvedId);
       if (result) {
         if (result.mime === "application/json" || resolvedId.endsWith(".json")) {
-          const mod = new vm.SyntheticModule(["default"],
+          mod = new vm.SyntheticModule(["default"],
             function() { this.setExport("default", JSON.parse(result.source)); },
             { context: sharedContext, identifier: `json:${resolvedId}` });
-          await mod.link(() => {});
-          await mod.evaluate();
-          return mod;
+        } else {
+          try {
+            mod = new vm.SourceTextModule(result.source, {
+              context: sharedContext, identifier: resolvedId, importModuleDynamically,
+            });
+          } catch (e) { log(`Compile fail "${resolvedId}": ${e.message}`); }
         }
-        if (moduleRegistry.has(resolvedId)) {
-          const m = moduleRegistry.get(resolvedId);
-          if (m.status === "unlinked") await m.link(linker);
-          if (m.status === "linked") await m.evaluate();
-          return m;
-        }
-        try {
-          const mod = new vm.SourceTextModule(result.source, {
-            context: sharedContext, identifier: resolvedId, importModuleDynamically,
-          });
-          moduleRegistry.set(resolvedId, mod);
-          await mod.link(linker);
-          await mod.evaluate();
-          return mod;
-        } catch (e) { log(`Compile fail "${resolvedId}": ${e.message}`); }
       }
-    }
-
-    if (specifier.startsWith("blob:")) {
-      if (moduleRegistry.has(specifier)) {
-        const m = moduleRegistry.get(specifier);
-        if (m.status === "unlinked") await m.link(linker);
-        if (m.status === "linked") await m.evaluate();
-        return m;
-      }
+    } else if (specifier.startsWith("blob:")) {
       const blob = blobUrlStore.get(specifier);
       if (blob) {
         try {
-          const text = await blob.text();
-          const mod = new vm.SourceTextModule(text, {
-            context: sharedContext, identifier: specifier,
-            importModuleDynamically,
+          mod = new vm.SourceTextModule(await blob.text(), {
+            context: sharedContext, identifier: specifier, importModuleDynamically,
           });
-          moduleRegistry.set(specifier, mod);
-          await mod.link(linker);
-          await mod.evaluate();
-          return mod;
         } catch (e) { log(`Blob fail: ${e.message}`); }
       }
     }
 
-    log(`Unresolved: "${specifier}" → stub`);
-    const stub = new vm.SyntheticModule(["default"],
-      function() { this.setExport("default", undefined); },
-      { context: sharedContext, identifier: `stub:${specifier}` });
-    await stub.link(() => {});
-    await stub.evaluate();
-    return stub;
+    if (!mod) {
+      log(`Unresolved: "${specifier}" → stub`);
+      mod = new vm.SyntheticModule(["default"],
+        function() { this.setExport("default", undefined); },
+        { context: sharedContext, identifier: `stub:${specifier}` });
+    }
+    moduleRecords.set(key, mod);
+    return mod;
   }
 
-  async function linker(specifier, ref) {
-    if (moduleRegistry.has(specifier)) {
-      const m = moduleRegistry.get(specifier);
-      if (m.status === "unlinked") await m.link(linker);
-      return m;
-    }
-    const rid = resolveSpecifier(specifier);
-    if (rid && moduleRegistry.has(rid)) {
-      const m = moduleRegistry.get(rid);
-      if (m.status === "unlinked") await m.link(linker);
-      return m;
-    }
-    if (rid) {
-      const result = decompressSource(rid);
-      if (result && result.mime !== "application/json") {
-        try {
-          const mod = new vm.SourceTextModule(result.source, {
-            context: sharedContext, identifier: rid, importModuleDynamically,
-          });
-          moduleRegistry.set(rid, mod);
-          await mod.link(linker);
-          return mod;
-        } catch (e) { log(`Link fail "${rid}": ${e.message}`); }
-      }
-    }
-    // Handle blob: URLs (e.g. decompressed FileAttachment modules)
-    if (specifier.startsWith("blob:")) {
-      const blob = blobUrlStore.get(specifier);
-      if (blob) {
-        try {
-          const text = await blob.text();
-          const mod = new vm.SourceTextModule(text, {
-            context: sharedContext, identifier: specifier,
-            importModuleDynamically,
-          });
-          moduleRegistry.set(specifier, mod);
-          await mod.link(linker);
-          return mod;
-        } catch (e) { log(`Blob link fail: ${e.message}`); }
-      }
-    }
-    const stub = new vm.SyntheticModule(["default"],
-      function() { this.setExport("default", undefined); },
-      { context: sharedContext, identifier: `stub:${specifier}` });
-    await stub.link(linker);
-    return stub;
+  function linker(specifier) {
+    return moduleRecord(specifier);
+  }
+
+  function importModuleDynamically(specifier, referrer) {
+    const key = registryKey(specifier);
+    const cached = moduleRegistry.get(key);
+    if (cached) return cached;
+    log(`import("${specifier.slice(0, 80)}") from ${referrer?.identifier || "?"}`);
+    const pending = (async () => {
+      const mod = await moduleRecord(specifier);
+      if (mod.status === "unlinked") await mod.link(linker);
+      if (mod.status === "linked") await mod.evaluate();
+      return mod;
+    })();
+    moduleRegistry.set(key, pending);
+    return pending;
   }
 
   // ---- 9. importShim ----
@@ -602,9 +554,9 @@ export async function loadNotebook(notebookPath, options = {}) {
 
   // Set location hash
   if (overrideHash !== null) {
-    locationShim.hash = overrideHash;
+    domWindow.location.hash = overrideHash;
   } else if (bootconf.hash) {
-    locationShim.hash = bootconf.hash;
+    domWindow.location.hash = bootconf.hash;
   }
 
   log(`Bootloader: ${bootloaderName}, mains: ${JSON.stringify(bootconf.mains)}`);
@@ -621,9 +573,17 @@ export async function loadNotebook(notebookPath, options = {}) {
     __ojs_observer: () => observerFactory,
   });
   sharedContext.__ojs_runtime = runtime;
+  // Hook for harness diagnostics (queue tracing); inert unless passed.
+  if (typeof options.instrument === "function") options.instrument(runtime);
   sharedContext.__ojs_observer = observerFactory;
 
-  runtime._builtin.define("importShim", [], () => importShim);
+  // The bootloader defines this itself, guarded on `window.importShim` (bootloader.js:23).
+  // Defining it here too makes the builtin module hold the name twice, and the runtime
+  // replaces BOTH with a thrower — "importShim is defined more than once". Everything
+  // whose module bridge references importShim then rejects, and since a rejected compute
+  // never sets _error, those cells read as pending forever rather than as failures.
+  // Expose it on the context instead and let the bootloader's guarded define win.
+  sharedContext.importShim = importShim;
 
   const bootloaderNs = await importShim(bootloaderName);
   const bootloaderDefine = bootloaderNs.default;
@@ -666,10 +626,12 @@ export async function loadNotebook(notebookPath, options = {}) {
     context: sharedContext,
     bootconf,
     bootloaderName,
-    locationShim,
-    localStorageShim,
+    locationShim: domWindow.location,
+    localStorageShim: domWindow.localStorage,
     notebookPath: absPath,
     moduleRegistry,
+    moduleRecords,
+    domWindow,
     importShim,
     log,
   });
@@ -694,12 +656,12 @@ export class LopecodeExecution {
     return this.runtime.mains || new Map();
   }
 
-  /** Location shim — modify hash/search to affect cells that read location */
+  /** The DOM Location — assign hash/search to affect cells that read location */
   get location() {
     return this._internals.locationShim;
   }
 
-  /** localStorage shim */
+  /** The DOM localStorage */
   get localStorage() {
     return this._internals.localStorageShim;
   }
@@ -802,6 +764,21 @@ export class LopecodeExecution {
   /**
    * Run test_* variables and return results.
    */
+  /**
+   * A test that declines to run must not report as one that ran. The marker is the
+   * cell's own value — `return "skipped: no layout engine"` — or `{skipped: true, reason}`.
+   * @returns {string|null} the reason, or null if this value is not a skip
+   */
+  static skipReason(value) {
+    if (typeof value === "string") {
+      const m = /^\s*skipped\s*:\s*(.*)$/is.exec(value);
+      return m ? m[1].trim() : null;
+    }
+    if (value && typeof value === "object" && (value.skipped === true || value.__skip === true))
+      return String(value.reason ?? value.why ?? "no reason given");
+    return null;
+  }
+
   async runTests(timeout = 30000, filter = null) {
     const results = new Map();
     const promises = [];
@@ -820,7 +797,10 @@ export class LopecodeExecution {
 
         if (v._value !== undefined) {
           clearTimeout(tid);
-          results.set(fullName, { state: "passed", name: v._name, module: this._getModuleName(v._module), value: String(v._value).slice(0, 200) });
+          const why = LopecodeExecution.skipReason(v._value);
+          results.set(fullName, why === null
+            ? { state: "passed", name: v._name, module: this._getModuleName(v._module), value: String(v._value).slice(0, 200) }
+            : { state: "skipped", name: v._name, module: this._getModuleName(v._module), reason: why });
           resolve(); return;
         }
         if (v._error !== undefined) {
@@ -833,7 +813,10 @@ export class LopecodeExecution {
         v._observer = {
           fulfilled: (value) => {
             clearTimeout(tid);
-            results.set(fullName, { state: "passed", name: v._name, module: this._getModuleName(v._module), value: String(value).slice(0, 200) });
+            const why = LopecodeExecution.skipReason(value);
+            results.set(fullName, why === null
+              ? { state: "passed", name: v._name, module: this._getModuleName(v._module), value: String(value).slice(0, 200) }
+              : { state: "skipped", name: v._name, module: this._getModuleName(v._module), reason: why });
             resolve();
           },
           rejected: (error) => {
@@ -843,10 +826,9 @@ export class LopecodeExecution {
           },
           pending: () => {},
         };
-        if (!v._reachable) {
-          v._reachable = true;
-          this.runtime._dirty?.add(v);
-        }
+        // Do NOT preset _reachable: computeNow queues a variable only when its
+        // reachability RISES, and `true > true` is false. The observer above raises it.
+        this.runtime._dirty?.add(v);
       });
       promises.push(p);
     }
@@ -867,6 +849,7 @@ export class LopecodeExecution {
         passed: tests.filter(t => t.state === "passed").length,
         failed: tests.filter(t => t.state === "failed").length,
         timeout: tests.filter(t => t.state === "timeout").length,
+        skipped: tests.filter(t => t.state === "skipped").length,
       },
     };
   }
@@ -917,6 +900,10 @@ export class LopecodeExecution {
   dispose() {
     try { this.runtime.dispose(); } catch {}
     this._internals.moduleRegistry.clear();
+    this._internals.moduleRecords?.clear();
+    // The DOM window owns real timers and observers; without this the process never exits.
+    try { this._internals.domWindow?.happyDOM?.abort?.(); } catch {}
+    try { this._internals.domWindow?.close?.(); } catch {}
   }
 
   // ---- Private helpers ----

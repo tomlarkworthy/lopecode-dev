@@ -14,7 +14,9 @@
  *   --tap                 Output raw TAP format (default for tests)
  *   --json                Output JSON test results
  *   --fail-fast           Stop on first failure
- *   --wait <ms>           Wait time for notebook to stabilize (default: 3000)
+ *   --hash <fragment>     Boot with this location hash (e.g. arming a gated test suite)
+ *   --hash <fragment>     Boot with this location hash (e.g. arming a gated test suite)
+  --wait <ms>           Wait time for notebook to stabilize (default: 3000)
  *   --timeout <ms>        Maximum execution time (default: 30000)
  *   --headed              Run with visible browser (for debugging)
  *   --verbose             Show console logs from notebook
@@ -46,6 +48,7 @@ interface Options {
   outputFormat: "tap" | "json";
   failFast: boolean;
   wait: number;
+  hash?: string;
   timeout: number;
   headed: boolean;
   verbose: boolean;
@@ -85,6 +88,8 @@ function parseArgs(args: string[]): Options {
       options.outputFormat = "json";
     } else if (arg === "--fail-fast") {
       options.failFast = true;
+    } else if (arg === "--hash" && args[i + 1]) {
+      options.hash = args[++i];
     } else if (arg === "--wait" && args[i + 1]) {
       options.wait = parseInt(args[++i], 10);
     } else if (arg === "--timeout" && args[i + 1]) {
@@ -185,7 +190,7 @@ async function runNotebook(options: Options): Promise<void> {
       });
     });
 
-    const fileUrl = `file://${notebookPath}`;
+    const fileUrl = `file://${notebookPath}${options.hash ? (options.hash.startsWith("#") ? options.hash : "#" + options.hash) : ""}`;
     console.error(`Loading: ${fileUrl}`);
 
     await page.goto(fileUrl, {
