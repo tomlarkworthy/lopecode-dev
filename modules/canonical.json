@@ -857,8 +857,7 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_wormhole2.html"
   },
   "@tomlarkworthy/ui-testing": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ui-testing.html",
-    "upstream": null
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ui-testing.html"
   },
   "@tomlarkworthy/lopepage-2-tests": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
