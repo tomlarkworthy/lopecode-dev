@@ -555,6 +555,9 @@
   "@tomlarkworthy/observablehq-lezer": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html"
   },
+  "@tomlarkworthy/observablejs-reference": {
+    "lopecode": "lopecode/notebooks/tomlarkworthy_observablejs-reference.html"
+  },
   "@tomlarkworthy/observablejs-toolchain": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_observablejs-toolchain.html",
     "lopecode": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html"

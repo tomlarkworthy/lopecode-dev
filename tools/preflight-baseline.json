@@ -3092,5 +3092,15 @@
    "detail": "@tomlarkworthy/svg-lens: toolStructure declares attrVal (a cell here) but never uses it",
    "kind": "unused-dep"
   }
+ ],
+ "lopecode/notebooks/tomlarkworthy_observablejs-reference.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
  ]
 }
