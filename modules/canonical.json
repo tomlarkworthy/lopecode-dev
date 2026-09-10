@@ -860,7 +860,6 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_ui-testing.html"
   },
   "@tomlarkworthy/lopepage-2-tests": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
-    "upstream": null
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html"
   }
 }
