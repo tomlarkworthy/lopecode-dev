@@ -893,3 +893,95 @@ The same probe against `file://` on the working copy gives the same result.
 
 The remaining `cc=LOPE` occurrence is not a token — it is the string `cc=LOPE-…) before a URL` in
 the pairing module's own prose.
+
+## Scale: 1,467 records became 78,700 (2026-09-11)
+
+The full-corpus backfill finished on 2026-09-11 (see `vendor/slack-sync/GAPS.md`).
+Every number the viewer was designed against moved by 40x, and three of its
+mechanisms do not survive it.
+
+### What breaks, measured
+
+`foc-data`'s `focListRecords` stops after 200 pages of 100 (line 65,
+`for (let page = 0; page < 200; page++)`), and `crawlBot()` calls it once per
+collection with no limit. Projected from the record sizes in
+`tools/backfill-all.jsonl` (744 B per message, 296 B per reaction):
+
+| collection | records | pages | JSON |
+|---|---|---|---|
+| `social.colibri.message` | 55,574 | 556 | ~41 MB |
+| `social.colibri.reaction` | ~23,100 | 231 | ~7 MB |
+
+So a cold open is **~48 MB over ~790 sequential requests**, and the page cap
+**silently truncates messages at 20,000 — 36% of the collection**. No error, no
+warning: `focListRecords` returns a short array and everything downstream
+believes it.
+
+Two more, from reading the module rather than running it:
+
+- `focIdb.put(cfg.idbKey, { messages, reactions, fetchedAt, cursor })` — the
+  whole archive is one IndexedDB value, rewritten on every tail change.
+- `focChannelList` appends a node per message with no windowing.
+  #thinking-together holds 3,786 top-level posts and 23,388 replies.
+
+### Substring search: yes, and it needs no index at all
+
+The question was whether IndexedDB can drive substring search. **Natively, no** —
+an IDB index is an ordered B-tree, so `IDBKeyRange.bound(q, q + "￿")` gives
+prefix matching and there is no "contains" query. But the premise that an index
+is needed does not survive measurement.
+
+The searchable corpus is 54,633 messages, **17.8 M characters**. Scanning all of
+it with `String.prototype.includes` (bun 1.4, M-series, mean of 5 runs):
+
+```
+array-of-strings scan, .includes():
+  "observable"                       4.4 ms  (288 hits)
+  "end user programming"             3.6 ms  (42 hits)
+  "zzqqxx"                           3.1 ms  (0 hits)
+single joined string, indexOf loop:
+  "observable"                       6.0 ms  (473 hits)
+regex /observable/i over array       9.1 ms  (288 hits)
+```
+
+**A full substring scan of eight years of the community costs 3–6 ms**, which is
+inside a keystroke. Pre-lowercasing and scanning an array beats both a single
+joined string and a case-insensitive regex.
+
+The alternatives, for the record, because both are worse:
+
+| approach | cost | what it gives |
+|---|---|---|
+| in-memory `includes()` scan | 3–6 ms/query, **36 MB** heap (17.8 M chars UTF-16) | true substring, no build step |
+| IDB `multiEntry` token index | 2,175,229 postings over 85,446 terms | word **prefix** only, zero heap |
+| trigram index for substring | 70,282 trigrams, **12,367,220 postings, ~49 MB** | true substring |
+
+The trigram index is **larger than the corpus it indexes** — 49 MB of postings
+to search 18 MB of text that scans in 4 ms. Measured, not assumed; it is ruled
+out. The existing `searchIndex` cell (an in-memory `Map<token, rkey[]>`, 2.17 M
+postings, ~28 MB just for the rkey strings) should go too: it costs more than
+the scan it replaces and only does token/prefix matching.
+
+Recommendation: **drop the inverted index, keep `{rkey, lowercased text}` in
+memory, scan on every keystroke.** Rank and slice afterwards.
+
+Unmeasured, and the next thing to measure: how long reading 54,633 rows out of
+IndexedDB takes in a real browser. The 4 ms is the scan once the projection is in
+memory; the load is the part with no number against it. A separate `search`
+object store holding only `{rkey, text}` makes that one cursor sweep over ~19 MB
+instead of a walk over the full records.
+
+### The shape that follows
+
+1. **A row per record.** `messages` and `reactions` object stores keyed by rkey,
+   with an index on `[channel, rkey]` so a channel opens without touching the
+   rest. Replaces the single-value put, which currently reserialises ~48 MB per
+   tail change.
+2. **Newest first drives the UI.** `listRecords` already takes `reverse`; rkeys
+   are TIDs, so newest-first is the natural page order and the first page is
+   enough to render. Backfill the rest in the background, oldest page last, and
+   let the UI light up as rows land.
+3. **Windowed rendering**, since #thinking-together's 23,388 replies are a DOM
+   cost no data change removes.
+
+Everything local stays local: this is still one PDS, no server, no query API.
