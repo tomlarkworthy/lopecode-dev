@@ -985,3 +985,56 @@ instead of a walk over the full records.
    cost no data change removes.
 
 Everything local stays local: this is still one PDS, no server, no query API.
+
+## The crawl: uncapped, resumable, off the boot path (2026-09-11)
+
+`focListRecords`' `page < 200` cap was found while integrating search. It ran
+`reverse: true`, which is **oldest** first, so the cap kept the oldest 20,000
+messages and stopped at `3h5apv2jzz222`, 2020-04-14. The viewer held 2017 to
+April 2020 plus whatever the live event tail had seen, and nothing between.
+
+Replaced with `focPage` / `focCrawl` / `focStore`, all measured against the real
+PDS (`bun tools/foc-viewer/crawl-check.mjs`, `node tools/foc-viewer/crawl-check.mjs`):
+
+```
+repo, 2026-09-11     55,587 messages / 557 pages / 186.1 s
+                     22,870 reactions / 230 pages /  49.2 s
+                      2,164 events    /  23 pages /  10.3 s
+limit                100, the PDS maximum: limit=200 -> InvalidRequest
+                     "integer too big (maximum 100, got 200)"
+read budget          ratelimit-policy 3000;w=300, 1 point per page, exposed to
+                     the browser; 557 pages took remaining 2992 -> 2394
+```
+
+**A second limiter sits in front of the PDS and is invisible to a client.**
+~1,400 pages inside fifteen minutes produced `HTTP/2 429` with an HTML body, no
+`ratelimit-*` headers and no `Retry-After`, while the XRPC policy still reported
+~2,900 of 3,000 points left. It cleared in under four minutes. Nothing in that
+response can be paced against, so `focCrawlDelayMs` is a flat 250 ms: 1.3–1.5
+pages/s, ~9 minutes for the whole repo against 186 s flat out. That trade is the
+reason the walk had to move off the boot path rather than be made faster.
+
+Browser behaviour, Chromium, `file://` notebook:
+
+```
+cold, empty cache    archive-start +282 ms, idb-load 25 ms,
+                     837 messages on screen at +5 s, newest first
+closed at page 60    watermark {cursor: 3l6fvacmra522, complete: false}
+reopened             6,037 rows from IndexedDB in 53 ms, resumed at that cursor
+finished             55,624 messages + 22,882 reactions, both complete
+reopened again       idb-load 264 ms; catch-up 2 requests / 0 records;
+                     3 listRecords at boot, then 1 per 5 s tail poll
+search               3-term query over 55,624 rows, 36 ms
+```
+
+Two bugs the runs caught, neither visible in a read-through:
+
+- `top` was taken from the first rkey of whichever segment ran, so a walk that
+  resumed mid-repo recorded `3iyj43vcztl22` as the head. The next boot would
+  have re-walked ~330 pages. It is now the running maximum rkey held, which is
+  only written when the segment that establishes contiguity finishes.
+- A finished crawl left `dirty` false, so no yield followed it and the chat
+  header stayed on "loading older messages" forever.
+
+`focListEvents` now goes through `focPage` as well: it had no retry at all, so a
+single 429 dropped a poll.
