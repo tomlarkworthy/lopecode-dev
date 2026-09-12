@@ -85,6 +85,13 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_cell-map.html",
     "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map.html"
   },
+  "@tomlarkworthy/cell-map-2": {
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map-2.html"
+  },
+  "@tomlarkworthy/cell-map-viz": {
+    "lopecode": "lopecode/notebooks/@tomlarkworthy_cell-map-2.html",
+    "upstream": null
+  },
   "@tomlarkworthy/cells-to-clipboard": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html"
   },
@@ -358,8 +365,7 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html"
   },
   "@tomlarkworthy/js-toolchain": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
-    "upstream": null
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html"
   },
   "@tomlarkworthy/jsqrcode": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html"

@@ -9,8 +9,34 @@
 // Invertability is the key invariant: decompile(compile(src)) === trimNewlines(src).
 import {transpileJavaScript, detranspileJavaScript} from "./transpile.js";
 import {compileObservableImports, decompileObservableImports} from "./observable-imports.js";
+import {maybeParseJavaScript} from "./parse.js";
 
-const PROJECTION = /^\((\w+)\)\s*=>\s*\1\[("(?:[^"\\]|\\.)*")\]$/;
+// A projection hands one output out of the holder's exports object. compile() emits the projected
+// name as a string literal — `(exports) => exports["a"]` — but the live notebook-kit runtime spells
+// the same shape with a bare subscript (`e => e[t]`, `exports[o2]`), where the name is a closure
+// variable and is not recoverable from the source text at all. So match the STRUCTURE and read the
+// name from the literal when there is one, else from the cell's own _name. A regex cannot do this:
+// widening it would only recognise a shape whose key part is by then unreadable.
+// Returns {name} (name null when the subscript is a bare identifier), or null if not a projection.
+function projectionSubscript(def) {
+  let parsed;
+  try {
+    parsed = maybeParseJavaScript(def);
+  } catch {
+    return null;
+  }
+  if (!parsed?.expression) return null;
+  const fn = parsed.body;
+  if (fn?.type !== "ArrowFunctionExpression") return null;
+  if (fn.params.length !== 1 || fn.params[0].type !== "Identifier") return null;
+  const body = fn.body;
+  if (body?.type !== "MemberExpression" || !body.computed) return null;
+  if (body.object?.type !== "Identifier" || body.object.name !== fn.params[0].name) return null;
+  const key = body.property;
+  if (key?.type === "Literal" && typeof key.value === "string") return {name: key.value};
+  if (key?.type === "Identifier") return {name: null};
+  return null;
+}
 
 // ts mode is intentionally not supported in-browser: type-stripping needs a TypeScript
 // transpiler, and notebook-kit's own browser bundle stubs `typescript` out for the same
@@ -45,9 +71,17 @@ export function decompile(cells) {
   const others = [];
   for (const c of cells) {
     const def = typeof c._definition === "string" ? c._definition : String(c._definition);
-    const m = def.match(PROJECTION);
-    if (m && (c._inputs?.length ?? 0) === 1) projections.push(JSON.parse(m[2]));
-    else others.push(c);
+    const p = (c._inputs?.length ?? 0) === 1 ? projectionSubscript(def) : null;
+    if (p) {
+      const name = p.name ?? (typeof c._name === "string" ? c._name : null);
+      if (name === null) {
+        throw new Error(
+          "js-toolchain: projection cell has a bare subscript and no _name, so the projected " +
+          "output cannot be named"
+        );
+      }
+      projections.push(name);
+    } else others.push(c);
   }
   if (others.length !== 1) {
     throw new Error(`js-toolchain: decompile expects exactly one holder cell, got ${others.length}`);

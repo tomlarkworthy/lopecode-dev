@@ -1,0 +1,1090 @@
+{
+ "type": "bundle",
+ "events": [
+  {
+   "type": "insert_node",
+   "node_id": 0,
+   "new_node_value": {
+    "body": "function(md){return(\nmd`# Test Notebook of Semantics`\n)}",
+    "inputs": [
+     "md"
+    ],
+    "sourcemap": {
+     "_input": "# Test Notebook of Semantics",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function(md){return(\n"
+      },
+      {
+       "start": 0,
+       "end": 0,
+       "value": "md`"
+      },
+      {
+       "start": 28,
+       "end": 28,
+       "value": "`"
+      },
+      {
+       "start": 28,
+       "end": 28,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": null,
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "md",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 9,
+   "new_node_value": {
+    "body": "function(){return(\n1\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "1",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 1,
+       "end": 1,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": null,
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 31,
+   "new_node_value": {
+    "body": "function()\n{\n  (\"\");\n}\n",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "{\n  (\"\");\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function()\n"
+      },
+      {
+       "start": 11,
+       "end": 11,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": null,
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 100,
+   "new_node_value": {
+    "body": "function(htl){return(\nhtl.html`<div>`\n)}",
+    "inputs": [
+     "htl"
+    ],
+    "sourcemap": {
+     "_input": "<div>",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function(htl){return(\n"
+      },
+      {
+       "start": 0,
+       "end": 0,
+       "value": "htl.html`"
+      },
+      {
+       "start": 5,
+       "end": 5,
+       "value": "`"
+      },
+      {
+       "start": 5,
+       "end": 5,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "html",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "html",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 153,
+   "new_node_value": {
+    "body": "function(){return(\nclass myclass {}\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "class myclass {}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 16,
+       "end": 16,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "myclass",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 115,
+   "new_node_value": {
+    "body": "function(){return(\n{}\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "obj_literal = ({})",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 15,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 17,
+       "end": 18,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "obj_literal",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 11,
+   "new_node_value": {
+    "body": "function(){return(\n\"\"\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "x = \"\"",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 4,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 6,
+       "end": 6,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "x",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 13,
+   "new_node_value": {
+    "body": "function(x){return(\nx\n)}",
+    "inputs": [
+     "x"
+    ],
+    "sourcemap": {
+     "_input": "y = x",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 4,
+       "value": "function(x){return(\n"
+      },
+      {
+       "start": 5,
+       "end": 5,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "y",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 15,
+   "new_node_value": {
+    "body": "function(x,y)\n{\n  (\"\");\n  return x + y;\n}\n",
+    "inputs": [
+     "x",
+     "y"
+    ],
+    "sourcemap": {
+     "_input": "z = {\n  (\"\");\n  return x + y;\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 4,
+       "value": "function(x,y)\n"
+      },
+      {
+       "start": 31,
+       "end": 31,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "z",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 145,
+   "new_node_value": {
+    "body": "function()\n{\n  // a comment\n  return \"\";\n}\n",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "comments = {\n  // a comment\n  return \"\";\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 11,
+       "value": "function()\n"
+      },
+      {
+       "start": 42,
+       "end": 42,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "comments",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 17,
+   "new_node_value": {
+    "body": "function*(x,y)\n{\n  yield x + y;\n}\n",
+    "inputs": [
+     "x",
+     "y"
+    ],
+    "sourcemap": {
+     "_input": "generator = {\n  yield x + y;\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 12,
+       "value": "function*(x,y)\n"
+      },
+      {
+       "start": 30,
+       "end": 30,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "generator",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 20,
+   "new_node_value": {
+    "body": "function(){return(\nfunction () {}\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "_function = function () {}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 12,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 26,
+       "end": 26,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "_function",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 71,
+   "new_node_value": {
+    "body": "function(){return(\nasync function () {}\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "asyncfunction = async function () {}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 16,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 36,
+       "end": 36,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "asyncfunction",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 25,
+   "new_node_value": {
+    "body": "function(){return(\nfunction foo() {}\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "named_function = function foo() {}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 17,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 34,
+       "end": 34,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "named_function",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 151,
+   "new_node_value": {
+    "body": "function(){return(\n(this || 0) + 1\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "thisReference = (this || 0) + 1",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 16,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 31,
+       "end": 31,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "thisReference",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 22,
+   "new_node_value": {
+    "body": "function(){return(\n() => {}\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "lambda = () => {}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 9,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 17,
+       "end": 17,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "lambda",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 33,
+   "new_node_value": {
+    "body": "function()\n{\n  throw new Error();\n}\n",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "error = {\n  throw new Error();\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 8,
+       "value": "function()\n"
+      },
+      {
+       "start": 32,
+       "end": 32,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "error",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 165,
+   "new_node_value": {
+    "body": "function()\n{\n  throw { foo: \"bar\" };\n}\n",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "error_obj = {\n  throw { foo: \"bar\" };\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 12,
+       "value": "function()\n"
+      },
+      {
+       "start": 39,
+       "end": 39,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "error_obj",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 162,
+   "new_node_value": {
+    "body": "function(error_dep){return(\nerror_dep\n)}",
+    "inputs": [
+     "error_dep"
+    ],
+    "sourcemap": {
+     "_input": "error_dep",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function(error_dep){return(\n"
+      },
+      {
+       "start": 9,
+       "end": 9,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": null,
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 39,
+   "new_node_value": {
+    "body": "function(Inputs){return(\nInputs.input()\n)}",
+    "inputs": [
+     "Inputs"
+    ],
+    "sourcemap": {
+     "_input": "viewof view = Inputs.input()",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 14,
+       "value": "function(Inputs){return(\n"
+      },
+      {
+       "start": 28,
+       "end": 28,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "viewof",
+    "name": "view",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 42,
+   "new_node_value": {
+    "body": "function(){return(\n6\n)}",
+    "inputs": [],
+    "sourcemap": {
+     "_input": "mutable q = 6",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 12,
+       "value": "function(){return(\n"
+      },
+      {
+       "start": 13,
+       "end": 13,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "mutable",
+    "name": "q",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 45,
+   "new_node_value": {
+    "body": "function(_){return(\n_\n)}",
+    "inputs": [
+     "_"
+    ],
+    "sourcemap": {
+     "_input": "inbuilt = _",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 10,
+       "value": "function(_){return(\n"
+      },
+      {
+       "start": 11,
+       "end": 11,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "inbuilt",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 48,
+   "new_node_value": {
+    "body": "function(FileAttachment){return(\nFileAttachment(\"empty\")\n)}",
+    "inputs": [
+     "FileAttachment"
+    ],
+    "sourcemap": {
+     "_input": "file = FileAttachment(\"empty\")",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 7,
+       "value": "function(FileAttachment){return(\n"
+      },
+      {
+       "start": 30,
+       "end": 30,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "file",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 52,
+   "new_node_value": {
+    "body": "function($0,lambda,$1)\n{\n  $0;\n  lambda;\n  $1.value;\n  return $1.value;\n}\n",
+    "inputs": [
+     "viewof view",
+     "lambda",
+     "mutable q"
+    ],
+    "sourcemap": {
+     "_input": "mutable_dep = {\n  viewof view;\n  lambda;\n  mutable q;\n  return mutable q;\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 14,
+       "value": "function($0,lambda,$1)\n"
+      },
+      {
+       "start": 18,
+       "end": 29,
+       "value": "$0"
+      },
+      {
+       "start": 43,
+       "end": 52,
+       "value": "$1.value"
+      },
+      {
+       "start": 63,
+       "end": 72,
+       "value": "$1.value"
+      },
+      {
+       "start": 75,
+       "end": 75,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "mutable_dep",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 55,
+   "new_node_value": {
+    "body": "function(file,q)\n{\n  file;\n  return q + 1;\n}\n",
+    "inputs": [
+     "file",
+     "q"
+    ],
+    "sourcemap": {
+     "_input": "mutable_dep_2 = {\n  file;\n  return q + 1;\n}",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 16,
+       "value": "function(file,q)\n"
+      },
+      {
+       "start": 43,
+       "end": 43,
+       "value": "\n"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "mutable_dep_2",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 57,
+   "new_node_value": {
+    "body": "function($0){return(\n$0\n)}",
+    "inputs": [
+     "viewof view"
+    ],
+    "sourcemap": {
+     "_input": "viewofdep_inline = viewof view",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 19,
+       "value": "function($0){return(\n"
+      },
+      {
+       "start": 19,
+       "end": 30,
+       "value": "$0"
+      },
+      {
+       "start": 30,
+       "end": 30,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "viewofdep_inline",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 61,
+   "new_node_value": {
+    "body": "function(view){return(\nview\n)}",
+    "inputs": [
+     "view"
+    ],
+    "sourcemap": {
+     "_input": "viewofdatadep = view",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 16,
+       "value": "function(view){return(\n"
+      },
+      {
+       "start": 20,
+       "end": 20,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "viewofdatadep",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 93,
+   "new_node_value": {
+    "body": "function(dep){return(\ndep\n)}",
+    "inputs": [
+     "dep"
+    ],
+    "sourcemap": {
+     "_input": "dep",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 0,
+       "value": "function(dep){return(\n"
+      },
+      {
+       "start": 3,
+       "end": 3,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": null,
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 168,
+   "new_node_value": {
+    "body": "function(Event){return(\nnew Event(\"input\")\n)}",
+    "inputs": [
+     "Event"
+    ],
+    "sourcemap": {
+     "_input": "event = new Event(\"input\")",
+     "_edits": [
+      {
+       "start": 0,
+       "end": 8,
+       "value": "function(Event){return(\n"
+      },
+      {
+       "start": 26,
+       "end": 26,
+       "value": "\n)}"
+      }
+     ]
+    },
+    "type": "normal",
+    "name": "event",
+    "databaseClients": {},
+    "fileAttachments": {},
+    "secrets": {},
+    "notificationClients": {}
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_node",
+   "node_id": 64,
+   "new_node_value": {
+    "type": "import",
+    "specifier": "@tomlarkworthy/dependancy",
+    "specifiers": [
+     {
+      "imported": "dep",
+      "local": "dep",
+      "mutable": false,
+      "view": false
+     },
+     {
+      "imported": "mutabledep",
+      "local": "mutabledep",
+      "mutable": true,
+      "view": false
+     },
+     {
+      "imported": "viewdep",
+      "local": "viewdep",
+      "mutable": false,
+      "view": true
+     },
+     {
+      "imported": "dep",
+      "local": "dep_alias",
+      "mutable": false,
+      "view": false
+     },
+     {
+      "imported": "error_dep",
+      "local": "error_dep",
+      "mutable": false,
+      "view": false
+     },
+     {
+      "imported": "mutabledep",
+      "local": "aslias_mutabledep",
+      "mutable": true,
+      "view": false
+     },
+     {
+      "imported": "viewdep",
+      "local": "aslias_viewdep",
+      "mutable": false,
+      "view": true
+     },
+     {
+      "imported": "mutabledep",
+      "local": "aslias_mutabledep_data",
+      "mutable": false,
+      "view": false
+     },
+     {
+      "imported": "viewdep",
+      "local": "aslias_viewdep_data",
+      "mutable": false,
+      "view": false
+     }
+    ],
+    "notebook": "https://old.observablehq.com/@tomlarkworthy/dependancy",
+    "module": "https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173"
+   },
+   "new_next_node_id": null,
+   "new_node_mode": "js",
+   "new_node_data": null
+  },
+  {
+   "type": "insert_file",
+   "name": "empty",
+   "url": "https://static.observableusercontent.com/files/50cad75d56578d08f50d560a50a6f4a66919f1f0b9c189221c6768a04dc958323335dac14ca3526e6527019d02e9e00d21d247eb5c2646b38ec7720e0ddcaa7e",
+   "mimeType": "application/octet-stream",
+   "privateBucketId": null
+  },
+  {
+   "type": "navigate",
+   "pathname": "/@tomlarkworthy/notebook-semantics",
+   "search": "",
+   "hash": ""
+  }
+ ]
+}

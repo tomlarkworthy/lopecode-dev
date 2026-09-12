@@ -95,6 +95,56 @@ describe("ts mode is intentionally unsupported in-browser", () => {
   });
 });
 
+// The runtime spells projections differently from the compiler, and decompile only ever saw the
+// compiler's spelling — the mirror image of the defect cell-map-2's GLUE had. Classification is
+// structural (acorn), so both spellings are recognised; the NAME is what differs, since a bare
+// subscript is a closure variable that carries no name at all.
+describe("projection classification is structural, not textual", () => {
+  const src = `const a = 1;\nconst b = 2`;
+
+  test("the compiler's quoted form still round-trips", () => {
+    expect(decompile(compile(src))).toBe(src);
+  });
+
+  test("a minified runtime projection (bare subscript) is recognised, named from _name", () => {
+    const cells = compile(src, {id: 7});
+    const runtime = cells.map((c, i) => (i === 0 ? c : {...c, _definition: `e => e[t]`}));
+    expect(decompile(runtime)).toBe(src);
+  });
+
+  test("a whitespace-free quoted projection is recognised", () => {
+    const cells = compile(src, {id: 7});
+    const tight = cells.map((c, i) =>
+      i === 0 ? c : {...c, _definition: `e=>e[${JSON.stringify(c._name)}]`}
+    );
+    expect(decompile(tight)).toBe(src);
+  });
+
+  test("a source cell that merely mimics a projection is not one", () => {
+    expect(decompile(compile(`(exports) => exports["x"]`))).toBe(`(exports) => exports["x"]`);
+  });
+
+  test("a non-computed member access is not a projection", () => {
+    const cells = compile(src, {id: 7});
+    const dotted = cells.map((c, i) => (i === 0 ? c : {...c, _definition: `e => e.a`}));
+    expect(() => decompile(dotted)).toThrow(/exactly one holder/);
+  });
+
+  test("a subscript on some OTHER object is not a projection", () => {
+    const cells = compile(src, {id: 7});
+    const other = cells.map((c, i) => (i === 0 ? c : {...c, _definition: `e => q["a"]`}));
+    expect(() => decompile(other)).toThrow(/exactly one holder/);
+  });
+
+  test("a bare subscript with no _name errors clearly rather than guessing", () => {
+    const cells = compile(src, {id: 7});
+    const anon = cells.map((c, i) =>
+      i === 0 ? c : {...c, _name: null, _definition: `e => e[t]`}
+    );
+    expect(() => decompile(anon)).toThrow(/cannot be named/);
+  });
+});
+
 describe("compile cell shape", () => {
   test("expression -> single anonymous cell", () => {
     const cells = compile(`1 + 1`);

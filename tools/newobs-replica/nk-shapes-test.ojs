@@ -1,0 +1,20 @@
+//// nkTestMutable
+mutable nkTestMutable = 41
+
+//// nkTestBump
+nkTestBump = { mutable nkTestMutable = 42; return "bumped"; }
+
+//// nkTestMutableRead
+nkTestMutableRead = nkTestMutable * 2
+
+//// nkTestView
+viewof nkTestView = Inputs.range([0, 10], {value: 7, step: 1})
+
+//// nkTestViewRead
+nkTestViewRead = nkTestView + 1
+
+//// nkTestAnon
+md`nk anon ${nkTestView}`
+
+//// nkTestFile
+nkTestFile = FileAttachment("nk-test.txt").text()

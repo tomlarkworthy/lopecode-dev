@@ -1,0 +1,283 @@
+===== new3 runtimeSizes [{'vars': 47, 'modules': 0, 'chosen': False}, {'vars': 104, 'modules': 0, 'chosen': False}, {'vars': 115, 'modules': 1, 'chosen': True}] hasOjsRuntime False globals []
+runtimeOwnKeys ['_dirty', '_updates', '_precomputes', '_computing', '_init', '_modules', '_variables', '_disposed', '_builtin', '_global', 'fileAttachments'] protoKeys ['constructor', '_precompute', '_compute', '_computeSoon', '_computeNow', 'dispose', 'module']
+MOD builtin rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 50 source None
+MOD M1 rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 47 source None
+MOD M2 rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 0 source None
+MOD M3 rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 50 source None
+MOD M4 rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 48 source None
+MOD M5 rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 48 source None
+MOD M6 rtmod ['function define(runtime) {\n  const main = runtime.module();\n'] builtins ['@variable', 'invalidation', 'visibility'] nscope 11 source None
+M5 | '@variable' | t2 | in [] | out ['cell 64@M5'] | obs False | reach True | fulfilled  | symbol undefined | shadow None
+    def: ()=>e
+M5 | 'cell 64' | t1 | in ['@variable'] | out [] | obs Object:node | reach True | fulfilled  | object Object {dep,mutabledep,mutable$mutabledep,viewdep,viewof$viewdep,dep_alia | shadow None
+    def: async (__variable) => {\nconst {dep, mutabledep, mutable$mutabledep, viewdep, viewof$viewdep, dep: dep_alias, error_dep, mutabledep: aslias_mutabledep, mutable$mutabledep: mutable$aslias_mutabledep, viewdep: aslias_viewdep, viewof$viewdep: viewof$aslias_viewdep, mutabledep: aslias_mutabledep_data, vi
+M5 | 'dep' | t1 | in ['dep@M6'] | out ['null@M5'] | obs Boolean | reach True | fulfilled  | string "a" | shadow None
+    def: function u(e){return e}
+M5 | 'mutabledep' | t1 | in ['mutabledep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object Object {} | shadow None
+    def: function u(e){return e}
+M5 | 'mutable$mutabledep' | t1 | in ['mutable mutabledep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object Object {value} | shadow None
+    def: function u(e){return e}
+M5 | 'viewdep' | t1 | in ['viewdep@M6'] | out [] | obs Boolean | reach True | pending  | undefined | shadow None
+    def: function u(e){return e}
+M5 | 'viewof$viewdep' | t1 | in ['viewof viewdep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function u(e){return e}
+M5 | 'dep_alias' | t1 | in ['dep@M6'] | out [] | obs Boolean | reach True | fulfilled  | string "a" | shadow None
+    def: function u(e){return e}
+M5 | 'error_dep' | t1 | in ['error_dep@M6'] | out ['null@M5'] | obs Boolean | reach True | rejected s: error_dep could not be resolved | undefined | shadow None
+    def: function u(e){return e}
+M5 | 'aslias_mutabledep' | t1 | in ['mutabledep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object Object {} | shadow None
+    def: function u(e){return e}
+M5 | 'mutable$aslias_mutabledep' | t1 | in ['mutable mutabledep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object Object {value} | shadow None
+    def: function u(e){return e}
+M5 | 'aslias_viewdep' | t1 | in ['viewdep@M6'] | out [] | obs Boolean | reach True | pending  | undefined | shadow None
+    def: function u(e){return e}
+M5 | 'viewof$aslias_viewdep' | t1 | in ['viewof viewdep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function u(e){return e}
+M5 | 'aslias_mutabledep_data' | t1 | in ['mutabledep@M6'] | out [] | obs Boolean | reach True | fulfilled  | object Object {} | shadow None
+    def: function u(e){return e}
+M5 | 'aslias_viewdep_data' | t1 | in ['viewdep@M6'] | out [] | obs Boolean | reach True | pending  | undefined | shadow None
+    def: function u(e){return e}
+M5 | 'Event' | t2 | in [] | out ['event@M5'] | obs False | reach True | fulfilled  | function Event :: function Event() { [native code] } | shadow None
+    def: ()=>e
+M5 | 'event' | t1 | in ['Event'] | out [] | obs Object:node | reach True | fulfilled  | object Event {isTrusted} | shadow None
+    def: function event(Event){return(\nnew Event("input")\n)}
+M5 | None | t1 | in ['dep'] | out [] | obs Object:node | reach True | fulfilled  | string "a" | shadow None
+    def: function(dep){return(\ndep\n)}
+M5 | 'viewofdatadep' | t1 | in ['view'] | out [] | obs Object:node | reach True | pending  | undefined | shadow None
+    def: function viewofdatadep(view){return(\nview\n)}
+M5 | 'viewofdep_inline' | t1 | in ['viewof$view'] | out [] | obs Object:node | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function viewofdep_inline(viewof$view){return(\nviewof$view\n)}
+M5 | 'mutable_dep_2' | t1 | in ['file', 'q'] | out [] | obs Object:node | reach True | fulfilled  | number 7 | shadow None
+    def: function mutable_dep_2(file,q)\n{\n  file;\n  return q + 1;\n}
+M5 | 'mutable_dep' | t1 | in ['viewof$view', 'lambda', 'mutable$q'] | out [] | obs Object:node | reach True | fulfilled  | number 6 | shadow None
+    def: function mutable_dep(viewof$view,lambda,mutable$q)\n{\n  viewof$view;\n  lambda;\n  mutable$q.value;\n  return mutable$q.value;\n}
+M5 | 'FileAttachment' | t2 | in ['FileAttachment@builtin'] | out ['file@M5'] | obs False | reach True | fulfilled  | function l :: (e,t=document.baseURI)=>{let n=new URL(e,t).href,r=s.get(n);if(!r) | shadow None
+    def: function u(e){return e}
+M5 | 'file' | t1 | in ['FileAttachment'] | out ['mutable_dep_2@M5'] | obs Object:node | reach True | fulfilled  | object FileAttachment {name,mimeType,lastModified,size,href} | shadow None
+    def: function file(FileAttachment){return(\nFileAttachment("empty")\n)}
+M5 | '_' | t2 | in ['_@builtin'] | out ['inbuilt@M5'] | obs False | reach True | fulfilled  | function u ::  | shadow None
+    def: function u(e){return e}
+M5 | 'inbuilt' | t1 | in ['_'] | out [] | obs Object:node | reach True | fulfilled  | function u ::  | shadow None
+    def: function inbuilt(_){return(\n_\n)}
+M5 | 'q' | t1 | in ['cell 42'] | out ['mutable_dep_2@M5'] | obs Object:node | reach True | fulfilled  | number 6 | shadow None
+    def: ([e])=>e
+M5 | 'mutable q' | t1 | in [] | out ['cell 42@M5'] | obs False | reach True | fulfilled  | number 6 | shadow None
+    def: function mutable$q(){return(\n6\n)}
+M5 | 'cell 42' | t1 | in ['mutable q'] | out ['q@M5', 'mutable$q@M5'] | obs False | reach True | fulfilled  | object Array {0,1} | shadow None
+    def: function Jr(e){let t=qr(e);return[t,{get value(){return t.value},set value(e){t.value=e}}]}
+M5 | 'mutable$q' | t1 | in ['cell 42'] | out ['mutable_dep@M5'] | obs False | reach True | fulfilled  | object Object {value} | shadow None
+    def: ([,e])=>e
+M5 | 'Inputs' | t2 | in ['Inputs@builtin'] | out ['viewof$view@M5'] | obs False | reach True | fulfilled  | object undefined {bind,button,checkbox,color,date,datetime,disposal,email,file,f | shadow None
+    def: function u(e){return e}
+M5 | 'viewof$view' | t1 | in ['Inputs'] | out ['viewofdep_inline@M5', 'mutable_dep@M5', 'view@M5'] | obs Object:node | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function viewof$view(Inputs){return(\nInputs.input()\n)}
+M5 | 'view' | t1 | in ['viewof$view'] | out ['viewofdatadep@M5'] | obs False | reach True | pending  | undefined | shadow None
+    def: function Br(e){return I(t=>{let n=Hr(e),r=Vr(e),i=()=>t(Vr(e));return e.addEventListener(n,i),r!==void 0&&t(r),()=>e.removeEventListener(n,i)})}
+M5 | None | t1 | in ['error_dep'] | out [] | obs Object:node | reach True | rejected s: error_dep could not be resolved | undefined | shadow None
+    def: function(error_dep){return(\nerror_dep\n)}
+M5 | 'error_obj' | t1 | in [] | out [] | obs Object:node | reach True | rejected {"foo":"bar"} | undefined | shadow None
+    def: function error_obj()\n{\n  throw { foo: "bar" };\n}
+M5 | 'error' | t1 | in [] | out [] | obs Object:node | reach True | rejected Error:  | undefined | shadow None
+    def: function error()\n{\n  throw new Error();\n}
+M5 | 'lambda' | t1 | in [] | out ['mutable_dep@M5'] | obs Object:node | reach True | fulfilled  | function  :: () => {} | shadow None
+    def: function lambda(){return(\n() => {}\n)}
+M5 | 'thisReference' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | number 1 | shadow None
+    def: function thisReference(){return(\n(this || 0) + 1\n)}
+M5 | 'named_function' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | function foo :: function foo() {} | shadow None
+    def: function named_function(){return(\nfunction foo() {}\n)}
+M5 | 'asyncfunction' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | function  :: async function () {} | shadow None
+    def: function asyncfunction(){return(\nasync function () {}\n)}
+M5 | '_function' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | function  :: function () {} | shadow None
+    def: function _function(){return(\nfunction () {}\n)}
+M5 | 'generator' | t1 | in ['x', 'y'] | out [] | obs Object:node | reach True | fulfilled  | string "" | shadow None
+    def: function* generator(x,y)\n{\n  yield x + y;\n}
+M5 | 'comments' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | string "" | shadow None
+    def: function comments()\n{\n  // a comment\n  return "";\n}
+M5 | 'z' | t1 | in ['x', 'y'] | out [] | obs Object:node | reach True | fulfilled  | string "" | shadow None
+    def: function z(x,y)\n{\n  ("");\n  return x + y;\n}
+M5 | 'y' | t1 | in ['x'] | out ['generator@M5', 'z@M5'] | obs Object:node | reach True | fulfilled  | string "" | shadow None
+    def: function y(x){return(\nx\n)}
+M5 | 'x' | t1 | in [] | out ['generator@M5', 'z@M5', 'y@M5'] | obs Object:node | reach True | fulfilled  | string "" | shadow None
+    def: function x(){return(\n""\n)}
+M5 | 'obj_literal' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | object Object {} | shadow None
+    def: function obj_literal(){return(\n{}\n)}
+M5 | 'myclass' | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | function myclass :: class myclass {} | shadow None
+    def: function myclass(){return(\nclass myclass {}\n)}
+M5 | 'htl' | t2 | in ['htl@builtin'] | out ['null@M5'] | obs False | reach True | fulfilled  | object undefined {html,svg} | shadow None
+    def: function u(e){return e}
+M5 | None | t1 | in ['htl'] | out [] | obs Object:node | reach True | fulfilled  | HTMLDivElement <div> <div></div> | shadow None
+    def: (htl) => {\nreturn (\nhtl.html`<div>`\n)\n}
+M5 | None | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | undefined | shadow None
+    def: function()\n{\n  ("");\n}
+M5 | None | t1 | in [] | out [] | obs Object:node | reach True | fulfilled  | number 1 | shadow None
+    def: function(){return(\n1\n)}
+M5 | 'md' | t2 | in ['md@builtin'] | out ['null@M5'] | obs False | reach True | fulfilled  | function  :: function(i){var t=i[0],s=[],r,e=null,n,d,u,a,g,h,m,o=-1;for(a=1,g=a | shadow None
+    def: function u(e){return e}
+M5 | None | t1 | in ['md'] | out [] | obs Object:node | reach True | fulfilled  | HTMLHeadingElement <h1> <h1 id="test-notebook-of-semantics">Test Notebook of Sem | shadow None
+    def: (md) => {\nreturn (\nmd`# Test Notebook of Semantics`\n)\n}
+M6 | 'dep' | t1 | in [] | out ['dep@M5', 'dep_alias@M5'] | obs False | reach True | fulfilled  | string "a" | shadow None
+    def: function dep(){return(\n"a"\n)}
+M6 | 'error_dep' | t1 | in [] | out ['error_dep@M5'] | obs False | reach True | rejected "err" | undefined | shadow None
+    def: function error_dep()\n{\n  throw "err";\n}
+M6 | 'Inputs' | t2 | in ['Inputs@builtin'] | out ['viewof viewdep@M6'] | obs False | reach True | fulfilled  | object undefined {bind,button,checkbox,color,date,datetime,disposal,email,file,f | shadow None
+    def: function u(e){return e}
+M6 | 'viewof viewdep' | t1 | in ['Inputs'] | out ['viewdep@M6', 'viewof$viewdep@M5', 'viewof$aslias_viewdep@M5'] | obs False | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function viewof$viewdep(Inputs){return(\nInputs.input()\n)}
+M6 | 'Generators' | t2 | in ['Generators@builtin'] | out ['viewdep@M6'] | obs False | reach True | fulfilled  | object Object {dark,input,now,observe,queue,width} | shadow None
+    def: function u(e){return e}
+M6 | 'viewdep' | t1 | in ['Generators', 'viewof viewdep'] | out ['viewdep@M5', 'aslias_viewdep@M5', 'aslias_viewdep_data@M5'] | obs False | reach True | pending  | undefined | shadow None
+    def: (G, _) => G.input(_)
+M6 | 'initial mutabledep' | t1 | in [] | out ['mutator mutabledep@M6'] | obs False | reach True | fulfilled  | object Object {} | shadow None
+    def: function mutable$mutabledep(){return(\n{}\n)}
+M6 | 'Mutable' | t2 | in ['Mutable@builtin'] | out ['mutator mutabledep@M6'] | obs False | reach True | fulfilled  | function qr :: function qr(e){let t;return Object.defineProperty(I(n=>{t=n,e!==v | shadow None
+    def: function u(e){return e}
+M6 | 'mutator mutabledep' | t1 | in ['Mutable', 'initial mutabledep'] | out ['mutable mutabledep@M6', 'mutabledep@M6'] | obs False | reach True | fulfilled  | object Array {0,1} | shadow None
+    def: (M, _) => ((m) => [m, {get value() { return m.value; }, set value(v) { m.value = v; }}])(M(_))
+M6 | 'mutable mutabledep' | t1 | in ['mutator mutabledep'] | out ['mutable$mutabledep@M5', 'mutable$aslias_mutabledep@M5'] | obs False | reach True | fulfilled  | object Object {value} | shadow None
+    def: ([, m]) => m
+M6 | 'mutabledep' | t1 | in ['mutator mutabledep'] | out ['mutabledep@M5', 'aslias_mutabledep@M5', 'aslias_mutabledep_data@M5'] | obs False | reach True | fulfilled  | object Object {} | shadow None
+    def: ([m]) => m
+BUILTIN-MODULE vars: [('dark', False, 'fulfilled'), ('now', False, 'fulfilled'), ('width', False, 'fulfilled'), ('DatabaseClient', False, 'fulfilled'), ('FileAttachment', True, 'fulfilled'), ('Generators', True, 'fulfilled'), ('Interpreter', False, 'fulfilled'), ('Mutable', True, 'fulfilled'), ('Promises', False, 'fulfilled'), ('Files', False, 'fulfilled'), ('DOM', False, 'fulfilled'), ('sql', False, 'fulfilled'), ('Arrow', False, 'fulfilled'), ('DuckDBClient', False, 'fulfilled'), ('Flechette', False, 'fulfilled'), ('Inputs', True, 'fulfilled'), ('L', False, 'fulfilled'), ('Plot', False, 'fulfilled'), ('React', False, 'fulfilled'), ('ReactDOM', False, 'fulfilled'), ('_', True, 'fulfilled'), ('aq', False, 'fulfilled'), ('d3', False, 'fulfilled'), ('dot', False, 'fulfilled'), ('duckdb', False, 'fulfilled'), ('echarts', False, 'fulfilled'), ('htl', True, 'fulfilled'), ('html', False, 'fulfilled'), ('mapboxgl', False, 'fulfilled'), ('md', True, 'fulfilled'), ('mermaid', False, 'fulfilled'), ('svg', False, 'fulfilled'), ('tex', False, 'fulfilled'), ('topojson', False, 'fulfilled'), ('vl', False, 'fulfilled'), ('aapl', False, 'fulfilled'), ('alphabet', False, 'fulfilled'), ('cars', False, 'fulfilled'), ('citywages', False, 'fulfilled'), ('diamonds', False, 'fulfilled'), ('flare', False, 'fulfilled'), ('industries', False, 'fulfilled'), ('miserables', False, 'fulfilled'), ('olympians', False, 'fulfilled'), ('penguins', False, 'fulfilled'), ('pizza', False, 'fulfilled'), ('weather', False, 'fulfilled'), ('Secret', False, 'fulfilled'), ('require', False, 'fulfilled'), ('resolve', False, 'fulfilled')]
+===== old3 runtimeSizes [{'vars': 114, 'modules': 1, 'chosen': True}] hasOjsRuntime False globals ['define', '_']
+runtimeOwnKeys ['_dirty', '_updates', '_precomputes', '_computing', '_init', '_modules', '_variables', '_disposed', '_builtin', '_global'] protoKeys ['constructor', '_precompute', '_compute', '_computeSoon', '_computeNow', 'dispose', 'module', 'fileAttachments']
+MOD builtin rtmod [] builtins ['@variable', 'invalidation', 'visibility'] nscope 47 source None
+MOD M1 rtmod [] builtins ['@variable', 'invalidation', 'visibility', 'FileAttachment'] nscope 49 source None
+MOD M2 rtmod ['function define(runtime, observer) {\n  const main = runtime.'] builtins ['@variable', 'invalidation', 'visibility'] nscope 11 source None
+M1 | 'md' | t2 | in ['md@builtin'] | out ['null@M1'] | obs False | reach True | fulfilled  | function  :: function(n){var r,a,o,i,s,c,l,u,f=n[0],d=[],m=null,h=-1;for(s=1,c=a | shadow None
+    def: function Cr(e){return e}
+M1 | None | t1 | in ['md'] | out [] | obs Ea:node | reach True | fulfilled  | HTMLHeadingElement <h1> <h1 id="test-notebook-of-semantics">Test Notebook of Sem | shadow None
+    def: function(md){return(\nmd`# Test Notebook of Semantics`\n)}
+M1 | None | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | number 1 | shadow None
+    def: function(){return(\n1\n)}
+M1 | None | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | undefined | shadow None
+    def: function()\n{\n  ("");\n}
+M1 | 'htl' | t2 | in ['htl@builtin'] | out ['html@M1'] | obs False | reach True | fulfilled  | object Object {html,svg,version} | shadow None
+    def: function Cr(e){return e}
+M1 | 'html' | t1 | in ['htl'] | out [] | obs Ea:node | reach True | fulfilled  | HTMLDivElement <div> <div></div> | shadow None
+    def: function(htl){return(\nhtl.html`<div>`\n)}
+M1 | 'myclass' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | function myclass :: class myclass {} | shadow None
+    def: function(){return(\nclass myclass {}\n)}
+M1 | 'obj_literal' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | object Object {} | shadow None
+    def: function(){return(\n{}\n)}
+M1 | 'x' | t1 | in [] | out ['y@M1', 'z@M1', 'generator@M1'] | obs Ea:node | reach True | fulfilled  | string "" | shadow None
+    def: function(){return(\n""\n)}
+M1 | 'y' | t1 | in ['x'] | out ['z@M1', 'generator@M1'] | obs Ea:node | reach True | fulfilled  | string "" | shadow None
+    def: function(x){return(\nx\n)}
+M1 | 'z' | t1 | in ['x', 'y'] | out [] | obs Ea:node | reach True | fulfilled  | string "" | shadow None
+    def: function(x,y)\n{\n  ("");\n  return x + y;\n}
+M1 | 'comments' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | string "" | shadow None
+    def: function()\n{\n  // a comment\n  return "";\n}
+M1 | 'generator' | t1 | in ['x', 'y'] | out [] | obs Ea:node | reach True | fulfilled  | string "" | shadow None
+    def: function*(x,y)\n{\n  yield x + y;\n}
+M1 | '_function' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | function  :: function () {} | shadow None
+    def: function(){return(\nfunction () {}\n)}
+M1 | 'asyncfunction' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | function  :: async function () {} | shadow None
+    def: function(){return(\nasync function () {}\n)}
+M1 | 'named_function' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | function foo :: function foo() {} | shadow None
+    def: function(){return(\nfunction foo() {}\n)}
+M1 | 'thisReference' | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | number 1 | shadow None
+    def: function(){return(\n(this || 0) + 1\n)}
+M1 | 'lambda' | t1 | in [] | out ['mutable_dep@M1'] | obs Ea:node | reach True | fulfilled  | function  :: () => {} | shadow None
+    def: function(){return(\n() => {}\n)}
+M1 | 'error' | t1 | in [] | out [] | obs Ea:node | reach True | rejected Error:  | undefined | shadow None
+    def: function()\n{\n  throw new Error();\n}
+M1 | 'error_obj' | t1 | in [] | out [] | obs Ea:node | reach True | rejected {"foo":"bar"} | undefined | shadow None
+    def: function()\n{\n  throw { foo: "bar" };\n}
+M1 | None | t1 | in ['error_dep'] | out [] | obs Ea:node | reach True | rejected Er: error_dep could not be resolved | undefined | shadow None
+    def: function(error_dep){return(\nerror_dep\n)}
+M1 | 'Inputs' | t2 | in ['Inputs@builtin'] | out ['viewof view@M1'] | obs False | reach True | fulfilled  | object Object {bind,button,checkbox,color,date,datetime,disposal,email,fileOf,fo | shadow None
+    def: function Cr(e){return e}
+M1 | 'viewof view' | t1 | in ['Inputs'] | out ['view@M1', 'mutable_dep@M1', 'viewofdep_inline@M1'] | obs Ea:node | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function(Inputs){return(\nInputs.input()\n)}
+M1 | 'Generators' | t2 | in ['Generators@builtin'] | out ['view@M1'] | obs False | reach True | fulfilled  | object undefined {disposable,filter,input,map,observe,queue,range,valueAt,worker | shadow None
+    def: function Cr(e){return e}
+M1 | 'view' | t1 | in ['Generators', 'viewof view'] | out ['viewofdatadep@M1'] | obs False | reach True | pending  | undefined | shadow None
+    def: function Aa(e,t){return e.input(t)}
+M1 | 'initial q' | t1 | in [] | out ['mutable q@M1'] | obs False | reach True | fulfilled  | number 6 | shadow None
+    def: function(){return(\n6\n)}
+M1 | 'Mutable' | t2 | in ['Mutable@builtin'] | out ['mutable q@M1'] | obs False | reach True | fulfilled  | function ur :: function ur(e){let t;Object.defineProperties(this,{generator:{val | shadow None
+    def: function Cr(e){return e}
+M1 | 'mutable q' | t1 | in ['Mutable', 'initial q'] | out ['q@M1', 'mutable_dep@M1'] | obs False | reach True | fulfilled  | object ur {} | shadow None
+    def: function Na(e,t){return new e(t)}
+M1 | 'q' | t1 | in ['mutable q'] | out ['mutable_dep_2@M1'] | obs Ea:node | reach True | fulfilled  | number 6 | shadow None
+    def: function Sa(e){return e.generator}
+M1 | '_' | t2 | in ['_@builtin'] | out ['inbuilt@M1'] | obs False | reach True | fulfilled  | function Z ::  | shadow None
+    def: function Cr(e){return e}
+M1 | 'inbuilt' | t1 | in ['_'] | out [] | obs Ea:node | reach True | fulfilled  | function Z ::  | shadow None
+    def: function(_){return(\n_\n)}
+M1 | 'FileAttachment' | t2 | in [] | out ['file@M1'] | obs False | reach True | fulfilled  | function  :: t=>{const n=e(t+="");if(null==n)throw new Error(`File not found: ${ | shadow None
+    def: ()=>e
+M1 | 'file' | t1 | in ['FileAttachment'] | out ['mutable_dep_2@M1'] | obs Ea:node | reach True | fulfilled  | object FileAttachment {name,mimeType} | shadow None
+    def: function(FileAttachment){return(\nFileAttachment("empty")\n)}
+M1 | 'mutable_dep' | t1 | in ['viewof view', 'lambda', 'mutable q'] | out [] | obs Ea:node | reach True | fulfilled  | number 6 | shadow None
+    def: function($0,lambda,$1)\n{\n  $0;\n  lambda;\n  $1.value;\n  return $1.value;\n}
+M1 | 'mutable_dep_2' | t1 | in ['file', 'q'] | out [] | obs Ea:node | reach True | fulfilled  | number 7 | shadow None
+    def: function(file,q)\n{\n  file;\n  return q + 1;\n}
+M1 | 'viewofdep_inline' | t1 | in ['viewof view'] | out [] | obs Ea:node | reach True | fulfilled  | object EventTarget {value} | shadow None
+    def: function($0){return(\n$0\n)}
+M1 | 'viewofdatadep' | t1 | in ['view'] | out [] | obs Ea:node | reach True | pending  | undefined | shadow None
+    def: function(view){return(\nview\n)}
+M1 | None | t1 | in ['dep'] | out [] | obs Ea:node | reach True | fulfilled  | string "a" | shadow None
+    def: function(dep){return(\ndep\n)}
+M1 | 'Event' | t2 | in [] | out ['event@M1'] | obs False | reach True | fulfilled  | function Event :: function Event() { [native code] } | shadow None
+    def: ()=>e
+M1 | 'event' | t1 | in ['Event'] | out [] | obs Ea:node | reach True | fulfilled  | object Event {isTrusted} | shadow None
+    def: function(Event){return(\nnew Event("input")\n)}
+M1 | '@variable' | t2 | in [] | out ['mutabledep@M1', 'mutable mutabledep@M1', 'viewdep@M1', 'viewof viewdep@M1', 'dep_alias@M1', 'aslias_mutabledep@M1', 'mutable aslias_mutabledep@M1', 'aslias_viewdep@M1', 'viewof aslias_viewdep@M1', 'aslias_mutabledep_data@M1', 'aslias_viewdep_data@M1'] | obs False | reach False | fulfilled  | symbol undefined | shadow None
+    def: ()=>e
+M1 | 'dep' | t1 | in ['dep@M2'] | out ['null@M1'] | obs False | reach True | fulfilled  | string "a" | shadow None
+    def: function Cr(e){return e}
+M1 | 'mutabledep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'mutable mutabledep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'viewdep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'viewof viewdep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'dep_alias' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'error_dep' | t1 | in ['error_dep@M2'] | out ['null@M1'] | obs False | reach True | rejected Er: error_dep could not be resolved | undefined | shadow None
+    def: function Cr(e){return e}
+M1 | 'aslias_mutabledep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'mutable aslias_mutabledep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'aslias_viewdep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'viewof aslias_viewdep' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'aslias_mutabledep_data' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | 'aslias_viewdep_data' | t1 | in ['@variable'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: async t=>t.import(e.name,e.alias,await i)
+M1 | None | t1 | in [] | out [] | obs Ea:node | reach True | fulfilled  | HTMLSpanElement <span> <span class="observablehq--inspect observablehq--import"> | shadow None
+    def: async()=>function({specifier:e,specifiers:t,notebook:n},r){const a=document.createElement("span");a.className="observablehq--inspect observablehq--import",a.appendChild(document.createTextNode("import {"));let o=!1;for(const{imported:e,local:i}of t){o?a.appendChild(document.createTextNode(", ")):o=!
+M2 | 'md' | t2 | in ['md@builtin'] | out ['null@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function Cr(e){return e}
+M2 | None | t1 | in ['md'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function _1(md){return(\nmd`# Dependancy`\n)}
+M2 | 'dep' | t1 | in [] | out ['dep@M1'] | obs False | reach True | fulfilled  | string "a" | shadow None
+    def: function _dep(){return(\n"a"\n)}
+M2 | 'error_dep' | t1 | in [] | out ['error_dep@M1'] | obs False | reach True | rejected "err" | undefined | shadow None
+    def: function _error_dep()\n{\n  throw "err";\n}
+M2 | 'Inputs' | t2 | in ['Inputs@builtin'] | out ['viewof viewdep@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function Cr(e){return e}
+M2 | 'viewof viewdep' | t1 | in ['Inputs'] | out ['viewdep@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function _viewdep(Inputs){return(\nInputs.input()\n)}
+M2 | 'Generators' | t2 | in ['Generators@builtin'] | out ['viewdep@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function Cr(e){return e}
+M2 | 'viewdep' | t1 | in ['Generators', 'viewof viewdep'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: (G, _) => G.input(_)
+M2 | 'initial mutabledep' | t1 | in [] | out ['mutable mutabledep@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function _mutabledep(){return(\n{}\n)}
+M2 | 'Mutable' | t2 | in ['Mutable@builtin'] | out ['mutable mutabledep@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: function Cr(e){return e}
+M2 | 'mutable mutabledep' | t1 | in ['Mutable', 'initial mutabledep'] | out ['mutabledep@M2'] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: (M, _) => new M(_)
+M2 | 'mutabledep' | t1 | in ['mutable mutabledep'] | out [] | obs False | reach False | fulfilled  | undefined | shadow None
+    def: _ => _.generator
+BUILTIN-MODULE vars: [('FileAttachment', False, 'fulfilled'), ('Mutable', True, 'fulfilled'), ('now', False, 'fulfilled'), ('width', False, 'fulfilled'), ('dot', False, 'fulfilled'), ('htl', True, 'fulfilled'), ('html', False, 'fulfilled'), ('md', True, 'fulfilled'), ('svg', False, 'fulfilled'), ('tex', False, 'fulfilled'), ('_', True, 'fulfilled'), ('aq', False, 'fulfilled'), ('Arrow', False, 'fulfilled'), ('d3', False, 'fulfilled'), ('DuckDBClient', False, 'fulfilled'), ('Inputs', True, 'fulfilled'), ('L', False, 'fulfilled'), ('mermaid', False, 'fulfilled'), ('Plot', False, 'fulfilled'), ('__query', False, 'fulfilled'), ('require', False, 'fulfilled'), ('resolve', False, 'fulfilled'), ('SQLite', False, 'fulfilled'), ('SQLiteDatabaseClient', False, 'fulfilled'), ('topojson', False, 'fulfilled'), ('vl', False, 'fulfilled'), ('aapl', False, 'fulfilled'), ('alphabet', False, 'fulfilled'), ('cars', False, 'fulfilled'), ('citywages', False, 'fulfilled'), ('diamonds', False, 'fulfilled'), ('flare', False, 'fulfilled'), ('industries', False, 'fulfilled'), ('miserables', False, 'fulfilled'), ('olympians', False, 'fulfilled'), ('penguins', False, 'fulfilled'), ('pizza', False, 'fulfilled'), ('weather', False, 'fulfilled'), ('DOM', False, 'fulfilled'), ('Files', False, 'fulfilled'), ('Generators', True, 'fulfilled'), ('Promises', False, 'fulfilled'), ('currentUser', False, 'fulfilled'), ('__chart', False, 'fulfilled'), ('Secret', False, 'fulfilled'), ('DatabaseClient', False, 'fulfilled'), ('NotificationClient', False, 'fulfilled')]
+IMPORTSNAPS new3
+{"t": 119, "phase": "before", "name": "cell 64", "outputs": [{"name": "dep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "mutabledep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "mutable$mutabledep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "viewdep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "viewof$viewdep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "dep_alias", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "error_dep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "aslias_mutabledep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "mutable$aslias_mutabledep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "aslias_viewdep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "viewof$aslias_viewdep", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "aslias_mutabledep_data", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}, {"name": "aslias_viewdep_data", "type": 1, "inputs": ["cell 64"], "def": "e=>e[t]"}]}
+{"t": 362, "phase": "after", "name": "cell 64", "returned": ["dep", "mutabledep", "mutable$mutabledep", "viewdep", "viewof$viewdep", "dep_alias", "error_dep", "aslias_mutabledep", "mutable$aslias_mutabledep", "aslias_viewdep", "viewof$aslias_viewdep", "aslias_mutabledep_data", "aslias_viewdep_data"], "outputs": []}

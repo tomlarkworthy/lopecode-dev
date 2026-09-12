@@ -1,0 +1,192 @@
+function _1(md){return(
+md`# Test Notebook of Semantics`
+)}
+
+function _2(){return(
+1
+)}
+
+function _3()
+{
+  ("");
+}
+
+
+function _html(htl){return(
+htl.html`<div>`
+)}
+
+function _myclass(){return(
+class myclass {}
+)}
+
+function _obj_literal(){return(
+{}
+)}
+
+function _x(){return(
+""
+)}
+
+function _y(x){return(
+x
+)}
+
+function _z(x,y)
+{
+  ("");
+  return x + y;
+}
+
+
+function _comments()
+{
+  // a comment
+  return "";
+}
+
+
+function* _generator(x,y)
+{
+  yield x + y;
+}
+
+
+function __function(){return(
+function () {}
+)}
+
+function _asyncfunction(){return(
+async function () {}
+)}
+
+function _named_function(){return(
+function foo() {}
+)}
+
+function _thisReference(){return(
+(this || 0) + 1
+)}
+
+function _lambda(){return(
+() => {}
+)}
+
+function _error()
+{
+  throw new Error();
+}
+
+
+function _error_obj()
+{
+  throw { foo: "bar" };
+}
+
+
+function _19(error_dep){return(
+error_dep
+)}
+
+function _view(Inputs){return(
+Inputs.input()
+)}
+
+function _q(){return(
+6
+)}
+
+function _inbuilt(_){return(
+_
+)}
+
+function _file(FileAttachment){return(
+FileAttachment("empty")
+)}
+
+function _mutable_dep($0,lambda,$1)
+{
+  $0;
+  lambda;
+  $1.value;
+  return $1.value;
+}
+
+
+function _mutable_dep_2(file,q)
+{
+  file;
+  return q + 1;
+}
+
+
+function _viewofdep_inline($0){return(
+$0
+)}
+
+function _viewofdatadep(view){return(
+view
+)}
+
+function _28(dep){return(
+dep
+)}
+
+function _event(Event){return(
+new Event("input")
+)}
+
+export default function define(runtime, observer) {
+  const main = runtime.module();
+  main.define("module 1", async () => runtime.module((await import("/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173")).default));
+  const fileAttachments = new Map([
+    ["empty", {url: "https://static.observableusercontent.com/files/50cad75d56578d08f50d560a50a6f4a66919f1f0b9c189221c6768a04dc958323335dac14ca3526e6527019d02e9e00d21d247eb5c2646b38ec7720e0ddcaa7e", mimeType: "application/octet-stream"}]
+  ]);
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
+  main.variable(observer()).define(["md"], _1);
+  main.variable(observer()).define(_2);
+  main.variable(observer()).define(_3);
+  main.variable(observer("html")).define("html", ["htl"], _html);
+  main.variable(observer("myclass")).define("myclass", _myclass);
+  main.variable(observer("obj_literal")).define("obj_literal", _obj_literal);
+  main.variable(observer("x")).define("x", _x);
+  main.variable(observer("y")).define("y", ["x"], _y);
+  main.variable(observer("z")).define("z", ["x","y"], _z);
+  main.variable(observer("comments")).define("comments", _comments);
+  main.variable(observer("generator")).define("generator", ["x","y"], _generator);
+  main.variable(observer("_function")).define("_function", __function);
+  main.variable(observer("asyncfunction")).define("asyncfunction", _asyncfunction);
+  main.variable(observer("named_function")).define("named_function", _named_function);
+  main.variable(observer("thisReference")).define("thisReference", _thisReference);
+  main.variable(observer("lambda")).define("lambda", _lambda);
+  main.variable(observer("error")).define("error", _error);
+  main.variable(observer("error_obj")).define("error_obj", _error_obj);
+  main.variable(observer()).define(["error_dep"], _19);
+  main.variable(observer("viewof view")).define("viewof view", ["Inputs"], _view);
+  main.variable(observer("view")).define("view", ["Generators", "viewof view"], (G, _) => G.input(_));
+  main.define("initial q", _q);
+  main.variable(observer("mutable q")).define("mutable q", ["Mutable", "initial q"], (M, _) => new M(_));
+  main.variable(observer("q")).define("q", ["mutable q"], _ => _.generator);
+  main.variable(observer("inbuilt")).define("inbuilt", ["_"], _inbuilt);
+  main.variable(observer("file")).define("file", ["FileAttachment"], _file);
+  main.variable(observer("mutable_dep")).define("mutable_dep", ["viewof view","lambda","mutable q"], _mutable_dep);
+  main.variable(observer("mutable_dep_2")).define("mutable_dep_2", ["file","q"], _mutable_dep_2);
+  main.variable(observer("viewofdep_inline")).define("viewofdep_inline", ["viewof view"], _viewofdep_inline);
+  main.variable(observer("viewofdatadep")).define("viewofdatadep", ["view"], _viewofdatadep);
+  main.variable(observer()).define(["dep"], _28);
+  main.variable(observer("event")).define("event", ["Event"], _event);
+  main.define("dep", ["module 1", "@variable"], (_, v) => v.import("dep", _));
+  main.define("mutable mutabledep", ["module 1", "@variable"], (_, v) => v.import("mutable mutabledep", _));
+  main.define("mutabledep", ["module 1", "@variable"], (_, v) => v.import("mutabledep", _));
+  main.define("viewof viewdep", ["module 1", "@variable"], (_, v) => v.import("viewof viewdep", _));
+  main.define("viewdep", ["module 1", "@variable"], (_, v) => v.import("viewdep", _));
+  main.define("dep_alias", ["module 1", "@variable"], (_, v) => v.import("dep", "dep_alias", _));
+  main.define("error_dep", ["module 1", "@variable"], (_, v) => v.import("error_dep", _));
+  main.define("mutable aslias_mutabledep", ["module 1", "@variable"], (_, v) => v.import("mutable mutabledep", "mutable aslias_mutabledep", _));
+  main.define("aslias_mutabledep", ["module 1", "@variable"], (_, v) => v.import("mutabledep", "aslias_mutabledep", _));
+  main.define("viewof aslias_viewdep", ["module 1", "@variable"], (_, v) => v.import("viewof viewdep", "viewof aslias_viewdep", _));
+  main.define("aslias_viewdep", ["module 1", "@variable"], (_, v) => v.import("viewdep", "aslias_viewdep", _));
+  main.define("aslias_mutabledep_data", ["module 1", "@variable"], (_, v) => v.import("mutabledep", "aslias_mutabledep_data", _));
+  main.define("aslias_viewdep_data", ["module 1", "@variable"], (_, v) => v.import("viewdep", "aslias_viewdep_data", _));
+  return main;
+}

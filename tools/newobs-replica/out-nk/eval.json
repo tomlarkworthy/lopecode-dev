@@ -1,0 +1,1237 @@
+{
+ "modules": [
+  {
+   "id": "builtin",
+   "builtins": [
+    "@variable",
+    "invalidation",
+    "visibility"
+   ],
+   "scope": [
+    "dark",
+    "now",
+    "width",
+    "DatabaseClient",
+    "FileAttachment",
+    "Generators",
+    "Interpreter",
+    "Mutable",
+    "Promises",
+    "Files",
+    "DOM",
+    "sql",
+    "Arrow",
+    "DuckDBClient",
+    "Flechette",
+    "Inputs",
+    "L",
+    "Plot",
+    "React",
+    "ReactDOM",
+    "_",
+    "aq",
+    "d3",
+    "dot",
+    "duckdb",
+    "echarts",
+    "htl",
+    "html",
+    "mapboxgl",
+    "md",
+    "mermaid",
+    "svg",
+    "tex",
+    "topojson",
+    "vl",
+    "aapl",
+    "alphabet",
+    "cars",
+    "citywages",
+    "diamonds",
+    "flare",
+    "industries",
+    "miserables",
+    "olympians",
+    "penguins",
+    "pizza",
+    "weather"
+   ]
+  },
+  {
+   "id": "M1",
+   "builtins": [
+    "@variable",
+    "invalidation",
+    "visibility"
+   ],
+   "scope": [
+    "md",
+    "cell 11",
+    "a",
+    "b",
+    "cell 12",
+    "p",
+    "r",
+    "cell 13",
+    "m",
+    "cell 14",
+    "one",
+    "two",
+    "three",
+    "Inputs",
+    "cell 16",
+    "counter",
+    "x",
+    "viewof$view",
+    "view",
+    "cell 23",
+    "q",
+    "mutable q",
+    "mutable$q",
+    "qplus",
+    "usesProjections",
+    "cell 32",
+    "fromOjs",
+    "@variable",
+    "cell 41",
+    "dep",
+    "cell 42",
+    "dep2",
+    "viewdep",
+    "viewof$viewdep",
+    "cell 43",
+    "mutabledep",
+    "mutable$mutabledep"
+   ]
+  },
+  {
+   "id": "M2",
+   "builtins": [
+    "@variable",
+    "invalidation",
+    "visibility"
+   ],
+   "scope": [
+    "dep",
+    "error_dep",
+    "Inputs",
+    "viewof viewdep",
+    "Generators",
+    "viewdep",
+    "initial mutabledep",
+    "Mutable",
+    "mutator mutabledep",
+    "mutable mutabledep",
+    "mutabledep"
+   ]
+  }
+ ],
+ "counts": {
+  "variables": 103,
+  "modules": 3
+ },
+ "vars": [
+  {
+   "mod": "builtin",
+   "name": "dark",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => dark()"
+  },
+  {
+   "mod": "builtin",
+   "name": "now",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => now()"
+  },
+  {
+   "mod": "builtin",
+   "name": "width",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => width(root)"
+  },
+  {
+   "mod": "builtin",
+   "name": "DatabaseClient",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => DatabaseClient"
+  },
+  {
+   "mod": "builtin",
+   "name": "FileAttachment",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => FileAttachment"
+  },
+  {
+   "mod": "builtin",
+   "name": "Generators",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "Generators@M2"
+   ],
+   "def": "() => generators_exports"
+  },
+  {
+   "mod": "builtin",
+   "name": "Interpreter",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => Interpreter"
+  },
+  {
+   "mod": "builtin",
+   "name": "Mutable",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "Mutable@M2"
+   ],
+   "def": "() => Mutable"
+  },
+  {
+   "mod": "builtin",
+   "name": "Promises",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => promises_exports"
+  },
+  {
+   "mod": "builtin",
+   "name": "Files",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => files_exports"
+  },
+  {
+   "mod": "builtin",
+   "name": "DOM",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => dom_exports"
+  },
+  {
+   "mod": "builtin",
+   "name": "sql",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => sql"
+  },
+  {
+   "mod": "builtin",
+   "name": "Arrow",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/apache-arrow@17.0.0/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "DuckDBClient",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => Promise.resolve().then(() => (init_duckdb(), duckdb_exports)).then((_2) => _2.DuckDBClient)"
+  },
+  {
+   "mod": "builtin",
+   "name": "Flechette",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/@uwdata/flechette/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "Inputs",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "Inputs@M1",
+    "Inputs@M2"
+   ],
+   "def": "() => Promise.resolve().then(() => (init_inputs2(), inputs_exports))"
+  },
+  {
+   "mod": "builtin",
+   "name": "L",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => init_leaflet().then(() => leaflet_exports)"
+  },
+  {
+   "mod": "builtin",
+   "name": "Plot",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/@observablehq/plot/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "React",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/react/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "ReactDOM",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/react-dom/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "_",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/lodash/+esm\").then((_2) => _2.default)"
+  },
+  {
+   "mod": "builtin",
+   "name": "aq",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/arquero/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "d3",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/d3/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "dot",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => init_dot().then(() => dot_exports).then((_2) => _2.dot)"
+  },
+  {
+   "mod": "builtin",
+   "name": "duckdb",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.32.0/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "echarts",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/echarts/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "htl",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/htl/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "html",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/htl/+esm\").then((_2) => _2.html)"
+  },
+  {
+   "mod": "builtin",
+   "name": "mapboxgl",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => Promise.resolve().then(() => (init_mapboxgl(), mapboxgl_exports)).then((_2) => _2.default)"
+  },
+  {
+   "mod": "builtin",
+   "name": "md",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "md@M1"
+   ],
+   "def": "() => Promise.resolve().then(() => (init_md(), md_exports)).then((_2) => _2.md)"
+  },
+  {
+   "mod": "builtin",
+   "name": "mermaid",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => Promise.resolve().then(() => (init_mermaid(), mermaid_exports)).then((_2) => _2.mermaid)"
+  },
+  {
+   "mod": "builtin",
+   "name": "svg",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/htl/+esm\").then((_2) => _2.svg)"
+  },
+  {
+   "mod": "builtin",
+   "name": "tex",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => Promise.resolve().then(() => (init_tex(), tex_exports)).then((_2) => _2.tex)"
+  },
+  {
+   "mod": "builtin",
+   "name": "topojson",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => import(\"https://cdn.jsdelivr.net/npm/topojson-client/+esm\")"
+  },
+  {
+   "mod": "builtin",
+   "name": "vl",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => Promise.resolve().then(() => (init_vega_lite(), vega_lite_exports)).then((_2) => _2.vl)"
+  },
+  {
+   "mod": "builtin",
+   "name": "aapl",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"aapl.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "alphabet",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"alphabet.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "cars",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"cars.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "citywages",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"citywages.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "diamonds",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"diamonds.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "flare",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"flare.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "industries",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"industries.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "miserables",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => json(dataset(\"miserables.json\"))"
+  },
+  {
+   "mod": "builtin",
+   "name": "olympians",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"olympians.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "penguins",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"penguins.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "pizza",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"pizza.csv\"), true)"
+  },
+  {
+   "mod": "builtin",
+   "name": "weather",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "() => csv(dataset(\"weather.csv\"), true)"
+  },
+  {
+   "mod": "M1",
+   "name": "md",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "md@builtin"
+   ],
+   "outs": [
+    "null@M1",
+    "null@M1",
+    "null@M1",
+    "null@M1",
+    "null@M1"
+   ],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "md"
+   ],
+   "outs": [],
+   "def": "(md) => { return ( md`# Notebook Kit Semantics Fixture for notebook-kit runtime shapes. Authored locally; built with \\`KEEP_JS=1\\` so \\`js\\` cells stay notebook-kit 2.0 (multi-output) and \\`ojs\\` cells stay Observable 1.0. Every cell here exists to make one runtime shape observable. Do not \"tidy\" it"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "md"
+   ],
+   "outs": [],
+   "def": "(md) => { return ( md`## 2.0 native (js): multi-output \\`transpile.ts:103\\` derives \\`outputs\\` from top-level declarations, so each of these becomes a \\`cell N\\` holder plus one \\`(exports) => exports[o]\\` projection per name.` ) }"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 11",
+   "type": 1,
+   "obs": "node",
+   "inputs": [],
+   "outs": [
+    "a@M1",
+    "b@M1"
+   ],
+   "def": "() => { const a = 1, b = 2; return {a,b}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "a",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 11"
+   ],
+   "outs": [
+    "usesProjections@M1"
+   ],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "b",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 11"
+   ],
+   "outs": [
+    "usesProjections@M1"
+   ],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 12",
+   "type": 1,
+   "obs": "node",
+   "inputs": [],
+   "outs": [
+    "p@M1",
+    "r@M1"
+   ],
+   "def": "() => { const {p, r} = ({p: 1, r: 2}); return {p,r}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "p",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 12"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "r",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 12"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 13",
+   "type": 1,
+   "obs": "node",
+   "inputs": [],
+   "outs": [
+    "m@M1"
+   ],
+   "def": "() => { let m = 0; return {m}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "m",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 13"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 14",
+   "type": 1,
+   "obs": "node",
+   "inputs": [],
+   "outs": [
+    "one@M1",
+    "two@M1",
+    "three@M1"
+   ],
+   "def": "() => { const one = 1, two = 2, three = 3; return {one,two,three}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "one",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 14"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "two",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 14"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": "three",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 14"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "obs": "node",
+   "inputs": [],
+   "outs": [],
+   "def": "() => { return ( 1 + 1 ) }"
+  },
+  {
+   "mod": "M1",
+   "name": "Inputs",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "Inputs@builtin"
+   ],
+   "outs": [
+    "null@M1",
+    "cell 16@M1",
+    "viewof$view@M1"
+   ],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "Inputs"
+   ],
+   "outs": [
+    "null@M1"
+   ],
+   "def": "() => { const version = v._version; return (value) => { if (version < displayVersion) throw new Error(\"stale display\"); else if (state.variables[0] !== v) throw new Error(\"stale display\"); else if (version > displayVersion) clear(state); displayVersion = version; display(state, value, output); retur"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "null"
+   ],
+   "outs": [
+    "cell 16@M1"
+   ],
+   "def": "(display2) => (value) => input(display2(value))"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 16",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "null",
+    "Inputs"
+   ],
+   "outs": [
+    "counter@M1"
+   ],
+   "def": "(view,Inputs) => { const counter = view(Inputs.range([0, 10], {label: \"counter\"})); return {counter}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "counter",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 16"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "md"
+   ],
+   "outs": [],
+   "def": "(md) => { return ( md`## 1.0 (ojs) Single-output path: \\`output\\` is set, \\`outputs\\` is undefined. autoview and automutable derive the extra variables.` ) }"
+  },
+  {
+   "mod": "M1",
+   "name": "x",
+   "type": 1,
+   "obs": "node",
+   "inputs": [],
+   "outs": [
+    "cell 32@M1"
+   ],
+   "def": "function x(){return( \"\" )}"
+  },
+  {
+   "mod": "M1",
+   "name": "viewof$view",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "Inputs"
+   ],
+   "outs": [
+    "view@M1"
+   ],
+   "def": "function viewof$view(Inputs){return( Inputs.input() )}"
+  },
+  {
+   "mod": "M1",
+   "name": "view",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "viewof$view"
+   ],
+   "outs": [],
+   "def": "function input(element2) { return observe2((change) => { const event = eventof(element2); const value = valueof2(element2); const inputted = () => change(valueof2(element2)); element2.addEventListener(event, inputted); if (value !== void 0) change(value); return () => element2.removeEventListener(ev"
+  },
+  {
+   "mod": "M1",
+   "name": "q",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "cell 23"
+   ],
+   "outs": [
+    "qplus@M1"
+   ],
+   "def": "([mutable]) => mutable"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable q",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "cell 23@M1"
+   ],
+   "def": "function mutable$q(){return( 6 )}"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 23",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "mutable q"
+   ],
+   "outs": [
+    "q@M1",
+    "mutable$q@M1"
+   ],
+   "def": "function Mutator(value) { const mutable = Mutable(value); return [ mutable, { get value() { return mutable.value; }, set value(v) { mutable.value = v; } } ]; }"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable$q",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "cell 23"
+   ],
+   "outs": [],
+   "def": "([, mutator]) => mutator"
+  },
+  {
+   "mod": "M1",
+   "name": "qplus",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "q"
+   ],
+   "outs": [],
+   "def": "function qplus(q){return( q + 1 )}"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "md"
+   ],
+   "outs": [],
+   "def": "(md) => { return ( md`## Cross-dialect wiring A projection from a js cell must be an ordinary variable, consumable from ojs and vice versa.` ) }"
+  },
+  {
+   "mod": "M1",
+   "name": "usesProjections",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "a",
+    "b"
+   ],
+   "outs": [],
+   "def": "function usesProjections(a,b){return( a + b )}"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 32",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "x"
+   ],
+   "outs": [
+    "fromOjs@M1"
+   ],
+   "def": "(x) => { const fromOjs = x + \"!\"; return {fromOjs}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "fromOjs",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "cell 32"
+   ],
+   "outs": [],
+   "def": "(exports) => exports[o2]"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "md"
+   ],
+   "outs": [],
+   "def": "(md) => { return ( md`## Multi-import: two import cells, one source module This is the case today's \\`cellMap\\` collapses: it keys by source module, so both cells land in one bucket and the second is lost. They must recover as two distinct cells.` ) }"
+  },
+  {
+   "mod": "M1",
+   "name": "@variable",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "cell 41@M1",
+    "cell 42@M1",
+    "cell 43@M1"
+   ],
+   "def": "() => x"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 41",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "@variable"
+   ],
+   "outs": [],
+   "def": "async (__variable) => { const {dep} = await (import(new URL(\"/api/import/@tomlarkworthy/dependancy\", document.baseURI)).then((_) => { const module = __variable._module._runtime.module(_.default); const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v])); outputs.get(\"dep\")?.import(\"dep\", module); return {}; })); return {dep}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "dep",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "dep@M2"
+   ],
+   "outs": [],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 42",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "@variable"
+   ],
+   "outs": [],
+   "def": "async (__variable) => { const {dep: dep2, viewdep, viewof$viewdep} = await (import(new URL(\"/api/import/@tomlarkworthy/dependancy\", document.baseURI)).then((_) => { const module = __variable._module._runtime.module(_.default); const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v])); outputs.get(\"dep2\")?.import(\"dep\", \"dep2\", module); outputs.get(\"viewdep\")?.import(\"viewdep\", module); outputs.get(\"viewof$viewdep\")?.import(\"viewof viewdep\", \"viewof$viewdep\", module); return {}; })); return {dep2,viewdep,viewof$viewdep}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "dep2",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "dep@M2"
+   ],
+   "outs": [],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": "viewdep",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "viewdep@M2"
+   ],
+   "outs": [],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": "viewof$viewdep",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "viewof viewdep@M2"
+   ],
+   "outs": [],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": "cell 43",
+   "type": 1,
+   "obs": "node",
+   "inputs": [
+    "@variable"
+   ],
+   "outs": [],
+   "def": "async (__variable) => { const {mutabledep, mutable$mutabledep} = await (import(new URL(\"/api/import/@tomlarkworthy/dependancy\", document.baseURI)).then((_) => { const module = __variable._module._runtime.module(_.default); const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v])); outputs.get(\"mutabledep\")?.import(\"mutabledep\", module); outputs.get(\"mutable$mutabledep\")?.import(\"mutable mutabledep\", \"mutable$mutabledep\", module); return {}; })); return {mutabledep,mutable$mutabledep}; }"
+  },
+  {
+   "mod": "M1",
+   "name": "mutabledep",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "mutabledep@M2"
+   ],
+   "outs": [],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable$mutabledep",
+   "type": 1,
+   "obs": "boolean",
+   "inputs": [
+    "mutable mutabledep@M2"
+   ],
+   "outs": [],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M2",
+   "name": "dep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "dep2@M1",
+    "dep@M1"
+   ],
+   "def": "function dep(){return( \"a\" )}"
+  },
+  {
+   "mod": "M2",
+   "name": "error_dep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [],
+   "def": "function error_dep() { throw \"err\"; }"
+  },
+  {
+   "mod": "M2",
+   "name": "Inputs",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "Inputs@builtin"
+   ],
+   "outs": [
+    "viewof viewdep@M2"
+   ],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M2",
+   "name": "viewof viewdep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "Inputs"
+   ],
+   "outs": [
+    "viewdep@M2",
+    "viewof$viewdep@M1"
+   ],
+   "def": "function viewof$viewdep(Inputs){return( Inputs.input() )}"
+  },
+  {
+   "mod": "M2",
+   "name": "Generators",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "Generators@builtin"
+   ],
+   "outs": [
+    "viewdep@M2"
+   ],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M2",
+   "name": "viewdep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "Generators",
+    "viewof viewdep"
+   ],
+   "outs": [
+    "viewdep@M1"
+   ],
+   "def": "(G, _) => G.input(_)"
+  },
+  {
+   "mod": "M2",
+   "name": "initial mutabledep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [],
+   "outs": [
+    "mutator mutabledep@M2"
+   ],
+   "def": "function mutable$mutabledep(){return( {} )}"
+  },
+  {
+   "mod": "M2",
+   "name": "Mutable",
+   "type": 2,
+   "obs": "no-observer",
+   "inputs": [
+    "Mutable@builtin"
+   ],
+   "outs": [
+    "mutator mutabledep@M2"
+   ],
+   "def": "function identity(x) { return x; }"
+  },
+  {
+   "mod": "M2",
+   "name": "mutator mutabledep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "Mutable",
+    "initial mutabledep"
+   ],
+   "outs": [
+    "mutable mutabledep@M2",
+    "mutabledep@M2"
+   ],
+   "def": "(M, _) => ((m) => [m, {get value() { return m.value; }, set value(v) { m.value = v; }}])(M(_))"
+  },
+  {
+   "mod": "M2",
+   "name": "mutable mutabledep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "mutator mutabledep"
+   ],
+   "outs": [
+    "mutable$mutabledep@M1"
+   ],
+   "def": "([, m]) => m"
+  },
+  {
+   "mod": "M2",
+   "name": "mutabledep",
+   "type": 1,
+   "obs": "no-observer",
+   "inputs": [
+    "mutator mutabledep"
+   ],
+   "outs": [
+    "mutabledep@M1"
+   ],
+   "def": "([m]) => m"
+  }
+ ]
+}

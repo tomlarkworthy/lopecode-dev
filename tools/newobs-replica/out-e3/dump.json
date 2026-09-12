@@ -1,0 +1,1458 @@
+{
+ "runtimeCtor": "Runtime",
+ "count": 156,
+ "notebook_name": "@tomlarkworthy/exporter-3",
+ "builtins": [
+  "@variable",
+  "invalidation",
+  "visibility"
+ ],
+ "vars": [
+  {
+   "name": "md",
+   "type": 2,
+   "inputs": [
+    "md@builtin"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`# Exporter 3\n\n## [video explainer for exporter 2](https://www.youtube.com/watch?v=wx93r1pY_6Y)\n`\n)}"
+  },
+  {
+   "name": "Event",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "exporter",
+    "viewof$output",
+    "Event"
+   ],
+   "cls": "",
+   "def": "function(exporter,viewof$output,Event){return(\nexporter({\n  output: out => {\n    viewof$output.value = out;\n    viewof$output.dispatchEvent(new Event('input'));\n  }\n})\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md",
+    "downloadAnchor",
+    "forkAnchor"
+   ],
+   "cls": "",
+   "def": "function(md,downloadAnchor,forkAnchor){return(\nmd`\nSerialize literate computational notebooks with their dependancies into single ${ downloadAnchor({}, 'downloadable') } files. Double click to open locally. No server required, works in a \\`file://\\` context for simplicity.\n\n- **File-first** representation. The [Observable Runtime](https://github.com/observablehq/runtime) and common builtins like \\"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md",
+    "forkAnchor",
+    "downloadAnchor"
+   ],
+   "cls": "",
+   "def": "function(md,forkAnchor,downloadAnchor){return(\nmd`## Usage Guide\n\nTo put the exporter in one of your notebooks, first import the UI builder. \n\\`\\`\\`js\nimport {exporter, forkAnchor, exportAnchor } from '@tomlarkworthy/exporter'\n\\`\\`\\`\n\nThen call the builder to make the UI. You don't need to pass any options, but the options is where you can customise the output format.\n\\`\\`\\`js\nexporter({\n  handler"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Lopecode HTML Format Specification\n\n\n### Inline http responses\nThe HTML file contains \\`<script>\\` blocks that hold content to serve internal network requests locally.\n\n~~~html\n<script id=\"d/c2dae147641e012a@46\" \n        type=\"text/plain\"\n        data-encoding=\"base64+gzip\"\n        data-mime=\"application/javascript\"\n>\n...inline text or base64 string\n</scr\\ipt>\n~~~\n\nReque"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`### Main script\n\nThe main script loads the Observable runtime with no standard library and loads a bootloader module. The bootloader is responsible for setting up the standard library and loading the first real modules, which it discovers by reading the \\`bootconf.json\\`. \\`@tomlarkworthy/bootloader\\` is the default which comes with d3, Plot, md, htl and lodash local.\n`\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Persisted Hash URL\n\nTo help carry state across an export, the URL hash parameter is remembered in the \\`bootconf.json\\` and set automatically when opening the file if one is not present. URLs are limited in size, ff you need to move large amount of data across an export, use a [local FileAttachment](https://observablehq.com/@tomlarkworthy/fileattachments) instead.`\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Themes\n\nThemes are sourced from NotebookKit. A theme is fetched *once* from Github once when switching themes, but integrated into the export, and reused locally on subsequent exports. This keeps the bundle small, and you only need a network connection if switching to obtain the new CSS source files.`\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "disk_svg"
+   ],
+   "cls": "",
+   "def": "function(disk_svg){return(\ndisk_svg()\n)}"
+  },
+  {
+   "name": "html",
+   "type": 2,
+   "inputs": [
+    "html@builtin"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "disk_svg",
+   "type": 1,
+   "inputs": [
+    "html"
+   ],
+   "cls": "",
+   "def": "function disk_svg(html){return(\nfill => html`<svg ${ fill ? `fill=\"${ fill }\" ` : '' }width=\"50px\" height=\"50px\" viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect height=\"4\" width=\"4\" x=\"20\" y=\"50\"/><rect height=\"4\" width=\"16\" x=\"28\" y=\"50\"/><path d=\"M32,38a8,8,0,1,0-8-8A8.009,8.009,0,0,0,32,38Zm0-12a4,4,0,1,1-4,4A4,4,0,0,1,32,26Z\"/><path d=\"M6,62H58a2,2,0,0,0,2-2V15a2,2,0,0,0-.586-1.41"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Implementation`\n)}"
+  },
+  {
+   "name": "Inputs",
+   "type": 2,
+   "inputs": [
+    "Inputs@builtin"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "exporter",
+   "type": 1,
+   "inputs": [
+    "actionHandler",
+    "css",
+    "keepalive",
+    "exporter_module",
+    "variable",
+    "domView",
+    "view",
+    "disk_svg",
+    "linkTo",
+    "Inputs",
+    "themes",
+    "viewof$theme_assets"
+   ],
+   "cls": "",
+   "def": "function exporter(actionHandler,css,keepalive,exporter_module,variable,domView,view,disk_svg,linkTo,Inputs,themes,viewof$theme_assets)\n{\n  return ({handler = actionHandler, style = css, output = out => {\n    }, debug = false} = {}) => {\n    keepalive(exporter_module, 'futureExportedState');\n    const handlerVar = variable(handler);\n    const feedback = domView();\n    // prerender defaults ON; only"
+  },
+  {
+   "name": "globalThis",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": "copyTextToClipboard",
+   "type": 1,
+   "inputs": [
+    "globalThis"
+   ],
+   "cls": "",
+   "def": "function copyTextToClipboard(globalThis){return(\nasync text => {\n  text = String(text ?? '');\n  if (globalThis.navigator?.clipboard?.writeText) {\n    await navigator.clipboard.writeText(text);\n    return true;\n  }\n  const ta = document.createElement('textarea');\n  ta.value = text;\n  ta.setAttribute('readonly', '');\n  ta.style.position = 'fixed';\n  ta.style.left = '-9999px';\n  ta.style.top = '0';\n "
+  },
+  {
+   "name": "htmlToConsoleSnippet",
+   "type": 1,
+   "inputs": [
+    "utf8ToBase64"
+   ],
+   "cls": "",
+   "def": "function htmlToConsoleSnippet(utf8ToBase64){return(\n(html, {title = 'Observable notebook', zIndex = 2147483647} = {}) => {\n  const b64 = utf8ToBase64(html);\n  const safeTitle = String(title).replace(/`/g, '\\\\`');\n  return `(async () => {\n  const b64 = \"${ b64 }\";\n  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));\n  const html = new TextDecoder().decode(bytes);\n\n  const z = ${ Math.m"
+  },
+  {
+   "name": "Node",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": "location",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": "exportAnchor",
+   "type": 1,
+   "inputs": [
+    "Node",
+    "notebook_name",
+    "main",
+    "_runtime",
+    "exportToHTML",
+    "location",
+    "getCompactISODate"
+   ],
+   "cls": "",
+   "def": "function exportAnchor(Node,notebook_name,main,_runtime,exportToHTML,location,getCompactISODate){return(\n(action, attrs = {}, label = action, exportOpts = {}) => {\n  const a = document.createElement('a');\n  const {href = '#', title, className, style, target, rel, ...rest} = attrs ?? {};\n  a.href = href;\n  if (title != null)\n    a.title = title;\n  if (className != null)\n    a.className = className;\n"
+  },
+  {
+   "name": "forkAnchor",
+   "type": 1,
+   "inputs": [
+    "exportAnchor"
+   ],
+   "cls": "",
+   "def": "function forkAnchor(exportAnchor){return(\n(attrs = {}, label = 'fork', exportOpts = {}) => exportAnchor('tab', attrs, label, exportOpts)\n)}"
+  },
+  {
+   "name": "downloadAnchor",
+   "type": 1,
+   "inputs": [
+    "exportAnchor"
+   ],
+   "cls": "",
+   "def": "function downloadAnchor(exportAnchor){return(\n(attrs = {}, label = 'download', exportOpts = {}) => exportAnchor('download', attrs, label, exportOpts)\n)}"
+  },
+  {
+   "name": "actionHandler",
+   "type": 1,
+   "inputs": [
+    "Inputs",
+    "getSourceModule",
+    "notebook_name",
+    "_runtime",
+    "exportToHTML",
+    "htmlToConsoleSnippet",
+    "copyTextToClipboard",
+    "view",
+    "linkTo",
+    "location",
+    "getCompactISODate"
+   ],
+   "cls": "",
+   "def": "function actionHandler(Inputs,getSourceModule,notebook_name,_runtime,exportToHTML,htmlToConsoleSnippet,copyTextToClipboard,view,linkTo,location,getCompactISODate)\n{\n  return async (action, state, options, feedback_callback) => {\n    feedback_callback(Inputs.textarea({ value: `Generating source...\\n` }));\n    const {notebook, module, runtime} = await getSourceModule(state);\n    const mains = notebo"
+  },
+  {
+   "name": "exportToHTML",
+   "type": 1,
+   "inputs": [
+    "_runtime",
+    "cssForTheme",
+    "css",
+    "location",
+    "keepalive",
+    "exporter_module",
+    "viewof$task"
+   ],
+   "cls": "",
+   "def": "function exportToHTML(_runtime,cssForTheme,css,location,keepalive,exporter_module,viewof$task){return(\nasync function exportToHTML({mains = new Map(), runtime = _runtime, options = {}} = {}) {\n        let conf = { headless: false };\n        try {\n            conf = (await import('file://bootconf.json')).default;\n        } catch (_) {\n        }\n        if (runtime.module_names) {\n            runtim"
+  },
+  {
+   "name": "getSourceModule",
+   "type": 1,
+   "inputs": [
+    "notebook_name",
+    "main",
+    "_runtime"
+   ],
+   "cls": "",
+   "def": "function getSourceModule(notebook_name,main,_runtime){return(\nasync state => {\n    // source picker was removed; the exporter always serialises this notebook\n    if (!state.source || state.source == 'this notebook')\n      return {\n        notebook: notebook_name,\n        module: main,\n        runtime: _runtime\n      };\n    const url = state.source == 'a notebook url' ? state.notebook_url.child : s"
+  },
+  {
+   "name": "createShowable",
+   "type": 1,
+   "inputs": [
+    "variable",
+    "view"
+   ],
+   "cls": "",
+   "def": "function createShowable(variable,view)\n{\n  return function createShowable(child, {\n    show = true\n  } = {}) {\n    const showVariable = variable(show, { name: 'show' });\n    const showable = view`<div>${ [\n      'show',\n      showVariable\n    ] }${ [\n      'child',\n      child\n    ] }`;\n    // The showable logic is to toggle the visibility of the enclosing div based\n    // on the show variable sta"
+  },
+  {
+   "name": "reportValidity",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function reportValidity(){return(\n(view, invalidation) => {\n  const input = view.querySelector('input');\n  const report = () => view.reportValidity();\n  input.addEventListener('input', report);\n  invalidation.then(() => input.removeEventListener('input', report));\n  return view;\n}\n)}"
+  },
+  {
+   "name": "top120List",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function top120List(){return(\n[\n  '@jashkenas/inputs',\n  '@d3/gallery',\n  '@d3/learn-d3',\n  '@makio135/creative-coding',\n  '@observablehq/module-require-debugger',\n  '@d3/zoomable-sunburst',\n  '@observablehq/plot',\n  '@tmcw/enigma-machine',\n  '@d3/force-directed-graph-component',\n  '@d3/bar-chart-race-explained',\n  '@observablehq/data-wrangler',\n  '@d3/collapsible-tree',\n  '@sxywu/introduction-to-"
+  },
+  {
+   "name": "notebook_name",
+   "type": 1,
+   "inputs": [
+    "isOnObservableCom"
+   ],
+   "cls": "",
+   "def": "function notebook_name(isOnObservableCom)\n{\n  if (isOnObservableCom()) {\n    return new URL(document.baseURI).pathname.replace(\"/\", \"\");\n  }\n}"
+  },
+  {
+   "name": "notebook_title",
+   "type": 1,
+   "inputs": [
+    "notebook_name",
+    "_runtime"
+   ],
+   "cls": "",
+   "def": "function notebook_title(notebook_name,_runtime){return(\nnotebook_name || [..._runtime.mains.keys()][0]\n)}"
+  },
+  {
+   "name": "utf8ToBase64",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function utf8ToBase64(){return(\nstr => {\n  const bytes = new TextEncoder().encode(String(str));\n  const chunk = 32768;\n  let bin = '';\n  for (let i = 0; i < bytes.length; i += chunk) {\n    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));\n  }\n  return btoa(bin);\n}\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`### Single File Notebook Generator Flow`\n)}"
+  },
+  {
+   "name": "TRACE_MODULE",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function TRACE_MODULE(){return(\n'@tomlarkworthy/lopepage'\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "task"
+   ],
+   "cls": "",
+   "def": "function(task){return(\ntask\n)}"
+  },
+  {
+   "name": "task_runtime",
+   "type": 1,
+   "inputs": [
+    "task"
+   ],
+   "cls": "",
+   "def": "function task_runtime(task){return(\ntask.runtime\n)}"
+  },
+  {
+   "name": "runtime_variables",
+   "type": 1,
+   "inputs": [
+    "task_runtime",
+    "variableToObject"
+   ],
+   "cls": "",
+   "def": "function runtime_variables(task_runtime,variableToObject){return(\n[...task_runtime._variables].map(variableToObject)\n)}"
+  },
+  {
+   "name": "buildModuleNames",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function buildModuleNames()\n{\n  return function buildModuleNames(runtime, {\n    cache = []\n  } = {}) {\n    const names = new Map();\n    for (const [module, info] of cache)\n      names.set(module, info);\n    if (runtime.mains) {\n      for (const [name, module] of runtime.mains) {\n        if (!names.has(module))\n          names.set(module, {\n            name,\n            module\n          });\n      }"
+  },
+  {
+   "name": "isModuleVar",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function isModuleVar(){return(\nv => typeof v._name === 'string' && v._name.startsWith('module ')\n)}"
+  },
+  {
+   "name": "isDynamicVar",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function isDynamicVar(){return(\nv => typeof v._name === 'string' && v._name.startsWith('dynamic ')\n)}"
+  },
+  {
+   "name": "isImportBridged",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function isImportBridged()\n{\n  return function isImportBridged(v) {\n    if (v._inputs.length === 1 && v._inputs[0]._module !== v._module && !v._inputs[0]._name?.startsWith?.('@'))\n      return true;\n    if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable')\n      return true;\n    // Observable closure-based imports: single @variable input + definition contains .import(\n    if (v._input"
+  },
+  {
+   "name": "findImportedName3",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function findImportedName3(){return(\nasync function findImportedName(v) {\n  if (v._inputs.length === 1 && v._inputs[0]._name === '@variable') {\n    let capture;\n    await v._definition({ import: (...args) => capture = args });\n    return capture[0];\n  }\n  if (v._inputs.length === 1)\n    return v._inputs[0]._name;\n  const regex = /v\\.import\\(\"([^\"]+)\",\\s*\"([^\"]+)\"/;\n  const match = v._definition.to"
+  },
+  {
+   "name": "moduleNames",
+   "type": 1,
+   "inputs": [
+    "task",
+    "moduleMap",
+    "task_runtime"
+   ],
+   "cls": "",
+   "def": "function moduleNames(task,moduleMap,task_runtime)\n{\n  if (task.options?.debug)\n    debugger;\n  return moduleMap(task_runtime, {\n    cache: [...task.mains.entries()].map(([name, module]) => [\n      module,\n      {\n        name,\n        module\n      }\n    ])\n  });\n}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "resolve_modules"
+   ],
+   "cls": "",
+   "def": "function(resolve_modules){return(\nresolve_modules\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "summary"
+   ],
+   "cls": "",
+   "def": "function(summary){return(\nsummary\n)}"
+  },
+  {
+   "name": "excluded_module_names",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function excluded_module_names(){return(\n[\n  'TBD',\n  'error',\n  'builtin',\n  'main',\n  'bootloader'\n]\n)}"
+  },
+  {
+   "name": "excluded_modules",
+   "type": 1,
+   "inputs": [
+    "moduleNames",
+    "excluded_module_names"
+   ],
+   "cls": "",
+   "def": "function excluded_modules(moduleNames,excluded_module_names){return(\nnew Map([...moduleNames.entries()].filter(([m, info]) => excluded_module_names.includes(info.name)))\n)}"
+  },
+  {
+   "name": "included_modules",
+   "type": 1,
+   "inputs": [
+    "moduleNames",
+    "excluded_module_names"
+   ],
+   "cls": "",
+   "def": "function included_modules(moduleNames,excluded_module_names){return(\nnew Map([...moduleNames.entries()].filter(([m, info]) => !excluded_module_names.includes(info.name)))\n)}"
+  },
+  {
+   "name": "module_specs",
+   "type": 1,
+   "inputs": [
+    "task",
+    "included_modules",
+    "TRACE_MODULE",
+    "task_runtime",
+    "isModuleVar",
+    "isDynamicVar",
+    "getFileAttachments",
+    "main",
+    "generate_module_source",
+    "moduleNames"
+   ],
+   "cls": "",
+   "def": "async function module_specs(task,included_modules,TRACE_MODULE,task_runtime,isModuleVar,isDynamicVar,getFileAttachments,main,generate_module_source,moduleNames)\n{\n  if (task.options?.debug)\n    debugger;\n  return new Map(await Promise.all([...included_modules.entries()].map(async ([module, spec]) => {\n    if (spec.name === TRACE_MODULE)\n      debugger;\n    // Raw variables for this module (user-de"
+  },
+  {
+   "name": "findImports",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function findImports(){return(\ncells => [...cells.keys()].filter(name => typeof name === 'string' && name.startsWith('module ')).map(name => name.replace('module ', ''))\n)}"
+  },
+  {
+   "name": "getFileAttachments",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function getFileAttachments(){return(\nmodule => {\n  let fileMap;\n  const FileAttachment = module._builtins.get('FileAttachment');\n  const backup_get = Map.prototype.get;\n  const backup_has = Map.prototype.has;\n  Map.prototype.has = Map.prototype.get = function (...args) {\n    fileMap = this;\n  };\n  try {\n    FileAttachment('');\n  } catch (e) {\n  }\n  Map.prototype.has = backup_has;\n  Map.prototype."
+  },
+  {
+   "name": "streamingModuleOrder",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function streamingModuleOrder(){return(\n(mainNames, specByName, blockByName) => {\n    // Small blocks first, so each one unblocks the parser sooner: bootconf-declared mains lead (they\n    // boot the page), then every other module in ascending emitted-block size — the biggest module,\n    // which stalls the parser longest, lands last. `blockByName` holds each module's already-rendered\n    // block"
+  },
+  {
+   "name": "book",
+   "type": 1,
+   "inputs": [
+    "task",
+    "inlineModule",
+    "inlineGzipModule",
+    "es_module_shims",
+    "runtime_gz",
+    "inspector_gz",
+    "module_specs",
+    "lopemodule",
+    "streamingModuleOrder",
+    "lopebook"
+   ],
+   "cls": "",
+   "def": "function book(task,inlineModule,inlineGzipModule,es_module_shims,runtime_gz,inspector_gz,module_specs,lopemodule,streamingModuleOrder,lopebook){return(\n(async () => {\n  const cssBlocks = task.options.style\n    .map(([url, content]) => inlineModule(url, content, { mime: \"text/css\" }))\n    .join(\"\\n\");\n  const cssUrls = task.options.style.map(([url]) => url);\n  const systemBlocks = [\n    inlineGzipM"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "Inputs",
+    "module_specs"
+   ],
+   "cls": "",
+   "def": "function(Inputs,module_specs){return(\nInputs.table([...module_specs.entries().map(([name, spec]) => ({\n    name,\n    source: spec.source.length,\n    imports: spec.imports,\n    fileAttachments: spec.fileAttachments\n  }))], {\n  layout: 'auto',\n  format: {\n    fileAttachments: f => !f ? 'none' : Inputs.table([...f.entries().map(([name, f]) => ({\n        name,\n        url: f.url || f\n      }))]),\n    "
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`##### Generate a report on the sizes of components`\n)}"
+  },
+  {
+   "name": "DOMParser",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": "report",
+   "type": 1,
+   "inputs": [
+    "DOMParser",
+    "book"
+   ],
+   "cls": "",
+   "def": "function report(DOMParser,book)\n{\n  let report;\n  try {\n    report = [...new DOMParser().parseFromString(book, 'text/html').querySelectorAll('script')].map(script => ({\n      ...script.getAttribute('file') && {\n        file: script.getAttribute('file'),\n        module: script.getAttribute('module')\n      },\n      type: script.getAttribute('data-mime') || 'application/javascript',\n      size: scrip"
+  },
+  {
+   "name": "tomlarkworthy_exporter_task",
+   "type": 1,
+   "inputs": [
+    "book",
+    "report",
+    "exporter_module",
+    "viewof$task"
+   ],
+   "cls": "",
+   "def": "function tomlarkworthy_exporter_task(book,report,exporter_module,viewof$task)\n{\n  const result = {\n    source: book,\n    report: report\n  };\n  exporter_module;\n  return viewof$task.resolve(result);\n}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Module Source Generator`\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`### exportModuleJS\n\nSerialize a single module from the live runtime to a \\`.js\\` module source string. Unlike \\`module_specs\\` (which serializes all modules as part of the full HTML export pipeline), \\`exportModuleJS\\` works on-demand against the live runtime with no \\`task\\` dependency.\n\n\\`\\`\\`js\nimport {exportModuleJS} from \"@tomlarkworthy/exporter-3\"\n\\`\\`\\`\n\n\\`\\`\\`js\ncon"
+  },
+  {
+   "name": "exportModuleJS",
+   "type": 1,
+   "inputs": [
+    "_runtime",
+    "buildModuleNames",
+    "isModuleVar",
+    "isDynamicVar",
+    "getFileAttachments",
+    "generate_module_source"
+   ],
+   "cls": "",
+   "def": "function exportModuleJS(_runtime,buildModuleNames,isModuleVar,isDynamicVar,getFileAttachments,generate_module_source)\n{\n  const fn = async (moduleId, {runtime = _runtime, moduleNamesFn = buildModuleNames} = {}) => {\n    const names = moduleNamesFn(runtime);\n    let targetModule = null;\n    for (const [module, info] of names) {\n      if (info.name === moduleId) {\n        targetModule = module;\n    "
+  },
+  {
+   "name": "generate_module_source",
+   "type": 1,
+   "inputs": [
+    "generate_definitions",
+    "generate_define"
+   ],
+   "cls": "",
+   "def": "function generate_module_source(generate_definitions,generate_define){return(\nasync (spec, variables, fileAttachments, {moduleNames} = {}) => `\n${ generate_definitions(variables) }\n${ await generate_define(spec, variables, fileAttachments, { moduleNames }) }`\n)}"
+  },
+  {
+   "name": "generate_definitions",
+   "type": 1,
+   "inputs": [
+    "variableToDefinition"
+   ],
+   "cls": "",
+   "def": "function generate_definitions(variableToDefinition){return(\nvariables => variables.map(v => variableToDefinition(v)).join('')\n)}"
+  },
+  {
+   "name": "generate_define",
+   "type": 1,
+   "inputs": [
+    "variableToDefine"
+   ],
+   "cls": "",
+   "def": "function generate_define(variableToDefine){return(\nasync (spec, variables, fileAttachments, {moduleNames} = {}) => {\n  const fileAttachmentExpression = fileAttachments?.size ? `  const fileAttachments = new Map(${ JSON.stringify([...fileAttachments.keys()]) }.map((name) => {\n    const module_name = \"${ spec.name }\";\n    const {status, mime, bytes} = window.lopecode.contentSync(module_name + \"/\" + "
+  },
+  {
+   "name": "isLiveImport",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function isLiveImport(){return(\nv => !v._name && v._definition?.toString().includes('observablehq' + '--inspect ' + 'observablehq--import')\n)}"
+  },
+  {
+   "name": "variableToDefinition",
+   "type": 1,
+   "inputs": [
+    "isModuleVar",
+    "isImportBridged",
+    "isLiveImport",
+    "isDynamicVar",
+    "pid",
+    "restoreCanonicalImports"
+   ],
+   "cls": "",
+   "def": "function variableToDefinition(isModuleVar,isImportBridged,isLiveImport,isDynamicVar,pid,restoreCanonicalImports){return(\nfunction variableToDefinition(v) {\n  if (isModuleVar(v))\n    return '';\n  if (isImportBridged(v))\n    return '';\n  if (isLiveImport(v))\n    return '';\n  if (isDynamicVar(v))\n    return '';\n  return `const ${ pid(v) } = ${ restoreCanonicalImports(v._definition.toString()) };\\n`;\n"
+  },
+  {
+   "name": "restoreCanonicalImports",
+   "type": 1,
+   "inputs": [
+    "acorn"
+   ],
+   "cls": "",
+   "def": "function restoreCanonicalImports(acorn){return(\nsource => {\n  if (!/\\bimportShim\\s*\\(/.test(source))\n    return source;\n  let ast;\n  try {\n    ast = acorn.Parser.parse(source, {\n      ecmaVersion: 'latest',\n      sourceType: 'script',\n      allowAwaitOutsideFunction: true,\n      allowReturnOutsideFunction: true,\n      allowImportExportEverywhere: true\n    });\n  } catch (e) {\n    console.warn('[exp"
+  },
+  {
+   "name": "variableToDefine",
+   "type": 1,
+   "inputs": [
+    "isLiveImport",
+    "isDynamicVar",
+    "isModuleVar",
+    "isImportBridged",
+    "findImportedName3",
+    "pid"
+   ],
+   "cls": "",
+   "def": "function variableToDefine(isLiveImport,isDynamicVar,isModuleVar,isImportBridged,findImportedName3,pid)\n{\n  const EXCLUDED = [\n    'main',\n    'builtin',\n    'TBD',\n    'error'\n  ];\n  return async function variableToDefine(v, {moduleNames} = {}) {\n    if (isLiveImport(v))\n      return [];\n    if (isDynamicVar(v))\n      return [];\n    if (isModuleVar(v)) {\n      // On Observable, module vars may be "
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Assemble `\n)}"
+  },
+  {
+   "name": "es_module_shims",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function es_module_shims(){return(\n'H4sIAK6D82gAA619+2PauNLoz/f8FcDJJfaiuEAISUwVbjZN2/SRdptu2900pzFGBBqwqW3yKPh/vzMjyZaBtN3zfWdPg5H1GI3mLaGxBrPAT0ZhYNnzsUhKf/HkfirCQelqHPa88fvhKH5cmVW6+Vc3FuMB+yLYbcxjfvBFWIG4Lf357pUVsxe2M4zEwGb3MYevkc0PqFePDwTz+ViwMZ8JNmN9bm2we3aFFWaLhTXjV3YHa055Yt3b7Ag+ZlBlatvskD+3jmz2iR86004kklkUlD45o8Afz/oitqb2YvHJmc7iITyyO+uIHdop66kB2JQdaSiwow27c+gIPckp55U4iUbBVaU7dct1dugk/Chl"
+  },
+  {
+   "name": "inspector_gz",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function inspector_gz(){return(\n'H4sIAGWI82gAA+08/XfbOI6/969QdXlbuXHs2O112qRpm0ncndzko69J566X5BLFomNNZckryfnY1P/7AQRJkfqwZW96s7Pv+l5jiQRBEAABECTVblth5LGLUeRNApa0P0RXCYtv3KuADf/W9sNkzPppFLeTuN/2/GTspv1h6/fkyWAS9lM/Ci1Z6CCappXej+Gvx1LXDxrWwxNLPFtb8uH7d+thugkVN25seVF/MmJh2oV6RNCKbkMW74rSpsVu4AfbSriWxwbuJEh/89lta2eSpNGohzCI0B9YDvYfDWS7rS3LlpTaRI6lcIbslp4dIvpBUjhtILapxYKE5dpkdPRj5qaM9+3Y/MfmzQRsyw/9tKd"
+  },
+  {
+   "name": "inlineModule",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function inlineModule(){return(\n(id, source, {mime = 'application/javascript', main = false} = {}) => `<script id=\"${ id }\" \n  type=\"text/plain\"\n  data-mime=\"${ mime }\"${ main ? `\n  data-main` : '' }\n>${ source }</scr\\ipt><!--/-->`\n)}"
+  },
+  {
+   "name": "inlineGzipModule",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function inlineGzipModule(){return(\n(id, source) => `<script id=\"${ id }\" \n  type=\"text/plain\"\n  data-encoding=\"base64+gzip\"\n  data-mime=\"application/javascript\">\n${ source }\n</scr\\ipt><!--/-->`\n)}"
+  },
+  {
+   "name": "normalize",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function normalize(){return(\nurl => url.replace(/^(?:https:\\/\\/api\\.observablehq\\.com)?\\/(.*?)\\.js(?:\\?.*)?$/, '$1').replace(/^(d\\/[a-f0-9]{16})@\\d+$/, '$1')\n)}"
+  },
+  {
+   "name": "test_normalize",
+   "type": 1,
+   "inputs": [
+    "expect",
+    "normalize"
+   ],
+   "cls": "",
+   "def": "function test_normalize(expect,normalize)\n{\n  expect(normalize('d/57d79353bac56631@4')).toBe('d/57d79353bac56631');\n  expect(normalize('https://api.observablehq.com/@tomlarkworthy/runtime-sdk.js?v=4')).toBe('@tomlarkworthy/runtime-sdk');\n  expect(normalize('https://api.observablehq.com/@tomlarkworthy/bootloader.js?v=4')).toBe('@tomlarkworthy/bootloader');\n  expect(normalize('https://api.observable"
+  },
+  {
+   "name": "test_networking_script_is_streaming",
+   "type": 1,
+   "inputs": [
+    "networking_script",
+    "expect"
+   ],
+   "cls": "",
+   "def": "function test_networking_script_is_streaming(networking_script,expect)\n{\n  const src = networking_script;\n  // the streaming gate + waiting helper\n  expect(src.includes('window.__lopeStreaming = true')).toBe(true);\n  expect(src.includes('function __waitForId')).toBe(true);\n  // event-driven (MutationObserver), not a setTimeout poll: robust to Safari background-tab\n  // timer throttling when a fork"
+  },
+  {
+   "name": "test_lopebook_main_at_top_with_sentinel",
+   "type": 1,
+   "inputs": [
+    "lopebook",
+    "expect"
+   ],
+   "cls": "",
+   "def": "function test_lopebook_main_at_top_with_sentinel(lopebook,expect)\n{\n  const MARK = '<!--USER_BLOCKS_MARK-->';\n  const html = lopebook({\n    blocks: MARK,\n    cssUrls: [],\n    bootloader: '@tomlarkworthy/bootloader',\n    title: 't'\n  });\n  const mainIdx = html.indexOf('<script id=\"main\">');\n  const blocksIdx = html.indexOf(MARK);\n  const sentinelIdx = html.indexOf('streaming_sentinel');\n  // main i"
+  },
+  {
+   "name": "test_streaming_order_prioritizes_mains",
+   "type": 1,
+   "inputs": [
+    "expect",
+    "streamingModuleOrder"
+   ],
+   "cls": "",
+   "def": "function test_streaming_order_prioritizes_mains(expect,streamingModuleOrder)\n{\n  const mk = names => new Map(names.map(n => [\n    n,\n    {\n      url: n,\n      imports: []\n    }\n  ]));\n  const specByName = mk([\n    '@u/app',\n    '@u/lib',\n    '@u/junk'\n  ]);\n  // equal size (no blocks, no source) degrades to alphabetical; main still leads\n  expect(streamingModuleOrder(['@u/app'], specByName).join('"
+  },
+  {
+   "name": "test_streaming_order_runtime",
+   "type": 1,
+   "inputs": [
+    "Runtime",
+    "streamingModuleOrder",
+    "expect"
+   ],
+   "cls": "",
+   "def": "function test_streaming_order_runtime(Runtime,streamingModuleOrder,expect)\n{\n  // Build a real Runtime with the module-import wiring the exporter introspects, then order it.\n  const rt = new Runtime();\n  const libMod = rt.module();\n  libMod.variable().define('x', [], () => 1);\n  const appMod = rt.module();\n  appMod.variable().define('module @u/lib', [], () => libMod);\n  // app imports lib\n  const "
+  },
+  {
+   "name": "test_restoreCanonicalImports",
+   "type": 1,
+   "inputs": [
+    "restoreCanonicalImports",
+    "expect"
+   ],
+   "cls": "",
+   "def": "function test_restoreCanonicalImports(restoreCanonicalImports,expect)\n{\n  const R = restoreCanonicalImports;\n  // Nothing to rewrite: identity.\n  expect(R('async () => 1 + 2')).toBe('async () => 1 + 2');\n  // Callee position becomes the canonical dynamic import.\n  expect(R('async () => await importShim(\"/@a/b.js?v=4\")')).toBe('async () => await import(\"/@a/b.js?v=4\")');\n  // Several calls of diffe"
+  },
+  {
+   "name": "test_restoreCanonicalImports_preserves_source",
+   "type": 1,
+   "inputs": [
+    "expect",
+    "restoreCanonicalImports"
+   ],
+   "cls": "",
+   "def": "function test_restoreCanonicalImports_preserves_source(expect,restoreCanonicalImports)\n{\n  // Only the callee identifier changes, so the rest survives byte-for-byte —\n  // escodegen used to reformat the whole cell.\n  const src = [\n    'function _f() {',\n    \"  // keep  this   comment\",\n    \"  const s = 'single-quoted';   /* and this */\",\n    '  return importShim(\"tpl\");',\n    '}'\n  ].join('\\n');\n "
+  },
+  {
+   "name": "isNotebook",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function isNotebook(){return(\nid => /^(@[^/]+\\/[^/]+|d\\/[a-f0-9]{16})$/.test(id)\n)}"
+  },
+  {
+   "name": "networking_script",
+   "type": 1,
+   "inputs": [
+    "normalize",
+    "isNotebook"
+   ],
+   "cls": "",
+   "def": "function networking_script(normalize,isNotebook){return(\n`\n  const normalize = ${ normalize.toString() };\n  const isNotebook = ${ isNotebook.toString() };\n\n  // --- streaming gate ---\n  // main runs from the TOP of the document, before the whole file has finished downloading, so a\n  // block a boot import needs may not have streamed in yet. __waitForId blocks until the block's\n  // <script> is ful"
+  },
+  {
+   "name": "lopebook",
+   "type": 1,
+   "inputs": [
+    "agent_orientation",
+    "diskDataUrl",
+    "networking_script"
+   ],
+   "cls": "",
+   "def": "function lopebook(agent_orientation,diskDataUrl,networking_script){return(\n({blocks = '', cssUrls = [], bootloader = '@tomlarkworthy/bootloader', title = 'Lopecode notebook', description, image, metas = [], head, bodyPrepend = ''} = {}) => {\n    const styleImports = cssUrls.map((url, i) => `  const style${ i } = await importShim(${ JSON.stringify(url) }, { with: { type: 'css' } });`).join('\\n');\n "
+  },
+  {
+   "name": "CSS",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": "lopemodule",
+   "type": 1,
+   "inputs": [
+    "TRACE_MODULE",
+    "CSS",
+    "arrayBufferToBase64",
+    "inlineModule",
+    "escapeScriptTags"
+   ],
+   "cls": "",
+   "def": "function lopemodule(TRACE_MODULE,CSS,arrayBufferToBase64,inlineModule,escapeScriptTags){return(\nasync module => {\n    if (module.url === TRACE_MODULE) {\n      debugger;\n    }\n    const moduleId = module.url.replace(/^(d\\/[a-f0-9]{16})@\\d+$/, '$1');\n    const files = module.fileAttachments ? await Promise.all([...module.fileAttachments.entries()].map(async ([name, attachment]) => {\n      const url "
+  },
+  {
+   "name": "escapeScriptTags",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function escapeScriptTags(){return(\nstr => str.replaceAll('</script', '</scr\\\\ipt')\n)}"
+  },
+  {
+   "name": "arrayBufferToBase64",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function arrayBufferToBase64(){return(\nasync function arrayBufferToBase64(buffer) {\n  const bytes = new Uint8Array(buffer);\n  const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');\n  return btoa(binary);\n}\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`### Global Output`\n)}"
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Utils`\n)}"
+  },
+  {
+   "name": "getCompactISODate",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function getCompactISODate(){return(\nfunction getCompactISODate() {\n  const date = new Date();\n  const year = date.getUTCFullYear();\n  const month = String(date.getUTCMonth() + 1).padStart(2, '0');\n  const day = String(date.getUTCDate()).padStart(2, '0');\n  const hours = String(date.getUTCHours()).padStart(2, '0');\n  const minutes = String(date.getUTCMinutes()).padStart(2, '0');\n  const seconds = "
+  },
+  {
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "cls": "",
+   "def": "function(md){return(\nmd`## Additional Tests`\n)}"
+  },
+  {
+   "name": "diskDataUrl",
+   "type": 1,
+   "inputs": [
+    "disk_svg"
+   ],
+   "cls": "",
+   "def": "function diskDataUrl(disk_svg){return(\n`data:image/svg+xml;base64,${ btoa(disk_svg('white').outerHTML).replaceAll('<?xml version=\"1.0\" ?>', '').replaceAll('\\n', '') }`\n)}"
+  },
+  {
+   "name": "viewof$task",
+   "type": 1,
+   "inputs": [
+    "flowQueue"
+   ],
+   "cls": "",
+   "def": "function viewof$task(flowQueue){return(\nflowQueue({ timeout_ms: 20000 })\n)}"
+  },
+  {
+   "name": "task",
+   "type": 1,
+   "inputs": [
+    "viewof$task"
+   ],
+   "cls": "",
+   "def": "function input(element2) {\n  return observe2((change) => {\n    const event = eventof(element2);\n    const value = valueof2(element2);\n    const inputted = () => change(valueof2(element2));\n    element2.addEventListener(event, inputted);\n    if (value !== void 0) change(value);\n    return () => element2.removeEventListener(event, inputted);\n  });\n}"
+  },
+  {
+   "name": "viewof$output",
+   "type": 1,
+   "inputs": [
+    "Inputs"
+   ],
+   "cls": "",
+   "def": "function viewof$output(Inputs){return(\nInputs.input(undefined)\n)}"
+  },
+  {
+   "name": "output",
+   "type": 1,
+   "inputs": [
+    "viewof$output"
+   ],
+   "cls": "",
+   "def": "function input(element2) {\n  return observe2((change) => {\n    const event = eventof(element2);\n    const value = valueof2(element2);\n    const inputted = () => change(valueof2(element2));\n    element2.addEventListener(event, inputted);\n    if (value !== void 0) change(value);\n    return () => element2.removeEventListener(event, inputted);\n  });\n}"
+  },
+  {
+   "name": "viewof$exporter_module",
+   "type": 1,
+   "inputs": [
+    "thisModule"
+   ],
+   "cls": "",
+   "def": "function viewof$exporter_module(thisModule){return(\nthisModule()\n)}"
+  },
+  {
+   "name": "exporter_module",
+   "type": 1,
+   "inputs": [
+    "viewof$exporter_module"
+   ],
+   "cls": "",
+   "def": "function input(element2) {\n  return observe2((change) => {\n    const event = eventof(element2);\n    const value = valueof2(element2);\n    const inputted = () => change(valueof2(element2));\n    element2.addEventListener(event, inputted);\n    if (value !== void 0) change(value);\n    return () => element2.removeEventListener(event, inputted);\n  });\n}"
+  },
+  {
+   "name": "@variable",
+   "type": 2,
+   "inputs": [],
+   "cls": "",
+   "def": "() => x"
+  },
+  {
+   "name": "cell 17185",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {linkTo} = await (import(new URL(\"/api/import/@tomlarkworthy/lopepage-urls\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"linkTo\")?.import(\"linkTo\", module);\n  return {};\n}));\n\nreturn {linkTo};\n}"
+  },
+  {
+   "name": "linkTo",
+   "type": 1,
+   "inputs": [
+    "linkTo@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17074",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {source_gz: runtime_gz, Runtime} = await (import(new URL(\"/api/import/@tomlarkworthy/observable-runtime-v6\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"runtime_gz\")?.import(\"source_gz\", \"runtime_gz\", module);\n  outputs.g"
+  },
+  {
+   "name": "runtime_gz",
+   "type": 1,
+   "inputs": [
+    "source_gz@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "Runtime",
+   "type": 1,
+   "inputs": [
+    "Runtime@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17075",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {flowQueue} = await (import(new URL(\"/api/import/@tomlarkworthy/flow-queue\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"flowQueue\")?.import(\"flowQueue\", module);\n  return {};\n}));\n\nreturn {flowQueue};\n}"
+  },
+  {
+   "name": "flowQueue",
+   "type": 1,
+   "inputs": [
+    "flowQueue@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17076",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {cellMap} = await (import(new URL(\"/api/import/@tomlarkworthy/cell-map\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"cellMap\")?.import(\"cellMap\", module);\n  return {};\n}));\n\nreturn {cellMap};\n}"
+  },
+  {
+   "name": "cellMap",
+   "type": 1,
+   "inputs": [
+    "cellMap@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17077",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {findModuleName, findImportedName, variableToObject, parser, decompress_url, acorn} = await (import(new URL(\"/api/import/@tomlarkworthy/observablejs-toolchain\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"findModuleName\")"
+  },
+  {
+   "name": "findModuleName",
+   "type": 1,
+   "inputs": [
+    "findModuleName@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "findImportedName",
+   "type": 1,
+   "inputs": [
+    "findImportedName@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "variableToObject",
+   "type": 1,
+   "inputs": [
+    "variableToObject@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "parser",
+   "type": 1,
+   "inputs": [
+    "parser@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "decompress_url",
+   "type": 1,
+   "inputs": [
+    "decompress_url@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "acorn",
+   "type": 1,
+   "inputs": [
+    "acorn@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17078",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {view, variable, bindOneWay} = await (import(new URL(\"/api/import/@tomlarkworthy/view\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"view\")?.import(\"view\", module);\n  outputs.get(\"variable\")?.import(\"variable\", module);\n  "
+  },
+  {
+   "name": "view",
+   "type": 1,
+   "inputs": [
+    "view@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "variable",
+   "type": 1,
+   "inputs": [
+    "variable@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "bindOneWay",
+   "type": 1,
+   "inputs": [
+    "bindOneWay@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17079",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {reversibleAttach} = await (import(new URL(\"/api/import/@tomlarkworthy/reversible-attachment\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"reversibleAttach\")?.import(\"reversibleAttach\", module);\n  return {};\n}));\n\nreturn "
+  },
+  {
+   "name": "reversibleAttach",
+   "type": 1,
+   "inputs": [
+    "reversibleAttach@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17080",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {localStorageView} = await (import(new URL(\"/api/import/@tomlarkworthy/local-storage-view\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"localStorageView\")?.import(\"localStorageView\", module);\n  return {};\n}));\n\nreturn {lo"
+  },
+  {
+   "name": "localStorageView",
+   "type": 1,
+   "inputs": [
+    "localStorageView@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17081",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {domView} = await (import(new URL(\"/api/import/@tomlarkworthy/dom-view\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"domView\")?.import(\"domView\", module);\n  return {};\n}));\n\nreturn {domView};\n}"
+  },
+  {
+   "name": "domView",
+   "type": 1,
+   "inputs": [
+    "domView@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17082",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {moduleMap, resolve_modules, submit_summary, summary, forcePeek} = await (import(new URL(\"/api/import/@tomlarkworthy/module-map\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"moduleMap\")?.import(\"moduleMap\", module);\n  out"
+  },
+  {
+   "name": "moduleMap",
+   "type": 1,
+   "inputs": [
+    "moduleMap@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "resolve_modules",
+   "type": 1,
+   "inputs": [
+    "resolve_modules@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "submit_summary",
+   "type": 1,
+   "inputs": [
+    "submit_summary@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "summary",
+   "type": 1,
+   "inputs": [
+    "summary@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "forcePeek",
+   "type": 1,
+   "inputs": [
+    "forcePeek@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17083",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {persistentId: pid, thisModule, keepalive, runtime: _runtime, main, id, importShim, isOnObservableCom} = await (import(new URL(\"/api/import/@tomlarkworthy/runtime-sdk\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"pid\")?.i"
+  },
+  {
+   "name": "pid",
+   "type": 1,
+   "inputs": [
+    "persistentId@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "thisModule",
+   "type": 1,
+   "inputs": [
+    "thisModule@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "keepalive",
+   "type": 1,
+   "inputs": [
+    "keepalive@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "_runtime",
+   "type": 1,
+   "inputs": [
+    "runtime@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "main",
+   "type": 1,
+   "inputs": [
+    "main@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "id",
+   "type": 1,
+   "inputs": [
+    "id@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "importShim",
+   "type": 1,
+   "inputs": [
+    "importShim@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "isOnObservableCom",
+   "type": 1,
+   "inputs": [
+    "isOnObservableCom@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17084",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {expect} = await (import(new URL(\"/api/import/@tomlarkworthy/jest-expect-standalone\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"expect\")?.import(\"expect\", module);\n  return {};\n}));\n\nreturn {expect};\n}"
+  },
+  {
+   "name": "expect",
+   "type": 1,
+   "inputs": [
+    "expect@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cell 17085",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "cls": "bridged",
+   "def": "async (__variable) => {\nconst {themes, extra_css, current_theme, theme_assets, viewof$theme_assets, css, cssForTheme} = await (import(new URL(\"/api/import/@tomlarkworthy/themes\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"themes\")?.import(\"themes\", m"
+  },
+  {
+   "name": "themes",
+   "type": 1,
+   "inputs": [
+    "themes@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "extra_css",
+   "type": 1,
+   "inputs": [
+    "extra_css@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "current_theme",
+   "type": 1,
+   "inputs": [
+    "current_theme@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "theme_assets",
+   "type": 1,
+   "inputs": [
+    "theme_assets@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "viewof$theme_assets",
+   "type": 1,
+   "inputs": [
+    "viewof theme_assets@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "css",
+   "type": 1,
+   "inputs": [
+    "css@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "cssForTheme",
+   "type": 1,
+   "inputs": [
+    "cssForTheme@other"
+   ],
+   "cls": "bridged",
+   "def": "function identity(x) {\n  return x;\n}"
+  },
+  {
+   "name": "test_lopebook_agent_orientation",
+   "type": 1,
+   "inputs": [
+    "lopebook",
+    "expect"
+   ],
+   "cls": "",
+   "def": "function test_lopebook_agent_orientation(lopebook,expect)\n{\n  const html = lopebook({\n    blocks: '',\n    cssUrls: [],\n    bootloader: '@tomlarkworthy/bootloader',\n    title: 't'\n  });\n  // an agent opening the raw file sees the orientation before any markup\n  const idx = html.indexOf('LOPECODE NOTEBOOK');\n  expect(idx).toBeGreaterThan(-1);\n  expect(idx).toBeLessThan(html.indexOf('<html lang=\"en\">"
+  },
+  {
+   "name": "agent_orientation",
+   "type": 1,
+   "inputs": [],
+   "cls": "",
+   "def": "function agent_orientation(){return(\n`<!--\nLOPECODE NOTEBOOK — orientation for AI agents. A self-contained Observable-runtime notebook:\nevery JavaScript module, asset and config is a top-level <script type=\"text/plain\" id=\"...\"> block,\nresolved at runtime. No build step and no server — edit a block, reload the file.\n\nDo not read this file whole, it is megabytes, and do not grep it: block bodies co"
+  },
+  {
+   "name": "test_streaming_order_smallest_first",
+   "type": 1,
+   "inputs": [
+    "expect",
+    "streamingModuleOrder"
+   ],
+   "cls": "",
+   "def": "function test_streaming_order_smallest_first(expect,streamingModuleOrder)\n{\n  const specByName = new Map([\n    '@u/app',\n    '@u/big',\n    '@u/mid',\n    '@u/small'\n  ].map(n => [\n    n,\n    {\n      url: n,\n      imports: []\n    }\n  ]));\n  const blocks = new Map([\n    [\n      '@u/app',\n      'x'.repeat(10)\n    ],\n    [\n      '@u/big',\n      'x'.repeat(900)\n    ],\n    [\n      '@u/mid',\n      'x'.rep"
+  },
+  {
+   "name": "dynamic observe futureExportedState",
+   "type": 1,
+   "inputs": [
+    "futureExportedState"
+   ],
+   "cls": "dynamic",
+   "def": "m => m"
+  }
+ ]
+}
