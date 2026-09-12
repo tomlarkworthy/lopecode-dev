@@ -817,9 +817,30 @@ Not done, each for a stated reason:
   updated. The baseline entry was inserted by hand. `lope-preflight --update-baseline` run here
   reported `1 added, 0 changed, 235 removed`: it sweeps entries whose file is missing, and this
   worktree has no corpus. The file was restored from git before the hand edit.
-- **Pushing to Observable.** Only the three differing cell-map-2 cells plus the six md cells would
-  go, with `lope-push-ws --cells`. It has not been attempted. cell-map-viz cannot be pushed at all
-  until an Observable notebook exists for it.
+- **Pushed to Observable, 2026-09-12, on Tom's "Yes push".** The document is `9aaa1a36eb6c9a4a`.
+
+  ```
+  --cells defInfo,groupCells,cellMap      v21 -> v24   modify_node 7, 9, 10 (imports untouched)
+  6 md cells, insert before GLUE (node 5) v24 -> v30   node_id 25..30, js mode
+  remove seed stub "# cell-map-2" (md)    v30 -> v31   node 0
+  ```
+
+  The md cells need a one-off WS script, `tools/scratch/push-cm2-docs.mjs`, committed with this record.
+  `--cells` cannot insert an anonymous cell, and `--cells-match-body` only modifies. The stub was
+  removed rather than modified because it is md mode, so a modify would have rendered
+  `md\`…\`` literally. The inserted sources are push-ws's own `--dry-run --dump` output.
+
+  Verified at v31: 23 nodes, 0 duplicate values, the md cells in order before `GLUE`. The compiled
+  `.js?v=4` serves the new prose and `specifierName`. In a bare runtime, all 15 locally defined named
+  cells fulfilled, the 6 anonymous cells produced 6 fulfilment events, and there were 0 errors.
+
+  A dead end worth knowing: `tools/probe-observable-annotate.mjs` read `ok: 59` before the md insert
+  and then `51`, `55`, `55` after it, with 0 errors every time. Its `ok` counts **fulfilment events
+  of named cells** at a fixed 15 s: anonymous cells add nothing, and recomputing cells add again. So
+  it cannot tell a lost cell from timing. The distinct-name variant
+  `tools/scratch/probe-observable-names.mjs` is the one that settled it.
+
+  cell-map-viz cannot be pushed until an Observable notebook exists for it.
 - **No jumpgate.** An in-place jumpgate would revert cell-map-viz, which is not on Observable, and
   pull 20-odd sibling modules off their canonicals.
 
