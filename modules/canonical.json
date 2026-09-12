@@ -365,7 +365,8 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html"
   },
   "@tomlarkworthy/js-toolchain": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html"
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+    "upstream": null
   },
   "@tomlarkworthy/jsqrcode": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html"
