@@ -10,7 +10,14 @@ FP=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
 # Track learnings/ Reads, plus any CLAUDE.md under the project — the
 # submodule-claudemd-gate keys on those. Anything else is noise.
 case "$FP" in
-  "$CLAUDE_PROJECT_DIR"/knowledge/*) ;;
+  # Keyed on the knowledge/ segment, not a $CLAUDE_PROJECT_DIR prefix: a git
+  # worktree reads its own copy, which sits outside the project dir, so a
+  # prefix match silently dropped it while the gate still enforced. Credit it
+  # under the canonical path the gate looks up, as the Bash tracker does.
+  */knowledge/*)
+    CANON="${CLAUDE_PROJECT_DIR:-$(pwd)}/knowledge/$(basename "$FP")"
+    [ -f "$CANON" ] && FP="$CANON"
+    ;;
   "$CLAUDE_PROJECT_DIR"/*/CLAUDE.md) ;;
   *) exit 0 ;;
 esac
