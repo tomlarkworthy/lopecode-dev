@@ -880,6 +880,49 @@ cells, and `render` resolves to a function.
 Still unverified: that the Plot marks draw (no test calls `render` on a map), and that the 10 md cells
 render as intended. `--list-cells` lists only named cells, and the md cells are unnamed.
 
+### `liveCellMap` was not live, 2026-09-12
+
+Tom asked whether `liveCellMap` updates as cells are added to a live module. It did not.
+`liveCellMap = cellMap(undefined, currentModules)` had one reactive input. The `currentModules`
+generator (`@tomlarkworthy/modules`) yields only when `dirty` is set, and `dirty` is set only when a
+module record is created or deleted, or a title changes. A variable added to an existing module sets
+nothing. v1 stays live through a separate `maintain_live_cell_map` cell that depends on runtime-sdk's
+`runtime_variables`, and `observeSet` fires that on every `runtime._variables` change. The rewrite
+dropped that path, and every test called `cellMap(...)` once, so none could notice.
+
+Fix: `runtime_variables` is imported from runtime-sdk and added to `liveCellMap`'s inputs. Observable's
+published runtime-sdk exports it.
+
+Measured with `tools/scratch/probe-live-cell-map.mjs`, which observes both maps, adds a cell to
+cell-map-2's module, redefines it, then deletes it, and counts fulfilments in 8 s after each step.
+Fixed and unfixed are scratch copies of the canonical:
+
+```
+                 add                  redefine             delete
+fixed v2    1 -> 1731, probe in   1 -> 1731, probe in   1 -> 1730, probe gone
+unfixed v2  0                     0                     0
+v1 control  1 -> 1804, probe in   1 -> 1804, probe in   1 -> 1803, probe gone
+```
+
+The first fixed run looked like a failure. v2 recomputed but still showed 1730 cells and no probe.
+`tools/scratch/probe-live-cell-map-why.mjs` showed the cause: `defInfo(() => 42).glue === true`.
+`GLUE[5]` `/^\(\)\s*=>\s*\w+$/` matches a numeric literal as well as an identifier, so the test cell
+itself was classified as glue and grouped into no cell. Redefined in compiled form
+(`function _probe_added_cell(){return(42)}`), which matches no GLUE pattern, it groups correctly.
+That is a classification gap, not a liveness one: a hand-defined zero-input arrow returning a bare
+word or number is taken for runtime glue. It is not fixed yet.
+
+With the fix synced into a scratch copy, the browser run is unchanged: 165 tests, 162 pass, the same 3
+failures. `cell-map-2-module.test.ts` gained a test that `liveCellMap`'s inputs include
+`runtime_variables`. Run against the canonical's still-unfixed module block, extracted with
+`lope-reader --get-module`, the inputs are `cellMap,currentModules`, so the test fails there as it
+should. Headless replica suites with it: **68 pass, 0 fail, 1142 expect()**. The recompute itself is
+browser-only and is covered by the probe, not the suite.
+
+Not yet done: syncing the fix into `@tomlarkworthy_cell-map-2.html`, and pushing `liveCellMap` plus
+the new `runtime_variables` import to Observable. `--cells` drops imports, so the import needs the
+raw WS path or a hand-added import cell.
+
 ### A pid cannot be recomputed off-page, 2026-09-12
 
 Before hand-authoring pids for new cells, I tried to compute them the way the runtime does.

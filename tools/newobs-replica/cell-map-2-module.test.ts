@@ -41,6 +41,22 @@ const load = async (p: string) => {
   return groupCells(d.vars.filter((v: any) => v.mod !== "builtin"), dumpAccessors);
 };
 
+test("liveCellMap depends on runtime_variables, so it recomputes on cell add/redefine/delete", async () => {
+  // currentModules re-yields only when a MODULE appears or goes. Without runtime_variables the map
+  // silently went stale on every cell edit (browser probe 2026-09-12: 0 recomputes on add, redefine,
+  // delete). This pins the dependency; the recompute itself needs a browser, see
+  // tools/scratch/probe-live-cell-map.mjs.
+  const m = await importNotebookModule("modules/@tomlarkworthy/cell-map-2.js");
+  const live = [...(m.runtime as any)._variables].find(
+    (v: any) => v._module === m.module && v._name === "liveCellMap"
+  );
+  expect(live).toBeDefined();
+  const inputs = live._inputs.map((i: any) => i._name);
+  expect(inputs).toContain("currentModules");
+  expect(inputs).toContain("runtime_variables");
+  m.dispose();
+});
+
 const namedOf = (cells: any[]) =>
   new Set(
     cells
