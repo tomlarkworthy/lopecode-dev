@@ -1,7 +1,12 @@
-// Shared invertability corpus for js-toolchain — the round-trip spec, used by both the
-// bun suite (tools/js-toolchain/roundtrip.test.js) and the Node suite
-// (tests/notebooks/js-toolchain.test.js). Keeping the cases here means the spec has one
-// home regardless of which runner executes it.
+// Shared invertability corpus for js-toolchain — the round-trip spec. Run by the bun suite
+// (tools/js-toolchain/roundtrip.test.js); tools/newobs-replica/js-toolchain-vs-notebook-kit.test.ts
+// exercises fixture shapes this corpus lacks (several declarators in one statement, trailing
+// semicolons, destructuring from a parenthesized object literal).
+//
+// Checked 2026-09-12: there is NO Node-side js-toolchain suite. This header used to name
+// tests/notebooks/js-toolchain.test.js, which is absent from the worktree and the main checkout and
+// has never existed in git; tests/notebooks/ holds a suite for the SIBLING module
+// observablejs-toolchain.
 //
 // Sourcemap.trim() strips a single leading and trailing newline; the recovered source is
 // the input modulo that trim, so comparisons mirror it.

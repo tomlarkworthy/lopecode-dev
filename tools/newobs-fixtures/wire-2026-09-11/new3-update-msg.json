@@ -1,0 +1,679 @@
+{
+ "type": "update",
+ "actions": [
+  {
+   "type": "insert",
+   "id": 64,
+   "display": false,
+   "nextId": null,
+   "mode": "ojs",
+   "body": "async (__variable) => {\nconst {dep, mutabledep, mutable$mutabledep, viewdep, viewof$viewdep, dep: dep_alias, error_dep, mutabledep: aslias_mutabledep, mutable$mutabledep: mutable$aslias_mutabledep, viewdep: aslias_viewdep, viewof$viewdep: viewof$aslias_viewdep, mutabledep: aslias_mutabledep_data, viewdep: aslias_viewdep_data} = await (import(new URL(\"/api/import/@tomlarkworthy/dependancy\", document.baseURI)).then((_) => {\n  const module = __variable._module._runtime.module(_.default);\n  const outputs = new Map(Array.from(__variable._outputs, (v) => [v._name, v]));\n  outputs.get(\"dep\")?.import(\"dep\", module);\n  outputs.get(\"mutabledep\")?.import(\"mutabledep\", module);\n  outputs.get(\"mutable$mutabledep\")?.import(\"mutable mutabledep\", \"mutable$mutabledep\", module);\n  outputs.get(\"viewdep\")?.import(\"viewdep\", module);\n  outputs.get(\"viewof$viewdep\")?.import(\"viewof viewdep\", \"viewof$viewdep\", module);\n  outputs.get(\"dep_alias\")?.import(\"dep\", \"dep_alias\", module);\n  outputs.get(\"error_dep\")?.import(\"error_dep\", module);\n  outputs.get(\"aslias_mutabledep\")?.import(\"mutabledep\", \"aslias_mutabledep\", module);\n  outputs.get(\"mutable$aslias_mutabledep\")?.import(\"mutable mutabledep\", \"mutable$aslias_mutabledep\", module);\n  outputs.get(\"aslias_viewdep\")?.import(\"viewdep\", \"aslias_viewdep\", module);\n  outputs.get(\"viewof$aslias_viewdep\")?.import(\"viewof viewdep\", \"viewof$aslias_viewdep\", module);\n  outputs.get(\"aslias_mutabledep_data\")?.import(\"mutabledep\", \"aslias_mutabledep_data\", module);\n  outputs.get(\"aslias_viewdep_data\")?.import(\"viewdep\", \"aslias_viewdep_data\", module);\n  return {};\n}));\n\nreturn {dep,mutabledep,mutable$mutabledep,viewdep,viewof$viewdep,dep_alias,error_dep,aslias_mutabledep,mutable$aslias_mutabledep,aslias_viewdep,viewof$aslias_viewdep,aslias_mutabledep_data,aslias_viewdep_data};\n}",
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [
+    "dep",
+    "mutabledep",
+    "mutable$mutabledep",
+    "viewdep",
+    "viewof$viewdep",
+    "dep_alias",
+    "error_dep",
+    "aslias_mutabledep",
+    "mutable$aslias_mutabledep",
+    "aslias_viewdep",
+    "viewof$aslias_viewdep",
+    "aslias_mutabledep_data",
+    "aslias_viewdep_data"
+   ],
+   "autodisplay": false,
+   "files": {},
+   "secrets": {},
+   "databases": {}
+  },
+  {
+   "type": "resize",
+   "id": 64,
+   "height": 239
+  },
+  {
+   "type": "insert",
+   "id": 168,
+   "display": false,
+   "nextId": 64,
+   "mode": "ojs",
+   "body": "function event(Event){return(\nnew Event(\"input\")\n)}",
+   "inputs": [
+    "Event"
+   ],
+   "output": "event",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 168,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 93,
+   "display": false,
+   "nextId": 168,
+   "mode": "ojs",
+   "body": "function(dep){return(\ndep\n)}",
+   "inputs": [
+    "dep"
+   ],
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 93,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 61,
+   "display": false,
+   "nextId": 93,
+   "mode": "ojs",
+   "body": "function viewofdatadep(view){return(\nview\n)}",
+   "inputs": [
+    "view"
+   ],
+   "output": "viewofdatadep",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 61,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 57,
+   "display": false,
+   "nextId": 61,
+   "mode": "ojs",
+   "body": "function viewofdep_inline(viewof$view){return(\nviewof$view\n)}",
+   "inputs": [
+    "viewof$view"
+   ],
+   "output": "viewofdep_inline",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 57,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 55,
+   "display": false,
+   "nextId": 57,
+   "mode": "ojs",
+   "body": "function mutable_dep_2(file,q)\n{\n  file;\n  return q + 1;\n}\n",
+   "inputs": [
+    "file",
+    "q"
+   ],
+   "output": "mutable_dep_2",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 55,
+   "height": 92
+  },
+  {
+   "type": "insert",
+   "id": 52,
+   "display": false,
+   "nextId": 55,
+   "mode": "ojs",
+   "body": "function mutable_dep(viewof$view,lambda,mutable$q)\n{\n  viewof$view;\n  lambda;\n  mutable$q.value;\n  return mutable$q.value;\n}\n",
+   "inputs": [
+    "viewof$view",
+    "lambda",
+    "mutable$q"
+   ],
+   "output": "mutable_dep",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 52,
+   "height": 134
+  },
+  {
+   "type": "insert",
+   "id": 48,
+   "display": false,
+   "nextId": 52,
+   "mode": "ojs",
+   "body": "function file(FileAttachment){return(\nFileAttachment(\"empty\")\n)}",
+   "inputs": [
+    "FileAttachment"
+   ],
+   "output": "file",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 48,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 45,
+   "display": false,
+   "nextId": 48,
+   "mode": "ojs",
+   "body": "function inbuilt(_){return(\n_\n)}",
+   "inputs": [
+    "_"
+   ],
+   "output": "inbuilt",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 45,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 42,
+   "display": false,
+   "nextId": 45,
+   "mode": "ojs",
+   "body": "function mutable$q(){return(\n6\n)}",
+   "inputs": [],
+   "output": "mutable q",
+   "autodisplay": true,
+   "automutable": true,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 42,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 39,
+   "display": false,
+   "nextId": 42,
+   "mode": "ojs",
+   "body": "function viewof$view(Inputs){return(\nInputs.input()\n)}",
+   "inputs": [
+    "Inputs"
+   ],
+   "output": "viewof$view",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": true,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 39,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 162,
+   "display": false,
+   "nextId": 39,
+   "mode": "ojs",
+   "body": "function(error_dep){return(\nerror_dep\n)}",
+   "inputs": [
+    "error_dep"
+   ],
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 162,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 165,
+   "display": false,
+   "nextId": 162,
+   "mode": "ojs",
+   "body": "function error_obj()\n{\n  throw { foo: \"bar\" };\n}\n",
+   "inputs": [],
+   "output": "error_obj",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 165,
+   "height": 71
+  },
+  {
+   "type": "insert",
+   "id": 33,
+   "display": false,
+   "nextId": 165,
+   "mode": "ojs",
+   "body": "function error()\n{\n  throw new Error();\n}\n",
+   "inputs": [],
+   "output": "error",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 33,
+   "height": 71
+  },
+  {
+   "type": "insert",
+   "id": 22,
+   "display": false,
+   "nextId": 33,
+   "mode": "ojs",
+   "body": "function lambda(){return(\n() => {}\n)}",
+   "inputs": [],
+   "output": "lambda",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 22,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 151,
+   "display": false,
+   "nextId": 22,
+   "mode": "ojs",
+   "body": "function thisReference(){return(\n(this || 0) + 1\n)}",
+   "inputs": [],
+   "output": "thisReference",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 151,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 25,
+   "display": false,
+   "nextId": 151,
+   "mode": "ojs",
+   "body": "function named_function(){return(\nfunction foo() {}\n)}",
+   "inputs": [],
+   "output": "named_function",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 25,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 71,
+   "display": false,
+   "nextId": 25,
+   "mode": "ojs",
+   "body": "function asyncfunction(){return(\nasync function () {}\n)}",
+   "inputs": [],
+   "output": "asyncfunction",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 71,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 20,
+   "display": false,
+   "nextId": 71,
+   "mode": "ojs",
+   "body": "function _function(){return(\nfunction () {}\n)}",
+   "inputs": [],
+   "output": "_function",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 20,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 17,
+   "display": false,
+   "nextId": 20,
+   "mode": "ojs",
+   "body": "function* generator(x,y)\n{\n  yield x + y;\n}\n",
+   "inputs": [
+    "x",
+    "y"
+   ],
+   "output": "generator",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 17,
+   "height": 71
+  },
+  {
+   "type": "insert",
+   "id": 145,
+   "display": false,
+   "nextId": 17,
+   "mode": "ojs",
+   "body": "function comments()\n{\n  // a comment\n  return \"\";\n}\n",
+   "inputs": [],
+   "output": "comments",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "insert",
+   "id": 15,
+   "display": false,
+   "nextId": 145,
+   "mode": "ojs",
+   "body": "function z(x,y)\n{\n  (\"\");\n  return x + y;\n}\n",
+   "inputs": [
+    "x",
+    "y"
+   ],
+   "output": "z",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 15,
+   "height": 92
+  },
+  {
+   "type": "insert",
+   "id": 13,
+   "display": false,
+   "nextId": 15,
+   "mode": "ojs",
+   "body": "function y(x){return(\nx\n)}",
+   "inputs": [
+    "x"
+   ],
+   "output": "y",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 13,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 11,
+   "display": false,
+   "nextId": 13,
+   "mode": "ojs",
+   "body": "function x(){return(\n\"\"\n)}",
+   "inputs": [],
+   "output": "x",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 11,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 115,
+   "display": false,
+   "nextId": 11,
+   "mode": "ojs",
+   "body": "function obj_literal(){return(\n{}\n)}",
+   "inputs": [],
+   "output": "obj_literal",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "insert",
+   "id": 153,
+   "display": false,
+   "nextId": 115,
+   "mode": "ojs",
+   "body": "function myclass(){return(\nclass myclass {}\n)}",
+   "inputs": [],
+   "output": "myclass",
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 153,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 100,
+   "display": false,
+   "nextId": 153,
+   "mode": "html",
+   "body": "(htl) => {\nreturn (\nhtl.html`<div>`\n)\n}",
+   "inputs": [
+    "htl"
+   ],
+   "outputs": [],
+   "autodisplay": true,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "insert",
+   "id": 31,
+   "display": false,
+   "nextId": 100,
+   "mode": "ojs",
+   "body": "function()\n{\n  (\"\");\n}\n",
+   "inputs": [],
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 31,
+   "height": 71
+  },
+  {
+   "type": "insert",
+   "id": 9,
+   "display": false,
+   "nextId": 31,
+   "mode": "ojs",
+   "body": "function(){return(\n1\n)}",
+   "inputs": [],
+   "autodisplay": true,
+   "automutable": false,
+   "autoview": false,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "resize",
+   "id": 9,
+   "height": 29
+  },
+  {
+   "type": "insert",
+   "id": 0,
+   "display": false,
+   "nextId": 9,
+   "mode": "md",
+   "body": "(md) => {\nreturn (\nmd`# Test Notebook of Semantics`\n)\n}",
+   "inputs": [
+    "md"
+   ],
+   "outputs": [],
+   "autodisplay": true,
+   "files": {},
+   "databases": {},
+   "secrets": {}
+  },
+  {
+   "type": "attachFile",
+   "file": {
+    "id": "50cad75d56578d08f50d560a50a6f4a66919f1f0b9c189221c6768a04dc958323335dac14ca3526e6527019d02e9e00d21d247eb5c2646b38ec7720e0ddcaa7e",
+    "href": "https://static.observableusercontent.com/files/50cad75d56578d08f50d560a50a6f4a66919f1f0b9c189221c6768a04dc958323335dac14ca3526e6527019d02e9e00d21d247eb5c2646b38ec7720e0ddcaa7e",
+    "name": "empty",
+    "type": "application/octet-stream",
+    "lastModified": 1729015412575.129,
+    "size": 2
+   }
+  },
+  {
+   "type": "stdlib",
+   "stdlib": "1"
+  },
+  {
+   "type": "theme",
+   "theme": "air"
+  },
+  {
+   "type": "readOnly",
+   "readOnly": true
+  }
+ ]
+}

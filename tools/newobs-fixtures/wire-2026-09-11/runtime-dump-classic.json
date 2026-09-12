@@ -1,0 +1,3758 @@
+{
+ "href": "https://tomlarkworthy.static.observableusercontent.com/next/worker-BFyCn7ul.html",
+ "hasOjsRuntime": false,
+ "capturedRuntimes": 1,
+ "runtimeSizes": [
+  {
+   "vars": 114,
+   "modules": 1,
+   "chosen": true
+  }
+ ],
+ "sameRuntime": null,
+ "runtimeProtoKeys": [
+  "constructor",
+  "_precompute",
+  "_compute",
+  "_computeSoon",
+  "_computeNow",
+  "dispose",
+  "module",
+  "fileAttachments"
+ ],
+ "runtimeOwnKeys": [
+  "_dirty",
+  "_updates",
+  "_precomputes",
+  "_computing",
+  "_init",
+  "_modules",
+  "_variables",
+  "_disposed",
+  "_builtin",
+  "_global"
+ ],
+ "runtimeFileAttachments": "function(e){return Object.assign((t=>{const n=e(t+=\"\");if(null==n)throw new Error(`File not found: ${t}`);if(\"object\"==typeof n&&\"url\"in n){const{url:e,mimeType:r}=n;return new FileAttachment(e,t,r)}return new FileAttachment(n,t)}),{prototype:FileAttachment.prototype})}",
+ "builtinScope": [
+  "FileAttachment",
+  "Mutable",
+  "now",
+  "width",
+  "dot",
+  "htl",
+  "html",
+  "md",
+  "svg",
+  "tex",
+  "_",
+  "aq",
+  "Arrow",
+  "d3",
+  "DuckDBClient",
+  "Inputs",
+  "L",
+  "mermaid",
+  "Plot",
+  "__query",
+  "require",
+  "resolve",
+  "SQLite",
+  "SQLiteDatabaseClient",
+  "topojson",
+  "vl",
+  "aapl",
+  "alphabet",
+  "cars",
+  "citywages",
+  "diamonds",
+  "flare",
+  "industries",
+  "miserables",
+  "olympians",
+  "penguins",
+  "pizza",
+  "weather",
+  "DOM",
+  "Files",
+  "Generators",
+  "Promises",
+  "currentUser",
+  "__chart",
+  "Secret",
+  "DatabaseClient",
+  "NotificationClient"
+ ],
+ "builtinDefs": [
+  {
+   "k": "FileAttachment",
+   "def": "()=>Kn"
+  },
+  {
+   "k": "Mutable",
+   "def": "()=>ur"
+  },
+  {
+   "k": "now",
+   "def": "function*fr(){for(;;)yield Date.now()}"
+  },
+  {
+   "k": "width",
+   "def": "function vr(){return or((function(e){var t=e(document.body.clientWidth);function n(){var n=document.body.clientWidth;n!==t&&e(t=n)}return window.addEventListener(\"resize\",n),function(){window.removeEv"
+  },
+  {
+   "k": "dot",
+   "def": "()=>t($e.resolve())"
+  },
+  {
+   "k": "htl",
+   "def": "()=>t(Le.resolve())"
+  },
+  {
+   "k": "html",
+   "def": "()=>lr"
+  },
+  {
+   "k": "md",
+   "def": "()=>function(e){return e(De.resolve()).then((function(t){return cr((function(n){var r=document.createElement(\"div\");r.innerHTML=t(n,{langPrefix:\"\"}).trim();var a=r.querySelectorAll(\"pre code[class]\");"
+  },
+  {
+   "k": "svg",
+   "def": "()=>br"
+  },
+  {
+   "k": "tex",
+   "def": "()=>function(e){return Promise.all([e(ke.resolve()),e.resolve(ke.resolve(\"dist/katex.min.css\")).then(wr)]).then((function(e){var t=e[0],n=r();function r(e){return function(){var n=document.createEleme"
+  },
+  {
+   "k": "_",
+   "def": "()=>t(qe.resolve())"
+  },
+  {
+   "k": "aq",
+   "def": "()=>t.alias({\"apache-arrow\":Be.resolve()})(Ye.resolve())"
+  },
+  {
+   "k": "Arrow",
+   "def": "()=>t(Be.resolve())"
+  },
+  {
+   "k": "d3",
+   "def": "()=>t(xe.resolve())"
+  },
+  {
+   "k": "DuckDBClient",
+   "def": "()=>DuckDBClient"
+  },
+  {
+   "k": "Inputs",
+   "def": "()=>t(Me.resolve()).then((e=>({...e,file:e.fileOf(Gn)})))"
+  },
+  {
+   "k": "L",
+   "def": "()=>async function(e){const t=await e(Ge.resolve());if(!t._style){const n=document.createElement(\"link\");n.rel=\"stylesheet\",n.href=await e.resolve(Ge.resolve(\"dist/leaflet.css\")),t._style=document.hea"
+  },
+  {
+   "k": "mermaid",
+   "def": "()=>async function(e){const t=await e(Je.resolve());return t.initialize({securityLevel:\"loose\",theme:\"neutral\"}),function(){const e=document.createElement(\"div\");return e.innerHTML=t.render(Qn().id,St"
+  },
+  {
+   "k": "Plot",
+   "def": "()=>t(Oe.resolve())"
+  },
+  {
+   "k": "__query",
+   "def": "()=>on"
+  },
+  {
+   "k": "require",
+   "def": "()=>t"
+  },
+  {
+   "k": "resolve",
+   "def": "()=>pr"
+  },
+  {
+   "k": "SQLite",
+   "def": "()=>pt(t)"
+  },
+  {
+   "k": "SQLiteDatabaseClient",
+   "def": "()=>SQLiteDatabaseClient"
+  },
+  {
+   "k": "topojson",
+   "def": "()=>t(We.resolve())"
+  },
+  {
+   "k": "vl",
+   "def": "()=>async function(e){const[t,n,r]=await Promise.all([Pe,Ie,Fe].map((t=>e(t.resolve()))));return r.register(t,n)}(t)"
+  },
+  {
+   "k": "aapl",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/3ccff97fd2d93da734e76829b2b066eafdaac6a1fafdec0faf6ebc443271cfc109d29e80dd217468fcb2aff1e6bffdc73f356cc48feb657f35378e6abbbb63b9\""
+  },
+  {
+   "k": "alphabet",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/75d52e6c3130b1cae83cda89305e17b50f33e7420ef205587a135e8562bcfd22e483cf4fa2fb5df6dff66f9c5d19740be1cfaf47406286e2eb6574b49ffc685d\""
+  },
+  {
+   "k": "cars",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/048ec3dfd528110c0665dfa363dd28bc516ffb7247231f3ab25005036717f5c4c232a5efc7bb74bc03037155cb72b1abe85a33d86eb9f1a336196030443be4f6\""
+  },
+  {
+   "k": "citywages",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/39837ec5121fcc163131dbc2fe8c1a2e0b3423a5d1e96b5ce371e2ac2e20a290d78b71a4fb08b9fa6a0107776e17fb78af313b8ea70f4cc6648fad68ddf06f7a\""
+  },
+  {
+   "k": "diamonds",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/87942b1f5d061a21fa4bb8f2162db44e3ef0f7391301f867ab5ba718b225a63091af20675f0bfe7f922db097b217b377135203a7eab34651e21a8d09f4e37252\""
+  },
+  {
+   "k": "flare",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/a6b0d94a7f5828fd133765a934f4c9746d2010e2f342d335923991f31b14120de96b5cb4f160d509d8dc627f0107d7f5b5070d2516f01e4c862b5b4867533000\""
+  },
+  {
+   "k": "industries",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/76f13741128340cc88798c0a0b7fa5a2df8370f57554000774ab8ee9ae785ffa2903010cad670d4939af3e9c17e5e18e7e05ed2b38b848ac2fc1a0066aa0005f\""
+  },
+  {
+   "k": "miserables",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/31d904f6e21d42d4963ece9c8cc4fbd75efcbdc404bf511bc79906f0a1be68b5a01e935f65123670ed04e35ca8cae3c2b943f82bf8db49c5a67c85cbb58db052\""
+  },
+  {
+   "k": "olympians",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/31ca24545a0603dce099d10ee89ee5ae72d29fa55e8fc7c9ffb5ded87ac83060d80f1d9e21f4ae8eb04c1e8940b7287d179fe8060d887fb1f055f430e210007c\""
+  },
+  {
+   "k": "penguins",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/715db1223e067f00500780077febc6cebbdd90c151d3d78317c802732252052ab0e367039872ab9c77d6ef99e5f55a0724b35ddc898a1c99cb14c31a379af80a\""
+  },
+  {
+   "k": "pizza",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/c653108ab176088cacbb338eaf2344c4f5781681702bd6afb55697a3f91b511c6686ff469f3e3a27c75400001a2334dbd39a4499fe46b50a8b3c278b7d2f7fb5\""
+  },
+  {
+   "k": "weather",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/693a46b22b33db0f042728700e0c73e836fa13d55446df89120682d55339c6db7cc9e574d3d73f24ecc9bc7eb9ac9a1e7e104a1ee52c00aab1e77eb102913c1f\""
+  },
+  {
+   "k": "DOM",
+   "def": "()=>e"
+  },
+  {
+   "k": "Files",
+   "def": "()=>e"
+  },
+  {
+   "k": "Generators",
+   "def": "()=>e"
+  },
+  {
+   "k": "Promises",
+   "def": "()=>e"
+  },
+  {
+   "k": "currentUser",
+   "def": "function(){const e=new Promise((e=>ja=e));return ya({type:\"current_user\"}),e.then((e=>{if(void 0===e)throw new Error(\"currentUser is only available in unpublished team notebooks\");return e}))}"
+  },
+  {
+   "k": "__chart",
+   "def": "()=>e"
+  },
+  {
+   "k": "Secret",
+   "def": "()=>e"
+  },
+  {
+   "k": "DatabaseClient",
+   "def": "()=>e"
+  },
+  {
+   "k": "NotificationClient",
+   "def": "()=>e"
+  }
+ ],
+ "globals": [
+  "define",
+  "_"
+ ],
+ "modules": [
+  {
+   "id": "builtin",
+   "inRtModules": [],
+   "builtins": [
+    "@variable",
+    "invalidation",
+    "visibility"
+   ],
+   "scope": [
+    "FileAttachment",
+    "Mutable",
+    "now",
+    "width",
+    "dot",
+    "htl",
+    "html",
+    "md",
+    "svg",
+    "tex",
+    "_",
+    "aq",
+    "Arrow",
+    "d3",
+    "DuckDBClient",
+    "Inputs",
+    "L",
+    "mermaid",
+    "Plot",
+    "__query",
+    "require",
+    "resolve",
+    "SQLite",
+    "SQLiteDatabaseClient",
+    "topojson",
+    "vl",
+    "aapl",
+    "alphabet",
+    "cars",
+    "citywages",
+    "diamonds",
+    "flare",
+    "industries",
+    "miserables",
+    "olympians",
+    "penguins",
+    "pizza",
+    "weather",
+    "DOM",
+    "Files",
+    "Generators",
+    "Promises",
+    "currentUser",
+    "__chart",
+    "Secret",
+    "DatabaseClient",
+    "NotificationClient"
+   ],
+   "source": null
+  },
+  {
+   "id": "M1",
+   "inRtModules": [],
+   "builtins": [
+    "@variable",
+    "invalidation",
+    "visibility",
+    "FileAttachment"
+   ],
+   "scope": [
+    "md",
+    "htl",
+    "html",
+    "myclass",
+    "obj_literal",
+    "x",
+    "y",
+    "z",
+    "comments",
+    "generator",
+    "_function",
+    "asyncfunction",
+    "named_function",
+    "thisReference",
+    "lambda",
+    "error",
+    "error_obj",
+    "error_dep",
+    "Inputs",
+    "viewof view",
+    "Generators",
+    "view",
+    "initial q",
+    "Mutable",
+    "mutable q",
+    "q",
+    "_",
+    "inbuilt",
+    "FileAttachment",
+    "file",
+    "mutable_dep",
+    "mutable_dep_2",
+    "viewofdep_inline",
+    "viewofdatadep",
+    "dep",
+    "Event",
+    "event",
+    "@variable",
+    "mutabledep",
+    "mutable mutabledep",
+    "viewdep",
+    "viewof viewdep",
+    "dep_alias",
+    "aslias_mutabledep",
+    "mutable aslias_mutabledep",
+    "aslias_viewdep",
+    "viewof aslias_viewdep",
+    "aslias_mutabledep_data",
+    "aslias_viewdep_data"
+   ],
+   "source": null
+  },
+  {
+   "id": "M2",
+   "inRtModules": [
+    "function define(runtime, observer) {\n  const main = runtime.module();\n  main.variable(observer()).define([\"md\"], _1);\n  main.variable(observer(\"dep\")).define(\"dep\", _dep);\n  main.variable(observer(\"er"
+   ],
+   "builtins": [
+    "@variable",
+    "invalidation",
+    "visibility"
+   ],
+   "scope": [
+    "md",
+    "dep",
+    "error_dep",
+    "Inputs",
+    "viewof viewdep",
+    "Generators",
+    "viewdep",
+    "initial mutabledep",
+    "Mutable",
+    "mutable mutabledep",
+    "mutabledep"
+   ],
+   "source": null
+  }
+ ],
+ "vars": [
+  {
+   "mod": "builtin",
+   "name": "FileAttachment",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>Kn"
+  },
+  {
+   "mod": "builtin",
+   "name": "Mutable",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "Mutable@M1",
+    "Mutable@M2"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function ur :: function ur(e){let t;Object.defineProperties(this,{generator:{value:or((e=>{t=e}",
+   "def": "()=>ur"
+  },
+  {
+   "mod": "builtin",
+   "name": "now",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function*fr(){for(;;)yield Date.now()}"
+  },
+  {
+   "mod": "builtin",
+   "name": "width",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function vr(){return or((function(e){var t=e(document.body.clientWidth);function n(){var n=document.body.clientWidth;n!==t&&e(t=n)}return window.addEventListener(\"resize\",n),function(){window.removeEventListener(\"resize\",n)}}))}"
+  },
+  {
+   "mod": "builtin",
+   "name": "dot",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t($e.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "htl",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "htl@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object Object {html,svg,version}",
+   "def": "()=>t(Le.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "html",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>lr"
+  },
+  {
+   "mod": "builtin",
+   "name": "md",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "md@M1",
+    "md@M2"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function  :: function(n){var r,a,o,i,s,c,l,u,f=n[0],d=[],m=null,h=-1;for(s=1,c=arguments.leng",
+   "def": "()=>function(e){return e(De.resolve()).then((function(t){return cr((function(n){var r=document.createElement(\"div\");r.innerHTML=t(n,{langPrefix:\"\"}).trim();var a=r.querySelectorAll(\"pre code[class]\");return a.length>0&&e(je.resolve()).then((function(t){a.forEach((function(n){function r(){t.highlight"
+  },
+  {
+   "mod": "builtin",
+   "name": "svg",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>br"
+  },
+  {
+   "mod": "builtin",
+   "name": "tex",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>function(e){return Promise.all([e(ke.resolve()),e.resolve(ke.resolve(\"dist/katex.min.css\")).then(wr)]).then((function(e){var t=e[0],n=r();function r(e){return function(){var n=document.createElement(\"div\");return t.render(yr.apply(String,arguments),n,e),n.removeChild(n.firstChild)}}return n.opti"
+  },
+  {
+   "mod": "builtin",
+   "name": "_",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "_@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function Z :: ",
+   "def": "()=>t(qe.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "aq",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t.alias({\"apache-arrow\":Be.resolve()})(Ye.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "Arrow",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t(Be.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "d3",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t(xe.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "DuckDBClient",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>DuckDBClient"
+  },
+  {
+   "mod": "builtin",
+   "name": "Inputs",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "Inputs@M1",
+    "Inputs@M2"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object Object {bind,button,checkbox,color,date,datetime,disposal,email,fileOf,form}",
+   "def": "()=>t(Me.resolve()).then((e=>({...e,file:e.fileOf(Gn)})))"
+  },
+  {
+   "mod": "builtin",
+   "name": "L",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>async function(e){const t=await e(Ge.resolve());if(!t._style){const n=document.createElement(\"link\");n.rel=\"stylesheet\",n.href=await e.resolve(Ge.resolve(\"dist/leaflet.css\")),t._style=document.head.appendChild(n)}return t}(t)"
+  },
+  {
+   "mod": "builtin",
+   "name": "mermaid",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>async function(e){const t=await e(Je.resolve());return t.initialize({securityLevel:\"loose\",theme:\"neutral\"}),function(){const e=document.createElement(\"div\");return e.innerHTML=t.render(Qn().id,String.raw.apply(String,arguments)),e.removeChild(e.firstChild)}}(t)"
+  },
+  {
+   "mod": "builtin",
+   "name": "Plot",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t(Oe.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "__query",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>on"
+  },
+  {
+   "mod": "builtin",
+   "name": "require",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t"
+  },
+  {
+   "mod": "builtin",
+   "name": "resolve",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>pr"
+  },
+  {
+   "mod": "builtin",
+   "name": "SQLite",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>pt(t)"
+  },
+  {
+   "mod": "builtin",
+   "name": "SQLiteDatabaseClient",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>SQLiteDatabaseClient"
+  },
+  {
+   "mod": "builtin",
+   "name": "topojson",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>t(We.resolve())"
+  },
+  {
+   "mod": "builtin",
+   "name": "vl",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>async function(e){const[t,n,r]=await Promise.all([Pe,Ie,Fe].map((t=>e(t.resolve()))));return r.register(t,n)}(t)"
+  },
+  {
+   "mod": "builtin",
+   "name": "aapl",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/3ccff97fd2d93da734e76829b2b066eafdaac6a1fafdec0faf6ebc443271cfc109d29e80dd217468fcb2aff1e6bffdc73f356cc48feb657f35378e6abbbb63b9\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "alphabet",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/75d52e6c3130b1cae83cda89305e17b50f33e7420ef205587a135e8562bcfd22e483cf4fa2fb5df6dff66f9c5d19740be1cfaf47406286e2eb6574b49ffc685d\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "cars",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/048ec3dfd528110c0665dfa363dd28bc516ffb7247231f3ab25005036717f5c4c232a5efc7bb74bc03037155cb72b1abe85a33d86eb9f1a336196030443be4f6\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "citywages",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/39837ec5121fcc163131dbc2fe8c1a2e0b3423a5d1e96b5ce371e2ac2e20a290d78b71a4fb08b9fa6a0107776e17fb78af313b8ea70f4cc6648fad68ddf06f7a\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "diamonds",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/87942b1f5d061a21fa4bb8f2162db44e3ef0f7391301f867ab5ba718b225a63091af20675f0bfe7f922db097b217b377135203a7eab34651e21a8d09f4e37252\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "flare",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/a6b0d94a7f5828fd133765a934f4c9746d2010e2f342d335923991f31b14120de96b5cb4f160d509d8dc627f0107d7f5b5070d2516f01e4c862b5b4867533000\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "industries",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/76f13741128340cc88798c0a0b7fa5a2df8370f57554000774ab8ee9ae785ffa2903010cad670d4939af3e9c17e5e18e7e05ed2b38b848ac2fc1a0066aa0005f\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "miserables",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/31d904f6e21d42d4963ece9c8cc4fbd75efcbdc404bf511bc79906f0a1be68b5a01e935f65123670ed04e35ca8cae3c2b943f82bf8db49c5a67c85cbb58db052\").json()"
+  },
+  {
+   "mod": "builtin",
+   "name": "olympians",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/31ca24545a0603dce099d10ee89ee5ae72d29fa55e8fc7c9ffb5ded87ac83060d80f1d9e21f4ae8eb04c1e8940b7287d179fe8060d887fb1f055f430e210007c\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "penguins",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/715db1223e067f00500780077febc6cebbdd90c151d3d78317c802732252052ab0e367039872ab9c77d6ef99e5f55a0724b35ddc898a1c99cb14c31a379af80a\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "pizza",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/c653108ab176088cacbb338eaf2344c4f5781681702bd6afb55697a3f91b511c6686ff469f3e3a27c75400001a2334dbd39a4499fe46b50a8b3c278b7d2f7fb5\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "weather",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/693a46b22b33db0f042728700e0c73e836fa13d55446df89120682d55339c6db7cc9e574d3d73f24ecc9bc7eb9ac9a1e7e104a1ee52c00aab1e77eb102913c1f\").csv({typed:!0})"
+  },
+  {
+   "mod": "builtin",
+   "name": "DOM",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "Files",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "Generators",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "Generators@M1",
+    "Generators@M2"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object undefined {disposable,filter,input,map,observe,queue,range,valueAt,worker}",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "Promises",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "currentUser",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function(){const e=new Promise((e=>ja=e));return ya({type:\"current_user\"}),e.then((e=>{if(void 0===e)throw new Error(\"currentUser is only available in unpublished team notebooks\");return e}))}"
+  },
+  {
+   "mod": "builtin",
+   "name": "__chart",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "Secret",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "DatabaseClient",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "builtin",
+   "name": "NotificationClient",
+   "type": 2,
+   "inputs": [],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "M1",
+   "name": "md",
+   "type": 2,
+   "inputs": [
+    "md@builtin"
+   ],
+   "outputs": [
+    "null@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function  :: function(n){var r,a,o,i,s,c,l,u,f=n[0],d=[],m=null,h=-1;for(s=1,c=arguments.leng",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "HTMLHeadingElement <h1> <h1 id=\"test-notebook-of-semantics\">Test Notebook of Semantics</h1>",
+   "def": "function(md){return(\nmd`# Test Notebook of Semantics`\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "number 1",
+   "def": "function(){return(\n1\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function()\n{\n  (\"\");\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "htl",
+   "type": 2,
+   "inputs": [
+    "htl@builtin"
+   ],
+   "outputs": [
+    "html@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object Object {html,svg,version}",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "html",
+   "type": 1,
+   "inputs": [
+    "htl"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "HTMLDivElement <div> <div></div>",
+   "def": "function(htl){return(\nhtl.html`<div>`\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "myclass",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function myclass :: class myclass {}",
+   "def": "function(){return(\nclass myclass {}\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "obj_literal",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object Object {}",
+   "def": "function(){return(\n{}\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "x",
+   "type": 1,
+   "inputs": [],
+   "outputs": [
+    "y@M1",
+    "z@M1",
+    "generator@M1"
+   ],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"\"",
+   "def": "function(){return(\n\"\"\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "y",
+   "type": 1,
+   "inputs": [
+    "x"
+   ],
+   "outputs": [
+    "z@M1",
+    "generator@M1"
+   ],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"\"",
+   "def": "function(x){return(\nx\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "z",
+   "type": 1,
+   "inputs": [
+    "x",
+    "y"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"\"",
+   "def": "function(x,y)\n{\n  (\"\");\n  return x + y;\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "comments",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"\"",
+   "def": "function()\n{\n  // a comment\n  return \"\";\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "generator",
+   "type": 1,
+   "inputs": [
+    "x",
+    "y"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"\"",
+   "def": "function*(x,y)\n{\n  yield x + y;\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "_function",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function  :: function () {}",
+   "def": "function(){return(\nfunction () {}\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "asyncfunction",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function  :: async function () {}",
+   "def": "function(){return(\nasync function () {}\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "named_function",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function foo :: function foo() {}",
+   "def": "function(){return(\nfunction foo() {}\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "thisReference",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "number 1",
+   "def": "function(){return(\n(this || 0) + 1\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "lambda",
+   "type": 1,
+   "inputs": [],
+   "outputs": [
+    "mutable_dep@M1"
+   ],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function  :: () => {}",
+   "def": "function(){return(\n() => {}\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "error",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "rejected",
+   "error": "Error: ",
+   "value": "undefined",
+   "def": "function()\n{\n  throw new Error();\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "error_obj",
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "rejected",
+   "error": "{\"foo\":\"bar\"}",
+   "value": "undefined",
+   "def": "function()\n{\n  throw { foo: \"bar\" };\n}"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "error_dep"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 2,
+   "shadow": null,
+   "state": "rejected",
+   "error": "Er: error_dep could not be resolved",
+   "value": "undefined",
+   "def": "function(error_dep){return(\nerror_dep\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "Inputs",
+   "type": 2,
+   "inputs": [
+    "Inputs@builtin"
+   ],
+   "outputs": [
+    "viewof view@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object Object {bind,button,checkbox,color,date,datetime,disposal,email,fileOf,form}",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "viewof view",
+   "type": 1,
+   "inputs": [
+    "Inputs"
+   ],
+   "outputs": [
+    "view@M1",
+    "mutable_dep@M1",
+    "viewofdep_inline@M1"
+   ],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object EventTarget {value}",
+   "def": "function(Inputs){return(\nInputs.input()\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "Generators",
+   "type": 2,
+   "inputs": [
+    "Generators@builtin"
+   ],
+   "outputs": [
+    "view@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object undefined {disposable,filter,input,map,observe,queue,range,valueAt,worker}",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "view",
+   "type": 1,
+   "inputs": [
+    "Generators",
+    "viewof view"
+   ],
+   "outputs": [
+    "viewofdatadep@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "pending",
+   "value": "undefined",
+   "def": "function Aa(e,t){return e.input(t)}"
+  },
+  {
+   "mod": "M1",
+   "name": "initial q",
+   "type": 1,
+   "inputs": [],
+   "outputs": [
+    "mutable q@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "number 6",
+   "def": "function(){return(\n6\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "Mutable",
+   "type": 2,
+   "inputs": [
+    "Mutable@builtin"
+   ],
+   "outputs": [
+    "mutable q@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function ur :: function ur(e){let t;Object.defineProperties(this,{generator:{value:or((e=>{t=e}",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable q",
+   "type": 1,
+   "inputs": [
+    "Mutable",
+    "initial q"
+   ],
+   "outputs": [
+    "q@M1",
+    "mutable_dep@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object ur {}",
+   "def": "function Na(e,t){return new e(t)}"
+  },
+  {
+   "mod": "M1",
+   "name": "q",
+   "type": 1,
+   "inputs": [
+    "mutable q"
+   ],
+   "outputs": [
+    "mutable_dep_2@M1"
+   ],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "number 6",
+   "def": "function Sa(e){return e.generator}"
+  },
+  {
+   "mod": "M1",
+   "name": "_",
+   "type": 2,
+   "inputs": [
+    "_@builtin"
+   ],
+   "outputs": [
+    "inbuilt@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function Z :: ",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "inbuilt",
+   "type": 1,
+   "inputs": [
+    "_"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function Z :: ",
+   "def": "function(_){return(\n_\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "FileAttachment",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "file@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function  :: t=>{const n=e(t+=\"\");if(null==n)throw new Error(`File not found: ${t}`);if(\"obje",
+   "def": "()=>e"
+  },
+  {
+   "mod": "M1",
+   "name": "file",
+   "type": 1,
+   "inputs": [
+    "FileAttachment"
+   ],
+   "outputs": [
+    "mutable_dep_2@M1"
+   ],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object FileAttachment {name,mimeType}",
+   "def": "function(FileAttachment){return(\nFileAttachment(\"empty\")\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable_dep",
+   "type": 1,
+   "inputs": [
+    "viewof view",
+    "lambda",
+    "mutable q"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "number 6",
+   "def": "function($0,lambda,$1)\n{\n  $0;\n  lambda;\n  $1.value;\n  return $1.value;\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable_dep_2",
+   "type": 1,
+   "inputs": [
+    "file",
+    "q"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "number 7",
+   "def": "function(file,q)\n{\n  file;\n  return q + 1;\n}"
+  },
+  {
+   "mod": "M1",
+   "name": "viewofdep_inline",
+   "type": 1,
+   "inputs": [
+    "viewof view"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object EventTarget {value}",
+   "def": "function($0){return(\n$0\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "viewofdatadep",
+   "type": 1,
+   "inputs": [
+    "view"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "pending",
+   "value": "undefined",
+   "def": "function(view){return(\nview\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "dep"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 2,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"a\"",
+   "def": "function(dep){return(\ndep\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "Event",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "event@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "function Event :: function Event() { [native code] }",
+   "def": "()=>e"
+  },
+  {
+   "mod": "M1",
+   "name": "event",
+   "type": 1,
+   "inputs": [
+    "Event"
+   ],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "object Event {isTrusted}",
+   "def": "function(Event){return(\nnew Event(\"input\")\n)}"
+  },
+  {
+   "mod": "M1",
+   "name": "@variable",
+   "type": 2,
+   "inputs": [],
+   "outputs": [
+    "mutabledep@M1",
+    "mutable mutabledep@M1",
+    "viewdep@M1",
+    "viewof viewdep@M1",
+    "dep_alias@M1",
+    "aslias_mutabledep@M1",
+    "mutable aslias_mutabledep@M1",
+    "aslias_viewdep@M1",
+    "viewof aslias_viewdep@M1",
+    "aslias_mutabledep_data@M1",
+    "aslias_viewdep_data@M1"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "symbol undefined",
+   "def": "()=>e"
+  },
+  {
+   "mod": "M1",
+   "name": "dep",
+   "type": 1,
+   "inputs": [
+    "dep@M2"
+   ],
+   "outputs": [
+    "null@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 3,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"a\"",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "viewof viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "dep_alias",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "error_dep",
+   "type": 1,
+   "inputs": [
+    "error_dep@M2"
+   ],
+   "outputs": [
+    "null@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 3,
+   "shadow": null,
+   "state": "rejected",
+   "error": "Er: error_dep could not be resolved",
+   "value": "undefined",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M1",
+   "name": "aslias_mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "mutable aslias_mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "aslias_viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "viewof aslias_viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "aslias_mutabledep_data",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": "aslias_viewdep_data",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "async t=>t.import(e.name,e.alias,await i)"
+  },
+  {
+   "mod": "M1",
+   "name": null,
+   "type": 1,
+   "inputs": [],
+   "outputs": [],
+   "reachable": true,
+   "observed": "Ea:node",
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "HTMLSpanElement <span> <span class=\"observablehq--inspect observablehq--import\">import {<a href=\"https://old.observablehq.com/@tomlarkworthy/de",
+   "def": "async()=>function({specifier:e,specifiers:t,notebook:n},r){const a=document.createElement(\"span\");a.className=\"observablehq--inspect observablehq--import\",a.appendChild(document.createTextNode(\"import {\"));let o=!1;for(const{imported:e,local:i}of t){o?a.appendChild(document.createTextNode(\", \")):o=!"
+  },
+  {
+   "mod": "M2",
+   "name": "md",
+   "type": 2,
+   "inputs": [
+    "md@builtin"
+   ],
+   "outputs": [
+    "null@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M2",
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function _1(md){return(\nmd`# Dependancy`\n)}"
+  },
+  {
+   "mod": "M2",
+   "name": "dep",
+   "type": 1,
+   "inputs": [],
+   "outputs": [
+    "dep@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "string \"a\"",
+   "def": "function _dep(){return(\n\"a\"\n)}"
+  },
+  {
+   "mod": "M2",
+   "name": "error_dep",
+   "type": 1,
+   "inputs": [],
+   "outputs": [
+    "error_dep@M1"
+   ],
+   "reachable": true,
+   "observed": false,
+   "version": 1,
+   "shadow": null,
+   "state": "rejected",
+   "error": "\"err\"",
+   "value": "undefined",
+   "def": "function _error_dep()\n{\n  throw \"err\";\n}"
+  },
+  {
+   "mod": "M2",
+   "name": "Inputs",
+   "type": 2,
+   "inputs": [
+    "Inputs@builtin"
+   ],
+   "outputs": [
+    "viewof viewdep@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M2",
+   "name": "viewof viewdep",
+   "type": 1,
+   "inputs": [
+    "Inputs"
+   ],
+   "outputs": [
+    "viewdep@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function _viewdep(Inputs){return(\nInputs.input()\n)}"
+  },
+  {
+   "mod": "M2",
+   "name": "Generators",
+   "type": 2,
+   "inputs": [
+    "Generators@builtin"
+   ],
+   "outputs": [
+    "viewdep@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M2",
+   "name": "viewdep",
+   "type": 1,
+   "inputs": [
+    "Generators",
+    "viewof viewdep"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "(G, _) => G.input(_)"
+  },
+  {
+   "mod": "M2",
+   "name": "initial mutabledep",
+   "type": 1,
+   "inputs": [],
+   "outputs": [
+    "mutable mutabledep@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function _mutabledep(){return(\n{}\n)}"
+  },
+  {
+   "mod": "M2",
+   "name": "Mutable",
+   "type": 2,
+   "inputs": [
+    "Mutable@builtin"
+   ],
+   "outputs": [
+    "mutable mutabledep@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "function Cr(e){return e}"
+  },
+  {
+   "mod": "M2",
+   "name": "mutable mutabledep",
+   "type": 1,
+   "inputs": [
+    "Mutable",
+    "initial mutabledep"
+   ],
+   "outputs": [
+    "mutabledep@M2"
+   ],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "(M, _) => new M(_)"
+  },
+  {
+   "mod": "M2",
+   "name": "mutabledep",
+   "type": 1,
+   "inputs": [
+    "mutable mutabledep"
+   ],
+   "outputs": [],
+   "reachable": false,
+   "observed": false,
+   "version": 0,
+   "shadow": null,
+   "state": "fulfilled",
+   "value": "undefined",
+   "def": "_ => _.generator"
+  }
+ ],
+ "log": [
+  {
+   "t": 425,
+   "op": "runtime.new",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68344) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "FileAttachment",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>Kn",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Mutable",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>ur",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "now",
+   "type": 2,
+   "inputs": [],
+   "def": "function*fr(){for(;;)yield Date.now()}",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "width",
+   "type": 2,
+   "inputs": [],
+   "def": "function vr(){return or((function(e){var t=e(document.body.clientWidth);function n(){var n=document.body.clientWidth;n!==t&&e(t=n)}return window.addEventListener(\"resize\",n),function(){window.removeEventListener(\"resize\",n)}}))}",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "dot",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t($e.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "htl",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(Le.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "html",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>lr",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "md",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>function(e){return e(De.resolve()).then((function(t){return cr((function(n){var r=document.createElement(\"div\");r.innerHTML=t(n,{langPrefix:\"\"}).trim();var a=r.querySelectorAll(\"pre code[class]\");return a.length>0&&e(je.resolve()).then((function(t){a.forEach((function(n){function r(){t.highlight",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "svg",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>br",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "tex",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>function(e){return Promise.all([e(ke.resolve()),e.resolve(ke.resolve(\"dist/katex.min.css\")).then(wr)]).then((function(e){var t=e[0],n=r();function r(e){return function(){var n=document.createElement(\"div\");return t.render(yr.apply(String,arguments),n,e),n.removeChild(n.firstChild)}}return n.opti",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "_",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(qe.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "aq",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t.alias({\"apache-arrow\":Be.resolve()})(Ye.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Arrow",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(Be.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "d3",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(xe.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "DuckDBClient",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>DuckDBClient",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Inputs",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(Me.resolve()).then((e=>({...e,file:e.fileOf(Gn)})))",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "L",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>async function(e){const t=await e(Ge.resolve());if(!t._style){const n=document.createElement(\"link\");n.rel=\"stylesheet\",n.href=await e.resolve(Ge.resolve(\"dist/leaflet.css\")),t._style=document.head.appendChild(n)}return t}(t)",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "mermaid",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>async function(e){const t=await e(Je.resolve());return t.initialize({securityLevel:\"loose\",theme:\"neutral\"}),function(){const e=document.createElement(\"div\");return e.innerHTML=t.render(Qn().id,String.raw.apply(String,arguments)),e.removeChild(e.firstChild)}}(t)",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Plot",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(Oe.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "__query",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>on",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "require",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "resolve",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>pr",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "SQLite",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>pt(t)",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "SQLiteDatabaseClient",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>SQLiteDatabaseClient",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "topojson",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>t(We.resolve())",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "vl",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>async function(e){const[t,n,r]=await Promise.all([Pe,Ie,Fe].map((t=>e(t.resolve()))));return r.register(t,n)}(t)",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "aapl",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/3ccff97fd2d93da734e76829b2b066eafdaac6a1fafdec0faf6ebc443271cfc109d29e80dd217468fcb2aff1e6bffdc73f356cc48feb657f35378e6abbbb63b9\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "alphabet",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/75d52e6c3130b1cae83cda89305e17b50f33e7420ef205587a135e8562bcfd22e483cf4fa2fb5df6dff66f9c5d19740be1cfaf47406286e2eb6574b49ffc685d\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "cars",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/048ec3dfd528110c0665dfa363dd28bc516ffb7247231f3ab25005036717f5c4c232a5efc7bb74bc03037155cb72b1abe85a33d86eb9f1a336196030443be4f6\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "citywages",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/39837ec5121fcc163131dbc2fe8c1a2e0b3423a5d1e96b5ce371e2ac2e20a290d78b71a4fb08b9fa6a0107776e17fb78af313b8ea70f4cc6648fad68ddf06f7a\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "diamonds",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/87942b1f5d061a21fa4bb8f2162db44e3ef0f7391301f867ab5ba718b225a63091af20675f0bfe7f922db097b217b377135203a7eab34651e21a8d09f4e37252\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "flare",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/a6b0d94a7f5828fd133765a934f4c9746d2010e2f342d335923991f31b14120de96b5cb4f160d509d8dc627f0107d7f5b5070d2516f01e4c862b5b4867533000\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "industries",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/76f13741128340cc88798c0a0b7fa5a2df8370f57554000774ab8ee9ae785ffa2903010cad670d4939af3e9c17e5e18e7e05ed2b38b848ac2fc1a0066aa0005f\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "miserables",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/31d904f6e21d42d4963ece9c8cc4fbd75efcbdc404bf511bc79906f0a1be68b5a01e935f65123670ed04e35ca8cae3c2b943f82bf8db49c5a67c85cbb58db052\").json()",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "olympians",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/31ca24545a0603dce099d10ee89ee5ae72d29fa55e8fc7c9ffb5ded87ac83060d80f1d9e21f4ae8eb04c1e8940b7287d179fe8060d887fb1f055f430e210007c\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "penguins",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/715db1223e067f00500780077febc6cebbdd90c151d3d78317c802732252052ab0e367039872ab9c77d6ef99e5f55a0724b35ddc898a1c99cb14c31a379af80a\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "pizza",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/c653108ab176088cacbb338eaf2344c4f5781681702bd6afb55697a3f91b511c6686ff469f3e3a27c75400001a2334dbd39a4499fe46b50a8b3c278b7d2f7fb5\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "weather",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>new FileAttachment(\"https://static.observableusercontent.com/files/693a46b22b33db0f042728700e0c73e836fa13d55446df89120682d55339c6db7cc9e574d3d73f24ecc9bc7eb9ac9a1e7e104a1ee52c00aab1e77eb102913c1f\").csv({typed:!0})",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "DOM",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Files",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Generators",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Promises",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "currentUser",
+   "type": 2,
+   "inputs": [],
+   "def": "function(){const e=new Promise((e=>ja=e));return ya({type:\"current_user\"}),e.then((e=>{if(void 0===e)throw new Error(\"currentUser is only available in unpublished team notebooks\");return e}))}",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "__chart",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "Secret",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "DatabaseClient",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "variable.define",
+   "mod": 0,
+   "name": "NotificationClient",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at new Wr (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:68674) | at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:116554"
+  },
+  {
+   "t": 427,
+   "op": "module.builtin",
+   "mod": 1,
+   "name": "FileAttachment",
+   "value": "t=>{const n=e(t+=\"\");if(null==n)throw new Error(`File not found: ${t}`);if(\"object\"==typeof n&&\"url\"in n){const{url:e,mimeType:r}=n;return new FileAttachment(e,t,r)}return new FileAttachment(n,t)}"
+  },
+  {
+   "t": 436,
+   "op": "variable.import",
+   "args": [
+    "md",
+    "module#0"
+   ],
+   "mod": 1,
+   "name": "md"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "def": "function(md){return(\nmd`# Test Notebook of Semantics`\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": null,
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\n1\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": null,
+   "type": 1,
+   "inputs": [],
+   "def": "function()\n{\n  (\"\");\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.import",
+   "args": [
+    "htl",
+    "module#0"
+   ],
+   "mod": 1,
+   "name": "htl"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "html",
+   "type": 1,
+   "inputs": [
+    "htl"
+   ],
+   "def": "function(htl){return(\nhtl.html`<div>`\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "myclass",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\nclass myclass {}\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "obj_literal",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\n{}\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "x",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\n\"\"\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "y",
+   "type": 1,
+   "inputs": [
+    "x"
+   ],
+   "def": "function(x){return(\nx\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "z",
+   "type": 1,
+   "inputs": [
+    "x",
+    "y"
+   ],
+   "def": "function(x,y)\n{\n  (\"\");\n  return x + y;\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "comments",
+   "type": 1,
+   "inputs": [],
+   "def": "function()\n{\n  // a comment\n  return \"\";\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "generator",
+   "type": 1,
+   "inputs": [
+    "x",
+    "y"
+   ],
+   "def": "function*(x,y)\n{\n  yield x + y;\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "_function",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\nfunction () {}\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "asyncfunction",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\nasync function () {}\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "named_function",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\nfunction foo() {}\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "thisReference",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\n(this || 0) + 1\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "lambda",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\n() => {}\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "error",
+   "type": 1,
+   "inputs": [],
+   "def": "function()\n{\n  throw new Error();\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "error_obj",
+   "type": 1,
+   "inputs": [],
+   "def": "function()\n{\n  throw { foo: \"bar\" };\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "error_dep"
+   ],
+   "def": "function(error_dep){return(\nerror_dep\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.import",
+   "args": [
+    "Inputs",
+    "module#0"
+   ],
+   "mod": 1,
+   "name": "Inputs"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "viewof view",
+   "type": 1,
+   "inputs": [
+    "Inputs"
+   ],
+   "def": "function(Inputs){return(\nInputs.input()\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80051) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 436,
+   "op": "variable.import",
+   "args": [
+    "Generators",
+    "module#0"
+   ],
+   "mod": 1,
+   "name": "Generators"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "view",
+   "type": 1,
+   "inputs": [
+    "Generators",
+    "viewof view"
+   ],
+   "def": "function Aa(e,t){return e.input(t)}",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80103) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "initial q",
+   "type": 1,
+   "inputs": [],
+   "def": "function(){return(\n6\n)}",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80247) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "op": "variable.import",
+   "args": [
+    "Mutable",
+    "module#0"
+   ],
+   "mod": 1,
+   "name": "Mutable"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "mutable q",
+   "type": 1,
+   "inputs": [
+    "Mutable",
+    "initial q"
+   ],
+   "def": "function Na(e,t){return new e(t)}",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80276) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "q",
+   "type": 1,
+   "inputs": [
+    "mutable q"
+   ],
+   "def": "function Sa(e){return e.generator}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80319) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.import",
+   "args": [
+    "_",
+    "module#0"
+   ],
+   "mod": 1,
+   "name": "_"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "inbuilt",
+   "type": 1,
+   "inputs": [
+    "_"
+   ],
+   "def": "function(_){return(\n_\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "FileAttachment",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66239) | at Or.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:65104) | at Array.map (<anonymous>)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "file",
+   "type": 1,
+   "inputs": [
+    "FileAttachment"
+   ],
+   "def": "function(FileAttachment){return(\nFileAttachment(\"empty\")\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "mutable_dep",
+   "type": 1,
+   "inputs": [
+    "viewof view",
+    "lambda",
+    "mutable q"
+   ],
+   "def": "function($0,lambda,$1)\n{\n  $0;\n  lambda;\n  $1.value;\n  return $1.value;\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "mutable_dep_2",
+   "type": 1,
+   "inputs": [
+    "file",
+    "q"
+   ],
+   "def": "function(file,q)\n{\n  file;\n  return q + 1;\n}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "viewofdep_inline",
+   "type": 1,
+   "inputs": [
+    "viewof view"
+   ],
+   "def": "function($0){return(\n$0\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "viewofdatadep",
+   "type": 1,
+   "inputs": [
+    "view"
+   ],
+   "def": "function(view){return(\nview\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "dep"
+   ],
+   "def": "function(dep){return(\ndep\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "Event",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66497) | at Or.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:65104) | at Array.map (<anonymous>)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "event",
+   "type": 1,
+   "inputs": [
+    "Event"
+   ],
+   "def": "function(Event){return(\nnew Event(\"input\")\n)}",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80398) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "@variable",
+   "type": 2,
+   "inputs": [],
+   "def": "()=>e",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66239) | at Or.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:65104) | at Array.map (<anonymous>)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "dep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "mutable mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "viewof viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "dep_alias",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "error_dep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "aslias_mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "mutable aslias_mutabledep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "aslias_viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "viewof aslias_viewdep",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "aslias_mutabledep_data",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": "aslias_viewdep_data",
+   "type": 1,
+   "inputs": [
+    "@variable"
+   ],
+   "def": "async t=>t.import(e.name,e.alias,await i)",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79144) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "op": "variable.define",
+   "mod": 1,
+   "name": null,
+   "type": 1,
+   "inputs": [],
+   "def": "async()=>function({specifier:e,specifiers:t,notebook:n},r){const a=document.createElement(\"span\");a.className=\"observablehq--inspect observablehq--import\",a.appendChild(document.createTextNode(\"import {\"));let o=!1;for(const{imported:e,local:i}of t){o?a.appendChild(document.createTextNode(\", \")):o=!",
+   "stack": "at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79234) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052) | at bs (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:118176)"
+  },
+  {
+   "t": 924,
+   "op": "variable.import",
+   "args": [
+    "md",
+    "module#0"
+   ],
+   "mod": 2,
+   "name": "md"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": null,
+   "type": 1,
+   "inputs": [
+    "md"
+   ],
+   "def": "function _1(md){return(\nmd`# Dependancy`\n)}",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:25:29) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "dep",
+   "type": 1,
+   "inputs": [],
+   "def": "function _dep(){return(\n\"a\"\n)}",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:26:34) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "error_dep",
+   "type": 1,
+   "inputs": [],
+   "def": "function _error_dep()\n{\n  throw \"err\";\n}",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:27:40) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "variable.import",
+   "args": [
+    "Inputs",
+    "module#0"
+   ],
+   "mod": 2,
+   "name": "Inputs"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "viewof viewdep",
+   "type": 1,
+   "inputs": [
+    "Inputs"
+   ],
+   "def": "function _viewdep(Inputs){return(\nInputs.input()\n)}",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:28:45) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "variable.import",
+   "args": [
+    "Generators",
+    "module#0"
+   ],
+   "mod": 2,
+   "name": "Generators"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "viewdep",
+   "type": 1,
+   "inputs": [
+    "Generators",
+    "viewof viewdep"
+   ],
+   "def": "(G, _) => G.input(_)",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:29:38) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "initial mutabledep",
+   "type": 1,
+   "inputs": [],
+   "def": "function _mutabledep(){return(\n{}\n)}",
+   "stack": "at Br.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:66841) | at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:30:8) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323)"
+  },
+  {
+   "t": 924,
+   "op": "variable.import",
+   "args": [
+    "Mutable",
+    "module#0"
+   ],
+   "mod": 2,
+   "name": "Mutable"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "mutable mutabledep",
+   "type": 1,
+   "inputs": [
+    "Mutable",
+    "initial mutabledep"
+   ],
+   "def": "(M, _) => new M(_)",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:31:49) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "variable.define",
+   "mod": 2,
+   "name": "mutabledep",
+   "type": 1,
+   "inputs": [
+    "mutable mutabledep"
+   ],
+   "def": "_ => _.generator",
+   "stack": "at define (https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173:32:41) | at Wr.value (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:74323) | at proto.module (<anonymous>:60:20)"
+  },
+  {
+   "t": 924,
+   "op": "runtime.module",
+   "mod": 2,
+   "define": "function define(runtime, observer) {\n  const main = runtime.module();\n  main.variable(observer()).define([\"md\"], _1);\n  main.variable(observer(\"dep\")).define(\"dep\", _dep);\n  main.variable(observer(\"error_dep\")).define(\"error_dep\", _error_dep);\n  main.variable(observer(\"viewof viewdep\")).define(\"view",
+   "defineName": "define",
+   "stack": "at https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:79042"
+  },
+  {
+   "t": 924,
+   "op": "variable.import",
+   "args": [
+    "error_dep",
+    "error_dep",
+    "module#2"
+   ],
+   "mod": 1,
+   "name": "error_dep"
+  },
+  {
+   "t": 924,
+   "op": "variable.import",
+   "args": [
+    "dep",
+    "dep",
+    "module#2"
+   ],
+   "mod": 1,
+   "name": "dep"
+  }
+ ],
+ "importSnaps": [
+  {
+   "t": 446,
+   "phase": "before",
+   "name": "error_dep",
+   "outputs": [
+    {
+     "name": null,
+     "type": 1,
+     "inputs": [
+      "error_dep"
+     ],
+     "def": "function(error_dep){return(\nerror_dep\n)}"
+    }
+   ]
+  },
+  {
+   "t": 446,
+   "phase": "before",
+   "name": "dep",
+   "outputs": [
+    {
+     "name": null,
+     "type": 1,
+     "inputs": [
+      "dep"
+     ],
+     "def": "function(dep){return(\ndep\n)}"
+    }
+   ]
+  },
+  {
+   "t": 924,
+   "phase": "after",
+   "name": "error_dep",
+   "returned": [],
+   "outputs": [
+    {
+     "name": null,
+     "type": 1,
+     "inputs": [
+      "error_dep"
+     ],
+     "def": "function(error_dep){return(\nerror_dep\n)}"
+    }
+   ]
+  },
+  {
+   "t": 924,
+   "phase": "after",
+   "name": "dep",
+   "returned": [],
+   "outputs": [
+    {
+     "name": null,
+     "type": 1,
+     "inputs": [
+      "dep"
+     ],
+     "def": "function(dep){return(\ndep\n)}"
+    }
+   ]
+  }
+ ],
+ "msgs": [
+  {
+   "t": 435,
+   "origin": "https://old.observablehq.com",
+   "len": 36,
+   "data": "{\"type\":\"allow_internal_navigation\"}",
+   "keys": [
+    "type"
+   ]
+  },
+  {
+   "t": 435,
+   "origin": "https://old.observablehq.com",
+   "len": 14814,
+   "data": "{\"type\":\"bundle\",\"events\":[{\"type\":\"insert_node\",\"node_id\":0,\"new_node_value\":{\"body\":\"function(md){return(\\nmd`# Test Notebook of Semantics`\\n)}\",\"inputs\":[\"md\"],\"sourcemap\":{\"_input\":\"# Test Notebook of Semantics\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function(md){return(\\n\"},{\"start\":0,\"end\":0,\"value\":\"md`\"},{\"start\":28,\"end\":28,\"value\":\"`\"},{\"start\":28,\"end\":28,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":null,\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"md\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":9,\"new_node_value\":{\"body\":\"function(){return(\\n1\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"1\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function(){return(\\n\"},{\"start\":1,\"end\":1,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":null,\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":31,\"new_node_value\":{\"body\":\"function()\\n{\\n  (\\\"\\\");\\n}\\n\",\"inputs\":[],\"sourcemap\":{\"_input\":\"{\\n  (\\\"\\\");\\n}\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function()\\n\"},{\"start\":11,\"end\":11,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":null,\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":100,\"new_node_value\":{\"body\":\"function(htl){return(\\nhtl.html`<div>`\\n)}\",\"inputs\":[\"htl\"],\"sourcemap\":{\"_input\":\"<div>\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function(htl){return(\\n\"},{\"start\":0,\"end\":0,\"value\":\"htl.html`\"},{\"start\":5,\"end\":5,\"value\":\"`\"},{\"start\":5,\"end\":5,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"html\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"html\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":153,\"new_node_value\":{\"body\":\"function(){return(\\nclass myclass {}\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"class myclass {}\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function(){return(\\n\"},{\"start\":16,\"end\":16,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"myclass\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":115,\"new_node_value\":{\"body\":\"function(){return(\\n{}\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"obj_literal = ({})\",\"_edits\":[{\"start\":0,\"end\":15,\"value\":\"function(){return(\\n\"},{\"start\":17,\"end\":18,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"obj_literal\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":11,\"new_node_value\":{\"body\":\"function(){return(\\n\\\"\\\"\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"x = \\\"\\\"\",\"_edits\":[{\"start\":0,\"end\":4,\"value\":\"function(){return(\\n\"},{\"start\":6,\"end\":6,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"x\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":13,\"new_node_value\":{\"body\":\"function(x){return(\\nx\\n)}\",\"inputs\":[\"x\"],\"sourcemap\":{\"_input\":\"y = x\",\"_edits\":[{\"start\":0,\"end\":4,\"value\":\"function(x){return(\\n\"},{\"start\":5,\"end\":5,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"y\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":15,\"new_node_value\":{\"body\":\"function(x,y)\\n{\\n  (\\\"\\\");\\n  return x + y;\\n}\\n\",\"inputs\":[\"x\",\"y\"],\"sourcemap\":{\"_input\":\"z = {\\n  (\\\"\\\");\\n  return x + y;\\n}\",\"_edits\":[{\"start\":0,\"end\":4,\"value\":\"function(x,y)\\n\"},{\"start\":31,\"end\":31,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"z\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":145,\"new_node_value\":{\"body\":\"function()\\n{\\n  // a comment\\n  return \\\"\\\";\\n}\\n\",\"inputs\":[],\"sourcemap\":{\"_input\":\"comments = {\\n  // a comment\\n  return \\\"\\\";\\n}\",\"_edits\":[{\"start\":0,\"end\":11,\"value\":\"function()\\n\"},{\"start\":42,\"end\":42,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"comments\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":17,\"new_node_value\":{\"body\":\"function*(x,y)\\n{\\n  yield x + y;\\n}\\n\",\"inputs\":[\"x\",\"y\"],\"sourcemap\":{\"_input\":\"generator = {\\n  yield x + y;\\n}\",\"_edits\":[{\"start\":0,\"end\":12,\"value\":\"function*(x,y)\\n\"},{\"start\":30,\"end\":30,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"generator\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":20,\"new_node_value\":{\"body\":\"function(){return(\\nfunction () {}\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"_function = function () {}\",\"_edits\":[{\"start\":0,\"end\":12,\"value\":\"function(){return(\\n\"},{\"start\":26,\"end\":26,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"_function\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":71,\"new_node_value\":{\"body\":\"function(){return(\\nasync function () {}\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"asyncfunction = async function () {}\",\"_edits\":[{\"start\":0,\"end\":16,\"value\":\"function(){return(\\n\"},{\"start\":36,\"end\":36,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"asyncfunction\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":25,\"new_node_value\":{\"body\":\"function(){return(\\nfunction foo() {}\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"named_function = function foo() {}\",\"_edits\":[{\"start\":0,\"end\":17,\"value\":\"function(){return(\\n\"},{\"start\":34,\"end\":34,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"named_function\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":151,\"new_node_value\":{\"body\":\"function(){return(\\n(this || 0) + 1\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"thisReference = (this || 0) + 1\",\"_edits\":[{\"start\":0,\"end\":16,\"value\":\"function(){return(\\n\"},{\"start\":31,\"end\":31,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"thisReference\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":22,\"new_node_value\":{\"body\":\"function(){return(\\n() => {}\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"lambda = () => {}\",\"_edits\":[{\"start\":0,\"end\":9,\"value\":\"function(){return(\\n\"},{\"start\":17,\"end\":17,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"lambda\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":33,\"new_node_value\":{\"body\":\"function()\\n{\\n  throw new Error();\\n}\\n\",\"inputs\":[],\"sourcemap\":{\"_input\":\"error = {\\n  throw new Error();\\n}\",\"_edits\":[{\"start\":0,\"end\":8,\"value\":\"function()\\n\"},{\"start\":32,\"end\":32,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"error\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":165,\"new_node_value\":{\"body\":\"function()\\n{\\n  throw { foo: \\\"bar\\\" };\\n}\\n\",\"inputs\":[],\"sourcemap\":{\"_input\":\"error_obj = {\\n  throw { foo: \\\"bar\\\" };\\n}\",\"_edits\":[{\"start\":0,\"end\":12,\"value\":\"function()\\n\"},{\"start\":39,\"end\":39,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"error_obj\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":162,\"new_node_value\":{\"body\":\"function(error_dep){return(\\nerror_dep\\n)}\",\"inputs\":[\"error_dep\"],\"sourcemap\":{\"_input\":\"error_dep\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function(error_dep){return(\\n\"},{\"start\":9,\"end\":9,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":null,\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":39,\"new_node_value\":{\"body\":\"function(Inputs){return(\\nInputs.input()\\n)}\",\"inputs\":[\"Inputs\"],\"sourcemap\":{\"_input\":\"viewof view = Inputs.input()\",\"_edits\":[{\"start\":0,\"end\":14,\"value\":\"function(Inputs){return(\\n\"},{\"start\":28,\"end\":28,\"value\":\"\\n)}\"}]},\"type\":\"viewof\",\"name\":\"view\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":42,\"new_node_value\":{\"body\":\"function(){return(\\n6\\n)}\",\"inputs\":[],\"sourcemap\":{\"_input\":\"mutable q = 6\",\"_edits\":[{\"start\":0,\"end\":12,\"value\":\"function(){return(\\n\"},{\"start\":13,\"end\":13,\"value\":\"\\n)}\"}]},\"type\":\"mutable\",\"name\":\"q\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":45,\"new_node_value\":{\"body\":\"function(_){return(\\n_\\n)}\",\"inputs\":[\"_\"],\"sourcemap\":{\"_input\":\"inbuilt = _\",\"_edits\":[{\"start\":0,\"end\":10,\"value\":\"function(_){return(\\n\"},{\"start\":11,\"end\":11,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"inbuilt\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":48,\"new_node_value\":{\"body\":\"function(FileAttachment){return(\\nFileAttachment(\\\"empty\\\")\\n)}\",\"inputs\":[\"FileAttachment\"],\"sourcemap\":{\"_input\":\"file = FileAttachment(\\\"empty\\\")\",\"_edits\":[{\"start\":0,\"end\":7,\"value\":\"function(FileAttachment){return(\\n\"},{\"start\":30,\"end\":30,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"file\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":52,\"new_node_value\":{\"body\":\"function($0,lambda,$1)\\n{\\n  $0;\\n  lambda;\\n  $1.value;\\n  return $1.value;\\n}\\n\",\"inputs\":[\"viewof view\",\"lambda\",\"mutable q\"],\"sourcemap\":{\"_input\":\"mutable_dep = {\\n  viewof view;\\n  lambda;\\n  mutable q;\\n  return mutable q;\\n}\",\"_edits\":[{\"start\":0,\"end\":14,\"value\":\"function($0,lambda,$1)\\n\"},{\"start\":18,\"end\":29,\"value\":\"$0\"},{\"start\":43,\"end\":52,\"value\":\"$1.value\"},{\"start\":63,\"end\":72,\"value\":\"$1.value\"},{\"start\":75,\"end\":75,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"mutable_dep\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":55,\"new_node_value\":{\"body\":\"function(file,q)\\n{\\n  file;\\n  return q + 1;\\n}\\n\",\"inputs\":[\"file\",\"q\"],\"sourcemap\":{\"_input\":\"mutable_dep_2 = {\\n  file;\\n  return q + 1;\\n}\",\"_edits\":[{\"start\":0,\"end\":16,\"value\":\"function(file,q)\\n\"},{\"start\":43,\"end\":43,\"value\":\"\\n\"}]},\"type\":\"normal\",\"name\":\"mutable_dep_2\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":57,\"new_node_value\":{\"body\":\"function($0){return(\\n$0\\n)}\",\"inputs\":[\"viewof view\"],\"sourcemap\":{\"_input\":\"viewofdep_inline = viewof view\",\"_edits\":[{\"start\":0,\"end\":19,\"value\":\"function($0){return(\\n\"},{\"start\":19,\"end\":30,\"value\":\"$0\"},{\"start\":30,\"end\":30,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"viewofdep_inline\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":61,\"new_node_value\":{\"body\":\"function(view){return(\\nview\\n)}\",\"inputs\":[\"view\"],\"sourcemap\":{\"_input\":\"viewofdatadep = view\",\"_edits\":[{\"start\":0,\"end\":16,\"value\":\"function(view){return(\\n\"},{\"start\":20,\"end\":20,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"viewofdatadep\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":93,\"new_node_value\":{\"body\":\"function(dep){return(\\ndep\\n)}\",\"inputs\":[\"dep\"],\"sourcemap\":{\"_input\":\"dep\",\"_edits\":[{\"start\":0,\"end\":0,\"value\":\"function(dep){return(\\n\"},{\"start\":3,\"end\":3,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":null,\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":168,\"new_node_value\":{\"body\":\"function(Event){return(\\nnew Event(\\\"input\\\")\\n)}\",\"inputs\":[\"Event\"],\"sourcemap\":{\"_input\":\"event = new Event(\\\"input\\\")\",\"_edits\":[{\"start\":0,\"end\":8,\"value\":\"function(Event){return(\\n\"},{\"start\":26,\"end\":26,\"value\":\"\\n)}\"}]},\"type\":\"normal\",\"name\":\"event\",\"databaseClients\":{},\"fileAttachments\":{},\"secrets\":{},\"notificationClients\":{}},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_node\",\"node_id\":64,\"new_node_value\":{\"type\":\"import\",\"specifier\":\"@tomlarkworthy/dependancy\",\"specifiers\":[{\"imported\":\"dep\",\"local\":\"dep\",\"mutable\":false,\"view\":false},{\"imported\":\"mutabledep\",\"local\":\"mutabledep\",\"mutable\":true,\"view\":false},{\"imported\":\"viewdep\",\"local\":\"viewdep\",\"mutable\":false,\"view\":true},{\"imported\":\"dep\",\"local\":\"dep_alias\",\"mutable\":false,\"view\":false},{\"imported\":\"error_dep\",\"local\":\"error_dep\",\"mutable\":false,\"view\":false},{\"imported\":\"mutabledep\",\"local\":\"aslias_mutabledep\",\"mutable\":true,\"view\":false},{\"imported\":\"viewdep\",\"local\":\"aslias_viewdep\",\"mutable\":false,\"view\":true},{\"imported\":\"mutabledep\",\"local\":\"aslias_mutabledep_data\",\"mutable\":false,\"view\":false},{\"imported\":\"viewdep\",\"local\":\"aslias_viewdep_data\",\"mutable\":false,\"view\":false}],\"notebook\":\"https://old.observablehq.com/@tomlarkworthy/dependancy\",\"module\":\"https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4&resolutions=483a346021943f64@173\"},\"new_next_node_id\":null,\"new_node_mode\":\"js\",\"new_node_data\":null},{\"type\":\"insert_file\",\"name\":\"empty\",\"url\":\"https://static.observableusercontent.com/files/50cad75d56578d08f50d560a50a6f4a66919f1f0b9c189221c6768a04dc958323335dac14ca3526e6527019d02e9e00d21d247eb5c2646b38ec7720e0ddcaa7e\",\"mimeType\":\"application/octet-stream\",\"privateBucketId\":null},{\"type\":\"navigate\",\"pathname\":\"/@tomlarkworthy/notebook-semantics\",\"search\":\"\",\"hash\":\"\"}]}",
+   "keys": [
+    "type",
+    "events"
+   ]
+  },
+  {
+   "t": 437,
+   "origin": "https://old.observablehq.com",
+   "len": 1282,
+   "data": "{\"type\":\"bundle\",\"events\":[{\"type\":\"offset_node\",\"node_id\":9,\"height\":29},{\"type\":\"offset_node\",\"node_id\":31,\"height\":71},{\"type\":\"offset_node\",\"node_id\":153,\"height\":29},{\"type\":\"offset_node\",\"node_id\":11,\"height\":29},{\"type\":\"offset_node\",\"node_id\":13,\"height\":29},{\"type\":\"offset_node\",\"node_id\":15,\"height\":92},{\"type\":\"offset_node\",\"node_id\":17,\"height\":71},{\"type\":\"offset_node\",\"node_id\":20,\"height\":29},{\"type\":\"offset_node\",\"node_id\":71,\"height\":29},{\"type\":\"offset_node\",\"node_id\":25,\"height\":29},{\"type\":\"offset_node\",\"node_id\":151,\"height\":29},{\"type\":\"offset_node\",\"node_id\":22,\"height\":29},{\"type\":\"offset_node\",\"node_id\":33,\"height\":71},{\"type\":\"offset_node\",\"node_id\":165,\"height\":71},{\"type\":\"offset_node\",\"node_id\":162,\"height\":29},{\"type\":\"offset_node\",\"node_id\":39,\"height\":29},{\"type\":\"offset_node\",\"node_id\":42,\"height\":29},{\"type\":\"offset_node\",\"node_id\":45,\"height\":29},{\"type\":\"offset_node\",\"node_id\":48,\"height\":29},{\"type\":\"offset_node\",\"node_id\":52,\"height\":134},{\"type\":\"offset_node\",\"node_id\":55,\"height\":92},{\"type\":\"offset_node\",\"node_id\":57,\"height\":29},{\"type\":\"offset_node\",\"node_id\":61,\"height\":29},{\"type\":\"offset_node\",\"node_id\":93,\"height\":29},{\"type\":\"offset_node\",\"node_id\":168,\"height\":29},{\"type\":\"offset_node\",\"node_id\":64,\"height\":239}]}",
+   "keys": [
+    "type",
+    "events"
+   ]
+  }
+ ],
+ "evals": [
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(md){return(\nmd`# Test Notebook of Semantics`\n)}\n)\n//# sourceURL=observablehq-0",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\n1\n)}\n)\n//# sourceURL=observablehq-9",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction()\n{\n  (\"\");\n}\n\n)\n//# sourceURL=observablehq-31",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(htl){return(\nhtl.html`<div>`\n)}\n)\n//# sourceURL=observablehq-100",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\nclass myclass {}\n)}\n)\n//# sourceURL=observablehq-153",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\n{}\n)}\n)\n//# sourceURL=observablehq-115",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\n\"\"\n)}\n)\n//# sourceURL=observablehq-11",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(x){return(\nx\n)}\n)\n//# sourceURL=observablehq-13",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(x,y)\n{\n  (\"\");\n  return x + y;\n}\n\n)\n//# sourceURL=observablehq-15",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction()\n{\n  // a comment\n  return \"\";\n}\n\n)\n//# sourceURL=observablehq-145",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction*(x,y)\n{\n  yield x + y;\n}\n\n)\n//# sourceURL=observablehq-17",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\nfunction () {}\n)}\n)\n//# sourceURL=observablehq-20",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\nasync function () {}\n)}\n)\n//# sourceURL=observablehq-71",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\nfunction foo() {}\n)}\n)\n//# sourceURL=observablehq-25",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\n(this || 0) + 1\n)}\n)\n//# sourceURL=observablehq-151",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\n() => {}\n)}\n)\n//# sourceURL=observablehq-22",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction()\n{\n  throw new Error();\n}\n\n)\n//# sourceURL=observablehq-33",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction()\n{\n  throw { foo: \"bar\" };\n}\n\n)\n//# sourceURL=observablehq-165",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(error_dep){return(\nerror_dep\n)}\n)\n//# sourceURL=observablehq-162",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(Inputs){return(\nInputs.input()\n)}\n)\n//# sourceURL=observablehq-39",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80062) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(){return(\n6\n)}\n)\n//# sourceURL=observablehq-42",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80258) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 436,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(_){return(\n_\n)}\n)\n//# sourceURL=observablehq-45",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(FileAttachment){return(\nFileAttachment(\"empty\")\n)}\n)\n//# sourceURL=observablehq-48",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction($0,lambda,$1)\n{\n  $0;\n  lambda;\n  $1.value;\n  return $1.value;\n}\n\n)\n//# sourceURL=observablehq-52",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(file,q)\n{\n  file;\n  return q + 1;\n}\n\n)\n//# sourceURL=observablehq-55",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction($0){return(\n$0\n)}\n)\n//# sourceURL=observablehq-57",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(view){return(\nview\n)}\n)\n//# sourceURL=observablehq-61",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(dep){return(\ndep\n)}\n)\n//# sourceURL=observablehq-93",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  },
+  {
+   "t": 437,
+   "kind": "eval",
+   "src": "\"use strict\";(\nfunction(Event){return(\nnew Event(\"input\")\n)}\n)\n//# sourceURL=observablehq-168",
+   "stack": "at na (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:70870) | at Ea.Ta (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:80409) | at Ea.define (https://static.observableusercontent.com/next/worker-QSqOl_Gp.js:2:76052)"
+  }
+ ],
+ "html": 13123
+}

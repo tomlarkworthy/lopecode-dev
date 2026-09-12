@@ -1,0 +1,303 @@
+//// isNkImportCell
+isNkImportCell = v => v._inputs?.length === 1 && v._inputs[0]?._name === '@variable' && /\._runtime\.module\(/.test(v._definition?.toString() ?? '')
+
+//// nkImportSpecifier
+nkImportSpecifier = v => v._definition?.toString().match(/\bimport\(\s*(?:new URL\(\s*)?(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/)?.[2]
+
+//// canonName
+canonName = n => typeof n === 'string' ? n.replace(/^(viewof|mutable)\$/, '$1 ') : n
+
+//// isNkViewofValue
+isNkViewofValue = v => v._inputs?.length === 1 && v._inputs[0]._module === v._module && v._inputs[0]._name === `viewof$${v._name}`
+
+//// isAnonymousCellName
+isAnonymousCellName = v => typeof v._name === 'string' && /^cell \d+$/.test(v._name) && !(v._outputs?.size)
+
+//// mutableRole
+mutableRole = {
+  // notebook-kit mutables, mapped back to the legacy triple (initial x, mutable x, x).
+  // /api/import: "mutator x" <- [Mutable, initial x], read by "mutable x" and "x".
+  // viewed notebook: "cell N" <- ["mutable x"] (the initial value), read by "mutable$x" and "x".
+  const mutatorBase = u => {
+    if (typeof u?._name !== 'string')
+      return null;
+    if (u._name.startsWith('mutator '))
+      return u._name.slice(8);
+    const src = u._inputs?.length === 1 && u._inputs[0]._module === u._module ? u._inputs[0]._name : null;
+    if (typeof src !== 'string' || !src.startsWith('mutable '))
+      return null;
+    const base = src.slice(8);
+    return [...(u._outputs ?? [])].some(o => o._name === `mutable$${ base }`) ? base : null;
+  };
+  return v => {
+    const base = mutatorBase(v);
+    if (base != null)
+      return { role: 'mutator', base };
+    if (v._inputs?.length === 1 && v._inputs[0]._module === v._module) {
+      const b = mutatorBase(v._inputs[0]);
+      if (b != null && (v._name === `mutable ${ b }` || v._name === `mutable$${ b }`))
+        return { role: 'mutable', base: b };
+      if (b != null && v._name === b)
+        return { role: 'value', base: b };
+    }
+    if (typeof v._name === 'string' && v._name.startsWith('mutable ')) {
+      const b = v._name.slice(8);
+      if ([...(v._outputs ?? [])].some(o => mutatorBase(o) === b))
+        return { role: 'initial', base: b };
+    }
+    return null;
+  };
+}
+
+//// nkRegisteredFiles
+nkRegisteredFiles = async function nkRegisteredFiles(runtime) {
+  // notebook-kit keeps the viewed notebook's attachments in one runtime-level registry keyed by href.
+  let FA;
+  try {
+    FA = await runtime._builtin.value('FileAttachment');
+  } catch (e) {
+    return undefined;
+  }
+  if (typeof FA !== 'function')
+    return undefined;
+  let registry;
+  const {get, has, set} = Map.prototype;
+  Map.prototype.get = Map.prototype.has = function () {
+    registry ??= this;
+  };
+  Map.prototype.set = function () {
+    return this;
+  };
+  try {
+    FA('');
+  } catch (e) {
+  } finally {
+    Map.prototype.get = get;
+    Map.prototype.has = has;
+    Map.prototype.set = set;
+  }
+  const files = registry ? [...registry.values()] : [];
+  if (!files.length || !files.every(f => typeof f?.href === 'string' && typeof f?.url !== 'string'))
+    return undefined;
+  return new Map(files.map(f => [
+    f.name,
+    { url: f.href, mimeType: f.mimeType }
+  ]));
+}
+
+//// module_specs
+module_specs = {
+  if (task.options?.debug)
+    debugger;
+  return new Map(await Promise.all([...included_modules.entries()].map(async ([module, spec]) => {
+    if (spec.name === TRACE_MODULE)
+      debugger;
+    // Raw variables for this module (user-defined, non-dynamic)
+    const variables = [...task_runtime._variables].filter(v => v._module === module && (v._type === 1 || isModuleVar(v)) && !isDynamicVar(v));
+    const imports = variables.filter(v => isModuleVar(v)).map(v => v._name.slice(7)).filter(m => !['builtin'].includes(m));
+    // A notebook-kit main has no FileAttachment builtin of its own; its files sit in the runtime registry.
+    const isMain = [...task.mains.values()].includes(module);
+    const fileAttachments = getFileAttachments(module) || isMain && await nkRegisteredFiles(task_runtime) || new Map();
+    if (spec.name === task.notebook && task?.options?.main_files !== false) {
+      getFileAttachments(main).forEach((value, key) => fileAttachments.set(key, value));
+    }
+    const source = await generate_module_source(spec, variables, fileAttachments, { moduleNames });
+    return [
+      spec.name,
+      {
+        url: spec.name,
+        imports,
+        fileAttachments,
+        source,
+        variables,
+        module,
+        define: spec.define
+      }
+    ];
+  })));
+}
+
+//// nkImportTargets
+nkImportTargets = new WeakMap()
+
+//// nkModuleNames
+nkModuleNames = async function nkModuleNames(runtime, names, { timeout_ms = 10000 } = {}) {
+  // notebook-kit import cells carry no module variable: run each one with a probe that captures
+  // the Module it creates (and rewires its outputs, as the runtime would), then name it from the specifier.
+  const nameOf = (spec, importer) => {
+    const path = spec.replace(/[?#].*$/, '').replace(/\.js$/, '');
+    const url = /^\.\.?\//.test(path) ? new URL(path, `https://x/${importer}`) : new URL(path, 'https://x/');
+    return decodeURIComponent(url.pathname).replace(/^\/(api\/import\/)?/, '');
+  };
+  const done = new Set();
+  const loaded = new Map();
+  for (let progress = true; progress;) {
+    progress = false;
+    for (const v of [...runtime._variables]) {
+      if (done.has(v) || !isNkImportCell(v) || !names.has(v._module)) continue;
+      done.add(v);
+      progress = true;
+      const spec = nkImportSpecifier(v);
+      let module;
+      const probe = {
+        _outputs: v._outputs,
+        _module: { _runtime: { module: (...args) => (module = runtime.module(...args)) } }
+      };
+      try {
+        await Promise.race([
+          v._definition(probe),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout_ms))
+        ]);
+      } catch (e) {
+        console.warn('[exporter-3] import cell did not load', v._name, e);
+      }
+      if (module && spec && !names.has(module))
+        names.set(module, { name: nameOf(spec, names.get(v._module).name), module });
+      // An import cell stands in for the legacy "module X" loader; only the first per importer/target.
+      if (module) {
+        const seen = loaded.get(v._module) ?? loaded.set(v._module, new Set()).get(v._module);
+        if (!seen.has(module))
+          nkImportTargets.set(v, module);
+        seen.add(module);
+      }
+    }
+  }
+  return names;
+}
+
+//// moduleNames
+moduleNames = {
+  if (task.options?.debug)
+    debugger;
+  const names = await moduleMap(task_runtime, {
+    cache: [...task.mains.entries()].map(([name, module]) => [
+      module,
+      {
+        name,
+        module
+      }
+    ])
+  });
+  return nkModuleNames(task_runtime, names);
+}
+
+//// isImportBridged
+isImportBridged = {
+  return function isImportBridged(v) {
+    if (isNkImportCell(v))
+      return false;
+    if (v._inputs.length === 1 && v._inputs[0]._module !== v._module && !v._inputs[0]._name?.startsWith?.('@'))
+      return true;
+    if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable')
+      return true;
+    // Observable closure-based imports: single @variable input + definition contains .import(
+    if (v._inputs.length === 1 && v._inputs[0]?._name === '@variable' && v._definition?.toString().includes('.import('))
+      return true;
+    return false;
+  };
+}
+
+//// variableToDefinition
+variableToDefinition = function variableToDefinition(v) {
+  if (isModuleVar(v))
+    return '';
+  if (isNkImportCell(v))
+    return '';
+  if (isImportBridged(v))
+    return '';
+  if (isLiveImport(v))
+    return '';
+  if (isDynamicVar(v))
+    return '';
+  if (isNkViewofValue(v))
+    return `const ${ pid(v) } = (G, _) => G.input(_);\n`;
+  const role = mutableRole(v)?.role;
+  if (role === 'mutator')
+    return '';
+  if (role === 'mutable')
+    return `const ${ pid(v) } = (M, _) => new M(_);\n`;
+  if (role === 'value')
+    return `const ${ pid(v) } = _ => _.generator;\n`;
+  return `const ${ pid(v) } = ${ restoreCanonicalImports(v._definition.toString()) };\n`;
+}
+
+//// variableToDefine
+variableToDefine = {
+  const EXCLUDED = [
+    'main',
+    'builtin',
+    'TBD',
+    'error'
+  ];
+  return async function variableToDefine(v, {moduleNames} = {}) {
+    if (isLiveImport(v))
+      return [];
+    if (isDynamicVar(v))
+      return [];
+    if (isNkImportCell(v)) {
+      const moduleName = moduleNames?.get(nkImportTargets.get(v))?.name;
+      if (!moduleName || EXCLUDED.includes(moduleName))
+        return [];
+      return [`  main.define("module ${ moduleName }", async () => runtime.module((await import("/${ moduleName }.js?v=4")).default));`];
+    }
+    if (isModuleVar(v)) {
+      // On Observable, module vars may be named "module 1" instead of "module @author/name"
+      // Look up the proper name via moduleNames map (keyed by module object)
+      let moduleName = v._name.slice(7);
+      if (v._value && moduleNames?.has(v._value)) {
+        moduleName = moduleNames.get(v._value).name;
+      }
+      if (EXCLUDED.includes(moduleName))
+        return [];
+      return [`  main.define("module ${ moduleName }", async () => runtime.module((await import("/${ moduleName }.js?v=4")).default));`];
+    }
+    const name = canonName(v._name);
+    if (isImportBridged(v)) {
+      const importedName = canonName(await findImportedName3(v));
+      let moduleVarName = null;
+      if (v._inputs.length === 2 && v._inputs[1]?._name === '@variable') {
+        // Also resolve the module var name for imports
+        const moduleVar = v._inputs[0];
+        let resolvedModuleName = moduleVar._name?.slice(7);
+        if (moduleVar._value && moduleNames?.has(moduleVar._value)) {
+          resolvedModuleName = moduleNames.get(moduleVar._value).name;
+        }
+        moduleVarName = `module ${ resolvedModuleName }`;
+      } else if (v._inputs.length === 1 && v._inputs[0]?._name === '@variable') {
+        // Observable closure-based import: single @variable input, module captured in closure.
+        // Find source module by searching which module's _scope contains this variable name.
+        for (const [mod, info] of moduleNames) {
+          if (info.name === 'main' || info.name === 'builtin')
+            continue;
+          if (mod._scope?.has(v._name)) {
+            moduleVarName = `module ${ info.name }`;
+            break;
+          }
+        }
+      } else if (v._inputs.length === 1 && v._inputs[0]._module !== v._module) {
+        const sourceModule = v._inputs[0]._module;
+        const sourceInfo = moduleNames?.get(sourceModule);
+        if (sourceInfo)
+          moduleVarName = `module ${ sourceInfo.name }`;
+      }
+      if (!moduleVarName)
+        return [];
+      const resolvedName = moduleVarName.slice(7);
+      if (EXCLUDED.includes(resolvedName))
+        return [];
+      return [`  main.define("${ name }", ["${ moduleVarName }", "@variable"], (_, v) => v.import(${ importedName && importedName !== name ? `"${ importedName }", ` : '' }"${ name }", _));`];
+    }
+    if (isNkViewofValue(v))
+      return [`  $def("${ pid(v) }", "${ name }", ["Generators","viewof ${ name }"], ${ pid(v) });`];
+    const mut = mutableRole(v);
+    if (mut?.role === 'mutator')
+      return [];
+    if (mut?.role === 'mutable')
+      return [`  $def("${ pid(v) }", "mutable ${ mut.base }", ["Mutable","initial ${ mut.base }"], ${ pid(v) });`];
+    if (mut?.role === 'value')
+      return [`  $def("${ pid(v) }", "${ mut.base }", ["mutable ${ mut.base }"], ${ pid(v) });`];
+    const deps = JSON.stringify(v._inputs.map(i => canonName(i._name)));
+    const name_literal = mut?.role === 'initial' ? `"initial ${ mut.base }"` : name && !isAnonymousCellName(v) ? `"${ name }"` : 'null';
+    return [`  $def("${ pid(v) }", ${ name_literal }, ${ deps }, ${ pid(v) });`];
+  };
+}

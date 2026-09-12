@@ -1,0 +1,31 @@
+{
+  "title": "Notebook Kit Semantics",
+  "slug": "notebook-kit-semantics",
+  "version": 1,
+  "nodes": [
+    {"id": 1, "value": "# Notebook Kit Semantics\n\nFixture for notebook-kit runtime shapes. Authored locally; built with `KEEP_JS=1` so `js` cells stay notebook-kit 2.0 (multi-output) and `ojs` cells stay Observable 1.0.\n\nEvery cell here exists to make one runtime shape observable. Do not \"tidy\" it.", "pinned": false, "mode": "md", "data": null, "name": ""},
+
+    {"id": 10, "value": "## 2.0 native (js): multi-output\n\n`transpile.ts:103` derives `outputs` from top-level declarations, so each of these becomes a `cell N` holder plus one `(exports) => exports[o]` projection per name.", "pinned": false, "mode": "md", "data": null, "name": ""},
+    {"id": 11, "value": "const a = 1, b = 2;", "pinned": true, "mode": "js", "data": null, "name": null},
+    {"id": 12, "value": "const {p, r} = ({p: 1, r: 2});", "pinned": true, "mode": "js", "data": null, "name": null},
+    {"id": 13, "value": "let m = 0;", "pinned": true, "mode": "js", "data": null, "name": null},
+    {"id": 14, "value": "const one = 1, two = 2, three = 3;", "pinned": true, "mode": "js", "data": null, "name": null},
+    {"id": 15, "value": "1 + 1", "pinned": true, "mode": "js", "data": null, "name": null},
+    {"id": 16, "value": "const counter = view(Inputs.range([0, 10], {label: \"counter\"}));", "pinned": true, "mode": "js", "data": null, "name": null},
+
+    {"id": 20, "value": "## 1.0 (ojs)\n\nSingle-output path: `output` is set, `outputs` is undefined. autoview and automutable derive the extra variables.", "pinned": false, "mode": "md", "data": null, "name": ""},
+    {"id": 21, "value": "x = \"\"", "pinned": true, "mode": "ojs", "data": null, "name": null},
+    {"id": 22, "value": "viewof view = Inputs.input()", "pinned": true, "mode": "ojs", "data": null, "name": null},
+    {"id": 23, "value": "mutable q = 6", "pinned": true, "mode": "ojs", "data": null, "name": null},
+    {"id": 24, "value": "qplus = q + 1", "pinned": true, "mode": "ojs", "data": null, "name": null},
+
+    {"id": 30, "value": "## Cross-dialect wiring\n\nA projection from a js cell must be an ordinary variable, consumable from ojs and vice versa.", "pinned": false, "mode": "md", "data": null, "name": ""},
+    {"id": 31, "value": "usesProjections = a + b", "pinned": true, "mode": "ojs", "data": null, "name": null},
+    {"id": 32, "value": "const fromOjs = x + \"!\";", "pinned": true, "mode": "js", "data": null, "name": null},
+
+    {"id": 40, "value": "## Multi-import: two import cells, one source module\n\nThis is the case today's `cellMap` collapses: it keys by source module, so both cells land in one bucket and the second is lost. They must recover as two distinct cells.", "pinned": false, "mode": "md", "data": null, "name": ""},
+    {"id": 41, "value": "import {dep} from \"@tomlarkworthy/dependancy\"", "pinned": true, "mode": "ojs", "data": null, "name": null},
+    {"id": 42, "value": "import {dep as dep2, viewof viewdep} from \"@tomlarkworthy/dependancy\"", "pinned": true, "mode": "ojs", "data": null, "name": null},
+    {"id": 43, "value": "import {mutable mutabledep} from \"@tomlarkworthy/dependancy\"", "pinned": true, "mode": "ojs", "data": null, "name": null}
+  ]
+}
