@@ -23,6 +23,7 @@ import { Window } from "happy-dom";
 import { Runtime } from "@observablehq/runtime";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { importNotebookModule } from "../notebook-import.ts";
 import { transpileJavaScript } from "../../vendor/notebook-kit/src/javascript/transpile.ts";
 import { transpileObservable } from "../../vendor/notebook-kit/src/javascript/observable.ts";
@@ -176,10 +177,11 @@ const diff = (a: string[], b: string[]) => {
   return { onlyLive: onlyA, onlyExport: onlyB };
 };
 
-async function roundTrip(label: string, liveModule: any) {
+async function roundTrip(label: string, liveModule: any, settle?: (m: any) => Promise<unknown>) {
   const live = fingerprint(liveModule);
   const first = exportModule(liveModule);
   const booted = await boot(first, `${label}-1`);
+  if (settle) await settle(booted);
   const fpBooted = fingerprint(booted);
   const second = exportModule(booted);
   await Bun.write(`${outDir}/${label}-2.js`, second);
@@ -279,6 +281,41 @@ async function behaviour(m: any) {
   console.log("   live values:  ", JSON.stringify(liveValues));
   console.log("   booted values:", JSON.stringify(bootedValues));
   console.log(`   values equal: ${JSON.stringify(liveValues) === JSON.stringify(bootedValues)}`);
+}
+
+// Post-run imports. Headlessly the api.observablehq.com import fails, so every import output above
+// stayed a pre-run projection and the import-alias branch never ran. Pointing the URL at the recorded
+// /api/import fixture BEFORE the live module is built lets the imports run and rewire each output to
+// its remote variable. The live body text then already holds the local URL, so the export needs no
+// rewrite of its own. This is a stand-in for E4's networking normalization, not a test of it.
+{
+  const API = JSON.stringify("https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4");
+  const LOCAL = JSON.stringify(pathToFileURL(resolve("tools/newobs-fixtures/api-import/@tomlarkworthy/dependancy.js")).href);
+  let localised = 0;
+  const localRealize = async (sources: string[]) =>
+    sources.map((src) => {
+      const s = src.split(API).join(LOCAL);
+      if (s !== src) localised++;
+      let f: any;
+      eval("f = " + s);
+      return f;
+    });
+  const doc = await nk.value("nkFixtureDoc");
+  const prt = new Runtime();
+  const pmod = prt.module();
+  await buildNkFixture(pmod, doc, { realize: localRealize });
+  if (!localised) throw Error("no import body carried the dependancy URL; the post-run case would be vacuous");
+  const settle = async (m: any) => {
+    const r = await Promise.race([m.value("dep"), new Promise((res) => setTimeout(() => res("TIMEOUT"), 5000))]);
+    await new Promise((res) => setTimeout(res, 200));
+    return r;
+  };
+  const dep = await settle(pmod);
+  const named = new Map(moduleVars(pmod).filter((v: any) => v._name != null).map((v: any) => [v._name, v]));
+  const aliases = moduleVars(pmod).filter((v: any) => roleOf(v, acc, (n: string) => named.get(n)) === "import-alias").map((v: any) => v._name);
+  console.log(`\n== post-run imports: ${localised} import bodies localised, dep = ${JSON.stringify(dep)}, import-alias roles: ${aliases.length} ${JSON.stringify(aliases)}`);
+  if (!aliases.length) console.log("   VACUOUS: no import output was rewired, so the import-alias branch did not run");
+  await roundTrip("nkFixture-post-run", pmod, settle);
 }
 
 nk.dispose();

@@ -1160,11 +1160,24 @@ imported files and re-prints every function. `function x(){return(\n""\n)}` came
 through es-module-shims keeps the source text. The prototype now evaluates the generated file with
 `new Function`, wrapping only the header the exporter itself writes.
 
-What this does **not** show:
+**Post-run imports also round-trip.** In the three fixtures above, headless imports never ran, so
+every import output stayed a pre-run projection. A fourth run rewrites the dependency URL in each
+import body to `tools/newobs-fixtures/api-import/@tomlarkworthy/dependancy.js` before the live module
+is built. The imports then run, and the export maps each rewired alias back to a projection on the
+import cell whose body enumerates it:
 
-- **Post-run import aliases.** Headless imports never run, so every import output here is still a
-  pre-run projection. The prototype maps a post-run alias back to a projection on the import cell
-  whose body enumerates it. That branch has not executed.
+```
+post-run imports: 3 import bodies localised, dep = "a",
+                  import-alias roles: 6 ["dep","dep2","viewdep","viewof$viewdep","mutabledep","mutable$mutabledep"]
+nkFixture-post-run  34 variables  fingerprint equal  re-export fixed point (5364 bytes)
+```
+
+The equality is not vacuous. Glue is fingerprinted by role, so a booted copy whose imports had not
+run would show `projection` where the live one shows `import-alias`. The harness also throws if no
+body carried the URL. The rewrite happens before the live build, so live and exported body text both
+hold the local URL; this stands in for E4 and does not test it.
+
+What this does **not** show:
 - **Where `nk` comes from in a lopecode page.** The export takes `nk` as a third `define` argument,
   defaulting to `globalThis.__notebookKit`. That is E3.
 - **The import URL.** The copied import body still reads
