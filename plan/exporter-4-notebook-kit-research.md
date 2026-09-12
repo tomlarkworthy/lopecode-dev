@@ -961,6 +961,70 @@ name. Headless viz suite: 8 pass. Its first test now pins `render` rejecting hea
 
 Still not covered: the layout at scale, and the md prose as rendered.
 
+### E1 answered: the catalogue is closed by construction, and recognition must be structural, 2026-09-12
+
+E1 was scoped as an empirical sample of five notebooks. The source makes that the weaker test.
+Every glue definition a notebook-kit runtime holds is created in one of two places, both vendored
+and both short:
+
+| kind | created at | copy as text? |
+|---|---|---|
+| display shadow | `define.ts:49-63`, `new Variable(2, module)` closing over `state` | no, closes over DOM state |
+| view shadow | `define.ts:66-68` | no, closes over the display shadow |
+| viewof input | `define.ts:78`, `main.define(o, [output], input)` | **no**, `input` is a stdlib function (`Br` live) |
+| mutable live getter | `define.ts:82`, `([mutable]) => mutable` | yes |
+| Mutator | `define.ts:85`, `main.define(x, [output], Mutator)` | **no**, stdlib (`Jr` live) |
+| mutable$ accessor | `define.ts:86`, `([, mutator]) => mutator` | yes |
+| projection | `define.ts:91`, `(exports) => exports[o]` | yes; `o` is the variable's own name |
+| import alias / builtin ref | `@observablehq/runtime` `variable.js:202`, `module.js:61`, `identity` | yes |
+| global / builtin constant | `module.js:147,159`, `constant(x)` | yes |
+
+Cell bodies and import loaders are transpiler output, not glue. So for a given notebook-kit version
+the catalogue has 9 entries. Sampling more notebooks tests which entries they exercise, not whether
+the set is closed. The limit is the version: this is vendored 2.5.6 with runtime 6.0.0. The live
+bundle's version was not recorded, but its minified shapes (`Br`, `Jr`, `([e])=>e`, `([,e])=>e`,
+`function u(e){return e}`) are the ones this source produces.
+
+Shadows are **in** `runtime._variables`. `variable_defineImpl` adds every variable whose definition
+is not `noop` (`variable.js:122-123`). A runtime copier therefore sees them, and must exclude them and
+let `define` rebuild them.
+
+**Recognition.** Every entry has a fixed name and input shape, so a classifier needs no definition
+text. For example: `o ← viewof$o`, `cell N ← mutable o`, `mutable$o ← cell N`, `o ← cell N` whose
+holder takes `mutable o`, projection `o ← cell N` otherwise, and anonymous type-2 for shadows.
+`tools/newobs-replica/probe-structural-roles.ts` implements that and compares it with cell-map-2's
+text-based `defInfo`:
+
+```
+Part A: live capture, 65 non-builtin variables       Part B: vendored define(), 6 nodes -> 16 variables
+  34 body                    defInfo:body              6 body                          defInfo:body
+  13 rt import alias         defInfo:glue              3 nk display/view shadow        defInfo:body   <- wrong
+   8 rt builtin ref          defInfo:glue              3 nk projection                 defInfo:glue
+   2 rt global constant      defInfo:glue              1 nk Mutator                    defInfo:body   <- wrong
+   1 nk mutable live getter  defInfo:glue              1 nk view input                 defInfo:body   <- wrong
+   1 nk mutable$ accessor    defInfo:glue              1 nk mutable live getter        defInfo:glue
+   1 nk Mutator              defInfo:body   <- wrong   1 nk mutable$ accessor          defInfo:glue
+   1 nk view input           defInfo:body   <- wrong
+   4 classic shapes (M6)     defInfo:glue
+```
+
+`defInfo`'s misses are exactly the entries that cannot be copied as text: `Mutator`, `input`, and the
+shadows. Its `GLUE` list has no pattern for a minified stdlib function, and could not have one that
+survives the next bundle. cell-map-2's **grouping** is unaffected, because it attaches those
+variables by name and input rules, as the earlier `mutable q` result showed. An exporter choosing
+what to copy would not be: under option C it would serialize `function Br(e){return I(…)}` with free
+`I`/`Hr`/`Vr`.
+
+A correction from building this: an intermediate text classifier labelled 4 variables of the
+`/api/import` hybrid module M6 as bodies that `defInfo` called glue. They are classic compiled glue
+(`(G, _) => G.input(_)`, `mutator`, and the two accessors). `defInfo` was right, and the structural
+rules now name them.
+
+**Decision for exporter-4: option C stands, with structural roles.** It copies 7 of the 9 entries as
+text. It emits `input` and `Mutator` as two stdlib references, and drops the shadows so `define` can
+recreate them. Two things are unverified: the structural rules have not been run over a classic
+lopecode notebook's full runtime, and import cells still need `defInfo`'s loader parsing (E5).
+
 ### A pid cannot be recomputed off-page, 2026-09-12
 
 Before hand-authoring pids for new cells, I tried to compute them the way the runtime does.
