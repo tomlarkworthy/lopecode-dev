@@ -2679,10 +2679,6 @@
  ],
  "lopecode/notebooks/@tomlarkworthy_cell-map-2.html": [
   {
-   "detail": "@tomlarkworthy/cell-map-2: liveCellMap declares runtime_variables (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
    "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
   }
