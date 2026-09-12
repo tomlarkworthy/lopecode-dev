@@ -137,11 +137,11 @@ test("mutable groups expose the mutable variable as head, not the initial", asyn
 test("defInfo classifies text definitions, not just functions", () => {
   // The dump path feeds strings. Returning an empty classification for them would make every
   // definition look like a cell body and silently invent cells.
-  expect(defInfo("(exports) => exports[o2]").glue).toBe(true);
-  expect(defInfo("e=>e[t]").glue).toBe(true);
-  expect(defInfo("(G, _) => G.input(_)").glue).toBe(true);
-  expect(defInfo("function(md){return md`hi`}").glue).toBe(false);
-  expect(defInfo(undefined).glue).toBe(false);
+  expect(
+    defInfo('async () => runtime.module((await importShim("/@tomlarkworthy/tests.js?v=4")).default)').importCell
+  ).toBe(true);
+  expect(defInfo("function(md){return md`hi`}").importCell).toBe(false);
+  expect(defInfo(undefined).importCell).toBe(false);
 
   const fn = (exports: any) => exports["a"];
   expect(defInfo(fn)).toBe(defInfo(fn)); // memoised per function object
@@ -170,21 +170,74 @@ test("a compiled module's alias variables are not import cells", async () => {
   m.dispose();
 });
 
-test("a js-toolchain-compiled projection is glue, not a cell body", () => {
-  // Third instance of one class, after the alias bug: both recorded corpora are live post-run
-  // captures, where a projection is minified to a BARE subscript — all 11 projection-shaped defs in
-  // out-nk/eval.json read `(exports) => exports[o2]`. js-toolchain writes the QUOTED spelling
-  // instead (`tools/js-toolchain/compile.js:35` emits `exports[${JSON.stringify(o)}]`), and that is
-  // the form an exported notebook boots as. With `\w+` as the subscript it was measured false
-  // in-page, which would make every projection look like a body and invent one cell per output.
-  expect(defInfo('(exports) => exports["a"]').glue).toBe(true);
-  expect(defInfo("(exports) => exports['a']").glue).toBe(true);
-  expect(defInfo("(exports) => exports[`a`]").glue).toBe(true);
-  // the minified/runtime-generated spellings must not regress
-  expect(defInfo("(exports) => exports[o2]").glue).toBe(true);
-  expect(defInfo("e=>e[t]").glue).toBe(true);
-  // a real body that merely subscripts must still not be glue
-  expect(defInfo('function _x(d){return( d["name"] )}').glue).toBe(false);
+test("roles come from name, type and inputs, so no definition spelling can move a variable", async () => {
+  // Replaced GLUE, six regexes over definition text. Every text rule tracked one compiler's spelling
+  // and missed another's: the quoted projection subscript (compile.js:35), `(_) => _.linkTo` off an
+  // unrun import holder (33 variables in out-e3 grouped as their own cells), minified classic
+  // `function Na(e,t){return new e(t)}` (splitting `mutable q` in runtime-dump-classic), and
+  // `() => 42` read as glue. Roles are asserted here with the definition deliberately absent.
+  const m = await importNotebookModule("modules/@tomlarkworthy/cell-map-2.js");
+  const roleOf = await m.value("roleOf");
+  m.dispose();
+  const vars: Record<string, any> = {};
+  const def = (name: string | null, type: number, inputs: [string, string?][]) =>
+    (vars[name ?? `anon${Object.keys(vars).length}`] = {
+      name,
+      type,
+      inputs: inputs.map(([n, mod]) => ({ name: n, module: mod ?? "M", builtin: mod === "builtin" }))
+    });
+  const a = {
+    name: (v: any) => v.name,
+    type: (v: any) => v.type,
+    module: () => "M",
+    inputs: (v: any) => v.inputs
+  };
+  const role = (n: string) => roleOf(vars[n], a, (x: string) => vars[x]);
+
+  // notebook-kit, define.ts
+  def("cell 3", 1, [["Inputs"]]);
+  def("a", 1, [["cell 3"]]);
+  def("viewof$v", 1, [["Inputs"]]);
+  def("v", 1, [["viewof$v"]]);
+  def("mutable m", 1, [["Mutable", "builtin"]]);
+  def("cell 4", 1, [["mutable m"]]);
+  def("m", 1, [["cell 4"]]);
+  def("mutable$m", 1, [["cell 4"]]);
+  def(null, 2, [["counter"]]);
+  // classic compiled
+  def("viewof w", 1, [["Inputs"]]);
+  def("w", 1, [["Generators", "builtin"], ["viewof w"]]);
+  def("initial q", 1, []);
+  def("mutable q", 1, [["Mutable", "builtin"], ["initial q"]]);
+  def("q", 1, [["mutable q"]]);
+  // runtime
+  def("md", 2, [["md", "builtin"]]);
+  def("FileAttachment", 2, []);
+  def("dep", 1, [["dep", "M2"]]);
+  // bodies
+  def("k", 1, []);
+  def("y", 1, [["a"], ["v"], ["m"]]);
+
+  expect(role("cell 3")).toBe("body");
+  expect(role("a")).toBe("projection");
+  expect(role("viewof$v")).toBe("body");
+  expect(role("v")).toBe("view-input");
+  expect(role("mutable m")).toBe("body");
+  expect(role("cell 4")).toBe("mutator");
+  expect(role("m")).toBe("mutable-getter");
+  expect(role("mutable$m")).toBe("mutable-accessor");
+  expect(role("anon8")).toBe("shadow");
+  expect(role("w")).toBe("view-getter");
+  expect(role("initial q")).toBe("body");
+  expect(role("mutable q")).toBe("mutator");
+  expect(role("q")).toBe("mutable-getter");
+  expect(role("md")).toBe("builtin");
+  expect(role("FileAttachment")).toBe("constant");
+  expect(role("dep")).toBe("import-alias");
+  expect(role("k")).toBe("body");
+  expect(role("y")).toBe("body");
+  // without a lookup the holder cannot be read, so a live getter degrades to projection, not body
+  expect(roleOf(vars["m"], a)).toBe("projection");
 });
 
 test("a real compiled loader is an import cell; a bare module construction is not", () => {

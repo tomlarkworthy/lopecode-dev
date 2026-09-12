@@ -1025,6 +1025,74 @@ text. It emits `input` and `Mutator` as two stdlib references, and drops the sha
 recreate them. Two things are unverified: the structural rules have not been run over a classic
 lopecode notebook's full runtime, and import cells still need `defInfo`'s loader parsing (E5).
 
+### Structural roles replace `GLUE` in cell-map-2, and correct 36 variables, 2026-09-12
+
+cell-map-2 gained a `roleOf(variable, accessors, lookup)` cell. It reads name, type and input names
+only, with the rules of `probe-structural-roles.ts`, and returns one of `body`, `shadow`, `builtin`,
+`constant`, `implicit`, `import-alias`, `view-input`, `view-getter`, `mutator`, `mutable-accessor`,
+`mutable-getter` or `projection`. Roles are unified across dialects. A classic `mutable q ← [Mutable,
+initial q]` and a notebook-kit `cell N ← mutable q` are both `mutator`, and the `cell N` name is what
+tells an exporter which one is not text-copyable. `groupCells` now gates on `roleOf(…) !== "body"`.
+That replaced `defInfo(def).glue || autoview || automutable` and the zero-input skip, which structural
+roles make unreachable. `GLUE` and the `glue` field are gone. `defInfo` remains for import cells only.
+
+**Grouping was diffed, not only re-counted.** `tools/newobs-replica/probe-grouping-baseline.ts`
+serialises `groupCells` output over 8 captures, and ran before and after the change:
+
+```
+unchanged  out-nk (M1 20, M2 4), notebook-kit wire dump, nkFixture 14, view/display fixture 7,
+           cell-map-viz 19, exporter-3 M1 104 and 13 of its other 17 modules
+moved      out-e3 M6 5, M12 14, M13 11, M14 3   -> each `(_) => _.<name>` joined its import cell
+           runtime-dump-classic M1 2, M2 1       -> `mutable q` and `mutable mutabledep` rejoined
+removed    cell-map-2's own GLUE cell
+```
+
+All 36 moves were checked, and each is a correction. The 33 exporter-3 variables each have a single
+`cell N` input that `defInfo` confirms is an import loader. 32 are `(_) => _.<name>` and one is
+`viewof$runtime_variables`. Their holders had not run, so they were in the pre-run projection
+shape, but spelled with dot access, and `GLUE` only matched a subscript. In the classic dump the
+definitions are minified: `function Na(e,t){return new e(t)}` missed `GLUE`'s `(M, _) =>`, and
+`_ => _.generator` matched nothing, so one `mutable q = 6` had been reported as two cells. This is
+the fourth instance of the text-spelling class after the alias, compiled-projection and `() => 42`
+cases, and the first found in a corpus that was already recorded.
+
+Role histograms from the module's own `roleOf` (`tools/scratch/role-hist.ts`):
+
+```
+out-e3 921      body 655  builtin 57  constant 59  import-alias 63  projection 33  view-getter 45  view-input 3  mutator/accessor/getter 2/2/2
+out-nk 56       body 24  builtin 5  constant 1  import-alias 6  projection 10  shadow 2  view-getter 1  view-input 1  mutator/accessor/getter 2/2/2
+nk wire 65      body 34  builtin 8  constant 2  import-alias 13  view-getter 1  view-input 1  mutator/accessor/getter 2/2/2
+classic wire 67 body 46  builtin 10  constant 3  import-alias 2  view-getter 2  mutator 2  mutable-getter 2
+nkFixture 34    body 14  constant 1  projection 14  view-input 1  mutator 1  mutable-accessor 2  mutable-getter 1
+```
+
+**One role label is imprecise, and it matters to an exporter but not to grouping.** In `nkFixture`,
+`mutable$mutabledep` is labelled `mutable-accessor`, because it is named `mutable$…` with a `cell N`
+input. It is actually the output of an import holder that has not run. Both join the holder, so the
+grouping is right. An exporter must check whether the holder is an import cell before trusting the
+label.
+
+**Verified in a browser**, on a scratch copy of the canonical with an untouched copy as the control:
+
+```
+baseline copy       165 tests  162 pass  2 fail  1 timeout
+roles copy          166 tests  163 pass  2 fail  1 timeout   (+ test_roleOf_reads_shape_not_definition_text)
+```
+
+The three non-passes are the pre-existing trio recorded above. The first roles run showed
+`test_recovers_this_notebooks_own_cells` as a **timeout**, and `--get-cell` showed it as `undefined`
+with no error. It had actually thrown "lost authored cell GLUE", from its own stale expected-name
+list. Three browser commands went to a suspected `thisModule` race in runtime-sdk before racing
+`variable._promise` in the page (`tools/scratch/probe-recovers-timeout.mjs`) showed the rejection.
+The runner reports a rejected test as a timeout; the memory on `--run-tests` traps now records this.
+
+Headless suites: 68 pass, 1124 `expect()` calls. The two `.glue` tests were rewritten. One checks
+the roles of 19 hand-built variables that carry no definition at all, plus the degraded no-lookup
+case.
+
+Synced into the canonical (`3439137b…` → `dacf79c5…`), not pushed to Observable. Observable still
+has v31, with `GLUE` and the non-live `liveCellMap`.
+
 ### A pid cannot be recomputed off-page, 2026-09-12
 
 Before hand-authoring pids for new cells, I tried to compute them the way the runtime does.
