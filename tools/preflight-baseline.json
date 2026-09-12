@@ -2677,9 +2677,9 @@
    "kind": "unused-dep"
   }
  ],
- "lopecode/notebooks/@tomlarkworthy_cell-map.html": [
+ "lopecode/notebooks/@tomlarkworthy_cell-map-2.html": [
   {
-   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "detail": "@tomlarkworthy/cell-map-2: liveCellMap declares runtime_variables (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
   },
   {
@@ -2687,7 +2687,11 @@
    "kind": "unused-dep"
   }
  ],
- "lopecode/notebooks/@tomlarkworthy_cell-map-2.html": [
+ "lopecode/notebooks/@tomlarkworthy_cell-map.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
   {
    "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
