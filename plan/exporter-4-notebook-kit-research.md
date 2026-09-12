@@ -919,9 +919,13 @@ failures. `cell-map-2-module.test.ts` gained a test that `liveCellMap`'s inputs 
 should. Headless replica suites with it: **68 pass, 0 fail, 1142 expect()**. The recompute itself is
 browser-only and is covered by the probe, not the suite.
 
-Not yet done: syncing the fix into `@tomlarkworthy_cell-map-2.html`, and pushing `liveCellMap` plus
-the new `runtime_variables` import to Observable. `--cells` drops imports, so the import needs the
-raw WS path or a hand-added import cell.
+**Synced into the canonical, 2026-09-12**, on Tom's "yeah just work offline". The pre-sync checksum was
+confirmed as `a28d00ac…`, and the result is `1d07ccee…`. Browser run on the canonical: 165 tests,
+162 pass, the same 3 failures.
+
+Not yet done, by instruction ("work offline"): pushing `liveCellMap` plus the new `runtime_variables`
+import to Observable. `--cells` drops imports, so the import needs the raw WS path or a hand-added
+import cell. Observable's copy is therefore still the non-live version.
 
 ### A pid cannot be recomputed off-page, 2026-09-12
 
