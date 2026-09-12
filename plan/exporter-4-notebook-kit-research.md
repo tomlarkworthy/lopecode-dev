@@ -927,6 +927,40 @@ Not yet done, by instruction ("work offline"): pushing `liveCellMap` plus the ne
 import to Observable. `--cells` drops imports, so the import needs the raw WS path or a hand-added
 import cell. Observable's copy is therefore still the non-live version.
 
+### cell-map-viz draws something, and lost a dead cell, 2026-09-12
+
+Status before: `render(cellMap)` existed, but no cell called it, so the notebook drew nothing.
+`buildHierarchy` had no caller except its own test, and the Plot marks were untested.
+
+Changes, all in the working copy and synced into the canonical:
+
+- **`buildHierarchy` and `test_hierarchy_is_not_shared` deleted.** `render`'s inputs never included
+  it. The "hierarchy built per render" departure went with it.
+- **`thisNotebookDiagram`** renders cell-map-2's `liveCellMap`, filtered to this notebook's two
+  modules. Unfiltered, the page's runtime map is about 1,730 cells, which is too tall for one ordinal
+  band.
+- **`test_render_draws_one_mark_per_cell`** renders a four-cell map with one anonymous cell filtered
+  out. It counts Plot's `g[aria-label=dot|text|arrow]` children (3, 3, 2), checks that no `<a>`
+  appears without `linkTo`, and checks that 3 appear with it.
+- **`linkTo` now defaults to no link.** The old default emitted `href="#<module>#<name>"`. A click
+  rewrites the page hash, and lopepage parses the hash as a layout, so the default was not inert.
+- The title prose advertised `Plot` and `d3` as `render` options. They are not. It is now an
+  annotated call.
+
+Measured on a scratch copy with `tools/scratch/probe-viz-demo.mjs`:
+
+```
+initial                            42 dots  42 labels  39 arrows  940px  0 links  modules: cell-map-2, cell-map-viz
+after adding a cell to cell-map-2  43 dots  43 labels  39 arrows  960px  0 links  probe_viz_cell present
+```
+
+Browser run: 165 tests, 162 pass, the same 3 failures, and all 4 viz tests pass. The runner labels
+them `module @tomlarkworthy/cell-map-2#…`, because cell-map-viz now holds an import variable of that
+name. Headless viz suite: 8 pass. Its first test now pins `render` rejecting headlessly, not
+`buildHierarchy`.
+
+Still not covered: the layout at scale, and the md prose as rendered.
+
 ### A pid cannot be recomputed off-page, 2026-09-12
 
 Before hand-authoring pids for new cells, I tried to compute them the way the runtime does.

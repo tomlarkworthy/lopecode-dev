@@ -4,18 +4,10 @@
 // fed end to end, because a renderer that cannot consume actual cellMap output is the failure that
 // matters.
 //
-// NOT covered, and deliberately not faked:
+// NOT covered here: `render` needs Plot and a DOM, neither of which resolves headlessly. It is tested
+// in the page by `test_render_draws_one_mark_per_cell`, which counts the marks Plot produced.
 //
-//   buildHierarchy — needs d3 (`hierarchy`, `tree`). No d3 is installed in this repo (no `d3`, no
-//     `d3-hierarchy`, nothing in package.json, and no other suite imports one). The alternatives were
-//     to add a dependency to shared project state for a test, or to hand-write a d3 stub — which
-//     would test my reimplementation of d3 against my reading of d3, the same "suite tests the tool
-//     against itself" trap that hid four misclassifications in this module's history. So the function
-//     is untested and says so, here and in the module's own status prose.
-//
-//   the Plot marks — `render` needs Plot and a DOM, neither of which resolves headlessly.
-//
-// @tomlarkworthy/visualizer has no tests of any kind to compare against, so this is a floor.
+// @tomlarkworthy/visualizer has no tests of any kind, so this is a floor.
 //
 // run: bun test tools/newobs-replica/cell-map-viz.test.ts
 import { expect, test, beforeAll, afterAll } from "bun:test";
@@ -41,12 +33,12 @@ beforeAll(async () => {
 
 afterAll(() => viz?.dispose());
 
-test("the d3-dependent cells stay unevaluated rather than breaking the module", async () => {
-  // notebook-import resolves no cross-module imports and no builtins, so `buildHierarchy` (d3) and
-  // `render` (Plot) cannot compute. They must fail in isolation, leaving the pure cells usable —
-  // which is what makes the rest of this suite meaningful.
+test("the Plot-dependent cell stays unevaluated rather than breaking the module", async () => {
+  // notebook-import resolves no cross-module imports and no builtins, so `render` (Plot) cannot
+  // compute. It must fail in isolation, leaving the pure cells usable — which is what makes the rest
+  // of this suite meaningful.
   expect(typeof flatten).toBe("function");
-  await expect(viz.value("buildHierarchy")).rejects.toBeDefined();
+  await expect(viz.value("render")).rejects.toBeDefined();
 });
 
 test("flatten attaches a module name, and never overwrites the cell's own", () => {
