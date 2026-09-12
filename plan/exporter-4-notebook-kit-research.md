@@ -1022,7 +1022,8 @@ rules now name them.
 
 **Decision for exporter-4: option C stands, with structural roles.** It copies 7 of the 9 entries as
 text. It emits `input` and `Mutator` as two stdlib references, and drops the shadows so `define` can
-recreate them. Two things are unverified: the structural rules have not been run over a classic
+recreate them. *(Corrected the same day: nothing calls `define` under option C, so the export must
+rebuild the shadows itself. See "exporter-4 option C round-trips headlessly" below.)* Two things are unverified: the structural rules have not been run over a classic
 lopecode notebook's full runtime, and import cells still need `defInfo`'s loader parsing (E5).
 
 ### Structural roles replace `GLUE` in cell-map-2, and correct 36 variables, 2026-09-12
@@ -1092,6 +1093,85 @@ case.
 
 Synced into the canonical (`3439137b…` → `dacf79c5…`), not pushed to Observable. Observable still
 has v31, with `GLUE` and the non-live `liveCellMap`.
+
+### exporter-4 option C round-trips headlessly, and the shadows cannot be dropped, 2026-09-12
+
+`tools/newobs-replica/exporter-4-prototype.ts` exports a live notebook-kit module as a lopecode
+`define(runtime, observer)` module that keeps the runtime's names. It boots the export into a fresh
+runtime, compares fingerprints, and re-exports the booted copy. Emission is per `roleOf`:
+
+| role | emitted |
+|---|---|
+| `body` | definition text, verbatim |
+| `projection` | regenerated `(exports) => exports["<name>"]`; `define.ts:91` closes over `o` |
+| `view-input` | `nk.input`, a reference |
+| `mutator` on `cell N` | `nk.Mutator`, a reference |
+| notebook-kit getter / accessor | regenerated `([mutable]) => mutable`, `([, mutator]) => mutator` |
+| classic glue | verbatim; every classic shape measured so far is self-contained |
+| `builtin`, `constant`, `implicit` | skipped; the runtime recreates them on reference |
+| `shadow` | skipped, and rebuilt from the owner's `_shadow` keys |
+| anything else | throws |
+
+**The E1 decision said "drop the shadows so `define` can recreate them". That was wrong.** Under
+option C nothing calls `define`. A shadow is visible only to its owner: `variable.js:109` resolves an
+input as `this._shadow?.get(name) ?? this._module._resolve(name)`, and `define.ts:44,64,69` attach the
+`display` and `view` shadows to the cell's own variable. A copied body with inputs
+`["display", "counter"]` would resolve `display` against module scope and find nothing. The export
+therefore rebuilds them. Their definitions close over per-cell display state (`define.ts:52-61`), so
+the rebuild is code in the export's prelude, and it uses `nk.display`, `nk.clear` and `nk.input`. The
+emitted line carries the shadow keys:
+
+```js
+  $v(true, null, ["display","counter"], (display,counter) => {
+display(counter * 2);
+}, ["display"]);
+  $v(false, "cell 4", ["mutable m"], nk.Mutator, []);
+  $v(false, "v", ["viewof$v"], nk.input, []);
+```
+
+The fingerprint is E0's multiset. It records, per variable: name, type, input names, observed, shadow
+keys, and body text for bodies or the role for glue. Glue is compared by role because its text is the
+one thing the export is allowed to change. An input that resolves to a shadow has no `_name`, so its
+name is the `_shadow` key holding it. The first run printed `,counter` for that input.
+
+```
+nkFixture     34 variables   fingerprint equal  re-export fixed point (5136 bytes)
+view-display  17 variables   fingerprint equal  re-export fixed point (2502 bytes)
+behaviour     15 variables   fingerprint equal  re-export fixed point (2479 bytes)
+
+controls on view-display, each a deliberately broken export:
+  shadows not rebuilt                   equal = false
+  viewof$v renamed to legacy viewof v   equal = false
+  observers dropped                     equal = false
+
+behaviour, live vs booted:
+  {"counter":"5","viewof$w":"<input value=\"hi\">","w":"hi","m":1,"mplus":2,"a":1,"b":2,"sum":8,
+   "mplus after mutable$m.value = 5":6}                                         identical
+```
+
+The behaviour fixture exercises all three non-copyable paths with values: `counter` reads through a
+rebuilt `view` shadow, `w` through the referenced `input`, and the write through `mutable$m` reaches
+`mplus` through `Mutator`.
+
+**A dead end, recorded because it looked like a real failure.** The first run reported every body as
+different. The cause was the harness: it booted the export with `import()`, and Bun transpiles
+imported files and re-prints every function. `function x(){return(\n""\n)}` came back as
+`function x() {\n  return "";\n}`, so token comparison would not have matched either. A browser loading
+through es-module-shims keeps the source text. The prototype now evaluates the generated file with
+`new Function`, wrapping only the header the exporter itself writes.
+
+What this does **not** show:
+
+- **Post-run import aliases.** Headless imports never run, so every import output here is still a
+  pre-run projection. The prototype maps a post-run alias back to a projection on the import cell
+  whose body enumerates it. That branch has not executed.
+- **Where `nk` comes from in a lopecode page.** The export takes `nk` as a third `define` argument,
+  defaulting to `globalThis.__notebookKit`. That is E3.
+- **The import URL.** The copied import body still reads
+  `import("https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4")`. That is E4.
+- **Pids.** The fixtures have none; the emitter writes `v.pid` when it exists.
+- **Classic and `/api/import` hybrid modules.** Only notebook-kit viewed modules were exported.
+  exporter-3 already handles classic ones, and a mixed notebook needs both in one file.
 
 ### A pid cannot be recomputed off-page, 2026-09-12
 
