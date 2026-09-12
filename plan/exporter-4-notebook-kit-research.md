@@ -1179,7 +1179,14 @@ hold the local URL; this stands in for E4 and does not test it.
 
 What this does **not** show:
 - **Where `nk` comes from in a lopecode page.** The export takes `nk` as a third `define` argument,
-  defaulting to `globalThis.__notebookKit`. That is E3.
+  defaulting to `globalThis.__notebookKit`. That is E3. Its size is now measured, 2026-09-12:
+  `tools/scratch/nk-helpers-entry.ts` exports exactly what an export references (`input`, `Mutator`,
+  `display`, `clear`), and `bun build --minify` gives **16,032 bytes, 4,915 gzipped**. The whole
+  notebook-kit runtime was 851,901 and 224,849, so this is 1/46 of the gzipped size. The bundle holds
+  22 source files, and 16 of them are `@observablehq/inspector`, pulled in by `display.ts` →
+  `inspect.ts`. It imports with no DOM globals. The ~225 KB open question below assumed the whole
+  runtime, which option C does not need. Not yet tried: loading it in a page, and whether the
+  inspector lopecode already ships could stand in for those 16 files.
 - **The import URL.** The copied import body still reads
   `import("https://api.observablehq.com/@tomlarkworthy/dependancy.js?v=4")`. That is E4.
 - **Pids.** The fixtures have none; the emitter writes `v.pid` when it exists.
