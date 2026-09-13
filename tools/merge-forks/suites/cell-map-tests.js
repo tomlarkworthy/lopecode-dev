@@ -5,7 +5,7 @@ Written 2026-09-14, before cell-map-2 is merged into this module (T6 in \`plan/m
 \`test_cellmap_contract_*\` pin what the importers read: visualizer (\`type\`, \`name\`, \`variables[0]\`, \`variables[2]\` of a mutable, \`module_name\` and \`importInfo\` of an import), editor-5 (\`variables\`, its head and its last variable), command-palette (\`name\`, \`type\`, \`variables[0]._definition\`). A merge has to keep them.
 
 \`test_cellmap_shape_*\` pin what this version does where cell-map-2 is known to differ. Their expected values are this version's; a merge that changes one changes the test with it, as a recorded decision.`);};
-const _cmt01 = function _cellMapFixture(createModule,deleteModule,runtime,realize,currentModules,cellMap,Generators,Mutable) {
+const _cmt01 = function _cellMapFixture(createModule,deleteModule,runtime,realize,currentModules,cellMap) {
   let serial = 0;
   return async (fn) => {
     const id = `${Date.now().toString(36)}-${serial++}`;
@@ -157,7 +157,7 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
   $def("_cmt00", null, ["md"], _cmt00);
-  $def("_cmt01", "cellMapFixture", ["createModule","deleteModule","runtime","realize","currentModules","cellMap","Generators","Mutable"], _cmt01);
+  $def("_cmt01", "cellMapFixture", ["createModule","deleteModule","runtime","realize","currentModules","cellMap"], _cmt01);
   $def("_cmt10", "test_cellmap_contract_every_variable_in_exactly_one_cell", ["cellMapFixture","expect"], _cmt10);
   $def("_cmt11", "test_cellmap_contract_cells_follow_runtime_order", ["cellMapFixture","expect"], _cmt11);
   $def("_cmt12", "test_cellmap_contract_named_cell", ["cellMapFixture","expect"], _cmt12);
