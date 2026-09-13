@@ -1,0 +1,196 @@
+{
+  "notebook": "lopecode/notebooks/@tomlarkworthy_visualizer.html",
+  "module": "@tomlarkworthy/visualizer",
+  "from": {
+    "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html",
+    "module": "@tomlarkworthy/visualizer-2"
+  },
+  "redefine": [
+    {
+      "pid": "_9i8usd",
+      "fromPid": "_v2vis"
+    },
+    {
+      "pid": "_1xdl683",
+      "fromPid": "_v2rimp"
+    }
+  ],
+  "rewrite": [
+    {
+      "pid": "_bbb3dg",
+      "deps": [
+        "vizSynced"
+      ],
+      "code": "const _bbb3dg = function _syncers(vizSynced){return(\nvizSynced\n)};"
+    },
+    {
+      "pid": "_vzt1d",
+      "deps": [
+        "vt",
+        "expect"
+      ],
+      "code": "const _vzt1d = function _test_viz_unmount_hands_variables_back(vt,expect) {return (vt.scenario(async (t) => {\n  // merge C (2026-09-14): no longer reads `viewof visualizers`, which the templated visualizer does not have. A disposed\n  // pane leaves its nodes in the detached root, so \"root emptied\" became \"root detached and not updated\".\n  const module = t.fixture();\n  const a = module.variable().define(\"a\", [], () => 1);\n  const m = t.mount(module);\n  await t.until(() => t.text(m.root, \"a\")?.includes(\"1\"), \"a rendered\");\n  expect(!!a._observer?.__observe_listeners__).toBe(true);\n  const before = t.nodes(m.root).length;\n  m.unmount();\n  module.variable().define(\"later\", [], () => 0);\n  await t.until(() => !a._observer?.__observe_listeners__, \"observer handed back\");\n  a.define(\"a\", [], () => 2);\n  await t.quiet(1500);\n  expect(m.root.isConnected).toBe(false);\n  expect(t.nodes(m.root).length).toBeLessThanOrEqual(before);\n  expect(t.text(m.root, \"a\") ?? \"\").not.toContain(\"2\");\n  return \"after invalidation: observer restored; later changes neither add nodes to the root nor update them\";\n}));};"
+    }
+  ],
+  "add": [
+    {
+      "pid": "_v2why",
+      "after": "_1nnmael"
+    },
+    {
+      "pid": "_v2tdoc",
+      "after": "_9i8usd"
+    },
+    {
+      "pid": "_v2pvar",
+      "after": "_v2tdoc"
+    },
+    {
+      "pid": "_v2pins",
+      "after": "_v2pvar"
+    },
+    {
+      "pid": "_v2pdet",
+      "after": "_v2pins"
+    },
+    {
+      "pid": "_v2proot",
+      "after": "_v2pdet"
+    },
+    {
+      "pid": "_v2pmod",
+      "after": "_v2proot"
+    },
+    {
+      "pid": "_v2pflt",
+      "after": "_v2pmod"
+    },
+    {
+      "pid": "_v2draw",
+      "after": "_v2pflt"
+    },
+    {
+      "pid": "_v2cnode",
+      "after": "_v2draw"
+    },
+    {
+      "pid": "_v2ctpl",
+      "after": "_v2cnode"
+    },
+    {
+      "pid": "_v2pcel",
+      "after": "_v2ctpl"
+    },
+    {
+      "pid": "_v2pst",
+      "after": "_v2pcel"
+    },
+    {
+      "pid": "_v2psyn",
+      "after": "_v2pst"
+    },
+    {
+      "pid": "_v2sevt",
+      "after": "_v2psyn"
+    },
+    {
+      "pid": "_v2synd",
+      "after": "_v2sevt"
+    },
+    {
+      "pid": "_v2ptpl",
+      "after": "_v2synd"
+    }
+  ],
+  "define": [
+    {
+      "pid": "_vzdso",
+      "name": "displayStateOf",
+      "deps": [],
+      "after": "_v2ptpl",
+      "code": "const _vzdso = function _displayStateOf(){return(\nvariable => globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]?.get(variable)\n)};"
+    },
+    {
+      "pid": "_vzatd",
+      "name": "attachDisplay",
+      "deps": [],
+      "after": "_vzdso",
+      "code": "const _vzatd = function _attachDisplay(){return(\nfunction attachDisplay(variable, observe) {\n  const state = globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]?.get(variable);\n  if (!state) return null;\n  if (state.attached++ === 0) {\n    state.cancel = observe(variable, state.proxy);\n    // Marking a variable reachable does not schedule a compute (runtime.js computeNow is the only\n    // reader of _dirty/_updates), so an attach to an idle runtime would render nothing.\n    variable._module._runtime._computeSoon();\n  }\n  let detached = false;\n  return () => {\n    if (detached) return;\n    detached = true;\n    if (--state.attached === 0) {\n      const cancel = state.cancel;\n      state.cancel = null;\n      cancel?.();\n    }\n  };\n}\n)};"
+    }
+  ],
+  "dropCells": [
+    "_osnrne",
+    "_mit3pw",
+    "_hut17f",
+    "_1vthejs",
+    "_1vj8v1t",
+    "_1nz4pe4",
+    "_526jo",
+    "_1wiz55o"
+  ],
+  "dropImports": [
+    "isnode",
+    "descendants",
+    "toObject",
+    "keepalive"
+  ],
+  "addModules": [
+    "@tomlarkworthy/dataflow-templating"
+  ],
+  "addImports": [
+    {
+      "name": "instantiateDataflow",
+      "module": "@tomlarkworthy/dataflow-templating"
+    },
+    {
+      "name": "onCodeChange",
+      "module": "@tomlarkworthy/runtime-sdk"
+    }
+  ],
+  "replace": [
+    [
+      "function _vizCellTemplate(lookupVariable,visualizer2Module,",
+      "function _vizCellTemplate(lookupVariable,visualizerModule,"
+    ],
+    [
+      "\"vizCellNode\"], visualizer2Module);",
+      "\"vizCellNode\"], visualizerModule);"
+    ],
+    [
+      "\"vizCellTemplate\", [\"lookupVariable\",\"visualizer2Module\",",
+      "\"vizCellTemplate\", [\"lookupVariable\",\"visualizerModule\","
+    ],
+    [
+      "function _vizPaneTemplate(lookupVariable,visualizer2Module,",
+      "function _vizPaneTemplate(lookupVariable,visualizerModule,"
+    ],
+    [
+      "    visualizer2Module\n  );",
+      "    visualizerModule\n  );"
+    ],
+    [
+      "\"vizPaneTemplate\", [\"lookupVariable\",\"visualizer2Module\",",
+      "\"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\","
+    ],
+    [
+      "## What changed from visualizer 1\n\nvisualizer 1 kept every pane root",
+      "## How panes are built\n\nUntil merge C (2026-09-14) this module kept every pane root"
+    ],
+    [
+      "hand-kept Maps. visualizer 2 is built with",
+      "hand-kept Maps. It is now built, from the visualizer-2 fork, with"
+    ],
+    [
+      "Cells come from [cell-map-2](https://observablehq.com/@tomlarkworthy/cell-map-2), which groups",
+      "Cells come from [cell-map](https://observablehq.com/@tomlarkworthy/cell-map), which groups"
+    ],
+    [
+      "Other cells render through the inspector as before.\n",
+      "Other cells render through the inspector as before.\n\n\\`displayStateOf\\` and \\`attachDisplay\\` here read js-toolchain's registry, \\`globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]\\`, instead of importing js-toolchain, so a notebook with no Notebook Kit cells does not have to embed it. The key is a contract with js-toolchain's \\`nkDisplayStates\\` cell.\n\n\\`syncers\\` is kept for importers (editor-5 reads it as a trigger) and is \\`vizSynced\\`, the count of pane syncs.\n"
+    ],
+    [
+      "md`### background jobs and keep alive`",
+      "md`### module handle`"
+    ]
+  ]
+}

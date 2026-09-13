@@ -1,0 +1,6 @@
+{
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
+  "module": "@tomlarkworthy/lopepage-2",
+  "from": { "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html", "module": "@tomlarkworthy/lopepage-3" },
+  "take": ["lp2_page"]
+}

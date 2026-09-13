@@ -10,11 +10,16 @@
 //   dropModules  module ids whose `main.define("module <id>")` is removed
 //   repointImports [[from module id, to module id]]: every import from one module moved to another, and
 //                the module define replaced; the target must not already be defined
+//   rewrite      [{pid, deps, code}]: the host cell keeps its pid and name; its const becomes `code` (declaring
+//                the cell's existing const name) and its dep list `deps`
+//   dropCells    pids whose const and $def are removed; refused if a remaining cell lists the name as a dep
+//   addModules   module ids given a `main.define("module <id>", …)` after the host's last module define
+//   addImports   [{name, module, imported?}]: import variables written after the host's last import
 //   replace      [[from, to]] exact text, applied after the structural edits
 //   mains        [[from, to]] bootconf mains entries renamed
 //
 // run: bun tools/merge-forks/merge-cells.ts <plan.json> [--out <html>] [--dry-run]
-//   plan.json: {notebook, module, from?: {notebook, module}, take?, add?, define?, dropImports?, dropModules?, repointImports?, replace?, mains?}
+//   plan.json: {notebook, module, from?: {notebook, module}, take?, redefine?, rewrite?, add?, define?, dropImports?, dropModules?, dropCells?, addModules?, addImports?, repointImports?, replace?, mains?}
 import { readFileSync } from "node:fs";
 import * as acorn from "acorn";
 import { blocks, blockContent, findSpan, guardedWrite } from "../lib/notebook-blocks.ts";
@@ -74,9 +79,22 @@ for (const { pid, fromPid } of plan.redefine ?? []) {
   report.push(`redefine ${hc.name ?? "(anonymous)"} (${pid}) from ${fromPid}`);
 }
 
+for (const { pid, deps, code } of plan.rewrite ?? []) {
+  const hc = hostCell({ pid });
+  if (!hc) throw new Error(`rewrite ${pid}: not a host cell`);
+  const hfn = hc.fn ?? pid;
+  const parsed = acorn.parse(code, { ecmaVersion: "latest", sourceType: "module" }) as any;
+  if (parsed.body.length !== 1 || parsed.body[0].declarations?.[0]?.id?.name !== hfn) throw new Error(`rewrite ${pid}: code must be one \`const ${hfn} = …\``);
+  const hconst = constOf(h, hc)!;
+  edit(hconst.start, hconst.end, code);
+  edit(hc.start, hc.end, `$def(${JSON.stringify(pid)}, ${JSON.stringify(hc.name ?? null)}, ${JSON.stringify(deps)}, ${hfn});`);
+  report.push(`rewrite ${hc.name ?? "(anonymous)"} (${pid})`);
+}
+
 const added = new Map<string, { constAt: number; cellAt: number }>();
 const anchor = (pid: string) => {
   if (added.has(pid)) return added.get(pid)!;
+  if ((plan.dropCells ?? []).includes(pid)) throw new Error(`anchor ${pid} is dropped`);
   const hc = hostCell({ pid });
   if (!hc) throw new Error(`anchor ${pid} is neither a host cell nor an added one`);
   return { constAt: constOf(h, hc)!.end, cellAt: hc.end };
@@ -121,6 +139,34 @@ for (const id of plan.dropModules ?? []) {
   removeStmt(s);
   report.push(`drop module define ${id}`);
 }
+const droppedNames = new Set<string>();
+for (const pid of plan.dropCells ?? []) {
+  const hc = hostCell({ pid });
+  if (!hc) throw new Error(`dropCells ${pid}: not a host cell`);
+  const fn = hc.fn ?? pid;
+  if (h.stmts.some((s) => s !== hc && s.kind === "cell" && (s.fn ?? s.pid) === fn)) throw new Error(`dropCells ${pid}: const ${fn} is shared`);
+  const c = constOf(h, hc)!;
+  if (hostSrc[c.end] !== "\n") throw new Error(`dropCells ${pid}: const not followed by a newline`);
+  edit(c.start, c.end + 1, "");
+  removeStmt(hc);
+  if (hc.name) droppedNames.add(hc.name);
+  report.push(`drop cell ${hc.name ?? "(anonymous)"} (${pid})`);
+}
+const lastOf = (kind: "module" | "import") => h.stmts.filter((s) => s.kind === kind).at(-1);
+for (const id of plan.addModules ?? []) {
+  if (h.stmts.some((s) => s.kind === "module" && s.name === `module ${id}`)) throw new Error(`addModules ${id}: already defined`);
+  const at = lastOf("module");
+  if (!at) throw new Error(`addModules ${id}: host has no module define to follow`);
+  edit(at.end, at.end, SEP + `main.define(${JSON.stringify(`module ${id}`)}, async () => runtime.module((await import(${JSON.stringify(`/${id}.js?v=4`)})).default));`);
+  report.push(`add module define ${id}`);
+}
+for (const { name, module, imported = name } of plan.addImports ?? []) {
+  const at = lastOf("import");
+  if (!at) throw new Error(`addImports ${name}: host has no import to follow`);
+  const args = imported === name ? JSON.stringify(name) : `${JSON.stringify(imported)}, ${JSON.stringify(name)}`;
+  edit(at.end, at.end, SEP + `main.define(${JSON.stringify(name)}, [${JSON.stringify(`module ${module}`)}, "@variable"], (_, v) => v.import(${args}, _));`);
+  report.push(`add import ${imported === name ? name : `${imported} as ${name}`} from ${module}`);
+}
 
 let merged = hostSrc;
 for (const e of edits.sort((a, b) => b.start - a.start || b.order - a.order)) merged = merged.slice(0, e.start) + e.text + merged.slice(e.end);
@@ -164,6 +210,17 @@ if (dup(pids).length) throw new Error(`duplicate pids ${dup(pids)}`);
 if (dup(names).length) throw new Error(`duplicate names ${dup(names)}`);
 const noConst = final.stmts.filter((s) => s.kind === "cell" && !constOf(final, s)).map((s) => s.pid);
 if (noConst.length) throw new Error(`$def without a const: ${noConst}`);
+if (droppedNames.size) {
+  const users = final.stmts.filter((s) => s.kind === "cell").flatMap((s) => {
+    const deps = (acorn.parse(s.text, { ecmaVersion: "latest" }) as any).body[0].expression.arguments[2].elements.map((e: any) => e.value);
+    return deps.filter((d: string) => droppedNames.has(d) && !names.includes(d)).map((d: string) => `${s.name ?? s.pid} -> ${d}`);
+  });
+  if (users.length) throw new Error(`dropCells: still depended on: ${users.join(", ")}`);
+}
+for (const { name, module } of plan.addImports ?? []) {
+  if (!final.stmts.some((s) => s.kind === "import" && s.name === name && s.module === `module ${module}`)) throw new Error(`addImports ${name}: not read back as an import of ${module}`);
+  if (!final.stmts.some((s) => s.kind === "module" && s.name === `module ${module}`)) throw new Error(`addImports ${name}: module ${module} is not defined`);
+}
 
 let html = prev;
 const block = blocks(html).find((b) => b.id === plan.module)!;
