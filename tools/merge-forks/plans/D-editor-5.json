@@ -1,0 +1,101 @@
+{
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_editor-5.html",
+  "module": "@tomlarkworthy/editor-5",
+  "from": {
+    "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html",
+    "module": "@tomlarkworthy/editor-6"
+  },
+  "take": [
+    "findCell",
+    "editor_manager",
+    "setOption",
+    "getOption",
+    "compile_and_update"
+  ],
+  "add": [
+    {
+      "pid": "_e6lang",
+      "after": "_yeikvo"
+    }
+  ],
+  "define": [
+    {
+      "pid": "_e6doc",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "after": "_19kcu74",
+      "code": "const _e6doc = function _editor6_doc(md){return(\nmd`## Notebook Kit cells\n\nMerged into editor-5 on 2026-09-14 from editor-6, a fork started 2026-09-13 for modules that hold [Notebook Kit](https://github.com/observablehq/notebook-kit) cells.\n\n- \\`cellLanguage\\` routes a cell to [js-toolchain](https://observablehq.com/@tomlarkworthy/js-toolchain) when a variable has a Notebook Kit display state from a plain JavaScript definition, or its \\`lang\\` is exactly \\`[\"js\"]\\`. A new cell follows its module: js if any existing cell is.\n- \\`sourceLanguage\\` keeps a module with no Notebook Kit cell classic. Source only Notebook Kit parses (\\`const x = 1;\\`) goes to observablejs-toolchain there and reports its syntax error.\n- js cells compile with \\`transpileJavaScript\\` and apply through \\`defineCell\\`, which installs the \\`display\\` and \\`view\\` shadows. They edit in CodeMirror's JavaScript language; the linter reports that language's syntax-tree errors.\n- editor-5 does not import js-toolchain, so a notebook without Notebook Kit cells does not embed it. \\`jsToolchain\\` reads the instantiated module from \\`modules\\` when a call needs it, and \\`displayStateOf\\` reads js-toolchain's registry, \\`globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]\\`. Where js-toolchain was never loaded every cell is classic.\n- A Notebook Kit \\`viewof x = …\\` or \\`mutable x = …\\` cell still routes to observablejs-toolchain: js-toolchain has no ojs dialect yet.`\n)};"
+    },
+    {
+      "pid": "_e5dso",
+      "name": "displayStateOf",
+      "deps": [],
+      "after": "_e6lang",
+      "code": "const _e5dso = function _displayStateOf(){return(\nvariable => globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]?.get(variable)\n)};"
+    },
+    {
+      "pid": "_e5jtc",
+      "name": "jsToolchain",
+      "deps": [
+        "modules"
+      ],
+      "after": "_e5dso",
+      "code": "const _e5jtc = function _jsToolchain(modules){return(\nasync (name) => {\n  // read at call time, not imported: undefined where js-toolchain was never loaded\n  for (const record of modules.values())\n    if (record.name === \"@tomlarkworthy/js-toolchain\") return record.module.value(name);\n}\n)};"
+    },
+    {
+      "pid": "_e6srcl",
+      "name": "sourceLanguage",
+      "deps": [
+        "parser",
+        "jsToolchain",
+        "cellLanguage"
+      ],
+      "after": "_e5jtc",
+      "code": "const _e6srcl = function _sourceLanguage(parser,jsToolchain,cellLanguage){return(\nasync (source, variables = [], cell) => {\n  // a module with no Notebook Kit cell stays classic, syntax errors included\n  if (cellLanguage(variables, cell) !== \"js\" && cellLanguage([], cell) !== \"js\") return \"ojs\";\n  const transpileJavaScript = await jsToolchain(\"transpileJavaScript\");\n  // without js-toolchain an existing cell keeps its language, so a js cell is never switched to classic\n  if (!transpileJavaScript) return variables.length ? cellLanguage(variables, cell) : \"ojs\";\n  let ojs = false, js = false;\n  try { parser.parseCell(source); ojs = true; } catch {}\n  // Notebook Kit's parser rejects `viewof x = …`, `mutable x = …` and `x = …` (assignment to external variable)\n  try { transpileJavaScript(source); js = true; } catch {}\n  if (js !== ojs) return js ? \"js\" : \"ojs\";\n  // both (`1 + 2`, `{}`) or neither: the cell's current language, or the module's for a new cell\n  return cellLanguage(variables, cell);\n}\n)};"
+    },
+    {
+      "pid": "_e6dec",
+      "name": "decompile",
+      "deps": [
+        "cellLanguage",
+        "jsToolchain",
+        "decompileOjs",
+        "displayStateOf"
+      ],
+      "after": "_e6srcl",
+      "code": "const _e6dec = function _decompile(cellLanguage,jsToolchain,decompileOjs,displayStateOf){return(\nasync (variables) => {\n  if (cellLanguage(variables) !== \"js\") return decompileOjs(variables);\n  const decompileJs = await jsToolchain(\"decompile\");\n  if (!decompileJs) return decompileOjs(variables);\n  // defineCell's head reads display/view through unnamed shadow variables, so its input names come\n  // from the recorded definition, not from _inputs\n  return decompileJs(variables.map((v) => ({\n    _name: v._name,\n    _inputs: displayStateOf(v)?.definition?.inputs ?? v._inputs.map((i) => i._name),\n    _definition: v._definition\n  })));\n}\n)};"
+    },
+    {
+      "pid": "_e6djs",
+      "name": "defineJsCell",
+      "deps": [
+        "jsToolchain",
+        "displayStateOf",
+        "realize",
+        "runtime",
+        "repositionSetElement",
+        "decompile"
+      ],
+      "after": "_e6dec",
+      "code": "const _e6djs = function _defineJsCell(jsToolchain,displayStateOf,realize,runtime,repositionSetElement,decompile){return(\nasync (source, variables, cell) => {\n  const [transpileJavaScript, defineCell] = await Promise.all([jsToolchain(\"transpileJavaScript\"), jsToolchain(\"defineCell\")]);\n  if (!transpileJavaScript || !defineCell) throw new Error(\"editor-5: @tomlarkworthy/js-toolchain is not loaded\");\n  const module = cell.module.module;\n  // `cell N` names a multi-output holder: keep a cell's id across edits, else take the next free one\n  let id = variables.length ? displayStateOf(variables[0])?.definition?.id : undefined;\n  if (id == null) {\n    let max = 0;\n    for (const v of runtime._variables) {\n      if (v._module !== module) continue;\n      const held = /^cell (\\d+)$/.exec(v._name ?? \"\");\n      if (held) max = Math.max(max, Number(held[1]));\n      const defined = displayStateOf(v)?.definition?.id;\n      if (typeof defined === \"number\") max = Math.max(max, defined);\n    }\n    id = max + 1;\n  }\n  const t = transpileJavaScript(source);\n  const [body] = await realize([t.body], runtime);\n  const before = new Set(variables);\n  const anchor = cell.variables?.at(-1);\n  const next = defineCell(module, { ...t, id, body }, { variables });\n  const fresh = next.filter((v) => !before.has(v));\n  // a random pid up front, as compile_and_update does, so identical new cells do not collide (lopecode#144)\n  for (const v of fresh) if (!v.pid) v.pid = \"_\" + Math.random().toString(36).slice(2, 9);\n  if (fresh.length && anchor) {\n    let at = [...runtime._variables].indexOf(anchor) + 1;\n    for (const v of fresh) repositionSetElement(runtime._variables, v, at++);\n  }\n  // callers read the cell's variables back from the array they passed (command_processor's newVars)\n  variables.splice(0, variables.length, ...next);\n  return decompile(next);\n}\n)};"
+    }
+  ],
+  "dropImports": [
+    "decompile"
+  ],
+  "addImports": [
+    {
+      "name": "decompileOjs",
+      "module": "@tomlarkworthy/observablejs-toolchain",
+      "imported": "decompile"
+    }
+  ],
+  "replace": [
+    [
+      "const language = sourceLanguage(source, variables, cell);",
+      "const language = await sourceLanguage(source, variables, cell);"
+    ]
+  ]
+}
