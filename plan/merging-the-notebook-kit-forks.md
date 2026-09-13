@@ -393,6 +393,116 @@ An `insert_node` with `new_node_mode: "md"` is rejected with status 400. The hea
 cell holding `md\`…\``. The old `@tomlarkworthy/editor-5-tests` notebook on Observable is left as it
 was.
 
+### 2026-09-14: autonomous run in `worktrees/merge-forks`
+
+Tom, going to sleep: *"ok lets do it all but in a worktree so we don;t risk breaking main. I am sleeping
+now so work autonomosly"*. Everything from here is on branch `merge-forks` in the outer repo, lopecode
+and lopebooks, in `worktrees/merge-forks` (submodule worktrees at `worktrees/merge-forks/{lopecode,lopebooks}`).
+Nothing is pushed, published or jumpgated. The main checkout is untouched.
+
+### T1, exporter round trip: in exporter-3, green, mutation-checked
+
+`lopecode@3a5b839`. Three `test_*` cells and a helper, folded into `@tomlarkworthy/exporter-3` with
+`fold-suite.ts` (source: `tools/merge-forks/suites/exporter-3-tests.js`):
+
+```
+test_exportModuleJS_round_trip               fresh Runtime: pid-fixed cell, anonymous cell, viewof, mutable,
+                                             import from @u/lib -> export -> load -> same names, pids, inputs,
+                                             definitions and values; re-export byte-identical
+test_exportModuleJS_lists_file_attachments   loader map written for a module with attachments
+test_exportModuleJS_every_page_module_loads  every named module on the page: export, acorn parse, load
+                                             into a fresh runtime, same cells and import names
+
+run-suite                    12/12 ok   "ok: 44 modules, 1888 variables"
+mutate-suite (8 mutants)     8/8 killed (tools/merge-forks/exporter-3-mutants.json)
+--run-tests                  HEAD 155 tests / 149 pass -> 158 / 152, the same 6 non-passing names
+```
+
+Two mutants are each killed by one test only: "canonical imports not restored" by
+`every_page_module_loads`, "file attachments not written" by `lists_file_attachments`.
+
+Four things the first draft got wrong, each found by a failing run:
+- `new Runtime(builtins)` takes **definitions**, not values: `{Mutable}` made the runtime call
+  `Mutable()` without `new` ("Object.defineProperties called on non-object"). It is
+  `{Mutable: () => Mutable}`.
+- exporter-3's own `generate_define` template contains the text `export default function define(`,
+  so a `.replace` of that text broke 3 of 44 modules. The loader finds the `ExportDefaultDeclaration`
+  with acorn.
+- `runtime.fileAttachments` is added to the page's runtime **instance** by the bootloader, not to the
+  class: 13 modules failed with "runtime.fileAttachments is not a function" in `new _runtime.constructor()`.
+- `lope-preflight`'s `attachmentsOf` is a regex over the whole module text. A fixture cell calling
+  `FileAttachment("data.csv")`, and then an assertion quoting the literal loader-map text, each produced
+  a NEW `missing-attachment` for exporter-3. The assertion now builds that text with `JSON.stringify`.
+  The regex is still there; an AST version would look only inside the define body.
+
+### T2, classic save → reload: green, controls fail
+
+`tools/merge-forks/classic-save-reload-check.ts`, on the exporter-3 notebook (lopepage-2 frame, classic
+`save-in-place` saving through exporter-3's `exportToHTML`). It redefines the anonymous md cell `_1noor04`,
+adds `t2_added`, saves through the real `sip_save` with the file picker mocked, opens the saved file and
+saves it again:
+
+```
+exporter-3 notebook                         14/14
+control: mutant "pid replaced by a fresh name"      7 checks fail (pids of every main module)
+control: mutant "variables emitted in reverse order" 6 checks fail
+```
+
+`tools/merge-forks/export-golden.ts` is the before/after differential: every named module's
+`exportModuleJS` source through a chosen exporter, written to a directory or checked against one,
+with the modules a merge is meant to change named up front.
+
+### Merge A: exporter-3 absorbed exporter-4 (done in the worktree)
+
+**Decision 1 taken: the global registry.** exporter-3's `displayStateOf` is a local cell,
+`variable => globalThis[Symbol.for("@tomlarkworthy/js-toolchain/nkDisplayStates")]?.get(variable)`, so
+no notebook gains js-toolchain. The cost, a contract documented only in prose, is paid in exporter-3's
+Notebook Kit doc cell. The import would have put a 42 kB block (plus a 7 kB attachment) into 243 notebooks.
+
+Applied with `tools/merge-forks/merge-cells.ts` (acorn: take/add/define/drop/repoint cells, pids kept),
+plans in `tools/merge-forks/plans/`:
+
+```
+lopecode@069d881    A1  exporter-3: take generate_definitions, generate_define, variableToDefinition,
+                        variableToDefine from exporter-4; add nk_doc, nkExtras, nkHelper; new displayStateOf
+lopebooks@81c154cc      exporter-3 lopebooks canonical synced to the same block
+lopebooks@e2789409  A2-A4  lopepage-3: exporter-3 synced in; 5 imports repointed; mains save-in-place-2 ->
+                        save-in-place; demo prose; exporter-4 and save-in-place-2 blocks removed (146220 bytes)
+```
+
+Against exporter-4 the merged module differs only in its own name (title, fork link, warn prefix,
+agent orientation), the registry paragraph, the local `displayStateOf`, the missing js-toolchain import,
+and the T1 cells. save-in-place-2 had differed from save-in-place in 4 lines, all naming the exporter.
+
+Gates:
+
+```
+exporter-3 notebook, merged      T1 12/12; T2 14/14
+  export-golden vs pre-merge     44 byte-identical, exporter-3 differs (its own source)
+exporter-4.test.ts               9/9 with EXPORTER=<merged exporter-3>, displayStateOf NOT injected
+                                 (2 Notebook Kit round-trip scenarios + 7 mutants, through the registry)
+lopepage-3, merged               save-reload-check 9/9 (E0); boot-check 11/11
+  export-golden vs exporter-4    49 -> 48 modules: 44 byte-identical; differ exporter-3, lopepage-3,
+  page before the merge          notebook-kit-demo; missing exporter-4, save-in-place-2; added save-in-place
+                                 (each diff read: only the repointed names)
+lopebooks exporter-3 canonical   T1 12/12, preflight 0 NEW
+```
+
+E8 in `save-reload-check.ts` (exporter-3 vs exporter-4 in one page) cannot run once exporter-4 is gone;
+it now reports itself as not run, and `export-golden` against the pre-merge page replaces it.
+
+Left as they are, and why:
+- 2 `unused-dep` findings in lopepage-3 (`dataflow-templating` `instancingCost`, `file-sync` `jbApply`)
+  are byte-identical to their canonicals, which carry the same findings in the baseline. The lopebooks
+  commits skip `lope-preflight` for this notebook, as its first commit did. Fixing them means editing those
+  two canonicals; for `jbApply` it is not clear which side is right (`importShim(path)` upstream,
+  `import(path)` locally).
+- A js-toolchain comment still says "A head exported by exporter-4"; js-toolchain is not part of merge A.
+- `tools/lopepage-3/export-demo.ts` still loads `modules/@tomlarkworthy/exporter-4.js`. It is a one-off
+  converter that exits on a converted demo.
+- No consumer was swept. exporter-3 is in 243 notebooks; syncing the merged block out is the large-blob
+  step and waits for Tom.
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**
