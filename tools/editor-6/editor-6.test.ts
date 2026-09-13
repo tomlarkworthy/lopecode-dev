@@ -11,6 +11,8 @@ import * as acorn_walk from "acorn-walk";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { importNotebookModule } from "../notebook-import.ts";
 import { nkRuntime, settle } from "../js-toolchain/runtime/display-scenarios.ts";
+// observablejs-toolchain loads its parser from an attachment; the vendored copy stands in for routing
+import * as parser from "../../vendor/notebook-kit/node_modules/@observablehq/parser";
 
 const ED = "modules/@tomlarkworthy/editor-6.js";
 
@@ -38,11 +40,16 @@ async function setup(edPath: string) {
     overrides: {
       runtime: trt, realize, repositionSetElement,
       transpileJavaScript: jt.transpileJavaScript, decompileJs: jt.decompile, defineCell: jt.defineCell, displayStateOf: jt.displayStateOf,
-      compile: () => { ojsCalls.push("compile"); return []; },
+      parser,
+      compile: (source: string) => { ojsCalls.push("compile"); return OJS_COMPILED[source] ?? []; },
       decompileOjs: async () => { ojsCalls.push("decompile"); return "<ojs>"; }
     }
   });
-  const { compile_and_update, decompile, cellLanguage } = await ed.values(["compile_and_update", "decompile", "cellLanguage"]);
+  // one observed variable keeps these reachable: values() observes a cell only until it resolves, so an
+  // unobserved pinOnCreate is recomputed into a new Set that compile_and_update never saw
+  ed.module.variable(true).define("editorHandles", ["compile_and_update", "decompile", "cellLanguage", "pinOnCreate"],
+    (compile_and_update, decompile, cellLanguage, pinOnCreate) => ({ compile_and_update, decompile, cellLanguage, pinOnCreate }));
+  const { compile_and_update, decompile, cellLanguage, pinOnCreate } = await ed.module.value("editorHandles");
   const cellOf = (variables: any[], lang: string[], cells: any[] = []) => ({ module: { module: target, cells }, variables, lang });
   // a js cell defined the way notebook-kit would, not through editor-6
   const defineJs = async (source: string, id: number) => {
@@ -50,8 +57,17 @@ async function setup(edPath: string) {
     const [body] = await realize([t.body], trt);
     return jt.defineCell(target, { ...t, id, body });
   };
-  return { trt, target, setN: (x: number) => { n = x; nVar.define("n", [], () => n); }, ojsCalls, compile_and_update, decompile, cellLanguage, cellOf, defineJs };
+  return { trt, target, setN: (x: number) => { n = x; nVar.define("n", [], () => n); }, ojsCalls, compile_and_update, decompile, cellLanguage, pinOnCreate, cellOf, defineJs };
 }
+
+// what the stub classic compiler returns, in observablejs-toolchain's shape
+const OJS_COMPILED: Record<string, any[]> = {
+  "viewof foo = 1": [
+    { _name: "viewof foo", _inputs: [], _definition: "() => 1" },
+    { _name: "foo", _inputs: ["viewof foo"], _definition: "(v) => v + 1" }
+  ],
+  "x = 5": [{ _name: "x", _inputs: [], _definition: "() => 5" }]
+};
 
 const rootText = (head: any) => [...jt.displayStateOf(head).root.childNodes].map((c: any) => c.textContent);
 
@@ -115,6 +131,68 @@ const SCENARIOS: [string, (edPath: string) => Promise<void>][] = [
     expect(s.cellLanguage([plain], { lang: ["ojs", "js"] })).toBe("ojs");
     // a platform multi cell with no display state is still js by lang
     expect(s.cellLanguage([plain], { lang: ["js"] })).toBe("js");
+  }],
+  ["Observable JS typed into a new cell of a js module is a classic cell", async (edPath) => {
+    const s = await setup(edPath);
+    const seed = await s.defineJs('display("seed");', 1);
+    const anchor = s.cellOf(seed, ["ojs", "js"], [{ lang: ["ojs", "js"], variables: seed }]);
+    const viewofVars: any[] = [];
+    await s.compile_and_update("viewof foo = 1", viewofVars, anchor);
+    expect(s.ojsCalls).toEqual(["compile", "decompile"]);
+    expect(viewofVars.map((v) => v._name)).toEqual(["viewof foo", "foo"]);
+    expect(await s.target.value("foo")).toBe(2);
+    // Notebook Kit's parser rejects `x = 5` as an assignment to an external variable
+    const namedVars: any[] = [];
+    await s.compile_and_update("x = 5", namedVars, s.cellOf(viewofVars, ["ojs"], [{ lang: ["ojs", "js"], variables: seed }]));
+    expect(s.ojsCalls).toEqual(["compile", "decompile", "compile", "decompile"]);
+    expect(namedVars.map((v) => v._name)).toEqual(["x"]);
+  }],
+  ["a js cell switched to Observable JS keeps its place and pid; its head, projections and shadows are deleted", async (edPath) => {
+    const s = await setup(edPath);
+    const first = await s.defineJs("const a = 1;", 1);
+    const vars = await s.defineJs('display("b " + n);', 2);
+    const third = s.target.variable().define("third", [], () => 3);
+    const head = vars[0];
+    const shadows = [...head._shadow.values()];
+    expect(shadows.length).toBeGreaterThan(0);
+    head.pid = "p-switch";
+    const out = await s.compile_and_update("viewof foo = 1", vars, s.cellOf(vars, ["ojs", "js"]));
+    expect(out).toBe("<ojs>");
+    expect(vars.map((v) => v._name)).toEqual(["viewof foo", "foo"]);
+    expect(vars[0].pid).toBe("p-switch");
+    expect(s.pinOnCreate.has("p-switch")).toBe(true);
+    const order = [...s.trt._variables];
+    expect(order.includes(head)).toBe(false);
+    for (const shadow of shadows) expect(order.includes(shadow)).toBe(false);
+    expect(order.indexOf(vars[0])).toBe(order.indexOf(first.at(-1)) + 1);
+    expect(order.indexOf(third)).toBeGreaterThan(order.indexOf(vars.at(-1)));
+    expect(await s.target.value("foo")).toBe(2);
+  }],
+  ["a classic cell switched to js keeps its place and pid", async (edPath) => {
+    const s = await setup(edPath);
+    const before = s.target.variable().define("before", [], () => 0);
+    const plain = s.target.variable().define("p", [], () => 1);
+    const after = s.target.variable().define("after", [], () => 0);
+    plain.pid = "p-classic";
+    const vars = [plain];
+    const out = await s.compile_and_update("const q = n + 1;", vars, s.cellOf(vars, ["ojs", "js"]));
+    expect(out).toBe("const q = n + 1;");
+    expect(vars.map((v) => v._name)).toEqual(["cell 1", "q"]);
+    expect(vars[0].pid).toBe("p-classic");
+    const order = [...s.trt._variables];
+    expect(order.includes(plain)).toBe(false);
+    expect(order.indexOf(vars[0])).toBe(order.indexOf(before) + 1);
+    expect(order.indexOf(after)).toBeGreaterThan(order.indexOf(vars.at(-1)));
+    expect(await s.target.value("q")).toBe(2);
+    expect(s.ojsCalls).toEqual([]);
+  }],
+  ["source valid in both languages keeps a js cell js", async (edPath) => {
+    const s = await setup(edPath);
+    const vars = await s.defineJs('display("a");', 1);
+    const head = vars[0];
+    await s.compile_and_update("1 + 2", vars, s.cellOf(vars, ["ojs", "js"]));
+    expect(vars[0]).toBe(head);
+    expect(s.ojsCalls).toEqual([]);
   }]
 ];
 
@@ -127,7 +205,10 @@ const MUTANTS: [string, string, string][] = [
   ["every cell routed to observablejs-toolchain", 'if (variables.length) return variables.some(plainJs) || onlyJs(cell?.lang) ? "js" : "ojs";', 'if (variables.length) return "ojs";'],
   ["variables not filled into the caller's array", "variables.splice(0, variables.length, ...next);", "void next;"],
   ["head input names read from _inputs", "_inputs: displayStateOf(v)?.definition?.inputs ?? v._inputs.map((i) => i._name),", "_inputs: v._inputs.map((i) => i._name),"],
-  ["new cells always id 1", "id = max + 1;", "id = 1;"]
+  ["new cells always id 1", "id = max + 1;", "id = 1;"],
+  ["the source's parse ignored", 'if (js !== ojs) return js ? "js" : "ojs";', "void js;"],
+  ["shadows left behind on a switch", "const own = new Set(variables.flatMap((v) => [v, ...(v._shadow?.values() ?? [])]));", "const own = new Set(variables);"],
+  ["pid not carried across a switch", "next[0].pid = pid;", "void pid;"]
 ];
 
 describe("mutation controls", () => {

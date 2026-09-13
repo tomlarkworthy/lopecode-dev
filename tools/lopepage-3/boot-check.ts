@@ -4,6 +4,7 @@
 //   - a hotbar drag moves a cell and every cell keeps its editor host beside it
 //   - editor-6's compile_and_update edits a js cell in place in the page, called directly and
 //     through the hotbar, CodeMirror and Shift-Enter
+//   - Observable JS typed over a js cell becomes a classic cell in its place
 //   - no page errors, and no network request the donor notebook does not also make
 //
 // run: bun tools/lopepage-3/boot-check.ts [notebook.html]
@@ -155,6 +156,46 @@ const ui = await (async () => {
 })().catch((e) => ({ error: String(e) }));
 check("the editor opens on the decompiled source of a Notebook Kit cell", (ui as any).shown === "k * n", ui);
 check("Shift-Enter in the editor recompiles the cell in place", (ui as any).result === "121" && (ui as any).after === "k * n + 100", ui);
+
+// Observable JS in a Notebook Kit module (Tom, 2026-09-13: "So I cannot use Observable 1.0 syntax in cells
+// anymore?"): typing `viewof foo = …` over the js cell `cell 5` makes a classic viewof cell in the same
+// place, with the same pid and its editor reopened on the classic source.
+const ojs = await (async () => {
+  const before = await page.evaluate(() => {
+    const cells = [...document.querySelectorAll(".lope-viz .observablehq")] as any[];
+    const node = cells.find((n) => n.variable?._name === "cell 5");
+    if (!node?.nextElementSibling?.querySelector(".hotbar")) return null;
+    node.setAttribute("data-check", "c5");
+    return { pid: node.variable.pid, index: cells.indexOf(node) };
+  });
+  if (!before) return { error: "no cell 5 node with a hotbar" };
+  await page.click("[data-check=c5] + * .hotbar");
+  const content = page.locator("[data-check=c5] + * .cm-content");
+  await content.waitFor({ timeout: 10000 });
+  await content.click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("viewof foo = Inputs.range([0, 10])");
+  await page.keyboard.press("Shift+Enter");
+  const after = await page.waitForFunction(() => {
+    const cells = [...document.querySelectorAll(".lope-viz .observablehq")] as any[];
+    const node = cells.find((n) => n.variable?._name === "viewof foo");
+    const editor = node?.nextElementSibling?.querySelector(".cm-content");
+    // the reopened editor fills in its decompiled source after it mounts
+    if (!node || !(editor?.textContent ?? "").trim()) return null;
+    const rt = (window as any).__ojs_runtime;
+    const foo = [...rt._variables].find((v: any) => v._name === "foo" && v._module === node.variable._module);
+    return {
+      index: cells.indexOf(node), nk: node.classList.contains("lope-viz-nk"), range: !!node.querySelector("input[type=range]"),
+      pid: node.variable.pid, source: (editor.textContent ?? "").trim(), foo: foo?._value,
+      cell5: [...rt._variables].some((v: any) => v._name === "cell 5" || v._name === "total")
+    };
+  }, undefined, { timeout: 10000 }).then((h) => h.jsonValue(), () => null);
+  return { before, after };
+})().catch((e) => ({ error: String(e) }));
+const o = (ojs as any).after;
+check("`viewof foo = …` typed over a js cell becomes a classic viewof cell in its place, same pid, editor reopened",
+  !!o && !o.nk && o.range && o.index === (ojs as any).before?.index && o.pid === (ojs as any).before?.pid
+    && o.source.includes("viewof foo = Inputs.range([0, 10])") && typeof o.foo === "number" && !o.cell5, ojs);
 
 // Both are requested by the donor, @tomlarkworthy_notebook-kit.html, too (measured 2026-09-13): a video in
 // flow-queue's md and the bootloader's lazy highlight.js language import.

@@ -417,3 +417,53 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     three failures, preflight the same 2 inherited findings.
   - Not covered: up/down arrow moves (`moveCell`, which should need the same rerun), a drag across
     panes, and a drag while an editor is open.
+- 2026-09-13, Observable JS in a Notebook Kit module. Tom: "So I cannot use Observable 1.0 syntax in
+  cells anymore? `viewof foo = Inputs.range()`". Under the M3 provisional default he could not: in a
+  module holding any Notebook Kit cell, new cells and edits to js cells went to js-toolchain, and
+  `viewof foo = …` is not JavaScript. He chose routing by what the source parses as, over porting
+  the ojs dialect (M5).
+  - `sourceLanguage(source, variables, cell)` in editor-6 tries observablejs-toolchain's
+    `parser.parseCell` and js-toolchain's `transpileJavaScript`. If exactly one accepts the source,
+    that one compiles it. If both or neither do, `cellLanguage` decides as before. A module can now
+    hold both kinds.
+  - A draft also sent any cell with an Observable JS name (`parseCell(...).id`) to ojs. Its mutation
+    control survived, and a probe showed why: Notebook Kit's parser already rejects every such form.
+    ```
+    "x = 5"          -> throws: Assignment to external variable 'x' (1:0)
+    "a = b = 1"      -> throws: Assignment to external variable 'b' (1:4)
+    "viewof foo = 1" -> throws: Unexpected token (1:7)
+    "mutable x = 1"  -> throws: Unexpected token (1:8)
+    "let x; x = 5;"  -> js ok
+    ```
+    The rule was removed.
+  - Switching an existing cell's language, in `compile_and_update`'s `switchLanguage`:
+    - Deletes the cell's variables and every head's shadow variables. A Notebook Kit head's
+      display/view shadows and display state would survive a classic redefinition in place.
+    - Defines the new cell after the nearest earlier variable not in the cell. Shadows are defined
+      before their head, so the variable just before the head is usually its own shadow.
+    - Moves the first variable's pid to the new first variable and adds it to `pinOnCreate`, so the
+      editor reopens on the new node.
+    - Cost: the variables are new objects, so anything holding the old ones (another pane's node, a
+      watcher) sees a delete and an add.
+  - `tools/editor-6/editor-6.test.ts`: **15 pass, 0 fail**, 8 scenarios and 7 mutation controls.
+    - The stub classic compiler now returns observablejs-toolchain-shaped variables, and `parseCell`
+      is the vendored `@observablehq/parser` 6.1.0. The in-notebook parser loads from an attachment;
+      its version was not checked.
+    - New scenarios: Observable JS typed into a new cell of a js module; a js cell switched to
+      Observable JS (place, pid, `pinOnCreate`, head and shadows gone); a classic cell switched to
+      js; `1 + 2` over a js cell keeping its head.
+    - New controls: parse ignored, shadows left behind, pid not carried.
+    - The harness now reads its handles through one observed variable. `values()` observes a cell
+      only until it resolves, so `pinOnCreate` came back as a Set the editor never saw and the
+      assertion failed (inferred from that failure, not traced).
+  - `boot-check.ts`: **11 pass, 0 fail**. Typing `viewof foo = Inputs.range([0, 10])` over `cell 5`
+    through the editor gives a classic node with a range input, at the same pane index and with the
+    same pid; `foo` = 5; `cell 5` and `total` are gone; the reopened editor shows the classic source.
+  - `--run-tests` 164/167, the same three failures, and preflight the same 2 inherited findings.
+    Both ran on the build before the redundant rule was removed.
+  - Not covered:
+    - CodeMirror keeps the language the editor opened with until the switch, so Observable JS typed
+      into a js cell is linted as JavaScript until Shift-Enter;
+    - `import … from "@user/nb"` typed into a new cell of a js module, which parses as both and so
+      stays js (js-toolchain compiles it to the same reactive import);
+    - an ojs cell with several variables (`mutable`) switched to js.
