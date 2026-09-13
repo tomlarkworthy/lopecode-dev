@@ -86,8 +86,8 @@ export default function define(runtime, observer) {
 
   main.define("module @tomlarkworthy/ui-testing", async () => runtime.module((await import("/@tomlarkworthy/ui-testing.js?v=4")).default));  
   main.define("ui", ["module @tomlarkworthy/ui-testing", "@variable"], (_, v) => v.import("ui", _));  
-  main.define("module @tomlarkworthy/testing", async () => runtime.module((await import("/@tomlarkworthy/testing.js?v=4")).default));  
-  main.define("expect", ["module @tomlarkworthy/testing", "@variable"], (_, v) => v.import("expect", _));  
+  main.define("module @tomlarkworthy/jest-expect-standalone", async () => runtime.module((await import("/@tomlarkworthy/jest-expect-standalone.js?v=4")).default));  
+  main.define("expect", ["module @tomlarkworthy/jest-expect-standalone", "@variable"], (_, v) => v.import("expect", _));  
   $def("_17gav8v", "viewof e5_tests_enabled", ["Inputs"], _17gav8v);  
   $def("_pchmem", "e5_tests_enabled", ["Generators","viewof e5_tests_enabled"], _pchmem);  
   $def("_1pxteeb", "test_e5_factory_change_reaches_attached_editors", ["e5_tests_enabled","ui","expect"], _1pxteeb);  

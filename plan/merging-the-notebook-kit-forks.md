@@ -257,16 +257,21 @@ on Observable, and it was jumpgated in place over `lopebooks/notebooks/@tomlarkw
 - The jumpgate also replaced 26 other blocks with Observable's copies (lopepage-2, visualizer,
   cell-map, exporter-3, editor-5, runtime-sdk, the bootloader, …) and dropped `networking_script`,
   measured by comparing block contents against `git show HEAD`. Uncommitted.
-- Three notebooks still embed the old ui-testing: lopecode lopepage-2, lopebooks editor-5 and
-  mermaid-lens. editor-5-tests and mermaid-lens also import `expect` from `@tomlarkworthy/testing`
-  themselves.
+- Three notebooks embedded the old ui-testing: lopecode lopepage-2, lopebooks editor-5 and
+  mermaid-lens. editor-5-tests and mermaid-lens also imported `expect` from `@tomlarkworthy/testing`
+  themselves. lopebooks editor-5 was updated with its suite (below). lopepage-2 and mermaid-lens
+  still embed the old ui-testing.
 
 Rule from here: suites are `test_*` cells found by `@tomlarkworthy/tests`, with `ui` from ui-testing
 and `expect` from jest-expect-standalone.
 
-### T3, visualizer behaviour: written, green, mutation-checked (not landed)
+### T3, visualizer behaviour: written, green, mutation-checked, in the canonical
 
-`@tomlarkworthy/visualizer-tests` (source `tools/merge-forks/suites/visualizer-tests.js` until it lands), 17 `test_viz_*` cells gated by `&viz_tests`. Each builds a
+`@tomlarkworthy/visualizer-tests`, 17 `test_viz_*` cells gated by `&viz_tests`. Landed in the lopecode
+visualizer canonical as `lopecode@e540cb8` (2026-09-13): HEAD plus bootconf, ui-testing and the
+suite, with other sessions' uncommitted edits to that file left in the working tree. Not published
+(`canonical.json` records `upstream: null`). A copy of the source is in
+`tools/merge-forks/suites/visualizer-tests.js`. Each builds a
 module with `createModule`, mounts `visualizer()` off-screen, changes variables and polls the DOM. The
 tests read only what `visualizer()` returns, so they can run unchanged against visualizer-2.
 
@@ -310,6 +315,18 @@ A copy of the editor-5 canonical whose two tests first poll for their preconditi
 to 20 s, scenario timeout 40 s) passes 2/2: `129/129 attached editors rebuilt by the new factory`,
 `an open editor stayed open across the factory swap`. editor-5-tests is published on Observable, so
 the fix goes there. Patched source: `tools/merge-forks/suites/editor-5-tests.js`.
+
+Landed in the lopebooks editor-5 canonical as `lopebooks@4474a896` (2026-09-13), with `expect` from
+jest-expect-standalone and ui-testing synced from its canonical. Under `--run-tests` with
+`#view=S100(@tomlarkworthy/editor-5)&e5_tests`:
+
+```
+before  167 tests, 160 pass; both test_e5_* reported TIMEOUT
+after   167 tests, 162 pass; both test_e5_* ok; the 3 usual + the 2 ui-testing scoping tests fail
+```
+
+The Observable copy of editor-5-tests is now behind these two cells. `@tomlarkworthy/testing`, its
+svg and reconcile-nanomorph are still embedded in that notebook with no importer.
 
 ### Tools
 
@@ -378,5 +395,5 @@ land with or before D, because editor-6's `auto_attach` waits on visualizer-2's 
 - How command-palette reads the map.
 - Any visualizer consumer's custom inspector under visualizer-2.
 - The consumer call sites of `cellMap`, which were read from the lopecode copies only.
-- T1, T2, T4, T6, T7 and T8 are not started.
-- T3 and the editor-5-tests fix are not in any canonical yet.
+- T1, T2, T4, T6, T7 and T8 are not started. T5 so far is only the race fix; the hotbar,
+  Shift-Enter, insert, delete and drag steps are not written.
