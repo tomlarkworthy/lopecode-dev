@@ -247,3 +247,40 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     byte-identical to mine).
   - `playwright` `chromium.launch` fails under `bun test` with `EBADF` from `posix_spawn`, so the
     browser check is a plain `bun` script.
+- 2026-09-13, M2 visualizer-2 module written; headless suite passes, browser gate not run (needs M4).
+  - `modules/@tomlarkworthy/visualizer-2.js`. **Only a working copy:** `modules/**/*.js` is
+    gitignored (`.gitignore:67`) and the module has no canonical notebook until M4 embeds it.
+  - Structure: `visualizer(runtime, opts)` returns v1's `div.lopecode-visualizer >
+    div.observablehq-root.lope-viz` and instantiates `vizPaneTemplate` (params `vizRoot`,
+    `vizModule`, `vizFilter`, `vizInspector`, `vizDetachNodes`). The pane's `vizPaneSync` keeps one
+    `vizCellTemplate` instance per drawn variable (param `vizVariable`), renders import headers as
+    v1 does, and orders `.observablehq` children. `vizCellNode` observes through `attachDisplay`
+    when the variable has a display state, else through the inspector and runtime-sdk `observe`,
+    and releases on the instance's `invalidation`. Parameter cells carry defaults so the template
+    cells compute to `null` in visualizer-2's own module instead of throwing.
+  - Departures from the M2 text above, each decided while writing:
+    - The drawn variable is chosen by display state, not by `roleOf`: the variable `defineCell`
+      gave a state, else v1's rule (index 2 for a classic mutable, else index 0). Every notebook-kit
+      cell this system defines has a state, so no role lookup is needed; a notebook-kit runtime
+      defined by the platform itself would fall back to v1's rule, unverified.
+    - The notebook-kit node **is** `state.root` (classes `observablehq lope-viz-nk`), not a wrapper,
+      so lopepage-2's reading-mode rule `.observablehq:has(> .observablehq--inspect)` applies to it
+      as to a classic cell. A second pane takes the root rather than copying it.
+    - Cell instances get no `watch`: a redefined `vizCellNode` would make a new node the pane does
+      not know about. Pane instances do get `onCodeChange`.
+  - `tools/visualizer-2/visualizer-2.test.ts`: **9 pass, 0 fail**. Every import is the real cell
+    from its own module; the Inspector is `vendor/notebook-kit`'s `@observablehq/inspector` 5.0.1,
+    the version `@tomlarkworthy/inspector` embeds. Five scenarios: order, `cell` attributes and
+    `.variable` back-references; add, redefine in place (same node) and delete (instance disposed,
+    sandbox module count back to its prior value); filter, import header, classic mutable and
+    notebook-kit mutable drawn variables; two panes sharing one display root (last attached holds
+    it, `attached` 2 → 1 → 0); pane disposal (sandbox modules 4 → 0). Four mutation controls each
+    fail at least one scenario.
+  - One control survived first: drawing notebook-kit cells through the inspector changed nothing,
+    because a simple notebook-kit cell's state-owning variable is also index 0 and `vizCellNode`
+    checks the state itself. It fails only once a notebook-kit `mutable` is in the map.
+  - A js cell with no declarations has an unnamed variable (`define.ts`: `output ?? (outputs.length
+    ? "cell id" : null)`), so its node has no `cell` attribute and lopepage-2's scroll anchor skips
+    it, as it skips anonymous classic cells under v1.
+  - Not covered: parity with v1 on classic modules (gate: in a browser, M4), a cell inserted between
+    existing ones, and a template edit reaching mounted nodes.
