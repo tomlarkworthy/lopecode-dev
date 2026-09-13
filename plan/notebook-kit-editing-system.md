@@ -320,3 +320,69 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     `_inputs`, which confirms the unnamed-shadow finding.
   - Not covered: CodeMirror in a page, `viewof liveCellMap` consumers (copy, paste, move) against
     cell-map-2's cell shape, and anything in the ojs dialect.
+- 2026-09-13, M4 notebook assembled; its browser gates pass in Chromium. The notebook is
+  `lopebooks/notebooks/@tomlarkworthy_lopepage-3.html` (2,523,892 bytes) and is not committed in
+  lopebooks (below).
+  - `tools/lopepage-3/assemble.ts` builds it from `@tomlarkworthy_notebook-kit.html`:
+    - removes the lopepage-2, visualizer, editor-5 and `editor-5/cell_options.json` blocks;
+    - inserts cell-map-2 (from its lopecode canonical), visualizer-2, editor-6, lopepage-3 and
+      notebook-kit-demo with `sync-module --insert-ok`;
+    - carries the options block across as `@tomlarkworthy/editor-6/cell_options.json` (editor-6's
+      loader map now names editor-6);
+    - sets `mains` to `[notebook-kit-demo, lopepage-3, js-toolchain, module-selection]` and `hash`
+      to `#view=S100(@tomlarkworthy/notebook-kit-demo)`.
+
+    save-in-place is left out of `mains` because saving would write the demo cells back without
+    their shadows (M6).
+  - `@tomlarkworthy/notebook-kit-demo` defines five Notebook Kit cells at runtime. `nk_boot` runs
+    `transpileJavaScript` → `realize` → `defineCell` on each, because no exporter writes such cells
+    into a module yet.
+  - `tools/lopepage-3/boot-check.ts`: **9 pass, 0 fail**.
+    - The page mounts and renders five nk roots, and `display()` called twice appends both outputs.
+    - Setting the slider to 7 gives `k * n` = 21.
+    - `compile_and_update` called directly on cell 2 edits it in place.
+    - Through the UI: the hotbar under the `21` cell opens CodeMirror showing `k * n`. Typing
+      `k * n + 100` and pressing Shift-Enter shows 121 in the same node.
+    - There are no page errors and no network requests beyond the donor's two: flow-queue's md video
+      and the bootloader's lazy highlight.js import, both measured on the donor.
+  - `--run-tests`: lopepage-3 **164/167**, donor 157/160. Both fail the same three:
+    `test_persistentId`, `test_tests_example` (timeout) and `test_reflectsTitleUpdate`. The extra
+    seven tests are not itemised.
+  - The gates found four defects, each fixed in the forks:
+    1. The first boot threw `Cannot read properties of undefined (reading 'module')` in editor-6
+       `getOption`.
+       - Logging the misses showed `findCell` missing every cell in the demo module, classic cells
+         included, at t≈258ms, and none afterwards. editor-6's `viewof liveCellMap` starts as an
+         empty Map, and editors attach before `liveCellMapFeed` fills it.
+       - Fix: when the cell is not found, `getOption` returns the default and `setOption` does
+         nothing.
+       - Cost: a persisted `pinned` option is not applied to an editor that attaches in that window.
+         In this notebook nothing can persist options, because save-in-place is not booted.
+       - Rejected alternatives: a viewof that depends on cell-map-2's map, or gating `auto_attach`
+         on the feed. Either one recomputes every editor whenever any variable changes.
+    2. `test_cell_map_covers_all_runtime_variables` failed here and not in the donor:
+       `[{"module":"@tomlarkworthy/editor-6","missing":["viewof liveCellMap"]}]`. cell-map-2 groups
+       a `viewof x` with its `x`, and editor-6 had no `liveCellMap`. Added
+       `liveCellMap = Generators.input(viewof liveCellMap)`, which took the run from 163/167 to
+       164/167.
+    3. Declaration-only nk cells (`const n = 3;`) rendered `<detached>`. That comes from
+       lopepage-2's CSS rule `.lope-viz .observablehq:not(.observablehq--running):empty::after`.
+       lopepage-3's copy of the rule now excludes `.lope-viz-nk`; lopepage-2 is unchanged.
+    4. The first UI run failed to read CodeMirror after Shift-Enter, although the screenshot showed
+       121 and the typed source. The check had marked the editor host with an attribute and never
+       found that element again, so the host is presumably rebuilt on recompile (inferred, not
+       traced). The check now addresses the host as the cell node's next sibling.
+  - Preflight: `2 NEW`, both unused-dep, both inherited from the donor, where they are baselined:
+    dataflow-templating `instancingCost` and file-sync `jbApply`. They are not baselined for
+    lopepage-3; they need fixing in those modules' canonicals.
+  - Not done from the M4 list: `canonical.json` entries, the preflight baseline, the sitemap and the
+    two `content.json` copies. All wait for the lopebooks commit, which is held for two reasons:
+    - The new HTML copies `@tomlarkworthy_notebook-kit.html` including the other writer's
+      uncommitted edits (M1 above).
+    - The lopebooks pre-commit preflight would reject the 2 NEW findings.
+  - Not covered:
+    - classic modules drawn by visualizer-2 in a browser (only the demo module was open);
+    - multi-declaration and ojs edits through the UI, both on the M3 gate list;
+    - copy, paste and move against cell-map-2;
+    - a cell created from ➕;
+    - anything surviving a reload.
