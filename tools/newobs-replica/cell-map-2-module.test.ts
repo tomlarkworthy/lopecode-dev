@@ -127,6 +127,18 @@ test("multi-output holders group with their projections, and are marked js", asy
   expect(cellOf("qplus").lang).toEqual(["ojs"]);
 });
 
+test("a lone `cell N` body is an anonymous cell, so either language emits it", async () => {
+  // out-e3 names 158 anonymous cells `cell N` (155 are `function(md){return(md\`…\`)}`). They read
+  // ["js"] before 2026-09-13, from the holder name alone.
+  const map = await load("tools/newobs-replica/out-e3/eval.json");
+  const lone = [...map.values()]
+    .flat()
+    .filter((c: any) => c.variables.length === 1 && /^cell \d+$/.test(String(c.variables[0].name)));
+  const simple = lone.filter((c: any) => c.type === "simple");
+  expect(simple.length).toBe(158);
+  for (const c of simple) expect(c.lang).toEqual(["ojs", "js"]);
+});
+
 test("mutable groups expose the mutable variable as head, not the initial", async () => {
   const map = await load("tools/newobs-replica/out-nk/eval.json");
   const mut = map.get("M1").find((c: any) => c.type === "mutable");

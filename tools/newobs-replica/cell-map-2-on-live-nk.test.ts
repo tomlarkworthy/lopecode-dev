@@ -228,3 +228,18 @@ test("the anonymous expression cell survives as a cell", () => {
   const anon = cells.filter((c) => typeof c.name === "number");
   expect(anon.length).toBe(1);
 });
+
+test("type comes from member roles, lang lists every language that emits the shape", () => {
+  const cellOf = (n: string) =>
+    cells.find((c) => c.variables.some((v: any) => String(v._name) === n));
+  // id 15, js `1 + 1`: an unnamed body is what either compiler emits. Read ["ojs"] before 2026-09-13.
+  const anon = cells.find((c) => typeof c.name === "number");
+  expect([anon.type, anon.lang]).toEqual(["simple", ["ojs", "js"]]);
+  // id 21, ojs `x = ""`: a js declaration would emit `cell N` plus a projection, so ojs only
+  expect([cellOf("x").type, cellOf("x").lang]).toEqual(["simple", ["ojs"]]);
+  // id 23, ojs `mutable q = 6`: its `cell 23` holder read ["js"] before 2026-09-13
+  expect([cellOf("q").type, cellOf("q").lang]).toEqual(["mutable", ["ojs"]]);
+  // id 13, js `let m = 0`: one projection is still the declaration shape
+  expect([cellOf("m").type, cellOf("m").lang]).toEqual(["multi", ["js"]]);
+  expect([cellOf("view").type, cellOf("view").lang]).toEqual(["viewof", ["ojs"]]);
+});
