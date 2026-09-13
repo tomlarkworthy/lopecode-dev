@@ -3,7 +3,8 @@
 // change or remove is named with --expect-differ / --expect-missing; any other difference fails.
 //
 // run: bun tools/merge-forks/export-golden.ts <notebook.html> --exporter <id> (--write <dir> | --check <dir>)
-//        [--expect-differ a,b] [--expect-missing a,b] [--hash <fragment>]
+//        [--expect-differ a,b] [--expect-missing a,b] [--expect-added a,b] [--dump <dir>] [--hash <fragment>]
+//   --dump writes the current exports too, so a difference can be read with diff
 import { chromium } from "playwright";
 import { resolve } from "node:path";
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
@@ -51,6 +52,10 @@ if (writeDir) {
   process.exit(0);
 }
 
+if (opt("--dump")) {
+  mkdirSync(opt("--dump")!, { recursive: true });
+  for (const [name, source] of Object.entries(sources)) writeFileSync(file(opt("--dump")!, name), source);
+}
 const golden = readdirSync(checkDir!).map((f) => f.replace(/\.js$/, "").replace(/__/g, "/"));
 const differ = Object.keys(sources).filter((n) => golden.includes(n) && readFileSync(file(checkDir!, n), "utf8") !== sources[n]);
 const missing = golden.filter((n) => !(n in sources));
@@ -64,7 +69,8 @@ const problems = [
   ...absent(differ, list("--expect-differ")).map((n) => `expected a difference, none: ${n}`),
   ...unexpected(missing, list("--expect-missing")).map((n) => `unexpectedly missing: ${n}`),
   ...absent(missing, list("--expect-missing")).map((n) => `expected missing, still present: ${n}`),
-  ...added.map((n) => `not in golden: ${n}`),
+  ...unexpected(added, list("--expect-added")).map((n) => `not in golden: ${n}`),
+  ...absent(added, list("--expect-added")).map((n) => `expected added, not present: ${n}`),
   ...errors.map((e) => `export error: ${e}`)
 ];
 console.log(problems.length ? `FAIL\n  ${problems.join("\n  ")}` : "ok");

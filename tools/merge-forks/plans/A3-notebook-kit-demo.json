@@ -1,0 +1,7 @@
+{
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html",
+  "module": "@tomlarkworthy/notebook-kit-demo",
+  "replace": [
+    ["written by [exporter-4](https://observablehq.com/@tomlarkworthy/exporter-4)", "written by [exporter-3](https://observablehq.com/@tomlarkworthy/exporter-3)"]
+  ]
+}

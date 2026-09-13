@@ -1,0 +1,9 @@
+{
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html",
+  "module": "@tomlarkworthy/lopepage-3",
+  "repointImports": [["@tomlarkworthy/exporter-4", "@tomlarkworthy/exporter-3"]],
+  "replace": [
+    ["// the anchors carry exporter-4's export behaviour", "// the anchors carry exporter-3's export behaviour"]
+  ],
+  "mains": [["@tomlarkworthy/save-in-place-2", "@tomlarkworthy/save-in-place"]]
+}

@@ -1,0 +1,7 @@
+{
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html",
+  "module": "@tomlarkworthy/notebook-kit-demo",
+  "replace": [
+    ["writes edits back to this file through exporter-4.", "writes edits back to this file through exporter-3."]
+  ]
+}

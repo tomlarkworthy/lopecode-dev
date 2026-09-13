@@ -6,9 +6,12 @@
 //          dataflow-templating, runtime-sdk, inspector, codemirror, observablejs-toolchain)
 //   remove: lopepage-2, editor-5 (+ cell_options.json), visualizer. Module discovery instantiates
 //          every module block, so a leftover block would boot a second frame.
-//   insert: cell-map-2 from its canonical; js-toolchain, exporter-4, save-in-place-2, visualizer-2,
+//   insert: cell-map-2, exporter-3 and save-in-place from their canonicals; js-toolchain, visualizer-2,
 //          editor-6, lopepage-3, notebook-kit-demo from their working copies. js-toolchain replaces the
 //          donor's copy (defineCell reuses an exported head; one display-state registry per page).
+//          exporter-4 and save-in-place-2 were merged into exporter-3 and save-in-place (merge A,
+//          plan/merging-the-notebook-kit-forks.md); extract fresh working copies from the notebook
+//          first, since older lopepage-3.js / notebook-kit-demo.js copies still name exporter-4.
 //
 // run: bun tools/lopepage-3/assemble.ts [--overwrite]
 import { blocks, findSpan, rawBlock } from "../lib/notebook-blocks.ts";
@@ -21,14 +24,14 @@ const REMOVE = /^@tomlarkworthy\/(lopepage-2|editor-5|visualizer)(\/|$)/;
 const INSERT: [string, string][] = [
   ["@tomlarkworthy/cell-map-2", "lopecode/notebooks/@tomlarkworthy_cell-map-2.html"],
   ["@tomlarkworthy/js-toolchain", "modules/@tomlarkworthy/js-toolchain.js"],
-  ["@tomlarkworthy/exporter-4", "modules/@tomlarkworthy/exporter-4.js"],
-  ["@tomlarkworthy/save-in-place-2", "modules/@tomlarkworthy/save-in-place-2.js"],
+  ["@tomlarkworthy/exporter-3", "lopecode/notebooks/@tomlarkworthy_exporter-3.html"],
+  ["@tomlarkworthy/save-in-place", "lopecode/notebooks/@tomlarkworthy_save-in-place.html"],
   ["@tomlarkworthy/visualizer-2", "modules/@tomlarkworthy/visualizer-2.js"],
   ["@tomlarkworthy/editor-6", "modules/@tomlarkworthy/editor-6.js"],
   ["@tomlarkworthy/lopepage-3", "modules/@tomlarkworthy/lopepage-3.js"],
   ["@tomlarkworthy/notebook-kit-demo", "modules/@tomlarkworthy/notebook-kit-demo.js"]
 ];
-const MAINS = ["@tomlarkworthy/notebook-kit-demo", "@tomlarkworthy/lopepage-3", "@tomlarkworthy/js-toolchain", "@tomlarkworthy/module-selection", "@tomlarkworthy/save-in-place-2"];
+const MAINS = ["@tomlarkworthy/notebook-kit-demo", "@tomlarkworthy/lopepage-3", "@tomlarkworthy/js-toolchain", "@tomlarkworthy/module-selection", "@tomlarkworthy/save-in-place"];
 const HASH = "#view=S100(@tomlarkworthy/notebook-kit-demo)";
 
 if (existsSync(OUT) && !process.argv.includes("--overwrite")) {

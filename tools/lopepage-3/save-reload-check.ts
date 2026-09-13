@@ -84,7 +84,8 @@ const fingerprint = (page: Page, demo: string) => page.evaluate(async (demo) => 
 
 const save = (page: Page) => page.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
-  const sipSave = await rt.mains.get("@tomlarkworthy/save-in-place-2").value("sip_save");
+  const sip = rt.mains.get("@tomlarkworthy/save-in-place-2") ?? rt.mains.get("@tomlarkworthy/save-in-place");
+  const sipSave = await sip.value("sip_save");
   const result = await sipSave();
   return { result, html: (window as any).__saved as string };
 });
@@ -100,7 +101,9 @@ const e8 = await page1.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
   const moduleOf = (name: string) => [...rt._variables].find((v: any) => v._name === `module ${name}` && v._value)?._value;
   const e3 = moduleOf("@tomlarkworthy/exporter-3"), e4 = moduleOf("@tomlarkworthy/exporter-4");
-  if (!e3 || !e4) return { error: `exporter-3 ${!!e3}, exporter-4 ${!!e4}` };
+  // after merge A there is no exporter-4 to compare with; tools/merge-forks/export-golden.ts is the differential
+  if (!e4) return { merged: true };
+  if (!e3) return { error: "exporter-3 not resolved" };
   const [js3, js4, names, displayStateOf] = await Promise.all([e3.value("exportModuleJS"), e4.value("exportModuleJS"), e4.value("buildModuleNames"), e4.value("displayStateOf")]);
   const nkModules = new Set([...rt._variables].filter((v: any) => displayStateOf(v)).map((v: any) => v._module));
   const compared: string[] = [], differ: string[] = [], skipped: string[] = [];
@@ -111,9 +114,12 @@ const e8 = await page1.evaluate(async () => {
   }
   return { compared: compared.length, differ, skipped };
 });
-console.log(`E8 compared ${(e8 as any).compared} modules, skipped ${JSON.stringify((e8 as any).skipped)}`);
-check("E8: classic modules export byte-identical through exporter-3 and exporter-4",
-  !(e8 as any).error && (e8 as any).differ.length === 0 && (e8 as any).compared > 20 && (e8 as any).skipped.join() === DEMO, e8);
+if ((e8 as any).merged) console.log("E8 not run: exporter-4 is merged into exporter-3 (differential: tools/merge-forks/export-golden.ts)");
+else {
+  console.log(`E8 compared ${(e8 as any).compared} modules, skipped ${JSON.stringify((e8 as any).skipped)}`);
+  check("E8: classic modules export byte-identical through exporter-3 and exporter-4",
+    !(e8 as any).error && (e8 as any).differ.length === 0 && (e8 as any).compared > 20 && (e8 as any).skipped.join() === DEMO, e8);
+}
 
 const edits = await page1.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
