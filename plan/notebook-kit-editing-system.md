@@ -386,3 +386,34 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     - copy, paste and move against cell-map-2;
     - a cell created from ➕;
     - anything surviving a reload.
+- 2026-09-13, drag reorder. Tom, after using the notebook: "dragging and stuff does not work so
+  well. display cells seem to get orphaned and not move with the cell."
+  - Reproduced with `tools/lopepage-3/drag-repro.ts`, which drags the two-`display()` cell's hotbar
+    below `k * n`. The move itself worked: cell-map-2's order and the pane's cell nodes both changed.
+    The editor hosts did not follow. `E` below is an editor host:
+    ```
+    before  NK(cell 1) E NK("n is 3"…) E NK(cell 3) E NK("9") E NK(cell 5) E
+    2s, 6s  NK(cell 1) E NK(cell 3) NK("9") NK("n is 3"…) E E E NK(cell 5) E
+    ```
+  - Cause: a regression introduced in the editor-6 fork, not a Notebook Kit issue. `auto_attach`
+    places each editor with `div.after(editor)` and only does so when it reruns. editor-5 reran it
+    by depending on visualizer v1's `syncers`, which recomputes on every `liveCellMap` change. M3
+    removed that dependency as a keepalive with no other use.
+  - Fix: visualizer-2 has `vizSyncEvents`, which `vizPaneSync` notifies after reordering, and
+    exports `vizSynced`, a counter over those events. editor-6's `auto_attach` depends on
+    `vizSynced`. A MutationObserver in editor-6 was not used because it would fire on every display
+    update.
+  - `boot-check.ts` gained a drag gate. It checks that the cell moved and that every pane cell is
+    followed by an editor host. The gate was worthless in its first two positions:
+    - After the edit steps, it passed on a control notebook with only the `vizSynced` dependency
+      removed.
+    - After a `setViewportSize` call, the drop landed before layout settled, so the fixed notebook
+      failed.
+
+    Now the page opens at 1280×1600 and the drag runs 1.5s after boot, before the slider. Two
+    rounds: control 7/10 both times (the drag gate plus the two UI-edit checks that need a placed
+    hotbar), fixed 10/10 both times.
+  - Unchanged after the fix: visualizer-2 9/9, editor-6 8/8, `--run-tests` 164/167 with the same
+    three failures, preflight the same 2 inherited findings.
+  - Not covered: up/down arrow moves (`moveCell`, which should need the same rerun), a drag across
+    panes, and a drag while an editor is open.

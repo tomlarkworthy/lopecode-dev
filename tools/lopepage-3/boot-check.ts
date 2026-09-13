@@ -1,6 +1,7 @@
 // Boots the lopepage-3 notebook in Chromium over file:// and checks the M3/M4 browser gates:
 //   - lopepage-3 mounts, and visualizer-2 renders the demo module's Notebook Kit cells, display()
 //     appending and view() feeding a reader
+//   - a hotbar drag moves a cell and every cell keeps its editor host beside it
 //   - editor-6's compile_and_update edits a js cell in place in the page, called directly and
 //     through the hotbar, CodeMirror and Shift-Enter
 //   - no page errors, and no network request the donor notebook does not also make
@@ -14,7 +15,8 @@ import { resolve } from "node:path";
 const NOTEBOOK = resolve(process.argv[2] ?? "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html");
 
 const browser = await chromium.launch();
-const page = await browser.newPage();
+// sized up front: resizing just before a drag measures positions before the layout settles
+const page = await browser.newPage({ viewport: { width: 1280, height: 1600 } });
 const pageErrors: string[] = [];
 const network: string[] = [];
 page.on("pageerror", (e) => pageErrors.push(process.env.STACKS ? String(e.stack) : e.message));
@@ -58,6 +60,40 @@ const nkNodes = await page.waitForFunction(() => document.querySelectorAll(".lop
 const texts = await page.evaluate(() => [...document.querySelectorAll(".lope-viz .lope-viz-nk")].map((n) => n.textContent ?? ""));
 check("visualizer-2 renders the five Notebook Kit cells", nkNodes, texts);
 check("display() twice appends both outputs", texts.some((t) => t.includes("n is 3") && t.includes("twice that is 6")), texts);
+
+// Drag, straight after boot: the display() cell dragged by its hotbar to below `k * n` moves there, and
+// every cell node in the pane still has its editor host as its next sibling (Tom, 2026-09-13: "display
+// cells seem to get orphaned and not move with the cell"). Placed after the slider or an edit, this
+// check passed with the fix removed: something in those steps places the editors again.
+const drag = await (async () => {
+  await page.waitForTimeout(1500);
+  const box = await page.evaluate(() => {
+    const disp = [...document.querySelectorAll(".lope-viz .lope-viz-nk")].find((n) => (n.textContent ?? "").includes("n is 3")) as HTMLElement | undefined;
+    const kn = [...document.querySelectorAll(".lope-viz .lope-viz-nk")].find((n) => (n.textContent ?? "").trim() === "9") as HTMLElement | undefined;
+    const hotbar = disp?.nextElementSibling?.querySelector(".hotbar") as HTMLElement | null;
+    if (!disp || !kn || !hotbar) return null;
+    disp.setAttribute("data-check", "disp");
+    kn.setAttribute("data-check", "kn");
+    hotbar.scrollIntoView({ block: "center" });
+    const h = hotbar.getBoundingClientRect(), k = kn.getBoundingClientRect();
+    return { x: h.left + 60, y: h.top + h.height / 2, ty: k.bottom + 4 };
+  });
+  if (!box) return { error: "no display() cell, k * n cell or hotbar" };
+  await page.mouse.move(box.x, box.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x, box.y + ((box.ty - box.y) * i) / 12);
+  await page.mouse.up();
+  const ok = await page.waitForFunction(() => {
+    const disp = document.querySelector("[data-check=disp]"), kn = document.querySelector("[data-check=kn]");
+    if (!disp || !kn || disp.parentNode !== kn.parentNode) return false;
+    const cells = [...(disp.parentNode as Element).children].filter((c) => c.classList.contains("observablehq"));
+    return cells.indexOf(disp) === cells.indexOf(kn) + 1 && cells.every((c) => c.nextElementSibling?.querySelector(".hotbar"));
+  }, undefined, { timeout: 5000 }).then(() => true, () => false);
+  const layout = await page.evaluate(() => [...(document.querySelector("[data-check=kn]")?.parentNode as Element | null)?.children ?? []]
+    .map((c) => c.classList.contains("observablehq") ? `cell ${JSON.stringify((c.textContent ?? "").trim().slice(0, 16))}` : c.querySelector(".hotbar") ? "editor" : c.nodeName));
+  return { ok, layout };
+})().catch((e) => ({ error: String(e) }));
+check("dragging a display() cell below k * n moves it, and every cell keeps its editor beside it", (drag as any).ok === true, drag);
 
 const slid = await page.evaluate(async () => {
   const input = document.querySelector(".lope-viz .lope-viz-nk input[type=range]") as HTMLInputElement | null;
