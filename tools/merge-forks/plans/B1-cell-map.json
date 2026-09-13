@@ -82,7 +82,7 @@
   "replace": [
     [
       "      const importCells = vs.filter((v) => defInfo(a.def(v)).importCell);",
-      "      // A classic compiled import is a `module X` variable and a Notebook Kit import is a `cell N` holder. A\n      // named cell whose body both builds and imports a module (a bootloader, an exporter, a test fixture) is\n      // not one: measured at 5 such cells misread as imports on the cell-map notebook, 2026-09-14.\n      const importShaped = (n) => n == null || /^cell \\d+$/.test(String(n)) || String(n).startsWith(\"module \");\n      const importCells = vs.filter((v) => importShaped(a.name(v)) && defInfo(a.def(v)).importCell);"
+      "      // A classic compiled import is a `module X` variable and a Notebook Kit import is a `cell N` holder. A\n      // named cell whose body both builds and imports a module (a bootloader, an exporter, a test fixture) is\n      // not one: measured at 5 such cells misread as imports on the cell-map notebook, 2026-09-14.\n      // Only the compiler writes a `module X` name, so that name is an import whatever its definition: a\n      // module variable defined as a value (`() => lib`, as dataflow-templating and test fixtures do) has\n      // no loader body and would otherwise give its aliases no import cell.\n      const isModuleVar = (n) => String(n).startsWith(\"module \");\n      const importShaped = (n) => n == null || /^cell \\d+$/.test(String(n));\n      const importCells = vs.filter((v) => isModuleVar(a.name(v)) || (importShaped(a.name(v)) && defInfo(a.def(v)).importCell));"
     ],
     [
       "    for (const [mod, vs] of byModule) {",
@@ -111,6 +111,26 @@
     [
       "  expect(cell.variables.map((x) => x._name)).toEqual([\"a\", \"b\", \"c\", v.module._name]);",
       "  // merge B (2026-09-14) took cell-map-2's value: members in runtime order, the module variable first\n  expect(cell.variables.map((x) => x._name)).toEqual([v.module._name, \"a\", \"b\", \"c\"]);"
+    ],
+    [
+      "              from: info?.specifier ?? null,",
+      "              // v1 (decompileImport) puts the module name here and visualizer renders it as `from \"\u2026\"`;\n              // the loader URL stays in `specifier`\n              from: info?.notebook ?? (members.map((v) => String(a.name(v))).find((n) => n.startsWith(\"module \"))?.slice(7)) ?? info?.specifier ?? null,"
+    ],
+    [
+      "    expect(from.startsWith(\"<unknown\")).toBe(true);",
+      "    // merge B (2026-09-14): the module name, read from the `module X` variable's own name\n    expect(from).toBe(libName);"
+    ],
+    [
+      "        module_name: c.type === \"import\" && c.importInfo?.notebook\n          ? c.importInfo.notebook\n          : moduleName,",
+      "        // importInfo.from is the imported module's name however `module X` was bound (a loader or a value)\n        module_name: c.type === \"import\" && c.importInfo?.from\n          ? c.importInfo.from\n          : moduleName,"
+    ],
+    [
+      "        if (roleOf(v, a, (n) => named.get(n)) === \"body\") continue;",
+      "        // A compiled import not yet computed has inputs [module X, @variable] in this module. v1 put it in the\n        // import cell from the start, and visualizer's live map is not recomputed when the runtime later\n        // rewrites those inputs, so leaving it out rendered it as a cell of its own (T3, 2026-09-14).\n        const pendingOwner = defInfo(a.def(v)).aliasOf != null\n          ? ins.map((i) => !i.builtin && i.module === mod ? named.get(String(i.name)) : undefined).find((x) => x && importSet.has(x))\n          : undefined;\n        if (pendingOwner) {\n          union(k, keyOf.get(pendingOwner));\n          continue;\n        }\n        if (roleOf(v, a, (n) => named.get(n)) === \"body\") continue;"
+    ],
+    [
+      "    expect(holding.map((c) => c.type)).toEqual([\"simple\", \"simple\"]);",
+      "    // merge B (2026-09-14): one import cell from the start, holding the module variable and both imports\n    expect(holding.map((c) => c.type)).toEqual([\"import\"]);\n    expect([mv, k, j].every((x) => holding[0].variables.includes(x))).toBe(true);\n    expect(holding[0].importInfo.specifiers.map((s) => `${s.imported} as ${s.local}`).sort()).toEqual([\"a as k\", \"b as j\"]);"
     ]
   ]
 }
