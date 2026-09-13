@@ -1,0 +1,117 @@
+{
+  "taken": "2026-09-13T22:26:15.802Z",
+  "wait": 10000,
+  "results": {
+    "lopebooks/notebooks/@tomlarkworthy_grid-container.html": {
+      "nodes": 36,
+      "errors": 0,
+      "imports": 5,
+      "mains": [
+        "@tomlarkworthy/save-in-place",
+        "@tomlarkworthy/grid-container",
+        "@tomlarkworthy/lopepage-2"
+      ],
+      "pageErrors": []
+    },
+    "lopecode/notebooks/quick_start.html": {
+      "nodes": 111,
+      "errors": 0,
+      "imports": 23,
+      "mains": [
+        "@tomlarkworthy/blank-notebook",
+        "@tomlarkworthy/editable-md",
+        "@tomlarkworthy/lopepage-2",
+        "@tomlarkworthy/sticky",
+        "@tomlarkworthy/import-wizard-js",
+        "@tomlarkworthy/import-wizard-file",
+        "@tomlarkworthy/import-wizard-notebook",
+        "@tomlarkworthy/debugger-2",
+        "@tomlarkworthy/save-in-place",
+        "@tomlarkworthy/robocoop-5",
+        "@tomlarkworthy/robocoop-5-engine",
+        "@tomlarkworthy/grid-container",
+        "@tomlarkworthy/at-login",
+        "@tomlarkworthy/robocoop-5-srctools",
+        "@tomlarkworthy/claude-code-pairing",
+        "@tomlarkworthy/at-write",
+        "@tomlarkworthy/annotate",
+        "@tomlarkworthy/svg-lens"
+      ],
+      "pageErrors": []
+    },
+    "lopebooks/notebooks/tomlarkworthy_lopecode-newsletter-002.html": {
+      "nodes": 113,
+      "errors": 0,
+      "imports": 6,
+      "mains": [
+        "@tomlarkworthy/annotate-data",
+        "@tomlarkworthy/sticky",
+        "@tomlarkworthy/save-in-place",
+        "@tomlarkworthy/robocoop-5",
+        "@tomlarkworthy/at-login",
+        "@tomlarkworthy/lopecode-live-2026",
+        "@tomlarkworthy/editable-md",
+        "@tomlarkworthy/lopecode-newsletter-002",
+        "@tomlarkworthy/claude-code-pairing",
+        "@tomlarkworthy/lopepage-2",
+        "@tomlarkworthy/at-write",
+        "@tomlarkworthy/annotate",
+        "@tomlarkworthy/parametric-svg"
+      ],
+      "pageErrors": []
+    },
+    "lopebooks/notebooks/tomlarkworthy_spreadsheet.html": {
+      "nodes": 81,
+      "errors": 0,
+      "imports": 5,
+      "mains": [
+        "@tomlarkworthy/save-in-place",
+        "@tomlarkworthy/lopepage-2",
+        "@tomlarkworthy/spreadsheet"
+      ],
+      "pageErrors": []
+    },
+    "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html": {
+      "nodes": 98,
+      "errors": 0,
+      "imports": 18,
+      "mains": [
+        "@tomlarkworthy/save-in-place",
+        "@tomlarkworthy/infinite-canvas",
+        "@tomlarkworthy/lopepage-2"
+      ],
+      "pageErrors": []
+    },
+    "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html": {
+      "nodes": 100,
+      "errors": 1,
+      "imports": 14,
+      "mains": [
+        "@tomlarkworthy/moldable-webpage",
+        "@tomlarkworthy/lopepage"
+      ],
+      "pageErrors": []
+    },
+    "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html": {
+      "nodes": 135,
+      "errors": 0,
+      "imports": 22,
+      "mains": [
+        "@tomlarkworthy/module-selection",
+        "@tomlarkworthy/save-in-place",
+        "@tomlarkworthy/lopecode-tour",
+        "@tomlarkworthy/lopepage-2"
+      ],
+      "pageErrors": []
+    },
+    "lopecode/notebooks/@tomlarkworthy_lopepage.html": {
+      "nodes": 75,
+      "errors": 0,
+      "imports": 17,
+      "mains": [
+        "@tomlarkworthy/lopepage"
+      ],
+      "pageErrors": []
+    }
+  }
+}

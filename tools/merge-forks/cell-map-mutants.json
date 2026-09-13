@@ -1,0 +1,14 @@
+{
+  "target": "@tomlarkworthy/cell-map",
+  "mutants": [
+    ["viewof cell drops its value variable", "groups.get(v._name).push(v, groups.get(name)[0]);", "groups.get(v._name).push(v);"],
+    ["mutable variables reordered", ".push(groups.get(initial)?.[0], v, groups.get(name)[0]);", ".push(v, groups.get(initial)?.[0], groups.get(name)[0]);"],
+    ["mutable cell read from its seed", "? variables[1]\n              : variables[0];", "? variables[0]\n              : variables[0];"],
+    ["anonymous cells get a name", "groups.set(anonCounter++, [v]);", "groups.set(\"anon\" + anonCounter++, [v]);"],
+    ["named cell carries its variable twice", "groups.set(v._name, [v]);", "groups.set(v._name, [v, v]);"],
+    ["import specifiers lost", "importInfo = (await decompileImport(importVars)) ?? null;", "importInfo = null;"],
+    ["module variable left out of its import cell", "groups.set(groupName, [...importVars, ...moduleVarsForKey]);", "groups.set(groupName, [...importVars]);"],
+    ["cells sorted in reverse", "if (oa !== ob) return oa - ob;", "if (oa !== ob) return ob - oa;"],
+    ["cell module name lost", "            module: moduleName,\n            ...(cells.get(head)", "            module: \"<unknown module>\",\n            ...(cells.get(head)"]
+  ]
+}

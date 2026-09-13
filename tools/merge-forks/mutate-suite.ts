@@ -22,7 +22,7 @@ const rows: string[] = [];
 let survived = 0;
 for (const [label, from, to] of mutants) {
   const count = block.split(from).length - 1;
-  if (count !== 1) { rows.push(`INVALID   ${label}: "from" occurs ${count} times`); survived++; continue; }
+  if (count !== 1) { rows.push(`INVALID   ${label}: "from" occurs ${count} times`); console.log(rows.at(-1)); survived++; continue; }
   const mutated = html.slice(0, span.start) + block.replace(from, to) + html.slice(span.end);
   const path = `${outDir}/${label.replace(/\W+/g, "-")}.html`;
   guardedWrite(path, html, mutated, "", `mutant ${label}`);

@@ -1,0 +1,12 @@
+{
+  "target": "@tomlarkworthy/command-palette",
+  "mutants": [
+    ["index loses the module name", "const moduleName = modules?.get(mod)?.name ?? '<unknown>';", "const moduleName = '<unknown>';"],
+    ["named cells left out of the index", "if (!cell.name && cell.type !== 'import')", "if (cell.type !== 'import')"],
+    ["index names a cell by its type", "name: cell.name ?? null,", "name: cell.type ?? null,"],
+    ["result links to the module, not the cell", "const href = linkTo(nameStr ? modStr + '#' + nameStr : modStr);", "const href = linkTo(modStr);"],
+    ["activate ignores the result href", "navigate(r.href || '#');", "navigate('#');"],
+    ["activate leaves the palette open", "    close();\n    if (typeof r.action === 'function')", "    if (typeof r.action === 'function')"],
+    ["Enter key not handled", "} else if (e.key === 'Enter') {", "} else if (e.key === 'Return') {"]
+  ]
+}

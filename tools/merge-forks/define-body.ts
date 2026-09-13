@@ -20,7 +20,9 @@ export function analyse(src: string) {
     const callee = call?.callee;
     if (callee?.type === "MemberExpression" && callee.object.name === "main" && callee.property.name === "define") {
       const name = str(call.arguments[0]);
-      if (call.arguments.length === 2 && name?.startsWith("module ")) return { ...base, kind: "module", name };
+      // exporter-3 writes `main.define("module X", async () => …)`; cell-map-2's hand-written form passes `[]` inputs too
+      const noInputs = call.arguments.length === 3 && call.arguments[1]?.type === "ArrayExpression" && call.arguments[1].elements.length === 0;
+      if ((call.arguments.length === 2 || noInputs) && name?.startsWith("module ")) return { ...base, kind: "module", name };
       const deps = call.arguments[1];
       if (deps?.type === "ArrayExpression" && str(deps.elements[1]) === "@variable") return { ...base, kind: "import", name, module: str(deps.elements[0]) };
     }
