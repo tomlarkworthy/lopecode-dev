@@ -191,14 +191,23 @@ Three failures are in both notebooks and in every lopepage-3 run this session: `
   ```
   Both fail on their precondition, not on the behaviour under test. The first reads
   `[...editors.values()]` and needs at least one attached editor. The second needs an attached
-  editor that is closed. In the runner's boot no editor is attached. Why not was not investigated.
-  It is the trap lopepage-2-tests hit on 2026-09-06: a fixture assumed from the environment instead
-  of created by the test. So editor behaviour has **no passing dynamic test today**, which makes T5
-  the most urgent suite.
-- **`test_ui_ambiguous_name_asks_for_scope` and `test_ui_unknown_cell_is_a_clear_error` fail.** They
-  are reported under `@tomlarkworthy/testing`, a label the runner is known to get wrong. The probe did
-  not force them, so their cause is unknown. The editor-5 notebook was left on a ui-testing block
-  from before the 2026-09-09 `runtime.mains` fix, which may be related. Unverified.
+  editor that is closed. **The cause is a boot race** (found the same day, below): editor-5-tests is
+  in `mains`, so both tests compute as soon as the page boots, before `auto_attach` has placed any
+  editor, and nothing they depend on changes afterwards, so the rejection stays. A probe of the same
+  boot 10 s later read `editors` as `Map(129)`, `attachContextManu` true (the baked
+  `cell_options.json` is empty, so it defaults to `!isOnObservableCom()`), and 129 editor hosts in
+  the page.
+- **`test_ui_ambiguous_name_asks_for_scope` and `test_ui_unknown_cell_is_a_clear_error` fail.** Both
+  branch on `runtime.mains` existing and then assume `@tomlarkworthy/ui-testing` is registered in it,
+  which is only true in ui-testing's own notebook. Forced in a copy that carries ui-testing without
+  booting it:
+  ```
+  test_ui_ambiguous_name_asks_for_scope   rejected: RuntimeError: ui: no module "@tomlarkworthy/ui-testing"
+  test_ui_unknown_cell_is_a_clear_error   Expected pattern: /no cell named "nope" in @tomlarkworthy\/ui-testing/
+                                          Received message: "ui: no cell named \"nope\" in its module"
+  ```
+  In ui-testing's own notebook all 10 `test_ui_*` pass. Not fixed yet; the fix belongs in ui-testing
+  on Observable (branch on `runtime.mains?.has("@tomlarkworthy/ui-testing")`).
 
 ## Phase 0: tests first
 
@@ -229,6 +238,87 @@ So every run greps for the expected test names, and every run compares against a
 
 T3 and T5 cover behaviour boot-check already exercises on the forks. Writing them against the
 originals first is what shows the originals behave that way today.
+
+## Phase 0 progress
+
+### 2026-09-13: ui-testing imported the wrong harness
+
+The first visualizer suite carried `@tomlarkworthy/testing`, reconcile-nanomorph and ui-testing into
+the visualizer notebook, because ui-testing imported `expect` from `@tomlarkworthy/testing`. Tom
+stopped that: *"not nanomprh, you are using the wrong testing library.
+https://observablehq.com/@tomlarkworthy/tests is reflection based only"*, then *"@tomlarkworthy/ui-testing
+has a mistake, it should be importing expect from @tomlarkworthy/jest-expect-standalone"*. He fixed it
+on Observable, and it was jumpgated in place over `lopebooks/notebooks/@tomlarkworthy_ui-testing.html`
+(Observable v53):
+
+- ui-testing now imports `expect` from jest-expect-standalone; the notebook no longer carries
+  `@tomlarkworthy/testing`, reconcile-nanomorph or its svg.
+- 10/10 `test_ui_*` pass in that notebook (`tools/merge-forks/run-suite.ts`).
+- The jumpgate also replaced 26 other blocks with Observable's copies (lopepage-2, visualizer,
+  cell-map, exporter-3, editor-5, runtime-sdk, the bootloader, …) and dropped `networking_script`,
+  measured by comparing block contents against `git show HEAD`. Uncommitted.
+- Three notebooks still embed the old ui-testing: lopecode lopepage-2, lopebooks editor-5 and
+  mermaid-lens. editor-5-tests and mermaid-lens also import `expect` from `@tomlarkworthy/testing`
+  themselves.
+
+Rule from here: suites are `test_*` cells found by `@tomlarkworthy/tests`, with `ui` from ui-testing
+and `expect` from jest-expect-standalone.
+
+### T3, visualizer behaviour: written, green, mutation-checked (not landed)
+
+`@tomlarkworthy/visualizer-tests` (source `tools/merge-forks/suites/visualizer-tests.js` until it lands), 17 `test_viz_*` cells gated by `&viz_tests`. Each builds a
+module with `createModule`, mounts `visualizer()` off-screen, changes variables and polls the DOM. The
+tests read only what `visualizer()` returns, so they can run unchanged against visualizer-2.
+
+Run in a scratch copy of the lopecode canonical (`tools/merge-forks/embed-suite.ts` → 
+`.out/visualizer-dev.html`), because that canonical holds another session's uncommitted edits:
+
+```
+run-suite.ts               17/17 ok
+--run-tests (real harness)  181 tests, 176 pass; the 3 usual + the 2 ui-testing scoping tests above;
+                            the untouched canonical: 155 tests, 152 pass, the 3 usual
+mutate-suite.ts            10/10 mutants killed (tools/merge-forks/visualizer-mutants.json)
+```
+
+The first mutation run killed 9. "Unrendered variable keeps its observer" survived, since it leaves
+no trace in the DOM; `test_viz_a_cell_leaving_the_map_releases_its_observer` was added for it.
+
+What the first draft got wrong, found by probing rather than assumed:
+
+- **`@tomlarkworthy/modules` computes a module's first cell** to find its title
+  (`module-map` `moduleTitle` → `peekValue` → runtime-sdk `observe`), and keeps a `{fulfilled, error}`
+  listener on it. A fixture whose first cell was under test ran before any visualizer existed. Every
+  fixture now starts with a `title` cell.
+- **Referencing a builtin makes an implicit variable that renders.** `Generators`, `Mutable` and
+  `@variable` in a fixture produced a `module builtin` import header and an `@variable` node. The raw
+  visualizer renders them. lopepage-2 hides them with `filter: variables?.[0]?._type !== 1`, which
+  also hides any import group whose first variable is implicit. The tests exclude them from names.
+
+Behaviour observed and deliberately not asserted, so a merge can change it:
+
+- Renaming a variable keeps its node but leaves `cell="a"` (the attribute is set when the inspector
+  is made).
+- Unmounting takes effect only at the next `liveCellMap` change: `syncers` depends on
+  `viewof visualizersToDelete` (the view), so invalidation alone does not rerun it. The unmount test
+  makes one more change first.
+- A visualizer with `detachNodes: true` takes an element value away from one without; the node left
+  behind is empty.
+
+### T5, editor behaviour: the existing suite's failure is a race
+
+A copy of the editor-5 canonical whose two tests first poll for their precondition (every 200 ms, up
+to 20 s, scenario timeout 40 s) passes 2/2: `129/129 attached editors rebuilt by the new factory`,
+`an open editor stayed open across the factory swap`. editor-5-tests is published on Observable, so
+the fix goes there. Patched source: `tools/merge-forks/suites/editor-5-tests.js`.
+
+### Tools
+
+- `tools/merge-forks/embed-suite.ts`: copy of a notebook with a suite module (added to `mains`) and
+  carried blocks, inserted before `bootconf.json`.
+- `tools/merge-forks/run-suite.ts`: forces one module's `test_*` cells with `module.value()` and races
+  each, so a rejection prints its stack instead of reading as a timeout.
+- `tools/merge-forks/mutate-suite.ts`: one exact-string mutant per copy, suite run against each, a
+  mutant no test fails reported as SURVIVED.
 
 ## Merges, lowest risk first
 
@@ -288,5 +378,5 @@ land with or before D, because editor-6's `auto_attach` waits on visualizer-2's 
 - How command-palette reads the map.
 - Any visualizer consumer's custom inspector under visualizer-2.
 - The consumer call sites of `cellMap`, which were read from the lopecode copies only.
-- Whether editor-5-tests pass in a page where editors are attached; the runner's boot has none.
-- The cause of the two ui-testing failures in the editor-5 notebook.
+- T1, T2, T4, T6, T7 and T8 are not started.
+- T3 and the editor-5-tests fix are not in any canonical yet.

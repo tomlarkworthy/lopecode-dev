@@ -1,0 +1,15 @@
+{
+  "target": "@tomlarkworthy/visualizer",
+  "mutants": [
+    ["mutable renders its initial variable", "const i = cell.type === 'mutable' ? 2 : 0;", "const i = 0;"],
+    ["observer rebuilt on every sync", "if (existing?.root === root) return existing;", "if (false) return existing;"],
+    ["filter ignored", "if (!root.filter(cell_name, cell.variables, i++, filterState)) continue;", "i++;"],
+    ["nodes appended instead of placed", "root.insertBefore(node, cursor || null);", "if (!node.parentNode) root.appendChild(node);"],
+    ["foreign children removed", "if (isManagedCellNode(child) && !desiredSet.has(child)) child.remove();", "if (!desiredSet.has(child)) child.remove();"],
+    ["deleted visualizer not disposed", "if (entry) disposeRoot(root, entry);", "void entry;"],
+    ["import header not rendered", "desired.push(header);", "void header;"],
+    ["detachNodes not passed to observe", "observe(v, observer, { detachNodes: root.detachNodes })", "observe(v, observer, {})"],
+    ["inspector node loses its variable", "inspector._node.variable = variable;", "void variable;"],
+    ["unrendered variable keeps its observer", "if (!seenVars.has(v)) entry.remove();", "void entry;"]
+  ]
+}
