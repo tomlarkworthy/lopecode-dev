@@ -1,0 +1,13 @@
+{
+  "target": "@tomlarkworthy/exporter-3",
+  "mutants": [
+    ["import alias dropped", "${ importedName && importedName !== v._name ?", "${ false ?"],
+    ["inputs reordered", "const deps = JSON.stringify(v._inputs.map(i => i._name));", "const deps = JSON.stringify(v._inputs.map(i => i._name).reverse());"],
+    ["anonymous cells get a name", "const name_literal = v._name ? `\"${ v._name }\"` : 'null';", "const name_literal = `\"${ v._name }\"`;"],
+    ["variables emitted in reverse order", "(await Promise.all(variables.map(v => variableToDefine(v, { moduleNames })))).flat();", "(await Promise.all(variables.slice().reverse().map(v => variableToDefine(v, { moduleNames })))).flat();"],
+    ["canonical imports not restored", "${ restoreCanonicalImports(v._definition.toString()) }", "${ v._definition.toString() }"],
+    ["file attachments not written", "const fileAttachmentExpression = fileAttachments?.size ?", "const fileAttachmentExpression = false ?"],
+    ["module variables not recognised", "v => typeof v._name === 'string' && v._name.startsWith('module ')", "v => false"],
+    ["pid replaced by a fresh name", "return [`  $def(\"${ pid(v) }\", ${ name_literal }, ${ deps }, ${ pid(v) });`];", "return [`  $def(\"${ pid(v) }x\", ${ name_literal }, ${ deps }, ${ pid(v) });`];"]
+  ]
+}
