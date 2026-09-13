@@ -143,11 +143,10 @@ Unchanged from the fork plan:
 - Without it, save-in-place drops notebook-kit shadows: exporter-3 writes
   `main.variable(observer(name)).define(name, deps, fn)`, and the prototype showed an export with
   shadows removed fails its behaviour fixture.
-- Open: the option C module needs `display`/`input`/`Mutator` while its `define()` runs, and the
-  prototype takes them as a parameter (`define(runtime, observer, nk = globalThis.__notebookKit)`).
-  In a page they could come from a static import of an embedded block, which the es-module-shims
-  `resolve` hook maps to `file://<id>` (`knowledge/lopecode-internal-networking.md`); that a
-  gzipped attachment can be imported that way is unverified.
+- Open until 2026-09-13: the option C module needs `display`/`input`/`Mutator` while its `define()`
+  runs, and the prototype takes them as a parameter (`define(runtime, observer, nk = globalThis.__notebookKit)`).
+  Not taken. exporter-4's `$nk` loads js-toolchain as an ordinary module import and calls its
+  `defineCell` after `define()` returns; see Progress.
 - **Gate:** E0 fingerprint equal across live → save → reload in a browser; classic modules'
   output byte-identical to exporter-3's (E8).
 
@@ -467,3 +466,85 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     - `import … from "@user/nb"` typed into a new cell of a js module, which parses as both and so
       stays js (js-toolchain compiles it to the same reactive import);
     - an ojs cell with several variables (`mutable`) switched to js.
+
+- 2026-09-13, M6: exporter-4 wired into lopepage-3's save. Both gates pass in Chromium, E0 fails on a
+  control, and the headless round trip passes with mutation controls. Nothing committed in lopebooks;
+  the module working copies are gitignored.
+  - exporter-4 is exporter-3 from lopebooks HEAD (byte-identical to the copy embedded in lopepage-3)
+    plus one branch. A head that js-toolchain's `displayStateOf` knows is written as its definition
+    and a `$nk` line; the variables it exports get no lines of their own. From the regenerated demo:
+    ```
+    const _1scsni7 = Object.assign({"inputs":["view","n"],"outputs":["k"],"autodisplay":false,"expression":false,"isAsync":false,"id":3}, { body: (view,n) => {
+    const k = view(Object.assign(document.createElement("input"), {type: "range", min: 0, max: 10, value: n}));
+    return {k};
+    } });
+      $nk("_1scsni7", "cell 3", _1scsni7, [["_6jn5m5","k"]]);
+    ```
+    `$nk` defines the head pending on a promise and each exported name pending on the head, sets
+    their pids, then calls `defineCell(main, definition, {variables})` once
+    `main.value("module @tomlarkworthy/js-toolchain")` resolves. `defineCell` redefines the same
+    variables, so pids survive, and the head's promise settles after it. For this, js-toolchain's
+    head reuse was relaxed from "has display state" to "has `_shadow`". The helper and the
+    js-toolchain loader are written only into a module that has such a cell.
+  - Rejected: passing `display`/`input`/`Mutator` into `define()`. js-toolchain is already an embedded
+    module, and importing it needs nothing new in the bootloader. Costs:
+    - The cells are pending until js-toolchain loads.
+    - The module gains a `module @tomlarkworthy/js-toolchain` variable, which the pane renders as a
+      first row `import {} from "/@tomlarkworthy/js-toolchain.js?v=4"`.
+  - A js-toolchain bug the round-trip test found. `nkDisplayStates` was `new WeakMap()` with no
+    inputs, and a variable that becomes reachable again is recomputed. The test read `displayStateOf`
+    through notebook-import `values()`, and after a load it saw no states while `a` resolved to 6:
+    the `defineCell` that `$nk` fetched wrote to a map that had since been replaced. The registry is
+    now `globalThis[Symbol.for("@tomlarkworthy/js-toolchain/nkDisplayStates")] ??= new WeakMap()`.
+    The browser version (`$nk` registering at boot before visualizer-2 observes `displayStateOf`) is
+    inferred from the same mechanism, not reproduced.
+  - Dead end: the first round trip failed on body text only (`return {a,b}` came back
+    `return { a: n * 2, b: "x" }`). bun transpiles a `.js` it `import()`s, so `toString()` is its
+    reformatting. The same thing wrote a reformatted title into the demo before it was caught. Loaded
+    exports are now evaluated from text with `new Function`.
+  - Around it:
+    - save-in-place-2 is save-in-place importing `exportToHTML` from exporter-4.
+    - visualizer-2 recreates a pane entry when `!!displayStateOf(v)` changes, because an exported
+      head is drawn by the inspector until `defineCell` runs. This was not controlled separately.
+    - lopepage-3's export anchors import exporter-4.
+    - `tools/lopepage-3/export-demo.ts` rewrote notebook-kit-demo through exporter-4: `nk_boot`,
+      `nk_sources` and `nkDemoModule` are gone and the five cells are `$nk` lines. It runs headless
+      because a paired tab bakes its `cc=` token into an export.
+    - assemble.ts inserts js-toolchain, exporter-4 and save-in-place-2, and boots save-in-place-2.
+      exporter-3 stays, since claude-code-pairing, file-sync and local-change-history import it.
+  - `tools/exporter-4/exporter-4.test.ts`: **9 pass, 0 fail**, 2 scenarios and 7 mutation controls.
+    - Round trip: a classic `n`, four Notebook Kit cells (projections, two `display()`, `view()`,
+      an expression) and a classic reader, with pids not derivable from definitions, go through
+      export → load → export → load. Fingerprints (name, pid, inputs, definition, shadows, cell
+      pids), values and display roots are equal at each step, and the third export equals the
+      second byte for byte.
+    - Classic module: exporter-4's output equals exporter-3's, with exporter-3 read from the
+      lopepage-3 notebook.
+    - Controls: exported names written as classic cells; names not handed to `$nk`; head pid or
+      exported pids not restored; `defineCell` given fresh variables; head written from its body
+      function; helper written into every module.
+  - `tools/lopepage-3/save-reload-check.ts`: **10 pass, 0 fail**.
+    - Page 1: `k * n` is recompiled to `k * n + 100` and `cell 5` switched to
+      `viewof foo = Inputs.range([0, 10])`. It saves through save-in-place-2's real `sip_save`,
+      with only `showSaveFilePicker` mocked, and the saved file opens as page 2.
+    - E0: the demo module's variables, pids, definitions (keys sorted) and shadows are equal, and so
+      is the rendered text. Page 2 decompiles the cell to `k * n + 100`, and saving page 2 writes
+      the same demo block.
+    - E8: `exportModuleJS` through exporter-3 and exporter-4 is identical for all 50 classic modules
+      in the page; the demo was skipped.
+    - Control, save-in-place-2 importing exporter-3: **5 fail** (saved block, reload render, both E0
+      checks, decompile).
+    - Key order first failed E0 because editor-6 spreads `body` first; it is not part of a definition.
+  - `boot-check.ts` **11 pass** on the exported demo. `--run-tests` 164/167, the same three:
+    `test_persistentId` (reported under `@mootari/access-runtime`), `test_tests_example` (timeout)
+    and `test_reflectsTitleUpdate`. Preflight shows the same 2 inherited unused-dep findings.
+    js-toolchain display-differential 79, editor-6 15 and visualizer-2 9 pass after the registry
+    change.
+  - Not covered:
+    - a real File System Access write (the picker is mocked);
+    - pairing's `export_notebook`;
+    - a Notebook Kit body containing `import()` through `restoreCanonicalImports`;
+    - `autoview`/`automutable` exported names, which js-toolchain's compile never produces;
+    - a Notebook Kit module that is not in a pane (conversion is eager, so it should load);
+    - exporting the exporter-4 module itself;
+    - the `import {}` row.

@@ -6,8 +6,9 @@
 //          dataflow-templating, runtime-sdk, inspector, codemirror, observablejs-toolchain)
 //   remove: lopepage-2, editor-5 (+ cell_options.json), visualizer. Module discovery instantiates
 //          every module block, so a leftover block would boot a second frame.
-//   insert: cell-map-2 from its canonical; visualizer-2, editor-6, lopepage-3, notebook-kit-demo
-//          from their working copies
+//   insert: cell-map-2 from its canonical; js-toolchain, exporter-4, save-in-place-2, visualizer-2,
+//          editor-6, lopepage-3, notebook-kit-demo from their working copies. js-toolchain replaces the
+//          donor's copy (defineCell reuses an exported head; one display-state registry per page).
 //
 // run: bun tools/lopepage-3/assemble.ts [--overwrite]
 import { blocks, findSpan, rawBlock } from "../lib/notebook-blocks.ts";
@@ -19,12 +20,15 @@ const OUT = "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html";
 const REMOVE = /^@tomlarkworthy\/(lopepage-2|editor-5|visualizer)(\/|$)/;
 const INSERT: [string, string][] = [
   ["@tomlarkworthy/cell-map-2", "lopecode/notebooks/@tomlarkworthy_cell-map-2.html"],
+  ["@tomlarkworthy/js-toolchain", "modules/@tomlarkworthy/js-toolchain.js"],
+  ["@tomlarkworthy/exporter-4", "modules/@tomlarkworthy/exporter-4.js"],
+  ["@tomlarkworthy/save-in-place-2", "modules/@tomlarkworthy/save-in-place-2.js"],
   ["@tomlarkworthy/visualizer-2", "modules/@tomlarkworthy/visualizer-2.js"],
   ["@tomlarkworthy/editor-6", "modules/@tomlarkworthy/editor-6.js"],
   ["@tomlarkworthy/lopepage-3", "modules/@tomlarkworthy/lopepage-3.js"],
   ["@tomlarkworthy/notebook-kit-demo", "modules/@tomlarkworthy/notebook-kit-demo.js"]
 ];
-const MAINS = ["@tomlarkworthy/notebook-kit-demo", "@tomlarkworthy/lopepage-3", "@tomlarkworthy/js-toolchain", "@tomlarkworthy/module-selection"];
+const MAINS = ["@tomlarkworthy/notebook-kit-demo", "@tomlarkworthy/lopepage-3", "@tomlarkworthy/js-toolchain", "@tomlarkworthy/module-selection", "@tomlarkworthy/save-in-place-2"];
 const HASH = "#view=S100(@tomlarkworthy/notebook-kit-demo)";
 
 if (existsSync(OUT) && !process.argv.includes("--overwrite")) {
