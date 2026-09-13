@@ -503,6 +503,446 @@ Left as they are, and why:
 - No consumer was swept. exporter-3 is in 243 notebooks; syncing the merged block out is the large-blob
   step and waits for Tom.
 
+### T4, visualizer consumers: baseline taken before merges B and C
+
+`tools/merge-forks/consumer-boot-check.ts --write tools/merge-forks/t4-baseline-before-B.json`, outer
+`f5bf057`. It boots each notebook headless, waits 10 s after `mains` appears, and records rendered
+`.observablehq` nodes, error nodes, `.lope-viz-import` headers and distinct page errors. `--check` fails
+on fewer nodes, more error nodes, or a page error the baseline lacks. One notebook per visualizer
+importer from the 2026-09-13 AST survey; sheet is embedded only in the newsletter, so the newsletter
+stands in for it.
+
+```
+lopebooks grid-container            36 nodes  0 errors   5 import headers  0 page errors
+lopecode  quick_start              111        0         23                0
+lopebooks lopecode-newsletter-002  113        0          6                0
+lopebooks spreadsheet               81        0          5                0
+lopebooks infinite-canvas           98        0         18                0
+lopebooks moldable-webpage         100        1         14                0
+lopecode  lopecode-tour            135        0         22                0
+lopecode  @tomlarkworthy_lopepage   75        0         17                0
+```
+
+The first baseline run used a stale list (`@tomlarkworthy_sheet.html` and a lopecode moldable-webpage,
+neither of which exists) and recorded 3 notebooks. lopecode-tour read 151 nodes and 24 headers in that
+run and 135 and 22 in this one, the same file on the same day. A 10 s wait does not give a stable node
+count for that notebook, so `--check` compares with `<`, and a drop there has to be rerun before it is
+believed.
+
+### T6, cell-map consumer contract: v1 green, cell-map-2 fails 2 contract tests
+
+`tools/merge-forks/suites/cell-map-tests.js`, folded into `@tomlarkworthy/cell-map` in both canonicals
+(`lopecode@1e0eec1`, `lopebooks@93dce1ba`; the two blocks were byte-identical before and after). The
+first commit attempt was refused by `lope-preflight`: the fixture declared `Generators` and `Mutable`,
+which it only names as strings in `define()` inputs. Fixed in the suite, 0 NEW. The fixture builds
+one throwaway module holding a named cell, an anonymous cell, `viewof x`, `mutable m` (as
+`initial m`/`mutable m`/`m`) and three imports from one library, one aliased (`x as c`). The library is a
+`<script type="text/plain">` module block added for the test, and the module variable's loader is realized
+through runtime-sdk's `realize`, so the import variables go through the page's import hook the way a
+booted export does.
+
+```
+                         cell-map (v1)    cell-map-2
+run-suite (test_cellmap_)    14/14           7/12
+mutants                       9/9 killed      -
+```
+
+The first version of the fixture defined the module variable as `() => lib`. cell-map-2 recognises an
+import cell by its loader body (`runtime.module(` and `import(`), so under that fixture it put `a`, `b`
+and `c` in no cell and failed `every_variable_in_exactly_one_cell`. That was the fixture, not
+cell-map-2: with the loader in exported form the test passes.
+
+What cell-map-2 does differently, from the failing run (`.out/t6-run2.log`). These are the merge B
+decision list:
+
+| test | v1 | cell-map-2 | kind |
+|---|---|---|---|
+| `contract_mutable_cell` | name `mutable m` | name `initial m` (the union-find root is the seed) | contract: fix in B |
+| `contract_import_cells` | specifiers `a as a`, `b as b`, `x as c` | `c as c` | contract: fix in B |
+| `shape_anonymous_cell_lang` | `["ojs"]` | `["ojs", "js"]` | shape |
+| `shape_import_cell_variables` | `a, b, c, module X` | `module X, a, b, c` | shape |
+| `shape_import_cell_sorts_by_its_first_import` | the import cell sorts at `a` (last here) | it sorts at the module variable (first here) | shape |
+
+Why the alias is lost: once a legacy `(_, v) => v.import("x", "c", _)` runs, the runtime redefines `c`
+with the remote variable as its only input, so cell-map-2's fallback, which reads `.import("x"` out of
+the definition text, finds nothing and uses the local name. The remote end is still on the variable,
+as `c._inputs[0]._name`, which is runtime data. Unverified until merge B tries it.
+
+Passing on both: every variable in exactly one cell, non-import cells in runtime order, the named cell,
+the anonymous cell's falsy name (`0`), `viewof x` as `[viewof x, x]`, every cell's `variables[0]` having
+a definition, and one import cell per library.
+
+### T7, command-palette: green, mutation-checked
+
+`tools/merge-forks/suites/command-palette-tests.js`, folded into `@tomlarkworthy/command-palette`,
+gated by `&cp_tests`. Each test adds a module with one uniquely named cell, opens the overlay, types the
+name and polls for the row.
+
+```
+test_cp_search_lists_a_new_cell        label, module and href = linkTo(module#name)
+test_cp_enter_navigates_to_the_cell    Enter: hash changes to the cell, overlay closes; hash restored
+run-suite 2/2, mutants 7/7 killed (tools/merge-forks/command-palette-mutants.json)
+```
+
+Four of the seven mutants (module name lost, named cells not indexed, cell named by its type, link to
+the module) are killed in the fixture, which times out waiting for the row, rather than by an assertion.
+
+### T5, editor behaviour: written, green, mutation-checked
+
+`tools/merge-forks/suites/editor-5-behaviour-tests.js`, folded into the lopebooks editor-5 canonical next
+to the two `test_e5_factory_*` cells, same `&e5_tests` gate. Each scenario adds a throwaway module with
+`alpha = 1`, `beta = alpha + 1`, `gamma = 3` (bodies realized through runtime-sdk in compiled form), opens it
+with `navigate(linkTo({open}))`, waits for an editor host beside every cell node, and closes and deletes
+it in `finally`.
+
+```
+test_e5_hotbar_opens_the_decompiled_source             hotbar click -> .cm-content is "beta = alpha + 1"
+test_e5_shift_enter_recompiles_the_cell_in_place       EditorView.findFromDOM, replace doc, synthetic
+                                                       Shift-Enter keydown -> the same variable computes 101
+test_e5_add_button_places_the_new_cell_after_its_anchor .add-cell-btn -> new variable and node right after alpha
+test_e5_delete_button_removes_the_cell                 toolbar 🗑️ -> variable, node and editor host gone
+test_e5_hotbar_drag_reorders_and_the_editor_follows    PointerEvents on the hotbar -> gamma first in the
+                                                       runtime and the pane, every editor still beside its cell
+test_e5_cell_options_round_trip                        setOption/getOption, stored under module.cell.option
+
+run-suite test_e5_ (scratch fold)   8/8
+mutants                             7/7 killed (tools/merge-forks/editor-5-behaviour-mutants.json)
+```
+
+Two failures on the way, both in the tests:
+- The options test first timed out with `getOption` already returning 7 before the test had set anything.
+  The cell depended on `setOption`/`getOption`; those depend on `findCell`, which depends on `modules`, so
+  the fixture's `createModule` redefined them and the test cell restarted part way through, seeing its
+  previous run's write. It reads both through `t.value` at call time now. The other tests depend only on
+  values that do not change when a module is added.
+- The lopebooks commit was refused by `lope-preflight`: the drag test declared `expect` and used only
+  `until`. Removed from its deps.
+
+The "editor placed before its cell" mutant (`div.after` -> `div.before` in `auto_attach`) fails 6 of 8,
+because every fixture waits for the editor to be the cell's next sibling. The two factory tests do not
+check placement.
+
+### Merge B: cell-map absorbed cell-map-2 (done in the worktree, 2026-09-14)
+
+Direction taken: `cell-map` keeps its name and its v1 cells (`viewof liveCellMap`,
+`maintain_live_cell_map`, `findModuleName`, `importedModule`, the viz), and `cellMap` itself is
+replaced by cell-map-2's runtime-data grouping. The merged module defines every name cell-map-2
+defines (set difference of `$def` names: empty), so its three importers (`cell-map-viz` in the
+cell-map-2 notebook, `visualizer-2` and `editor-6` in lopepage-3) can point at `cell-map` without a
+missing export. The observablejs-toolchain import (`decompileImport`) is gone.
+
+The merge is `tools/merge-forks/plans/B1-cell-map.json`, applied by `merge-cells.ts` (a `redefine` of
+`_17c6bac` from cell-map-2's `_1ki5sl4`, 15 cells added, 8 exact-string replaces). Applied to the
+lopecode canonical it is byte-identical to the scratch copy the numbers below come from.
+
+```
+                                     cell-map v1   cell-map-2 as forked   merged
+run-suite (all test_)                   20/20            -                27/27
+T6 contract + shape tests               14/14           7/12              14/14 (3 shape expectations changed)
+mutants reverting each B1 fix             -              -                5/5 killed
+cell-map-2 bun suites (headless)          -         17 pass, 2 fail      15 pass, 4 fail
+```
+
+The first B1 run was 23/25, and both failures were cell-map-2 bugs that neither its own suites nor T6
+had seen, found on the cell-map notebook's own runtime with `.out/probe-cm-b1.ts`:
+
+- **Named cells read as imports.** cell-map-2 calls a variable an import when its body contains
+  `runtime.module(` and `import(`. 7 cells were import cells with no specifiers, among them bootloader
+  `boot`, `cellMapFixture`, import-notebook `importNotebook`, exporter-3 `getSourceModule`,
+  observablejs-toolchain `importFake` and file-sync `filesToNotebook`. `test_cellmap_importInfo_on_real_import`
+  picked `boot` as the first import. Fix: only an unnamed variable, a `cell N` holder or a `module X`
+  variable can be an import cell.
+- **Real cells dropped by a same-named global.** An input that names a cell defined later resolves to the
+  browser global first (`window.toolbar`, `window.history`, a `main` element), and the runtime leaves that
+  implicit type-2 variable in `runtime._variables` after the real cell is defined. cell-map-2 keyed by name
+  before filtering non-cells, so the real cell went with it. 8 were missing: `main` in module-map,
+  import-notebook, visualizer, fileattachments and exporter-3, exporter-3 `networking_script`, editor-5
+  `toolbar`, local-change-history `history`. Fix: filter non-cells before keying.
+
+Each has a T6 test now (`contract_named_cell_calling_a_loader_is_not_an_import`,
+`contract_a_resolved_global_does_not_hide_a_cell`); v1 passes both. The second one first broke every
+contract test: `variable.delete()` on the left-behind implicit variable reaches the bare `throw new Error`
+in runtime `variable.js` (its name's scope slot belongs to the real cell), so runtime-sdk's
+`deleteModule` threw part way through the teardown (v1 5/20, merged 11/27). The fixture now removes such
+variables from `runtime._variables` first. `deleteModule` will throw the same way on any module holding
+one, editor-5 included; not fixed here.
+
+The two contract fixes T6 had already asked for went in as well: a `mutable m` cell is named `mutable m`
+rather than after its seed, and an alias whose definition has been rewritten by the runtime takes its
+imported name from the remote input (`c._inputs[0]._name`), which T6 had marked unverified. Shape
+decisions, each an expectation changed in the suite with a dated comment:
+
+| shape test | kept |
+|---|---|
+| `shape_anonymous_cell_lang` | cell-map-2's `["ojs", "js"]` |
+| `shape_import_cell_variables` | cell-map-2's runtime order, module variable first |
+| `shape_import_cell_sorts_by_its_first_import` | v1's: an import cell sorts at its first imported symbol (a B1 replace) |
+| `shape_import_from_a_module_value_names_its_module` | neither: v1 says `<unknown 0.47…>` when `module X` is bound to a value, cell-map-2 had no import cell there at all; the merge names the module (added after T3, see below) |
+| `shape_import_cell_before_its_imports_resolve` | neither: v1 and cell-map-2 both map an uncomputed import variable to a simple cell of its own; the merge puts it in its import cell (added after T3, see below) |
+
+`meta: { variables }` is added to `importInfo`. The 4 bun-suite failures: 2 are working copies that do not
+exist (`notebook-kit-semantics.js`, `cell-map-viz.js`, failing on the fork too); "liveCellMap depends on
+runtime_variables" fails because the merge keeps v1's `viewof liveCellMap` plus `maintain_live_cell_map`;
+"a COMPILED module's imports" expects cell-map-2's 3 loaders and the merged module has 7, and passes when
+the expectation is changed to 7.
+
+editor-6's own `viewof liveCellMap` and `liveCellMapFeed` become redundant once it imports `cell-map`
+(merge D).
+
+Syncing the merged block into consumers exposed a gap that is not merge B's: moldable-webpage embeds an
+older cell-map that never imported `@tomlarkworthy/modules`, and v1 does, so v1 would open the same
+`missing-import`. The gate copy carries `modules` in from its canonical, which also clears the
+pre-existing `editor-5 imports @tomlarkworthy/modules` finding there. spreadsheet reports 4 NEW findings
+against the baseline, and the same 4 on its HEAD copy; its baseline entry is stale.
+
+Gates, run 2026-09-14 with the merged block synced into the working tree of every gate notebook
+(`.out/gateB.log`):
+
+```
+run-suite  cell-map lopecode / lopebooks canonical      27/27, 27/27
+run-suite  T7 command-palette (cp_tests)                2/2
+run-suite  T5 editor-5 lopebooks (e5_tests)             16/16, none skipped
+T4 --check                                              FAIL: moldable-webpage rendered nodes 100 -> 98
+                                                        (every other notebook: nodes and headers up by 1-3)
+T8 corpus-gate (HEAD vs working tree, --run-tests)
+  quick_start                    219/232 -> 239/253   lost runtime-sdk#test_reflectsDelete
+  cell-map                       166/169 -> 173/176
+  infinite-canvas                152/155 -> 173/176
+  computational-blogs (nested C) 164/168 -> 185/189
+  editor-5 (lopebooks)           168/173 -> 189/194
+  lopepage-2                     183/186 -> 204/207
+  exporter-3                     152/158 -> 173/179
+  preflight                      0 NEW, 0 resolved
+```
+
+The +21 tests per notebook are the cell-map suite arriving with the block. T3 did not run in that pass:
+it was pointed at `@tomlarkworthy/visualizer-tests`, which `lopecode@02a8e30` had already folded into
+`@tomlarkworthy/visualizer`.
+
+Following up each failure (`.out/gateB2.log`):
+
+- **quick_start `test_reflectsDelete` is flaky.** A second corpus-gate run on quick_start lost nothing,
+  and its HEAD copy scored 218/232 there against 219/232 in the first run.
+- **T3 found an import with no header.** Rerun with the right module, 16/17:
+  `test_viz_imports_render_one_header_per_module` waited 8 s for the header. Its fixture binds
+  `module @tomlarkworthy/lopepage-urls` to a value (`() => urls`). cell-map-2 recognises an import only by
+  a loader body, and its aliases are two-parameter `v.import` bodies that are excluded on purpose, so
+  nothing in that group is an import cell. Not caused by the B1 import rule; cell-map-2 as forked has it.
+  Fix in B1: a `module X` name is an import cell whatever its definition, since only the compiler writes
+  that name. New T6 test `contract_import_from_a_module_value`.
+- **moldable-webpage's 100 -> 98 is merge B.** `.out/probe-viz-nodes.ts` lists nodes by pane, kind, cell
+  name and text. HEAD against a control copy with v1 cell-map and `modules` carried: 100 -> 100, the only
+  difference a random number in the `module builtin` header. Control against merged:
+  ```
+  -1  ? | import | module builtin | import {__ojs_runtime, __ojs_observer} from "<unknown 0.89…>"
+  -1  ? | cell   | location | location
+  -1  @tomlarkworthy/moldable-webpage | import | module @tomlarkworthy/exporter | import {exporter} from "@tomlarkworthy/exporter"
+  +1  @tomlarkworthy/moldable-webpage | import | module @tomlarkworthy/exporter | import {exporter} from "/@tomlarkworthy/exporter.js?v=4"
+  … the same swap for every import header in the notebook (10)
+  ```
+  The two dropped nodes are the implicit `builtin` import and the implicit `location` global, which v1
+  rendered and lopepage-2 already hides; kept as a shape change. The header text is a regression:
+  visualizer renders `from "${importInfo.from}"`, v1's `decompileImport` sets `from` to the module name,
+  and cell-map-2 set it to the loader URL. Fix in B1: `from` is the notebook name, else the `module X`
+  name without its prefix, else the URL. `contract_import_cells` now asserts `from`.
+  With that fix the same probe reads (`.out/gateB3.log`):
+  ```
+  -1  ? | import | module builtin | import {__ojs_runtime, __ojs_observer} from "<unknown 0.67…>"
+  -1  ? | cell | location | location
+  -1/+1  editor_view error text: "variables is not iterable" -> "(variables || runtime._variables) is not iterable"
+  100 -> 98 nodes
+  ```
+  Every import header now reads as before. The remaining 2 nodes are the implicit variables above, so
+  T4's node count for moldable-webpage stays at 98 by decision; the baseline file is not rewritten.
+- **T3's header test still failed after the `from` fix.** merged `cellMap` set an import cell's
+  `module_name` (visualizer's `data-module-name`) from `importInfo.notebook`, which a value-bound module
+  does not have. Fix in B1: `module_name` comes from `importInfo.from`. `contract_import_from_a_module_value`
+  asserts it, and a B1 mutant reverts it.
+- **Then T3 got its header, and two extra cells.** `t.names(root)` read
+  `["a", "import @tomlarkworthy/lopepage-urls", "linkTo", "nh"]`. Until an import variable is computed its
+  inputs are `[module X, @variable]` in its own module, and cell-map-2 deliberately leaves such a variable
+  out of the import cell (its bun suite: "merging would retype those cells as import and move the grouping
+  counts"). visualizer's `liveCellMap` is not recomputed when the runtime later rewrites those inputs, so
+  the stale map drew them as cells. v1 does no better on that input: a new test,
+  `shape_import_cell_before_its_imports_resolve`, maps an unresolved `k` and `j` to two simple cells on v1
+  (22/23 on the first run, as a contract test). v1 passes T3 on timing: its `cellMap` awaits
+  `decompileImport`, so the live map lands after the imports resolve; cell-map-2's `cellMap` is
+  synchronous. Recorded as a shape test with v1's value; B1 groups such a variable with the import cell its
+  `module X` input belongs to and changes the expectation. A B1 mutant reverts it.
+
+With the four fixes (`.out/gateB5.log`): T3 on the visualizer canonical with the merged block 17/17,
+header `import {linkTo, navHref as nh} from "@tomlarkworthy/lopepage-urls"`; merged suite 30/30;
+9/9 B1 mutants killed; moldable-webpage reads as in the probe above (98, the two implicit nodes).
+
+Final gate, 2026-09-14, the committed block (`lopecode@9565e93`) synced into the working tree of the 15
+gate notebooks, `.out/gateB7.log`:
+
+```
+preflight (15 notebooks)   7 NEW, all tomlarkworthy_spreadsheet.html; the same 7 on its
+                           lopebooks HEAD copy (stale baseline entry, not merge B)
+T7 command-palette         2/2
+T5 editor-5 (lopebooks)    16/16
+T3 visualizer              17/17
+T4 --check                 FAIL only moldable-webpage 100 -> 98 (by decision above); its 1 error is
+                           editor_view, present in the baseline (errors: 1)
+T8 corpus-gate             HEAD -> now
+  quick_start                    218/232 -> 242/256
+  cell-map                       176/179 -> 176/179
+  infinite-canvas                152/155 -> 176/179
+  computational-blogs (nested C) 164/168 -> 188/192
+  editor-5 (lopebooks)           168/173 -> 192/197
+  lopepage-2                     183/186 -> 207/210
+  exporter-3                     152/158 -> 176/182
+  preflight                      0 NEW, 0 resolved -> ok
+```
+
+No notebook lost a test; the +24 are the cell-map suite arriving with the block. The consumer syncs stay
+uncommitted in the working tree: sweeping consumers is left for Tom.
+
+### Merge C: plan written, not yet run (2026-09-14)
+
+`tools/merge-forks/plans/C-visualizer.json`, written and dry-run by a subagent without a browser. It
+needed four new `merge-cells.ts` ops, all acorn-located: `rewrite` (host cell keeps pid and name, takes
+code and deps from the plan), `dropCells` (refused while a remaining cell depends on the name),
+`addModules`, `addImports`. B1 through the extended tool is byte-identical to before.
+
+Survey of importers of `@tomlarkworthy/visualizer` (18 module/symbol pairs, 238 notebooks): v2 keeps
+`visualizer(runtime, {invalidation, module, filter, inspector, detachNodes, classList})` and its return
+shape. Of v1's cells that importers name, v2 drops six; two are read by a cell:
+
+| symbol | importer (notebooks) | read by a cell | in the plan |
+|---|---|---|---|
+| `syncers` | editor-5 (238) | `auto_attach`, as a bare trigger statement | `syncers = vizSynced` |
+| `lopeviz_handle_css` | lopepage v1 (12), moldable-webpage (1) | yes | v1 cell kept |
+| `TRACE_CELL` | editor-5 (238) | no | v1 cell kept |
+| `unorderedSync` | lopepage v1 (12) | no | import kept |
+| `allVariables` | moldable-webpage (1) | no | v1 cell kept |
+| `cellMaps` | moldable-webpage (1) | no | v1 never defined it; already broken |
+
+The plan takes v2's `visualizer` and `renderImportCell` bodies and its 17 pane/template cells, drops v1's
+sync machinery (`mainVariables`, `visualizers`, `visualizersToDelete`, `inspectors`, `variablesForCell`,
+`backgroundJobs`, each used only by the replaced cells), imports `instantiateDataflow` and `onCodeChange`,
+keeps `liveCellMap` from `cell-map`, and defines `displayStateOf`/`attachDisplay` locally over
+js-toolchain's `Symbol.for` registry, as exporter-3 does (decision 1). js-toolchain's declared canonical
+(`notebook-kit.html`) defines neither function; only lopepage-3's embedded copy does, so those two cells
+are copies that can drift.
+
+Open until T3 runs on it: `test_viz_unmount_hands_variables_back` read `viewof visualizers` and asserted
+the root was emptied; v2 detaches the root and leaves its nodes. The rewritten test checks the observer is
+handed back and later changes neither add nor update nodes, which is weaker. `syncers` changes once per
+pane sync instead of once per `liveCellMap` change, so editor-5 reattaches more often with several panes.
+v2 has only run against cell-map-2's plain `liveCellMap`, not cell-map's view.
+
+### Merge E: lopepage-2 took lopepage-3's selector (applied in the worktree, 2026-09-14)
+
+`tools/merge-forks/plans/E-lopepage-2.json` takes `lp2_page` from lopepage-3 by pid (`_1y1ubko`): one CSS
+rule gains `:not(.lope-viz-nk)`, so a Notebook Kit display node is not labelled `<detached>`. The import
+repoints in lopepage-3 (`visualizer-2`, `editor-6`) are not taken, since merges C and D keep the original
+names. Preflight 0 NEW.
+
+```
+lope-browser-runner --run-tests --hash "#view=S100(@tomlarkworthy/lopepage-2)&lp2_tests"
+  HEAD copy     183/186   test_lp2_* 21/21   fails: test_persistentId, test_reflectsTitleUpdate, test_tests_example (timeout)
+  merge E       182/186   test_lp2_* 20/21   the same three + test_lp2_add_module_filters_the_known_modules (timeout)
+```
+
+A CSS `:empty::after` rule is not a plausible cause for the add-module wizard timing out; repeated on
+both copies before E is committed. `run-suite --prefix test_lp2_add_module`, 3 runs each
+(`.out/lp2-rerun.log`):
+
+```
+HEAD copy   4/4, 4/4, 4/4
+merge E     4/4, 4/4, 3/4   (run 3: test_lp2_add_module_wizard_creates_and_opens_a_module)
+```
+
+The test that timed out under `--run-tests` passed 3 of 3; a different wizard test failed once. One
+failure in 12 against 0 in 12 does not separate flakiness from a change, so 6 more interleaved runs each
+followed (`.out/lp2-rerun2.sh`, in `.out/gateB6.log`):
+
+```
+test_lp2_add_module_wizard_creates_and_opens_a_module fails
+  merge E     runs 1, 4, 5 of 6
+  HEAD copy   runs 1, 2 of 6
+the other three add-module tests: no failure in either
+```
+
+Over all 9 runs: merge E 4 failures, HEAD 2, the same test. It fails on HEAD, so it is flaky rather than
+caused by the selector. Not investigated further. Committed as `lopecode@6de5b80`.
+
+### Merge D: surveyed, not planned yet (2026-09-14)
+
+Read-only acorn comparison of the lopebooks editor-5 canonical (143 cells) and lopepage-3's editor-6
+(139), both at HEAD. 123 cells identical with equal pids. editor-5 alone has the T5 tests and their
+fixture (12 cells). editor-6 alone has `viewof liveCellMap`/`liveCellMap`/`liveCellMapFeed`,
+`cellLanguage`, `sourceLanguage`, `decompile`, `defineJsCell` and a doc cell. 8 cells differ: `auto_attach`
+(`vizSynced` for `syncers`), `findCell` (adds `type`, `lang`), `editor_manager` (JavaScript language mode
+for js cells), `setOption`/`getOption` (null guards for the feed's empty first map), `editor_jobs` (keeps the
+feed alive), `compile_and_update` (routes by `sourceLanguage`, and a new `switchLanguage` path), `title`.
+
+editor-6 defines every symbol the 238 editor-5 notebooks import (`auto_attach`, `attachContextManu`,
+`cellEditor`, `literalCompletions`, `observableJS_language`, `observableJS_highlightStyle`).
+
+**Decision 2 is one guard.** Routing happens in `sourceLanguage`:
+```js
+try { parser.parseCell(source); ojs = true; } catch {}
+try { transpileJavaScript(source); js = true; } catch {}
+if (js !== ojs) return js ? "js" : "ojs";
+return cellLanguage(variables, cell);
+```
+Returning `"ojs"` first when neither the cell nor its module is Notebook Kit
+(`cellLanguage(variables, cell) !== "js" && cellLanguage([], cell) !== "js"`) keeps a classic module
+classic, syntax error included. `lang` alone cannot decide it: in the merged cell-map every unnamed
+classic cell reads `["ojs", "js"]`, and a display-only Notebook Kit cell has no name, so `cellLanguage`'s
+display-registry check is needed. One headless scenario in `tools/editor-6/editor-6.test.ts` ("a classic
+cell switched to JavaScript keeps its place and pid") contradicts the decision and changes with it.
+
+**The feed goes.** editor-6's `viewof liveCellMap` is an EventTarget that `liveCellMapFeed` fills from
+cell-map-2's plain cell; the merged cell-map exports the view itself. Its four readers are the same four
+cells that read the import in editor-5.
+
+**js-toolchain is the cost.** It is needed only on the Notebook Kit path (`transpileJavaScript`,
+`defineCell`, `decompileJs`, `displayStateOf`), but as wired `auto_attach` keeps `editor_jobs` →
+`command_processor` → `compile_and_update` → `defineJsCell` → `defineCell` → `nkRuntime` alive, so a static
+import loads the Notebook Kit runtime at every boot. Options:
+
+| option | cost |
+|---|---|
+| A. static import, as editor-6 | js-toolchain block + attachment, ~50 KB into each of 238 notebooks (~11.8 MB); runtime loaded at boot |
+| B. read the instantiated `@tomlarkworthy/js-toolchain` module at call time (`modules` map, `mod.value("defineCell")`), registry read for `displayStateOf` | no block added; the parse check moves into the async part of `compile_and_update`; a Notebook Kit cell cannot be edited as JavaScript where js-toolchain was never loaded |
+| C. B plus `importShim` of the module when absent | as B; offline only if the block is embedded; whether it shares the static instance is unverified |
+| D. js-toolchain publishes its functions on a `Symbol.for` global | a new js-toolchain cell that something must observe |
+
+Recommendation: B. Under decision 2 a module can only be Notebook Kit if js-toolchain already
+instantiated it (lopepage-3 boots it; exporter-3's `$nk` loader loads it before `defineCell`), which is
+exactly when B finds it, and it matches decision 1. Not verified in a browser.
+
+**Plan written, headless-tested (2026-09-14).** `tools/merge-forks/plans/D-editor-5.json`, host the lopebooks
+editor-5 canonical, 143 -> 150 cells, 51 imports, no module define added:
+
+| op | what |
+|---|---|
+| take | `findCell`, `editor_manager`, `setOption`, `getOption`, `compile_and_update` (pids equal) |
+| add | `cellLanguage` |
+| define | `displayStateOf` (registry read), `jsToolchain` (`(name) => record.module.value(name)` for the `modules` record named `@tomlarkworthy/js-toolchain`, undefined when absent), `sourceLanguage` (async, decision 2 guard first), `decompile` (falls back to `decompileOjs`), `defineJsCell` (clear error when js-toolchain is absent), a reworded doc cell |
+| imports | `decompile` becomes `decompile as decompileOjs`; nothing from js-toolchain, cell-map-2 or visualizer-2 |
+| kept | `auto_attach` on `syncers`, `editor_jobs` without the feed, the cell-map `viewof liveCellMap` import, all tests |
+
+Headless (no browser, `bun test`):
+
+```
+tools/editor-6/editor-6.test.ts (the fork, baseline)   15 pass: 8 scenarios, 7/7 mutants killed
+.out/D-editor-5.test.ts (same scenarios on the merge)  24 pass: 11 scenarios, 12/12 mutants killed
+```
+
+The D copy replaces "a classic cell switched to js keeps its place and pid" with decision 2's pair (a classic
+module calls the classic compiler and never reads `modules`; a module holding a Notebook Kit cell still
+switches), and adds js-toolchain never loaded and loaded after editor-5 computed. Every dep of every cell
+resolves; preflight identical to HEAD.
+
+Not yet known: browser behaviour (T5, `--run-tests`), how often `jsToolchain` recomputes (it depends on
+`modules`, as `findCell` already does), and whether a Notebook Kit cell edited here still exports as `$nk`
+(T2).
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**
@@ -511,10 +951,10 @@ Left as they are, and why:
 - Repoint save-in-place-2 and lopepage-3 at exporter-3, then delete exporter-4 and save-in-place-2.
 - Gate: T1, T2, E8, and `save-reload-check.ts` on lopepage-3.
 
-**B. cell-map takes cell-map-2.**
-- Add the five missing names to cell-map-2. `viewof liveCellMap` moves in from editor-6, which
-  currently defines its own with a feed. `moduleMap` and `modules` bring module-map back as a
-  dependency, unless `currentModules` serves those importers.
+**B. cell-map takes cell-map-2.** Done in the worktree 2026-09-14, the other way round from the
+original bullet: cell-map kept its cells and took cell-map-2's `cellMap` (see "Merge B" above).
+- ~~Add the five missing names to cell-map-2. `viewof liveCellMap` moves in from editor-6, which
+  currently defines its own with a feed.~~
 - Settle which name survives (Open decisions, 3), then sweep the importers.
 - Gate: T6, T7, T4, T8, and the cell-map-2 suites.
 
@@ -561,5 +1001,5 @@ land with or before D, because editor-6's `auto_attach` waits on visualizer-2's 
 - How command-palette reads the map.
 - Any visualizer consumer's custom inspector under visualizer-2.
 - The consumer call sites of `cellMap`, which were read from the lopecode copies only.
-- T1, T2, T4, T6, T7 and T8 are not started. T5 so far is only the race fix; the hotbar,
-  Shift-Enter, insert, delete and drag steps are not written.
+- ~~T1, T2, T4, T6, T7 and T8 are not started.~~ As of 2026-09-14 all eight are written (sections
+  above). T8 (`corpus-gate.ts`) first ran as merge B's gate.
