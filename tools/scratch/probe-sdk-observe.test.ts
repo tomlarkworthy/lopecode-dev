@@ -1,0 +1,20 @@
+import { test, expect } from "bun:test";
+import { Window } from "happy-dom";
+import { importNotebookModule } from "../notebook-import.ts";
+const w = new Window();
+for (const k of ["Element", "Text", "Node", "HTMLElement", "DocumentFragment"]) (globalThis as any)[k] = (w as any)[k];
+(globalThis as any).document = w.document;
+process.on("unhandledRejection", () => {});
+test("runtime-sdk observe loads headlessly", async () => {
+  const { Runtime } = await import("@observablehq/runtime"); const Mutable = (v: any) => { let value = v; const g: any = { value }; return g; }; const sdk = await importNotebookModule("modules/@tomlarkworthy/runtime-sdk.js", { overrides: { no_observer: Symbol("no-observer"), trace_variable: undefined, "mutable trace_history": { value: [] } } });
+  const observe = await sdk.value("observe");
+  expect(typeof observe).toBe("function");
+  const m = sdk.runtime.module();
+  const v = m.variable().define("x", [], () => 42);
+  const seen: any[] = [];
+  observe(v, { fulfilled: (x: any) => seen.push(x) });
+  await new Promise((r) => setTimeout(r, 50));
+  console.log("seen", seen);
+  expect(seen).toContain(42);
+  sdk.dispose();
+});

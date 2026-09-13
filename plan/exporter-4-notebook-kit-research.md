@@ -1514,6 +1514,8 @@ therefore the probe — for every named variable (L252-259).
 4. The cell-map new version, built on E6's four rules and keyed on the import *cell*, introduced alongside the current one rather than replacing it (editor-5's `cellEditor`, the visualizer and `persistentId` addressing pin today's output shape). Measure the `WeakMap<Function, AST>` cache against the current per-named-variable `importedModule` probe.
 5. exporter-4 prototype, tested with E0's fingerprint across live → export → re-export, and E8 as the regression gate.
 6. E7 — committed, since cells must be editable — gated on E6 and likely its own plan. E9 alongside.
+   **Became its own plan 2026-09-13: `plan/notebook-kit-editing-system.md`** (forks editor-6,
+   visualizer-2, lopepage-3; js-toolchain gains `define` and the ojs dialect; exporter-4 as a module).
 
 ## Open questions for Tom
 
