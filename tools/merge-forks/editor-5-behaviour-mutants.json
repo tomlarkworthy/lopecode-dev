@@ -1,0 +1,12 @@
+{
+  "target": "@tomlarkworthy/editor-5",
+  "mutants": [
+    ["editor opens on an empty document", "    doc: decompiled,", "    doc: \"\","],
+    ["Shift-Enter not bound", "key: 'Shift-Enter',", "key: 'Shift-F12',"],
+    ["add button does nothing", "e.stopPropagation();\n                            createCell({ cell: findCell(variable) });", "e.stopPropagation();"],
+    ["delete removes no variables", "remove_variables(command.args.cell.variables);", "remove_variables([]);"],
+    ["drag drops on the wrong side of the anchor", "insertAt = placeAfter ? Math.max(...idxs) + 1 : Math.min(...idxs);", "insertAt = placeAfter ? Math.min(...idxs) : Math.max(...idxs) + 1;"],
+    ["editor placed before its cell", "        div.after(editor);", "        div.before(editor);"],
+    ["options keyed without the module", "`${cell.module.name}.${cell.name}.${option}`,\n    value", "`${cell.name}.${option}`,\n    value"]
+  ]
+}
