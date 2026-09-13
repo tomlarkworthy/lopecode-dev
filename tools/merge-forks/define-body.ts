@@ -26,7 +26,8 @@ export function analyse(src: string) {
       const deps = call.arguments[1];
       if (deps?.type === "ArrayExpression" && str(deps.elements[1]) === "@variable") return { ...base, kind: "import", name, module: str(deps.elements[0]) };
     }
-    if (callee?.type === "Identifier" && callee.name === "$def") return { ...base, kind: "cell", pid: str(call.arguments[0]), name: str(call.arguments[1]) ?? null };
+    // `fn` is the const the cell's body lives in: the pid for exporter-3 output, the cell's own name in hand-written modules
+    if (callee?.type === "Identifier" && callee.name === "$def") return { ...base, kind: "cell", pid: str(call.arguments[0]), name: str(call.arguments[1]) ?? null, fn: call.arguments[3]?.type === "Identifier" ? call.arguments[3].name : undefined };
     return { ...base, kind: "other" };
   });
   return { consts, stmts, exportStart: define.start };

@@ -2,6 +2,8 @@
 // with acorn (define-body.ts); only `replace` works on text, and each of its strings must occur once.
 //   take         cell names whose const and $def line are replaced by the same-named cell of `from`;
 //                the pid must match, so the cell keeps its identity
+//   redefine     [{pid, fromPid}]: the host cell keeps its pid and name, and takes the const body and dep list
+//                of the `from` cell with pid fromPid (a cell rewritten under a new pid in the fork)
 //   add          [{pid, after}]: a cell of `from` inserted after the host (or previously added) pid
 //   define       [{pid, name, deps, code, after}]: a cell written out in the plan
 //   dropImports  import variable names removed from the define body
@@ -39,16 +41,37 @@ const hostCell = (key: { name?: string; pid?: string }) => h.stmts.find((s) => s
 const fromCell = (key: { name?: string; pid?: string }) => f?.stmts.find((s) => s.kind === "cell" && (key.pid ? s.pid === key.pid : s.name === key.name));
 // the separator the exporter writes between define-body statements
 const SEP = "  \n  ";
+const constOf = (a: ReturnType<typeof analyse>, s: { fn?: string; pid?: string }) => a.consts.get(s.fn ?? s.pid!);
+// a const renamed to `id`, found by acorn
+const renamed = (constText: string, id: string) => {
+  const decl = (acorn.parse(constText, { ecmaVersion: "latest", sourceType: "module" }) as any).body[0].declarations[0];
+  return constText.slice(0, decl.id.start) + id + constText.slice(decl.id.end);
+};
+const depsOf = (cellText: string) => {
+  const call = (acorn.parse(cellText, { ecmaVersion: "latest" }) as any).body[0].expression;
+  return cellText.slice(call.arguments[2].start, call.arguments[2].end);
+};
 
 for (const name of plan.take ?? []) {
   const hc = hostCell({ name }), fc = fromCell({ name });
   if (!hc || !fc) throw new Error(`take ${name}: host ${!!hc}, from ${!!fc}`);
   if (hc.pid !== fc.pid) throw new Error(`take ${name}: pid ${hc.pid} in host, ${fc.pid} in from`);
-  const hconst = h.consts.get(hc.pid!)!, fconst = f!.consts.get(fc.pid!)!;
+  if ((hc.fn ?? hc.pid) !== (fc.fn ?? fc.pid)) throw new Error(`take ${name}: const ${hc.fn} in host, ${fc.fn} in from`);
+  const hconst = constOf(h, hc)!, fconst = constOf(f!, fc)!;
   if (hconst.text === fconst.text && hc.text === fc.text) { report.push(`take ${name}: already equal`); continue; }
   edit(hconst.start, hconst.end, fconst.text);
   edit(hc.start, hc.end, fc.text);
   report.push(`take ${name} (${hc.pid})`);
+}
+
+// the host cell keeps its pid and name; its const body and dep list come from the `from` cell
+for (const { pid, fromPid } of plan.redefine ?? []) {
+  const hc = hostCell({ pid }), fc = fromCell({ pid: fromPid });
+  if (!hc || !fc) throw new Error(`redefine ${pid}: host ${!!hc}, from ${fromPid} ${!!fc}`);
+  const hconst = constOf(h, hc)!, hfn = hc.fn ?? pid;
+  edit(hconst.start, hconst.end, renamed(constOf(f!, fc)!.text, hfn));
+  edit(hc.start, hc.end, `$def(${JSON.stringify(pid)}, ${JSON.stringify(hc.name ?? null)}, ${depsOf(fc.text)}, ${hfn});`);
+  report.push(`redefine ${hc.name ?? "(anonymous)"} (${pid}) from ${fromPid}`);
 }
 
 const added = new Map<string, { constAt: number; cellAt: number }>();
@@ -56,7 +79,7 @@ const anchor = (pid: string) => {
   if (added.has(pid)) return added.get(pid)!;
   const hc = hostCell({ pid });
   if (!hc) throw new Error(`anchor ${pid} is neither a host cell nor an added one`);
-  return { constAt: h.consts.get(pid)!.end, cellAt: hc.end };
+  return { constAt: constOf(h, hc)!.end, cellAt: hc.end };
 };
 const insert = (pid: string, name: string | null, constText: string, cellText: string, after: string) => {
   if (hostCell({ pid }) || h.consts.has(pid)) throw new Error(`host already has pid ${pid}`);
@@ -71,7 +94,8 @@ const insert = (pid: string, name: string | null, constText: string, cellText: s
 for (const { pid, after } of plan.add ?? []) {
   const fc = fromCell({ pid });
   if (!fc) throw new Error(`add ${pid}: not a cell of from`);
-  insert(pid, fc.name ?? null, f!.consts.get(pid)!.text, fc.text, after);
+  // renamed to the pid, the const name an export writes
+  insert(pid, fc.name ?? null, renamed(constOf(f!, fc)!.text, pid), `$def(${JSON.stringify(pid)}, ${JSON.stringify(fc.name ?? null)}, ${depsOf(fc.text)}, ${pid});`, after);
 }
 for (const { pid, name, deps, code, after } of plan.define ?? []) {
   const parsed = acorn.parse(code, { ecmaVersion: "latest", sourceType: "module" }) as any;
@@ -138,7 +162,7 @@ const names = final.stmts.filter((s) => (s.kind === "cell" || s.kind === "import
 const dup = (xs: string[]) => [...new Set(xs.filter((x, i) => xs.indexOf(x) !== i))];
 if (dup(pids).length) throw new Error(`duplicate pids ${dup(pids)}`);
 if (dup(names).length) throw new Error(`duplicate names ${dup(names)}`);
-const noConst = pids.filter((p) => !final.consts.has(p));
+const noConst = final.stmts.filter((s) => s.kind === "cell" && !constOf(final, s)).map((s) => s.pid);
 if (noConst.length) throw new Error(`$def without a const: ${noConst}`);
 
 let html = prev;
