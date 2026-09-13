@@ -372,6 +372,27 @@ Cost not yet paid: visualizer and editor-5 now import ui-testing and jest-expect
 of their consumers needs those two blocks at its next sync, or preflight reports
 `missing-import-lazy`. The imports are lazy; nothing loads until a test cell is observed.
 
+Pushed to Observable the same day on Tom's "yes push to observable push those new tests in cannonical
+notebooks" (imports and the md heading by raw WS, named cells with `lope-push-ws --cells`):
+
+```
+visualizer         v2439 -> v2462  19 cells before "### imports", md`## Tests`, runtime-sdk import
+                                   + createModule, deleteModule, imports of ui and expect
+editor-5           v4021 -> v4026  3 cells at the end, imports of ui and expect
+lopepage-2-tests   v34   -> v48    12 fixture cells modified; expect now from jest-expect-standalone
+```
+
+Checked afterwards: `cellwise-diff` reports no difference for any of the three.
+`probe-observable-annotate` errors are the same before and after, comparing each pre-push version
+(`@x@<version>`) against the current one:
+- visualizer: 0 before, 0 after.
+- editor-5: the same 10 before and after; they are hotbar/editor cells that need a page.
+- lopepage-2-tests: 0 after.
+
+An `insert_node` with `new_node_mode: "md"` is rejected with status 400. The heading went in as a js
+cell holding `md\`…\``. The old `@tomlarkworthy/editor-5-tests` notebook on Observable is left as it
+was.
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**
