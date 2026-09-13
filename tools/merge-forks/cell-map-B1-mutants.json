@@ -1,0 +1,10 @@
+{
+  "target": "@tomlarkworthy/cell-map",
+  "mutants": [
+    ["B1 any loader-calling cell is an import", "const importCells = vs.filter((v) => importShaped(a.name(v)) && defInfo(a.def(v)).importCell);", "const importCells = vs.filter((v) => defInfo(a.def(v)).importCell);"],
+    ["B1 non-cells filtered after keying by name", "const vs = all.filter((v) => !notACell(a.name(v), a.type(v)));", "const vs = all;"],
+    ["B1 mutable cell named after its seed", ": seedOf != null && members.some((v) => a.name(v) === \"mutable \" + seedOf)", ": false"],
+    ["B1 alias imported name read from the definition only", "imported = am ? am[2] : remote?.name ?? local;", "imported = am ? am[2] : local;"],
+    ["B1 import cell sorts at its module variable", "order: order.get((type === \"import\" && members.find((v) => !importSet.has(v))) || members[0])", "order: order.get(members[0])"]
+  ]
+}

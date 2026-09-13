@@ -1,0 +1,116 @@
+{
+  "notebook": "lopecode/notebooks/@tomlarkworthy_cell-map.html",
+  "module": "@tomlarkworthy/cell-map",
+  "from": {
+    "notebook": "lopecode/notebooks/@tomlarkworthy_cell-map-2.html",
+    "module": "@tomlarkworthy/cell-map-2"
+  },
+  "redefine": [
+    {
+      "pid": "_17c6bac",
+      "fromPid": "_1ki5sl4"
+    }
+  ],
+  "add": [
+    {
+      "pid": "_doc3rul",
+      "after": "_1vhxngh"
+    },
+    {
+      "pid": "_doc4glu",
+      "after": "_doc3rul"
+    },
+    {
+      "pid": "_doc5imp",
+      "after": "_doc4glu"
+    },
+    {
+      "pid": "_r0le0f",
+      "after": "_17c6bac"
+    },
+    {
+      "pid": "_xfa26q",
+      "after": "_r0le0f"
+    },
+    {
+      "pid": "_wyt7b6",
+      "after": "_xfa26q"
+    },
+    {
+      "pid": "_zdl9tm",
+      "after": "_wyt7b6"
+    },
+    {
+      "pid": "_snkocq",
+      "after": "_zdl9tm"
+    },
+    {
+      "pid": "_k9te40",
+      "after": "_1clgb7s"
+    },
+    {
+      "pid": "_1ekq6tt",
+      "after": "_k9te40"
+    },
+    {
+      "pid": "_17hxnwp",
+      "after": "_1ekq6tt"
+    },
+    {
+      "pid": "_19ojlg4",
+      "after": "_17hxnwp"
+    },
+    {
+      "pid": "_r0letst",
+      "after": "_19ojlg4"
+    },
+    {
+      "pid": "_agctjt",
+      "after": "_r0letst"
+    },
+    {
+      "pid": "_t2ikl4",
+      "after": "_agctjt"
+    }
+  ],
+  "dropImports": [
+    "decompileImport"
+  ],
+  "dropModules": [
+    "@tomlarkworthy/observablejs-toolchain"
+  ],
+  "replace": [
+    [
+      "      const importCells = vs.filter((v) => defInfo(a.def(v)).importCell);",
+      "      // A classic compiled import is a `module X` variable and a Notebook Kit import is a `cell N` holder. A\n      // named cell whose body both builds and imports a module (a bootloader, an exporter, a test fixture) is\n      // not one: measured at 5 such cells misread as imports on the cell-map notebook, 2026-09-14.\n      const importShaped = (n) => n == null || /^cell \\d+$/.test(String(n)) || String(n).startsWith(\"module \");\n      const importCells = vs.filter((v) => importShaped(a.name(v)) && defInfo(a.def(v)).importCell);"
+    ],
+    [
+      "    for (const [mod, vs] of byModule) {",
+      "    for (const [mod, all] of byModule) {\n      // Filter non-cells BEFORE keying by name. The runtime leaves an implicit type-2 variable behind when a\n      // name resolves to a browser global (window.toolbar, window.history, a named element), and it shares\n      // its name with the real cell defined later; skipping by name dropped 8 real cells on the cell-map\n      // notebook, 2026-09-14.\n      const vs = all.filter((v) => !notACell(a.name(v), a.type(v)));"
+    ],
+    [
+      "          const name = /^@anon#/.test(root) ? anon++ : root;",
+      "          // a compiled `mutable m` is rooted at its seed `initial m`; consumers name the cell `mutable m`\n          const seedOf = typeof root === \"string\" && root.startsWith(\"initial \") ? root.slice(8) : null;\n          const name = /^@anon#/.test(root)\n            ? anon++\n            : seedOf != null && members.some((v) => a.name(v) === \"mutable \" + seedOf)\n            ? \"mutable \" + seedOf\n            : root;"
+    ],
+    [
+      "                imported = am ? am[2] : local;",
+      "                // once a legacy alias runs, the runtime redefines it onto the remote variable and the\n                // definition text no longer names the remote end; the input still does\n                const remote = a.inputs(v).find((i) => !i.builtin && i.module !== a.module(v));\n                imported = am ? am[2] : remote?.name ?? local;"
+    ],
+    [
+      "              specifiers\n            };",
+      "              specifiers,\n              meta: { variables: members }\n            };"
+    ],
+    [
+      "            order: order.get(members[0])",
+      "            // an import cell sorts at its first imported symbol, not at its module variable, so an import\n            // header stays where the import was written\n            order: order.get((type === \"import\" && members.find((v) => !importSet.has(v))) || members[0])"
+    ],
+    [
+      "  expect(cellOf(v.anon)[0].lang).toEqual([\"ojs\"]);",
+      "  // merge B (2026-09-14) took cell-map-2's value: an unnamed simple body is either dialect\n  expect(cellOf(v.anon)[0].lang).toEqual([\"ojs\", \"js\"]);"
+    ],
+    [
+      "  expect(cell.variables.map((x) => x._name)).toEqual([\"a\", \"b\", \"c\", v.module._name]);",
+      "  // merge B (2026-09-14) took cell-map-2's value: members in runtime order, the module variable first\n  expect(cell.variables.map((x) => x._name)).toEqual([v.module._name, \"a\", \"b\", \"c\"]);"
+    ]
+  ]
+}
