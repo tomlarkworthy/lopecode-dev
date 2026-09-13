@@ -1,6 +1,6 @@
-const _vzt00 = function _title(md) {return (md`# visualizer tests
+const _vzt00 = function _29(md) {return (md`## Tests
 
-Behavioural tests for [@tomlarkworthy/visualizer](#open=@tomlarkworthy/visualizer), written 2026-09-13 so the original's behaviour is pinned before visualizer-2 is merged into it (T3 in \`plan/merging-the-notebook-kit-forks.md\`).
+Behavioural tests for \`visualizer()\`, written 2026-09-13 so the original's behaviour is pinned before visualizer-2 is merged into it (T3 in \`plan/merging-the-notebook-kit-forks.md\`).
 
 Each \`test_viz_*\` cell makes a throwaway module with runtime-sdk's \`createModule\`, mounts \`visualizer(runtime, options)\` on it in an off-screen host, changes the module's variables, and waits for the DOM to follow. The tests read only what \`visualizer()\` returns, so the same cells can run against visualizer-2. Everything a test creates is deleted in \`finally\`.
 
@@ -372,7 +372,7 @@ export default function define(runtime, observer) {
   main.define("createModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("createModule", _));
   main.define("deleteModule", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("deleteModule", _));
   main.define("repositionSetElement", ["module @tomlarkworthy/runtime-sdk", "@variable"], (_, v) => v.import("repositionSetElement", _));
-  $def("_vzt00", "title", ["md"], _vzt00);
+  $def("_vzt00", null, ["md"], _vzt00);
   $def("_vzt01", "viewof viz_tests_enabled", ["Inputs","location"], _vzt01);
   $def("_vzt02", "viz_tests_enabled", ["Generators","viewof viz_tests_enabled"], _vzt02);
   $def("_vzt03", "vt", ["ui","runtime","createModule","deleteModule","visualizer","viz_tests_enabled"], _vzt03);

@@ -838,10 +838,6 @@
   "@tomlarkworthy/visualizer": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_visualizer.html"
   },
-  "@tomlarkworthy/visualizer-tests": {
-    "lopecode": "lopecode/notebooks/@tomlarkworthy_visualizer.html",
-    "upstream": null
-  },
   "@tomlarkworthy/vr-hackerspace": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html"
   },

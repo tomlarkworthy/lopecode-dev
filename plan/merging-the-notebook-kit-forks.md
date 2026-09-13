@@ -336,6 +336,41 @@ svg and reconcile-nanomorph are still embedded in that notebook with no importer
   each, so a rejection prints its stack instead of reading as a timeout.
 - `tools/merge-forks/mutate-suite.ts`: one exact-string mutant per copy, suite run against each, a
   mutant no test fails reported as SURVIVED.
+- `tools/merge-forks/fold-suite.ts`: moves a suite module's cells and imports into the module it
+  tests, located with acorn; refuses a clashing name, pid or import; removes the suite block and its
+  mains entry.
+- `tools/merge-forks/rm-blocks.ts`: removes blocks, refusing while any module block still names
+  `"module <id>"`, a removed module's attachments are left behind, or the id is in mains.
+
+### 2026-09-13: the tests are cells of the module they test
+
+Tom, on the separate-module landing above: *"no I mean the test code should be in the module, they
+are part of it."* Both suites were folded in with `fold-suite.ts`:
+
+```
+lopecode@02a8e30   @tomlarkworthy/visualizer  +21 cells (17 test_viz_*), visualizer-tests block gone
+                   run-suite 17/17, mutants 10/10, --run-tests 177/182 (same as e540cb8)
+lopebooks@80f9d28d @tomlarkworthy/editor-5    +4 cells (2 test_e5_*), editor-5-tests block gone
+                   run-suite test_* 10/10, --run-tests 162/167 (same as 4474a896)
+```
+
+Tom then asked that lopepage-2 and mermaid-lens stop bringing in nanomorph:
+
+```
+lopebooks@80f9d28d editor-5     testing, its svg, reconcile-nanomorph removed (no importer left)
+lopecode@aa6edef   lopepage-2   ui-testing synced; the same 3 blocks removed; lopepage-2-tests
+                                fixture @tomlarkworthy/testing -> jest-expect-standalone
+                                run-suite 21/21 -> 19/21 -> 21/21; --run-tests 183/186 = HEAD
+uncommitted        mermaid-lens ui-testing synced; its expect import repointed to
+                                jest-expect-standalone; testing + svg removed; run-suite 24/24
+```
+
+mermaid-lens is an untracked notebook from another session, so it was edited in the working tree
+and not committed.
+
+Cost not yet paid: visualizer and editor-5 now import ui-testing and jest-expect-standalone, so each
+of their consumers needs those two blocks at its next sync, or preflight reports
+`missing-import-lazy`. The imports are lazy; nothing loads until a test cell is observed.
 
 ## Merges, lowest risk first
 
