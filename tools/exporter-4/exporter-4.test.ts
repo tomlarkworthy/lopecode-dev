@@ -14,8 +14,12 @@ import { importNotebookModule } from "../notebook-import.ts";
 import { blockContent } from "../lib/notebook-blocks.ts";
 import { nkRuntime, settle, snap } from "../js-toolchain/runtime/display-scenarios.ts";
 
-const E4 = "modules/@tomlarkworthy/exporter-4.js";
-const DONOR = "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html";
+// EXPORTER names another exporter module file to test (merge A: exporter-3 with exporter-4 merged in). Such
+// a file reads js-toolchain's display-state registry itself, so displayStateOf is not injected into it.
+// DONOR names the notebook whose exporter-3 block is the classic-cell reference.
+const E4 = process.env.EXPORTER ?? "modules/@tomlarkworthy/exporter-4.js";
+const INJECT_DISPLAY_STATE = !process.env.EXPORTER;
+const DONOR = process.env.DONOR ?? "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html";
 const OUT = "tools/exporter-4/.mutants";
 
 let jtm: any, jt: any, sdkObserve: any, realize: any, persistentId: any, exporter3: any;
@@ -38,7 +42,7 @@ beforeAll(async () => {
 async function exporterFor(path: string, { nk = true } = {}) {
   // exportModuleJS is always handed its runtime; _runtime is only its default
   const overrides: Record<string, unknown> = { pid: persistentId, acorn, _runtime: null };
-  if (nk) overrides.displayStateOf = jt.displayStateOf;
+  if (nk && INJECT_DISPLAY_STATE) overrides.displayStateOf = jt.displayStateOf;
   const m = await importNotebookModule(path, { overrides });
   const exportModuleJS = await m.value("exportModuleJS");
   return async (module: any, name = "@test/nk") =>

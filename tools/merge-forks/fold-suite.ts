@@ -10,6 +10,7 @@
 import { readFileSync } from "node:fs";
 import * as acorn from "acorn";
 import { blocks, blockContent, findSpan, guardedWrite } from "../lib/notebook-blocks.ts";
+import { analyse } from "./define-body.ts";
 
 const args = process.argv.slice(2);
 const opt = (flag: string) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : undefined; };
@@ -23,31 +24,6 @@ const suiteSrc = opt("--suite-js") ? readFileSync(opt("--suite-js")!, "utf8").re
 if (hostSrc == null) throw new Error(`${notebook} has no block ${host}`);
 if (suiteSrc == null) throw new Error(`no source for ${suite}`);
 
-type Stmt = { kind: "module" | "import" | "cell" | "other"; name?: string | null; pid?: string; module?: string; start: number; end: number; text: string };
-function analyse(src: string) {
-  const ast = acorn.parse(src, { ecmaVersion: "latest", sourceType: "module" }) as any;
-  const consts = new Map<string, { start: number; end: number; text: string }>();
-  let define: any;
-  for (const node of ast.body) {
-    if (node.type === "VariableDeclaration") for (const d of node.declarations) consts.set(d.id.name, { start: node.start, end: node.end, text: src.slice(node.start, node.end) });
-    if (node.type === "ExportDefaultDeclaration") define = node;
-  }
-  const str = (n: any) => (n?.type === "Literal" ? n.value : undefined);
-  const stmts: Stmt[] = define.declaration.body.body.map((s: any): Stmt => {
-    const base = { start: s.start, end: s.end, text: src.slice(s.start, s.end) };
-    const call = s.type === "ExpressionStatement" && s.expression.type === "CallExpression" ? s.expression : null;
-    const callee = call?.callee;
-    if (callee?.type === "MemberExpression" && callee.object.name === "main" && callee.property.name === "define") {
-      const name = str(call.arguments[0]);
-      if (call.arguments.length === 2 && name?.startsWith("module ")) return { ...base, kind: "module", name };
-      const deps = call.arguments[1];
-      if (deps?.type === "ArrayExpression" && str(deps.elements[1]) === "@variable") return { ...base, kind: "import", name, module: str(deps.elements[0]) };
-    }
-    if (callee?.type === "Identifier" && callee.name === "$def") return { ...base, kind: "cell", pid: str(call.arguments[0]), name: str(call.arguments[1]) ?? null };
-    return { ...base, kind: "other" };
-  });
-  return { consts, stmts, exportStart: define.start };
-}
 
 const h = analyse(hostSrc), s = analyse(suiteSrc);
 const hostNames = new Map(h.stmts.filter((x) => x.kind === "cell" || x.kind === "import").map((x) => [x.name, x]));

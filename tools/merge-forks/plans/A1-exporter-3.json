@@ -1,0 +1,26 @@
+{
+  "notebook": "lopecode/notebooks/@tomlarkworthy_exporter-3.html",
+  "module": "@tomlarkworthy/exporter-3",
+  "from": { "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html", "module": "@tomlarkworthy/exporter-4" },
+  "take": ["generate_definitions", "generate_define", "variableToDefinition", "variableToDefine"],
+  "add": [
+    { "pid": "_e4nkdoc", "after": "_u3aown" },
+    { "pid": "_e4nkx", "after": "_e4nkdoc" },
+    { "pid": "_e4nkh", "after": "_e4nkx" }
+  ],
+  "define": [
+    {
+      "pid": "_e3dso",
+      "name": "displayStateOf",
+      "deps": [],
+      "after": "_e4nkh",
+      "code": "const _e3dso = function _displayStateOf(){return(\nvariable => globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]?.get(variable)\n)};"
+    }
+  ],
+  "replace": [
+    [
+      "only written into a module that has such a cell.`",
+      "only written into a module that has such a cell.\n\n\\`displayStateOf\\` here reads js-toolchain's registry, \\`globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]\\`, instead of importing it, so a notebook with no Notebook Kit cells does not have to embed js-toolchain. The registry is a WeakMap from a head variable to its display state; js-toolchain creates it when it loads, so before that every lookup is \\`undefined\\` and every variable is written as a classic cell.`"
+    ]
+  ]
+}
