@@ -548,3 +548,8 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     - a Notebook Kit module that is not in a pane (conversion is eager, so it should load);
     - exporting the exporter-4 module itself;
     - the `import {}` row.
+
+- 2026-09-13: merging the forks back into their originals is planned in
+  `plan/merging-the-notebook-kit-forks.md`: tests on the originals first (the survey found 3 of 43
+  tested modules using ui-testing, none of them visualizer, exporter or cell-map), then exporter,
+  cell-map, visualizer, editor, lopepage in that order.
