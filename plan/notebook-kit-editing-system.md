@@ -284,3 +284,39 @@ new.observablehq.com to confirm vendored 2.5.6 matches the platform.
     it, as it skips anonymous classic cells under v1.
   - Not covered: parity with v1 on classic modules (gate: in a browser, M4), a cell inserted between
     existing ones, and a template edit reaching mounted nodes.
+- 2026-09-13, M3 editor-6 and the lopepage-3 fork written; headless editor-6 suite passes, browser
+  gate not run (needs M4). Both are gitignored working copies, as visualizer-2 is.
+  - `modules/@tomlarkworthy/lopepage-3.js`: lopepage-2 with six import lines moved to
+    `visualizer-2` and `editor-6`. lopepage-2 refers to itself only by DOM id (`#lopepage-2`) and in
+    prose, so nothing looks the module up by name.
+  - `modules/@tomlarkworthy/editor-6.js`: editor-5 with, as asserted exact-string edits:
+    - visualizer v1 no longer imported. `syncers` was only a keepalive reference in `auto_attach`;
+      `TRACE_CELL` had no reader.
+    - cell-map v1 → cell-map-2. editor-5's four readers take `viewof liveCellMap.value` inside
+      handlers without depending on the map, and cell-map-2 exports no viewof, so editor-6 defines a
+      constant `viewof liveCellMap` and a `liveCellMapFeed` cell (kept alive through `editor_jobs`)
+      that assigns cell-map-2's `liveCellMap` into it. `findCell` now carries `type` and `lang`.
+    - `cellLanguage(variables, cell)`: `js` when a variable has a display state from a plain
+      definition (not `autoview`/`automutable`, which are the ojs dialect, M5) or `lang` is exactly
+      `["js"]`; a new cell is `js` when any cell in its module is. This implements the provisional
+      default in M3 above.
+    - `decompile` is now a local dispatcher over `decompileOjs` and `decompileJs`, so editor-5's
+      three call sites are unchanged. A `defineCell` head reads `display`/`view` through shadow
+      variables that have no `_name`, so js decompile takes the head's input names from the recorded
+      definition.
+    - `compile_and_update` sends js cells to `defineJsCell`: `transpileJavaScript` → `realize` →
+      `defineCell`, keeping the cell's id or taking the module's next free one, a random pid for new
+      variables, placement after the anchor, and the caller's array filled in place
+      (`command_processor` reads `newVars[0]`).
+    - `editor_manager` uses `codemirror.javascript()` for js cells. The linter is kept: `lintSource`
+      walks the active language's syntax tree, so it reports JavaScript errors there. (A first draft
+      disabled it for js cells on the assumption that it parsed Observable JavaScript.)
+  - `tools/editor-6/editor-6.test.ts`: **8 pass, 0 fail**. Real js-toolchain and runtime-sdk cells,
+    observablejs-toolchain stubbed to record calls. Scenarios: a new cell in a js module (`cell 2`
+    plus `x`, pids, placed between its anchor and a later variable, `x` computes); an edit keeps the
+    head, renders both new `display` calls and decompiles to the typed source; a multi-declaration
+    edit grows projections in place; ojs cells and new cells in an ojs-only module reach the stub.
+    Four mutation controls each fail at least one scenario, including reading head inputs from
+    `_inputs`, which confirms the unnamed-shadow finding.
+  - Not covered: CodeMirror in a page, `viewof liveCellMap` consumers (copy, paste, move) against
+    cell-map-2's cell shape, and anything in the ojs dialect.
