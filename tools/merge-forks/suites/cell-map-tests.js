@@ -1,10 +1,4 @@
-const _cmt00 = function _cmt00(md) {return (md`## Consumer contract tests
-
-Written 2026-09-14, before cell-map-2 is merged into this module (T6 in \`plan/merging-the-notebook-kit-forks.md\`). Each test builds a throwaway module with runtime-sdk's \`createModule\`, in the compiled form an export writes: a named cell, an anonymous cell, a \`viewof\`, a \`mutable\`, and three imports from one library module, one of them aliased. The library is a module block added to the page for the test, and its loader is realized through the page's import hook, so the import variables have the shape a booted notebook gives them. It maps the cells with \`cellMap(variables, modules)\`, then deletes the module, the library's variables and the block.
-
-\`test_cellmap_contract_*\` pin what the importers read: visualizer (\`type\`, \`name\`, \`variables[0]\`, \`variables[2]\` of a mutable, \`module_name\` and \`importInfo\` of an import), editor-5 (\`variables\`, its head and its last variable), command-palette (\`name\`, \`type\`, \`variables[0]._definition\`). A merge has to keep them.
-
-\`test_cellmap_shape_*\` pin what this version does where cell-map-2 is known to differ. Their expected values are this version's; a merge that changes one changes the test with it, as a recorded decision.`);};
+const _cmt00 = function _cmt00(md) {return (md`## Consumer contract tests`);};
 const _cmt01 = function _cellMapFixture(createModule,deleteModule,runtime,realize,currentModules,cellMap) {
   let serial = 0;
   return async (fn) => {

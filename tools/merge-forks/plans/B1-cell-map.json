@@ -13,18 +13,6 @@
   ],
   "add": [
     {
-      "pid": "_doc3rul",
-      "after": "_1vhxngh"
-    },
-    {
-      "pid": "_doc4glu",
-      "after": "_doc3rul"
-    },
-    {
-      "pid": "_doc5imp",
-      "after": "_doc4glu"
-    },
-    {
       "pid": "_r0le0f",
       "after": "_17c6bac"
     },
@@ -131,6 +119,30 @@
     [
       "    expect(holding.map((c) => c.type)).toEqual([\"simple\", \"simple\"]);",
       "    // merge B (2026-09-14): one import cell from the start, holding the module variable and both imports\n    expect(holding.map((c) => c.type)).toEqual([\"import\"]);\n    expect([mv, k, j].every((x) => holding[0].variables.includes(x))).toBe(true);\n    expect(holding[0].importInfo.specifiers.map((s) => `${s.imported} as ${s.local}`).sort()).toEqual([\"a as k\", \"b as j\"]);"
+    ],
+    [
+      "const _cmt00 = function _cmt00(md) {return (md`## Consumer contract tests\n\nWritten 2026-09-14, before cell-map-2 is merged into this module (T6 in \\`plan/merging-the-notebook-kit-forks.md\\`). Each test builds a throwaway module with runtime-sdk's \\`createModule\\`, in the compiled form an export writes: a named cell, an anonymous cell, a \\`viewof\\`, a \\`mutable\\`, and three imports from one library module, one of them aliased. The library is a module block added to the page for the test, and its loader is realized through the page's import hook, so the import variables have the shape a booted notebook gives them. It maps the cells with \\`cellMap(variables, modules)\\`, then deletes the module, the library's variables and the block.\n\n\\`test_cellmap_contract_*\\` pin what the importers read: visualizer (\\`type\\`, \\`name\\`, \\`variables[0]\\`, \\`variables[2]\\` of a mutable, \\`module_name\\` and \\`importInfo\\` of an import), editor-5 (\\`variables\\`, its head and its last variable), command-palette (\\`name\\`, \\`type\\`, \\`variables[0]._definition\\`). A merge has to keep them.\n\n\\`test_cellmap_shape_*\\` pin what this version does where cell-map-2 is known to differ. Their expected values are this version's; a merge that changes one changes the test with it, as a recorded decision.`);};",
+      "const _cmt00 = function _cmt00(md) {return (md`## Consumer contract tests`);};"
     ]
+  ],
+  "define": [
+    {
+      "pid": "_doc3rul",
+      "name": "docs_algorithm",
+      "deps": [
+        "md"
+      ],
+      "code": "const _doc3rul = function _docs_algorithm(md){return(\nmd`## Algorithm\n\n\\`cellMap(variables, modules)\\` returns \\`Map<module, cell[]>\\`. It reads each variable's \\`_name\\`, \\`_type\\`, \\`_inputs\\`, \\`_module\\`, \\`_definition\\` and \\`_value\\`. For each module:\n\n1. Drop variables that are never cells: \\`_type === 2\\`, names starting \\`@\\`, names starting \\`dynamic \\`.\n2. Mark import cells: a variable named \\`module X\\`, or an unnamed or \\`cell N\\` variable whose definition loads a module.\n3. Give every other variable a role with \\`roleOf\\` (table below). A \\`body\\` roots a cell; a \\`builtin\\` is dropped.\n4. Union the rest into cells. An alias not yet run joins its \\`module X\\`. A variable with an input from another module joins the import cell that owns that output. Anything else joins its first named input in the same module.\n5. Sort cells by runtime order of their first member; an import cell by its first imported symbol. A variable with no owner is listed in \\`cells.unresolved\\`.\n\nEach cell is\n\n~~~js\n{\n  name,        // root variable name; a number if anonymous; \\`mutable m\\` for a mutable\n  module,      // name of the containing module\n  module_name, // on an import cell, the imported module's name; otherwise \\`module\\`\n  type,        // \"import\" | \"viewof\" | \"mutable\" | \"multi\" | \"simple\", from the members' roles\n  lang,        // [\"ojs\"], [\"js\"] or [\"ojs\", \"js\"]: the dialects that compile to this shape\n  head,        // the \\`mutable\\` variable of a mutable, else the first member\n  importInfo,  // {type, specifier, notebook, from, specifiers: [{imported, local}], meta: {variables}}, or null\n  variables    // members in runtime order\n}\n~~~\n\nState lives in three places. The runtime's variables are the only record of cell structure. \\`defInfo\\` caches what it reads from each definition in a \\`WeakMap\\` keyed by the definition function, so a redefined cell is read again. \\`viewof liveCellMap\\` holds the last map as its value; \\`maintain_live_cell_map\\` depends on \\`runtime_variables\\` and \\`currentModules\\`, recomputes on every variable add, redefine or delete, and dispatches \\`input\\`.`\n)};",
+      "after": "_1vhxngh"
+    },
+    {
+      "pid": "_doc4glu",
+      "name": "docs_glue",
+      "deps": [
+        "md"
+      ],
+      "code": "const _doc4glu = function _docs_glue(md){return(\nmd`## Glue shapes\n\n| role | pattern | origin |\n|---|---|---|\n| \\`shadow\\` | type 2, no name | \\`display\\`/\\`view\\` state, \\`define.ts:49,66\\` |\n| \\`builtin\\` | one input: the builtin of the same name | \\`module.js:61\\` |\n| \\`constant\\` | type 2, no inputs | \\`module.js:159\\` |\n| \\`import-alias\\` | an input from another module | \\`variable.js:202\\` |\n| \\`view-input\\` | \\`o\\` \u2190 \\`viewof$o\\` | \\`define.ts:78\\` |\n| \\`view-getter\\` | \\`o\\` \u2190 \\`viewof o\\` | legacy \\`(G, _) => G.input(_)\\` |\n| \\`mutator\\` | \\`cell N\\` \u2190 \\`mutable o\\`; \\`mutable o\\` \u2190 \\`initial o\\` | \\`define.ts:85\\`; legacy \\`new M(_)\\` |\n| \\`mutable-accessor\\` | \\`mutable$o\\` \u2190 \\`cell N\\`; \\`mutable o\\` \u2190 \\`mutator o\\` | \\`define.ts:86\\`; legacy |\n| \\`mutable-getter\\` | \\`o\\` \u2190 \\`cell N\\` holding \\`mutable o\\`; \\`o\\` \u2190 \\`mutable o\\` | \\`define.ts:82\\`; legacy |\n| \\`projection\\` | \\`o\\` \u2190 \\`cell N\\` | \\`define.ts:91\\`, and an import's output before it runs |`\n)};",
+      "after": "_doc3rul"
+    }
   ]
 }
