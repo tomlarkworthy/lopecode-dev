@@ -948,6 +948,22 @@ Both followed up (`.out/gateC3.log`):
   measurement passed `--module @tomlarkworthy/lopepage-2`, found no test cells, and printed nothing for
   18 runs; the tests are in `@tomlarkworthy/lopepage-2-tests`.
 
+  The failure is in the test. Running `--prefix test_lp2_add_module_wizard` alone, 3 runs each
+  (`.out/lp2-wizard-errors.log`):
+  ```
+  merged C copy     FAIL, FAIL, FAIL
+  control (no C)    FAIL, ok, FAIL
+    TypeError: Cannot read properties of null (reading 'closest')
+        at remember (ui-testing:59)  at Object.click (ui-testing:67)  at lopepage-2-tests:449
+    Expected value: "@lp2-tests/scratch"  Received array: ["@tomlarkworthy/runtime-sdk", "@tomlarkworthy/visualizer"]
+  ```
+  `test_lp2_add_module_wizard_creates_and_opens_a_module` reads
+  `document.querySelector("button.lp2-add-module")` and the name input once, when the scenario starts,
+  and passes the result to `t.click` without waiting. When the menu has not rendered yet, `plus` is
+  `null`. The second message is its later check that the new module is open in a pane. Proposed fix, not
+  applied because lopepage-2-tests is published: wait for the button and input the way the test's own
+  `until` helper already does for the pane, and fail with a named message if they never appear.
+
 Merge C applied to the lopecode visualizer canonical, byte-identical to the gated `viz-C.html`; the
 notebook also takes merge B's cell-map block, which every C gate ran against.
 
