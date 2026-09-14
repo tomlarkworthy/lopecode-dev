@@ -123,7 +123,9 @@ else {
 
 const edits = await page1.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
-  const editor = [...rt._variables].find((v: any) => v._name === "module @tomlarkworthy/editor-6" && v._value)?._value;
+  const moduleOf = (name: string) => [...rt._variables].find((v: any) => v._name === `module ${name}` && v._value)?._value;
+  const editorName = moduleOf("@tomlarkworthy/editor-6") ? "editor-6" : "editor-5";
+  const editor = moduleOf(`@tomlarkworthy/${editorName}`);
   const toolchain = rt.mains.get("@tomlarkworthy/js-toolchain");
   const [compileAndUpdate, displayStateOf] = await Promise.all([editor.value("compile_and_update"), toolchain.value("displayStateOf")]);
   const cellOf = (id: number) => {
@@ -135,10 +137,10 @@ const edits = await page1.evaluate(async () => {
   const a = await compileAndUpdate("k * n + 100", kn.variables, kn.cell);
   const c5 = cellOf(5);
   const b = await compileAndUpdate("viewof foo = Inputs.range([0, 10])", c5.variables, c5.cell);
-  return { a, b };
+  return { editor: editorName, a, b };
 });
 const edited = await waitForText(page1, "109");
-check("page 1: k * n recompiled to k * n + 100 renders 109, cell 5 switched to viewof foo", edited && (edits as any).a === "k * n + 100", edits);
+check(`page 1 (${(edits as any).editor}): k * n recompiled to k * n + 100 renders 109, cell 5 switched to viewof foo`, edited && (edits as any).a === "k * n + 100", edits);
 await page1.waitForTimeout(1000);
 
 const before = await fingerprint(page1, DEMO);
@@ -164,7 +166,8 @@ check("E0: rendered cells equal after save -> reload", JSON.stringify(after.rend
 
 const decompiled = await page2.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
-  const editor = [...rt._variables].find((v: any) => v._name === "module @tomlarkworthy/editor-6" && v._value)?._value;
+  const moduleOf = (name: string) => [...rt._variables].find((v: any) => v._name === `module ${name}` && v._value)?._value;
+  const editor = moduleOf("@tomlarkworthy/editor-6") ?? moduleOf("@tomlarkworthy/editor-5");
   const toolchain = rt.mains.get("@tomlarkworthy/js-toolchain");
   const [decompile, displayStateOf] = await Promise.all([editor.value("decompile"), toolchain.value("displayStateOf")]);
   const head = [...rt._variables].find((v: any) => displayStateOf(v)?.definition?.id === 4);

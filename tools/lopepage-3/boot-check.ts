@@ -59,7 +59,7 @@ check("lopepage-3 mounts its page", mounted);
 const nkNodes = await page.waitForFunction(() => document.querySelectorAll(".lope-viz .lope-viz-nk").length >= 5, undefined, { timeout: 30000 })
   .then(() => true, () => false);
 const texts = await page.evaluate(() => [...document.querySelectorAll(".lope-viz .lope-viz-nk")].map((n) => n.textContent ?? ""));
-check("visualizer-2 renders the five Notebook Kit cells", nkNodes, texts);
+check("the visualizer renders the five Notebook Kit cells", nkNodes, texts);
 check("display() twice appends both outputs", texts.some((t) => t.includes("n is 3") && t.includes("twice that is 6")), texts);
 
 // Drag, straight after boot: the display() cell dragged by its hotbar to below `k * n` moves there, and
@@ -113,9 +113,11 @@ check("view() feeds its reader: k = 7 gives k * n = 21", slid === "ok", slid);
 const edit = await page.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
   const find = (name: string) => [...rt._variables].find((v: any) => v._name === name && v._value)?._value;
-  const editor = find("module @tomlarkworthy/editor-6");
+  // editor-6 in the fork notebook, editor-5 once merged
+  const editorName = find("module @tomlarkworthy/editor-6") ? "editor-6" : "editor-5";
+  const editor = find(`module @tomlarkworthy/${editorName}`);
   const toolchain = find("module @tomlarkworthy/js-toolchain") ?? rt.mains?.get?.("@tomlarkworthy/js-toolchain");
-  if (!editor || !toolchain) return { error: `editor-6 ${!!editor}, js-toolchain ${!!toolchain}` };
+  if (!editor || !toolchain) return { error: `${editorName} ${!!editor}, js-toolchain ${!!toolchain}` };
   const compileAndUpdate = await editor.value("compile_and_update");
   const displayStateOf = await toolchain.value("displayStateOf");
   const head = [...rt._variables].find((v: any) => displayStateOf(v)?.definition?.id === 2);
@@ -125,9 +127,9 @@ const edit = await page.evaluate(async () => {
   const source = 'display("edited " + n);';
   const out = await compileAndUpdate(source, variables, { module: { module: head._module, cells: [] }, variables, lang: ["ojs", "js"] });
   for (let i = 0; i < 50 && !(state.root.textContent ?? "").includes("edited 3"); i++) await new Promise((r) => setTimeout(r, 50));
-  return { out, sameHead: variables[0] === head, text: state.root.textContent, connected: state.root.isConnected };
+  return { editor: editorName, out, sameHead: variables[0] === head, text: state.root.textContent, connected: state.root.isConnected };
 });
-check("editor-6 compile_and_update edits a js cell in place and returns its source",
+check(`${(edit as any).editor ?? "editor"} compile_and_update edits a js cell in place and returns its source`,
   (edit as any).out === 'display("edited " + n);' && (edit as any).sameHead && String((edit as any).text).includes("edited 3") && (edit as any).connected, edit);
 
 // Through the UI: the hotbar under the `k * n` cell opens CodeMirror on the decompiled source, and
@@ -187,7 +189,8 @@ const ojs = await (async () => {
     return {
       index: cells.indexOf(node), nk: node.classList.contains("lope-viz-nk"), range: !!node.querySelector("input[type=range]"),
       pid: node.variable.pid, source: (editor.textContent ?? "").trim(), foo: foo?._value,
-      cell5: [...rt._variables].some((v: any) => v._name === "cell 5" || v._name === "total")
+      // same module only: ui-testing, imported by the merged visualizer and editor-5, has its own `total`
+      cell5: [...rt._variables].some((v: any) => (v._name === "cell 5" || v._name === "total") && v._module === node.variable._module)
     };
   }, undefined, { timeout: 10000 }).then((h) => h.jsonValue(), () => null);
   return { before, after };

@@ -1,0 +1,14 @@
+{
+  "notebook": "tools/merge-forks/.out/E2-lp3.html",
+  "module": "@tomlarkworthy/lopepage-3",
+  "repointImports": [
+    [
+      "@tomlarkworthy/editor-6",
+      "@tomlarkworthy/editor-5"
+    ],
+    [
+      "@tomlarkworthy/visualizer-2",
+      "@tomlarkworthy/visualizer"
+    ]
+  ]
+}

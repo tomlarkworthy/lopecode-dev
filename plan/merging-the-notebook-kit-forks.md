@@ -1101,8 +1101,39 @@ original bullet: cell-map kept its cells and took cell-map-2's `cellMap` (see "M
   editor-5 canonical is unchanged.
 
 **E. lopepage-2 takes lopepage-3's two lines.** Applied, `lopecode@6de5b80`.
-- The notebook-kit demo is still a lopepage-3 notebook; it has not been repointed at the originals.
-- Gate run: lopepage-2 `--run-tests`. Boot-check and save-reload-check on the demo not run.
+- The notebook-kit demo is still a lopepage-3 notebook on the forks in the repo. A copy repointed at the
+  merged originals passes its gates (below); applying it to the demo is left for Tom.
+- Gate run: lopepage-2 `--run-tests`; boot-check and save-reload-check on the repointed copy.
+
+**E2. The demo on the merged originals, as a copy (2026-09-14).** `tools/merge-forks/repoint-lopepage-3.sh`
+builds `.out/E2-lp3.html` from `lopebooks/notebooks/@tomlarkworthy_lopepage-3.html`:
+
+- **Replaced:** `cell-map` with the lopecode canonical.
+- **Carried in:** `ui-testing`, `visualizer`, and `editor-5` with its `cell_options.json`.
+- **Repointed** (`plans/E2-lopepage-3.json`), in the lopepage-3 module: editor-6 → editor-5 in 4
+  statements, visualizer-2 → visualizer in 2.
+- **Removed:** `editor-6`, its `cell_options.json`, `visualizer-2` and `cell-map-2`, 147164 bytes.
+  `rm-blocks.ts` refuses to remove a block that is still imported.
+
+```
+                       control (demo as committed)   repointed copy
+preflight              2 unused-dep                  the same 2
+boot-check.ts          11 pass                       11 pass
+save-reload-check.ts   9 pass (E8 not run)           9 pass (E8 not run)
+```
+
+The gate scripts named editor-6. They now try editor-6, then editor-5, and each label says which editor it
+found. One boot-check assertion searched every module for a variable named `total`. The carried ui-testing
+module defines its own `total`, so the merged copy failed that assertion (10/11) until the search was
+limited to the edited cell's module. Probe logs: `.out/E2-probe-total*.log`.
+
+This is the first run of editor-5's language routing on real Notebook Kit cells in a browser. It
+covers both edits and a save → reload. It is not T2 on a classic notebook.
+
+Applying the repoint to the demo removes editor-6 and visualizer-2 from the only notebook that holds them;
+neither is declared in `modules/canonical.json`. That, and whether the frame becomes lopepage-2, are Tom's
+call. `js-toolchain` in the demo also differs from its declared canonical (42596 vs 34304 characters);
+it was left alone.
 
 A is independent of the rest. As applied, D reads neither cell-map-2 nor `vizSynced`: `auto_attach` still
 waits on `syncers`, which merge C made `vizSynced`, so C and D are independent of each other too.
