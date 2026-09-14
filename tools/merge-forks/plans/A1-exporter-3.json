@@ -13,12 +13,8 @@
   ],
   "add": [
     {
-      "pid": "_e4nkdoc",
-      "after": "_u3aown"
-    },
-    {
       "pid": "_e4nkx",
-      "after": "_e4nkdoc"
+      "after": "_u3aown"
     },
     {
       "pid": "_e4nkh",
@@ -33,5 +29,15 @@
       "name": "displayStateOf",
       "module": "@tomlarkworthy/js-toolchain"
     }
+  ],
+  "replace": [
+    [
+      "it works on the low level reprentation directly.",
+      "it works on the low level reprentation directly, which has allowed us to added support for Notebook 2.0 syntax."
+    ],
+    [
+      "## Round-trip tests\n\nWritten 2026-09-13, before exporter-4 is merged into this module (T1 in \\`plan/merging-the-notebook-kit-forks.md\\`). They pin what \\`exportModuleJS\\` has to preserve: a module exported and loaded into a fresh runtime has the same variables in the same order, with the same names, pids, inputs and definitions, and exporting the loaded copy reproduces the source byte for byte.\n\n\\`test_exportModuleJS_round_trip\\` builds its fixture in a throwaway \\`Runtime\\`: a plain cell with a fixed pid, an anonymous cell, a \\`viewof\\`, a \\`mutable\\` and an import from a second module. \\`test_exportModuleJS_every_page_module_loads\\` exports every named module on this page, parses it with acorn, and loads it into a fresh runtime without computing anything.",
+      "## Round-trip tests"
+    ]
   ]
 }
