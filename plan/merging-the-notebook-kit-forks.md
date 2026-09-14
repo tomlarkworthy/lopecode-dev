@@ -1220,6 +1220,89 @@ run-suite, no flag                              17 skipped
 Still branch-only: D (editor-5), A1 (exporter-3), the cell-map test flag, and the lopepage-3 demo repoint.
 Visualizer consumers other than the canonical are not swept.
 
+#### exporter-3 forks from observablehq.com, pushed and merged to main (2026-09-14)
+
+Tom pressed Fork on `observablehq.com/@tomlarkworthy/exporter-3`, which runs Notebook Kit. It failed twice, and
+each failure was a separate cause:
+
+```
+fork 1   nkShape = RuntimeError: DVF 404 …        the page's normalize/networking_script predated the fix
+fork 2   nkShape = RuntimeError: Failed to construct 'URL': Invalid URL
+fork 3   nkShape = ƒ(definition) … test_networking_script_resolves_in_a_blob_fork = "ok"
+```
+
+Fork opens the export with `window.open(URL.createObjectURL(blob))`. Notebook Kit's import cell runs
+`import(new URL("/api/import/<slug>", document.baseURI))`, and a `blob:` URL cannot be a base, so it throws. The
+repro, `scratchpad/e3/fork-blob.ts`, loads Tom's downloaded fork (`scratch/@tomlarkworthy_exporter-3_20260914T141841Z.html`)
+in Chromium through a real `blob:` navigation, one arm per candidate fix:
+
+```
+arm                                      result
+resolver only                            Invalid URL
+resolver + document.baseURI getter       url.replace is not a function (import passes a URL object)
+  + String(id)                           cell 17077, acorn, nkShape, displayStateOf resolve
+resolver + <base href>                   resolves; <a href="#view=x"> becomes https://lopecode.invalid/#view=x
+resolver + URL subclass + String(id)     resolves; baseURI and links stay blob:; 0 errored of 1146
+```
+
+Two rejected, for different reasons. `<base>` rewrites hash links. The page-wide `document.baseURI` getter, the
+first fix patched into Tom's tab, passed the repro, but a corpus scan found five cells that read
+`document.baseURI`, and lopepage-urls `linkTo` builds `new URL(baseURI)` links: in a forked lopepage notebook
+they would point at `https://lopecode.invalid/`. local-change-history's branch name and robocoop-2's
+localStorage key would change too. The kept fix is a `URL` subclass installed only in `blob:` documents: it swaps
+the base only when `new URL(url, blobBase)` would throw, to the blob's origin (or `https://lopecode.invalid`
+for `blob:null`, a fork from `file://`). Every call that parsed before returns the same value.
+
+`test_networking_script_resolves_in_a_blob_fork` is in the module. It boots the generated script in a `blob:`
+iframe, which reports back by `postMessage`, because from a `file://` page the frame is cross-origin (its first
+version read `frame.contentWindow` and failed in run-suite with a SecurityError). Mutants, on the live page:
+
+```
+networking_script           test
+with the fix                passes
+without the URL subclass    TypeError: Failed to construct 'URL': Invalid URL
+without String(id)          TypeError: url.replace is not a function
+```
+
+The same session's Notebook Kit export work is in this block: `nkCellStates` rebuilds each Notebook Kit cell's
+js-toolchain definition from its variables, import cells stay `cell N` with their body (Tom's choice), and
+`nkImportedModuleNames` names the modules they load. `tools/newobs-replica/exporter-3-on-notebook-kit.test.ts`
+(6 tests, 5 fail on the pre-fix canonical) covers it headlessly. `notebook_name` takes Tom's Observable
+version (`isOnObservableCom` from runtime-sdk).
+
+Tom, after fork 3: "we fixed one set of problems so its worth pushing to obvservable and merging to main now".
+
+```
+gate                                                    result
+exporter-3-on-notebook-kit.test.ts                      6/6
+exporter-4.test.ts (DONOR = pre-merge-A lopepage-3)     9/9
+run-suite, branch canonicals lopecode and lopebooks     15/15, 15/15
+preflight, branch sync                                  0 new, 0 resolved
+Observable push, version 17258 -> 17282                 24 cells equal their dump; cellwise-diff empty
+run-suite, main builds lopecode and lopebooks           15/15, 15/15
+preflight, main builds vs the files they replace        identical finding sets
+```
+
+The push was 15 `modify_node` and 9 `insert_node` (`scratchpad/e3/push-nk-fork.mjs`). The first run found the
+saved cookies expired (`/user` returned `null`, the socket answered `{"type":"error"}` and closed 1006); with
+Tom's fresh cookies, the second died on a DNS failure after v17265; the third resumed from 17265, skipping
+cells already equal to the dump.
+
+Commits: branch `lopecode@0179fab`, `lopebooks@eb793d97`; main `lopecode@15c041c`, `lopebooks@d3a76e69`. Each main
+file is main's file with only the exporter-3 block, js-toolchain and its gz attachment swapped in, and equals
+the branch file outside `bootconf.json`. Main's working trees held another session's uncommitted inspector,
+tests and (lopecode) lopepage-2 edits in these files; the commits were written to the index only and the
+working trees keep those edits on top of the new blocks.
+
+Not done:
+- **Rendering.** In fork 3 only the cells patched in as plain variables render. The 112 Notebook Kit cells export
+  with js-toolchain display state, and a bare export has no visualizer to put them on the page. Unverified
+  beyond the variable count; Tom: "we need to come back into how to get it to render by default".
+- **lopepage-3** carries the new block on the branch but is uncommitted: the lopebooks hook reports two
+  `unused-dep` findings in its file-sync (`jbApply`) and dataflow-templating (`instancingCost`) copies. Both are
+  present at `lopebooks@1ab7dbce` and absent from the baseline for that notebook.
+- Download from the fork was not tested. No consumer beyond the canonicals is swept. Nothing is pushed to git.
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**

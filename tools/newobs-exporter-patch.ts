@@ -1,6 +1,6 @@
 // In-flight test of an exporter-3 working-copy fix on a live Observable page: redefine the named
 // cells from modules/@tomlarkworthy/exporter-3.js, then click Download and the `downloadable` anchor.
-// usage: bun tools/newobs-exporter-patch.ts <url> [settleMs]   NO_PATCH=1 for the baseline, SAVE_DIR=… keeps html
+// usage: bun tools/newobs-exporter-patch.ts <url> [settleMs]   NO_PATCH=1 for the baseline, SAVE_DIR=… keeps html, READ=a,b prints cells
 import { chromium } from "playwright";
 const url = process.argv[2] ?? "https://observablehq.com/@tomlarkworthy/exporter-3";
 const settle = Number(process.argv[3] ?? 25000);
@@ -14,7 +14,9 @@ const src = srcFile.endsWith(".html")
 const cell = (pid: string) => {
   const start = src.indexOf(`\nconst ${pid} = `);
   if (start < 0) throw new Error(`no cell ${pid}`);
-  const end = src.indexOf("\nconst ", start + 1);
+  // the last cell is followed by the module's define, not another const
+  const ends = ["\nconst ", "\nexport default function define("].map((m) => src.indexOf(m, start + 1)).filter((i) => i > 0);
+  const end = Math.min(...ends);
   const body = src.slice(start + 1, end).replace(`const ${pid} = `, "").trim().replace(/;$/, "");
   if (!/^(async\s+)?(function\b|\(|[\w$]+\s*=>)/.test(body)) throw new Error(`bad slice ${pid}`);
   return body;
@@ -25,7 +27,7 @@ const pidOf = (name: string) => {
   if (!m) throw new Error(`no $def for ${name} in ${srcFile}`);
   return m[1];
 };
-const patch = (process.env.CELLS
+const patch = process.env.NO_PATCH ? [] : (process.env.CELLS
   ? process.env.CELLS.split(",").map((name) => ({ name, pid: pidOf(name) }))
   : [
     { name: "isNotebookKitModule", pid: "_1k9nbk2" },
@@ -64,6 +66,15 @@ const nk = await frame.evaluate(() => {
   return { isNotebookKitModule: v ? (typeof v._value === "function" && m ? v._value(m._value) : String(v._error ?? v._value)) : "absent" };
 });
 console.log(nk);
+// READ=a,b prints those cells' settled values (a test cell's "ok: …" or its error)
+for (const name of (process.env.READ ?? "").split(",").filter(Boolean)) {
+  console.log(`${name}:`, await frame.evaluate(async (name) => {
+    const v = [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === name && v._module?._scope?.has("exportModuleJS"));
+    if (!v) return "absent";
+    const value = await Promise.race([v._module.value(name).then((x: any) => String(x).slice(0, 400), (e: any) => `ERROR ${String(e?.message ?? e).slice(0, 400)}`), new Promise((r) => setTimeout(() => r("pending after 60s"), 60000))]);
+    return value;
+  }, name));
+}
 const results: any = {};
 for (const [arm, loc] of [
   ["button", frame.locator(".moldbook-exporter button", { hasText: "Download" }).first()],

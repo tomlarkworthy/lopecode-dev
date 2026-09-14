@@ -14,11 +14,10 @@ import { importNotebookModule } from "../notebook-import.ts";
 import { blockContent } from "../lib/notebook-blocks.ts";
 import { nkRuntime, settle, snap } from "../js-toolchain/runtime/display-scenarios.ts";
 
-// EXPORTER names another exporter module file to test (merge A: exporter-3 with exporter-4 merged in). Such
-// a file reads js-toolchain's display-state registry itself, so displayStateOf is not injected into it.
+// EXPORTER names another exporter module file to test (merge A: exporter-3 with exporter-4 merged in). It imports
+// displayStateOf from js-toolchain, which cannot load headless, so the registry is injected as for exporter-4.
 // DONOR names the notebook whose exporter-3 block is the classic-cell reference.
 const E4 = process.env.EXPORTER ?? "modules/@tomlarkworthy/exporter-4.js";
-const INJECT_DISPLAY_STATE = !process.env.EXPORTER;
 const DONOR = process.env.DONOR ?? "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html";
 const OUT = "tools/exporter-4/.mutants";
 
@@ -42,7 +41,7 @@ beforeAll(async () => {
 async function exporterFor(path: string, { nk = true } = {}) {
   // exportModuleJS is always handed its runtime; _runtime is only its default
   const overrides: Record<string, unknown> = { pid: persistentId, acorn, _runtime: null };
-  if (nk && INJECT_DISPLAY_STATE) overrides.displayStateOf = jt.displayStateOf;
+  if (nk) overrides.displayStateOf = jt.displayStateOf;
   const m = await importNotebookModule(path, { overrides });
   const exportModuleJS = await m.value("exportModuleJS");
   return async (module: any, name = "@test/nk") =>
@@ -163,12 +162,14 @@ describe("exporter-4", () => {
 
 // Mutation controls: each deliberate break must fail at least one scenario.
 const MUTANTS: [string, string, string][] = [
-  ["exported variables written as classic cells", "variables => new Set(variables.flatMap(v => displayStateOf(v)?.variables.slice(1) ?? []))", "variables => new Set()"],
+  ["exported variables written as classic cells", ...(process.env.EXPORTER
+    ? ["(variables, states) => new Set(variables.flatMap(v => (states?.get(v) ?? displayStateOf(v))?.variables.slice(1) ?? []))", "(variables, states) => new Set()"]
+    : ["variables => new Set(variables.flatMap(v => displayStateOf(v)?.variables.slice(1) ?? []))", "variables => new Set()"]) as [string, string]],
   ["exported variables not handed to $nk", "JSON.stringify(state.variables.slice(1).map(e => [pid(e), e._name]))", "'[]'"],
   ["head pid not restored", "    head.pid = pid;\n", "    void pid;\n"],
   ["exported variable pids not restored", "extra.pid = extraPid;", "void extraPid;"],
   ["defineCell given fresh variables", "defineCell(main, definition, { variables });", "defineCell(main, definition);"],
-  ["head written from its body function", "  const state = displayStateOf(v);\n  if (state) {", "  const state = displayStateOf(v);\n  if (false) {"],
+  ["head written from its body function", "  if (state) {\n    const {body, ...definition} = state.definition;", "  if (false) {\n    const {body, ...definition} = state.definition;"],
   ["$nk helper written into every module", "${ nk ? nkHelper : '' }", "${ nkHelper }"]
 ];
 
