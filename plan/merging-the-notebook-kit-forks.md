@@ -904,6 +904,37 @@ Open at this point: whether `test_lp2_add_module_filters_the_known_modules` also
 nodes are a counting change or a layout loss. Those four cells are each `visualizer(runtime, {detachNodes:
 true, ...})` whose element GoldenLayout adopts into a panel.
 
+Both followed up (`.out/gateC3.log`):
+
+- **moldable-webpage: counting.** v1 skipped a variable only when `visualizers.has(v._value)`, a set of
+  inner roots, while the cell's value is the outer wrapper, so v1 drew an empty node for each. v2's
+  `vizPaneSync` skips any value that is a `.lopecode-visualizer` with `detachNodes`. In both copies all
+  four elements are connected under `lm_content` at the same sizes (header 1200x34, left_sidebar 209x34,
+  right_sidebar 347x34, content 834x34), and the two screenshots are identical (`.out/moldable-*.png`).
+  The panels render empty in both; not merge C.
+- **lopepage-2 wizard tests: open.**
+  ```
+  control (lopepage-2 working tree, no tests in its visualizer)   207/210, 207/210   no wizard failure
+  merged C copy, #lp2_tests&viz_tests                             223/227, 223/227
+     run 1: test_lp2_add_module_filters_the_known_modules timeout
+     run 2: test_lp2_add_module_wizard_creates_and_opens_a_module timeout
+  ```
+  A different wizard test each run, and merge E recorded these as flaky on both copies. The merged copy
+  also queues 17 more scenarios on ui-testing's one serial queue, so it ran twice more with `#lp2_tests`
+  only (visualizer tests return `skipped:`):
+  ```
+  merged C copy, #lp2_tests      224/227 (no wizard failure), 223/227 (wizard_creates_and_opens_a_module)
+  ```
+  Runs with a wizard timeout, all at `--test-timeout 60000`: merged C 3 of 4 after the fix (and 1 of 1
+  before it), control 0 of 2. Merge E's own 9 runs put the same test at 4 of 9 with E and 2 of 9 on HEAD,
+  and the control here already contains E. The queue is not the cause (it fails without the visualizer
+  tests), and the counts do not separate a slowdown under visualizer-2 panes from the known flake. The
+  JSON carries no durations. Next measurement if it matters: `run-suite --prefix test_lp2_add_module`
+  interleaved, 9 runs each, recording each test's ms. lopepage-2's canonical is unchanged by merge C.
+
+Merge C applied to the lopecode visualizer canonical, byte-identical to the gated `viz-C.html`; the
+notebook also takes merge B's cell-map block, which every C gate ran against.
+
 ### Merge E: lopepage-2 took lopepage-3's selector (applied in the worktree, 2026-09-14)
 
 `tools/merge-forks/plans/E-lopepage-2.json` takes `lp2_page` from lopepage-3 by pid (`_1y1ubko`): one CSS
@@ -1055,24 +1086,26 @@ original bullet: cell-map kept its cells and took cell-map-2's `cellMap` (see "M
 - Settle which name survives (Open decisions, 3), then sweep the importers.
 - Gate: T6, T7, T4, T8, and the cell-map-2 suites.
 
-**C. visualizer takes visualizer-2.**
-- Either shim the eight removed exports, or migrate their importers: editor-5 (a merge D problem
-  anyway), lopepage v1 (12 notebooks) and moldable-webpage (1).
-- Gate: T3 on both versions, T4, and lopepage-2-tests.
+**C. visualizer takes visualizer-2.** Applied 2026-09-14, `lopecode@e9ae198` (see "Merge C" above).
+- ~~Either shim the eight removed exports, or migrate their importers~~: the v1 cells importers read are
+  kept, `syncers` is `vizSynced`.
+- Gate run: T3 17/17 plus a mutant, T5 and `--run-tests` on editor-5 and lopepage-2 copies, node probes on
+  quick_start and moldable-webpage. T4 `--check` not rerun after C.
+- Consumers not swept: a sweep must carry ui-testing and refresh moldable-webpage's dataflow-templating.
 
-**D. editor-5 takes editor-6.**
-- Carries js-toolchain and cell-map-2 into every notebook that has editor-5 (242). Carrying them in
-  follows `sync-module --carry-deps`, and every carried block is a missing-import risk until preflight
-  passes.
-- Needs Open decision 2 first.
-- Gate: T5, `tools/editor-6/editor-6.test.ts`, boot-check, and T2.
+**D. editor-5 takes editor-6.** Applied 2026-09-14 to the lopebooks canonical, `lopebooks@25c445e3`.
+- ~~Carries js-toolchain and cell-map-2 into every notebook that has editor-5 (242)~~: nothing is
+  carried. js-toolchain is read from the instantiated module at call time; the map is cell-map's.
+- Decision 2 taken as the guard (routing to js only in a module already holding a Notebook Kit cell).
+- Gate run: T5, `--run-tests`, `tools/merge-forks/editor-5-merge-D.test.ts`. T2 not run. The lopecode
+  editor-5 canonical is unchanged.
 
-**E. lopepage-2 takes lopepage-3's two lines.**
-- The notebook-kit demo becomes a lopepage-2 notebook.
-- Gate: lopepage-2-tests, boot-check and save-reload-check on that notebook.
+**E. lopepage-2 takes lopepage-3's two lines.** Applied, `lopecode@6de5b80`.
+- The notebook-kit demo is still a lopepage-3 notebook; it has not been repointed at the originals.
+- Gate run: lopepage-2 `--run-tests`. Boot-check and save-reload-check on the demo not run.
 
-A is independent of the rest. B must land before D, because editor-6 reads cell-map-2's map. C must
-land with or before D, because editor-6's `auto_attach` waits on visualizer-2's `vizSynced`.
+A is independent of the rest. As applied, D reads neither cell-map-2 nor `vizSynced`: `auto_attach` still
+waits on `syncers`, which merge C made `vizSynced`, so C and D are independent of each other too.
 
 ## Open decisions for Tom
 
