@@ -929,8 +929,24 @@ Both followed up (`.out/gateC3.log`):
   before it), control 0 of 2. Merge E's own 9 runs put the same test at 4 of 9 with E and 2 of 9 on HEAD,
   and the control here already contains E. The queue is not the cause (it fails without the visualizer
   tests), and the counts do not separate a slowdown under visualizer-2 panes from the known flake. The
-  JSON carries no durations. Next measurement if it matters: `run-suite --prefix test_lp2_add_module`
-  interleaved, 9 runs each, recording each test's ms. lopepage-2's canonical is unchanged by merge C.
+  JSON carries no durations. lopepage-2's canonical is unchanged by merge C.
+
+  **Closed, 2026-09-14: not merge C.** `run-suite --module @tomlarkworthy/lopepage-2-tests --prefix
+  test_lp2_add_module --hash lp2_tests`, 9 runs each, control and merged copy interleaved
+  (`.out/lp2-wizard9.log`):
+  ```
+                                        control (E, no C)   merged C copy
+  wizard_creates_and_opens_a_module     5/9                 6/9
+  filters_the_known_modules             7/9                 8/9
+  opens_an_existing_module              9/9                 9/9
+  offers_create_when_nothing_matches    9/9                 9/9
+  failures                              6                   4
+  ```
+  Under `run-suite` both fail as FAIL rather than timeout. The per-test ms (1-4 ms) is not a duration:
+  the tests compute during run-suite's 8 s boot wait, before its clock starts. The same two wizard tests
+  fail on both copies at similar rates, which matches merge E's record. The first attempt at this
+  measurement passed `--module @tomlarkworthy/lopepage-2`, found no test cells, and printed nothing for
+  18 runs; the tests are in `@tomlarkworthy/lopepage-2-tests`.
 
 Merge C applied to the lopecode visualizer canonical, byte-identical to the gated `viz-C.html`; the
 notebook also takes merge B's cell-map block, which every C gate ran against.
@@ -1097,8 +1113,14 @@ original bullet: cell-map kept its cells and took cell-map-2's `cellMap` (see "M
 - ~~Carries js-toolchain and cell-map-2 into every notebook that has editor-5 (242)~~: nothing is
   carried. js-toolchain is read from the instantiated module at call time; the map is cell-map's.
 - Decision 2 taken as the guard (routing to js only in a module already holding a Notebook Kit cell).
-- Gate run: T5, `--run-tests`, `tools/merge-forks/editor-5-merge-D.test.ts`. T2 not run. The lopecode
-  editor-5 canonical is unchanged.
+- Gate run: T5, `--run-tests`, `tools/merge-forks/editor-5-merge-D.test.ts`, and E2's save-reload-check
+  on the repointed demo. The lopecode editor-5 canonical is unchanged.
+- T2, 2026-09-14: `classic-save-reload-check.ts` on the exporter-3 notebook from lopecode HEAD, and on a
+  copy with merge D's editor-5 swapped in and ui-testing carried in. Preflight is the same 2 `unused-dep`
+  on both. Result: 14/14 on both (`.out/T2D-exporter-3*-T2.log`). editor-5 is not one of that notebook's
+  mains, so the equality checks cover save-in-place, module-selection, lopepage-2 and exporter-3. What
+  passes is "carrying merged editor-5 changes nothing in a classic save -> reload and adds no page error",
+  not an edit made through editor-5.
 
 **E. lopepage-2 takes lopepage-3's two lines.** Applied, `lopecode@6de5b80`.
 - The notebook-kit demo is still a lopepage-3 notebook on the forks in the repo. A copy repointed at the
