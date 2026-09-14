@@ -191,6 +191,14 @@
     [
       "md`### background jobs and keep alive`",
       "md`### module handle`"
+    ],
+    [
+      "function _vizPaneTemplate(lookupVariable,visualizerModule,vizRoot,vizModule,vizFilter,vizInspector,vizDetachNodes,vizPaneCells,vizPaneState,vizPaneSync)\n{\n  [vizRoot, vizModule, vizFilter, vizInspector, vizDetachNodes, vizPaneCells, vizPaneState, vizPaneSync];\n",
+      "function _vizPaneTemplate(lookupVariable,visualizerModule)\n{\n  // no value deps: instantiateDataflow copies each definition when a pane is made and watch re-syncs edits,\n  // while a dep on vizPaneCells re-ran visualizer, and every cell depending on it, on each cell-map change\n"
+    ],
+    [
+      "$def(\"_v2ptpl\", \"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\",\"vizRoot\",\"vizModule\",\"vizFilter\",\"vizInspector\",\"vizDetachNodes\",\"vizPaneCells\",\"vizPaneState\",\"vizPaneSync\"], _v2ptpl);",
+      "$def(\"_v2ptpl\", \"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\"], _v2ptpl);"
     ]
   ]
 }

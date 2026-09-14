@@ -1,0 +1,10 @@
+{
+  "target": "@tomlarkworthy/visualizer",
+  "mutants": [
+    [
+      "C vizPaneTemplate depends on the pane cells' values (visualizer recomputes on every cell-map change)",
+      "$def(\"_v2ptpl\", \"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\"], _v2ptpl);",
+      "$def(\"_v2ptpl\", \"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\",\"vizRoot\",\"vizModule\",\"vizFilter\",\"vizInspector\",\"vizDetachNodes\",\"vizPaneCells\",\"vizPaneState\",\"vizPaneSync\"], _v2ptpl);"
+    ]
+  ]
+}

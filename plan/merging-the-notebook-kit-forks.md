@@ -833,6 +833,77 @@ handed back and later changes neither add nor update nodes, which is weaker. `sy
 pane sync instead of once per `liveCellMap` change, so editor-5 reattaches more often with several panes.
 v2 has only run against cell-map-2's plain `liveCellMap`, not cell-map's view.
 
+**First browser gate, 2026-09-14 (`.out/gateC1.log`): T3 0/17.** Every test PENDING at 180 s, under both
+`run-suite` and `--run-tests`. A copy of editor-5 carrying the merged block reported the same 17 tests
+passed, but it ran with `#e5_tests` and no `&viz_tests`, so each returned its `skipped:` string. That pass
+is not evidence and nothing so far has run these tests against v2.
+
+Narrowing it down, one probe at a time on `viz-C.html` (`.out/probe-*.ts`):
+
+```
+every non-test visualizer variable forced          all resolve, no page errors
+visualizer mounted from page.evaluate              renders "a = 1"; ui.settle() resolves before and after
+vt.scenario(trivial) / vt.scenario(fixture+mount)  resolved "trivial" / resolved "a"
+m.value("test_viz_renders_cells_in_runtime_order") PENDING at 45 s
+  that variable's _version                         451  (working-tree visualizer: 4)
+```
+
+A test that resolves when called and never resolves as a cell is being restarted. `_version` over 10 s:
+
+```
+                     #viz_tests     no hash
+liveCellMap           80 -> 175     20 -> 20
+vizPaneCells          79 -> 174     19 -> 19
+vizPaneSync           80 -> 175     19 -> 19
+vizPaneTemplate       80 -> 175     19 -> 19
+visualizer            80 -> 175     19 -> 19
+vt                    80 -> 175     19 -> 19
+```
+
+v2's `vizPaneTemplate` listed the eight pane cells as deps (`[vizRoot, …, vizPaneSync];` as its first
+statement), so the template cell, and `visualizer` which takes it, recomputed on every `liveCellMap`
+change. Each test's fixture defines variables, which changes the map, which recomputes `vt`, which
+restarts every test. Without tests it is still one `visualizer` recompute per map change, reaching every
+cell that depends on `visualizer`: `lp2_getPane` in lopepage-2, and in lopepage-3 as forked.
+
+The deps are not needed. `instantiateDataflow` copies each template variable's `_definition` and
+`_inputs` when it makes a pane, and its `watch` callback re-defines a clone whose source definition
+changed (dataflow-templating, `instantiateDataflow`). Fix, as two `replace` entries in the C plan:
+`vizPaneTemplate(lookupVariable, visualizerModule)`. Cost: a template cell deleted and re-created as a
+new variable is not picked up until `visualizerModule` changes; a redefinition is.
+Mutant restoring the deps: `visualizer-C-mutants.json`.
+
+The same gate found two consumer gaps that are not merge C's:
+
+- 234 of 238 notebooks embedding visualizer lack `@tomlarkworthy/ui-testing`, which the Phase 0 tests in
+  the canonical import (`missing-import` on the quick_start and moldable-webpage copies; the working
+  trees carry an older visualizer without tests). Any visualizer sweep must carry it.
+- moldable-webpage's dataflow-templating predates `instantiateDataflow` (1 of 238, `.out/viz-dep-gap.ts`),
+  and with the merged block the notebook rendered 98 -> 0 nodes. A sweep must refresh it.
+
+moldable-webpage's `cellMaps` import is in the preflight baseline already.
+
+**Second gate, with the fix, 2026-09-14 (`.out/gateC2.log`).** Consumer copies carry ui-testing and a
+current dataflow-templating from their canonicals, so what is left is merge C's:
+
+```
+_version over 10 s          no hash: visualizer 4 -> 4, vt 4 -> 4    #viz_tests: liveCellMap 69 -> 69, visualizer 4 -> 4
+T3 viz-C (#viz_tests)       17/17
+mutant restoring the deps   killed (0/17)
+editor-5 copy  T5           16/16
+editor-5 copy  --run-tests  209/214, viz 17/17; the 5 failures are HEAD's 5 (merge D table)
+lopepage-2 copy --run-tests 223/227, viz 17/17; test_lp2_add_module_filters_the_known_modules timeout,
+                            test_persistentId, test_reflectsTitleUpdate, test_tests_example
+quick_start nodes           112 -> 112
+moldable-webpage nodes      98 -> 94: header, left_sidebar, right_sidebar, content
+moldable-webpage preflight  the same 5 missing-export as its working tree
+```
+
+Open at this point: whether `test_lp2_add_module_filters_the_known_modules` also times out without merge C
+(the merge E runs recorded lopepage-2's wizard tests as flaky), and whether moldable-webpage's four missing
+nodes are a counting change or a layout loss. Those four cells are each `visualizer(runtime, {detachNodes:
+true, ...})` whose element GoldenLayout adopts into a panel.
+
 ### Merge E: lopepage-2 took lopepage-3's selector (applied in the worktree, 2026-09-14)
 
 `tools/merge-forks/plans/E-lopepage-2.json` takes `lp2_page` from lopepage-3 by pid (`_1y1ubko`): one CSS
@@ -939,9 +1010,35 @@ module calls the classic compiler and never reads `modules`; a module holding a 
 switches), and adds js-toolchain never loaded and loaded after editor-5 computed. Every dep of every cell
 resolves; preflight identical to HEAD.
 
-Not yet known: browser behaviour (T5, `--run-tests`), how often `jsToolchain` recomputes (it depends on
-`modules`, as `findCell` already does), and whether a Notebook Kit cell edited here still exports as `$nk`
-(T2).
+Browser gate, 2026-09-14 (`.out/gateD1.log`), copies built from the lopebooks editor-5 working tree
+(which carries merge B's cell-map block):
+
+```
+                                    T5 run-suite   --run-tests #e5_tests
+D-editor-5-HEAD  (no merge D)         16/16          168/173
+D-editor-5       (merge D)            16/16          192/197
+DC-editor-5      (merge D + C v1)     16/16          209/214
+```
+
+The same five tests fail in all three (`access-runtime#test_persistentId`, `lopepage-urls#test_tests_example`,
+`runtime-sdk#test_reflectsTitleUpdate`, `#test_ui_ambiguous_name_asks_for_scope`,
+`#test_ui_unknown_cell_is_a_clear_error`), and no test present on HEAD is missing. The +24 are the cell-map
+suite, the +17 visualizer tests in DC returned `skipped:` (no `&viz_tests`, see merge C).
+
+Gated again on what would be committed, a copy of lopebooks HEAD with only the plan applied
+(`.out/gateD2.log`):
+
+```
+                    T5 run-suite   --run-tests #e5_tests
+D2-editor-5-HEAD      16/16          168/173
+D2-editor-5           16/16          168/173     new failures [], fixed [], lost []
+```
+
+Applied to the lopebooks editor-5 canonical, byte-identical to `D2-editor-5.html`. The lopecode canonical
+(131 cells, no `test_e5_*`) is left: the plan dry-runs against it, but nothing there would gate it.
+
+Not yet known: how often `jsToolchain` recomputes (it depends on `modules`, as `findCell` already does),
+and whether a Notebook Kit cell edited here still exports as `$nk` (T2).
 
 ## Merges, lowest risk first
 
