@@ -1118,9 +1118,10 @@ takes lopepage-3's `decompile`, adds its six runtime cells (`runtime_doc`, `nkRu
 `defineCell`, `displayStateOf`, `attachDisplay`) and the `notebook-kit-runtime-2.5.6.js.gz` attachment
 with its loader map. The global was there so a recompute could not drop the states `defineCell` had
 registered: `runtime.js` invalidates a no-input cell when it becomes unreachable and recomputes it when it
-is observed again, which makes a fresh `WeakMap`. `nkDisplayStates` is now
-`(keepalive(jsToolchainModule, "nkDisplayStates"), new WeakMap())`, with `viewof jsToolchainModule =
-thisModule()`, both from runtime-sdk.
+is observed again, which makes a fresh `WeakMap`. `nkDisplayStates` is now a block cell that calls
+`keepalive(jsToolchainModule, "nkDisplayStates")` and returns `new WeakMap()`, with `viewof jsToolchainModule =
+thisModule()`, both from runtime-sdk. It was a comma expression until the push to Observable, whose
+decompiler dropped the parentheses.
 
 **Importers**, each bus cell replaced by an import and its registry prose removed:
 
@@ -1161,6 +1162,33 @@ The exporter-3 mutant "variables emitted in reverse order" was INVALID: merge A 
 
 The E2 copy also swaps in this exporter-3: lopepage-3's copy still read the global, and with the global
 gone its Notebook Kit export would have fallen back to classic. Consumers are not swept.
+
+#### js-toolchain merged to main, branch copies synced (2026-09-14)
+
+Tom, after editing the prose on observablehq.com (version 93): "ok merge that in to main then. Sync it in
+the forks too". Only js-toolchain went to main. `lopebooks@b275cb3a` commits the `notebook-kit.html` and
+`.json` from branch `23ee2cea`. Main's working tree held an uncommitted earlier draft of the block: a plain
+`new WeakMap()` registry, a `nkDisplayStates.has(reuse[0])` head guard and `([mutable]) => mutable`. The
+reviewed block replaced it. The same file's other uncommitted edits (inspector, lopepage-2, tests) were left
+unstaged. C, D, A1 and the cell-map flag are still branch-only. Main's `lopepage-3.html` is untracked there
+and was not touched.
+
+On the branch, the version 93 block replaced the merge F copy in the four canonicals that embed it
+(visualizer, editor-5, exporter-3 in both repos). In `lopepage-3.html` it replaced the fork's copy, together
+with the fork's exporter-3, which read the global. The replacement exporter-3 is A1's. After the swap no block
+in lopepage-3 mentions `js-toolchain/nkDisplayStates`.
+
+```
+gate                                            result                         before
+preflight, each build vs the file it replaces   identical finding sets
+main working tree, js-toolchain test_*          5/5
+lopepage-3 boot-check                           11 pass                        11 pass
+lopepage-3 save-reload-check                    9 pass                         9 pass
+visualizer run-suite #viz_tests                 17/17
+editor-5 run-suite #e5_tests                    16/16
+editor-5-merge-D.test.ts                        18/18
+exporter-3 run-suite, lopebooks and lopecode    12/12, 12/12
+```
 
 ## Merges, lowest risk first
 
