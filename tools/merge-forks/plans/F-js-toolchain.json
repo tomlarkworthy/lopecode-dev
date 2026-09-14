@@ -1,0 +1,85 @@
+{
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+  "module": "@tomlarkworthy/js-toolchain",
+  "from": {
+    "notebook": "lopebooks/notebooks/@tomlarkworthy_lopepage-3.html",
+    "module": "@tomlarkworthy/js-toolchain"
+  },
+  "take": [
+    "decompile"
+  ],
+  "add": [
+    {
+      "pid": "_jtrtdoc",
+      "after": "_bpu0ol"
+    },
+    {
+      "pid": "_jtnkrt",
+      "after": "_jtrtdoc"
+    },
+    {
+      "pid": "_jtnkst",
+      "after": "_jtnkrt"
+    },
+    {
+      "pid": "_jtdefc",
+      "after": "_jtnkst"
+    },
+    {
+      "pid": "_jtdsof",
+      "after": "_jtdefc"
+    },
+    {
+      "pid": "_jtattd",
+      "after": "_jtdsof"
+    }
+  ],
+  "define": [
+    {
+      "pid": "_jtmod",
+      "name": "viewof jsToolchainModule",
+      "deps": [
+        "thisModule"
+      ],
+      "after": "_jtattd",
+      "code": "const _jtmod = function _jsToolchainModule(thisModule){return(\nthisModule()\n)};"
+    },
+    {
+      "pid": "_jtmodg",
+      "name": "jsToolchainModule",
+      "deps": [
+        "Generators",
+        "viewof jsToolchainModule"
+      ],
+      "after": "_jtmod",
+      "code": "const _jtmodg = (G, _) => G.input(_);"
+    }
+  ],
+  "addModules": [
+    "@tomlarkworthy/runtime-sdk"
+  ],
+  "addImports": [
+    {
+      "name": "keepalive",
+      "module": "@tomlarkworthy/runtime-sdk"
+    },
+    {
+      "name": "thisModule",
+      "module": "@tomlarkworthy/runtime-sdk"
+    }
+  ],
+  "replace": [
+    [
+      "const _jtnkst = function _nkDisplayStates(globalThis){return(\n// one registry per page: a recompute (unreachable, then observed again) must not drop the states defineCell registered\nglobalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")] ??= new WeakMap()\n)};",
+      "const _jtnkst = function _nkDisplayStates(keepalive,jsToolchainModule){return(\n// kept observed: a recompute on re-observation would drop the states defineCell registered\n(keepalive(jsToolchainModule, \"nkDisplayStates\"), new WeakMap())\n)};"
+    ],
+    [
+      "$def(\"_jtnkst\", \"nkDisplayStates\", [\"globalThis\"], _jtnkst);",
+      "$def(\"_jtnkst\", \"nkDisplayStates\", [\"keepalive\",\"jsToolchainModule\"], _jtnkst);"
+    ],
+    [
+      "  };\n\n  $def(\"_hhata\"",
+      "  };\n  const fileAttachments = new Map([\"notebook-kit-runtime-2.5.6.js.gz\"].map((name) => {\n    const module_name = \"@tomlarkworthy/js-toolchain\";\n    const {status, mime, bytes} = window.lopecode.contentSync(module_name + \"/\" + encodeURIComponent(name));\n    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));\n    return [name, {url: blob_url, mimeType: mime}]\n  }));\n  main.builtin(\"FileAttachment\", runtime.fileAttachments(name => fileAttachments.get(name)));\n\n  $def(\"_hhata\""
+    ]
+  ]
+}

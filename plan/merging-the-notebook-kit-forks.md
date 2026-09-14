@@ -95,6 +95,7 @@ What a merge in place breaks, from those two measurements:
 4. **exporter-4 imports `displayStateOf` from js-toolchain.** It doesn't need to. The registry is now
    `globalThis[Symbol.for("@tomlarkworthy/js-toolchain/nkDisplayStates")]`, so exporter-3 can read it
    with no import. Classic output is already identical: E8 compared 50 modules in a page.
+   *Reversed 2026-09-14 by merge F: the global is gone and exporter-3 imports `displayStateOf`.*
 5. **cell-map-2 lacks five imported names:** `viewof liveCellMap`, `modules`, `moduleMap`,
    `coverage_failures` and `cellMapCompat`. It also changes the map's shape. Imports become one cell per
    import statement, `lang` is derived, there is a `multi` type, an automutable has 4 variables, and a
@@ -458,6 +459,7 @@ with the modules a merge is meant to change named up front.
 `variable => globalThis[Symbol.for("@tomlarkworthy/js-toolchain/nkDisplayStates")]?.get(variable)`, so
 no notebook gains js-toolchain. The cost, a contract documented only in prose, is paid in exporter-3's
 Notebook Kit doc cell. The import would have put a 42 kB block (plus a 7 kB attachment) into 243 notebooks.
+*Reversed 2026-09-14 on Tom's review (merge F below): the import is taken and the global removed.*
 
 Applied with `tools/merge-forks/merge-cells.ts` (acorn: take/add/define/drop/repoint cells, pids kept),
 plans in `tools/merge-forks/plans/`:
@@ -1103,11 +1105,68 @@ Applied to the lopebooks editor-5 canonical, byte-identical to `D2-editor-5.html
 Not yet known: how often `jsToolchain` recomputes (it depends on `modules`, as `findCell` already does),
 and whether a Notebook Kit cell edited here still exports as `$nk` (T2).
 
+### Merge F: the display registry is an import, and mutating tests are flagged (worktree, 2026-09-14)
+
+Tom's review of merge C, quoted: "using globalThis[Symbol.for("@tomlarkworthy/js-toolchain/nkDisplayStates")]
+as an out-of-runtime information bus is an anti-pattern, we have a reactive runtime, imports or plugins
+for this". The reason for the global, that a notebook with no Notebook Kit cells need not embed
+js-toolchain, is dropped: Notebook Kit becomes the default. And: "runtime mutating tests should not
+execute unless there is a flag or toggle ticked", because they flood a paired session.
+
+**js-toolchain** (`plans/F-js-toolchain.json`, on the declared canonical `lopebooks` `notebook-kit.html`):
+takes lopepage-3's `decompile`, adds its six runtime cells (`runtime_doc`, `nkRuntime`, `nkDisplayStates`,
+`defineCell`, `displayStateOf`, `attachDisplay`) and the `notebook-kit-runtime-2.5.6.js.gz` attachment
+with its loader map. The global was there so a recompute could not drop the states `defineCell` had
+registered: `runtime.js` invalidates a no-input cell when it becomes unreachable and recomputes it when it
+is observed again, which makes a fresh `WeakMap`. `nkDisplayStates` is now
+`(keepalive(jsToolchainModule, "nkDisplayStates"), new WeakMap())`, with `viewof jsToolchainModule =
+thisModule()`, both from runtime-sdk.
+
+**Importers**, each bus cell replaced by an import and its registry prose removed:
+
+```
+visualizer  (C)   imports displayStateOf, attachDisplay; "How panes are built", "Templates", "Tests" md rewritten
+editor-5    (D)   imports transpileJavaScript, defineCell, displayStateOf, decompile as decompileJs;
+                  jsToolchain and displayStateOf cells gone; sourceLanguage is synchronous again
+exporter-3  (A1)  imports displayStateOf; registry paragraph gone
+cell-map    (B1)  viewof cellmap_tests_enabled (default &cellmap_tests); cellMapFixture returns "skipped: ..."
+```
+
+Every canonical that now imports js-toolchain embeds it: visualizer (lopecode), editor-5 (lopebooks),
+exporter-3 (both). `editor-5-merge-D.test.ts` injects the four imports from js-toolchain read out of its
+canonical; its two "js-toolchain never loaded" scenarios and the four mutants that tested that branch
+are removed with the branch.
+
+Plans A1, B1 and D rebuild from their pre-merge parents. Two corrections found doing so: A1's `from`
+names lopepage-3's exporter-4, which only `lopebooks@41e54218` still has; B1 applies to
+`lopecode@fc1839c`, since merge B is two commits.
+
+```
+gate                                            result                         before
+preflight, each build vs the file it replaces   identical finding sets
+F  js-toolchain test_*                          5/5                            5/5
+C  run-suite test_viz_, no flag                 17 skipped
+C  run-suite test_viz_, #viz_tests              17/17, mutant killed
+B  run-suite, no flag                           17 skipped, 30/30 resolve
+B  run-suite, #cellmap_tests                    30/30, B1 mutants 9/9
+D  editor-5-merge-D.test.ts                     18/18 (control + 8 mutants)
+D  T5 run-suite #e5_tests                       16/16
+A1 run-suite                                    12/12, mutants 8/8
+E2 demo copy on F+B+C+D+A1, boot-check          11 pass                        11 pass (demo as committed)
+E2 demo copy, save-reload-check                 9 pass                         9 pass
+```
+
+The exporter-3 mutant "variables emitted in reverse order" was INVALID: merge A changed its anchor line
+(`variableToDefine(v, { moduleNames, extras })`), so it had not run since. Re-anchored, it is killed.
+
+The E2 copy also swaps in this exporter-3: lopepage-3's copy still read the global, and with the global
+gone its Notebook Kit export would have fallen back to classic. Consumers are not swept.
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**
-- Read the display-state registry through its `Symbol.for` key instead of importing `displayStateOf`,
-  so no notebook gains a block.
+- ~~Read the display-state registry through its `Symbol.for` key instead of importing `displayStateOf`,
+  so no notebook gains a block.~~ Imports `displayStateOf` from js-toolchain (merge F).
 - Repoint save-in-place-2 and lopepage-3 at exporter-3, then delete exporter-4 and save-in-place-2.
 - Gate: T1, T2, E8, and `save-reload-check.ts` on lopepage-3.
 
@@ -1123,11 +1182,13 @@ original bullet: cell-map kept its cells and took cell-map-2's `cellMap` (see "M
   kept, `syncers` is `vizSynced`.
 - Gate run: T3 17/17 plus a mutant, T5 and `--run-tests` on editor-5 and lopepage-2 copies, node probes on
   quick_start and moldable-webpage. T4 `--check` not rerun after C.
-- Consumers not swept: a sweep must carry ui-testing and refresh moldable-webpage's dataflow-templating.
+- Consumers not swept: a sweep must carry ui-testing and js-toolchain (merge F), and refresh
+  moldable-webpage's dataflow-templating.
 
 **D. editor-5 takes editor-6.** Applied 2026-09-14 to the lopebooks canonical, `lopebooks@25c445e3`.
-- ~~Carries js-toolchain and cell-map-2 into every notebook that has editor-5 (242)~~: nothing is
-  carried. js-toolchain is read from the instantiated module at call time; the map is cell-map's.
+- ~~Carries js-toolchain and cell-map-2 into every notebook that has editor-5 (242)~~: ~~nothing is
+  carried. js-toolchain is read from the instantiated module at call time~~; the map is cell-map's.
+  Since merge F, editor-5 imports js-toolchain, so a consumer sweep carries it.
 - Decision 2 taken as the guard (routing to js only in a module already holding a Notebook Kit cell).
 - Gate run: T5, `--run-tests`, `tools/merge-forks/editor-5-merge-D.test.ts`, and E2's save-reload-check
   on the repointed demo. The lopecode editor-5 canonical is unchanged.
@@ -1178,9 +1239,7 @@ waits on `syncers`, which merge C made `vizSynced`, so C and D are independent o
 
 ## Open decisions for Tom
 
-1. **exporter-3 reading a global registry.** CLAUDE.md tip 9 prefers imports over private APIs.
-   - Cost of the import: js-toolchain in 243 notebooks.
-   - Cost of the global: a contract only a comment documents.
+1. ~~**exporter-3 reading a global registry.**~~ Taken 2026-09-14 by Tom: import, no global (merge F).
 2. **JavaScript-only source typed into a classic notebook** (`const x = 1;`).
    - Keep routing by parse: the cell becomes a Notebook Kit cell.
    - Or route to js only in a module that already holds a Notebook Kit cell: the syntax error stays,

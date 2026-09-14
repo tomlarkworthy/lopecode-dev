@@ -1,7 +1,16 @@
 const _cmt00 = function _cmt00(md) {return (md`## Consumer contract tests`);};
-const _cmt01 = function _cellMapFixture(createModule,deleteModule,runtime,realize,currentModules,cellMap) {
+const _cmt0t = function _cellmap_tests_enabled(Inputs,location){return(
+Inputs.toggle({
+  label: "Run cell-map tests",
+  value: /(^#|&)cellmap_tests(=|&|$)/.test(location.hash)
+})
+)};
+const _cmt0u = (G, _) => G.input(_);
+const _cmt01 = function _cellMapFixture(createModule,deleteModule,runtime,realize,currentModules,cellMap,cellmap_tests_enabled) {
   let serial = 0;
   return async (fn) => {
+    // the fixture creates and deletes modules, which floods a paired session with cell changes
+    if (!cellmap_tests_enabled) return "skipped: turn on 'Run cell-map tests' (or add &cellmap_tests to the hash) to run this scenario";
     const id = `${Date.now().toString(36)}-${serial++}`;
     const libName = `@cellmap-test/lib-${id}`, appName = `@cellmap-test/app-${id}`;
     // the library is a module block and its loader goes through the page's import hook, as in an export
@@ -250,7 +259,9 @@ export default function define(runtime, observer) {
     main.variable(observer(name)).define(name, deps, fn).pid = pid;
   };
   $def("_cmt00", null, ["md"], _cmt00);
-  $def("_cmt01", "cellMapFixture", ["createModule","deleteModule","runtime","realize","currentModules","cellMap"], _cmt01);
+  $def("_cmt0t", "viewof cellmap_tests_enabled", ["Inputs","location"], _cmt0t);
+  $def("_cmt0u", "cellmap_tests_enabled", ["Generators","viewof cellmap_tests_enabled"], _cmt0u);
+  $def("_cmt01", "cellMapFixture", ["createModule","deleteModule","runtime","realize","currentModules","cellMap","cellmap_tests_enabled"], _cmt01);
   $def("_cmt10", "test_cellmap_contract_every_variable_in_exactly_one_cell", ["cellMapFixture","expect"], _cmt10);
   $def("_cmt11", "test_cellmap_contract_cells_follow_runtime_order", ["cellMapFixture","expect"], _cmt11);
   $def("_cmt12", "test_cellmap_contract_named_cell", ["cellMapFixture","expect"], _cmt12);

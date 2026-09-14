@@ -1,9 +1,9 @@
-// merge D, headless: tools/editor-6/editor-6.test.ts pointed at the merged editor-5, read from the lopebooks canonical (lopebooks 25c445e3).
-// Option B: js-toolchain is not overridden cell by cell; the real instance is reached through a `modules`
-// map entry, as jsToolchain reads it. displayStateOf is the merged module's own registry cell.
+// merge D, headless: tools/editor-6/editor-6.test.ts pointed at the merged editor-5, read from the lopebooks canonical.
+// editor-5 imports transpileJavaScript, defineCell, displayStateOf and decompile (as decompileJs) from js-toolchain;
+// they are injected from a real js-toolchain instance read from its canonical, notebook-kit.html.
 // Decision 2: JavaScript-only source in a module with no Notebook Kit cell stays classic.
 //
-// run: bun test tools/merge-forks/editor-5-merge-D.test.ts
+// run: bun test tools/merge-forks/editor-5-merge-D.test.ts   (ED_NOTEBOOK / JT_NOTEBOOK point it at other builds)
 import { test, expect, beforeAll, describe } from "bun:test";
 import { Runtime } from "@observablehq/runtime";
 import * as acorn from "acorn";
@@ -14,14 +14,17 @@ import { nkRuntime, settle } from "../js-toolchain/runtime/display-scenarios.ts"
 import * as parser from "../../vendor/notebook-kit/node_modules/@observablehq/parser";
 
 const ED = "tools/merge-forks/.out/editor-5-merge-D.js";
+const JT = "tools/merge-forks/.out/js-toolchain-merge-D.js";
 mkdirSync("tools/merge-forks/.out", { recursive: true });
-writeFileSync(ED, Bun.spawnSync(["bun", "tools/lope-reader.ts", "lopebooks/notebooks/@tomlarkworthy_editor-5.html", "--get-module", "@tomlarkworthy/editor-5"]).stdout);
+const extract = (notebook: string, module: string, out: string) => writeFileSync(out, Bun.spawnSync(["bun", "tools/lope-reader.ts", notebook, "--get-module", module]).stdout);
+extract(process.env.ED_NOTEBOOK ?? "lopebooks/notebooks/@tomlarkworthy_editor-5.html", "@tomlarkworthy/editor-5", ED);
+extract(process.env.JT_NOTEBOOK ?? "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html", "@tomlarkworthy/js-toolchain", JT);
 
 let jt: any, jtm: any, sdkObserve: any, realize: any, repositionSetElement: any;
 
 beforeAll(async () => {
   console.error = () => {};
-  jtm = await importNotebookModule("modules/@tomlarkworthy/js-toolchain.js", { overrides: { nkRuntime, acorn, acorn_walk } });
+  jtm = await importNotebookModule(JT, { overrides: { nkRuntime, acorn, acorn_walk, keepalive: () => {}, jsToolchainModule: null } });
   jt = await jtm.values(["defineCell", "displayStateOf", "attachDisplay", "transpileJavaScript", "decompile"]);
   const sdk = await importNotebookModule("modules/@tomlarkworthy/runtime-sdk.js", {
     overrides: { no_observer: Symbol("no-observer"), trace_variable: undefined, "mutable trace_history": { value: [] } }
@@ -31,25 +34,16 @@ beforeAll(async () => {
   repositionSetElement = await sdk.value("repositionSetElement");
 });
 
-// the shape @tomlarkworthy/modules yields: module -> {name, title, module, variable}; reads are counted
-const modulesMap = (loaded: boolean) => {
-  const m: any = new Map(loaded ? [[jtm.module, { name: "@tomlarkworthy/js-toolchain", title: "js-toolchain", module: jtm.module }]] : []);
-  m.reads = 0;
-  const values = m.values.bind(m);
-  m.values = () => { m.reads++; return values(); };
-  return m;
-};
-
-async function setup(edPath: string, { loaded = true } = {}) {
+async function setup(edPath: string) {
   const trt = new Runtime();
   const target = trt.module();
   let n = 1;
   const nVar = target.variable().define("n", [], () => n);
   const ojsCalls: string[] = [];
-  const modules = modulesMap(loaded);
   const ed = await importNotebookModule(edPath, {
     overrides: {
-      runtime: trt, realize, repositionSetElement, modules, parser,
+      runtime: trt, realize, repositionSetElement, parser,
+      transpileJavaScript: jt.transpileJavaScript, defineCell: jt.defineCell, displayStateOf: jt.displayStateOf, decompileJs: jt.decompile,
       compile: (source: string) => { ojsCalls.push("compile"); return OJS_COMPILED[source] ?? []; },
       decompileOjs: async () => { ojsCalls.push("decompile"); return "<ojs>"; }
     }
@@ -66,7 +60,7 @@ async function setup(edPath: string, { loaded = true } = {}) {
     const [body] = await realize([t.body], trt);
     return jt.defineCell(target, { ...t, id, body });
   };
-  return { trt, ed, target, modules, setN: (x: number) => { n = x; nVar.define("n", [], () => n); }, ojsCalls, compile_and_update, decompile, cellLanguage, pinOnCreate, cellOf, defineJs };
+  return { trt, ed, target, setN: (x: number) => { n = x; nVar.define("n", [], () => n); }, ojsCalls, compile_and_update, decompile, cellLanguage, pinOnCreate, cellOf, defineJs };
 }
 
 const OJS_COMPILED: Record<string, any[]> = {
@@ -174,14 +168,13 @@ const SCENARIOS: [string, (edPath: string) => Promise<void>][] = [
     expect(await s.target.value("foo")).toBe(2);
   }],
   // decision 2 (replaces editor-6's "a classic cell switched to js keeps its place and pid")
-  ["in a module with no Notebook Kit cell, JavaScript-only source stays classic and js-toolchain is not read", async (edPath) => {
+  ["in a module with no Notebook Kit cell, JavaScript-only source stays classic", async (edPath) => {
     const s = await setup(edPath);
     const plain = s.target.variable().define("p", [], () => 1);
     plain.pid = "p-classic";
     const vars = [plain];
     await s.compile_and_update("const q = n + 1;", vars, s.cellOf(vars, ["ojs", "js"], [{ lang: ["ojs", "js"], variables: [plain] }]));
     expect(s.ojsCalls[0]).toBe("compile");
-    expect(s.modules.reads).toBe(0);
     expect(s.target._scope.has("q")).toBe(false);
     expect([...s.trt._variables].some((v) => /^cell /.test(v._name ?? ""))).toBe(false);
   }],
@@ -212,40 +205,6 @@ const SCENARIOS: [string, (edPath: string) => Promise<void>][] = [
     await s.compile_and_update("1 + 2", vars, s.cellOf(vars, ["ojs", "js"]));
     expect(vars[0]).toBe(head);
     expect(s.ojsCalls).toEqual([]);
-  }],
-  // option B
-  ["js-toolchain never loaded: classic edits and decompiles work, a new cell is classic, a js cell is not switched", async (edPath) => {
-    const s = await setup(edPath, { loaded: false });
-    const plain = s.target.variable().define("p", [], () => 1);
-    await s.compile_and_update("p = 2", [plain], s.cellOf([plain], ["ojs"]));
-    expect(await s.decompile([plain])).toBe("<ojs>");
-    const seed = await s.defineJs('display("seed");', 1);
-    const newVars: any[] = [];
-    await s.compile_and_update("const y = 1;", newVars, s.cellOf(seed, ["ojs", "js"], [{ lang: ["ojs", "js"], variables: seed }]));
-    expect(s.ojsCalls).toEqual(["compile", "decompile", "decompile", "compile", "decompile"]);
-    expect(newVars.length).toBe(0);
-    const head = seed[0];
-    // defineJsCell throws (caught and logged by compile_and_update); the js cell is left as it was
-    await s.compile_and_update("viewof foo = 1", seed, s.cellOf(seed, ["ojs", "js"]));
-    expect(seed[0]).toBe(head);
-    expect([...s.trt._variables].includes(head)).toBe(true);
-    expect(s.ojsCalls.length).toBe(5);
-    // decompile of a js cell falls back to the classic decompiler
-    expect(await s.decompile([head])).toBe("<ojs>");
-  }],
-  ["js-toolchain loaded after editor-5 computed: the next modules map reaches compile_and_update", async (edPath) => {
-    const s = await setup(edPath, { loaded: false });
-    const seed = await s.defineJs('display("seed");', 1);
-    const anchor = s.cellOf(seed, ["ojs", "js"], [{ lang: ["ojs", "js"], variables: seed }]);
-    s.ed.module.redefine("modules", [], () => modulesMap(true));
-    const fresh = await s.ed.module.value("editorHandles");
-    const newVars: any[] = [];
-    expect(await fresh.compile_and_update("const z = n + 3;", newVars, anchor)).toBe("const z = n + 3;");
-    expect(newVars.map((v) => v._name)).toEqual(["cell 2", "z"]);
-    // a handle captured before the new map still reads the old one
-    const staleVars: any[] = [];
-    await s.compile_and_update("const w = 1;", staleVars, anchor);
-    expect(s.target._scope.has("w")).toBe(false);
   }]
 ];
 
@@ -262,11 +221,7 @@ const MUTANTS: [string, string, string][] = [
   ["shadows left behind on a switch", "const own = new Set(variables.flatMap((v) => [v, ...(v._shadow?.values() ?? [])]));", "const own = new Set(variables);"],
   ["pid not carried across a switch", "next[0].pid = pid;", "void pid;"],
   // merge D
-  ["decision 2 guard removed", 'if (cellLanguage(variables, cell) !== "js" && cellLanguage([], cell) !== "js") return "ojs";', "void 0;"],
-  ["js-toolchain looked up under the wrong name", 'if (record.name === "@tomlarkworthy/js-toolchain") return', 'if (record.name === "@tomlarkworthy/js-toolchain-x") return'],
-  ["a js cell switched to classic when js-toolchain is absent", 'if (!transpileJavaScript) return variables.length ? cellLanguage(variables, cell) : "ojs";', 'if (!transpileJavaScript) return "ojs";'],
-  ["sourceLanguage not awaited", "const language = await sourceLanguage(source, variables, cell);", "const language = sourceLanguage(source, variables, cell);"],
-  ["decompile without js-toolchain throws", "if (!decompileJs) return decompileOjs(variables);", "void 0;"]
+  ["decision 2 guard removed", 'if (cellLanguage(variables, cell) !== "js" && cellLanguage([], cell) !== "js") return "ojs";', "void 0;"]
 ];
 
 describe("mutation controls", () => {

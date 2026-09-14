@@ -29,7 +29,7 @@
         "vt",
         "expect"
       ],
-      "code": "const _vzt1d = function _test_viz_unmount_hands_variables_back(vt,expect) {return (vt.scenario(async (t) => {\n  // merge C (2026-09-14): no longer reads `viewof visualizers`, which the templated visualizer does not have. A disposed\n  // pane leaves its nodes in the detached root, so \"root emptied\" became \"root detached and not updated\".\n  const module = t.fixture();\n  const a = module.variable().define(\"a\", [], () => 1);\n  const m = t.mount(module);\n  await t.until(() => t.text(m.root, \"a\")?.includes(\"1\"), \"a rendered\");\n  expect(!!a._observer?.__observe_listeners__).toBe(true);\n  const before = t.nodes(m.root).length;\n  m.unmount();\n  module.variable().define(\"later\", [], () => 0);\n  await t.until(() => !a._observer?.__observe_listeners__, \"observer handed back\");\n  a.define(\"a\", [], () => 2);\n  await t.quiet(1500);\n  expect(m.root.isConnected).toBe(false);\n  expect(t.nodes(m.root).length).toBeLessThanOrEqual(before);\n  expect(t.text(m.root, \"a\") ?? \"\").not.toContain(\"2\");\n  return \"after invalidation: observer restored; later changes neither add nodes to the root nor update them\";\n}));};"
+      "code": "const _vzt1d = function _test_viz_unmount_hands_variables_back(vt,expect) {return (vt.scenario(async (t) => {\n  // a disposed pane leaves its nodes in the detached root\n  const module = t.fixture();\n  const a = module.variable().define(\"a\", [], () => 1);\n  const m = t.mount(module);\n  await t.until(() => t.text(m.root, \"a\")?.includes(\"1\"), \"a rendered\");\n  expect(!!a._observer?.__observe_listeners__).toBe(true);\n  const before = t.nodes(m.root).length;\n  m.unmount();\n  module.variable().define(\"later\", [], () => 0);\n  await t.until(() => !a._observer?.__observe_listeners__, \"observer handed back\");\n  a.define(\"a\", [], () => 2);\n  await t.quiet(1500);\n  expect(m.root.isConnected).toBe(false);\n  expect(t.nodes(m.root).length).toBeLessThanOrEqual(before);\n  expect(t.text(m.root, \"a\") ?? \"\").not.toContain(\"2\");\n  return \"after invalidation: observer restored; later changes neither add nodes to the root nor update them\";\n}));};"
     }
   ],
   "add": [
@@ -102,22 +102,6 @@
       "after": "_v2synd"
     }
   ],
-  "define": [
-    {
-      "pid": "_vzdso",
-      "name": "displayStateOf",
-      "deps": [],
-      "after": "_v2ptpl",
-      "code": "const _vzdso = function _displayStateOf(){return(\nvariable => globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]?.get(variable)\n)};"
-    },
-    {
-      "pid": "_vzatd",
-      "name": "attachDisplay",
-      "deps": [],
-      "after": "_vzdso",
-      "code": "const _vzatd = function _attachDisplay(){return(\nfunction attachDisplay(variable, observe) {\n  const state = globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]?.get(variable);\n  if (!state) return null;\n  if (state.attached++ === 0) {\n    state.cancel = observe(variable, state.proxy);\n    // Marking a variable reachable does not schedule a compute (runtime.js computeNow is the only\n    // reader of _dirty/_updates), so an attach to an idle runtime would render nothing.\n    variable._module._runtime._computeSoon();\n  }\n  let detached = false;\n  return () => {\n    if (detached) return;\n    detached = true;\n    if (--state.attached === 0) {\n      const cancel = state.cancel;\n      state.cancel = null;\n      cancel?.();\n    }\n  };\n}\n)};"
-    }
-  ],
   "dropCells": [
     "_osnrne",
     "_mit3pw",
@@ -135,7 +119,8 @@
     "keepalive"
   ],
   "addModules": [
-    "@tomlarkworthy/dataflow-templating"
+    "@tomlarkworthy/dataflow-templating",
+    "@tomlarkworthy/js-toolchain"
   ],
   "addImports": [
     {
@@ -145,6 +130,14 @@
     {
       "name": "onCodeChange",
       "module": "@tomlarkworthy/runtime-sdk"
+    },
+    {
+      "name": "displayStateOf",
+      "module": "@tomlarkworthy/js-toolchain"
+    },
+    {
+      "name": "attachDisplay",
+      "module": "@tomlarkworthy/js-toolchain"
     }
   ],
   "replace": [
@@ -173,22 +166,6 @@
       "\"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\","
     ],
     [
-      "## What changed from visualizer 1\n\nvisualizer 1 kept every pane root",
-      "## How panes are built\n\nUntil merge C (2026-09-14) this module kept every pane root"
-    ],
-    [
-      "hand-kept Maps. visualizer 2 is built with",
-      "hand-kept Maps. It is now built, from the visualizer-2 fork, with"
-    ],
-    [
-      "Cells come from [cell-map-2](https://observablehq.com/@tomlarkworthy/cell-map-2), which groups",
-      "Cells come from [cell-map](https://observablehq.com/@tomlarkworthy/cell-map), which groups"
-    ],
-    [
-      "Other cells render through the inspector as before.\n",
-      "Other cells render through the inspector as before.\n\n\\`displayStateOf\\` and \\`attachDisplay\\` here read js-toolchain's registry, \\`globalThis[Symbol.for(\"@tomlarkworthy/js-toolchain/nkDisplayStates\")]\\`, instead of importing js-toolchain, so a notebook with no Notebook Kit cells does not have to embed it. The key is a contract with js-toolchain's \\`nkDisplayStates\\` cell.\n\n\\`syncers\\` is kept for importers (editor-5 reads it as a trigger) and is \\`vizSynced\\`, the count of pane syncs.\n"
-    ],
-    [
       "md`### background jobs and keep alive`",
       "md`### module handle`"
     ],
@@ -199,6 +176,18 @@
     [
       "$def(\"_v2ptpl\", \"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\",\"vizRoot\",\"vizModule\",\"vizFilter\",\"vizInspector\",\"vizDetachNodes\",\"vizPaneCells\",\"vizPaneState\",\"vizPaneSync\"], _v2ptpl);",
       "$def(\"_v2ptpl\", \"vizPaneTemplate\", [\"lookupVariable\",\"visualizerModule\"], _v2ptpl);"
+    ],
+    [
+      "## What changed from visualizer 1\n\nvisualizer 1 kept every pane root in \\`viewof visualizers\\` and one \\`syncers\\` cell reconciled all of them against \\`liveCellMap\\`, holding each observer's cleanup in hand-kept Maps. visualizer 2 is built with [dataflow templating](https://observablehq.com/@tomlarkworthy/dataflow-templating):\n\n- A pane is an \\`instantiateDataflow\\` instance of the pane template (\\`vizPaneTemplate\\`), parameterised by its root, module, filter and inspector.\n- Each drawn cell is an instance of the cell template (\\`vizCellTemplate\\`), parameterised by its variable. Its observation is released through the instance's \\`invalidation\\`, so deleting a cell or disposing a pane is \\`instance.dispose()\\`.\n- Instances live in the sandbox Runtime, so the page runtime gains no variables per pane or per cell.\n\nTwo further changes:\n\n- Cells come from [cell-map-2](https://observablehq.com/@tomlarkworthy/cell-map-2), which groups notebook-kit variables (\\`cell N\\`, \\`viewof$x\\`, projections) as well as classic ones.\n- A cell defined by [js-toolchain](https://observablehq.com/@tomlarkworthy/js-toolchain)'s \\`defineCell\\` renders its notebook-kit display root, attached once through \\`attachDisplay\\`, so \\`display()\\` called twice shows two nodes. Other cells render through the inspector as before.\n\nNot handled yet: a template edit reaches new panes and cells but not the nodes already mounted.",
+      "## How panes are built\n\nA pane is an \\`instantiateDataflow\\` instance of \\`vizPaneTemplate\\`, parameterised by its root, module, filter and inspector. Each drawn cell is an instance of \\`vizCellTemplate\\`, parameterised by its variable. A cell's observer is released through its instance's \\`invalidation\\`, so deleting a cell or disposing a pane is \\`instance.dispose()\\`. Instances live in [dataflow templating](https://observablehq.com/@tomlarkworthy/dataflow-templating)'s sandbox Runtime, so the page runtime gains no variables per pane or per cell.\n\n\\`vizPaneCells\\` reads [cell-map](https://observablehq.com/@tomlarkworthy/cell-map)'s \\`liveCellMap\\`, which groups Notebook Kit variables (\\`cell N\\`, \\`viewof$x\\`, projections) as well as classic ones.\n\nA cell defined by [js-toolchain](https://observablehq.com/@tomlarkworthy/js-toolchain)'s \\`defineCell\\` renders its Notebook Kit display root, attached once through js-toolchain's \\`attachDisplay\\`, so \\`display()\\` called twice shows two nodes. Other cells render through the inspector.\n\n\\`syncers\\` is \\`vizSynced\\`, the count of pane syncs; editor-5 reads it as a trigger.\n\nA template edit reaches panes and cells created after it, not nodes already mounted."
+    ],
+    [
+      "### Templates\n\nParameter cells hold the defaults the template cells compute with in this module, where no instance supplies them; each template cell returns early without its parameters.",
+      "### Templates\n\n\\`vizVariable\\`, \\`vizInspector\\`, \\`vizDetachNodes\\`, \\`vizRoot\\`, \\`vizModule\\` and \\`vizFilter\\` are the templates' parameters, supplied by each instance. In this module they hold defaults (\\`null\\`, \\`false\\`, \\`() => true\\`), and \\`vizCellNode\\` returns \\`null\\` without a variable and an inspector."
+    ],
+    [
+      "## Tests\n\nBehavioural tests for \\`visualizer()\\`, written 2026-09-13 so the original's behaviour is pinned before visualizer-2 is merged into it (T3 in \\`plan/merging-the-notebook-kit-forks.md\\`).\n\nEach \\`test_viz_*\\` cell makes a throwaway module with runtime-sdk's \\`createModule\\`, mounts \\`visualizer(runtime, options)\\` on it in an off-screen host, changes the module's variables, and waits for the DOM to follow. The tests read only what \\`visualizer()\\` returns, so the same cells can run against visualizer-2. Everything a test creates is deleted in \\`finally\\`.\n\nA fixture's first cell is a \\`title\\` string. \\`@tomlarkworthy/modules\\` computes a module's first cell to find its title, so without it the first cell under test would run before any visualizer observed it. Title cells, implicit builtin variables (\\`Generators\\`, \\`@variable\\`) and the builtin import header are left out of the names the tests compare.\n\n**Gate.** Each test resolves to a \\`skipped:\\` string until *Run visualizer tests* is on. Add \\`&viz_tests\\` to the hash to start with it on.",
+      "## Tests\n\nEach \\`test_viz_*\\` cell makes a throwaway module with runtime-sdk's \\`createModule\\`, mounts \\`visualizer(runtime, options)\\` on it in an off-screen host, changes the module's variables, and waits for the DOM to follow. Everything a test creates is deleted in \\`finally\\`.\n\nA fixture's first cell is a \\`title\\` string. \\`@tomlarkworthy/modules\\` computes a module's first cell to find its title, so without it the first cell under test would run before any visualizer observed it. Title cells, builtin variables (\\`Generators\\`, \\`@variable\\`) and the builtin import header are left out of the names the tests compare.\n\nThe tests create and delete modules, so each resolves to a \\`skipped:\\` string until *Run visualizer tests* is on. Add \\`&viz_tests\\` to the hash to start with it on."
     ]
   ]
 }
