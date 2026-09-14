@@ -188,6 +188,10 @@
     [
       "## Tests\n\nBehavioural tests for \\`visualizer()\\`, written 2026-09-13 so the original's behaviour is pinned before visualizer-2 is merged into it (T3 in \\`plan/merging-the-notebook-kit-forks.md\\`).\n\nEach \\`test_viz_*\\` cell makes a throwaway module with runtime-sdk's \\`createModule\\`, mounts \\`visualizer(runtime, options)\\` on it in an off-screen host, changes the module's variables, and waits for the DOM to follow. The tests read only what \\`visualizer()\\` returns, so the same cells can run against visualizer-2. Everything a test creates is deleted in \\`finally\\`.\n\nA fixture's first cell is a \\`title\\` string. \\`@tomlarkworthy/modules\\` computes a module's first cell to find its title, so without it the first cell under test would run before any visualizer observed it. Title cells, implicit builtin variables (\\`Generators\\`, \\`@variable\\`) and the builtin import header are left out of the names the tests compare.\n\n**Gate.** Each test resolves to a \\`skipped:\\` string until *Run visualizer tests* is on. Add \\`&viz_tests\\` to the hash to start with it on.",
       "## Tests\n\nEach \\`test_viz_*\\` cell makes a throwaway module with runtime-sdk's \\`createModule\\`, mounts \\`visualizer(runtime, options)\\` on it in an off-screen host, changes the module's variables, and waits for the DOM to follow. Everything a test creates is deleted in \\`finally\\`.\n\nA fixture's first cell is a \\`title\\` string. \\`@tomlarkworthy/modules\\` computes a module's first cell to find its title, so without it the first cell under test would run before any visualizer observed it. Title cells, builtin variables (\\`Generators\\`, \\`@variable\\`) and the builtin import header are left out of the names the tests compare.\n\nThe tests create and delete modules, so each resolves to a \\`skipped:\\` string until *Run visualizer tests* is on. Add \\`&viz_tests\\` to the hash to start with it on."
+    ],
+    [
+      "classList: \"runtimeSdk\",\n    detachNodes: true",
+      "classList: \"runtimeSdk\",\n    detachNodes: false"
     ]
   ]
 }
