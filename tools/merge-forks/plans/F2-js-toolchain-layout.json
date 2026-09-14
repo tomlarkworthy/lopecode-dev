@@ -1,0 +1,104 @@
+{
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+  "module": "@tomlarkworthy/js-toolchain",
+  "order": [
+    "_hhata",
+    {
+      "pid": "_jtocmp",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtocmp = function _jtocmp(md){return(\nmd`### Compilation, source to runtime variable(s)\n\n\\`compile(source)\\` turns a Notebook Kit JavaScript cell into runtime variable definitions. An expression, or a program with no top-level declarations, is one variable. A program declaring \\`a\\` and \\`b\\` is a holder variable \\`cell <id>\\` returning \\`{a, b}\\`, plus one projection variable per name, as in notebook-kit's \\`src/runtime/define.ts\\`.\n\nStatic imports become leading \\`await import(…)\\` lines, with specifiers kept verbatim. A cell that only imports from an Observable notebook (\\`observable:@user/nb\\`) compiles to lopecode's reactive import variables instead. TypeScript cells are not supported.`\n)};"
+    },
+    {
+      "pid": "_jtodcm",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtodcm = function _jtodcm(md){return(\nmd`### Decompilation, runtime variable(s) to source\n\n\\`decompile(cells)\\` returns the source. The transpiler wraps the source verbatim, so decompilation slices the wrapper off instead of generating code, and \\`decompile(compile(source)) === source\\` up to one leading or trailing newline. Projection variables are recognised by their shape, \\`(exports) => exports[\"a\"]\\`.`\n)};"
+    },
+    {
+      "pid": "_jtoprr",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtoprr = function _jtoprr(md){return(\nmd`### Prior work\n\nThe parser, reference analysis, \\`Sourcemap\\` and \\`transpileJavaScript\\` are ports of [notebook-kit](https://github.com/observablehq/notebook-kit)'s \\`src/javascript\\`; \\`findReferences\\` is based on Forbes Lindesay's [acorn-globals](https://github.com/ForbesLindesay/acorn-globals). The compile/decompile pair for classic Observable JavaScript is [observablejs-toolchain](https://observablehq.com/@tomlarkworthy/observablejs-toolchain).`\n)};"
+    },
+    {
+      "pid": "_jtotst",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtotst = function _jtotst(md){return(\nmd`## Tests`\n)};"
+    },
+    "_1rhclmb",
+    "_5o26f7",
+    "_1unguxf",
+    "_1dzs2f7",
+    "_bpu0ol",
+    {
+      "pid": "_jtodec",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtodec = function _jtodec(md){return(\nmd`## The Decompiler`\n)};"
+    },
+    "_1ssxyoy",
+    "_4bxks4",
+    "_1j4k0ta",
+    {
+      "pid": "_jtocom",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtocom = function _jtocom(md){return(\nmd`## The Compiler`\n)};"
+    },
+    "_kg7ead",
+    "_1cj0sh",
+    "_65qyit",
+    "_xz0jn5",
+    {
+      "pid": "_jtopar",
+      "name": null,
+      "deps": [
+        "md"
+      ],
+      "code": "const _jtopar = function _jtopar(md){return(\nmd`### Parsing`\n)};"
+    },
+    "_u077a3",
+    "_1rm347p",
+    "_1f9hkb8",
+    "_jeqnou",
+    "_g7gzfl",
+    "_ysf5w8",
+    "_vyzr35",
+    "_jtrtdoc",
+    "_jtnkrt",
+    "_jtnkst",
+    "_jtdefc",
+    "_jtdsof",
+    "_jtattd",
+    "_jtmod",
+    "_jtmodg"
+  ],
+  "rewrite": [
+    {
+      "pid": "_hhata",
+      "code": "const _hhata = function _anonymous(md) {return (md`# Bidirectional JS <=> Runtime Toolchain (Observable 2.0 Syntax)\n\n~~~js\nimport {compile, decompile, defineCell, attachDisplay, displayStateOf} from \"@tomlarkworthy/js-toolchain\"\n~~~`);};"
+    },
+    {
+      "pid": "_jtrtdoc",
+      "code": "const _jtrtdoc = function _runtime_doc(md){return(\nmd`## Runtime\n\n\\`defineCell(module, definition, {variables})\\` defines a compiled cell's variables in a module and returns them. It creates the cell's display state and its \\`display\\` and \\`view\\` shadow variables with the variables, because \\`_shadow\\` cannot be added afterwards. It does not observe them. \\`attachDisplay(variable, observe)\\` attaches notebook-kit's observer once, however many panes call it, and returns a detach function. \\`displayStateOf(variable)\\` returns the state, or \\`undefined\\` for a variable \\`defineCell\\` did not create.\n\n\\`display\\`, \\`clear\\`, \\`observe\\`, \\`input\\` and \\`Mutator\\` are notebook-kit 2.5.6's, loaded by \\`nkRuntime\\` from \\`notebook-kit-runtime-2.5.6.js.gz\\`. States live in \\`nkDisplayStates\\`, a WeakMap kept observed so a recompute does not replace it.`\n)};"
+    },
+    {
+      "pid": "_jtnkst",
+      "code": "const _jtnkst = function _nkDisplayStates(keepalive,jsToolchainModule)\n{\n  keepalive(jsToolchainModule, \"nkDisplayStates\");\n  return new WeakMap();\n};"
+    }
+  ]
+}
