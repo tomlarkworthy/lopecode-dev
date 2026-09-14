@@ -1190,6 +1190,36 @@ editor-5-merge-D.test.ts                        18/18
 exporter-3 run-suite, lopebooks and lopecode    12/12, 12/12
 ```
 
+#### Visualizer merged to main (2026-09-14)
+
+Tom asked why the example "Rendering _this notebook_'s runtime-sdk-dependancy" did not render. Its value
+computed: a nested visualizer holding 68 runtime-sdk cells. The pane never drew it, because `vizPaneSync` skips
+a cell whose value is a nested visualizer with `detachNodes: true`. The pre-merge visualizer has the same rule
+(`visualizers.has(v._value) && v._value?.detachNodes`), and it was already in lopecode `4354cd8` (2026-03-29),
+so this is not a merge C regression. On observablehq.com Observable's own inspector draws the cell. Tom chose
+to change the example to `detachNodes: false` (lopecode `071a865`, added to `plans/C-visualizer.json` as a
+`replace`). In a headless load, the cell's node is then connected and holds the `.runtimeSdk` root.
+
+Tom, after checking it in the tab: "yes looks good, lets merge it in!". `lopecode@248b049` commits
+`visualizer.html` and `.json` on main. Four blocks change: the visualizer module (the branch block), js-toolchain
+and its gz attachment (version 93, as in `lopebooks@b275cb3a`), and cell-map. The branch file carries merge B's
+first cell-map (`9565e93`, block hash `40a449eb`), picked up when merge C was built. Main's file instead
+takes main's cell-map canonical from `0794994` (`b8ca773b`), which differs from it only in md cells. As with
+js-toolchain, main's working tree held uncommitted inspector, lopepage-2 and tests edits from another session.
+They were left unstaged. The spec was rebuilt with `spec-sync --rebuild`, and equals the branch spec except for
+the cell-map hash.
+
+```
+gate                                            result
+preflight, both builds vs the files they replace identical finding sets
+run-suite #viz_tests, committed file            17/17
+run-suite #viz_tests, with the working-tree edits 17/17
+run-suite, no flag                              17 skipped
+```
+
+Still branch-only: D (editor-5), A1 (exporter-3), the cell-map test flag, and the lopepage-3 demo repoint.
+Visualizer consumers other than the canonical are not swept.
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**
