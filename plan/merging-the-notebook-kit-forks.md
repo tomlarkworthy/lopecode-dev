@@ -1303,6 +1303,227 @@ Not done:
   present at `lopebooks@1ab7dbce` and absent from the baseline for that notebook.
 - Download from the fork was not tested. No consumer beyond the canonicals is swept. Nothing is pushed to git.
 
+#### E3: lopepage-2 in place of lopepage-3, prepared for review (2026-09-14)
+
+Tom: "ok next prepare lopepage-2 merge from lopepage-3 for review".
+
+lopepage-2 has nothing left to take. An acorn comparison of the lopepage-2 module on lopecode main, on the
+branch (`6de5b80`) and lopepage-3 on the branch (`scratchpad/lp2/cells.ts`):
+
+```
+cells: main 55, branch 55, lopepage-3 55
+lp2_page        main -> branch: body     branch -> lopepage-3: equal
+every other cell equal, bodies and deps
+imports only in lopepage-3: visualizer-2 (visualizer), editor-6 (auto_attach, attachContextManu)
+```
+
+The notebook names `@tomlarkworthy/lopepage-3` in one place, its `bootconf.json` mains. So the merge is a frame
+swap in the demo, not a cell merge. `tools/merge-forks/demo-on-lopepage-2.sh` builds `.out/E3-demo.html`: E2's
+repointed copy (`repoint-lopepage-3.sh`), then lopepage-2 carried from the branch canonical, mains rewritten by
+parsing the bootconf block as JSON, and the lopepage-3 block removed with `rm-blocks.ts`, which refuses a block
+something still imports. Against the demo as it stands on the branch (`lopebooks/notebooks/@tomlarkworthy_lopepage-3.html`,
+including the uncommitted A1 exporter-3 block):
+
+```
+removed  cell-map-2, visualizer-2, editor-6, editor-6/cell_options.json, lopepage-3
+added    ui-testing, visualizer, editor-5, editor-5/cell_options.json, lopepage-2
+changed  cell-map (lopecode branch canonical), bootconf.json (mains lopepage-3 -> lopepage-2)
+                          demo (control)            E3-demo.html
+preflight                 2 unused-dep              the same 2
+boot-check.ts             11 pass                   11 pass
+save-reload-check.ts      9 pass (E8 not run)       9 pass (E8 not run)
+```
+
+Logs: `.out/E3-boot-*.log`, `.out/E3-save-*.log`. The first boot-check label still reads "lopepage-3 mounts
+its page"; what it checks is `#lopepage-2`, which both frames mount.
+
+Merged to main, merge E is `6de5b80` byte for byte: main's `lopepage-2.html` with the branch block swapped in
+equals the branch file (only that block differs between them), the spec equals, `spec-sync --check` is up to
+date and the preflight finding set is unchanged. The change is one selector in `lp2_page`:
+
+```
+- '#lopepage-2 .lope-viz .observablehq:not(.observablehq--running):empty::after{content:\'<detached>\';…}',
++ '#lopepage-2 .lope-viz .observablehq:not(.observablehq--running):not(.lope-viz-nk):empty::after{content:\'<detached>\';…}',
+```
+
+Its test record is merge E's above: `test_lp2_*` 20/21 against 21/21, the difference a wizard test that also
+fails on HEAD (4 of 9 against 2 of 9).
+
+For Tom to decide or review:
+- **Apply E3 to the demo.** It deletes editor-6, visualizer-2, cell-map-2 and lopepage-3 from the only notebook
+  holding them; none is in `modules/canonical.json`. The file would still be named `lopepage-3.html` while
+  holding no lopepage-3.
+- ~~**Merge E to main**~~ Done 2026-09-15 after Tom reviewed the branch notebook over pairing: `lopecode@136b538`,
+  html and spec byte-equal to `6de5b80`. `lp2_page` pushed to observablehq.com/@tomlarkworthy/lopepage-2
+  (Observable's cell equalled main's decompile before the push; version 4032 -> 4033, 64 nodes before and after).
+  The branch file embeds visualizer `63c4d7db`, editor-5 `66a02e97`, cell-map `a6588376` and no js-toolchain,
+  the same blocks as main before merge E. None is the merged canonical, so the notebook itself does not render
+  Notebook Kit cells until they are synced in. Observable's visualizer (version 2462) had no js-toolchain import,
+  so merge C was not on Observable either.
+- **Merge C pushed to Observable** 2026-09-15, Tom: "push visualizer to Observable as well".
+  - Before: Observable v2462 equalled main's visualizer before merge C (cellwise-diff against `248b049^`, no
+    differences). Every name main's visualizer imports was defined by Observable's runtime-sdk, js-toolchain,
+    dataflow-templating, inspector and cell-map (`liveCellMap`). Headless boot (`probe-observable-annotate.mjs`)
+    ok 70, errors 0.
+  - Push: a node-level diff script (`scratchpad/vizpush/push-visualizer.mjs`), not `lope-push-ws` (`--cells`
+    drops imports; a full push re-inserts every node). 19 inserts, 10 modifies, 6 removes, v2462 -> v2496,
+    54 -> 67 nodes, no duplicate values.
+  - Dead end: matching Observable's md-mode nodes to the decompile by unescaping the template text flagged two
+    unchanged md cells (1714, 1883) as modified. Neither changed between `248b049^` and main, so both were
+    left untouched rather than rewritten with the unescaped text.
+  - After: headless boot ok 122, errors 0. `cellwise-diff @tomlarkworthy/visualizer lopecode`: no differences.
+  - lopepage-2 on Observable, headless: errors 2, `lp2_menu_clear_history` and `lp2_background_jobs` (which
+    holds it), both `Cannot read properties of undefined (reading 'keys')`. The same probe with Playwright
+    serving `visualizer@2462.js` in place of the latest gave the same 2 errors, so they predate this push;
+    `lp2_menu_clear_history` reads local-change-history's `lch_git`/`lch_fs`/`lch_config`. Cause not traced.
+- **Merge B pushed to Observable** 2026-09-15, Tom: "push cell-map".
+  - Source: the branch's cell-map (`lopecode/notebooks/@tomlarkworthy_cell-map.html` in the worktree, block
+    `a91b4200`), not main's. Main's differs from it in two things only: the merge-history comments removed by
+    the prose fix, and merge F's `cellmap_tests_enabled` toggle in front of the module-creating fixture.
+    Pushing main would have published both. Main now lags Observable by those two.
+  - Before: Observable v1552 equalled main before T6 (`0dd3f9f^`, cellwise-diff no differences). runtime-sdk on
+    Observable defines `createModule`, `deleteModule`, `realize`. Headless boot: errors 3 (an anonymous cell,
+    `test_cell_map_covers_all_runtime_variables`, `test_cellmap_mutable`).
+  - Push: `scratchpad/cmpush/push-module.mjs` with `cell-map.json`. A local cell whose source equals the
+    pre-T6 dump is never rewritten, and a changed md-mode node would be replaced by its exact source rather
+    than unescaped text. Hand pairs: `dedupeHierarchy` (a leading `/** */` comment on Observable) and
+    `detailVizTitle` (md mode with `${}`); the `hash` import is `57d79353bac56631@44` locally and
+    `@jashkenas/url-querystrings-and-hash-parameters` on Observable, paired by alias. 34 inserts, 2 modifies
+    (`cellMap`, the runtime-sdk import), 1 remove (the `decompileImport` import); v1552 -> v1589, 63 -> 96
+    nodes, no duplicate values, no merge-history phrases. cellwise-diff against the branch cell-map: no differences.
+  - After, headless: cell-map errors 1 (the same anonymous `reading 'name'` cell; the two test failures are
+    gone), visualizer errors 0, lopepage-2 errors 2 (the same two local-change-history cells as before).
+- **Main's upgraded notebooks carry each other's latest modules**, 2026-09-15, Tom: "ensure main's upgraded
+  notebooks each carry the latest versions of each other". `lopecode@1aa6a2a` (cell-map, visualizer,
+  exporter-3, lopepage-2) and `lopebooks@32f35539` (cell-map, exporter-3, notebook-kit, editor-5, ui-testing).
+  - Scope: the notebooks the merge-forks commits on each main touched. Merge D is not on main, so editor-5's
+    latest is the lopebooks canonical `2e72de1b` (equal to Observable v4026). The lopecode editor-5 canonical
+    `395ce980` is older (4 fewer tests, no toggle) and was not changed.
+  - Before, across the nine: cell-map in 4 versions, visualizer 3, exporter-3 3, lopepage-2 4, editor-5 4;
+    js-toolchain absent from 5.
+  - Blocks: cell-map `a91b4200` (Observable v1589), visualizer `cdf47b04`, exporter-3 `d2fa5bfd`, lopepage-2
+    `582fa04d`, editor-5 `2e72de1b`, ui-testing `afac02eb`, js-toolchain `711533e2` (the notebook-kit
+    canonical with the prose fix's one comment; Observable v93 still has the old comment).
+  - Carried on preflight `missing-import`: ui-testing into both cell-maps, both exporter-3s and notebook-kit;
+    js-toolchain with `notebook-kit-runtime-2.5.6.js.gz` into both cell-maps, lopepage-2, editor-5 and
+    ui-testing. No `missing-export`, so no dependency block was refreshed.
+  - Gates against the same files at HEAD: preflight 0 new, 0 resolved; `spec-sync --check` up to date;
+    `lope-browser-runner --run-tests` one at a time. The only new failures are runtime-sdk's
+    `test_ui_ambiguous_name_asks_for_scope` and `test_ui_unknown_cell_is_a_clear_error`, in the five
+    notebooks ui-testing was carried into; they only run when ui-testing is embedded, and fail identically at
+    HEAD in visualizer and editor-5 (`ui: no module "@tomlarkworthy/ui-testing"`). They pass in lopepage-2 and
+    ui-testing, where ui-testing is a main. Cause not traced.
+  - Main's working trees held another session's uncommitted edits in 6 of the 9 files. Commits were written
+    index-only from HEAD; the working copies got the same block changes on top. Their `inspector` and `tests`
+    edits are kept. Their `lopepage-2` edit (`1aec3355`, an intermediate lopepage-2 sync) was replaced by
+    `582fa04d`, which contains it. Tooling: `scratchpad/mainsync/{build.ts,work.ts,commit.sh}`.
+  - lopebooks needed `SKIP=lope-sitemap`: the sitemap lacks `@tomlarkworthy_lopepage-3.html`, present before
+    this commit.
+- **The 2 `unused-dep` findings** (file-sync `jbApply`, dataflow-templating `instancingCost`) block a lopebooks
+  commit of the demo under the hook; they are in the demo before E3 too. *Moot 2026-09-15: the demo is deleted.*
+- **Migration finalized**, 2026-09-15. Tom: "yes commit all our fork work. Remove the old functionality from
+  cannonical notebooks if it has merged to main, we don't need exporter-4 anymore. finalize the migration, yes
+  sync everything that needs syncing to Observable, jumpgate those back down…", with "Merge D to main" and
+  "Delete the demo" chosen.
+  - Branch: prose fixes committed (`lopecode@c75940a`, `lopebooks@58d1ede8`, the latter also deleting
+    `@tomlarkworthy_lopepage-3.html`). Outer branch merged main (`e5e69eb`) and removed the tools that only run
+    against a fork (`1f18375`: `tools/{exporter-4,editor-6,visualizer-2,lopepage-3}`, `repoint-lopepage-3.sh`,
+    the newobs-replica tests and probes importing `modules/@tomlarkworthy/cell-map-2.js`, 5 scratch probes).
+    `canonical.json` drops cell-map-2 and cell-map-viz, and js-toolchain's `"upstream": null` (it is published).
+  - Before deleting, a block-id survey of both content repos at main: the only notebook still embedding a fork
+    module was `@tomlarkworthy_cell-map-2.html` (cell-map-2, cell-map-viz). No notebook embedded exporter-4,
+    editor-6, visualizer-2, lopepage-3 or save-in-place-2.
+  - Merge D and T7 to main: `lopecode@7c56fcd`, `lopebooks@56a654b3`. editor-5 `18b0ae9e` and command-palette
+    `9725f5c6` swapped into the eleven upgraded notebooks; the lopecode editor-5 and command-palette canonicals
+    also took the other merged modules and carried js-toolchain and ui-testing (preflight `missing-import`).
+    cell-map-2's notebook, sitemap and both `content.json` entries removed. Gates against HEAD: preflight 0 new,
+    0 resolved; tests one at a time, no new failure except runtime-sdk's two `test_ui_*` in the two notebooks
+    that newly embed ui-testing (the same pattern as the previous sync).
+  - Observable, with `scratchpad/obspush/push-module.mjs` (baseDump = main's block before the change):
+    ```
+    editor-5         v4026 -> v4048   13 inserts, 5 cell modifies, 3 import modifies, 1 import insert
+    command-palette  v44   -> v51     5 inserts, 2 import inserts
+    js-toolchain     v93   -> v94     1 modify (the "exporter-4 has shadows" comment)
+    ```
+    `cellwise-diff` against the pushed blocks: no differences for editor-5 and command-palette. js-toolchain
+    cannot be diffed while canonical.json declared no upstream; node 78's text was read back instead.
+  - Jumpgate round trip, committed as `lopecode@c9644a2` and `lopebooks@c10cc2a4`. 8 scratch exports (frame lopepage-2, `--no-carry-mains`, sources = the module plus
+    save-in-place, module-selection and annotate, hash naming only the module). All 8 exported first try.
+    `cellwise-diff` of each jumpgated target block against Observable: 0 differing cells for cell-map, visualizer,
+    exporter-3, lopepage-2, lopepage-2-tests, editor-5, command-palette, js-toolchain and ui-testing.
+  - **The pids do not survive the jumpgate.** Named cells whose `$def` pid the export changed, against canonical:
+    ```
+    cell-map 38/98  visualizer 40/62  exporter-3 29/110  editor-5 21/148  command-palette 6/16
+    lopepage-2 6/55  lopepage-2-tests 23/25  js-toolchain 27/35  ui-testing 0/44
+    ```
+    So the export is not what was committed. `scratchpad/jg/restore.ts` takes every declared module's block and
+    attachments from its canonical at HEAD, keeps undeclared modules from the existing notebook, and keeps
+    bootconf and the bootloader from the export. Annotations address cells by pid, so an in-place jumpgate
+    would have orphaned them.
+  - dataflow-templating keeps each notebook's copy. Observable's copy (`ecc3fccd` locally) equals the canonical
+    except `instancingCost`, whose canonical `$def` declares an unused `dataflows` input (cellwise: "deps only").
+    The canonical block is in 223 notebooks and its finding is baselined; restoring it here was the only new
+    preflight finding (3 notebooks). Fixing the canonical is not done.
+  - Dropped by the export and not restored, none imported: `networking_script`, `golden-layout-2-6-0` (lopepage
+    v1's) and `escodegen`; lopebooks exporter-3's `@tomlarkworthy/lopepage` (its spec still recorded lopepage v1).
+    notebook-kit's two Observable attachments (`notebook-kit-browser.js`, `@4.js`) are dropped: the canonical
+    reads `notebook-kit-browser.js.gz`. Sizes grew 2.42-2.63 MB -> 2.78-2.86 MB (annotate, editable-md, prosemirror).
+  - Tests on the restored notebooks, one at a time, against HEAD (lopecode then lopebooks):
+    ```
+    cell-map 222/227 -> 236/242   visualizer 222/227 -> 236/242   exporter-3 219/227 -> 233/242
+    lopepage-2 245/248 -> 259/263 editor-5 222/227 -> 236/242     command-palette 222/227 -> 236/242
+    cell-map 222/227 -> 236/242   exporter-3 220/228 -> 233/242   editor-5 222/227 -> 236/242
+    notebook-kit 222/227 -> 236/242  ui-testing 224/227 -> 238/242
+    ```
+    The one new failure, in all eleven, is editable-md's `test_defaultMarkdownParser_preserves_escapes`
+    (labelled `exporter-3#` by the runner): expected text `"\\${}"`, received `"\${}"`. editable-md arrives
+    with the annotate main; its block equals its canonical and quick_start's. Control: editable-md's own
+    canonical notebook at HEAD under the same runner, 155/168, with this test and 9 other editable-md tests
+    timing out. It does not pass there either; not investigated further.
+  - Not done: `@tomlarkworthy/cell-map-2` still exists on observablehq.com (no delete in the tooling). The
+    lopecode editor-5 working tree had held another session's export whose editor-5 differed from HEAD only in
+    `auto_attach`, token-equal to merge D's; it was replaced.
+
+Not run on the copy: lopepage-2's own `test_lp2_*` suite (lopepage-2-tests is not embedded in the demo) and T2.
+
+##### Prose naming the forks and the merges, removed (2026-09-14)
+
+Tom: "yes obviously fix the prose". The review had listed three places; a search of the merged modules found
+16 comments and md strings recording merge history, fork names or plan task ids. Edited on the branch, not committed:
+
+```
+cell-map         13 comments  "v1's", "(found by T3 during merge B, 2026-09-14)", "merge B (2026-09-14) took cell-map-2's value", ...
+editor-5          1 md        _e5t20 "Written 2026-09-14 (T5 in plan/...), before editor-6 is merged into this module."
+command-palette   1 md        _cpt00 "Written 2026-09-14, before cell-map-2 is merged into cell-map (T7 in plan/...)."
+js-toolchain      1 comment   "A head exported by exporter-4 has shadows" -> "exporter-3 has shadows"
+notebook-kit-demo 1 md        intro names visualizer-2/editor-6 -> visualizer/editor-5, applied by demo-on-lopepage-2.sh step 5, E3 copy only
+```
+
+Kept: cell-map's two measurement notes dated 2026-09-14, which record a measurement, not a merge.
+
+Gates:
+- Acorn token streams, comments excluded, equal before and after for all four module `.js` files, except the md
+  template tokens in `_e5t20` and `_cpt00`.
+- `sync-module` into lopecode cell-map, command-palette, exporter-3, visualizer and lopebooks cell-map,
+  editor-5, exporter-3, lopepage-3, notebook-kit; `spec-sync` refreshed each `.json`.
+- `lope-preflight --json` against `scratchpad/lp2/preflight-before-prose.json`: 0 new, 0 resolved.
+- A search of the 9 notebooks for the removed phrases: 0 each.
+- E3 copy rebuilt: intro sentence present once; `editor-6`, `visualizer-2`, `cell-map-2`, `lopepage-3`,
+  `merge B` each 0 times; boot-check 11 pass, save-reload-check 9 pass (task `bm8n6o3cl`).
+
+Main was not edited. The same comments are in main's `cell-map.html` and `visualizer.html` (lopecode), and in
+`cell-map.html` (lopebooks). js-toolchain's is in `exporter-3.html` (both repos) and `notebook-kit.html`
+(lopebooks). A trial in the scratchpad (`scratchpad/lp2/mainprose`) built main's files with the branch blocks
+swapped in:
+- js-toolchain on main equals the branch block before the edit, so the swap applies in all four files. Preflight
+  finding sets were unchanged and the specs refreshed one hash each.
+- cell-map on main (`36a1f25b`, or `790672d9`/`48ef6822` in the exporter-3 and notebook-kit copies) does not
+  equal the branch block before the edit (`0b8a6f31`), so it was not swapped. Main's cell-map needs the comment
+  edits made on its own text.
+
+Observable, fetched 2026-09-14: none of the removed phrases is in cell-map, editor-5 or command-palette;
+js-toolchain has the exporter-4 comment.
+
 ## Merges, lowest risk first
 
 **A. exporter-3 absorbs exporter-4.**
@@ -1385,15 +1606,11 @@ waits on `syncers`, which merge C made `vizSynced`, so C and D are independent o
    - Keep routing by parse: the cell becomes a Notebook Kit cell.
    - Or route to js only in a module that already holds a Notebook Kit cell: the syntax error stays,
      and mixed modules still work.
-3. **Which name survives.**
-   - Option: `cell-map` keeps its name and takes cell-map-2's content, and cell-map-2's 3 importers
-     move.
-   - Option: cell-map's 8 importing modules move to `cell-map-2`.
-
-   The same question applies to visualizer and editor.
-4. **Shims or migration** for visualizer v1's removed exports.
-5. **Publishing.** Nothing here is approved for Observable, jumpgate or git push. The merges are local
-   until Tom says otherwise.
+3. ~~**Which name survives.**~~ Taken: every original kept its name (cell-map, visualizer, editor-5,
+   exporter-3, lopepage-2) and the forks are deleted (2026-09-15).
+4. ~~**Shims or migration** for visualizer v1's removed exports.~~ Neither: merge C kept the v1 cells importers read.
+5. ~~**Publishing.**~~ Approved 2026-09-15 for Observable pushes and jumpgates ("yes sync everything that needs
+   syncing to Observable, jumpgate those back down"). No git push was asked for.
 
 ## Not measured
 
