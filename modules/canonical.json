@@ -265,6 +265,10 @@
   "@tomlarkworthy/flow-queue": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_flow-queue.html"
   },
+  "@tomlarkworthy/foc-annotations": {
+    "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
+    "upstream": null
+  },
   "@tomlarkworthy/foc-chat": {
     "lopebooks": "lopebooks/notebooks/Feeling_of_Computing.html",
     "upstream": null
