@@ -737,6 +737,10 @@
   "@tomlarkworthy/subdomain-certification": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html"
   },
+  "@tomlarkworthy/suminagashi": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_suminagashi.html",
+    "upstream": null
+  },
   "@tomlarkworthy/summarizejs": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_summarizejs.html"
   },

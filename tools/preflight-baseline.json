@@ -1665,6 +1665,16 @@
    "kind": "unused-dep"
   }
  ],
+ "lopebooks/notebooks/@tomlarkworthy_suminagashi.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
  "lopebooks/notebooks/@tomlarkworthy_summarizejs.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
