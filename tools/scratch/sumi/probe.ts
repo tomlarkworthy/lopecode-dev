@@ -9,6 +9,9 @@ const url = "file://" + resolve("lopebooks/notebooks/@tomlarkworthy_suminagashi.
 const b = await chromium.launch({ headless: !process.env.HEADED, args: gpu ? ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"] : ["--enable-unsafe-swiftshader"] });
 const c = await b.newContext({ viewport: { width: Number(arg("--w", "900")), height: 1000 }, deviceScaleFactor: Number(arg("--dpr", "1")) });
 const p = await c.newPage();
+// --rafms N: hold requestAnimationFrame to one callback every N ms (a throttled tab)
+const rafms = +(arg("--rafms", "0") as string);
+if (rafms) await p.addInitScript((ms) => { const raf = window.requestAnimationFrame.bind(window); let due = 0, open = -1; window.requestAnimationFrame = (f) => raf(function wait (t) { if (t !== open) { if (t < due) return raf(wait); open = t; due = t + ms - 2; } f(t); }); }, rafms);
 if (process.argv.includes("--nodemo")) await p.addInitScript(() => { (window as any).__nodemo = true; });
 p.on("console", m => { if (["error", "warning"].includes(m.type())) console.log("[console]", m.type(), m.text().slice(0, 400)); });
 p.on("pageerror", e => console.log("[pageerror]", String(e).slice(0, 400)));
