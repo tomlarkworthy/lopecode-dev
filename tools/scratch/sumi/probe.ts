@@ -5,7 +5,7 @@ const arg = (n: string, d?: string) => { const i = process.argv.indexOf(n); retu
 const gpu = process.argv.includes("--gpu");
 const out = arg("--out", "tools/scratch/sumi/shot")!;
 const wait = Number(arg("--wait", "8000"));
-const url = "file://" + resolve("lopebooks/notebooks/@tomlarkworthy_suminagashi.html") + (arg("--hash", "#view=S100(@tomlarkworthy/suminagashi)"));
+const url = "file://" + resolve(arg("--file", "lopebooks/notebooks/@tomlarkworthy_suminagashi.html")!) + (arg("--hash", "#view=S100(@tomlarkworthy/suminagashi)"));
 const b = await chromium.launch({ headless: !process.env.HEADED, args: gpu ? ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist", "--enable-unsafe-swiftshader"] : ["--enable-unsafe-swiftshader"] });
 const c = await b.newContext({ viewport: { width: Number(arg("--w", "900")), height: 1000 }, deviceScaleFactor: Number(arg("--dpr", "1")) });
 const p = await c.newPage();
