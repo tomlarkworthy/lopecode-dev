@@ -55,18 +55,38 @@ const level = () => {
   const t = tops.filter((v) => v >= 0);
   return t.length ? Math.max(...t) - Math.min(...t) : 0;
 };
+// heavy particles that mostly see light within h (dispersed), and those of them on the tube walls (films)
+const mixing = () => {
+  const h2 = liquid.h * liquid.h;
+  let mixed = 0, heavy = 0, film = 0;
+  for (let i = 0; i < liquid.n; i++) {
+    if (liquid.kind[i]) continue;
+    heavy++;
+    let like = 0, unlike = 0;
+    for (let j = 0; j < liquid.n; j++) {
+      if (j === i) continue;
+      const dx = liquid.x[i] - liquid.x[j], dy = liquid.y[i] - liquid.y[j];
+      if (dx * dx + dy * dy < h2) { if (liquid.kind[j]) unlike++; else like++; }
+    }
+    if (unlike > like) mixed++;
+    if (unlike >= like && Math.min(liquid.x[i], geometry.width - liquid.x[i]) < 1.2 * liquid.s) film++;
+  }
+  return `mixed ${(100 * mixed / heavy).toFixed(0)}% film ${(100 * film / heavy).toFixed(1)}%`;
+};
 const report = (t: number) => {
   const share = (which: number) => { const b = [0, ...plates.map((p: any) => liquid.below(p.y, which)), 1]; return b.slice(1).map((v, i) => `${(100 * (v - b[i])).toFixed(0).padStart(3)}%`).reverse().join(" "); };
   const ch = `heavy ${share(0)}  light ${share(1)}`;
   const cl = clusters();
   const w = liquid.wheels.map((w: any) => `θ=${w.theta.toFixed(1)} ω=${w.omega.toFixed(2)}`).join("  ");
-  console.log(`t=${t.toFixed(0).padStart(4)}s  ${ch}  clusters ${cl.length} sizes ${cl.slice(0, 5).join(",")}  level ${level().toFixed(3)}  ${w}`);
+  console.log(`t=${t.toFixed(0).padStart(4)}s  ${ch}  clusters ${cl.length} sizes ${cl.slice(0, 5).join(",")}  level ${level().toFixed(3)}  ${mixing()}  ${w}`);
 };
 const steps = Math.round(T / params.dt), per = Math.round(every / params.dt);
 const t0 = performance.now();
+let back = 0;
 for (let k = 1; k <= steps; k++) {
   liquid.step(params.dt, gdir[0] * params.gravity, gdir[1] * params.gravity, params);
+  if (k * params.dt > 10 && liquid.wheels.some((w: any) => w.omega < -0.5)) back++;
   if (k % per === 0) report(k * params.dt);
 }
-console.log(`${((performance.now() - t0) / steps).toFixed(3)} ms/step  n=${liquid.n} s=${liquid.s.toFixed(4)} h=${liquid.h.toFixed(4)}`);
+console.log(`backwards ${(back * params.dt).toFixed(1)} s of ${T - 10}  ${((performance.now() - t0) / steps).toFixed(3)} ms/step  n=${liquid.n} s=${liquid.s.toFixed(4)} h=${liquid.h.toFixed(4)}`);
 if (raster) draw();
