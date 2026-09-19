@@ -20,28 +20,30 @@ const clusters = () => {
   const find = (i: number) => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
   const h2 = liquid.h * liquid.h;
   for (let i = 0; i < liquid.n; i++) for (let j = i + 1; j < liquid.n; j++) {
+    if (liquid.kind[i] || liquid.kind[j]) continue;
     const dx = liquid.x[i] - liquid.x[j], dy = liquid.y[i] - liquid.y[j];
     if (dx * dx + dy * dy < h2) { const a = find(i), b = find(j); if (a !== b) parent[a] = b; }
   }
   const size = new Map<number, number>();
-  for (let i = 0; i < liquid.n; i++) { const r = find(i); size.set(r, (size.get(r) || 0) + 1); }
+  for (let i = 0; i < liquid.n; i++) if (!liquid.kind[i]) { const r = find(i); size.set(r, (size.get(r) || 0) + 1); }
   return [...size.values()].sort((a, b) => b - a);
 };
 const draw = () => {
-  const cols = 34, rows = 54;
+  const cols = 30, rows = 75;
   const grid = Array.from({ length: rows }, () => new Array(cols).fill(0));
+  const light = Array.from({ length: rows }, () => new Array(cols).fill(0));
   for (let i = 0; i < liquid.n; i++) {
     const c = Math.min(cols - 1, (liquid.x[i] / geometry.width * cols) | 0);
     const r = Math.min(rows - 1, ((1 - liquid.y[i] / geometry.height) * rows) | 0);
-    grid[r][c]++;
+    (liquid.kind[i] === 0 ? grid : light)[r][c]++;
   }
   const lines = grid.map((row, r) => {
     const y = (1 - (r + 0.5) / rows) * geometry.height;
-    const plate = plates.some((p: any) => Math.abs(y - p.y) < p.thickness / 2);
     return "|" + row.map((v, c) => {
       const x = (c + 0.5) / cols * geometry.width;
-      if (plate) return plates.some((p: any) => p.holes.some((hx: number) => Math.abs(x - hx) < p.holeWidth / 2)) ? " " : "=";
-      return v === 0 ? " " : v < 2 ? "." : v < 4 ? "o" : "#";
+      if (plates.some((p: any) => p.solids.some(([x0, x1, y0, y1]: number[]) => x > x0 && x < x1 && y > y0 && y < y1))) return "=";
+      if (v === 0) return light[r][c] === 0 ? " " : light[r][c] < 3 ? "'" : ":";
+      return v < 2 ? "." : v < 4 ? "o" : "#";
     }).join("") + "|";
   });
   console.log(lines.join("\n"));
@@ -49,15 +51,16 @@ const draw = () => {
 const level = () => {
   // spread of the top pool's surface: the highest particle in each of 10 columns
   const tops = new Array(10).fill(-1);
-  for (let i = 0; i < liquid.n; i++) if (liquid.y[i] > plates[2].y) { const c = Math.min(9, (liquid.x[i] * 10) | 0); tops[c] = Math.max(tops[c], liquid.y[i]); }
+  for (let i = 0; i < liquid.n; i++) if (liquid.kind[i] === 0 && liquid.y[i] > plates[2].y) { const c = Math.min(9, (liquid.x[i] * 10) | 0); tops[c] = Math.max(tops[c], liquid.y[i]); }
   const t = tops.filter((v) => v >= 0);
   return t.length ? Math.max(...t) - Math.min(...t) : 0;
 };
 const report = (t: number) => {
-  const top = 1 - liquid.below(plates[2].y), mid = liquid.below(plates[2].y) - liquid.below(plates[0].y), bot = liquid.below(plates[0].y);
+  const share = (which: number) => { const b = [0, ...plates.map((p: any) => liquid.below(p.y, which)), 1]; return b.slice(1).map((v, i) => `${(100 * (v - b[i])).toFixed(0).padStart(3)}%`).reverse().join(" "); };
+  const ch = `heavy ${share(0)}  light ${share(1)}`;
   const cl = clusters();
   const w = liquid.wheels.map((w: any) => `θ=${w.theta.toFixed(1)} ω=${w.omega.toFixed(2)}`).join("  ");
-  console.log(`t=${t.toFixed(0).padStart(4)}s  top ${(100 * top).toFixed(0).padStart(3)}%  mid ${(100 * mid).toFixed(0).padStart(3)}%  bot ${(100 * bot).toFixed(0).padStart(3)}%  clusters ${cl.length} sizes ${cl.slice(0, 5).join(",")}  level ${level().toFixed(3)}  ${w}`);
+  console.log(`t=${t.toFixed(0).padStart(4)}s  ${ch}  clusters ${cl.length} sizes ${cl.slice(0, 5).join(",")}  level ${level().toFixed(3)}  ${w}`);
 };
 const steps = Math.round(T / params.dt), per = Math.round(every / params.dt);
 const t0 = performance.now();

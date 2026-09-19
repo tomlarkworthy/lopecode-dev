@@ -5,7 +5,7 @@ const arg = (n: string, d?: string) => { const i = process.argv.indexOf(n); retu
 const out = arg("--out", "tools/scratch/timer/shot")!;
 const wait = Number(arg("--wait", "8000"));
 const shots = Number(arg("--shots", "1"));
-const url = "file://" + resolve(arg("--file", "lopebooks/notebooks/@tomlarkworthy_liquid-timer.html")!) + arg("--hash", "#view=S100(@tomlarkworthy/liquid-timer)");
+const url = (arg("--url") || "file://" + resolve(arg("--file", "lopebooks/notebooks/@tomlarkworthy_liquid-timer.html")!)) + arg("--hash", "#view=S100(@tomlarkworthy/liquid-timer)");
 const b = await chromium.launch({ headless: !process.env.HEADED, args: ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
 const c = await b.newContext({ viewport: { width: Number(arg("--w", "900")), height: 1000 }, deviceScaleFactor: Number(arg("--dpr", "1")) });
 const p = await c.newPage();
