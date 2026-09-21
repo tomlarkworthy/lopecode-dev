@@ -304,12 +304,14 @@ function depSkew(src: string): Problem[] {
   let ast: any;
   try { ast = acorn.parse(src, { ecmaVersion: 2022, sourceType: "module" }); } catch { return out; }
 
-  const fns = new Map<string, { params: string[]; refs: Set<string>; bound: Set<string>; opaque: boolean }>();
+  const fns = new Map<string, { params: string[]; optional: boolean[]; refs: Set<string>; bound: Set<string>; opaque: boolean }>();
   walk.simple(ast, {
     VariableDeclarator(n: any) {
       if (n.id.type !== "Identifier" || !n.init) return;
       if (n.init.type !== "FunctionExpression" && n.init.type !== "ArrowFunctionExpression") return;
       const params = (n.init.params || []).map((p: any) => (p.type === "Identifier" ? p.name : null));
+      // a default or a rest is satisfied by no argument at all; any other position needs an input
+      const optional = (n.init.params || []).map((p: any) => p.type === "AssignmentPattern" || p.type === "RestElement");
       const refs = new Set<string>(), bound = new Set<string>();
       // the cell's own params bind too; a destructured one binds names but holds no positional dep
       for (const p of n.init.params || []) patternNames(p, bound);
@@ -341,7 +343,7 @@ function depSkew(src: string): Problem[] {
         ImportDefaultSpecifier(s: any) { bound.add(s.local.name); },
         ImportNamespaceSpecifier(s: any) { bound.add(s.local.name); },
       });
-      fns.set(n.id.name, { params, refs, bound, opaque });
+      fns.set(n.id.name, { params, optional, refs, bound, opaque });
     },
   });
 
@@ -385,6 +387,23 @@ function depSkew(src: string): Problem[] {
                    detail: `${cell} input ${i} is ${dep} but its parameter there is ${p}, ` +
                            `which is input ${inputs.indexOf(p)} -- every argument after ${i} is off by a slot` });
       });
+
+      // The mirror of the `!p` case above, and the one nothing here could see: a parameter
+      // PAST the end of the input array. Nothing binds it, so it is `undefined` on every run,
+      // and both checks above stay silent -- its name IS in the parameter list, so it is never
+      // an undeclared ref, and there is no input at that index to call unused. The shape is a
+      // signature that grew while its input array did not. Observed twice on exporter-3 in one
+      // session (actionHandler 12 params / 11 deps, exportToHTML 9 / 8); each would have thrown
+      // on the first export. Only reported where the body actually USES the parameter -- an
+      // unreferenced trailing one is dead weight, not a failure.
+      for (let i = inputs.length; i < fn.params.length; i++) {
+        if (fn.optional[i]) continue;
+        const p = fn.params[i];
+        if (p !== null && !fn.refs.has(p)) continue;
+        out.push({ kind: "unbound-param",
+                   detail: `${cell} parameter ${i} (${p ?? "a destructuring pattern"}) has no input at that ` +
+                           `position, so it is always undefined` });
+      }
 
       const params = new Set(fn.params.filter(Boolean) as string[]);
       for (const r of fn.refs)
