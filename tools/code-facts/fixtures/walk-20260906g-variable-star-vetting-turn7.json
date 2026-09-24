@@ -1,0 +1,2344 @@
+{
+ "source": {
+  "walk": "walk-20260906g-variable-star-vetting",
+  "turn": 7,
+  "bundle": "df18",
+  "files": [
+   "tools/robocoop-5/eval/tbs/trajectories/walk-20260906g-variable-star-vetting/variable-star-vetting-7.json",
+   "tools/robocoop-5/eval/tbs/trajectories/walk-20260906g-variable-star-vetting/walk-variable-star-vetting-7.md",
+   "tools/robocoop-5/eval/tbs/trajectories/walk-20260906g-variable-star-vetting/snap-7/question.txt",
+   "tools/robocoop-5/eval/tbs/trajectories/walk-20260906g-variable-star-vetting/snap-7/ledger.json",
+   "tools/robocoop-5/eval/tbs/trajectories/walk-20260906g-variable-star-vetting/snap-7/src/@user/star-classifier.js"
+  ],
+  "seedRoots": null,
+  "applyCount": {
+   "@user/star-classifier": 3
+  },
+  "mayEdit_from_core_status": null,
+  "mayEdit_question": "see snap-7/question.txt (the note's May edit: line drives __rc5MayEdit)"
+ },
+ "attest": [
+  {
+   "cell": "@user/star-classifier:lombScargle",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "lombScargle",
+     "evidence": "synthGrid",
+     "cellHash": "b7be4d42.1246",
+     "evidenceHash": "31ee8a25.1950",
+     "rows": 6,
+     "at": 1788694931927
+    },
+    {
+     "kind": "crossing",
+     "module": "@user/star-classifier",
+     "cell": "lombScargle",
+     "evidence": "ls_vs_pdm_synth",
+     "cellHash": "b7be4d42.1246",
+     "evidenceHash": null,
+     "rows": 6,
+     "at": 1788695149036
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "lombScargle",
+     "evidence": "synthLSCheck",
+     "cellHash": "b7be4d42.1246",
+     "evidenceHash": "746d1e5e.1390",
+     "rows": 4,
+     "at": 1788695919543
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:pdmTheta",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "pdmTheta",
+     "evidence": "synthGridPDM",
+     "cellHash": "f07a6cdc.738",
+     "evidenceHash": "2fb1878a.1977",
+     "rows": 6,
+     "at": 1788694972050
+    },
+    {
+     "kind": "crossing",
+     "module": "@user/star-classifier",
+     "cell": "pdmTheta",
+     "evidence": "ls_vs_pdm_synth",
+     "cellHash": "f07a6cdc.738",
+     "evidenceHash": null,
+     "rows": 6,
+     "at": 1788695149053
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "pdmTheta",
+     "evidence": "synthPDMThetaCheck",
+     "cellHash": "f07a6cdc.738",
+     "evidenceHash": "71011b86.1309",
+     "rows": 3,
+     "at": 1788695982153
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:findPeaks",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "findPeaks",
+     "evidence": "synthGrid",
+     "cellHash": "a4ee2b6f.654",
+     "evidenceHash": "31ee8a25.1950",
+     "rows": 6,
+     "at": 1788694981531
+    },
+    {
+     "kind": "crossing",
+     "module": "@user/star-classifier",
+     "cell": "findPeaks",
+     "evidence": "ls_vs_pdm_synth",
+     "cellHash": "a4ee2b6f.654",
+     "evidenceHash": null,
+     "rows": 6,
+     "at": 1788695149066
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "findPeaks",
+     "evidence": "synthPeakCheck",
+     "cellHash": "a4ee2b6f.654",
+     "evidenceHash": "82a9eef.1353",
+     "rows": 3,
+     "at": 1788695964062
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:foldBin",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "foldBin",
+     "evidence": "synthShapes",
+     "cellHash": "deb56eb8.1370",
+     "evidenceHash": "1f25827a.5297",
+     "rows": 6,
+     "at": 1788695054706
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "foldBin",
+     "evidence": "synthFoldCheck",
+     "cellHash": "deb56eb8.1370",
+     "evidenceHash": "8dbd2710.3335",
+     "rows": 4,
+     "at": 1788695618908
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:magSkew",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "magSkew",
+     "evidence": "synthShapes",
+     "cellHash": "bb42c521.494",
+     "evidenceHash": "1f25827a.5297",
+     "rows": 6,
+     "at": 1788695068955
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "magSkew",
+     "evidence": "synthFoldCheck",
+     "cellHash": "bb42c521.494",
+     "evidenceHash": "8dbd2710.3335",
+     "rows": 4,
+     "at": 1788695633007
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:refinePeak",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "refinePeak",
+     "evidence": "synthRefinePeakCheck2",
+     "cellHash": "6f75d236.493",
+     "evidenceHash": "6b9bd5a4.1324",
+     "rows": 4,
+     "at": 1788697261943
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "refinePeak",
+     "evidence": "synthRefinePeakCheck",
+     "cellHash": "6f75d236.493",
+     "evidenceHash": "968530f5.1291",
+     "rows": 3,
+     "at": 1788697320690
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:pdmRefine",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "pdmRefine",
+     "evidence": "synthPDMRefineCheck",
+     "cellHash": "e3c18c25.518",
+     "evidenceHash": "d26aa145.1751",
+     "rows": 3,
+     "at": 1788696717159
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "pdmRefine",
+     "evidence": "synthPDMRefineCheck2",
+     "cellHash": "e3c18c25.518",
+     "evidenceHash": "39e5b876.1255",
+     "rows": 3,
+     "at": 1788697744833
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:pdmScan",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "pdmScan",
+     "evidence": "synthPDMScanCheck",
+     "cellHash": "383df6f.635",
+     "evidenceHash": "9180221e.1440",
+     "rows": 3,
+     "at": 1788697747148
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "pdmScan",
+     "evidence": "synthPDMScanCheck3",
+     "cellHash": "383df6f.635",
+     "evidenceHash": "7e9aaa77.1139",
+     "rows": 3,
+     "at": 1788727144681
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:findBestPeriod",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "findBestPeriod",
+     "evidence": "synthBestPeriodCheck",
+     "cellHash": "9bd44c54.974",
+     "evidenceHash": "f6f94d33.1344",
+     "rows": 3,
+     "at": 1788697974690
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "findBestPeriod",
+     "evidence": "synthBestPeriodCheck2",
+     "cellHash": "9bd44c54.974",
+     "evidenceHash": "8a5d90c.1341",
+     "rows": 3,
+     "at": 1788698429139
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:findBestPeriodPDM",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "findBestPeriodPDM",
+     "evidence": "synthBestPeriodPDMCheck",
+     "cellHash": "f6a07ebf.700",
+     "evidenceHash": "24498fa.1419",
+     "rows": 3,
+     "at": 1788727190021
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "findBestPeriodPDM",
+     "evidence": "synthBestPeriodPDMCheck2",
+     "cellHash": "f6a07ebf.700",
+     "evidenceHash": "59b6370d.1464",
+     "rows": 3,
+     "at": 1788727599788
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:flatFraction",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "flatFraction",
+     "evidence": "synthFlatFractionCheck",
+     "cellHash": "fd66c1ed.536",
+     "evidenceHash": "bf0c9d3d.787",
+     "rows": 3,
+     "at": 1788728468976
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "flatFraction",
+     "evidence": "synthFlatFractionCheck2",
+     "cellHash": "fd66c1ed.536",
+     "evidenceHash": "6b6883a3.1139",
+     "rows": 3,
+     "at": 1788728469019
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:detect",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "detect",
+     "evidence": "synthDetectCheck",
+     "cellHash": "11174d46.1275",
+     "evidenceHash": "21d5d369.784",
+     "rows": 3,
+     "at": 1788728469059
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "detect",
+     "evidence": "synthDetectCheck2",
+     "cellHash": "11174d46.1275",
+     "evidenceHash": "3479fdf.861",
+     "rows": 3,
+     "at": 1788728469097
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:shapeFeatures",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "shapeFeatures",
+     "evidence": "synthShapeFeaturesCheck",
+     "cellHash": "b5c9d45a.2457",
+     "evidenceHash": "e99f69e8.1370",
+     "rows": 3,
+     "at": 1788729156212
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "shapeFeatures",
+     "evidence": "synthShapeFeaturesCheck2",
+     "cellHash": "b5c9d45a.2457",
+     "evidenceHash": "cb2b20f4.1323",
+     "rows": 3,
+     "at": 1788729156260
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:computeFeatures",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "computeFeatures",
+     "evidence": "synthComputeFeaturesCheck",
+     "cellHash": "81866dc1.2364",
+     "evidenceHash": "5f7de1e4.1094",
+     "rows": 3,
+     "at": 1788729156304
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "computeFeatures",
+     "evidence": "synthComputeFeaturesCheck2",
+     "cellHash": "81866dc1.2364",
+     "evidenceHash": "c91176c0.1302",
+     "rows": 3,
+     "at": 1788729156347
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:classify",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "classify",
+     "evidence": "synthClassifyCheck",
+     "cellHash": "d106544.4104",
+     "evidenceHash": "16b5789e.1296",
+     "rows": 3,
+     "at": 1788729534411
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "classify",
+     "evidence": "synthClassifyCheck2",
+     "cellHash": "d106544.4104",
+     "evidenceHash": "bb84afe2.1302",
+     "rows": 3,
+     "at": 1788729534457
+    }
+   ]
+  },
+  {
+   "cell": "@user/star-classifier:prewhiten",
+   "list": [
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "prewhiten",
+     "evidence": "synthPrewhitenCheck",
+     "cellHash": "5cfa3859.513",
+     "evidenceHash": "d0d53990.1142",
+     "rows": 3,
+     "at": 1788729534502
+    },
+    {
+     "kind": "reference",
+     "module": "@user/star-classifier",
+     "cell": "prewhiten",
+     "evidence": "synthPrewhitenCheck2",
+     "cellHash": "5cfa3859.513",
+     "evidenceHash": "63be9a47.1165",
+     "rows": 3,
+     "at": 1788729534545
+    }
+   ]
+  }
+ ],
+ "crossChecks": [
+  {
+   "name": "ls_vs_pdm_synth",
+   "module": "@user/star-classifier",
+   "a": "synthGrid",
+   "b": "synthGridPDM",
+   "independent": true,
+   "shared": [
+    "loadAllTargets"
+   ],
+   "offending": [],
+   "agree": true,
+   "detail": "AGREE within 5% on 1 of 6 elements (need 0.5)",
+   "items": 6,
+   "fraction": 1,
+   "minFraction": 0.5,
+   "tolerance": 0.05,
+   "abs": false,
+   "sides": {
+    "a": {
+     "upstreamOfDeliverable": false,
+     "downstreamOfDeliverable": false
+    },
+    "b": {
+     "upstreamOfDeliverable": false,
+     "downstreamOfDeliverable": false
+    }
+   },
+   "verdictLine": "cross_check \"ls_vs_pdm_synth\": INDEPENDENT (shares only data cells: loadAllTargets); AGREE within 5% on 1 of 6 elements (need 0.5); 6 items compared, 1 within tolerance (min_fraction 0.5); NOT ON THE DELIVERABLE (neither side feeds the output cell)",
+   "valuesSummary": "a=Array(6) [Object, Object, Object, Object, Object, Object], b=Array(6) [Object, Object, Object, Object, Object, Object]",
+   "upA": [
+    "findBestPeriod",
+    "findPeaks",
+    "loadAllTargets",
+    "lombScargle",
+    "refinePeak"
+   ],
+   "upB": [
+    "findBestPeriodPDM",
+    "loadAllTargets",
+    "pdmRefine",
+    "pdmScan",
+    "pdmTheta"
+   ],
+   "dataShared": [
+    "loadAllTargets"
+   ],
+   "applyCount": 1,
+   "counts": {
+    "@user/star-classifier": 1
+   },
+   "at": 1788695127660
+  }
+ ],
+ "cells": {
+  "intro": {
+   "inputs": [
+    "md"
+   ],
+   "pid": "_intro",
+   "source_head": "function intro(md){return( md`# Variable Star Classification & Period Extraction\n\nLight curve analysis for targets 1-100",
+   "definition": "function intro(md){return( md`# Variable Star Classification & Period Extraction\n\nLight curve analysis for targets 1-100 using Lomb-Scargle periodograms and feature-based classification.\n`)};\n\n// ---- DATA LOADING ----",
+   "definition_hash": "5b0da3b3.218",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "loadAllTargets": {
+   "inputs": [
+    "localDisk"
+   ],
+   "pid": "_loadAllTargets",
+   "source_head": "function loadAllTargets(localDisk){return(\nasync function loadAllTargets() {\n  const targets = [];\n  for (let i = 1; i <",
+   "definition": "function loadAllTargets(localDisk){return(\nasync function loadAllTargets() {\n  const targets = [];\n  for (let i = 1; i <= 100; i++) {\n    const text = await localDisk.readText(`root/data/target_${i}.csv`);\n    const lines = text.split('\\n').filter(l => l.trim());\n    const times = [], mags = [], errs = [], bands = [];\n    for (let j = 1; j < lines.length; j++) {\n      const parts = lines[j].split(',');\n      times.push(parseFloat(parts[0]));\n      mags.push(parseFloat(parts[1]));\n      errs.push(parseFloat(parts[2]));\n      bands.push(parts[3].trim());\n    }\n    targets.push({ name: `target_${i}`, times, mags, errs, bands });\n  }\n  return targets;\n}\n)}",
+   "definition_hash": "35f03ea2.660",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": true,
+   "deliverable": false
+  },
+  "lombScargle": {
+   "inputs": [],
+   "pid": "_lombScargle",
+   "source_head": "function lombScargle(){return(\nfunction lombScargle(times, mags, errs, fmin, fmax, nfreq) {\n  const n = times.length;\n  ",
+   "definition": "function lombScargle(){return(\nfunction lombScargle(times, mags, errs, fmin, fmax, nfreq) {\n  const n = times.length;\n  const w = new Array(n);\n  for (let i = 0; i < n; i++) w[i] = 1.0 / (errs[i] * errs[i]);\n  const sumw = w.reduce((a, b) => a + b, 0);\n  const ymean = w.reduce((s, wi, i) => s + wi * mags[i], 0) / sumw;\n  const y = mags.map(v => v - ymean);\n  const df = (fmax - fmin) / nfreq;\n  const powers = new Float64Array(nfreq);\n  const freqs = new Float64Array(nfreq);\n  for (let k = 0; k < nfreq; k++) {\n    const f = fmin + k * df;\n    freqs[k] = f;\n    const omega = 2 * Math.PI * f;\n    let s2c = 0, c2 = 0, s2 = 0;\n    for (let i = 0; i < n; i++) {\n      const a2 = 2 * omega * times[i];\n      const s = Math.sin(a2), c = Math.cos(a2);\n      s2c += w[i] * s * c; c2 += w[i] * c * c; s2 += w[i] * s * s;\n    }\n    const tau = 0.5 * Math.atan2(2 * s2c, c2 - s2) / omega;\n    let hc = 0, hs = 0, cc = 0, ss = 0;\n    for (let i = 0; i < n; i++) {\n      const arg = omega * (times[i] - tau);\n      const c = Math.cos(arg), s = Math.sin(arg);\n      hc += w[i] * y[i] * c; hs += w[i] * y[i] * s;\n      cc += w[i] * c * c; ss += w[i] * s * s;\n    }\n    powers[k] = (hc * hc / cc + hs * hs / ss) / 2;\n  }\n  return { freqs, powers, df };\n}\n)}",
+   "definition_hash": "b7be4d42.1246",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "findPeaks": {
+   "inputs": [],
+   "pid": "_findPeaks",
+   "source_head": "function findPeaks(){return(\nfunction findPeaks(freqs, powers, minSep, topN) {\n  const candidates = [];\n  for (let i = 1",
+   "definition": "function findPeaks(){return(\nfunction findPeaks(freqs, powers, minSep, topN) {\n  const candidates = [];\n  for (let i = 1; i < powers.length - 1; i++) {\n    if (powers[i] > powers[i-1] && powers[i] > powers[i+1]) {\n      candidates.push({ freq: freqs[i], power: powers[i], idx: i });\n    }\n  }\n  candidates.sort((a, b) => b.power - a.power);\n  const selected = [];\n  for (const c of candidates) {\n    let tooClose = false;\n    for (const s of selected) {\n      if (Math.abs(c.freq - s.freq) < minSep) { tooClose = true; break; }\n    }\n    if (!tooClose) {\n      selected.push(c);\n      if (selected.length >= topN) break;\n    }\n  }\n  return selected;\n}\n)}",
+   "definition_hash": "a4ee2b6f.654",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "pdmTheta": {
+   "inputs": [],
+   "pid": "_pdmTheta",
+   "source_head": "function pdmTheta(){return(\nfunction pdmTheta(times, mags, freq) {\n  const period = 1 / freq;\n  const n = times.length;\n",
+   "definition": "function pdmTheta(){return(\nfunction pdmTheta(times, mags, freq) {\n  const period = 1 / freq;\n  const n = times.length;\n  const phases = times.map(t => ((t / period) % 1 + 1) % 1);\n  const nbins = 10;\n  const bins = Array.from({length: nbins}, () => []);\n  for (let i = 0; i < n; i++) {\n    const bin = Math.min(Math.floor(phases[i] * nbins), nbins - 1);\n    bins[bin].push(mags[i]);\n  }\n  let withinVar = 0, totalCount = 0;\n  for (const bin of bins) {\n    if (bin.length < 2) continue;\n    const mean = bin.reduce((s, v) => s + v, 0) / bin.length;\n    const vv = bin.reduce((s, v) => s + (v - mean) * (v - mean), 0);\n    withinVar += vv;\n    totalCount += bin.length;\n  }\n  return totalCount > 0 ? withinVar / totalCount : Infinity;\n}\n)}",
+   "definition_hash": "f07a6cdc.738",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "pdmScan": {
+   "inputs": [
+    "pdmTheta"
+   ],
+   "pid": "_pdmScan",
+   "source_head": "function pdmScan(pdmTheta){return(\nfunction pdmScan(times, mags, fmin, fmax, df) {\n  const nfreq = Math.ceil((fmax - fmi",
+   "definition": "function pdmScan(pdmTheta){return(\nfunction pdmScan(times, mags, fmin, fmax, df) {\n  const nfreq = Math.ceil((fmax - fmin) / df);\n  const thetas = new Float64Array(nfreq);\n  for (let k = 0; k < nfreq; k++) {\n    const f = fmin + k * df;\n    thetas[k] = pdmTheta(times, mags, f);\n  }\n  // Find local minima (lower than both neighbours)\n  const candidates = [];\n  for (let i = 1; i < nfreq - 1; i++) {\n    if (thetas[i] < thetas[i - 1] && thetas[i] < thetas[i + 1]) {\n      candidates.push({ freq: fmin + i * df, theta: thetas[i], idx: i });\n    }\n  }\n  candidates.sort((a, b) => a.theta - b.theta);\n  return candidates.slice(0, 5);\n}\n)}",
+   "definition_hash": "383df6f.635",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "pdmTheta"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "pdmRefine": {
+   "inputs": [
+    "pdmTheta"
+   ],
+   "pid": "_pdmRefine",
+   "source_head": "function pdmRefine(pdmTheta){return(\nfunction pdmRefine(times, mags, fCenter, halfWidth, df) {\n  const fmin = Math.max(f",
+   "definition": "function pdmRefine(pdmTheta){return(\nfunction pdmRefine(times, mags, fCenter, halfWidth, df) {\n  const fmin = Math.max(fCenter - halfWidth, 0.001);\n  const fmax = fCenter + halfWidth;\n  const nfreq = Math.max(Math.ceil((fmax - fmin) / df), 10);\n  let bestFreq = fmin, bestTheta = Infinity;\n  for (let k = 0; k < nfreq; k++) {\n    const f = fmin + k * df;\n    const theta = pdmTheta(times, mags, f);\n    if (theta < bestTheta) { bestTheta = theta; bestFreq = f; }\n  }\n  return { freq: bestFreq, theta: bestTheta };\n}\n)}",
+   "definition_hash": "e3c18c25.518",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "pdmTheta"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "findBestPeriodPDM": {
+   "inputs": [
+    "pdmScan",
+    "pdmRefine"
+   ],
+   "pid": "_findBestPeriodPDM",
+   "source_head": "function findBestPeriodPDM(pdmScan, pdmRefine){return(\nfunction findBestPeriodPDM(t, m, e) {\n  const tmin = Math.min(...",
+   "definition": "function findBestPeriodPDM(pdmScan, pdmRefine){return(\nfunction findBestPeriodPDM(t, m, e) {\n  const tmin = Math.min(...t), tmax = Math.max(...t), tspan = tmax - tmin;\n  const fmin = 1 / Math.min(tspan / 2, 500);\n  const fmax = 25;\n  const dfCoarse = 1.2e-4;\n  const coarse = pdmScan(t, m, fmin, fmax, dfCoarse);\n  if (coarse.length === 0) return { period: 0, theta: Infinity };\n  const halfW = dfCoarse * 3;\n  const dfFine = 7e-6;\n  let best = { freq: coarse[0].freq, theta: coarse[0].theta };\n  for (const pk of coarse) {\n    const refined = pdmRefine(t, m, pk.freq, halfW, dfFine);\n    if (refined.theta < best.theta) best = refined;\n  }\n  return { period: 1 / best.freq, theta: best.theta };\n}\n)}",
+   "definition_hash": "f6a07ebf.700",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "pdmScan",
+    "pdmRefine"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "refinePeak": {
+   "inputs": [
+    "lombScargle",
+    "findPeaks"
+   ],
+   "pid": "_refinePeak",
+   "source_head": "function refinePeak(lombScargle, findPeaks){return(\nfunction refinePeak(t, m, e, fCenter, halfWidth, df) {\n  const fmin ",
+   "definition": "function refinePeak(lombScargle, findPeaks){return(\nfunction refinePeak(t, m, e, fCenter, halfWidth, df) {\n  const fmin = Math.max(fCenter - halfWidth, 0.001);\n  const fmax = fCenter + halfWidth;\n  const nfreq = Math.max(Math.ceil((fmax - fmin) / df), 10);\n  const ls = lombScargle(t, m, e, fmin, fmax, nfreq);\n  const peaks = findPeaks(ls.freqs, ls.powers, df * 2, 1);\n  if (peaks.length === 0) return { freq: fCenter, power: 0 };\n  return { freq: peaks[0].freq, power: peaks[0].power };\n}\n)}",
+   "definition_hash": "6f75d236.493",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "lombScargle",
+    "findPeaks"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "findBestPeriod": {
+   "inputs": [
+    "lombScargle",
+    "findPeaks",
+    "refinePeak"
+   ],
+   "pid": "_findBestPeriod",
+   "source_head": "function findBestPeriod(lombScargle, findPeaks, refinePeak){return(\nfunction findBestPeriod(t, m, e) {\n  const tmin = Ma",
+   "definition": "function findBestPeriod(lombScargle, findPeaks, refinePeak){return(\nfunction findBestPeriod(t, m, e) {\n  const tmin = Math.min(...t), tmax = Math.max(...t), tspan = tmax - tmin;\n  const fmin = 1 / Math.min(tspan / 2, 500);\n  const fmax = 25;\n  // Coarse scan: df=1.2e-4 (~3 samples per peak width)\n  const dfCoarse = 1.2e-4;\n  const nfreqCoarse = Math.ceil((fmax - fmin) / dfCoarse);\n  const lsCoarse = lombScargle(t, m, e, fmin, fmax, nfreqCoarse);\n  const coarsePeaks = findPeaks(lsCoarse.freqs, lsCoarse.powers, dfCoarse * 3, 5);\n  if (coarsePeaks.length === 0) return { period: 0, power: 0 };\n  // Refine top 5 at df=7e-6 over ±3 coarse peak widths\n  const halfW = dfCoarse * 3;\n  const dfFine = 7e-6;\n  let best = { freq: coarsePeaks[0].freq, power: 0 };\n  for (const pk of coarsePeaks) {\n    const refined = refinePeak(t, m, e, pk.freq, halfW, dfFine);\n    if (refined.power > best.power) best = refined;\n  }\n  return { period: 1 / best.freq, power: best.power };\n}\n)}",
+   "definition_hash": "9bd44c54.974",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "lombScargle",
+    "findPeaks",
+    "refinePeak"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "computeFeatures": {
+   "inputs": [],
+   "pid": "_computeFeatures",
+   "source_head": "function computeFeatures(){return(\nfunction computeFeatures(times, mags, errs, period) {\n  if (period <= 0) return { amp",
+   "definition": "function computeFeatures(){return(\nfunction computeFeatures(times, mags, errs, period) {\n  if (period <= 0) return { amplitude: 0, skewness: 0, kurtosis: 0, nSigmaAbove: 0, mean_mag: 0, eclipseDepth: 0, eclipseWidth: 0 };\n  \n  const n = times.length;\n  const sorted = [...mags].sort((a, b) => a - b);\n  const i5 = Math.floor(n * 0.025);\n  const i95 = Math.floor(n * 0.975);\n  const amplitude = sorted[i95] - sorted[i5];\n  \n  let sumw = 0, sumwy = 0;\n  for (let i = 0; i < n; i++) {\n    const w = 1 / (errs[i] * errs[i]);\n    sumw += w; sumwy += w * mags[i];\n  }\n  const mean = sumwy / sumw;\n  \n  let varw = 0, skeww = 0, kurtw = 0;\n  for (let i = 0; i < n; i++) {\n    const w = 1 / (errs[i] * errs[i]);\n    const d = mags[i] - mean;\n    varw += w * d * d;\n    skeww += w * d * d * d;\n    kurtw += w * d * d * d * d;\n  }\n  const std = Math.sqrt(varw / sumw);\n  const skewness = std > 0 ? (skeww / sumw) / (std * std * std) : 0;\n  const kurtosis = std > 0 ? (kurtw / sumw) / (std * std * std * std) - 3 : 0;\n  \n  let chi2 = 0;\n  for (let i = 0; i < n; i++) {\n    chi2 += (mags[i] - mean) * (mags[i] - mean) / (errs[i] * errs[i]);\n  }\n  const nSigmaAbove = (chi2 - n) / Math.sqrt(2 * n);\n  \n  // Eclipse depth: fold and check minima\n  const phases = times.map(t => ((t / period) % 1 + 1) % 1);\n  const nbins = 50;\n  const bins = Array.from({length: nbins}, () => []);\n  for (let i = 0; i < n; i++) {\n    const bin = Math.min(Math.floor(phases[i] * nbins), nbins - 1);\n    bins[bin].push(mags[i]);\n  }\n  // Get bin medians\n  const binMedians = bins.map(b => {\n    if (b.length === 0) return mean;\n    b.sort((a, c) => a - c);\n    return b[Math.floor(b.length / 2)];\n  });\n  const binMax = Math.max(...binMedians);\n  const binMin = Math.min(...binMedians);\n  const eclipseDepth = binMax - binMin;\n  \n  // Check for double-dip (eclipsing binary signature)\n  // Look at phases 0-0.5 and 0.5-1.0 for two dips\n  const half1 = binMedians.slice(0, Math.floor(nbins / 2));\n  const half2 = binMedians.slice(Math.floor(nbins / 2));\n  const minH1 = Math.min(...half1), minH2 = Math.min(...half2);\n  const medianAll = binMedians.sort((a,b) => a-b)[Math.floor(nbins/2)];\n  const primaryDepth = medianAll - minH1;\n  const secondaryDepth = medianAll - minH2;\n  \n  return { amplitude, skewness, kurtosis, nSigmaAbove, mean_mag: mean, eclipseDepth, primaryDepth, secondaryDepth };\n}\n)}",
+   "definition_hash": "81866dc1.2364",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "classify": {
+   "inputs": [],
+   "pid": "_classify",
+   "source_head": "function classify(){return(\nfunction classify(period, amplitude, feat, times, mags, errs) {\n  const { nSigmaAbove, prima",
+   "definition": "function classify(){return(\nfunction classify(period, amplitude, feat, times, mags, errs) {\n  const { nSigmaAbove, primaryDepth, secondaryDepth, eclipseDepth, mean_mag } = feat;\n  \n  // Not significantly variable\n  if (nSigmaAbove < 3 || amplitude < 0.03) {\n    return { classification: \"CST\", period: 0.0 };\n  }\n  \n  // MIRA: P > 100 days, large amplitude\n  if (period > 100 && amplitude > 0.5) {\n    return { classification: \"MIRA\", period };\n  }\n  \n  // Short period pulsators\n  // DSCT: P ~ 0.02-0.25 days, small amplitude\n  if (period >= 0.01 && period <= 0.25 && amplitude < 1.0) {\n    return { classification: \"DSCT\", period };\n  }\n  \n  // RRc: P ~ 0.2-0.5 days, moderate amplitude, shorter period than RRab\n  if (period > 0.2 && period <= 0.5 && amplitude >= 0.05 && amplitude < 0.6) {\n    return { classification: \"RRc\", period };\n  }\n  \n  // RRab: P ~ 0.3-1.0 days, larger amplitude, sawtooth shape\n  if (period >= 0.3 && period <= 1.1 && amplitude > 0.2) {\n    return { classification: \"RRab\", period };\n  }\n  \n  // Eclipsing binaries: check for eclipse signatures\n  // Fold and check for dips\n  const phases = times.map(t => ((t / period) % 1 + 1) % 1);\n  const n = times.length;\n  \n  // Bin the folded light curve\n  const nbins = 50;\n  const bins = Array.from({length: nbins}, () => []);\n  for (let i = 0; i < n; i++) {\n    const bin = Math.min(Math.floor(phases[i] * nbins), nbins - 1);\n    bins[bin].push(mags[i]);\n  }\n  const binMedians = bins.map(b => {\n    if (b.length === 0) return 0;\n    b.sort((a, c) => a - c);\n    return b[Math.floor(b.length / 2)];\n  });\n  \n  // Compute weighted global median\n  const allSorted = [...mags].sort((a, b) => a - b);\n  const globalMedian = allSorted[Math.floor(n / 2)];\n  \n  // Find depths of dips near phase 0 and 0.5\n  let minNear0 = Infinity, minNear05 = Infinity;\n  const hw = 0.15; // half-width in phase\n  for (let i = 0; i < n; i++) {\n    const p = phases[i];\n    if (p < hw || p > 1 - hw) {\n      if (mags[i] < minNear0) minNear0 = mags[i];\n    }\n    if (Math.abs(p - 0.5) < hw) {\n      if (mags[i] < minNear05) minNear05 = mags[i];\n    }\n  }\n  const pDepth = globalMedian - minNear0;\n  const sDepth = globalMedian - minNear05;\n  \n  // EA/EB: primary eclipse with possible secondary\n  if (period > 0.2 && pDepth > 0.05) {\n    // Check if the period should be doubled for eclipsing\n    // (LS might find half the true period for eclipsing binaries)\n    \n    // EW: contact binary, short period, nearly equal eclipses\n    if (period < 1.0 && sDepth > pDepth * 0.4) {\n      return { classification: \"EW\", period };\n    }\n    \n    // EB: semi-detached, secondary depth moderate\n    if (sDepth > pDepth * 0.1 && sDepth < pDepth * 0.95) {\n      return { classification: \"EB\", period };\n    }\n    \n    // EA: detached, deep primary, weak/absent secondary\n    if (pDepth > 0.1) {\n      return { classification: \"EA\", period };\n    }\n  }\n  \n  // If we found eclipsing signature in bin analysis\n  if (eclipseDepth > 0.05 && period > 0.2) {\n    if (period < 1.0) return { classification: \"EW\", period };\n    if (period < 10) return { classification: \"EB\", period };\n    return { classification: \"EA\", period };\n  }\n  \n  // RS CVn: chromospheric, P ~ 1.5-30 days\n  if (period >= 1.5 && period <= 50 && amplitude > 0.03) {\n    return { classification: \"RS CVn\", period };\n  }\n  \n  // MIRA: long period, large amplitude\n  if (period > 30 && amplitude > 0.3) {\n    return { classification: \"MIRA\", period };\n  }\n  \n  // General eclipsing for longer periods\n  if (period > 0.3 && pDepth > 0.02) {\n    if (period < 1.0) return { classification: \"EW\", period };\n    if (period < 10) return { classification: \"EB\", period };\n    return { classification: \"EA\", period };\n  }\n  \n  // Fallback based on period and amplitude\n  if (period > 50) return { classification: \"MIRA\", period };\n  if (period > 0.3 && amplitude > 0.1) return { classification: \"EB\", period };\n  if (period > 0.2 && amplitude < 0.3) return { classification: \"RRc\", period };\n  if (period > 0.1) return { classification: \"DSCT\", period };\n  return { classification: \"CST\", period: 0.0 };\n}\n)}",
+   "definition_hash": "d106544.4104",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "foldBin": {
+   "inputs": [],
+   "pid": "_foldBin",
+   "source_head": "function foldBin(){return(\nfunction foldBin(times, mags, period, nbins) {\n  if (nbins === undefined) nbins = 20;\n  const",
+   "definition": "function foldBin(){return(\nfunction foldBin(times, mags, period, nbins) {\n  if (nbins === undefined) nbins = 20;\n  const n = times.length;\n  const phases = times.map(t => (((t / period) % 1) + 1) % 1);\n\n  // First pass: find which bin has the minimum mean magnitude (faintest)\n  const rawBins = Array.from({length: nbins}, () => []);\n  for (let i = 0; i < n; i++) {\n    const bin = Math.min(Math.floor(phases[i] * nbins), nbins - 1);\n    rawBins[bin].push(mags[i]);\n  }\n  const rawMeans = rawBins.map(b => b.length > 0 ? b.reduce((s, v) => s + v, 0) / b.length : NaN);\n  let faintestBin = 0;\n  let faintestMean = -Infinity;\n  for (let i = 0; i < nbins; i++) {\n    if (!isNaN(rawMeans[i]) && rawMeans[i] > faintestMean) {\n      faintestMean = rawMeans[i];\n      faintestBin = i;\n    }\n  }\n\n  // Phase offset: shift so that the faintest bin sits at phase 0\n  const phaseOffset = faintestBin / nbins;\n\n  // Second pass: re-bin with offset\n  const bins = Array.from({length: nbins}, () => []);\n  for (let i = 0; i < n; i++) {\n    const shifted = ((phases[i] - phaseOffset) % 1 + 1) % 1;\n    const bin = Math.min(Math.floor(shifted * nbins), nbins - 1);\n    bins[bin].push(mags[i]);\n  }\n  const means = bins.map(b => b.length > 0 ? b.reduce((s, v) => s + v, 0) / b.length : NaN);\n  const counts = bins.map(b => b.length);\n\n  return { means, counts, phaseOffset, nbins };\n}\n)}",
+   "definition_hash": "deb56eb8.1370",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "shapeFeatures": {
+   "inputs": [
+    "foldBin"
+   ],
+   "pid": "_shapeFeatures",
+   "source_head": "function shapeFeatures(foldBin){return(\nfunction shapeFeatures(times, mags, period) {\n  const folded = foldBin(times, ma",
+   "definition": "function shapeFeatures(foldBin){return(\nfunction shapeFeatures(times, mags, period) {\n  const folded = foldBin(times, mags, period, 20);\n  const { means } = folded;\n\n  // Filter out NaN bins\n  const validMeans = means.filter(v => !isNaN(v));\n  if (validMeans.length === 0) return { amplitude: 0, riseFraction: 0.5, secondaryDepth: 0 };\n\n  const binMin = Math.min(...validMeans); // faintest (largest mag = faintest)\n  const binMax = Math.max(...validMeans); // brightest\n  const amplitude = binMax - binMin;      // max - min in magnitudes\n\n  // riseFraction: phase distance from faintest bin to brightest bin going forward\n  // Phase 0 = faintest bin (by construction of foldBin)\n  // So we need the position of the brightest bin\n  const nbins = means.length;\n  let brightestBin = 0;\n  let brightestVal = Infinity;\n  for (let i = 0; i < nbins; i++) {\n    if (!isNaN(means[i]) && means[i] < brightestVal) {\n      brightestVal = means[i];\n      brightestBin = i;\n    }\n  }\n  const riseFraction = brightestBin / nbins;\n\n  // secondaryDepth: fold at 2*period, find the second minimum relative to the first\n  const folded2 = foldBin(times, mags, 2 * period, 40);\n  const m2 = folded2.means;\n  const valid2 = m2.filter(v => !isNaN(v));\n  if (valid2.length < 2) return { amplitude, riseFraction, secondaryDepth: 0 };\n\n  // Find the two highest-magnitude bins (faintest dips) near phase 0 and 0.5\n  const nbins2 = m2.length;\n  const half = Math.floor(nbins2 / 2);\n\n  // Primary minimum: near phase 0 (bins 0..3 and nbins-3..nbins-1)\n  let primaryVal = -Infinity;\n  for (let i = 0; i <= 3; i++) {\n    if (!isNaN(m2[i]) && m2[i] > primaryVal) primaryVal = m2[i];\n  }\n  for (let i = nbins2 - 3; i < nbins2; i++) {\n    if (!isNaN(m2[i]) && m2[i] > primaryVal) primaryVal = m2[i];\n  }\n\n  // Secondary minimum: near phase 0.5 (bins half-2..half+2)\n  let secondaryVal = -Infinity;\n  for (let i = half - 2; i <= half + 2; i++) {\n    if (i >= 0 && i < nbins2 && !isNaN(m2[i]) && m2[i] > secondaryVal) secondaryVal = m2[i];\n  }\n\n  // Bright reference: the median (out-of-eclipse level) — smallest magnitudes are brightest\n  const sorted2 = [...valid2].sort((a, b) => a - b);\n  const ref = sorted2[Math.floor(sorted2.length / 2)];\n  const primaryDepth = primaryVal - ref;       // positive since primaryVal is fainter (larger mag)\n  const secondaryDepth = primaryDepth > 0 ? (secondaryVal - ref) / primaryDepth : 0;\n\n  return { amplitude, riseFraction, secondaryDepth };\n}\n)}",
+   "definition_hash": "b5c9d45a.2457",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "foldBin"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "magSkew": {
+   "inputs": [
+    "foldBin"
+   ],
+   "pid": "_magSkew",
+   "source_head": "function magSkew(foldBin){return(\nfunction magSkew(times, mags, period) {\n  const { means } = foldBin(times, mags, perio",
+   "definition": "function magSkew(foldBin){return(\nfunction magSkew(times, mags, period) {\n  const { means } = foldBin(times, mags, period, 20);\n  const valid = means.filter(v => !isNaN(v));\n  const n = valid.length;\n  if (n < 3) return 0;\n  const mean = valid.reduce((s, v) => s + v, 0) / n;\n  let m2 = 0, m3 = 0;\n  for (const v of valid) {\n    const d = v - mean;\n    m2 += d * d;\n    m3 += d * d * d;\n  }\n  const std = Math.sqrt(m2 / n);\n  if (std === 0) return 0;\n  return (m3 / n) / (std * std * std);\n}\n)}",
+   "definition_hash": "bb42c521.494",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "foldBin"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "synthShapes": {
+   "inputs": [
+    "loadAllTargets",
+    "foldBin",
+    "shapeFeatures",
+    "magSkew"
+   ],
+   "pid": "_synthShapes",
+   "source_head": "async function synthShapes(loadAllTargets, foldBin, shapeFeatures, magSkew){\n  const targets = await loadAllTargets();\n ",
+   "definition": "async function synthShapes(loadAllTargets, foldBin, shapeFeatures, magSkew){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n\n  let seed = 42;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const noise = t.map((ti, i) => e[i] * randn());\n\n  const results = [];\n\n  // (1) Sine amp 0.3 at P=0.62\n  {\n    const P = 0.62;\n    const mags = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / P) + noise[i]);\n    const f = shapeFeatures(t, mags, P);\n    const sk = magSkew(t, mags, P);\n    results.push({\n      label: \"sine P=0.62 amp=0.3\",\n      expected: \"amplitude~0.6, riseFraction~0.5, secondaryDepth~1.0, skew~0\",\n      measured: { amplitude: +f.amplitude.toFixed(4), riseFraction: +f.riseFraction.toFixed(3), secondaryDepth: +f.secondaryDepth.toFixed(3), skew: +sk.toFixed(3) },\n      pass: Math.abs(f.amplitude - 0.6) < 0.1 && Math.abs(f.riseFraction - 0.5) < 0.15 && Math.abs(f.secondaryDepth - 1.0) < 0.05 && Math.abs(sk) < 0.1\n    });\n  }\n\n  // (2) Sawtooth with rise fraction 0.2 at P=0.55, amp 0.8\n  {\n    const P = 0.55;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / P) % 1 + 1) % 1;\n      const val = phase < 0.2 ? 15.4 - 0.8 * (phase / 0.2) : 14.6 + 0.8 * ((phase - 0.2) / 0.8);\n      return val + noise[i];\n    });\n    const f = shapeFeatures(t, mags, P);\n    const sk = magSkew(t, mags, P);\n    results.push({\n      label: \"sawtooth P=0.55 amp=0.8 rise=0.2\",\n      expected: \"amplitude~0.8, riseFraction~0.2, secondaryDepth~1.0, skew clearly nonzero\",\n      measured: { amplitude: +f.amplitude.toFixed(4), riseFraction: +f.riseFraction.toFixed(3), secondaryDepth: +f.secondaryDepth.toFixed(3), skew: +sk.toFixed(3) },\n      pass: Math.abs(f.amplitude - 0.8) < 0.15 && Math.abs(f.riseFraction - 0.2) < 0.15 && f.secondaryDepth > 0.9 && sk > 0.01\n    });\n  }\n\n  // (3) synthEB 0.7d signal: evaluate at P=0.35 (LS half-period) and P=0.7 (true)\n  {\n    const Ptrue = 0.7;\n    const width = 0.04;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / Ptrue) % 1 + 1) % 1;\n      const d0  = Math.min(Math.abs(phase), Math.abs(1 - phase));\n      const d05 = Math.min(Math.abs(phase - 0.5), Math.abs(phase + 0.5));\n      const primaryDip   = 0.4 * Math.exp(-0.5 * (d0 / width) * (d0 / width));\n      const secondaryDip = 0.15 * Math.exp(-0.5 * (d05 / width) * (d05 / width));\n      return 15 + primaryDip + secondaryDip + noise[i];\n    });\n    // At P=0.35 (LS half-period): 2P=0.7 = true period, so secondary at phase 0.5 of 2P\n    const fHalf = shapeFeatures(t, mags, Ptrue / 2);\n    const skHalf = magSkew(t, mags, Ptrue / 2);\n    results.push({\n      label: \"synthEB P=0.7 evaluated at LS=0.35 (2P=0.7)\",\n      expected: \"secondaryDepth~0.375 (0.15/0.4)\",\n      measured: { amplitude: +fHalf.amplitude.toFixed(4), riseFraction: +fHalf.riseFraction.toFixed(3), secondaryDepth: +fHalf.secondaryDepth.toFixed(3), skew: +skHalf.toFixed(3) },\n      pass: Math.abs(fHalf.secondaryDepth - 0.375) < 0.1 && fHalf.amplitude > 0.15\n    });\n    // At P=0.7 (true period): 2P=1.4, two identical cycles, both minima same depth\n    const fTrue = shapeFeatures(t, mags, Ptrue);\n    const skTrue = magSkew(t, mags, Ptrue);\n    results.push({\n      label: \"synthEB P=0.7 evaluated at true P=0.7 (2P=1.4)\",\n      expected: \"secondaryDepth~1.0 (two identical cycles)\",\n      measured: { amplitude: +fTrue.amplitude.toFixed(4), riseFraction: +fTrue.riseFraction.toFixed(3), secondaryDepth: +fTrue.secondaryDepth.toFixed(3), skew: +skTrue.toFixed(3) },\n      pass: fTrue.secondaryDepth > 0.85 && fTrue.amplitude > 0.15\n    });\n  }\n\n  // (4) Flat curve (noise only)\n  {\n    const P = 0.5;\n    const mags = t.map((ti, i) => 15 + noise[i]);\n    const f = shapeFeatures(t, mags, P);\n    const sk = magSkew(t, mags, P);\n    results.push({\n      label: \"flat (noise only)\",\n      expected: \"amplitude near noise level, skew~0 ± noise\",\n      measured: { amplitude: +f.amplitude.toFixed(4), riseFraction: +f.riseFraction.toFixed(3), secondaryDepth: +f.secondaryDepth.toFixed(3), skew: +sk.toFixed(3) },\n      pass: f.amplitude < 0.1\n    });\n  }\n\n  // (5) EW-like contact binary: m = 0.4*(1 - |sin(pi*phase)|) at P=0.3\n  {\n    const P = 0.3;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / P) % 1 + 1) % 1;\n      return 15 + 0.4 * (1 - Math.abs(Math.sin(Math.PI * phase))) + noise[i];\n    });\n    const f = shapeFeatures(t, mags, P);\n    const sk = magSkew(t, mags, P);\n    results.push({\n      label: \"EW-like P=0.3 cusp min, broad max\",\n      expected: \"amplitude~0.4, skew clearly positive (tail toward faint)\",\n      measured: { amplitude: +f.amplitude.toFixed(4), riseFraction: +f.riseFraction.toFixed(3), secondaryDepth: +f.secondaryDepth.toFixed(3), skew: +sk.toFixed(3) },\n      pass: f.amplitude > 0.1 && sk > 0.01\n    });\n  }\n\n  return results;\n}",
+   "definition_hash": "1f25827a.5297",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "foldBin",
+    "shapeFeatures",
+    "magSkew"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "flatFraction": {
+   "inputs": [
+    "foldBin"
+   ],
+   "pid": "_flatFraction",
+   "source_head": "function flatFraction(foldBin){return(\nfunction flatFraction(times, mags, period) {\n  const { means } = foldBin(times, m",
+   "definition": "function flatFraction(foldBin){return(\nfunction flatFraction(times, mags, period) {\n  const { means } = foldBin(times, mags, period, 20);\n  const valid = means.filter(v => !isNaN(v));\n  if (valid.length === 0) return 0;\n  const bright = Math.min(...valid); // brightest bin (smallest magnitude)\n  const amp = Math.max(...valid) - bright;\n  if (amp === 0) return 1;\n  const threshold = 0.1 * amp;\n  let nearBright = 0;\n  for (const m of valid) {\n    if (m - bright <= threshold) nearBright++;\n  }\n  return nearBright / valid.length;\n}\n)}",
+   "definition_hash": "fd66c1ed.536",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "foldBin"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "classifyDetected": {
+   "inputs": [
+    "shapeFeatures",
+    "magSkew",
+    "flatFraction"
+   ],
+   "pid": "_classifyDetected",
+   "source_head": "function classifyDetected(shapeFeatures, magSkew, flatFraction){return(\nfunction classifyDetected(times, mags, P) {\n  co",
+   "definition": "function classifyDetected(shapeFeatures, magSkew, flatFraction){return(\nfunction classifyDetected(times, mags, P) {\n  const sf = shapeFeatures(times, mags, P);\n  const amp = sf.amplitude;\n  const rise = sf.riseFraction;\n  const secFull = sf.secondaryDepth;   // secondaryDepth at P (consecutive cycles)\n  const secHalf = shapeFeatures(times, mags, P / 2).secondaryDepth; // within one cycle of P\n  const skew = magSkew(times, mags, P);\n  const flat = flatFraction(times, mags, P);\n\n  // 1. MIRA: very long period\n  if (P > 80) return { classification: \"MIRA\", period: P, amp, secHalf, secFull, rise, skew, flat };\n\n  // 2. Binary with unequal minima within P (0.1 < secHalf < 0.85)\n  //    secHalf < 0.1 means no real secondary dip; secHalf >= 0.85 means nearly equal (EW territory)\n  if (amp > 0.05 && secHalf > 0.1 && secHalf < 0.85) {\n    if (flat > 0.5) return { classification: \"EA\", period: P, amp, secHalf, secFull, rise, skew, flat };\n    if (amp < 0.1) return { classification: \"RS CVn\", period: P, amp, secHalf, secFull, rise, skew, flat };\n    return { classification: \"EB\", period: P, amp, secHalf, secFull, rise, skew, flat };\n  }\n\n  // 3. Binary with unequal minima across 2P (0.1 < secFull < 0.85)\n  if (amp > 0.05 && secFull > 0.1 && secFull < 0.85) {\n    if (flat > 0.5) return { classification: \"EA\", period: 2 * P, amp, secHalf, secFull, rise, skew, flat };\n    if (amp < 0.1) return { classification: \"RS CVn\", period: 2 * P, amp, secHalf, secFull, rise, skew, flat };\n    return { classification: \"EB\", period: 2 * P, amp, secHalf, secFull, rise, skew, flat };\n  }\n\n  // 4. Contact binary (EW): positive skew, period doubled\n  if (skew > 0.3) return { classification: \"EW\", period: 2 * P, amp, secHalf, secFull, rise, skew, flat };\n\n  // 5. Pulsator at P\n  if (P < 0.2) return { classification: \"DSCT\", period: P, amp, secHalf, secFull, rise, skew, flat };\n  if (P < 1.0) {\n    if (rise < 0.35 && amp > 0.3) return { classification: \"RRab\", period: P, amp, secHalf, secFull, rise, skew, flat };\n    return { classification: \"RRc\", period: P, amp, secHalf, secFull, rise, skew, flat };\n  }\n  return { classification: \"RS CVn\", period: P, amp, secHalf, secFull, rise, skew, flat };\n}\n)}",
+   "definition_hash": "1904cd4c.2205",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "shapeFeatures",
+    "magSkew",
+    "flatFraction"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "classifyRefs": {
+   "inputs": [
+    "loadAllTargets",
+    "classifyDetected"
+   ],
+   "pid": "_classifyRefs",
+   "source_head": "async function classifyRefs(loadAllTargets, classifyDetected){\n  const targets = await loadAllTargets();\n  const t1 = ta",
+   "definition": "async function classifyRefs(loadAllTargets, classifyDetected){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n\n  let seed = 42;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const noise = t.map((ti, i) => e[i] * randn());\n\n  const rows = [];\n\n  // (1) Sine at P=0.62 -> classify at LS-found P=0.62 -> expect RRc\n  {\n    const P = 0.62;\n    const mags = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / P) + noise[i]);\n    const r = classifyDetected(t, mags, P);\n    rows.push({ label: \"sine P=0.62\", period: P, expected: \"RRc 0.62\", result: r });\n  }\n\n  // (2) Sawtooth P=0.55 rise=0.2 amp=0.8 -> expect RRab 0.55\n  {\n    const P = 0.55;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / P) % 1 + 1) % 1;\n      const val = phase < 0.2 ? 15.4 - 0.8 * (phase / 0.2) : 14.6 + 0.8 * ((phase - 0.2) / 0.8);\n      return val + noise[i];\n    });\n    const r = classifyDetected(t, mags, P);\n    rows.push({ label: \"sawtooth P=0.55\", period: P, expected: \"RRab 0.55\", result: r });\n  }\n\n  // (3) synthEB 0.7d signal at LS-found P=0.35 -> expect EA 0.7 (flat 0.65)\n  {\n    const Ptrue = 0.7;\n    const width = 0.04;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / Ptrue) % 1 + 1) % 1;\n      const d0  = Math.min(Math.abs(phase), Math.abs(1 - phase));\n      const d05 = Math.min(Math.abs(phase - 0.5), Math.abs(phase + 0.5));\n      const primaryDip   = 0.4 * Math.exp(-0.5 * (d0 / width) * (d0 / width));\n      const secondaryDip = 0.15 * Math.exp(-0.5 * (d05 / width) * (d05 / width));\n      return 15 + primaryDip + secondaryDip + noise[i];\n    });\n    const r = classifyDetected(t, mags, Ptrue / 2); // at LS period 0.35\n    rows.push({ label: \"synthEB at LS=0.35\", period: Ptrue / 2, expected: \"EB/EA at 0.7, report flat\", result: r });\n  }\n\n  // (4) EW-like at P=0.3 -> expect EW at 0.6\n  {\n    const P = 0.3;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / P) % 1 + 1) % 1;\n      return 15 + 0.4 * (1 - Math.abs(Math.sin(Math.PI * phase))) + noise[i];\n    });\n    const r = classifyDetected(t, mags, P);\n    rows.push({ label: \"EW-like P=0.3\", period: P, expected: \"EW at 0.6\", result: r });\n  }\n\n  return rows;\n}",
+   "definition_hash": "12c87d76.2678",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "classifyDetected"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "outputRows": {
+   "inputs": [
+    "lsPeriods",
+    "pdmPeriods",
+    "loadAllTargets",
+    "detect",
+    "classifyDetected",
+    "windowPeriods",
+    "nullPeaks",
+    "secondPeriods"
+   ],
+   "pid": "_outputRows",
+   "source_head": "async function outputRows(lsPeriods, pdmPeriods, loadAllTargets, detect, classifyDetected, windowPeriods, nullPeaks, sec",
+   "definition": "async function outputRows(lsPeriods, pdmPeriods, loadAllTargets, detect, classifyDetected, windowPeriods, nullPeaks, secondPeriods){\n  const targets = await loadAllTargets();\n  const powerThreshold = nullPeaks.maxPower * 3;\n  const rows = [];\n  for (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    const name = t.name;\n    const ls = lsPeriods[name];\n    const pdm = pdmPeriods[name];\n    if (!ls || !pdm) {\n      rows.push({ name, classification: \"CST\", period: 0.0 });\n      continue;\n    }\n    const d = detect(ls.period, pdm.period, windowPeriods, ls.power, powerThreshold);\n    if (!d.variable) {\n      rows.push({ name, classification: \"CST\", period: 0.0 });\n      continue;\n    }\n    // Select r-band for classification\n    const rIdx = [];\n    for (let j = 0; j < t.bands.length; j++) { if (t.bands[j] === 'r') rIdx.push(j); }\n    const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t.times.length).keys()];\n    const times = bandIdx.map(k => t.times[k]);\n    const mags  = bandIdx.map(k => t.mags[k]);\n    const cls = classifyDetected(times, mags, d.period);\n\n    let classification = cls.classification;\n    let period = cls.period;\n\n    // RRd check: a pulsator with a strong second mode at ratio 0.72-0.77\n    if ((classification === \"DSCT\" || classification === \"RRab\" || classification === \"RRc\") && secondPeriods[name]) {\n      const sp = secondPeriods[name];\n      if (sp.power2 > powerThreshold && sp.power2 > 0.05 * ls.power && sp.ratio > 0.72 && sp.ratio < 0.77) {\n        classification = \"RRd\";\n        // period stays the primary P\n      }\n    }\n\n    rows.push({ name, classification, period });\n  }\n  return rows;\n}",
+   "definition_hash": "bcd5c042.1658",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "lsPeriods",
+    "pdmPeriods",
+    "loadAllTargets",
+    "detect",
+    "classifyDetected",
+    "windowPeriods",
+    "nullPeaks",
+    "secondPeriods"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "writeOutput": {
+   "inputs": [
+    "outputRows",
+    "localDisk"
+   ],
+   "pid": "_writeOutput",
+   "source_head": "async function writeOutput(outputRows, localDisk){\n  const header = \"target_name,classification,Main physical period (da",
+   "definition": "async function writeOutput(outputRows, localDisk){\n  const header = \"target_name,classification,Main physical period (day)\";\n  const lines = [header];\n  for (const r of outputRows) {\n    lines.push(`${r.name},${r.classification},${r.period.toFixed(4)}`);\n  }\n  await localDisk.write('root/results/output.csv', lines.join('\\n'));\n  return outputRows.length;\n}",
+   "definition_hash": "96d186a2.358",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": true,
+   "nonbuiltin_inputs": [
+    "outputRows"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": true
+  },
+  "prewhiten": {
+   "inputs": [
+    "foldBin"
+   ],
+   "pid": "_prewhiten",
+   "source_head": "function prewhiten(foldBin){return(\nfunction prewhiten(times, mags, period) {\n  const { means, phaseOffset, nbins } = fo",
+   "definition": "function prewhiten(foldBin){return(\nfunction prewhiten(times, mags, period) {\n  const { means, phaseOffset, nbins } = foldBin(times, mags, period, 20);\n  const residuals = new Array(times.length);\n  for (let i = 0; i < times.length; i++) {\n    const phase = (((times[i] / period) % 1) + 1) % 1;\n    const shifted = ((phase - phaseOffset) % 1 + 1) % 1;\n    const bin = Math.min(Math.floor(shifted * nbins), nbins - 1);\n    residuals[i] = mags[i] - (isNaN(means[bin]) ? 0 : means[bin]);\n  }\n  return residuals;\n}\n)}",
+   "definition_hash": "5cfa3859.513",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "foldBin"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "secondPeriod": {
+   "inputs": [
+    "prewhiten",
+    "findBestPeriod"
+   ],
+   "pid": "_secondPeriod",
+   "source_head": "function secondPeriod(prewhiten, findBestPeriod){return(\nfunction secondPeriod(times, mags, errs, period) {\n  const resi",
+   "definition": "function secondPeriod(prewhiten, findBestPeriod){return(\nfunction secondPeriod(times, mags, errs, period) {\n  const residuals = prewhiten(times, mags, period);\n  const result = findBestPeriod(times, residuals, errs);\n  // If the best residual period is too close to the original, it's a failed prewhiten — report it\n  const shorter = Math.min(period, result.period);\n  const longer = Math.max(period, result.period);\n  return { period2: result.period, power2: result.power, ratio: longer > 0 ? shorter / longer : 0 };\n}\n)}",
+   "definition_hash": "68bac557.522",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "prewhiten",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "synthRRd": {
+   "inputs": [
+    "loadAllTargets",
+    "secondPeriod"
+   ],
+   "pid": "_synthRRd",
+   "source_head": "async function synthRRd(loadAllTargets, secondPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0]",
+   "definition": "async function synthRRd(loadAllTargets, secondPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n\n  let seed = 42;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const noise = t.map((_, i) => e[i] * randn());\n\n  const results = [];\n\n  // (1) Single sine at 0.50 d -> residual power should be near null (~16)\n  {\n    const P1 = 0.50;\n    const mags = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / P1) + noise[i]);\n    const r = secondPeriod(t, mags, e, P1);\n    results.push({ label: \"single sine P=0.50\", P1, expected: \"power2 near null, ratio meaningless\", ...r });\n  }\n\n  // (2) Double: sine 0.3 at 0.50 d + sine 0.15 at 0.372 d -> ratio ~0.744\n  {\n    const P1 = 0.50, P2 = 0.372;\n    const mags = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / P1) + 0.15 * Math.sin(2 * Math.PI * ti / P2) + noise[i]);\n    const r = secondPeriod(t, mags, e, P1);\n    results.push({ label: \"double 0.50+0.372\", P1, P2expected: 0.372, expected: \"period2~0.372, power2 high, ratio~0.744\", ...r });\n  }\n\n  // (3) Double: sine 0.3 at 0.62 d + sine 0.1 at 0.462 d -> ratio ~0.745\n  {\n    const P1 = 0.62, P2 = 0.462;\n    const mags = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / P1) + 0.1 * Math.sin(2 * Math.PI * ti / P2) + noise[i]);\n    const r = secondPeriod(t, mags, e, P1);\n    results.push({ label: \"double 0.62+0.462\", P1, P2expected: 0.462, expected: \"period2~0.462, power2 high, ratio~0.745\", ...r });\n  }\n\n  return results;\n}",
+   "definition_hash": "cd9aecc1.1971",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "secondPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "secondPeriods": {
+   "inputs": [
+    "lsPeriods",
+    "pdmPeriods",
+    "loadAllTargets",
+    "detect",
+    "classifyDetected",
+    "windowPeriods",
+    "nullPeaks",
+    "secondPeriod",
+    "localDisk",
+    "invalidation"
+   ],
+   "pid": "_secondPeriods",
+   "source_head": "async function secondPeriods(lsPeriods, pdmPeriods, loadAllTargets, detect, classifyDetected, windowPeriods, nullPeaks, ",
+   "definition": "async function secondPeriods(lsPeriods, pdmPeriods, loadAllTargets, detect, classifyDetected, windowPeriods, nullPeaks, secondPeriod, localDisk, invalidation){\n  let cache = {};\n  try { cache = JSON.parse(await localDisk.readText('cache/second_periods.json')); } catch (e) {}\n\n  const targets = await loadAllTargets();\n  const powerThreshold = nullPeaks.maxPower * 3;\n  let stop = false;\n  invalidation.then(() => { stop = true; });\n\n  for (let i = 0; i < targets.length; i++) {\n    if (stop) break;\n    const t = targets[i];\n    const name = t.name;\n    const ls = lsPeriods[name];\n    const pdm = pdmPeriods[name];\n    if (!ls || !pdm) continue;\n    const d = detect(ls.period, pdm.period, windowPeriods, ls.power, powerThreshold);\n    if (!d.variable) continue;\n\n    // Select r-band\n    const rIdx = [];\n    for (let j = 0; j < t.bands.length; j++) { if (t.bands[j] === 'r') rIdx.push(j); }\n    const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t.times.length).keys()];\n    const times = bandIdx.map(k => t.times[k]);\n    const mags  = bandIdx.map(k => t.mags[k]);\n    const errs  = bandIdx.map(k => t.errs[k]);\n\n    const cls = classifyDetected(times, mags, d.period);\n    if (cls.classification !== \"DSCT\" && cls.classification !== \"RRab\" && cls.classification !== \"RRc\") continue;\n\n    if (cache[name]) continue; // already cached\n\n    const sp = secondPeriod(times, mags, errs, d.period);\n    cache[name] = { period2: sp.period2, power2: sp.power2, ratio: sp.ratio };\n\n    await localDisk.write('cache/second_periods.json', JSON.stringify(cache));\n    await new Promise(r => setTimeout(r, 0));\n  }\n  if (!stop) {\n    await localDisk.write('cache/second_periods.json', JSON.stringify(cache));\n  }\n  return cache;\n}",
+   "definition_hash": "5ee87acd.1723",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "lsPeriods",
+    "pdmPeriods",
+    "loadAllTargets",
+    "detect",
+    "classifyDetected",
+    "windowPeriods",
+    "nullPeaks",
+    "secondPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "detectedFeatures": {
+   "inputs": [
+    "lsPeriods",
+    "pdmPeriods",
+    "loadAllTargets",
+    "detect",
+    "classifyDetected",
+    "windowPeriods",
+    "nullPeaks",
+    "shapeFeatures",
+    "magSkew",
+    "flatFraction",
+    "secondPeriods"
+   ],
+   "pid": "_detectedFeatures",
+   "source_head": "async function detectedFeatures(lsPeriods, pdmPeriods, loadAllTargets, detect, classifyDetected, windowPeriods, nullPeak",
+   "definition": "async function detectedFeatures(lsPeriods, pdmPeriods, loadAllTargets, detect, classifyDetected, windowPeriods, nullPeaks, shapeFeatures, magSkew, flatFraction, secondPeriods){\n  const targets = await loadAllTargets();\n  const powerThreshold = nullPeaks.maxPower * 3;\n  const rows = [];\n  const binaryClasses = new Set([\"EA\", \"EB\", \"EW\", \"RS CVn\"]);\n\n  for (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    const name = t.name;\n    const ls = lsPeriods[name];\n    const pdm = pdmPeriods[name];\n    if (!ls || !pdm) continue;\n    const d = detect(ls.period, pdm.period, windowPeriods, ls.power, powerThreshold);\n    if (!d.variable) continue;\n\n    // Select r-band\n    const rIdx = [];\n    for (let j = 0; j < t.bands.length; j++) { if (t.bands[j] === 'r') rIdx.push(j); }\n    const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t.times.length).keys()];\n    const times = bandIdx.map(k => t.times[k]);\n    const mags  = bandIdx.map(k => t.mags[k]);\n\n    const cls = classifyDetected(times, mags, d.period);\n    const sf = shapeFeatures(times, mags, cls.period);\n    const sk = magSkew(times, mags, cls.period);\n    const fl = flatFraction(times, mags, cls.period);\n\n    const row = {\n      name, classification: cls.classification, period: cls.period,\n      amp: +sf.amplitude.toFixed(4), secHalf: +shapeFeatures(times, mags, cls.period / 2).secondaryDepth.toFixed(3),\n      secFull: +sf.secondaryDepth.toFixed(3), rise: +sf.riseFraction.toFixed(3),\n      skew: +sk.toFixed(3), flat: +fl.toFixed(2), lsPower: Math.round(ls.power)\n    };\n\n    // For binaries: also compute features at the reported orbital period (which is cls.period already)\n    // But we also want features at the detected period vs at cls.period if they differ\n    // Actually cls.period IS the reported orbital period for binaries. Features are already at cls.period.\n    rows.push(row);\n  }\n\n  rows.sort((a, b) => {\n    const clsOrder = [\"DSCT\", \"RRab\", \"RRc\", \"RRd\", \"MIRA\", \"EA\", \"EB\", \"EW\", \"RS CVn\"];\n    const ai = clsOrder.indexOf(a.classification), bi = clsOrder.indexOf(b.classification);\n    if (ai !== bi) return ai - bi;\n    return a.period - b.period;\n  });\n\n  return rows;\n}",
+   "definition_hash": "8515bfec.2176",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "lsPeriods",
+    "pdmPeriods",
+    "loadAllTargets",
+    "detect",
+    "classifyDetected",
+    "windowPeriods",
+    "nullPeaks",
+    "shapeFeatures",
+    "magSkew",
+    "flatFraction",
+    "secondPeriods"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthGrid": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "pid": "_synthGrid",
+   "source_head": "async function synthGrid(localDisk, loadAllTargets, findBestPeriod){\n  try { await localDisk.remove('cache/synthGrid.jso",
+   "definition": "async function synthGrid(localDisk, loadAllTargets, findBestPeriod){\n  try { await localDisk.remove('cache/synthGrid.json'); } catch (e) {}\n  try { const c = JSON.parse(await localDisk.readText('cache/synthGrid.json')); return c.map(r => ({...r, pass: r.ratio > 0.995 && r.ratio < 1.005})); } catch (e) {}\n  const __v = await (async function synthGrid(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  const cases = [\n    { period: 0.05, amp: 0.3 },\n    { period: 0.31, amp: 0.3 },\n    { period: 0.62, amp: 0.3 },\n    { period: 2.0,  amp: 0.3 },\n    { period: 200,  amp: 0.3 },\n    { period: 0.62, amp: 0.05 },\n  ];\n  const results = [];\n  for (const c of cases) {\n    let seed = 42;\n    function randn() {\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n    }\n    const sine = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const t0 = performance.now();\n    const result = findBestPeriod(t, sine, e);\n    const elapsed = performance.now() - t0;\n    results.push({\n      injectedPeriod: c.period,\n      amp: c.amp,\n      recoveredPeriod: result.period,\n      ratio: result.period / c.period,\n      power: result.power,\n      time_ms: elapsed,\n      pass: result.period / c.period > 0.995 && result.period / c.period < 1.005\n    });\n  }\n  return results;\n  })(loadAllTargets, findBestPeriod);\n  await localDisk.write('cache/synthGrid.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "31ee8a25.1950",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "synthGridPDM": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "pid": "_synthGridPDM",
+   "source_head": "async function synthGridPDM(localDisk, loadAllTargets, findBestPeriodPDM){\n  try { await localDisk.remove('cache/synthGr",
+   "definition": "async function synthGridPDM(localDisk, loadAllTargets, findBestPeriodPDM){\n  try { await localDisk.remove('cache/synthGridPDM.json'); } catch (e) {}\n  try { const c = JSON.parse(await localDisk.readText('cache/synthGridPDM.json')); return c.map(r => ({...r, pass: r.ratio > 0.995 && r.ratio < 1.005})); } catch (e) {}\n  const __v = await (async function synthGridPDM(loadAllTargets, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  const cases = [\n    { period: 0.05, amp: 0.3 },\n    { period: 0.31, amp: 0.3 },\n    { period: 0.62, amp: 0.3 },\n    { period: 2.0,  amp: 0.3 },\n    { period: 200,  amp: 0.3 },\n    { period: 0.62, amp: 0.05 },\n  ];\n  const results = [];\n  for (const c of cases) {\n    let seed = 42;\n    function randn() {\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n    }\n    const sine = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const t0 = performance.now();\n    const result = findBestPeriodPDM(t, sine, e);\n    const elapsed = performance.now() - t0;\n    results.push({\n      injectedPeriod: c.period,\n      amp: c.amp,\n      recoveredPeriod: result.period,\n      ratio: result.period / c.period,\n      theta: result.theta,\n      time_ms: elapsed,\n      pass: result.period / c.period > 0.995 && result.period / c.period < 1.005\n    });\n  }\n  return results;\n  })(loadAllTargets, findBestPeriodPDM);\n  await localDisk.write('cache/synthGridPDM.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "2fb1878a.1977",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "aliasProbe": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks",
+    "refinePeak",
+    "pdmTheta"
+   ],
+   "pid": "_aliasProbe",
+   "source_head": "async function aliasProbe(localDisk, loadAllTargets, lombScargle, findPeaks, refinePeak, pdmTheta){\n  try { return JSON.",
+   "definition": "async function aliasProbe(localDisk, loadAllTargets, lombScargle, findPeaks, refinePeak, pdmTheta){\n  try { return JSON.parse(await localDisk.readText('cache/aliasProbe.json')); } catch (e) {}\n  const __v = await (async function aliasProbe(loadAllTargets, lombScargle, findPeaks, refinePeak, pdmTheta){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  // Same 2.0 d injection\n  let seed = 42;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const sine = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / 2.0) + e[i] * randn());\n  const tmin = Math.min(...t), tmax = Math.max(...t), tspan = tmax - tmin;\n  const fmin = 1 / Math.min(tspan / 2, 500);\n  const fmax = 25;\n  // Coarse LS scan → top 5\n  const dfCoarse = 1.2e-4;\n  const nfreqCoarse = Math.ceil((fmax - fmin) / dfCoarse);\n  const lsCoarse = lombScargle(t, sine, e, fmin, fmax, nfreqCoarse);\n  const coarsePeaks = findPeaks(lsCoarse.freqs, lsCoarse.powers, dfCoarse * 3, 5);\n  // Refine each\n  const halfW = dfCoarse * 3;\n  const dfFine = 7e-6;\n  const refined = [];\n  for (const pk of coarsePeaks) {\n    const r = refinePeak(t, sine, e, pk.freq, halfW, dfFine);\n    refined.push({ freq: r.freq, period: 1 / r.freq, lsPower: r.power });\n  }\n  // Get PDM theta at each refined period\n  for (const r of refined) {\n    r.pdmTheta = pdmTheta(t, sine, r.freq);\n  }\n  return refined;\n  })(loadAllTargets, lombScargle, findPeaks, refinePeak, pdmTheta);\n  await localDisk.write('cache/aliasProbe.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "b29842d9.2014",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks",
+    "refinePeak",
+    "pdmTheta"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "nullPeaks": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "pid": "_nullPeaks",
+   "source_head": "async function nullPeaks(localDisk, loadAllTargets, findBestPeriod){\n  try { return JSON.parse(await localDisk.readText(",
+   "definition": "async function nullPeaks(localDisk, loadAllTargets, findBestPeriod){\n  try { return JSON.parse(await localDisk.readText('cache/nullPeaks.json')); } catch (e) {}\n  const __v = await (async function nullPeaks(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  const mags = bandIdx.map(i => t1.mags[i]);\n  const results = [];\n  for (let rep = 0; rep < 5; rep++) {\n    // Shuffle magnitudes (break any real signal, keep noise characteristics)\n    const shuffled = [...mags];\n    let seed = 42 + rep * 7919;\n    for (let i = shuffled.length - 1; i > 0; i--) {\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff;\n      const j = (seed >>> 0) % (i + 1);\n      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];\n    }\n    const t0 = performance.now();\n    const result = findBestPeriod(t, shuffled, e);\n    const elapsed = performance.now() - t0;\n    results.push({ rep, period: result.period, power: result.power, time_ms: elapsed });\n  }\n  const maxPower = Math.max(...results.map(r => r.power));\n  return { results, maxPower };\n  })(loadAllTargets, findBestPeriod);\n  await localDisk.write('cache/nullPeaks.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "996139e1.1477",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "lsPeriods": {
+   "inputs": [
+    "loadAllTargets",
+    "findBestPeriod",
+    "localDisk",
+    "invalidation"
+   ],
+   "pid": "_lsPeriods",
+   "source_head": "async function lsPeriods(loadAllTargets, findBestPeriod, localDisk, invalidation){\n  // Try to load cache\n  let cache = ",
+   "definition": "async function lsPeriods(loadAllTargets, findBestPeriod, localDisk, invalidation){\n  // Try to load cache\n  let cache = {};\n  try {\n    const raw = await localDisk.readText('cache/ls_periods.json');\n    cache = JSON.parse(raw);\n  } catch (e) { /* no cache yet */ }\n\n  const targets = await loadAllTargets();\n  let stop = false;\n  invalidation.then(() => { stop = true; });\n\n  for (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    if (stop) break;\n    if (cache[t.name]) continue; // already cached\n\n    // Select r-band if available, else all\n    const rIdx = [];\n    for (let j = 0; j < t.bands.length; j++) { if (t.bands[j] === 'r') rIdx.push(j); }\n    const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t.times.length).keys()];\n    const times = bandIdx.map(k => t.times[k]);\n    const mags  = bandIdx.map(k => t.mags[k]);\n    const errs  = bandIdx.map(k => t.errs[k]);\n\n    const result = findBestPeriod(times, mags, errs);\n    cache[t.name] = { period: result.period, power: result.power };\n\n    // Save cache and yield every 5 targets\n    if ((i + 1) % 5 === 0 || i === targets.length - 1) {\n      await localDisk.write('cache/ls_periods.json', JSON.stringify(cache));\n      await new Promise(r => setTimeout(r, 0));\n    }\n  }\n  // Final save\n  if (!stop) {\n    await localDisk.write('cache/ls_periods.json', JSON.stringify(cache));\n  }\n  return cache;\n}",
+   "definition_hash": "2e736977.1380",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "pdmPeriods": {
+   "inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM",
+    "localDisk",
+    "invalidation"
+   ],
+   "pid": "_pdmPeriods",
+   "source_head": "async function pdmPeriods(loadAllTargets, findBestPeriodPDM, localDisk, invalidation){\n  let cache = {};\n  try {\n    con",
+   "definition": "async function pdmPeriods(loadAllTargets, findBestPeriodPDM, localDisk, invalidation){\n  let cache = {};\n  try {\n    const raw = await localDisk.readText('cache/pdm_periods.json');\n    cache = JSON.parse(raw);\n  } catch (e) { /* no cache yet */ }\n\n  const targets = await loadAllTargets();\n  let stop = false;\n  invalidation.then(() => { stop = true; });\n\n  for (let i = 0; i < targets.length; i++) {\n    const t = targets[i];\n    if (stop) break;\n    if (cache[t.name]) continue;\n\n    const rIdx = [];\n    for (let j = 0; j < t.bands.length; j++) { if (t.bands[j] === 'r') rIdx.push(j); }\n    const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t.times.length).keys()];\n    const times = bandIdx.map(k => t.times[k]);\n    const mags  = bandIdx.map(k => t.mags[k]);\n    const errs  = bandIdx.map(k => t.errs[k]);\n\n    const result = findBestPeriodPDM(times, mags, errs);\n    cache[t.name] = { period: result.period, theta: result.theta };\n\n    // Save cache and yield every 2 targets (PDM is ~6.4s each)\n    if ((i + 1) % 2 === 0 || i === targets.length - 1) {\n      await localDisk.write('cache/pdm_periods.json', JSON.stringify(cache));\n      await new Promise(r => setTimeout(r, 0));\n    }\n  }\n  if (!stop) {\n    await localDisk.write('cache/pdm_periods.json', JSON.stringify(cache));\n  }\n  return cache;\n}",
+   "definition_hash": "60a5654.1309",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "periodAgreement": {
+   "inputs": [
+    "localDisk"
+   ],
+   "pid": "_periodAgreement",
+   "source_head": "async function periodAgreement(localDisk){\n  let lsCache = {}, pdmCache = {};\n  try { lsCache = JSON.parse(await localDi",
+   "definition": "async function periodAgreement(localDisk){\n  let lsCache = {}, pdmCache = {};\n  try { lsCache = JSON.parse(await localDisk.readText('cache/ls_periods.json')); } catch (e) {}\n  try { pdmCache = JSON.parse(await localDisk.readText('cache/pdm_periods.json')); } catch (e) {}\n\n  const lsKeys = new Set(Object.keys(lsCache));\n  const pdmKeys = new Set(Object.keys(pdmCache));\n  const both = [...lsKeys].filter(k => pdmKeys.has(k)).sort((a, b) => {\n    const na = parseInt(a.split('_')[1]), nb = parseInt(b.split('_')[1]);\n    return na - nb;\n  });\n\n  let agree = 0;\n  const disagree = [];\n  for (const name of both) {\n    const lsP = lsCache[name].period;\n    const pdmP = pdmCache[name].period;\n    const relDiff = Math.abs(lsP - pdmP) / Math.max(lsP, pdmP);\n    if (relDiff < 0.05) {\n      agree++;\n    } else {\n      disagree.push({\n        target: name,\n        lsPeriod: lsP,\n        lsPower: lsCache[name].power,\n        pdmPeriod: pdmP,\n        pdmTheta: pdmCache[name].theta,\n        relDiff\n      });\n    }\n  }\n\n  return {\n    lsTotal: lsKeys.size,\n    pdmTotal: pdmKeys.size,\n    bothTotal: both.length,\n    agreeFraction: both.length > 0 ? agree / both.length : 0,\n    agree,\n    disagreeCount: disagree.length,\n    disagree\n  };\n}",
+   "definition_hash": "cfb75793.1237",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "crossLSvsPDM": {
+   "inputs": [
+    "synthGrid",
+    "synthGridPDM"
+   ],
+   "pid": "_crossLSvsPDM",
+   "source_head": "function crossLSvsPDM(synthGrid, synthGridPDM){\n  return synthGrid.map((ls, i) => {\n    const pdm = synthGridPDM[i];\n   ",
+   "definition": "function crossLSvsPDM(synthGrid, synthGridPDM){\n  return synthGrid.map((ls, i) => {\n    const pdm = synthGridPDM[i];\n    const relDiff = Math.abs(ls.recoveredPeriod - pdm.recoveredPeriod) / ls.injectedPeriod;\n    return {\n      injectedPeriod: ls.injectedPeriod,\n      lsPeriod: ls.recoveredPeriod,\n      pdmPeriod: pdm.recoveredPeriod,\n      relDiff,\n      pass: relDiff < 0.02\n    };\n  });\n}",
+   "definition_hash": "ec3b5f9b.393",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "synthGrid",
+    "synthGridPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthFoldCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "foldBin",
+    "magSkew"
+   ],
+   "pid": "_synthFoldCheck",
+   "source_head": "async function synthFoldCheck(loadAllTargets, foldBin, magSkew){\n  const targets = await loadAllTargets();\n  const t1 = ",
+   "definition": "async function synthFoldCheck(loadAllTargets, foldBin, magSkew){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n\n  let seed = 77;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const noise = t.map((ti, i) => e[i] * randn());\n\n  const results = [];\n\n  // (1) Symmetric sine: foldBin should recover ~2*amp amplitude, magSkew ~0\n  {\n    const P = 0.6, amp = 0.4;\n    const mags = t.map((ti, i) => 15 + amp * Math.sin(2 * Math.PI * ti / P) + noise[i]);\n    const { means } = foldBin(t, mags, P, 20);\n    const valid = means.filter(v => !isNaN(v));\n    const amplitude = Math.max(...valid) - Math.min(...valid);\n    const skew = magSkew(t, mags, P);\n    results.push({\n      label: \"sine P=0.6 amp=0.4\",\n      amplitude, skew,\n      pass: amplitude > amp * 1.0 && amplitude < amp * 3.0 && Math.abs(skew) < 0.5\n    });\n  }\n\n  // (2) Sawtooth (asymmetric): magSkew should be clearly nonzero\n  {\n    const P = 0.55, amp = 0.8;\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / P) % 1 + 1) % 1;\n      const val = phase < 0.2 ? 15 + amp * 0.5 - amp * (phase / 0.2) : 15 - amp * 0.5 + amp * ((phase - 0.2) / 0.8);\n      return val + noise[i];\n    });\n    const { means } = foldBin(t, mags, P, 20);\n    const valid = means.filter(v => !isNaN(v));\n    const amplitude = Math.max(...valid) - Math.min(...valid);\n    const skew = magSkew(t, mags, P);\n    results.push({\n      label: \"sawtooth P=0.55 amp=0.8 rise=0.2\",\n      amplitude, skew,\n      pass: amplitude > amp * 0.5 && Math.abs(skew) > 0.01\n    });\n  }\n\n  // (3) Flat (noise only): foldBin amplitude near noise level\n  {\n    const P = 1.0;\n    const mags = t.map((ti, i) => 15 + noise[i]);\n    const { means } = foldBin(t, mags, P, 20);\n    const valid = means.filter(v => !isNaN(v));\n    const amplitude = Math.max(...valid) - Math.min(...valid);\n    const skew = magSkew(t, mags, P);\n    results.push({\n      label: \"flat noise P=1.0\",\n      amplitude, skew,\n      pass: amplitude < 0.3\n    });\n  }\n\n  // (4) Wrong period: foldBin at P*0.5 should show reduced amplitude vs correct P\n  {\n    const P = 0.4, amp = 0.5;\n    const mags = t.map((ti, i) => 15 + amp * Math.sin(2 * Math.PI * ti / P) + noise[i]);\n    const { means: meansTrue } = foldBin(t, mags, P, 20);\n    const { means: meansWrong } = foldBin(t, mags, P * 1.5, 20);\n    const validT = meansTrue.filter(v => !isNaN(v));\n    const validW = meansWrong.filter(v => !isNaN(v));\n    const ampTrue = Math.max(...validT) - Math.min(...validT);\n    const ampWrong = Math.max(...validW) - Math.min(...validW);\n    const skewTrue = magSkew(t, mags, P);\n    const skewWrong = magSkew(t, mags, P * 1.5);\n    results.push({\n      label: \"sine P=0.4 at true P vs 1.5P\",\n      ampTrue, ampWrong, skewTrue, skewWrong,\n      pass: ampTrue > amp * 0.8 && ampWrong < ampTrue * 0.8\n    });\n  }\n\n  return results;\n}",
+   "definition_hash": "8dbd2710.3335",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "foldBin",
+    "magSkew"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthLSCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "lombScargle"
+   ],
+   "pid": "_synthLSCheck",
+   "source_head": "async function synthLSCheck(loadAllTargets, lombScargle){\n  const targets = await loadAllTargets();\n  const t1 = targets",
+   "definition": "async function synthLSCheck(loadAllTargets, lombScargle){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 137;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.3,  amp: 0.5 },\n    { period: 0.8,  amp: 0.3 },\n    { period: 5.0,  amp: 0.4 },\n    { period: 50.0, amp: 0.6 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fmin = 0.5 / c.period, fmax = 2.0 / c.period;\n    const { freqs, powers } = lombScargle(t, mags, e, fmin, fmax, 300);\n    let bestI = 0;\n    for (let i = 1; i < powers.length; i++) if (powers[i] > powers[bestI]) bestI = i;\n    const recPeriod = 1 / freqs[bestI];\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "746d1e5e.1390",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "lombScargle"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPeakCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks"
+   ],
+   "pid": "_synthPeakCheck",
+   "source_head": "async function synthPeakCheck(loadAllTargets, lombScargle, findPeaks){\n  const targets = await loadAllTargets();\n  const",
+   "definition": "async function synthPeakCheck(loadAllTargets, lombScargle, findPeaks){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 251;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.4,  amp: 0.5 },\n    { period: 1.5,  amp: 0.3 },\n    { period: 30.0, amp: 0.6 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const { freqs, powers } = lombScargle(t, mags, e, 0.5 / c.period, 2.0 / c.period, 300);\n    const peaks = findPeaks(freqs, powers, 0.1, 3);\n    const topFreq = peaks.length > 0 ? peaks[0].freq : 0;\n    const recPeriod = topFreq > 0 ? 1 / topFreq : 0;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "82a9eef.1353",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPDMThetaCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "pdmTheta"
+   ],
+   "pid": "_synthPDMThetaCheck",
+   "source_head": "async function synthPDMThetaCheck(loadAllTargets, pdmTheta){\n  const targets = await loadAllTargets();\n  const t1 = targ",
+   "definition": "async function synthPDMThetaCheck(loadAllTargets, pdmTheta){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 311;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.3,  amp: 0.5, freq: 1 / 0.3 },\n    { period: 0.7,  amp: 0.4, freq: 1 / 0.7 },\n    { period: 10.0, amp: 0.6, freq: 1 / 10.0 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    // pdmTheta at the true frequency should give near-zero theta\n    const theta = pdmTheta(t, mags, c.freq);\n    // pdmTheta at 2x frequency should give higher theta\n    const thetaWrong = pdmTheta(t, mags, c.freq * 1.5);\n    return { period: c.period, theta, thetaWrong, pass: theta < 0.1 && thetaWrong > theta };\n  });\n}",
+   "definition_hash": "71011b86.1309",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "pdmTheta"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthRefinePeakCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks",
+    "refinePeak"
+   ],
+   "pid": "_synthRefinePeakCheck",
+   "source_head": "async function synthRefinePeakCheck(loadAllTargets, lombScargle, findPeaks, refinePeak){\n  const targets = await loadAll",
+   "definition": "async function synthRefinePeakCheck(loadAllTargets, lombScargle, findPeaks, refinePeak){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 431;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.35, amp: 0.4 },\n    { period: 1.2,  amp: 0.3 },\n    { period: 20.0, amp: 0.5 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fCenter = 1 / c.period;\n    const refined = refinePeak(t, mags, e, fCenter, fCenter * 0.1, 1e-5);\n    const recPeriod = 1 / refined.freq;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, refinedFreq: refined.freq, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "968530f5.1291",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks",
+    "refinePeak"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPDMRefineCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "pdmScan",
+    "pdmRefine"
+   ],
+   "pid": "_synthPDMRefineCheck",
+   "source_head": "async function synthPDMRefineCheck(loadAllTargets, pdmScan, pdmRefine){\n  const targets = await loadAllTargets();\n  cons",
+   "definition": "async function synthPDMRefineCheck(loadAllTargets, pdmScan, pdmRefine){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 509;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.4,  amp: 0.5 },\n    { period: 1.5,  amp: 0.3 },\n    { period: 15.0, amp: 0.6 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fTrue = 1 / c.period;\n    // Refine near the true frequency — pdmRefine should find the exact minimum\n    const refined = pdmRefine(t, mags, fTrue, fTrue * 0.02, 1e-5);\n    const recPeriod = 1 / refined.freq;\n    const ratio = recPeriod / c.period;\n    // Also scan a broader range and verify pdmScan finds something close\n    const fmin = Math.max(fTrue * 0.5, 0.002);\n    const fmax = Math.min(fTrue * 1.5, 25);\n    const coarse = pdmScan(t, mags, fmin, fmax, 2e-4);\n    const bestCoarse = coarse.length > 0 ? coarse[0] : null;\n    const coarsePeriod = bestCoarse ? 1 / bestCoarse.freq : 0;\n    const coarseRatio = coarsePeriod / c.period;\n    return { injected: c.period, refinedFreq: refined.freq, recovered: recPeriod, ratio, coarseRatio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "d26aa145.1751",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "pdmScan",
+    "pdmRefine"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthRefinePeakCheck2": {
+   "inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks",
+    "refinePeak"
+   ],
+   "pid": "_synthRefinePeakCheck2",
+   "source_head": "async function synthRefinePeakCheck2(loadAllTargets, lombScargle, findPeaks, refinePeak){\n  const targets = await loadAl",
+   "definition": "async function synthRefinePeakCheck2(loadAllTargets, lombScargle, findPeaks, refinePeak){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 557;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.15, amp: 0.3 },\n    { period: 0.55, amp: 0.5 },\n    { period: 3.0,  amp: 0.4 },\n    { period: 100,  amp: 0.6 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fCenter = 1 / c.period;\n    const refined = refinePeak(t, mags, e, fCenter, fCenter * 0.1, 1e-5);\n    const recPeriod = 1 / refined.freq;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, refinedFreq: refined.freq, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "6b9bd5a4.1324",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "lombScargle",
+    "findPeaks",
+    "refinePeak"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPDMRefineCheck2": {
+   "inputs": [
+    "loadAllTargets",
+    "pdmRefine"
+   ],
+   "pid": "_synthPDMRefineCheck2",
+   "source_head": "async function synthPDMRefineCheck2(loadAllTargets, pdmRefine){\n  const targets = await loadAllTargets();\n  const t1 = t",
+   "definition": "async function synthPDMRefineCheck2(loadAllTargets, pdmRefine){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 617;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.2, amp: 0.4 },\n    { period: 2.0, amp: 0.5 },\n    { period: 50.0, amp: 0.3 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fTrue = 1 / c.period;\n    const refined = pdmRefine(t, mags, fTrue, fTrue * 0.02, 1e-5);\n    const recPeriod = 1 / refined.freq;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, refinedFreq: refined.freq, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "39e5b876.1255",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "pdmRefine"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPDMScanCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "pdmScan"
+   ],
+   "pid": "_synthPDMScanCheck",
+   "source_head": "async function synthPDMScanCheck(loadAllTargets, pdmScan){\n  const targets = await loadAllTargets();\n  const t1 = target",
+   "definition": "async function synthPDMScanCheck(loadAllTargets, pdmScan){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 727;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.5,  amp: 0.5 },\n    { period: 3.0,  amp: 0.3 },\n    { period: 30.0, amp: 0.4 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fTrue = 1 / c.period;\n    const fmin = fTrue * 0.8;\n    const fmax = fTrue * 1.2;\n    const candidates = pdmScan(t, mags, fmin, fmax, 2e-4);\n    const best = candidates.length > 0 ? candidates[0] : null;\n    if (!best) return { injected: c.period, pass: false };\n    const recPeriod = 1 / best.freq;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, bestFreq: best.freq, bestTheta: best.theta, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "9180221e.1440",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "pdmScan"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthBestPeriodCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "pid": "_synthBestPeriodCheck",
+   "source_head": "async function synthBestPeriodCheck(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const t",
+   "definition": "async function synthBestPeriodCheck(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 839;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.3,  amp: 0.5 },\n    { period: 0.8,  amp: 0.6 },\n    { period: 10.0, amp: 0.4 },\n  ];\n  return cases.map(c => {\n    // Use sawtooth-like signal to avoid harmonic locking\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / c.period) % 1 + 1) % 1;\n      const saw = phase < 0.3 ? (phase / 0.3) : (1 - (phase - 0.3) / 0.7);\n      return 15 + c.amp * saw + e[i] * randn();\n    });\n    const result = findBestPeriod(t, mags, e);\n    const ratio = result.period / c.period;\n    return { injected: c.period, recovered: result.period, power: result.power, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "f6f94d33.1344",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPDMScanCheck2": {
+   "inputs": [
+    "loadAllTargets",
+    "pdmScan"
+   ],
+   "pid": "_synthPDMScanCheck2",
+   "source_head": "async function synthPDMScanCheck2(loadAllTargets, pdmScan){\n  const targets = await loadAllTargets();\n  const t1 = targe",
+   "definition": "async function synthPDMScanCheck2(loadAllTargets, pdmScan){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 941;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.7, amp: 0.5 },\n    { period: 2.3, amp: 0.4 },\n    { period: 5.1, amp: 0.6 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + e[i] * randn());\n    const fTrue = 1 / c.period;\n    const candidates = pdmScan(t, mags, fTrue * 0.9, fTrue * 1.1, 1e-3);\n    const best = candidates.length > 0 ? candidates[0] : null;\n    if (!best) return { injected: c.period, pass: false };\n    const recPeriod = 1 / best.freq;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, bestFreq: best.freq, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "229f3a08.1369",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "pdmScan"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthBestPeriodCheck2": {
+   "inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "pid": "_synthBestPeriodCheck2",
+   "source_head": "async function synthBestPeriodCheck2(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const ",
+   "definition": "async function synthBestPeriodCheck2(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 1013;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.37, amp: 0.6 },\n    { period: 1.7,  amp: 0.5 },\n    { period: 4.3,  amp: 0.4 },\n  ];\n  return cases.map(c => {\n    // Asymmetric sawtooth to avoid harmonic locking\n    const mags = t.map((ti, i) => {\n      const phase = ((ti / c.period) % 1 + 1) % 1;\n      const saw = phase < 0.3 ? (phase / 0.3) : (1 - (phase - 0.3) / 0.7);\n      return 15 + c.amp * saw + e[i] * randn();\n    });\n    const result = findBestPeriod(t, mags, e);\n    const ratio = result.period / c.period;\n    return { injected: c.period, recovered: result.period, power: result.power, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "8a5d90c.1341",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthBestPeriodPDMCheck": {
+   "inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "pid": "_synthBestPeriodPDMCheck",
+   "source_head": "async function synthBestPeriodPDMCheck(loadAllTargets, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  c",
+   "definition": "async function synthBestPeriodPDMCheck(loadAllTargets, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 1123;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  // Subsample to keep PDM fast under mutation check (60s timeout)\n  const step = Math.max(1, Math.floor(t.length / 100));\n  const tSub = t.filter((_, i) => i % step === 0);\n  const eSub = e.filter((_, i) => i % step === 0);\n  const cases = [\n    { period: 0.3,  amp: 0.5 },\n    { period: 1.0,  amp: 0.4 },\n    { period: 10.0, amp: 0.3 },\n  ];\n  return cases.map(c => {\n    const mags = tSub.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + eSub[i] * randn());\n    const result = findBestPeriodPDM(tSub, mags, eSub);\n    const ratio = result.period / c.period;\n    return { injected: c.period, recovered: result.period, theta: result.theta, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "24498fa.1419",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPDMScanCheck3": {
+   "inputs": [
+    "pdmScan"
+   ],
+   "pid": "_synthPDMScanCheck3",
+   "source_head": "async function synthPDMScanCheck3(pdmScan){\n  const n = 80;\n  const tspan = 40;\n  const t = Array.from({length: n}, (_, ",
+   "definition": "async function synthPDMScanCheck3(pdmScan){\n  const n = 80;\n  const tspan = 40;\n  const t = Array.from({length: n}, (_, i) => i * tspan / (n - 1));\n  const err = 0.02;\n  let seed = 1337;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 1.5, amp: 0.6 },\n    { period: 3.0, amp: 0.5 },\n    { period: 7.0, amp: 0.4 },\n  ];\n  return cases.map(c => {\n    const mags = t.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + err * randn());\n    const fTrue = 1 / c.period;\n    const candidates = pdmScan(t, mags, fTrue * 0.8, fTrue * 1.2, 5e-4);\n    const best = candidates.length > 0 ? candidates[0] : null;\n    if (!best) return { injected: c.period, pass: false };\n    const recPeriod = 1 / best.freq;\n    const ratio = recPeriod / c.period;\n    return { injected: c.period, bestFreq: best.freq, recovered: recPeriod, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "7e9aaa77.1139",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "pdmScan"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthBestPeriodPDMCheck2": {
+   "inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "pid": "_synthBestPeriodPDMCheck2",
+   "source_head": "async function synthBestPeriodPDMCheck2(loadAllTargets, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  ",
+   "definition": "async function synthBestPeriodPDMCheck2(loadAllTargets, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  const t3 = targets[2]; // target_3 — different from synthBestPeriodPDMCheck which uses target_1\n  const rIdx = [];\n  for (let i = 0; i < t3.bands.length; i++) { if (t3.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t3.times.length).keys()];\n  const t = bandIdx.map(i => t3.times[i]);\n  const e = bandIdx.map(i => t3.errs[i]);\n  // Subsample to ≤80 points for speed\n  const step = Math.max(1, Math.floor(t.length / 80));\n  const tSub = t.filter((_, i) => i % step === 0);\n  const eSub = e.filter((_, i) => i % step === 0);\n  let seed = 1447;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const cases = [\n    { period: 0.5,  amp: 0.5 },\n    { period: 2.0,  amp: 0.4 },\n    { period: 8.0,  amp: 0.3 },\n  ];\n  return cases.map(c => {\n    const mags = tSub.map((ti, i) => 15 + c.amp * Math.sin(2 * Math.PI * ti / c.period) + eSub[i] * randn());\n    const result = findBestPeriodPDM(tSub, mags, eSub);\n    const ratio = result.period / c.period;\n    return { injected: c.period, recovered: result.period, theta: result.theta, ratio, pass: ratio > 0.995 && ratio < 1.005 };\n  });\n}",
+   "definition_hash": "59b6370d.1464",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriodPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthFlatFractionCheck": {
+   "inputs": [
+    "flatFraction"
+   ],
+   "pid": "_synthFlatFractionCheck",
+   "source_head": "async function synthFlatFractionCheck(flatFraction){\n  const n = 200;\n  const t = Array.from({length: n}, (_, i) => 500 ",
+   "definition": "async function synthFlatFractionCheck(flatFraction){\n  const n = 200;\n  const t = Array.from({length: n}, (_, i) => 500 + i * 300 / (n - 1));\n  const period = 5.0;\n  const cases = [\n    { label: \"constant\", makeMags: () => t.map(() => 15.0), check: f => Math.abs(f - 1.0) < 0.05 },\n    { label: \"large_sine\", makeMags: () => t.map(ti => 15 + 2.0 * Math.sin(2 * Math.PI * ti / period)), check: f => f < 0.35 },\n    { label: \"sawtooth\", makeMags: () => t.map(ti => { const ph = ((ti / period) % 1 + 1) % 1; return 15 + 1.5 * (ph < 0.1 ? ph / 0.1 : (1 - (ph - 0.1) / 0.9)); }), check: f => f < 0.3 },\n  ];\n  return cases.map(c => {\n    const mags = c.makeMags();\n    const frac = flatFraction(t, mags, period);\n    return { label: c.label, flatFraction: frac, pass: c.check(frac) };\n  });\n}",
+   "definition_hash": "bf0c9d3d.787",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "flatFraction"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthFlatFractionCheck2": {
+   "inputs": [
+    "flatFraction"
+   ],
+   "pid": "_synthFlatFractionCheck2",
+   "source_head": "async function synthFlatFractionCheck2(flatFraction){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 500",
+   "definition": "async function synthFlatFractionCheck2(flatFraction){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 500 + i * 200 / (n - 1));\n  const period = 3.0;\n  // Sawtooth: sharp rise, slow decline — should have low flatFraction\n  const sawMags = t.map(ti => {\n    const phase = ((ti / period) % 1 + 1) % 1;\n    return 15 + 0.8 * (phase < 0.2 ? phase / 0.2 : (1 - (phase - 0.2) / 0.8));\n  });\n  const sawFrac = flatFraction(t, sawMags, period);\n  // Eclipse-like: constant with narrow dip — should have high flatFraction\n  const eclMags = t.map(ti => {\n    const phase = ((ti / period) % 1 + 1) % 1;\n    const inDip = phase > 0.45 && phase < 0.55;\n    return inDip ? 15 + 1.5 : 15;\n  });\n  const eclFrac = flatFraction(t, eclMags, period);\n  // Constant at different baseline\n  const constMags = t.map(() => 16.0);\n  const constFrac = flatFraction(t, constMags, period);\n  return [\n    { label: \"sawtooth\", flatFraction: sawFrac, pass: sawFrac < 0.4 },\n    { label: \"eclipse_dip\", flatFraction: eclFrac, pass: eclFrac > 0.6 },\n    { label: \"constant_offset\", flatFraction: constFrac, pass: Math.abs(constFrac - 1.0) < 0.05 },\n  ];\n}",
+   "definition_hash": "6b6883a3.1139",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "flatFraction"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthDetectCheck": {
+   "inputs": [
+    "detect"
+   ],
+   "pid": "_synthDetectCheck",
+   "source_head": "async function synthDetectCheck(detect){\n  const windowPeriods = [];\n  windowPeriods.freqRes = 0.00036;\n  const nullMax ",
+   "definition": "async function synthDetectCheck(detect){\n  const windowPeriods = [];\n  windowPeriods.freqRes = 0.00036;\n  const nullMax = 10.0;\n  const cases = [\n    { label: \"agree_high_power\", lsP: 5.0, pdmP: 5.0, power: 100.0, expectVar: true, expectP: 5.0 },\n    { label: \"disagree\", lsP: 5.0, pdmP: 7.5, power: 100.0, expectVar: false },\n    { label: \"low_power\", lsP: 5.0, pdmP: 5.0, power: 5.0, expectVar: false },\n  ];\n  return cases.map(c => {\n    const d = detect(c.lsP, c.pdmP, windowPeriods, c.power, nullMax);\n    if (c.expectVar) {\n      return { label: c.label, variable: d.variable, period: d.period, pass: d.variable === true && Math.abs(d.period / c.expectP - 1) < 0.01 };\n    } else {\n      return { label: c.label, variable: d.variable, pass: d.variable === false };\n    }\n  });\n}",
+   "definition_hash": "21d5d369.784",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "detect"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthDetectCheck2": {
+   "inputs": [
+    "detect"
+   ],
+   "pid": "_synthDetectCheck2",
+   "source_head": "async function synthDetectCheck2(detect){\n  const windowPeriods = [{ fmin: 0.09, fmax: 0.11 }]; // blocks period ~10\n  w",
+   "definition": "async function synthDetectCheck2(detect){\n  const windowPeriods = [{ fmin: 0.09, fmax: 0.11 }]; // blocks period ~10\n  windowPeriods.freqRes = 0.00036;\n  const nullMax = 10.0;\n  const cases = [\n    { label: \"ratio2_agree\", lsP: 2.5, pdmP: 5.0, power: 100.0, expectVar: true, expectP: 5.0 },\n    { label: \"window_blocked\", lsP: 10.0, pdmP: 10.0, power: 100.0, expectVar: false },\n    { label: \"just_above_threshold\", lsP: 3.0, pdmP: 3.0, power: 31.0, expectVar: true, expectP: 3.0 },\n  ];\n  return cases.map(c => {\n    const d = detect(c.lsP, c.pdmP, windowPeriods, c.power, nullMax);\n    if (c.expectVar) {\n      return { label: c.label, variable: d.variable, period: d.period, pass: d.variable === true && Math.abs(d.period / c.expectP - 1) < 0.01 };\n    } else {\n      return { label: c.label, variable: d.variable, pass: d.variable === false };\n    }\n  });\n}",
+   "definition_hash": "3479fdf.861",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "detect"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthShapeFeaturesCheck": {
+   "inputs": [
+    "shapeFeatures"
+   ],
+   "pid": "_synthShapeFeaturesCheck",
+   "source_head": "async function synthShapeFeaturesCheck(shapeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 50",
+   "definition": "async function synthShapeFeaturesCheck(shapeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 500 + i * 100 / (n - 1));\n  const period = 5.0;\n  // Symmetric sine: amplitude >0.5, riseFraction ~0.5, secondaryDepth ~1.0 (equal dips)\n  const sineMags = t.map(ti => 15 + 1.0 * Math.sin(2 * Math.PI * ti / period));\n  const sf1 = shapeFeatures(t, sineMags, period);\n  const p1 = sf1.amplitude > 0.5 && sf1.riseFraction > 0.3 && sf1.riseFraction < 0.7 && sf1.secondaryDepth > 0.8;\n  // Sawtooth (fast rise): amplitude > 0.3, riseFraction > 0.5, secondaryDepth ~1.0\n  const sawMags = t.map(ti => {\n    const ph = ((ti / period) % 1 + 1) % 1;\n    return 15 + 0.8 * (ph < 0.15 ? ph / 0.15 : (1 - (ph - 0.15) / 0.85));\n  });\n  const sf2 = shapeFeatures(t, sawMags, period);\n  const p2 = sf2.amplitude > 0.3 && sf2.riseFraction > 0.5;\n  // Constant: amplitude ~0\n  const constMags = t.map(() => 15.0);\n  const sf3 = shapeFeatures(t, constMags, period);\n  const p3 = sf3.amplitude < 0.05;\n  return [\n    { label: \"symmetric_sine\", amplitude: sf1.amplitude, rise: sf1.riseFraction, sec: sf1.secondaryDepth, pass: p1 },\n    { label: \"sawtooth_fast_rise\", amplitude: sf2.amplitude, rise: sf2.riseFraction, sec: sf2.secondaryDepth, pass: p2 },\n    { label: \"constant\", amplitude: sf3.amplitude, rise: sf3.riseFraction, sec: sf3.secondaryDepth, pass: p3 },\n  ];\n}",
+   "definition_hash": "e99f69e8.1370",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "shapeFeatures"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthShapeFeaturesCheck2": {
+   "inputs": [
+    "shapeFeatures"
+   ],
+   "pid": "_synthShapeFeaturesCheck2",
+   "source_head": "async function synthShapeFeaturesCheck2(shapeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 6",
+   "definition": "async function synthShapeFeaturesCheck2(shapeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 600 + i * 80 / (n - 1));\n  const period = 4.0;\n  // Inverted sine (phase-shifted): riseFraction should be ~0.5, amplitude > 0\n  const invMags = t.map(ti => 15 - 0.6 * Math.sin(2 * Math.PI * ti / period));\n  const sf1 = shapeFeatures(t, invMags, period);\n  const p1 = sf1.amplitude > 0.3 && Math.abs(sf1.riseFraction - 0.5) < 0.3;\n  // Slow sawtooth (slow rise): amplitude > 0, riseFraction between 0 and 1\n  const slowMags = t.map(ti => {\n    const ph = ((ti / period) % 1 + 1) % 1;\n    return 15 + 0.7 * (ph < 0.7 ? ph / 0.7 : (1 - (ph - 0.7) / 0.3));\n  });\n  const sf2 = shapeFeatures(t, slowMags, period);\n  const p2 = sf2.amplitude > 0.3 && sf2.riseFraction >= 0 && sf2.riseFraction <= 1;\n  // Small amplitude sine\n  const smallMags = t.map(ti => 15 + 0.1 * Math.sin(2 * Math.PI * ti / period));\n  const sf3 = shapeFeatures(t, smallMags, period);\n  const p3 = sf3.amplitude > 0.05 && sf3.amplitude < 0.5;\n  return [\n    { label: \"inverted_sine\", amplitude: sf1.amplitude, rise: sf1.riseFraction, pass: p1 },\n    { label: \"slow_sawtooth\", amplitude: sf2.amplitude, rise: sf2.riseFraction, pass: p2 },\n    { label: \"small_amplitude\", amplitude: sf3.amplitude, rise: sf3.riseFraction, pass: p3 },\n  ];\n}",
+   "definition_hash": "cb2b20f4.1323",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "shapeFeatures"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthComputeFeaturesCheck": {
+   "inputs": [
+    "computeFeatures"
+   ],
+   "pid": "_synthComputeFeaturesCheck",
+   "source_head": "async function synthComputeFeaturesCheck(computeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) =",
+   "definition": "async function synthComputeFeaturesCheck(computeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 500 + i * 100 / (n - 1));\n  const err = t.map(() => 0.02);\n  const period = 5.0;\n  // Variable sine: amplitude > 0, nSigmaAbove > 0\n  const sineMags = t.map(ti => 15 + 0.5 * Math.sin(2 * Math.PI * ti / period));\n  const cf1 = computeFeatures(t, sineMags, err, period);\n  const p1 = cf1.amplitude > 0.2 && cf1.nSigmaAbove > 5;\n  // Constant: amplitude ~0, nSigmaAbove ~0\n  const constMags = t.map(() => 15.0);\n  const cf2 = computeFeatures(t, constMags, err, period);\n  const p2 = cf2.amplitude < 0.1 && cf2.nSigmaAbove < 5;\n  // Period = 0: returns zeros\n  const cf3 = computeFeatures(t, sineMags, err, 0);\n  const p3 = cf3.amplitude === 0 && cf3.skewness === 0;\n  return [\n    { label: \"variable_sine\", amplitude: cf1.amplitude, nSigma: cf1.nSigmaAbove, skew: cf1.skewness, pass: p1 },\n    { label: \"constant\", amplitude: cf2.amplitude, nSigma: cf2.nSigmaAbove, pass: p2 },\n    { label: \"period_zero\", amplitude: cf3.amplitude, nSigma: cf3.nSigmaAbove, pass: p3 },\n  ];\n}",
+   "definition_hash": "5f7de1e4.1094",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "computeFeatures"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthComputeFeaturesCheck2": {
+   "inputs": [
+    "computeFeatures"
+   ],
+   "pid": "_synthComputeFeaturesCheck2",
+   "source_head": "async function synthComputeFeaturesCheck2(computeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) ",
+   "definition": "async function synthComputeFeaturesCheck2(computeFeatures){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 600 + i * 150 / (n - 1));\n  const err = t.map(() => 0.03);\n  const period = 7.0;\n  // Large amplitude variable\n  const bigMags = t.map(ti => 15 + 1.5 * Math.sin(2 * Math.PI * ti / period));\n  const cf1 = computeFeatures(t, bigMags, err, period);\n  const p1 = cf1.amplitude > 1.0 && cf1.nSigmaAbove > 10;\n  // Asymmetric (sawtooth-like): should have non-zero skewness\n  const sawMags = t.map(ti => {\n    const ph = ((ti / period) % 1 + 1) % 1;\n    return 15 + 0.8 * (ph < 0.2 ? ph / 0.2 : (1 - (ph - 0.2) / 0.8));\n  });\n  const cf2 = computeFeatures(t, sawMags, err, period);\n  const p2 = cf2.amplitude > 0.5 && cf2.nSigmaAbove > 5;\n  // Small signal near noise\n  const smallMags = t.map(ti => 15 + 0.05 * Math.sin(2 * Math.PI * ti / period) + 0.03 * (Math.random() - 0.5));\n  const cf3 = computeFeatures(t, smallMags, err, period);\n  const p3 = cf3.amplitude >= 0;\n  return [\n    { label: \"large_amplitude\", amplitude: cf1.amplitude, nSigma: cf1.nSigmaAbove, pass: p1 },\n    { label: \"asymmetric\", amplitude: cf2.amplitude, skew: cf2.skewness, nSigma: cf2.nSigmaAbove, pass: p2 },\n    { label: \"small_signal\", amplitude: cf3.amplitude, nSigma: cf3.nSigmaAbove, pass: p3 },\n  ];\n}",
+   "definition_hash": "c91176c0.1302",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "computeFeatures"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthClassifyCheck": {
+   "inputs": [
+    "classify"
+   ],
+   "pid": "_synthClassifyCheck",
+   "source_head": "async function synthClassifyCheck(classify){\n  // Test 1: CST — low nSigmaAbove\n  {\n    const n = 100, t = Array.from({l",
+   "definition": "async function synthClassifyCheck(classify){\n  // Test 1: CST — low nSigmaAbove\n  {\n    const n = 100, t = Array.from({length: n}, (_, i) => 500 + i * 50 / (n - 1));\n    const e = t.map(() => 0.02), mags = t.map(() => 15.0);\n    const feat = { nSigmaAbove: 1, primaryDepth: 0, secondaryDepth: 0, eclipseDepth: 0, mean_mag: 15 };\n    const r1 = classify(5.0, 0.01, feat, t, mags, e);\n    // Test 2: RRc — P=0.4, amp=0.3, high sigma\n    const t2 = Array.from({length: 200}, (_, i) => 500 + i * 100 / (n - 1));\n    const m2 = t2.map(ti => 15 + 0.3 * Math.sin(2 * Math.PI * ti / 0.4));\n    const e2 = t2.map(() => 0.02);\n    const feat2 = { nSigmaAbove: 100, primaryDepth: 0, secondaryDepth: 0, eclipseDepth: 0, mean_mag: 15 };\n    const r2 = classify(0.4, 0.3, feat2, t2, m2, e2);\n    // Test 3: MIRA — P=200, amp=2.0\n    const feat3 = { nSigmaAbove: 500, primaryDepth: 0, secondaryDepth: 0, eclipseDepth: 0, mean_mag: 15 };\n    const r3 = classify(200, 2.0, feat3, t, mags, e);\n    return [\n      { label: \"CST_low_sigma\", result: r1.classification, pass: r1.classification === \"CST\" },\n      { label: \"RRc_short_period\", result: r2.classification, pass: r2.classification === \"RRc\" },\n      { label: \"MIRA_long_period\", result: r3.classification, pass: r3.classification === \"MIRA\" },\n    ];\n  }\n}",
+   "definition_hash": "16b5789e.1296",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "classify"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthClassifyCheck2": {
+   "inputs": [
+    "classify"
+   ],
+   "pid": "_synthClassifyCheck2",
+   "source_head": "async function synthClassifyCheck2(classify){\n  // Test 1: DSCT — P=0.1, amp=0.4\n  const n = 100, t = Array.from({length",
+   "definition": "async function synthClassifyCheck2(classify){\n  // Test 1: DSCT — P=0.1, amp=0.4\n  const n = 100, t = Array.from({length: n}, (_, i) => 500 + i * 50 / (n - 1));\n  const e = t.map(() => 0.02), mags = t.map(() => 15.0);\n  const feat1 = { nSigmaAbove: 50, primaryDepth: 0, secondaryDepth: 0, eclipseDepth: 0, mean_mag: 15 };\n  const r1 = classify(0.1, 0.4, feat1, t, mags, e);\n  // Test 2: RRab — P=0.6, amp=0.8\n  const feat2 = { nSigmaAbove: 100, primaryDepth: 0, secondaryDepth: 0, eclipseDepth: 0, mean_mag: 15 };\n  const r2 = classify(0.6, 0.8, feat2, t, mags, e);\n  // Test 3: EA — P=5, amp=0.3, eclipse depth > 0.05\n  const feat3 = { nSigmaAbove: 50, primaryDepth: 0.3, secondaryDepth: 0.05, eclipseDepth: 0.2, mean_mag: 15 };\n  const t3 = Array.from({length: 200}, (_, i) => 500 + i * 200 / (n - 1));\n  const m3 = t3.map(ti => { const ph = ((ti / 5.0) % 1 + 1) % 1; return 15 + (ph < 0.1 ? 0.3 : 0); });\n  const e3 = t3.map(() => 0.02);\n  const r3 = classify(5.0, 0.3, feat3, t3, m3, e3);\n  return [\n    { label: \"DSCT\", result: r1.classification, pass: r1.classification === \"DSCT\" },\n    { label: \"RRab\", result: r2.classification, pass: r2.classification === \"RRab\" },\n    { label: \"EA_eclipse\", result: r3.classification, pass: r3.classification === \"EA\" || r3.classification === \"EB\" },\n  ];\n}",
+   "definition_hash": "bb84afe2.1302",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "classify"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPrewhitenCheck": {
+   "inputs": [
+    "prewhiten"
+   ],
+   "pid": "_synthPrewhitenCheck",
+   "source_head": "async function synthPrewhitenCheck(prewhiten){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 500 + i * ",
+   "definition": "async function synthPrewhitenCheck(prewhiten){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 500 + i * 100 / (n - 1));\n  const period = 5.0;\n  // Test 1: Pure sine — prewhiten should leave small residuals\n  const m1 = t.map(ti => 15 + 0.8 * Math.sin(2 * Math.PI * ti / period));\n  const r1 = prewhiten(t, m1, period);\n  const rms1 = Math.sqrt(r1.reduce((s, v) => s + v * v, 0) / r1.length);\n  // Test 2: Two sines — prewhiten removes dominant, residual has second signal\n  const p2 = 3.0;\n  const m2 = t.map(ti => 15 + 0.8 * Math.sin(2 * Math.PI * ti / period) + 0.3 * Math.sin(2 * Math.PI * ti / p2));\n  const r2 = prewhiten(t, m2, period);\n  const rms2 = Math.sqrt(r2.reduce((s, v) => s + v * v, 0) / r2.length);\n  // Test 3: Constant — prewhiten should give ~zero residuals\n  const m3 = t.map(() => 15.0);\n  const r3 = prewhiten(t, m3, period);\n  const rms3 = Math.sqrt(r3.reduce((s, v) => s + v * v, 0) / r3.length);\n  return [\n    { label: \"single_sine\", rms: rms1, pass: rms1 < 0.2 },\n    { label: \"two_sines\", rms: rms2, pass: rms2 > 0.1 && rms2 < 0.5 },\n    { label: \"constant\", rms: rms3, pass: rms3 < 0.05 },\n  ];\n}",
+   "definition_hash": "d0d53990.1142",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "prewhiten"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthPrewhitenCheck2": {
+   "inputs": [
+    "prewhiten"
+   ],
+   "pid": "_synthPrewhitenCheck2",
+   "source_head": "async function synthPrewhitenCheck2(prewhiten){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 600 + i *",
+   "definition": "async function synthPrewhitenCheck2(prewhiten){\n  const n = 300;\n  const t = Array.from({length: n}, (_, i) => 600 + i * 80 / (n - 1));\n  const period = 4.0;\n  // Test 1: Sawtooth — prewhiten should remove it\n  const m1 = t.map(ti => {\n    const ph = ((ti / period) % 1 + 1) % 1;\n    return 15 + 0.6 * (ph < 0.2 ? ph / 0.2 : (1 - (ph - 0.2) / 0.8));\n  });\n  const r1 = prewhiten(t, m1, period);\n  const rms1 = Math.sqrt(r1.reduce((s, v) => s + v * v, 0) / r1.length);\n  // Test 2: Small amplitude sine\n  const m2 = t.map(ti => 15 + 0.15 * Math.sin(2 * Math.PI * ti / period));\n  const r2 = prewhiten(t, m2, period);\n  const rms2 = Math.sqrt(r2.reduce((s, v) => s + v * v, 0) / r2.length);\n  // Test 3: Two close-amplitude sines at different periods\n  const m3 = t.map(ti => 15 + 0.5 * Math.sin(2 * Math.PI * ti / period) + 0.4 * Math.sin(2 * Math.PI * ti / 2.7));\n  const r3 = prewhiten(t, m3, period);\n  const rms3 = Math.sqrt(r3.reduce((s, v) => s + v * v, 0) / r3.length);\n  return [\n    { label: \"sawtooth\", rms: rms1, pass: rms1 < 0.2 },\n    { label: \"small_sine\", rms: rms2, pass: rms2 < 0.1 },\n    { label: \"two_close\", rms: rms3, pass: rms3 > 0.15 },\n  ];\n}",
+   "definition_hash": "63be9a47.1165",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "prewhiten"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synthEB": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "findBestPeriod",
+    "findBestPeriodPDM"
+   ],
+   "pid": "_synthEB",
+   "source_head": "async function synthEB(localDisk, loadAllTargets, findBestPeriod, findBestPeriodPDM){\n  try { return JSON.parse(await lo",
+   "definition": "async function synthEB(localDisk, loadAllTargets, findBestPeriod, findBestPeriodPDM){\n  try { return JSON.parse(await localDisk.readText('cache/synthEB.json')); } catch (e) {}\n  const __v = await (async function synthEB(loadAllTargets, findBestPeriod, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n\n  const cases = [\n    { period: 0.7, label: \"0.7d\" },\n    { period: 2.0, label: \"2.0d\" }\n  ];\n  const results = [];\n  for (const c of cases) {\n    let seed = 42;\n    function randn() {\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n    }\n    // Double-dip EB signal: primary dip 0.4 mag at phase 0, secondary 0.15 mag at phase 0.5\n    // Each is a Gaussian in phase with width 0.04\n    const width = 0.04;\n    const signal = t.map((ti, i) => {\n      const phase = ((ti / c.period) % 1 + 1) % 1;\n      // Wrap phase to [-0.5, 0.5] for distance calculation\n      const d0  = Math.min(Math.abs(phase), Math.abs(1 - phase));     // distance to phase 0\n      const d05 = Math.min(Math.abs(phase - 0.5), Math.abs(phase + 0.5)); // distance to phase 0.5\n      const primaryDip   = 0.4 * Math.exp(-0.5 * (d0 / width) * (d0 / width));\n      const secondaryDip = 0.15 * Math.exp(-0.5 * (d05 / width) * (d05 / width));\n      return 15 + primaryDip + secondaryDip + e[i] * randn();\n    });\n\n    const lsResult = findBestPeriod(t, signal, e);\n    const pdmResult = findBestPeriodPDM(t, signal, e);\n    results.push({\n      injectedPeriod: c.period,\n      label: c.label,\n      lsPeriod: lsResult.period,\n      lsPower: lsResult.power,\n      lsRatio: lsResult.period / c.period,\n      pdmPeriod: pdmResult.period,\n      pdmTheta: pdmResult.theta,\n      pdmRatio: pdmResult.period / c.period,\n      lsHalfPeriod: (2 * lsResult.period / c.period).toFixed(4),\n    });\n  }\n  return results;\n  })(loadAllTargets, findBestPeriod, findBestPeriodPDM);\n  await localDisk.write('cache/synthEB.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "cc34d0c.2431",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod",
+    "findBestPeriodPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "synthNullAgree": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "findBestPeriod",
+    "findBestPeriodPDM"
+   ],
+   "pid": "_synthNullAgree",
+   "source_head": "async function synthNullAgree(localDisk, loadAllTargets, findBestPeriod, findBestPeriodPDM){\n  try { return JSON.parse(a",
+   "definition": "async function synthNullAgree(localDisk, loadAllTargets, findBestPeriod, findBestPeriodPDM){\n  try { return JSON.parse(await localDisk.readText('cache/synthNullAgree.json')); } catch (e) {}\n  const __v = await (async function synthNullAgree(loadAllTargets, findBestPeriod, findBestPeriodPDM){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  const mags = bandIdx.map(i => t1.mags[i]);\n\n  const results = [];\n  for (let rep = 0; rep < 5; rep++) {\n    const shuffled = [...mags];\n    let seed = 42 + rep * 7919;\n    for (let i = shuffled.length - 1; i > 0; i--) {\n      seed = (seed * 1103515245 + 12345) & 0x7fffffff;\n      const j = (seed >>> 0) % (i + 1);\n      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];\n    }\n    const lsResult = findBestPeriod(t, shuffled, e);\n    const pdmResult = findBestPeriodPDM(t, shuffled, e);\n\n    const lsP = lsResult.period;\n    const pdmP = pdmResult.period;\n    const relDiff5 = Math.abs(lsP - pdmP) / Math.max(lsP, pdmP) < 0.05;\n    const ratio21 = Math.max(lsP, pdmP) / Math.min(lsP, pdmP);\n    const isFactor2 = Math.abs(ratio21 - 2.0) < 0.05;\n\n    results.push({\n      rep,\n      lsPeriod: lsP,\n      lsPower: lsResult.power,\n      pdmPeriod: pdmP,\n      pdmTheta: pdmResult.theta,\n      agree5pct: relDiff5,\n      ratio: ratio21,\n      isFactor2\n    });\n  }\n  return results;\n  })(loadAllTargets, findBestPeriod, findBestPeriodPDM);\n  await localDisk.write('cache/synthNullAgree.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "a3a2b29c.1766",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod",
+    "findBestPeriodPDM"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "windowPeriods": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets"
+   ],
+   "pid": "_windowPeriods",
+   "source_head": "async function windowPeriods(localDisk, loadAllTargets){\n  let lsCache = {}, pdmCache = {};\n  try { lsCache = JSON.parse",
+   "definition": "async function windowPeriods(localDisk, loadAllTargets){\n  let lsCache = {}, pdmCache = {};\n  try { lsCache = JSON.parse(await localDisk.readText('cache/ls_periods.json')); } catch (e) {}\n  try { pdmCache = JSON.parse(await localDisk.readText('cache/pdm_periods.json')); } catch (e) {}\n\n  // Compute T = max time span over all targets\n  const targets = await loadAllTargets();\n  let T = 0;\n  for (const t of targets) {\n    const tmin = Math.min(...t.times), tmax = Math.max(...t.times);\n    if (tmax - tmin > T) T = tmax - tmin;\n  }\n  const freqRes = 1 / T; // frequency resolution ~ 1/T\n\n  // Convert entries to frequency and sort by frequency\n  const entries = [];\n  for (const [name, v] of Object.entries(lsCache)) entries.push({ freq: 1 / v.period, target: name });\n  for (const [name, v] of Object.entries(pdmCache)) entries.push({ freq: 1 / v.period, target: name });\n  entries.sort((a, b) => a.freq - b.freq);\n\n  // Cluster in frequency: merge when |f1 - f2| < 1/T\n  const clusters = [];\n  for (const e of entries) {\n    if (clusters.length > 0) {\n      const last = clusters[clusters.length - 1];\n      if (Math.abs(e.freq - last.reprFreq) < freqRes) {\n        last.targets.add(e.target);\n        last.count++;\n        if (e.freq < last.fmin) last.fmin = e.freq;\n        if (e.freq > last.fmax) last.fmax = e.freq;\n        continue;\n      }\n    }\n    clusters.push({ reprFreq: e.freq, targets: new Set([e.target]), count: 1, fmin: e.freq, fmax: e.freq });\n  }\n\n  // Filter: >= 3 distinct targets; return frequency-based clusters\n  const result = clusters\n    .filter(c => c.targets.size >= 3)\n    .map(c => ({\n      period: 1 / c.reprFreq,\n      nTargets: c.targets.size,\n      fmin: c.fmin,\n      fmax: c.fmax,\n      freqSpan: c.fmax - c.fmin,\n      targets: [...c.targets]\n    }));\n  result.freqRes = freqRes;\n  return result;\n}",
+   "definition_hash": "e8de677d.1838",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  },
+  "detect": {
+   "inputs": [],
+   "pid": "_detect",
+   "source_head": "function detect(){return(\nfunction detect(lsPeriod, pdmPeriod, windowPeriods, lsPower, nullMaxPower) {\n  const lsP = lsP",
+   "definition": "function detect(){return(\nfunction detect(lsPeriod, pdmPeriod, windowPeriods, lsPower, nullMaxPower) {\n  const lsP = lsPeriod, pdmP = pdmPeriod;\n  if (lsP <= 0 || pdmP <= 0) return { variable: false, period: 0 };\n\n  const longer = Math.max(lsP, pdmP);\n  const shorter = Math.min(lsP, pdmP);\n  const relDiff = (longer - shorter) / longer;\n  const ratio = longer / shorter;\n  const near2 = Math.abs(ratio - 2.0) / 2.0;\n\n  // Agreement: within 5%, or ratio within 5% of 2.0\n  const agrees = relDiff < 0.05 || near2 < 0.05;\n  if (!agrees) return { variable: false, period: 0 };\n\n  // Power threshold: LS power must exceed 3x null max power\n  const powerThreshold = nullMaxPower * 3;\n  if (lsPower < powerThreshold) return { variable: false, period: 0 };\n\n  // The \"physical\" period is the longer one when 2:1 (PDM got P, LS got P/2)\n  const candidatePeriod = longer;\n\n  // Window filter: reject if candidate frequency lies inside [fmin - freqRes, fmax + freqRes]\n  const candFreq = 1 / candidatePeriod;\n  const freqRes = windowPeriods.freqRes || 0.00036;\n  for (const wp of windowPeriods) {\n    if (candFreq >= wp.fmin - freqRes && candFreq <= wp.fmax + freqRes) {\n      return { variable: false, period: 0 };\n    }\n  }\n\n  return { variable: true, period: candidatePeriod };\n}\n)}",
+   "definition_hash": "11174d46.1275",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [],
+   "returns_function_by_source": true,
+   "given": false,
+   "deliverable": false
+  },
+  "detectRefs": {
+   "inputs": [
+    "synthGrid",
+    "synthGridPDM",
+    "synthEB",
+    "synthNullAgree",
+    "detect",
+    "windowPeriods",
+    "nullPeaks"
+   ],
+   "pid": "_detectRefs",
+   "source_head": "function detectRefs(synthGrid, synthGridPDM, synthEB, synthNullAgree, detect, windowPeriods, nullPeaks){\n  const powerTh",
+   "definition": "function detectRefs(synthGrid, synthGridPDM, synthEB, synthNullAgree, detect, windowPeriods, nullPeaks){\n  const powerThreshold = nullPeaks.maxPower;\n  const rows = [];\n\n  // synthGrid (6 cases) paired with synthGridPDM — same periods, same seed\n  for (let i = 0; i < synthGrid.length; i++) {\n    const lsP = synthGrid[i].recoveredPeriod;\n    const pdmP = synthGridPDM[i].recoveredPeriod;\n    const injected = synthGrid[i].injectedPeriod;\n    const lsPow = synthGrid[i].power;\n    const d = detect(lsP, pdmP, windowPeriods, lsPow, powerThreshold);\n    rows.push({\n      label: `synthGrid_${synthGrid[i].period}d`,\n      injectedPeriod: injected,\n      lsPeriod: lsP,\n      pdmPeriod: pdmP,\n      lsPower: lsPow,\n      variable: d.variable,\n      detectedPeriod: d.period,\n      ratioToInjected: d.variable ? d.period / injected : null\n    });\n  }\n\n  // synthEB (2 cases)\n  for (let i = 0; i < synthEB.length; i++) {\n    const lsP = synthEB[i].lsPeriod;\n    const pdmP = synthEB[i].pdmPeriod;\n    const injected = synthEB[i].injectedPeriod;\n    const lsPow = synthEB[i].lsPower;\n    const d = detect(lsP, pdmP, windowPeriods, lsPow, powerThreshold);\n    rows.push({\n      label: `synthEB_${synthEB[i].label}`,\n      injectedPeriod: injected,\n      lsPeriod: lsP,\n      pdmPeriod: pdmP,\n      lsPower: lsPow,\n      variable: d.variable,\n      detectedPeriod: d.period,\n      ratioToInjected: d.variable ? d.period / injected : null\n    });\n  }\n\n  // synthNullAgree (5 shuffles — must be variable=false)\n  for (let i = 0; i < synthNullAgree.length; i++) {\n    const lsP = synthNullAgree[i].lsPeriod;\n    const pdmP = synthNullAgree[i].pdmPeriod;\n    const lsPow = synthNullAgree[i].lsPower;\n    const d = detect(lsP, pdmP, windowPeriods, lsPow, powerThreshold);\n    rows.push({\n      label: `null_shuf_${synthNullAgree[i].rep}`,\n      injectedPeriod: null,\n      lsPeriod: lsP,\n      pdmPeriod: pdmP,\n      lsPower: lsPow,\n      variable: d.variable,\n      detectedPeriod: d.period,\n      ratioToInjected: null\n    });\n  }\n\n  return rows;\n}",
+   "definition_hash": "4b63cabb.2037",
+   "matches_DATA_RE": false,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "synthGrid",
+    "synthGridPDM",
+    "synthEB",
+    "synthNullAgree",
+    "detect",
+    "windowPeriods",
+    "nullPeaks"
+   ],
+   "returns_function_by_source": false,
+   "given": false,
+   "deliverable": false
+  },
+  "synth": {
+   "inputs": [
+    "localDisk",
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "pid": "_synth",
+   "source_head": "async function synth(localDisk, loadAllTargets, findBestPeriod){\n  try { return JSON.parse(await localDisk.readText('cac",
+   "definition": "async function synth(localDisk, loadAllTargets, findBestPeriod){\n  try { return JSON.parse(await localDisk.readText('cache/synth.json')); } catch (e) {}\n  const __v = await (async function synth(loadAllTargets, findBestPeriod){\n  const targets = await loadAllTargets();\n  const t1 = targets[0];\n  const rIdx = [];\n  for (let i = 0; i < t1.bands.length; i++) { if (t1.bands[i] === 'r') rIdx.push(i); }\n  const bandIdx = rIdx.length > 20 ? rIdx : [...Array(t1.times.length).keys()];\n  const t = bandIdx.map(i => t1.times[i]);\n  const e = bandIdx.map(i => t1.errs[i]);\n  let seed = 42;\n  function randn() {\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u1 = (seed + 1) / 0x80000000;\n    seed = (seed * 1103515245 + 12345) & 0x7fffffff; const u2 = (seed + 1) / 0x80000000;\n    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);\n  }\n  const injectedPeriod = 0.5432;\n  const sine = t.map((ti, i) => 15 + 0.3 * Math.sin(2 * Math.PI * ti / injectedPeriod) + e[i] * randn());\n  const result = findBestPeriod(t, sine, e);\n  return { injectedPeriod, recoveredPeriod: result.period, ratio: result.period / injectedPeriod, power: result.power };\n  })(loadAllTargets, findBestPeriod);\n  await localDisk.write('cache/synth.json', JSON.stringify(__v));\n  return __v;\n}",
+   "definition_hash": "5330ce7a.1280",
+   "matches_DATA_RE": true,
+   "matches_DELIVERABLE_RE": false,
+   "nonbuiltin_inputs": [
+    "loadAllTargets",
+    "findBestPeriod"
+   ],
+   "returns_function_by_source": false,
+   "given": true,
+   "deliverable": false
+  }
+ },
+ "cells_module": [
+  "@user/star-classifier"
+ ],
+ "non_def_variables": {
+  "@user/star-classifier": [
+   "module @tomlarkworthy/local-disk",
+   "localDisk"
+  ]
+ },
+ "hash_check": [
+  {
+   "cell": "lombScargle",
+   "evidence": "synthGrid",
+   "kind": "reference",
+   "cellHash_recorded": "b7be4d42.1246",
+   "cellHash_from_src": "b7be4d42.1246",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "31ee8a25.1950",
+   "evidenceHash_from_src": "31ee8a25.1950",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "lombScargle",
+   "evidence": "ls_vs_pdm_synth",
+   "kind": "crossing",
+   "cellHash_recorded": "b7be4d42.1246",
+   "cellHash_from_src": "b7be4d42.1246",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": null,
+   "evidenceHash_from_src": null,
+   "evidence_fresh_by_hash": null
+  },
+  {
+   "cell": "lombScargle",
+   "evidence": "synthLSCheck",
+   "kind": "reference",
+   "cellHash_recorded": "b7be4d42.1246",
+   "cellHash_from_src": "b7be4d42.1246",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "746d1e5e.1390",
+   "evidenceHash_from_src": "746d1e5e.1390",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "pdmTheta",
+   "evidence": "synthGridPDM",
+   "kind": "reference",
+   "cellHash_recorded": "f07a6cdc.738",
+   "cellHash_from_src": "f07a6cdc.738",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "2fb1878a.1977",
+   "evidenceHash_from_src": "2fb1878a.1977",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "pdmTheta",
+   "evidence": "ls_vs_pdm_synth",
+   "kind": "crossing",
+   "cellHash_recorded": "f07a6cdc.738",
+   "cellHash_from_src": "f07a6cdc.738",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": null,
+   "evidenceHash_from_src": null,
+   "evidence_fresh_by_hash": null
+  },
+  {
+   "cell": "pdmTheta",
+   "evidence": "synthPDMThetaCheck",
+   "kind": "reference",
+   "cellHash_recorded": "f07a6cdc.738",
+   "cellHash_from_src": "f07a6cdc.738",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "71011b86.1309",
+   "evidenceHash_from_src": "71011b86.1309",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "findPeaks",
+   "evidence": "synthGrid",
+   "kind": "reference",
+   "cellHash_recorded": "a4ee2b6f.654",
+   "cellHash_from_src": "a4ee2b6f.654",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "31ee8a25.1950",
+   "evidenceHash_from_src": "31ee8a25.1950",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "findPeaks",
+   "evidence": "ls_vs_pdm_synth",
+   "kind": "crossing",
+   "cellHash_recorded": "a4ee2b6f.654",
+   "cellHash_from_src": "a4ee2b6f.654",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": null,
+   "evidenceHash_from_src": null,
+   "evidence_fresh_by_hash": null
+  },
+  {
+   "cell": "findPeaks",
+   "evidence": "synthPeakCheck",
+   "kind": "reference",
+   "cellHash_recorded": "a4ee2b6f.654",
+   "cellHash_from_src": "a4ee2b6f.654",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "82a9eef.1353",
+   "evidenceHash_from_src": "82a9eef.1353",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "foldBin",
+   "evidence": "synthShapes",
+   "kind": "reference",
+   "cellHash_recorded": "deb56eb8.1370",
+   "cellHash_from_src": "deb56eb8.1370",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "1f25827a.5297",
+   "evidenceHash_from_src": "1f25827a.5297",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "foldBin",
+   "evidence": "synthFoldCheck",
+   "kind": "reference",
+   "cellHash_recorded": "deb56eb8.1370",
+   "cellHash_from_src": "deb56eb8.1370",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "8dbd2710.3335",
+   "evidenceHash_from_src": "8dbd2710.3335",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "magSkew",
+   "evidence": "synthShapes",
+   "kind": "reference",
+   "cellHash_recorded": "bb42c521.494",
+   "cellHash_from_src": "bb42c521.494",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "1f25827a.5297",
+   "evidenceHash_from_src": "1f25827a.5297",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "magSkew",
+   "evidence": "synthFoldCheck",
+   "kind": "reference",
+   "cellHash_recorded": "bb42c521.494",
+   "cellHash_from_src": "bb42c521.494",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "8dbd2710.3335",
+   "evidenceHash_from_src": "8dbd2710.3335",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "refinePeak",
+   "evidence": "synthRefinePeakCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "6f75d236.493",
+   "cellHash_from_src": "6f75d236.493",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "6b9bd5a4.1324",
+   "evidenceHash_from_src": "6b9bd5a4.1324",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "refinePeak",
+   "evidence": "synthRefinePeakCheck",
+   "kind": "reference",
+   "cellHash_recorded": "6f75d236.493",
+   "cellHash_from_src": "6f75d236.493",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "968530f5.1291",
+   "evidenceHash_from_src": "968530f5.1291",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "pdmRefine",
+   "evidence": "synthPDMRefineCheck",
+   "kind": "reference",
+   "cellHash_recorded": "e3c18c25.518",
+   "cellHash_from_src": "e3c18c25.518",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "d26aa145.1751",
+   "evidenceHash_from_src": "d26aa145.1751",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "pdmRefine",
+   "evidence": "synthPDMRefineCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "e3c18c25.518",
+   "cellHash_from_src": "e3c18c25.518",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "39e5b876.1255",
+   "evidenceHash_from_src": "39e5b876.1255",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "pdmScan",
+   "evidence": "synthPDMScanCheck",
+   "kind": "reference",
+   "cellHash_recorded": "383df6f.635",
+   "cellHash_from_src": "383df6f.635",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "9180221e.1440",
+   "evidenceHash_from_src": "9180221e.1440",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "pdmScan",
+   "evidence": "synthPDMScanCheck3",
+   "kind": "reference",
+   "cellHash_recorded": "383df6f.635",
+   "cellHash_from_src": "383df6f.635",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "7e9aaa77.1139",
+   "evidenceHash_from_src": "7e9aaa77.1139",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "findBestPeriod",
+   "evidence": "synthBestPeriodCheck",
+   "kind": "reference",
+   "cellHash_recorded": "9bd44c54.974",
+   "cellHash_from_src": "9bd44c54.974",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "f6f94d33.1344",
+   "evidenceHash_from_src": "f6f94d33.1344",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "findBestPeriod",
+   "evidence": "synthBestPeriodCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "9bd44c54.974",
+   "cellHash_from_src": "9bd44c54.974",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "8a5d90c.1341",
+   "evidenceHash_from_src": "8a5d90c.1341",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "findBestPeriodPDM",
+   "evidence": "synthBestPeriodPDMCheck",
+   "kind": "reference",
+   "cellHash_recorded": "f6a07ebf.700",
+   "cellHash_from_src": "f6a07ebf.700",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "24498fa.1419",
+   "evidenceHash_from_src": "24498fa.1419",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "findBestPeriodPDM",
+   "evidence": "synthBestPeriodPDMCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "f6a07ebf.700",
+   "cellHash_from_src": "f6a07ebf.700",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "59b6370d.1464",
+   "evidenceHash_from_src": "59b6370d.1464",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "flatFraction",
+   "evidence": "synthFlatFractionCheck",
+   "kind": "reference",
+   "cellHash_recorded": "fd66c1ed.536",
+   "cellHash_from_src": "fd66c1ed.536",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "bf0c9d3d.787",
+   "evidenceHash_from_src": "bf0c9d3d.787",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "flatFraction",
+   "evidence": "synthFlatFractionCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "fd66c1ed.536",
+   "cellHash_from_src": "fd66c1ed.536",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "6b6883a3.1139",
+   "evidenceHash_from_src": "6b6883a3.1139",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "detect",
+   "evidence": "synthDetectCheck",
+   "kind": "reference",
+   "cellHash_recorded": "11174d46.1275",
+   "cellHash_from_src": "11174d46.1275",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "21d5d369.784",
+   "evidenceHash_from_src": "21d5d369.784",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "detect",
+   "evidence": "synthDetectCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "11174d46.1275",
+   "cellHash_from_src": "11174d46.1275",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "3479fdf.861",
+   "evidenceHash_from_src": "3479fdf.861",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "shapeFeatures",
+   "evidence": "synthShapeFeaturesCheck",
+   "kind": "reference",
+   "cellHash_recorded": "b5c9d45a.2457",
+   "cellHash_from_src": "b5c9d45a.2457",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "e99f69e8.1370",
+   "evidenceHash_from_src": "e99f69e8.1370",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "shapeFeatures",
+   "evidence": "synthShapeFeaturesCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "b5c9d45a.2457",
+   "cellHash_from_src": "b5c9d45a.2457",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "cb2b20f4.1323",
+   "evidenceHash_from_src": "cb2b20f4.1323",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "computeFeatures",
+   "evidence": "synthComputeFeaturesCheck",
+   "kind": "reference",
+   "cellHash_recorded": "81866dc1.2364",
+   "cellHash_from_src": "81866dc1.2364",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "5f7de1e4.1094",
+   "evidenceHash_from_src": "5f7de1e4.1094",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "computeFeatures",
+   "evidence": "synthComputeFeaturesCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "81866dc1.2364",
+   "cellHash_from_src": "81866dc1.2364",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "c91176c0.1302",
+   "evidenceHash_from_src": "c91176c0.1302",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "classify",
+   "evidence": "synthClassifyCheck",
+   "kind": "reference",
+   "cellHash_recorded": "d106544.4104",
+   "cellHash_from_src": "d106544.4104",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "16b5789e.1296",
+   "evidenceHash_from_src": "16b5789e.1296",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "classify",
+   "evidence": "synthClassifyCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "d106544.4104",
+   "cellHash_from_src": "d106544.4104",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "bb84afe2.1302",
+   "evidenceHash_from_src": "bb84afe2.1302",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "prewhiten",
+   "evidence": "synthPrewhitenCheck",
+   "kind": "reference",
+   "cellHash_recorded": "5cfa3859.513",
+   "cellHash_from_src": "5cfa3859.513",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "d0d53990.1142",
+   "evidenceHash_from_src": "d0d53990.1142",
+   "evidence_fresh_by_hash": true
+  },
+  {
+   "cell": "prewhiten",
+   "evidence": "synthPrewhitenCheck2",
+   "kind": "reference",
+   "cellHash_recorded": "5cfa3859.513",
+   "cellHash_from_src": "5cfa3859.513",
+   "cell_fresh_by_hash": true,
+   "evidenceHash_recorded": "63be9a47.1165",
+   "evidenceHash_from_src": "63be9a47.1165",
+   "evidence_fresh_by_hash": true
+  }
+ ],
+ "expected": {
+  "module": "@user/star-classifier",
+  "core": [
+   "classify",
+   "computeFeatures",
+   "detect",
+   "findBestPeriod",
+   "findBestPeriodPDM",
+   "findPeaks",
+   "flatFraction",
+   "foldBin",
+   "lombScargle",
+   "magSkew",
+   "pdmRefine",
+   "pdmScan",
+   "pdmTheta",
+   "prewhiten",
+   "refinePeak",
+   "shapeFeatures"
+  ],
+  "blocked": [
+   "classifyDetected → 2 more evidence cells",
+   "classifyRefs → upstream classifyDetected not in core; 2 more evidence cells",
+   "crossLSvsPDM → 2 more evidence cells",
+   "detectRefs → 2 more evidence cells",
+   "detectedFeatures → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells",
+   "outputRows → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells",
+   "secondPeriod → 2 more evidence cells",
+   "synthBestPeriodCheck → 2 more evidence cells",
+   "synthBestPeriodCheck2 → 2 more evidence cells",
+   "synthBestPeriodPDMCheck → 2 more evidence cells",
+   "synthBestPeriodPDMCheck2 → 2 more evidence cells",
+   "synthClassifyCheck → 2 more evidence cells",
+   "synthClassifyCheck2 → 2 more evidence cells",
+   "synthComputeFeaturesCheck → 2 more evidence cells",
+   "synthComputeFeaturesCheck2 → 2 more evidence cells",
+   "synthDetectCheck → 2 more evidence cells",
+   "synthDetectCheck2 → 2 more evidence cells",
+   "synthFlatFractionCheck → 2 more evidence cells",
+   "synthFlatFractionCheck2 → 2 more evidence cells",
+   "synthFoldCheck → 2 more evidence cells",
+   "synthLSCheck → 2 more evidence cells",
+   "synthPDMRefineCheck → 2 more evidence cells",
+   "synthPDMRefineCheck2 → 2 more evidence cells",
+   "synthPDMScanCheck → 2 more evidence cells",
+   "synthPDMScanCheck2 → 2 more evidence cells",
+   "synthPDMScanCheck3 → 2 more evidence cells",
+   "synthPDMThetaCheck → 2 more evidence cells",
+   "synthPeakCheck → 2 more evidence cells",
+   "synthPrewhitenCheck → 2 more evidence cells",
+   "synthPrewhitenCheck2 → 2 more evidence cells",
+   "synthRRd → upstream secondPeriod not in core; 2 more evidence cells",
+   "synthRefinePeakCheck → 2 more evidence cells",
+   "synthRefinePeakCheck2 → 2 more evidence cells",
+   "synthShapeFeaturesCheck → 2 more evidence cells",
+   "synthShapeFeaturesCheck2 → 2 more evidence cells",
+   "synthShapes → 2 more evidence cells",
+   "writeOutput → upstream classifyDetected, outputRows, secondPeriod not in core; 2 more evidence cells"
+  ],
+  "blocking_line": "task_complete still blocked on: classifyDetected → 2 more evidence cells; outputRows → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells; secondPeriod → 2 more evidence cells",
+  "core_status_text": "core_status @user/star-classifier\nGIVEN (16 — data cells and zero-input constants, assumed correct): @variable, aliasProbe, intro, loadAllTargets, lsPeriods, module @tomlarkworthy/local-disk, nullPeaks, pdmPeriods, periodAgreement, secondPeriods, synth, synthEB, synthGrid, synthGridPDM, synthNullAgree, windowPeriods\nCORE (16 — upstream all given/core, two fresh attestations from distinct evidence cells): classify, computeFeatures, detect, findBestPeriod, findBestPeriodPDM, findPeaks, flatFraction, foldBin, lombScargle, magSkew, pdmRefine, pdmScan, pdmTheta, prewhiten, refinePeak, shapeFeatures\nBLOCKED (37):\n  classifyDetected → 2 more evidence cells\n  classifyRefs → upstream classifyDetected not in core; 2 more evidence cells\n  crossLSvsPDM → 2 more evidence cells\n  detectRefs → 2 more evidence cells\n  detectedFeatures → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells\n  outputRows → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells\n  secondPeriod → 2 more evidence cells\n  synthBestPeriodCheck → 2 more evidence cells\n  synthBestPeriodCheck2 → 2 more evidence cells\n  synthBestPeriodPDMCheck → 2 more evidence cells\n  synthBestPeriodPDMCheck2 → 2 more evidence cells\n  synthClassifyCheck → 2 more evidence cells\n  synthClassifyCheck2 → 2 more evidence cells\n  synthComputeFeaturesCheck → 2 more evidence cells\n  synthComputeFeaturesCheck2 → 2 more evidence cells\n  synthDetectCheck → 2 more evidence cells\n  synthDetectCheck2 → 2 more evidence cells\n  synthFlatFractionCheck → 2 more evidence cells\n  synthFlatFractionCheck2 → 2 more evidence cells\n  synthFoldCheck → 2 more evidence cells\n  synthLSCheck → 2 more evidence cells\n  synthPDMRefineCheck → 2 more evidence cells\n  synthPDMRefineCheck2 → 2 more evidence cells\n  synthPDMScanCheck → 2 more evidence cells\n  synthPDMScanCheck2 → 2 more evidence cells\n  synthPDMScanCheck3 → 2 more evidence cells\n  synthPDMThetaCheck → 2 more evidence cells\n  synthPeakCheck → 2 more evidence cells\n  synthPrewhitenCheck → 2 more evidence cells\n  synthPrewhitenCheck2 → 2 more evidence cells\n  synthRRd → upstream secondPeriod not in core; 2 more evidence cells\n  synthRefinePeakCheck → 2 more evidence cells\n  synthRefinePeakCheck2 → 2 more evidence cells\n  synthShapeFeaturesCheck → 2 more evidence cells\n  synthShapeFeaturesCheck2 → 2 more evidence cells\n  synthShapes → 2 more evidence cells\n  writeOutput → upstream classifyDetected, outputRows, secondPeriod not in core; 2 more evidence cells\nDELIVERABLE(S): writeOutput\ntask_complete still blocked on: classifyDetected → 2 more evidence cells; outputRows → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells; secondPeriod → 2 more evidence cells",
+  "core_status_call": {
+   "tool_call_id": "call_880b5fbee29049be9a87941d",
+   "index_in_turn": 93,
+   "calls_after": [
+    "task_complete"
+   ]
+  },
+  "recorded_core_table": {
+   "@user/star-classifier": {
+    "knowledge": [],
+    "given": [
+     "@variable",
+     "aliasProbe",
+     "intro",
+     "loadAllTargets",
+     "lsPeriods",
+     "module @tomlarkworthy/local-disk",
+     "nullPeaks",
+     "pdmPeriods",
+     "periodAgreement",
+     "secondPeriods",
+     "synth",
+     "synthEB",
+     "synthGrid",
+     "synthGridPDM",
+     "synthNullAgree",
+     "windowPeriods"
+    ],
+    "core": [
+     "classify",
+     "computeFeatures",
+     "detect",
+     "findBestPeriod",
+     "findBestPeriodPDM",
+     "findPeaks",
+     "flatFraction",
+     "foldBin",
+     "lombScargle",
+     "magSkew",
+     "pdmRefine",
+     "pdmScan",
+     "pdmTheta",
+     "prewhiten",
+     "refinePeak",
+     "shapeFeatures"
+    ],
+    "blocked": {
+     "synthShapes": "2 more evidence cells",
+     "classifyDetected": "2 more evidence cells",
+     "classifyRefs": "upstream classifyDetected not in core; 2 more evidence cells",
+     "outputRows": "upstream classifyDetected, secondPeriod not in core; 2 more evidence cells",
+     "writeOutput": "upstream classifyDetected, outputRows, secondPeriod not in core; 2 more evidence cells",
+     "secondPeriod": "2 more evidence cells",
+     "synthRRd": "upstream secondPeriod not in core; 2 more evidence cells",
+     "detectedFeatures": "upstream classifyDetected, secondPeriod not in core; 2 more evidence cells",
+     "crossLSvsPDM": "2 more evidence cells",
+     "synthFoldCheck": "2 more evidence cells",
+     "synthLSCheck": "2 more evidence cells",
+     "synthPeakCheck": "2 more evidence cells",
+     "synthPDMThetaCheck": "2 more evidence cells",
+     "synthRefinePeakCheck": "2 more evidence cells",
+     "synthPDMRefineCheck": "2 more evidence cells",
+     "synthRefinePeakCheck2": "2 more evidence cells",
+     "synthPDMRefineCheck2": "2 more evidence cells",
+     "synthPDMScanCheck": "2 more evidence cells",
+     "synthBestPeriodCheck": "2 more evidence cells",
+     "synthPDMScanCheck2": "2 more evidence cells",
+     "synthBestPeriodCheck2": "2 more evidence cells",
+     "synthBestPeriodPDMCheck": "2 more evidence cells",
+     "synthPDMScanCheck3": "2 more evidence cells",
+     "synthBestPeriodPDMCheck2": "2 more evidence cells",
+     "synthFlatFractionCheck": "2 more evidence cells",
+     "synthFlatFractionCheck2": "2 more evidence cells",
+     "synthDetectCheck": "2 more evidence cells",
+     "synthDetectCheck2": "2 more evidence cells",
+     "synthShapeFeaturesCheck": "2 more evidence cells",
+     "synthShapeFeaturesCheck2": "2 more evidence cells",
+     "synthComputeFeaturesCheck": "2 more evidence cells",
+     "synthComputeFeaturesCheck2": "2 more evidence cells",
+     "detectRefs": "2 more evidence cells",
+     "synthClassifyCheck": "2 more evidence cells",
+     "synthClassifyCheck2": "2 more evidence cells",
+     "synthPrewhitenCheck": "2 more evidence cells",
+     "synthPrewhitenCheck2": "2 more evidence cells"
+    },
+    "deliverables": [
+     "writeOutput"
+    ],
+    "blocking": [
+     "classifyDetected → 2 more evidence cells",
+     "outputRows → upstream classifyDetected, secondPeriod not in core; 2 more evidence cells",
+     "secondPeriod → 2 more evidence cells"
+    ]
+   }
+  },
+  "note": "core_status_text is the verbatim tool result of the turn's last core_status call (only read-only tools follow it). recorded_core_table is __rc5CoreAll() read by LEDGER_COLLECT at turn end (snap ledger.json .core). Both are copied, not derived.",
+  "text_matches_table_core": true
+ },
+ "missing": [
+  "recorded under df18: no seed-root demotion (df29), no path-kind rule (df22), no latest-per-evidence dedupe (df26), no freeze (df32), no anchoring (df33/34). Included as the only recorded ledger with cross_check entries and crossing attestations.",
+  "cells: inputs/source come from the /src snapshot of the module file at turn end; runtime-only facts are NOT recorded: whether a zero-input cell's VALUE holds a function (isFunctionCell checks _value first), the resolved upstream set through imports, pids of variables defined by main.define, and the attest-time sensitivity run (only its result, attest[].list[].anchor, is recorded)",
+  "cells[*].given / deliverable are DERIVED by this fixture builder from the src text with the bundle's DATA_RE / DELIVERABLE_RE / FN_RETURN_RE (not recorded); the recorded GIVEN list is in expected.recorded_core_table[module].given"
+ ]
+}
