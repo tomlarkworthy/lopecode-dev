@@ -57,6 +57,12 @@ export function fetchPatchSource(patch) {
       const u = typeof url === "string" ? url : (url && url.url) || "";
       if (init && typeof init.body === "string" && /\\/chat\\/completions/.test(u) && (init.method || "GET").toUpperCase() === "POST") {
         const body = Object.assign(JSON.parse(init.body), patch);
+        // Gemini via OpenRouter returns 400 "Provider returned error" when the conversation ENDS with a system
+        // message (the engine's stall nudge; walk v turns 4 and 7, 2026-09-07). mimo accepts it. Send it as user.
+        if (typeof body.model === "string" && body.model.startsWith("google/") && Array.isArray(body.messages)) {
+          const last = body.messages[body.messages.length - 1];
+          if (last && last.role === "system") body.messages[body.messages.length - 1] = Object.assign({}, last, { role: "user" });
+        }
         globalThis.__rc5LastBody = body;
         init = Object.assign({}, init, { body: JSON.stringify(body) });
       }

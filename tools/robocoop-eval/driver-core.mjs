@@ -682,6 +682,15 @@ export async function createDriver({
       const bounded = (p, ms, label) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(label + " timed out after " + ms + "ms")), ms))]);
       try { snapshot.toolTimes = await bounded(page.evaluate(() => globalThis.__rc5ToolTimes || null), 30000, "toolTimes"); } catch {}
 
+      // --- setup.collect — OPTIONAL page JS (a string expression) evaluated on the LIVE page after the
+      // turn, for out-of-band state the caller needs before the context closes. runQuestion opens a
+      // fresh context per call and closes it in the finally, so anything on globalThis dies with the
+      // turn; --walk in tbs/run-agent.mjs reads the cross_check ledger through this. Absent → no-op. ---
+      if (typeof evalDef?.setup?.collect === "string" && evalDef.setup.collect.trim()) {
+        try { snapshot.collected = await bounded(page.evaluate(evalDef.setup.collect), 30000, "collect"); }
+        catch (e) { snapshot.collectError = String(e?.message ?? e); }
+      }
+
       // --- files via the harness seam (after settle + force-compute, so file state is final) ---
       snapshot.files = snapshot.files || {};
       try {

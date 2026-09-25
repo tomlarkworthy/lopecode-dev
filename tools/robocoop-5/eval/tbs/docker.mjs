@@ -12,6 +12,16 @@ export function sh(cmd, args, opts = {}) {
   return spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 1 << 28, ...opts });
 }
 
+// `docker kill` / `docker rm -f` talk to the daemon, and a saturated daemon hangs them FOREVER: a
+// walk-smoke grade (2026-09-06) sat 45 min on `docker kill` after the verifier had already hit its
+// own timeout, with the node process alive and nothing left to do. Cleanup is best-effort — bound it
+// and carry on; a leaked container is recoverable, a wedged run is not.
+export function shBounded(cmd, args, label, ms = 60000) {
+  const r = sh(cmd, args, { timeout: ms });
+  if (r.error && r.error.code === "ETIMEDOUT") console.warn(`  ..${label} timed out after ${ms}ms — continuing (container may be left behind)`);
+  return r;
+}
+
 export function imageExists(tag) { return sh("docker", ["image", "inspect", tag], { stdio: ["ignore", "ignore", "ignore"] }).status === 0; }
 
 export function buildImage(dir, tag) {
@@ -70,9 +80,9 @@ export function runSolution(envTag, solutionDir, artifacts, { timeoutSec = 3600,
   const r = sh("docker", ["run", "--name", name, ...res, "-v", `${solutionDir}:/solution:ro`, envTag, "bash", "/solution/solve.sh"], { timeout: timeoutSec * 1000 });
   const seconds = (Date.now() - started) / 1000;
   const timedOut = r.error && r.error.code === "ETIMEDOUT";
-  if (timedOut) sh("docker", ["kill", name]);
+  if (timedOut) shBounded("docker", ["kill", name], `docker kill ${name}`);
   const missing = copyOut(name, artifacts, hostDir);
-  sh("docker", ["rm", "-f", name]);
+  shBounded("docker", ["rm", "-f", name], `docker rm -f ${name}`);
   return { ok: r.status === 0 && !timedOut, timedOut, seconds, output: ((r.stdout || "") + (r.stderr || "")).slice(-4000), hostDir, missing };
 }
 
@@ -89,8 +99,8 @@ export function runVerifier(testsTag, hostArtDir, artifacts, { timeoutSec = 600 
   const name = `tbs-ver-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const r = sh("docker", ["run", "--name", name, "--network", "none", ...mounts, "-v", `${logs}:/logs`, testsTag, "bash", "/tests/test.sh"], { timeout: timeoutSec * 1000 });
   const timedOut = r.error && r.error.code === "ETIMEDOUT";
-  if (timedOut) sh("docker", ["kill", name]);
-  sh("docker", ["rm", "-f", name]);
+  if (timedOut) shBounded("docker", ["kill", name], `docker kill ${name}`);
+  shBounded("docker", ["rm", "-f", name], `docker rm -f ${name}`);
   const rewardPath = join(logs, "verifier", "reward.txt");
   const reward = existsSync(rewardPath) ? Number(readFileSync(rewardPath, "utf8").trim()) : 0;
   let ctrf = null;

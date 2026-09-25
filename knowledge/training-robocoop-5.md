@@ -67,7 +67,12 @@ i.e. PARITY; τ per-task churn is ~22% per roll, and a paired context-on/off A/B
 (8/14 vs 9/14) acquitted the 2026-08-08 context system. Single-roll τ gates cannot resolve
 differences of a few tasks — use discordant-pair counts and the credible-interval reporting from
 `plan/rqgm-and-robocoop-5.md` (U1/U4).
-Per-benchmark detail, commands, and failure taxonomies: `tools/robocoop-5/eval/{humaneval,polyglot,tau}/README.md`.
+Per-benchmark detail, commands, and failure taxonomies: `tools/robocoop-5/eval/{humaneval,polyglot,tau,tbs}/README.md`.
+Terminal-Bench-Science (`tbs/`, started 2026-09-02) is the harder venue: 70 binary-graded scientific tasks,
+13 portable to a browser agent, 5 on the slate, graded by the official verifier images; see its README
+for the protocol divergences (no Python, step-capped turns) before quoting any number from it. Its
+inputs and outputs go through `/local-disk` — `@tomlarkworthy/local-disk` mounting a directory handle,
+faked headlessly by `tools/robocoop-eval/fake-local-disk.mjs` — the same mount a scientist would make.
 
 ## The improvement loop
 

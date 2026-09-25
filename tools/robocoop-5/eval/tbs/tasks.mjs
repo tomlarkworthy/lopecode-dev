@@ -2,10 +2,10 @@
 // instruction.md, and produces the notebook seed set by copying the env image's data out (so
 // tasks whose data is generated at image build are covered too).
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sh, ensureImage, copyOut, walkText, tempDir } from "./docker.mjs";
+import { sh, shBounded, ensureImage, copyOut, walkText, tempDir } from "./docker.mjs";
 
 export const here = dirname(fileURLToPath(import.meta.url));
 export const TBS_ROOT = process.env.TBS_ROOT || join(here, "..", "tbs-src");
@@ -56,7 +56,7 @@ export function getSeeds(task, { rebuild = false } = {}) {
   if (c.status !== 0) throw new Error("docker create failed: " + c.stderr);
   const host = tempDir("tbs-seed-");
   const missing = copyOut(name, task.seedRoots, host);
-  sh("docker", ["rm", "-f", name]);
+  shBounded("docker", ["rm", "-f", name], `docker rm -f ${name}`);
   const { files, binary } = walkText(host);
   const seeds = { files, binary, missing, bytes: Object.values(files).reduce((n, t) => n + t.length, 0) };
   writeFileSync(cachePath, JSON.stringify(seeds));
@@ -75,7 +75,7 @@ export function materializeSeeds(task, hostRoot) {
   const c = sh("docker", ["create", "--name", name, task.envTag]);
   if (c.status !== 0) throw new Error("docker create failed: " + c.stderr);
   let missing;
-  try { missing = copyOut(name, task.seedRoots, hostRoot); } finally { sh("docker", ["rm", "-f", name]); }
+  try { missing = copyOut(name, task.seedRoots, hostRoot); } finally { shBounded("docker", ["rm", "-f", name], `docker rm -f ${name}`); }
   for (const a of task.artifacts) mkdirSync(join(hostRoot, a.endsWith("/") ? a : dirname(a)), { recursive: true });
   return { missing, paths: listFiles(hostRoot) };
 }
@@ -89,4 +89,42 @@ export function listFiles(hostRoot, rel = "") {
     if (statSync(join(hostRoot, r)).isDirectory()) out.push(...listFiles(hostRoot, r)); else out.push(r);
   }
   return out;
+}
+
+// Recursive file copy, returning how many files were written. Used by run-agent's --cache-from (a
+// walk resuming another run's materialised results — walk c left ~25 min of estimator runs in its
+// task root's cache/) and by the per-turn snapshots. Directories are created lazily, so an empty
+// tree writes nothing; anything that is not a regular file or a directory is skipped.
+export function copyTree(srcDir, destDir) {
+  if (!srcDir || !existsSync(srcDir)) return 0;
+  let n = 0;
+  for (const e of readdirSync(srcDir).sort()) {
+    const s = join(srcDir, e), d = join(destDir, e);
+    const st = statSync(s, { throwIfNoEntry: false });
+    if (!st) continue;
+    if (st.isDirectory()) n += copyTree(s, d);
+    else if (st.isFile()) { mkdirSync(destDir, { recursive: true }); copyFileSync(s, d); n++; }
+  }
+  return n;
+}
+
+// {"/src/@user/mod.js": text} from a directory laid out as those paths (dir/src/@user/mod.js) —
+// run-agent's --seed-dir / --resume and the walk's per-turn seed overlay all read this shape, and it
+// is exactly what walkTurn writes into src-<turn>/ and snap-<turn>/src/.
+export function readSeedDir(dir) {
+  const out = {};
+  const walkDir = (d, rel) => {
+    for (const name of readdirSync(d)) {
+      const full = join(d, name), r = rel + "/" + name;
+      if (statSync(full).isDirectory()) walkDir(full, r); else out[r] = readFileSync(full, "utf8");
+    }
+  };
+  if (dir && existsSync(dir)) walkDir(dir, "");
+  return out;
+}
+
+// A snapshot directory holds more than modules (cache/, ledger.json, question.txt, note.txt), and
+// only the module files may be seeded into the notebook's virtual filesystem.
+export function moduleSeeds(files) {
+  return Object.fromEntries(Object.entries(files || {}).filter(([k]) => k.startsWith("/src/") || k.startsWith("/notebook/")));
 }
