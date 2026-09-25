@@ -234,14 +234,92 @@ code-running tools entirely. This is a behavioural fence, not a security boundar
   by `observeSet`) over the same Set, so it is the thing for the facade to depend on to re-list
   sessions in S3; the library functions take a `runtime` and read the Set directly, as exporter-3
   and module-map do.
-- [ ] **S2 — engine factory**: `createRobocoop`; per-agent settings and scorecard; `session` cell =
+- [x] **S2 — engine factory**: `createRobocoop`; per-agent settings and scorecard; `session` cell =
   active session. Check: `node tools/robocoop-5/boot-smoke.mjs` green; one eval run
   (`long-store-to-checkout`) still passes through `findValue("session")`.
-- [ ] **S3 — facade**: session picker (new, switch, save toggle = mains), commit on `send()` settle.
+
+  **Done 2026-09-25, narrower than planned.** The engine's `session` body moved verbatim into a
+  `makeSession({model, toolsTransform, completeGuard})` factory cell with the same 15 dependencies;
+  `session = makeSession()` is the default agent. No separate `createRobocoop` was needed: the
+  controller (S3) calls `makeSession`. Checks, both on the worktree notebook:
+
+  ```
+  boot-smoke:  core exports: all instantiate · context: 8 providers · console errors: none
+  PASS  long-store-to-checkout  1.00  steps=9  (10/10)   $0.0096, 66.5s, xiaomi/mimo-v2.5-pro
+  ```
+
+  (Recorded earlier in this repo at 8 steps; one roll, so 9 is not a regression claim either way.)
+  **Not done:** per-agent model/reasoning/temperature from `session_meta` (the `model` override exists
+  but nothing passes it; every session reads the shared picker), and the per-agent spec scorecard —
+  `rc5_specGate` is still one object.
+- [x] **S3 — facade**: session picker (new, switch, save toggle = mains), commit on `send()` settle.
   Check in a browser: two sessions, one saved; save-in-place; reload; saved one resumes with its
   transcript and continues the conversation; unsaved one is gone.
-- [ ] **S4 — guardrail profiles**: tool wrapper + reviewer profile. Check: the reviewer's
+
+  **Held 2026-09-25**, `tools/scratch/rc5-sessions/s3-facade.mjs` (real model calls through the demo
+  gateway; the export is the pairing fork's `exportToHTML({mains})`, not save-in-place, which needs a
+  file handle headless Chromium does not have):
+
+  ```
+   7s A reply: "OK — codeword PERSIMMON noted and remembered."        (then: save ticked)
+  14s B reply: "OK — I've noted the codeword QUINCE."                  (new session, not saved)
+  15s after reload {"entries":[{"title":"new session","saved":false,…},
+                   {"title":"Remember this codeword: PERSIMMON. …","saved":true,"messages":null}]}
+  15s transcript shows PERSIMMON after switch: true
+  25s resumed reply: "The codeword you gave me was: PERSIMMON."
+  ```
+
+  `messages: null` is the lazy resume: the reloaded session has a log and no agent until opened.
+
+  **The first run failed, and why is worth keeping.** Playwright could not click the save checkbox
+  because it was detached from the DOM over and over. A probe wrapping the UI cell's `_definition`
+  (`rerender-probe.mjs`) counted **1661 rebuilds in 70 s** after one turn, every one caused by
+  `hostSetup`. The chain: `readValues` defines and deletes a temporary variable → module-map's
+  `currentModules` recomputes → srctools' `fileTools` → `hostSetup` → the chat UI cell rebuilds → its
+  build calls `controller.refresh()` → `readValues` again. `peekValues` breaks it by never defining a
+  variable (computed `_value`, else `JSON.parse` of the literal in `_definition`). After: **4 rebuilds**
+  in 120 s (2 at boot, 2 when the turn commits). The lesson generalises: in this notebook, anything that
+  adds or deletes a variable rebuilds the chat UI, so the UI must never do that as part of rendering.
+- [x] **S4 — guardrail profiles**: tool wrapper + reviewer profile. Check: the reviewer's
   `write_file` call is refused with the profile's reason, and the refusal is in its transcript.
+
+  **Held 2026-09-25**, `test_applyProfile` (deny, protected writes, `beforeTool` refusal, `afterTool`
+  rewrite, wrappers stable per tool) and live, `tools/scratch/rc5-sessions/s4-guardrails.mjs`:
+
+  ```
+  reviewer: offered get_context, inspect_value, list_values, watch_variable, unwatch_variable,
+            read_file, glob, grep, view_image, task_complete. It called write_file anyway (the
+            prompt named it); the core answered "unknown tool write_file".
+  default:  write_file /src/@rc5-sessions/probe.js →
+            "Refused by guardrail: writes to /src/@rc5-sessions/probe.js are not allowed
+             (session logs and robocoop-5 are protected)" — quoted back by the model.
+  ```
+
+  The check as first written ("the reviewer's `write_file` is refused") did not match the design: a
+  denied tool is never offered, so what reaches the transcript is the core's unknown-tool error.
+  Refusals with a reason come from `beforeTool` and the protected-module guard.
+
+## 3a. Open issues found while building (2026-09-25)
+
+- **The prerender snapshot leaks unsaved sessions.** In the S3 export, `QUINCE` (the unsaved session)
+  occurs 3 times, all before the first `<script id=…>` block: the session picker's option text, the
+  user bubble and the reply. exporter-3 clones the whole `#lopepage-2` DOM into `#lope-prerender`
+  (`exportToHTML`, the `options.prerender` branch) and strips only `<script>`, so whatever the chat
+  shows at save time ships in the file whatever its mains status. Fix candidates: an opt-out attribute
+  (say `data-lope-prerender="omit"`) that exporter-3 removes from the clone, set on the transcript;
+  or the facade rendering only saved sessions' content. The first is a change to a module embedded
+  corpus-wide, so it needs Tom's decision; nothing is changed yet.
+- **The default session is unguarded.** The engine's `session` is built before the controller and
+  without a `toolsTransform`, so the protected-module guard does not apply to it — only to sessions
+  the controller creates. Making the engine's default go through the profile would couple the engine
+  to robocoop-5-sessions.
+- **Every commit rebuilds the chat UI once** (the new turn variable, via the chain above). The
+  controller carries the turn state, so nothing is lost, but the transcript re-renders at the end of
+  each turn. The same happens today whenever the agent writes a module.
+- **Concurrent writes by two agents to one module** are still unchecked (§2.4).
+- **Key entry rebuilds everything.** `session` depends on `client`, so entering an OpenRouter key
+  rebuilds `rc5_controller`, dropping unsaved sessions from the picker. Saved ones come back through
+  `refresh()`. Same loss as today's single chat.
 
 ## 4. Not planned
 
