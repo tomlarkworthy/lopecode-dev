@@ -201,11 +201,39 @@ code-running tools entirely. This is a behavioural fence, not a security boundar
   transcript full of code will contain `</script>`, so turn literals are emitted with every `<`
   written as `<` (`JSON.stringify(x).replace(/</g, "\\u003c")` — in JSON output `<` can only
   occur inside a string, where the escape is equivalent).
-- [ ] **S1 — session-log library** in a new module `@tomlarkworthy/robocoop-5-sessions` (added to
+- [x] **S1 — session-log library** in a new module `@tomlarkworthy/robocoop-5-sessions` (added to
   rc5.html, declared in `modules/canonical.json`): `createSessionLog`, `appendTurn`,
   `readTurns`, `listSessions`, `save`/`unsave`. `test_*` cells for PutGet, append-only (no earlier
   variable's `_definition` changes), image round trip. Headless via `notebook-import.ts` where the
   runtime allows.
+
+  **Done 2026-09-25.** Working copy `modules/@tomlarkworthy/robocoop-5-sessions.js`, inserted with
+  `sync-module --insert-ok`, declared `upstream: null`. Nothing imports it yet, so the tests run on
+  a scratch copy with the module added to bootconf mains
+  (`tools/scratch/rc5-sessions/with-mains.mjs`), because `--run-tests` skips a module that never
+  boots:
+
+  ```
+  ok 1 - module @tomlarkworthy/runtime-sdk#test_session_roundtrip
+  ok 1 - module @tomlarkworthy/runtime-sdk#test_storableMessages
+  ```
+
+  (The runner prints the wrong module name; both cells are in robocoop-5-sessions.)
+  `test_session_roundtrip` asserts PutGet over two turns including a PNG, that `turn_0001`'s
+  `_definition` is the same object after `turn_0002` is appended, that the stored image part is
+  `{type:"image_attachment", name:"turn_0001_0.png"}`, and that `listSessions` reports
+  `saved` false → true → false across `saveSession`/`unsaveSession`.
+
+  The first run failed with `Parse error file://@tomlarkworthy/robocoop-5-sessions:1:0 Unexpected
+  end of input`: the module's own comment and test fixture contained a literal closing script tag,
+  which ended the embedding block early. The escape in `encodeLiteral` exists for exactly this, and
+  the module source needed the same care.
+
+  Reflection reads `runtime._variables` and `variable._module`, against CLAUDE.md tip 9.
+  runtime-sdk's `runtime_variables` is a reactive view (`Inputs.input(runtime._variables)`, re-fired
+  by `observeSet`) over the same Set, so it is the thing for the facade to depend on to re-list
+  sessions in S3; the library functions take a `runtime` and read the Set directly, as exporter-3
+  and module-map do.
 - [ ] **S2 — engine factory**: `createRobocoop`; per-agent settings and scorecard; `session` cell =
   active session. Check: `node tools/robocoop-5/boot-smoke.mjs` green; one eval run
   (`long-store-to-checkout`) still passes through `findValue("session")`.
