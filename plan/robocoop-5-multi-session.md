@@ -74,16 +74,26 @@ where the agent's own file tools write, and an agent that can edit its own log c
 history (§2.5).
 
 ```js
-session_meta = ({kind: "robocoop-5/session", version: 1, created: "2026-09-25T14:03:11Z",
+session_meta = ({kind: "robocoop-5/session", version: 2, created: "2026-09-25T14:03:11Z",
                  title: "…", model: "xiaomi/mimo-v2.5-pro", profile: "default"})
-turn_0001 = ({at: "…", status: "complete", messages: [ /* wire-format messages */ ]})
-turn_0002 = ({…})
+turn_mfz3k2a1_x7q2 = ({id: "turn_mfz3k2a1_x7q2", parent: null, created: "…", completed: "…",
+                       status: "complete", error: null, messages: [ /* wire-format messages */ ]})
+turn_mfz3m9c0_b41k = ({…, parent: "turn_mfz3k2a1_x7q2"})
 ```
+
+Changed 2026-09-25 at Tom's request, from `turn_0001, turn_0002, …` (version 1): the turns are a
+**tree**, not a sequence. A turn names its `parent` (the turn it was sent after; `null` at the root),
+and the cell name is a unique id (`turn_<ms base36>_<4 random>`), not a counter, so no writer has to
+agree on a next number. On load the turn with the latest `created` is the head and its ancestor
+chain is the transcript (`latestTurn`, `turnChain`); a missing parent ends the chain and a repeated
+id stops a cycle. The node is a turn rather than a single message because branching only happens at
+a user message: the assistant and tool messages inside a turn always follow it in order. Version 1
+logs are not read; none were ever saved outside test runs.
 
 - **Created unsaved:** `runtime.module()` only. **Save:** `runtime.mains.set(name, module)`.
   **Unsave:** `runtime.mains.delete(name)`. The next export (save-in-place, `export_notebook`) is
   what writes it; there is no other store.
-- **One cell per turn**, not per message and not one growing blob. Each commit defines one new
+- **One cell per turn**, not one growing blob. Each commit defines one new
   variable and never rewrites an old one, so the log is append-only in both the runtime and the git
   diff. Rejected: one cell holding an array (every turn rewrites the whole history, O(n) per turn and
   a whole-block git diff); one JSON attachment (same rewrite cost, and the transcript stops being
@@ -93,14 +103,25 @@ turn_0002 = ({…})
   `send()` re-adds it) and minus `<environment …>` context blocks (regenerated every turn, and they
   carry the page URL). "Watch updates" notices are kept; they are part of what the model saw.
 - **Images** (`image_url` parts with `data:` URLs) are moved into attachments named
-  `turn_0004_0.png` on the session module, and the stored part becomes
-  `{type: "image_attachment", name: "turn_0004_0.png"}`. Resume converts back to a data URL.
+  `<turn id>_0.png` on the session module, and the stored part becomes
+  `{type: "image_attachment", name: "<turn id>_0.png"}`. Resume converts back to a data URL.
 
 Lens reading, for the laws in S1: source = the session module's cells, view = the message list.
-`get` concatenates the turns. The edits are appends, so `put` of a turn is "define one new cell";
-PutGet is `get(put(log, t)) = get(log) ++ t`, and PutPut holds because no put touches an earlier
-cell. Editing an old turn's cell and dropping later ones is a **fork**; it is the reverse direction,
-listed in §4 as not planned.
+`get(log, head)` concatenates the chain ending at `head`. `put` of a turn under `head` is "define one
+new cell whose parent is `head`"; PutGet is `get(put(log, head, t), t) = get(log, head) ++ t`, and
+PutPut holds because no put touches an earlier cell. A **fork** is a put under an earlier head: it
+adds a sibling and deletes nothing, so the old branch stays readable at its own head.
+
+UI (robocoop-5): a committed user bubble has **✎ edit**, which checks out the turn's parent and puts
+the message (text and images) back in the input, so the next send is a sibling. A turn with siblings
+shows **‹ k/n ›**, which moves to the latest turn under that sibling (`showBranch`). Verified
+2026-09-25, `tools/scratch/rc5-sessions/s5-branch.mjs` against the demo gateway:
+```
+B   u: Reply with the codeword in UPPERCASE …   a: FIG
+B'  u: Reply with the codeword in lowercase …   a: fig        turns 3, position 2/2
+‹   back on B (FIG); the older branch was left on screen for the export
+reload opens B' (fig), position 2/2 — the latest turn, not the one that was shown
+```
 
 ### 2.2 Turns stream; the log commits once per turn
 
@@ -332,7 +353,7 @@ code-running tools entirely. This is a behavioural fence, not a security boundar
 
 ## 4. Not planned
 
-- Forking from an edited past turn (the lens's reverse direction). Falls out of §2.1 later.
+- ~~Forking from an edited past turn.~~ Done 2026-09-25 as a turn tree (§2.1).
 - Running agents in workers. All agents share the main thread; a busy one is felt by all.
 - Cross-agent messaging (one agent delegating to another). Needs S2 first.
 - Recovering a turn interrupted by closing the page.
