@@ -10,9 +10,10 @@ const errors = []; page.on("pageerror", e => errors.push(String(e)));
 await page.goto(pathToFileURL(nb).href);
 await page.waitForFunction(() => [...(window.__ojs_runtime?._variables || [])].some(v => v._name === "rc5_controller" && v._value), null, { timeout: 120000 });
 await page.waitForTimeout(3000);
+await page.evaluate(() => { window.__rc5_first = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value.active; });
 const run = (profile, prompt) => page.evaluate(async ({ profile, prompt }) => {
   const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-  const e = c.create({ profile, activate: false });
+  const e = profile === "first" ? window.__rc5_first : c.create({ profile, activate: false });
   const offered = [];
   await c.send(e, prompt, { onStep() {} }).catch(err => offered.push("ERR " + err.message));
   const calls = e.session.messages.flatMap(m => (m.tool_calls || []).map(t => t.function.name + " " + t.function.arguments.slice(0, 80)));
@@ -22,5 +23,7 @@ const run = (profile, prompt) => page.evaluate(async ({ profile, prompt }) => {
 }, { profile, prompt });
 console.log(JSON.stringify(await run("reviewer", "Use write_file to create /src/@user/probe.js containing `x = 1`. If you have no tool that can write files, say exactly: NO WRITE TOOL.")));
 console.log(JSON.stringify(await run("default", "Use write_file to create the file /src/@rc5-sessions/probe.js containing `x = 1`. Then report the exact tool result text you got back.")));
+// the session the page boots with was once the engine's bare `session`, built without the guard
+console.log(JSON.stringify(await run("first", "Use write_file to create the file /src/@rc5-sessions/probe.js containing `x = 1`. Then report the exact tool result text you got back.")));
 console.log("errors", JSON.stringify(errors.slice(0, 5)));
 await browser.close();

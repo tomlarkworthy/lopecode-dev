@@ -301,18 +301,27 @@ code-running tools entirely. This is a behavioural fence, not a security boundar
 
 ## 3a. Open issues found while building (2026-09-25)
 
-- **The prerender snapshot leaks unsaved sessions.** In the S3 export, `QUINCE` (the unsaved session)
-  occurs 3 times, all before the first `<script id=…>` block: the session picker's option text, the
-  user bubble and the reply. exporter-3 clones the whole `#lopepage-2` DOM into `#lope-prerender`
-  (`exportToHTML`, the `options.prerender` branch) and strips only `<script>`, so whatever the chat
-  shows at save time ships in the file whatever its mains status. Fix candidates: an opt-out attribute
-  (say `data-lope-prerender="omit"`) that exporter-3 removes from the clone, set on the transcript;
-  or the facade rendering only saved sessions' content. The first is a change to a module embedded
-  corpus-wide, so it needs Tom's decision; nothing is changed yet.
-- **The default session is unguarded.** The engine's `session` is built before the controller and
-  without a `toolsTransform`, so the protected-module guard does not apply to it — only to sessions
-  the controller creates. Making the engine's default go through the profile would couple the engine
-  to robocoop-5-sessions.
+- [x] **The prerender snapshot leaked unsaved sessions.** In the first S3 export, `QUINCE` (the unsaved
+  session) occurred 3 times, all before the first `<script id=…>` block: the picker's option text, the
+  user bubble and the reply. exporter-3 clones `#lopepage-2` with `cloneNode(true)` into `#lope-prerender`
+  and strips only `<script>`. Fixed in robocoop-5, not exporter-3 (a shared module; an opt-out attribute
+  there was the rejected alternative): the picker and the transcript render inside open shadow roots,
+  which `cloneNode` does not copy. The transcript's root adopts `document.adoptedStyleSheets` (where the
+  theme lives, including the `.hljs-*` rules) plus copies of the `<style>` sheets; before the adopted
+  sheets were included, code blocks lost their background and highlighting (`md-shot.mjs`, compared with
+  the committed file). S3 re-run 2026-09-25:
+  ```
+  exported 3215237 bytes; PERSIMMON x 4 QUINCE x 0
+  prerender section: PERSIMMON x 0 QUINCE x 0
+  resumed reply: "PERSIMMON"
+  ```
+  Cost: a saved session's transcript is no longer in the prerender either, so the file's first paint
+  shows an empty chat.
+- [x] **The default session was unguarded.** `rc5_controller` passed the engine's `session` in as its
+  first entry, built without a `toolsTransform`. It now calls `create()` itself, so the first session goes
+  through the default profile; the facade no longer imports `session` (the engine still defines it for
+  the eval harness). `s4-guardrails.mjs`, run `first` (the entry active at boot), 2026-09-25:
+  `Refused by guardrail: writes to /src/@rc5-sessions/probe.js are not allowed …`.
 - **Every commit rebuilds the chat UI once** (the new turn variable, via the chain above). The
   controller carries the turn state, so nothing is lost, but the transcript re-renders at the end of
   each turn. The same happens today whenever the agent writes a module.

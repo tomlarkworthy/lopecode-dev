@@ -73,7 +73,10 @@ await p2.waitForFunction(i => {
   const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
   return c.active === c.entries[i] && c.active.session;
 }, idx, { timeout: 30000 });
-const shown = await p2.evaluate(() => document.body.innerText.includes("PERSIMMON"));
+// the transcript is in a shadow root (kept out of the prerender), so body.innerText cannot see it
+const shown = await p2.evaluate(() => [...document.querySelectorAll("*")].some(el => el.shadowRoot?.textContent.includes("PERSIMMON")));
+const prerender = html.slice(0, html.indexOf("<script id="));
+log("prerender section: PERSIMMON x", prerender.split("PERSIMMON").length - 1, "QUINCE x", prerender.split("QUINCE").length - 1);
 log("transcript shows PERSIMMON after switch:", shown);
 log("resumed reply:", JSON.stringify(await say(p2, "What was the codeword I gave you earlier? Reply with just the word.")));
 log("final", JSON.stringify(await ctl(p2)));
