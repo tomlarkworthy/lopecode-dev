@@ -512,6 +512,10 @@
   "@tomlarkworthy/moltbook": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_moltbook.html"
   },
+  "@tomlarkworthy/monty": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_monty.html",
+    "upstream": null
+  },
   "@tomlarkworthy/most-favorited-hacker-news-youtube-videos": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html"
   },

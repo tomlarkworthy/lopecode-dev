@@ -2469,6 +2469,24 @@
    "kind": "unused-dep"
   }
  ],
+ "lopebooks/notebooks/tomlarkworthy_monty.html": [
+  {
+   "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",
+   "kind": "missing-export"
+  },
+  {
+   "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",
+   "kind": "missing-export"
+  },
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
  "lopebooks/notebooks/tomlarkworthy_realtime-multi-barcode-tracking.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
