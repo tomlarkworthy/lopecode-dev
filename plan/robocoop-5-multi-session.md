@@ -343,6 +343,25 @@ code-running tools entirely. This is a behavioural fence, not a security boundar
   through the default profile; the facade no longer imports `session` (the engine still defines it for
   the eval harness). `s4-guardrails.mjs`, run `first` (the entry active at boot), 2026-09-25:
   `Refused by guardrail: writes to /src/@rc5-sessions/probe.js are not allowed …`.
+- [x] **A session saved after its first turn stayed named "main"** (found 2026-09-26, Tom: "I can't find the
+  session", then "the session is not loading now I navigated there"). Two module lists name modules, and
+  neither renames one that joins `runtime.mains` after it was first seen: module-map's `sync_modules`
+  republishes only when the set of modules changes (`isEqual` on the key sets, there since `ac72b882`,
+  2026-03-22), and `@tomlarkworthy/modules` fixes a record's name at CREATE. lopepage-2 resolves panes
+  through the second, so `&open=@rc5-sessions/…` sat on "loading …" indefinitely. Measured live: all 7
+  `currentModules` copies said "main" with the module in mains. Rejected: patching module-map (a
+  `mains_changes` generator plus a name comparison — core modules, Tom: "keep it out of core modules"),
+  and republishing `viewof currentModules` from the facade (fixes module-map only, not `modules`).
+  Fix, in robocoop-5-sessions: `saveSession` moves the log (`rehomeSession`: meta, turns, image
+  attachments) into a module made by runtime-sdk `createModule`, which is a main before it has a variable,
+  and empties the old one; `unsaveSession` moves it back into an anonymous module. The session bar has an
+  "open ↗" link (`linkTo`) while saved. `save-rename.mjs`, 2026-09-26:
+  ```
+  unsaved, log exists: ["main"]
+  after ticking save:  ["@rc5-sessions/2026-09-26-0831-dojm"]   (every currentModules copy)
+  link href #open=@rc5-sessions/…  -> pane renders session_meta
+  after unticking:     ["main"]
+  ```
 - **Every commit rebuilds the chat UI once** (the new turn variable, via the chain above). The
   controller carries the turn state, so nothing is lost, but the transcript re-renders at the end of
   each turn. The same happens today whenever the agent writes a module.
