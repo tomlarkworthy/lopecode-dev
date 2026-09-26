@@ -16,7 +16,7 @@ playbook for finding the next one fast.
 | | classic observablehq.com | new.observablehq.com | lopecode HTML |
 |---|---|---|---|
 | Compiler for the **viewed** notebook | legacy (`viewof x`) | notebook-kit (`viewof$x`) | legacy (jumpgate output) |
-| Compiler for **imported** notebooks | legacy, from `api.observablehq.com/….js?v=4` | **legacy, same endpoint** | legacy, embedded `<script>` |
+| Compiler for **imported** notebooks | legacy, from `api.observablehq.com/….js?v=4` | **`observablehq.com/api/import/@user/slug`** — a third, hybrid format (see below) | legacy, embedded `<script>` |
 | stdlib | legacy `@observablehq/stdlib` | `notebook-kit/src/runtime/stdlib` | legacy (vendored) |
 | Renders in | iframe `*.static.observableusercontent.com/next/worker-*` | iframe `*.static.observableusercontent.com/chat-worker/*` | the page itself |
 | `window.__ojs_runtime` | set by runtime-sdk's `runtime` cell | same | set by the bootloader before any main |
@@ -30,6 +30,31 @@ one a bug is in.
 
 `isOnObservableCom()` matches `observableusercontent.com`, so it is **true on both** classic and
 new (both render in that iframe). It does not distinguish them.
+
+**Corrected 2026-09-26.** That row used to read "legacy, same endpoint", and it is now false — the
+new site does not fetch `api.observablehq.com` for imports at all. Cold load of
+`new.observablehq.com/@tomlarkworthy/module-map`, every request logged:
+
+```
+147 requests   observablehq.com 60   cdn.jsdelivr.net 57   *.observableusercontent.com 22
+  api.observablehq.com module fetches : 0
+  /api/import/ fetches                : 18
+  e.g. https://observablehq.com/api/import/@tomlarkworthy/flow-queue
+```
+
+The served format is `export default function define(runtime)` — **no observer parameter** — using
+only `main.define(…)`. Variable names are legacy-spaced while the function names carry the kit `$`
+spelling, in the same file: `main.define("mutator main_mutable")` beside
+`function mutable$main_mutable(){…}` (legacy emits `mutable main_mutable` for that variable).
+Anonymous cells are `cell <document node id>`. Its own imports are bare relative specifiers
+carrying no version — `import("./flow-queue")` — and `resolutions` is **inert** on this endpoint,
+returning a byte-identical file.
+
+Two claims about it that did **not** reproduce on 2026-09-26 and should not be repeated without
+re-measuring: that `/api/import` drops every `md`-mode node (cell-map's 13 md nodes, including the
+named `usage` and `detailVizTitle`, are all present, and both formats carry 16 `md`-tagged bodies),
+and that the jsdelivr traffic is unrelated — those 57 requests are the `stdlib: "1"` swap pulling
+legacy `@observablehq/stdlib` back in.
 
 ## Fast triage loop
 
@@ -372,9 +397,15 @@ vary run to run — compare error *sets*, not counts.
 
 `Cannot create property 'langApiRestored' on string 'self'` (Observable's own highlight.js),
 `function g(){throw g}` as a pageerror (a runtime sentinel escaping), and
-`error building module dependancy map undefined …` from module-map's `summary` (its
-`main_modules` is empty because the new platform's main module is not discovered as a "main" —
-cosmetic `console.error`, the map still builds).
+~~`error building module dependancy map undefined …` from module-map's `summary`~~ — **struck
+2026-09-25, this was never noise.** Both halves of the old entry were wrong: `main_modules.length`
+measured `1`, not empty, and the map did *not* build — `dependsOn`/`dependedBy` were present on
+20/20 entries with every array empty, because all 41 cross-link lookups missed (`v._value` is never
+a Module under notebook-kit). It was also firing **10 times on classic**, for `tests`, `ui-testing`,
+`invoke-variable`, `spectral-layout` and `file-sync`. Fixed by `lookupModuleEntry` in
+`@tomlarkworthy/module-map`: new site `nonEmptyDependsOn 0 -> 10, totalLinks 0 -> 41`; classic
+`10 -> 0`. This entry is left here, struck rather than deleted, because it is exactly the
+misclassification the next paragraph warns about.
 
 `Cannot sourceModule for h` **used** to be on this list and no longer is: it was the import-cell
 hang announcing itself, and it should not appear now. If you see it again, `importedModule` has
