@@ -193,7 +193,7 @@
     "upstream": null
   },
   "@tomlarkworthy/csv-column-chooser": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_lopecode-live-2026.html"
   },
   "@tomlarkworthy/cw-metrics": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html"
@@ -438,7 +438,7 @@
     "lopecode": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html"
   },
   "@tomlarkworthy/lopecode-live-2026": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html"
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_lopecode-live-2026.html"
   },
   "@tomlarkworthy/lopecode-newsletter-001": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html"

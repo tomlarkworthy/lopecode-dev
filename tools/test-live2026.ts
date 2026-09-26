@@ -1,7 +1,7 @@
 // Offline verification of the LIVE-2026 essay: generated §-headings/refs + asides under trimmed mains
 import { chromium } from "playwright";
 
-const file = process.argv[2] ?? "lopebooks/notebooks/@tomlarkworthy_lopecode-live-2026.html";
+const file = process.argv[2] ?? "lopebooks/notebooks/tomlarkworthy_lopecode-live-2026.html";
 const url = `file://${process.cwd()}/${file}`;
 
 const browser = await chromium.launch();
