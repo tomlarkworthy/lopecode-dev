@@ -1,13 +1,25 @@
 ---
 name: rc5-train
-description: Use when the user asks to "train robocoop-5", "/rc5-train", run the in-notebook agent on goals and improve it from the traces, or stress-test robocoop-5 on Lopecode tasks. Fans out parallel workers; each drives the real chat UI headless on a goal prompt in a private notebook copy, aborts early when a fixable problem derails the run, finds the cause, applies a candidate change to its copy, re-runs to verify it, and returns a proposal with before/after evidence. Proposals are human-approved before anything touches the canonical notebook.
+description: Use when the user asks to "train robocoop-5", "/rc5-train", run the in-notebook agent on goals and improve it from the traces, or stress-test robocoop-5 on Lopecode tasks. Fans out parallel workers; each drives the real chat UI headless on a goal prompt in a private notebook copy, aborts early when a fixable problem derails the run, finds the cause, encodes it as an eval that fails on it, applies a candidate change to its copy, shows the eval pass, and returns a proposal with before/after evidence. Proposals are human-approved before anything touches the canonical notebook.
 version: 0.1.0
 ---
 
 # rc5-train: reflective training of the in-notebook agent
 
 This is `/improve` for robocoop-5. The traces come from real runs of the agent in its own UI, not
-from Claude Code sessions. Workers propose; the orchestrator (you, in the main session) aggregates
+from Claude Code sessions.
+
+**Every fix ships with an eval.** A proposal without one is not accepted: the eval is what stops
+the defect coming back when the prompt, the model or the tools change. Two layers:
+
+| layer | what | lives in (after approval) | runs with |
+|---|---|---|---|
+| harness | a model-free probe that drives the tools directly and fails on the bug | `tools/scratch/rc5-sessions/sNN-<slug>.mjs` | `node <probe>` |
+| agent | an eval case: a prompt, criteria that fail on the defect, an `oracle` reference solution | `tools/robocoop-5/eval/evals-rc5-train.mjs` (category `rc5-train`) | `node tools/robocoop-5/eval/run.mjs --category rc5-train` |
+
+A harness bug needs both. A prompt, wiki or trigger fix needs the agent eval, and when the fix is a
+wiki page the eval carries `{ name: "tool_call_matches", args: { pattern: "<page>.md" } }` so it
+also asserts the page was read. A model-only finding needs neither. Workers propose; the orchestrator (you, in the main session) aggregates
 and applies only what the user approves. Nothing a worker does writes the canonical
 `lopebooks/notebooks/@tomlarkworthy_robocoop-5.html`.
 
@@ -64,6 +76,10 @@ be written the same way if the prompt had been about a different domain?
    - wiki: copy `DIR/knowledge/<page>.md` into `knowledge/`, invoke the `document` skill on it,
      then `bun tools/sync-wiki.ts --write --doc <page>.md --notebook <canonical>` for the
      robocoop-5 and markdown-wiki notebooks. Do not sweep the whole corpus as part of this.
+   - eval: append the worker's `DIR/eval.mjs` object to `RC5_TRAIN_EVALS` in
+     `tools/robocoop-5/eval/evals-rc5-train.mjs`; copy `DIR/probe.mjs` to
+     `tools/scratch/rc5-sessions/sNN-<slug>.mjs` (next free NN), pointing it at the canonical.
+     `node tools/robocoop-5/eval/run.mjs --category rc5-train --oracle` must stay at 1.00.
    - Re-run the no-model probes (`node tools/robocoop-5/boot-smoke.mjs`,
      `tools/scratch/rc5-sessions/s*.mjs` relevant to the change).
 7. **Commit** only when the user asks (lopebooks first with `SKIP=lope-sitemap`, then the gitlink).
@@ -106,9 +122,23 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
      the cause, not the last error message.
    - Step times: `t` gaps over 60s with a large `reasoning` length are model stalls.
    Name one cause, then pick its row in "Where a change belongs".
-5. **Reproduce without the model when you can.** A tool or apply bug gets a probe that drives
-   the tools directly (pattern: `tools/scratch/rc5-sessions/s14-wiki-gate.mjs`,
-   `s10-remote-import.mjs`), saved as `DIR/probe.mjs`. It must fail before your change.
+5. **Encode the defect as an eval, before changing anything.**
+   - Harness bug: `DIR/probe.mjs`, driving the tools with no model (pattern:
+     `tools/scratch/rc5-sessions/s14-wiki-gate.mjs`, `s10-remote-import.mjs`). Run it against the
+     sandbox: it must fail now.
+   - Agent eval, always (except model-only): `DIR/eval.mjs`, `export default { id: "rc5t-<slug>",
+     category: "rc5-train", question, criteria, oracle }`. The question is the GOAL or a narrower
+     prompt that still reaches the defect. Criteria come from `tools/robocoop-4/eval/live/criteria.mjs`
+     (`variable_equals`, `live_value_contains`, `cell_fn_evaluates`, `tool_call_matches`,
+     `no_tool_result_matches`, …); at least one must fail on exactly what went wrong in the trace.
+     Write it so a *different* correct solution also passes: check values and behaviour, not
+     spelling. `oracle` is a scripted correct solution (examples:
+     `tools/robocoop-5/eval/evals-vendoring-patterns.mjs`). It must score 1.00:
+     ```
+     node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --oracle \
+       --notebook DIR/notebook.html
+     ```
+     Under 1.00 means the eval is broken, not the agent.
 6. **Draft the change in the sandbox.**
    - module: `rc5-sandbox.sh get DIR @tomlarkworthy/<m>`, edit `DIR/<m>.js`,
      `rc5-sandbox.sh put DIR @tomlarkworthy/<m>`.
@@ -116,18 +146,24 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
      and `write-triggers:` regexes if gating), `rc5-sandbox.sh wiki DIR <page>.md`. Keep triggers
      narrow: a trigger that matches ordinary code refuses every write until the page is read.
    - system prompt: edit the `systemPrompt` cell in `DIR/robocoop-5-engine.js`, `put` it.
-7. **Verify in the sandbox.** Run the probe (it must pass now) and re-run the same GOAL:
-   `--out NAME-after`. One run each side is an anecdote, not a measurement (model runs are not
-   independent draws): say so in the proposal. If the change was a gate or page, the after-trace's
-   `wiki.read` must show the page read. If the after-run fails differently, analyse that too;
-   iterate up to 3 times, then report what you have.
+7. **Verify with the eval.** The probe must pass now. Run the agent eval with the model on a
+   pristine copy (`rc5-sandbox.sh new DIR/base`) and on the fixed copy:
+   ```
+   node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/base/notebook.html
+   node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/notebook.html
+   ```
+   One run each side is an anecdote, not a measurement (model runs are not independent draws):
+   say so. If the base scores full marks, the eval does not reach the defect: fix the eval first.
+   If the fixed copy fails differently, analyse that too; iterate up to 3 times, then report what
+   you have. A `run-one.mjs --out NAME-after` run is optional, for reading the trace.
 8. **Write `DIR/proposal.md`:**
    ```
    ## <one-line cause>
    class: bug | system-prompt | wiki | trigger | tool-hint | model-only
    evidence (before): <quoted trace lines, with t and run name>
    change: <diff of DIR/<m>.js or the page, against the sandbox's original>
-   verified: <probe before/after output; after-run outcome, wall time, wiki.read, the value that was wrong now right>
+   eval: DIR/eval.mjs (id, which criterion catches the defect); DIR/probe.mjs if any
+   verified: oracle score; base score -> fixed score; probe fail -> pass
    generality: <why this is not specific to GOAL>
    not verified: <anything you could not check>
    ```

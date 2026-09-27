@@ -15,6 +15,7 @@
 import { EVALS as RC4_EVALS } from "../../robocoop-4/eval/live/evals.mjs";
 import { CAPABILITY_EVALS } from "./evals-capability.mjs";
 import { VENDORING_PATTERN_EVALS } from "./evals-vendoring-patterns.mjs";
+import { RC5_TRAIN_EVALS } from "./evals-rc5-train.mjs";
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 
@@ -101,4 +102,5 @@ export const EVALS = [
   ...RC4_EVALS.map((e) => (REPLACE[e.id] ? clone(REPLACE[e.id]) : patchCriteria(clone(e)))),
   ...CAPABILITY_EVALS,
   ...VENDORING_PATTERN_EVALS,
+  ...RC5_TRAIN_EVALS,
 ];
