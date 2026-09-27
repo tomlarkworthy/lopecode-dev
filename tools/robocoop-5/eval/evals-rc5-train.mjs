@@ -2,4 +2,41 @@
 // defect a worker found in a real run: the goal prompt, criteria that fail on the defect, and an
 // `oracle` reference solution that scores 1.00 under --oracle. Where the fix was a wiki page, a
 // `tool_call_matches` criterion on the page path asserts it was read.
-export const RC5_TRAIN_EVALS = [];
+export const RC5_TRAIN_EVALS = [
+// rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
+// inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
+// cell kept from its last read once nothing observed it, so inspect_value theme_name said
+// "ocean-floor" after the switch to cotton, four times (run 20260927-2332-w3-before, 18s-102s); the
+// agent spent 15 of its 27 steps disproving a switch that had worked.
+// The prompt names the theme so the end state is one value: no criterion can say "any of the five light
+// themes" (variable_equals is exact; theme_assets' preview is cut at 600 chars, before the -light.css URL).
+{
+  id: "rc5t-stale-inspect-after-drive",
+  category: "rc5-train",
+  // The defect needs a read BEFORE the drive (that read caches the value) and one after; the GOAL prompt
+  // alone reached it in the trace but not in a mimo eval run (the agent skipped the first read), so
+  // the question asks for both.
+  question: "Which theme is this notebook using? Check theme_name with inspect_value, then switch the notebook to cotton, a light theme, and confirm with inspect_value that theme_name changed.",
+  criteria: [
+    { name: "variable_equals", args: { module: "@tomlarkworthy/themes", name: "theme_name", equals: "cotton" }, weight: 3 },
+    // THE defect: theme_name reads "ocean-floor" once, before the switch; any later bare "ocean-floor"
+    // is a stale read. Counts in the recorded runs: base 5, 3, 4; fixed 1, 1; oracle 1. A drive with
+    // a bad value (the string "cotton") reads "unknown" on the fixed copy and "ocean-floor" on base.
+    { name: "tool_result_count_at_most", args: { pattern: "^ocean-floor$", max: 1 }, weight: 3 },
+    { name: "tool_call_matches", args: { name: "inspect_value", pattern: "theme_name", minTimes: 2 }, weight: 1 },
+    { name: "variable_no_error", args: { module: "@tomlarkworthy/themes" }, weight: 1 },
+    // the defect's cost: a stale read after a drive that worked sends the agent round a verify loop.
+    // Measured with mimo-v2.5-pro: 27 steps (GOAL trace), 13 (this question, base copy, worked around
+    // with watch_variable); 9 and 7 on the fixed copy; the oracle takes 3.
+    { name: "max_steps", args: { n: 11 }, weight: 1 },
+  ],
+  // Copied from the Theme control itself: @tomlarkworthy/themes `viewof theme_assets` is
+  // Inputs.select(themes, …), so its value is a themes.get(name) array; driven as the eval_js tool
+  // description says (`viewof_x.value = …; viewof_x.dispatchEvent(new Event("input"))`).
+  oracle: [
+    { tool: "inspect_value", args: { module: "@tomlarkworthy/themes", name: "theme_name" } },
+    { tool: "eval_js", args: { module: "@tomlarkworthy/themes", code: 'viewof_theme_assets.value = themes.get("cotton"); viewof_theme_assets.dispatchEvent(new Event("input")); return "cotton"' }, settleMs: 1500 },
+    { tool: "inspect_value", args: { module: "@tomlarkworthy/themes", name: "theme_name" } },
+  ],
+},
+];

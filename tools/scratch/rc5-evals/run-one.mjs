@@ -3,6 +3,8 @@
 //   node tools/scratch/rc5-evals/run-one.mjs "<prompt>" [--model <id>] [--timeout-min 20] [--out name] [--notebook f.html]
 // While it runs, out/<name>.live.log gets one line per message. Writing a reason into out/<name>.abort stops
 // the turn (the session is aborted, outcome "aborted: <reason>") and the trace is still dumped.
+// --export <file.html> after the run: export the page from its live state, reopen the file, and write
+// out/<name>.persist.json with the same snapshot before and after (colours, mains, cells, errors).
 // --answer answers the agent's request_files card: comma-separated local file paths, a URL, or "skip".
 // --answer-via chat|card types a URL answer the way a person would (into the chat box, or the card's URL
 // field) instead of handing it to the ask channel directly.
@@ -19,6 +21,7 @@ const timeoutMin = Number(flag("--timeout-min", 20));
 const name = flag("--out", "run-" + new Date().toISOString().replace(/[:.]/g, "-"));
 const answer = flag("--answer", null);
 const answerVia = flag("--answer-via", "bus");
+const exportTo = flag("--export", null);
 const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
 const prompt = args.join(" ");
 if (!prompt) { console.error("usage: run-one.mjs <prompt>"); process.exit(2); }
@@ -28,7 +31,10 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 const consoleErrors = [];
 page.on("pageerror", e => consoleErrors.push({ t: Date.now(), msg: String(e).slice(0, 300) }));
-page.on("console", m => { if (m.type() === "error") consoleErrors.push({ t: Date.now(), msg: m.text().slice(0, 300) }); });
+// "error building module dependancy map" is background noise from module-map on every boot (146-241 a run):
+// counted, not listed, so a real page error is not buried under it.
+let noise = 0;
+page.on("console", m => { if (m.type() !== "error") return; const t = m.text(); if (/^error building module dependancy map/.test(t)) return void noise++; consoleErrors.push({ t: Date.now(), msg: t.slice(0, 300) }); });
 if (model) await page.addInitScript(m => { try { localStorage.setItem("robocoop4_model", JSON.stringify(m)); } catch {} }, model);
 await page.goto(pathToFileURL(nb).href);
 await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session, null, { timeout: 120000 });
@@ -113,7 +119,7 @@ const trace = await page.evaluate(() => {
   const wiki = { read: [...(st.wikiRead ?? [])], refusals: st.wikiRefusals ?? [] };
   return { ...window.__trace, agentErrors, wiki, transcriptTail: shadowText.slice(-3000) };
 });
-const result = { prompt, model: modelShown, outcome, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
+const result = { prompt, model: modelShown, outcome, consoleNoise: noise, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
 const file = resolve(here, "out", name + ".json");
 writeFileSync(file, JSON.stringify(result, null, 2));
 // compact step view
@@ -130,4 +136,35 @@ for (const m of trace.msgs) {
 console.log("wiki read:", JSON.stringify(trace.wiki.read.map(p => p.split("/").pop())), "| gate refusals:", trace.wiki.refusals.length,
   trace.wiki.refusals.length ? "(read only after being refused)" : trace.wiki.read.length ? "(read unprompted)" : "");
 console.log("agent errors", JSON.stringify(trace.agentErrors), "console errors", consoleErrors.length, "→", file);
+if (exportTo) {
+  const snap = () => page.evaluate(async () => {
+    const rt = window.__ojs_runtime;
+    const cs = e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, fg: c.color }; };
+    const user = [...rt.mains.keys()].filter(k => !k.startsWith("@tomlarkworthy/"));
+    const cells = {}, errors = [];
+    for (const k of user) {
+      const m = rt.mains.get(k);
+      const vs = [...rt._variables].filter(v => v._module === m && v._name && !v._name.startsWith("module "));
+      cells[k] = vs.map(v => v._name);
+      for (const v of vs) { try { await Promise.race([v._promise, new Promise(r => setTimeout(r, 2000))]); } catch (e) { errors.push(k + ":" + v._name + " " + String(e?.message ?? e).slice(0, 120)); } }
+    }
+    return { page: cs(document.body), html: cs(document.documentElement), mains: [...rt.mains.keys()].length, userModules: cells, errors };
+  });
+  const post = { live: await snap().catch(e => String(e)) };
+  try {
+    const html = await page.evaluate(async () => {
+      const rt = window.__ojs_runtime;
+      const f = [...rt._variables].find(v => v._name === "exportToHTML" && v._value)._value;
+      const r = await f({ mains: rt.mains });
+      return typeof r === "string" ? r : r.source;
+    });
+    writeFileSync(resolve(exportTo), html);
+    await page.goto(pathToFileURL(resolve(exportTo)).href);
+    await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session, null, { timeout: 120000 });
+    await page.waitForTimeout(4000);
+    post.reopened = await snap().catch(e => String(e));
+  } catch (e) { post.exportError = String(e); }
+  writeFileSync(resolve(here, "out", name + ".persist.json"), JSON.stringify(post, null, 2));
+  console.log("PERSIST", JSON.stringify(post).slice(0, 600));
+}
 await browser.close();

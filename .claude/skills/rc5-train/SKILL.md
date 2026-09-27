@@ -102,6 +102,9 @@ be written the same way if the prompt had been about a different domain?
      `tools/robocoop-5/eval/evals-rc5-train.mjs`; copy `DIR/probe.mjs` to
      `tools/scratch/rc5-sessions/sNN-<slug>.mjs` (next free NN), pointing it at the canonical.
      `node tools/robocoop-5/eval/run.mjs --category rc5-train --oracle` must stay at 1.00.
+     Only the evals with an `oracle` can be checked without a model (9 of the original 54 on
+     2026-09-27: the vendoring and reflection ones); the rest score 0.00 under `--oracle` by
+     construction, so a scoring-code change (criteria, driver) is checked on those 9 plus a model run.
    - Re-run the no-model probes (`node tools/robocoop-5/boot-smoke.mjs`,
      `tools/scratch/rc5-sessions/s*.mjs` relevant to the change).
    - **Regression, once for the whole batch** (workers never run it). Keep a copy of the canonical
@@ -145,12 +148,19 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    ```
    If the agent may ask for files (`request_files`), add `--answer <local paths | URL | skip>`
    (and `--answer-via chat|card` to deliver a URL the way a person would); the live log records
-   `ASK <prompt> -> <answer>`. Without `--answer` a request is skipped.
+   `ASK <prompt> -> <answer>`. Without `--answer` a request is skipped. When the user would expect
+   the result to survive saving (state, settings, anything "next time"), add `--export DIR/saved.html`:
+   after the run it exports the live page, reopens the file and writes `out/NAME-before.persist.json`
+   (colours, user modules and their cells, erroring cells, before and after). In an eval,
+   `setup.answer` answers a request card the same way (a URL, `{files: [{name, content}]}`, or
+   `"skip"`, the default).
    Watch `tools/scratch/rc5-evals/out/NAME-before.live.log` with `Monitor` (one line per message;
    `END <outcome>` when it stops). The full trace lands in `out/NAME-before.json`.
 3. **Abort early** when the run is derailed by something you can already name: the same error
    three times, a write refused and then retried without the read, an import bound to an empty
-   module, a value that is `NaN`/element-instead-of-number, a 400 from the API. Write the reason:
+   module, a value that is `NaN`/element-instead-of-number, a 400 from the API, a tool that keeps
+   returning a plausible value the agent's own action should have changed (w3: `inspect_value`
+   read a stale theme 4 times and the agent spent 21 of 27 steps disproving a switch that worked). Write the reason:
    `echo "<reason>" > tools/scratch/rc5-evals/out/NAME-before.abort`. Do not abort a run that is
    merely slow; a long `[rNNNNN]` reasoning step is the model, not the harness.
 4. **Analyse** the trace (`out/NAME-before.json`). Check, in order:
@@ -173,7 +183,9 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
      category: "rc5-train", question, criteria, oracle }`. The question is the GOAL or a narrower
      prompt that still reaches the defect. Criteria come from `tools/robocoop-4/eval/live/criteria.mjs`
      (`variable_equals`, `live_value_contains`, `cell_fn_evaluates`, `tool_call_matches`,
-     `no_tool_result_matches`, …); at least one must fail on exactly what went wrong in the trace.
+     `no_tool_result_matches`, `tool_result_count_at_most`, …); at least one must fail on exactly
+     what went wrong in the trace. A criterion the file lacks goes in that file (with a comment
+     naming the eval that needed it), not inside `eval.mjs`.
      Write it so a *different* correct solution also passes: check values and behaviour, not
      spelling. `oracle` is a scripted correct solution (examples:
      `tools/robocoop-5/eval/evals-vendoring-patterns.mjs`). It must score 1.00:

@@ -395,7 +395,7 @@ export async function createDriver({
       });
       try {
       const evaluated = page.evaluate(
-        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume, oracleSteps }) => {
+        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume, oracleSteps, answer }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -506,6 +506,18 @@ export async function createDriver({
             const timeout = new Promise((_, rej) => {
               timer = setTimeout(() => rej(new Error("session.send timed out after " + timeoutMs + "ms")), timeoutMs);
             });
+            // setup.answer answers a request_files card (robocoop-5 askBus): a URL string, {files: [{name,
+            // content, type?}]}, or "skip". Unset = skip, so an agent that asks can never hang an eval.
+            result.asks = [];
+            const answerer = setInterval(() => {
+              const bus = session.askBus, req = bus?.pending;
+              if (!req) return;
+              result.asks.push({ prompt: req.prompt, module: req.module, answered: answer == null ? "skip" : answer.files ? "files" : String(answer) });
+              if (answer == null || answer === "skip") return bus.skip();
+              if (typeof answer === "string") return bus.respond([answer]);
+              if (Array.isArray(answer.files)) return bus.respond(answer.files.map((f) => new File([f.content], f.name, { type: f.type || "" })));
+              bus.skip();
+            }, 200);
             try {
               // Multi-turn: send the question then each followup as a SEPARATE turn on the same session, so a
               // "build then adjust" eval edits code written by a prior turn (the byte-stability stress point).
@@ -534,6 +546,7 @@ export async function createDriver({
               result.error = e?.message ?? String(e);
             } finally {
               clearTimeout(timer);
+              clearInterval(answerer);
             }
           }
           result.durationMs = Date.now() - startedAt;
@@ -594,7 +607,9 @@ export async function createDriver({
             for (const { v, moduleObj } of allVariables()) {
               const id = idMapF.get(moduleObj) || moduleObj._name; // _name: newly createModule'd modules
               if (!isEvalVar(id, v._name)) continue;
-              if (v._value !== undefined || (v._error != null)) continue;
+              // a cached value is current only while observed: an unobserved cell keeps its last-read value
+              // after its inputs change (the same staleness robocoop-5's readVar had, rc5-train w3 2026-09-27)
+              if (v._reachable && (v._value !== undefined || v._error != null)) continue;
               if (typeof moduleObj.value === "function") {
                 try { Promise.resolve(moduleObj.value(v._name)).catch(() => {}); } catch {}
               }
@@ -650,7 +665,7 @@ export async function createDriver({
         },
         { question, model, timeoutMs, targetModules, followups: evalDef.followups || [],
           forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800, resume,
-          oracleSteps: oracle ? (evalDef.oracle || []) : null },
+          oracleSteps: oracle ? (evalDef.oracle || []) : null, answer: evalDef?.setup?.answer ?? null },
       );
       const raced = await Promise.race([evaluated.then((v) => ({ v })), wedged, frozen]);
       if (raced === "__wedged__") {

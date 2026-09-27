@@ -628,6 +628,17 @@ export const CRITERIA = {
       ? ok(`no tool result matches /${args.pattern}/`)
       : fail(`${bad.length} tool result(s) match /${args.pattern}/ (e.g. ${JSON.stringify(bad[0].content.slice(0, 80))})`);
   },
+
+  // At most `max` tool results match the regex: no_tool_result_matches allowing the legitimate reads.
+  // rc5t-stale-inspect-after-drive counts stale reads of a value that was correct once, before a drive.
+  tool_result_count_at_most(snapshot, args) {
+    const re = new RegExp(args.pattern, args.flags || "");
+    const n = (snapshot.conversation || []).filter((m) => m.role === "tool" && typeof m.content === "string" && re.test(m.content)).length;
+    const max = args.max ?? 0;
+    return n <= max
+      ? ok(`${n} tool result(s) match /${args.pattern}/ (<= ${max})`)
+      : fail(`${n} tool result(s) match /${args.pattern}/ (> ${max})`);
+  },
 };
 
 function escapeRe(s) {
