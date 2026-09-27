@@ -29,6 +29,9 @@
  *
  *   "publish": { "atproto": { "did": "did:plc:…", "rkey": "…", "auto": true } }
  *
+ * Optional `title` and `cover` override the HTML head. `cover` is an image URL or
+ * a bsky.app post URL (its first image, via the Bluesky CDN's fullsize JPEG).
+ *
  * Usage:
  *   bun tools/atproto-publish.ts --file <notebook.html> --publisher <atproto.html> [opts]
  *   bun tools/atproto-publish.ts --changed <paths.txt> --repo-root <dir> --publisher <atproto.html> [opts]
@@ -56,7 +59,7 @@ import { extractModuleContent } from "./channel/sync-module.ts";
 const MAX_BLOCK_BYTES = 1_000_000;
 const MAX_COVER_BYTES = 1_000_000;
 
-type Decl = { did: string; rkey: string; auto?: boolean; title?: string };
+type Decl = { did: string; rkey: string; auto?: boolean; title?: string; cover?: string };
 
 // ---------------------------------------------------------------- args
 
@@ -241,6 +244,24 @@ async function carriedBskyPostRef(
   return null;
 }
 
+// A bsky.app post URL names a post, not an image; the raw blob is often over the
+// cover cap, so take the CDN's recompressed fullsize JPEG instead.
+async function resolveCoverUrl(pub: any, cover: string): Promise<string> {
+  const m = cover.match(/^https:\/\/bsky\.app\/profile\/([^/]+)\/post\/([^/?#]+)/);
+  if (!m) return cover;
+  const [, actor, rk] = m;
+  const did = actor.startsWith("did:")
+    ? actor
+    : (await getJson(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(actor)}`)).body?.did;
+  if (!did) throw new Error(`cover ${cover}: cannot resolve handle ${actor}`);
+  const { pds } = await pub.resolvePds(did);
+  const u = `${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=app.bsky.feed.post&rkey=${encodeURIComponent(rk)}`;
+  const { status, body } = await getJson(u);
+  const cid = body?.value?.embed?.images?.[0]?.image?.ref?.$link ?? body?.value?.embed?.media?.images?.[0]?.image?.ref?.$link;
+  if (status !== 200 || !cid) throw new Error(`cover ${cover}: post has no image (${status})`);
+  return `https://cdn.bsky.app/img/feed_fullsize/plain/${did}/${cid}@jpeg`;
+}
+
 function readCard(pub: any, html: string) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const title = doc.querySelector("title")?.textContent?.trim() || null;
@@ -290,6 +311,7 @@ async function publishNotebook(
   }
 
   const card = readCard(pub, html);
+  if (decl.cover) card.coverSrc = await resolveCoverUrl(pub, decl.cover);
   // decl.title pins presentation the way decl.rkey pins identity — the HTML <title>
   // of a tool notebook is often its module id, not the published display name.
   const title = decl.title || card.title || prior?.value?.title;
@@ -377,7 +399,7 @@ async function publishNotebook(
     if (uploadCandidates.length > 6) console.log(`            … ${uploadCandidates.length - 6} more`);
     console.log(
       `record    description: ${card.description ? "local" : description ? "carried" : "none"}` +
-      ` · coverImage: ${coverPlan}` +
+      ` · coverImage: ${coverPlan}${decl.cover ? ` from declared ${card.coverSrc}` : ""}` +
       ` · bskyPostUri: ${bskyPostUri ? "carried" : "none"}` +
       ` · stdDocUri: ${stdDocUri ? "carried" : "none"}`,
     );
