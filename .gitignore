@@ -123,3 +123,4 @@ ds-bundle/
 # Raised-cap eval bundles: a copy of the canonical notebook with one setting patched
 # (maxStepsPerTurn). 2.7MB each and regenerable in one command — never committed.
 tools/robocoop-5/eval/robocoop-5-eval*.html
+tools/scratch/rc5-train/

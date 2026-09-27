@@ -1,8 +1,10 @@
 // Drive the real robocoop-5 chat UI with one prompt, headless, and record the trace: every message as it
 // lands (with its arrival time), tool calls + results, reasoning, status lines, console errors.
-//   node tools/scratch/rc5-evals/run-one.mjs "<prompt>" [--model <id>] [--timeout-min 20] [--out name]
+//   node tools/scratch/rc5-evals/run-one.mjs "<prompt>" [--model <id>] [--timeout-min 20] [--out name] [--notebook f.html]
+// While it runs, out/<name>.live.log gets one line per message. Writing a reason into out/<name>.abort stops
+// the turn (the session is aborted, outcome "aborted: <reason>") and the trace is still dumped.
 import { chromium } from "playwright";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -51,18 +53,40 @@ await ta.fill(prompt);
 await ta.press("Enter");
 const t0 = Date.now();
 let outcome = "done";
-await page.waitForFunction(() => {
-  const e = document.querySelector("[data-rc5-group]").active;
-  return e.log && !e.busy;
-}, null, { timeout: timeoutMin * 60000, polling: 1000 }).catch(() => { outcome = "timeout"; });
-if (outcome === "timeout") await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.abort?.());
+const liveFile = resolve(here, "out", name + ".live.log"), abortFile = resolve(here, "out", name + ".abort");
+writeFileSync(liveFile, "");
+const line = m => {
+  const at = (m.t / 1000).toFixed(0).padStart(5) + "s ";
+  if (m.role === "assistant") {
+    const tc = (m.tool_calls || []).map(t => t.function.name + " " + t.function.arguments.slice(0, 300)).join(" | ");
+    return at + "A " + (m.reasoning ? "[r" + m.reasoning.length + "] " : "") + (tc || String(m.content ?? "").slice(0, 400)).replace(/\n/g, " ");
+  }
+  if (m.role === "tool") return at + "  → " + String(m.content ?? "").slice(0, 400).replace(/\n/g, " ");
+  return at + m.role[0].toUpperCase() + " " + String(typeof m.content === "string" ? m.content : JSON.stringify(m.content)).slice(0, 300).replace(/\n/g, " ");
+};
+for (let n = 0; ; ) {
+  const snap = await page.evaluate(n => ({ fresh: window.__trace.msgs.slice(n), status: window.__trace.status.at(-1)?.st ?? "",
+    done: (e => !!e.log && !e.busy)(document.querySelector("[data-rc5-group]").active) }), n);
+  for (const m of snap.fresh) appendFileSync(liveFile, line(m) + "\n");
+  n += snap.fresh.length;
+  if (snap.done) break;
+  if (existsSync(abortFile)) { outcome = "aborted: " + readFileSync(abortFile, "utf8").trim().slice(0, 300); break; }
+  if (Date.now() - t0 > timeoutMin * 60000) { outcome = "timeout"; break; }
+  await page.waitForTimeout(2000);
+}
+if (outcome !== "done") await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.abort?.());
+appendFileSync(liveFile, "END " + outcome + "\n");
 await page.waitForTimeout(1500);
 const trace = await page.evaluate(() => {
   clearInterval(window.__poll);
   const root = document.querySelector("[data-rc5-group]");
   const shadowText = [...root.querySelectorAll("*")].flatMap(el => el.shadowRoot ? [el.shadowRoot.textContent] : []).join("\n");
-  const agentErrors = [...root.querySelectorAll("div")].map(d => d.textContent).filter(t => t.startsWith("⚠ agent error"));
-  return { ...window.__trace, agentErrors, transcriptTail: shadowText.slice(-3000) };
+  const agentErrors = [...root.querySelectorAll("*")].flatMap(el => el.shadowRoot ? [...el.shadowRoot.querySelectorAll("div")] : []).concat([...root.querySelectorAll("div")])
+    .map(d => d.textContent).filter(t => t.startsWith("⚠ agent error"));
+  // wiki discipline: which docs the session read, and which writes the read-gate refused first
+  const st = root.active.session.sessionState ?? {};
+  const wiki = { read: [...(st.wikiRead ?? [])], refusals: st.wikiRefusals ?? [] };
+  return { ...window.__trace, agentErrors, wiki, transcriptTail: shadowText.slice(-3000) };
 });
 const result = { prompt, model: modelShown, outcome, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
 const file = resolve(here, "out", name + ".json");
@@ -78,5 +102,7 @@ for (const m of trace.msgs) {
   else if (m.role === "user") console.log(`${(m.t / 1000).toFixed(0).padStart(5)}s U ${String(typeof m.content === "string" ? m.content : JSON.stringify(m.content)).slice(0, 160)}`);
   else if (m.role === "system" && !String(m.content).startsWith("<environment")) console.log(`${(m.t / 1000).toFixed(0).padStart(5)}s S ${String(m.content).slice(0, 160).replace(/\n/g, " ")}`);
 }
+console.log("wiki read:", JSON.stringify(trace.wiki.read.map(p => p.split("/").pop())), "| gate refusals:", trace.wiki.refusals.length,
+  trace.wiki.refusals.length ? "(read only after being refused)" : trace.wiki.read.length ? "(read unprompted)" : "");
 console.log("agent errors", JSON.stringify(trace.agentErrors), "console errors", consoleErrors.length, "→", file);
 await browser.close();
