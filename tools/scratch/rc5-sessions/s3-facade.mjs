@@ -20,12 +20,12 @@ const open = async url => {
   await page.goto(url);
   await page.waitForFunction(() => [...(window.__ojs_runtime?._variables || [])]
     .some(v => v._name === "rc5_controller" && v._value), null, { timeout: 120000 });
-  await page.locator('textarea[placeholder^="Message robocoop-5"]').waitFor({ timeout: 60000 });
+  await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active, null, { timeout: 60000 });
   return page;
 };
 const ctl = page => page.evaluate(() => {
   const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-  return { active: c.entries.indexOf(c.active), entries: c.entries.map(e => ({ title: e.title, saved: e.saved, busy: e.busy, hasLog: !!e.log, messages: e.session?.messages.length ?? null })) };
+  return { active: c.entries.indexOf(document.querySelector("[data-rc5-group]").active), entries: c.entries.map(e => ({ title: e.title, saved: e.saved, busy: e.busy, hasLog: !!e.log, messages: e.session?.messages.length ?? null })) };
 });
 const say = async (page, text) => {
   const before = (await ctl(page)).entries;
@@ -33,11 +33,11 @@ const say = async (page, text) => {
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => {
     const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-    return c.active.busy === false && c.active.log && c.active.session.messages.some(m => m.role === "assistant");
+    return document.querySelector("[data-rc5-group]").active.busy === false && document.querySelector("[data-rc5-group]").active.log && document.querySelector("[data-rc5-group]").active.session.messages.some(m => m.role === "assistant");
   }, null, { timeout: 300000, polling: 1000 });
   return page.evaluate(() => {
     const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-    const ms = c.active.session.messages.filter(m => m.role === "assistant" && m.content);
+    const ms = document.querySelector("[data-rc5-group]").active.session.messages.filter(m => m.role === "assistant" && m.content);
     return ms.at(-1)?.content;
   });
 };
@@ -46,7 +46,7 @@ const p1 = await open(pathToFileURL(nb).href);
 log("booted", JSON.stringify(await ctl(p1)));
 log("A reply:", JSON.stringify(await say(p1, "Remember this codeword: PERSIMMON. Reply only with OK, no tools needed.")));
 await p1.locator('label:has-text("save") input[type=checkbox]').check();
-await p1.waitForFunction(() => [...window.__ojs_runtime.mains.keys()].some(k => k.startsWith("@rc5-sessions/")), null, { timeout: 10000 });
+await p1.waitForFunction(() => [...window.__ojs_runtime.mains.keys()].some(k => k.startsWith("@robocoop5-session/")), null, { timeout: 10000 });
 await p1.locator('button[title^="New session"]').click();
 log("B reply:", JSON.stringify(await say(p1, "Remember this codeword: QUINCE. Reply only with OK, no tools needed.")));
 log("before export", JSON.stringify(await ctl(p1)));
@@ -71,7 +71,7 @@ const idx = after.entries.findIndex(e => e.saved);
 await p2.locator('select[title="Switch session"]').selectOption(String(idx));
 await p2.waitForFunction(i => {
   const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-  return c.active === c.entries[i] && c.active.session;
+  return document.querySelector("[data-rc5-group]").active === c.entries[i] && document.querySelector("[data-rc5-group]").active.session;
 }, idx, { timeout: 30000 });
 // the transcript is in a shadow root (kept out of the prerender), so body.innerText cannot see it
 const shown = await p2.evaluate(() => [...document.querySelectorAll("*")].some(el => el.shadowRoot?.textContent.includes("PERSIMMON")));

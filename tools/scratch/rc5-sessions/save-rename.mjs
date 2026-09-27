@@ -8,17 +8,17 @@ const nb = resolve(process.argv[2] || resolve(here, "../../../lopebooks/notebook
 const browser = await chromium.launch(); const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 const errors = []; page.on("pageerror", e => errors.push(String(e)));
 await page.goto(pathToFileURL(nb).href);
-await page.waitForFunction(() => [...(window.__ojs_runtime?._variables || [])].some(v => v._name === "rc5_controller" && v._value), null, { timeout: 120000 });
+await page.waitForFunction(() => [...(window.__ojs_runtime?._variables || [])].some(v => v._name === "rc5_controller" && v._value) && document.querySelector("[data-rc5-group]")?.active, null, { timeout: 120000 });
 const names = () => page.evaluate(() => {
   const rt = window.__ojs_runtime;
   const c = [...rt._variables].find(v => v._name === "rc5_controller")._value;
-  const m = c.active.log?.module;
+  const m = document.querySelector("[data-rc5-group]").active.log?.module;
   return [...new Set([...rt._variables].filter(v => v._name === "currentModules" && v._value instanceof Map).map(v => v._value.get(m)?.name))];
 });
 // make the log exist unsaved, as a committed turn would
 await page.evaluate(async () => {
   const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-  await c.setSaved(c.active, true); await c.setSaved(c.active, false);
+  await c.setSaved(document.querySelector("[data-rc5-group]").active, true); await c.setSaved(document.querySelector("[data-rc5-group]").active, false);
 });
 await page.waitForTimeout(2000);
 console.log("unsaved, log exists:", JSON.stringify(await names()));
@@ -31,13 +31,13 @@ await link.click();
 await page.waitForTimeout(2000);
 console.log("hash:", await page.evaluate(() => location.hash));
 console.log("pane:", JSON.stringify(await page.evaluate(() => {
-  const n = [...window.__ojs_runtime.mains.keys()].find(k => k.startsWith("@rc5-sessions/"));
+  const n = [...window.__ojs_runtime.mains.keys()].find(k => k.startsWith("@robocoop5-session/"));
   const el = document.querySelector(`.lp2-pane[data-module="${n}"]`);
   return el ? el.innerText.slice(0, 160) : "no pane";
 })));
 await page.screenshot({ path: resolve(here, "out/save-rename.png"), clip: { x: 0, y: 0, width: 1400, height: 500 } });
 // the link moved the chat into a tab stack, so untick through the controller
-await page.evaluate(async () => { const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value; await c.setSaved(c.active, false); });
+await page.evaluate(async () => { const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value; await c.setSaved(document.querySelector("[data-rc5-group]").active, false); });
 await page.waitForTimeout(1500);
 console.log("after unticking:", JSON.stringify(await names()));
 console.log("errors", JSON.stringify(errors.slice(0, 5)));

@@ -362,13 +362,67 @@ code-running tools entirely. This is a behavioural fence, not a security boundar
   link href #open=@rc5-sessions/…  -> pane renders session_meta
   after unticking:     ["main"]
   ```
-- **Every commit rebuilds the chat UI once** (the new turn variable, via the chain above). The
-  controller carries the turn state, so nothing is lost, but the transcript re-renders at the end of
-  each turn. The same happens today whenever the agent writes a module.
+- [x] **Every commit rebuilds the chat UI once.** Closed by §3b: no chat depends on `hostSetup` any more.
 - **Concurrent writes by two agents to one module** are still unchecked (§2.4).
-- **Key entry rebuilds everything.** `session` depends on `client`, so entering an OpenRouter key
-  rebuilds `rc5_controller`, dropping unsaved sessions from the picker. Saved ones come back through
-  `refresh()`. Same loss as today's single chat.
+- **Key entry rebuilds everything.** Should be closed by §3b — `rc5_controller` no longer depends on
+  `makeSession`, and a new `makeSession` is swapped under an entry by `use()` with its messages kept.
+  Unverified: no probe enters a key.
+
+## 3b. One-function builder (2026-09-27)
+
+Tom, 2026-09-26: "the core robocoop-5 module has a *ton* of setup code. Instanciating an agent should have
+an easy one function builder", then on the draft API: profiles are "additional complexity not really
+justified. We can pass a profile as a variable", "group is a better name and it should be the prefix key
+for session notebooks, defaults to robocoop5-session", and no `sessions:` option — every chat lists every
+session.
+
+The robocoop-5 notebook's single 575-line `robocoop_5` cell became `robocoop5(options)` plus small cells;
+`robocoop_5` is now `robocoop5({ settings: true, invalidation })`. The options, as documented in the
+notebook's "Adding a chat" cell: `group`, `model`, `system`, `tools`, `hooks {beforeTool, afterTool,
+beforeComplete}`, `settings`, `invalidation`. Removed: `PROFILES`, `applyProfile`, the profile picker.
+
+Decisions and why:
+
+- **The builder cell depends on constants only.** `hostSetup`/`contextSetup` re-run on every module write
+  (see [the churn note above](#3a-open-issues-found-while-building-2026-09-25)), so they moved to
+  `rc5_boot`, which the builder keeps alive with runtime-sdk `keepalive(rc5_module, "rc5_boot")` and reads
+  through the `rc5_agents` box. Alternative: the calling cell depends on `rc5_boot` — rejected, it puts the
+  rebuild back in every caller.
+- **The controller is page-wide, the shown session is per chat.** `rc5_controller` is
+  `createSessionController({ runtime })` with no agent factory; each chat passes its own to `use(entry,
+  build)`, which builds a session or swaps the agent under an idle one and keeps its messages.
+- **The guard is content-based**, so it covers any group: a write is refused into a mains module holding a
+  `session_meta` cell, into `@tomlarkworthy/robocoop-5*`, or when the content contains
+  `"robocoop-5/session"`. `test_guardTools` replaces `test_applyProfile`.
+- **A re-run cell reattaches by group** through `rc5_lastShown` (group → entry).
+
+Checks, 2026-09-27, lopebooks worktree, demo gateway (real model calls):
+
+```
+tests  test_session_controller, test_session_roundtrip, test_storableMessages, test_peekValues,
+       test_guardTools                                                     all ok
+preflight --baseline                                                        0 NEW, 0 resolved
+s6-builder  2nd chat in another module: group "reviews", system, beforeTool
+  after module write: same nodes?  {"root1":true,"root2":true,"builds":1}
+  saved as @reviews/2026-09-27-1246-b7m4
+  re-run reattached: true {"messages":8,"transcriptHasAck":true}
+  system message 0: "You are a terse reviewer. v1 …"
+s4-guardrails  three chats, one per mechanism
+  reviewer (tools filter)   reply "NO WRITE TOOL"
+  hooked (beforeTool)       "Refused by guardrail: hook says no"; hook saw ["list_values"]
+  plain (built-in guard)    "Refused by guardrail: writes to @s4-reviewer/… are not allowed …"
+s3-facade   PERSIMMON x 5 in file, x 0 in prerender; resumed reply "PERSIMMON"
+s5-branch   edit → 2/2, ‹ switches, reload opens the latest branch
+save-rename ["main"] → ["@robocoop5-session/…"] → ["main"]; link opens the session pane
+cmdk-probe  palette lists @robocoop5-session/2026-09-27-1253-ioxm
+```
+
+The reviewer in s4 still emitted a `write_file` call although the tool was not offered; the core loop
+answers such a call with `ERROR: unknown tool …` (read in core; the probe did not capture that result). Filtering `tools` removes the capability, not the model's attempt.
+
+Not done: `beforeComplete` returning `false` or `""` skips the built-in completion guards (the engine joins
+them with `??`); the doc says to return a string. Two chats cannot both host the settings panel — its
+views are single DOM nodes.
 
 ## 4. Not planned
 

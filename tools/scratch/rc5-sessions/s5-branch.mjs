@@ -16,13 +16,13 @@ const open = async url => {
   page.on("pageerror", e => errors.push(String(e)));
   await page.goto(url);
   await page.waitForFunction(() => [...(window.__ojs_runtime?._variables || [])].some(v => v._name === "rc5_controller" && v._value), null, { timeout: 120000 });
-  await page.locator('textarea[placeholder^="Message robocoop-5"]').waitFor({ timeout: 60000 });
+  await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active, null, { timeout: 60000 });
   return page;
 };
 const state = page => page.evaluate(`(${C})()`).then(() => page.evaluate(() => {
   const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-  const e = c.active;
-  return { head: e.head, turns: e.turns?.size ?? 0, chat: e.session.messages.filter(m => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content).map(m => m.role[0] + ": " + m.content.slice(0, 60)) };
+  const e = document.querySelector("[data-rc5-group]").active;
+  return { head: e.head, turns: e.turns?.size ?? 0, chat: (e.session?.messages ?? []).filter(m => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content).map(m => m.role[0] + ": " + m.content.slice(0, 60)) };
 }));
 const say = async (page, text, fill = true) => {
   const { head } = await state(page);
@@ -30,7 +30,7 @@ const say = async (page, text, fill = true) => {
   await page.keyboard.press("Enter");
   await page.waitForFunction(h => {
     const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value;
-    return !c.active.busy && c.active.head && c.active.head !== h;
+    return !document.querySelector("[data-rc5-group]").active.busy && document.querySelector("[data-rc5-group]").active.head && document.querySelector("[data-rc5-group]").active.head !== h;
   }, head, { timeout: 300000, polling: 1000 });
   return state(page);
 };
@@ -52,7 +52,7 @@ log("after ‹", JSON.stringify((await state(p1)).chat));
 await p1.locator('button[title="Next branch"]').first().click();
 await p1.waitForTimeout(500);
 await p1.locator('label:has-text("save") input[type=checkbox]').check();
-await p1.waitForFunction(() => [...window.__ojs_runtime.mains.keys()].some(k => k.startsWith("@rc5-sessions/")), null, { timeout: 10000 });
+await p1.waitForFunction(() => [...window.__ojs_runtime.mains.keys()].some(k => k.startsWith("@robocoop5-session/")), null, { timeout: 10000 });
 // show the OLDER branch before export: the reload must still open the latest one, not what was on screen
 await p1.locator('button[title="Previous branch"]').first().click();
 await p1.waitForTimeout(500);
@@ -71,7 +71,7 @@ await p2.waitForFunction(() => {
 }, null, { timeout: 60000 });
 const idx = await p2.evaluate(() => { const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value; return c.entries.findIndex(e => e.saved); });
 await p2.locator('select[title="Switch session"]').selectOption(String(idx));
-await p2.waitForFunction(i => { const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value; return c.active === c.entries[i] && c.active.session; }, idx, { timeout: 30000 });
+await p2.waitForFunction(i => { const c = [...window.__ojs_runtime._variables].find(v => v._name === "rc5_controller")._value; return document.querySelector("[data-rc5-group]").active === c.entries[i] && document.querySelector("[data-rc5-group]").active.session; }, idx, { timeout: 30000 });
 await p2.waitForTimeout(500);
 log("reload opens", JSON.stringify((await state(p2)).chat));
 log("reload branch position:", await p2.locator('button[title="Previous branch"] + span').first().textContent());
