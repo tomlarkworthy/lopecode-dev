@@ -40,6 +40,11 @@ Decide this before drafting anything. A worker's cause analysis ends in exactly 
 | A tool result misleads the agent (says "computes" when the value is wrong, a silent no-op) | a hint in the tool result | the tool in `robocoop-5-srctools` |
 | The model stalls or reasons for minutes with no output | nothing to fix in the harness; record the step time and report it | proposal only |
 
+One wiki page per topic, named for the task the agent is doing when it needs it. Do not fold a
+topic into a neighbouring page because they often occur together: researching a library (finding
+one, reading its docs and versions, choosing) is its own page; making it load offline is the
+vendoring page, read later.
+
 The system prompt is sent on every step of every session, so it costs on every call. A wiki page
 costs only when read. `write-triggers` make the read enforced rather than hoped for: a
 `write_file`/`edit_file` on `/src/…` whose content matches a trigger is refused until the session
