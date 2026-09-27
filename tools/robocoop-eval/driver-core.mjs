@@ -60,7 +60,8 @@ export async function createDriver({
 
     let page;
     try {
-      const context = await browser.newContext();
+      // setup.timezoneId — the page's zone (Playwright), so a time-zone slip shows on any machine.
+      const context = await browser.newContext(evalDef?.setup?.timezoneId ? { timezoneId: evalDef.setup.timezoneId } : {});
 
       // setup.localDisk {root, name?} — a faked File System Access directory (fake-local-disk.mjs)
       // backed by the host directory `root`: window.showDirectoryPicker() resolves to it, so the

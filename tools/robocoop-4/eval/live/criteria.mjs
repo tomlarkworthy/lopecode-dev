@@ -645,7 +645,8 @@ export const CRITERIA = {
   collected_equals(snapshot, args) {
     if (snapshot.collectError) return fail(`setup.collect threw: ${snapshot.collectError}`);
     const v = args.key != null ? snapshot.collected?.[args.key] : snapshot.collected;
-    return v === args.equals ? ok(`collected ${JSON.stringify(v)}`) : fail(`collected ${JSON.stringify(v)?.slice(0, 300)}, wanted ${JSON.stringify(args.equals)}`);
+    const what = args.key != null ? `collected.${args.key}` : "collected";
+    return v === args.equals ? ok(`${what} ${JSON.stringify(v)}`) : fail(`${what} ${JSON.stringify(v)?.slice(0, 300)}, wanted ${JSON.stringify(args.equals)}`);
   },
 };
 
