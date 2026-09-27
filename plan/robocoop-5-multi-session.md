@@ -417,6 +417,12 @@ save-rename ["main"] → ["@robocoop5-session/…"] → ["main"]; link opens the
 cmdk-probe  palette lists @robocoop5-session/2026-09-27-1253-ioxm
 ```
 
+`persist` added the same day (Tom: "if it should persist (mains them) the sessions should be a
+parameter here"). `persist: true` saves each session after its first turn — the turn is committed by the
+time `send()` resolves — and hides the per-session checkbox; the default keeps the checkbox. s6 with
+`persist: true`, 2026-09-27: `save checkbox visible: false`, mains gained `@reviews/2026-09-27-1321-5mtw`
+with no click. s3 (checkbox path) unchanged: `PERSIMMON x 5 QUINCE x 0`, resumed "PERSIMMON".
+
 The reviewer in s4 still emitted a `write_file` call although the tool was not offered; the core loop
 answers such a call with `ERROR: unknown tool …` (read in core; the probe did not capture that result). Filtering `tools` removes the capability, not the model's attempt.
 

@@ -33,7 +33,7 @@ await page.evaluate(() => {
     .define("reviewer", ["robocoop5", "invalidation"], (robocoop5, invalidation) => {
       window.__builds++;
       return robocoop5({
-        group: "reviews", invalidation,
+        group: "reviews", persist: true, invalidation,
         system: "You are a terse reviewer. " + tag,
         hooks: { beforeTool: (tool) => { window.__hooked.push(tool.id); return null; } }
       });
@@ -70,8 +70,8 @@ log("after module write: same nodes?", JSON.stringify(await page.evaluate(() => 
   builds: window.__builds
 }))));
 
-// save the second chat's session
-await page.locator('#second-chat label:has-text("save") input[type=checkbox]').check();
+// persist: true saves the session after its first turn, with no checkbox shown
+log("save checkbox visible:", await page.locator('#second-chat label:has-text("save")').isVisible());
 await page.waitForFunction(() => [...window.__ojs_runtime.mains.keys()].some(k => k.startsWith("@reviews/")), null, { timeout: 15000 });
 log("mains", JSON.stringify([...await page.evaluate(() => [...window.__ojs_runtime.mains.keys()].filter(k => k.startsWith("@")))]));
 
