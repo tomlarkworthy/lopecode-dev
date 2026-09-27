@@ -6,11 +6,13 @@
 import pomodoroButton from "./rc5t/pomodoro-button.mjs";
 import forecastWindow from "./rc5t/forecast-window.mjs";
 import libraryApiFromDocs from "./rc5t/library-api-from-docs.mjs";
+import explainSelfSave from "./rc5t/explain-self-save.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
 forecastWindow,
 libraryApiFromDocs,
+explainSelfSave,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said

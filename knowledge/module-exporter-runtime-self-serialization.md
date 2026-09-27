@@ -48,9 +48,11 @@ Each `<script>` block holds content used to serve internal network requests loca
 | Version | Status | File | Load-bearing for |
 |---|---|---|---|
 | `@tomlarkworthy/exporter` (v1) | Retired | (purged from repo) | Older notebook re-exports |
-| `@tomlarkworthy/exporter-2` | Production | `lopecode/notebooks/@tomlarkworthy_exporter-2.html` | Bundled into nearly every notebook (query `kb_contains_module` in the structured kb); pairing-channel `export_notebook` / `fork_notebook` |
-| `@tomlarkworthy/exporter-3` | Published-but-not-load-bearing | `lopecode/notebooks/@tomlarkworthy_exporter-3.html` (Apr 6) | The exporter-3 notebook itself |
-| `@tomlarkworthy/exporter-3` (staging) | Development | `lopebooks/notebooks/@tomlarkworthy_exporter-3.html` (Apr 11) | Adds `exportModuleJS` for file-sync work; not yet promoted to lopecode/ |
+| `@tomlarkworthy/exporter-2` | Legacy | `lopecode/notebooks/@tomlarkworthy_exporter-2.html` | Embedded in 1 of 51 lopecode and 9 of 196 lopebooks notebooks (counted 2026-09-28) |
+| `@tomlarkworthy/exporter-3` | Production | `lopecode/notebooks/@tomlarkworthy_exporter-3.html` | Embedded in all 51 lopecode and 196 lopebooks notebooks (2026-09-28); imported by `save-in-place` (Save) and `lopepage-2` (the Download and Fork menu items, via `downloadAnchor` / `forkAnchor`) |
+
+This table said until 2026-09-28 that exporter-2 was production and exporter-3 not load-bearing. The
+robocoop-5 agent read that version while explaining how a notebook saves itself (rc5-train w8).
 
 `bulk-jumpgate` pulls latest module versions from Observable, so re-exporting any notebook drifts it forward through this series. (See `bulk-exporting-lopebooks.md` — *"Older notebooks that used older module versions (exporter v1, editor-2/3/4) will grow 20–40% when re-exported."*)
 

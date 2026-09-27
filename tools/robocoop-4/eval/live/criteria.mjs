@@ -648,7 +648,51 @@ export const CRITERIA = {
     const what = args.key != null ? `collected.${args.key}` : "collected";
     return v === args.equals ? ok(`${what} ${JSON.stringify(v)}`) : fail(`${what} ${JSON.stringify(v)?.slice(0, 300)}, wanted ${JSON.stringify(args.equals)}`);
   },
+
+  // rc5t-explain-self-save: the assistant text matches a regex.
+  answer_matches(snapshot, args) {
+    const re = new RegExp(args.pattern, args.flags || "");
+    return re.test(answerText(snapshot))
+      ? ok(`answer matches /${args.pattern}/`)
+      : fail(`answer does not match /${args.pattern}/`);
+  },
+
+  // rc5t-explain-self-save: every `backticked` bare identifier in
+  // the answer (not a module id, path or member call, not `allow`ed) must occur in the notebook: a
+  // variable name in some live module (snapshot.modules covers every named module), a word in some
+  // variable's source (inner helpers such as sip_save's `acquire`), or a live pid (`_1c9i265`, from
+  // setup.collect's `pids`; run eval-fixed-2 cited sip_save as the invented `_lbnlco`). At least
+  // `minKnown` must be variable names. Catches an explanation that invents cell names.
+  answer_cites_real_cells(snapshot, args = {}) {
+    const names = new Set();
+    for (const m of Object.values(snapshot.modules || {}))
+      for (const v of m.variables || []) if (v.name) names.add(v.name.replace(/^(viewof|mutable|initial) /, ""));
+    const allow = new RegExp(args.allow || "^$");
+    const cited = new Set();
+    for (const [, t] of answerText(snapshot).matchAll(/`([^`\n]+)`/g)) {
+      const id = t.trim().replace(/^(viewof|mutable) /, "").replace(/\(\)$/, "");
+      if (/^[A-Za-z_$][\w$]*$/.test(id)) cited.add(id);
+    }
+    const known = [...cited].filter((n) => names.has(n));
+    let src = null;
+    const inSource = (n) => {
+      src ??= Object.values(snapshot.modules || {}).flatMap((m) => (m.variables || []).map((v) => v.source || "")).join("\n");
+      return new RegExp(`(^|[^\\w$])${n.replace(/\$/g, "\\$")}([^\\w$]|$)`).test(src);
+    };
+    // pids are not in snapshot.modules; setup.collect returns every live variable's pid
+    const pids = new Set(Array.isArray(snapshot.collected?.pids) ? snapshot.collected.pids : []);
+    const isPid = (n) => pids.has(n);
+    const unknown = [...cited].filter((n) => !names.has(n) && !allow.test(n) && !isPid(n) && !inSource(n));
+    const min = args.minKnown ?? 1;
+    if (unknown.length) return fail(`cites names that are no cell: ${unknown.join(", ")} (real: ${known.join(", ")})`);
+    if (known.length < min) return fail(`cites ${known.length} real cell(s), need ${min}: ${known.join(", ")}`);
+    return ok(`cites ${known.length} real cell(s): ${known.join(", ")}`);
+  },
 };
+
+function answerText(s) {
+  return (s.conversation || []).filter((m) => m.role === "assistant" && typeof m.content === "string").map((m) => m.content).join("\n");
+}
 
 function escapeRe(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
