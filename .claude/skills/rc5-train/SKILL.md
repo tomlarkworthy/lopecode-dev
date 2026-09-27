@@ -49,6 +49,22 @@ page + trigger over a prompt line for anything construct-specific.
 The gate covers module writes only. A problem that happens through `eval_js` (a mutation, a global
 side-effect) cannot be gated today; proposing to extend the gate is a valid bug-fix proposal.
 
+**Take the idiom from the corpus, not from memory.** The ~220 notebooks in `lopecode/notebooks`
+and `lopebooks/notebooks` are the record of what works here. Any fix that tells the agent how to
+write something (a prompt line, a wiki example, a tool hint, the eval's `oracle`) must quote a
+real cell that already does it, cited as `module.cell (notebook file)`, and should be copied from
+that cell rather than written fresh (`writing-cells-in-module-source.md` copied its `mutable`
+example from `@spond/revised-sars-cov-2-analytics-page`). Count the competing forms before
+choosing one; for example, on 2026-09-27 an `on…=${…}` handler appeared inside `htl.html` in 247
+notebook files and inside the stdlib `html` in 6:
+```
+grep -lE '<pattern A>' lopecode/notebooks/*.html lopebooks/notebooks/*.html | wc -l
+grep -lE '<pattern B>' lopecode/notebooks/*.html lopebooks/notebooks/*.html | wc -l
+```
+Counts include embedded copies of the same module, so also name the distinct modules. Read a
+cited cell with `bun tools/lope-reader.ts <file> --get-module <module>`. If the corpus has no
+precedent, say so in the proposal: a novel idiom needs the user's judgement, not just a passing eval.
+
 **No tactical fixes.** A change must hold for tasks other than the one that exposed it. "When
 building a game-theory model, use sliders" is tactical. "A viewof value cell is
 `(G, v) => G.input(v)`; reading `.value` does not react" is general. The test: would the change
@@ -64,7 +80,8 @@ be written the same way if the prompt had been about a different domain?
    unpinned spawn on Fable), no `isolation` (they share the repo read-only and write only under
    their own dir). Prompt = the worker brief below with GOAL, DIR and NAME filled in. ≤ 4 workers:
    each runs a Chromium and real model calls.
-4. **Aggregate.** When all return, read each `DIR/proposal.md`. Merge proposals that name the same
+4. **Aggregate.** When all return, read each `DIR/proposal.md`. Open each cited precedent and
+   check the fix matches it; a proposal whose idiom has no precedent goes to the user flagged. Merge proposals that name the same
    cause (count them: "found by 3 workers" is the strongest signal). Present a numbered list:
    verified changes first, then unverified, then model-only observations.
 5. **Stop for approval.** Apply nothing unapproved.
@@ -164,6 +181,7 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    change: <diff of DIR/<m>.js or the page, against the sandbox's original>
    eval: DIR/eval.mjs (id, which criterion catches the defect); DIR/probe.mjs if any
    verified: oracle score; base score -> fixed score; probe fail -> pass
+   precedent: <module.cell (file) the idiom was copied from; counts of the competing forms; or "none">
    generality: <why this is not specific to GOAL>
    not verified: <anything you could not check>
    ```
