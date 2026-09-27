@@ -4,6 +4,8 @@
 // While it runs, out/<name>.live.log gets one line per message. Writing a reason into out/<name>.abort stops
 // the turn (the session is aborted, outcome "aborted: <reason>") and the trace is still dumped.
 // --answer answers the agent's request_files card: comma-separated local file paths, a URL, or "skip".
+// --answer-via chat|card types a URL answer the way a person would (into the chat box, or the card's URL
+// field) instead of handing it to the ask channel directly.
 import { chromium } from "playwright";
 import { writeFileSync, mkdirSync, appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -16,6 +18,7 @@ const model = flag("--model", null);
 const timeoutMin = Number(flag("--timeout-min", 20));
 const name = flag("--out", "run-" + new Date().toISOString().replace(/[:.]/g, "-"));
 const answer = flag("--answer", null);
+const answerVia = flag("--answer-via", "bus");
 const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
 const prompt = args.join(" ");
 if (!prompt) { console.error("usage: run-one.mjs <prompt>"); process.exit(2); }
@@ -76,6 +79,13 @@ for (let n = 0; ; ) {
   if (asked != null) {
     let given;
     if (!answer || answer === "skip") { given = "skip"; await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.askBus.skip()); }
+    else if (/^https?:/.test(answer) && answerVia === "chat") { given = answer + " (typed in chat)"; await ta.fill(answer); await ta.press("Enter"); }
+    else if (/^https?:/.test(answer) && answerVia === "card") {
+      given = answer + " (card)";
+      const card = page.locator('[data-rc5-group] div:has(> div > b:text-matches("asking for"))').last();
+      await card.locator("input[type=url]").fill(answer);
+      await card.locator('button:text("Use URL")').click();
+    }
     else if (/^https?:/.test(answer)) { given = answer; await page.evaluate(u => document.querySelector("[data-rc5-group]").active.session.askBus.respond([u]), answer); }
     else {
       const files = answer.split(",").map(f => ({ name: f.split("/").pop(), b64: readFileSync(resolve(f)).toString("base64") }));

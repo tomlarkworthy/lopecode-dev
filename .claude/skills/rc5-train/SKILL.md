@@ -134,6 +134,9 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    node tools/scratch/rc5-evals/run-one.mjs --notebook DIR/notebook.html --out NAME-before \
      --timeout-min 20 "<GOAL>"
    ```
+   If the agent may ask for files (`request_files`), add `--answer <local paths | URL | skip>`
+   (and `--answer-via chat|card` to deliver a URL the way a person would); the live log records
+   `ASK <prompt> -> <answer>`. Without `--answer` a request is skipped.
    Watch `tools/scratch/rc5-evals/out/NAME-before.live.log` with `Monitor` (one line per message;
    `END <outcome>` when it stops). The full trace lands in `out/NAME-before.json`.
 3. **Abort early** when the run is derailed by something you can already name: the same error
