@@ -10,6 +10,7 @@ import explainSelfSave from "./rc5t/explain-self-save.mjs";
 import stateSurvivesSave from "./rc5t/state-survives-save.mjs";
 import importSurvivesExport from "./rc5t/import-survives-export.mjs";
 import citiesTable from "./rc5t/cities-table.mjs";
+import analogClock from "./rc5t/analog-clock.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -19,6 +20,7 @@ explainSelfSave,
 stateSurvivesSave,
 importSurvivesExport,
 citiesTable,
+analogClock,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
