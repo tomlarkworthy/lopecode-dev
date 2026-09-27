@@ -382,6 +382,84 @@ const isImportVar = v => typeof v?._name === 'string' &&
 Cosmetic leftover, not worth chasing: `@tomlarkworthy/visualizer` writes the raw name into each
 atom's `cell="viewof$amp"` attribute. Nothing reads it.
 
+### The same naming difference reaches an observer FACTORY, where it hangs nothing and errors nothing
+
+Reported 2026-09-27: "editor-5 does not work properly on the new website, but it does on the old."
+Measured, `tools/scratch/e5-shells.ts`, same notebook on both hosts:
+
+```
+old.observablehq.com   cm-editor nodes 2   errorBadges 0
+observablehq.com       cm-editor nodes 1   errorBadges 2
+```
+
+The missing one is the anonymous cell `cellEditor(title_variable, { pinned: true })`. Its host is a
+real `<div class="cell-editor">` with the shell markup in it and **no CodeMirror** — the same
+"empty editor shell" signature as the svg-lens `lookupVariable` bug above, reached by a different
+route.
+
+`cellEditor` clones `shellTemplate` through `cloneViaSandbox(template, name => …)` and switches on
+the name it is handed:
+
+```js
+if (name === 'viewof edit') { … editView = view; … syncOpen(); }
+```
+
+`shellTemplate` is the **viewed** notebook's own variables, so the compiler names them. Measured
+with `tools/scratch/e5-template.ts`:
+
+```
+old   shellTemplate: editedCell, viewof editedCell,  selectVariable, viewof edit,  edit, hotbar_shell
+new   shellTemplate: editedCell, viewof$editedCell, selectVariable, viewof$edit, edit, hotbar_shell
+```
+
+So the branch never fires, `editView` stays `null`, `syncOpen()` computes `open = !!(editView &&
+editView.value)` = false, and the heavy editor is never opened — **even with `pinned: true`**. No
+error, no hang, no badge: the shell renders, so every static check and the whole error-set
+comparison reads clean. Cell sets were identical (53 named cells both sides); only the cm-editor
+count separated them.
+
+**This is a class, not a one-off.** Four modules compare an observer-factory name against a
+`viewof ` spelling: `editor-5` and `editor-6` (`'viewof edit'`), `parametric-svg`
+(`'viewof svgTargetName'`, `'viewof svgTargetModule'`, `'viewof svgEditorArgs'`), `robocoop-3`
+(`'viewof robocoopPrototype'`, `'viewof agent_prompt'`, `'viewof agent_config'`,
+`'viewof agent_runtime'`).
+
+**Fixed in the boundary, not in the consumers** — `@tomlarkworthy/dataflow-templating`'s
+`instantiateDataflow`, Observable v1458 -> v1459. The clone's own wiring must keep whatever the
+platform emitted, because the template's dependents reference it; only the name handed *out* is
+canonicalised:
+
+```js
+const canonName = (n) => typeof n === "string" ? n.replace(/^(viewof|mutable)\$/, "$1 ") : n;
+…
+const t = mod.variable(observers(canonName(v._name))).define(v._name, inputs, v._definition);
+```
+
+`canonName` is the identity on every legacy name, which is what makes the classic leg a provable
+no-op rather than a hopeful one. Regression matrix, both arms captured in the same session
+(`tools/scratch/e5-fix-live.ts`, `NO_PATCH=1` for the baseline; the module is served from
+`/api/import/` on the new site and `api.observablehq.com/….js?v=4` on classic, so both are
+interceptable):
+
+```
+new      baseline cm 1, pinnedHostCm 0   ->  fixed cm 2, pinnedHostCm 1
+classic  baseline cm 2, pinnedHostCm 1   ->  fixed cm 2, pinnedHostCm 1   (identical)
+local    baseline cm 2, pinnedHostCm 1   ->  fixed cm 2, pinnedHostCm 1   (identical)
+         242 in-notebook tests, same 6 pre-existing failures; preflight same 2 findings
+published, no interception: new site cm 2, pinnedHostCm 1
+```
+
+The entry side (`value(name)`, `observe(name)`, `params`) was left alone deliberately: no caller in
+the corpus passes a `viewof`/`mutable` name into any of them — the two `module.value("mutable m")`
+hits are test fixtures on a raw runtime Module, not on an instance.
+
+**Still open on editor-5's new-site page**: 2 error badges, `save_options` and its sink
+`editor_jobs`, both `TypeError: Failed to construct 'Blob'`. That is difference (3) in the
+FileAttachment section — `Inputs.file()` yields a raw `File`, so
+`sampleFileAttachment.__proto__.__proto__.constructor` is `Blob`, and `createFileAttachment` then
+calls `new Blob(name, mimeType)`. Not fixed: it needs a platform branch on constructor arity in
+`@tomlarkworthy/fileattachments`, and that path is inert on Observable either way.
+
 ### DOM assumptions
 
 `divToVar` maps a `.observablehq` div to a variable via `div.variable` or
