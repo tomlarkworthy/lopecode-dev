@@ -3,6 +3,7 @@
 //   node tools/scratch/rc5-evals/run-one.mjs "<prompt>" [--model <id>] [--timeout-min 20] [--out name] [--notebook f.html]
 // While it runs, out/<name>.live.log gets one line per message. Writing a reason into out/<name>.abort stops
 // the turn (the session is aborted, outcome "aborted: <reason>") and the trace is still dumped.
+// --answer answers the agent's request_files card: comma-separated local file paths, a URL, or "skip".
 import { chromium } from "playwright";
 import { writeFileSync, mkdirSync, appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -14,6 +15,7 @@ const flag = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args.splice(
 const model = flag("--model", null);
 const timeoutMin = Number(flag("--timeout-min", 20));
 const name = flag("--out", "run-" + new Date().toISOString().replace(/[:.]/g, "-"));
+const answer = flag("--answer", null);
 const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
 const prompt = args.join(" ");
 if (!prompt) { console.error("usage: run-one.mjs <prompt>"); process.exit(2); }
@@ -70,6 +72,19 @@ for (let n = 0; ; ) {
   for (const m of snap.fresh) appendFileSync(liveFile, line(m) + "\n");
   n += snap.fresh.length;
   if (snap.done) break;
+  const asked = await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session?.askBus?.pending?.prompt ?? null);
+  if (asked != null) {
+    let given;
+    if (!answer || answer === "skip") { given = "skip"; await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.askBus.skip()); }
+    else if (/^https?:/.test(answer)) { given = answer; await page.evaluate(u => document.querySelector("[data-rc5-group]").active.session.askBus.respond([u]), answer); }
+    else {
+      const files = answer.split(",").map(f => ({ name: f.split("/").pop(), b64: readFileSync(resolve(f)).toString("base64") }));
+      given = files.map(f => f.name).join(",");
+      await page.evaluate(fs => document.querySelector("[data-rc5-group]").active.session.askBus.respond(
+        fs.map(f => new File([Uint8Array.from(atob(f.b64), c => c.charCodeAt(0))], f.name, { type: /\.csv$/.test(f.name) ? "text/csv" : "" }))), files);
+    }
+    appendFileSync(liveFile, "ASK " + asked + " -> " + given + "\n");
+  }
   if (existsSync(abortFile)) { outcome = "aborted: " + readFileSync(abortFile, "utf8").trim().slice(0, 300); break; }
   if (Date.now() - t0 > timeoutMin * 60000) { outcome = "timeout"; break; }
   await page.waitForTimeout(2000);
