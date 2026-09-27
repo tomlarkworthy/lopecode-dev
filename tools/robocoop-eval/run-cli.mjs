@@ -172,6 +172,7 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
       scored.steps = snapshot.steps;
       scored.durationMs = snapshot.durationMs;  // wall-clock for the turn (driver-measured)
       scored.finishReason = snapshot.finishReason ?? null;
+      if (snapshot.collected !== undefined || snapshot.collectError) scored.collected = snapshot.collectError ? { error: snapshot.collectError } : snapshot.collected;
       // Persist the full transcript — prompt optimization (and any wander/step-count analysis) needs to see
       // HOW the agent worked, not just the final scores. Without it the GEPA records can't reflect on actions.
       scored.transcript = {
