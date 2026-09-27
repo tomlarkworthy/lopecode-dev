@@ -113,8 +113,8 @@ be written the same way if the prompt had been about a different domain?
      | a tool hint | + the categories that exercise that tool |
      | system prompt, engine, core, file-sync | the full suite, on `pre` and on the canonical |
      ```
-     node tools/robocoop-5/eval/run.mjs --concurrency 4 --notebook tools/scratch/rc5-train/$RUN/pre/notebook.html --json tools/scratch/rc5-train/$RUN/pre.json
-     node tools/robocoop-5/eval/run.mjs --concurrency 4 --json tools/scratch/rc5-train/$RUN/post.json
+     node tools/robocoop-5/eval/run.mjs --model "$MODEL" --concurrency 4 --notebook tools/scratch/rc5-train/$RUN/pre/notebook.html --json tools/scratch/rc5-train/$RUN/pre.json
+     node tools/robocoop-5/eval/run.mjs --model "$MODEL" --concurrency 4 --json tools/scratch/rc5-train/$RUN/post.json
      ```
      Report per-eval before -> after. A drop on an eval is attributed to a fix by reverting that
      fix alone, not by guessing.
@@ -133,7 +133,11 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
 
 ## Worker procedure
 
-1. **Sandbox.** `tools/robocoop-5/rc5-sandbox.sh new DIR`.
+1. **Sandbox.** `tools/robocoop-5/rc5-sandbox.sh new DIR`. Set `MODEL` to the model the baseline
+   run reports (run-one's summary line, `model: …`) and pass `--model "$MODEL"` to every `run.mjs`:
+   without it `run.mjs` takes `OPENROUTER_MODEL` from `.env`, which is not the notebook's default,
+   and the eval then measures a different model from the trace. Always pass `--json` into DIR;
+   the default writes `tools/robocoop-5/eval/results/latest.json`, shared by every worker.
 2. **Baseline run**, in the background:
    ```
    node tools/scratch/rc5-evals/run-one.mjs --notebook DIR/notebook.html --out NAME-before \
@@ -174,7 +178,7 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
      spelling. `oracle` is a scripted correct solution (examples:
      `tools/robocoop-5/eval/evals-vendoring-patterns.mjs`). It must score 1.00:
      ```
-     node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --oracle \
+     node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --oracle --json DIR/oracle.json \
        --notebook DIR/notebook.html
      ```
      Under 1.00 means the eval is broken, not the agent.
@@ -188,8 +192,8 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
 7. **Verify with the eval.** The probe must pass now. Run the agent eval with the model on a
    pristine copy (`rc5-sandbox.sh new DIR/base`) and on the fixed copy:
    ```
-   node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/base/notebook.html
-   node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/notebook.html
+   node tools/robocoop-5/eval/run.mjs --model "$MODEL" --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/base/notebook.html --json DIR/eval-base.json
+   node tools/robocoop-5/eval/run.mjs --model "$MODEL" --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/notebook.html --json DIR/eval-fixed.json
    ```
    One run each side is an anecdote, not a measurement (model runs are not independent draws):
    say so. Run only your own eval: regression across the suite is the orchestrator's job (step 6
