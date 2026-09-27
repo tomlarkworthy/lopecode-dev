@@ -14,6 +14,10 @@
  *                        recording lopepage v1 is upgraded, lopepage-2 is carried as-is)
  *   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
  *   --output <path>      Where to write the exported HTML (required)
+  --pid-ref <path>     Notebook to carry persistent ids from. Defaults to the previous
+                       contents of --output. Needed when exporting to a scratch path,
+                       whose pids would otherwise all be fresh.
+  --no-pid-match       Do not carry persistent ids (see tools/lope-pid-match.ts)
  *   --hash <hash>        Hash for bootconf (default: read from the existing spec, or side-panel layout)
  *   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec)
  *   --no-carry-mains     Don't derive frame/sources from the existing spec's bootconf mains
@@ -31,6 +35,7 @@ import { chromium } from 'playwright';
 import { execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 // --- Arg parsing ---
 
@@ -49,6 +54,8 @@ function parseArgs(argv) {
     carryMains: true,
     frameExplicit: false,
     dryRun: false,
+    pidMatch: true,
+    pidRef: null,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -61,6 +68,10 @@ function parseArgs(argv) {
       options.frameExplicit = true;
     } else if (arg === '--no-carry-mains') {
       options.carryMains = false;
+    } else if (arg === '--no-pid-match') {
+      options.pidMatch = false;
+    } else if (arg === '--pid-ref' && args[i + 1]) {
+      options.pidRef = args[++i];
     } else if (arg === '--dry-run') {
       options.dryRun = true;
     } else if (arg === '--jumpgate' && args[i + 1]) {
@@ -95,6 +106,9 @@ Options:
                        recording lopepage v1 is upgraded to it, lopepage-2 is carried as-is)
   --jumpgate <path>    Path to jumpgate HTML (default: lopecode/notebooks/jumpgates.html)
   --output <path>      Where to write the exported HTML (required)
+  --pid-ref <path>     Notebook to carry persistent ids from. Defaults to the previous
+                       contents of --output.
+  --no-pid-match       Do not carry persistent ids (see tools/lope-pid-match.ts)
   --hash <hash>        Hash for bootconf (default: read from the existing spec, or side-panel layout)
   --theme <name>       Theme name, e.g. near-midnight, midnight, parchment (default: from spec or none)
   --no-carry-mains     Don't derive frame/sources from the spec's bootconf mains. Use when
@@ -481,10 +495,40 @@ async function main() {
       throw new Error('Could not read exported.source from runtime');
     }
 
+    // The reference for pid matching has to be read BEFORE the write, because the usual
+    // reference IS the file about to be overwritten.
+    const pidRef = options.pidRef
+      ? path.resolve(options.pidRef)
+      : (fs.existsSync(outputPath) ? outputPath : null);
+    const pidRefWas = pidRef && pidRef === outputPath ? fs.readFileSync(outputPath) : null;
+
     fs.writeFileSync(outputPath, exportedSource);
 
     const fileSize = fs.statSync(outputPath).size;
     log(`Saved: ${outputPath} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+
+    // A pid is contentHash(name + definition.toString()), so Observable's compiled text
+    // mints a different one for a cell the exporter had already named. Measured on this
+    // export 2026-09-27: 392 of 428 pids in 22 blocks changed with nothing else changing.
+    // Carry them back where the cell is identifiable — see tools/lope-pid-match.ts.
+    if (options.pidMatch && pidRef) {
+      const refPath = pidRefWas
+        ? path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'lope-pid-')), 'ref.html')
+        : pidRef;
+      try {
+        if (pidRefWas) fs.writeFileSync(refPath, pidRefWas);
+        const out = execFileSync('bun', ['tools/lope-pid-match.ts', outputPath, refPath, '--write'], {
+          encoding: 'utf-8', timeout: 120000, maxBuffer: 100 * 1024 * 1024,
+        });
+        log(`pids: ${out.trim().split('\n').filter((l) => /restored across/.test(l)).join(' ') || 'no change'}`);
+      } catch (e) {
+        log(`Warning: pid matching failed, pids are fresh: ${e.message}`);
+      } finally {
+        if (pidRefWas && fs.existsSync(refPath)) fs.unlinkSync(refPath);
+      }
+    } else if (options.pidMatch) {
+      log('pids: no previous version at the output path and no --pid-ref — every pid is fresh');
+    }
 
     // Generate .json spec alongside the HTML
     const jsonPath = outputPath.replace(/\.html$/, '.json');

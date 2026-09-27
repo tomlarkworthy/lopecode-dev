@@ -143,6 +143,69 @@ Carrying mains means carrying sources, so a multi-main notebook now fetches seve
 documents per export — the rate-limit hazard `lope-bulk-jumpgate` already hits. `--no-carry-mains`
 restores the old single-source behaviour, which is also how to export one source at a time.
 
+### A jumpgate re-mints persistent ids, and now carries them back
+
+`persistentId` (runtime-sdk) is `contentHash(v._name + v._definition.toString())`, so a pid is
+a function of the **compiled text** of the cell, not of the cell's identity. Observable's
+compiler and exporter-3 lay the same cell out differently — wrapper form (`{return(x)}` against
+`{ return x; }`), brace placement, dep order, whitespace — so a jumpgate mints a new pid for a
+cell that did not change. Measured 2026-09-27 on a fresh export of
+`@tomlarkworthy/exporter-3` against the lopebooks canonical it replaces:
+
+```
+392 of 428 pids changed, across 22 of the 50 module blocks
+  exporter-3 94/160   annotate 55/55   editor-5 51/148   cell-map 48/95
+  visualizer 45/62    js-toolchain 35/36   module-map 19/53   lopepage-2 7/55
+```
+
+That matters because a pid is an address. `lp2_anchor` stores `{pid, offset}` to hold the
+viewport, annotations key on it, and `persistentIdToVariableRef` is a `Map` from it — so churn
+silently detaches stored state from the cells it pointed at, with nothing static to see.
+
+`tools/lope-pid-match.ts` carries the old pids onto the new export. **The jumpgate runs it
+automatically**, against the previous contents of `--output`:
+
+```
+bun tools/lope-pid-match.ts <new> <old> [--module @a/b] [--write] [--json]
+
+--pid-ref <path>   the reference, when --output is a scratch path with no history
+--no-pid-match     (on lope-jumpgate.js) leave every pid fresh
+```
+
+Matching is by cell **name**, the half of the hash input that does not depend on the compiler,
+and a name must be unique on both sides. Anonymous cells fall back to `cellwise.ts`'s `sig()`
+normalised body, and only when that body is unique among the anonymous cells on both sides.
+A proposal is **dropped** rather than resolved if it would collide with another cell's final pid
+or with any other top-level binding: two cells sharing a pid is worse than churn.
+
+The rewrite is an AST pass over the two sites exporter-3 emits per cell — `const <pid> =` and
+`$def("<pid>", name, deps, <pid>)`, plus `$nk`'s per-output-variable array. It is not a textual
+rename, because exporter-3's own suite contains the fixture text ``$def("_e3keep", "n", [],
+_e3keep);`` inside a template literal, which a search-and-replace would corrupt.
+
+**Held**, on that same export (`scratch/.pid-base.html` against `scratch/.pid-remap.html`):
+
+```
+392 pids restored, 0 dropped, 36 left fresh
+diff              1568 lines, = 392 x 2 sites x 2 sides, and every hunk is a pid token only
+named cell bodies 137/137 identical by sig(), dep lists identical
+preflight         3 unused-dep before, the same 3 after
+--run-tests       300 tests, 291 passed / 5 failed / 4 timeout — identical sets both ways
+second run        0 restored (idempotent)
+```
+
+The 36 left fresh are the cells that genuinely did not exist in the reference: 35 named
+(`themes.inject`, module-map's 16 `mergeModuleEntries`/`lookupModuleEntry` cells,
+observablejs-toolchain's 8 new `test_extractModuleInfo_*`, runtime-sdk's `isImportCell`,
+exporter-3's `test_additionalMainUrl_leaves_no_resolutions_pin`) and 7 anonymous whose body
+changed. A new cell **should** get a new pid, so that remainder is the correct answer rather
+than a shortfall.
+
+**What it does not do.** It cannot recover a pid for a cell that was renamed, nor for an
+anonymous cell whose body changed — the identity is genuinely unknown there, and guessing would
+point stored state at the wrong cell. `sync-module` needs none of this: it copies a block
+verbatim, so no pid is recomputed on that path.
+
 ### How lope-jumpgate.js Works Internally
 
 1. Launches Playwright Chromium with `--disable-web-security` (needed for file:// + API fetches)

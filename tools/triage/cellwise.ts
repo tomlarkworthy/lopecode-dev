@@ -90,7 +90,7 @@ export const cells = (src: string) => parseModule(src).cells;
  *  Compare the BODY — the returned expression, or the statement block when there is more
  *  than a return — as a token stream plus its comments. Wrapper shape and indentation stop
  *  being differences; code and prose stay one. */
-function sig(def: string): string {
+export function sig(def: string): string {
   const comments: acorn.Comment[] = [], tokens: acorn.Token[] = [];
   let node: any;
   try {
