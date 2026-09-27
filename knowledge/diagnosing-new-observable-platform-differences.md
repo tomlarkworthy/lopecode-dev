@@ -460,6 +460,80 @@ FileAttachment section — `Inputs.file()` yields a raw `File`, so
 calls `new Blob(name, mimeType)`. Not fixed: it needs a platform branch on constructor arity in
 `@tomlarkworthy/fileattachments`, and that path is inert on Observable either way.
 
+### `runtime._global` is a FEATURE PROBE, and the two runtimes disagree about a miss
+
+Tom, 2026-09-27: "Live editing a cell doesn't work on the new site (e.g. changing the title of
+`observablehq.com/@tomlarkworthy/editor-5` from the demo cell). It works on the old site."
+
+The editor rendered, accepted the keystrokes, and the ▶ button did nothing — the typed text stayed
+in the editor and the cell kept its old value. No error badge, no hang, nothing in the DOM.
+
+`runtime-sdk`'s `realize` turns cell source into a function, and it picks its mechanism by asking
+the runtime whether `importShim` exists:
+
+```js
+if (runtime._global('importShim')) { …es-module-shims path… } else { …eval path… }
+```
+
+`_global` is not the same function on the two runtimes, and the difference is only visible on a
+**miss**:
+
+```
+legacy      function window_global(name){ return globalThis[name] }        -> undefined
+kit (min.)  function Ye(e){ if (e in globalThis) return globalThis[e]; throw re }
+            re = the runtime's own stale sentinel, `function re(){throw re}`
+```
+
+So on notebook-kit the probe *throws* before either branch is chosen. The runtime's own
+`module_resolve` (`runtime/src/module.js:141-163`) wraps its `_global` call in try/catch for
+exactly this reason; `realize` did not. `compile_and_update` (editor-5) ends in
+`catch (e) { console.error(e) }`, and `viewof apply` only writes back when the result is a string —
+so a thrown sentinel becomes a **silent no-op**. That is the whole symptom.
+
+Fixed by wrapping the probe, in `@tomlarkworthy/runtime-sdk`'s `realize`, Observable v1403 -> v1404,
+both canonicals:
+
+```js
+const globalOrUndefined = name => {
+    try { return runtime._global(name); } catch (e) { return undefined; }
+};
+if (globalOrUndefined('importShim')) { … }
+```
+
+Both `document` and `window` inside the shim branch go through it too. On legacy and in a lopecode
+HTML `_global` never throws, so the guard is provably the identity there — which is what makes the
+classic and local legs a no-op rather than an untested claim. A/B with
+`tools/scratch/e5-edit-ab.ts` (`NO_PATCH=1` for the baseline arm; runtime-sdk is an *imported*
+module on both hosts, so its source is interceptable):
+
+```
+new      baseline  applied false  stale sentinel logged   ->  fixed  applied true, no sentinel
+classic  baseline  applied true                           ->  fixed  applied true   (identical)
+local    baseline  applied true, shim branch taken        ->  fixed  applied true   (identical)
+         in-notebook tests 245 = 239 passed / 5 failed / 1 timeout on BOTH arms, 0 differing
+         preflight vs baseline: 0 NEW, 0 resolved
+published, no interception: new site applied true
+```
+
+**The local arm had to be rebuilt to mean anything.** The first run read base 242 / fix 245, which
+looks like the fix adding three tests. It was not: `sync-module` had pushed the *current canonical*
+runtime-sdk into the fix arm while the base arm still held editor-5's older embedded copy, and the
+three extras (`test_isImportCell_shapes`, `test_importedModule_notebook_kit`,
+`test_importedModule_legacy_shapes`) are cells the canonical has and that copy lacked. Syncing the
+**unmodified** canonical into the base arm first made the pair differ by 19 lines — the guard and
+its comment, nothing else — and the counts then matched exactly. A differential whose arms differ
+in two things measures neither.
+
+**How the probe lied first, too.** `e5-edit-ab.ts` originally read the title by scanning
+`rt._variables` for `_name === "title"`, and reported `titleBefore: "Bootloader - Notebook 1.0
+stdlib"` with `applied: false` on *both* arms — the bootloader also defines `title`
+([[feedback-runtime-lookup-by-name-hits-another-modules-cell]]). Reading `title_variable._value`,
+the variable the editor is actually pointed at, is what separated the arms.
+
+**The transferable part:** any bare call to a runtime internal used as a capability check is a
+platform bug waiting to happen, because the two runtimes only have to agree on the *hit*. Grep for
+`_global(` before assuming this was the last one.
+
 ### DOM assumptions
 
 `divToVar` maps a `.observablehq` div to a variable via `div.variable` or
