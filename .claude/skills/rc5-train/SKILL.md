@@ -99,6 +99,20 @@ be written the same way if the prompt had been about a different domain?
      `node tools/robocoop-5/eval/run.mjs --category rc5-train --oracle` must stay at 1.00.
    - Re-run the no-model probes (`node tools/robocoop-5/boot-smoke.mjs`,
      `tools/scratch/rc5-sessions/s*.mjs` relevant to the change).
+   - **Regression, once for the whole batch** (workers never run it). Keep a copy of the canonical
+     from before the batch (`rc5-sandbox.sh new tools/scratch/rc5-train/$RUN/pre`). Scope by what
+     the batch touched:
+     | batch touched | model regression |
+     |---|---|
+     | only wiki pages / triggers | the `rc5-train` category (each fix's own eval), no wider sweep |
+     | a tool hint | + the categories that exercise that tool |
+     | system prompt, engine, core, file-sync | the full suite, on `pre` and on the canonical |
+     ```
+     node tools/robocoop-5/eval/run.mjs --concurrency 4 --notebook tools/scratch/rc5-train/$RUN/pre/notebook.html --json tools/scratch/rc5-train/$RUN/pre.json
+     node tools/robocoop-5/eval/run.mjs --concurrency 4 --json tools/scratch/rc5-train/$RUN/post.json
+     ```
+     Report per-eval before -> after. A drop on an eval is attributed to a fix by reverting that
+     fix alone, not by guessing.
 7. **Commit** only when the user asks (lopebooks first with `SKIP=lope-sitemap`, then the gitlink).
 
 ## Worker brief
@@ -170,7 +184,11 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --notebook DIR/notebook.html
    ```
    One run each side is an anecdote, not a measurement (model runs are not independent draws):
-   say so. If the base scores full marks, the eval does not reach the defect: fix the eval first.
+   say so. Run only your own eval: regression across the suite is the orchestrator's job (step 6
+   of its procedure), done once over the whole batch of approved fixes. A new or changed
+   `write-triggers` regex also gets a model-free false-positive count: how many corpus cells it
+   would gate that do not use the construct (grep the regex over `lopecode/notebooks/*.html
+   lopebooks/notebooks/*.html`); report it. If the base scores full marks, the eval does not reach the defect: fix the eval first.
    If the fixed copy fails differently, analyse that too; iterate up to 3 times, then report what
    you have. A `run-one.mjs --out NAME-after` run is optional, for reading the trace.
 8. **Write `DIR/proposal.md`:**
