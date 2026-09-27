@@ -109,6 +109,10 @@
   "@tomlarkworthy/codemirror-6-v2": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html"
   },
+  "@tomlarkworthy/codestrates": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_codestrates.html",
+    "upstream": null
+  },
   "@tomlarkworthy/coffeescript-demo": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html"
   },

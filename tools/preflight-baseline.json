@@ -869,6 +869,20 @@
    "kind": "unused-dep"
   }
  ],
+ "lopebooks/notebooks/@tomlarkworthy_mermaid-lens.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/mermaid-lens: test_lens_getput_putget declares NUM_RUNS (a cell here) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
  "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
@@ -1080,6 +1094,16 @@
   }
  ],
  "lopebooks/notebooks/@tomlarkworthy_observable-runtime.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/@tomlarkworthy_observablejs-reference.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
    "kind": "unused-dep"
@@ -1382,6 +1406,24 @@
   }
  ],
  "lopebooks/notebooks/@tomlarkworthy_sequencer.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/@tomlarkworthy_sheet.html": [
+  {
+   "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",
+   "kind": "missing-export"
+  },
+  {
+   "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",
+   "kind": "missing-export"
+  },
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
    "kind": "unused-dep"
@@ -2239,6 +2281,16 @@
    "kind": "unused-dep"
   }
  ],
+ "lopebooks/notebooks/tomlarkworthy_codestrates.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
  "lopebooks/notebooks/tomlarkworthy_daw.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
@@ -2494,6 +2546,28 @@
   },
   {
    "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/tomlarkworthy_spreadsheet.html": [
+  {
+   "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",
+   "kind": "missing-export"
+  },
+  {
+   "detail": "@tomlarkworthy/module-map imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",
+   "kind": "missing-export"
+  },
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/spreadsheet: references declares md (a stdlib builtin) but never uses it",
    "kind": "unused-dep"
   }
  ],
