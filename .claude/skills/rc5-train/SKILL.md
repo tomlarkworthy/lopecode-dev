@@ -51,7 +51,7 @@ costs only when read. `write-triggers` make the read enforced rather than hoped 
 has `read_file`d that page (the gate is `wikiGate` in `robocoop-5-srctools` `_fileTools`). Prefer
 page + trigger over a prompt line for anything construct-specific.
 
-The gate covers module writes only. A problem that happens through `eval_js` (a mutation, a global
+The gate covers module writes (`write_file`/`edit_file` on `/src/…`) and `attach_file`'s `url`. A problem that happens through `eval_js` (a mutation, a global
 side-effect) cannot be gated today; proposing to extend the gate is a valid bug-fix proposal.
 
 **Take the idiom from the corpus, not from memory.** The ~220 notebooks in `lopecode/notebooks`

@@ -5,10 +5,12 @@
 // Evals too long to inline (behavioural checks in setup.collect, a module-length oracle) live in rc5t/.
 import pomodoroButton from "./rc5t/pomodoro-button.mjs";
 import forecastWindow from "./rc5t/forecast-window.mjs";
+import libraryApiFromDocs from "./rc5t/library-api-from-docs.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
 forecastWindow,
+libraryApiFromDocs,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
