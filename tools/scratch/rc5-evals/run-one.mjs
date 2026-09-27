@@ -24,7 +24,10 @@ const answerVia = flag("--answer-via", "bus");
 const exportTo = flag("--export", null);
 const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
 const prompt = args.join(" ");
-if (!prompt) { console.error("usage: run-one.mjs <prompt>"); process.exit(2); }
+if (!prompt || args.some(a => a.startsWith("--"))) {
+  console.error("usage: run-one.mjs [--notebook f] [--out name] [--model m] [--timeout-min n] [--answer paths|URL|skip] [--answer-via bus|chat|card] [--export f] <prompt>" + (prompt ? "\nunknown flag in: " + prompt : ""));
+  process.exit(2);
+}
 mkdirSync(resolve(here, "out"), { recursive: true });
 
 const browser = await chromium.launch();
