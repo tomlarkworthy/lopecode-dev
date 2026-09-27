@@ -176,6 +176,11 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    - Repeated edits to the same cell: what did the agent believe that was false? That belief is
      the cause, not the last error message.
    - Step times: `t` gaps over 60s with a large `reasoning` length are model stalls.
+   - What the agent told the user (the last assistant `content`): a wrong claim there ("4 cities",
+     "persists across reopenings") is a defect even when every cell computes.
+   - The module the agent wrote: `msgs[].tool_calls[].function.arguments` hold the full `write_file`
+     content (the live log cuts at 300 chars). The last write plus later `edit_file`s is the module to
+     replay as an oracle for the negative control.
    Name one cause, then pick its row in "Where a change belongs".
 5. **Encode the defect as an eval, before changing anything.**
    - Harness bug: `DIR/probe.mjs`, driving the tools with no model (pattern:
