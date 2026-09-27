@@ -180,7 +180,9 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
 5. **Encode the defect as an eval, before changing anything.**
    - Harness bug: `DIR/probe.mjs`, driving the tools with no model (pattern:
      `tools/scratch/rc5-sessions/s14-wiki-gate.mjs`, `s10-remote-import.mjs`). Run it against the
-     sandbox: it must fail now.
+     sandbox: it must fail now. It takes the notebook path as `argv[2]` and resolves everything else
+     from the repo root (`process.cwd()`), not from its own directory: the orchestrator copies it into
+     `tools/scratch/rc5-sessions/` and runs it against the canonical.
    - Agent eval, always (except model-only): `DIR/eval.mjs`, `export default { id: "rc5t-<slug>",
      category: "rc5-train", question, criteria, oracle }`. The question is the GOAL or a narrower
      prompt that still reaches the defect. Criteria come from `tools/robocoop-4/eval/live/criteria.mjs`
