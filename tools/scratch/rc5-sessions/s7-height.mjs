@@ -1,0 +1,42 @@
+// S7: robocoop5({height}) sets the chat height; the grip resizes it; a re-run keeps the dragged size
+// until `height` itself changes.
+import { chromium } from "playwright";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+const here = dirname(fileURLToPath(import.meta.url));
+const nb = resolve(process.argv[2] || resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"));
+const browser = await chromium.launch(); const page = await browser.newPage({ viewport: { width: 1400, height: 1200 } });
+const errors = []; page.on("pageerror", e => errors.push(String(e)));
+await page.goto(pathToFileURL(nb).href);
+await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active, null, { timeout: 120000 });
+console.log("default chat height", await page.evaluate(() => document.querySelector("[data-rc5-group]").getBoundingClientRect().height));
+await page.evaluate(() => {
+  const rt = window.__ojs_runtime, m = rt.module();
+  m.import("robocoop5", rt.mains.get("@tomlarkworthy/robocoop-5"));
+  const host = document.createElement("div");
+  host.id = "h"; host.style.cssText = "position:fixed;left:0;top:0;width:700px;z-index:99999;background:#000";
+  document.body.append(host);
+  const v = m.variable({ fulfilled(x) { host.replaceChildren(x); } });
+  window.__def = h => v.define("c", ["robocoop5", "invalidation"], (r, invalidation) => r({ group: "s7", height: h, invalidation }));
+  window.__def(400);
+});
+const root = () => page.evaluate(() => { const r = document.querySelector("#h [data-rc5-group]"); return r && Math.round(r.getBoundingClientRect().height); });
+await page.waitForFunction(() => document.querySelector("#h [data-rc5-group]"));
+console.log("height: 400 ->", await root());
+const g = await page.locator('#h div[title="Drag to resize"]').boundingBox();
+await page.mouse.move(g.x + 100, g.y + 4); await page.mouse.down();
+await page.mouse.move(g.x + 100, g.y + 154, { steps: 5 }); await page.mouse.up();
+console.log("dragged +150 ->", await root());
+const ta = await page.evaluate(() => { const r = document.querySelector("#h [data-rc5-group]"), t = r.querySelector("textarea").getBoundingClientRect(), b = r.getBoundingClientRect(); return { inputInside: t.bottom <= b.bottom }; });
+console.log("input bar inside the chat:", JSON.stringify(ta));
+const old = await page.evaluate(() => document.querySelector("#h [data-rc5-group]"));
+await page.evaluate(() => window.__def(400));
+await page.waitForFunction(() => document.querySelector("#h [data-rc5-group]") && !document.querySelector("#h [data-rc5-group]").isConnected === false);
+await page.waitForTimeout(500);
+console.log("re-run, same height param ->", await root());
+await page.evaluate(() => window.__def("300px"));
+await page.waitForTimeout(500);
+console.log("re-run, height: '300px' ->", await root());
+await page.screenshot({ path: resolve(here, "out/s7.png"), clip: { x: 0, y: 0, width: 700, height: 420 } });
+console.log("errors", JSON.stringify(errors.slice(0, 5)));
+await browser.close();

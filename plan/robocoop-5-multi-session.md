@@ -423,6 +423,15 @@ time `send()` resolves — and hides the per-session checkbox; the default keeps
 `persist: true`, 2026-09-27: `save checkbox visible: false`, mains gained `@reviews/2026-09-27-1321-5mtw`
 with no click. s3 (checkbox path) unchanged: `PERSIMMON x 5 QUINCE x 0`, resumed "PERSIMMON".
 
+`height` added 2026-09-27 (Tom: "the height should be adjustable, both as a parameter, but also in the
+moment"). Default 600px, number = px or any CSS length; a grip under the input bar drags it (min 200px).
+The dragged size is kept per group in `rc5_heights`, so a re-run keeps it until the `height` argument
+changes. Replaces `height:100%` + a `max-height:60vh` log. `s7-height.mjs`:
+```
+default chat height 600      height: 400 -> 400      dragged +150 -> 550   input bar inside: true
+re-run, same height param -> 550                     re-run, height: '300px' -> 300
+```
+
 The reviewer in s4 still emitted a `write_file` call although the tool was not offered; the core loop
 answers such a call with `ERROR: unknown tool …` (read in core; the probe did not capture that result). Filtering `tools` removes the capability, not the model's attempt.
 
