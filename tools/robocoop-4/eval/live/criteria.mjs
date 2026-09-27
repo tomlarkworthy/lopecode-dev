@@ -639,6 +639,14 @@ export const CRITERIA = {
       ? ok(`${n} tool result(s) match /${args.pattern}/ (<= ${max})`)
       : fail(`${n} tool result(s) match /${args.pattern}/ (> ${max})`);
   },
+
+  // Behaviour after the turn: the eval's setup.collect runs page JS on the live page (click a button,
+  // wait, read the DOM) and returns a verdict; this compares it. args.key reads one field of an object.
+  collected_equals(snapshot, args) {
+    if (snapshot.collectError) return fail(`setup.collect threw: ${snapshot.collectError}`);
+    const v = args.key != null ? snapshot.collected?.[args.key] : snapshot.collected;
+    return v === args.equals ? ok(`collected ${JSON.stringify(v)}`) : fail(`collected ${JSON.stringify(v)?.slice(0, 300)}, wanted ${JSON.stringify(args.equals)}`);
+  },
 };
 
 function escapeRe(s) {

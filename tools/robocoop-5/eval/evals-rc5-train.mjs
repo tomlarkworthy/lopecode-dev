@@ -2,7 +2,11 @@
 // defect a worker found in a real run: the goal prompt, criteria that fail on the defect, and an
 // `oracle` reference solution that scores 1.00 under --oracle. Where the fix was a wiki page, a
 // `tool_call_matches` criterion on the page path asserts it was read.
+// Evals too long to inline (behavioural checks in setup.collect, a module-length oracle) live in rc5t/.
+import pomodoroButton from "./rc5t/pomodoro-button.mjs";
+
 export const RC5_TRAIN_EVALS = [
+pomodoroButton,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said

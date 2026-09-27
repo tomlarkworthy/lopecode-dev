@@ -116,8 +116,8 @@ be written the same way if the prompt had been about a different domain?
      | a tool hint | + the categories that exercise that tool |
      | system prompt, engine, core, file-sync | the full suite, on `pre` and on the canonical |
      ```
-     node tools/robocoop-5/eval/run.mjs --model "$MODEL" --concurrency 4 --notebook tools/scratch/rc5-train/$RUN/pre/notebook.html --json tools/scratch/rc5-train/$RUN/pre.json
-     node tools/robocoop-5/eval/run.mjs --model "$MODEL" --concurrency 4 --json tools/scratch/rc5-train/$RUN/post.json
+     node tools/robocoop-5/eval/run.mjs --model "$MODEL" --concurrency 4 --timeout 600000 --notebook tools/scratch/rc5-train/$RUN/pre/notebook.html --json tools/scratch/rc5-train/$RUN/pre.json
+     node tools/robocoop-5/eval/run.mjs --model "$MODEL" --concurrency 4 --timeout 600000 --json tools/scratch/rc5-train/$RUN/post.json
      ```
      Report per-eval before -> after. A drop on an eval is attributed to a fix by reverting that
      fix alone, not by guessing.
@@ -155,7 +155,9 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    `setup.answer` answers a request card the same way (a URL, `{files: [{name, content}]}`, or
    `"skip"`, the default).
    Watch `tools/scratch/rc5-evals/out/NAME-before.live.log` with `Monitor` (one line per message;
-   `END <outcome>` when it stops). The full trace lands in `out/NAME-before.json`.
+   `END <outcome>` when it stops). The monitor command must line-buffer and exit on END:
+   `tail -n +1 -f out/NAME-before.live.log | awk '{print substr($0,1,300); fflush()} /^END/{exit}'`
+   (`cut` block-buffers into a pipe and the monitor delivers nothing). The full trace lands in `out/NAME-before.json`.
 3. **Abort early** when the run is derailed by something you can already name: the same error
    three times, a write refused and then retried without the read, an import bound to an empty
    module, a value that is `NaN`/element-instead-of-number, a 400 from the API, a tool that keeps
@@ -187,7 +189,13 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
      what went wrong in the trace. A criterion the file lacks goes in that file (with a comment
      naming the eval that needed it), not inside `eval.mjs`.
      Write it so a *different* correct solution also passes: check values and behaviour, not
-     spelling. `oracle` is a scripted correct solution (examples:
+     spelling. Do not assume the module id: the agent picks it (w1's first check filtered on
+     `@user/` and missed a `@tomlarkworthy/pomodoro`). For behaviour (click, wait, read the DOM),
+     `setup.init` records the modules that exist, `setup.collect` (an async page expression run after
+     the turn) exercises every module created since and returns a verdict string, and
+     `collected_equals {equals: "ok"}` scores it. Worked example: `tools/robocoop-5/eval/rc5t/pomodoro-button.mjs`.
+     Also check the eval on a replay of the module the agent actually wrote (an oracle whose
+     `write_file` content is the trace's module): it must score 0. `oracle` is a scripted correct solution (examples:
      `tools/robocoop-5/eval/evals-vendoring-patterns.mjs`). It must score 1.00:
      ```
      node tools/robocoop-5/eval/run.mjs --evals-file DIR/eval.mjs --only rc5t-<slug> --oracle --json DIR/oracle.json \
@@ -212,7 +220,12 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    of its procedure), done once over the whole batch of approved fixes. A new or changed
    `write-triggers` regex also gets a model-free false-positive count: how many corpus cells it
    would gate that do not use the construct (grep the regex over `lopecode/notebooks/*.html
-   lopebooks/notebooks/*.html`); report it. If the base scores full marks, the eval does not reach the defect: fix the eval first.
+   lopebooks/notebooks/*.html`); report it. A defect the model produces only some of the time (w1:
+   bare `html` handlers in 2 of 6 base runs) cannot be shown by one base run: narrow the question
+   toward the construct, report the defect's signature count per side ("base 2/6, fixed 0/4"), and
+   let the replay-of-the-trace check above prove the eval reaches it. Read the transcript of every
+   0.00 before counting it: a timeout with no write is a model stall, not evidence against the change.
+   A model run prints only the score; the reason is `--json` → `evals[0].results[i].feedback`.
    If the fixed copy fails differently, analyse that too; iterate up to 3 times, then report what
    you have. A `run-one.mjs --out NAME-after` run is optional, for reading the trace.
 8. **Write `DIR/proposal.md`:**
