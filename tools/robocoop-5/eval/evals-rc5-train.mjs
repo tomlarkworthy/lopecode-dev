@@ -86,6 +86,7 @@ import loadingFailure from "./rc5t/loading-and-failure-message.mjs";
 import restoreUnbooted from "./rc5t/restore-unbooted-module.mjs";
 import reviewTweetExplorer from "./rc5t/review-tweet-explorer.mjs";
 import testsOrCode from "./rc5t/tests-or-code.mjs";
+import splitDataModule from "./rc5t/split-data-module.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -171,6 +172,7 @@ loadingFailure,
 restoreUnbooted,
 reviewTweetExplorer,
 testsOrCode,
+splitDataModule,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
