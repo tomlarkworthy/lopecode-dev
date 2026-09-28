@@ -4,6 +4,7 @@ triggers:
   - "^(Edit|Write|MultiEdit) .*tools/robocoop-5/eval/(fixtures|evals-vendoring-patterns)\.mjs"
   - "(^Bash |^|[;&|] )node +tools/scratch/vendor-(pattern-probe|fixture-negative-control)"
 write-triggers:
+  - "new Worker\\("
   - "(\\$def|\\.define)\\([^\\n]*\\[[^\\]\\n]*\"(topojson|vl|SQLite|mermaid|Arrow|aq)\""
 ---
 
@@ -280,6 +281,28 @@ reload → `importShim("@user/lib/index.js")`) is the obvious next experiment an
 
 Recommendation until that is tested: prefer a single bundled file. Reach for multi-file only when
 bundling is genuinely impossible, and then use the rewrite route, which is at least known to export.
+
+### 3.1 A package that runs in a Web Worker (a WASM engine)
+
+Two limits of the places a notebook runs, each measured in Chromium:
+
+```
+2026-08-09  file:// and GitHub Pages   crossOriginIsolated false, typeof SharedArrayBuffer undefined,
+                                       postMessage(shared WebAssembly.Memory) -> DataCloneError
+2026-09-26  file://                    new Worker(blobURL, {type: "module"}) fires error at once;
+                                       new Worker(blobURL) (classic) and a data: module worker post their message
+```
+
+So a multi-threaded WASM build, which shares memory between its threads, cannot start; take the
+package's single-threaded build. The notebook's blob URLs are `blob:null/…`, so a worker built from
+an attachment is spawned classic: bundle its entry with esbuild `--format=iife`. A library that
+hard-codes `{type: "module"}` needs its worker factory replaced (`tools/monty/monty-module.js` `_pool`
+does this for `@pydantic/monty`). A worker that fetches its `.wasm` from a CDN fails offline; hand it
+the attachment's bytes or blob URL instead.
+
+Not tested here: a chess engine specifically. The agent proposed Stockfish 16 in a pairing session
+on 2026-09-28 after checking only that the npm package existed; which of its builds are
+single-threaded was not checked.
 
 ## 4. Gzip
 

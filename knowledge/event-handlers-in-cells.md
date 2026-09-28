@@ -7,9 +7,10 @@ write-triggers:
   - "<button\\b"
   - "Inputs\\.button\\("
   - "Inputs\\.number\\(\\s*\\{[^}]*\\b(min|max)\\s*:"
+  - "addEventListener\\(\\s*[\"']pointer(down|up|move)[\"']"
 ---
 
-# Event handlers and buttons in cells: htl.html, not html; a button that acts on another cell's input; a download button; two inputs that update each other; limiting a number box to a range
+# Event handlers and buttons in cells: htl.html, not html; a button that acts on another cell's input; a download button; two inputs that update each other; a custom control (pad, canvas); limiting a number box to a range
 
 A cell that builds a clickable element and passes it a function (`onclick=${() => …}`) must build it
 with `htl.html`. The bare `html` built-in in a Lopecode notebook is the legacy stdlib template: it
@@ -206,6 +207,28 @@ A listener cell that writes each box's converted value into the other box's `.va
 converter eval, and this page recommended it until 2026-09-28. It leaves no single value to depend
 on: the `fahrenheit` value cell does not update when °C is typed, because setting `.value` dispatches
 nothing (follows from the no-echo behaviour above; not measured separately).
+
+## A custom control: set `.value`, then dispatch `input`
+
+A `viewof` cell can return any element: a pad, a canvas, an svg. The runtime reads the element's
+`.value` when the element dispatches `input`, so the value has to be set before the event:
+
+```js
+el.addEventListener("pointerdown", () => {
+  el.value = el.value + 1;                              // first
+  el.dispatchEvent(new Event("input", {bubbles: true})); // then
+});
+```
+
+Observed (robocoop-5 pairing, drum pad, 2026-09-28): the agent's pad dispatched `input` and then set
+`.value`, so each hit showed the previous hit's value. Every cell computed and the write reported no
+error. The user found it by playing the pad. `try_control` now presses a custom control with the
+pointer (down, up, click at its centre) when no `value` is given, and names this cause when the
+element's `.value` moved but the value cell did not. Probe `tools/scratch/rc5-sessions/s69-try-control-presses-custom-view.mjs`
+builds both orders: the lagging pad is flagged, the other reports `hits 0 → 1`.
+
+`setPointerCapture` inside a synthetic or already-released pointer event throws `NotFoundError`
+(seen in the same session, uncaught). Wrap it in `try`, or leave it out for a press that does not drag.
 
 ## Limiting a number box: the range is the first argument
 
