@@ -23,6 +23,8 @@ import typedExpressionPlot from "./rc5t/typed-expression-plot.mjs";
 import colourPalette from "./rc5t/colour-palette.mjs";
 import mortgageSliders from "./rc5t/mortgage-sliders.mjs";
 import summariseWithChatModel from "./rc5t/summarise-with-chat-model.mjs";
+import kanbanDragPersist from "./rc5t/kanban-drag-persist.mjs";
+import drawingPad from "./rc5t/drawing-pad.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -45,6 +47,8 @@ typedExpressionPlot,
 colourPalette,
 mortgageSliders,
 summariseWithChatModel,
+kanbanDragPersist,
+drawingPad,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said

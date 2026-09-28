@@ -144,8 +144,12 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
 2. **Baseline run**, in the background:
    ```
    node tools/scratch/rc5-evals/run-one.mjs --notebook DIR/notebook.html --out NAME-before \
-     --timeout-min 20 "<GOAL>"
+     --timeout-min 20 --model xiaomi/mimo-v2.5-pro "<GOAL>"
    ```
+   run-one uses the harness key (`OPENROUTER_API_KEY` from env or `tools/robocoop-4/.env`), the
+   same one `run.mjs` uses. Before 2026-09-28 it set no key, so every worker run went through the
+   public demo gateway and used up its shared daily quota; `429 … Come back tomorrow` is that
+   gateway, not the key. Never pass `--demo` for training.
    If the agent may ask for files (`request_files`), add `--answer <local paths | URL | skip>`
    (and `--answer-via chat|card` to deliver a URL the way a person would); the live log records
    `ASK <prompt> -> <answer>`. Without `--answer` a request is skipped. When the user would expect

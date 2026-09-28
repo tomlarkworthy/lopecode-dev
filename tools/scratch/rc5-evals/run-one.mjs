@@ -22,12 +22,24 @@ const name = flag("--out", "run-" + new Date().toISOString().replace(/[:.]/g, "-
 const answer = flag("--answer", null);
 const answerVia = flag("--answer-via", "bus");
 const exportTo = flag("--export", null);
+const demo = args.includes("--demo") ? (args.splice(args.indexOf("--demo"), 1), true) : false;
 const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
 const prompt = args.join(" ");
 if (!prompt || args.some(a => a.startsWith("--"))) {
-  console.error("usage: run-one.mjs [--notebook f] [--out name] [--model m] [--timeout-min n] [--answer paths|URL|skip] [--answer-via bus|chat|card] [--export f] <prompt>" + (prompt ? "\nunknown flag in: " + prompt : ""));
+  console.error("usage: run-one.mjs [--demo] [--notebook f] [--out name] [--model m] [--timeout-min n] [--answer paths|URL|skip] [--answer-via bus|chat|card] [--export f] <prompt>" + (prompt ? "\nunknown flag in: " + prompt : ""));
   process.exit(2);
 }
+// Without a key the chat runs in demo mode through the public gateway, whose daily quota is shared with
+// real users ("429 … Come back tomorrow"). Use the eval harness's key unless --demo asks for that path.
+const envKey = () => {
+  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
+  for (const f of ["../../robocoop-5/.env", "../../robocoop-4/.env", "../../../.env"]) {
+    try { const m = /^OPENROUTER_API_KEY=["']?([^"'\n]+)/m.exec(readFileSync(resolve(here, f), "utf8")); if (m) return m[1].trim(); } catch {}
+  }
+  return null;
+};
+const apiKey = demo ? null : envKey();
+if (!demo && !apiKey) { console.error("run-one: no OPENROUTER_API_KEY in env or tools/robocoop-4/.env; pass --demo to use the public demo gateway"); process.exit(2); }
 mkdirSync(resolve(here, "out"), { recursive: true });
 
 const browser = await chromium.launch();
@@ -38,7 +50,8 @@ page.on("pageerror", e => consoleErrors.push({ t: Date.now(), msg: String(e).sli
 // counted, not listed, so a real page error is not buried under it.
 let noise = 0;
 page.on("console", m => { if (m.type() !== "error") return; const t = m.text(); if (/^error building module dependancy map/.test(t)) return void noise++; consoleErrors.push({ t: Date.now(), msg: t.slice(0, 300) }); });
-if (model) await page.addInitScript(m => { try { localStorage.setItem("robocoop4_model", JSON.stringify(m)); } catch {} }, model);
+if (apiKey) await page.addInitScript(k => { try { localStorage.setItem("OPENROUTER_API_KEY", k); } catch {} }, apiKey);
+if (model) await page.addInitScript(m => { try { localStorage.setItem("robocoop4_model", m); } catch {} }, model);
 await page.goto(pathToFileURL(nb).href);
 await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session, null, { timeout: 120000 });
 const modelShown = await page.evaluate(() => [...document.querySelector("[data-rc5-group]").querySelectorAll("div")].map(d => d.textContent).find(t => t.startsWith("model: ")));
