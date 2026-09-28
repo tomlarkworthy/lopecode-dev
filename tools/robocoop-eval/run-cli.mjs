@@ -2,6 +2,7 @@
 //   runEvalCli({ argv, evals, createDriver, defaultNotebook, resultsDir, envCandidates, extraFlags })
 // Flags: [--only <id>] [--ids <a,b>] [--category <cat>] [--model <m>] [--timeout <ms>] [--headed]
 //        [--json <path>] [--fail-under <0..1>] [--notebook <path>] [--concurrency <n>]
+//        [--extend <n>]  a turn that hits its step cap while progressing gets up to n more turns (default 1)
 //        + any harness extraFlags (booleans).
 
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -31,7 +32,7 @@ function loadEnv(candidates) {
 function parseArgs(argv, extraFlags) {
   const flags = {
     only: null, ids: null, category: null, model: null, timeout: null,
-    headed: false, json: null, failUnder: 0, notebook: null, concurrency: 1,
+    headed: false, json: null, failUnder: 0, notebook: null, concurrency: 1, extend: 1,
   };
   for (const f of extraFlags) flags[f.key] = false;
   for (let i = 0; i < argv.length; i++) {
@@ -47,6 +48,7 @@ function parseArgs(argv, extraFlags) {
       case '--fail-under': flags.failUnder = Number(argv[++i]); break;
       case '--notebook': flags.notebook = argv[++i]; break;
       case '--concurrency': flags.concurrency = Number(argv[++i]); break;
+      case '--extend': flags.extend = Number(argv[++i]); break;
       default: {
         const extra = extraFlags.find((f) => f.flag === a);
         if (extra) { flags[extra.key] = true; break; }
@@ -93,7 +95,7 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
   console.log(`notebook: ${notebookPath}`);
   console.log(`evals:    ${evals.length}\n`);
 
-  const driverOpts = { notebookPath, apiKey, model, headed: flags.headed };
+  const driverOpts = { notebookPath, apiKey, model, headed: flags.headed, extend: flags.extend };
   for (const f of extraFlags) driverOpts[f.key] = flags[f.key];
   if (flags.timeout) driverOpts.timeoutMs = flags.timeout;
   const driver = await createDriver(driverOpts);
@@ -131,7 +133,7 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
           // page), page.evaluate never returns — Playwright puts no default timeout on it — and the
           // run hangs with no output. Observed 2026-08-30: a deepseek-v4-flash run sat 44min against a
           // 30min cap with OpenRouter usage flat to 9 decimal places, i.e. zero calls in flight.
-          const deadlineMs = (flags.timeout || 180000) + 300000;
+          const deadlineMs = (flags.timeout || 180000) * (1 + flags.extend) + 300000;
           let deadlineTimer;
           const deadline = new Promise((_, rej) => {
             deadlineTimer = setTimeout(
@@ -172,6 +174,7 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
       scored.steps = snapshot.steps;
       scored.durationMs = snapshot.durationMs;  // wall-clock for the turn (driver-measured)
       scored.finishReason = snapshot.finishReason ?? null;
+      if (snapshot.extensions?.length) scored.extensions = snapshot.extensions;
       if (snapshot.collected !== undefined || snapshot.collectError) scored.collected = snapshot.collectError ? { error: snapshot.collectError } : snapshot.collected;
       // Persist the full transcript — prompt optimization (and any wander/step-count analysis) needs to see
       // HOW the agent worked, not just the final scores. Without it the GEPA records can't reflect on actions.
@@ -189,7 +192,8 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
       const capped = /session\.send timed out after \d+ms/.test(snapshot.error || "");
       console.log(
         `${statusLabel(scored)}  ${scored.id}  ${scored.aggregate.toFixed(2)}  ` +
-        `steps=${snapshot.steps}  (${scored.passed}/${scored.total})${capped ? "  [turn cap — lower bound]" : ""}`,
+        `steps=${snapshot.steps}  (${scored.passed}/${scored.total})${capped ? "  [turn cap — lower bound]" : ""}` +
+        (snapshot.extensions?.length ? "  [extend: " + snapshot.extensions.map((x) => (x.granted ? "+" : "no, ") + x.why).join("; ") + "]" : ""),
       );
       // An oracle run scores the eval's own reference solution: anything below 1.00 is a BROKEN EVAL
       // (unsatisfiable criterion, drifted ground truth), so print the failing criteria immediately.

@@ -20,6 +20,7 @@
 // The api key is NEVER logged.
 
 import { chromium } from "playwright";
+import { judgeProgress, CONTINUE_PROMPT } from "./progress.mjs";
 
 export async function createDriver({
   notebookPath,
@@ -30,6 +31,7 @@ export async function createDriver({
   headed = false,
   oracle = false,
   harness,
+  extend = 0,
 } = {}) {
   if (!notebookPath) throw new Error("createDriver requires notebookPath");
   if (!apiKey) throw new Error("createDriver requires apiKey");
@@ -370,7 +372,7 @@ export async function createDriver({
       // than that or a healthy turn takes the terminate path. 180 s; the freeze watchdog covers a
       // page that is actually stuck long before this.
       const WEDGE_MARGIN_MS = 180000;
-      const wedged = new Promise((r) => { wedgeTimer = setTimeout(() => r("__wedged__"), timeoutMs + WEDGE_MARGIN_MS); });
+      const wedged = new Promise((r) => { wedgeTimer = setTimeout(() => r("__wedged__"), timeoutMs * (1 + extend) + WEDGE_MARGIN_MS); });
       // A page frozen by one synchronous tool call (ode 2026-09-04: 19, 28 and 21 min grid searches in
       // eval_js) used to hold the turn until that clock. A heartbeat evaluate every 15 s now detects
       // the freeze; unanswered for freezeMs (default 5 min) it triggers the same recovery early.
@@ -400,7 +402,7 @@ export async function createDriver({
       });
       try {
       const evaluated = page.evaluate(
-        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume, oracleSteps, answer }) => {
+        async ({ question, model, timeoutMs, targetModules, followups, forceModulePrefix, settleMs, resume, oracleSteps, answer, extend, judgeSrc, continuePrompt }) => {
           const reg = globalThis.__ojs_runtime;
 
           function allVariables() {
@@ -507,10 +509,9 @@ export async function createDriver({
             result.ok = false;
             result.error = "session unavailable or has no send()";
           } else {
-            let timer;
-            const timeout = new Promise((_, rej) => {
-              timer = setTimeout(() => rej(new Error("session.send timed out after " + timeoutMs + "ms")), timeoutMs);
-            });
+            let timer, rejTimeout;
+            const arm = () => { clearTimeout(timer); timer = setTimeout(() => rejTimeout(new Error("session.send timed out after " + timeoutMs + "ms")), timeoutMs); };
+            const timeout = new Promise((_, rej) => { rejTimeout = rej; arm(); });
             // setup.answer answers a request_files card (robocoop-5 askBus): a URL string, {files: [{name,
             // content, type?}]}, or "skip". Unset = skip, so an agent that asks can never hang an eval.
             result.asks = [];
@@ -534,9 +535,29 @@ export async function createDriver({
                 for (const m of resume) session.messages.push(m);
               }
               const prompts = resume ? [question || null] : [question, ...(followups || [])];
-              let acc = 0, lastFinish = null, usage = null;
+              let acc = 0, lastFinish = null, usage = null, lastTurn = null, turnStart = 0;
               for (const p of prompts) {
+                turnStart = session.messages?.length ?? 0;
                 const turn = await Promise.race([session.send(p), timeout]);
+                lastTurn = turn;
+                if (turn && typeof turn === "object") {
+                  if (typeof turn.steps === "number") acc += turn.steps;
+                  if (turn.finishReason != null) lastFinish = turn.finishReason;
+                  if (turn.usage) usage = turn.usage;
+                }
+              }
+              // Trainer-only: a turn that hit its step cap while still progressing gets another turn
+              // (and another timeoutMs), up to `extend` times. Looping or stuck turns are not extended.
+              const judge = extend > 0 ? new Function("return (" + judgeSrc + ")")() : null;
+              result.extensions = [];
+              while (judge && lastFinish === "max_steps" && result.extensions.length < extend) {
+                const verdict = judge(lastTurn?.turnMessages ?? session.messages?.slice(turnStart));
+                result.extensions.push({ granted: verdict.progressing, why: verdict.why });
+                if (!verdict.progressing) break;
+                arm();
+                turnStart = session.messages?.length ?? 0;
+                const turn = await Promise.race([session.send(continuePrompt), timeout]);
+                lastTurn = turn;
                 if (turn && typeof turn === "object") {
                   if (typeof turn.steps === "number") acc += turn.steps;
                   if (turn.finishReason != null) lastFinish = turn.finishReason;
@@ -670,7 +691,8 @@ export async function createDriver({
         },
         { question, model, timeoutMs, targetModules, followups: evalDef.followups || [],
           forceModulePrefix: harness.forceModulePrefix, settleMs: harness.settleMs ?? 800, resume,
-          oracleSteps: oracle ? (evalDef.oracle || []) : null, answer: evalDef?.setup?.answer ?? null },
+          oracleSteps: oracle ? (evalDef.oracle || []) : null, answer: evalDef?.setup?.answer ?? null,
+          extend: oracle ? 0 : extend, judgeSrc: judgeProgress.toString(), continuePrompt: CONTINUE_PROMPT },
       );
       const raced = await Promise.race([evaluated.then((v) => ({ v })), wedged, frozen]);
       if (raced === "__wedged__") {

@@ -150,6 +150,14 @@ tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
    same one `run.mjs` uses. Before 2026-09-28 it set no key, so every worker run went through the
    public demo gateway and used up its shared daily quota; `429 … Come back tomorrow` is that
    gateway, not the key. Never pass `--demo` for training.
+   A turn that ends on its 40-step cap (`finishReason: max_steps`) is continued once when
+   `judgeProgress` (`tools/robocoop-eval/progress.mjs`) says it was still progressing. That means
+   a write landed in its last 12 calls, or, for a turn with no writes, ¾ of those calls are distinct.
+   The judge refuses when one call repeats 3 times or the last 6 results all failed. The live log
+   shows `EXTEND <why>` or `NO-EXTEND <why>`, and each granted extension adds `--timeout-min`.
+   `run.mjs` does the same (`extensions` in each result row, `[extend: …]` on the summary line).
+   `--extend 0` turns it off, `--extend N` allows N continuations. This lives in the trainer, not the
+   product: a user at the 40-step cap still has to type "continue".
    If the agent may ask for files (`request_files`), add `--answer <local paths | URL | skip>`
    (and `--answer-via chat|card` to deliver a URL the way a person would); the live log records
    `ASK <prompt> -> <answer>`. Without `--answer` a request is skipped. When the user would expect

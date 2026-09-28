@@ -8,7 +8,11 @@
 // --answer answers the agent's request_files card: comma-separated local file paths, a URL, or "skip".
 // --answer-via chat|card types a URL answer the way a person would (into the chat box, or the card's URL
 // field) instead of handing it to the ask channel directly.
+// --extend <n> (default 1): a turn that ends on its step cap while still progressing (judgeProgress in
+// tools/robocoop-eval/progress.mjs) is continued by typing CONTINUE_PROMPT, up to n times; each adds
+// --timeout-min to the wall budget. Logged as "EXTEND <why>" / "NO-EXTEND <why>".
 import { chromium } from "playwright";
+import { judgeProgress, CONTINUE_PROMPT } from "../../robocoop-eval/progress.mjs";
 import { writeFileSync, mkdirSync, appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,6 +22,7 @@ const args = process.argv.slice(2);
 const flag = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args.splice(i, 2)[1] : d; };
 const model = flag("--model", null);
 const timeoutMin = Number(flag("--timeout-min", 20));
+const extend = Number(flag("--extend", 1));
 const name = flag("--out", "run-" + new Date().toISOString().replace(/[:.]/g, "-"));
 const answer = flag("--answer", null);
 const answerVia = flag("--answer-via", "bus");
@@ -26,7 +31,7 @@ const demo = args.includes("--demo") ? (args.splice(args.indexOf("--demo"), 1), 
 const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
 const prompt = args.join(" ");
 if (!prompt || args.some(a => a.startsWith("--"))) {
-  console.error("usage: run-one.mjs [--demo] [--notebook f] [--out name] [--model m] [--timeout-min n] [--answer paths|URL|skip] [--answer-via bus|chat|card] [--export f] <prompt>" + (prompt ? "\nunknown flag in: " + prompt : ""));
+  console.error("usage: run-one.mjs [--demo] [--notebook f] [--out name] [--model m] [--timeout-min n] [--extend n] [--answer paths|URL|skip] [--answer-via bus|chat|card] [--export f] <prompt>" + (prompt ? "\nunknown flag in: " + prompt : ""));
   process.exit(2);
 }
 // Without a key the chat runs in demo mode through the public gateway, whose daily quota is shared with
@@ -60,7 +65,10 @@ const modelShown = await page.evaluate(() => [...document.querySelector("[data-r
 await page.evaluate(() => {
   const root = document.querySelector("[data-rc5-group]");
   const seen = new WeakSet();
-  window.__trace = { t0: Date.now(), msgs: [], status: [] };
+  window.__trace = { t0: Date.now(), msgs: [], status: [], turns: [] };
+  // the UI keeps no turn result; wrap send to record how each turn ended
+  const s0 = root.active.session, send0 = s0.send.bind(s0);
+  s0.send = async (...a) => { const r = await send0(...a); window.__trace.turns.push({ t: Date.now() - window.__trace.t0, finishReason: r?.finishReason ?? null, steps: r?.steps ?? null }); return r; };
   let lastStatus = "";
   window.__poll = setInterval(() => {
     const s = root.active?.session;
@@ -80,6 +88,7 @@ await ta.fill(prompt);
 await ta.press("Enter");
 const t0 = Date.now();
 let outcome = "done";
+const extensions = [];
 const liveFile = resolve(here, "out", name + ".live.log"), abortFile = resolve(here, "out", name + ".abort");
 writeFileSync(liveFile, "");
 const line = m => {
@@ -96,7 +105,20 @@ for (let n = 0; ; ) {
     done: (e => !!e.log && !e.busy)(document.querySelector("[data-rc5-group]").active) }), n);
   for (const m of snap.fresh) appendFileSync(liveFile, line(m) + "\n");
   n += snap.fresh.length;
-  if (snap.done) break;
+  if (snap.done) {
+    const last = await page.evaluate(() => window.__trace.turns.at(-1) ?? null);
+    if (last?.finishReason !== "max_steps" || extensions.length >= extend) break;
+    const msgs = await page.evaluate(() => window.__trace.msgs);
+    const verdict = judgeProgress(msgs.slice(msgs.map(m => m.role).lastIndexOf("user") + 1));
+    extensions.push({ t: Date.now() - t0, granted: verdict.progressing, why: verdict.why });
+    appendFileSync(liveFile, (verdict.progressing ? "EXTEND " : "NO-EXTEND ") + verdict.why + "\n");
+    if (!verdict.progressing) break;
+    const turnsBefore = await page.evaluate(() => window.__trace.turns.length);
+    await ta.fill(CONTINUE_PROMPT);
+    await ta.press("Enter");
+    await page.waitForFunction(k => document.querySelector("[data-rc5-group]").active.busy || window.__trace.turns.length > k, turnsBefore, { timeout: 30000 });
+    continue;
+  }
   const asked = await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session?.askBus?.pending?.prompt ?? null);
   if (asked != null) {
     let given;
@@ -118,7 +140,7 @@ for (let n = 0; ; ) {
     appendFileSync(liveFile, "ASK " + asked + " -> " + given + "\n");
   }
   if (existsSync(abortFile)) { outcome = "aborted: " + readFileSync(abortFile, "utf8").trim().slice(0, 300); break; }
-  if (Date.now() - t0 > timeoutMin * 60000) { outcome = "timeout"; break; }
+  if (Date.now() - t0 > timeoutMin * 60000 * (1 + extensions.filter(x => x.granted).length)) { outcome = "timeout"; break; }
   await page.waitForTimeout(2000);
 }
 if (outcome !== "done") await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.abort?.());
@@ -135,7 +157,7 @@ const trace = await page.evaluate(() => {
   const wiki = { read: [...(st.wikiRead ?? [])], refusals: st.wikiRefusals ?? [] };
   return { ...window.__trace, agentErrors, wiki, transcriptTail: shadowText.slice(-3000) };
 });
-const result = { prompt, model: modelShown, outcome, consoleNoise: noise, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
+const result = { prompt, model: modelShown, outcome, extensions, consoleNoise: noise, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
 const file = resolve(here, "out", name + ".json");
 writeFileSync(file, JSON.stringify(result, null, 2));
 // compact step view
