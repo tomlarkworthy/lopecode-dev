@@ -64,7 +64,11 @@ export async function createDriver({
     let page;
     try {
       // setup.timezoneId — the page's zone (Playwright), so a time-zone slip shows on any machine.
-      const context = await browser.newContext(evalDef?.setup?.timezoneId ? { timezoneId: evalDef.setup.timezoneId } : {});
+      // setup.timezoneSwitch — set the zone over CDP instead, and expose page-side
+      // __evalSetTimezone(tz) so setup.collect can re-render in a second zone (Playwright's own
+      // override cannot be replaced from another CDP session: "Timezone override is already in effect").
+      const tzSwitch = !!evalDef?.setup?.timezoneSwitch;
+      const context = await browser.newContext(evalDef?.setup?.timezoneId && !tzSwitch ? { timezoneId: evalDef.setup.timezoneId } : {});
 
       // setup.localDisk {root, name?} — a faked File System Access directory (fake-local-disk.mjs)
       // backed by the host directory `root`: window.showDirectoryPicker() resolves to it, so the
@@ -100,6 +104,16 @@ export async function createDriver({
       page = await context.newPage();
       let cdpSession = null;
       try { cdpSession = await context.newCDPSession(page); } catch (e) { cdpSession = null; console.warn("  ..no CDP session: " + (e?.message ?? e)); }
+      if (tzSwitch) {
+        if (!cdpSession) throw new Error("setup.timezoneSwitch needs a CDP session");
+        const setTz = async (tz) => {
+          await cdpSession.send("Emulation.setTimezoneOverride", { timezoneId: "" }).catch(() => {});
+          await cdpSession.send("Emulation.setTimezoneOverride", { timezoneId: tz });
+          return tz;
+        };
+        if (evalDef.setup.timezoneId) await setTz(evalDef.setup.timezoneId);
+        await page.exposeFunction("__evalSetTimezone", setTz);
+      }
       page.on("crash", () => console.warn("  ..page crashed"));
       page.on("close", () => console.warn("  ..page closed"));
 
