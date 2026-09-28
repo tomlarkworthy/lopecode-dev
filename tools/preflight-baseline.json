@@ -2549,6 +2549,26 @@
    "kind": "unused-dep"
   }
  ],
+ "lopebooks/notebooks/tomlarkworthy_reveal-js-6.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/tomlarkworthy_slides.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
  "lopebooks/notebooks/tomlarkworthy_spreadsheet.html": [
   {
    "detail": "@tomlarkworthy/exporter-3 imports sourceModule from @tomlarkworthy/observablejs-toolchain, which does not define it",

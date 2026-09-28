@@ -637,6 +637,9 @@
   "@tomlarkworthy/retro-title-graphic": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html"
   },
+  "@tomlarkworthy/reveal-js-6": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_reveal-js-6.html"
+  },
   "@tomlarkworthy/reversible-attachment": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html"
   },
@@ -723,6 +726,9 @@
   "@tomlarkworthy/sheet": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sheet.html",
     "upstream": null
+  },
+  "@tomlarkworthy/slides": {
+    "lopebooks": "lopebooks/notebooks/tomlarkworthy_slides.html"
   },
   "@tomlarkworthy/sign-a-pdf": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html"
