@@ -41,6 +41,7 @@ import sketchPngDownload from "./rc5t/sketch-png-download.mjs";
 import billSpreadsheet from "./rc5t/bill-spreadsheet.mjs";
 import hiringFlowchartText from "./rc5t/hiring-flowchart-text.mjs";
 import slidesStepThrough from "./rc5t/slides-step-through.mjs";
+import budgetCsv from "./rc5t/budget-csv.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -81,6 +82,7 @@ sketchPngDownload,
 billSpreadsheet,
 hiringFlowchartText,
 slidesStepThrough,
+budgetCsv,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
