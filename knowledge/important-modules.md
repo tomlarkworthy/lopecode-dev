@@ -2,9 +2,10 @@
 scope: [local-development, in-notebook]
 write-triggers:
   - "Inputs\\.table\\([^;]*?\\bedit(able)?\\s*:"
+  - "jspdf|jsPDF|html2pdf|pdfmake"
 ---
 
-# Asked for a spreadsheet or editable table, a document the reader edits in place, a slide deck, drawing, diagram, saved setting or file download? Import the published module
+# Asked for a spreadsheet or editable table, a document the reader edits in place, a slide deck, drawing, diagram, saved setting, PDF or other file download? Import the published module
 
 Published modules for common tasks, with the lines that import each one. None of them is in /src
 until imported. When the user asks for one of these by name, build on the module rather than
