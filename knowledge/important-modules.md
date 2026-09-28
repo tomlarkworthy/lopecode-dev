@@ -3,6 +3,7 @@ scope: [local-development, in-notebook]
 write-triggers:
   - "Inputs\\.table\\([^;]*?\\bedit(able)?\\s*:"
   - "jspdf|jsPDF|html2pdf|pdfmake"
+  - "application/msword|wordprocessingml|\\.docx?[\"'`]"
 ---
 
 # Asked for a spreadsheet or editable table, a document the reader edits in place, a slide deck, drawing, diagram, saved setting, PDF or other file download? Import the published module
@@ -26,7 +27,7 @@ cells all computed, and the saved file was reopened with the network blocked
 | drawing / editable SVG | `@tomlarkworthy/svg-lens` | svg-lens |
 | drag a drawing to change its parameters | `@tomlarkworthy/parametric-svg` | parametric-svg |
 | flowchart, sequence diagram, org chart, tree | stdlib `mermaid` | Diagrams |
-| download CSV / JSON / PDF / Word / Excel | `DOM.download`, `pdfLib`, CDN libraries | Files |
+| download CSV / JSON / PDF / Word (.docx) / Excel | `DOM.download`, `pdfLib`, `JSZip` | Files |
 | make or render a PDF | `pdfLib` / `pdfjs` from `@tomlarkworthy/sign-a-pdf` | sign-a-pdf |
 | button that saves the whole notebook | `downloadAnchor` from `@tomlarkworthy/exporter-3` | exporter-3 |
 | dashboard of cells on a grid | `@tomlarkworthy/grid-container` | grid-container |
@@ -310,6 +311,38 @@ htl.html`<button onclick=${() => canvas.toBlob(blob => {
   link.click();
 }, "image/png")}>Download PNG</button>`
 ``` For a PDF that works offline, use `pdfLib` (next section).
+
+A Word `.docx` (or Excel `.xlsx`) file is a zip of XML parts. `JSZip` from
+`@tomlarkworthy/jszip-3-10-1` is embedded in robocoop-5, so a save keeps it; the corpus zips files with
+it in `@tomlarkworthy/local-change-history` `_exportFsToZip` (lopecode/notebooks/@tomlarkworthy_exporter-3.html:
+`new JSZip()`, `zip.file(path, data)`, `zip.generateAsync({type: "blob"})`). Three parts make a
+document with one paragraph per string:
+
+```js
+$def("_docxBlob", "docxBlob", ["JSZip"], (JSZip) => async (paragraphs) => {
+  const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  zip.file("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  const body = paragraphs.map(p => '<w:p><w:r><w:t xml:space="preserve">' + esc(p) + '</w:t></w:r></w:p>').join("");
+  zip.file("word/document.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' + body + '</w:body></w:document>');
+  return zip.generateAsync({type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+});
+$def("_saveDocx", "saveDocx", ["htl", "docxBlob", "notes"], (htl, docxBlob, notes) =>
+  htl.html`<button onclick=${async () => {
+    const link = htl.html`<a download="notes.docx" href=${URL.createObjectURL(await docxBlob(notes.split("\n")))}>`;
+    link.click();
+  }}>Download Word document</button>`);
+main.define("module @tomlarkworthy/jszip-3-10-1", async () => runtime.module((await import("/@tomlarkworthy/jszip-3-10-1.js?v=4")).default));
+main.define("JSZip", ["module @tomlarkworthy/jszip-3-10-1", "@variable"], (_, v) => v.import("JSZip", _));
+```
+
+Applied with `write_file` on 2026-09-28 (`notes` a textarea); after a save and an offline reopen the
+cells still computed, and the file parsed with python-docx. The file is built when the button is
+clicked (`event-handlers-in-cells.md`, "A button that downloads a file"). An HTML page saved with a
+`.doc` name is not a Word document: it is not a zip. On 2026-09-28 the agent, told only that the CDN
+`docx` library fails offline, downloaded one of those instead; in another run it spent a 10-minute
+turn trying to vendor the `docx` library and wrote nothing.
 
 The following worked live but fail offline, because a save does not embed CDN imports (`Unable to
 fetch …`). Pin the version:

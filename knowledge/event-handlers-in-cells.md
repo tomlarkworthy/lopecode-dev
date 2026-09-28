@@ -8,7 +8,7 @@ write-triggers:
   - "Inputs\\.button\\("
 ---
 
-# Event handlers and buttons in cells: htl.html, not html; a button that acts on another cell's input; two inputs that update each other
+# Event handlers and buttons in cells: htl.html, not html; a button that acts on another cell's input; a download button; two inputs that update each other
 
 A cell that builds a clickable element and passes it a function (`onclick=${() => …}`) must build it
 with `htl.html`. The bare `html` built-in in a Lopecode notebook is the legacy stdlib template: it
@@ -100,8 +100,40 @@ were written by robocoop-5 for "a text box and a button that summarises it" (202
   in a cell that also lists `model`). Each run adds one more listener and none is removed, so after the
   model changed one click sent two requests, one with the old model.
 
+- **A click count that gates an action cell** (`viewof save = Inputs.button("Save")`, then a cell that
+  lists `save` and the form's value cells, `save > 0 && (() => { …; a.click(); })()`). After the
+  first click the count stays above 0, so the cell runs again whenever any listed value changes.
+  Observed (robocoop-5, a form with a download button, 20260928-0847-w10): after one click, editing
+  one text field twice offered two more downloads with no click.
+
 `Inputs.button` is the other working form when the button only needs to count clicks or emit a
 value; it is a `viewof` and follows the viewof page (`writing-cells-in-module-source.md`).
+
+## A button that downloads a file
+
+The cell's value is the button. The file is built and saved inside its click handler, so nothing is
+saved until it is clicked. The cell may list the values the file is made from; when they change the
+cell returns a new button and saves nothing. `@tomlarkworthy/suminagashi` `_download`
+(lopebooks/notebooks/@tomlarkworthy_suminagashi.html) saves a PNG this way. The same shape for a CSV:
+
+```js
+const _saveCsv = function saveCsv(htl, d3, rows){return(
+  htl.html`<button onclick=${() => {
+    const blob = new Blob([d3.csvFormat(rows)], {type: "text/csv"});
+    const link = htl.html`<a download="rows.csv" href=${URL.createObjectURL(blob)}>`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }}>Download CSV</button>`
+)};
+// in define():
+$def("_saveCsv", "saveCsv", ["htl", "d3", "rows"], _saveCsv);
+```
+
+An async builder (a zip, a PDF) goes inside the handler: `onclick=${async () => { const blob = await build(rows); … }}`.
+The stdlib `DOM.download(blob, name, label)` returns a ready control too
+(`@tomlarkworthy/fileattachments` `_download_selected`, lopecode/notebooks/@tomlarkworthy_atlas.html);
+its first click builds the file and relabels the button "Download"; a second click saves it
+(`download.js` in the stdlib awaits the value before it sets `href`).
 
 ## Listening on an Inputs view; two inputs that update each other
 
