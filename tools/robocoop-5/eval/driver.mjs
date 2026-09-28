@@ -12,6 +12,23 @@ const harness = {
   // Applies are SYNCHRONOUS in robocoop-5 (write_file compiles + applies in the tool call).
   settleMs: 800,
 
+  // The chat panel builds its session with toolsTransform: guardTools (robocoop-5*.js and session logs
+  // are read-only to the agent). The engine's bare `session` cell, which the driver sends to, has no
+  // transform, so without this an eval agent could edit robocoop-5 freely (rc5-train w11: 7 edits
+  // applied in an eval, all refused in the chat).
+  async prepareSession(page) {
+    await page.evaluate(async () => {
+      const rt = globalThis.__ojs_runtime;
+      const eng = rt.mains.get("@tomlarkworthy/robocoop-5-engine");
+      const sv = [...rt._variables].find(v => v._module === eng && v._name === "session");
+      const ui = rt.mains.get("@tomlarkworthy/robocoop-5");
+      const guardTools = ui ? await ui.value("guardTools").catch(() => null) : null;
+      if (!sv || typeof guardTools !== "function") { console.warn("prepareSession: no session/guardTools; eval runs unguarded"); return; }
+      sv.define("session", ["makeSession", "rc5_watchBus"], (makeSession, watchBus) => makeSession({ watchBus, toolsTransform: ts => guardTools(ts) }));
+      await eng.value("session");
+    });
+  },
+
   async seedFiles(page, files) {
     return await page.evaluate(async (files) => {
       const reg = globalThis.__ojs_runtime;

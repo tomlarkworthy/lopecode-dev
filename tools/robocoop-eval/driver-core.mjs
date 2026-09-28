@@ -11,6 +11,7 @@
 //   seedFiles(page, files)   — apply evalDef.setup.files to the live notebook
 //   collectFiles(page)       — return {path: contents} for snapshot.files
 //   collectAttachments(page) — OPTIONAL: return [{module,name,mimeType,size,text}] for snapshot.attachments
+//   prepareSession(page)     — OPTIONAL: page-side setup of the driven session before setup.init
 // ORACLE MODE (`opts.oracle`, per-eval `evalDef.oracle`): instead of sending the question to a model, the
 // driver executes a scripted REFERENCE SOLUTION — a list of {tool, args} steps run against the live tool
 // registry — and snapshots the result. Scoring an eval's own reference solution proves the criteria are
@@ -320,6 +321,9 @@ export async function createDriver({
         if (typeof harness.mountLocalDisk !== "function") throw new Error("harness has no mountLocalDisk seam");
         await harness.mountLocalDisk(page);
       }
+      // harness.prepareSession — OPTIONAL: make the driven session match the product's (robocoop-5 wraps
+      // its tools in guardTools; a bare engine session let evals write modules the chat refuses).
+      if (typeof harness.prepareSession === "function") await harness.prepareSession(page);
       // setup.init — page-side JS run once after seeding, before the question (e.g. install a
       // helper the eval's environment note documents). A string, evaluated in the page.
       if (typeof evalDef?.setup?.init === "string" && evalDef.setup.init.trim()) {
