@@ -68,6 +68,7 @@ import fsmOffline from "./rc5t/fsm-offline.mjs";
 import penguinsCategoryFilter from "./rc5t/penguins-category-filter.mjs";
 import refetchOnControl from "./rc5t/refetch-on-control.mjs";
 import narrowLayout from "./rc5t/narrow-layout.mjs";
+import addTwiceListenerLeak from "./rc5t/add-twice-listener-leak.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -135,6 +136,7 @@ fsmOffline,
 penguinsCategoryFilter,
 refetchOnControl,
 narrowLayout,
+addTwiceListenerLeak,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
