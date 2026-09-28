@@ -12,8 +12,10 @@ because Tom had given standing authority to commit and push on main. The record:
 78) between 09:59 and 17:29, each committed and pushed on its own, with the log in
 `tools/scratch/rc5-train/overnight/log.md`.
 
-Read `.claude/skills/rc5-train/SKILL.md` first. Workers follow its "Worker procedure" unchanged;
-this file only covers what the orchestrator does between them.
+Read `.claude/skills/rc5-train/SKILL.md` first. Workers follow its "Worker procedure" and its
+"Standing rules". The orchestrator owns those rules: it amends them when a worker's method fails
+(see "Evolving the playbooks"). Three things improve in this loop: the agent (by workers), the
+worker playbook (by the orchestrator), and this playbook (by the orchestrator with the user).
 
 ## Preconditions
 
@@ -46,23 +48,19 @@ user saying so. "Let the pool drain" means merge what lands and spawn nothing ne
    - A follow-up worker gets the previous worker's dir and findings in its brief, so it does not
      redo them (m39 continued m32's reopen work).
 2. **Spawn** with `Agent`, `model: "opus"`, `run_in_background: true`. Use the rc5-train worker
-   brief, then add these orchestrator notes:
-   ```
-   Notes from the orchestrator:
-   - Fixture: a real corpus module (lopebooks/ or lopecode/ notebooks), provenance recorded,
-     loaded into the sandbox as @user/<name>. Seed defects only where the original lacks them.
-   - Eval (DIR/eval.mjs, self-contained, no readFileSync; fixtures inlined) scores behaviour,
-     with negative controls. The scripted correct answer must score 1.00.
-   - Budget: at most 3 model runs, xiaomi/mimo-v2.5-pro only, --timeout-min 20.
-   - Diffs unified (diff -u) against a fresh rc5-sandbox.sh get of the canonical.
-   - Never print the OpenRouter API key value.
-   ```
+   brief; the standing rules travel with it because the worker reads the skill. Add notes only
+   for this task: the fixture's shape, the defects to plant, the negative controls to include, and
+   a predecessor's dir if there is one. A note you find yourself repeating in every brief belongs
+   in the standing rules instead.
    Name the worker `m<N>` and give it the dir `tools/scratch/rc5-train/<RUN>/m<N>/`.
 3. **Judge** the proposal (see below). Often the model solves the goal unaided: batches 40, 43, 45,
    49 and 74, and m41 in batch 77, found no defect. The result is then an eval only, which is
    still worth merging as a regression guard.
 4. **Apply, verify, register, commit** (sections below).
-5. **Log one line** per batch in `tools/scratch/rc5-train/overnight/log.md`.
+5. **Audit the worker's method,** not only its result. List what you had to change at merge time
+   and why. If a rule would have prevented it for any goal, amend the worker playbook (below).
+6. **Log one line** per batch in `tools/scratch/rc5-train/overnight/log.md`, including any
+   playbook amendment.
 
 A worker notification can be interim ("waiting for the fixed run"). Act only on a result that
 names `proposal.md`.
@@ -200,9 +198,38 @@ Before judging a live session, compare its build against the canonical:
 Do not fast-forward a worktree while one of its notebooks is open and paired. Saving that tab
 writes its old build back over the updated file.
 
+## Evolving the playbooks
+
+**Level 2: the worker playbook** (`rc5-train/SKILL.md`, "Standing rules"). Amend it when a worker's
+result had to be fixed, trimmed or redone at merge. Signals seen on 2026-09-28:
+
+| observed at merge | rule added |
+|---|---|
+| a normal-format diff misapplied by line number (m26, m30) | unified diffs against a fresh canonical |
+| an eval rewarded reading a wiki page (m43) | evals score behaviour only |
+| a baseline stopped at run.mjs's 120 s default (m39) | pass every time limit explicitly |
+| a goal already covered was dispatched (m42) | check the batch log before dispatch |
+| evals read fixtures from the worker's dir | evals are self-contained |
+| v2.6 timed out in 3 of 3 runs | pin the worker model |
+
+- **One rule per failure,** written with the case that caused it, so a later session can judge
+  whether it still applies.
+- **The rule must be general:** would it read the same for a different goal? A goal-specific
+  lesson goes in that goal's brief, not the playbook.
+- **Commit the amendment on its own** (`rc5-train playbook: <rule>`), so the change in worker
+  behaviour can be traced to it.
+- **Remove a rule that no longer applies,** and say why in the commit. The list must not only grow.
+
+**Level 3: this playbook.** It is amended with the user, not by the orchestrator alone:
+- A user correction becomes a rule here, with the user's words as the case. Examples: "Why are we
+  not pushing on with parallel training?" (keep the pool full) and "cover maintenance tasks".
+- At hand-over, review the session's own bad calls, such as a duplicate dispatch or a mixed
+  regression baseline, and propose the rule to the user.
+
 ## Handing over
 
 End with a write-up for the user covering these three things:
 - batches merged, with each batch's fix and eval;
+- playbook amendments (worker and orchestrator), each with the failure that caused it;
 - the regression result, with its caveats;
 - the open decisions, each with the alternative and its cost.

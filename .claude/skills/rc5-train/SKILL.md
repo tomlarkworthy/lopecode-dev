@@ -137,6 +137,29 @@ follow the worker procedure. Write nothing outside DIR except files under
 tools/scratch/rc5-evals/out/NAME-*. Your deliverable is DIR/proposal.md.
 ```
 
+## Standing rules (amended by the orchestrator)
+
+Each rule was added after a worker's result had to be fixed, trimmed or redone at merge time. The
+orchestrator appends to this list (see `rc5-training-orchestrator`, "Evolving the playbooks").
+Follow them on top of the procedure below.
+
+- **Diffs are unified (`diff -u`) against a fresh `rc5-sandbox.sh get` of the canonical.** Two
+  normal-format diffs (m26, m30) applied by line number landed a hunk in the wrong function.
+- **An eval scores behaviour only.** No criterion may reward reading a wiki page or any other
+  process step (m43's `tool_call_matches …md` criterion was removed at merge).
+- **An eval is self-contained:** no `readFileSync`; fixtures are inlined. It is copied to
+  `tools/robocoop-5/eval/rc5t/` at merge, where relative file reads break.
+- **Pass every time limit explicitly** (`--timeout-min 20` to run-one, `--timeout 600000` to
+  run.mjs). run.mjs defaults to 120 s; m39's baseline stopped there and scored 0.25 against 0.88.
+- **Model budget: at most 3 model runs, `xiaomi/mimo-v2.5-pro` only.** v2.6 timed out in 3 of 3
+  goal runs. The probe carries the evidence; model runs are anecdotes.
+- **Fixtures come from the corpus** (lopebooks/ or lopecode/ notebooks) with provenance recorded,
+  loaded as `@user/<name>`. Seed defects only where the original lacks them.
+- **Every eval has negative controls** that score below 1.00, and a scripted correct answer that
+  scores 1.00.
+- **If the brief names a predecessor's dir, read its proposal first** and do not redo its work.
+- **Never print the OpenRouter API key value.**
+
 ## Worker procedure
 
 1. **Sandbox.** `tools/robocoop-5/rc5-sandbox.sh new DIR`. Set `MODEL` to the model the baseline
