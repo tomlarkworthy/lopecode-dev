@@ -28,12 +28,14 @@ const out = await page.evaluate(async ({ bad, good, ns }) => {
   // false positives: every Element value on the page, through the same check (a copy; the tool's is private)
   const flagged = [];
   let els = 0;
+  const probeEls = [...window.__ojs_runtime._variables].filter(v => /@probe/.test(v._module?._name || "") && v._value instanceof Node).map(v => v._value);
   for (const v of window.__ojs_runtime._variables) {
     const x = v._value;
     if (!(x instanceof Node) || /@probe/.test(v._module?._name || "")) continue;
     els++;
     const w = document.createTreeWalker(x, 4);
     for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (probeEls.some(p => p.contains(n))) continue;
       if (n.parentElement && n.parentElement.closest("code,pre,textarea,script,style,kbd,samp,[contenteditable],.cm-editor")) continue;
       const m = /<\/?[a-zA-Z][\w:-]*(\s+[\w:-]+\s*=\s*["'][^"'<>]*["'])+\s*\/?>/.exec(n.data);
       if (m) { flagged.push(v._name + ": " + m[0].slice(0, 40)); break; }
