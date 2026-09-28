@@ -622,9 +622,19 @@ export async function createDriver({
           // Scope to @user/*, the harness's own modules and criteria targets — not the whole library. ---
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           const targetSet = new Set(targetModules || []);
-          const isEvalVar = (id, n) =>
-            id && (id.startsWith("@user/") || id.includes(forceModulePrefix) || targetSet.has(id)) &&
-            n && !String(n).startsWith("module ") && n !== "@variable";
+          const isEvalMod = (id) => id && (id.startsWith("@user/") || id.includes(forceModulePrefix) || targetSet.has(id));
+          const isEvalVar = (id, n) => isEvalMod(id) && n && !String(n).startsWith("module ") && n !== "@variable";
+          // anonymous cells (md, charts) have no name to value(); they are observed instead (rc5-train 20260928-0847-m14)
+          // modules the eval or the agent owns; forceModulePrefix also matches the harness's own robocoop-5-* modules, whose
+          // cells (rc5_monitors: "Generator returned") are not the agent's errors
+          const isOwnedMod = (id) => id && (id.startsWith("@user/") || (targetSet.has(id) && !id.includes(forceModulePrefix)));
+          const isEvalAnon = (id, v) => isOwnedMod(id) && !v._name && v.pid;
+          // this runtime keeps no _error field (0 of 233 recorded no_runtime_errors ever failed): a cell's error is
+          // its promise's rejection. A rejection with no message and not a string is the runtime's stale marker.
+          const rejectionOf = (v) => Promise.race([
+            Promise.resolve(v._promise).then(() => null, (e) => (e instanceof Error || typeof e === "string" || e?.message) ? e : null),
+            sleep(50).then(() => null),
+          ]);
           // Per-harness settle: robocoop-5 applies synchronously in the tool call (short settle);
           // robocoop-4's jbFileSync watch loop applies a beat later (~600ms poll → longer settle).
           await sleep(settleMs);
@@ -632,6 +642,11 @@ export async function createDriver({
             const idMapF = buildModuleIdMap();
             for (const { v, moduleObj } of allVariables()) {
               const id = idMapF.get(moduleObj) || moduleObj._name; // _name: newly createModule'd modules
+              if (isEvalAnon(id, v) && !v._reachable) {
+                v._observer = { pending() {}, fulfilled() {}, rejected() {} };
+                try { v._module._runtime._dirty.add(v); v._module._runtime._compute(); } catch {}
+                continue;
+              }
               if (!isEvalVar(id, v._name)) continue;
               // a cached value is current only while observed: an unobserved cell keeps its last-read value
               // after its inputs change (the same staleness robocoop-5's readVar had, rc5-train w3 2026-09-27)
@@ -645,7 +660,7 @@ export async function createDriver({
             const waits = [];
             for (const { v, moduleObj } of allVariables()) {
               const id = idMapF.get(moduleObj) || moduleObj._name;
-              if (!isEvalVar(id, v._name)) continue;
+              if (!isEvalVar(id, v._name) && !isEvalAnon(id, v)) continue;
               if (v._promise && typeof v._promise.then === "function") {
                 waits.push(Promise.race([v._promise.catch(() => {}), sleep(4000)]));
               }
@@ -665,7 +680,9 @@ export async function createDriver({
             const name = v._name || "";
             let source = "";
             try { source = v._definition ? String(v._definition) : ""; } catch { source = ""; }
-            const hasError = v._error !== undefined && v._error !== null;
+            const evalCell = isOwnedMod(id) && (isEvalVar(id, name) || isEvalAnon(id, v));
+            const err = v._error != null ? v._error : evalCell ? await rejectionOf(v) : null;
+            const hasError = err != null;
             let value = v._value;
             // eval-relevant cell still unsettled? await its promise to get the resolved value.
             if (value === undefined && !hasError && isEvalVar(id, name) && v._promise && typeof v._promise.then === "function") {
@@ -677,13 +694,13 @@ export async function createDriver({
               name,
               source,
               hasError,
-              error: hasError ? String(v._error?.message ?? v._error) : null,
+              error: hasError ? String(err?.message ?? err) : null,
               valueType: valueType(value),
               valuePreview: preview(value),
               isSvg,
             });
             if (hasError) {
-              result.errors.push(`${id}:${name}: ${String(v._error?.message ?? v._error)}`);
+              result.errors.push(`${id}:${name || "(anonymous " + v.pid + ")"}: ${String(err?.message ?? err)}`);
             }
           }
 
