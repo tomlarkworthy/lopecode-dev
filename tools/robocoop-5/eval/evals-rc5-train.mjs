@@ -81,6 +81,7 @@ import animationLoopLeak from "./rc5t/animation-loop-leak.mjs";
 import upstreamLibUpdate from "./rc5t/upstream-lib-update.mjs";
 import consoleNoise from "./rc5t/console-noise.mjs";
 import reopenShowsModule from "./rc5t/reopen-shows-module.mjs";
+import a11yKeyboard from "./rc5t/a11y-keyboard-screenreader.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -161,6 +162,7 @@ animationLoopLeak,
 upstreamLibUpdate,
 consoleNoise,
 reopenShowsModule,
+a11yKeyboard,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
