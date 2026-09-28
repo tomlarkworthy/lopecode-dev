@@ -55,6 +55,7 @@ import signalUtilsTests from "./rc5t/signal-utils-tests.mjs";
 import d3V5Upgrade from "./rc5t/d3-v5-upgrade.mjs";
 import qaControls from "./rc5t/qa-controls.mjs";
 import sliderLag from "./rc5t/slider-lag.mjs";
+import refactorRetroTitle from "./rc5t/refactor-retro-title.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -109,6 +110,7 @@ signalUtilsTests,
 d3V5Upgrade,
 qaControls,
 sliderLag,
+refactorRetroTitle,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
