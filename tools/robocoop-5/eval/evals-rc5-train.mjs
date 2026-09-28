@@ -36,6 +36,7 @@ import binarySearchStepper from "./rc5t/binary-search-stepper.mjs";
 import ordersTable from "./rc5t/orders-table.mjs";
 import habitTracker from "./rc5t/habit-tracker.mjs";
 import pendulum from "./rc5t/pendulum.mjs";
+import editableGuideToc from "./rc5t/editable-guide-toc.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -71,6 +72,7 @@ binarySearchStepper,
 ordersTable,
 habitTracker,
 pendulum,
+editableGuideToc,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
