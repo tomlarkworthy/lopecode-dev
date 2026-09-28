@@ -17,6 +17,7 @@ import isbn13UnitTests from "./rc5t/isbn13-unit-tests.mjs";
 import tocLinksLopepage from "./rc5t/toc-links-lopepage.mjs";
 import chatFollowsTheme from "./rc5t/chat-follows-theme.mjs";
 import selfEditRefused from "./rc5t/self-edit-refused.mjs";
+import snakeKeyboard from "./rc5t/snake-keyboard.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -33,6 +34,7 @@ isbn13UnitTests,
 tocLinksLopepage,
 chatFollowsTheme,
 selfEditRefused,
+snakeKeyboard,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
