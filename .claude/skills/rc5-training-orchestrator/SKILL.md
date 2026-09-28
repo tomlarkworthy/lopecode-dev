@@ -1,6 +1,6 @@
 ---
 name: rc5-training-orchestrator
-description: Use when the user asks to run robocoop-5 training continuously ("keep training rc5", "run the rc5 training loop", "rc5-training-orchestrator", overnight rc5 training). The main session is the orchestrator. It keeps a pool of ~4 rc5-train workers running and judges each proposal as it lands: it applies the fix to the canonical notebook, gates it on probes, tests and preflight, registers the eval, then commits and pushes to main and refills the slot. Extends rc5-train, whose worker procedure and "where a change belongs" table still apply.
+description: Use when the user asks to run robocoop-5 training continuously ("keep training rc5", "run the rc5 training loop", "rc5-training-orchestrator", overnight rc5 training). The main session is the orchestrator. It keeps a pool of ~4 rc5-train workers running and judges each proposal as it lands: it applies the fix to the canonical notebook, gates it on probes, tests and preflight, registers the eval, then commits and pushes to main and refills the slot. It also audits each worker's method and amends the worker playbook (rc5-train's standing rules). Extends rc5-train, whose worker procedure and "where a change belongs" table still apply.
 version: 0.1.0
 ---
 
