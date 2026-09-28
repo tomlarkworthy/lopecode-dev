@@ -16,12 +16,16 @@ const out = await page.evaluate(async () => {
   const src = `const _a = function a(d3){return( d3.max([1, 5, 3]) )};
 const _b = function b(){return( d3.min([1, 5, 3]) )};
 const _c = function c(d3){return( d3.sum([1, 2]) )};
+const _f = function f(md){return( md\`total \${d3.max([1, 2])}\` )};
+const _e = function e(){return( new Function("x", "return sin(x)")(1) )};
 export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => { main.variable(observer(name)).define(name, deps, fn).pid = pid; };
   $def("_a", "a", [], _a);
   $def("_b", "b", [], _b);
   $def("_c", "c", ["d3"], _c);
+  $def("_e", "e", [], _e);
+  $def("_f", "f", ["md"], _f);
   return main;
 }`;
   return String((await w.execute({ file_path: "/src/@probe/deps.js", content: src }, {}))?.output);
@@ -29,5 +33,9 @@ export default function define(runtime, observer) {
 const pick = re => (out.match(re) || ["(missing)"])[0].slice(0, 200);
 console.log(/a: Cannot read[^;]*takes 1 parameter\(s\) but \$def lists 0/.test(out) ? "PASS" : "FAIL", "params-only:", pick(/a: [^;]*/));
 console.log(/b: d3 is not defined \[declare d3 in BOTH/.test(out) ? "PASS" : "FAIL", "undeclared:", pick(/b: [^;]*/));
+// a name only in runtime-built code (w20: typed expression "sin(x)") is not a missing cell input
+console.log(/e: sin is not defined \[sin is not in this cell's source/.test(out) ? "PASS" : "FAIL", "runtime-built:", pick(/e: [^;]*/));
+// a name inside a template hole IS in the cell's source
+console.log(/f: d3 is not defined \[declare d3 in BOTH/.test(out) ? "PASS" : "FAIL", "template hole:", pick(/f: [^;]*/));
 console.log(!/c: /.test(out.split("ERRORING")[1] || "") ? "PASS" : "FAIL", "correct cell not flagged");
 await browser.close();
