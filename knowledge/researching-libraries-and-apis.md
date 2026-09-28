@@ -1,7 +1,7 @@
 ---
 scope: [local-development, in-notebook]
 write-triggers:
-  - "import\\(\\s*[\"'`]https?://(?!api\\.observablehq\\.com)"
+  - "import\\(\\s*[\"'`]https?://(?!api\\.observablehq\\.com|earthstar\\.us-east\\.host\\.bsky\\.network/xrpc/com\\.atproto\\.sync\\.getBlob)"
   - "https?://(cdn\\.jsdelivr\\.net/npm|unpkg\\.com|esm\\.sh|esm\\.run|cdn\\.skypack\\.dev)/"
 ---
 
