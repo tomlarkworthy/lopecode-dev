@@ -73,6 +73,7 @@ import extractHelpers from "./rc5t/extract-helpers.mjs";
 import chartLabelOverlap from "./rc5t/chart-label-overlap.mjs";
 import tidyUnusedCells from "./rc5t/tidy-unused-cells.mjs";
 import datesDayEarly from "./rc5t/dates-day-early.mjs";
+import translateSpanish from "./rc5t/translate-spanish.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -145,6 +146,7 @@ extractHelpers,
 chartLabelOverlap,
 tidyUnusedCells,
 datesDayEarly,
+translateSpanish,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
