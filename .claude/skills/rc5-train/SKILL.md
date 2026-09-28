@@ -77,6 +77,9 @@ be written the same way if the prompt had been about a different domain?
 
 ## Orchestrator procedure
 
+For the continuous loop (standing authority to merge, pool refilled on each completion), use
+`.claude/skills/rc5-training-orchestrator/SKILL.md` instead of steps 5 and 7 below.
+
 1. **Goals.** From the user: one prompt, a list, or a theme ("imports", "reactive UI"). If a theme,
    write 3–6 concrete prompts a Lopecode user would type. Keep one prompt per worker.
 2. **Run id.** `RUN=$(date +%Y%m%d-%H%M)`. Worker `k` uses `tools/scratch/rc5-train/$RUN/w<k>/`
