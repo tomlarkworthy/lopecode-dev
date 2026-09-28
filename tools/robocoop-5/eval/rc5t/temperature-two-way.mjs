@@ -82,33 +82,47 @@ const COLLECT = String.raw`(async () => {
   }
 })()`;
 
-// Two Inputs.number boxes, each a viewof; one cell listens for "input" on each view and writes the
-// converted value to the other view's .value (no dispatch, so no echo). The form documented in
-// knowledge/event-handlers-in-cells.md "two inputs that update each other". The corpus has no cell that
-// links two views through a conversion; the equal-value form is Inputs.bind, e.g. @tomlarkworthy/atlas._5
-// (lopecode/notebooks/@tomlarkworthy_atlas.html).
+// One hidden state cell, viewof celsius = Inputs.input(20); the °C box is Inputs.bind to it and the °F box
+// is bindVia (Inputs.bind with a conversion each way). The form documented in
+// knowledge/event-handlers-in-cells.md "two inputs that update each other". Corpus precedent for binding a
+// second control to an existing view: @tomlarkworthy/dataflow-templating _dtv2j,
+// Inputs.bind(Inputs.range([1, 4], …), $0) on viewof widgetCount (lopecode/notebooks/@tomlarkworthy_atlas.html).
 const SOLUTION = `const _intro = function intro(md){return( md\`# Temperature converter\` )};
-const _celsius = function celsius(Inputs){return( Inputs.number({label: "Celsius (°C)", value: 0}) )};
+const _celsius = function celsius(Inputs){return( Inputs.input(20) )};
 const _celsius_v = (G, _) => G.input(_);
-const _fahrenheit = function fahrenheit(Inputs){return( Inputs.number({label: "Fahrenheit (°F)", value: 32}) )};
-const _fahrenheit_v = (G, _) => G.input(_);
-const _link = function link($c, $f, invalidation){
-  const onC = () => { if (Number.isFinite($c.value)) $f.value = Math.round(($c.value * 9 / 5 + 32) * 100) / 100; };
-  const onF = () => { if (Number.isFinite($f.value)) $c.value = Math.round(($f.value - 32) * 5 / 9 * 100) / 100; };
-  $c.addEventListener("input", onC);
-  $f.addEventListener("input", onF);
-  invalidation.then(() => { $c.removeEventListener("input", onC); $f.removeEventListener("input", onF); });
-  return "linked";
-};
+const _bindVia = function bindVia(){return(
+(target, source, to, from, invalidation) => {
+  let fromTarget = false;
+  const onSource = () => { if (!fromTarget) target.value = to(source.value); };
+  const onTarget = () => {
+    if (!Number.isFinite(target.value)) return;
+    fromTarget = true;
+    source.value = from(target.value);
+    source.dispatchEvent(new Event("input", {bubbles: true}));
+    fromTarget = false;
+  };
+  onSource();
+  target.addEventListener("input", onTarget);
+  source.addEventListener("input", onSource);
+  invalidation?.then(() => source.removeEventListener("input", onSource));
+  return target;
+}
+)};
+const _cBox = function cBox(Inputs, $celsius, invalidation){return( Inputs.bind(Inputs.number({label: "Celsius (°C)"}), $celsius, invalidation) )};
+const _fBox = function fBox(Inputs, bindVia, $celsius, invalidation){return(
+  bindVia(Inputs.number({label: "Fahrenheit (°F)"}), $celsius, c => Math.round((c * 9 / 5 + 32) * 100) / 100, f => (f - 32) * 5 / 9, invalidation)
+)};
+const _summary = function summary(md, celsius){return( md\`It is \${celsius.toFixed(1)} °C.\` )};
 export default function define(runtime, observer) {
   const main = runtime.module();
   const $def = (pid, name, deps, fn) => main.variable(observer(name)).define(name, deps, fn).pid = pid;
   $def("_intro", "intro", ["md"], _intro);
   $def("_celsius", "viewof celsius", ["Inputs"], _celsius);
   main.variable(observer("celsius")).define("celsius", ["Generators", "viewof celsius"], _celsius_v);
-  $def("_fahrenheit", "viewof fahrenheit", ["Inputs"], _fahrenheit);
-  main.variable(observer("fahrenheit")).define("fahrenheit", ["Generators", "viewof fahrenheit"], _fahrenheit_v);
-  $def("_link", "link", ["viewof celsius", "viewof fahrenheit", "invalidation"], _link);
+  $def("_bindVia", "bindVia", [], _bindVia);
+  $def("_cBox", "cBox", ["Inputs", "viewof celsius", "invalidation"], _cBox);
+  $def("_fBox", "fBox", ["Inputs", "bindVia", "viewof celsius", "invalidation"], _fBox);
+  $def("_summary", "summary", ["md", "celsius"], _summary);
   return main;
 }
 `;
