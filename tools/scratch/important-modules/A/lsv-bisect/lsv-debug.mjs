@@ -1,0 +1,24 @@
+import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+const nb = resolve("../../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html");
+const src = readFileSync(process.argv[2], "utf8"); const id = process.argv[3];
+const browser = await chromium.launch();
+const page = await browser.newPage();
+page.on("pageerror", e => console.log("PAGEERR", String(e).slice(0, 300)));
+page.on("console", m => /error|warn/.test(m.type()) && console.log("CONSOLE", m.type(), m.text().slice(0, 300)));
+await page.goto(pathToFileURL(nb).href);
+await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session?.askBus, null, { timeout: 120000 });
+const out = await page.evaluate(async ({ src, id }) => {
+  const rt = window.__ojs_runtime;
+  let tv; for (let i = 0; i < 100 && !(tv = [...rt._variables].find(v => v._name === "toolsView" && v._value?.value?.length)); i++) await new Promise(r => setTimeout(r, 200));
+  const tools = new Map(tv._value.value.map(t => [t.id, t]));
+  const p = tools.get("write_file").execute({ file_path: "/src/" + id + ".js", content: src }, {});
+  const r = await Promise.race([p, new Promise(r => setTimeout(() => r("TIMEOUT 20s"), 20000))]);
+  const m = rt.mains.get(id);
+  const vs = m ? [...rt._variables].filter(v => v._module === m).map(v => [v._name, v._value === undefined ? (v._error ? "ERR " + v._error : "undef") : (v._value?.tagName || typeof v._value)]) : "no module";
+  return { r: String(r?.output ?? r).slice(0, 500), vs };
+}, { src, id });
+console.log(JSON.stringify(out, null, 1));
+await browser.close();

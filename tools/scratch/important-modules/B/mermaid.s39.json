@@ -1,0 +1,37 @@
+{
+ "tool": "Wrote /src/@user/mermaid-demo.js — applied live (2 cells changed) · ✓ all 2 cells compute with no runtime error (auto-watched; changes stream to you) · values: diagram=#O-3 {font-family:\"trebuchet ms\",verdana,arial,sans-serif;font-size:16px;fill:#000000;}#O-3 .error-…:100;}#O-3 :root{--mermaid-font-family:\"trebuchet ms\",verdana,arial,sans-serif;}yesnoStartChoiceDone, check=Object {tag: \"svg\", nodes: 3, text: \"#O-3 {font-family:\\\"trebuchet ms\\\",verdana,arial,sans-serif;fo\"} · metrics: 3 cells, worst check MI=74 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "mermaid": "function",
+  "diagram": "<svg> #O-3 {font-family:\"trebuchet ms\",verdana,arial,sans-serif;font-size:16px;fill:#0",
+  "check": "{\"tag\":\"svg\",\"nodes\":3,\"text\":\"#O-3 {font-family:\\\"trebuchet ms\\\",verdana,arial,sans-serif;fo\"}"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/mermaid-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "mermaid": "ERROR unable to load module",
+  "diagram": "ERROR unable to load module",
+  "check": "ERROR unable to load module"
+ },
+ "pageErrors": []
+}

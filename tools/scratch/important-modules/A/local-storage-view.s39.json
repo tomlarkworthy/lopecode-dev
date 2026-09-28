@@ -1,0 +1,63 @@
+{
+ "tool": "Wrote /src/@user/lsv-demo.js — applied live (7 cells changed) · opened in the shared view so the human can see it · ✓ all 5 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof volume=volume, volume=10, viewof prefs=localStorageView(\"demo-prefs\"): null, prefs=null, echo=volume = 10, theme = light · metrics: 9 cells, worst viewof volume MI=75 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "Inputs": "{}",
+  "viewof volume": "<form> volume",
+  "Generators": "{}",
+  "volume": "10",
+  "viewof prefs": "<div> localStorageView(\"demo-prefs\"): null",
+  "prefs": "null",
+  "echo": "\"volume = 10, theme = light\"",
+  "localStorageView": "function"
+ },
+ "act": {
+  "stored": [
+   "42",
+   "{\"theme\":\"dark\"}"
+  ]
+ },
+ "cellsAfterAct": {
+  "Inputs": "{}",
+  "viewof volume": "<form> volume",
+  "Generators": "{}",
+  "volume": "42",
+  "viewof prefs": "<div> localStorageView(\"demo-prefs\"): null",
+  "prefs": "{\"theme\":\"dark\"}",
+  "echo": "\"volume = 42, theme = dark\"",
+  "localStorageView": "function"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/lsv-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "Inputs": "{}",
+  "viewof volume": "<form> volume",
+  "Generators": "{}",
+  "volume": "42",
+  "viewof prefs": "<div> localStorageView(\"demo-prefs\"): `{\"theme\":\"dark\"}`",
+  "prefs": "{\"theme\":\"dark\"}",
+  "echo": "\"volume = 42, theme = dark\"",
+  "localStorageView": "function"
+ },
+ "pageErrors": []
+}

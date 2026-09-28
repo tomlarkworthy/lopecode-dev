@@ -1,0 +1,35 @@
+{
+ "tool": "Wrote /src/@user/save-demo.js — applied live (3 cells changed) · ✓ all 1 cell compute with no runtime error (auto-watched; changes stream to you) · values: saveLink=Save this notebook as HTML · metrics: 3 cells, worst saveLink MI=81 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "saveLink": "<a> Save this notebook as HTML",
+  "downloadAnchor": "function"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/save-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "saveLink": "<a> Save this notebook as HTML",
+  "downloadAnchor": "function"
+ },
+ "pageErrors": []
+}

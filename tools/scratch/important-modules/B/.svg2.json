@@ -1,0 +1,45 @@
+{
+ "tool": "Wrote /src/@user/svg-demo.js — applied live (5 cells changed) · opened in the shared view so the human can see it · ✓ all 3 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof picture=[data-svg-lens-overlay] .anchor{fill:#fff;stroke:#2F6BFF;stroke-width:2;cursor:grab} …onospace,monospace;dominant-baseline:middle;text-anchor:middle;pointer-events:none;user-select:none}, picture=<svg viewBox=\"0 0 100 100\" width=\"300\"> <rect x=\"10\" y=\"10\" width=\"30\" height=\"30\" fill=\"steelblue\"/> <circle cx=\"65\" cy=\"60\" r=\"20\" fill=\"tomato\"/> </svg>, check=Object {isString: true, hasCircle: true, tag: \"svg\", canEdit: true, selection: Array(0) []} · metrics: 7 cells, worst check MI=75 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "svg": "function",
+  "viewof picture": "<svg> [data-svg-lens-overlay] .anchor{fill:#fff;stroke:#2F6BFF;stroke-width:2;cursor:g",
+  "Generators": "{}",
+  "picture": "\"<svg viewBox=\\\"0 0 100 100\\\" width=\\\"300\\\">\\n  <rect x=\\\"10\\\" y=\\\"10\\\" width=\\\"30\\\" height=\\\"30\\\" fill=\\\"steelblue\\\"/>\\",
+  "check": "{\"isString\":true,\"hasCircle\":true,\"tag\":\"svg\",\"canEdit\":true,\"selection\":[]}"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/svg-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/editable-md",
+  "@tomlarkworthy/grid-container",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone",
+  "@tomlarkworthy/prosemirror/prosecssbundle%401.js.gz",
+  "@tomlarkworthy/prosemirror/prosebundle%405.js.gz",
+  "@tomlarkworthy/prosemirror",
+  "@tomlarkworthy/svg-lens"
+ ],
+ "reopenedOffline": {
+  "error": "module @user/svg-demo not in runtime.mains"
+ },
+ "pageErrors": [
+  "SyntaxError: Identifier '_1worupj' has already been declared"
+ ]
+}

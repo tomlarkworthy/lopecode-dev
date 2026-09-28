@@ -1,0 +1,56 @@
+{
+ "tool": "Wrote /src/@user/notes-demo.js — applied live (6 cells changed) · ✓ all 3 cells compute with no runtime error (auto-watched; changes stream to you) · values: noteCount=0 notes stored in this browser, noteTable=note_idtitlecontentmodified No results., addButton=add note · metrics: 7 cells, worst addButton MI=75 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "noteCount": "\"0 notes stored in this browser\"",
+  "Inputs": "{}",
+  "noteTable": "<form> note_idtitlecontentmodified\n  No results.",
+  "addButton": "<form> add note",
+  "notes": "[]",
+  "notes_collection": "[object Object]"
+ },
+ "act": {
+  "count": "1 notes stored in this browser"
+ },
+ "cellsAfterAct": {
+  "noteCount": "\"1 notes stored in this browser\"",
+  "Inputs": "{}",
+  "noteTable": "<form> note_idtitlecontentmodified\n  1Untitled1,790,579,930,868\n\n#__ns__-305 tr>:nth-ch",
+  "addButton": "<form> add note",
+  "notes": "[{\"title\":\"Untitled\",\"content\":\"\",\"created\":1790579930868,\"modified\":1790579930868,\"note_id\":1}]",
+  "notes_collection": "[object Object]"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/notes-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/notes/notes.json",
+  "@tomlarkworthy/notes",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "noteCount": "\"1 notes stored in this browser\"",
+  "Inputs": "{}",
+  "noteTable": "<form> note_idtitlecontentmodified\n  1Untitled1,790,579,930,868\n\n#__ns__-43 tr>:nth-chi",
+  "addButton": "<form> add note",
+  "notes": "[{\"title\":\"Untitled\",\"content\":\"\",\"created\":1790579930868,\"modified\":1790579930868,\"note_id\":1}]",
+  "notes_collection": "[object Object]"
+ },
+ "pageErrors": []
+}

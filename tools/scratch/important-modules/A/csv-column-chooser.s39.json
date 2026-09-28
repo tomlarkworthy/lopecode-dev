@@ -1,0 +1,48 @@
+{
+ "tool": "Wrote /src/@user/csv-demo.js — applied live (8 cells changed) · opened in the shared view so the human can see it · ✓ all 5 cells compute with no runtime error (auto-watched; changes stream to you) · values: csvFile=File {}, header=Array(3) [\"name\", \"a, quoted\", \"city\"], filtered=Object {url: \"blob:null/67b62b93-c1d3-4c4d-a0b8-f9ab6926b074\", blob: Blob {}, filename: \"people-filtered.csv\", bytesRead: 46, rowsRead: 3, rowsWritten: 3}, filteredText=city,name London,Ada Paris,\"Lin, B\", downloadLink=Download people-filtered.csv (3 rows) · metrics: 9 cells, worst downloadLink MI=77 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "csvFile": "{}",
+  "header": "[\"name\",\"a, quoted\",\"city\"]",
+  "filtered": "{\"url\":\"blob:null/67b62b93-c1d3-4c4d-a0b8-f9ab6926b074\",\"blob\":{},\"filename\":\"people-filtered.csv\",\"bytesRead\":46,\"rowsR",
+  "filteredText": "\"city,name\\nLondon,Ada\\nParis,\\\"Lin, B\\\"\\n\"",
+  "htl": "{\"version\":\"0.3.1\"}",
+  "downloadLink": "<a> Download people-filtered.csv (3 rows)",
+  "streamSelectCSVToBlobURL": "function",
+  "parseCSVLine": "function"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/csv-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/csv-column-chooser",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "csvFile": "{}",
+  "header": "[\"name\",\"a, quoted\",\"city\"]",
+  "filtered": "{\"url\":\"blob:null/0e3c0161-51bc-4e28-8fa7-1645c0c6da57\",\"blob\":{},\"filename\":\"people-filtered.csv\",\"bytesRead\":46,\"rowsR",
+  "filteredText": "\"city,name\\nLondon,Ada\\nParis,\\\"Lin, B\\\"\\n\"",
+  "htl": "{\"version\":\"0.3.1\"}",
+  "downloadLink": "<a> Download people-filtered.csv (3 rows)",
+  "streamSelectCSVToBlobURL": "function",
+  "parseCSVLine": "function"
+ },
+ "pageErrors": []
+}

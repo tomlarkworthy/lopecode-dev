@@ -1,0 +1,55 @@
+{
+ "tool": "Wrote /src/@user/sticky-demo.js — applied live (5 cells changed) · opened in the shared view so the human can see it · ✓ all 3 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof cutoff=cutoff, cutoff=440, echo=cutoff = 440 · metrics: 7 cells, worst viewof cutoff MI=76 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "Inputs": "{}",
+  "viewof cutoff": "<form> cutoff",
+  "Generators": "{}",
+  "cutoff": "440",
+  "echo": "\"cutoff = 440\"",
+  "sticky": "function"
+ },
+ "act": {
+  "definitionNow": "function cutoff(sticky,Inputs){return( sticky(Inputs.range([0, 2000], {label: \"cutoff\", step: 1, value: 440}), 1234) )}"
+ },
+ "cellsAfterAct": {
+  "Inputs": "{}",
+  "viewof cutoff": "<form> cutoff",
+  "Generators": "{}",
+  "cutoff": "1234",
+  "echo": "\"cutoff = 1234\"",
+  "sticky": "function"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/sticky-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/sticky",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "Inputs": "{}",
+  "viewof cutoff": "<form> cutoff",
+  "Generators": "{}",
+  "cutoff": "1234",
+  "echo": "\"cutoff = 1234\"",
+  "sticky": "function"
+ },
+ "pageErrors": []
+}

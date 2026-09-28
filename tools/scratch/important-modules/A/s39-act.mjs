@@ -11,7 +11,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const flag = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args.splice(i, 2)[1] : d; };
 const id = flag("--id", "@user/verify");
-const nb = resolve(flag("--notebook", resolve(here, "../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
+const nb = resolve(flag("--notebook", resolve(here, "../../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html")));
+const actFile = flag("--act", null);
+const act = actFile ? readFileSync(resolve(actFile), "utf8") : null;
+const log = (...a) => console.error("[s39]", ...a);
 const save = args.includes("--save") ? (args.splice(args.indexOf("--save"), 1), true) : false;
 const src = readFileSync(resolve(args[0]), "utf8");
 const browser = await chromium.launch();
@@ -39,6 +42,7 @@ const check = () => page.evaluate(async (id) => {
 }, id);
 await page.goto(pathToFileURL(nb).href);
 await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session?.askBus, null, { timeout: 120000 });
+log("booted, writing");
 const tool = await page.evaluate(async ({ src, id }) => {
   const rt = window.__ojs_runtime;
   let tv; for (let i = 0; i < 100 && !(tv = [...rt._variables].find(v => v._name === "toolsView" && v._value?.value?.length)); i++) await new Promise(r => setTimeout(r, 200));
@@ -46,7 +50,19 @@ const tool = await page.evaluate(async ({ src, id }) => {
   const r = await tools.get("write_file").execute({ file_path: "/src/" + id + ".js", content: src }, {});
   return String(r?.output ?? r);
 }, { src, id });
+log("written");
 const result = { tool: tool.slice(0, 1500), cells: await check() };
+log("checked");
+if (act) {
+  result.act = await page.evaluate(async ({ act, id }) => {
+    const rt = window.__ojs_runtime; const m = rt.mains.get(id);
+    const v = (name) => [...rt._variables].find(x => x._module === m && x._name === name);
+    try { return await (new Function("rt", "m", "v", "return (async () => {" + act + "})()"))(rt, m, v); } catch (e) { return "ACT ERROR " + e.message; }
+  }, { act, id });
+  await page.waitForTimeout(1000);
+  result.cellsAfterAct = await check();
+  log("act done");
+}
 if (save) {
   const html = await page.evaluate(async () => {
     for (const k of window.__s39keep || []) { try { k.delete(); } catch {} }
@@ -56,7 +72,7 @@ if (save) {
     const r = await f({ mains: rt.mains });
     return typeof r === "string" ? r : r.source;
   });
-  const saved = resolve(here, ".s39-saved.html"); writeFileSync(saved, html);
+  const saved = resolve(here, ".s39-saved-" + id.replace(/\W/g, "_") + ".html"); writeFileSync(saved, html);
   result.embeddedIds = [...html.matchAll(/<script[^>]*\bid="(@[^"]*)"/g)].map(m => m[1]).filter(i => !/^@tomlarkworthy\/(robocoop|lopepage|exporter|editor|module|runtime|file-sync|markdown-wiki|save-in-place|claude|cell-map|visualizer|themes|command|plugin|local-change|tests|observablejs|js-toolchain|code-metrics|summarizejs|fileattachments|local-disk|pyodide|bootloader|acorn|jszip|dom-view|view|codemirror|lopepage-urls|stream|annotate|isomorphic|lightning|dexie|escodegen|safe|access|notebook|mootari|observable-runtime|inspector)/.test(i));
   await page.route(/bsky\.network|observablehq\.com|jsdelivr|esm\.sh|unpkg/, r => r.abort());
   await page.goto(pathToFileURL(saved).href);

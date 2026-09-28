@@ -1,0 +1,12 @@
+{
+ "tool": "Wrote /src/@user/svg-edit.js — applied live (6 cells changed) · opened in the shared view so the human can see it · ✓ all 4 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof picture=[data-svg-lens-overlay] .anchor{fill:#fff;stroke:#2F6BFF;stroke-width:2;cursor:grab} …onospace,monospace;dominant-baseline:middle;text-anchor:middle;pointer-events:none;user-select:none}, picture=<svg viewBox=\"0 0 100 100\" width=\"300\"> <rect x=\"10\" y=\"10\" width=\"30\" height=\"30\" fill=\"steelblue\"/> <circle cx=\"65\" cy=\"60\" r=\"20\" fill=\"tomato\"/> </svg>, check=Object {isString: true, hasCircle: true, tag: \"svg\", canEdit: true, selection: Array(0) []}, edit=Object {before: Object, result: \"[object Object]\", source: \"function picture(svg){return(\\nsvg`<svg viewBox=\\\"0 …e cx=\\\"65\\\" cy=\\\"60\\\" r=\\\"20\\\" fill=\\\"gold\\\"/>\\n</svg>`\\n)}\"} · metrics: 8 cells, worst edit MI=69 (loc 5, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "svg": "function",
+  "viewof picture": "<svg> [data-svg-lens-overlay] .anchor{fill:#fff;stroke:#2F6BFF;stroke-width:2;cursor:g",
+  "Generators": "{}",
+  "picture": "\"<svg viewBox=\\\"0 0 100 100\\\" width=\\\"300\\\">\\n  <rect x=\\\"10\\\" y=\\\"10\\\" width=\\\"30\\\" height=\\\"30\\\" fill=\\\"steelblue\\\"/>\\",
+  "check": "{\"isString\":true,\"hasCircle\":true,\"tag\":\"svg\",\"canEdit\":true,\"selection\":[]}",
+  "edit": "{\"before\":{\"tag\":\"circle\",\"index\":2,\"attrs\":[[\"cx\",\"65\"],[\"cy\",\"60\"],[\"r\",\"20\"],[\"fill\",\"gold\"]]},\"result\":\"[object Obje"
+ },
+ "pageErrors": []
+}

@@ -1,0 +1,72 @@
+{
+ "tool": "Wrote /src/@user/view-demo.js — applied live (7 cells changed) · opened in the shared view so the human can see it · ✓ all 5 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof settings=size name, settings=Object {size: 3, name: \"Ada\"}, viewof sliders=, sliders=Object {values: Array(2) [0.2, 0.8]}, summary=Ada picked size 3; sliders 0.2, 0.8 · metrics: 9 cells, worst viewof settings MI=68 (loc 6, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "Inputs": "{}",
+  "viewof settings": "<div> size\n      \n    \n  \n  \n    name",
+  "Generators": "{}",
+  "settings": "{\"size\":3,\"name\":\"Ada\"}",
+  "viewof sliders": "<div> ",
+  "sliders": "{\"values\":[0.2,0.8]}",
+  "summary": "\"Ada picked size 3; sliders 0.2, 0.8\"",
+  "view": "function"
+ },
+ "act": {
+  "settingsValue": {
+   "size": 7,
+   "name": "Lin"
+  },
+  "sizeInputValue": 7,
+  "slidersValue": {
+   "values": [
+    0.1,
+    0.5,
+    0.9
+   ]
+  },
+  "rangeCount": 3
+ },
+ "cellsAfterAct": {
+  "Inputs": "{}",
+  "viewof settings": "<div> size\n      \n    \n  \n  \n    name",
+  "Generators": "{}",
+  "settings": "{\"size\":7,\"name\":\"Lin\"}",
+  "viewof sliders": "<div> ",
+  "sliders": "{\"values\":[0.1,0.5,0.9]}",
+  "summary": "\"Lin picked size 7; sliders 0.1, 0.5, 0.9\"",
+  "view": "function"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/view-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "Inputs": "{}",
+  "viewof settings": "<div> size\n      \n    \n  \n  \n    name",
+  "Generators": "{}",
+  "settings": "{\"size\":3,\"name\":\"Ada\"}",
+  "viewof sliders": "<div> ",
+  "sliders": "{\"values\":[0.2,0.8]}",
+  "summary": "\"Ada picked size 3; sliders 0.2, 0.8\"",
+  "view": "function"
+ },
+ "pageErrors": []
+}

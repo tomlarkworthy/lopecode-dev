@@ -1,0 +1,68 @@
+{
+ "tool": "Wrote /src/@user/emd-demo.js — applied live (6 cells changed) · opened in the shared view so the human can see it · ✓ all 4 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof count=count, count=3, intro=Shopping list We need 3 apples. Click this text to edit it; Shift+Enter or clicking away saves., introSource=# Shopping list We need ${count} apples. Click this text to edit it; Shift+Enter or clicking away saves. · metrics: 9 cells, worst viewof count MI=77 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "Inputs": "{}",
+  "viewof count": "<form> count",
+  "Generators": "{}",
+  "count": "3",
+  "md": "function",
+  "intro": "<div> Shopping list\nWe need 3 apples. Click this text to edit it; Shift+Enter or click",
+  "introSource": "\"# Shopping list\\n\\nWe need ${count} apples. Click this text to edit it; Shift+Enter or clicking away saves.\""
+ },
+ "act": {
+  "editorOpened": true,
+  "execOk": true,
+  "pmText": "Shopping listWe need ${count} apples. Click this text to edit it; Shift+Enter or clicking away saves. Also pears.",
+  "definitionNow": "function _anonymous(md,count) {return (md`# Shopping list We need ${count} apples. Click this text to edit it; Shift+Enter or clicking away saves. Also pears.`);}",
+  "inputs": [
+   "md",
+   "count"
+  ]
+ },
+ "cellsAfterAct": {
+  "Inputs": "{}",
+  "viewof count": "<form> count",
+  "Generators": "{}",
+  "count": "3",
+  "md": "function",
+  "intro": "<div> Shopping list\nWe need 3 apples. Click this text to edit it; Shift+Enter or click",
+  "introSource": "\"# Shopping list\\n\\nWe need ${count} apples. Click this text to edit it; Shift+Enter or clicking away saves. Also pears."
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/emd-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/editable-md",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone",
+  "@tomlarkworthy/prosemirror/prosecssbundle%401.js.gz",
+  "@tomlarkworthy/prosemirror/prosebundle%405.js.gz",
+  "@tomlarkworthy/prosemirror"
+ ],
+ "reopenedOffline": {
+  "Inputs": "{}",
+  "viewof count": "<form> count",
+  "Generators": "{}",
+  "count": "3",
+  "md": "function",
+  "intro": "<div> Shopping list\nWe need 3 apples. Click this text to edit it; Shift+Enter or click",
+  "introSource": "\"# Shopping list\\n\\nWe need ${count} apples. Click this text to edit it; Shift+Enter or clicking away saves. Also pears."
+ },
+ "pageErrors": []
+}

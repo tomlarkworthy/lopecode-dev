@@ -1,0 +1,73 @@
+{
+ "tool": "Wrote /src/@user/sheet-demo.js — applied live (11 cells changed) · opened in the shared view so the human can see it · ✓ all 6 cells compute with no runtime error (auto-watched; changes stream to you) · values: viewof sheetModule=EventTarget {tag: Symbol()}, sheetModule=Module {_name: \"@user/sheet-demo\"}, A1=120, B1=340, C1=460, grid=A1=120 plain0.000.000$% [canvas 300×150: 1 colour, commonest transparent 100% — nothing drawn, or every pixel took one branch] · metrics: 12 cells, worst grid MI=77 (loc 3, cc 1) · all cells MI≥65 ✓ (well-decomposed)",
+ "cells": {
+  "viewof sheetModule": "{}",
+  "Generators": "{}",
+  "sheetModule": "{\"_name\":\"@user/sheet-demo\"}",
+  "A1": "120",
+  "B1": "340",
+  "C1": "460",
+  "grid": "<div> A1=120\n      plain0.000.000$%\n    120\n    \n      .cell-editor .cm-editor {\n     ",
+  "sheet": "function",
+  "runtime": "{\"bootloader\":{},\"mains\":{}}",
+  "thisModule": "function"
+ },
+ "act": {
+  "rect": [
+   1045,
+   420
+  ],
+  "has460": true,
+  "has340": true,
+  "bar": "A1=120\n      plain0.000.000$%"
+ },
+ "cellsAfterAct": {
+  "viewof sheetModule": "{}",
+  "Generators": "{}",
+  "sheetModule": "{\"_name\":\"@user/sheet-demo\"}",
+  "A1": "120",
+  "B1": "340",
+  "C1": "460",
+  "grid": "<div> A1=120\n      plain0.000.000$%\n    120\n    \n      .cell-editor .cm-editor {\n     ",
+  "sheet": "function",
+  "runtime": "{\"bootloader\":{},\"mains\":{}}",
+  "thisModule": "function"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/sheet-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/sheet",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone"
+ ],
+ "reopenedOffline": {
+  "viewof sheetModule": "{}",
+  "Generators": "{}",
+  "sheetModule": "{}",
+  "A1": "120",
+  "B1": "340",
+  "C1": "460",
+  "grid": "<div> A1=120\n      plain0.000.000$%\n    120\n    \n      .cell-editor .cm-editor {\n     ",
+  "sheet": "function",
+  "runtime": "{\"bootloader\":{},\"mains\":{}}",
+  "thisModule": "function"
+ },
+ "pageErrors": []
+}

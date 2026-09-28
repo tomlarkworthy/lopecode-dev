@@ -1,0 +1,21 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+const nb = resolve("../../../../lopebooks/notebooks/@tomlarkworthy_robocoop-5.html");
+const browser = await chromium.launch();
+const page = await browser.newPage();
+await page.goto(pathToFileURL(nb).href);
+await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session?.askBus, null, { timeout: 120000 });
+const out = await page.evaluate(async () => {
+  const rt = window.__ojs_runtime;
+  const v = [...rt._variables].find(v => v._name === "inspect" && typeof v._value === "function" && v._module._name === "@tomlarkworthy/inspector") || [...rt._variables].find(v => v._name === "inspect" && typeof v._value === "function");
+  if (!v) return "no inspect var";
+  const t0 = performance.now();
+  const el = v._value({ theme: "light" });
+  const t1 = performance.now();
+  document.body.append(el);
+  await new Promise(r => setTimeout(r, 500));
+  return { ms: t1 - t0, html: el.outerHTML.slice(0, 300), mod: v._module._name };
+});
+console.log(JSON.stringify(out));
+await browser.close();

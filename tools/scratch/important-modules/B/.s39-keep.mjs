@@ -7,7 +7,7 @@ import { chromium } from "playwright";
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-const here = dirname(fileURLToPath(import.meta.url));
+const here = resolve(dirname(fileURLToPath(import.meta.url)), "../../rc5-sessions");
 const args = process.argv.slice(2);
 const flag = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args.splice(i, 2)[1] : d; };
 const id = flag("--id", "@user/verify");
@@ -16,6 +16,7 @@ const save = args.includes("--save") ? (args.splice(args.indexOf("--save"), 1), 
 const src = readFileSync(resolve(args[0]), "utf8");
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, acceptDownloads: true });
+if (process.env.LOGREQ) page.on("request", r => new RegExp(process.env.LOGREQ).test(r.url()) && console.error("REQ", r.url().slice(0, 200)));
 const errors = []; page.on("pageerror", e => errors.push(String(e)));
 page.on("console", m => m.type() === "error" && !/module dependancy map|ERR_NETWORK|Failed to load resource/.test(m.text()) && errors.push(m.text().slice(0, 300)));
 const check = () => page.evaluate(async (id) => {
@@ -23,10 +24,7 @@ const check = () => page.evaluate(async (id) => {
   const m = rt.mains.get(id);
   if (!m) return { error: "module " + id + " not in runtime.mains" };
   const vs = [...rt._variables].filter(v => v._module === m && v._name && !String(v._name).startsWith("module "));
-  // forcing observers are deleted before any export: identical anonymous cells get one pid, and the
-  // exporter then writes a duplicate const (seen with svg-lens, 2026-09-28)
-  window.__s39keep = window.__s39keep || [];
-  for (const v of vs) if (!v._reachable) window.__s39keep.push(m.variable(true).define([v._name], x => x));
+  for (const v of vs) if (!v._reachable) m.variable(true).define([v._name], x => x);
   const out = {};
   for (const v of vs) {
     try {
@@ -49,8 +47,6 @@ const tool = await page.evaluate(async ({ src, id }) => {
 const result = { tool: tool.slice(0, 1500), cells: await check() };
 if (save) {
   const html = await page.evaluate(async () => {
-    for (const k of window.__s39keep || []) { try { k.delete(); } catch {} }
-    window.__s39keep = [];
     const rt = window.__ojs_runtime;
     const f = [...rt._variables].find(v => v._name === "exportToHTML" && v._value)._value;
     const r = await f({ mains: rt.mains });
@@ -63,6 +59,7 @@ if (save) {
   await page.waitForFunction(() => document.querySelector("[data-rc5-group]")?.active?.session, null, { timeout: 120000 });
   await page.waitForTimeout(3000);
   result.reopenedOffline = await check();
+  if (process.env.KEEP) { const { copyFileSync } = await import("node:fs"); copyFileSync(saved, process.env.KEEP); }
   unlinkSync(saved);
 }
 result.pageErrors = errors.slice(0, 8);

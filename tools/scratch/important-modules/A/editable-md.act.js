@@ -1,0 +1,16 @@
+const dom = v("intro")._value;
+dom.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+await new Promise(r => setTimeout(r, 1500));
+const pm = dom.querySelector(".ProseMirror");
+if (!pm) return { error: "no .ProseMirror after click", html: dom.outerHTML.slice(0, 200) };
+const p = pm.querySelector("p");
+const range = document.createRange(); range.selectNodeContents(p); range.collapse(false);
+const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+pm.focus();
+const ok = document.execCommand("insertText", false, " Also pears.");
+await new Promise(r => setTimeout(r, 500));
+const pmText = pm.textContent;
+dom.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+await new Promise(r => setTimeout(r, 1500));
+const iv = v("intro");
+return { editorOpened: true, execOk: ok, pmText, definitionNow: iv._definition.toString().replace(/\s+/g, " ").slice(0, 220), inputs: iv._inputs.map(i => i._name) };

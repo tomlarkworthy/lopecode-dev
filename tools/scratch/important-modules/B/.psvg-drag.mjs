@@ -1,0 +1,16 @@
+import { chromium } from "playwright";
+const b = await chromium.launch(); const page = await b.newPage({ viewport: { width: 1400, height: 1000 } });
+await page.route(/bsky\.network|observablehq\.com|jsdelivr|esm\.sh|unpkg/, r => r.abort());
+await page.goto(process.argv[2]);
+await page.waitForFunction(() => window.__ojs_runtime?.mains?.get("@user/psvg-demo"), null, { timeout: 120000 });
+await page.waitForTimeout(3000);
+const val = (n) => page.evaluate(async (n) => { const rt = window.__ojs_runtime; const m = rt.mains.get("@user/psvg-demo"); const v = [...rt._variables].find(v => v._module === m && v._name === n); if (!v._reachable) m.variable(true).define([n], x => x); return v._promise.then(x => x instanceof Element ? { connected: x.isConnected } : x); }, n);
+console.log("editor", JSON.stringify(await val("dotEditor")).slice(0, 80), "dot", JSON.stringify(await val("dot")), "cx before", await val("cx"));
+await page.waitForTimeout(1000);
+const box = await page.evaluate(() => { const rt = window.__ojs_runtime; const m = rt.mains.get("@user/psvg-demo"); const v = [...rt._variables].find(v => v._module === m && v._name === "dot"); const el = v._value; el.scrollIntoView(); const c = el.querySelector("circle[r='12']").getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2, connected: el.isConnected }; });
+console.log("circle", box);
+await page.mouse.move(box.x, box.y); await page.waitForTimeout(300);
+await page.mouse.down(); for (let i = 1; i <= 10; i++) { await page.mouse.move(box.x + 4 * i, box.y); await page.waitForTimeout(50); } await page.mouse.up();
+await page.waitForTimeout(1000);
+console.log("cx after", await val("cx"), "cy after", await val("cy"));
+await b.close();

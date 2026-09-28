@@ -1,0 +1,51 @@
+{
+ "tool": "Wrote /src/@user/pdf-demo.js — applied live (7 cells changed) · opened in the shared view so the human can see it · ✓ all 4 cells compute with no runtime error (auto-watched; changes stream to you) · values: pdfBytes=Uint8Array(881) [37, 80, 68, 70, 45, 49, 46, 55, 10, 37, 129, 129, 129, 129, 10, 10, 55, 32, 48, 32, …more], pdfLink=Download PDF (881 bytes), preview=[canvas 600×300: 121 colours, commonest #ffffff 98%], check=Object {bytes: 881, magic: \"%PDF-\", pages: 1, inkPixels: 2502, link: \"hello.pdf\"} · metrics: 8 cells, worst preview MI=63 (loc 8, cc 1) · ⚠ 2 cells below MI 65 (preview 63, check 64) — SPLIT each low-MI cell into smaller named per-concern cells (one panel/view/derivation each); do NOT consolidate cells into one big one (task-required/contractual cell names must stay: split helpers OUT of them, never rename them)",
+ "cells": {
+  "pdfBytes": "{\"0\":37,\"1\":80,\"2\":68,\"3\":70,\"4\":45,\"5\":49,\"6\":46,\"7\":55,\"8\":10,\"9\":37,\"10\":129,\"11\":129,\"12\":129,\"13\":129,\"14\":10,\"15\":",
+  "htl": "{\"version\":\"0.3.1\"}",
+  "pdfLink": "<a> Download PDF (881 bytes)",
+  "preview": "<canvas> ",
+  "check": "{\"bytes\":881,\"magic\":\"%PDF-\",\"pages\":1,\"inkPixels\":2502,\"link\":\"hello.pdf\"}",
+  "pdfLib": "{\"AFRelationship\":{\"Source\":\"Source\",\"Data\":\"Data\",\"Alternative\":\"Alternative\",\"Supplement\":\"Supplement\",\"EncryptedPaylo",
+  "pdfjs": "{\"LinkTarget\":{\"NONE\":0,\"SELF\":1,\"BLANK\":2,\"PARENT\":3,\"TOP\":4},\"build\":\"706c27b9d\",\"version\":\"2.10.12\",\"CMapCompressionT"
+ },
+ "embeddedIds": [
+  "@observablehq/runtime@6.0.0",
+  "@observablehq/inspector@5.0.1",
+  "@user/pdf-demo",
+  "@tomlarkworthy/inputs-reference",
+  "@tomlarkworthy/footer",
+  "@tomlarkworthy/utils",
+  "@mbostock/safe-local-storage",
+  "@tomlarkworthy/cells-to-clipboard",
+  "@tomlarkworthy/reversible-attachment",
+  "@tomlarkworthy/invoke-variable",
+  "@tomlarkworthy/local-storage-view",
+  "@mootari/access-runtime",
+  "@tomlarkworthy/flow-queue/flowQuery%401.svg",
+  "@tomlarkworthy/flow-queue",
+  "@tomlarkworthy/ui-testing",
+  "@tomlarkworthy/spectral-layout",
+  "@tomlarkworthy/dataflow-templating/dataflow_templating%401.svg",
+  "@tomlarkworthy/dataflow-templating",
+  "@tomlarkworthy/observablehq-lezer/lezer-lr-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer/lezer-highlight-bundled.js.gz",
+  "@tomlarkworthy/observablehq-lezer",
+  "@tomlarkworthy/jest-expect-standalone/jest-expect-standalone-24.0.2.js.gz",
+  "@tomlarkworthy/jest-expect-standalone",
+  "@tomlarkworthy/sign-a-pdf/pdf-lib.min.js",
+  "@tomlarkworthy/sign-a-pdf/pdf.worker.js",
+  "@tomlarkworthy/sign-a-pdf/pdf.js",
+  "@tomlarkworthy/sign-a-pdf"
+ ],
+ "reopenedOffline": {
+  "pdfBytes": "{\"0\":37,\"1\":80,\"2\":68,\"3\":70,\"4\":45,\"5\":49,\"6\":46,\"7\":55,\"8\":10,\"9\":37,\"10\":129,\"11\":129,\"12\":129,\"13\":129,\"14\":10,\"15\":",
+  "htl": "{\"version\":\"0.3.1\"}",
+  "pdfLink": "<a> Download PDF (881 bytes)",
+  "preview": "ERROR Setting up fake worker failed: \"Cannot read properties of undefined (reading 'WorkerMessageHandler')\".",
+  "check": "ERROR Setting up fake worker failed: \"Cannot read properties of undefined (reading 'WorkerMessageHandler')\".",
+  "pdfLib": "{\"AFRelationship\":{\"Source\":\"Source\",\"Data\":\"Data\",\"Alternative\":\"Alternative\",\"Supplement\":\"Supplement\",\"EncryptedPaylo",
+  "pdfjs": "{\"LinkTarget\":{\"NONE\":0,\"SELF\":1,\"BLANK\":2,\"PARENT\":3,\"TOP\":4},\"build\":\"706c27b9d\",\"version\":\"2.10.12\",\"CMapCompressionT"
+ },
+ "pageErrors": []
+}
