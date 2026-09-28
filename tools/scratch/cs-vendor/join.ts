@@ -1,0 +1,27 @@
+// Join an existing webstrate via "Sync with a webstrate…", make no edits, and check the connection alone changes nothing.
+import { chromium } from "playwright";
+const nb = process.argv[2]!, url = process.argv[3]!, out = process.argv[4]!;
+const b = await chromium.launch();
+const c = await b.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1280, height: 800 } });
+const raw = async () => (await (await c.request.get(url + "?raw")).text());
+const before = await raw();
+const p = await c.newPage();
+const ops: string[] = [];
+p.on("websocket", (ws) => ws.on("framesent", (f) => { const s = String(f.payload); if (s.includes('"a":"op"')) ops.push(s.slice(0, 300)); }));
+p.on("pageerror", (e) => console.log("[pageerror]", String(e).slice(0, 200)));
+p.on("dialog", (d) => d.accept(url));
+const val = (name: string) => p.evaluate((n) => [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === n && v._module?._scope?.has("codestratePlace"))?._value, name);
+await p.goto(`file://${nb}`);
+await p.getByRole("button", { name: /Sync with a webstrate/ }).click();
+await p.getByText(/Synced live with|Could not reach/).waitFor({ timeout: 60000 });
+console.log("status:", await p.locator("text=/Synced live with|Could not reach/").first().textContent());
+const f = (await (await p.locator("iframe").first().elementHandle())!.contentFrame())!;
+await f.locator("#cauldron-edit-button").waitFor({ timeout: 60000 }).then(() => console.log("Codestrates booted in the synced frame")).catch(() => console.log("no Edit button"));
+await p.waitForTimeout(8000);
+console.log("frame shows:", (await f.locator("body").innerText()).slice(0, 200));
+console.log("cell has 'Yo From Tom':", String(await val("doc")).includes("Yo From Tom"), "place:", JSON.stringify(await val("place")));
+await p.screenshot({ path: `${out}/tender.png` });
+const after = await raw();
+console.log("ops sent:", ops.length, ops);
+console.log("server doc unchanged:", before === after, before.length, after.length);
+await b.close();
