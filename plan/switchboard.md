@@ -475,5 +475,67 @@ Pairing already reads `msg.thread` first and the tag second, so the server chang
 
 - A plain (pairing) thread's messages live in page memory. After a reload the thread cell is there and the
   history is not; robocoop-5 threads keep theirs in `@rc5-threads/<id>`.
-- The listener registrations run only where their module computes: robocoop-5 and the switchboard are
-  mains in the robocoop-5 notebook, pairing is a main in almost every notebook.
+- The listener registrations run only where their module computes. robocoop-5 and the switchboard are
+  mains in the robocoop-5 notebook. Pairing is a main in 17 of 252 notebooks (counted from the specs'
+  `bootconf.mains`, 2026-09-29); everywhere else it runs because lopepage-2's `lp2_background_jobs`
+  observes `cc_chat`, so `cc_chat` references `cc_switchboardListener`. The first build put the listener in
+  a cell nothing depended on and it never ran (§8).
+
+## 8. What was built (2026-09-29)
+
+Commits, content repo first:
+
+| step | lopebooks | lopecode | parent | Observable |
+|---|---|---|---|---|
+| 1 rc5 sessions, compact chat, entrances module | `f8ce9ac0`, `95b0dfed` | | `9163089` | not pushed |
+| 2 `"annotate-kinds"` in annotate | `485c5b41` | | `5bc09b9` | annotate v595 → v602 |
+| 3 `"cell_source_handlers"` in editor-5 | `d7f9b720`, `a64d98ab` | `44f2780`, `30c406f` | `c530285`, `faff05f` | editor-5 v4049 → v4057 → v4059 |
+| 1' switchboard replaces entrances, demo wiring | `b65812d7` | | `faff05f`, `143e629` | none: `upstream: null` |
+| 5 pairing listener | `03077781` | `228bf0f` | this commit | pairing v1898 → v1901 |
+
+Probes, all with a fake agent or a fake WebSocket, each run against the committed HEAD copy first:
+
+```
+e1-thread-session-compact.mjs      step 1   7/7
+e3-switchboard-rc5.mjs             1'       16/16; HEAD: "switchboard/annotate/rc5 not booted"
+e4-switchboard-pairing.mjs         5        15/15; HEAD: "pairing listener/switchboard/annotate not booted"
+```
+
+(`e2`, the robocoop-only version of e3, was deleted when the switchboard replaced the module it drove.)
+
+Test counts, robocoop-5 notebook `--run-tests`, same-session comparison with HEAD:
+
+```
+before the build      280   275 / 4 / 1
+after 1'              300   294 / 5 / 1   +14 editable-md (now booted), +3 switchboard, +2 editor-5
+after 5               300   294 / 5 / 1   same set
+```
+
+The added failure is editable-md's `test_defaultMarkdownParser_preserves_escapes`, which also fails in the
+editable-md canonical (timeout) and in both editor-5 canonicals. Pairing canonical: 157, 154/2/1, before
+and after. editor-5 with `&e5_tests`: 244, 236/5/3, both canonicals, before and after.
+
+Found during the build, not in the design:
+
+- **A registration cell that nothing depends on never runs** in a module that is not a main. It happened
+  twice: editor-5's `cellSourceHandlersSync` (the ref stayed empty, a prose cell stayed a SyntaxError, fixed
+  in `a64d98ab` by making the ref follow the set itself) and pairing's first `cc_switchboardListener` (e4
+  failed at "not booted"; fixed by the `cc_chat` reference in §7.5).
+- **Stdlib `html` does not quote an interpolated attribute**: `title=${title}` rendered `title="Fold"` from
+  "Fold to a badge", and e4 could not find the fold button. Quoted in the source.
+- **The rc5 notebook needed annotate, editable-md and prosemirror** to demonstrate entrance A. Without
+  prosemirror, preflight reported a NEW `missing-import` once annotate became a main.
+
+Not built: the "↩ keep as code" action on a prose cell (§4.5); reload of a plain (pairing) thread's
+history (§7.5); the channel server change in §7.4, which waits for Tom.
+
+Not done, by instruction: the consumer resync. Dry runs of `sync-module --all-canonical --module X`,
+2026-09-29:
+
+```
+annotate              23 blocks would update (16 lopebooks, 7 lopecode)
+editor-5              14 would update, 231 skipped for a dependency gap
+claude-code-pairing  246 would update (196 lopebooks, 50 lopecode)
+robocoop-5             3 would update, 7 skipped for a dependency gap
+robocoop-5-sessions    3 would update
+```
