@@ -71,7 +71,7 @@ await page.evaluate(() => {
   s0.send = async (...a) => { const r = await send0(...a); window.__trace.turns.push({ t: Date.now() - window.__trace.t0, finishReason: r?.finishReason ?? null, steps: r?.steps ?? null }); return r; };
   let lastStatus = "";
   window.__poll = setInterval(() => {
-    const s = root.active?.session;
+    const s = (window.__rc5Run ?? root.active)?.session;
     for (const m of s?.messages ?? []) {
       if (seen.has(m)) continue;
       seen.add(m);
@@ -86,8 +86,12 @@ await page.evaluate(() => {
 const ta = page.locator('[data-rc5-group] textarea[placeholder^="Message robocoop-5"]');
 await ta.fill(prompt);
 await ta.press("Enter");
+// The run is the entry this prompt went to. The agent can switch the panel to another session (a "new chat"
+// it just built, tested by dispatching the key in the live page); the turn carries on in this entry.
+await page.evaluate(() => { window.__rc5Run = document.querySelector("[data-rc5-group]").active; });
 const t0 = Date.now();
 let outcome = "done";
+let switched = false;
 const extensions = [];
 const liveFile = resolve(here, "out", name + ".live.log"), abortFile = resolve(here, "out", name + ".abort");
 writeFileSync(liveFile, "");
@@ -102,7 +106,8 @@ const line = m => {
 };
 for (let n = 0; ; ) {
   const snap = await page.evaluate(n => ({ fresh: window.__trace.msgs.slice(n), status: window.__trace.status.at(-1)?.st ?? "",
-    done: (e => !!e.log && !e.busy)(document.querySelector("[data-rc5-group]").active) }), n);
+    done: (e => !!e.log && !e.busy)(window.__rc5Run), shownOther: document.querySelector("[data-rc5-group]")?.active !== window.__rc5Run }), n);
+  if (snap.shownOther && !switched) { switched = true; appendFileSync(liveFile, "SWITCHED the panel now shows another session; following the run's own\n"); }
   for (const m of snap.fresh) appendFileSync(liveFile, line(m) + "\n");
   n += snap.fresh.length;
   if (snap.done) {
@@ -116,13 +121,13 @@ for (let n = 0; ; ) {
     const turnsBefore = await page.evaluate(() => window.__trace.turns.length);
     await ta.fill(CONTINUE_PROMPT);
     await ta.press("Enter");
-    await page.waitForFunction(k => document.querySelector("[data-rc5-group]").active.busy || window.__trace.turns.length > k, turnsBefore, { timeout: 30000 });
+    await page.waitForFunction(k => window.__rc5Run.busy || window.__trace.turns.length > k, turnsBefore, { timeout: 30000 });
     continue;
   }
-  const asked = await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session?.askBus?.pending?.prompt ?? null);
+  const asked = await page.evaluate(() => window.__rc5Run.session?.askBus?.pending?.prompt ?? null);
   if (asked != null) {
     let given;
-    if (!answer || answer === "skip") { given = "skip"; await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.askBus.skip()); }
+    if (!answer || answer === "skip") { given = "skip"; await page.evaluate(() => window.__rc5Run.session.askBus.skip()); }
     else if (/^https?:/.test(answer) && answerVia === "chat") { given = answer + " (typed in chat)"; await ta.fill(answer); await ta.press("Enter"); }
     else if (/^https?:/.test(answer) && answerVia === "card") {
       given = answer + " (card)";
@@ -130,11 +135,11 @@ for (let n = 0; ; ) {
       await card.locator("input[type=url]").fill(answer);
       await card.locator('button:text("Use URL")').click();
     }
-    else if (/^https?:/.test(answer)) { given = answer; await page.evaluate(u => document.querySelector("[data-rc5-group]").active.session.askBus.respond([u]), answer); }
+    else if (/^https?:/.test(answer)) { given = answer; await page.evaluate(u => window.__rc5Run.session.askBus.respond([u]), answer); }
     else {
       const files = answer.split(",").map(f => ({ name: f.split("/").pop(), b64: readFileSync(resolve(f)).toString("base64") }));
       given = files.map(f => f.name).join(",");
-      await page.evaluate(fs => document.querySelector("[data-rc5-group]").active.session.askBus.respond(
+      await page.evaluate(fs => window.__rc5Run.session.askBus.respond(
         fs.map(f => new File([Uint8Array.from(atob(f.b64), c => c.charCodeAt(0))], f.name, { type: /\.csv$/.test(f.name) ? "text/csv" : "" }))), files);
     }
     appendFileSync(liveFile, "ASK " + asked + " -> " + given + "\n");
@@ -143,7 +148,7 @@ for (let n = 0; ; ) {
   if (Date.now() - t0 > timeoutMin * 60000 * (1 + extensions.filter(x => x.granted).length)) { outcome = "timeout"; break; }
   await page.waitForTimeout(2000);
 }
-if (outcome !== "done") await page.evaluate(() => document.querySelector("[data-rc5-group]").active.session.abort?.());
+if (outcome !== "done") await page.evaluate(() => window.__rc5Run.session?.abort?.());
 appendFileSync(liveFile, "END " + outcome + "\n");
 await page.waitForTimeout(1500);
 const trace = await page.evaluate(() => {
@@ -153,11 +158,11 @@ const trace = await page.evaluate(() => {
   const agentErrors = [...root.querySelectorAll("*")].flatMap(el => el.shadowRoot ? [...el.shadowRoot.querySelectorAll("div")] : []).concat([...root.querySelectorAll("div")])
     .map(d => d.textContent).filter(t => t.startsWith("⚠ agent error"));
   // wiki discipline: which docs the session read, and which writes the read-gate refused first
-  const st = root.active.session.sessionState ?? {};
+  const st = window.__rc5Run.session?.sessionState ?? {};
   const wiki = { read: [...(st.wikiRead ?? [])], refusals: st.wikiRefusals ?? [] };
   return { ...window.__trace, agentErrors, wiki, transcriptTail: shadowText.slice(-3000) };
 });
-const result = { prompt, model: modelShown, outcome, extensions, consoleNoise: noise, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
+const result = { prompt, model: modelShown, outcome, switched, extensions, consoleNoise: noise, wallS: (Date.now() - t0) / 1000, consoleErrors, ...trace };
 const file = resolve(here, "out", name + ".json");
 writeFileSync(file, JSON.stringify(result, null, 2));
 // compact step view
