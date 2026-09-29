@@ -1,0 +1,19 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#0b0b0b"/>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="12" letter-spacing="2">
+    <text x="40" y="48" fill="#f4f4f0">THE SINGLE FILE REVOLUTION</text>
+    <text x="760" y="48" fill="#5c5c58" text-anchor="end">6 NAMES</text>
+  </g>
+  <g font-size="54" font-weight="800" letter-spacing="-2.5">
+    <text x="40" y="146" fill="#f4f4f0">Bento <tspan fill="#5c5c58">TiddlyWiki</tspan> Decker</text>
+    <text x="40" y="212" fill="#5c5c58">Feather Wiki <tspan fill="#f4f4f0">SingleFile</tspan></text>
+    <text x="40" y="278" fill="#ff4f8b">Lopecode</text>
+    <text x="40" y="344" fill="none" stroke="#3a3a37" stroke-width="1.2">your name?</text>
+  </g>
+  <g font-family="ui-monospace, Menlo, monospace">
+    <rect x="296" y="252" width="100" height="28" rx="14" fill="#ff4f8b" fill-opacity=".1" stroke="#ff4f8b" stroke-dasharray="3 3"/>
+    <text x="346" y="271" font-size="13" fill="#ff4f8b" text-anchor="middle">+ add new</text>
+    <text x="410" y="271" font-size="11" fill="#5c5c58">added today</text>
+    <text x="40" y="462" font-size="11" fill="#5c5c58">This page is the whole thing. View source.</text>
+  </g>
+</svg>

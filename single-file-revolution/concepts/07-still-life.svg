@@ -1,0 +1,24 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="bg7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0ede7"/><stop offset=".66" stop-color="#ebe7e0"/><stop offset=".7" stop-color="#e2ddd4"/><stop offset="1" stop-color="#d8d2c8"/></linearGradient>
+    <linearGradient id="cy7" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fbfaf7"/><stop offset=".55" stop-color="#e8e5df"/><stop offset="1" stop-color="#c9c4bb"/></linearGradient>
+    <linearGradient id="co7" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#faf9f6"/><stop offset=".6" stop-color="#e3dfd8"/><stop offset="1" stop-color="#c5c0b6"/></linearGradient>
+    <filter id="b7" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="g7"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg7)"/>
+  <rect width="800" height="500" filter="url(#g7)"/>
+  <g fill="#857d70" opacity=".3" filter="url(#b7)">
+    <polygon points="340,340 370,320 430,330 400,352"/>
+    <polygon points="450,340 480,338 540,352 505,356"/>
+    <polygon points="560,340 575,338 650,350 620,354"/>
+  </g>
+  <polygon points="250,250 340,250 370,230 280,230" fill="#fbfaf7"/>
+  <rect x="250" y="250" width="90" height="90" fill="#eeebe5"/>
+  <polygon points="340,250 370,230 370,320 340,340" fill="#d3cec5"/>
+  <path d="M390 200 V340 A30 8 0 0 0 450 340 V200 Z" fill="url(#cy7)"/>
+  <ellipse cx="420" cy="200" rx="30" ry="8" fill="#f6f4f0"/>
+  <path d="M480 340 L520 190 L560 340 A40 10 0 0 1 480 340 Z" fill="url(#co7)"/>
+  <text x="64" y="84" font-size="24" fill="#34302a">The Single File Revolution</text>
+  <text x="64" y="444" font-size="14" fill="#34302a" fill-opacity=".8">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic" fill-opacity="1">Lopecode</tspan></text>
+</svg>

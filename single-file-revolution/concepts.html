@@ -1,0 +1,269 @@
+<title>Single File Revolution Concepts</title>
+<style>
+  /* Layout: a quiet two-up contact sheet, small captions. */
+  :root {
+    --bg: #f4f3f0; --fg: #232226; --muted: #75737a; --line: #deddd8;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #151517; --fg: #e9e8ec; --muted: #8e8d94; --line: #2b2b2f; color-scheme: dark; } }
+  :root[data-theme="dark"] { --bg: #151517; --fg: #e9e8ec; --muted: #8e8d94; --line: #2b2b2f; color-scheme: dark; }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--serif); }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 56px 16px 96px; }
+  h1 { margin: 0 0 40px; font-size: 22px; font-weight: 400; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: 48px 28px; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  figure svg { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; max-width: 100%; outline: 1px solid var(--line); }
+  figcaption { color: var(--muted); font-size: 14px; max-width: 60ch; }
+  figcaption b { color: var(--fg); font-weight: 400; font-style: italic; margin-right: .4em; }
+</style>
+<div class="wrap">
+<h1>The Single File Revolution, concept art, round 2</h1>
+<div class="grid">
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs><filter id="b1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter></defs>
+  <rect width="800" height="500" fill="#efeaf1"/>
+  <g filter="url(#b1)">
+    <circle cx="170" cy="400" r="240" fill="#ffd2b8"/>
+    <circle cx="640" cy="130" r="260" fill="#cdc9ff"/>
+    <circle cx="560" cy="470" r="180" fill="#cfeee2"/>
+  </g>
+  <text x="64" y="96" font-size="30" fill="#2b2730">The Single File Revolution</text>
+  <text x="64" y="424" font-size="15" fill="#2b2730" fill-opacity=".78">Bento<tspan dx="26">TiddlyWiki</tspan><tspan dx="26">Decker</tspan><tspan dx="26">Feather Wiki</tspan><tspan dx="26">SingleFile</tspan><tspan dx="26" font-style="italic" fill-opacity="1">Lopecode</tspan><tspan dx="18" font-size="13" fill-opacity=".45">+ add</tspan></text>
+</svg>
+<figcaption><b>Soft field.</b> Text only, over three blurred colour fields. The newest name is set in italic and "+ add" appears next to it on hover.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="w2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f3f0"/><stop offset=".72" stop-color="#eeede9"/><stop offset=".74" stop-color="#e6e4df"/><stop offset="1" stop-color="#dedbd5"/></linearGradient>
+    <filter id="b2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="s2" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#w2)"/>
+  <polygon points="340,420 360,406 520,440 480,462" fill="#8d887f" opacity=".35" filter="url(#b2)"/>
+  <polygon points="190,250 340,250 360,236 210,236" fill="#ffffff"/>
+  <rect x="190" y="250" width="150" height="170" fill="#faf9f6"/>
+  <polygon points="340,250 360,236 360,406 340,420" fill="#e4e2dd"/>
+  <polygon points="292,250 310,240 360,248 345,252" fill="#8d887f" opacity=".3" filter="url(#b2)"/>
+  <polygon points="244,196 290,196 304,186 258,186" fill="#e9ecf0"/>
+  <rect x="244" y="196" width="46" height="54" fill="#d5dae1"/>
+  <polygon points="290,196 304,186 304,240 290,250" fill="#b8bec8"/>
+  <rect x="520" y="236" width="220" height="112" fill="#ffffff" filter="url(#s2)"/>
+  <g fill="#2e2c30">
+    <text x="536" y="262" font-size="13">The Single File Revolution</text>
+    <text x="536" y="280" font-size="11" fill="#77747a">2026</text>
+    <text x="536" y="296" font-size="11" font-style="italic" fill="#77747a">HTML, CSS and JavaScript, one file</text>
+    <text x="536" y="318" font-size="10">Bento, TiddlyWiki, Decker, Feather Wiki,</text>
+    <text x="536" y="332" font-size="10">SingleFile, <tspan font-style="italic">Lopecode</tspan></text>
+  </g>
+  <text x="536" y="368" font-size="10" fill="#9a979d">+ add your name</text>
+</svg>
+<figcaption><b>Wall label.</b> One object on a plinth in an empty white room. The directory is the museum label beside it, with the names listed where a label names the lenders.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <filter id="g3"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .09 0"/></filter>
+    <pattern id="h3" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(38)"><line x1="0" y1="0" x2="0" y2="5" stroke="#4a4845" stroke-width=".6"/></pattern>
+    <pattern id="k3" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)"><line x1="0" y1="0" x2="0" y2="7" stroke="#4a4845" stroke-width=".5"/></pattern>
+  </defs>
+  <rect width="800" height="500" fill="#f4f2ec"/>
+  <rect width="800" height="500" filter="url(#g3)"/>
+  <polygon points="422,351 540,330 650,362 532,388" fill="url(#h3)" opacity=".55"/>
+  <polygon points="482,201 541,329 422,351" fill="url(#k3)" opacity=".35"/>
+  <g fill="none" stroke="#353331" stroke-linecap="round" stroke-width="1.1">
+    <path d="M381 171 L481 201"/>
+    <path d="M381 171 L321 321"/>
+    <path d="M481 201 L421 351"/>
+    <path d="M321 321 L421 351"/>
+    <path d="M481 201 L541 329"/>
+    <path d="M541 329 L454 305" stroke-opacity=".5"/>
+    <path d="M382 172 L322 319 M480 203 L423 349" stroke-opacity=".35" stroke-width=".7"/>
+  </g>
+  <text x="64" y="84" font-size="24" fill="#2e2c2a">The Single File Revolution</text>
+  <text x="64" y="440" font-size="14" fill="#4b4845">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic">Lopecode</tspan></text>
+  <path d="M571 446 q6 3 12 0 t12 0 t12 0 t12 0 t12 0" fill="none" stroke="#4b4845" stroke-width=".8"/>
+</svg>
+<figcaption><b>Graphite.</b> A single sheet folded to stand, drawn in pencil with hatched shadow on grained paper. A hand-drawn wavy line marks the newest name.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5dfd5"/><stop offset=".62" stop-color="#ecc9cc"/><stop offset=".7" stop-color="#dfbcc7"/><stop offset="1" stop-color="#cfb3c8"/></linearGradient>
+    <radialGradient id="sph4" cx=".36" cy=".3" r=".75"><stop offset="0" stop-color="#fff6f0"/><stop offset=".45" stop-color="#eec3bd"/><stop offset="1" stop-color="#a5859c"/></radialGradient>
+    <filter id="b4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="c4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky4)"/>
+  <ellipse cx="310" cy="356" rx="170" ry="15" fill="#6d5470" opacity=".28" filter="url(#b4)"/>
+  <ellipse cx="440" cy="352" rx="52" ry="7" fill="#5a4460" opacity=".45" filter="url(#c4)"/>
+  <circle cx="440" cy="282" r="70" fill="url(#sph4)"/>
+  <text x="64" y="90" font-size="26" fill="#43333f">The Single File Revolution</text>
+  <text x="64" y="444" font-size="14" fill="#43333f" fill-opacity=".8">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic" fill-opacity="1">Lopecode</tspan></text>
+</svg>
+<figcaption><b>Sphere at dusk.</b> One lit ball with a long evening shadow on a pink gradient that runs into the floor.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eff1ed"/><stop offset="1" stop-color="#e2e6e1"/></linearGradient>
+    <filter id="b5" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+    <g id="sheet5"><polygon points="-140,4 0,-56 140,4 0,64" fill="#fbfbf8" stroke="#d3d4ce" stroke-width=".6"/><path d="M-140 4 V8 L0 68 L140 8 V4 L0 64 Z" fill="#e5e6e1"/></g>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg5)"/>
+  <polygon points="270,300 410,240 560,300 420,370" fill="#7f857c" opacity=".3" filter="url(#b5)"/>
+  <use href="#sheet5" x="400" y="286"/>
+  <use href="#sheet5" x="402" y="279"/>
+  <use href="#sheet5" x="399" y="272"/>
+  <use href="#sheet5" x="401" y="265"/>
+  <use href="#sheet5" x="400" y="258"/>
+  <g transform="translate(414 244) rotate(-4)"><polygon points="-140,4 0,-56 140,4 0,64" fill="#efeaff" stroke="#cfc8ee" stroke-width=".6"/><path d="M-140 4 V8 L0 68 L140 8 V4 L0 64 Z" fill="#dcd5f5"/></g>
+  <text x="64" y="84" font-size="24" fill="#2c2e2b">The Single File Revolution</text>
+  <text x="64" y="444" font-size="14" fill="#2c2e2b" fill-opacity=".8">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic" fill="#6a5fb0" fill-opacity="1">Lopecode</tspan></text>
+</svg>
+<figcaption><b>Stack.</b> A neat stack of paper, one sheet per copy. The top sheet is tinted and slightly askew because it is the newest.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="bg6" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dde2e8"/><stop offset=".74" stop-color="#eceae6"/><stop offset="1" stop-color="#f3f1ec"/></linearGradient>
+    <linearGradient id="f6" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cfd2d8"/><stop offset="1" stop-color="#b9bdc4"/></linearGradient>
+    <filter id="b6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg6)"/>
+  <polygon points="372,370 428,370 700,404 640,414" fill="#7b808a" opacity=".28" filter="url(#b6)"/>
+  <polygon points="372,120 384,112 440,112 428,120" fill="#e6e8eb"/>
+  <rect x="372" y="120" width="56" height="250" fill="url(#f6)"/>
+  <polygon points="428,120 440,112 440,362 428,370" fill="#9fa4ac"/>
+  <text x="64" y="84" font-size="24" fill="#2b2e33">The Single File Revolution</text>
+  <g font-size="14" fill="#2b2e33" fill-opacity=".8">
+    <text x="560" y="170">Bento</text><text x="560" y="192">TiddlyWiki</text><text x="560" y="214">Decker</text><text x="560" y="236">Feather Wiki</text><text x="560" y="258">SingleFile</text>
+    <text x="560" y="280" font-style="italic" fill-opacity="1">Lopecode</text>
+  </g>
+</svg>
+<figcaption><b>Monolith.</b> One tall slab standing in fog, with the names in a short column beside it.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="bg7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0ede7"/><stop offset=".66" stop-color="#ebe7e0"/><stop offset=".7" stop-color="#e2ddd4"/><stop offset="1" stop-color="#d8d2c8"/></linearGradient>
+    <linearGradient id="cy7" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fbfaf7"/><stop offset=".55" stop-color="#e8e5df"/><stop offset="1" stop-color="#c9c4bb"/></linearGradient>
+    <linearGradient id="co7" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#faf9f6"/><stop offset=".6" stop-color="#e3dfd8"/><stop offset="1" stop-color="#c5c0b6"/></linearGradient>
+    <filter id="b7" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="g7"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg7)"/>
+  <rect width="800" height="500" filter="url(#g7)"/>
+  <g fill="#857d70" opacity=".3" filter="url(#b7)">
+    <polygon points="340,340 370,320 430,330 400,352"/>
+    <polygon points="450,340 480,338 540,352 505,356"/>
+    <polygon points="560,340 575,338 650,350 620,354"/>
+  </g>
+  <polygon points="250,250 340,250 370,230 280,230" fill="#fbfaf7"/>
+  <rect x="250" y="250" width="90" height="90" fill="#eeebe5"/>
+  <polygon points="340,250 370,230 370,320 340,340" fill="#d3cec5"/>
+  <path d="M390 200 V340 A30 8 0 0 0 450 340 V200 Z" fill="url(#cy7)"/>
+  <ellipse cx="420" cy="200" rx="30" ry="8" fill="#f6f4f0"/>
+  <path d="M480 340 L520 190 L560 340 A40 10 0 0 1 480 340 Z" fill="url(#co7)"/>
+  <text x="64" y="84" font-size="24" fill="#34302a">The Single File Revolution</text>
+  <text x="64" y="444" font-size="14" fill="#34302a" fill-opacity=".8">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic" fill-opacity="1">Lopecode</tspan></text>
+</svg>
+<figcaption><b>Still life.</b> The plaster cube, cylinder and cone from a drawing class, lit from the left on a paper-toned table.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="bg8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf0"/><stop offset="1" stop-color="#dfe4e8"/></linearGradient>
+    <linearGradient id="fold8" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9dcdf"/></linearGradient>
+    <filter id="s8" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="6" dy="10" stdDeviation="12" flood-color="#4a5560" flood-opacity=".18"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg8)"/>
+  <path d="M250 40 H550 V404 L494 460 H250 Z" fill="#fdfdfb" filter="url(#s8)"/>
+  <path d="M550 404 L494 460 L502 412 Z" fill="url(#fold8)"/>
+  <text x="282" y="100" font-size="19" fill="#27292c">The Single File Revolution</text>
+  <g font-size="12" fill="#27292c" fill-opacity=".8">
+    <text x="282" y="150">Bento</text><text x="282" y="170">TiddlyWiki</text><text x="282" y="190">Decker</text><text x="282" y="210">Feather Wiki</text><text x="282" y="230">SingleFile</text>
+    <text x="282" y="250" font-style="italic" fill-opacity="1">Lopecode</text>
+  </g>
+</svg>
+<figcaption><b>Dog-ear.</b> The page drawn as a single sheet with a soft shadow and one folded corner. Dragging the corner could be the way to add a name.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="sky9" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f0ea"/><stop offset="1" stop-color="#f2e3da"/></linearGradient>
+    <filter id="d9" x="-10%" y="-30%" width="120%" height="160%"><feDropShadow dx="0" dy="-3" stdDeviation="5" flood-color="#5b3d3d" flood-opacity=".16"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky9)"/>
+  <g filter="url(#d9)">
+    <path d="M0 260 C150 210 260 230 400 200 C540 170 650 220 800 190 V500 H0Z" fill="#f0e2d9"/>
+    <path d="M0 320 C120 280 280 300 420 270 C560 240 680 300 800 280 V500 H0Z" fill="#e7d3ca"/>
+    <path d="M0 380 C160 350 300 370 460 340 C600 315 700 360 800 350 V500 H0Z" fill="#dbc3be"/>
+    <path d="M0 430 C200 410 340 430 520 405 C650 390 720 420 800 410 V500 H0Z" fill="#c4a5ab"/>
+  </g>
+  <text x="64" y="96" font-size="26" fill="#4a3638">The Single File Revolution</text>
+  <text x="64" y="472" font-size="14" fill="#fffaf7">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic">Lopecode</tspan></text>
+</svg>
+<figcaption><b>Cut paper.</b> Layered paper hills, each casting a soft shadow on the layer behind it. The names are printed on the front layer.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <radialGradient id="bg10" cx=".3" cy=".35" r=".9"><stop offset="0" stop-color="#f7f8fa"/><stop offset="1" stop-color="#e1e7ef"/></radialGradient>
+    <filter id="b10" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg10)"/>
+  <polygon points="300,310 352,280 460,302 408,334" fill="#6b7686" opacity=".25" filter="url(#b10)"/>
+  <polygon points="300,190 352,220 300,250 248,220" fill="#fafaf8"/>
+  <polygon points="248,220 300,250 300,310 248,280" fill="#e4e5e7"/>
+  <polygon points="300,250 352,220 352,280 300,310" fill="#c9ced6"/>
+  <g fill="none" stroke="#7d828a" stroke-width=".9" stroke-linejoin="round">
+    <polygon points="520,190 572,220 572,280 520,310 468,280 468,220"/>
+    <path d="M468 220 L520 250 L572 220 M520 250 V310"/>
+    <path d="M520 190 V250 M468 280 L520 250 M572 280 L520 250" stroke-opacity=".3" stroke-dasharray="2 3"/>
+  </g>
+  <text x="64" y="84" font-size="24" fill="#2a2e35">The Single File Revolution</text>
+  <text x="300" y="370" font-size="13" fill="#2a2e35" fill-opacity=".8" text-anchor="middle">Bento, TiddlyWiki, Decker, Feather Wiki,</text>
+  <text x="300" y="388" font-size="13" fill="#2a2e35" fill-opacity=".8" text-anchor="middle">SingleFile, <tspan font-style="italic" fill-opacity="1">Lopecode</tspan></text>
+  <text x="520" y="370" font-size="13" fill="#2a2e35" fill-opacity=".4" text-anchor="middle" font-style="italic">your name</text>
+</svg>
+<figcaption><b>Original and copy.</b> A solid cube with a shadow next to the same cube drawn only in outline. The outline cube is your copy, and clicking it starts the add.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">
+  <rect width="800" height="500" fill="#ebe8e1"/>
+  <rect x="128" y="78" width="560" height="360" fill="#d3cfc5"/>
+  <rect x="120" y="70" width="560" height="360" fill="#f7f5ef" stroke="#2a2926" stroke-width="1.2"/>
+  <rect x="146" y="62" width="262" height="16" fill="#f7f5ef"/>
+  <text x="150" y="75" font-size="15" fill="#2a2926" xml:space="preserve"> The Single File Revolution </text>
+  <g font-size="15">
+    <g fill="#2a2926"><text x="160" y="124">Bento</text><text x="160" y="152">TiddlyWiki</text><text x="160" y="180">Decker</text><text x="160" y="208">Feather Wiki</text><text x="160" y="236">SingleFile</text></g>
+    <g fill="#8b877e"><text x="400" y="124">bento.page</text><text x="400" y="152">tiddlywiki.com</text><text x="400" y="180">beyondloom.com/decker</text><text x="400" y="208">feather.wiki</text><text x="400" y="236">github.com/gildas-lormeau</text></g>
+    <rect x="140" y="250" width="520" height="24" fill="#2a2926"/>
+    <text x="144" y="267" fill="#f7f5ef">▸</text>
+    <text x="160" y="267" fill="#f7f5ef">Lopecode</text>
+    <text x="400" y="267" fill="#f7f5ef" fill-opacity=".7">tomlarkworthy.github.io</text>
+    <text x="160" y="318" fill="#2a2926">add › </text>
+    <rect x="214" y="305" width="9" height="17" fill="#2a2926"/>
+  </g>
+  <path d="M120 384H680" stroke="#2a2926" stroke-width="1"/>
+  <g font-size="12" fill="#8b877e"><text x="140" y="410" xml:space="preserve">↑↓ select   ⏎ open   a add   q quit   mouse works too</text><text x="660" y="410" text-anchor="end">6 names</text></g>
+  <path d="M470 258 l0 16 l4 -4 l3 7 l3 -1 l-3 -7 l6 0 z" fill="#f7f5ef" stroke="#2a2926" stroke-width=".8"/>
+</svg>
+<figcaption><b>ncurses.</b> A dialog box on paper with the solid offset shadow curses draws. The arrow keys move an inverse selection bar, Enter opens the link, and a opens a prompt with a block cursor. Clicking or hovering a row does the same things.</figcaption>
+</figure>
+
+</div>
+</div>

@@ -1,0 +1,20 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">
+  <rect width="800" height="500" fill="#ebe8e1"/>
+  <rect x="128" y="78" width="560" height="360" fill="#d3cfc5"/>
+  <rect x="120" y="70" width="560" height="360" fill="#f7f5ef" stroke="#2a2926" stroke-width="1.2"/>
+  <rect x="146" y="62" width="262" height="16" fill="#f7f5ef"/>
+  <text x="150" y="75" font-size="15" fill="#2a2926" xml:space="preserve"> The Single File Revolution </text>
+  <g font-size="15">
+    <g fill="#2a2926"><text x="160" y="124">Bento</text><text x="160" y="152">TiddlyWiki</text><text x="160" y="180">Decker</text><text x="160" y="208">Feather Wiki</text><text x="160" y="236">SingleFile</text></g>
+    <g fill="#8b877e"><text x="400" y="124">bento.page</text><text x="400" y="152">tiddlywiki.com</text><text x="400" y="180">beyondloom.com/decker</text><text x="400" y="208">feather.wiki</text><text x="400" y="236">github.com/gildas-lormeau</text></g>
+    <rect x="140" y="250" width="520" height="24" fill="#2a2926"/>
+    <text x="144" y="267" fill="#f7f5ef">▸</text>
+    <text x="160" y="267" fill="#f7f5ef">Lopecode</text>
+    <text x="400" y="267" fill="#f7f5ef" fill-opacity=".7">tomlarkworthy.github.io</text>
+    <text x="160" y="318" fill="#2a2926">add › </text>
+    <rect x="214" y="305" width="9" height="17" fill="#2a2926"/>
+  </g>
+  <path d="M120 384H680" stroke="#2a2926" stroke-width="1"/>
+  <g font-size="12" fill="#8b877e"><text x="140" y="410" xml:space="preserve">↑↓ select   ⏎ open   a add   q quit   mouse works too</text><text x="660" y="410" text-anchor="end">6 names</text></g>
+  <path d="M470 258 l0 16 l4 -4 l3 7 l3 -1 l-3 -7 l6 0 z" fill="#f7f5ef" stroke="#2a2926" stroke-width=".8"/>
+</svg>

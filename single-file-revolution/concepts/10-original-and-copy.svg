@@ -1,0 +1,20 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <radialGradient id="bg10" cx=".3" cy=".35" r=".9"><stop offset="0" stop-color="#f7f8fa"/><stop offset="1" stop-color="#e1e7ef"/></radialGradient>
+    <filter id="b10" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg10)"/>
+  <polygon points="300,310 352,280 460,302 408,334" fill="#6b7686" opacity=".25" filter="url(#b10)"/>
+  <polygon points="300,190 352,220 300,250 248,220" fill="#fafaf8"/>
+  <polygon points="248,220 300,250 300,310 248,280" fill="#e4e5e7"/>
+  <polygon points="300,250 352,220 352,280 300,310" fill="#c9ced6"/>
+  <g fill="none" stroke="#7d828a" stroke-width=".9" stroke-linejoin="round">
+    <polygon points="520,190 572,220 572,280 520,310 468,280 468,220"/>
+    <path d="M468 220 L520 250 L572 220 M520 250 V310"/>
+    <path d="M520 190 V250 M468 280 L520 250 M572 280 L520 250" stroke-opacity=".3" stroke-dasharray="2 3"/>
+  </g>
+  <text x="64" y="84" font-size="24" fill="#2a2e35">The Single File Revolution</text>
+  <text x="300" y="370" font-size="13" fill="#2a2e35" fill-opacity=".8" text-anchor="middle">Bento, TiddlyWiki, Decker, Feather Wiki,</text>
+  <text x="300" y="388" font-size="13" fill="#2a2e35" fill-opacity=".8" text-anchor="middle">SingleFile, <tspan font-style="italic" fill-opacity="1">Lopecode</tspan></text>
+  <text x="520" y="370" font-size="13" fill="#2a2e35" fill-opacity=".4" text-anchor="middle" font-style="italic">your name</text>
+</svg>

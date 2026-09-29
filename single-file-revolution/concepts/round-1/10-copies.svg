@@ -1,0 +1,33 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#141312"/>
+  <g font-size="50" font-weight="800" letter-spacing="-2.5" fill="#efece6">
+    <text x="48" y="120">The Single</text><text x="48" y="174">File</text><text x="48" y="228">Revolution</text>
+  </g>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#7d7870">
+    <text x="48" y="290">single-file-revolution.html</text>
+    <text x="48" y="310">each copy holds one more name</text>
+    <text x="48" y="468" font-size="11">This page is the whole thing. View source.</text>
+  </g>
+  <g transform="translate(470 58) rotate(9)">
+    <rect width="270" height="350" fill="#1a1816" stroke="#2c2926"/>
+    <text x="250" y="24" font-family="ui-monospace, Menlo, monospace" font-size="9" fill="#5d5852" text-anchor="end">4 names</text>
+  </g>
+  <g transform="translate(452 64) rotate(3)">
+    <rect width="270" height="350" fill="#1c1a18" stroke="#35312d"/>
+    <text x="250" y="24" font-family="ui-monospace, Menlo, monospace" font-size="9" fill="#6a655e" text-anchor="end">5 names</text>
+  </g>
+  <g transform="translate(424 82) rotate(-4)">
+    <rect width="270" height="350" fill="#201e1b" stroke="#48433d"/>
+    <text x="20" y="46" font-size="24" font-weight="800" letter-spacing="-1" fill="#efece6">The Single File</text>
+    <text x="20" y="72" font-size="24" font-weight="800" letter-spacing="-1" fill="#efece6">Revolution</text>
+    <g font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#efece6">
+      <text x="20" y="116">Bento   Decker   TiddlyWiki</text>
+      <text x="20" y="138">Feather Wiki   SingleFile</text>
+      <rect x="17" y="149" width="60" height="16" fill="#ffd400"/>
+      <text x="20" y="161" fill="#141312">Lopecode</text>
+      <rect x="86" y="150" width="70" height="14" rx="2" fill="none" stroke="#ffd400" stroke-dasharray="2 2"/>
+      <text x="92" y="161" font-size="9" fill="#ffd400">+ add new</text>
+      <text x="20" y="332" font-size="8" fill="#7d7870">6 names</text>
+    </g>
+  </g>
+</svg>

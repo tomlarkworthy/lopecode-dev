@@ -1,0 +1,23 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#0f1013"/>
+  <text x="48" y="96" font-size="48" font-weight="800" letter-spacing="-2.5" fill="#d9dbe3">The Single File Revolution</text>
+  <rect x="84" y="315" width="690" height="22" fill="#b49bff" fill-opacity=".14"/>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="13">
+    <g fill="#4a4e5a" text-anchor="end"><text x="72" y="172">211</text><text x="72" y="194">212</text><text x="72" y="216">213</text><text x="72" y="238">214</text><text x="72" y="260">215</text><text x="72" y="282">216</text><text x="72" y="304">217</text><text x="72" y="330">218</text><text x="72" y="352">219</text><text x="72" y="374">220</text><text x="72" y="396">221</text></g>
+    <g fill="#6c7180">
+      <text x="90" y="172">&lt;script type="application/json" id="entries"&gt;</text>
+      <text x="90" y="194">[</text>
+      <text x="90" y="216" xml:space="preserve">  { "name": <tspan fill="#d9dbe3" text-decoration="underline">"Bento"</tspan>, "url": "https://bento.page" },</text>
+      <text x="90" y="238" xml:space="preserve">  { "name": <tspan fill="#d9dbe3" text-decoration="underline">"TiddlyWiki"</tspan>, "url": "https://tiddlywiki.com" },</text>
+      <text x="90" y="260" xml:space="preserve">  { "name": <tspan fill="#d9dbe3" text-decoration="underline">"Decker"</tspan>, "url": "https://beyondloom.com/decker/" },</text>
+      <text x="90" y="282" xml:space="preserve">  { "name": <tspan fill="#d9dbe3" text-decoration="underline">"Feather Wiki"</tspan>, "url": "https://feather.wiki" },</text>
+      <text x="90" y="304" xml:space="preserve">  { "name": <tspan fill="#d9dbe3" text-decoration="underline">"SingleFile"</tspan>, "url": "https://github.com/…" },</text>
+      <text x="90" y="330" xml:space="preserve">  { "name": <tspan fill="#b49bff" text-decoration="underline">"Lopecode"</tspan>, "url": "https://tomlarkworthy.github.io/lopecode/" }</text>
+      <text x="90" y="352" xml:space="preserve" fill="#b49bff" fill-opacity=".45">  { "name": "your name", "url": "https://your.site" }   ← + add new</text>
+      <text x="90" y="374">]</text>
+      <text x="90" y="396">&lt;/script&gt;</text>
+    </g>
+    <rect x="712" y="319" width="8" height="15" fill="#b49bff"/>
+    <text x="48" y="468" font-size="11" fill="#6c7180">This page is the whole thing. You are looking at it.  ·  6 names</text>
+  </g>
+</svg>

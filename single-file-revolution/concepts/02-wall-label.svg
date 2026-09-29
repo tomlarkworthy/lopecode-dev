@@ -1,0 +1,25 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="w2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f3f0"/><stop offset=".72" stop-color="#eeede9"/><stop offset=".74" stop-color="#e6e4df"/><stop offset="1" stop-color="#dedbd5"/></linearGradient>
+    <filter id="b2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="s2" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#w2)"/>
+  <polygon points="340,420 360,406 520,440 480,462" fill="#8d887f" opacity=".35" filter="url(#b2)"/>
+  <polygon points="190,250 340,250 360,236 210,236" fill="#ffffff"/>
+  <rect x="190" y="250" width="150" height="170" fill="#faf9f6"/>
+  <polygon points="340,250 360,236 360,406 340,420" fill="#e4e2dd"/>
+  <polygon points="292,250 310,240 360,248 345,252" fill="#8d887f" opacity=".3" filter="url(#b2)"/>
+  <polygon points="244,196 290,196 304,186 258,186" fill="#e9ecf0"/>
+  <rect x="244" y="196" width="46" height="54" fill="#d5dae1"/>
+  <polygon points="290,196 304,186 304,240 290,250" fill="#b8bec8"/>
+  <rect x="520" y="236" width="220" height="112" fill="#ffffff" filter="url(#s2)"/>
+  <g fill="#2e2c30">
+    <text x="536" y="262" font-size="13">The Single File Revolution</text>
+    <text x="536" y="280" font-size="11" fill="#77747a">2026</text>
+    <text x="536" y="296" font-size="11" font-style="italic" fill="#77747a">HTML, CSS and JavaScript, one file</text>
+    <text x="536" y="318" font-size="10">Bento, TiddlyWiki, Decker, Feather Wiki,</text>
+    <text x="536" y="332" font-size="10">SingleFile, <tspan font-style="italic">Lopecode</tspan></text>
+  </g>
+  <text x="536" y="368" font-size="10" fill="#9a979d">+ add your name</text>
+</svg>

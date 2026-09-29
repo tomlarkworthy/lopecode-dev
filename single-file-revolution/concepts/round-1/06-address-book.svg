@@ -1,0 +1,20 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#e8eaee"/>
+  <text x="48" y="92" font-size="60" font-weight="800" letter-spacing="-3" fill="#15171c">The Single File</text>
+  <text x="48" y="150" font-size="60" font-weight="800" letter-spacing="-3" fill="#15171c">Revolution</text>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="9" text-anchor="middle" fill="#9aa0ab">
+    <text x="770" y="40">A</text><text x="770" y="55" fill="#15171c" font-weight="700">B</text><text x="770" y="70">C</text><text x="770" y="85" fill="#15171c" font-weight="700">D</text><text x="770" y="100">E</text><text x="770" y="115" fill="#15171c" font-weight="700">F</text><text x="770" y="130">G</text><text x="770" y="145">H</text><text x="770" y="160">I</text><text x="770" y="175">J</text><text x="770" y="190">K</text><text x="770" y="205" fill="#2346ff" font-weight="700">L</text><text x="770" y="220">M</text><text x="770" y="235">N</text><text x="770" y="250">O</text><text x="770" y="265">P</text><text x="770" y="280">Q</text><text x="770" y="295">R</text><text x="770" y="310" fill="#15171c" font-weight="700">S</text><text x="770" y="325" fill="#15171c" font-weight="700">T</text><text x="770" y="340">U</text><text x="770" y="355">V</text><text x="770" y="370">W</text><text x="770" y="385">X</text><text x="770" y="400">Y</text><text x="770" y="415">Z</text>
+  </g>
+  <g font-family="ui-monospace, Menlo, monospace">
+    <g font-size="28" fill="#aab0bb"><text x="48" y="240">B</text><text x="48" y="302">D</text><text x="48" y="364">F</text><text x="400" y="302">S</text><text x="400" y="364">T</text></g>
+    <text x="400" y="240" font-size="28" fill="#2346ff">L</text>
+    <g font-size="16" fill="#15171c"><text x="92" y="232">Bento</text><text x="92" y="294">Decker</text><text x="92" y="356">Feather Wiki</text><text x="444" y="294">SingleFile</text><text x="444" y="356">TiddlyWiki</text></g>
+    <text x="444" y="232" font-size="16" fill="#2346ff">Lopecode</text>
+    <path d="M444 237H516" stroke="#2346ff" stroke-width="2"/>
+    <g font-size="11" fill="#6a707c"><text x="92" y="250">bento.page</text><text x="92" y="312">beyondloom.com</text><text x="92" y="374">feather.wiki</text><text x="444" y="250">tomlarkworthy.github.io · added today</text><text x="444" y="312">github.com</text><text x="444" y="374">tiddlywiki.com</text></g>
+    <g stroke="#c9ced8"><path d="M48 262H348M48 324H348M48 386H348M400 262H700M400 324H700M400 386H700"/></g>
+    <path d="M444 426H700" stroke="#2346ff" stroke-dasharray="2 3"/>
+    <text x="444" y="420" font-size="13" fill="#2346ff">+ add new</text>
+    <text x="48" y="470" font-size="11" fill="#6a707c">This page is the whole thing. View source.  ·  6 names</text>
+  </g>
+</svg>

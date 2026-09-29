@@ -1,0 +1,18 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#f7f7f5"/>
+  <g stroke="#e6e6e2"><path d="M40 0V500M100 0V500M160 0V500M220 0V500M280 0V500M340 0V500M400 0V500M460 0V500M520 0V500M580 0V500M640 0V500M700 0V500M760 0V500"/></g>
+  <text x="40" y="112" font-size="72" font-weight="800" letter-spacing="-4" fill="#0b0b0c">The Single File</text>
+  <text x="40" y="180" font-size="72" font-weight="800" letter-spacing="-4" fill="#0b0b0c">Revolution</text>
+  <g stroke="#0b0b0c"><path d="M40 236H270M280 236H510M520 236H750M40 316H270M280 316H510"/></g>
+  <rect x="520" y="316" width="230" height="64" fill="#1f3bff"/>
+  <rect x="520" y="390" width="230" height="46" fill="none" stroke="#1f3bff" stroke-dasharray="4 3"/>
+  <g font-family="ui-monospace, Menlo, monospace">
+    <g font-size="15" fill="#0b0b0c"><text x="40" y="262">Bento</text><text x="280" y="262">TiddlyWiki</text><text x="520" y="262">Decker</text><text x="40" y="342">Feather Wiki</text><text x="280" y="342">SingleFile</text></g>
+    <g font-size="11" fill="#7a7a76"><text x="40" y="282">bento.page</text><text x="280" y="282">tiddlywiki.com</text><text x="520" y="282">beyondloom.com</text><text x="40" y="362">feather.wiki</text><text x="280" y="362">github.com</text></g>
+    <text x="532" y="342" font-size="15" fill="#ffffff">Lopecode</text>
+    <text x="532" y="362" font-size="11" fill="#ffffff" fill-opacity=".75">added today</text>
+    <text x="532" y="418" font-size="13" fill="#1f3bff">+ add new</text>
+    <text x="40" y="470" font-size="11" fill="#7a7a76">This page is the whole thing. View source.</text>
+    <text x="750" y="470" font-size="11" fill="#7a7a76" text-anchor="end">6 names</text>
+  </g>
+</svg>

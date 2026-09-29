@@ -1,0 +1,18 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#0c0c0d"/>
+  <text x="56" y="120" font-size="78" font-weight="800" letter-spacing="-4" fill="#ecebe6">The Single File</text>
+  <text x="56" y="194" font-size="78" font-weight="800" letter-spacing="-4" fill="#ecebe6">Revolution</text>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="15" fill="#ecebe6">
+    <text x="56" y="282">Bento</text><text x="137" y="282">TiddlyWiki</text><text x="263" y="282">Decker</text><text x="353" y="282">Feather Wiki</text><text x="497" y="282">SingleFile</text>
+    <rect x="4" y="255" width="364" height="117" fill="none" stroke="#c6ff3d" stroke-opacity=".35" stroke-dasharray="3 5"/>
+    <text x="10" y="366" font-size="9" fill="#c6ff3d" fill-opacity=".6">moat 48px</text>
+    <rect x="52" y="303" width="80" height="21" fill="#c6ff3d"/>
+    <text x="56" y="318" fill="#0c0c0d">Lopecode</text>
+    <text x="146" y="318" font-size="11" fill="#807f7a">added today</text>
+    <rect x="232" y="304" width="88" height="19" rx="2" fill="#c6ff3d" fill-opacity=".08" stroke="#c6ff3d" stroke-opacity=".6" stroke-dasharray="3 2"/>
+    <text x="241" y="318" font-size="12" fill="#c6ff3d">+ add new</text>
+    <text x="56" y="462" font-size="11" fill="#807f7a">This page is the whole thing. View source.</text>
+    <text x="744" y="462" font-size="11" fill="#807f7a" text-anchor="end">6 names</text>
+  </g>
+  <path d="M300 328 l0 16 l4 -4 l3 7 l3 -1 l-3 -7 l6 0 z" fill="#ecebe6" stroke="#0c0c0d"/>
+</svg>

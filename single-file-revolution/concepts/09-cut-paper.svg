@@ -1,0 +1,15 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="sky9" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f0ea"/><stop offset="1" stop-color="#f2e3da"/></linearGradient>
+    <filter id="d9" x="-10%" y="-30%" width="120%" height="160%"><feDropShadow dx="0" dy="-3" stdDeviation="5" flood-color="#5b3d3d" flood-opacity=".16"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky9)"/>
+  <g filter="url(#d9)">
+    <path d="M0 260 C150 210 260 230 400 200 C540 170 650 220 800 190 V500 H0Z" fill="#f0e2d9"/>
+    <path d="M0 320 C120 280 280 300 420 270 C560 240 680 300 800 280 V500 H0Z" fill="#e7d3ca"/>
+    <path d="M0 380 C160 350 300 370 460 340 C600 315 700 360 800 350 V500 H0Z" fill="#dbc3be"/>
+    <path d="M0 430 C200 410 340 430 520 405 C650 390 720 420 800 410 V500 H0Z" fill="#c4a5ab"/>
+  </g>
+  <text x="64" y="96" font-size="26" fill="#4a3638">The Single File Revolution</text>
+  <text x="64" y="472" font-size="14" fill="#fffaf7">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic">Lopecode</tspan></text>
+</svg>

@@ -1,0 +1,14 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5dfd5"/><stop offset=".62" stop-color="#ecc9cc"/><stop offset=".7" stop-color="#dfbcc7"/><stop offset="1" stop-color="#cfb3c8"/></linearGradient>
+    <radialGradient id="sph4" cx=".36" cy=".3" r=".75"><stop offset="0" stop-color="#fff6f0"/><stop offset=".45" stop-color="#eec3bd"/><stop offset="1" stop-color="#a5859c"/></radialGradient>
+    <filter id="b4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="c4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky4)"/>
+  <ellipse cx="310" cy="356" rx="170" ry="15" fill="#6d5470" opacity=".28" filter="url(#b4)"/>
+  <ellipse cx="440" cy="352" rx="52" ry="7" fill="#5a4460" opacity=".45" filter="url(#c4)"/>
+  <circle cx="440" cy="282" r="70" fill="url(#sph4)"/>
+  <text x="64" y="90" font-size="26" fill="#43333f">The Single File Revolution</text>
+  <text x="64" y="444" font-size="14" fill="#43333f" fill-opacity=".8">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic" fill-opacity="1">Lopecode</tspan></text>
+</svg>

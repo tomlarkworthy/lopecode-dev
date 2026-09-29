@@ -1,0 +1,23 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="800" height="500" fill="#0f0e12"/>
+  <text x="48" y="104" font-size="66" font-weight="800" letter-spacing="-3.5" fill="#ece8f2">The Single File</text>
+  <text x="48" y="168" font-size="66" font-weight="800" letter-spacing="-3.5" fill="#ece8f2">Revolution</text>
+  <path d="M60 320H640" stroke="#4a4456" stroke-width="2"/>
+  <path d="M300 320C300 380 330 400 380 400H460" fill="none" stroke="#4a4456" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <circle cx="466" cy="400" r="4" fill="#0f0e12" stroke="#7b7488"/>
+  <path d="M640 320C660 392 690 392 734 392" fill="none" stroke="#ff4fd8" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <circle cx="740" cy="392" r="6" fill="#0f0e12" stroke="#ff4fd8" stroke-width="1.5"/>
+  <g fill="#7b7488"><circle cx="80" cy="320" r="5"/><circle cx="190" cy="320" r="5"/><circle cx="300" cy="320" r="5"/><circle cx="410" cy="320" r="5"/><circle cx="520" cy="320" r="5"/></g>
+  <circle cx="640" cy="320" r="17" fill="none" stroke="#ff4fd8" stroke-opacity=".5"/>
+  <circle cx="640" cy="320" r="7" fill="#ff4fd8"/>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="13" fill="#ece8f2" text-anchor="middle">
+    <text x="80" y="300">Bento</text><text x="190" y="300">TiddlyWiki</text><text x="300" y="300">Decker</text><text x="410" y="300">Feather Wiki</text><text x="520" y="300">SingleFile</text>
+    <text x="640" y="292" fill="#ff4fd8">Lopecode</text>
+    <text x="624" y="350" font-size="10" fill="#7b7488" text-anchor="end">added today</text>
+    <text x="500" y="404" font-size="10" fill="#7b7488">a copy</text>
+    <text x="740" y="422" font-size="11" fill="#ff4fd8">+ add new</text>
+  </g>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#7b7488">
+    <text x="48" y="468">This page is the whole thing. View source.</text><text x="752" y="468" text-anchor="end">6 names</text>
+  </g>
+</svg>

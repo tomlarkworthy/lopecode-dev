@@ -1,0 +1,17 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eff1ed"/><stop offset="1" stop-color="#e2e6e1"/></linearGradient>
+    <filter id="b5" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+    <g id="sheet5"><polygon points="-140,4 0,-56 140,4 0,64" fill="#fbfbf8" stroke="#d3d4ce" stroke-width=".6"/><path d="M-140 4 V8 L0 68 L140 8 V4 L0 64 Z" fill="#e5e6e1"/></g>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg5)"/>
+  <polygon points="270,300 410,240 560,300 420,370" fill="#7f857c" opacity=".3" filter="url(#b5)"/>
+  <use href="#sheet5" x="400" y="286"/>
+  <use href="#sheet5" x="402" y="279"/>
+  <use href="#sheet5" x="399" y="272"/>
+  <use href="#sheet5" x="401" y="265"/>
+  <use href="#sheet5" x="400" y="258"/>
+  <g transform="translate(414 244) rotate(-4)"><polygon points="-140,4 0,-56 140,4 0,64" fill="#efeaff" stroke="#cfc8ee" stroke-width=".6"/><path d="M-140 4 V8 L0 68 L140 8 V4 L0 64 Z" fill="#dcd5f5"/></g>
+  <text x="64" y="84" font-size="24" fill="#2c2e2b">The Single File Revolution</text>
+  <text x="64" y="444" font-size="14" fill="#2c2e2b" fill-opacity=".8">Bento<tspan dx="22">TiddlyWiki</tspan><tspan dx="22">Decker</tspan><tspan dx="22">Feather Wiki</tspan><tspan dx="22">SingleFile</tspan><tspan dx="22" font-style="italic" fill="#6a5fb0" fill-opacity="1">Lopecode</tspan></text>
+</svg>

@@ -1,0 +1,17 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, Menlo, monospace">
+  <rect width="800" height="500" fill="#0d0b08"/>
+  <text x="48" y="88" font-size="40" font-weight="700" letter-spacing="-1" fill="#f2d9a6">The Single File Revolution</text>
+  <text x="48" y="150" font-size="14" fill="#8a6a2a">$ ls -la revolution/</text>
+  <g font-size="14">
+    <g fill="#6d5424"><text x="48" y="190">-rw-r--r--</text><text x="48" y="220">-rw-r--r--</text><text x="48" y="250">-rw-r--r--</text><text x="48" y="280">-rw-r--r--</text><text x="48" y="310">-rw-r--r--</text></g>
+    <g fill="#6d5424"><text x="190" y="190">Sep 29</text><text x="190" y="220">Sep 29</text><text x="190" y="250">Sep 29</text><text x="190" y="280">Sep 29</text><text x="190" y="310">Sep 29</text></g>
+    <g fill="#f2d9a6"><text x="270" y="190">bento</text><text x="270" y="220">decker</text><text x="270" y="250">feather-wiki</text><text x="270" y="280">singlefile</text><text x="270" y="310">tiddlywiki</text></g>
+    <g fill="#8a6a2a"><text x="430" y="190">→ bento.page</text><text x="430" y="220">→ beyondloom.com/decker</text><text x="430" y="250">→ feather.wiki</text><text x="430" y="280">→ github.com/gildas-lormeau</text><text x="430" y="310">→ tiddlywiki.com</text></g>
+    <rect x="42" y="322" width="680" height="26" fill="#ffb000"/>
+    <g fill="#0d0b08"><text x="48" y="340">-rw-r--r--</text><text x="190" y="340">today</text><text x="270" y="340">lopecode</text><text x="430" y="340">→ tomlarkworthy.github.io</text></g>
+    <text x="48" y="392" fill="#ffb000">$ echo "you" &gt;&gt; entries</text>
+    <rect x="258" y="378" width="9" height="18" fill="#ffb000"/>
+    <path d="M48 400H250" stroke="#ffb000" stroke-opacity=".5" stroke-dasharray="3 3"/>
+  </g>
+  <text x="48" y="468" font-size="11" fill="#6d5424">6 names · 1 file · view source</text>
+</svg>

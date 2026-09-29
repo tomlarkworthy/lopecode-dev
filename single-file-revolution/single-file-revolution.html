@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Single File Revolution</title>
+<meta name="description" content="People and projects building single-file HTML.">
+<meta property="og:title" content="The Single File Revolution">
+<meta property="og:description" content="People and projects building single-file HTML.">
+<!--
+  The Single File Revolution.
+  This file is the whole thing: markup, style, data and the code that copies it.
+  The list lives in the JSON block near the bottom (id="entries"). The last entry is the newest.
+  Adding a name downloads a new copy of this file with that name appended. Host your copy.
+-->
+<style>
+  :root {
+    --page: #ebe8e1;      /* the desk */
+    --paper: #f7f5ef;     /* the window */
+    --ink: #2a2926;
+    --dim: #8b877e;
+    --shadow: #d3cfc5;    /* curses-style solid offset shadow */
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --page: #161513; --paper: #201f1c; --ink: #e8e4d9; --dim: #8d897f; --shadow: #0b0b0a; color-scheme: dark; }
+  }
+
+  html, body { background: var(--page); }
+  body { margin: 0; color: var(--ink); font: 15px/1.6 var(--mono); }
+  main {
+    box-sizing: border-box; min-height: 100svh; padding: 56px 16px 40px;
+    display: grid; place-content: center; gap: 22px;
+  }
+
+  /* The window: a bordered box with its title set into the top border. */
+  .win {
+    position: relative; width: min(640px, calc(100vw - 40px));
+    padding-top: 36px; background: var(--paper);
+    border: 1px solid var(--ink); box-shadow: 8px 8px 0 var(--shadow);
+  }
+  h1 {
+    position: absolute; top: calc(-.8em - 1px); left: 1.2em; margin: 0; padding: 0 .5em;
+    background: var(--paper); font: inherit; font-weight: 400; white-space: nowrap;
+  }
+
+  /* Rows. The selected one is drawn inverse, like a curses menu. */
+  #list { display: flex; flex-direction: column; padding: 0 20px; }
+  .row, .prompt {
+    display: grid; grid-template-columns: 1.5em minmax(0, 1fr) minmax(0, 1.25fr);
+    align-items: baseline; padding: 1px .6em 1px 0;
+    color: inherit; text-decoration: none; outline: none; cursor: pointer;
+  }
+  .row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .url { color: var(--dim); }
+  .mark { text-align: center; }
+  .sel > .mark::before { content: "\25B8"; }
+  .row.sel { background: var(--ink); color: var(--paper); }
+  .row.sel .url { color: color-mix(in srgb, var(--paper) 68%, transparent); }
+
+  /* The add prompt. A hidden <input> takes the keystrokes; #mirror draws them with a block cursor. */
+  .prompt { position: relative; grid-template-columns: 1.5em auto minmax(0, 1fr); margin: 22px 20px 0; cursor: text; white-space: pre; }
+  #mirror { overflow: hidden; }
+  .cur { background: var(--ink); color: var(--paper); }
+  .prompt:not(.on) .cur { opacity: .3; }
+  .prompt.on .cur { animation: blink 1.06s steps(1) infinite; }
+  @keyframes blink { 50% { background: transparent; color: inherit; } }
+  #field {
+    position: absolute; inset: 0; width: 100%; opacity: 0;
+    margin: 0; padding: 0; border: 0; font-size: 16px;   /* 16px stops iOS zooming on focus */
+  }
+
+  .status {
+    display: flex; justify-content: space-between; gap: 1em;
+    margin-top: 30px; padding: 7px 20px 9px; border-top: 1px solid var(--ink);
+    font-size: 12px; color: var(--dim); white-space: pre;
+  }
+  #hint { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  #hint.msg { color: var(--ink); }
+  .touch { display: none; }
+  .colophon { margin: 0; padding-left: 2px; font-size: 12px; color: var(--dim); }
+
+  @media (hover: none) { .keys { display: none; } .touch { display: inline; } }
+  @media (max-width: 480px) {
+    body { font-size: 14px; }
+    .row { grid-template-columns: 1.5em minmax(0, 1fr); }
+    .row .url { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .prompt.on .cur { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+<section class="win" aria-labelledby="title">
+<h1 id="title">The Single File Revolution</h1>
+<!-- Rendered at runtime. It stays empty in the source, so copies never carry rendered state. -->
+<nav id="list" aria-label="People and projects"></nav>
+<label class="prompt" id="prompt"><span class="mark"></span><span><span id="stage">add</span> › </span><span id="mirror"></span><input id="field" autocomplete="off" spellcheck="false" maxlength="60" aria-label="your name"></label>
+<div class="status"><span id="hint" aria-live="polite"><span class="keys">↑↓ select   ⏎ open   a add</span><span class="touch">tap to open</span></span><span id="count"></span></div>
+</section>
+<p class="colophon">This page is the whole thing. View source.</p>
+</main>
+<!-- The data. Edit by hand if you like; the last entry is pinned as the newest. -->
+<script type="application/json" id="entries">
+[
+  { "name": "Bento", "url": "https://bento.page", "added": "2026-09-29" },
+  { "name": "TiddlyWiki", "url": "https://tiddlywiki.com", "added": "2026-09-29" },
+  { "name": "Feather Wiki", "url": "https://feather.wiki", "added": "2026-09-29" },
+  { "name": "Decker", "url": "https://beyondloom.com/decker/", "added": "2026-09-29" },
+  { "name": "SingleFile", "url": "https://github.com/gildas-lormeau/SingleFile", "added": "2026-09-29" },
+  { "name": "Lopecode", "url": "https://tomlarkworthy.github.io/lopecode/", "added": "2026-09-29" }
+]
+</script>
+<script>
+// 1. Capture the pristine source before anything renders. This script is the last node in the
+//    document, so everything above it is parsed; a script in <head> would only see the head.
+//    The file is written in exactly the form outerHTML produces, so a copy is byte-identical
+//    except for the JSON block.
+const SOURCE = "<!doctype html>\n" + document.documentElement.outerHTML;
+
+const FILENAME = "single-file-revolution.html";
+const TYPE_MS = 40;
+const MAX_NAME = 60;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;   // never innerHTML: names are untrusted
+  return node;
+}
+
+// 2. Read the entries. The last one is the newest; the rest are shuffled on every load.
+const entries = JSON.parse($("entries").textContent)
+  .filter((e) => e && typeof e.name === "string" && e.name.trim());
+const newest = entries.at(-1);
+const rest = entries.slice(0, -1);
+for (let i = rest.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [rest[i], rest[j]] = [rest[j], rest[i]];
+}
+
+// Only http(s) links are rendered as links; anything else in a hand-edited copy is plain text.
+function isWebUrl(url) {
+  try { return /^https?:$/.test(new URL(url).protocol); } catch { return false; }
+}
+
+// The user's calendar day, not UTC's.
+function localDay(d = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function age(added) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(added || "");
+  if (!m) return "";
+  const now = new Date();
+  const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(+m[1], m[2] - 1, +m[3])) / 864e5);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 45) return `${days} days ago`;
+  if (days < 548) return `${Math.round(days / 30.44)} months ago`;
+  return `${Math.round(days / 365.25)} years ago`;
+}
+
+// 3. Render: shuffled entries, then the newest pinned last, then the add prompt.
+const list = $("list");
+const rows = [...rest, ...(newest ? [newest] : [])].map((e) => {
+  const web = isWebUrl(e.url);
+  const row = el(web ? "a" : "div", "row");
+  if (web) Object.assign(row, { href: e.url, target: "_blank", rel: "noopener" });
+  row.append(el("span", "mark"), el("span", "name", e.name), el("span", "url", web ? e.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : ""));
+  list.append(row);
+  return row;
+});
+const prompt = $("prompt");
+const targets = [...rows, prompt];
+
+$("count").textContent = `${entries.length} ${entries.length === 1 ? "name" : "names"}` + (newest ? ` · newest ${age(newest.added)}` : "");
+
+// 4. Selection: arrow keys or the mouse move the inverse bar. It starts on the newest entry.
+let sel = 0;
+function select(i, scroll) {
+  sel = Math.max(0, Math.min(targets.length - 1, i));
+  targets.forEach((t, j) => t.classList.toggle("sel", j === sel));
+  if (scroll) targets[sel].scrollIntoView({ block: "nearest" });
+}
+select(rows.length ? rows.length - 1 : 0);
+targets.forEach((t, i) => {
+  t.addEventListener("pointerenter", () => select(i));
+  t.addEventListener("focusin", () => select(i));
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.target === field || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if (k === "ArrowDown" || k === "j") select(sel + 1, true);
+  else if (k === "ArrowUp" || k === "k") select(sel - 1, true);
+  else if (k === "Home") select(0, true);
+  else if (k === "End") select(targets.length - 1, true);
+  else if (k === "a") field.focus();
+  else if (k === "Enter" && !e.target.closest?.("a")) targets[sel] === prompt ? field.focus() : targets[sel].click();
+  else return;
+  e.preventDefault();
+});
+
+// 5. The newest entry types itself in.
+(async () => {
+  const name = rows.length && newest ? rows.at(-1).querySelector(".name") : null;
+  if (!name || reduceMotion) return;
+  const text = name.textContent;
+  name.textContent = "";
+  for (const ch of text) {
+    await new Promise((r) => setTimeout(r, TYPE_MS));
+    name.textContent += ch;
+  }
+})();
+
+// 6. The prompt: "add" -> "name" -> "url" -> the page downloads a copy of itself with you in it.
+const field = $("field");
+const mirror = $("mirror");
+const stageLabel = $("stage");
+const hint = $("hint");
+const hintDefault = [...hint.childNodes];
+let stage = "add";
+let name = "";
+let hintTimer = 0;
+
+function paint() {
+  const v = field.value;
+  const i = field.selectionStart ?? v.length;
+  mirror.replaceChildren(v.slice(0, i), el("span", "cur", v[i] ?? " "), v.slice(i + 1));
+}
+
+function setStage(s) {
+  stage = s;
+  stageLabel.textContent = s;
+  field.value = "";
+  field.maxLength = s === "url" ? 2048 : MAX_NAME;
+  field.inputMode = s === "url" ? "url" : "text";
+  field.setAttribute("aria-label", s === "url" ? "your site" : "your name");
+  paint();
+}
+
+function say(message, ms = 3500) {
+  clearTimeout(hintTimer);
+  hint.classList.add("msg");
+  hint.replaceChildren(message);
+  hintTimer = setTimeout(() => {
+    hint.classList.remove("msg");
+    hint.replaceChildren(...hintDefault);
+  }, ms);
+}
+
+for (const type of ["input", "keyup", "select", "click"]) field.addEventListener(type, paint);
+document.addEventListener("selectionchange", () => document.activeElement === field && paint());
+field.addEventListener("focus", () => {
+  prompt.classList.add("on");
+  select(targets.length - 1);
+  if (stage === "add") setStage("name");
+});
+field.addEventListener("blur", () => {
+  prompt.classList.remove("on");
+  if (stage === "name" && !field.value) setStage("add");
+});
+field.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    setStage("add");
+    field.blur();
+    return;
+  }
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  if (stage === "name") {
+    const value = field.value.trim().replace(/\s+/g, " ").slice(0, MAX_NAME);
+    if (!value) return say("type a name first");
+    name = value;
+    setStage("url");
+  } else if (stage === "url") {
+    const url = normaliseUrl(field.value);
+    if (!url) return say("that is not a web address");
+    download({ name, url, added: localDay() });
+    setStage("add");
+    field.blur();
+    say("downloaded. you're in your copy now. put it somewhere.", 12000);
+  }
+});
+paint();
+
+// Accepts "your.site" as well as "https://your.site".
+function normaliseUrl(value) {
+  value = value.trim();
+  if (!value) return null;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(value)) value = "https://" + value;
+  try {
+    const u = new URL(value);
+    return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+// One entry per line. "<" is escaped so a name containing a closing script tag cannot end the block.
+function formatEntries(all) {
+  const lines = all.map((e) => "  " + JSON.stringify(e, null, 1).replace(/\n */g, " "));
+  return ("[\n" + lines.join(",\n") + "\n]").replace(/</g, "\\u003c");
+}
+
+// 7. Self-replication: parse the pristine source, swap the JSON block, serialise, download.
+function download(entry) {
+  const doc = new DOMParser().parseFromString(SOURCE, "text/html");
+  const block = doc.getElementById("entries");
+  const all = JSON.parse(block.textContent);   // the file's own entries, extra fields and all
+  all.push(entry);
+  block.textContent = "\n" + formatEntries(all) + "\n";
+  const html = "<!doctype html>\n" + doc.documentElement.outerHTML;
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  const a = el("a");
+  Object.assign(a, { href: url, download: FILENAME });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+</script></body></html>
