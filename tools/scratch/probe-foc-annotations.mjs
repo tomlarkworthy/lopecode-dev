@@ -224,6 +224,38 @@ await step("freshTabLink", async () => {
 });
 out.errCells = await p.evaluate(() => [...document.querySelectorAll(".observablehq--error")].map((e) => e.textContent.slice(0, 160)));
 out.pageErrors = errs;
+// A thread about a message posts in that message's channel; an app thread in the annotations channel.
+await step("msgChannel", async () => {
+  const setup = await p.evaluate(() => {
+    const get = (n) => { for (const v of window.__ojs_runtime._variables) if (v._name === n && v._value !== undefined) return v._value; };
+    const ann = get("focAnnChannel");
+    const other = get("structure").channels.find((c) => c.rkey !== ann.rkey);
+    const rec = { rkey: "3zzzzzzother01", cid: "bafyother01", did: "did:plc:probeprobeprobeprobe",
+      value: { $type: "social.colibri.message", text: "a message in another channel with a notable sentence", channel: other.rkey, createdAt: new Date().toISOString() } };
+    (window.__focOutbox = window.__focOutbox || []).push(rec);
+    window.__focWake();
+    get("focWriteHash")({ open: "@tomlarkworthy/foc-chat", foc: other.rkey, msg: null, q: null });
+    return { annChannel: ann.name, otherChannel: other.name };
+  });
+  await p.waitForFunction(() => document.querySelector('.foc-chat .fc-main .fc-msg[data-rkey="3zzzzzzother01"] .fc-text'), null, { timeout: 60000, polling: 300 });
+  await p.waitForTimeout(500);
+  await p.evaluate(() => {
+    const el = document.querySelector('.foc-chat .fc-main .fc-msg[data-rkey="3zzzzzzother01"] .fc-text');
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let n; while ((n = w.nextNode()) && n.nodeValue.indexOf("notable sentence") < 0);
+    const i = n.nodeValue.indexOf("notable sentence");
+    const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 16);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  });
+  await p.waitForTimeout(500);
+  const box = await p.locator(".foc-ann-chip").boundingBox();
+  await p.mouse.move(box.x + 5, box.y + 5);
+  await p.mouse.down(); await p.mouse.up();
+  await p.waitForTimeout(400);
+  const sub = await p.evaluate(() => (document.querySelector(".foc-ann-pop .foc-ann-sub") || {}).textContent);
+  await p.keyboard.press("Escape");
+  return { ...setup, sub, postsInOther: !!sub && sub.includes("#" + setup.otherChannel + "."), appSub: out.appPopover && out.appPopover.sub };
+});
 console.log("errCells", JSON.stringify(out.errCells));
 console.log("pageErrors", JSON.stringify(errs));
 await b.close();
