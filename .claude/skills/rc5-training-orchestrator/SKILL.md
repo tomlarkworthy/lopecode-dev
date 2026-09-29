@@ -62,6 +62,13 @@ user saying so. "Let the pool drain" means merge what lands and spawn nothing ne
 6. **Log one line** per batch in `tools/scratch/rc5-train/overnight/log.md`, including any
    playbook amendment.
 
+**Context economy** (Tom, 2026-09-29: "minimize context bloat"). The orchestrator's context is the
+loop's scarce resource. Keep the goal list in `tools/scratch/rc5-train/<RUN>/queue.md`, not in the
+conversation. Ask workers for at most 5 lines back. Delegate each merge (steps 3–6) to one `opus`
+merge agent at a time, which reads the proposal, applies, gates, commits, logs and returns at most
+5 lines. Run merges one at a time: they share the canonical notebook. The orchestrator reads only those
+summaries and refills the slot.
+
 A worker notification can be interim ("waiting for the fixed run"). Act only on a result that
 names `proposal.md`.
 
