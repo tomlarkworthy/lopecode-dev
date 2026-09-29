@@ -413,6 +413,7 @@ export type ResyncOpts = {
   limit?: number;          // cap targets per module (pilot batches)
   write?: boolean;         // false = dry run
   carryDeps?: boolean;     // copy missing dependency blocks across
+  targets?: string[];      // restrict to these consumer paths (repo-relative)
 };
 
 /**
@@ -488,6 +489,7 @@ export function resyncCanonical(opts: ResyncOpts): number {
     // no-op and `inject` reports it unchanged.
     const targets = refs
       .filter((r) => r.rel.startsWith(repo + "/") && r.rel !== canonRel)
+      .filter((r) => !opts.targets?.length || opts.targets.includes(r.rel))
       .slice(0, limit);
     if (!targets.length) continue;
 
@@ -861,6 +863,7 @@ if (process.argv.includes("--all-canonical")) {
     limit: Number(val("--limit") ?? Infinity),
     write: a.includes("--write"),
     carryDeps: a.includes("--carry-deps"),
+    targets: a.filter((x, i) => a[i - 1] === "--target").map((t) => relative(REPO_ROOT, resolve(t))),
   }));
 }
 
