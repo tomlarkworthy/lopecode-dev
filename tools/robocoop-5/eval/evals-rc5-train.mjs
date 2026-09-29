@@ -115,6 +115,7 @@ import csvTablePreview from "./rc5t/csv-table-preview.mjs";
 import screenshotCellTool from "./rc5t/screenshot-cell-tool.mjs";
 import phoneReadable from "./rc5t/phone-readable.mjs";
 import vrptwVans from "./rc5t/vrptw-vans.mjs";
+import sirEpidemic from "./rc5t/sir-epidemic.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -230,6 +231,7 @@ csvTablePreview,
 screenshotCellTool,
 phoneReadable,
 vrptwVans,
+sirEpidemic,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
