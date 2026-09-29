@@ -691,10 +691,6 @@
   "@tomlarkworthy/robocoop-5-engine": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
   },
-  "@tomlarkworthy/robocoop-5-entrances": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
-    "upstream": null
-  },
   "@tomlarkworthy/robocoop-5-sessions": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
   },
@@ -896,5 +892,9 @@
   },
   "@tomlarkworthy/lopepage-2-tests": {
     "lopecode": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html"
+  },
+  "@tomlarkworthy/switchboard": {
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+    "upstream": null
   }
 }

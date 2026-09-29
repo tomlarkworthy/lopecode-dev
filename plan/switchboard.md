@@ -1,7 +1,9 @@
-# robocoop-5 entrances: a prompt annotation, and a prose cell
+# Switchboard: a prompt annotation and a prose cell, routed to one agent
 
-Designed 2026-09-29; Tom approved the design and answered §6 the same day, and the build started then
-(§7 records what was built). Tom's request, verbatim:
+Designed 2026-09-29 as "robocoop-5 entrances" (`plan/rc5-entrances.md` until this rename); Tom approved the
+design and answered §6 the same day, and the build started then. After steps 1-3 shipped he changed the
+design: the entrances become an agent-agnostic switchboard (§7). §§2-5 describe the robocoop-only design and
+are kept as the record of how it was reached; where they disagree with §7, §7 holds. Tom's request, verbatim:
 
 > I would like new ways to start a robocoop session. From an annotation, but then I want a real UI to
 > appear at that point in a thread from the prompt annotation, quite like Feeling_of_Computing, and also
@@ -391,3 +393,87 @@ The five open questions, as answered. Each is now a requirement of the build, no
    §3.5); the full chat's picker offers the delete.
 5. **Prose detection is the heuristic**: the parse fails right after the first word and there are at
    least 3 words. No explicit marker.
+
+## 7. Switchboard (Tom, 2026-09-29, after steps 1-3 shipped)
+
+Tom, verbatim: "robocoop-5-entrances should be a SWITCHBOARD, because Claude Code pairing will also want to
+connect into it." Decided the same day, with these requirements:
+
+- **`@tomlarkworthy/switchboard`**, agent-agnostic, depends on `@tomlarkworthy/plugin-registry` and nothing
+  agent-specific. It replaces `@tomlarkworthy/robocoop-5-entrances`, which shipped in step 1
+  (lopebooks `f8ce9ac0`) and is refactored away rather than kept beside it.
+- **Entrances are sources, agents are listeners.** The annotate kind and the prose-cell handler (the
+  sources) route to ONE selected destination. Destinations register into the plugin set
+  `"switchboard_listeners"`; robocoop-5 registers itself, and so does `@tomlarkworthy/claude-code-pairing`.
+  The registrations are hard-coded in those two modules.
+- **A settings select picks the destination.** One of, never both. The default at notebook start is
+  robocoop-5, because it is built in; an id with no registered listener falls back to it. Pairing takes
+  over by setting the select's value and dispatching `input`, not through a separate takeover plugin.
+- **The annotate kind names the destination**: "Ask robocoop" or "Ask Claude".
+- **The anchored thread UI works for either destination**: badge fold, resolved state and orphan flag as
+  decided in §6.
+- **Pairing replies land in their thread.** A prompt goes to Claude Code over the channel carrying the
+  anchor, quote and cell context; Claude's `reply` must be addressable to a thread id. The channel server
+  is a separate repo (`lopecode-plugin`), so a server change is described and asked about before release.
+
+### 7.1 The listener interface
+
+```js
+plugins.add("switchboard_listeners", {
+  id: "robocoop-5",            // what a thread cell records as `to`, and the select's value
+  label: "robocoop",           // "Ask robocoop"
+  icon: "\u{1F4AC}",
+  order: 10,                   // select order; also the fallback order after the default
+  // either: the listener draws its own thread (robocoop-5 does: its compact chat)
+  open: ({ id, context, pending, invalidation }) => element,
+  // or: the switchboard draws a plain thread and the listener only carries text
+  send: ({ thread, text, context, reply }) => {}   // reply(markdown) appends to that thread, any time later
+}, { invalidation })
+```
+
+`pending` is `{text}` (a prose cell: send it) or `{focus: true}` (a new annotation), handed over once per page
+life as `rc5_pendingStarts` was (§2). A listener with `open` owns fold and resolve itself, through the
+`a2-fold` / `a2-state` events annotate already handles; the switchboard's plain thread does the same.
+
+### 7.2 What a thread cell holds
+
+```js
+annotation_<id>_note = switchboardThread({id: "<id>", to: "robocoop-5", context: {…}, invalidation})
+prompt_<id>          = switchboardThread({id: "<id>", to: "claude-code", context: {…}, invalidation})
+```
+
+`to` is baked in at creation, so a thread keeps its destination when the select changes. `switchboardThread`
+mounts the listener registered under `to`, and remounts when that listener registers later (module boot
+order is not fixed). With no such listener it shows the thread with sending disabled and says which
+destination is missing; it does not reroute an existing thread to the default.
+
+### 7.3 How pairing finds the select without importing the switchboard
+
+`claude-code-pairing` is embedded in almost every notebook, so an import of the switchboard would have to
+be carried into all of them on the next resync. The switchboard instead registers its select element into
+the plugin set `"switchboard_destination"`; pairing reads that set, and when the channel reports `connected`
+it sets `.value = "claude-code"` and dispatches `input`. On disconnect pairing unregisters its listener, and
+the destination falls back to robocoop-5.
+
+### 7.4 Addressing a reply to a thread
+
+Works with the released channel server, no change:
+
+- the notebook sends `{type: "message", content}` where `content` starts `[thread:<id>]` and carries the
+  context and the instruction to start the reply's markdown with the same tag;
+- pairing routes a `reply` whose markdown starts `[thread:<id>]` to that thread and strips the tag. The
+  reply also stays in the pairing chat.
+
+The cleaner form needs a four-line server change, **not made or released**, pending Tom:
+
+- `message`: pass `msg.thread` through as `meta.thread` on the channel notification;
+- `reply`: an optional `thread` argument, forwarded as `{type: "reply", markdown, thread}`.
+
+Pairing already reads `msg.thread` first and the tag second, so the server change needs no notebook release.
+
+### 7.5 Limits
+
+- A plain (pairing) thread's messages live in page memory. After a reload the thread cell is there and the
+  history is not; robocoop-5 threads keep theirs in `@rc5-threads/<id>`.
+- The listener registrations run only where their module computes: robocoop-5 and the switchboard are
+  mains in the robocoop-5 notebook, pairing is a main in almost every notebook.
