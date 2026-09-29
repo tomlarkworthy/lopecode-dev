@@ -105,6 +105,7 @@ import jsLibraryDownload from "./rc5t/js-library-download.mjs";
 import citeKnuth from "./rc5t/cite-knuth.mjs";
 import projectileControls from "./rc5t/projectile-controls.mjs";
 import monthlyTotalsChart from "./rc5t/monthly-totals-chart.mjs";
+import npmPublishFromNotebook from "./rc5t/npm-publish-from-notebook.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -210,6 +211,7 @@ jsLibraryDownload,
 citeKnuth,
 projectileControls,
 monthlyTotalsChart,
+npmPublishFromNotebook,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
