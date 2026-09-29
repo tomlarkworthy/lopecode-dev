@@ -9,7 +9,7 @@ import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 
-const NOTEBOOK = resolve('lopebooks/notebooks/@tomlarkworthy_annotate.html');
+const NOTEBOOK = resolve(process.env.ANNOTATE_NB || 'lopebooks/notebooks/@tomlarkworthy_annotate.html');
 const LAYOUT = '#view=S100(@tomlarkworthy/annotate)';
 const headed = process.argv.includes('--headed');
 
@@ -1091,6 +1091,69 @@ try {
     const d = document.querySelector('.observablehq[cell="a2DocProbe"]');
     if (d) d.remove();
   });
+
+  // ---- kinds: the "annotate-kinds" plugin set -----------------------------
+  // A stub kind registered from outside the module: the chip offers it, arming it places a record
+  // that carries the kind, a note written by the kind, and the kind's box size.
+  await page.evaluate(() => {
+    const rt = window.__ojs_runtime;
+    const mod = rt.mains.get('@tomlarkworthy/annotate');
+    const plugins = [...rt._variables].find((v) => v._module === mod && v._name === 'plugins')._value;
+    window.__stubKindOff = plugins.add('annotate-kinds', {
+      id: 'stub', label: 'Stub', icon: '\u{1F9EA}', order: 5, box: { w: 333, h: 111 },
+      note: ({ id }) => 'md`stub ' + id + '`',
+      created: ({ id }) => { window.__stubCreated = id; }
+    });
+  });
+  await page.waitForTimeout(600);
+  const kindIds = await api(page, 'mod._scope.get("a2KindsRef")._value.all().map((k) => k.id)');
+  check('a registered kind reaches the holder after the built-in note', JSON.stringify(kindIds) === '["note","stub"]', JSON.stringify(kindIds));
+  const menuSays = await api(page, 'mod._scope.get("a2MenuItem")._value');
+  check('the menu item gains a submenu with one entry per kind', /\(note, stub\)/.test(menuSays), menuSays);
+  await selectPhrase(page, 'not a position');
+  await page.waitForTimeout(500);
+  const kindChip = await page.evaluate(() => {
+    const c = document.querySelector('[data-a2-chip-kind="stub"]');
+    return c && c.offsetParent !== null ? c.textContent : null;
+  });
+  check('the selection chip offers the kind beside ✎ annotate', !!kindChip && /Stub/.test(kindChip), String(kindChip));
+  await page.evaluate(() => getSelection().removeAllRanges());
+  await api(page, 'layer.arm("stub")');
+  await page.waitForTimeout(300);
+  check('arming a kind reads out in the status', /\(stub\)/.test(await api(page, 'layer.textContent')), await api(page, 'layer.textContent'));
+  const proseBox = await page.evaluate(() => {
+    const r = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/annotate"] .observablehq[cell="demoProse"]').getBoundingClientRect();
+    return { x: r.left + 20, y: r.top + 10 };
+  });
+  await page.mouse.click(proseBox.x, proseBox.y);
+  await page.waitForTimeout(700);
+  const stubRec = (await api(page, 'store.all()')).filter((a) => a.kind === 'stub').pop();
+  check('the armed click places a record carrying the kind', !!stubRec, stubRec && stubRec.id);
+  check('the kind sets the box size', stubRec && stubRec.box.w === 333 && stubRec.box.h === 111, stubRec && JSON.stringify(stubRec.box));
+  const stubNoteSrc = stubRec && await api(page, `String(store.noteVar(store.get(${JSON.stringify(stubRec.id)}))._definition)`);
+  check('the note is the kind\'s source, with the id', !!stubNoteSrc && stubNoteSrc.includes('stub ' + stubRec.id), stubNoteSrc && stubNoteSrc.slice(0, 80));
+  check('the kind\'s created hook ran with the id', stubRec && (await page.evaluate(() => window.__stubCreated)) === stubRec.id);
+  // a note drives its box: resolve through the record's state, fold to the note alone
+  const boxSel = stubRec && `[data-ann-id="${stubRec.id}"]`;
+  await page.evaluate((sel) => {
+    const body = document.querySelector(sel + ' [data-a2-body]');
+    body.dispatchEvent(new CustomEvent('a2-state', { bubbles: true, detail: { state: 'resolved' } }));
+    body.dispatchEvent(new CustomEvent('a2-fold', { bubbles: true, detail: { folded: true } }));
+  }, boxSel);
+  await page.waitForTimeout(600);
+  const stubAfter = await api(page, `store.get(${JSON.stringify(stubRec.id)})`);
+  const boxLook = await page.evaluate((sel) => {
+    const b = document.querySelector(sel);
+    return { state: b.dataset.a2State, folded: b.dataset.a2Folded, opacity: b.style.opacity, bar: b.firstChild.style.display };
+  }, boxSel);
+  check('a2-state from the note sets the record state', stubAfter && stubAfter.state === 'resolved', stubAfter && stubAfter.state);
+  check('a resolved box dims', boxLook.state === 'resolved' && boxLook.opacity === '0.5', JSON.stringify(boxLook));
+  check('a2-fold hides the bar and marks the box folded', boxLook.folded === 'true' && boxLook.bar === 'none', JSON.stringify(boxLook));
+  await api(page, `store.remove(${JSON.stringify(stubRec.id)})`);
+  await page.evaluate(() => window.__stubKindOff && window.__stubKindOff());
+  await page.waitForTimeout(400);
+  const kindIdsAfter = await api(page, 'mod._scope.get("a2KindsRef")._value.all().map((k) => k.id)');
+  check('unregistering the kind removes it', JSON.stringify(kindIdsAfter) === '["note"]', JSON.stringify(kindIdsAfter));
 
   check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
 } catch (e) {
