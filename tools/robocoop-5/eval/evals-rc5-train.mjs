@@ -90,6 +90,7 @@ import splitDataModule from "./rc5t/split-data-module.mjs";
 import solarizedTheme from "./rc5t/solarized-theme.mjs";
 import registerDictionaryTool from "./rc5t/register-dictionary-tool.mjs";
 import yamlTaggedTemplate from "./rc5t/yaml-tagged-template.mjs";
+import proofreadEssay from "./rc5t/proofread-essay.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -179,6 +180,7 @@ splitDataModule,
 solarizedTheme[0],
 registerDictionaryTool,
 yamlTaggedTemplate,
+proofreadEssay,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
