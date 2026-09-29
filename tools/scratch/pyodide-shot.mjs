@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+import { resolve } from 'node:path';
+const b = await chromium.launch({ headless: true });
+const page = await (await b.newContext({ viewport: { width: 1300, height: 1800 } })).newPage();
+const errs = []; page.on('pageerror', e => errs.push(e.message));
+await page.goto('file://' + resolve(process.argv[2]), { waitUntil: 'load' });
+await page.waitForTimeout(8000);
+await page.getByRole('button', { name: /Run numpy/ }).first().click();
+await page.waitForTimeout(6000);
+await page.screenshot({ path: process.argv[3], fullPage: false });
+console.log(errs.slice(0, 5));
+await b.close();

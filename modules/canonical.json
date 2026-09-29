@@ -604,7 +604,7 @@
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_prosemirror.html"
   },
   "@tomlarkworthy/pyodide": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_pyodide.html",
     "upstream": null
   },
   "@tomlarkworthy/radial-explosion": {
