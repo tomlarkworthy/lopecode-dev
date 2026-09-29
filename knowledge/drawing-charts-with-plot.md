@@ -39,3 +39,37 @@ A fixed list works as well. The corpus does this in `_barX` of module `d/d2dffac
 
 Leave out `domain` only when ascending order is what the user wants (years as strings, names).
 To order bars by value instead, use the mark's `sort` option: `Plot.barY(rows, {x: "name", y: "count", sort: {x: "-y"}})`.
+
+## A `stroke` or `fill` string that is not a colour is a field name
+
+Plot reads a constant `stroke` or `fill` string as a colour only when it parses as a CSS colour.
+Any other string is taken as the name of a field in the data. When no row has that field, the mark
+draws nothing and no error is raised. `Plot.line(pts, {stroke: "Alder"})` draws no line, although
+a legend built from the same names lists "Alder".
+
+Observed (run 20260929-0620-m57, eval-fixed): the agent drew five pump curves with
+`Plot.line(pts, {x: "q", y: "h", stroke: name})`, with `name` one of "Alder", "Birch", …. The write
+result said "✓ all cells compute", and the eval's plot check found 0 of 5 curves. The same module
+with `stroke: d => d.pump` drew all five.
+
+Measured 2026-09-29, Plot 0.6.17 in Playwright Chromium 151, one four-point `Plot.line`
+(`tools/scratch/rc5-sessions/s87-plot-stroke-string.mjs`):
+
+```
+stroke "Alder"           paths 0   no console error
+stroke "steelblue"       paths 1   <g stroke="steelblue">
+stroke "#1f77b4"         paths 1   <g stroke="#1f77b4">
+stroke d => "Alder"      paths 1   <path stroke="#4269d0">   (ordinal colour scale)
+```
+
+To colour one series per name, put the name in the rows and name that field, which also gives a
+legend that matches the lines:
+
+```js
+Plot.line(rows, {x: "q", y: "h", stroke: "pump"})   // rows: {pump: "Alder", q, h}
+```
+
+To give a series a fixed colour, pass a CSS colour. To label it, use a `Plot.text` mark or the
+colour scale's `domain`/`range`, not the `stroke` string. This is not gated by a write-trigger:
+`stroke: <field>` is the ordinary form (24 corpus files use `Plot.line(…, {stroke: <field>})`,
+count from m57's proposal, not re-measured).
