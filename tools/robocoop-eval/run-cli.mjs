@@ -157,7 +157,8 @@ export async function runEvalCli({ argv, evals: allEvals, createDriver, defaultN
         // when --timeout expired, and an identical re-run expires identically. Measured 2026-08-30 on
         // xiaomi/mimo-v2.5: all 5 vendoring-patterns evals burned 3 attempts each this way, 1500s and
         // 120 OpenRouter calls for one run's worth of signal. Raise --timeout instead.
-        if (/\b(402|401)\b|insufficient|requires more credits|daily limit|quota/i.test(snapshot.error || "")) {
+        // A text-only model refuses any request holding an image (rc5-train m74, mimo-v2.5-pro): permanent too.
+        if (/\b(402|401)\b|insufficient|requires more credits|daily limit|quota|support image input/i.test(snapshot.error || "")) {
           console.log(`  ✗ ${evalDef.id} non-retryable: ${String(snapshot.error).slice(0, 120)}`);
           break;
         }

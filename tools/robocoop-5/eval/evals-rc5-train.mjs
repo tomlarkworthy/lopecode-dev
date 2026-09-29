@@ -112,6 +112,7 @@ import pumpSizing from "./rc5t/pump-sizing.mjs";
 import chartBarCountTest from "./rc5t/chart-bar-count-test.mjs";
 import tocLive from "./rc5t/toc-live.mjs";
 import csvTablePreview from "./rc5t/csv-table-preview.mjs";
+import screenshotCellTool from "./rc5t/screenshot-cell-tool.mjs";
 
 export const RC5_TRAIN_EVALS = [
 pomodoroButton,
@@ -224,6 +225,7 @@ pumpSizing,
 chartBarCountTest,
 tocLive,
 csvTablePreview,
+screenshotCellTool,
 // rc5t-stale-inspect-after-drive: an agent that drives a viewof and then checks a dependent cell with
 // inspect_value must see the dependent's new value. Before the fix, readVar served the `_value` a
 // cell kept from its last read once nothing observed it, so inspect_value theme_name said
