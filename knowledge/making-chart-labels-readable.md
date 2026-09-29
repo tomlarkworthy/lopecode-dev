@@ -1,7 +1,7 @@
 ---
 scope: [local-development, in-notebook]
 write-triggers:
-  - "tickRotate\\s*:|\\blineWidth\\s*:|Plot\\.axis(X|Y|Fx|Fy)\\("
+  - "tickRotate\\s*:|Plot\\.text\\([\\s\\S]{0,400}?\\blineWidth\\s*:|Plot\\.axis(X|Y|Fx|Fy)\\("
 ---
 
 # Chart labels that overlap: measure them, fix the chart cell, keep the data
