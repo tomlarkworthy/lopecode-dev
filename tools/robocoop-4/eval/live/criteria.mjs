@@ -2,6 +2,11 @@
 // Every criterion is pure over a WorldSnapshot: (snapshot, args) => { score, pass, feedback }.
 // See CONTRACT.md for the snapshot shape and the catalog.
 
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 const ok = (feedback) => ({ score: 1, pass: true, feedback });
 const fail = (feedback) => ({ score: 0, pass: false, feedback });
 
@@ -649,6 +654,18 @@ export const CRITERIA = {
     return v === args.equals ? ok(`${what} ${JSON.stringify(v)}`) : fail(`${what} ${JSON.stringify(v)?.slice(0, 300)}, wanted ${JSON.stringify(args.equals)}`);
   },
 
+  // Behaviour outside the page: args.script (an ES module source) runs in node with cwd = a temp dir
+  // holding collected.json (snapshot.collected), and prints one JSON object as its last stdout line;
+  // this passes when that object's args.key is true, else reports its `why` list. One node run per
+  // (snapshot, script), shared by every criterion that names the same script. rc5t-js-library-download
+  // uses it to import a downloaded library and compare its exports with the live cells.
+  collected_node_check(snapshot, args) {
+    if (snapshot.collectError) return fail(`setup.collect threw: ${snapshot.collectError}`);
+    const v = nodeCheckVerdict(snapshot, args.script);
+    if (v.error) return fail(`node check failed: ${v.error}`);
+    return v[args.key] === true ? ok(`${args.key} true`) : fail(`${args.key} ${v[args.key]} — ${(v.why || []).join("; ").slice(0, 600)}`);
+  },
+
   // rc5t-explain-self-save: the assistant text matches a regex.
   answer_matches(snapshot, args) {
     const re = new RegExp(args.pattern, args.flags || "");
@@ -689,6 +706,27 @@ export const CRITERIA = {
     return ok(`cites ${known.length} real cell(s): ${known.join(", ")}`);
   },
 };
+
+const nodeCheckCache = new WeakMap();
+function nodeCheckVerdict(snapshot, script) {
+  let bySnap = nodeCheckCache.get(snapshot);
+  if (!bySnap) nodeCheckCache.set(snapshot, (bySnap = new Map()));
+  if (bySnap.has(script)) return bySnap.get(script);
+  let v;
+  const dir = mkdtempSync(join(tmpdir(), "rc5t-node-"));
+  try {
+    writeFileSync(join(dir, "collected.json"), JSON.stringify(snapshot.collected || {}));
+    writeFileSync(join(dir, "check.mjs"), String(script));
+    const out = execFileSync(process.execPath, ["check.mjs"], { cwd: dir, timeout: 30000, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    v = JSON.parse(out.trim().split("\n").pop());
+  } catch (e) {
+    v = { error: String(e.stderr || e.message || e).slice(0, 400) };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  bySnap.set(script, v);
+  return v;
+}
 
 function answerText(s) {
   return (s.conversation || []).filter((m) => m.role === "assistant" && typeof m.content === "string").map((m) => m.content).join("\n");

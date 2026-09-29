@@ -12,6 +12,7 @@ write-triggers:
 working in), not the ~60 library and tooling modules the page also loads. Build the export from
 those modules' `md` cells as they are now, by depending on them, and convert each rendered cell back
 to markdown.
+The same rule for exporting the user's functions as code is in `packaging-notebook-functions-as-a-javascript-library.md`.
 
 ## Depend on the cells; do not paste their text
 
