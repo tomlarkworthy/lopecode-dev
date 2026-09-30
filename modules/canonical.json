@@ -896,5 +896,8 @@
   "@tomlarkworthy/switchboard": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
     "upstream": null
+  },
+  "@tomlarkworthy/at-publish": {
+    "lopecode": "lopecode/notebooks/atproto.html"
   }
 }
