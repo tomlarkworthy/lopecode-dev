@@ -5,7 +5,7 @@ import { mkdirSync, statSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 
 const here = dirname(new URL(import.meta.url).pathname);
-const notebook = resolve(here, "../lopebooks/notebooks/tomlarkworthy_single-file-revolution.html");
+const notebook = resolve(here, "../lopebooks/notebooks/single_file_revolution.html");
 const out = resolve(here, "out");
 mkdirSync(out, { recursive: true });
 

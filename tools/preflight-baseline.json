@@ -2569,7 +2569,7 @@
    "kind": "unused-dep"
   }
  ],
- "lopebooks/notebooks/tomlarkworthy_single-file-revolution.html": [
+ "lopebooks/notebooks/single_file_revolution.html": [
   {
    "detail": "@tomlarkworthy/annotate: a2Store declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
    "kind": "unused-dep"
