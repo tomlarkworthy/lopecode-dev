@@ -39,7 +39,7 @@ async function add(page, name, url, file) {
   await page.keyboard.press("Enter");
   await page.keyboard.type(url);
   const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.keyboard.press("Enter")]);
-  check(dl.suggestedFilename() === "single-file-revolution.html", `download is named ${dl.suggestedFilename()}`);
+  check(dl.suggestedFilename() === "single_file_revolution.html", `download is named ${dl.suggestedFilename()}`);
   await dl.saveAs(file);
   check(statSync(file).size > 1_000_000, `download is the whole notebook (${(statSync(file).size / 1e6).toFixed(2)} MB)`);
   return file;
