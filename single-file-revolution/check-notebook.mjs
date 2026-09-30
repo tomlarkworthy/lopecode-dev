@@ -45,6 +45,20 @@ async function add(page, name, url, file) {
   return file;
 }
 
+{
+  const gp = await boot(notebook);
+  await gp.page.mouse.click(420, 150);
+  let opened = 0;
+  gp.page.on("popup", () => opened++);
+  await gp.page.keyboard.press("Meta+k");
+  await gp.page.waitForTimeout(300);
+  await gp.page.keyboard.type("sticky");
+  await gp.page.waitForTimeout(500);
+  await gp.page.keyboard.press("Enter");
+  await gp.page.waitForTimeout(1000);
+  check(opened === 0, `Enter in the command palette does not open the selected row (${opened} popups)`);
+  await gp.page.close();
+}
 const g0 = await boot(notebook);
 check((await g0.page.title()) === "The Single File Revolution", `title: ${await g0.page.title()}`);
 const n0 = await names(g0.page, "Lopecode");
