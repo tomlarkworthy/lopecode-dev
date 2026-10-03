@@ -2,6 +2,9 @@
 set -euo pipefail
 export METADEV=1
 export CLAUDE_CONFIG_DIR=~/.claude-personal
+# The lopecode channel also serves an LLM endpoint from this login, so a paired robocoop-5 runs on the
+# subscription (lopecode-plugin/src/claude-runner.ts). LOPECODE_LLM_RUNNER=0 ./metadev turns it off.
+export LOPECODE_LLM_RUNNER=${LOPECODE_LLM_RUNNER:-1}
 
 # Per-instance correlation ID for marker files (supports parallel sessions)
 export METADEV_CORRELATION_ID=${METADEV_CORRELATION_ID:-$(python3 -c "import uuid; print(uuid.uuid4())")}
@@ -16,7 +19,7 @@ if ! command -v safehouse &>/dev/null; then
     exit 1
 fi
 
-ENV_PASS="METADEV,METADEV_CORRELATION_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_REGION,AWS_DEFAULT_REGION,AWS_SESSION_EXPIRATION,AWS_CREDENTIAL_EXPIRATION,AWS_VAULT,ANTHROPIC_API_KEY,ANTHROPIC_BASE_URL,DISABLE_AUTOUPDATER,CLAUDE_CONFIG_DIR,MEMPALACE_EMBEDDING_DEVICE"
+ENV_PASS="METADEV,METADEV_CORRELATION_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_REGION,AWS_DEFAULT_REGION,AWS_SESSION_EXPIRATION,AWS_CREDENTIAL_EXPIRATION,AWS_VAULT,ANTHROPIC_API_KEY,ANTHROPIC_BASE_URL,DISABLE_AUTOUPDATER,CLAUDE_CONFIG_DIR,MEMPALACE_EMBEDDING_DEVICE,LOPECODE_LLM_RUNNER"
 
 # Pre-create dirs the sandbox will mount; safehouse refuses to mount nonexistent paths.
 # ~/.android holds adbkey, so the sandboxed adb inherits the phone's authorisation.

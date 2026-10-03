@@ -702,3 +702,132 @@ bun tools/channel/sync-module.ts --module @tomlarkworthy/robocoop-5-engine \
   --target lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
 node tools/robocoop-5/eval/run.mjs --ids long-store-to-checkout   # or a category / full sweep
 ```
+
+## Running on a Claude subscription (`claude-runner.ts`, added 2026-10-03)
+
+robocoop-5 normally pays OpenRouter per token. The runner serves the same wire format from the local
+Claude Code login, through `@anthropic-ai/claude-agent-sdk` 0.3.287. robocoop-5 keeps its own loop,
+guards, sessions and tools; only `client.chat()` goes somewhere else.
+
+The code is `lopecode-plugin/src/claude-runner.ts` (branch `claude-runner`, moved there the same day).
+Two ways to serve it:
+
+```
+# paired: on the channel port, pairing token as the key, nothing to configure in the notebook
+LOPECODE_LLM_RUNNER=1 claude …        # then open the notebook with cc=<token> as usual
+
+# standalone: its own port, no Claude Code session needed
+bun tools/robocoop-5/claude-runner.ts [--port 8765] [--token T] [--model <fallback>] [--verbose]
+#   base URL: http://127.0.0.1:8765/v1
+#   token:    <random unless --token>
+```
+
+Paired, the engine's `pairedEndpoint` cell reads the `LOPE-<port>-XXXX` token (sessionStorage
+`lopecode_cc_token`, else `cc=` in the hash), probes `http://127.0.0.1:<port>/v1/models`, and uses
+that endpoint with the token as its key when the endpoint setting is empty. It runs once at boot:
+a notebook paired after boot needs a reload. The pairing module is not involved; its canonical is a
+minority version (`786e1cad1f3f` ×2 against `3296f59bd741` ×235 on 2026-10-03) and was left alone.
+The paired model choice is stored under `robocoop5_model@claude-code`, because the port changes every
+session.
+
+In the notebook: ⚙ settings → **endpoint** = the base URL, **OpenRouter key** = the token. The model
+picker then lists what `<endpoint>/models` advertises and stores its choice under
+`robocoop5_model@<endpoint>`, so the OpenRouter choice in `robocoop4_model` is not overwritten. An
+empty endpoint is the previous behaviour. The endpoint field accepts any OpenAI-compatible base URL;
+only this runner has been tried.
+
+### Why it is stateful
+
+`/chat/completions` is stateless and the SDK is not: `query()` owns the loop and runs tools itself.
+Two ways to bridge that:
+
+- **One `query()` per request**, history flattened to text, stopped at the first tool call. Simple,
+  but the model reads its own earlier tool calls as prose and each step spawns a CLI process.
+- **One long-lived `query()` per conversation** (chosen). The caller's tools are registered as MCP
+  tools whose handlers block. A tool call is answered to the HTTP caller as `tool_calls`; the handler
+  resolves when a later request carries the matching `{role:'tool'}` message. The flattened form is
+  kept only as the fallback for a history the runner has not seen (runner restart, an edited branch).
+
+The second depends on five SDK behaviours, each observed in a spike on 2026-10-03 (haiku-4-5), not
+taken from documentation:
+
+```
+HANDLER start get_weather {"city":"Paris"} meta= {"progressToken":2,"claudecode/toolUseId":"toolu_01Pp…"}
+ 4.28 HANDLER start (Paris)   6.28 HANDLER end   6.29 HANDLER start (London)   8.30 HANDLER end
+12.10 pushed mid-turn user message   13.60 HANDLER end task_complete   15.10 tool_use get_weather {"city":"Rome"}
+```
+
+1. The handler receives the tool-use id in `_meta["claudecode/toolUseId"]`, so results are matched by
+   id and not by name and arguments.
+2. Handlers for one step's calls run one after another. The runner therefore answers the HTTP request
+   from the stream's `message_stop`, not from handler invocation, and stores results that arrive
+   before their handler does.
+3. A user message pushed while a handler is pending is read by the model together with that tool
+   result, in the same turn. This is what makes `task_complete` → next user message cost one model
+   step, and it is how notices and steer messages are delivered mid-turn.
+4. MCP tools are deferred behind tool search unless listed with `_meta["anthropic/alwaysLoad"]`.
+
+5. `settingSources: []` does not exclude the account's claude.ai connectors. The first build offered
+   the model Google Drive and Claude Docs tools next to robocoop's, found by asking the model to list
+   its tools. `strictMcpConfig: true` removes them: first-request prompt 7721 → 1079 tokens.
+
+The low-level MCP `Server` is used instead of the SDK's `tool()` helper because `tool()` takes a Zod
+shape and robocoop's tools carry JSON Schema.
+
+### Checks
+
+Run 2026-10-03, all passing. The first two need the standalone runner up with `--token spike`, the
+third a channel server started with `LOPECODE_LLM_RUNNER=1`:
+
+```
+bun tools/robocoop-5/claude-runner-e2e.ts                      # real core loop, no browser: 10 checks
+node tools/robocoop-5/claude-runner-live.mjs                   # real notebook via the endpoint setting: 9 checks
+node tools/robocoop-5/claude-runner-live.mjs --paired <token>  # real notebook, found from cc=<token>: 9 checks
+```
+
+With no token, and with the token of a channel that is not running (`cc=LOPE-8799-DEAD`), the notebook
+booted in demo mode as before: `pairedEndpoint: null`, `modelStorageKey: "robocoop4_model"`, no page
+errors.
+
+```
+conv 1 new          model=claude-haiku-4-5 → tool_calls [get_context]   15772/124 tok (0 cached)     3199ms
+conv 1 continue +2  model=claude-haiku-4-5 → tool_calls [glob]          20415/94 tok  (0 cached)     1522ms
+conv 1 continue +1  model=claude-haiku-4-5 → tool_calls [task_complete] 21534/1373 tok (20407 cached) 8149ms
+```
+
+The e2e covers two tool reads, recall on the second turn with `rebuilt` unchanged, a `steer()`
+mid-generation (`interrupts` +1), and an edited history (`rebuilt` +1). `preflight --baseline` on the
+notebook after the sync: 0 new findings.
+
+`tools/node_modules` Playwright is 1.57.0 and its Chromium (rev 1200) is not fully installed on this
+machine, so `boot-smoke.mjs` did not run. The live check was run with
+`--chromium <chromium_headless_shell-1234 binary>`.
+
+### Not done, not honoured
+
+- `temperature`, `seed`, `max_tokens` and the `reasoning` block are ignored. The fast-mode toggle
+  does nothing on this endpoint.
+- Thinking text is not forwarded: haiku-4-5 streamed empty thinking blocks (`reasoningChars: 0` with
+  `reasoningTokens: 284`). Other models not checked.
+- A rebuilt conversation loses images from earlier turns (rendered as `[image <hash>]`).
+- `usage.cost` is reported as 0.
+- Only haiku-4-5 was exercised. Model switching mid-conversation (`setModel`) and a changed tool list
+  (`tools/list_changed`) are implemented and untested.
+- The system prompt is robocoop's, but not only robocoop's. Asked to quote it (2026-10-03), the model
+  returned `You are a Claude agent, built on Anthropic's Claude Agent SDK.` + the caller's prompt +
+  the CLI's tool-calling boilerplate, an environment block (cwd, platform, shell) and the user's
+  email and the date. Later `system` messages have no slot and travel as `<system-reminder>` blocks
+  in a user message.
+- No benchmark has been run through it. Scores would not be comparable to the ladder in
+  `knowledge/training-robocoop-5.md` in any case (different model).
+- The engine and UI changes are in the lopebooks canonical only: not committed, not swept to other
+  notebooks, not pushed to Observable.
+- A notebook paired after boot does not find the runner until reloaded, and one whose channel exits
+  mid-session keeps pointing at the dead port until reloaded (each step then retries for ~4 minutes
+  inside `createOpenRouterClient` before failing).
+- The paired runner takes precedence over an OpenRouter key whenever the endpoint setting is empty.
+  There is no control in the notebook to decline it; unset `LOPECODE_LLM_RUNNER`.
+- Terms: the Claude Code legal page covers "ordinary, individual usage of Claude Code and the Agent
+  SDK" on a subscription and forbids routing other people's requests through it. The runner binds
+  127.0.0.1 and requires the token for that reason. Parallel training workers on it are outside that
+  wording.
