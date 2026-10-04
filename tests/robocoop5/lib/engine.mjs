@@ -39,7 +39,7 @@ export async function engine({ script = [], monitors = [], tools = [], overrides
   const client = { chat: async (req) => { requests.push(req); const e = script[Math.min(i++, script.length - 1)]; return typeof e === "function" ? e(req) : e; } };
   const all = { client, ...fromCore, ...fromTools,
     reasoningToggle: { value: false }, contextToggle: { value: false }, modelView: { value: "m" }, promptView: { value: "sys" },
-    toolsView: { value: tools }, monitorsView: { value: monitors }, contextView: { value: [] }, ...overrides };
+    toolsView: { value: tools }, monitorsView: { value: monitors }, contextView: { value: [] }, sessionRules: [], ...overrides };
   // redefine throws on a name the module does not have, and the engine's imports change across the refactor
   const src = readFileSync(mod("-engine"), "utf8");
   const eng = await importNotebookModule(mod("-engine"), { overrides: Object.fromEntries(Object.entries(all).filter(([n]) => src.includes(`"${n}"`))) });

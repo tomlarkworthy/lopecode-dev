@@ -20,6 +20,6 @@ if [ -n "$(git -C lopebooks status --short notebooks/@tomlarkworthy_robocoop-5.h
   SKIP=lope-sitemap git -C lopebooks commit -q -m "$MSG" >> tools/scratch/verify/commit-lb.txt 2>&1
   [ -n "$(git -C lopebooks status --short notebooks/@tomlarkworthy_robocoop-5.html notebooks/@tomlarkworthy_robocoop-5.json)" ] && { echo "lopebooks commit FAILED"; grep Failed tools/scratch/verify/commit-lb.txt; exit 1; }
 fi
-git add lopebooks tools/robocoop-5 tests/robocoop5
+git add lopebooks tools/robocoop-5 tools/robocoop-eval tests/robocoop5
 git commit -q -m "$MSG" > tools/scratch/verify/commit.txt 2>&1 || { echo "outer commit FAILED"; tail -5 tools/scratch/verify/commit.txt; exit 1; }
 echo "lopebooks $(git -C lopebooks log --oneline -1 | cut -c1-60)"; echo "outer     $(git log --oneline -1 | cut -c1-70)"

@@ -14,6 +14,8 @@ export const normalise = (s) => String(s)
   .replace(/\b\d+(\.\d+)?\s?(ms|s)\b/g, "<T>")
   // how many cells a re-applied module counts as changed varies between runs of the same code (5 evals over 3 runs)
   .replace(/applied live \(\d+ cells? changed\)/g, "applied live (<N> changed)")
+  // Inputs numbers its style scopes page-wide, so the number moves with how many controls the page built first
+  .replace(/#__ns__-\d+/g, "#__ns__-<N>")
   .replace(/the \d+ cells? kept \(matched by pid\)/g, "the <N> kept (matched by pid)")
   .replace(/(\d+) of \d+ kept cells? \(matched by pid\)/g, "$1 of <N> kept (matched by pid)")
   .replace(/\b20\d\d-\d\d-\d\d[T ]\d\d:\d\d(:\d\d)?(\.\d+)?Z?/g, "<DATE>")

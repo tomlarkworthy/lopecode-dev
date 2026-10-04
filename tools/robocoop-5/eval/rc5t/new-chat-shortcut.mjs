@@ -13,7 +13,7 @@
 //      shortcut. Cmd+Shift+L from inside the chat input is allowed either way (reported, not scored):
 //      the chord inserts no text, so firing there is a choice, not a defect.
 //   6. the tools the panel hands its agent still refuse a write to @tomlarkworthy/robocoop-5-engine
-//      (the guardTools wiring in the robocoop5 cell survived the edit)
+//      (the guard survived the edit: guardTools in the robocoop5 cell until 2026-10-04, a beforeTool rule since)
 //   7. save and reopen: the exported file, booted in a sandboxed blob: iframe, answers Cmd+Shift+L too.
 
 const COLLECT = String.raw`(async () => {
@@ -92,7 +92,10 @@ const COLLECT = String.raw`(async () => {
       const write = { id: "write_file", execute: async () => ({ output: "WROTE" }) };
       let guardOut = "no toolsTransform";
       try {
-        const [w] = opts.toolsTransform([write]);
+        // Until 2026-10-04 the panel wrapped the tools itself (toolsTransform: guardTools). Since then the refusal
+        // is a beforeTool rule and the session wraps: ask the real makeSession for the tools it would offer.
+        const viaSession = typeof opts.toolsTransform !== "function";
+        const [w] = viaSession ? real({ ...opts, toolsTransform: () => [write] }).tools() : opts.toolsTransform([write]);
         guardOut = (await w.execute({ file_path: "/src/@tomlarkworthy/robocoop-5-engine.js", content: "x" }, {})).output;
       } catch (err) { guardOut = "threw " + err.message; }
       out.guarded = /^Refused/.test(String(guardOut));

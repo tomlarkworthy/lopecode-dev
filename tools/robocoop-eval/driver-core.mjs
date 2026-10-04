@@ -505,7 +505,14 @@ export async function createDriver({
                 result.error = "oracle: tool not registered: " + step.tool;
                 break;
               }
-              const out = await tool.execute(step.args || {}, {});
+              let out = await tool.execute(step.args || {}, {});
+              // The oracle calls a registered tool with no session round it. An agent's result also passes the
+              // page's afterTool rules (robocoop-5, from spec step 9), so apply them here; absent on older bundles.
+              try {
+                const runHook = findValue("runHook"), hook = findValue("hook_afterTool"), rules = findValue("rulesView");
+                if (runHook && hook && Array.isArray(rules?.value))
+                  out = (await runHook(hook, rules.value, { name: step.tool, args: step.args || {}, result: out })) ?? out;
+              } catch (e) {}
               oracleCalls.push({ name: step.tool, arguments: step.args || {} });
               oracleMessages.push({ role: "assistant", content: "", tool_calls: [{ function: { name: step.tool, arguments: JSON.stringify(step.args || {}) } }] });
               oracleMessages.push({ role: "tool", content: String(out?.output ?? "") });
