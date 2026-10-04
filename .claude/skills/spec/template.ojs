@@ -1,0 +1,266 @@
+opening = md`*Opening paragraph. Three sentences at most: what gets built, who it is for, and what they can do afterwards that they cannot do today. A reader who stops here should know whether the rest concerns them.*`
+// %%
+viewof specStatus = sticky(Inputs.select(["draft", "in review", "approved for handover"], { label: "Status", value: "draft" }), "draft")
+// %%
+readiness = {
+  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
+  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
+  const blocking = questions.filter((q) => q.blocking && !q.answer);
+  const undrawn = states.filter((s) => !s.drawing);
+  const items = [
+    [notes.length, "annotations to resolve"],
+    [blocking.length, "blocking questions open"],
+    [unchecked.length, `of ${requirements.length} requirements without a check`],
+    [undrawn.length, `of ${states.length} states without a drawing`]
+  ];
+  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
+  // Everything that still needs the reviewer, listed here with a link to where it is answered.
+  const open = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.answer);
+  const todo = [
+    ...open.filter(({ q }) => q.blocking).map(({ q, i }) => ({ tag: "blocking question", text: q.q, to: `[data-question="${i}"]` })),
+    ...open.filter(({ q }) => !q.blocking).map(({ q, i }) => ({ tag: "open question", text: q.q, to: `[data-question="${i}"]` })),
+    ...unchecked.map((r) => ({ tag: "no check", text: `${r.id} ${r.text}`, to: `[data-requirement="${r.id}"]` })),
+    ...undrawn.map((s) => ({ tag: "not drawn", text: `state: ${s.state}`, to: `[data-state="${s.state}"]` }))
+  ];
+  const box = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"></div>`;
+  // Scrolls the pane; a plain #fragment link would replace the lopepage layout hash.
+  const jump = (to) => (e) => {
+    e.preventDefault();
+    const el = (box.closest(".lp2-pane") || box.ownerDocument).querySelector(to);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (el.animate) el.animate([{ background: "color-mix(in srgb, currentColor 22%, transparent)" }, { background: "transparent" }], 1800);
+  };
+  const short = (s) => (s.length > 110 ? s.slice(0, 110) + "…" : s);
+  box.append(htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
+    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
+    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
+  </div>`);
+  if (todo.length) box.append(htl.html`<ol style="margin:.5em 0 0;padding-left:1.4em">${todo.map((t) => htl.html`<li><a href="#" onclick=${jump(t.to)}>${t.tag}</a>: ${short(t.text)}</li>`)}</ol>`);
+  return box;
+}
+// %%
+md`## Reviewing this spec
+
+- **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
+- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The question goes to the agent with what you pointed at, and the answer threads at that spot. It reads Ask Claude while a Claude Code session is paired and Ask robocoop otherwise; the switchboard tab changes which.
+- **Click prose** to rewrite it. **Drag shapes** in a drawing to move them; the tool strip above the drawings adds new ones.
+- **Ask** in the pane at the bottom. Roboco-op reads and edits this notebook.
+- ☰ → **Save in place** keeps your edits and notes in this file.`
+// %%
+md`## Problem
+
+*What is wrong today, shown rather than asserted: the command that fails, the screenshot, the measurement with its date, the user's own words in quotes. One concrete story of someone hitting it. No solution yet.*`
+// %%
+md`## Outcome
+
+*What is observably true when this is done. Each line is something a person could watch happen or a command could check. Three to five lines.*
+
+- *…*`
+// %%
+md`### Size
+
+*How much this is worth: an afternoon, two days, a week. The implementer cuts scope to fit this, in the order given under Behaviour, rather than extending the time.*`
+// %%
+md`## Scope
+
+### Not your concern, do not build it
+
+*Every adjacent system, by name, one line each: the host page's chrome, the sibling module, the shared widget. Anything described at length elsewhere in this spec gets built, so adjacent things are named here and nowhere else.*
+
+- *…*
+
+### Non-goals
+
+*Reasonable things this could do and deliberately will not, each with the reason.*
+
+- *…*`
+// %%
+md`## Words
+
+The implementer uses these strings as written. Each is its own cell so it can be rewritten in place and read back by name.`
+// %%
+copy_title = md`*The title of the thing being built, as the user will read it*`
+// %%
+copy_opening = md`*Its opening paragraph, as the user will read it. Written here, by a person, because this is the text an implementer writes worst.*`
+// %%
+copy_strings = md`| where | text |
+|---|---|
+| *primary button* | *…* |
+| *empty state* | *…* |
+| *error: …* | *…* |`
+// %%
+md`## Visual design
+
+One drawing per state, named for the state. The drawings are the source: an implementer reads the SVG for positions, sizes and colours. Text inside a drawing that also appears under Words must match it.`
+// %%
+drawTools = {
+  const tools = [["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"], ["line", "Line", "L"], ["text", "Text", "T"], ["pen", "Pen", "P"], ["scribble", "Scribble", "S"]];
+  let host = null;
+  const drawing = () => host && [...host.querySelectorAll("svg")].find((s) => typeof s.setTool === "function");
+  const hint = htl.html`<span style="opacity:.6">click a drawing, then pick a tool</span>`;
+  const bar = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font:13px system-ui;position:sticky;top:0;z-index:2;padding:.4em 0;background:var(--theme-background, #fff)"></div>`;
+  for (const [id, label, key] of tools) {
+    const b = htl.html`<button title="${label} (${key})">${label}</button>`;
+    b.onclick = () => { const d = drawing(); if (d) d.setTool(id); else hint.textContent = "click a drawing first"; };
+    bar.append(b);
+  }
+  bar.append(hint);
+  const onDown = (e) => {
+    let n = e.target && e.target.closest ? e.target.closest("svg") : null;
+    while (n && typeof n.setTool !== "function") n = n.parentElement ? n.parentElement.closest("svg") : null;
+    if (!n) return;
+    host = n.parentElement;
+    hint.textContent = "tools apply to the drawing you last clicked";
+  };
+  window.document.addEventListener("pointerdown", onDown, true);
+  invalidation.then(() => window.document.removeEventListener("pointerdown", onDown, true));
+  return bar;
+}
+// %%
+artboard_default = svgLens({ keyboard: true })`<svg viewBox="0 0 640 360" width="100%" style="max-width:640px;background:#f6f7f9" font-family="system-ui, sans-serif">
+  <rect x="16" y="16" width="608" height="328" rx="6" fill="#ffffff" stroke="#c9ced6"/>
+  <rect x="16" y="16" width="608" height="44" rx="6" fill="#eef0f4" stroke="#c9ced6"/>
+  <text x="32" y="44" font-size="15" fill="#1f2933">Title</text>
+  <rect x="32" y="80" width="360" height="24" rx="3" fill="#e4e7ec"/>
+  <rect x="32" y="116" width="576" height="150" rx="3" fill="#f1f3f6" stroke="#d5d9e0" stroke-dasharray="5 4"/>
+  <text x="320" y="196" font-size="13" fill="#7b8794" text-anchor="middle">main content</text>
+  <rect x="488" y="288" width="120" height="36" rx="5" fill="#2f6bff"/>
+  <text x="548" y="311" font-size="13" fill="#ffffff" text-anchor="middle">Primary</text>
+</svg>`
+// %%
+md`*Default state, as first seen with typical data. Say what is on screen and what each control does when pressed.*`
+// %%
+artboard_empty = svgLens({ keyboard: true })`<svg viewBox="0 0 640 360" width="100%" style="max-width:640px;background:#f6f7f9" font-family="system-ui, sans-serif">
+  <rect x="16" y="16" width="608" height="328" rx="6" fill="#ffffff" stroke="#c9ced6"/>
+  <rect x="16" y="16" width="608" height="44" rx="6" fill="#eef0f4" stroke="#c9ced6"/>
+  <text x="32" y="44" font-size="15" fill="#1f2933">Title</text>
+  <text x="320" y="190" font-size="14" fill="#52606d" text-anchor="middle">Nothing here yet</text>
+  <rect x="260" y="210" width="120" height="36" rx="5" fill="#2f6bff"/>
+  <text x="320" y="233" font-size="13" fill="#ffffff" text-anchor="middle">Add the first</text>
+</svg>`
+// %%
+md`*Empty state: no data yet. Add a drawing for each further state by copying a drawing cell and renaming it \`artboard_<state>\`, then list it below.*`
+// %%
+states = [
+  { state: "default", drawing: "artboard_default", when: "data present" },
+  { state: "empty", drawing: "artboard_empty", when: "no data yet" },
+  { state: "loading", drawing: null, when: "…" },
+  { state: "error", drawing: null, when: "…" }
+]
+// %%
+statesTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>state</th><th>when</th><th>drawing</th></tr></thead>
+  <tbody>${states.map((s) => htl.html`<tr data-state=${s.state}><td>${s.state}</td><td>${s.when}</td><td>${s.drawing ? htl.html`<code>${s.drawing}</code>` : htl.html`<em>not drawn</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`### Visual constraints
+
+*What the drawings cannot say: the theme variables to use for colour, the narrowest width it must work at and what reflows there, which existing component each control is.*`
+// %%
+md`## Behaviour
+
+One requirement per row, in priority order: if time runs out, the bottom rows go first. \`check\` is how anyone can tell the row holds, as a command, a test name, or a thing to do and see.`
+// %%
+requirements = [
+  { id: "R1", text: "When <trigger>, the <thing> shall <response>.", check: "<command, test name, or action and what is seen>" },
+  { id: "R2", text: "While <state>, the <thing> shall <response>.", check: "" }
+]
+// %%
+requirementsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
+  <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`### Worked examples
+
+*Real inputs and the outputs they must produce, as cells. Where the logic is small enough, write it here and let the notebook run it: a running example cannot disagree with itself, and the cells become the implementation's first tests.*`
+// %%
+examples = [
+  { given: "<input>", expect: "<output>" }
+]
+// %%
+md`## Design
+
+*How it is built, at the level of parts and what passes between them. Diagrams first, then the decisions. The two below are mermaid text: press **edit** on one to change it. Keep the flowchart for what the parts are and the sequence for the order things happen in; delete whichever the work does not need. \`stateDiagram-v2\` and \`erDiagram\` work the same way. Mermaid loads from a CDN, so these two cells need a network connection.*`
+// %%
+architecture = onPaper(mermaid`flowchart LR
+  input[input] --> part[the new part]
+  part --> output[output]
+  part -. reads .-> store[(existing store)]`)
+// %%
+sequence = onPaper(mermaid`sequenceDiagram
+  participant U as User
+  participant P as the new part
+  participant S as existing store
+  U->>P: action
+  P->>S: read
+  S-->>P: rows
+  P-->>U: result`)
+// %%
+md`### Decisions
+
+*Each decision already made, with the alternative that was rejected and what it would have cost. The implementer does not reopen these.*
+
+| decided | instead of | because |
+|---|---|---|
+| *…* | *…* | *…* |
+
+### Known traps
+
+*What looks like the obvious approach and does not work, with the evidence.*`
+// %%
+md`## Handover
+
+### Where the work goes
+
+*Files and modules to change, by path. The existing code to copy the pattern from, by path and name. Documents to read first.*
+
+### Boundaries
+
+| | |
+|---|---|
+| **always** | *run the checks below before reporting done* |
+| **ask first** | *adding a dependency; changing a shared module* |
+| **never** | *…* |
+
+### Checks
+
+*The exact commands, and what passing looks like. The implementer reports their output, not a claim that they pass.*
+
+\`\`\`
+…
+\`\`\`
+
+### Steps
+
+*Ordered. Mark where to stop and show the result before going on.*
+
+1. *…*
+2. *…* **stop and show**`
+// %%
+md`## Open questions
+
+A question marked blocking stops the handover. Each open one is listed in the strip at the top with a link to its row here. One decision per row: if an answer leaves part of the question undecided, that part is a new row, not a sentence inside the answer.`
+// %%
+questions = [
+  { q: "<question>", blocking: true, answer: "" }
+]
+// %%
+questionsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
+  <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+// mermaid draws dark text on no background, which is unreadable on a dark theme.
+onPaper = (node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`
+// %%
+specModule = "__SPEC_MODULE__"
+// %%
+import {md} from "@tomlarkworthy/editable-md"
+// %%
+import {svgLens} from "@tomlarkworthy/svg-lens"
+// %%
+import {annotation, annotations} from "@tomlarkworthy/annotate"
+// %%
+import {sticky} from "@tomlarkworthy/sticky"

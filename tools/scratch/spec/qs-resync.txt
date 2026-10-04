@@ -1,0 +1,13 @@
+@tomlarkworthy/at-write lopecode/notebooks/atproto.html 
+@tomlarkworthy/robocoop-5  lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+@tomlarkworthy/robocoop-5-engine  lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+@tomlarkworthy/robocoop-5-srctools  lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+@tomlarkworthy/robocoop-5-sessions  lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+@tomlarkworthy/claude-code-pairing lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html 
+@tomlarkworthy/editor-5 lopecode/notebooks/@tomlarkworthy_editor-5.html lopebooks/notebooks/@tomlarkworthy_editor-5.html
+@tomlarkworthy/file-sync  lopebooks/notebooks/@tomlarkworthy_file-sync.html
+@tomlarkworthy/local-change-history lopecode/notebooks/@tomlarkworthy_local-change-history.html lopebooks/notebooks/@tomlarkworthy_local-change-history.html
+@tomlarkworthy/annotate  lopebooks/notebooks/@tomlarkworthy_annotate.html
+@tomlarkworthy/js-toolchain  lopebooks/notebooks/@tomlarkworthy_notebook-kit.html
+@tomlarkworthy/pyodide  lopebooks/notebooks/@tomlarkworthy_pyodide.html
+@tomlarkworthy/switchboard  lopebooks/notebooks/@tomlarkworthy_robocoop-5.html

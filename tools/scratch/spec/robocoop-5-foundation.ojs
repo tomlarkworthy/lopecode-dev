@@ -1,0 +1,439 @@
+opening = md`robocoop-5 is restructured so that each thing it tells the model (a tool, a context section, a completion gate, a write report, a loop nudge) is one named cell with a paragraph of prose and a test beside it. Before any code moves, a set of checks is built that fails if the bytes sent to the model change. It is for whoever extends robocoop-5 next: after it, adding a rule is adding a cell, and a refactor is verified without a model run.`
+// %%
+viewof specStatus = sticky(Inputs.select(["draft", "in review", "approved for handover"], { label: "Status", value: "draft" }), "draft")
+// %%
+readiness = {
+  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
+  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
+  const blocking = questions.filter((q) => q.blocking && !q.answer);
+  const undrawn = states.filter((s) => !s.drawing);
+  const items = [
+    [notes.length, "annotations to resolve"],
+    [blocking.length, "blocking questions open"],
+    [unchecked.length, `of ${requirements.length} requirements without a check`],
+    [undrawn.length, `of ${states.length} states without a drawing`]
+  ];
+  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
+  return htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline;font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px">
+    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
+    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
+  </div>`;
+}
+// %%
+md`## Reviewing this spec
+
+- **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
+- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The question goes to the agent with what you pointed at, and the answer threads at that spot.
+- **Click prose** to rewrite it.
+- **Ask** in the pane at the bottom. Roboco-op reads and edits this notebook.
+- ☰ → **Save in place** keeps your edits and notes in this file.
+
+What needs your eye first: the **rule inventory** (is each row a real rule, and is the fires / silent case the right one), the **Words** (the vocabulary the refactored notebook will use), the **Decisions** table, and the four open questions.`
+// %%
+md`## Problem
+
+Measured 2026-10-04 with \`tools/code-metrics-cli.ts\` on the working copies of the seven modules (all reported \`clean\` by \`lope-sync.ts status\`; canonical is \`lopebooks/notebooks/@tomlarkworthy_robocoop-5.html\`): 165 cells, 7,136 lines. 26 cells over 40 lines hold 79% of the code.`
+// %%
+moduleMetrics = [
+  { module: "robocoop-5-srctools", cells: 18, loc: 3364, big: 9, pctInBig: 96, md: 1, tests: 0 },
+  { module: "robocoop-5", cells: 26, loc: 972, big: 2, pctInBig: 76, md: 1, tests: 3 },
+  { module: "robocoop-5-core", cells: 19, loc: 751, big: 3, pctInBig: 77, md: 9, tests: 0 },
+  { module: "robocoop-5-engine", cells: 29, loc: 629, big: 3, pctInBig: 67, md: 0, tests: 0 },
+  { module: "robocoop-5-sessions", cells: 36, loc: 607, big: 4, pctInBig: 46, md: 1, tests: 6 },
+  { module: "robocoop-5-tools", cells: 23, loc: 451, big: 2, pctInBig: 48, md: 1, tests: 0 },
+  { module: "robocoop-5-context", cells: 14, loc: 362, big: 3, pctInBig: 40, md: 1, tests: 0 }
+]
+// %%
+moduleMetricsTable = Inputs.table(moduleMetrics, {
+  header: { module: "module", cells: "cells", loc: "lines", big: "cells > 40 lines", pctInBig: "% of lines in those", md: "md cells", tests: "test cells" },
+  rows: 8
+})
+// %%
+md`Largest cells: \`applyLib\` 871 lines (cyclomatic complexity 497), \`valueTools\` 761, \`fileTools\` 749, \`robocoop5\` 678, \`createAgentSession\` 356, \`specLib\` 260, \`systemPrompt\` 215.
+
+Three things follow from that shape.
+
+**A rule cannot be pointed at.** robocoop-5 was trained run by run (\`knowledge/training-robocoop-5.md\`); each fix added a check that reports something to the model. The source cites 78 run ids or dates in comments (core 6, engine 11, sessions 5, srctools 56). The inventory below lists ${rules.length} such rules. They are closures inside the large cells, so none has a name another cell can import, a paragraph of prose, or a test. ${rules.filter(r => /^yes/.test(r.covered)).length} of ${rules.length} are exercised by any check that runs without a model.
+
+**One pattern has five implementations.** "An ordered list of named checks, each returning a string or null, concatenated for the model" is written separately as: context providers (\`rc5-context\` registry), monitors (\`rc5-monitors\` registry), completion gates (a \`??\` chain inside \`makeSession\`), write feedback (sequential string appends inside \`applyModuleSrc\`), and loop nudges (inline in \`createAgentSession\`). Two are registries; three are hard-coded.
+
+**Three singletons are shared by every session on the page.** Read from the code on 2026-10-04, not reproduced: \`rc5_monitorBus\` is one object drained by each session, so a monitor line goes to whichever session steps first; \`rc5_specGate\` holds one page-wide scorecard, so a failing spec in one session vetoes completion in another; \`watchTable\` renders the legacy \`rc5_watchBus\` only, not a session's own bus. Multi-session shipped 2026-09-27 (\`plan/robocoop-5-multi-session.md\`).
+
+The existing checks do not cover a refactor. \`tools/robocoop-5/\` holds 14 scripts; the ones that assert on rule behaviour are \`guard-unit-test.mjs\` (the once-per-turn completion guard), \`context-unit-test.mjs\` (21 assertions on \`composeContext\`), \`write-feedback-check.mjs\` (values and downstream recompute in an apply message), \`spec-lock-check.mjs\` and \`tests/robocoop5/speclock.test.mjs\`. The notebook holds 9 \`test_*\` cells, all in \`robocoop-5\` and \`robocoop-5-sessions\`. The 113 rc5-train evals with an \`oracle\` score task outcomes, not the text a rule returns.`
+// %%
+md`## Outcome
+
+- A command prints one hash for everything the model is sent on a fixed scripted session (system prompt, tool schemas, context block, notices, tool results, gate rejections). The hash is the same before the refactor and after every commit that claims to be a pure move.
+- Every row of the rule inventory has \`covered: yes\`, naming a test cell that fails when that rule's check is replaced with \`() => null\`.
+- A new completion gate, write reporter, monitor, context section or tool is added by defining one cell and registering it. No existing cell is edited.
+- No cell in the seven modules is longer than 150 lines, except \`createAgentSession\` and \`createOpenRouterClient\`, which are single state machines and stay whole.
+- Two sessions open on one page do not see each other's monitor lines, spec scorecard or watches.`
+// %%
+md`### Size
+
+Estimated, not measured: three days for the safety net (steps 1 to 4), six days for the moves (steps 5 to 12), one day for the three behaviour fixes (step 13). If time runs out, cut from the bottom of the Steps list. The safety net is not cut: it is useful with no refactor at all.`
+// %%
+md`## Scope
+
+### Not your concern, do not build it
+
+- **\`@tomlarkworthy/runtime-sdk\`**: nothing is added to it. Helpers that read the runtime for robocoop-5's purposes stay in robocoop-5.
+- **Storage keys**: \`robocoop4_model\`, \`robocoop5_speclock\`, \`robocoop5_reasoning_off\`, \`robocoop5_temperature\` keep their names. No migration.
+- **\`@tomlarkworthy/robocoop-5-sessions\`** session log format (\`@<group>/<id>\` modules, turn cells): unchanged.
+- **The eval harness** (\`tools/robocoop-5/eval/\`, \`tools/robocoop-eval/\`): used as it is. \`driver-core.mjs\` reads \`toolsView\` by name; that name stays.
+- **The pairing channel and the Claude runner** (\`lopecode-plugin\`): unchanged.
+- **switchboard, annotate, lopepage-2**: they call \`robocoop5(opts)\` and \`rc5Thread\`; those signatures stay.
+- **The markdown wiki** and its \`wiki_triggers\`: content unchanged.
+- **Prompt wording**: no instruction text is improved, shortened or corrected here, including text that is known to be wrong (listed under Known traps). Wording changes need a model run and are a separate piece of work.
+
+### Non-goals
+
+- Raising a benchmark score. The measure of this work is that scores cannot have moved, because the bytes did not.
+- Converting the training evals to rule tests. They test outcomes with a model; rule tests test one check with none.
+- A generic agent framework. The registries serve robocoop-5's five rule kinds and nothing else.`
+// %%
+md`## Words
+
+The refactored notebook uses this vocabulary in cell names and prose. Each term is one thing; the implementer does not introduce synonyms.`
+// %%
+copy_title = md`Roboco-op 5: an agent that edits the notebook it lives in`
+// %%
+copy_opening = md`Roboco-op 5 is a chat agent inside a lopecode notebook. It reads and writes the notebook's modules as files, runs them in the live runtime, and is told after each step what its changes did. Everything it tells the model is a cell in one of these modules: a **tool**, a **context section**, a **rule**. Each rule records the run that made it necessary.`
+// %%
+copy_strings = md`| term | meaning | cell name prefix |
+|---|---|---|
+| rule | a named check \`{id, kind, check, evidence}\`; \`check\` returns a string for the model or null | \`rule_\` |
+| gate | a rule run when the model calls \`task_complete\`; a string refuses the completion | \`rule_gate_\` |
+| reporter | a rule run after a module write; its string is appended to the write's result | \`rule_report_\` |
+| refusal | a rule run before a write; a string stops the write | \`rule_refuse_\` |
+| nudge | a rule run by the loop when a model reply cannot be acted on | \`rule_nudge_\` |
+| monitor | a rule run once per step; its string is a notice | \`rule_monitor_\` |
+| context section | a provider \`{id, scope, priority, render}\` composed into the context block | \`ctx_\` |
+| tool | \`defineTool({id, description, parameters, execute})\` | \`tool_\` |
+| evidence | the run id or date and one sentence of what happened, as data on the rule | |
+| wire | every byte sent to the model: system prompt, tool schemas, messages | |
+| pure move | a commit after which the wire hash is unchanged | |`
+// %%
+md`## Rule inventory
+
+Read from the source 2026-10-04. One row per check that puts text in front of the model. \`run\` is the run id or date cited in the comment beside the rule; a dash means the source cites none. \`fires\` and \`silent\` are the two test cases to write. \`covered\` names an existing check that would fail if the rule were removed, or \`no\`.
+
+Counted by kind and coverage: ${Object.entries(rules.reduce((a, r) => (a[r.kind] = (a[r.kind] || 0) + 1, a), {})).map(([k, n]) => `${n} ${k}`).join(", ")}; ${rules.filter(r => /^yes/.test(r.covered)).length} covered, ${rules.filter(r => /^partial/.test(r.covered)).length} partly, ${rules.filter(r => r.covered === "no").length} not.`
+// %%
+rules = [
+  { id: "loop-principles", kind: "prompt", module: "core", cell: "createAgentSession", run: "-", fires: "any session: LOOP_PRINCIPLES is appended to the system prompt", silent: "not applicable", covered: "no" },
+  { id: "stall", kind: "nudge", module: "core", cell: "createAgentSession", run: "-", fires: "reply is text with no tool call, completion protocol on, fewer than stallNudgeLimit stalls", silent: "reply carries a tool call", covered: "no" },
+  { id: "length", kind: "nudge", module: "core", cell: "createAgentSession", run: "-", fires: "finish_reason length and no tool call", silent: "finish_reason stop gets the stall text instead", covered: "no" },
+  { id: "restated-reply", kind: "nudge", module: "core", cell: "createAgentSession", run: "rc5-train m8", fires: "after a nudge, a reply of 400+ chars restates the previous one: turn ends", silent: "second reply differs or is under 400 chars", covered: "no" },
+  { id: "malformed-call", kind: "nudge", module: "core", cell: "createAgentSession", run: "-", fires: "empty message with finish_reason error or MALFORMED_FUNCTION_CALL", silent: "empty message with finish_reason stop", covered: "no" },
+  { id: "truncated-args", kind: "nudge", module: "core", cell: "createAgentSession", run: "-", fires: "tool call arguments are JSON cut mid-string", silent: "arguments parse", covered: "no" },
+  { id: "batched-completion", kind: "gate", module: "core", cell: "createAgentSession", run: "20260929-0620-m58-before", fires: "task_complete sent in the same step as another tool call: NOT ended", silent: "task_complete alone", covered: "no" },
+  { id: "guard-once-per-turn", kind: "gate", module: "core", cell: "createAgentSession", run: "-", fires: "completeGuard returns a string on the first completion: REJECTED", silent: "second completion in the turn is accepted", covered: "yes: tools/robocoop-5/guard-unit-test.mjs" },
+  { id: "unknown-tool", kind: "nudge", module: "core", cell: "createAgentSession", run: "tau-airline arm", fires: "call names a tool the session does not have", silent: "call names a registered tool", covered: "no" },
+  { id: "text-only-model", kind: "nudge", module: "core", cell: "createAgentSession", run: "20260929-0620-m74", fires: "client error matches 'support image input' and the history holds an image", silent: "any other client error", covered: "no" },
+  { id: "output-truncated", kind: "reporter", module: "core", cell: "truncate", run: "-", fires: "tool output longer than toolOutputLimit", silent: "output under the limit", covered: "no" },
+  { id: "zero-tool-calls", kind: "gate", module: "core", cell: "zeroToolCallGate", run: "tau-airline B5", fires: "completion in a turn with no tool call and a summary that does not address the user", silent: "one tool call this turn, or the summary addresses the user", covered: "no" },
+  { id: "spec-failing", kind: "gate", module: "tools", cell: "specGateCheck", run: "-", fires: "scorecard has failing examples and the summary has no SPEC-WAIVER: marker", silent: "green scorecard, null scorecard, or waiver", covered: "yes: tests/robocoop5/speclock.test.mjs" },
+  { id: "unwritten", kind: "gate", module: "engine", cell: "makeSession", run: "20260928-0847-w9", fires: "a module write was refused or failed and no later write to that path landed", silent: "a later write to the same path landed", covered: "no" },
+  { id: "untried-controls", kind: "gate", module: "engine", cell: "makeSession", run: "20260929-0620-m69", fires: "a module with viewof cells was written this turn and try_control was not called since", silent: "try_control used the module, or the session has no try_control tool", covered: "no" },
+  { id: "tools-changed", kind: "monitor", module: "engine", cell: "makeSession", run: "20260929-0620-m44", fires: "a tool id was added or removed since the previous step", silent: "first step (baseline), or no change", covered: "no" },
+  { id: "watch-updates", kind: "monitor", module: "tools", cell: "createWatchBus", run: "-", fires: "a watched cell recomputed to a new value since the last drain", silent: "same value, or nothing watched", covered: "no" },
+  { id: "spec-notice", kind: "monitor", module: "srctools", cell: "specMonitor", run: "-", fires: "@user/spec has failing examples", silent: "no @user/spec module, or all pass", covered: "partial: tools/robocoop-5/spec-lock-check.mjs (browser)" },
+  { id: "self-edit", kind: "refusal", module: "sessions", cell: "guardTools", run: "-", fires: "write_file, edit_file or attach_file targets @tomlarkworthy/robocoop-5-* (not the UI module) or a session module", silent: "target is a user module", covered: "yes: test_guardTools" },
+  { id: "wiki-unread", kind: "refusal", module: "srctools", cell: "fileTools", run: "rc5-train m28", fires: "written text adds a construct matching a wiki doc's trigger and the session has not read that doc", silent: "doc was read, or the construct was already in the module", covered: "no" },
+  { id: "would-delete-cells", kind: "refusal", module: "srctools", cell: "applyLib", run: "pairing 2026-09-28", fires: "write drops cells that were added after the agent last read the file", silent: "dropped cells were in the last read", covered: "no" },
+  { id: "no-default-export", kind: "refusal", module: "srctools", cell: "applyLib", run: "-", fires: "module source has no export default define", silent: "source has one", covered: "no" },
+  { id: "compile-failed", kind: "reporter", module: "srctools", cell: "applyLib", run: "-", fires: "source does not parse: FAILED TO COMPILE with line:col", silent: "source parses", covered: "no" },
+  { id: "erroring-cells", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m30", fires: "a written cell rejects: ERRORING at runtime, FIX before task_complete", silent: "all cells compute: the all-compute line", covered: "partial: tools/robocoop-5/write-feedback-check.mjs" },
+  { id: "failed-test-is-finding", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m1", fires: "the erroring cell is named test_*", silent: "erroring cell is not a test", covered: "no" },
+  { id: "pending-cells", kind: "reporter", module: "srctools", cell: "applyLib", run: "-", fires: "a cell has no value after 2 s", silent: "cell settles within 2 s", covered: "no" },
+  { id: "stale-variable", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m34", fires: "a read meets the runtime's variable_stale sentinel", silent: "value is current", covered: "no" },
+  { id: "anonymous-cell-error", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m14", fires: "an unnamed cell rejects", silent: "unnamed cells compute", covered: "no" },
+  { id: "markup-as-text", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0040-w9", fires: "an element's text contains markup or an SVG node is in the wrong namespace", silent: "markup rendered as elements", covered: "no" },
+  { id: "object-in-text", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-w14", fires: "displayed text contains [object ...]", silent: "no such text", covered: "no" },
+  { id: "invalid-svg-attr", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0235-w17", fires: "an SVG attribute holds an invalid value", silent: "attributes valid", covered: "no" },
+  { id: "placeholder-in-text", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m35", fires: "displayed text contains NaN, undefined or Infinity", silent: "no such text", covered: "no" },
+  { id: "empty-chart", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0610-w31", fires: "a plot or svg draws no marks, or a flat area path", silent: "chart has marks", covered: "no" },
+  { id: "arity", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-w17", fires: "a cell function has more parameters than its $def lists inputs", silent: "counts match", covered: "no" },
+  { id: "binding-by-position", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m16", fires: "a parameter name differs from the input bound at its position (including viewof_ / mutable_ forms)", silent: "names line up", covered: "no" },
+  { id: "orphan-function", kind: "reporter", module: "srctools", cell: "applyLib", run: "rc5-train m16", fires: "a const _x = function is declared and no $def uses it", silent: "every function has a $def", covered: "no" },
+  { id: "def-without-function", kind: "reporter", module: "srctools", cell: "applyLib", run: "rc5-train m20", fires: "a $def names a function the file does not declare", silent: "all declared", covered: "no" },
+  { id: "bare-control", kind: "reporter", module: "srctools", cell: "applyLib", run: "rc5-train w32", fires: "a cell returns an input element and is not a viewof", silent: "control is a viewof cell", covered: "no" },
+  { id: "table-not-editable", kind: "reporter", module: "srctools", cell: "applyLib", run: "rc5-train w11", fires: "Inputs.table is passed an editable option", silent: "no such option", covered: "no" },
+  { id: "downstream", kind: "reporter", module: "srctools", cell: "applyLib", run: "-", fires: "a written cell has dependents in other modules: lists up to 12", silent: "no dependents", covered: "yes: tools/robocoop-5/write-feedback-check.mjs" },
+  { id: "structure", kind: "reporter", module: "srctools", cell: "applyLib", run: "rc5-train m16", fires: "a cell's maintainability index is under 65 and it is not a literal", silent: "index 65 or over, or a literal cell", covered: "no" },
+  { id: "values-changed", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m2", fires: "cells the write did not touch now show different values", silent: "values unchanged: the unchanged line", covered: "partial: tools/robocoop-5/write-feedback-check.mjs" },
+  { id: "removed-cells", kind: "reporter", module: "srctools", cell: "applyLib", run: "20260928-0847-m20", fires: "the write removed a test or display cell", silent: "nothing removed", covered: "no" },
+  { id: "spec-scorecard", kind: "reporter", module: "srctools", cell: "specLib", run: "-", fires: "@user/spec exists: pass count, failing rows, ungrounded warning", silent: "no @user/spec module", covered: "yes: tools/robocoop-5/spec-lock-check.mjs (browser)" },
+  { id: "saved-block-differs", kind: "reporter", module: "srctools", cell: "fileTools", run: "20260928-0847-m39", fires: "a write to a module the file carries but does not boot differs from the saved block", silent: "written with from: the saved block", covered: "no" },
+  { id: "typography-kept", kind: "reporter", module: "srctools", cell: "fileTools", run: "20260929-0620-m60", fires: "a rewrite retypes curly quotes or dashes as ASCII in unchanged text", silent: "old text has no typographic punctuation", covered: "no" },
+  { id: "punctuation-match", kind: "reporter", module: "srctools", cell: "fileTools", run: "20260928-0847-m28", fires: "edit_file old_string matches only when punctuation is read as ASCII", silent: "exact match", covered: "no" },
+  { id: "module-logs", kind: "reporter", module: "srctools", cell: "uncaughtLog", run: "20260928-0847-m33", fires: "read_file of a module whose code logged an uncaught error, console output or failed request", silent: "module logged nothing", covered: "no" },
+  { id: "did-you-mean", kind: "reporter", module: "srctools", cell: "fileTools", run: "live session 2026-09-29", fires: "glob or grep finds nothing and a known name is close", silent: "matches found", covered: "no" },
+  { id: "not-embedded", kind: "reporter", module: "srctools", cell: "fileTools", run: "-", fires: "an empty search under /src or /content", silent: "search under /local-disk", covered: "no" },
+  { id: "gz-not-gzip", kind: "reporter", module: "srctools", cell: "fileTools", run: "-", fires: "attach_file name ends .gz and the bytes are not gzip", silent: "bytes start 1f 8b", covered: "no" },
+  { id: "tooling-module-files", kind: "refusal", module: "srctools", cell: "fileTools", run: "rc5-train m58", fires: "request_files names a robocoop-5 or lopepage module", silent: "names a user module", covered: "no" },
+  { id: "column-check", kind: "reporter", module: "srctools", cell: "fileTools", run: "-", fires: "an attached CSV has a numeric column with non-numbers, or spellings differing in case", silent: "clean columns", covered: "no" },
+  { id: "preview-is-not-data", kind: "reporter", module: "srctools", cell: "fileTools", run: "-", fires: "an attached text file has more than 5 lines", silent: "5 lines or fewer", covered: "no" },
+  { id: "network-failure-cause", kind: "reporter", module: "srctools", cell: "hostSetup", run: "20260929-0620-m44", fires: "any tool output contains Failed to fetch", silent: "output contains 'Failed to fetch dynamically'", covered: "no" },
+  { id: "eval-in-host", kind: "reporter", module: "srctools", cell: "valueTools", run: "live session 2026-09-29", fires: "eval_js is scoped to a robocoop-5 module", silent: "scoped to a user module", covered: "no" },
+  { id: "eval-no-return", kind: "reporter", module: "srctools", cell: "valueTools", run: "s18 probe", fires: "several statements, no return, value undefined", silent: "a single expression", covered: "no" },
+  { id: "eval-stale-read", kind: "reporter", module: "srctools", cell: "valueTools", run: "w5 2026-09-27", fires: "a cell the snippet reads changed while it ran", silent: "no dependency changed", covered: "no" },
+  { id: "canvas-note", kind: "reporter", module: "srctools", cell: "cellHelpers", run: "rc5-train w5 2026-09-27", fires: "a summarised value is a canvas", silent: "any other value", covered: "no" },
+  { id: "control-no-effect", kind: "reporter", module: "srctools", cell: "valueTools", run: "rc5-train m4 2026-09-28", fires: "try_control: no cell other than the control's own value changed", silent: "another cell changed", covered: "no" },
+  { id: "control-not-accepted", kind: "reporter", module: "srctools", cell: "valueTools", run: "20260928-0847-m26", fires: "a typed value shows in the box and the control's value did not change", silent: "value changed", covered: "no" },
+  { id: "control-bad-output", kind: "reporter", module: "srctools", cell: "valueTools", run: "20260928-0847-m40", fires: "after a control change a cell shows NaN, undefined or throws; also at slider min, max and each select option", silent: "all settings compute", covered: "no" },
+  { id: "control-value-lag", kind: "reporter", module: "srctools", cell: "valueTools", run: "pairing 2026-09-28", fires: "a pressed custom view's .value changed and its cell value did not", silent: "both changed", covered: "no" },
+  { id: "control-put-back", kind: "reporter", module: "srctools", cell: "valueTools", run: "20260928-0847-m7", fires: "try_control with a value: the control is restored and the result says so", silent: "a button click is not restored", covered: "no" },
+  { id: "unclicked-buttons", kind: "reporter", module: "srctools", cell: "valueTools", run: "20260929-0620-m49", fires: "a rendered cell holds a button that is not a viewof", silent: "no such buttons", covered: "no" },
+  { id: "same-prefix-diff", kind: "reporter", module: "srctools", cell: "valueTools", run: "20260929-0620-m46", fires: "two values share their first 300 chars and differ later", silent: "summaries differ", covered: "no" }
+]
+// %%
+viewof ruleFilter = Inputs.search(rules, { placeholder: "filter rules: a kind, a module, a run id, 'no'" })
+// %%
+rulesTable = Inputs.table(ruleFilter, {
+  columns: ["id", "kind", "module", "cell", "run", "fires", "silent", "covered"],
+  width: { id: 150, kind: 70, module: 70, cell: 130, run: 150, covered: 160 },
+  rows: 22,
+  layout: "auto"
+})
+// %%
+md`The inventory is a reading, not an extraction. Rows may be missing: \`pathLib\`, \`srcContext\` and the 14 tool descriptions (7,480 characters) were skimmed for rules, not read line by line, and \`systemPrompt\` (about 21 KB) is treated as one unit. Step 2 of the handover re-derives the list mechanically and reconciles it with this one.`
+// %%
+states = []
+// %%
+md`## Behaviour
+
+One requirement per row, in priority order. R1 to R6 are the safety net and are built before any production cell changes.`
+// %%
+requirements = [
+  { id: "R1", text: "When the wire snapshot tool is run against a notebook, it shall drive a fixed scripted session with a stub client and no network, and print one SHA-256 over the system prompt, the tool schemas and every message the stub client received, with the clock, page URL, pids and durations replaced by fixed tokens.", check: "node tools/robocoop-5/wire-snapshot.mjs lopebooks/notebooks/@tomlarkworthy_robocoop-5.html  # run twice: same hash" },
+  { id: "R2", text: "The wire snapshot shall differ when one character of the system prompt, one tool description, or one rule's text is changed.", check: "node tools/robocoop-5/wire-snapshot.mjs --self-test  # edits three strings in a temp copy, expects three different hashes" },
+  { id: "R3", text: "Each row of the rule inventory shall have a fires test and a silent test, written against the unmodified code through a surface that survives the refactor: a tool's execute(), applyModuleSrc(), or createAgentSession with a scripted client.", check: "node tools/robocoop-5/rule-coverage.mjs  # prints rules with fewer than 2 tests; expects none" },
+  { id: "R4", text: "Each fires test shall fail when its rule's check is disabled.", check: "node tools/robocoop-5/rule-mutants.mjs  # one mutant per rule; expects every mutant killed" },
+  { id: "R5", text: "The oracle evals shall produce the same tool outputs before and after, compared as transcripts with pids and durations normalised.", check: "node tools/robocoop-5/eval/run.mjs --category rc5-train --oracle --json <out>; node tools/robocoop-5/transcript-diff.mjs <baseline> <out>" },
+  { id: "R6", text: "Every check above shall be run against the baseline copy (git show HEAD: of the canonical notebook) and against the working copy, and the two outputs compared; a check that reports the same result on a notebook with a known defect is not accepted.", check: "node tools/robocoop-5/verify.mjs --baseline HEAD  # prints a two-column table, exit 1 on any difference not listed as intended" },
+  { id: "R7", text: "A rule shall be a cell whose value is {id, kind, check, evidence}, followed by an md cell stating what it reports and why, and test_rule_<id>_fires and test_rule_<id>_silent cells in the same module.", check: "node tools/robocoop-5/rule-coverage.mjs --shape  # every rule_* cell has the four fields, an md neighbour and two tests" },
+  { id: "R8", text: "Gates, reporters and refusals shall be held in plugin-registry sets (rc5-gates, rc5-write-reporters, rc5-write-refusals) created by one createRegistry(set, {validate}) in robocoop-5-tools; the three existing registries shall use the same function.", check: "grep -c 'createRegistry(' modules/@tomlarkworthy/robocoop-5-tools.js  # 6; and the wire hash is unchanged" },
+  { id: "R9", text: "The order in which rules run shall be data: each rule carries a numeric order, and the composed output for the scripted session shall equal the pre-refactor output byte for byte.", check: "wire-snapshot hash unchanged after the commit that introduces each registry" },
+  { id: "R10", text: "robocoop-5-core shall name no tool other than the completion tool it is configured with.", check: "grep -c -E 'write_file|edit_file|eval_js|try_control' modules/@tomlarkworthy/robocoop-5-core.js  # 0 outside md cells (11 on 2026-10-04)" },
+  { id: "R11", text: "Each tool shall be one cell named tool_<id> returning one defineTool value; helpers shared by two or more tools shall be their own cells.", check: "bun tools/code-metrics-cli.ts on srctools: no cell over 150 lines; 14 tool_* cells" },
+  { id: "R12", text: "The system prompt shall be composed from named section cells, and the composed string shall equal the current systemPrompt value.", check: "test_systemPrompt_bytes: sha256(composed) === the hash recorded from the baseline" },
+  { id: "R13", text: "robocoop5(opts) shall keep its signature and options, and be composed from function-valued cells (transcript, composer, settings panel, session menu, model menu), none over 150 lines.", check: "test_robocoop5_session_thread, test_rc5Thread, test_rc5_markOrphans pass; tools/robocoop-5/boot-smoke.mjs passes; code-metrics on robocoop-5" },
+  { id: "R14", text: "robocoop-5-engine shall hold the session factory and the prompt; settings controls (key, endpoint, model, catalog, toggles) shall be in cells grouped under one md heading with one md cell each.", check: "code-metrics: engine has an md cell per settings control; wire hash unchanged" },
+  { id: "R15", text: "While two sessions are open on one page, a monitor line, a spec scorecard and a watch update produced in one shall not appear in the other's messages.", check: "test_two_sessions_isolated (new, fails on HEAD, passes after step 13)" },
+  { id: "R16", text: "Every module shall open with an md cell stating what the module is for and listing its exported cells, and no md cell shall describe behaviour the code no longer has.", check: "manual read against knowledge/reviewing-a-notebook-module.md; the stale 'Non-streaming today' line in core is gone" }
+]
+// %%
+requirementsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
+  <tbody>${requirements.map((r) => htl.html`<tr><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`### Worked examples
+
+The rule shape and the composition function, running. \`composeRules\` is the whole of what replaces the \`??\` chain, the string appends and the two drain loops. The first-string form is for gates and refusals; the join form is for reporters and monitors.`
+// %%
+composeRules = ({ first = false, sep = "" } = {}) => async (ruleList, ctx) => {
+  const out = [];
+  for (const r of [...ruleList].sort((a, b) => a.order - b.order)) {
+    let s = null;
+    try { s = await r.check(ctx); } catch (e) { s = null; }
+    if (s == null || s === "") continue;
+    if (first) return s;
+    out.push(s);
+  }
+  return first ? null : out.join(sep);
+}
+// %%
+example_rule_unwritten = ({
+  id: "unwritten",
+  kind: "gate",
+  order: 20,
+  evidence: { run: "20260928-0847-w9", what: "one refused write_file; the summary described a module that did not exist" },
+  check: ({ sessionState }) => {
+    const u = sessionState.unwritten;
+    if (!u || !u.size) return null;
+    const miss = [...u].map(([p, why]) => p + " (" + why + ")");
+    u.clear();
+    return "REJECTED: your last write to " + miss.join(", ") + " did not land, and no later write to it did, so " +
+      "the runtime does not hold that code. Write it again, changed as the result said, and check the result " +
+      "says it applied. If you dropped it on purpose, tell the user it was not written and call task_complete again.";
+  }
+})
+// %%
+examples = {
+  const gate = composeRules({ first: true });
+  const fires = await gate([example_rule_unwritten], { sessionState: { unwritten: new Map([["/src/@user/a.js", "REFUSED"]]) } });
+  const silent = await gate([example_rule_unwritten], { sessionState: { unwritten: new Map() } });
+  const throwing = await gate([{ id: "x", order: 1, check: () => { throw new Error("boom"); } }, example_rule_unwritten], { sessionState: {} });
+  return [
+    { given: "unwritten holds /src/@user/a.js (REFUSED)", expect: "a string starting REJECTED naming the path", got: fires, ok: /^REJECTED: your last write to \/src\/@user\/a\.js \(REFUSED\)/.test(fires) },
+    { given: "unwritten is empty", expect: "null", got: silent, ok: silent === null },
+    { given: "an earlier rule throws", expect: "the throw is skipped, later rules still run, null here", got: throwing, ok: throwing === null }
+  ];
+}
+// %%
+examplesTable = Inputs.table(examples, { columns: ["given", "expect", "ok"], layout: "auto" })
+// %%
+md`The gate text in \`example_rule_unwritten\` is copied from \`makeSession\` in \`robocoop-5-engine\` as read on 2026-10-04. A rule that throws is skipped, as a throwing context provider is today (\`context-unit-test.mjs\`: "throwing provider dropped, others kept"). Whether the current gate chain swallows a throw was not checked; step 2 records what it does, and \`composeRules\` matches that, not this cell.`
+// %%
+md`## Design
+
+What one model step passes through, and where each rule kind runs. Every box on the right of the loop is a registry of cells after the refactor.`
+// %%
+sequence = onPaper(mermaid`sequenceDiagram
+  participant U as user
+  participant L as loop (core)
+  participant C as context sections
+  participant M as monitors
+  participant LLM as model
+  participant T as tool
+  participant R as refusals + reporters
+  participant G as gates
+  U->>L: send(text)
+  L->>C: compose (turn scope)
+  C-->>L: context block
+  loop each step
+    L->>M: drain
+    M-->>L: notices
+    L->>LLM: system + messages + tool schemas
+    LLM-->>L: reply
+    alt reply has no usable call
+      L->>L: nudge rules
+    else tool call
+      L->>T: execute(args, ctx)
+      T->>R: refusals, then apply, then reporters
+      R-->>T: strings
+      T-->>L: output
+    else task_complete
+      L->>G: first string wins
+      G-->>L: REJECTED or null
+    end
+  end
+  L-->>U: turn ends`)
+// %%
+architecture = onPaper(mermaid`flowchart TD
+  ui["robocoop-5<br/>chat UI, split into function cells"] --> engine
+  engine["robocoop-5-engine<br/>prompt sections, makeSession, gates"] --> core
+  engine --> tools
+  engine --> sessions["robocoop-5-sessions<br/>session logs, controller"]
+  srctools["robocoop-5-srctools<br/>vfs, apply, reporters, one cell per tool"] --> tools
+  context["robocoop-5-context<br/>ctx_ sections"] --> tools
+  speclock["robocoop-5-speclock<br/>spec scorecard: monitor, reporter, gate"] --> tools
+  speclock --> srctools
+  tools["robocoop-5-tools<br/>createRegistry, six sets, bus factories"]
+  core["robocoop-5-core<br/>client, loop, nudge rules, composeRules"]`)
+// %%
+md`Arrows are imports. \`core\` imports nothing from the other six. \`tools\` holds registries and factories and no singletons. \`speclock\` is the one new module: it is an experiment arm that is off by default (\`specLockOn\`), its code is 260 lines inside srctools plus a gate in tools, a prompt paragraph and a toggle in engine, and a notebook without it loses nothing.
+
+### Decisions
+
+| decided | instead of | because |
+|---|---|---|
+| Runtime helpers (\`resolveModule\`, \`varsOf\`, \`isStructural\`, the two \`readVar\`s) stay in robocoop-5, merged into one \`cellHelpers\` cell set in srctools | moving them to \`@tomlarkworthy/runtime-sdk\` | Tom, 2026-10-04: runtime-sdk takes only generic metaprogramming functionality. These encode robocoop-5's notion of an authored cell and a 5 s read timeout. |
+| Storage keys keep their names, including \`robocoop4_model\` | renaming to \`robocoop5_*\` with a migration | Tom, 2026-10-04: migration is not a concern. A rename with no migration loses each user's model choice once, for no gain. |
+| Split big cells into cells inside the existing modules; one new module (\`speclock\`) | new \`-vfs\`, \`-apply\`, \`-settings\` modules (7 to 11) | 13 notebooks in the two content repos embed \`robocoop-5-core\` (counted 2026-10-04). \`sync-module.ts\` replaces existing blocks; a new module needs each consumer re-jumpgated or the block added by hand. Cells and md headings give the reading order without that cost. |
+| Tests go through \`execute()\`, \`applyModuleSrc()\` and \`createAgentSession\` | testing the rule cells directly | The rule cells do not exist until the refactor. A test written against a surface that survives is the same test before and after, so it can fail on the old code first. |
+| One kind of change per commit: a move, or a behaviour change, never both | fixing the multi-session defects while the code is being moved | A commit that moves code must leave the wire hash unchanged. If it also fixes something the hash changes and the check says nothing. |
+| Rule order is a number on the rule | registration order | Registration order depends on which cell the runtime computes first, which is not fixed across boots. The current order is fixed by source position and has to be reproduced exactly. |
+| No wording changes | fixing known-wrong text during the move | A wording change is an intended wire change. It needs a model run (paired polyglot, 49 tasks, about $1.10 per arm per \`knowledge/training-robocoop-5.md\`) and its own commit. |
+| \`createAgentSession\` and \`createOpenRouterClient\` stay single cells | splitting them to meet the line limit | Each is one state machine with shared local state. The nudge texts leave as rule cells; the control flow stays in one place. |
+
+### Known traps
+
+- **\`--run-tests\` under-reports.** It skips a module that is not instantiated, mislabels modules, and reports a throw as a timeout (memory: \`feedback_run_tests_misses_unbooted_modules_and_mislabels\`). Grep the output for each expected test name; a missing name is a failure.
+- **A \`test_*\` cell must return a defined value**, and a forced cell must not have \`_reachable\` preset (\`knowledge/writing-unit-tests-in-a-notebook.md\`).
+- **\`hostSetup\` unregisters tools 1000 ms after invalidation** (e9, 2026-09-27: eager removal gave "unknown tool edit_file" mid-turn). Splitting \`fileTools\` into 8 cells changes which cells recompute on a write. The delayed removal and replace-by-id must survive; \`test_tools_present_across_write\` is written first.
+- **\`robocoop5\` depends on constants only.** Any variable added or deleted while it renders rebuilds the chat UI (memory: \`feedback_variable_churn_rebuilds_rc5_chat_ui\`). The split cells are function-valued and take their state as arguments; none depends on a session value.
+- **\`sessionState\` is the coupling between srctools and engine.** \`noteWrite\` fills \`unwritten\` and \`untried\`; the gates read and clear them; \`wikiGate\` keeps \`wikiRead\`. These stay plain fields on one object per session, documented in one md cell, not three private conventions.
+- **\`fingerprint\` is two different functions** with one name (\`applyLib\` and \`valueTools\`), and \`readVar\` is two divergent implementations. Merging either changes behaviour; each merge is its own commit with a test that pins the difference first.
+- **Known-wrong text that is not to be fixed here:** the \`truncate\` marker says "use grep/sed to narrow" and there is no sed tool; \`systemPrompt\` lists 5 of the 7 modules; the core md says "Non-streaming today" and the client streams. The first two are wire text (leave); the third is prose (fix, R16).
+- **An export from a tab opened before a sync reverts it** (memory: \`feedback_export_from_a_live_tab_reverts_a_corpus_sweep\`). Close paired robocoop-5 tabs before \`sync-module.ts\`.`
+// %%
+md`## Handover
+
+### Where the work goes
+
+- Canonical for all seven modules: \`lopebooks/notebooks/@tomlarkworthy_robocoop-5.html\` (\`modules/canonical.json\`). Edit via \`bun tools/lope-sync.ts checkout @tomlarkworthy/robocoop-5-<x>\`, then \`bun tools/channel/sync-module.ts --module … --source … --target <canonical>\`.
+- New tools in \`tools/robocoop-5/\`: \`wire-snapshot.mjs\`, \`rule-coverage.mjs\`, \`rule-mutants.mjs\`, \`transcript-diff.mjs\`, \`verify.mjs\`. Pattern to copy: \`guard-unit-test.mjs\` (scripted client through \`importNotebookModule\`) for anything in core; \`lib/notebook-boot.mjs\` and \`spec-lock-check.mjs\` for anything that needs a live runtime.
+- New module: \`@tomlarkworthy/robocoop-5-speclock\`, added to \`modules/canonical.json\` and to the robocoop-5 notebook's bootconf.
+- Read first: \`knowledge/training-robocoop-5.md\`, \`knowledge/writing-unit-tests-in-a-notebook.md\`, \`knowledge/reviewing-a-notebook-module.md\`, \`knowledge/resyncing-modules-across-the-corpus.md\`, \`plan/robocoop-5-multi-session.md\`, \`plan/robocoop-5-pluggable-context.md\`.
+
+### Boundaries
+
+| | |
+|---|---|
+| **always** | run \`verify.mjs --baseline HEAD\` before each commit and paste its table; write the failing test before the change; one kind of change per commit |
+| **ask first** | any commit that changes the wire hash; adding a module beyond \`speclock\`; changing \`robocoop5(opts)\`, \`rc5Thread\` or \`toolsView\`; pushing to the 12 consumer notebooks or to Observable |
+| **never** | add to \`@tomlarkworthy/runtime-sdk\`; rename a storage key; reword text the model reads; \`--force\` past a \`sync-module\` refusal; accept a check that was not first seen to fail |
+
+### Checks
+
+\`\`\`
+node tools/robocoop-5/verify.mjs --baseline HEAD
+  wire hash            <sha>  <sha>   same
+  rule tests           N/N    N/N     same
+  mutants killed       N/N    N/N     same
+  oracle transcripts   113    113     0 differ
+  boot-smoke           ok     ok
+node --test tests/robocoop5/*.test.mjs
+node tools/robocoop-5/guard-unit-test.mjs && node tools/robocoop-5/context-unit-test.mjs
+bun tools/lope-preflight.ts --baseline tools/preflight-baseline.json
+\`\`\`
+
+The counts in the block are placeholders for the shape of the output, not measurements. 113 is the number of files under \`eval/rc5t/\` that mention \`oracle\` on 2026-10-04; how many score 1.00 today was not run.
+
+### Steps
+
+Safety net. No production cell changes in steps 1 to 4.
+
+1. \`wire-snapshot.mjs\` with its self-test (R1, R2). Record the baseline hash in the tool's own fixture file. **stop and show** the normalised request body, so the list of normalised fields can be reviewed.
+2. Re-derive the rule inventory mechanically: every string literal in the seven modules that reaches a tool output, a system message or a gate return, grouped by enclosing function. Reconcile with the \`rules\` cell here; update this spec. **stop and show** the differences.
+3. Rule tests, fires and silent, for every row (R3), as \`test_rule_*\` cells in the module that owns the rule. Each is seen to fail once by disabling the rule by hand. Order: gates and refusals, then nudges, then reporters.
+4. \`rule-mutants.mjs\`, \`transcript-diff.mjs\`, \`verify.mjs\`; record the oracle baseline (R4, R5, R6). **stop and show** the first full \`verify\` table.
+
+Pure moves. The wire hash is unchanged after each.
+
+5. Delete what is dead: \`runCommand\` stub, \`__seed\`, the orphan \`modules/@tomlarkworthy/robocoop-5-entrances.js\` working copy. Fix stale md (R16).
+6. \`createRegistry\` and \`registryView\` in tools; the three existing registries use them (R8).
+7. \`composeRules\`; gates become \`rule_gate_*\` cells in an \`rc5-gates\` registry; \`makeSession\` composes them (R7, R9). **stop and show**.
+8. Nudge texts leave \`createAgentSession\` as \`rule_nudge_*\` cells passed in as options with the current text as default; core stops naming tools (R10).
+9. \`applyLib\` splits: \`applyModuleSrc\` keeps compile and apply; each reporter becomes a \`rule_report_*\` cell in \`rc5-write-reporters\`; refusals in \`rc5-write-refusals\`. **stop and show**.
+10. \`valueTools\` and \`fileTools\` split into one \`tool_*\` cell each plus shared helper cells (R11).
+11. \`systemPrompt\` becomes section cells composed in order (R12). Spec-lock moves to \`robocoop-5-speclock\`.
+12. \`robocoop5\` splits into function-valued cells (R13); engine settings grouped and documented (R14). **stop and show** the notebook in a browser.
+
+Behaviour changes. Each has a test that fails on HEAD.
+
+13. Per-session monitor bus; per-session spec gate; \`watchTable\` reads the session's bus (R15). Three commits. The wire hash for a single session is unchanged.
+14. Sync the canonical to the 12 other notebooks that embed robocoop-5 (\`sync-module.ts --all-canonical\`, after \`triage/cellwise.ts\` confirms direction), preflight, and push to Observable. **ask first**.`
+// %%
+md`## Open questions
+
+A question marked blocking stops the handover.`
+// %%
+questions = [
+  { q: "Is 'rule' the word, with gate / reporter / refusal / nudge / monitor as its kinds? It becomes a cell-name prefix across four modules and is expensive to change later.", blocking: true, answer: "" },
+  { q: "One new module (speclock) and cells split inside the existing six, or the larger split (vfs, apply, settings as modules)? Recommended: one new module. The larger split costs a re-jumpgate of 12 consumer notebooks per new module.", blocking: true, answer: "" },
+  { q: "Do the oracle transcripts hold enough to diff? The result JSON has a transcript field per eval (tools/robocoop-5/eval/results/oracle-capability.json); whether it carries every tool output in full was not checked. Step 4 finds out; if not, driver-core.mjs gains a flag to write them.", blocking: false, answer: "" },
+  { q: "Line limit of 150 per cell: the right number? The agent's own prompt tells it to split cells over 40 lines, and the structure reporter fires at maintainability index 65. 150 is what the largest tool (try_control with its helpers extracted) is expected to need; not measured.", blocking: false, answer: "" },
+  { q: "Should the three multi-session defects be reproduced and fixed before the refactor instead of after? They were read from the code, not observed. Fixing first means the moves carry three fewer singletons; fixing after means the fix lands in small cells with tests.", blocking: false, answer: "" },
+  { q: "guardTools (the self-edit refusal) lives in robocoop-5-sessions. It is a write refusal like wiki-unread. Move it to the rc5-write-refusals registry, or leave it where the session controller applies it?", blocking: false, answer: "" }
+]
+// %%
+questionsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
+  <tbody>${questions.map((q) => htl.html`<tr><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+// mermaid draws dark text on no background, which is unreadable on a dark theme.
+onPaper = (node) => htl.html`<div style="max-width:760px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`
+// %%
+specModule = "__SPEC_MODULE__"
+// %%
+import {md} from "@tomlarkworthy/editable-md"
+// %%
+import {annotation, annotations} from "@tomlarkworthy/annotate"
+// %%
+import {sticky} from "@tomlarkworthy/sticky"
