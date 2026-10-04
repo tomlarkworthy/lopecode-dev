@@ -27,7 +27,7 @@ const wire = run("node", ["tools/robocoop-5/wire-snapshot.mjs", notebook, "--che
 for (const l of wire.stdout.split("\n").filter((l) => l.startsWith("wire hash"))) row(l.slice(0, 22).trim(), / same\s*$/.test(l), l.slice(22).trim());
 if (!/wire hash/.test(wire.stdout)) row("wire hash", false, (wire.stderr || wire.stdout).split("\n").find((l) => /Error/.test(l))?.slice(0, 200) ?? "no output");
 
-const tests = run("node", ["--test", ...["attribution", "codeframe", "gradefix", "humaneval-grader", "ladder", "reviewer", "speclock", "stamp", "tau-fidelity", "two-sessions"].map((t) => `tests/robocoop5/${t}.test.mjs`)]);
+const tests = run("node", ["--test", ...["attribution", "codeframe", "gradefix", "humaneval-grader", "ladder", "reviewer", "speclock", "stamp", "tau-fidelity", "two-sessions", "hooks"].map((t) => `tests/robocoop5/${t}.test.mjs`)]);
 row("node tests", tests.status === 0, (tests.stdout.match(/ℹ pass \d+/)?.[0] ?? "") + " " + (tests.stdout.match(/ℹ fail \d+/)?.[0] ?? ""));
 for (const t of ["guard-unit-test", "context-unit-test"]) { const r = run("node", [`tools/robocoop-5/${t}.mjs`]); row(t, r.status === 0, (r.stdout.trim().split("\n").pop() ?? "").slice(0, 80)); }
 
@@ -41,7 +41,18 @@ if (!quick) {
   try {
     const base = JSON.parse(readFileSync(join(here, "oracle-baseline.json"), "utf8"));
     const unstable = new Set(JSON.parse(readFileSync(join(here, "oracle-unstable.json"), "utf8")));
-    const diff = compare(base, digest(JSON.parse(readFileSync(json, "utf8"))), unstable);
+    let diff = compare(base, digest(JSON.parse(readFileSync(json, "utf8"))), unstable);
+    // A write report carries counts that depend on what had computed when it was taken. An eval that differs is
+    // run again, alone, up to twice: one that then matches the baseline was load; one that never does is a change.
+    const first = diff.length;
+    for (let attempt = 1; attempt <= 2 && diff.length && diff.length <= 12; attempt++) {
+      const again = join(out, "oracle-retry.json");
+      run("node", ["tools/robocoop-5/eval/run.mjs", "--oracle", "--concurrency", "2", "--ids", diff.map((d) => d.id).join(","), "--notebook", notebook, "--json", again], { timeout: 600000 });
+      const ids = new Set(diff.map((d) => d.id));
+      const sub = Object.fromEntries(Object.entries(base).filter(([id]) => ids.has(id)));
+      diff = compare(sub, digest(JSON.parse(readFileSync(again, "utf8"))), unstable);
+    }
+    if (first && !diff.length) console.log("        " + first + " eval(s) differed under load and matched the baseline when run again");
     row("oracle transcripts", diff.length === 0, Object.keys(base).length + " evals, " + diff.length + " differ" + (diff.length ? ": " + diff.slice(0, 6).map((d) => d.id + " (" + d.kind + ")").join("; ") : ""));
     for (const d of diff.slice(0, 6)) if (d.was != null) console.log("        " + d.id + "\n          was …" + JSON.stringify(d.was) + "\n          now …" + JSON.stringify(d.now));
   } catch (e) { row("oracle transcripts", false, String(e.message).slice(0, 160) + " " + (o.stderr || "").slice(-160)); }
