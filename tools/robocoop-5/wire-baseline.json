@@ -2,17 +2,17 @@
   "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
   "script": "5586c9967c24046916d7371af4bdb78afe9b86e3ac97cc23334399eb49b7227d",
   "shipped": {
-    "hash": "d258e5cac82e63beaa44181c43b065e57480dd76e328e0ef7ae1b977cafe0a97",
+    "hash": "951cd7c52d754bd71627bc0d3d5d9f01063c9b735a8ed7f4c9041de94893798e",
     "requests": 38,
-    "bytes": 2647353,
+    "bytes": 2656549,
     "problems": [],
     "blocked": 3,
     "pageErrors": 0
   },
   "speclock": {
-    "hash": "9e01488836f2ab7da2745959354b2b93d974251debde47e3ebfe4fc4223f167b",
+    "hash": "474031514a970b365877c02b736399a4ec692dcc31567b18bdf223decc62dbe3",
     "requests": 40,
-    "bytes": 2937846,
+    "bytes": 2947526,
     "problems": [],
     "blocked": 3,
     "pageErrors": 0
