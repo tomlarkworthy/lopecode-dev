@@ -12,7 +12,7 @@ export async function engine({ script, monitors = [], tools = [] }) {
   const core = await importNotebookModule(mod("-core"));
   const reg = await importNotebookModule(mod("-tools"), { overrides: { plugins: { add: () => () => {}, get: () => (async function* () {})() } } });
   const fromTools = {};
-  for (const n of ["createWatchBus", "createAskBus", "createMonitorBus", "rc5_monitorBus", "specGateCheck", "rc5_specGate"])
+  for (const n of ["createWatchBus", "createAskBus", "createMonitorBus", "rc5_watchBuses", "specGateCheck", "rc5_specGate"])
     if ([...reg.module._scope.keys()].includes(n)) fromTools[n] = await reg.value(n);
   let i = 0;
   const eng = await importNotebookModule(mod("-engine"), { overrides: {
@@ -21,7 +21,7 @@ export async function engine({ script, monitors = [], tools = [] }) {
     reasoningToggle: { value: false }, contextToggle: { value: false }, modelView: { value: "m" }, promptView: { value: "sys" },
     toolsView: { value: tools }, monitorsView: { value: monitors }, contextView: { value: [] }, ...fromTools,
   } });
-  return { makeSession: await eng.value("makeSession"), rewind: () => { i = 0; } };
+  return { makeSession: await eng.value("makeSession"), rewind: () => { i = 0; }, tools: fromTools };
 }
 export const ping = { id: "ping", description: "ping", parameters: { type: "object", properties: {} }, execute: async () => ({ output: "pong" }) };
 export const turn = [call("ping"), call("ping"), call("task_complete", { summary: "done" })];
@@ -35,5 +35,12 @@ describe("test_two_sessions_isolated", () => {
     await a.send("go"); rewind(); await b.send("go");
     assert.equal(notices(a).length, 1, "session a: " + JSON.stringify(notices(a)));
     assert.equal(notices(b).length, 1, "session b: " + JSON.stringify(notices(b)));
+  });
+  it("the page lists each live session's watch bus, and drops it on dispose", async () => {
+    const { makeSession, tools } = await engine({ script: turn, tools: [ping] });
+    const a = makeSession(), b = makeSession();
+    assert.deepEqual([...tools.rc5_watchBuses], [a.watchBus, b.watchBus]);
+    a.dispose();
+    assert.deepEqual([...tools.rc5_watchBuses], [b.watchBus]);
   });
 });
