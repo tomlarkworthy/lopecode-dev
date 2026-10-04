@@ -37,6 +37,19 @@ describe("limits the agent can lift", () => {
     assert.match(results[0], /bytes truncated — pass max_chars to get more, or offset and limit to page/);
     assert.ok(results[1].includes(LONG) && results[1].includes("// line 450") && !results[1].includes("truncated"), "the whole 900-line cell, in one result");
   });
+  it("grep: a matching line past 250 characters is cut, and the cut names max_line_chars", async () => {
+    const r = await grep.execute({ pattern: "xxxx", path: "/src" });
+    assert.match(r.output, /^\/src\/@user\/big\.js:899:  'x{247}… \[cut at 250 of 6004 chars; pass max_line_chars\]$/);
+  });
+  it("grep: max_line_chars lifts it, and max_chars lifts the loop's cap", async () => {
+    const r = await grep.execute({ pattern: "xxxx", path: "/src", max_line_chars: 10000, max_chars: 20000 });
+    assert.ok(r.output.includes(LONG) && !r.output.includes("cut at"));
+    assert.equal(r.outputLimit, 20000);
+  });
+  it("grep declares its limits and what lifts each", () => {
+    assert.deepEqual(grep.limits.map((l) => l.override), ["max_results", "max_line_chars", "context", "max_chars", null]);
+    for (const l of grep.limits) assert.ok(l.override || l.reason, l.limit);
+  });
   it("read_file declares its limits and what lifts each", () => {
     assert.deepEqual(read_file.limits.map((l) => l.override), ["limit", "max_line_chars", "max_chars"]);
   });
