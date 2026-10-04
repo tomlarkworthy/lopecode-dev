@@ -1,4 +1,4 @@
-// Unit test for the completeGuard veto in robocoop-5-core.
+// Unit test for the completion veto in robocoop-5-core: a turnEnd hook that answers {continue} to a completion.
 // Mock client: step 1 answers with a bare task_complete (fabricated completion), step 2 calls a real
 // tool, step 3 completes again. Expected: first completion VETOED (REJECTED tool result), tool runs,
 // second completion accepted. Also: a turn where the model insists (task_complete twice, no tools)
@@ -17,12 +17,12 @@ const callTool = () => ({ message: { role: "assistant", content: null, tool_call
 
 let pings = 0;
 const tools = [{ id: "ping", description: "ping", parameters: { type: "object", properties: {} }, execute: async () => { pings++; return { output: "pong" }; } }];
-const guard = ({ toolCallsThisTurn }) => toolCallsThisTurn === 0 ? "REJECTED: no tool calls yet" : null;
+const guard = ({ kind, toolCallsThisTurn }) => kind === "complete" && toolCallsThisTurn === 0 ? { continue: "REJECTED: no tool calls yet" } : null;
 
 // Scenario A: fabricate → veto → work → complete
 {
   const s = createAgentSession({ client: scriptedClient([complete("did it (lie)"), callTool(), complete("done for real")]),
-    tools, model: "mock", completeToolName: "task_complete", completeGuard: guard });
+    tools, model: "mock", completeToolName: "task_complete", hooks: { turnEnd: guard } });
   const r = await s.send("build something");
   const toolMsgs = s.messages.filter((x) => x.role === "tool").map((x) => x.content);
   const vetoed = toolMsgs.some((c) => String(c).startsWith("REJECTED"));
@@ -36,7 +36,7 @@ const guard = ({ toolCallsThisTurn }) => toolCallsThisTurn === 0 ? "REJECTED: no
   let chats = 0;
   const script = [complete("nope 1"), complete("nope 2"), callTool()];
   const s = createAgentSession({ client: { async chat() { return script[Math.min(chats++, script.length - 1)]; } },
-    tools, model: "mock", completeToolName: "task_complete", completeGuard: guard });
+    tools, model: "mock", completeToolName: "task_complete", hooks: { turnEnd: guard } });
   await s.send("build something");
   const last = s.messages[s.messages.length - 1];
   const accepted = chats === 2 && pings === 1 && last.role === "assistant" && last.content === "nope 2";

@@ -20,7 +20,10 @@ export const memoryPlugins = () => {
   };
 };
 const has = (m, n) => m.module._scope.has(n);
-const take = async (m, names) => { const o = {}; for (const n of names) if (has(m, n)) o[n] = await m.value(n); return o; };
+// module.value() observes a cell only until it resolves, and then its `invalidation` fires: a setup cell would
+// unregister what it registered. hold() keeps the cell observed for the life of the test.
+export const hold = (m, name) => new Promise((fulfilled, rejected) => m.module.variable({ fulfilled, rejected }).define(null, [name], (x) => x));
+const take = async (m, names) => { const o = {}; for (const n of names) if (has(m, n)) o[n] = await hold(m, n); return o; };
 
 // script: replies in order; an entry may be a function of the request (to throw, or to look at it)
 export async function engine({ script = [], monitors = [], tools = [], overrides = {} } = {}) {
@@ -40,7 +43,7 @@ export async function engine({ script = [], monitors = [], tools = [], overrides
   // redefine throws on a name the module does not have, and the engine's imports change across the refactor
   const src = readFileSync(mod("-engine"), "utf8");
   const eng = await importNotebookModule(mod("-engine"), { overrides: Object.fromEntries(Object.entries(all).filter(([n]) => src.includes(`"${n}"`))) });
-  return { makeSession: await eng.value("makeSession"), rewind: (s) => { i = 0; if (s) script = s; }, tools: fromTools, core: fromCore, eng, requests };
+  return { makeSession: await hold(eng, "makeSession"), rewind: (s) => { i = 0; if (s) script = s; }, tools: fromTools, core: fromCore, eng, requests };
 }
 let n = 0;
 export const call = (name, args = {}) => ({ message: { role: "assistant", content: null, tool_calls: [{ id: "c" + n++, function: { name, arguments: typeof args === "string" ? args : JSON.stringify(args) } }] }, finish_reason: "tool_calls" });

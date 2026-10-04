@@ -23,6 +23,9 @@ const st = run("bun", ["tools/lope-sync.ts", "status"]);
 const dirty = (st.stdout + st.stderr).split("\n").filter((l) => /robocoop-5/.test(l) && /(modified|STALE|DIVERGED)/.test(l));
 row("working copies in sync", dirty.length === 0, dirty.length ? dirty.map((l) => l.trim()).join("; ").slice(0, 200) : "clean");
 
+// the lopebooks pre-commit hook; run here so a finding does not surface after the long checks
+const pf = run("bun", ["../tools/lope-preflight.ts", "--baseline", "../tools/preflight-baseline.json", "notebooks/@tomlarkworthy_robocoop-5.html"], { cwd: join(root, "lopebooks") });
+row("preflight", pf.status === 0, ((pf.stdout + pf.stderr).split("\n").find((l) => /NEW  /.test(l)) ?? (pf.stdout.match(/vs baseline.*$/m)?.[0] ?? "")).trim().slice(0, 170));
 const wire = run("node", ["tools/robocoop-5/wire-snapshot.mjs", notebook, "--check"]);
 for (const l of wire.stdout.split("\n").filter((l) => l.startsWith("wire hash"))) row(l.slice(0, 22).trim(), / same\s*$/.test(l), l.slice(22).trim());
 if (!/wire hash/.test(wire.stdout)) row("wire hash", false, (wire.stderr || wire.stdout).split("\n").find((l) => /Error/.test(l))?.slice(0, 200) ?? "no output");
