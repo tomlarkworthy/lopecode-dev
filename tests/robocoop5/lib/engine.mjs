@@ -30,7 +30,7 @@ export async function engine({ script = [], monitors = [], tools = [], overrides
   globalThis.window ??= { localStorage: { getItem: () => null } };
   const core = await importNotebookModule(mod("-core"));
   const reg = await importNotebookModule(mod("-tools"), { overrides: { plugins: memoryPlugins() } });
-  const fromCore = await take(core, ["createAgentSession", "composeContext", "zeroToolCallGate", "addressesUser", "runHook", "truncate", "defineTool",
+  const fromCore = await take(core, ["createAgentSession", "composeContext", "zeroToolCallGate", "addressesUser", "runHook", "truncate", "defineTool", "composeFooter",
     "hook_turnEnd", "hook_beforeStep", "hook_beforeTool", "hook_afterTool", "hook_context"]);
   const fromTools = await take(reg, ["createWatchBus", "createAskBus", "createMonitorBus", "rc5_watchBuses", "specGateCheck", "rc5_specGate",
     "registerRule", "unregisterRule", "rulesView", "registerMonitor", "unregisterMonitor", "registerContext", "unregisterContext"]);
