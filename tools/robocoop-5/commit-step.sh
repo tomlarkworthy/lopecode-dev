@@ -1,6 +1,12 @@
 #!/bin/sh
 # commit-step.sh "<subject>" "<body>": commit the canonical notebook in lopebooks, then the gitlink and tools here.
 cd "$(dirname "$0")/../.." || exit 1
+# Refuses unless the quick verify passes; --full runs the oracle evals as well.
+MODE=--quick; [ "$1" = "--full" ] && { MODE=; shift; }
+node tools/robocoop-5/verify.mjs $MODE > tools/scratch/verify/last.txt 2>&1
+V=$?
+cut -c1-150 tools/scratch/verify/last.txt
+[ $V -ne 0 ] && { echo "NOT COMMITTED: verify failed"; exit 1; }
 MSG="$1
 
 $2

@@ -11,6 +11,9 @@ ${defs.map((d) => "  " + d).join("\n")}${extra}
 }
 `;
 
+// Reads go to a module the refactor does not touch: robocoop-5's own source in a tool result would change the
+// hash on every commit that moves a line.
+const STABLE = "/src/@tomlarkworthy/plugin-registry.js";
 const COUNTER = "/src/@user/counter.js";
 const counterCells = [
   "const _intro = function intro(md){return( md`# Counter` )};",
@@ -54,9 +57,9 @@ export const SCRIPT = [
     { text: "I will build the counter module now." },
     done("Built /src/@user/counter.js with a slider and a test."),
     { tool: "glob", args: { pattern: "/src/@user/countr*.js" } },
-    { tool: "grep", args: { pattern: "createAgentSesion", path: "/src/@tomlarkworthy/robocoop-5-core.js" } },
-    { tool: "grep", args: { pattern: "stallNudgeLimit", path: "/src/@tomlarkworthy/robocoop-5-core.js", max_results: 2 } },
-    { tool: "read_file", args: { file_path: "/src/@tomlarkworthy/robocoop-5-tools.js", offset: 1, limit: 12 } },
+    { tool: "grep", args: { pattern: "createPluginz", path: STABLE } },
+    { tool: "grep", args: { pattern: "listeners", path: STABLE, max_results: 2 } },
+    { tool: "read_file", args: { file_path: STABLE, offset: 1, limit: 12 } },
     { tool: "no_such_tool", args: { x: 1 } },
     { tool: "read_file", rawArgs: "{\"file_path\": \"/src/@tomlarkworthy/robocoop-5-to" },
     done("Looked around; nothing written yet. Shall I write the module?"),
