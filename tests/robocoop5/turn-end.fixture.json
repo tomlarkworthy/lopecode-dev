@@ -1,0 +1,122 @@
+{
+  "stall": {
+    "finishReason": "stop",
+    "steps": 3,
+    "told": [
+      "system: You ended your turn without calling a tool. If the task is complete, call task_complete with a short summary. If you need information or a decision from the user, call it with your question as the summary — the user only sees it when your turn ends. Otherwise keep going — call a tool to take the next concrete step; do not just describe what you will do.",
+      "system: You ended your turn without calling a tool. If the task is complete, call task_complete with a short summary. If you need information or a decision from the user, call it with your question as the summary — the user only sees it when your turn ends. Otherwise keep going — call a tool to take the next concrete step; do not just describe what you will do."
+    ]
+  },
+  "cut_off": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "system: Your reply was cut off at the token limit BEFORE you called a tool — you are over-thinking. Stop planning and act in ONE small tool call now. Do NOT re-plan and do NOT write_file the whole module again — that discards the cells you already built. Make the SINGLE next small change with edit_file (add or fix ONE cell), then stop. Only write_file from scratch if the module is still empty.",
+      "tool: pong",
+      "tool: ok"
+    ]
+  },
+  "restated": {
+    "finishReason": "stop",
+    "steps": 2,
+    "told": [
+      "system: You ended your turn without calling a tool. If the task is complete, call task_complete with a short summary. If you need information or a decision from the user, call it with your question as the summary — the user only sees it when your turn ends. Otherwise keep going — call a tool to take the next concrete step; do not just describe what you will do."
+    ]
+  },
+  "malformed": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "system: Your previous reply was rejected by the provider as a malformed function call — it produced no valid tool call and no text. Emit exactly ONE tool call with strictly valid JSON arguments (every string closed, no trailing commas, no comments), or reply with plain text. Keep the call small.",
+      "tool: pong",
+      "tool: ok"
+    ]
+  },
+  "truncated_call": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "tool: ERROR: your \"ping\" tool call was cut off — its arguments were truncated mid-string (you hit the per-turn output limit), so nothing ran. Do not resend such a large call. If the module already exists, ADD or fix ONE cell with a small edit_file — do NOT write_file the whole module again (that discards the cells you already built). Only when the module does not exist yet, write_file a small compiling skeleton (define() shell + one or two cells), then grow it one cell at a time with edit_file. Keep each tool call small.",
+      "tool: pong",
+      "tool: ok"
+    ]
+  },
+  "batched_completion": {
+    "finishReason": "completed",
+    "steps": 2,
+    "told": [
+      "tool: pong",
+      "tool: NOT ended: task_complete was sent in the same step as 1 other tool call, so your summary was written before its result existed. It ran: read the result, act on it, then call task_complete on its own.",
+      "tool: ok"
+    ]
+  },
+  "zero_tool_calls": {
+    "finishReason": "completed",
+    "steps": 2,
+    "told": [
+      "tool: REJECTED: you have made NO tool calls this turn, so nothing has been created, changed, or verified — a completion summary now would be fiction. Do the work first with real tool calls (ping), verify it, then call task_complete describing what you DID. If this request truly requires no tool work, END THE TURN BY SPEAKING TO THE USER: put your QUESTION to them, or your refusal and its reason, in the summary and call task_complete again — asking, declining under a stated policy, or handing off is a legitimate tool-free turn.",
+      "tool: ok"
+    ]
+  },
+  "zero_tool_calls_question": {
+    "finishReason": "completed",
+    "steps": 1,
+    "told": [
+      "tool: ok"
+    ]
+  },
+  "unwritten": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "tool: marked",
+      "tool: REJECTED: your last write to /src/@user/a.js (REFUSED) did not land, and no later write to it did, so the runtime does not hold that code. Write it again, changed as the result said, and check the result says it applied. If you dropped it on purpose, tell the user it was not written and call task_complete again.",
+      "tool: ok"
+    ]
+  },
+  "untried": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "tool: marked",
+      "tool: REJECTED: this turn you wrote @user/a (rate, years) and no try_control has used its controls since. Cells that compute can still react wrongly to a control (a unit slip, an output that ignores it, NaN at one end). Call try_control with the module and no `control` to move every control once, check each change against what its label promises, fix what is wrong, then call task_complete again. Tell the user what a control does only as try_control showed it.",
+      "tool: ok"
+    ]
+  },
+  "images_dropped": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "tool: attached",
+      "system: The model m takes text only (No endpoints found that support image input). The image(s) sent since your last step were NOT shown to you and are removed. You have not seen them: do not describe what they show. Check what you need another way (the element through eval_js or inspect_value), and tell the user that seeing an image needs a vision model (one not marked \"no vision\" in the model menu).",
+      "tool: ok"
+    ]
+  },
+  "agent_guard": {
+    "finishReason": "completed",
+    "steps": 4,
+    "told": [
+      "tool: pong",
+      "tool: AGENT: ping twice first",
+      "tool: pong",
+      "tool: ok"
+    ]
+  },
+  "spec_scorecard": {
+    "finishReason": "completed",
+    "steps": 3,
+    "told": [
+      "tool: pong",
+      "tool: REJECTED: the spec scorecard reports 1/2 examples FAILING (adds wrongly). Fix /src/@user/solution.js, or if an example itself mis-transcribes the spec, correct /src/@user/spec.js. To knowingly complete anyway, include \"SPEC-WAIVER: <example name> — <reason>\" in your summary.",
+      "tool: ok"
+    ]
+  },
+  "spec_waiver": {
+    "finishReason": "completed",
+    "steps": 2,
+    "told": [
+      "tool: pong",
+      "tool: ok"
+    ]
+  }
+}

@@ -3,24 +3,9 @@ import { describe, it, before } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
+import { memoryPlugins } from "./lib/engine.mjs";
 
 const mod = (n) => fileURLToPath(new URL(`../../modules/@tomlarkworthy/robocoop-5${n}.js`, import.meta.url));
-// plugin-registry's contract, in memory: add returns remove, get yields the set on every change
-export const memoryPlugins = () => {
-  const sets = new Map(), subs = new Map();
-  const notify = (n) => { for (const f of subs.get(n) ?? []) f(); };
-  return {
-    add(n, v) { if (!sets.has(n)) sets.set(n, new Set()); sets.get(n).add(v); notify(n); return () => { sets.get(n)?.delete(v); notify(n); }; },
-    get(n) {
-      let wake = null, dirty = true, live = true;
-      const f = () => { dirty = true; wake?.(); };
-      if (!subs.has(n)) subs.set(n, new Set()); subs.get(n).add(f);
-      return { async next() { while (live && !dirty) await new Promise((r) => (wake = r)); dirty = false; return live ? { done: false, value: [...(sets.get(n) ?? [])] } : { done: true }; },
-        return() { live = false; subs.get(n).delete(f); wake?.(); return { done: true }; } };
-    },
-  };
-};
-
 let runHook, hooks, createRegistry;
 before(async () => {
   const core = await importNotebookModule(mod("-core"));
