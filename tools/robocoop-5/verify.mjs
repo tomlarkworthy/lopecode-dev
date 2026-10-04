@@ -26,6 +26,14 @@ row("working copies in sync", dirty.length === 0, dirty.length ? dirty.map((l) =
 // the lopebooks pre-commit hook; run here so a finding does not surface after the long checks
 const pf = run("bun", ["../tools/lope-preflight.ts", "--baseline", "../tools/preflight-baseline.json", "notebooks/@tomlarkworthy_robocoop-5.html"], { cwd: join(root, "lopebooks") });
 row("preflight", pf.status === 0, ((pf.stdout + pf.stderr).split("\n").find((l) => /NEW  /.test(l)) ?? (pf.stdout.match(/vs baseline.*$/m)?.[0] ?? "")).trim().slice(0, 170));
+const rc = run("node", ["tools/robocoop-5/build-ratchet-code.mjs", "--check"]);
+row("ratchet-code built", rc.status === 0, rc.stdout.trim().slice(0, 120));
+// spec R11: no shipped module names the plugin
+const named = ["", "-core", "-engine", "-tools", "-srctools", "-context", "-sessions"].flatMap((m) => {
+  const n = (readFileSync(join(root, `modules/@tomlarkworthy/robocoop-5${m}.js`), "utf8").match(/spec-?lock|specGate|SPEC-WAIVER/gi) ?? []).length;
+  return n ? [`robocoop-5${m}: ${n}`] : [];
+});
+row("no spec-lock in shipped", named.length === 0, named.join(", ") || "0 mentions in 7 modules");
 const wire = run("node", ["tools/robocoop-5/wire-snapshot.mjs", notebook, "--check"]);
 for (const l of wire.stdout.split("\n").filter((l) => l.startsWith("wire hash"))) row(l.slice(0, 22).trim(), / same\s*$/.test(l), l.slice(22).trim());
 if (!/wire hash/.test(wire.stdout)) row("wire hash", false, (wire.stderr || wire.stdout).split("\n").find((l) => /Error/.test(l))?.slice(0, 200) ?? "no output");
@@ -36,7 +44,8 @@ for (const t of ["guard-unit-test", "context-unit-test", "rule-tests-browser"]) 
 
 if (!quick) {
   for (const [name, script] of [["boot-smoke", "boot-smoke.mjs"], ["spec-lock-check", "spec-lock-check.mjs"], ["write-feedback-check", "write-feedback-check.mjs"]]) {
-    const r = run("node", [`tools/robocoop-5/${script}`, notebook]);
+    // spec-lock is a plugin: its check runs on the notebook that holds it
+    const r = run("node", [`tools/robocoop-5/${script}`, name === "spec-lock-check" ? "lopebooks/notebooks/ratchet-code.html" : notebook]);
     row(name, r.status === 0, (r.stdout.trim().split("\n").pop() ?? "").slice(0, 110));
   }
   const json = join(out, "oracle.json");

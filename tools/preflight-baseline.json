@@ -2269,6 +2269,20 @@
    "kind": "unused-dep"
   }
  ],
+ "lopebooks/notebooks/ratchet-code.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
  "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html": [
   {
    "detail": "@tomlarkworthy/annotate: a2Store declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",

@@ -32,7 +32,7 @@ export async function engine({ script = [], monitors = [], tools = [], overrides
   const reg = await importNotebookModule(mod("-tools"), { overrides: { plugins: memoryPlugins() } });
   const fromCore = await take(core, ["createAgentSession", "composeContext", "zeroToolCallGate", "addressesUser", "runHook", "truncate", "defineTool", "composeFooter",
     "hook_turnEnd", "hook_beforeStep", "hook_beforeTool", "hook_afterTool", "hook_context"]);
-  const fromTools = await take(reg, ["createWatchBus", "createAskBus", "createMonitorBus", "rc5_watchBuses", "specGateCheck", "rc5_specGate",
+  const fromTools = await take(reg, ["createWatchBus", "createAskBus", "createMonitorBus", "rc5_watchBuses",
     "registerRule", "unregisterRule", "rulesView", "registerMonitor", "unregisterMonitor", "registerContext", "unregisterContext"]);
   let i = 0;
   const requests = [];
@@ -51,3 +51,13 @@ export const calls = (...cs) => ({ message: { role: "assistant", content: null, 
 export const say = (content, finish_reason = "stop") => ({ message: { role: "assistant", content }, finish_reason });
 export const done = (summary) => call("task_complete", { summary });
 export const ping = { id: "ping", description: "ping", parameters: { type: "object", properties: {} }, execute: async () => ({ output: "pong" }) };
+
+// The spec-lock plugin (hosted by ratchet-code.html), loaded beside an engine: its rules go into that engine's
+// registry, as they do on a page that holds the plugin.
+export async function specLock(e) {
+  const m = await importNotebookModule(mod("-spec-lock"), { overrides: { registerRule: e.tools.registerRule, unregisterRule: e.tools.unregisterRule,
+    registerMonitor: e.tools.registerMonitor, cellHelpers: {}, rc5_store: { scratch: new Map() } } });
+  const gate = await hold(m, "rc5_specGate");
+  e.tools.registerRule(await hold(m, "rule_turnEnd_spec_scorecard"));
+  return { module: m, gate };
+}

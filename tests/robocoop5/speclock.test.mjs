@@ -1,5 +1,5 @@
 /**
- * Unit tests for `specGateCheck` — the spec-lock veto in @tomlarkworthy/robocoop-5-tools.
+ * Unit tests for `specGateCheck` — the spec-lock veto in @tomlarkworthy/robocoop-5-spec-lock.
  *
  * spec-lock gates `task_complete` on the spec scorecard: while any example from /src/@user/spec.js
  * fails, the completion is rejected and the model is told which ones. The escape hatch is a
@@ -10,9 +10,8 @@
  * Observable runtime, no browser, no model calls), so the veto text and its trigger conditions are
  * pinned to what the engine actually calls.
  *
- * Spec-lock is NOT deployed: the source under test is the experimental copy in
- * tools/robocoop-5/experimental/speclock-modules/, not the declared canonical (see the README
- * there for why the score is unproven).
+ * Spec-lock is not in the shipped notebook: the module is a plugin hosted by lopebooks/notebooks/ratchet-code.html
+ * (the score is unproven; see tools/robocoop-5/eval/polyglot/README.md).
  */
 import { describe, it, before } from "node:test";
 import assert from "node:assert/strict";
@@ -25,8 +24,9 @@ let specGateCheck, rc5_specGate;
 before(async () => {
   const m = await importNotebookModule(
     fileURLToPath(
-      new URL("../../tools/robocoop-5/experimental/speclock-modules/robocoop-5-tools.js", import.meta.url),
+      new URL("../../modules/@tomlarkworthy/robocoop-5-spec-lock.js", import.meta.url),
     ),
+    { overrides: { registerRule: () => {}, unregisterRule: () => {}, registerMonitor: () => {}, cellHelpers: {}, rc5_store: {} } },
   );
   specGateCheck = await m.value("specGateCheck");
   rc5_specGate = await m.value("rc5_specGate");

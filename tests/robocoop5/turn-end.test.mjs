@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { engine, call, calls, say, done, ping } from "./lib/engine.mjs";
+import { engine, specLock, call, calls, say, done, ping } from "./lib/engine.mjs";
 
 const FIXTURE = new URL("./turn-end.fixture.json", import.meta.url);
 const long = "The notebook has three modules. " + "Each holds cells that compute a value from the ones above it. ".repeat(9);
@@ -32,7 +32,8 @@ export const SCENARIOS = {
 export async function run(name, engineOpts = {}) {
   const s = SCENARIOS[name];
   const e = await engine({ script: s.script, tools: s.tools ?? [ping], ...engineOpts });
-  if (e.tools.rc5_specGate) e.tools.rc5_specGate.scorecard = s.scorecard ?? null;
+  // the two spec-lock scenarios need the plugin; no other scenario has it, as the shipped notebook has not
+  if (s.scorecard) (await specLock(e)).gate.scorecard = s.scorecard;
   const session = e.makeSession(s.opts ?? {});
   const r = await session.send("go");
   // every message the loop itself wrote: system messages after the prompt, and tool results

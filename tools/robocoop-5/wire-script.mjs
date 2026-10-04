@@ -95,7 +95,8 @@ export const SCRIPT = [
     { calls: [{ tool: "list_values", args: { module: "@user/counter" } }, { tool: "task_complete", args: { summary: "All fixed." } }] },
     done("The test passes at step 2; broken and scale still error."),
   ] },
-  // spec-lock: a spec module with one failing example
+  // a spec module with one failing example. With the spec-lock plugin the first completion is refused and the
+  // last two replies are asked for; without it (SCRIPT_SHIPPED) the turn ends at that completion.
   { user: "Add a spec for add().", replies: [
     { tool: "write_file", args: { file_path: SOLUTION, content: solution } },
     { tool: "write_file", args: { file_path: SPEC, content: spec } },
@@ -108,3 +109,6 @@ export const SCRIPT = [
     done("Would you like the broken cells removed, or kept as examples?"),
   ] },
 ];
+
+const SPEC_TURN = "Add a spec for add().";
+export const SCRIPT_SHIPPED = SCRIPT.map((t) => t.user === SPEC_TURN ? { ...t, replies: t.replies.slice(0, 3) } : t);

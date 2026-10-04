@@ -6,17 +6,17 @@
 // and answered from the script. Nothing below the HTTP request is stubbed, so a refactor of any cell
 // between the textarea and fetch() is covered.
 //
-//   node tools/robocoop-5/wire-snapshot.mjs <notebook.html> [--speclock] [--dump out.json] [--raw raw.json]
+//   node tools/robocoop-5/wire-snapshot.mjs <notebook.html> [--dump out.json] [--raw raw.json]
 //   node tools/robocoop-5/wire-snapshot.mjs <notebook.html> --check        # compare with wire-baseline.json
 //   node tools/robocoop-5/wire-snapshot.mjs <notebook.html> --record       # write wire-baseline.json
 //   node tools/robocoop-5/wire-snapshot.mjs <notebook.html> --self-test    # R2: three edits, three new hashes
 import { chromium } from "playwright";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { SCRIPT } from "./wire-script.mjs";
+import { SCRIPT, SCRIPT_SHIPPED } from "./wire-script.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE = join(HERE, "wire-baseline.json");
@@ -58,7 +58,7 @@ function sse(reply, n) {
   ].join("\n\n");
 }
 
-export async function snapshot({ notebook, speclock = false, script = SCRIPT, headless = true, timeout = 120000 } = {}) {
+export async function snapshot({ notebook, script = SCRIPT, headless = true, timeout = 120000 } = {}) {
   const notebookPath = resolve(notebook);
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext({ timezoneId: "UTC", locale: "en-US", viewport: { width: 1280, height: 800 } });
@@ -99,17 +99,16 @@ export async function snapshot({ notebook, speclock = false, script = SCRIPT, he
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(e.message));
   await page.clock.setFixedTime(new Date(FIXED_TIME));
-  await page.addInitScript(([model, speclock]) => {
+  await page.addInitScript(([model]) => {
     try {
       localStorage.setItem("OPENROUTER_API_KEY", "sk-wire-snapshot");
       localStorage.setItem("robocoop4_model", model);
       localStorage.setItem("robocoop5_temperature", "0");
-      if (speclock) localStorage.setItem("robocoop5_speclock", "1");
     } catch {}
     // Seeded Math.random: generated ids (session ids, pids) repeat from run to run.
     let s = 0x5eed1234;
     Math.random = () => { s = (s + 0x6D2B79F5) | 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-  }, [MODEL, speclock]);
+  }, [MODEL]);
 
   try {
     await page.goto("file://" + notebookPath + "#view=" + LAYOUT, { waitUntil: "load", timeout });
@@ -201,11 +200,16 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const flag = (f) => args.includes(f);
   const opt = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : null);
   const notebook = args.find((a) => a.endsWith(".html"));
-  if (!notebook) { console.error("usage: wire-snapshot.mjs <notebook.html> [--speclock] [--dump f] [--raw f] [--check|--record|--self-test]"); process.exit(2); }
+  if (!notebook) { console.error("usage: wire-snapshot.mjs <notebook.html> [--dump f] [--raw f] [--check|--record|--self-test]"); process.exit(2); }
   if (flag("--self-test")) process.exit((await selfTest(notebook)) ? 0 : 1);
   if (flag("--check") || flag("--record")) {
     const out = {};
-    for (const [name, speclock] of [["shipped", false], ["speclock", true]]) out[name] = summary(await snapshot({ notebook, speclock }));
+    // the speclock arm is the same notebook with the spec-lock plugin added, as ratchet-code.html is built
+    const { build, pluginSource, RATCHET } = await import("./build-ratchet-code.mjs");
+    const withPlugin = join(dirname(fileURLToPath(import.meta.url)), "../scratch/verify/wire-ratchet.html");
+    mkdirSync(dirname(withPlugin), { recursive: true });
+    writeFileSync(withPlugin, build(readFileSync(notebook, "utf8"), pluginSource(readFileSync(RATCHET, "utf8"))));
+    for (const [name, nb, script] of [["shipped", notebook, SCRIPT_SHIPPED], ["speclock", withPlugin, SCRIPT]]) out[name] = summary(await snapshot({ notebook: nb, script }));
     if (flag("--record")) { writeFileSync(BASELINE, JSON.stringify({ notebook, script: sha(JSON.stringify(SCRIPT)), ...out }, null, 2) + "\n"); console.log("recorded", BASELINE); }
     const base = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, "utf8")) : {};
     let ok = true;
@@ -216,7 +220,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     }
     process.exit(ok ? 0 : 1);
   }
-  const r = await snapshot({ notebook, speclock: flag("--speclock"), headless: !flag("--headed") });
+  // a notebook that holds the spec-lock plugin gets the script with the refused completion
+  const r = await snapshot({ notebook, script: readFileSync(notebook, "utf8").includes('<script id="@tomlarkworthy/robocoop-5-spec-lock"') ? SCRIPT : SCRIPT_SHIPPED, headless: !flag("--headed") });
   if (opt("--dump")) writeFileSync(opt("--dump"), JSON.stringify({ normalisers: NORMALISERS.map(([n, re, to]) => [n, String(re), to]), bodies: r.bodies }, null, 2));
   if (opt("--raw")) writeFileSync(opt("--raw"), JSON.stringify(r.raw.map((x) => JSON.parse(x)), null, 2));
   console.log(JSON.stringify({ ...summary(r), blockedUrls: r.blocked, pageErrorText: r.pageErrors.slice(0, 5) }, null, 2));

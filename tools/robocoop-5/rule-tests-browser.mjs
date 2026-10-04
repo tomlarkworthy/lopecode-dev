@@ -29,7 +29,7 @@ const rows = await page.evaluate(async (MODULE) => {
       for (const t of ["fires", "silent"])
         row[t] = await within(mod.value(`test_rule_${id}_${t}`), 60000).then((x) => "ok: " + String(x).slice(0, 70), (e) => "FAIL: " + (e?.message ?? e));
       // the fires test may report that the page cannot exercise the rule; then a mutant proves nothing
-      if (/^ok: (no spec module|metrics module not loadable)/.test(row.fires)) row.mutant = "not run: " + row.fires.slice(4);
+      if (/^ok: metrics module not loadable/.test(row.fires)) row.mutant = "not run: " + row.fires.slice(4);
       else {
         const inputs = v._inputs.map((i) => i._name), def = v._definition;
         mod.redefine(name, [], () => ({ ...rule, check: () => null }));
@@ -43,7 +43,7 @@ const rows = await page.evaluate(async (MODULE) => {
   return out;
 }, MODULE);
 await browser.close();
-let bad = rows.length < 6;
+let bad = rows.length < 5;
 for (const r of rows) {
   const ok = !r.error && r.shape && r.fires.startsWith("ok") && r.silent.startsWith("ok") && !/not run: this test/.test(r.fires + r.silent) && !r.mutant.startsWith("SURVIVED");
   if (!ok) bad = true;

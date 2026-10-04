@@ -9,7 +9,7 @@ import { dirname, join, resolve } from "node:path";
 import { bootNotebook } from "./lib/notebook-boot.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const NB = process.argv[2] ? resolve(process.argv[2]) : join(here, "rc5-bundle.html");
+const NB = process.argv[2] ? resolve(process.argv[2]) : join(here, "../../lopebooks/notebooks/ratchet-code.html");
 const LAYOUT = "R100(S75(@tomlarkworthy/robocoop-5),S25(@tomlarkworthy/robocoop-5-srctools))";
 
 const INSTRUCTIONS = `# Angle naming

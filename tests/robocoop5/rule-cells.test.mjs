@@ -13,10 +13,12 @@ const path = (n) => fileURLToPath(new URL(`../../modules/@tomlarkworthy/robocoop
 const noop = () => {};
 // How each module that holds rules is loaded headless. `load(overrides)` returns something hold() accepts.
 const MODULES = {
-  engine: { file: "-engine", min: 24, load: async (overrides) => (await engine({ overrides })).eng },
+  engine: { file: "-engine", min: 22, load: async (overrides) => (await engine({ overrides })).eng },
   sessions: { file: "-sessions", min: 1, load: (overrides) => importNotebookModule(path("-sessions"), { overrides: { runtime: { mains: new Map(), _variables: new Set() }, registerRule: noop, unregisterRule: noop, ...overrides } }) },
   // the afterModuleWrite rules apply modules to a live runtime: their cells run in tools/robocoop-5/rule-tests-browser.mjs
-  srctools: { file: "-srctools", min: 7, browser: /^rule_afterModuleWrite_/, load: (overrides) => importNotebookModule(path("-srctools"), { overrides: { registerRule: noop, unregisterRule: noop, ...overrides } }) },
+  srctools: { file: "-srctools", min: 6, browser: /^rule_afterModuleWrite_/, load: (overrides) => importNotebookModule(path("-srctools"), { overrides: { registerRule: noop, unregisterRule: noop, ...overrides } }) },
+  "spec-lock": { file: "-spec-lock", min: 4, browser: /^rule_afterModuleWrite_/, load: (overrides) => importNotebookModule(path("-spec-lock"), { overrides: { registerRule: noop, unregisterRule: noop, registerMonitor: noop,
+    cellHelpers: {}, rc5_store: { scratch: new Map() }, ...overrides } }) },
 };
 
 for (const [label, M] of Object.entries(MODULES)) {

@@ -694,6 +694,10 @@
   "@tomlarkworthy/robocoop-5-sessions": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
   },
+  "@tomlarkworthy/robocoop-5-spec-lock": {
+    "lopebooks": "lopebooks/notebooks/ratchet-code.html",
+    "upstream": null
+  },
   "@tomlarkworthy/robocoop-5-srctools": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html"
   },
