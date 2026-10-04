@@ -35,6 +35,12 @@ describe("runHook", () => {
   it("list: flattens arrays, drops null and empty", () => assert.deepEqual(runHook(hooks.beforeStep, [rule("beforeStep", "a", 1, () => ["x", "y"]), rule("beforeStep", "b", 2, () => null), rule("beforeStep", "c", 3, () => ""), rule("beforeStep", "d", 4, () => "z")], {}), ["x", "y", "z"]));
   it("join: with the hook's separator", () => assert.equal(runHook({ name: "p", compose: "join", sep: "\n\n", onThrow: "skip" }, [rule("p", "a", 1, () => "A"), rule("p", "b", 2, () => "B")], {}), "A\n\nB"));
   it("chain: each rule sees the last result", () => assert.equal(runHook(hooks.afterTool, [rule("afterTool", "a", 1, (c) => c.result + "1"), rule("afterTool", "b", 2, (c) => c.result + "2")], { result: "r" }), "r12"));
+  it("phase: a later phase is evaluated last and placed by its order", () => {
+    const ran = [];
+    const h = { name: "w", compose: "join", sep: "", onThrow: "skip" };
+    const r = runHook(h, [rule("w", "a", 10, () => { ran.push("a"); return "A"; }), { ...rule("w", "b", 20, () => { ran.push("b"); return "B"; }), phase: 1 }, rule("w", "c", 30, () => { ran.push("c"); return "C"; })], {});
+    assert.equal(r, "ABC"); assert.deepEqual(ran, ["a", "c", "b"]);
+  });
   it("a throw is skipped and the rest still run", () => assert.deepEqual(runHook(hooks.turnEnd, [boom("turnEnd"), rule("turnEnd", "a", 2, () => ({ end: true }))], {}), { end: true }));
   it("a throw on beforeTool refuses the call", () => assert.match(runHook(hooks.beforeTool, [boom("beforeTool")], {}), /^REFUSED: rule boom failed: boom/));
   it("stays synchronous when every check is, and awaits one that is not", async () => {

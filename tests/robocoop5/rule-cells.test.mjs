@@ -15,7 +15,8 @@ const noop = () => {};
 const MODULES = {
   engine: { file: "-engine", min: 11, load: async (overrides) => (await engine({ overrides })).eng },
   sessions: { file: "-sessions", min: 1, load: (overrides) => importNotebookModule(path("-sessions"), { overrides: { runtime: { mains: new Map(), _variables: new Set() }, registerRule: noop, unregisterRule: noop, ...overrides } }) },
-  srctools: { file: "-srctools", min: 1, load: (overrides) => importNotebookModule(path("-srctools"), { overrides: { registerRule: noop, unregisterRule: noop, ...overrides } }) },
+  // the afterModuleWrite rules apply modules to a live runtime: their cells run in tools/robocoop-5/rule-tests-browser.mjs
+  srctools: { file: "-srctools", min: 7, browser: /^rule_afterModuleWrite_/, load: (overrides) => importNotebookModule(path("-srctools"), { overrides: { registerRule: noop, unregisterRule: noop, ...overrides } }) },
 };
 
 for (const [label, M] of Object.entries(MODULES)) {
@@ -29,16 +30,20 @@ for (const [label, M] of Object.entries(MODULES)) {
     it("there are rules to check", () => assert.ok(ruleNames.length >= M.min, String(ruleNames.length)));
     for (const name of ruleNames) {
       const [, hook, id] = /^rule_([A-Za-z]+)_(.+)$/.exec(name);
+      const inBrowser = M.browser?.test(name);
       it(name + ": shape, md neighbour, two tests", async () => {
-        const rule = await hold(e, name);
         assert.ok(HOOKS.includes(hook), "hook " + hook);
-        assert.equal(rule.hook, hook); assert.equal(rule.id, id);
-        assert.equal(typeof rule.order, "number"); assert.equal(typeof rule.check, "function");
-        assert.equal(typeof rule.evidence?.what, "string");
+        if (!inBrowser) {
+          const rule = await hold(e, name);
+          assert.equal(rule.hook, hook); assert.equal(rule.id, id);
+          assert.equal(typeof rule.order, "number"); assert.equal(typeof rule.check, "function");
+          assert.equal(typeof rule.evidence?.what, "string");
+        }
         const next = defs[defs.findIndex((d) => d.name === name) + 1];
         assert.ok(next && next.name === null && next.deps === '"md"', "the cell after it is not an md cell");
         for (const t of ["fires", "silent"]) assert.ok(defs.some((d) => d.name === `test_rule_${id}_${t}`), `no test_rule_${id}_${t}`);
       });
+      if (inBrowser) continue;
       for (const t of ["fires", "silent"])
         it(`test_rule_${id}_${t}`, async () => { await hold(e, `test_rule_${id}_${t}`); });
       it(`mutant: ${name} with its check disabled fails test_rule_${id}_fires`, async () => {

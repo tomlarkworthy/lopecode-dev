@@ -490,6 +490,17 @@ export async function createDriver({
               const tv = findValue("toolsView");
               return Array.isArray(tv?.value) ? tv.value : [];
             };
+            // Nothing in oracle mode builds a session, so nothing observes the hook cells: ask for their values.
+            // A bundle from before the hooks has no such cells and runs as it did.
+            let afterTool;
+            const afterToolRules = async () => {
+              if (afterTool !== undefined) return afterTool;
+              const valueOf = async (name) => {
+                for (const { v } of allVariables()) if (v._name === name && v._module) { try { return await v._module.value(name); } catch (e) {} }
+              };
+              const [runHook, hook, rules] = await Promise.all(["runHook", "hook_afterTool", "rulesView"].map(valueOf));
+              return afterTool = runHook && hook && Array.isArray(rules?.value) ? { runHook, hook, rules } : null;
+            };
             for (const step of oracleSteps) {
               if (step.assistant != null) {
                 oracleMessages.push({ role: "assistant", content: String(step.assistant) });
@@ -507,11 +518,10 @@ export async function createDriver({
               }
               let out = await tool.execute(step.args || {}, {});
               // The oracle calls a registered tool with no session round it. An agent's result also passes the
-              // page's afterTool rules (robocoop-5, from spec step 9), so apply them here; absent on older bundles.
+              // page's afterTool rules (robocoop-5, from spec step 9), so apply them here.
               try {
-                const runHook = findValue("runHook"), hook = findValue("hook_afterTool"), rules = findValue("rulesView");
-                if (runHook && hook && Array.isArray(rules?.value))
-                  out = (await runHook(hook, rules.value, { name: step.tool, args: step.args || {}, result: out })) ?? out;
+                const after = await afterToolRules();
+                if (after) out = (await after.runHook(after.hook, after.rules.value, { name: step.tool, args: step.args || {}, result: out })) ?? out;
               } catch (e) {}
               oracleCalls.push({ name: step.tool, arguments: step.args || {} });
               oracleMessages.push({ role: "assistant", content: "", tool_calls: [{ function: { name: step.tool, arguments: JSON.stringify(step.args || {}) } }] });

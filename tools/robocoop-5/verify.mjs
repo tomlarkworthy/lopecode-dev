@@ -32,7 +32,7 @@ if (!/wire hash/.test(wire.stdout)) row("wire hash", false, (wire.stderr || wire
 
 const tests = run("node", ["--test", ...readdirSync(join(root, "tests/robocoop5")).filter((f) => f.endsWith(".test.mjs")).map((f) => "tests/robocoop5/" + f)]);
 row("node tests", tests.status === 0, (tests.stdout.match(/ℹ pass \d+/)?.[0] ?? "") + " " + (tests.stdout.match(/ℹ fail \d+/)?.[0] ?? ""));
-for (const t of ["guard-unit-test", "context-unit-test"]) { const r = run("node", [`tools/robocoop-5/${t}.mjs`]); row(t, r.status === 0, (r.stdout.trim().split("\n").pop() ?? "").slice(0, 80)); }
+for (const t of ["guard-unit-test", "context-unit-test", "rule-tests-browser"]) { const r = run("node", [`tools/robocoop-5/${t}.mjs`]); row(t, r.status === 0, (r.stdout.trim().split("\n").pop() ?? "").slice(0, 80)); }
 
 if (!quick) {
   for (const [name, script] of [["boot-smoke", "boot-smoke.mjs"], ["spec-lock-check", "spec-lock-check.mjs"], ["write-feedback-check", "write-feedback-check.mjs"]]) {
