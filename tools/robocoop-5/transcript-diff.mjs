@@ -12,6 +12,10 @@ export const normalise = (s) => String(s)
   .replace(/file:\/\/\/[^\s"'`)\\]*?\.html/g, "<PAGE>")
   .replace(/\b_[a-z0-9]{6,8}\b(?![A-Za-z0-9_(])/g, (m) => (/\d/.test(m) ? "<PID>" : m))
   .replace(/\b\d+(\.\d+)?\s?(ms|s)\b/g, "<T>")
+  // how many cells a re-applied module counts as changed varies between runs of the same code (5 evals over 3 runs)
+  .replace(/applied live \(\d+ cells? changed\)/g, "applied live (<N> changed)")
+  .replace(/the \d+ cells? kept \(matched by pid\)/g, "the <N> kept (matched by pid)")
+  .replace(/(\d+) of \d+ kept cells? \(matched by pid\)/g, "$1 of <N> kept (matched by pid)")
   .replace(/\b20\d\d-\d\d-\d\d[T ]\d\d:\d\d(:\d\d)?(\.\d+)?Z?/g, "<DATE>")
   .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [A-Z][A-Za-z_\/+-]* \(UTC[+-][\d:.]+\)/g, "<ZONE>");
 

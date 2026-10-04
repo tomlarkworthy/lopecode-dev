@@ -27,7 +27,7 @@ const wire = run("node", ["tools/robocoop-5/wire-snapshot.mjs", notebook, "--che
 for (const l of wire.stdout.split("\n").filter((l) => l.startsWith("wire hash"))) row(l.slice(0, 22).trim(), / same\s*$/.test(l), l.slice(22).trim());
 if (!/wire hash/.test(wire.stdout)) row("wire hash", false, (wire.stderr || wire.stdout).split("\n").find((l) => /Error/.test(l))?.slice(0, 200) ?? "no output");
 
-const tests = run("node", ["--test", ...["attribution", "codeframe", "gradefix", "humaneval-grader", "ladder", "reviewer", "speclock", "stamp", "tau-fidelity"].map((t) => `tests/robocoop5/${t}.test.mjs`)]);
+const tests = run("node", ["--test", ...["attribution", "codeframe", "gradefix", "humaneval-grader", "ladder", "reviewer", "speclock", "stamp", "tau-fidelity", "two-sessions"].map((t) => `tests/robocoop5/${t}.test.mjs`)]);
 row("node tests", tests.status === 0, (tests.stdout.match(/ℹ pass \d+/)?.[0] ?? "") + " " + (tests.stdout.match(/ℹ fail \d+/)?.[0] ?? ""));
 for (const t of ["guard-unit-test", "context-unit-test"]) { const r = run("node", [`tools/robocoop-5/${t}.mjs`]); row(t, r.status === 0, (r.stdout.trim().split("\n").pop() ?? "").slice(0, 80)); }
 
