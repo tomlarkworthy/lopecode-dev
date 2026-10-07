@@ -1,0 +1,406 @@
+md`# brain-whatsapp
+
+A Cloud Brain channel: WhatsApp messages arrive in the Brain's inbox, and answers go back with \`inbox.reply\`. It uses Meta's [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api).
+
+| | |
+|---|---|
+| Worker | \`brain-x-whatsapp\` |
+| \`/hooks/whatsapp\` | Meta's webhook. A delivery is taken only with Meta's signature over its bytes. |
+| \`whatsapp.send\` | procedure. The owner, a named token, or \`brain-x-inbox\` answering an entry; never a member, with or without a grant. \`{ to, text }\` or \`{ to, image, text }\`, where \`image\` is an https URL Meta fetches and \`text\` its caption; \`to\` must be a linked number. |
+| \`whatsapp.claim\` | procedure, the kernel. \`{ code, peek }\` answers \`{ address }\` for a link code and, unless \`peek\`, uses the code up and marks the number linked. |
+| \`whatsapp.know\` | procedure, the kernel. \`{ address, forget }\` marks a number linked, or not. |
+| \`whatsapp.status\` | query, owner. \`{ linked, codes }\` |
+| Storage | \`rows\`: \`known/<number>\`, \`code/<code>\`, \`asked/<number>\`, \`asks\`, \`quiet/<number>\` |
+
+What this Worker says about a sender is their number, as \`body.address\`, and nothing else. It does not know who a number belongs to or what they may do; the kernel decides that (\`@tomlarkworthy/brain-kernel\`, People).
+
+A message from a linked number is appended to the inbox. A message from any other number is dropped, and the number is sent a link, \`https://HOST/link?channel=whatsapp&code=CODE\`, at most once an hour and at most 20 an hour over all numbers. The code is good for 10 minutes and for one use. Opening the link, signing in with atproto and pressing Link is what links the number.
+
+A picture from a linked number is fetched from Meta and kept in static storage as a public file, \`whatsapp/<24 hex digits>.<ext>\`. Its entry reads \`[image: URL] caption\` and carries \`body.attachments: [{ kind: "image", url, type }]\`. Only JPEG, PNG, WebP and GIF of at most 5 MB are kept, and the access token goes to \`graph.facebook.com\` and to the \`https\` address under \`facebook.com\`, \`fbsbx.com\` or \`whatsapp.net\` that it names, nowhere else. A picture that fails any of these arrives as \`[image]\`. The file's address is the only thing guarding it, and nothing deletes it.
+
+Limits: text and pictures; another kind of message arrives as \`[audio]\`, \`[video]\`. The model reading the entry gets the picture's address as text. Meta allows a free-form reply for 24 hours after a number's last message, and \`whatsapp.send\` fails after that until they write again.`
+// %%
+whatsapp_setup = md`## Setting up
+
+In Meta's developer console, make an app with the WhatsApp product and a phone number. Then, in the Cloud Brain notebook:
+
+1. Set four secrets: \`WHATSAPP_APP_SECRET\` (App settings → Basic), \`WHATSAPP_ACCESS_TOKEN\` and \`WHATSAPP_PHONE_ID\` (WhatsApp → API setup), and \`WHATSAPP_VERIFY_TOKEN\`, any string you choose.
+2. Apply, so \`brain-x-whatsapp\` is deployed with them.
+3. In Meta's console set the webhook's callback URL to \`https://YOUR-BRAIN/hooks/whatsapp\` and its verify token to the string from step 1, and subscribe to \`messages\`.
+4. Send the Brain's number a message from your WhatsApp. It answers with a link; open it, sign in as the owner and press Link. Anyone else does the same, and is answered once you add them under People.`
+// %%
+// "sha256=<hex>" over the raw body with the app secret, as Meta sends it in X-Hub-Signature-256.
+whatsappSignature = async (secret, body) => {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body)));
+  return "sha256=" + [...mac].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+// %%
+// The messages in one webhook delivery. Meta may batch several, and sends status updates in the same shape.
+whatsappMessages = (payload) =>
+  ((payload && payload.entry) || []).flatMap((e) => e.changes || []).flatMap((c) => (c.value && c.value.messages) || [])
+    .map((m) => ({ id: m.id, from: m.from, at: Number(m.timestamp) * 1000, type: m.type, text: m.type === "text" ? m.text.body : `[${m.type}]`,
+      media: m.type === "image" && m.image ? { id: m.image.id, mime: m.image.mime_type, caption: m.image.caption || "" } : null }))
+// %%
+whatsappApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.whatsapp.";
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  app.onError((e, c) => fail(c, 500, "InternalServerError", String((e && e.message) || e)));
+  const send = async (to, message) => {
+    const r = await fetch(`https://graph.facebook.com/v25.0/${await secrets.WHATSAPP_PHONE_ID}/messages`, {
+      method: "POST",
+      headers: { authorization: "Bearer " + (await secrets.WHATSAPP_ACCESS_TOKEN), "content-type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", to, ...message })
+    });
+    return { ok: r.ok, status: r.status, body: await r.json().catch(() => null) };
+  };
+  const sendText = (to, text) => send(to, { type: "text", text: { body: text } });
+  const sendImage = (to, link, caption) => send(to, { type: "image", image: caption ? { link, caption } : { link } });
+
+  // A picture Meta holds, kept in static storage as a public file at an address nobody can guess. Answers
+  // { url, type }, or null for anything but a small picture. The access token goes to Meta's hosts only.
+  const KINDS = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" }, MAX = 5 * 1024 * 1024;
+  const metaHost = (url) => {
+    try { const u = new URL(url); return u.protocol === "https:" && /(^|\.)(facebook\.com|fbsbx\.com|whatsapp\.net)$/.test(u.hostname); } catch { return false; }
+  };
+  const keepImage = async (media) => {
+    if (!/^[0-9]{1,40}$/.test(String(media.id))) return null;
+    const auth = { authorization: "Bearer " + (await secrets.WHATSAPP_ACCESS_TOKEN) };
+    const info = await (await fetch(`https://graph.facebook.com/v25.0/${media.id}`, { headers: auth })).json().catch(() => null);
+    if (!info || !metaHost(info.url)) return null;
+    const type = String(info.mime_type || media.mime || "").split(";")[0].trim(), ext = KINDS[type];
+    if (!ext || Number(info.file_size) > MAX) return null;
+    const file = await fetch(info.url, { headers: auth });
+    if (!file.ok || Number(file.headers.get("content-length")) > MAX) return null;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!bytes.length || bytes.length > MAX) return null;
+    const path = `whatsapp/${[...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("")}.${ext}`;
+    const kept = await xrpc.fetch("com.lopecode.brain.static.put", { method: "POST", params: { path, type, public: "true", tags: "whatsapp" }, body: bytes });
+    return kept.ok ? { url: `https://${config.host}/static/${path}`, type } : null;
+  };
+
+  app.get("/hooks/whatsapp", async (c) => {
+    const token = await secrets.WHATSAPP_VERIFY_TOKEN;
+    return token && c.req.query("hub.mode") === "subscribe" && c.req.query("hub.verify_token") === token ? c.text(c.req.query("hub.challenge") || "") : c.text("forbidden", 403);
+  });
+
+  const HOUR = 3600000;
+  app.post("/hooks/whatsapp", async (c) => {
+    const body = await c.req.text(), secret = await secrets.WHATSAPP_APP_SECRET;
+    if (!secret || c.req.header("x-hub-signature-256") !== (await whatsappSignature(secret, body))) return c.text("bad signature", 401);
+    const now = Date.now(), taken = new Set();
+    for (const m of whatsappMessages(JSON.parse(body))) {
+      if (await rows.get("known/" + m.from)) {
+        const entry = { text: m.text, address: m.from, at: m.at };
+        const image = m.media ? await keepImage(m.media).catch(() => null) : null;
+        if (image) {
+          entry.attachments = [{ kind: "image", url: image.url, type: image.type }];
+          entry.text = `[image: ${image.url}]` + (m.media.caption ? " " + m.media.caption : "");
+        }
+        await inbox.append({ source: "whatsapp", key: m.id, body: entry });
+        taken.add(m.from);
+        continue;
+      }
+      // A number nobody has linked: its message is dropped and it is sent a link, within the two limits.
+      if (now - ((await rows.get("asked/" + m.from)) || 0) < HOUR) continue;
+      const asks = (await rows.get("asks")) || { from: 0, n: 0 };
+      const window = now - asks.from < HOUR ? asks : { from: now, n: 0 };
+      if (window.n >= 20) continue;
+      await rows.put("asks", { from: window.from, n: window.n + 1 });
+      await rows.put("asked/" + m.from, now);
+      for (const { key, value } of await rows.list("code/")) if (value.exp < now) await rows.delete(key);
+      const code = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
+      await rows.put("code/" + code, { address: m.from, exp: now + 600000 });
+      await sendText(m.from, `This number is not linked to this Cloud Brain. To link it, open https://${config.host}/link?channel=whatsapp&code=${code} within 10 minutes and sign in.`);
+    }
+    if (taken.size) {
+      // No tab is answering: say so, to each number at most once an hour.
+      const { held } = await xrpc.query("com.lopecode.brain.lease.get", {});
+      for (const address of held ? [] : taken) {
+        if (now - ((await rows.get("quiet/" + address)) || 0) <= HOUR) continue;
+        await rows.put("quiet/" + address, now);
+        await sendText(address, `No Brain tab is open, so this waits until one is. https://${config.host}/`);
+      }
+    }
+    return c.text("ok");
+  });
+
+  // The core has named the caller and checked it against the method's rule.
+  const kernel = async (c, next) => (c.req.header("x-brain-caller") === "kernel" ? next() : fail(c, 401, "AuthRequired", "the kernel"));
+  app.post(NS + "send", async (c) => {
+    const { text, to, image } = await c.req.json();
+    if (image == null && (typeof text !== "string" || !text)) return fail(c, 400, "InvalidRequest", "text");
+    if (image != null && (typeof image !== "string" || image.length > 2000 || !/^https:\/\//.test(image))) return fail(c, 400, "InvalidRequest", "image must be an https URL");
+    // Only ever to a number that linked itself: a prompt-injected assistant cannot message anyone else.
+    if (typeof to !== "string" || !(await rows.get("known/" + to))) return fail(c, 403, "Forbidden", "whatsapp.send writes to a linked number only");
+    // Meta fetches the picture; this Worker never opens the address.
+    const sent = image != null ? await sendImage(to, image, typeof text === "string" ? text.slice(0, 1024) : "") : await sendText(to, text.slice(0, 4096));
+    return sent.ok ? c.json({ sent: true }) : fail(c, 502, "UpstreamError", JSON.stringify(sent.body).slice(0, 300));
+  });
+  app.post(NS + "claim", kernel, async (c) => {
+    const { code, peek } = await c.req.json();
+    const row = typeof code === "string" ? await rows.get("code/" + code) : null;
+    if (!row || row.exp < Date.now()) return fail(c, 404, "NotFound", "no such code");
+    if (!peek) {
+      await rows.delete("code/" + code);
+      await rows.put("known/" + row.address, { at: Date.now() });
+    }
+    return c.json({ address: row.address });
+  });
+  app.post(NS + "know", kernel, async (c) => {
+    const { address, forget } = await c.req.json();
+    if (typeof address !== "string" || !address) return fail(c, 400, "InvalidRequest", "address");
+    if (forget) await rows.delete("known/" + address);
+    else await rows.put("known/" + address, { at: Date.now() });
+    return c.json({ known: !forget });
+  });
+  app.get(NS + "status", async (c) => c.json({ linked: (await rows.list("known/")).length, codes: (await rows.list("code/")).length }));
+  return app;
+}
+// %%
+whatsapp_service = cloudflare.Service("whatsapp", whatsappApp, {
+  paths: [{ path: "/hooks/whatsapp", who: "anyone" }],
+  calls: ["com.lopecode.brain.lease.get", "com.lopecode.brain.static.put"],
+  methods: {
+    "com.lopecode.brain.whatsapp.send": { type: "procedure", allow: 'caller.kind in ["owner", "token"] || caller.id == "worker:brain-x-inbox"' },
+    "com.lopecode.brain.whatsapp.claim": { type: "procedure", allow: 'caller.id == "kernel"' },
+    "com.lopecode.brain.whatsapp.know": { type: "procedure", allow: 'caller.id == "kernel"' },
+    "com.lopecode.brain.whatsapp.status": { type: "query", who: "owner" }
+  }
+})
+// %%
+whatsapp_announce = {
+  plugins.add("workers", whatsapp_service, { invalidation });
+  return "announced whatsapp_service";
+}
+// %%
+md`## Tests
+
+Requests in the shape Meta sends, signed with a test secret, against the emitted Worker under \`simulate\`.`
+// %%
+whatsappRig = async ({ held = false, known = ["4915100000001"] } = {}) => {
+  const rows = new Map(known.map((n) => ["known/" + n, { at: 1 }]));
+  const sent = [];
+  const state = { held };
+  const sim = await simulate(whatsapp_service, {
+    rows,
+    secrets: { WHATSAPP_APP_SECRET: "app-secret", WHATSAPP_ACCESS_TOKEN: "tok", WHATSAPP_PHONE_ID: "555", WHATSAPP_VERIFY_TOKEN: "verify-me", BRAIN_KEY: "k" },
+    config: { host: "brain.example" },
+    fetch: async (request) => {
+      sent.push({ url: request.url, authorization: request.headers.get("authorization"), body: await request.json() });
+      return Response.json({ messages: [{ id: "wamid.out" }] });
+    },
+    core: async (request) => {
+      const nsid = new URL(request.url).pathname.replace("/xrpc/com.lopecode.brain.", "");
+      if (nsid === "lease.get") return Response.json({ held: state.held });
+      const data = await request.json();
+      const seen = sim.inbox.find((e) => e.key === data.key);
+      if (!seen) sim.inbox.push({ id: sim.inbox.length + 1, ...data });
+      return Response.json({ id: seen ? seen.id : sim.inbox.length, duplicate: !!seen });
+    }
+  });
+  const message = (id, from, text) => ({ id, from, timestamp: "1791230000", type: "text", text: { body: text } });
+  const deliver = async (messages, { secret = "app-secret" } = {}) => {
+    const body = JSON.stringify({ object: "whatsapp_business_account", entry: [{ changes: [{ field: "messages", value: { messages } }] }] });
+    return sim.fetch("https://brain.internal/hooks/whatsapp", { method: "POST", body, headers: { "content-type": "application/json", "x-hub-signature-256": await whatsappSignature(secret, body) } });
+  };
+  const as = (who) => async (path, body) => {
+    const r = await sim.fetch("https://brain.internal/xrpc/com.lopecode.brain.whatsapp." + path, { method: body ? "POST" : "GET", body: body ? JSON.stringify(body) : undefined, headers: { "content-type": "application/json", "x-brain-caller": who } });
+    return { status: r.status, data: await r.json() };
+  };
+  const texts = () => sent.map((s) => [s.body.to, s.body.text.body]);
+  return { sim, rows, sent, texts, state, message, deliver, as, owned: as("owner"), kernel: as("kernel") };
+}
+// %%
+test_whatsapp_verification = {
+  const { sim } = await whatsappRig();
+  const get = (q) => sim.fetch("https://brain.internal/hooks/whatsapp?" + q);
+  const ok = await get("hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=1158201444");
+  expect([ok.status, await ok.text()]).toEqual([200, "1158201444"]);
+  expect((await get("hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=1")).status).toBe(403);
+  return "challenge echoed; wrong token 403";
+}
+// %%
+test_whatsapp_takes_signed_messages_from_linked_numbers = {
+  const rig = await whatsappRig({ held: true, known: ["4915100000001", "4915100000002"] });
+  expect((await rig.deliver([rig.message("wamid.1", "4915100000001", "hello")], { secret: "wrong" })).status).toBe(401);
+  expect(rig.sim.inbox.length).toBe(0);
+  await rig.deliver([rig.message("wamid.3", "4915100000001", "hello"), rig.message("wamid.4", "4915100000002", "again")]);
+  await rig.deliver([rig.message("wamid.3", "4915100000001", "hello")]);
+  // The entry says which number wrote, and nothing about whose it is.
+  expect(rig.sim.inbox.map((e) => [e.source, e.key, e.body])).toEqual([
+    ["whatsapp", "wamid.3", { text: "hello", address: "4915100000001", at: 1791230000000 }],
+    ["whatsapp", "wamid.4", { text: "again", address: "4915100000002", at: 1791230000000 }]
+  ]);
+  // A tab holds the lease, so nothing was sent back.
+  expect(rig.sent.length).toBe(0);
+  return "2 entries from 4 deliveries";
+}
+// %%
+test_whatsapp_no_tab_notice_once_an_hour_each = {
+  const rig = await whatsappRig({ held: false, known: ["4915100000001", "4915100000002"] });
+  await rig.deliver([rig.message("wamid.1", "4915100000001", "anyone there?")]);
+  await rig.deliver([rig.message("wamid.2", "4915100000001", "hello?"), rig.message("wamid.3", "4915100000002", "hi")]);
+  expect(rig.texts()).toEqual([["4915100000001", "No Brain tab is open, so this waits until one is. https://brain.example/"], ["4915100000002", "No Brain tab is open, so this waits until one is. https://brain.example/"]]);
+  expect(rig.sent[0]).toMatchObject({ url: "https://graph.facebook.com/v25.0/555/messages", authorization: "Bearer tok", body: { messaging_product: "whatsapp" } });
+  rig.rows.set("quiet/4915100000001", Date.now() - 3600001);
+  await rig.deliver([rig.message("wamid.4", "4915100000001", "now?")]);
+  expect(rig.sent.length).toBe(3);
+  expect(rig.sim.inbox.length).toBe(4);
+  return "1 notice per number for 3 messages, another after an hour";
+}
+// %%
+test_whatsapp_a_stranger_gets_a_link_and_no_entry = {
+  const rig = await whatsappRig({ held: true });
+  await rig.deliver([rig.message("wamid.1", "4915100009999", "let me in"), rig.message("wamid.2", "4915100009999", "hello?")]);
+  expect(rig.sim.inbox.length).toBe(0);
+  expect(rig.sent.length).toBe(1);
+  const [to, text] = rig.texts()[0];
+  const code = /https:\/\/brain\.example\/link\?channel=whatsapp&code=([0-9a-f]{24}) /.exec(text)[1];
+  expect(to).toBe("4915100009999");
+  // The code is the kernel's to use. Looking does not use it up; claiming does, and links the number.
+  expect((await rig.owned("claim", { code })).status).toBe(401);
+  expect((await rig.as("worker:brain-x-evil")("claim", { code })).status).toBe(401);
+  expect((await rig.kernel("claim", { code: "0".repeat(24) })).status).toBe(404);
+  expect((await rig.kernel("claim", { code, peek: true })).data).toEqual({ address: "4915100009999" });
+  expect(rig.rows.has("known/4915100009999")).toBe(false);
+  expect((await rig.kernel("claim", { code })).data).toEqual({ address: "4915100009999" });
+  expect((await rig.kernel("claim", { code })).status).toBe(404);
+  await rig.deliver([rig.message("wamid.3", "4915100009999", "now?")]);
+  expect(rig.sim.inbox.map((e) => e.body.address)).toEqual(["4915100009999"]);
+  // An expired code is refused.
+  rig.rows.set("code/old", { address: "4915100008888", exp: Date.now() - 1 });
+  expect((await rig.kernel("claim", { code: "old" })).status).toBe(404);
+  // The kernel can forget a number; its next message is a stranger's.
+  expect((await rig.kernel("know", { address: "4915100009999", forget: true })).data).toEqual({ known: false });
+  expect((await rig.owned("know", { address: "4915100007777" })).status).toBe(401);
+  await rig.deliver([rig.message("wamid.4", "4915100009999", "still here?")]);
+  expect(rig.sim.inbox.length).toBe(1);
+  return "1 link for 2 messages; claimed once";
+}
+// %%
+test_whatsapp_links_are_limited = {
+  const rig = await whatsappRig({ held: true });
+  for (let i = 0; i < 25; i++) await rig.deliver([rig.message("wamid." + i, "49151000" + String(i).padStart(5, "0"), "hi")]);
+  expect(rig.sent.length).toBe(20);
+  rig.rows.set("asks", { from: Date.now() - 3600001, n: 20 });
+  await rig.deliver([rig.message("wamid.x", "4915100099999", "hi")]);
+  expect(rig.sent.length).toBe(21);
+  return "20 links an hour over all numbers";
+}
+// %%
+test_whatsapp_send_goes_to_linked_numbers_only = {
+  const rig = await whatsappRig();
+  expect((await rig.owned("send", { to: "4915100000001", text: "done" })).data).toEqual({ sent: true });
+  expect(rig.sent[0].body).toEqual({ messaging_product: "whatsapp", to: "4915100000001", type: "text", text: { body: "done" } });
+  expect((await rig.owned("send", { text: "hi", to: "4915100009999" })).status).toBe(403);
+  expect((await rig.owned("send", { text: "hi" })).status).toBe(403);
+  expect(rig.sent.length).toBe(1);
+  return "1 sent, 2 refused";
+}
+// %%
+test_whatsapp_sends_an_image_to_a_linked_number = {
+  const rig = await whatsappRig();
+  expect((await rig.owned("send", { to: "4915100000001", image: "https://brain.example/static/a.png", text: "look" })).data).toEqual({ sent: true });
+  expect(rig.sent[0].body).toEqual({ messaging_product: "whatsapp", to: "4915100000001", type: "image", image: { link: "https://brain.example/static/a.png", caption: "look" } });
+  expect((await rig.owned("send", { to: "4915100000001", image: "https://brain.example/static/b.png" })).data).toEqual({ sent: true });
+  expect(rig.sent[1].body.image).toEqual({ link: "https://brain.example/static/b.png" });
+  expect((await rig.owned("send", { to: "4915100009999", image: "https://brain.example/a.png" })).status).toBe(403);
+  for (const image of ["http://x/a.png", "data:image/png;base64,AA", 7, "https://x/" + "a".repeat(2000)]) expect((await rig.owned("send", { to: "4915100000001", image })).status).toBe(400);
+  expect(rig.sent.length).toBe(2);
+  return "sent with and without a caption; unlinked 403; anything but a short https URL 400";
+}
+// %%
+// A webhook delivery of pictures against a stand-in for Meta: `meta` answers the lookup of a media id, `file` the download.
+whatsappImageRig = async ({ meta = () => ({ url: "https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1", mime_type: "image/jpeg", file_size: 3 }), file = () => new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/jpeg" } }) } = {}) => {
+  const puts = [], asked = [];
+  const sim = await simulate(whatsapp_service, {
+    rows: new Map([["known/4915100000001", { at: 1 }]]),
+    secrets: { WHATSAPP_APP_SECRET: "app-secret", WHATSAPP_ACCESS_TOKEN: "tok", WHATSAPP_PHONE_ID: "555", WHATSAPP_VERIFY_TOKEN: "v", BRAIN_KEY: "k" },
+    config: { host: "brain.example" },
+    fetch: async (request) => {
+      asked.push([request.url, request.headers.get("authorization")]);
+      if (/\/messages$/.test(request.url)) return Response.json({ messages: [{ id: "wamid.out" }] });
+      return request.url.startsWith("https://graph.facebook.com/v25.0/") ? Response.json(meta(request.url)) : file(request.url);
+    },
+    core: async (request) => {
+      const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
+      if (nsid === "lease.get") return Response.json({ held: true });
+      if (nsid === "static.put") {
+        puts.push({ path: u.searchParams.get("path"), type: u.searchParams.get("type"), public: u.searchParams.get("public"), bytes: [...new Uint8Array(await request.arrayBuffer())] });
+        return Response.json({ path: u.searchParams.get("path") });
+      }
+      const data = await request.json();
+      sim.inbox.push({ id: sim.inbox.length + 1, ...data });
+      return Response.json({ id: sim.inbox.length });
+    }
+  });
+  const deliver = async (from, image, id = "wamid.i") => {
+    const body = JSON.stringify({ entry: [{ changes: [{ value: { messages: [{ id, from, timestamp: "1791230000", type: "image", image }] } }] }] });
+    return sim.fetch("https://brain.internal/hooks/whatsapp", { method: "POST", body, headers: { "content-type": "application/json", "x-hub-signature-256": await whatsappSignature("app-secret", body) } });
+  };
+  return { sim, puts, asked, deliver };
+}
+// %%
+test_whatsapp_keeps_an_incoming_image = {
+  const rig = await whatsappImageRig();
+  await rig.deliver("4915100000001", { id: "900100", mime_type: "image/jpeg", caption: "my cat" });
+  expect(rig.puts.length).toBe(1);
+  expect(rig.puts[0].path).toMatch(/^whatsapp\/[0-9a-f]{24}\.jpg$/);
+  expect(rig.puts[0]).toMatchObject({ type: "image/jpeg", public: "true", bytes: [1, 2, 3] });
+  const b = rig.sim.inbox[0].body;
+  expect(b.attachments).toEqual([{ kind: "image", url: "https://brain.example/static/" + rig.puts[0].path, type: "image/jpeg" }]);
+  expect(b.text).toBe(`[image: ${b.attachments[0].url}] my cat`);
+  // The token went to Meta's lookup and to the address it named, and to nothing else.
+  expect(rig.asked).toEqual([["https://graph.facebook.com/v25.0/900100", "Bearer tok"], ["https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1", "Bearer tok"]]);
+  return "fetched from Meta, kept as a public file, entry carries its address and caption";
+}
+// %%
+test_whatsapp_keeps_only_a_small_picture_from_meta = {
+  const big = () => new Response(new Uint8Array(5 * 1024 * 1024 + 1));
+  const cases = {
+    "an address off Meta's hosts": { meta: () => ({ url: "https://evil.example/file", mime_type: "image/jpeg" }) },
+    "a host that only ends like Meta's": { meta: () => ({ url: "https://notfbsbx.com/file", mime_type: "image/jpeg" }) },
+    "an http address": { meta: () => ({ url: "http://lookaside.fbsbx.com/file", mime_type: "image/jpeg" }) },
+    "no address": { meta: () => ({ error: { message: "gone" } }) },
+    "a page, not a picture": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "text/html" }) },
+    "a vector picture": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/svg+xml" }) },
+    "a size over the limit": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png", file_size: 5 * 1024 * 1024 + 1 }) },
+    "a body over the limit": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png" }), file: big },
+    "a download that fails": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png" }), file: () => new Response("no", { status: 404 }) }
+  };
+  for (const [what, options] of Object.entries(cases)) {
+    const rig = await whatsappImageRig(options);
+    await rig.deliver("4915100000001", { id: "900100", mime_type: "image/jpeg", caption: "c" });
+    expect([what, rig.puts.length, rig.sim.inbox.map((e) => e.body)]).toEqual([what, 0, [{ text: "[image]", address: "4915100000001", at: 1791230000000 }]]);
+    // Off Meta's hosts the token is sent to the lookup alone.
+    if (/address/.test(what)) expect([what, rig.asked.map((a) => a[0])]).toEqual([what, ["https://graph.facebook.com/v25.0/900100"]]);
+  }
+  // An id that is not a number is never put into an address.
+  const odd = await whatsappImageRig();
+  await odd.deliver("4915100000001", { id: "../me/accounts?x=", mime_type: "image/jpeg" });
+  expect([odd.asked, odd.puts, odd.sim.inbox[0].body.text]).toEqual([[], [], "[image]"]);
+  // A number nobody linked: nothing is fetched or kept, and it is sent the link as for text.
+  const stranger = await whatsappImageRig();
+  await stranger.deliver("4915100009999", { id: "900100", mime_type: "image/jpeg" });
+  expect([stranger.puts, stranger.sim.inbox, stranger.asked.map((a) => a[0])]).toEqual([[], [], ["https://graph.facebook.com/v25.0/555/messages"]]);
+  return Object.keys(cases).length + " refusals, an odd id and a stranger: nothing kept";
+}
+// %%
+test_whatsapp_declares_what_it_needs = {
+  const { meta } = await whatsapp_service.emit();
+  expect(meta.worker).toBe("brain-x-whatsapp");
+  expect(meta.secrets).toEqual(["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_APP_SECRET", "WHATSAPP_PHONE_ID", "WHATSAPP_VERIFY_TOKEN"]);
+  expect(meta.paths).toEqual([{ path: "/hooks/whatsapp", who: "anyone" }]);
+  expect(meta.resources).toEqual(["inbox", "rows", "xrpc"]);
+  expect(meta.calls).toEqual(["com.lopecode.brain.lease.get", "com.lopecode.brain.static.put"]);
+  expect(Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.whatsapp.", ""))).toEqual(["claim", "know", "send", "status"]);
+  return meta.resources.join(", ");
+}
+// %%
+import {cloudflare, secrets, rows, inbox, xrpc, config, hono, simulate} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

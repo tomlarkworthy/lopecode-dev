@@ -1,0 +1,39 @@
+{ "setup": [
+  "DROP TRIGGER IF EXISTS probe_tr", "DROP VIEW IF EXISTS probe_v", "DROP TABLE IF EXISTS probe_a", "DROP TABLE IF EXISTS probe_b", "DROP TABLE IF EXISTS probe_log",
+  "CREATE TABLE IF NOT EXISTS db_selftest_a (k TEXT PRIMARY KEY, v TEXT)",
+  "CREATE TABLE IF NOT EXISTS db_selftest_b (k TEXT, v TEXT)",
+  "CREATE VIEW IF NOT EXISTS db_selftest_v AS SELECT k, v FROM db_selftest_b",
+  "CREATE TRIGGER IF NOT EXISTS db_selftest_t AFTER INSERT ON db_selftest_a BEGIN INSERT INTO db_selftest_b VALUES (new.k, new.v); END",
+  "CREATE TABLE IF NOT EXISTS metrics_calls (t INTEGER NOT NULL, worker TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (t, worker)) WITHOUT ROWID",
+  "CREATE TABLE IF NOT EXISTS metrics_faults (t INTEGER NOT NULL, worker TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS library_docs (k TEXT PRIMARY KEY, v TEXT)"
+ ],
+ "statements": [
+  ["SELECT v FROM db_selftest_a"],
+  ["INSERT INTO db_selftest_b SELECT k, v FROM db_selftest_a"],
+  ["DELETE FROM db_selftest_a"],
+  ["UPDATE db_selftest_a SET v = (SELECT COUNT(*) FROM db_selftest_b)"],
+  ["SELECT v FROM db_selftest_v"],
+  ["INSERT INTO db_selftest_a (k, v) VALUES ('k', 'v')"],
+  ["SELECT t, n FROM metrics_calls WHERE t >= ?1", [0]],
+  ["SELECT c.t, d.v FROM metrics_calls c JOIN library_docs d ON d.k = c.worker"],
+  ["INSERT INTO metrics_faults SELECT t, worker FROM metrics_calls"],
+  ["INSERT INTO metrics_calls (t, worker, n) VALUES (?1, ?2, ?3) ON CONFLICT (t, worker) DO UPDATE SET n = n + excluded.n", [1, "a", 2]],
+  ["INSERT INTO metrics_faults SELECT 1, v FROM library_docs"],
+  ["DELETE FROM library_docs"],
+  ["UPDATE library_docs SET v = ?1", ["x"]],
+  ["SELECT name FROM sqlite_master"],
+  ["SELECT * FROM json_each('[1]')"],
+  ["SELECT 1"],
+  ["CREATE TABLE metrics_daily (d TEXT PRIMARY KEY, n INTEGER)"],
+  ["CREATE TABLE IF NOT EXISTS metrics_calls (t INTEGER)"],
+  ["CREATE INDEX metrics_faults_t ON metrics_faults (t)"],
+  ["CREATE INDEX metrics_docs_v ON library_docs (v)"],
+  ["DROP TABLE metrics_faults"],
+  ["ALTER TABLE metrics_faults ADD COLUMN ms REAL"]
+ ],
+ "teardown": [
+  "DROP TRIGGER IF EXISTS db_selftest_t", "DROP VIEW IF EXISTS db_selftest_v", "DROP TABLE IF EXISTS db_selftest_a", "DROP TABLE IF EXISTS db_selftest_b",
+  "DROP TABLE IF EXISTS metrics_calls", "DROP TABLE IF EXISTS metrics_faults", "DROP TABLE IF EXISTS library_docs"
+ ]
+}

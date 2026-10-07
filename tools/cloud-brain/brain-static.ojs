@@ -1,0 +1,443 @@
+md`# brain-static
+
+Files kept by a Cloud Brain and served from its address.
+
+| | |
+|---|---|
+| Worker | \`brain-x-static\` |
+| \`static.put\` | procedure. \`?path=\`, optional \`type=\`, \`tags=a,b\` and \`public=true\`; the body is the file. Answers \`{ path, size, type, sha256, public, tags, savedAt }\`. |
+| \`static.get\` | query. \`?path=\`. The file, whoever may call the method. |
+| \`static.list\` | query. \`?prefix=\` and \`?tag=\`. \`{ files: [{ path, size, type, sha256, public, tags, savedAt }] }\`, the files the caller may read. |
+| \`static.tag\` | procedure. \`{ path, tags }\` replaces the file's labels. |
+| \`static.setPublic\` | procedure. \`{ path, public }\` adds or removes the \`public\` label. |
+| \`static.delete\` | procedure. \`{ path }\` |
+| \`GET /static/<path>\` | whoever may read the file by its tags. \`ETag\` is the SHA-256; \`If-None-Match\` answers 304. |
+| Storage | bytes in \`blobs\` and one row per file in \`rows\`, both under \`f/<path>\` |
+
+A path is segments of \`A-Z a-z 0-9 @ . _ -\` joined by \`/\`, at most 200 characters. A file is at most 50 MB. Without \`type\` the content type comes from the extension (\`staticTypes\`), else \`application/octet-stream\`. A file is private until it is put or set public.
+
+\`shell/index.html\` is the page a Brain serves at \`/\`: a lopecode notebook without the Brain's own modules, which it loads from the Workers. Only the owner writes under \`shell/\`; a token, a DID and a Worker are refused. Each one put is also kept as \`shell/<sha256>.html\`.
+
+## Tags
+
+Who may read or change a file is decided from its tags. A path decides only where a caller may make a new file.
+
+| tag | set by | meaning |
+|---|---|---|
+| \`by:<did>\` | this Worker, when the file is made | who made it. The owner's files, and files made by the owner's Workers, carry the owner's. |
+| \`worker:<name>\` | this Worker, when a Worker made the file | a member's Worker calls as its author, so its files carry both. |
+| \`public\` | whoever may change the file | anyone reads it. |
+| \`members\` | whoever may change the file | any current member reads it. |
+| any other \`a-z 0-9 -\`, 1 to 40 characters | whoever may change the file | nothing by itself. The owner grants a member \`read\` or \`write\` on a tag (\`people.put\`, \`tags\`). |
+
+A tag with \`:\` in it is never taken from a caller and never changes after the file is made, whoever writes the file later. A file has at most 8 labels.
+
+| | may |
+|---|---|
+| read | the owner; anyone if \`public\`; a member if \`members\`; the DID in its \`by:\`; a person granted one of its tags |
+| change, retag, delete | the owner; the DID in its \`by:\`; a person granted \`write\` on one of its tags |
+| make a new path | the owner anywhere; a person, and a member's Worker, under \`u/ID/\` (\`ID\`: first ten hex digits of the SHA-256 of their DID); a recipe \`brain-x-NAME\` under \`NAME/\`; the deployer under \`shell/\` |
+
+A recipe is the owner's code and is not checked by tag: it reads and changes what is under its own name, and reads what is public. A file kept before tags (2026-10-07) is read as the owner's, \`public\` if its flag said so. A token is the owner's and reaches everything it reached before.
+
+The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB. A file not made by the owner is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin.
+
+\`static.list\` reads every record under the prefix and filters; with \`?tag=\` it still reads them all. On cb4 that is 14 records (2026-10-07). There is no index by tag.
+
+\`\`\`js
+client = xrpcClient("https://brain.example", { namespace: "com.lopecode.brain" })
+await client.procedure("static.put", bytes, { params: { path: "site/logo.png", public: "true" }, raw: true })
+// https://brain.example/static/site/logo.png
+\`\`\`
+
+A page served from \`/static\` runs on the Brain's own address, so its scripts call the Brain as whoever is signed in. Put only pages you would run as yourself.`
+// %%
+static_service = cloudflare.Service("static", staticApp, {
+  methods: {
+    "com.lopecode.brain.static.put": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.static.get": { type: "query", who: "workers" },
+    "com.lopecode.brain.static.list": { type: "query", who: "workers" },
+    "com.lopecode.brain.static.setPublic": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.static.tag": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.static.delete": { type: "procedure", who: "workers" }
+  },
+  paths: [{ path: "/static/*", who: "anyone" }]
+})
+// %%
+static_announce = {
+  plugins.add("workers", static_service, { invalidation });
+  return "announced static_service";
+}
+// %%
+staticTypes = ({
+  html: "text/html; charset=utf-8",
+  js: "text/javascript; charset=utf-8",
+  mjs: "text/javascript; charset=utf-8",
+  css: "text/css; charset=utf-8",
+  json: "application/json",
+  txt: "text/plain; charset=utf-8",
+  md: "text/markdown; charset=utf-8",
+  csv: "text/csv; charset=utf-8",
+  svg: "image/svg+xml",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
+  ico: "image/x-icon",
+  woff2: "font/woff2",
+  wasm: "application/wasm",
+  pdf: "application/pdf"
+})
+// %%
+staticApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.static.";
+  const MAX = 50 * 1024 * 1024;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const okPath = (p) => typeof p === "string" && p.length <= 200 && /^[A-Za-z0-9@._-]+(\/[A-Za-z0-9@._-]+)*$/.test(p) && !p.split("/").some((s) => /^\.+$/.test(s));
+  const USER = /^[a-z0-9-]{1,40}$/, MAX_TAGS = 8;
+  const ownerTag = () => "by:" + (config.owner || "owner");
+  // A file kept before tags has none: it is the owner's, and public if its flag said so.
+  const tagsOf = (meta) => (meta && meta.tags) || [ownerTag(), ...(meta && meta.public ? ["public"] : [])];
+  const system = (tags) => tags.filter((t) => t.includes(":")), user = (tags) => tags.filter((t) => !t.includes(":"));
+  // Who is calling, from the headers the core set: what they are, the system tags a file they make is given, and
+  // where they may make a new path (home). Access to a file that exists is decided from its tags, in `can`.
+  const me = async (c) => {
+    const who = c.req.header("x-brain-caller") || "anonymous", via = c.req.header("x-brain-via") || "";
+    if (who === "owner" || who.startsWith("token:")) return { all: true, home: "", stamp: [ownerTag()] };
+    // The deployer passes an installer's shell on, and reaches nothing else.
+    // "guard": the deployer, as a core from before 2026-10-08 names it.
+    if (who === "deployer" || who === "guard") return { fixed: true, home: "shell/", stamp: [ownerTag()] };
+    if (who.startsWith("did:")) {
+      const id = (await sha256(who)).slice(0, 10);
+      // A member's Worker calls as its author and is named in x-brain-via. Any other Worker named there is refused.
+      const worker = new RegExp(`^worker:(brain-m-${id}-[a-z0-9]+)$`).exec(via);
+      if (via.startsWith("worker:") && !worker) return null;
+      let grants = [];
+      try {
+        grants = JSON.parse(c.req.header("x-brain-tags") || "[]");
+      } catch {}
+      return { did: who, member: c.req.header("x-brain-member") === "1", grants, home: `u/${id}/`, stamp: ["by:" + who, ...(worker ? ["worker:" + worker[1]] : [])] };
+    }
+    // A recipe is the owner's code. It keeps to the paths under its own name, as before tags.
+    if (who.startsWith("worker:brain-x-")) return { fixed: true, home: who.slice("worker:brain-x-".length) + "/", stamp: [ownerTag(), who] };
+    return who === "anonymous" ? {} : null;
+  };
+  const can = (m, meta, path, op) => {
+    if (!m) return false;
+    if (m.all) return true;
+    const tags = tagsOf(meta);
+    if (op === "read" && tags.includes("public")) return true;
+    if (m.fixed) return path.startsWith(m.home);
+    if (!m.did) return false;
+    if (tags.includes("by:" + m.did)) return true;
+    if (op === "read" && m.member && tags.includes("members")) return true;
+    return m.grants.some((g) => g && tags.includes(g.tag) && (op === "read" || g.access === "write"));
+  };
+  // shell/ holds the page everyone is served, which runs as whoever is signed in: only the owner writes it, whatever its tags.
+  const shellOnly = (c, path) => path.startsWith("shell/") && !["owner", "deployer", "guard"].includes(c.req.header("x-brain-caller") || "");
+  // A write: to a file that exists, by its tags; to a new path, only under the caller's home.
+  const writable = async (c, path) => {
+    if (!okPath(path)) return { no: fail(c, 400, "InvalidRequest", "path") };
+    if (shellOnly(c, path)) return { no: fail(c, 403, "Forbidden", "only the owner writes under shell/") };
+    const m = await me(c), before = await rows.get("f/" + path);
+    const ok = before ? can(m, before, path, "write") : !!m && typeof m.home === "string" && path.startsWith(m.home);
+    return ok ? { m, before } : { no: fail(c, 403, "Forbidden", before ? `${path} is not this caller's to change` : `${path} is outside ${m && typeof m.home === "string" ? m.home : "what this caller may reach"}`) };
+  };
+  const named = (list) => (Array.isArray(list) && list.length <= MAX_TAGS && list.every((t) => typeof t === "string" && USER.test(t)) ? [...new Set(list)] : null);
+  const send = async (c, path, meta) => {
+    // A caller inside the Brain sees this. workers.dev removes it from a response it may compress (measured 2026-10-06).
+    const etag = 'W/"' + meta.sha256 + '"';
+    const headers = { "content-type": meta.type, etag, "cache-control": "no-cache", "x-content-type-options": "nosniff", "x-static-sha256": meta.sha256 };
+    // A file somebody other than the owner made is not the owner's to vouch for: a browser shows it with no script and no origin.
+    if (!tagsOf(meta).includes(ownerTag())) headers["content-security-policy"] = "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'";
+    // A file kept compressed is sent compressed, with no-transform so workers.dev leaves the ETag on it.
+    const packed = meta.gzip && /\bgzip\b/.test(c.req.header("accept-encoding") || "");
+    if (packed) Object.assign(headers, { "content-encoding": "gzip", "cache-control": "no-cache, no-transform", vary: "accept-encoding" });
+    if ((c.req.header("if-none-match") || "").includes('"' + meta.sha256 + '"')) return new Response(null, { status: 304, headers });
+    if (packed) {
+      const zipped = await blobs.get("z/" + path);
+      if (zipped) return new Response(zipped, { headers, encodeBody: "manual" });
+      delete headers["content-encoding"];
+    }
+    const bytes = await blobs.get("f/" + path);
+    return bytes ? new Response(bytes, { headers }) : fail(c, 404, "NotFound", path);
+  };
+  app.post(NS + "put", async (c) => {
+    const path = c.req.query("path") || "";
+    const { no, m, before } = await writable(c, path);
+    if (no) return no;
+    const bytes = new Uint8Array(await c.req.raw.arrayBuffer());
+    if (bytes.length > MAX) return fail(c, 413, "TooLarge", `${bytes.length} bytes, at most ${MAX}`);
+    // A person's files, their Workers' included, are held to the limit the core sent with the call.
+    if (m.did) {
+      const limit = Number(c.req.header("x-brain-quota-bytes") || 20 * 1024 * 1024);
+      const used = (await rows.list("f/" + m.home)).reduce((n, r) => n + (r.key === "f/" + path ? 0 : r.value.size), 0);
+      if (used + bytes.length > limit) return fail(c, 413, "QuotaExceeded", `${used} bytes kept under ${m.home} and ${bytes.length} more is over ${limit}`);
+    }
+    // Labels: ?tags=a,b replaces them, ?public= adds or removes that one, neither keeps what the file had.
+    const was = before ? tagsOf(before) : [];
+    let labels = c.req.query("tags") != null ? named(c.req.query("tags").split(",").filter(Boolean)) : user(was);
+    if (!labels) return fail(c, 400, "InvalidRequest", `tags: at most ${MAX_TAGS} of a-z 0-9 -`);
+    const open = c.req.query("public");
+    if (open != null) labels = open === "true" ? [...new Set([...labels, "public"])] : labels.filter((t) => t !== "public");
+    // The system tags of a file are given once, from whoever made it, and no caller names them.
+    const tags = [...(before ? system(was) : m.stamp), ...labels];
+    const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const ext = ((path.match(/\.([A-Za-z0-9]+)$/) || [])[1] || "").toLowerCase();
+    const meta = { size: bytes.length, type: c.req.query("type") || staticTypes[ext] || "application/octet-stream", sha256: sha, public: labels.includes("public"), tags, savedAt: Date.now() };
+    // Text of any size worth it is kept a second time, compressed.
+    const zipped = bytes.length >= 1024 && /^text\/|javascript|json|xml/.test(meta.type) ? new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()) : null;
+    if (zipped) meta.gzip = zipped.length;
+    await blobs.put("f/" + path, bytes);
+    if (zipped) await blobs.put("z/" + path, zipped);
+    else if (before && before.gzip) await blobs.delete("z/" + path);
+    await rows.put("f/" + path, meta);
+    // Each shell is also kept under its hash, so an earlier one can be put again.
+    if (path === "shell/index.html") {
+      await blobs.put(`f/shell/${sha}.html`, bytes);
+      if (zipped) await blobs.put(`z/shell/${sha}.html`, zipped);
+      await rows.put(`f/shell/${sha}.html`, { ...meta, public: false, tags: system(tags) });
+    }
+    return c.json({ path, ...meta });
+  });
+  app.get(NS + "get", async (c) => {
+    const path = c.req.query("path") || "";
+    if (!okPath(path)) return fail(c, 400, "InvalidRequest", "path");
+    const m = await me(c), meta = await rows.get("f/" + path);
+    if (meta && can(m, meta, path, "read")) return send(c, path, meta);
+    // A path the caller could not make is refused whether or not a file is there.
+    return !meta && m && typeof m.home === "string" && path.startsWith(m.home) ? fail(c, 404, "NotFound", path) : fail(c, 403, "Forbidden", `${path} is not open to this caller`);
+  });
+  // ?prefix= and ?tag=. Every record under the prefix is read and the ones this caller may read are kept.
+  app.get(NS + "list", async (c) => {
+    const m = await me(c), tag = c.req.query("tag");
+    if (!m || !(m.all || m.fixed || m.did)) return fail(c, 403, "Forbidden", "this caller has no files");
+    const files = (await rows.list("f/" + (c.req.query("prefix") || ""))).map(({ key, value }) => ({ path: key.slice(2), ...value, tags: tagsOf(value) })).filter((f) => can(m, f, f.path, "read") && (!tag || f.tags.includes(tag)));
+    return c.json({ files });
+  });
+  const retag = async (c, path, change) => {
+    const { no, before } = await writable(c, path);
+    if (no) return no;
+    if (!before) return fail(c, 404, "NotFound", path);
+    const labels = change(user(tagsOf(before)));
+    if (!labels) return fail(c, 400, "InvalidRequest", `tags: at most ${MAX_TAGS} of a-z 0-9 -`);
+    const tags = [...system(tagsOf(before)), ...labels];
+    await rows.put("f/" + path, { ...before, tags, public: labels.includes("public") });
+    return c.json({ path, tags, public: labels.includes("public") });
+  };
+  app.post(NS + "tag", async (c) => {
+    const { path, tags } = await c.req.json().catch(() => ({}));
+    return retag(c, path, () => named(tags));
+  });
+  app.post(NS + "setPublic", async (c) => {
+    const { path, public: open } = await c.req.json().catch(() => ({}));
+    return retag(c, path, (labels) => (open ? [...new Set([...labels, "public"])] : labels.filter((t) => t !== "public")));
+  });
+  app.post(NS + "delete", async (c) => {
+    const { path } = await c.req.json().catch(() => ({}));
+    const { no } = await writable(c, path);
+    if (no) return no;
+    const deleted = await rows.delete("f/" + path);
+    await blobs.delete("f/" + path);
+    await blobs.delete("z/" + path);
+    return c.json({ deleted: !!deleted });
+  });
+  app.get("/static/:path{.+}", async (c) => {
+    const path = c.req.param("path");
+    const meta = okPath(path) ? await rows.get("f/" + path) : null;
+    if (!meta) return c.text("not found", 404);
+    if (!can(await me(c), meta, path, "read")) return c.text("unauthorized", 401);
+    return send(c, path, meta);
+  });
+  return app;
+}
+// %%
+md`## Tests`
+// %%
+staticRig = async () => {
+  const sim = await simulate(static_service, {});
+  const call = (who, path, init = {}) => sim.fetch("https://static.internal" + path, { ...init, headers: { ...(init.headers || {}), "x-brain-caller": who } });
+  const X = "/xrpc/com.lopecode.brain.static.";
+  const put = (who, path, body, extra = "") => call(who, X + "put?path=" + encodeURIComponent(path) + extra, { method: "POST", body });
+  const post = (who, name, input) => call(who, X + name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  return { sim, call, put, post, X };
+}
+// %%
+test_static_put_get_list_delete = {
+  const rig = await staticRig();
+  const made = await (await rig.put("owner", "site/a.css", "body { margin: 0 }")).json();
+  expect(made).toMatchObject({ path: "site/a.css", size: 18, type: "text/css; charset=utf-8", public: false, sha256: await sha256("body { margin: 0 }") });
+  expect([...rig.sim.blobs.keys()]).toEqual(["brain-x-static/f/site/a.css"]);
+  const got = await rig.call("owner", rig.X + "get?path=site/a.css");
+  expect([got.status, got.headers.get("content-type"), got.headers.get("etag"), await got.text()]).toEqual([200, "text/css; charset=utf-8", 'W/"' + made.sha256 + '"', "body { margin: 0 }"]);
+  await rig.put("owner", "site/data.bin", new Uint8Array([0, 255, 7]), "&type=application/x-thing");
+  const back = await rig.call("owner", rig.X + "get?path=site/data.bin");
+  expect([back.headers.get("content-type"), [...new Uint8Array(await back.arrayBuffer())]]).toEqual(["application/x-thing", [0, 255, 7]]);
+  await rig.put("owner", "other.txt", "x");
+  expect((await (await rig.call("owner", rig.X + "list?prefix=site/")).json()).files.map((f) => f.path)).toEqual(["site/a.css", "site/data.bin"]);
+  expect((await rig.put("owner", "../up", "x")).status).toBe(400);
+  expect((await rig.put("owner", "a//b", "x")).status).toBe(400);
+  expect(await (await rig.post("owner", "delete", { path: "site/a.css" })).json()).toEqual({ deleted: true });
+  expect((await rig.call("owner", rig.X + "get?path=site/a.css")).status).toBe(404);
+  expect([...rig.sim.blobs.keys()].sort()).toEqual(["brain-x-static/f/other.txt", "brain-x-static/f/site/data.bin"]);
+  return "3 files put, 1 deleted";
+}
+// %%
+test_static_a_worker_reaches_only_paths_under_its_name = {
+  const rig = await staticRig();
+  const lib = "worker:brain-x-library";
+  await rig.put("owner", "site/a.css", "a");
+  expect((await rig.put(lib, "library/n/1.html", "<p>")).status).toBe(200);
+  expect((await rig.put(lib, "site/a.css", "overwritten")).status).toBe(403);
+  expect((await rig.call(lib, rig.X + "get?path=site/a.css")).status).toBe(403);
+  expect((await rig.post(lib, "delete", { path: "site/a.css" })).status).toBe(403);
+  expect((await (await rig.call(lib, rig.X + "list")).json()).files.map((f) => f.path)).toEqual(["library/n/1.html"]);
+  expect((await (await rig.call("owner", rig.X + "list")).json()).files.map((f) => f.path)).toEqual(["library/n/1.html", "site/a.css"]);
+  // The core, and a caller with no name, have no files.
+  expect((await rig.put("worker:brain-core", "core/x", "x")).status).toBe(403);
+  expect((await rig.call("anonymous", rig.X + "list")).status).toBe(403);
+  return "4 refusals";
+}
+// %%
+test_static_only_the_owner_writes_the_shell = {
+  const rig = await staticRig();
+  for (const who of ["token:laptop", "did:plc:friend", "worker:brain-x-shell", "worker:brain-x-library", "anonymous"])
+    expect([who, (await rig.put(who, "shell/index.html", "<html>theirs</html>", "&public=true")).status]).toEqual([who, 403]);
+  const made = await (await rig.put("owner", "shell/index.html", "<html>one</html>", "&public=true")).json();
+  expect(made).toMatchObject({ path: "shell/index.html", public: true, type: "text/html; charset=utf-8" });
+  // Kept under its hash as well, and that copy is not public.
+  expect((await rig.sim.rows.get("brain-x-static/f/shell/" + made.sha256 + ".html")) || rig.sim.rows.get("f/shell/" + made.sha256 + ".html")).toMatchObject({ sha256: made.sha256, public: false });
+  const served = await rig.call("anonymous", "/static/shell/index.html");
+  expect([served.status, await served.text()]).toEqual([200, "<html>one</html>"]);
+  // Another Worker reads it, because it is public, and reads nothing else there.
+  expect(await (await rig.call("worker:brain-x-page", rig.X + "get?path=shell/index.html")).text()).toBe("<html>one</html>");
+  expect((await rig.call("worker:brain-x-page", rig.X + "get?path=shell/" + made.sha256 + ".html")).status).toBe(403);
+  // The deployer passes an installer's shell on; it reaches nothing else.
+  expect((await rig.put("deployer", "shell/index.html", "<html>two</html>", "&public=true")).status).toBe(200);
+  expect((await rig.put("deployer", "site/a.css", "x")).status).toBe(403);
+  expect((await rig.post("token:laptop", "delete", { path: "shell/index.html" })).status).toBe(403);
+  expect((await rig.post("token:laptop", "setPublic", { path: "shell/index.html", public: false })).status).toBe(403);
+  expect(await (await rig.call("anonymous", "/static/shell/index.html")).text()).toBe("<html>two</html>");
+  return made.sha256.slice(0, 12);
+}
+// %%
+test_static_serves_a_public_file_to_anyone = {
+  const rig = await staticRig();
+  const made = await (await rig.put("owner", "site/index.html", "<h1>hi</h1>")).json();
+  expect((await rig.call("anonymous", "/static/site/index.html")).status).toBe(401);
+  expect((await rig.call("owner", "/static/site/index.html")).status).toBe(200);
+  expect(await (await rig.post("owner", "setPublic", { path: "site/index.html", public: true })).json()).toEqual({ path: "site/index.html", tags: ["by:owner", "public"], public: true });
+  const page = await rig.call("anonymous", "/static/site/index.html");
+  expect([page.status, page.headers.get("content-type"), await page.text()]).toEqual([200, "text/html; charset=utf-8", "<h1>hi</h1>"]);
+  expect((await rig.call("anonymous", "/static/site/index.html", { headers: { "if-none-match": '"' + made.sha256 + '"' } })).status).toBe(304);
+  expect((await rig.call("anonymous", "/static/site/index.html", { headers: { "if-none-match": 'W/"' + made.sha256 + '"' } })).status).toBe(304);
+  // Text of 1 KB or more is also kept compressed, and sent that way to a caller that accepts it.
+  const long = "<p>" + "abc ".repeat(2000) + "</p>";
+  const big = await (await rig.put("owner", "site/big.html", long, "&public=true")).json();
+  expect(big.gzip).toBeLessThan(big.size / 10);
+  const zipped = await rig.call("anonymous", "/static/site/big.html", { headers: { "accept-encoding": "gzip, br" } });
+  expect([zipped.headers.get("content-encoding"), zipped.headers.get("cache-control"), zipped.headers.get("etag")]).toEqual(["gzip", "no-cache, no-transform", 'W/"' + big.sha256 + '"']);
+  expect(await new Response(zipped.body.pipeThrough(new DecompressionStream("gzip"))).text()).toBe(long);
+  const plain = await rig.call("anonymous", "/static/site/big.html");
+  expect([plain.headers.get("content-encoding"), await plain.text()]).toEqual([null, long]);
+  expect(made.gzip).toBe(undefined);
+  // Putting again keeps it public; a path that was never put is not found.
+  expect((await (await rig.put("owner", "site/index.html", "<h1>two</h1>")).json()).public).toBe(true);
+  expect((await rig.call("anonymous", "/static/site/missing.html")).status).toBe(404);
+  // A Worker is not the owner: it is refused a private file at the public path too.
+  await rig.put("owner", "private.txt", "p");
+  expect((await rig.call("worker:brain-x-library", "/static/private.txt")).status).toBe(401);
+  return "401, 200, 304, 404";
+}
+// %%
+test_static_declares_what_it_needs = {
+  const { meta } = await static_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-static", role: "recipe", module: "@tomlarkworthy/brain-static", resources: ["blobs", "rows"], secrets: [], paths: [{ path: "/static/*", who: "anyone" }] });
+  expect(Object.keys(meta.access).length).toBe(6);
+  return meta.resources.join(", ");
+}
+// %%
+tagRig = async () => {
+  const rig = await staticRig();
+  const A = "did:plc:alice", B = "did:plc:bob", a = (await sha256(A)).slice(0, 10), b = (await sha256(B)).slice(0, 10);
+  // A person as the core sends them on: a member or not, with the tag grants the owner gave.
+  const as = (did, { member = true, grants = [], via = "", bytes } = {}) => ({ "x-brain-caller": did, ...(via ? { "x-brain-via": via } : {}), ...(member ? { "x-brain-member": "1" } : {}), "x-brain-tags": JSON.stringify(grants), ...(bytes == null ? {} : { "x-brain-quota-bytes": String(bytes) }) });
+  const call = (headers, path, init = {}) => rig.sim.fetch("https://static.internal" + path, { ...init, headers: { ...(init.headers || {}), ...headers } });
+  const put = (headers, path, body, extra = "") => call(headers, rig.X + "put?path=" + encodeURIComponent(path) + extra, { method: "POST", body });
+  const post = (headers, name, input) => call(headers, rig.X + name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  const get = (headers, path) => call(headers, rig.X + "get?path=" + encodeURIComponent(path));
+  const list = async (headers, query = "") => (await (await call(headers, rig.X + "list" + query)).json()).files.map((f) => f.path);
+  return { ...rig, A, B, a, b, as, call2: call, put2: put, post2: post, get, list };
+}
+// %%
+test_static_a_files_tags_decide_who_reads_and_who_changes_it = {
+  const rig = await tagRig(), { A, B, a, b } = rig, alice = rig.as(A), bob = rig.as(B), file = `u/${a}/note.txt`;
+  // Made by Alice: stamped with her, and with nothing she named.
+  expect((await rig.put2(alice, file, "hi", "&tags=by:did:plc:owner")).status).toBe(400);
+  expect((await rig.put2(alice, file, "hi", "&tags=notes")).status).toBe(200);
+  expect(rig.sim.rows.get("f/" + file).tags).toEqual(["by:" + A, "notes"]);
+  // A new path is made under the maker's own name only; the shell is the owner's whatever a grant says.
+  expect((await rig.put2(alice, `u/${b}/x.txt`, "x")).status).toBe(403);
+  expect((await rig.put2(alice, "site/x.txt", "x")).status).toBe(403);
+  expect((await rig.put2(rig.as(A, { grants: [{ tag: "by:owner", access: "write" }] }), "shell/index.html", "x")).status).toBe(403);
+  // Bob, a member with no grant: cannot read, list, overwrite, tag, publish or delete it.
+  expect((await rig.get(bob, file)).status).toBe(403);
+  expect(await rig.list(bob)).toEqual([]);
+  expect((await rig.put2(bob, file, "mine now")).status).toBe(403);
+  expect((await rig.post2(bob, "tag", { path: file, tags: ["public"] })).status).toBe(403);
+  expect((await rig.post2(bob, "setPublic", { path: file, public: true })).status).toBe(403);
+  expect((await rig.post2(bob, "delete", { path: file })).status).toBe(403);
+  expect((await rig.call2(bob, "/static/" + file)).status).toBe(401);
+  // A grant for one of its tags, read then write. The file stays Alice's when Bob writes it.
+  const reader = rig.as(B, { grants: [{ tag: "notes", access: "read" }] }), writer = rig.as(B, { grants: [{ tag: "notes", access: "write" }] });
+  expect(await (await rig.get(reader, file)).text()).toBe("hi");
+  expect(await rig.list(reader, "?tag=notes")).toEqual([file]);
+  expect((await rig.put2(reader, file, "no")).status).toBe(403);
+  expect((await rig.put2(writer, file, "edited")).status).toBe(200);
+  expect(rig.sim.rows.get("f/" + file).tags).toEqual(["by:" + A, "notes"]);
+  expect((await rig.post2(writer, "tag", { path: file, tags: ["notes", "by:did:plc:bob"] })).status).toBe(400);
+  expect((await rig.get(bob, file)).status).toBe(403);
+  // members: any current member, and nobody who is not one.
+  expect((await rig.post2(alice, "tag", { path: file, tags: ["members"] })).status).toBe(200);
+  expect((await rig.get(bob, file)).status).toBe(200);
+  expect((await rig.get(rig.as(B, { member: false }), file)).status).toBe(403);
+  expect((await rig.get({ "x-brain-caller": "anonymous" }, file)).status).toBe(403);
+  // public: anyone, shown by a browser with no script and no origin. The owner's own public file is not sandboxed.
+  expect((await rig.post2(alice, "setPublic", { path: file, public: true })).status).toBe(200);
+  const open = await rig.call2({ "x-brain-caller": "anonymous" }, "/static/" + file);
+  expect([open.status, open.headers.get("content-security-policy").startsWith("sandbox")]).toEqual([200, true]);
+  await rig.put("owner", "site/a.html", "<p>", "&public=true");
+  expect((await rig.call("anonymous", "/static/site/a.html")).headers.get("content-security-policy")).toBe(null);
+  expect(rig.sim.rows.get("f/site/a.html").tags).toEqual(["by:owner", "public"]);
+  // The owner reads and changes everything; a file from before tags is the owner's.
+  rig.sim.rows.set("f/old/pic.png", { size: 1, type: "image/png", sha256: "s", public: true, savedAt: 1 });
+  expect((await (await rig.call("owner", rig.X + "list?tag=public")).json()).files.map((f) => [f.path, f.tags]).sort((x, y) => (x[0] < y[0] ? -1 : 1))).toEqual([["old/pic.png", ["by:owner", "public"]], ["site/a.html", ["by:owner", "public"]], [file, ["by:" + A, "members", "public"]]]);
+  expect((await rig.post("owner", "delete", { path: file })).status).toBe(200);
+}
+// %%
+test_static_a_members_worker_writes_as_its_author_within_their_limit = {
+  const rig = await tagRig(), { A, a, b } = rig;
+  const worker = rig.as(A, { via: `worker:brain-m-${a}-todo` }), file = `u/${a}/w/todo/data.json`;
+  expect((await rig.put2(worker, file, "{}")).status).toBe(200);
+  expect(rig.sim.rows.get("f/" + file).tags).toEqual(["by:" + A, `worker:brain-m-${a}-todo`]);
+  // Its author reads it; a Worker named for somebody else is given nothing.
+  expect((await rig.get(rig.as(A), file)).status).toBe(200);
+  expect((await rig.get(rig.as(A, { via: `worker:brain-m-${b}-todo` }), file)).status).toBe(403);
+  expect((await rig.get(rig.as(A, { via: "worker:brain-x-library" }), file)).status).toBe(403);
+  // The limit the core sent counts everything under the person's name.
+  expect((await rig.put2(rig.as(A, { bytes: 10 }), `u/${a}/big.txt`, "123456789")).status).toBe(413);
+  expect((await rig.put2(rig.as(A, { bytes: 10 }), `u/${a}/ok.txt`, "12345678")).status).toBe(200);
+  // A recipe keeps to the paths under its own name, and its files are the owner's.
+  await rig.put("worker:brain-x-library", "library/n.html", "n");
+  expect(rig.sim.rows.get("f/library/n.html").tags).toEqual(["by:owner", "worker:brain-x-library"]);
+  expect((await rig.get({ "x-brain-caller": "worker:brain-x-library" }, file)).status).toBe(403);
+}
+// %%
+import {cloudflare, rows, blobs, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

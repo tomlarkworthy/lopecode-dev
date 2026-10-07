@@ -1,0 +1,997 @@
+md`# brain-core
+
+The Worker every other Worker is bound to. It routes a method or a path to the Worker of the service that declared it, and keeps what must last: the notebook-side rows, the route table and the rules the owner sets.
+
+It answers bindings only. A caller is who the kernel says it is, and the kernel is known by its key; any other Worker is \`worker:NAME\`, whatever it claims.
+
+| answer | when |
+|---|---|
+| 403 \`Forbidden\` | A Worker calls a method that its service did not declare in \`calls\` (mode \`enforce\`). A member's Worker calls outside its author's reach, or is switched off. A rule cannot be decided. |
+| 405 \`InvalidRequest\` | A query sent as POST, or a procedure sent as GET. |
+| 401 \`AuthRequired\` | The rule of the method or path is not true for this caller. |
+| 429 \`RateLimitExceeded\` | A member's calls for the day are used. |
+| 501 \`MethodNotImplemented\` | No service declares the method. |
+| 502 \`UpstreamUnavailable\` | The Worker of the service that declares it is not bound to the core. |
+
+| method | |
+|---|---|
+| \`rule.list\` | query, owner. The rules the owner set. |
+| \`rule.put\`, \`rule.delete\` | procedure, the owner's own session. \`{ name, allow }\`: a CEL expression in place of the rule a service declared. A rule the service fixed is refused. |
+| \`calls.list\` | query, owner. \`{ mode, implicit, undeclared: [{ worker, method, n }] }\`. |
+| \`calls.setMode\` | procedure, the owner's own session. \`{ mode: "report" | "enforce" | null, clear }\`. |
+
+**Origin.** A rule reads \`caller\`, who made the call, and \`origin\`, who started the chain of calls it is part of. The two have the same fields. For a call from outside they are equal. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call it answers. A call a Worker makes by its own schedule has the Worker as \`origin\`. For a member's Worker \`caller\` is its author, and so is \`origin\` when it answers nobody.
+
+\`\`\`js
+app.post(NS + "publish", async (c) => xrpc.procedure("com.lopecode.brain.bluesky.putRecord", record))
+// the rule of bluesky.putRecord
+'caller.session || (caller.worker == "brain-x-feed" && origin.kind == "owner")'
+\`\`\`
+
+The core sends a reference with each call it forwards (\`x-brain-context\`): the origin, the Worker it is for and an end time 120 s later, signed with HMAC-SHA-256 under a key that is one of the core's rows. The Worker wrapper (\`workerRuntime\` in \`@tomlarkworthy/cloudflare-iac\`) holds it while the Worker answers that call and sends it back with each call the Worker makes to the core in that time: \`xrpc\`, \`secrets\`, \`sql\`, \`inbox\`. On Cloudflare it is held in \`AsyncLocalStorage\`, so two calls answered at once keep their own. Until 2026-10-07 a service passed it on by hand (\`behalf\`, removed). The core reads a reference only from a Worker known by its key, and only one made for that Worker and not ended. Any other reference is ignored and the origin is the Worker. A Worker can use a reference again until it ends. The core also sends \`x-brain-origin\` and \`x-brain-origin-via\` in clear, for a Worker that decides rules of its own.
+
+A rule that does not name \`origin\` lets the Worker act for anyone it answers. \`origin.trusted\` is true for the owner, a token, and an account the kernel passed for the first method of the chain. A rule of a secret or a table reads the same \`origin\`. A Worker holds a secret's value for 5 s for one origin, and asks again for another.
+
+| call | rule reads origin | why |
+|---|---|---|
+| feed → \`bluesky.putRecord\`, \`bluesky.deleteRecord\` | yes | the record is public |
+| inbox → \`*.send\` | no | the reply goes only to the address the entry came from |
+| library → \`static.put\`, \`static.get\`, \`static.delete\` | no | the library decides who reads a notebook |
+| whatsapp → \`static.put\` | no | a picture that arrived, with no caller |
+| bluesky, whatsapp → \`lease.get\`, \`inbox.append\` | no | started by the Worker's own clock |
+| any → \`secret.get\`, \`db.sql\` | no | the Worker's own secrets and tables |
+| core → \`metrics.record\` | no | the core's own counts |
+
+**Calls.** A Worker calls the methods its service lists in \`calls\`. The core reads the list from the Worker's \`getInfo\`, which the deployer bound at deploy, and keeps it for that deployed hash. A name is exact. \`*\` is one part of a name; as the last part it is one or more: \`com.lopecode.brain.static.*\`, \`com.lopecode.brain.*.send\`. A list of only \`*\` matches nothing.
+
+Three methods are not listed, because a platform cell calls them: \`secret.get\` (\`secrets\`), \`db.sql\` (\`sql\`) and \`inbox.append\` (\`inbox\`). Each has its own rule.
+
+The kernel and the deployer are not checked: they are not Workers of a service. A member's Worker is not checked against a list either. The deployer writes \`calls: []\` for it, and each of its calls is checked as its author (see Members).
+
+In mode \`report\` an undeclared call is counted and passed. In mode \`enforce\` it is refused. The default in the code is \`report\`; a Brain is in \`enforce\` after the owner sets it. At most 200 names are counted.`
+// %%
+core_service = cloudflare.Service("core", coreApp, { role: "core" })
+// %%
+// Announced to the page, so the Services list shows it. A cell of its own: a deployed function cannot depend on it.
+core_announce = {
+  plugins.add("workers", core_service, { invalidation });
+  return "announced core_service";
+}
+// %%
+coreApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.";
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const keys = new Map();
+  // What the core forwards to: recipes, and system Workers such as the database.
+  const routed = (r) => r.role === "recipe" || r.role === "system" || r.role === "member";
+  const identify = async (request) => {
+    const url = new URL(request.url);
+    // From the internet only the deployer gets this far, and the wrapper has named it.
+    if (!url.hostname.endsWith(".internal")) return { caller: ["deployer", "guard"].includes(request.headers.get("x-brain-caller")) ? "deployer" : "anonymous" }; // "guard": a wrapper from before 2026-10-08
+    const key = request.headers.get("x-brain-key");
+    if (!key) return { caller: "anonymous" };
+    const hash = await sha256(key);
+    if (!keys.has(hash)) {
+      const known = await rows.get("key/" + hash);
+      if (known) keys.set(hash, known);
+    }
+    const known = keys.get(hash);
+    if (!known) return { caller: "anonymous" };
+    // A member's Worker is known by its key like any other, and is then checked as its author.
+    if (known.role === "member") return { caller: "worker:" + known.worker, keyed: known.worker, member: { worker: known.worker, author: known.author } };
+    if (known.role !== "kernel") return { caller: "worker:" + known.worker, keyed: known.worker };
+    return { caller: request.headers.get("x-brain-caller") || "anonymous", via: request.headers.get("x-brain-via") || "" };
+  };
+  // Origin. The caller of a call is who made it; the origin is who started the chain of calls it is part of. With
+  // each call the core forwards goes a reference: the origin, the Worker it is for and when it ends, signed with a
+  // key only the core holds (HMAC-SHA-256; the key is one of the core's own rows, made at first use). A Worker that
+  // sends the reference back on a call it makes is given that origin. A reference that is absent, changed, ended or
+  // made for another Worker gives nothing, and the origin is then the Worker itself. Nothing a Worker says in clear
+  // is read. Signed and not kept: the core has many instances and none of them remembers a call.
+  const CONTEXT_MS = 120000;
+  const utf8 = new TextEncoder();
+  const b64u = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const unb64u = (text) => Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0));
+  let originKey = null;
+  const keyOfOrigin = () =>
+    (originKey ??= (async () => {
+      if (!(await rows.get("origin-key"))) await rows.putIfAbsent("origin-key", b64u(crypto.getRandomValues(new Uint8Array(32))));
+      return crypto.subtle.importKey("raw", utf8.encode(await rows.get("origin-key")), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+    })().catch((e) => {
+      originKey = null;
+      throw e;
+    }));
+  const contextFor = async (worker, origin) => {
+    const payload = b64u(utf8.encode(JSON.stringify({ o: origin.caller, v: origin.via || "", w: worker, e: Date.now() + (config.contextMs ?? CONTEXT_MS) })));
+    return "c1." + payload + "." + b64u(await crypto.subtle.sign("HMAC", await keyOfOrigin(), utf8.encode(payload)));
+  };
+  const originFrom = async (reference, worker) => {
+    const m = /^c1\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/.exec(reference || "");
+    if (!m) return null;
+    try {
+      if (!(await crypto.subtle.verify("HMAC", await keyOfOrigin(), unb64u(m[2]), utf8.encode(m[1])))) return null;
+      const p = JSON.parse(new TextDecoder().decode(unb64u(m[1])));
+      return p.w === worker && p.e > Date.now() && typeof p.o === "string" ? { caller: p.o, via: p.v || "" } : null;
+    } catch {
+      return null;
+    }
+  };
+  // Every call the core answers or forwards is counted here. The counts are handed, in batches, to whichever
+  // Worker whose service declares metrics.record; with none they are dropped. A fault (500 and above, except 501) is sent at once, the rest every 10 s.
+  const RECORD = "com.lopecode.brain.metrics.record";
+  const tele = { from: 0, buckets: new Map(), errors: [], route: null, routeAt: 0 };
+  const flush = async () => {
+    const batch = {
+      from: tele.from,
+      to: Date.now(),
+      buckets: [...tele.buckets].map(([k, v]) => {
+        const [worker, version, method, caller, status] = k.split("|");
+        return { worker, version, method, caller, status: Number(status), ...v };
+      }),
+      errors: tele.errors
+    };
+    Object.assign(tele, { from: 0, buckets: new Map(), errors: [] });
+    if (Date.now() - tele.routeAt >= (config.metricsRouteMs ?? 60000)) {
+      tele.route = (await settings.list("route/")).map((r) => r.value).find((r) => r.methods && r.methods[RECORD]) || null;
+      tele.routeAt = Date.now();
+    }
+    const short = tele.route && tele.route.worker.replace(/^brain-(x-)?/, "");
+    if (!short || !workers.has(short)) return;
+    await workers.fetch(short, new Request(`https://${short}.internal/xrpc/${RECORD}`, { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "worker:brain-core" }, body: JSON.stringify(batch) }));
+  };
+  const observe = async (c, started) => {
+    const url = new URL(c.req.url), target = c.get("target"), status = c.res.status, ms = Date.now() - started;
+    const nsid = url.pathname.startsWith(NS) ? url.pathname.slice(NS.length) : null;
+    if (nsid && nsid.startsWith("metrics.")) return;
+    // Names nobody declared are counted as one, so a stranger cannot grow the table.
+    const method = !target && [404, 501].includes(status) ? "(unknown)" : nsid || c.get("path") || url.pathname;
+    const who = c.get("who").caller, caller = /^(token|did):/.test(who) ? who.split(":")[0] : who;
+    // The version that answered: the forwarded Worker's own header, or this core's.
+    const by = (c.res.headers.get("x-brain-served-by") || "").split(",")[0].trim();
+    const version = target ? (by.startsWith(target + "@") ? by.slice(target.length + 1) : "") : String((c.env && c.env.BRAIN_INFO && c.env.BRAIN_INFO.hash) || "").slice(0, 12);
+    const key = [target || "brain-core", version, method, caller, status].join("|");
+    const b = tele.buckets.get(key) || { n: 0, ms: 0, max: 0 };
+    tele.buckets.set(key, { n: b.n + 1, ms: b.ms + ms, max: Math.max(b.max, ms) });
+    // 501 is the answer to a name nobody declares: the caller's mistake, not a fault.
+    if (status >= 500 && status !== 501) tele.errors.push({ t: started, worker: target || "brain-core", version, method, caller, status, ms });
+    if (!tele.from) tele.from = started;
+    if (tele.errors.length || Date.now() - tele.from >= (config.metricsFlushMs ?? 10000)) await flush();
+  };
+  // Members. The kernel hands over who is a member and what each was granted (people.sync), because a Worker
+  // cannot ask the kernel. A member's Worker has its author's permissions and no others: a call it makes is
+  // allowed when its author is still a member and the method is one of WORKER, a member's own method
+  // (com.lopecode.brain.m.…), or in the author's grant. It then goes on as a call by that DID, with the Worker in
+  // x-brain-via, so every rule and every store downstream sees the author.
+  const WORKER = ["db.sql", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete"].map((m) => "com.lopecode.brain." + m);
+  const MEMBER_NS = "com.lopecode.brain.m.";
+  const QUOTA = { calls: 2000, bytes: 20 * 1024 * 1024, workers: 3 };
+  const quotaOf = (person) => ({ ...QUOTA, ...((person && person.quota) || {}) });
+  const today = () => new Date().toISOString().slice(0, 10);
+  // Calls into and out of one member's Workers, counted per UTC day.
+  const spend = async (person) => (await rows.increment(`mcalls/${person.did}/${today()}`)) <= quotaOf(person).calls;
+  const asAuthor = async (c, { worker, author }) => {
+    const url = new URL(c.req.url);
+    const nsid = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : null;
+    const person = await rows.get("person/" + author);
+    if (!person) return fail(c, 403, "Forbidden", `${author} is not a member, so ${worker} may call nothing`);
+    const route = await rows.get("route/" + worker);
+    if (!route || route.off) return fail(c, 403, "Forbidden", `${worker} is switched off`);
+    if (!nsid || !(WORKER.includes(nsid) || nsid.startsWith(MEMBER_NS) || person.methods.includes(nsid))) return fail(c, 403, "Forbidden", `${worker} runs as ${author}, who has no grant for ${nsid || url.pathname}`);
+    if (!(await spend(person))) return fail(c, 429, "RateLimitExceeded", `${author} has used today's ${quotaOf(person).calls} calls`);
+    c.set("who", { caller: author, via: "worker:" + worker });
+    return null;
+  };
+  // A Worker calls what its service declared in `calls`, and what a platform cell calls for it (IMPLICIT). The list is
+  // the Worker's own manifest, which the deployer bound at deploy and the wrapper answers at getInfo before any of the
+  // service's code runs. It is held per deployed hash, so a deploy with a new list is followed at once.
+  // A name is exact; `*` stands for one part after com.lopecode.brain., and as the last part for one or more:
+  // com.lopecode.brain.static.* or com.lopecode.brain.*.send. A path is exact.
+  const IMPLICIT = ["secret.get", "db.sql", "inbox.append"].map((m) => "com.lopecode.brain." + m);
+  const CALLS_MODE = "report";
+  const callMatches = (pattern, name) => {
+    const B = "com.lopecode.brain.";
+    if (typeof pattern !== "string") return false;
+    if (!pattern.includes("*")) return pattern === name;
+    if (!pattern.startsWith(B) || !name.startsWith(B)) return false;
+    const p = pattern.slice(B.length).split("."), n = name.slice(B.length).split("."), rest = p.at(-1) === "*";
+    // A list of only * would be every method.
+    if (!p.some((s) => s !== "*")) return false;
+    if (rest) p.pop();
+    return (rest ? n.length > p.length : n.length === p.length) && p.every((s, i) => s === "*" || s === n[i]);
+  };
+  const declaredBy = new Map();
+  const callsOf = async (worker) => {
+    const route = await settings.get("route/" + worker), held = declaredBy.get(worker);
+    if (held && route && held.hash === route.hash) return held.calls;
+    const short = worker.replace(/^brain-(x-)?/, "");
+    if (!route || !workers.has(short)) return null;
+    const r = await workers.fetch(short, new Request(`https://${short}.internal${NS}getInfo`)).catch(() => null);
+    const info = r && r.ok ? await r.json().catch(() => null) : null;
+    if (!info || !Array.isArray(info.calls)) return null;
+    if (info.hash === route.hash) declaredBy.set(worker, { hash: route.hash, calls: info.calls });
+    return info.calls;
+  };
+  // What was called and not declared, counted per Worker and name. At most 200 names are kept, so a Worker cannot grow the table.
+  let undeclared = null;
+  const note = async (worker, name) => {
+    undeclared ??= new Set((await rows.list("undeclared/")).map((r) => r.key));
+    const key = "undeclared/" + worker + "/" + name.slice(0, 200);
+    if (!undeclared.has(key) && undeclared.size >= 200) return;
+    undeclared.add(key);
+    await rows.increment(key);
+  };
+  const callsMode = async () => (await settings.get("calls/mode")) || CALLS_MODE;
+  const asDeclared = async (c, worker) => {
+    const url = new URL(c.req.url);
+    const name = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : url.pathname;
+    if (IMPLICIT.includes(name)) return null;
+    const calls = await callsOf(worker);
+    if ((calls || []).some((p) => callMatches(p, name))) return null;
+    await note(worker, name);
+    return (await callsMode()) === "enforce" ? fail(c, 403, "Forbidden", `${worker} did not declare a call to ${name}`) : null;
+  };
+  app.use("*", async (c, next) => {
+    const started = Date.now();
+    const who = await identify(c.req.raw);
+    c.set("who", who);
+    if (who.member) {
+      const no = await asAuthor(c, who.member);
+      if (no) return no;
+    } else if (who.caller.startsWith("worker:")) {
+      const no = await asDeclared(c, who.caller.slice("worker:".length));
+      if (no) return no;
+    }
+    // Only a Worker known by its key can carry an origin. A member's Worker is checked as its author and keeps the origin too.
+    const now = c.get("who");
+    c.set("origin", (who.keyed && (await originFrom(c.req.header("x-brain-context"), who.keyed))) || { caller: now.caller, via: now.via || "" });
+    await next();
+    const done = observe(c, started).catch(() => null);
+    try {
+      c.executionCtx.waitUntil(done);
+    } catch {}
+  });
+  app.onError((e, c) => fail(c, 500, "InternalServerError", String((e && e.message) || e)));
+  // The kernel has already checked a token or a granted DID against the method it named.
+  const allowed = (who) => who.caller === "owner" || /^(token|did):/.test(who.caller);
+  const owner = async (c, next) => (allowed(c.get("who")) ? next() : fail(c, 401, "AuthRequired", "the owner"));
+  const session = async (c, next) =>
+    c.get("who").caller === "owner" && c.get("who").via === "session" ? next() : fail(c, 401, "AuthRequired", "the owner's own session");
+  const deployerOnly = async (c, next) => (c.get("who").caller === "deployer" ? next() : fail(c, 401, "AuthRequired", "the deployer"));
+
+  const toDeployer = async (verdict) => {
+    const r = await deployer.fetch(new Request("https://deployer.internal/xrpc/com.lopecode.brain.infra.verdict", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(verdict) }));
+    return r.ok ? r.json() : null;
+  };
+  // What Workers called without declaring it, and whether such a call is refused or only counted.
+  app.get(NS + "calls.list", owner, async (c) =>
+    c.json({
+      mode: await callsMode(),
+      implicit: IMPLICIT,
+      undeclared: (await rows.list("undeclared/")).map(({ key, value }) => {
+        const [, worker, ...name] = key.split("/");
+        return { worker, method: name.join("/"), n: value };
+      })
+    })
+  );
+  app.post(NS + "calls.setMode", session, async (c) => {
+    const { mode = null, clear = false } = await c.req.json().catch(() => ({}));
+    if (mode !== null && !["report", "enforce"].includes(mode)) return fail(c, 400, "InvalidRequest", "mode is report, enforce or null");
+    if (mode === null) await settings.delete("calls/mode");
+    else await settings.put("calls/mode", mode);
+    if (clear) {
+      for (const { key } of await rows.list("undeclared/")) await rows.delete(key);
+      undeclared = null;
+    }
+    return c.json({ mode: await callsMode() });
+  });
+  // Routes and keys: written by the deployer when it deploys or removes a Worker.
+  app.post(NS + "service.register", deployerOnly, async (c) => {
+    const r = await c.req.json();
+    const was = await rows.get("route/" + r.worker);
+    // A deploy is unverified until a page has loaded its module from the Worker and run its tests.
+    // The version before keeps its verdict, so a deploy that is put back returns to a version already verified.
+    const same = was && r.hash && was.hash === r.hash, back = was && r.hash && was.before && was.before.hash === r.hash;
+    const verified = same ? was.verified || null : back ? was.before.verified : null;
+    const before = same ? was.before || null : was && was.hash && !back ? { hash: was.hash, verified: was.verified && was.verified.ok ? was.verified : null } : null;
+    await settings.put("route/" + r.worker, { worker: r.worker, role: r.role, module: r.module || null, hash: r.hash || null, verified, before, methods: r.methods || {}, paths: r.paths || [], secrets: r.secrets || [], ...(r.role === "member" ? { author: r.author, off: !!(was && was.off) } : {}) });
+    await rows.put("key/" + r.keyHash, { worker: r.worker, role: r.role, ...(r.role === "member" ? { author: r.author } : {}) });
+    keys.delete(r.keyHash);
+    declaredBy.delete(r.worker);
+    return c.json({ ok: true });
+  });
+  app.post(NS + "service.unregister", deployerOnly, async (c) => {
+    const { worker } = await c.req.json();
+    await settings.delete("route/" + worker);
+    for (const { key, value } of await rows.list("key/")) if (value.worker === worker) await rows.delete(key);
+    keys.clear();
+    return c.json({ ok: true });
+  });
+  // The deployer's health check of a Worker with no address of its own.
+  app.post(NS + "service.health", deployerOnly, async (c) => {
+    const { worker } = await c.req.json();
+    const short = String(worker).replace(/^brain-(x-)?/, "");
+    if (!workers.has(short)) return c.json({ ok: false, reason: "not bound yet" });
+    const r = await workers.fetch(short, new Request(`https://${short}.internal/xrpc/_health`)).catch(() => null);
+    return c.json(r && r.ok ? await r.json().catch(() => ({ ok: false })) : { ok: false });
+  });
+  // Who is a member, what each was granted and their limits: the kernel's table, sent whole each time it changes.
+  app.post(NS + "people.sync", async (c) => {
+    if (c.get("who").caller !== "kernel") return fail(c, 401, "AuthRequired", "the kernel");
+    const { people = [] } = await c.req.json();
+    const now = new Set(people.map((p) => p.did));
+    for (const { key } of await rows.list("person/")) if (!now.has(key.slice("person/".length))) await rows.delete(key);
+    for (const p of people) await rows.put("person/" + p.did, { did: p.did, methods: p.methods || [], quota: p.quota || null, tags: p.tags || [] });
+    return c.json({ people: people.length });
+  });
+  // What a member needs to write a service, and how much of each limit is used.
+  const idOf = async (did) => (await sha256(did)).slice(0, 10);
+  app.get(NS + "member.whoami", async (c) => {
+    const did = c.get("who").caller;
+    const person = did.startsWith("did:") ? await rows.get("person/" + did) : null;
+    if (!person) return fail(c, 403, "Forbidden", "a member");
+    const id = await idOf(did);
+    return c.json({ did, id, methods: MEMBER_NS + id + ".", worker: `brain-m-${id}-NAME`, files: `u/${id}/`, tables: `m_${id}_NAME_`, quota: quotaOf(person), calls: (await rows.get(`mcalls/${did}/${today()}`)) || 0 });
+  });
+  app.get(NS + "member.services", async (c) => {
+    const who = c.get("who").caller;
+    if (who !== "owner" && !who.startsWith("did:")) return fail(c, 401, "AuthRequired", "the owner or a member");
+    // Another member's Worker is listed when one of its methods is for members.
+    const shared = who !== "owner" && !!(await rows.get("person/" + who));
+    const services = (await rows.list("route/")).map((r) => r.value).filter((r) => r.role === "member" && (who === "owner" || r.author === who || (shared && Object.values(r.methods).some((m) => m.who === "members"))));
+    return c.json({ services: services.map((r) => ({ worker: r.worker, author: r.author, module: r.module, hash: r.hash, off: !!r.off, methods: Object.fromEntries(Object.entries(r.methods).map(([k, v]) => [k, v.who])) })) });
+  });
+  // The owner's switch. Off: nothing reaches the Worker and it reaches nothing.
+  app.post(NS + "member.switch", session, async (c) => {
+    const { worker, off } = await c.req.json();
+    const route = await rows.get("route/" + worker);
+    if (!route || route.role !== "member") return fail(c, 404, "NotFound", String(worker));
+    await settings.put("route/" + worker, { ...route, off: !!off });
+    return c.json({ worker, off: !!off });
+  });
+  // A member's Worker is not listed here: the page loads the module of every Worker this names, as whoever is
+  // signed in. member.services lists them.
+  app.get(NS + "service.list", async (c) => c.json({ services: (await rows.list("route/")).map((r) => r.value).filter((r) => r.role !== "member") }));
+  // The page's verdict on a deploy, after it ran the module's tests. A pass marks the hash verified. A fail while
+  // the hash is still unverified has the deployer put the version before back; a fail after that is only recorded.
+  app.post(NS + "deploy.report", owner, async (c) => {
+    const { worker, hash, ok, tests = [], reason = "" } = await c.req.json();
+    const route = await rows.get("route/" + worker);
+    if (!route || !route.hash || route.hash !== hash) return fail(c, 409, "Stale", `${worker} is not running ${String(hash).slice(0, 12)}`);
+    const was = route.verified;
+    const failed = tests.filter((t) => !t.ok).map((t) => t.name);
+    const verdict = { ok: !!ok, at: Date.now(), tests: tests.length, failed, reason: String(reason).slice(0, 300) };
+    if (ok) {
+      await settings.put("route/" + worker, { ...route, verified: verdict });
+      // Every pass is passed on: the same hash deployed again is on probation again, and only the deployer knows.
+      await toDeployer({ worker, hash, ok: true });
+      return c.json({ worker, hash, state: "verified" });
+    }
+    if (was && was.ok) {
+      await settings.put("route/" + worker, { ...route, failing: verdict });
+      return c.json({ worker, hash, state: "failing" });
+    }
+    await settings.put("route/" + worker, { ...route, verified: verdict });
+    const out = await toDeployer({ worker, hash, ok: false, reason: verdict.reason || "failed: " + failed.join(", ") });
+    return c.json({ worker, hash, state: out && out.state === "put-back" ? "put-back" : "failed", previous: out ? out.previous || null : null });
+  });
+
+  // Rules the owner sets without a deploy. The target is a method's NSID or a path as its service declared it.
+  // Only for what a Worker declared, and not for a method its service marked fixed (secret.*). The core's own
+  // methods (rule.*, service.*) are decided in this file.
+  const declared = async (target) => {
+    for (const { value: r } of await rows.list("route/")) {
+      if (!routed(r)) continue;
+      if (r.methods[target]) return { worker: r.worker, rule: r.methods[target] };
+      const p = r.paths.find((x) => x.path === target);
+      if (p) return { worker: r.worker, rule: p };
+    }
+    return null;
+  };
+  app.get(NS + "rule.list", owner, async (c) => {
+    const set = new Map((await rows.list("rule/")).map(({ key, value }) => [key.slice("rule/".length), value]));
+    const out = [];
+    for (const { value: r } of await rows.list("route/")) {
+      if (!routed(r)) continue;
+      for (const [target, rule] of [...Object.entries(r.methods), ...r.paths.map((p) => [p.path, p])])
+        out.push({ target, worker: r.worker, declared: ruleExpression(rule), set: set.has(target) ? set.get(target).allow : null, setAt: set.has(target) ? set.get(target).setAt : null });
+    }
+    return c.json({ rules: out.sort((a, b) => (a.target < b.target ? -1 : 1)), ttl: settings.ttl });
+  });
+  app.post(NS + "rule.put", session, async (c) => {
+    const { target, allow } = await c.req.json();
+    if (typeof allow !== "string" || !allow.trim()) return fail(c, 400, "InvalidRequest", "allow is a CEL expression");
+    const found = await declared(target);
+    if (!found) return fail(c, 404, "NotFound", `no service declares ${target}`);
+    if (found.rule.fixed) return fail(c, 403, "Forbidden", `${found.worker} fixed the rule for ${target}`);
+    // A rule that does not parse is refused here, not found on the next call.
+    try {
+      checkedRule(target, allow);
+    } catch (e) {
+      return fail(c, 400, "InvalidRequest", e.message);
+    }
+    await settings.put("rule/" + target, { allow, setAt: Date.now() });
+    return c.json({ target, allow });
+  });
+  app.post(NS + "rule.delete", session, async (c) => {
+    const { target } = await c.req.json();
+    return c.json({ deleted: !!(await settings.delete("rule/" + target)) });
+  });
+
+  // The notebook side of the rows platform cell, one table per Worker name.
+  const rowKey = (c, q) => "rows/" + (q.worker || "") + "/" + (q.key ?? q.prefix ?? "");
+  app.get(NS + "rows.get", owner, async (c) => c.json({ value: await rows.get(rowKey(c, c.req.query())) }));
+  app.get(NS + "rows.list", owner, async (c) => {
+    const q = c.req.query(), base = "rows/" + (q.worker || "") + "/";
+    return c.json({ rows: (await rows.list(base + (q.prefix || ""))).map(({ key, value }) => ({ key: key.slice(base.length), value })) });
+  });
+  app.post(NS + "rows.put", owner, async (c) => {
+    const q = await c.req.json();
+    return c.json({ ok: await rows.put(rowKey(c, q), q.value) });
+  });
+  app.post(NS + "rows.delete", owner, async (c) => c.json({ deleted: await rows.delete(rowKey(c, await c.req.json())) }));
+
+  // getInfo for a named Worker, then everything a Worker declared.
+  const forward = async (route, c, path) => {
+    const url = new URL(c.req.url), who = c.get("who");
+    const person = who.caller.startsWith("did:") ? await rows.get("person/" + who.caller) : null;
+    const short = route.worker.replace(/^brain-(x-)?/, "");
+    c.set("target", route.worker);
+    if (!workers.has(short)) return fail(c, 502, "UpstreamUnavailable", `${route.worker} is not bound to the core`);
+    const headers = new Headers(c.req.raw.headers);
+    for (const name of [...headers.keys()]) if (name.startsWith("x-brain-")) headers.delete(name);
+    headers.set("x-brain-caller", who.caller);
+    if (who.via) headers.set("x-brain-via", who.via);
+    // The origin in clear, for a Worker that decides rules of its own, and the reference it sends back on a call it makes for this one.
+    const origin = c.get("origin");
+    headers.set("x-brain-origin", origin.caller);
+    if (origin.via) headers.set("x-brain-origin-via", origin.via);
+    headers.set("x-brain-context", await contextFor(route.worker, origin));
+    // What a store needs to decide for a person: that they are a member, their file limit and the tags they were granted.
+    if (person) {
+      headers.set("x-brain-member", "1");
+      headers.set("x-brain-quota-bytes", String(quotaOf(person).bytes));
+      headers.set("x-brain-tags", JSON.stringify(person.tags || []));
+    }
+    const bodied = !["GET", "HEAD"].includes(c.req.method);
+    return workers.fetch(short, new Request("https://" + short + ".internal" + (path || url.pathname + url.search), { method: c.req.method, headers, body: bodied ? c.req.raw.body : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
+  };
+  // A Worker's manifest and source, for anyone. The wrapper has already answered for the core itself.
+  for (const what of ["getInfo", "getSource"])
+    app.get(NS + what, async (c) => {
+      const name = c.req.query("worker") || "brain-core";
+      const route = await settings.get("route/" + name);
+      if (!route || !routed(route) || route.role === "member") return fail(c, 404, "NotFound", name);
+      return forward(route, c, NS + what + "?worker=" + encodeURIComponent(name));
+    });
+  app.all("*", async (c) => {
+    const url = new URL(c.req.url), who = c.get("who");
+    // The route table and the owner's rules are read through a few seconds of memory, not from storage on every call.
+    const routes = (await settings.list("route/")).map((r) => r.value).filter(routed);
+    const nsid = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : null;
+    for (const route of routes) {
+      const method = nsid && route.methods[nsid];
+      const path = !nsid && route.paths.find((p) => p.path === url.pathname || (p.path.endsWith("/*") && url.pathname.startsWith(p.path.slice(0, -1))));
+      const rule = method || path;
+      if (!rule) continue;
+      if (path) c.set("path", path.path);
+      if (method && (method.type === "query") !== (c.req.method === "GET")) return fail(c, 405, "InvalidRequest", `${nsid} is a ${method.type}`);
+      // A member's Worker answers while its author is a member and the owner has not switched it off.
+      if (route.role === "member") {
+        const now = await rows.get("route/" + route.worker), person = await rows.get("person/" + route.author);
+        if (!now || now.off) return fail(c, 403, "Forbidden", `${route.worker} is switched off`);
+        if (!person) return fail(c, 403, "Forbidden", `${route.author} is not a member`);
+        if (!(await spend(person))) return fail(c, 429, "RateLimitExceeded", `${route.author} has used today's ${quotaOf(person).calls} calls`);
+      }
+      // The rule is one CEL expression over the caller, the origin and the request. Anything but true is a refusal.
+      // A rule the owner has set for this method or path stands in for the one the service declared.
+      const set = (await settings.list("rule/")).find((r) => r.key === "rule/" + (nsid || path.path))?.value;
+      const verdict = decide(set ? { allow: set.allow } : rule, { caller: callerOf(who), origin: callerOf(c.get("origin")), request: { method: nsid || "", path: url.pathname, verb: c.req.method, params: Object.fromEntries(url.searchParams) } });
+      if (verdict.allow) return forward(route, c);
+      return verdict.error ? fail(c, 403, "Forbidden", "the rule for this could not be decided") : fail(c, 401, "AuthRequired", "not allowed by the rule for this");
+    }
+    return nsid ? fail(c, 501, "MethodNotImplemented", nsid) : c.text("not found", 404);
+  });
+  return app;
+}
+// %%
+
+md`## Tests
+
+The core runs under \`simulate\`. \`coreRig\` registers a kernel and one recipe the way the deployer would, then calls as each kind of caller.`
+// %%
+coreRig = async ({ config = {}, workers: more = {} } = {}) => {
+  const seen = [], toDeployer = [];
+  // What brain-x-echo's own manifest says, as the wrapper would answer at getInfo.
+  const echo = { hash: "h1", calls: ["com.lopecode.brain.other.*"] };
+  const sim = await simulate(core_service, {
+    secrets: { BRAIN_KEY: "core-key" },
+    config,
+    deployer: async (request) => {
+      const body = await request.json();
+      toDeployer.push({ path: new URL(request.url).pathname, key: request.headers.get("x-brain-key"), body });
+      return Response.json(body.ok ? { state: "kept" } : { state: "put-back", previous: "h0" });
+    },
+    workers: {
+      echo: async (request) => {
+        if (request.url === "https://echo.internal/xrpc/com.lopecode.brain.getInfo") return Response.json({ name: "brain-x-echo", hash: echo.hash, calls: echo.calls });
+        const body = ["GET", "HEAD"].includes(request.method) ? null : new TextDecoder().decode(await request.arrayBuffer());
+        seen.push({ url: request.url, method: request.method, caller: request.headers.get("x-brain-caller"), cookie: request.headers.get("cookie"), key: request.headers.get("x-brain-key"), body });
+        return request.url.includes("/redirect") ? new Response(null, { status: 302, headers: { location: "https://example.com/" } }) : Response.json({ echoed: new URL(request.url).pathname });
+      },
+      ...more
+    }
+  });
+  const X = "/xrpc/com.lopecode.brain.";
+  const send = (base, headers) => async (path, body, extra = {}) => {
+    const r = await sim.fetch(base + (path.startsWith("/") ? path : X + path), {
+      method: body === undefined ? "GET" : "POST",
+      headers: { ...headers, ...extra, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      body: body === undefined ? undefined : typeof body === "string" || body instanceof Uint8Array ? body : JSON.stringify(body),
+      redirect: "manual"
+    });
+    const text = await r.text();
+    let data = text;
+    try { data = JSON.parse(text); } catch {}
+    return { status: r.status, data, headers: r.headers };
+  };
+  // Another Worker's answer to anything: it keeps who the core said was calling and for whom.
+  const heard = [];
+  const hear = (worker) => async (request) => (heard.push({ worker, caller: request.headers.get("x-brain-caller"), origin: request.headers.get("x-brain-origin"), via: request.headers.get("x-brain-origin-via"), context: request.headers.get("x-brain-context") }), Response.json({ ok: true }));
+  const deployer = send("https://cb-core.sub.workers.dev", { "x-brain-deployer": "core-key" });
+  const as = (caller, via = "session") => send("https://core.internal", { "x-brain-key": "kernel-key", "x-brain-caller": caller, "x-brain-via": via });
+  const worker = send("https://core.internal", { "x-brain-key": "echo-key", "x-brain-caller": "owner" });
+  await deployer("service.register", { worker: "brain", role: "kernel", methods: {}, paths: [], secrets: [], keyHash: await sha256("kernel-key") });
+  await deployer("service.register", {
+    worker: "brain-x-echo",
+    role: "recipe",
+    methods: { "com.lopecode.brain.echo.say": { type: "procedure", who: "owner" }, "com.lopecode.brain.echo.read": { type: "query", who: "anyone" }, "com.lopecode.brain.echo.key": { type: "query", who: "owner", fixed: true } },
+    paths: [{ path: "/hooks/echo", who: "anyone" }, { path: "/redirect", who: "anyone" }, { path: "/private", who: "owner" }],
+    secrets: ["ECHO_KEY"],
+    hash: "h1",
+    module: "@tomlarkworthy/echo",
+    keyHash: await sha256("echo-key")
+  });
+  return { sim, seen, toDeployer, deployer, as, worker, echo, heard, hear, send, owner: as("owner"), anonymous: as("anonymous", ""), nobody: send("https://core.internal", {}) };
+}
+// %%
+test_calls_are_counted_and_handed_to_the_metrics_service = {
+  const batches = [];
+  const workers = {
+    metrics: async (request) => (batches.push({ caller: request.headers.get("x-brain-caller"), ...(await request.json()) }), Response.json({ stored: 1 })),
+    broken: async () => new Response("boom", { status: 500 })
+  };
+  const settle = () => new Promise((r) => setTimeout(r, 20));
+  // The counter is the Worker's own state and outlives a rig, so both waits are set to nothing here.
+  const rig = await coreRig({ config: { metricsFlushMs: 0, metricsRouteMs: 0 }, workers });
+  const reg = (worker, methods) => rig.deployer("service.register", { worker, role: "recipe", methods, paths: [], secrets: [], keyHash: worker });
+  await reg("brain-x-metrics", { "com.lopecode.brain.metrics.record": { type: "procedure", who: "worker:brain-core" }, "com.lopecode.brain.metrics.query": { type: "query", who: "owner" } });
+  await reg("brain-x-broken", { "com.lopecode.brain.broken.go": { type: "procedure", who: "owner" } });
+  await settle();
+  batches.length = 0;
+  await rig.owner("echo.say", { text: "hi" });
+  await rig.anonymous("/hooks/echo");
+  await rig.anonymous("made.up.name");
+  await rig.owner("broken.go", {});
+  // Its own traffic is not counted.
+  await rig.owner("metrics.query");
+  await settle();
+  expect(batches.every((b) => b.caller === "worker:brain-core")).toBe(true);
+  const got = batches.flatMap((b) => b.buckets).map((b) => [b.worker, b.method, b.caller, b.status, b.n]);
+  // The broken Worker here is a bare function with no wrapper, so it names no version; the core names its own.
+  expect(batches.flatMap((b) => b.buckets).map((b) => b.version)).toEqual(["", "", rig.sim.emitted.hash.slice(0, 12), ""]);
+  expect(got).toEqual([
+    ["brain-x-echo", "echo.say", "owner", 200, 1],
+    ["brain-x-echo", "/hooks/echo", "anonymous", 200, 1],
+    ["brain-core", "(unknown)", "anonymous", 501, 1],
+    ["brain-x-broken", "broken.go", "owner", 500, 1]
+  ]);
+  expect(batches.flatMap((b) => b.errors)).toMatchObject([{ worker: "brain-x-broken", method: "broken.go", status: 500 }]);
+  return got.length + " counted";
+}
+// %%
+test_routes_by_method_and_path = {
+  const rig = await coreRig();
+  expect((await rig.owner("echo.say", { text: "hi" })).data).toEqual({ echoed: "/xrpc/com.lopecode.brain.echo.say" });
+  expect(rig.seen[0]).toMatchObject({ method: "POST", caller: "owner", body: '{"text":"hi"}', key: null });
+  expect((await rig.anonymous("/hooks/echo?hub.challenge=7")).status).toBe(200);
+  expect(rig.seen[1]).toMatchObject({ caller: "anonymous", url: "https://echo.internal/hooks/echo?hub.challenge=7" });
+  // A redirect from a recipe reaches the caller as a redirect.
+  expect((await rig.anonymous("/redirect")).status).toBe(302);
+  expect((await rig.owner("nothing.here")).data).toEqual({ error: "MethodNotImplemented", message: "com.lopecode.brain.nothing.here" });
+  expect((await rig.owner("/nowhere")).status).toBe(404);
+  return rig.seen.length + " forwarded";
+}
+// %%
+test_a_deploy_is_unverified_until_its_tests_are_reported = {
+  const rig = await coreRig();
+  const echo = async () => (await rig.owner("service.list")).data.services.find((s) => s.worker === "brain-x-echo");
+  expect(await echo()).toMatchObject({ hash: "h1", module: "@tomlarkworthy/echo", verified: null });
+  // Not the owner, or not the hash that is running: nothing changes.
+  expect((await rig.anonymous("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true })).status).toBe(401);
+  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "old", ok: false })).data.error).toBe("Stale");
+  expect(rig.toDeployer).toEqual([]);
+  // A fail while unverified goes to the deployer, which puts the version before back.
+  const failed = await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: false, tests: [{ name: "test_a", ok: true }, { name: "test_b", ok: false }] });
+  expect(failed.data).toEqual({ worker: "brain-x-echo", hash: "h1", state: "put-back", previous: "h0" });
+  expect(rig.toDeployer[0]).toMatchObject({ path: "/xrpc/com.lopecode.brain.infra.verdict", key: "core-key", body: { worker: "brain-x-echo", hash: "h1", ok: false, reason: "failed: test_b" } });
+  expect((await echo()).verified).toMatchObject({ ok: false, failed: ["test_b"] });
+  // A pass marks it verified and tells the deployer, each time.
+  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true, tests: [{ name: "test_a", ok: true }] })).data.state).toBe("verified");
+  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true })).data.state).toBe("verified");
+  expect(rig.toDeployer.map((g) => g.body.ok)).toEqual([false, true, true]);
+  // A fail after that is recorded and nothing is put back.
+  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: false, tests: [{ name: "test_a", ok: false }] })).data.state).toBe("failing");
+  expect(rig.toDeployer.length).toBe(3);
+  expect(await echo()).toMatchObject({ verified: { ok: true }, failing: { failed: ["test_a"] } });
+  // The same hash registered again stays verified; a new hash starts unverified.
+  const again = { worker: "brain-x-echo", role: "recipe", methods: {}, paths: [], secrets: [], keyHash: await sha256("echo-key") };
+  await rig.deployer("service.register", { ...again, hash: "h1" });
+  expect((await echo()).verified.ok).toBe(true);
+  await rig.deployer("service.register", { ...again, hash: "h2" });
+  expect((await echo()).verified).toBe(null);
+  // Put back to h1: the verdict it had comes back with it.
+  await rig.deployer("service.register", { ...again, hash: "h1" });
+  expect((await echo()).verified.ok).toBe(true);
+  return "unverified, put back, verified, failing";
+}
+// %%
+test_a_worker_calls_a_method_not_a_worker = {
+  const rig = await coreRig();
+  await rig.deployer("service.register", {
+    worker: "brain-x-other", role: "recipe", keyHash: await sha256("other-key"), paths: [], secrets: [],
+    methods: { "com.lopecode.brain.other.forWorkers": { type: "procedure", who: "workers" }, "com.lopecode.brain.other.forEcho": { type: "procedure", who: "worker:brain-x-echo" }, "com.lopecode.brain.other.forOwner": { type: "procedure", who: "owner" } }
+  });
+  // No binding to brain-x-other in this rig: 502 means the core let the call through and tried to forward it.
+  const status = async (method) => (await rig.worker(method, {})).status;
+  expect([await status("other.forWorkers"), await status("other.forEcho"), await status("other.forOwner")]).toEqual([502, 502, 401]);
+  expect((await rig.anonymous("other.forWorkers", {})).status).toBe(401);
+  // The deployer is let through where any Worker is, and nowhere else.
+  const asDeployer = async (method) => (await rig.deployer(method, {})).status;
+  expect([await asDeployer("other.forWorkers"), await asDeployer("other.forEcho"), await asDeployer("other.forOwner")]).toEqual([502, 401, 401]);
+  // Anyone may read a Worker's manifest and source: the core passes the question on.
+  expect((await rig.anonymous("getSource?worker=brain-x-echo")).status).toBe(200);
+  expect(rig.seen.at(-1)).toMatchObject({ url: "https://echo.internal/xrpc/com.lopecode.brain.getSource?worker=brain-x-echo" });
+  expect((await rig.anonymous("getSource?worker=brain-x-nobody")).status).toBe(404);
+  return "by method";
+}
+// %%
+test_a_worker_calls_only_what_its_service_declared = {
+  const rig = await coreRig();
+  const O = "com.lopecode.brain.other.";
+  await rig.deployer("service.register", { worker: "brain-x-other", role: "recipe", keyHash: await sha256("other-key"), paths: [{ path: "/hooks/other", who: "anyone" }], secrets: [], methods: { [O + "a"]: { type: "procedure", who: "workers" }, [O + "b.send"]: { type: "procedure", who: "workers" }, [O + "c"]: { type: "procedure", who: "workers" } } });
+  const mode = (m) => rig.owner("calls.setMode", { mode: m });
+  const status = async (method, body = {}) => (await rig.worker(method, body)).status;
+  await mode("enforce");
+  // 502: the core let the call through and has no binding to brain-x-other in this rig.
+  rig.echo.calls = [O + "a"];
+  expect([await status("other.a"), await status("other.c")]).toEqual([502, 403]);
+  expect((await rig.worker("other.c", {})).data).toEqual({ error: "Forbidden", message: "brain-x-echo did not declare a call to com.lopecode.brain.other.c" });
+  // The list is held for the deployed hash: the same hash is not asked again, a new deploy is.
+  rig.echo.calls = [O + "a", O + "c"];
+  expect(await status("other.c")).toBe(403);
+  rig.echo.hash = "h2";
+  await rig.deployer("service.register", { worker: "brain-x-echo", role: "recipe", hash: "h2", methods: {}, paths: [], secrets: [], keyHash: await sha256("echo-key") });
+  expect(await status("other.c")).toBe(502);
+  // * is one part; as the last part it is one or more.
+  rig.echo.calls = ["com.lopecode.brain.*.b.send", "*", "com.lopecode.*", "com.lopecode.brain.*", "com.lopecode.brain.*.*"];
+  rig.echo.hash = "h3";
+  await rig.deployer("service.register", { worker: "brain-x-echo", role: "recipe", hash: "h3", methods: {}, paths: [], secrets: [], keyHash: await sha256("echo-key") });
+  expect([await status("other.b.send"), await status("other.a"), await status("other.c")]).toEqual([502, 403, 403]);
+  // What a platform cell calls is not declared. These reach the routing: no Worker in this rig declares them.
+  expect([await status("inbox.append"), await status("db.sql"), (await rig.worker("secret.get?name=A")).status]).toEqual([501, 501, 501]);
+  // The core's own methods and a path are calls too.
+  expect([(await rig.worker("service.list")).status, (await rig.worker("/hooks/other")).status]).toEqual([403, 403]);
+  // The kernel and the deployer are not Workers of a service: nothing is declared for them.
+  expect([(await rig.owner("other.a", {})).status, (await rig.deployer("other.a", {})).status]).toEqual([502, 502]);
+  // A Worker whose manifest cannot be read has declared nothing.
+  await rig.deployer("service.register", { worker: "brain-x-other", role: "recipe", keyHash: await sha256("other-key"), paths: [], secrets: [], methods: { [O + "a"]: { type: "procedure", who: "workers" } } });
+  const other = await rig.sim.fetch("https://core.internal/xrpc/com.lopecode.brain.echo.read", { headers: { "x-brain-key": "other-key" } });
+  expect([other.status, (await other.json()).message]).toEqual([403, "brain-x-other did not declare a call to com.lopecode.brain.echo.read"]);
+  // Counted, by Worker and name. Only the owner's own session changes the mode.
+  const listed = (await rig.owner("calls.list")).data;
+  expect([listed.mode, listed.implicit.length]).toEqual(["enforce", 3]);
+  expect(Object.fromEntries(listed.undeclared.map((u) => [u.worker + " " + u.method.replace("com.lopecode.brain.", ""), u.n]))).toEqual({ "brain-x-echo other.c": 4, "brain-x-echo other.a": 1, "brain-x-echo service.list": 1, "brain-x-echo /hooks/other": 1, "brain-x-other echo.read": 1 });
+  expect([(await rig.as("owner", "jwt")("calls.setMode", { mode: "report" })).status, (await rig.worker("calls.setMode", { mode: "report" })).status, (await rig.owner("calls.setMode", { mode: "off" })).status]).toEqual([401, 403, 400]);
+  // report: counted and let through.
+  expect((await mode("report")).data).toEqual({ mode: "report" });
+  expect(await status("other.a")).toBe(502);
+  expect((await rig.owner("calls.list")).data.undeclared.find((u) => u.method === O + "a").n).toBe(2);
+  // clear empties the counts; null puts the mode back to the default.
+  expect((await rig.owner("calls.setMode", { mode: null, clear: true })).data).toEqual({ mode: "report" });
+  expect((await rig.owner("calls.list")).data.undeclared).toEqual([]);
+  return listed.undeclared.length + " names counted";
+}
+// %%
+test_a_rule_can_be_an_expression = {
+  const rig = await coreRig();
+  const X = "com.lopecode.brain.other.";
+  await rig.deployer("service.register", {
+    worker: "brain-x-other", role: "recipe", keyHash: await sha256("other-key"), secrets: [],
+    methods: {
+      [X + "friends"]: { type: "procedure", who: "owner", allow: 'caller.did in ["did:plc:friend"]' },
+      [X + "read"]: { type: "query", who: "owner", allow: 'caller.trusted || request.params.name.startsWith("pub/")' },
+      [X + "broken"]: { type: "procedure", who: "anyone", allow: "caller.nothing == 1" }
+    },
+    paths: [{ path: "/open/*", allow: 'request.verb == "GET"' }]
+  });
+  // No binding to brain-x-other in this rig: 502 means the core let the call through and tried to forward it.
+  expect((await rig.as("did:plc:friend", "jwt")("other.friends", {})).status).toBe(502);
+  expect((await rig.as("did:plc:stranger", "jwt")("other.friends", {})).status).toBe(401);
+  // The expression is the whole decision: this one does not name the owner.
+  expect((await rig.owner("other.friends", {})).status).toBe(401);
+  expect((await rig.anonymous("other.read?name=pub/a")).status).toBe(502);
+  expect((await rig.anonymous("other.read?name=private/a")).status).toBe(401);
+  expect((await rig.owner("other.read?name=private/a")).status).toBe(502);
+  // A rule that cannot be decided refuses, and says so without the expression.
+  const none = await rig.anonymous("other.read");
+  expect([none.status, none.data.error]).toEqual([403, "Forbidden"]);
+  expect((await rig.owner("other.broken", {})).status).toBe(403);
+  expect((await rig.anonymous("/open/a")).status).toBe(502);
+  expect((await rig.anonymous("/open/a", {})).status).toBe(401);
+  return "by DID, by parameter, by verb";
+}
+// %%
+test_the_owner_sets_a_rule_without_a_deploy = {
+  const rig = await coreRig();
+  // echo.say is declared for the owner. 200 is the echo recipe answering.
+  expect((await rig.anonymous("echo.say", {})).status).toBe(401);
+  const put = await rig.owner("rule.put", { target: "com.lopecode.brain.echo.say", allow: 'caller.kind == "anonymous" || caller.session' });
+  expect([put.status, put.data.target]).toEqual([200, "com.lopecode.brain.echo.say"]);
+  expect((await rig.anonymous("echo.say", {})).status).toBe(200);
+  // The set rule stands in for the declared one: a token passed the declared rule and does not pass this.
+  expect((await rig.as("token:laptop", "token")("echo.say", {})).status).toBe(401);
+  const listed = (await rig.owner("rule.list")).data.rules.find((r) => r.target === "com.lopecode.brain.echo.say");
+  expect(listed).toMatchObject({ worker: "brain-x-echo", declared: "caller.trusted", set: 'caller.kind == "anonymous" || caller.session' });
+  // Only the owner's own session sets one; it must parse; it must name something a Worker declared.
+  expect((await rig.as("token:laptop", "token")("rule.put", { target: "com.lopecode.brain.echo.say", allow: "true" })).status).toBe(401);
+  expect((await rig.worker("rule.put", { target: "com.lopecode.brain.echo.say", allow: "true" })).status).toBe(401);
+  expect((await rig.owner("rule.put", { target: "com.lopecode.brain.echo.say", allow: "caller.kind ==" })).status).toBe(400);
+  expect((await rig.owner("rule.put", { target: "com.lopecode.brain.rule.put", allow: "true" })).status).toBe(404);
+  // A method its service marked fixed keeps the declared rule.
+  expect((await rig.owner("rule.put", { target: "com.lopecode.brain.echo.key", allow: "true" })).status).toBe(403);
+  expect((await rig.anonymous("echo.key")).status).toBe(401);
+  expect((await rig.owner("rule.delete", { target: "com.lopecode.brain.echo.say" })).data).toEqual({ deleted: true });
+  expect((await rig.anonymous("echo.say", {})).status).toBe(401);
+  expect((await rig.as("token:laptop", "token")("echo.say", {})).status).toBe(200);
+  return "set, listed, refused 4 ways, deleted";
+}
+// %%
+test_owner_methods_refuse_other_callers = {
+  const rig = await coreRig();
+  expect((await rig.anonymous("echo.say", {})).status).toBe(401);
+  expect((await rig.anonymous("/private")).status).toBe(401);
+  expect((await rig.anonymous("echo.read")).status).toBe(200);
+  expect((await rig.anonymous("rule.list")).status).toBe(401);
+  // A token or a granted DID has been checked against the method by the kernel.
+  expect((await rig.as("token:laptop", "token")("echo.say", {})).status).toBe(200);
+  // No key, or a recipe claiming to be the owner, is not the owner.
+  expect((await rig.nobody("rule.list", undefined, { "x-brain-caller": "owner" })).status).toBe(401);
+  expect((await rig.worker("rule.list")).status).toBe(401);
+  expect((await rig.worker("service.register", { worker: "brain-x-echo", role: "kernel", keyHash: "x" })).status).toBe(401);
+  expect(rig.seen.length).toBe(2);
+  return "401 for anonymous, keyless and a recipe naming itself owner";
+}
+// %%
+test_notebook_rows_per_worker = {
+  const rig = await coreRig();
+  await rig.owner("rows.put", { worker: "whatsapp", key: "linked", value: "+4915" });
+  await rig.owner("rows.put", { worker: "digest", key: "linked", value: "other" });
+  expect((await rig.owner("rows.get?worker=whatsapp&key=linked")).data).toEqual({ value: "+4915" });
+  expect((await rig.owner("rows.list?worker=whatsapp")).data.rows).toEqual([{ key: "linked", value: "+4915" }]);
+  expect((await rig.anonymous("rows.get?worker=whatsapp&key=linked")).status).toBe(401);
+  return "two tables";
+}
+// %%
+md`## Members
+
+A member's Worker (\`brain-m-ID-NAME\`, deployed by the deployer for a member) has its author's permissions and no others.
+
+| | |
+|---|---|
+| \`people.sync\` | procedure, the kernel. \`{ people: [{ did, methods, quota, tags }] }\`: every member, what each was granted, their limits and their tag grants. Sent whole on each change; a DID left out is no longer a member. |
+| A call a member's Worker makes | Allowed when its author is a member, the Worker is not switched off, and the method is \`db.sql\`, a \`static.*\` method, a member's method (\`com.lopecode.brain.m.…\`) or in the author's grant. It goes on as a call by the author's DID with \`x-brain-via: worker:brain-m-ID-NAME\`. A path that is not a method is refused. |
+| A call to a member's Worker | Decided by the rule the deployer wrote for the method, and refused while the Worker is off or its author is not a member. |
+| \`member.whoami\` | query, a member. Their ID, the names their methods, Workers, files and tables take, their limits and today's calls. |
+| \`member.services\` | query. The owner sees every member's Workers; a member their own and any with a method for members. |
+| \`member.switch\` | procedure, the owner's session. \`{ worker, off }\` |
+| \`service.health\` | procedure, the deployer. Asks a Worker that has no address for its health, over its binding. |
+| Limits | 2000 calls a UTC day into and out of one member's Workers, 20 MB of files, 3 Workers; each is the owner's to change per member (\`people.put\`, \`quota\`). |
+| Storage | \`person/<did>\`, \`mcalls/<did>/<day>\` |
+
+Membership, a grant and the switch are read from storage on each call, so a change holds from the next one.`
+// %%
+memberCoreRig = async () => {
+  const A = "did:plc:alice", B = "did:plc:bob", W = "brain-m-aaaaaaaaaa-todo", ns = "com.lopecode.brain.m.aaaaaaaaaa.";
+  const heard = [];
+  const rig = await coreRig({
+    workers: {
+      "m-aaaaaaaaaa-todo": async (request) => {
+        heard.push({ path: new URL(request.url).pathname, caller: request.headers.get("x-brain-caller"), via: request.headers.get("x-brain-via"), context: request.headers.get("x-brain-context") });
+        return new URL(request.url).pathname === "/xrpc/_health" ? Response.json({ ok: true, hash: "m1" }) : Response.json({ served: true });
+      }
+    }
+  });
+  await rig.deployer("service.register", {
+    worker: W, role: "member", author: A, hash: "m1", module: "@alice/todo", paths: [], secrets: [], keyHash: await sha256("todo-key"),
+    methods: { [ns + "add"]: { type: "procedure", who: "author", allow: 'caller.kind == "owner" || caller.did == "did:plc:alice"' }, [ns + "list"]: { type: "query", who: "members", allow: 'caller.kind in ["owner", "did"]' } }
+  });
+  const kernel = rig.as("kernel", "");
+  const sync = (people) => kernel("people.sync", { people });
+  // The Worker itself, claiming to be the owner.
+  const todo = async (path, body) => {
+    const r = await rig.sim.fetch("https://core.internal" + (path.startsWith("/") ? path : "/xrpc/com.lopecode.brain." + path), { method: body === undefined ? "GET" : "POST", headers: { "x-brain-key": "todo-key", "x-brain-caller": "owner", "x-brain-via": "session", ...(body === undefined ? {} : { "content-type": "application/json" }) }, body: body === undefined ? undefined : JSON.stringify(body) });
+    return { status: r.status, data: await r.json().catch(() => null) };
+  };
+  return { ...rig, A, B, W, ns, heard, others: rig.heard, sync, todo, kernel };
+}
+// %%
+// Three Workers in a row: a, b and c. b.go is for a acting for a trusted origin; c.go is for b acting for the owner's own tab.
+originRig = async (config = {}) => {
+  const rig = await coreRig({ config, workers: {} });
+  const P = "com.lopecode.brain.";
+  const workers = { a: rig.hear("a"), b: rig.hear("b"), c: rig.hear("c") };
+  for (const [name, handler] of Object.entries(workers)) rig.sim.env["X_" + name.toUpperCase()] = { fetch: async (request) => (request.url.endsWith("getInfo") ? Response.json({ name: "brain-x-" + name, hash: "h", calls: [P + "*.go", P + "*.who"] }) : handler(request)) };
+  const reg = async (name, methods) => rig.deployer("service.register", { worker: "brain-x-" + name, role: "recipe", methods, paths: [], secrets: [], hash: "h", keyHash: await sha256(name + "-key") });
+  await reg("a", { [P + "a.go"]: { type: "procedure", who: "anyone" } });
+  await reg("b", { [P + "b.go"]: { type: "procedure", allow: 'caller.worker == "brain-x-a" && origin.trusted' }, [P + "b.who"]: { type: "procedure", who: "workers" } });
+  await reg("c", { [P + "c.go"]: { type: "procedure", allow: 'caller.worker == "brain-x-b" && origin.session' } });
+  // A call by Worker `name`, with the reference it was given or any other text.
+  const from = (name, context) => rig.send("https://core.internal", { "x-brain-key": name + "-key", "x-brain-caller": "owner", "x-brain-via": "session", "x-brain-origin": "owner", ...(context ? { "x-brain-context": context } : {}) });
+  // What the last call to a Worker carried.
+  const last = (worker) => rig.heard.filter((h) => h.worker === worker).at(-1);
+  // `who` calls a.go; a then calls `method` with the reference it was given.
+  const chain = async (who, method, body = {}) => {
+    await who("a.go", {});
+    return from("a", last("a").context)(method, body);
+  };
+  return { ...rig, from, last, chain };
+}
+// %%
+test_the_origin_of_a_call_is_who_started_the_chain = {
+  const rig = await originRig();
+  // From outside the origin is the caller.
+  await rig.owner("a.go", {});
+  expect(rig.last("a")).toMatchObject({ caller: "owner", origin: "owner", via: "session" });
+  await rig.anonymous("a.go", {});
+  expect(rig.last("a")).toMatchObject({ caller: "anonymous", origin: "anonymous", via: null });
+  // A Worker that sends the reference back calls for the origin; one that does not calls for itself.
+  expect((await rig.chain(rig.owner, "b.go")).status).toBe(200);
+  expect(rig.last("b")).toMatchObject({ caller: "worker:brain-x-a", origin: "owner", via: "session" });
+  expect((await rig.chain(rig.as("did:plc:ada", "jwt"), "b.go")).status).toBe(200);
+  expect(rig.last("b")).toMatchObject({ caller: "worker:brain-x-a", origin: "did:plc:ada", via: "jwt" });
+  expect((await rig.chain(rig.as("owner", "turn:7"), "b.go")).status).toBe(200);
+  expect(rig.last("b")).toMatchObject({ origin: "owner", via: "turn:7" });
+  // The same rule, the same Worker, and an origin nobody checked: refused.
+  expect((await rig.chain(rig.anonymous, "b.go")).status).toBe(401);
+  expect((await rig.from("a")("b.go", {})).status).toBe(401);
+  // What a Worker says in clear is not read.
+  expect((await rig.from("a")("b.who", {})).status).toBe(200);
+  expect(rig.last("b")).toMatchObject({ caller: "worker:brain-x-a", origin: "worker:brain-x-a", via: null });
+  // Three in a row keep the first origin, and each reference is for one Worker.
+  await rig.chain(rig.owner, "b.go");
+  expect((await rig.from("b", rig.last("b").context)("c.go", {})).status).toBe(200);
+  expect(rig.last("c")).toMatchObject({ caller: "worker:brain-x-b", origin: "owner", via: "session" });
+  await rig.chain(rig.as("owner", "turn:7"), "b.go");
+  expect((await rig.from("b", rig.last("b").context)("c.go", {})).status).toBe(401);
+  return rig.heard.length + " forwarded";
+}
+// %%
+test_a_reference_that_is_not_the_cores_own_gives_no_origin = {
+  const rig = await originRig();
+  await rig.owner("a.go", {});
+  const good = rig.last("a").context, [v, payload, sig] = good.split(".");
+  expect(JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({ o: "owner", v: "session", w: "brain-x-a" });
+  expect((await rig.from("a", good)("b.go", {})).status).toBe(200);
+  // Changed, signed by somebody else, cut short, or not one at all.
+  const forged = btoa(JSON.stringify({ o: "owner", v: "session", w: "brain-x-a", e: Date.now() + 60000 })).replace(/=+$/, "");
+  for (const bad of [[v, forged, sig].join("."), [v, payload, sig.slice(0, -1) + (sig.endsWith("A") ? "B" : "A")].join("."), [v, payload].join("."), "owner", "c1.e30.x"]) {
+    expect([bad.slice(0, 12), (await rig.from("a", bad)("b.go", {})).status]).toEqual([bad.slice(0, 12), 401]);
+    expect((await rig.from("a", bad)("b.who", {})).status).toBe(200);
+    expect(rig.last("b").origin).toBe("worker:brain-x-a");
+  }
+  // Made for another Worker: b was given its own, and a cannot use it, nor b a's.
+  const forB = rig.last("b").context;
+  await rig.from("a", good)("b.go", {});
+  expect((await rig.from("a", rig.last("b").context)("b.go", {})).status).toBe(401);
+  expect((await rig.from("b", good)("c.go", {})).status).toBe(401);
+  expect(forB).not.toBe(good);
+  // The kernel is not a Worker of a service: a reference it passes on is not read.
+  await rig.send("https://core.internal", { "x-brain-key": "kernel-key", "x-brain-caller": "anonymous", "x-brain-context": good })("a.go", {});
+  expect(rig.last("a").origin).toBe("anonymous");
+  // Ended.
+  const short = await originRig({ contextMs: -1 });
+  await short.owner("a.go", {});
+  expect((await short.from("a", short.last("a").context)("b.go", {})).status).toBe(401);
+  return "5 refused, 2 for another Worker, 1 ended";
+}
+// %%
+test_a_members_worker_keeps_its_author_and_carries_an_origin = {
+  const rig = await memberCoreRig(), { A, W } = rig;
+  rig.sim.env.X_B = { fetch: rig.hear("b") };
+  const P = "com.lopecode.brain.";
+  await rig.deployer("service.register", { worker: "brain-x-b", role: "recipe", methods: { [P + "b.go"]: { type: "procedure", allow: "caller.did == " + JSON.stringify(A) + " && origin.session" }, [P + "b.who"]: { type: "procedure", who: "owner" } }, paths: [], secrets: [], hash: "h", keyHash: await sha256("b-key") });
+  await rig.sync([{ did: A, methods: [P + "b.go", P + "b.who"] }]);
+  const todo = (context) => rig.send("https://core.internal", { "x-brain-key": "todo-key", ...(context ? { "x-brain-context": context } : {}) });
+  // With no reference the origin is its author, named with the Worker.
+  expect((await todo()("b.who", {})).status).toBe(200);
+  expect(rig.others.at(-1)).toMatchObject({ caller: A, origin: A, via: "worker:" + W });
+  expect((await todo()("b.go", {})).status).toBe(401);
+  // The owner calls the member's method; the Worker calls on with the reference: still checked as its author, and for the owner.
+  expect((await rig.owner(rig.ns.slice(P.length) + "list")).status).toBe(200);
+  const given = rig.heard.at(-1).context;
+  expect((await todo(given)("b.go", {})).status).toBe(200);
+  expect(rig.others.at(-1)).toMatchObject({ caller: A, origin: "owner", via: "session" });
+  // The author's grant is still what is checked.
+  await rig.sync([{ did: A, methods: [] }]);
+  expect((await todo(given)("b.go", {})).status).toBe(403);
+  return "as its author, for the owner";
+}
+// %%
+
+test_a_members_worker_calls_as_its_author_and_no_more = {
+  const rig = await memberCoreRig(), { A, B, W } = rig;
+  // Before the kernel has named any member, it may call nothing.
+  expect((await rig.todo("echo.read")).status).toBe(403);
+  await rig.sync([{ did: A, methods: ["com.lopecode.brain.echo.say"] }, { did: B, methods: [] }]);
+  expect((await rig.todo("echo.say", {})).status).toBe(200);
+  expect(rig.seen.at(-1).caller).toBe(A);
+  // Not granted to its author: refused, whoever may otherwise call it.
+  expect((await rig.todo("echo.read")).data.message).toBe(`${W} runs as ${A}, who has no grant for com.lopecode.brain.echo.read`);
+  expect((await rig.todo("echo.key")).status).toBe(403);
+  expect((await rig.todo("rows.get?worker=brain-x-echo&key=a")).status).toBe(403);
+  expect((await rig.todo("member.switch", { worker: W, off: false })).status).toBe(403);
+  expect((await rig.todo("people.sync", { people: [] })).status).toBe(403);
+  expect((await rig.todo("/hooks/echo")).status).toBe(403);
+  // The grant is read on each call.
+  await rig.sync([{ did: A, methods: [] }, { did: B, methods: [] }]);
+  expect((await rig.todo("echo.say", {})).status).toBe(403);
+  await rig.sync([{ did: A, methods: ["com.lopecode.brain.echo.say"] }, { did: B, methods: [] }]);
+  expect((await rig.todo("echo.say", {})).status).toBe(200);
+  // Removed: nothing in, nothing out.
+  await rig.sync([{ did: B, methods: [] }]);
+  expect((await rig.todo("echo.say", {})).data.message).toBe(`${A} is not a member, so ${W} may call nothing`);
+  expect((await rig.as(B)("m.aaaaaaaaaa.list")).status).toBe(403);
+  expect((await rig.owner("people.sync", { people: [] })).status).toBe(401);
+  expect((await rig.as(B)("people.sync", { people: [] })).status).toBe(401);
+}
+// %%
+test_a_members_method_is_open_by_its_rule_and_the_owner_has_a_switch = {
+  const rig = await memberCoreRig(), { A, B, W, ns } = rig;
+  await rig.sync([{ did: A, methods: [] }, { did: B, methods: [] }]);
+  const add = "m.aaaaaaaaaa.add", list = "m.aaaaaaaaaa.list";
+  expect([(await rig.as(A)(add, {})).status, (await rig.as(B)(add, {})).status, (await rig.owner(add, {})).status, (await rig.anonymous(add, {})).status]).toEqual([200, 401, 200, 401]);
+  expect([(await rig.as(A)(list)).status, (await rig.as(B)(list)).status, (await rig.anonymous(list)).status]).toEqual([200, 200, 401]);
+  expect(rig.heard.at(-1)).toMatchObject({ caller: B });
+  // Its own method through the core arrives as its author, with the Worker named.
+  expect((await rig.todo(list)).status).toBe(200);
+  expect(rig.heard.at(-1)).toMatchObject({ path: "/xrpc/" + ns + "list", caller: A, via: "worker:" + W });
+  expect((await rig.as(A)("member.services")).data.services).toEqual([{ worker: W, author: A, module: "@alice/todo", hash: "m1", off: false, methods: { [ns + "add"]: "author", [ns + "list"]: "members" } }]);
+  // Another member sees it because list is for members; someone who is not a member sees nothing.
+  expect((await rig.as(B)("member.services")).data.services.map((s) => s.worker)).toEqual([W]);
+  expect((await rig.as("did:plc:stranger")("member.services")).data.services).toEqual([]);
+  expect((await rig.owner("member.services")).data.services.length).toBe(1);
+  // The page's registry and the source it loads from hold no member's Worker.
+  expect((await rig.owner("service.list")).data.services.map((s) => s.worker)).not.toContain(W);
+  expect((await rig.owner("getSource?worker=" + W)).status).toBe(404);
+  expect((await rig.as(A)("member.whoami")).data).toMatchObject({ did: A, methods: "com.lopecode.brain.m." + (await sha256(A)).slice(0, 10) + ".", quota: { calls: 2000, workers: 3 } });
+  expect((await rig.anonymous("member.whoami")).status).toBe(403);
+  expect((await rig.deployer("service.health", { worker: W })).data).toEqual({ ok: true, hash: "m1" });
+  // The switch is the owner's own session's.
+  expect((await rig.as(A)("member.switch", { worker: W, off: true })).status).toBe(401);
+  expect((await rig.owner("member.switch", { worker: "brain-x-echo", off: true })).status).toBe(404);
+  expect((await rig.owner("member.switch", { worker: W, off: true })).data).toEqual({ worker: W, off: true });
+  expect((await rig.as(A)(list)).data.message).toBe(W + " is switched off");
+  expect((await rig.todo(list)).status).toBe(403);
+  await rig.owner("member.switch", { worker: W, off: false });
+  expect((await rig.as(A)(list)).status).toBe(200);
+  // Calls in and out are counted against the author's day.
+  await rig.sync([{ did: A, methods: [], quota: { calls: 0 } }, { did: B, methods: [] }]);
+  expect([(await rig.as(B)(list)).status, (await rig.todo(list)).status]).toEqual([429, 429]);
+}
+// %%
+import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, settings, simulate, sha256, xrpc, backend} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"

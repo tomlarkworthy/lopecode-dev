@@ -1,0 +1,385 @@
+md`# brain-shell
+
+The page a Brain serves at \`/\` is a shell: lopecode, this module, and no service. On a Brain's address this module asks the deployer for every module a Worker of that Brain owns and adds each to the page, so what is shown is the source of what is running. In a copy opened from a file it does nothing.
+
+**Session.** The page holds who is signed in as a token in this origin's \`localStorage\` (\`brain_session\`) and sends it as \`Authorization: Bearer\` on every call; no cookie is involved. \`brainClient\` is the client that does so.
+
+**Portals.** A member's module is listed in the table below and is not added to this page. **Open** shows it in a frame: \`<iframe sandbox="allow-scripts">\`, full width and 480px high, whose document is this same shell file with one script added. The frame has its own origin (\`null\`), its own runtime and no storage. Chromium does not run it while it is off screen, so opening one scrolls to it. The page asks the kernel for a portal token (\`portal.token { author }\`, 10 minutes, renewed every 4) and posts it to the frame; the frame asks \`portal.modules\` for that member's modules, adds them to its own runtime and shows the module's cells, with this module in a second tab. The token names the viewer and reaches only that member's Workers, so code in the frame can call its own service as whoever is looking and nothing else of theirs. In a frame, \`brainClient\` is also the global \`brainClient\`, which is how a member's cell calls its service: \`brainClient.query(brainPortal.methods + "list")\`. Opened by its own author, the frame's tab has **Deploy**, which sends the module as it now stands in the frame to \`member.deploy\`.`
+// %%
+// Runs when this cell is on the page, which it is in the layout a shell opens with.
+brainBoot = {
+  if (!brainOrigin) return md`This copy was opened from a file. It holds its modules itself.`;
+  if (brainModules.error) return md`The modules of this ${brainPortal ? "portal" : "Brain"} could not be read: ${brainModules.error}.`;
+  const had = brainModules.modules.filter((m) => runtime.mains.has(m.module)).map((m) => m.module);
+  const joined = await joinModules(brainModules.modules);
+  const row = (m) => `| \`${m.module}\` | ${m.worker} | \`${String(m.hash || "").slice(0, 12)}\` | ${joined.includes(m.module) ? "loaded" : had.includes(m.module) ? "in this file" : "not loaded"} |`;
+  if (brainPortal) {
+    const note = htl.html`<span style="color:var(--theme-foreground-muted)"></span>`;
+    const deploy = Inputs.button("Deploy", {
+      reduce: async () => {
+        note.textContent = " deploying…";
+        try {
+          const made = await brainClient.procedure("member.deploy", { module: brainPortal.module, source: (await exportModuleJS(brainPortal.module)).source });
+          note.textContent = ` ${made.worker || brainPortal.module} is ${String(made.hash || "").slice(0, 12)}`;
+        } catch (e) {
+          note.textContent = " refused: " + ((e && e.message) || e);
+        }
+      }
+    });
+    return md`A portal on \`${brainPortal.module}\`, a service of \`${brainPortal.author}\`. Its calls are made as ${brainPortal.viewer ? "`" + brainPortal.viewer + "`" : "whoever opened it"} and reach \`m.${brainPortal.id}.*\` only.
+
+| module | Worker | hash | |
+|---|---|---|---|
+${brainModules.modules.map(row).join("\n")}
+
+${brainPortal.viewer === brainPortal.author ? htl.html`<div style="display:flex;align-items:center">${deploy}${note}</div>` : ""}`;
+  }
+  const frames = htl.html`<div></div>`;
+  const open = new Map();
+  const portal = (s) =>
+    Inputs.button("Open", {
+      reduce: () => {
+        if (open.has(s.worker)) return void (open.get(s.worker).close(), open.delete(s.worker));
+        const frame = openPortal(s, { viewer: brainWho.did });
+        open.set(s.worker, frame);
+        frames.append(frame);
+        // A frame of another origin that is off screen is not run by the browser until it is scrolled to.
+        frame.scrollIntoView({ block: "nearest" });
+      }
+    });
+  const tr = (module, worker, hash, last) => htl.html`<tr><td><code>${module}</code></td><td>${worker}</td><td><code>${String(hash || "").slice(0, 12)}</code></td><td>${last}</td></tr>`;
+  const state = (m) => (joined.includes(m.module) ? "loaded" : had.includes(m.module) ? "in this file" : "not loaded");
+  return htl.html`<div>
+    <p>${joined.length} of ${brainModules.modules.length} modules loaded from this Brain's Workers, distilled by deployer <code>${String(brainModules.distiller || "").slice(0, 12)}</code>.${portalServices.length ? ` ${portalServices.length} of a member's, each opened as a portal: a frame with its own runtime.` : ""}</p>
+    <table>
+      <thead><tr><th>module</th><th>Worker</th><th>hash</th><th></th></tr></thead>
+      <tbody>${brainModules.modules.map((m) => tr(m.module, m.worker, m.hash, state(m)))}${portalServices.map((s) => tr(s.module, s.worker, s.hash, portal(s)))}</tbody>
+    </table>
+    ${frames}
+  </div>`;
+}
+// %%
+md`## Reference
+
+| | |
+|---|---|
+| \`brainOrigin\` | The Brain this page was served by, or null in a local copy. In a portal, the Brain it was opened from. |
+| \`brainSession\` | \`get()\`, \`set(token)\`, \`clear()\`, \`headers()\`: the session this origin keeps. In a portal \`headers()\` waits for the portal token and there is nothing to set. |
+| \`brainWho\` | What \`/auth/session\` answers for that session: \`{ signedIn, did, handle, owner }\`. |
+| \`brainClient\` | \`xrpcClient\` for \`com.lopecode.brain\` on this Brain, sending the session. Null in a local copy. |
+| \`brainPortal\` | Null on a Brain's page. In a portal: \`{ base, author, id, methods, module, viewer, token, ready }\`; \`methods\` is the prefix of that member's method names. |
+| \`portalHtml(shell, { base, author, id, module, viewer })\` | The shell file as a portal's document: the layout is the member's module then this one, and a first script waits for the token from the page that framed it. |
+| \`openPortal(service, { client, base })\` | The frame for one row of \`member.services\`, kept supplied with a token. |
+| \`brainModules\` | What the deployer answers at \`infra.getModules\`: \`{ distiller, modules: [{ module, worker, hash, text, files }] }\`. Public. |
+| \`joinModules(list)\` | Adds each module to the page as a main: its source and files as script blocks, then its definition, once. A module the page already has is left alone. |
+| \`shellOf(html, modules)\` | A notebook file without those modules, their files, or their places in the layout. |
+
+A module joins before any of its cells exists, so the page names it; an \`import\` of it from any other module, the shell's or a Brain's, reaches this one copy.`
+// %%
+// Set by the script portalHtml adds, before anything else on the page runs.
+brainPortal = globalThis.__brainPortal || null
+// %%
+// The Brain this page was served by. A local copy of the notebook has none.
+brainOrigin = brainPortal ? brainPortal.base : location.protocol === "https:" && !/observableusercontent\.com$|^localhost$/.test(location.hostname) ? location.origin : null
+// %%
+brainSession = {
+  const KEY = "brain_session";
+  if (brainPortal) return { get: () => brainPortal.token, set: () => {}, clear: () => {}, headers: async () => (await brainPortal.ready, { authorization: "Bearer " + brainPortal.token }) };
+  const get = () => {
+    try {
+      return globalThis.localStorage.getItem(KEY);
+    } catch {
+      return null;
+    }
+  };
+  return {
+    get,
+    set: (token) => globalThis.localStorage.setItem(KEY, token),
+    clear: () => globalThis.localStorage.removeItem(KEY),
+    headers: () => ((token) => (token ? { authorization: "Bearer " + token } : {}))(get())
+  };
+}
+// %%
+brainClient = {
+  if (!brainOrigin) return null;
+  const client = xrpcClient(brainOrigin, { namespace: "com.lopecode.brain", headers: brainSession.headers });
+  // A member's cell names this as a free variable; it is not something the module it is deployed from can import.
+  if (brainPortal) (globalThis.brainClient = client), (globalThis.brainPortal = brainPortal);
+  return client;
+}
+// %%
+// The deployer's address. The kernel names it in its DID document; a kernel from before 2026-10-08 does not, and
+// the deployer of that Brain is BASE-guard.
+brainDeployer = !brainOrigin || brainPortal
+  ? null
+  : fetch(brainOrigin + "/.well-known/did.json")
+      .then((r) => (r.ok ? r.json() : null), () => null)
+      .then((doc) => ((((doc && doc.service) || []).find((s) => s.id === "#deployer") || {}).serviceEndpoint) || brainOrigin.replace(/^https:\/\/([^.]+)/, "https://$1-guard"))
+// %%
+brainModules = !brainOrigin
+  ? null
+  : brainPortal
+  ? brainClient.procedure("portal.modules", {}).catch((e) => ({ error: String((e && e.message) || e), modules: [] }))
+  : fetch(brainDeployer + "/xrpc/com.lopecode.brain.infra.getModules").then(
+      async (r) => (r.ok ? r.json() : { error: "the deployer answered " + r.status, modules: [] }),
+      (e) => ({ error: String((e && e.message) || e), modules: [] })
+    )
+// %%
+joinModules = async (list, { doc = document, rt = runtime } = {}) => {
+  const mimeOf = (name) => (/\.js$/.test(name) ? "text/javascript" : /\.json$/.test(name) ? "application/json" : "text/plain");
+  const block = (id, mime, text) => {
+    if (doc.getElementById(id)) return false;
+    const s = doc.createElement("script");
+    s.type = "text/plain";
+    s.id = id;
+    s.setAttribute("data-mime", mime);
+    s.textContent = text;
+    doc.head.appendChild(s);
+    return true;
+  };
+  const fresh = list.filter((m) => !(rt.mains && rt.mains.has(m.module)) && !doc.getElementById(m.module));
+  for (const m of fresh) {
+    // A module reads its files while it is defined, so each one it names has a block, empty when none was sent.
+    const names = /new Map\(\[([^\]]*)\]\.map\(\(name\)/.exec(m.text);
+    for (const name of names ? JSON.parse("[" + names[1] + "]") : []) block(m.module + "/" + encodeURIComponent(name), mimeOf(name), (m.files || {})[name] ?? "");
+    block(m.module, "application/javascript", m.text);
+  }
+  // Anything else on the page may import one of these the moment its block exists (the module map does), and the
+  // runtime would then make a second copy. While they join, the runtime is asked through here: a definition it has
+  // not seen that is one of these, told by how its text begins, becomes that main there and then.
+  const joined = [], pending = new Map(fresh.map((m) => [m.module, m]));
+  const startOf = (s) => ((text) => ((i) => (i < 0 ? null : text.slice(i, i + 400)))(text.indexOf("function define")))(String(s));
+  const plain = rt.module;
+  const make = (m, define) => {
+    pending.delete(m.module);
+    const mod = createModule(m.module, rt);
+    // The runtime keeps one module per definition: an import of this module from anywhere gets this one.
+    rt._modules.set(define, mod);
+    let first = true;
+    const proxy = new Proxy(rt, {
+      get(t, k) {
+        if (k === "module") return (d, o) => (d === undefined && first ? ((first = false), mod) : t.module(d, o));
+        const v = Reflect.get(t, k);
+        return typeof v === "function" ? v.bind(t) : v;
+      }
+    });
+    define(proxy, () => ({}));
+    joined.push(m.module);
+    return mod;
+  };
+  rt.module = function (define, observer) {
+    if (typeof define === "function" && pending.size && !rt._modules.has(define)) {
+      const start = startOf(define);
+      for (const m of pending.values()) if (start && startOf(m.text) === start) return make(m, define);
+    }
+    return plain.call(rt, define, observer);
+  };
+  try {
+    const defines = (await Promise.all(fresh.map((m) => globalThis.importShim("/" + m.module + ".js?v=4")))).map((ns) => ns.default);
+    fresh.forEach((m, i) => pending.has(m.module) && make(m, defines[i]));
+  } finally {
+    delete rt.module;
+  }
+  return joined;
+}
+// %%
+// Who the session says is signed in. A session the Brain refuses is dropped, and the visitor is signed out.
+brainWho = {
+  if (!brainOrigin || brainPortal) return { signedIn: false };
+  const ask = () => brainClient.fetch("/auth/session");
+  try {
+    let r = await ask();
+    if (r.status === 401) (brainSession.clear(), (r = await ask()));
+    return await r.json();
+  } catch {
+    return { signedIn: false, unreachable: true };
+  }
+}
+// %%
+// Members' Workers, for the table: the owner sees all, a member their own and those with a method for members.
+portalServices = brainWho.signedIn
+  ? brainClient.query("member.services").then((r) => r.services.filter((s) => s.module && !s.off), () => [])
+  : []
+// %%
+portalHtml = (html, { base, author, id, module, viewer = null }) => {
+  const boot = `(() => {
+  let got;
+  const portal = (window.__brainPortal = { ...${JSON.stringify({ base, author, id, module, viewer, methods: "com.lopecode.brain.m." + id + "." })}, token: null });
+  portal.ready = new Promise((r) => (got = r));
+  addEventListener("message", (e) => {
+    if (e.source !== parent || e.origin !== portal.base || !e.data || typeof e.data.brainPortalToken !== "string") return;
+    portal.token = e.data.brainPortalToken;
+    got(portal);
+  });
+  parent.postMessage({ brainPortal: "ready" }, portal.base);
+})();`.replace(/</g, "\\u003c");
+  let first = true;
+  return html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>\n?/g, (all, attrs, body) => {
+    const mine = first ? "<script>" + boot + "</scr" + "ipt>\n" : "";
+    first = false;
+    if ((/\bid="([^"]+)"/.exec(attrs) || [])[1] !== "bootconf.json") return mine + all;
+    const conf = JSON.parse(body);
+    conf.hash = `#view=C100(S100(${module},@tomlarkworthy/brain-shell))`;
+    return mine + "<script" + attrs + ">\n" + JSON.stringify(conf, null, 2) + "\n</scr" + "ipt>" + (all.endsWith("\n") ? "\n" : "");
+  });
+}
+// %%
+// One member's module in a frame of its own. The frame can run scripts and nothing else: it has no origin, so no
+// storage, no reading of this page, and no request that carries anything of the viewer's but the token posted here.
+openPortal = (service, { client = brainClient, base = brainOrigin, send = (...a) => fetch(...a), viewer = null } = {}) => {
+  const frame = htl.html`<iframe sandbox="allow-scripts" title=${"portal: " + service.module} style="width:100%;height:480px;border:1px solid var(--theme-foreground-faintest, #ccc);border-radius:4px;background:var(--theme-background, #fff)"></iframe>`;
+  const give = async () => {
+    const { token } = await client.procedure("portal.token", { author: service.author });
+    if (frame.contentWindow) frame.contentWindow.postMessage({ brainPortalToken: token }, "*");
+  };
+  const heard = (e) => e.source === frame.contentWindow && e.data && e.data.brainPortal === "ready" && give();
+  addEventListener("message", heard);
+  const again = setInterval(() => (frame.isConnected ? give().catch(() => {}) : close()), 240000);
+  const close = () => (removeEventListener("message", heard), clearInterval(again), frame.remove());
+  frame.ready = (async () => {
+    const [shell, id] = await Promise.all([send(base + "/").then((r) => r.text()), client.procedure("portal.token", { author: service.author }).then((r) => r.id)]);
+    frame.srcdoc = portalHtml(shell, { base, author: service.author, id, module: service.module, viewer });
+  })();
+  return Object.assign(frame, { close });
+}
+// %%
+// %%
+shellOf = (html, modules) => {
+  const owned = (id) => modules.some((m) => id === m || id.startsWith(m + "/"));
+  // Every script of the file is read in order, whole, so text inside one that looks like a block is never taken for one.
+  return html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>\n?/g, (all, attrs, body) => {
+    const id = (/\bid="([^"]+)"/.exec(attrs) || [])[1];
+    if (!id) return all;
+    if (owned(id)) return "";
+    if (id !== "bootconf.json") return all;
+    const conf = JSON.parse(body);
+    conf.mains = (conf.mains || []).filter((m) => !modules.includes(m));
+    if (!conf.mains.includes("@tomlarkworthy/brain-shell")) conf.mains.push("@tomlarkworthy/brain-shell");
+    // The layout keeps its panes: a module that is not in the file yet is shown when it joins.
+    // brain-shell goes last in the first stack: the page's own module is the tab a visitor sees first.
+    if (typeof conf.hash === "string" && !conf.hash.includes("@tomlarkworthy/brain-shell")) conf.hash = conf.hash.replace(/S(\d+)\(([^)]*)\)/, "S$1($2,@tomlarkworthy/brain-shell)");
+    return "<script" + attrs + ">\n" + JSON.stringify(conf, null, 2) + "\n</scr" + "ipt>" + (all.endsWith("\n") ? "\n" : "");
+  });
+}
+// %%
+test_shellOf_cuts_the_modules_their_files_and_their_mains = {
+  const b = (id, text) => `<script id="${id}" \n  type="text/plain"\n  data-mime="x"\n>\n${text}</scr` + "ipt>";
+  const conf = { mains: ["@a/lopepage", "@a/svc", "@a/other"], hash: "#view=C100(S70(@a/svc,@a/other))" };
+  const html = ["<html>", b("bootconf.json", JSON.stringify(conf)), b("@a/svc/lib.js", "L"), b("@a/svc", "S"), b("@a/svcs", 'kept: another name, and text that looks like a block: <script id="@a/svc">'), b("@a/other", "O"), "</html>"].join("\n");
+  const out = shellOf(html, ["@a/svc"]);
+  // The look-alike inside @a/svcs is text of that block and stays.
+  expect([...out.matchAll(/<script id="([^"]+)"/g)].map((m) => m[1])).toEqual(["bootconf.json", "@a/svcs", "@a/svc", "@a/other"]);
+  expect(out.includes("\nS</scr" + "ipt>") || out.includes("\nL</scr" + "ipt>")).toBe(false);
+  const made = JSON.parse(/<script id="bootconf\.json"[^>]*>([\s\S]*?)<\/script>/.exec(out)[1]);
+  expect(made).toEqual({ mains: ["@a/lopepage", "@a/other", "@tomlarkworthy/brain-shell"], hash: "#view=C100(S70(@a/svc,@a/other,@tomlarkworthy/brain-shell))" });
+  return made.mains.length + " mains";
+}
+// %%
+test_portalHtml_adds_one_script_first_and_shows_the_module = {
+  const b = (id, text) => `<script id="${id}" type="text/plain">\n${text}</scr` + "ipt>";
+  const conf = { mains: ["@a/lopepage", "@tomlarkworthy/brain-shell"], hash: "#view=C100(S70(@a/svc,@tomlarkworthy/brain-shell))" };
+  const html = ["<html><head>", "<script>boot()</scr" + "ipt>", b("bootconf.json", JSON.stringify(conf)), b("@a/other", "O"), "</head></html>"].join("\n");
+  const out = portalHtml(html, { base: "https://b.example", author: "did:plc:a</scr" + "ipt>", id: "0123456789", module: "@a/todo" });
+  const scripts = [...out.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  expect(scripts.length).toBe(4);
+  // The added script is first, holds no token, and a value cannot end it early.
+  expect(scripts[0]).toContain("window.__brainPortal");
+  expect(scripts[0]).toContain('"module":"@a/todo"');
+  expect(scripts[0]).toContain("token: null");
+  expect(scripts[1]).toBe("boot()");
+  expect(JSON.parse(scripts[2])).toEqual({ mains: conf.mains, hash: "#view=C100(S100(@a/todo,@tomlarkworthy/brain-shell))" });
+  // Run as the frame would: nothing until the page that framed it posts a token, and no other sender is heard.
+  const heard = [], posted = [], parent = { postMessage: (data, to) => posted.push([data, to]) };
+  const win = { addEventListener: (type, fn) => heard.push(fn), parent };
+  new Function("window", "addEventListener", "parent", scripts[0])(win, win.addEventListener, parent);
+  expect(posted).toEqual([[{ brainPortal: "ready" }, "https://b.example"]]);
+  const portal = win.__brainPortal;
+  heard[0]({ source: {}, origin: "https://b.example", data: { brainPortalToken: "from another window" } });
+  heard[0]({ source: parent, origin: "https://evil.example", data: { brainPortalToken: "from another origin" } });
+  expect(portal.token).toBe(null);
+  heard[0]({ source: parent, origin: "https://b.example", data: { brainPortalToken: "p1.a.b" } });
+  expect((await portal.ready).token).toBe("p1.a.b");
+  expect(portal.author).toBe("did:plc:a</scr" + "ipt>");
+  return "1 script added, token from the framing page only";
+}
+// %%
+test_openPortal_frames_the_shell_and_answers_ready_with_a_token = {
+  const asked = [];
+  const client = { procedure: async (name, body) => (asked.push([name, body]), { token: "p1.t." + asked.length, id: "0123456789" }) };
+  const shell = "<html><head><script>boot()</scr" + 'ipt><script id="bootconf.json" type="text/plain">{"mains":[],"hash":"#view=C100(S100(@a/x))"}</scr' + "ipt></head></html>";
+  const frame = openPortal({ module: "@a/todo", author: "did:plc:a", worker: "brain-m-0123456789-todo" }, { client, base: "https://b.example", send: async () => new Response(shell), viewer: "did:plc:v" });
+  try {
+    await frame.ready;
+    // Scripts and nothing else: no allow-same-origin, so the frame's origin is its own.
+    expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
+    expect(frame.srcdoc).toContain('"viewer":"did:plc:v"');
+    expect(frame.srcdoc).toContain("S100(@a/todo,@tomlarkworthy/brain-shell)");
+    expect(frame.srcdoc).not.toContain("p1.t.");
+    expect(asked).toEqual([["portal.token", { author: "did:plc:a" }]]);
+    return "sandbox=allow-scripts, token not in the document";
+  } finally {
+    frame.close();
+  }
+}
+// %%
+test_brainSession_sends_what_this_origin_keeps = {
+  const headers = await brainSession.headers();
+  const kept = brainSession.get();
+  expect(headers).toEqual(kept ? { authorization: "Bearer " + kept } : {});
+  return kept ? "a session" : "no session";
+}
+// %%
+test_joinModules_adds_a_module_once_and_imports_reach_it = {
+  const name = "@test/joined-" + Math.random().toString(36).slice(2, 8);
+  const text = `export default function define(runtime, observer) {
+  const main = runtime.module();
+  const fileAttachments = new Map(["note.txt"].map((name) => {
+    const module_name = ${JSON.stringify(name)};
+    const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
+    const blob_url = URL.createObjectURL(new Blob([bytes], { type: mime}));
+    return [name, {url: blob_url, mimeType: mime}]
+  }));
+  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));
+  main.variable(observer("answer")).define("answer", [], () => 42);
+  main.variable(observer("note")).define("note", ["FileAttachment"], (FileAttachment) => FileAttachment("note.txt").text());
+  return main;
+}`;
+  try {
+    expect(await joinModules([{ module: name, text, files: { "note.txt": "kept with the module" } }])).toEqual([name]);
+    const mod = runtime.mains.get(name);
+    expect([await mod.value("answer"), await mod.value("note")]).toEqual([42, "kept with the module"]);
+    // An import by path gets the same module, not a second one.
+    expect(runtime.module((await globalThis.importShim("/" + name + ".js?v=4")).default)).toBe(mod);
+    // Also when the import starts while the module is still joining, as the page's module map does.
+    const other = name + "b";
+    const early = new Promise((done) => {
+      const seen = new MutationObserver(() => {
+        if (!document.getElementById(other)) return;
+        seen.disconnect();
+        done(globalThis.importShim("/" + other + ".js?v=4").then((ns) => runtime.module(ns.default)));
+      });
+      seen.observe(document.head, { childList: true });
+    });
+    await joinModules([{ module: other, text: text.replaceAll(name, other), files: { "note.txt": "second" } }]);
+    expect(await early).toBe(runtime.mains.get(other));
+    for (const v of [...runtime._variables]) if (v._module === runtime.mains.get(other)) v.delete();
+    runtime.mains.delete(other);
+    for (const id of [other, other + "/note.txt"]) document.getElementById(id)?.remove();
+    // A second call adds nothing.
+    expect(await joinModules([{ module: name, text, files: {} }])).toEqual([]);
+    return name;
+  } finally {
+    const mod = runtime.mains.get(name);
+    if (mod) for (const v of [...runtime._variables]) if (v._module === mod) v.delete();
+    runtime.mains.delete(name);
+    for (const id of [name, name + "/note.txt"]) document.getElementById(id)?.remove();
+  }
+}
+// %%
+import {runtime, createModule} from "@tomlarkworthy/runtime-sdk"
+// %%
+import {xrpcClient} from "@tomlarkworthy/xrpc-client"
+// %%
+import {exportModuleJS} from "@tomlarkworthy/exporter-3"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

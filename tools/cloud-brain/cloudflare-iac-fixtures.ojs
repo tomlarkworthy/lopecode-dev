@@ -1,0 +1,5 @@
+md`# cloudflare-iac fixtures
+
+One function, imported by the tests of \`@tomlarkworthy/cloudflare-iac\` to show that the emit follows an import into another module.`
+// %%
+fixtureTriple = (x) => x * 3

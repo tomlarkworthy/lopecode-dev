@@ -1,0 +1,1177 @@
+md`# brain-bluesky
+
+A Cloud Brain channel: Bluesky messages to the Brain's own account arrive in the inbox, and answers go back with \`inbox.reply\`. A sender is their DID, so nobody links anything: the owner is answered from the first message, and anyone else once the owner has added their DID under People. In a group it answers the owner and people when they address it; see Groups.
+
+| | |
+|---|---|
+| Worker | \`brain-x-bluesky\`, ticked once a minute |
+| \`bluesky.send\` | procedure. The owner, a named token, or \`brain-x-inbox\` answering an entry; never a member. \`{ to, text }\` or \`{ to, image, text }\`; \`to\` is the owner's DID or a person's. With \`room\`, a group's conversation id, the text goes to that group, and \`to\` must be in it. |
+| \`bluesky.poll\` | procedure, owner. Reads what is new now. The page calls it every 5 s while its tab answers. |
+| \`bluesky.know\` | procedure, the kernel. \`{ address, forget }\` adds or drops one DID; \`{ all: [did] }\` replaces the set. |
+| \`bluesky.room\` | procedure, the kernel. \`{ id }\` answers \`{ known, name, members, complete, served }\` for a group this Worker has seen, read from the chat service when what is kept is over 2 minutes old. |
+| \`bluesky.start\` | procedure, owner. \`{ members, name, text }\`: makes a group of the owner and people already added (2 to 20 DIDs) and says \`text\` in it. \`{ id }\`. |
+| \`bluesky.groups\` | query, owner. \`{ settings, groups }\`: each group \`{ id, name, people, complete, ownerIn, enabled, served, read }\`. |
+| \`bluesky.group\` | procedure, owner. \`{ id, enabled }\` switches on a group the owner is not in. |
+| \`bluesky.settings\` | procedure, owner. \`{ names, addressedOnly, groupInvites }\`: what the account answers to beside its handle, whether it answers only then, and who may add it to a group (\`all\`, \`following\`, \`none\`), which is written to the account at the next poll. |
+| \`bluesky.putRecord\` | procedure. The owner in their tab, or \`brain-x-feed\` when the chain was started by the owner, in their tab or in a turn run for them (\`origin.kind == "owner"\`; *Origin* in \`@tomlarkworthy/brain-core\`). A token, or a member the owner gave \`feed.publish\`, does not write a record. Until 2026-10-08 the rule read \`origin.trusted\`, which let both through. \`{ collection, rkey, record }\` writes one record in the account's repo. \`collection\` must be \`app.bsky.feed.generator\`. \`{ did, handle, uri, cid }\`. |
+| \`bluesky.deleteRecord\` | procedure, the same callers. \`{ collection, rkey }\` deletes that record. \`{ did, handle, uri }\`. |
+| \`bluesky.status\` | query, owner. \`{ configured, handle, did, pds, signedIn, tick, lastPoll, lastError, backoffUntil, people, groups }\` |
+| Secrets | \`BLUESKY_HANDLE\`, \`BLUESKY_APP_PASSWORD\` |
+| Storage | \`rows\`: \`session\`, \`refused\`, \`cursor\`, \`since\`, \`known/<did>\`, \`convo/<did>\`, \`direct/<convo>\`, \`group/<convo>\`, \`heard/<convo>\`, \`settings\`, \`declared\`, \`declareError\`, \`accepted/<convo>\`, \`asked/<did>\`, \`asks\`, \`quiet/<did>\`, \`polled\`, \`tick\`, \`busy\`, \`backoff\`, \`error\` |
+
+With either secret unset, a tick writes \`tick\` and stops: no request leaves the Worker, and \`bluesky.status\` answers \`{ configured: false }\`.`
+// %%
+viewof blueskyStatus = {
+  const out = html`<div style="font: 13px var(--sans-serif, system-ui)"></div>`;
+  const when = (t) => (t ? new Date(t).toLocaleTimeString() : "never");
+  const read = async () => {
+    try {
+      const s = await client.query("bluesky.status");
+      out.value = s;
+      out.textContent = !s.configured
+        ? "Bluesky: not configured."
+        : `Bluesky: ${s.signedIn ? "signed in as @" + s.handle : "not signed in"}; last poll ${when(s.lastPoll && s.lastPoll.at)}${s.lastError ? "; error at " + when(s.lastError.at) + ": " + s.lastError.message : ""}${s.backoffUntil ? "; waiting until " + when(s.backoffUntil) : ""}`;
+    } catch (e) {
+      out.value = null;
+      out.textContent = "Bluesky: " + String((e && e.message) || e);
+    }
+  };
+  const check = Inputs.button("Check", { reduce: read });
+  if (session && session.owner) read();
+  else out.textContent = "Bluesky: sign in as the owner to see its state.";
+  return Object.assign(html`<div style="display:flex;gap:8px;align-items:center">${check}${out}</div>`, { value: null });
+}
+// %%
+bluesky_setup = md`## Setting up
+
+1. Make a Bluesky account for the Brain at [bsky.app](https://bsky.app). It asks for a phone number, which is why this Worker cannot make it.
+2. In that account: Settings → Privacy and security → App passwords → Add, and tick **Allow access to your direct messages**.
+3. In the Cloud Brain notebook set two secrets, each with the rule \`caller.worker in ["brain-x-bluesky"]\`: \`BLUESKY_HANDLE\` (\`name.bsky.social\`) and \`BLUESKY_APP_PASSWORD\`.
+4. Press Check above within two minutes. It reads "signed in as @name".
+5. From your own account, send the Brain's account a message.
+
+The Worker writes the account's \`chat.bsky.actor.declaration\` at its first poll after signing in: \`allowIncoming: "all"\`, where a new account takes messages only from accounts it follows, and \`allowGroupInvites: "all"\`, which read \`"none"\` on this account on 2026-10-07. Who may add it to a group is a setting under Groups. People added before this Worker was deployed are known to it from the next change under People.`
+// %%
+md`## What it calls
+
+Each was read from the lexicons in [bluesky-social/atproto](https://github.com/bluesky-social/atproto/tree/main/lexicons) at \`d29d7ab\` on 2026-10-07, and none has been called with a real account yet.
+
+| | |
+|---|---|
+| Where | The account's own PDS, found from the handle (\`com.atproto.identity.resolveHandle\` on \`public.api.bsky.app\`, then the DID document). Chat calls carry \`atproto-proxy: did:web:api.bsky.chat#bsky_chat\`. |
+| Sign-in | \`com.atproto.server.createSession\`, then \`refreshSession\` 5 minutes before the access token ends or when a call answers 401 or \`ExpiredToken\`. A refused password is tried again after 10 minutes, or at once when either secret changes. |
+| Reading | \`chat.bsky.convo.getLog\` with the stored cursor, up to 5 pages a poll. It is one call for every conversation, where \`listConvos\` and \`getMessages\` are one call and then one per conversation with something unread. |
+| Whose | \`chat.bsky.convo.getConvo\`, once per conversation, says direct or group. For a group, \`getConvoMembers\`, 100 a page and 3 pages at most: \`convoView.members\` holds "the first few members" and not the list. |
+| Writing | \`chat.bsky.convo.sendMessage\`, then \`updateRead\`. \`acceptConvo\` once per person. |
+
+A message is at most 1000 graphemes and 10000 bytes (\`chat.bsky.convo.defs#messageInput\`); a longer answer is sent as several, cut at a paragraph, a line or a space, 10 at most. A message can embed a post and nothing else, so **no picture travels in either direction**: \`image\` is sent as its address after the text, and a post somebody shares arrives as \`[post: at://…]\`. Addresses in a reply are marked as links.
+
+Messages sent more than 10 minutes before the first sign-in are not read. A 429 stops every call until the time in its \`ratelimit-reset\` header, or for 1, 2, 4 … 60 minutes without one.
+
+A DID the owner has not added gets one answer an hour, 20 an hour over all DIDs, and no entry.`
+// %%
+md`## Groups
+
+A reply in a group is read by everyone in it, and a turn runs with its sender's permissions. So:
+
+| | |
+|---|---|
+| Which groups | One the owner is in, or one the owner has switched on below. A message in any other group is dropped. Anyone may add the account to a group unless "Who may add it" says otherwise. |
+| Whose messages | The owner's and people's. Anyone else in the group gets no answer and no notice. |
+| Which messages | One that mentions the account (a \`#mention\` facet with its DID), replies to one of its messages (\`replyTo.sender\`), or begins with its handle or a name set below. With "Only when addressed" off, every message from the owner or a person. |
+| The rest | Kept in \`heard/<convo>\`, the last 20 at 500 characters each, and sent with the next entry as \`body.heard\`, so the assistant has what was said. Messages from people who are not members are in it. |
+| The entry | \`body.room: { id, name, members, complete }\`: every DID in the group but the account's own, read from the chat service when the entry is made. \`complete\` is false past 300 members. |
+| The reply | \`inbox.reply\` passes the entry's \`room.id\` to \`bluesky.send\`, which writes to that conversation. |
+
+What a turn in a group may call is decided by the kernel from who is in the room, not here; see \`@tomlarkworthy/brain-kernel\`, "Rooms". The kernel asks \`bluesky.room\` for the members again when it hands out the turn. A join, a leave or a rename in the log (\`logAddMember\`, \`logRemoveMember\`, \`logMemberJoin\`, \`logMemberLeave\`, \`logEditGroup\`) marks what is kept as stale.
+
+Not sent to a group: the "not one of them" answer to a stranger, and the "No Brain tab is open" notice.
+
+Read from the lexicons at \`d29d7ab\` on 2026-10-07 and not yet called with a real account: \`groupConvo\`, \`getConvoMembers\`, \`replyTo\`, the five log events.`
+// %%
+viewof blueskyGroups = {
+  const out = html`<div></div>`;
+  const on = (input, send) => (input.addEventListener("input", () => send(input.value).then(draw, (e) => (out.textContent = String((e && e.message) || e)))), input);
+  const draw = async () => {
+    try {
+      const { groups, settings } = await client.query("bluesky.groups");
+      out.replaceChildren(
+        on(Inputs.toggle({ label: "Only when addressed", value: settings.addressedOnly }), (v) => client.procedure("bluesky.settings", { addressedOnly: v })),
+        on(Inputs.select(["all", "following", "none"], { label: "Who may add it to a group", value: settings.groupInvites }), (v) => client.procedure("bluesky.settings", { groupInvites: v })),
+        on(Inputs.text({ label: "Also answers to", value: settings.names.join(", "), placeholder: "brain, bot", submit: "Save" }), (v) => client.procedure("bluesky.settings", { names: v.split(",") })),
+        ...groups.map((g) => on(Inputs.toggle({ label: `${g.name || g.id}: ${g.people.slice(0, 8).join(", ")}${g.people.length > 8 || !g.complete ? " …" : ""}${g.ownerIn ? " (you are in it)" : ""}`, value: g.served, disabled: g.ownerIn }), (v) => client.procedure("bluesky.group", { id: g.id, enabled: v }))),
+        ...(groups.length ? [] : [html`<i>No group has been seen.</i>`])
+      );
+    } catch (e) {
+      out.textContent = "Groups: " + String((e && e.message) || e);
+    }
+  };
+  if (session && session.owner) draw();
+  else out.textContent = "Groups: sign in as the owner.";
+  return Object.assign(html`<div>${Inputs.button("Refresh groups", { reduce: draw })}${out}</div>`, { value: null });
+}
+// %%
+// A reply as the messages that carry it: each at most `max` graphemes and `maxBytes` of UTF-8, cut at a
+// paragraph, a line or a space when one falls in the second half of what fits.
+blueskySplit = (text, max = 1000, maxBytes = 10000) => {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" }), encoder = new TextEncoder();
+  const out = [];
+  let rest = String(text).trim();
+  while (rest) {
+    let piece = "", n = 0, size = 0, first = null;
+    for (const { segment } of segmenter.segment(rest)) {
+      first ??= segment;
+      const b = encoder.encode(segment).length;
+      if (n === max || size + b > maxBytes) break;
+      piece += segment;
+      n++;
+      size += b;
+    }
+    // One grapheme larger than a whole message cannot be sent.
+    if (!piece) {
+      rest = rest.slice(first.length).trimStart();
+      continue;
+    }
+    if (piece.length < rest.length)
+      for (const gap of ["\n\n", "\n", " "]) {
+        const at = piece.lastIndexOf(gap);
+        if (at > piece.length / 2) {
+          piece = piece.slice(0, at);
+          break;
+        }
+      }
+    out.push(piece.trimEnd());
+    rest = rest.slice(piece.length).trimStart();
+  }
+  return out;
+}
+// %%
+// app.bsky.richtext.facet links for the addresses in a message. A client shows no link without one.
+blueskyFacets = (text) => {
+  const encoder = new TextEncoder();
+  return [...text.matchAll(/https?:\/\/[^\s<>"]+/g)].map((m) => {
+    const uri = m[0].replace(/[.,;:!?)\]]+$/, ""), byteStart = encoder.encode(text.slice(0, m.index)).length;
+    return { index: { byteStart, byteEnd: byteStart + encoder.encode(uri).length }, features: [{ $type: "app.bsky.richtext.facet#link", uri }] };
+  });
+}
+// %%
+blueskyOps = {
+  const HOUR = 3600000, CHAT = "did:web:api.bsky.chat#bsky_chat", NS = "chat.bsky.convo.";
+  const stop = (code, message) => Object.assign(new Error(message), { code });
+  const expiry = (jwt) => {
+    try {
+      return JSON.parse(atob(String(jwt).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp * 1000 || 0;
+    } catch {
+      return 0;
+    }
+  };
+  const creds = async () => {
+    const handle = await secrets.BLUESKY_HANDLE, password = await secrets.BLUESKY_APP_PASSWORD;
+    if (!handle || !password) return null;
+    const c = { handle: String(handle).trim().replace(/^@/, ""), password: String(password).trim() };
+    // Says whether the secrets are the ones a session or a refusal was made with.
+    return { ...c, mark: (await sha256(c.handle + "\n" + c.password)).slice(0, 16) };
+  };
+  const call = async (url, init) => {
+    const r = await fetch(url, init);
+    const data = await r.json().catch(() => null);
+    if (r.status === 429) {
+      const was = (await rows.get("backoff")) || { step: 0 }, now = Date.now(), reset = Number(r.headers.get("ratelimit-reset")) * 1000;
+      await rows.put("backoff", { until: now + Math.min(reset > now ? reset - now : 60000 * 2 ** was.step, HOUR), step: was.step + 1 });
+      throw stop("limited", "429 from " + new URL(url).hostname);
+    }
+    return { ok: r.ok, status: r.status, data };
+  };
+  const said = (what, r) => `${what}: ${r.status} ${(r.data && r.data.error) || ""} ${(r.data && r.data.message) || ""}`.trim().slice(0, 300);
+  const json = (body, headers = {}) => ({ method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+  const blocked = async () => {
+    const b = await rows.get("backoff");
+    return b && b.until > Date.now() ? b.until : 0;
+  };
+
+  const settings = async () => ({ names: [], addressedOnly: true, groupInvites: "all", ...((await rows.get("settings")) || {}) });
+  const pdsOf = async (handle) => {
+    const did = handle.startsWith("did:") ? handle : ((await call("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + encodeURIComponent(handle))).data || {}).did;
+    if (!/^did:(plc|web):[A-Za-z0-9.:%-]+$/.test(did || "")) throw stop("identity", `${handle} does not resolve to a DID`);
+    const doc = (await call(did.startsWith("did:plc:") ? "https://plc.directory/" + did : `https://${decodeURIComponent(did.slice("did:web:".length).split(":")[0])}/.well-known/did.json`)).data;
+    const pds = ((doc && doc.service) || []).find((s) => String(s.id).endsWith("#atproto_pds"));
+    if (!pds || !/^https:\/\/[^/]+\/?$/.test(pds.serviceEndpoint || "")) throw stop("identity", `${did} names no PDS`);
+    return { did, pds: pds.serviceEndpoint.replace(/\/$/, "") };
+  };
+  const signIn = async (c) => {
+    const refused = await rows.get("refused");
+    if (refused && refused.mark === c.mark && Date.now() - refused.at < 600000) throw stop("refused", refused.message);
+    const { did, pds } = await pdsOf(c.handle);
+    const r = await call(pds + "/xrpc/com.atproto.server.createSession", json({ identifier: c.handle, password: c.password }));
+    if (!r.ok || !r.data || r.data.did !== did) {
+      const message = r.ok ? "the PDS signed in another account" : said("createSession", r);
+      await rows.put("refused", { mark: c.mark, at: Date.now(), message });
+      throw stop("refused", message);
+    }
+    const was = await rows.get("session"), s = { did, handle: c.handle, mark: c.mark, pds, accessJwt: r.data.accessJwt, refreshJwt: r.data.refreshJwt, at: Date.now() };
+    // Another account: nothing kept about the last one's conversations applies.
+    if (was && was.did !== did) for (const key of ["cursor", "since", "convo/", "direct/", "accepted/", "group/", "heard/"]) await rows.deletePrefix(key);
+    await rows.put("session", s);
+    await rows.delete("refused");
+    if (!(await rows.get("since"))) await rows.put("since", Date.now() - 600000);
+    await rows.delete("declared");
+    return s;
+  };
+  // The account's chat.bsky.actor.declaration. A new account takes messages only from accounts it follows, and
+  // cosmiccalendrics read allowGroupInvites: "none" on 2026-10-07: nobody could add it to a group.
+  // Written when what `declared` remembers is not what is wanted: after a sign-in, and when the setting changes.
+  const declare = async (s) => {
+    const want = { allowIncoming: "all", allowGroupInvites: (await settings()).groupInvites }, mark = want.allowIncoming + "/" + want.allowGroupInvites;
+    if ((await rows.get("declared")) === mark) return;
+    const at = `repo=${encodeURIComponent(s.did)}&collection=chat.bsky.actor.declaration&rkey=self`, auth = { authorization: "Bearer " + s.accessJwt };
+    const now = await call(`${s.pds}/xrpc/com.atproto.repo.getRecord?${at}`, { headers: auth }), value = (now.ok && now.data && now.data.value) || {};
+    if (value.allowIncoming !== want.allowIncoming || value.allowGroupInvites !== want.allowGroupInvites) {
+      const put = await call(s.pds + "/xrpc/com.atproto.repo.putRecord", json({ repo: s.did, collection: "chat.bsky.actor.declaration", rkey: "self", record: { ...value, $type: "chat.bsky.actor.declaration", ...want } }, auth));
+      if (!put.ok) return void (await rows.put("declareError", { at: Date.now(), message: said("could not write chat.bsky.actor.declaration", put) }));
+    }
+    await rows.delete("declareError");
+    await rows.put("declared", mark);
+  };
+  const refresh = async (s, c) => {
+    const r = await call(s.pds + "/xrpc/com.atproto.server.refreshSession", { method: "POST", headers: { authorization: "Bearer " + s.refreshJwt } });
+    if (!r.ok || !r.data || !r.data.accessJwt) {
+      await rows.delete("session");
+      return signIn(c);
+    }
+    const next = { ...s, accessJwt: r.data.accessJwt, refreshJwt: r.data.refreshJwt, at: Date.now() };
+    await rows.put("session", next);
+    return next;
+  };
+  const sessionFor = async (c) => {
+    const s = await rows.get("session");
+    if (!s || s.mark !== c.mark) return signIn(c);
+    const ends = expiry(s.accessJwt);
+    return ends && ends - Date.now() < 300000 ? refresh(s, c) : s;
+  };
+  // One chat method, on the PDS, as the account. `body` makes it a procedure.
+  const chat = async (c, name, { params = {}, body } = {}) => {
+    const query = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) for (const x of [].concat(v)) query.append(k, x);
+    const go = (s) => call(`${s.pds}/xrpc/${name.includes(".") ? "chat.bsky." : NS}${name}${[...query].length ? "?" + query : ""}`, body ? json(body, { authorization: "Bearer " + s.accessJwt, "atproto-proxy": CHAT }) : { headers: { authorization: "Bearer " + s.accessJwt, "atproto-proxy": CHAT } });
+    let s = await sessionFor(c), r = await go(s);
+    if (r.status === 401 || (r.data && r.data.error === "ExpiredToken")) r = await go(await refresh(s, c));
+    if (!r.ok) throw stop("upstream", said(name, r));
+    return r.data || {};
+  };
+  const say = async (c, convoId, text) => {
+    for (const part of blueskySplit(text).slice(0, 10)) {
+      const facets = blueskyFacets(part);
+      await chat(c, "sendMessage", { body: { convoId, message: facets.length ? { text: part, facets } : { text: part } } });
+    }
+  };
+  // A group is read and written when the owner is in it or has switched it on.
+  const servedGroup = (g) => !!g && (!!g.enabled || (!!config.owner && g.members.includes(config.owner)));
+  // Everyone in a group but the account itself. convoView.members names only a few of them, so this pages
+  // getConvoMembers: 300 at most, and `complete` says whether that was all.
+  const readGroup = async (c, s, convoId, convo) => {
+    const members = [], handles = {};
+    let cursor, complete = false;
+    for (let page = 0; page < 3 && !complete; page++) {
+      const r = await chat(c, "getConvoMembers", { params: { convoId, limit: 100, ...(cursor ? { cursor } : {}) } });
+      for (const m of r.members || []) {
+        if (m.did === s.did || /#pastGroupConvoMember$/.test((m.kind && m.kind.$type) || "")) continue;
+        members.push(m.did);
+        handles[m.did] = m.handle || null;
+      }
+      cursor = r.cursor;
+      complete = !cursor || !(r.members || []).length;
+    }
+    const was = (await rows.get("group/" + convoId)) || {};
+    const g = { id: convoId, name: String((convo && convo.kind && convo.kind.name) || "").slice(0, 100), members, handles, complete, at: Date.now(), enabled: !!was.enabled };
+    await rows.put("group/" + convoId, g);
+    return g;
+  };
+  // What a conversation is: { direct: did } or { group }. A direct one never changes. A group's members are
+  // read again when what is kept is older than maxAge, or when the log said somebody joined or left.
+  const where = async (c, s, convoId, maxAge = 120000) => {
+    const d = await rows.get("direct/" + convoId);
+    if (d && d.with) return { direct: d.with };
+    const g = await rows.get("group/" + convoId);
+    if (g && Date.now() - g.at < maxAge) return { group: g };
+    const { convo } = await chat(c, "getConvo", { params: { convoId } });
+    const listed = ((convo && convo.members) || []).map((m) => m.did), kind = convo && convo.kind && convo.kind.$type;
+    if (kind ? kind === "chat.bsky.convo.defs#directConvo" : listed.length === 2) {
+      const other = listed.find((m) => m !== s.did) || null;
+      if (other) {
+        await rows.put("direct/" + convoId, { with: other });
+        await rows.put("convo/" + other, convoId);
+      }
+      return { direct: other };
+    }
+    return { group: await readGroup(c, s, convoId, convo) };
+  };
+  const served = async (did) => (!!config.owner && did === config.owner) || !!(await rows.get("known/" + did));
+  // In a group the account answers what is said to it: a mention of it, a reply to one of its own messages,
+  // or a message that begins with its handle or one of the owner's names for it.
+  const addressed = (m, s, names) => {
+    if ((m.facets || []).some((f) => (f.features || []).some((x) => x.$type === "app.bsky.richtext.facet#mention" && x.did === s.did))) return true;
+    if (m.replyTo && m.replyTo.sender && m.replyTo.sender.did === s.did) return true;
+    const text = String(m.text || "").trim().toLowerCase();
+    return [s.handle, ...names].some((n) => {
+      n = String(n || "").trim().toLowerCase().replace(/^@/, "");
+      const rest = n && (text.startsWith("@" + n) ? text.slice(n.length + 1) : text.startsWith(n) ? text.slice(n.length) : null);
+      return rest != null && !/^[a-z0-9_.-]*[a-z0-9_]/.test(rest);
+    });
+  };
+  const textOf = (m) => {
+    const post = m.embed && m.embed.record && m.embed.record.uri;
+    return [m.text, post ? `[post: ${post}]` : ""].filter(Boolean).join("\n");
+  };
+  // A message in a group. Said to the account by the owner or a person: an entry, carrying who is in the room
+  // and what was said there since the last one. Anything else in a group that is served: kept, 20 messages at most.
+  const takeGroup = async (c, s, log, g, known, now) => {
+    const m = log.message, from = m.sender.did, id = log.convoId, set = await settings();
+    if (!servedGroup(g)) return;
+    if (!known || (set.addressedOnly && !addressed(m, s, set.names))) {
+      const heard = (await rows.get("heard/" + id)) || [];
+      await rows.put("heard/" + id, [...heard, { from, handle: g.handles[from] || null, text: textOf(m).slice(0, 500), at: Date.parse(m.sentAt) || now }].slice(-20));
+      return;
+    }
+    // Who is in the room is read now, not taken from what was kept.
+    if (now - g.at > 5000) g = (await where(c, s, id, 0)).group;
+    if (!g || !servedGroup(g) || !g.members.includes(from)) return;
+    if (await rows.putIfAbsent("accepted/" + id, now)) await chat(c, "acceptConvo", { body: { convoId: id } }).catch(() => null);
+    const heard = (await rows.get("heard/" + id)) || [];
+    await inbox.append({ source: "bluesky", key: "bsky:" + m.id, body: { text: textOf(m), address: from, at: Date.parse(m.sentAt) || now, room: { id, name: g.name, members: g.members, complete: g.complete }, ...(heard.length ? { heard } : {}) } });
+    await rows.delete("heard/" + id);
+  };
+
+  const take = async (c, s, log, since, now, taken) => {
+    const m = log.message, kind = String(log.$type || "").replace("chat.bsky.convo.defs#log", "");
+    // Somebody joined or left a group, or it was renamed: what is kept about it is read again before it is used.
+    if (["AddMember", "RemoveMember", "MemberJoin", "MemberLeave", "EditGroup"].includes(kind)) {
+      const g = await rows.get("group/" + log.convoId);
+      if (g) await rows.put("group/" + log.convoId, { ...g, at: 0 });
+      return;
+    }
+    if (kind === "LeaveConvo") {
+      await rows.delete("group/" + log.convoId);
+      await rows.delete("heard/" + log.convoId);
+      return;
+    }
+    if (kind !== "CreateMessage" || !m || m.$type !== "chat.bsky.convo.defs#messageView" || !m.sender) return;
+    const from = m.sender.did, at = Date.parse(m.sentAt) || now;
+    if (from === s.did || at < since) return;
+    if (await served(from)) {
+      const w = await where(c, s, log.convoId);
+      if (w.group) return takeGroup(c, s, log, w.group, true, now);
+      if (w.direct !== from) return;
+      if (await rows.putIfAbsent("accepted/" + log.convoId, now)) await chat(c, "acceptConvo", { body: { convoId: log.convoId } }).catch(() => null);
+      await inbox.append({ source: "bluesky", key: "bsky:" + m.id, body: { text: textOf(m), address: from, at } });
+      taken.push(from);
+      return;
+    }
+    // A DID the owner has not added. In a group already read: kept as what was said there, and never answered.
+    const group = await rows.get("group/" + log.convoId);
+    if (group) return takeGroup(c, s, log, group, false, now);
+    // Otherwise no entry, and one answer within the two limits, in a direct conversation only.
+    if (now - ((await rows.get("asked/" + from)) || 0) < HOUR) return;
+    const asks = (await rows.get("asks")) || { from: 0, n: 0 };
+    const window = now - asks.from < HOUR ? asks : { from: now, n: 0 };
+    if (window.n >= 20 || (await where(c, s, log.convoId)).direct !== from) return;
+    await rows.put("asks", { from: window.from, n: window.n + 1 });
+    await rows.put("asked/" + from, now);
+    await say(c, log.convoId, `This account answers people its owner has added, and ${from} is not one of them.`);
+  };
+
+  const poll = async (by) => {
+    const c = await creds();
+    if (!c) return { configured: false };
+    const now = Date.now(), until = await blocked(), last = await rows.get("polled"), busy = await rows.get("busy");
+    // One poll at a time: the tick and a tab's call would otherwise answer the same stranger twice.
+    if (until) return { configured: true, skipped: "backing off", until };
+    if (last && now - last.at < (config.pollGapMs ?? 3000)) return { configured: true, skipped: "polled " + (now - last.at) + " ms ago" };
+    if (busy && now - busy >= 60000) await rows.delete("busy");
+    if (!(await rows.putIfAbsent("busy", now))) return { configured: true, skipped: "a poll is running" };
+    const taken = [];
+    let events = 0;
+    try {
+      const s = await sessionFor(c), since = (await rows.get("since")) || 0;
+      await declare(s);
+      for (let page = 0; page < 5; page++) {
+        const cursor = await rows.get("cursor");
+        const r = await chat(c, "getLog", { params: cursor ? { cursor } : {} });
+        for (const log of r.logs || []) await take(c, s, log, since, now, taken);
+        events += (r.logs || []).length;
+        // Kept once the page is in the inbox. A page read twice appends nothing twice: the inbox keeps a key once.
+        if (r.cursor && r.cursor !== cursor) await rows.put("cursor", r.cursor);
+        if (!(r.logs || []).length || !r.cursor || r.cursor === cursor) break;
+      }
+      if (taken.length) {
+        // No tab is answering: say so, to each person at most once an hour.
+        const { held } = await xrpc.query("com.lopecode.brain.lease.get", {});
+        for (const did of held ? [] : new Set(taken)) {
+          if (now - ((await rows.get("quiet/" + did)) || 0) <= HOUR) continue;
+          await rows.put("quiet/" + did, now);
+          await say(c, await rows.get("convo/" + did), `No Brain tab is open, so this waits until one is. https://${config.host}/`);
+        }
+      }
+      await rows.put("polled", { at: Date.now(), by, events, taken: taken.length });
+      await rows.delete("backoff");
+      await rows.delete("error");
+      return { configured: true, events, taken: taken.length };
+    } catch (e) {
+      const message = String((e && e.message) || e).slice(0, 300);
+      await rows.put("error", { at: Date.now(), message });
+      return { configured: true, error: message };
+    } finally {
+      await rows.delete("busy");
+    }
+  };
+
+  return {
+    poll,
+    tick: async () => {
+      await rows.put("tick", Date.now());
+      return poll("tick");
+    },
+    send: async ({ to, text, room }) => {
+      const c = await creds();
+      if (!c) throw stop("unconfigured", "BLUESKY_HANDLE and BLUESKY_APP_PASSWORD are not set");
+      if (!(await served(to))) throw stop("forbidden", "bluesky.send writes to the owner and to people only");
+      if (await blocked()) throw stop("limited", "backing off after a 429");
+      if (room != null) {
+        // An answer to a message from a group goes to that group, which everyone in it reads.
+        const g = await rows.get("group/" + room);
+        if (!servedGroup(g) || !g.members.includes(to)) throw stop("forbidden", "bluesky.send writes to a group the owner is in or has switched on, for a person in it");
+        await say(c, room, text);
+        await chat(c, "updateRead", { body: { convoId: room } }).catch(() => null);
+        return;
+      }
+      let convoId = await rows.get("convo/" + to);
+      if (!convoId) {
+        convoId = (await chat(c, "getConvoForMembers", { params: { members: [to] } })).convo.id;
+        await rows.put("convo/" + to, convoId);
+      }
+      await say(c, convoId, text);
+      await chat(c, "updateRead", { body: { convoId } }).catch(() => null);
+    },
+    know: async ({ address, forget, all }) => {
+      if (Array.isArray(all)) {
+        const now = new Set(all.filter((d) => typeof d === "string" && d));
+        for (const { key } of await rows.list("known/")) if (!now.has(key.slice("known/".length))) await rows.delete(key);
+        for (const did of now) await rows.putIfAbsent("known/" + did, { at: Date.now() });
+        return { known: now.size };
+      }
+      if (forget) await rows.delete("known/" + address);
+      else await rows.put("known/" + address, { at: Date.now() });
+      return { known: !forget };
+    },
+    // Who is in a group now, for the kernel, which asks when it hands out a turn.
+    room: async ({ id }) => {
+      const c = await creds();
+      if (!c || !(await rows.get("group/" + id))) return { id, known: false };
+      const g = (await where(c, await sessionFor(c), id)).group;
+      return g ? { id, known: true, name: g.name, members: g.members, complete: g.complete, served: servedGroup(g) } : { id, known: false };
+    },
+    groups: async () => ({
+      settings: await settings(),
+      groups: (await rows.list("group/")).map(({ value: g }) => ({ id: g.id, name: g.name, people: g.members.map((d) => g.handles[d] || d), complete: g.complete, ownerIn: !!config.owner && g.members.includes(config.owner), enabled: !!g.enabled, served: servedGroup(g), read: g.at }))
+    }),
+    // The owner starts a group: themselves and people already added, so it is one the Worker serves.
+    start: async ({ members, name, text }) => {
+      const c = await creds();
+      if (!c) throw stop("unconfigured", "BLUESKY_HANDLE and BLUESKY_APP_PASSWORD are not set");
+      if (!config.owner || !members.includes(config.owner)) throw stop("forbidden", "bluesky.start makes a group the owner is in");
+      for (const did of members) if (!(await served(did))) throw stop("forbidden", "bluesky.start invites the owner and people only");
+      if (await blocked()) throw stop("limited", "backing off after a 429");
+      const id = (await chat(c, "group.createGroup", { body: { members, name } })).convo.id;
+      if (text) await say(c, id, text);
+      return { id };
+    },
+    // One record in the account's own repo: written, or deleted when `record` is absent.
+    record: async ({ collection, rkey, record }) => {
+      const c = await creds();
+      if (!c) throw stop("unconfigured", "BLUESKY_HANDLE and BLUESKY_APP_PASSWORD are not set");
+      if (await blocked()) throw stop("limited", "backing off after a 429");
+      const go = (s) => call(`${s.pds}/xrpc/com.atproto.repo.${record ? "putRecord" : "deleteRecord"}`, json({ repo: s.did, collection, rkey, ...(record ? { record: { ...record, $type: collection } } : {}) }, { authorization: "Bearer " + s.accessJwt }));
+      let s = await sessionFor(c), r = await go(s);
+      if (r.status === 401 || (r.data && r.data.error === "ExpiredToken")) r = await go((s = await refresh(s, c)));
+      if (!r.ok) throw stop("upstream", said(record ? "putRecord" : "deleteRecord", r));
+      return { did: s.did, handle: s.handle, uri: `at://${s.did}/${collection}/${rkey}`, ...(record ? { cid: (r.data && r.data.cid) || null } : {}) };
+    },
+    group: async ({ id, enabled }) => {
+      const g = await rows.get("group/" + id);
+      if (!g) throw stop("missing", "no group " + String(id).slice(0, 80));
+      await rows.put("group/" + id, { ...g, enabled: !!enabled });
+      return { id, enabled: !!enabled };
+    },
+    settings: async ({ names, addressedOnly, groupInvites }) => {
+      const now = await settings();
+      if (Array.isArray(names)) now.names = names.filter((n) => typeof n === "string" && n.trim()).map((n) => n.trim().slice(0, 40)).slice(0, 10);
+      if (typeof addressedOnly === "boolean") now.addressedOnly = addressedOnly;
+      if (["all", "following", "none"].includes(groupInvites)) now.groupInvites = groupInvites;
+      await rows.put("settings", now);
+      return now;
+    },
+    status: async () => {
+      const c = await creds(), s = await rows.get("session");
+      const live = !!(c && s && s.mark === c.mark);
+      return { configured: !!c, handle: c ? c.handle : null, did: live ? s.did : null, pds: live ? s.pds : null, signedIn: live, tick: await rows.get("tick"), lastPoll: await rows.get("polled"), lastError: (await rows.get("error")) || (await rows.get("refused")) || (await rows.get("declareError")) || null, backoffUntil: (await blocked()) || null, people: (await rows.list("known/")).length, groups: (await rows.list("group/")).length };
+    }
+  };
+}
+// %%
+blueskyApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.bluesky.";
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const STATUS = { limited: [429, "RateLimitExceeded"], unconfigured: [503, "NotConfigured"], forbidden: [403, "Forbidden"], missing: [404, "NotFound"] };
+  app.onError((e, c) => fail(c, ...(STATUS[e && e.code] || [e && e.code ? 502 : 500, e && e.code ? "UpstreamError" : "InternalServerError"]), String((e && e.message) || e)));
+  // The core has named the caller and checked it against the method's rule.
+  const kernel = async (c, next) => (c.req.header("x-brain-caller") === "kernel" ? next() : fail(c, 401, "AuthRequired", "the kernel"));
+  app.post(NS + "send", async (c) => {
+    const { to, text, image, room } = await c.req.json();
+    if (image != null && (typeof image !== "string" || image.length > 2000 || !/^https:\/\//.test(image))) return fail(c, 400, "InvalidRequest", "image must be an https URL");
+    const whole = [typeof text === "string" ? text.trim() : "", image || ""].filter(Boolean).join("\n");
+    if (!whole) return fail(c, 400, "InvalidRequest", "text");
+    if (typeof to !== "string") return fail(c, 403, "Forbidden", "bluesky.send writes to the owner and to people only");
+    if (room != null && (typeof room !== "string" || !room || room.length > 200)) return fail(c, 400, "InvalidRequest", "room");
+    await blueskyOps.send({ to, text: whole, room });
+    return c.json({ sent: true });
+  });
+  app.post(NS + "room", kernel, async (c) => {
+    const { id } = await c.req.json();
+    if (typeof id !== "string" || !id || id.length > 200) return fail(c, 400, "InvalidRequest", "id");
+    return c.json(await blueskyOps.room({ id }));
+  });
+  app.post(NS + "start", async (c) => {
+    const { members, name, text } = await c.req.json();
+    if (!Array.isArray(members) || members.length < 2 || members.length > 20 || !members.every((d) => typeof d === "string" && /^did:[a-z]+:[\w.:%-]{1,200}$/.test(d))) return fail(c, 400, "InvalidRequest", "members: 2 to 20 DIDs");
+    if (typeof name !== "string" || !name.trim() || [...name].length > 50) return fail(c, 400, "InvalidRequest", "name: 1 to 50 characters");
+    if (text != null && (typeof text !== "string" || text.length > 4096)) return fail(c, 400, "InvalidRequest", "text");
+    return c.json(await blueskyOps.start({ members: [...new Set(members)], name: name.trim(), text: text && text.trim() }));
+  });
+  // The collections another service may write in the account's repo. A record of any other collection is refused.
+  const RECORDS = ["app.bsky.feed.generator"];
+  for (const name of ["putRecord", "deleteRecord"])
+    app.post(NS + name, async (c) => {
+      const { collection, rkey, record } = await c.req.json();
+      if (!RECORDS.includes(collection)) return fail(c, 403, "Forbidden", `bluesky.${name} writes ${RECORDS.join(", ")} only`);
+      if (typeof rkey !== "string" || !/^[A-Za-z0-9._~-]{1,80}$/.test(rkey) || /^\.+$/.test(rkey)) return fail(c, 400, "InvalidRequest", "rkey");
+      if (name === "putRecord" && (!record || typeof record !== "object" || Array.isArray(record) || JSON.stringify(record).length > 20000)) return fail(c, 400, "InvalidRequest", "record");
+      return c.json(await blueskyOps.record({ collection, rkey, record: name === "putRecord" ? record : null }));
+    });
+  app.get(NS + "groups", async (c) => c.json(await blueskyOps.groups()));
+  app.post(NS + "group", async (c) => {
+    const { id, enabled } = await c.req.json();
+    if (typeof id !== "string" || typeof enabled !== "boolean") return fail(c, 400, "InvalidRequest", "id and enabled");
+    return c.json(await blueskyOps.group({ id, enabled }));
+  });
+  app.post(NS + "settings", async (c) => c.json(await blueskyOps.settings(await c.req.json())));
+  app.post(NS + "poll", async (c) => c.json(await blueskyOps.poll("page")));
+  app.post(NS + "know", kernel, async (c) => {
+    const body = await c.req.json();
+    if (!Array.isArray(body.all) && (typeof body.address !== "string" || !body.address)) return fail(c, 400, "InvalidRequest", "address or all");
+    return c.json(await blueskyOps.know(body));
+  });
+  app.get(NS + "status", async (c) => c.json(await blueskyOps.status()));
+  return app;
+}
+// %%
+bluesky_service = cloudflare.Service("bluesky", blueskyApp, {
+  crons: ["* * * * *"],
+  scheduled: () => blueskyOps.tick(),
+  calls: ["com.lopecode.brain.lease.get"],
+  methods: {
+    "com.lopecode.brain.bluesky.send": { type: "procedure", allow: 'caller.kind in ["owner", "token"] || caller.id == "worker:brain-x-inbox"' },
+    "com.lopecode.brain.bluesky.poll": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.bluesky.know": { type: "procedure", allow: 'caller.id == "kernel"' },
+    "com.lopecode.brain.bluesky.room": { type: "procedure", allow: 'caller.id == "kernel"' },
+    "com.lopecode.brain.bluesky.groups": { type: "query", who: "owner" },
+    "com.lopecode.brain.bluesky.group": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.bluesky.start": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.bluesky.settings": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.bluesky.putRecord": { type: "procedure", allow: 'caller.session || (caller.worker == "brain-x-feed" && origin.kind == "owner")' },
+    "com.lopecode.brain.bluesky.deleteRecord": { type: "procedure", allow: 'caller.session || (caller.worker == "brain-x-feed" && origin.kind == "owner")' },
+    "com.lopecode.brain.bluesky.status": { type: "query", who: "owner" }
+  }
+})
+// %%
+bluesky_announce = {
+  plugins.add("workers", bluesky_service, { invalidation });
+  return "announced bluesky_service";
+}
+// %%
+md`## Tests
+
+The emitted Worker under \`simulate\`, against a stand-in for the directory, the account's PDS and the chat service. No test reaches Bluesky.`
+// %%
+// The account is did:plc:brain on https://pds.example. `events` is the chat log; `say(from, text)` adds a message to it.
+blueskyRig = async ({ held = true, known = [], configured = true, owner = "did:plc:owner", pageSize = 50, allow = "following" } = {}) => {
+  const jwt = (kind, n, exp) => `h.${btoa(JSON.stringify({ kind, n, exp: Math.floor(exp / 1000) }))}.s`;
+  const net = { asked: [], sent: [], events: [], read: [], accepted: [], sessions: 0, refreshes: 0, live: 0, limit: 0, reset: null, password: "app-pass", declaration: allow === null ? null : { $type: "chat.bsky.actor.declaration", allowIncoming: allow }, groups: new Map(), past: new Set(), memberPage: 100, ttl: 7200000 };
+  const state = { held };
+  const no = (status, error, headers = {}) => Response.json({ error, message: error }, { status, headers });
+  const issue = () => ({ accessJwt: jwt("access", ++net.live, Date.now() + net.ttl), refreshJwt: jwt("refresh", net.live, Date.now() + 86400000), did: "did:plc:brain", handle: "brain.example" });
+  // A group is id -> { name, members: [did] }. As on the chat service, its convoView lists only some of its members.
+  const profile = (did) => ({ did, handle: did.slice(8) + ".example", kind: { $type: "chat.bsky.actor.defs#" + (net.past.has(did) ? "pastGroupConvoMember" : "groupConvoMember"), role: "standard" } });
+  const convoOf = (id) => {
+    const g = net.groups.get(id);
+    return g
+      ? { id, rev: "r", muted: false, unreadCount: 0, members: [{ did: "did:plc:brain" }, ...g.members.slice(0, 1).map((did) => ({ did }))], kind: { $type: "chat.bsky.convo.defs#groupConvo", name: g.name, memberCount: g.members.length + 1 } }
+      : { id, rev: "r", muted: false, unreadCount: 0, members: [{ did: "did:plc:brain" }, { did: id.slice(2) }], kind: { $type: "chat.bsky.convo.defs#directConvo" } };
+  };
+  const fetch = async (request) => {
+    const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/", ""), auth = request.headers.get("authorization") || "";
+    const body = request.method === "POST" ? await request.json().catch(() => null) : null;
+    net.asked.push({ host: u.hostname, nsid, proxy: request.headers.get("atproto-proxy"), body });
+    if (u.hostname === "public.api.bsky.app") return Response.json({ did: "did:plc:brain" });
+    if (u.hostname === "plc.directory") return Response.json({ id: "did:plc:brain", service: [{ id: "#atproto_pds", type: "AtprotoPersonalDataServer", serviceEndpoint: "https://pds.example" }] });
+    if (u.hostname !== "pds.example") return no(404, "NotFound");
+    if (net.limit > 0) return net.limit--, no(429, "RateLimitExceeded", net.reset ? { "ratelimit-reset": String(net.reset) } : {});
+    if (nsid === "com.atproto.server.createSession") return body.identifier === "brain.example" && body.password === net.password ? (net.sessions++, Response.json(issue())) : no(401, "AuthenticationRequired");
+    const token = (() => { try { return JSON.parse(atob(auth.replace("Bearer ", "").split(".")[1])); } catch { return null; } })();
+    if (nsid === "com.atproto.server.refreshSession") return token && token.kind === "refresh" && token.n === net.live ? (net.refreshes++, Response.json(issue())) : no(400, "ExpiredToken");
+    if (!token || token.kind !== "access") return no(401, "AuthenticationRequired");
+    if (token.n !== net.live || token.exp * 1000 < Date.now()) return no(400, "ExpiredToken");
+    if (nsid === "com.atproto.repo.getRecord") return net.declaration ? Response.json({ uri: "at://did:plc:brain/chat.bsky.actor.declaration/self", value: net.declaration }) : no(400, "RecordNotFound");
+    if (nsid === "com.atproto.repo.putRecord" && body.collection !== "chat.bsky.actor.declaration") return (net.records ??= new Map()).set(body.collection + "/" + body.rkey, body), Response.json({ uri: `at://${body.repo}/${body.collection}/${body.rkey}`, cid: "c" + net.records.size });
+    if (nsid === "com.atproto.repo.deleteRecord") return (net.records ??= new Map()).delete(body.collection + "/" + body.rkey), Response.json({});
+    if (nsid === "com.atproto.repo.putRecord") return (net.declaration = body.record), Response.json({ uri: "at://x", cid: "c" });
+    if (request.headers.get("atproto-proxy") !== "did:web:api.bsky.chat#bsky_chat") return no(501, "MethodNotImplemented");
+    const name = nsid.replace("chat.bsky.convo.", "");
+    if (name === "getLog") {
+      const after = Number(u.searchParams.get("cursor") || 0), logs = net.events.filter((e) => e.n > after).slice(0, pageSize);
+      return Response.json({ cursor: String(logs.length ? logs.at(-1).n : after), logs: logs.map((e) => e.log) });
+    }
+    if (name === "getConvo") return Response.json({ convo: convoOf(u.searchParams.get("convoId")) });
+    if (name === "getConvoMembers") {
+      const all = [profile("did:plc:brain"), ...net.groups.get(u.searchParams.get("convoId")).members.map(profile)], at = Number(u.searchParams.get("cursor") || 0);
+      return Response.json({ members: all.slice(at, at + net.memberPage), ...(at + net.memberPage < all.length ? { cursor: String(at + net.memberPage) } : {}) });
+    }
+    if (name === "chat.bsky.group.createGroup") {
+      const id = "g-" + body.name.toLowerCase();
+      net.groups.set(id, { name: body.name, members: body.members });
+      return Response.json({ convo: convoOf(id) });
+    }
+    if (name === "getConvoForMembers") return Response.json({ convo: convoOf("c-" + u.searchParams.get("members")) });
+    if (name === "acceptConvo") return net.accepted.push(body.convoId), Response.json({ rev: "r" });
+    if (name === "updateRead") return net.read.push(body.convoId), Response.json({ convo: convoOf(body.convoId) });
+    if (name === "sendMessage") {
+      if ([...new Intl.Segmenter().segment(body.message.text)].length > 1000) return no(400, "InvalidRequest");
+      net.sent.push([body.convoId.slice(2), body.message.text, body.message.facets || null]);
+      net.events.push({ n: net.events.length + 1, log: { $type: "chat.bsky.convo.defs#logCreateMessage", rev: "r", convoId: body.convoId, message: { $type: "chat.bsky.convo.defs#messageView", id: "out" + net.events.length, rev: "r", text: body.message.text, sender: { did: "did:plc:brain" }, sentAt: new Date().toISOString() } } });
+      return Response.json({ id: "out", rev: "r", text: body.message.text, sender: { did: "did:plc:brain" }, sentAt: new Date().toISOString() });
+    }
+    return no(501, "MethodNotImplemented");
+  };
+  const sim = await simulate(bluesky_service, {
+    rows: new Map(known.map((d) => ["known/" + d, { at: 1 }])),
+    secrets: { BRAIN_KEY: "k" },
+    config: { host: "brain.example", owner, pollGapMs: 0 },
+    fetch,
+    core: async (request) => {
+      const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
+      if (nsid === "secret.get") {
+        const name = u.searchParams.get("name"), value = sim.stored[name];
+        return value === undefined ? Response.json({ error: "NotFound" }, { status: 404 }) : Response.json({ name, value });
+      }
+      if (nsid === "lease.get") return Response.json({ held: state.held });
+      const data = await request.json();
+      const seen = sim.inbox.find((e) => e.key === data.key);
+      if (!seen) sim.inbox.push({ id: sim.inbox.length + 1, ...data });
+      return Response.json({ id: seen ? seen.id : sim.inbox.length, duplicate: !!seen });
+    }
+  });
+  sim.stored = configured ? { BLUESKY_HANDLE: "@brain.example", BLUESKY_APP_PASSWORD: "app-pass" } : {};
+  let n = 0;
+  const say = (from, text, { convo = "c-" + from, at = Date.now(), embed, facets, replyTo } = {}) => {
+    const id = "m" + ++n;
+    net.events.push({ n: net.events.length + 1, log: { $type: "chat.bsky.convo.defs#logCreateMessage", rev: "r", convoId: convo, message: { $type: "chat.bsky.convo.defs#messageView", id, rev: "r", text, sender: { did: from }, sentAt: new Date(at).toISOString(), ...(embed ? { embed } : {}), ...(facets ? { facets } : {}), ...(replyTo ? { replyTo } : {}) } } });
+    return id;
+  };
+  // A message in a group that mentions the account, as a client writes it.
+  const mention = (from, convo, text = "what is on today?") => say(from, "@brain.example " + text, { convo, facets: [{ index: { byteStart: 0, byteEnd: 14 }, features: [{ $type: "app.bsky.richtext.facet#mention", did: "did:plc:brain" }] }] });
+  const log = (kind, convo) => net.events.push({ n: net.events.length + 1, log: { $type: "chat.bsky.convo.defs#log" + kind, rev: "r", convoId: convo } });
+  const as = (who) => async (path, body) => {
+    const r = await sim.fetch("https://brain.internal/xrpc/com.lopecode.brain.bluesky." + path, { method: body ? "POST" : "GET", body: body ? JSON.stringify(body) : undefined, headers: { "content-type": "application/json", "x-brain-caller": who } });
+    return { status: r.status, data: await r.json() };
+  };
+  const owned = as("owner");
+  return { sim, rows: sim.rows, net, state, say, mention, log, as, owned, kernel: as("kernel"), poll: async () => (await owned("poll", {})).data, tick: () => sim.scheduled(), bodies: () => sim.inbox.map((e) => [e.source, e.key, e.body.address, e.body.text]) };
+}
+// %%
+test_bluesky_owner_message_in_and_reply_out = {
+  const rig = await blueskyRig();
+  const id = rig.say("did:plc:owner", "what is on today?");
+  expect(await rig.poll()).toEqual({ configured: true, events: 1, taken: 1 });
+  // The entry says which DID wrote. Whose message that makes it is the kernel's to say.
+  expect(rig.sim.inbox.map((e) => [e.source, e.key, Object.keys(e.body).sort().join(), e.body.address, e.body.text])).toEqual([["bluesky", "bsky:" + id, "address,at,text", "did:plc:owner", "what is on today?"]]);
+  expect(rig.net.accepted).toEqual(["c-did:plc:owner"]);
+  // Signed in on the PDS the directory named, and every chat call was sent on to the chat service.
+  const chat = rig.net.asked.filter((a) => a.nsid.startsWith("chat."));
+  expect(rig.net.asked.slice(0, 3).map((a) => a.host + " " + a.nsid)).toEqual(["public.api.bsky.app com.atproto.identity.resolveHandle", "plc.directory /did:plc:brain", "pds.example com.atproto.server.createSession"]);
+  expect(rig.net.asked[2].body).toEqual({ identifier: "brain.example", password: "app-pass" });
+  expect([...new Set(chat.map((a) => a.host + " " + a.proxy))]).toEqual(["pds.example did:web:api.bsky.chat#bsky_chat"]);
+  // The reply path: inbox.reply calls bluesky.send as brain-x-inbox with the entry's address.
+  expect((await rig.as("worker:brain-x-inbox")("send", { to: "did:plc:owner", text: "Nothing. See https://brain.example/today." })).data).toEqual({ sent: true });
+  expect(rig.net.sent).toEqual([["did:plc:owner", "Nothing. See https://brain.example/today.", [{ index: { byteStart: 13, byteEnd: 40 }, features: [{ $type: "app.bsky.richtext.facet#link", uri: "https://brain.example/today" }] }]]]);
+  expect(rig.net.read).toEqual(["c-did:plc:owner"]);
+  // Its own reply comes back in the log and is not taken for a message.
+  expect(await rig.poll()).toEqual({ configured: true, events: 1, taken: 0 });
+  expect(rig.sim.inbox.length).toBe(1);
+  return "1 entry, 1 reply, 1 read mark";
+}
+// %%
+test_bluesky_a_person_is_served_and_a_stranger_is_told_once = {
+  const rig = await blueskyRig();
+  rig.say("did:plc:ada", "hello");
+  rig.say("did:plc:ada", "hello?");
+  await rig.poll();
+  expect(rig.sim.inbox.length).toBe(0);
+  expect(rig.net.sent).toEqual([["did:plc:ada", "This account answers people its owner has added, and did:plc:ada is not one of them.", null]]);
+  expect(rig.net.accepted).toEqual([]);
+  // Nobody but the kernel says who is known.
+  for (const who of ["owner", "worker:brain-x-evil", "worker:brain-x-inbox", "did:plc:ada"]) expect([who, (await rig.as(who)("know", { address: "did:plc:ada" })).status]).toEqual([who, 401]);
+  expect((await rig.kernel("know", { address: "did:plc:ada" })).data).toEqual({ known: true });
+  const id = rig.say("did:plc:ada", "now?");
+  await rig.poll();
+  expect(rig.bodies()).toEqual([["bluesky", "bsky:" + id, "did:plc:ada", "now?"]]);
+  expect((await rig.owned("send", { to: "did:plc:ada", text: "yes" })).data).toEqual({ sent: true });
+  // Forgotten, she is a stranger again, and is not told a second time within the hour.
+  await rig.kernel("know", { address: "did:plc:ada", forget: true });
+  rig.say("did:plc:ada", "still here?");
+  await rig.poll();
+  expect(rig.sim.inbox.length).toBe(1);
+  expect(rig.net.sent.length).toBe(2);
+  expect((await rig.owned("send", { to: "did:plc:ada", text: "hi" })).status).toBe(403);
+  rig.rows.set("asked/did:plc:ada", Date.now() - 3600001);
+  rig.say("did:plc:ada", "hello again");
+  await rig.poll();
+  expect(rig.net.sent.length).toBe(3);
+  // The whole set at once, as the kernel sends it when People changes.
+  expect((await rig.kernel("know", { all: ["did:plc:bo", "did:plc:cy"] })).data).toEqual({ known: 2 });
+  expect([...rig.rows.keys()].filter((k) => k.startsWith("known/"))).toEqual(["known/did:plc:bo", "known/did:plc:cy"]);
+  return "stranger: 2 answers for 4 messages over an hour; person: 1 entry";
+}
+// %%
+test_bluesky_strangers_are_limited_over_all = {
+  const rig = await blueskyRig();
+  for (let i = 0; i < 25; i++) rig.say("did:plc:s" + i, "hi");
+  await rig.poll();
+  expect(rig.net.sent.length).toBe(20);
+  expect(rig.sim.inbox.length).toBe(0);
+  return "20 answers an hour over all DIDs";
+}
+// %%
+test_bluesky_tick_and_poll_deliver_once = {
+  const rig = await blueskyRig({ known: ["did:plc:ada"], pageSize: 2 });
+  for (const t of ["one", "two", "three", "four", "five"]) rig.say("did:plc:ada", t);
+  // The tick and a tab's poll at the same moment: one of them reads, the other finds a poll running.
+  const [, polled] = await Promise.all([rig.tick(), rig.poll()]);
+  expect(rig.bodies().map((b) => b[3])).toEqual(["one", "two", "three", "four", "five"]);
+  expect(rig.rows.get("cursor")).toBe("5");
+  expect(rig.net.asked.filter((a) => a.nsid.endsWith("getLog")).length).toBe(4);
+  expect(polled.skipped === "a poll is running" ? "tick" : "page").toBe(rig.rows.get("polled").by);
+  // The cursor is kept between calls: the next one asks for what follows it and finds nothing.
+  rig.net.asked.length = 0;
+  expect(await rig.poll()).toEqual({ configured: true, events: 0, taken: 0 });
+  expect(rig.net.asked.map((a) => a.nsid)).toEqual(["chat.bsky.convo.getLog"]);
+  // A page read twice, as when a poll stops before it keeps the cursor, appends nothing twice.
+  rig.rows.set("cursor", "2");
+  expect(await rig.poll()).toEqual({ configured: true, events: 3, taken: 3 });
+  expect(rig.sim.inbox.length).toBe(5);
+  expect(rig.rows.get("cursor")).toBe("5");
+  return "5 messages over 3 pages, read 1.6 times, 5 entries";
+}
+// %%
+test_bluesky_reads_direct_messages_sent_after_it_started = {
+  const rig = await blueskyRig({ known: ["did:plc:ada"] });
+  rig.say("did:plc:ada", "from last week", { at: Date.now() - 7 * 86400000 });
+  rig.net.groups.set("g-ada", { name: "Friends", members: ["did:plc:ada", "did:plc:third"] });
+  rig.say("did:plc:ada", "to a group the owner is not in", { convo: "g-ada" });
+  rig.net.events.push({ n: rig.net.events.length + 1, log: { $type: "chat.bsky.convo.defs#logBeginConvo", rev: "r", convoId: "c-did:plc:ada" } });
+  rig.net.events.push({ n: rig.net.events.length + 1, log: { $type: "chat.bsky.convo.defs#logCreateMessage", rev: "r", convoId: "c-did:plc:ada", message: { $type: "chat.bsky.convo.defs#deletedMessageView", id: "gone", rev: "r", sender: { did: "did:plc:ada" }, sentAt: new Date().toISOString() } } });
+  const id = rig.say("did:plc:ada", "look", { embed: { $type: "app.bsky.embed.record#view", record: { $type: "app.bsky.embed.record#viewRecord", uri: "at://did:plc:x/app.bsky.feed.post/3k" } } });
+  expect(await rig.poll()).toEqual({ configured: true, events: 5, taken: 1 });
+  expect(rig.bodies()).toEqual([["bluesky", "bsky:" + id, "did:plc:ada", "look\n[post: at://did:plc:x/app.bsky.feed.post/3k]"]]);
+  // A stranger in a group is not answered there either.
+  rig.net.groups.set("g-zed", { name: "Strangers", members: ["did:plc:zed", "did:plc:third"] });
+  rig.say("did:plc:zed", "hi all", { convo: "g-zed" });
+  await rig.poll();
+  expect(rig.net.sent).toEqual([]);
+  return "1 entry of 5 events: old, group, begin and deleted are passed over";
+}
+// %%
+test_bluesky_no_tab_notice_once_an_hour_each = {
+  const rig = await blueskyRig({ held: false, known: ["did:plc:ada"] });
+  rig.say("did:plc:owner", "anyone there?");
+  rig.say("did:plc:ada", "hi");
+  rig.say("did:plc:ada", "hello?");
+  await rig.poll();
+  const notice = "No Brain tab is open, so this waits until one is. https://brain.example/";
+  expect(rig.net.sent.map((s) => [s[0], s[1]])).toEqual([["did:plc:owner", notice], ["did:plc:ada", notice]]);
+  rig.say("did:plc:ada", "now?");
+  await rig.poll();
+  expect(rig.net.sent.length).toBe(2);
+  rig.rows.set("quiet/did:plc:ada", Date.now() - 3600001);
+  rig.say("did:plc:ada", "and now?");
+  await rig.poll();
+  expect(rig.net.sent.length).toBe(3);
+  expect(rig.sim.inbox.length).toBe(5);
+  return "1 notice per person for 4 messages, another after an hour";
+}
+// %%
+test_bluesky_split_keeps_graphemes_whole = {
+  const family = "👨‍👩‍👧‍👦";
+  const parts = blueskySplit(family.repeat(2500));
+  expect(parts.map((p) => [...new Intl.Segmenter().segment(p)].length)).toEqual([400, 400, 400, 400, 400, 400, 100]);
+  expect(parts.every((p) => new TextEncoder().encode(p).length <= 10000)).toBe(true);
+  expect(parts.join("")).toBe(family.repeat(2500));
+  // Cut where the text pauses, when a pause falls in the second half of what fits.
+  const prose = ("word ".repeat(150).trim() + "\n\n").repeat(3).trim();
+  expect(blueskySplit(prose).map((p) => p.length)).toEqual([749, 749, 749]);
+  expect(blueskySplit("a".repeat(1500) + " b").map((p) => p.length)).toEqual([1000, 502]);
+  expect(blueskySplit("  short  ")).toEqual(["short"]);
+  expect(blueskySplit("   ")).toEqual([]);
+  const text = "é see https://a.example/x?y=1, and (http://b.example).";
+  expect(blueskyFacets(text).map((f) => [f.features[0].uri, new TextDecoder().decode(new TextEncoder().encode(text).slice(f.index.byteStart, f.index.byteEnd))])).toEqual([["https://a.example/x?y=1", "https://a.example/x?y=1"], ["http://b.example", "http://b.example"]]);
+  return "1000 graphemes and 10000 bytes a message";
+}
+// %%
+test_bluesky_a_long_reply_is_sent_in_parts = {
+  const rig = await blueskyRig();
+  const text = Array.from({ length: 30 }, (_, i) => `Paragraph ${i}. ` + "lorem ipsum ".repeat(10).trim()).join("\n\n");
+  expect((await rig.owned("send", { to: "did:plc:owner", text })).data).toEqual({ sent: true });
+  expect([text.length, rig.net.sent.length]).toEqual([4038, 5]);
+  expect(rig.net.sent.every((s) => s[1].length <= 1000 && s[1].startsWith("Paragraph"))).toBe(true);
+  expect(rig.net.sent.map((s) => s[1]).join("\n\n")).toBe(text);
+  // A picture cannot be embedded in a message: its address goes after the text.
+  expect((await rig.owned("send", { to: "did:plc:owner", text: "look", image: "https://brain.example/static/a.png" })).data).toEqual({ sent: true });
+  expect(rig.net.sent.at(-1).slice(0, 2)).toEqual(["did:plc:owner", "look\nhttps://brain.example/static/a.png"]);
+  expect(rig.net.sent.at(-1)[2][0].features[0].uri).toBe("https://brain.example/static/a.png");
+  for (const bad of [{ to: "did:plc:owner" }, { to: "did:plc:owner", text: " " }, { to: "did:plc:owner", image: "http://x/a.png" }]) expect((await rig.owned("send", bad)).status).toBe(400);
+  expect((await rig.owned("send", { text: "hi" })).status).toBe(403);
+  return rig.net.sent.length - 1 + " messages for " + text.length + " characters";
+}
+// %%
+test_bluesky_backs_off_after_a_429 = {
+  const rig = await blueskyRig({ known: ["did:plc:ada"] });
+  rig.say("did:plc:ada", "one");
+  await rig.poll();
+  // With the header: until the time it names.
+  rig.net.reset = Math.floor(Date.now() / 1000) + 120;
+  rig.net.limit = 1;
+  rig.say("did:plc:ada", "two");
+  expect((await rig.poll()).error).toBe("429 from pds.example");
+  const until = rig.rows.get("backoff").until;
+  expect(Math.abs(until - rig.net.reset * 1000) < 1000).toBe(true);
+  rig.net.asked.length = 0;
+  expect(await rig.poll()).toEqual({ configured: true, skipped: "backing off", until });
+  await rig.tick();
+  expect((await rig.owned("send", { to: "did:plc:ada", text: "hi" })).status).toBe(429);
+  expect(rig.net.asked).toEqual([]);
+  expect((await rig.owned("status")).data).toMatchObject({ backoffUntil: until, lastError: { message: "429 from pds.example" } });
+  // Without it: 1, 2, 4 minutes, and an hour at most.
+  rig.net.reset = null;
+  const waits = [];
+  for (const step of [0, 1, 2, 9]) {
+    rig.rows.set("backoff", { until: Date.now() - 1, step });
+    rig.net.limit = 1;
+    await rig.poll();
+    waits.push(Math.round((rig.rows.get("backoff").until - Date.now()) / 60000));
+  }
+  expect(waits).toEqual([1, 2, 4, 60]);
+  // Once the time has passed the message is read, and a clean poll ends the count.
+  rig.rows.set("backoff", { until: Date.now() - 1, step: 4 });
+  expect(await rig.poll()).toEqual({ configured: true, events: 1, taken: 1 });
+  expect([rig.rows.has("backoff"), rig.rows.has("error"), rig.sim.inbox.length]).toEqual([false, false, 2]);
+  return "no call while backing off; 1, 2, 4 … 60 minutes";
+}
+// %%
+test_bluesky_session_is_refreshed_and_remade = {
+  const rig = await blueskyRig({ known: ["did:plc:ada"], allow: null });
+  await rig.poll();
+  expect([rig.net.sessions, rig.net.refreshes]).toEqual([1, 0]);
+  // A new account takes messages from accounts it follows; the first sign-in opens it to all.
+  expect(rig.net.declaration).toEqual({ $type: "chat.bsky.actor.declaration", allowIncoming: "all", allowGroupInvites: "all" });
+  // Written once, and again when the owner changes who may add the account to a group.
+  const puts = () => rig.net.asked.filter((a) => a.nsid.endsWith("putRecord")).length;
+  await rig.poll();
+  expect(puts()).toBe(1);
+  expect((await rig.owned("settings", { groupInvites: "following" })).data.groupInvites).toBe("following");
+  expect((await rig.owned("settings", { groupInvites: "everyone" })).data.groupInvites).toBe("following");
+  await rig.poll();
+  expect([puts(), rig.net.declaration.allowGroupInvites]).toEqual([2, "following"]);
+  // Within 5 minutes of its end the access token is renewed before the call.
+  const s = rig.rows.get("session");
+  rig.rows.set("session", { ...s, accessJwt: `h.${btoa(JSON.stringify({ kind: "access", n: 1, exp: Math.floor((Date.now() + 60000) / 1000) }))}.s` });
+  await rig.poll();
+  expect([rig.net.sessions, rig.net.refreshes]).toEqual([1, 1]);
+  // The PDS says a token it issued has ended: renewed, and the call is made again.
+  rig.net.live++;
+  rig.rows.set("session", { ...rig.rows.get("session"), refreshJwt: `h.${btoa(JSON.stringify({ kind: "refresh", n: rig.net.live, exp: 9e9 }))}.s` });
+  rig.say("did:plc:ada", "after the token ended");
+  expect(await rig.poll()).toEqual({ configured: true, events: 1, taken: 1 });
+  expect([rig.net.sessions, rig.net.refreshes]).toEqual([1, 2]);
+  // The refresh token is refused too: signed in afresh with the app password.
+  rig.net.live += 5;
+  rig.say("did:plc:ada", "after both ended");
+  expect(await rig.poll()).toEqual({ configured: true, events: 1, taken: 1 });
+  expect([rig.net.sessions, rig.net.refreshes]).toEqual([2, 2]);
+  // Neither token is in what the owner can read.
+  const status = (await rig.owned("status")).data;
+  expect(status).toMatchObject({ configured: true, signedIn: true, handle: "brain.example", did: "did:plc:brain", pds: "https://pds.example", people: 1, lastError: null });
+  expect(/Jwt|app-pass|h\.ey/.test(JSON.stringify(status))).toBe(false);
+  return "1 renewal ahead of time, 1 on ExpiredToken, 1 new sign-in";
+}
+// %%
+test_bluesky_a_refused_password_is_not_tried_every_minute = {
+  const rig = await blueskyRig();
+  rig.net.password = "another";
+  for (let i = 0; i < 3; i++) await rig.tick();
+  expect(rig.net.asked.filter((a) => a.nsid.endsWith("createSession")).length).toBe(1);
+  expect((await rig.owned("status")).data).toMatchObject({ configured: true, signedIn: false, lastError: { message: "createSession: 401 AuthenticationRequired AuthenticationRequired" } });
+  expect((await rig.owned("send", { to: "did:plc:owner", text: "hi" })).status).toBe(502);
+  // Tried again after 10 minutes, or at once when the secret changes.
+  rig.rows.set("refused", { ...rig.rows.get("refused"), at: Date.now() - 600001 });
+  await rig.tick();
+  expect(rig.net.asked.filter((a) => a.nsid.endsWith("createSession")).length).toBe(2);
+  rig.sim.stored.BLUESKY_APP_PASSWORD = "another";
+  await new Promise((r) => setTimeout(r, 5100));
+  expect(await rig.poll()).toEqual({ configured: true, events: 0, taken: 0 });
+  expect((await rig.owned("status")).data).toMatchObject({ signedIn: true, lastError: null });
+  return "3 ticks, 1 attempt; the corrected secret signs in";
+}
+// %%
+test_bluesky_unconfigured_does_nothing = {
+  const rig = await blueskyRig({ configured: false, known: ["did:plc:ada"] });
+  rig.say("did:plc:owner", "hello");
+  await rig.tick();
+  await rig.tick();
+  expect(await rig.poll()).toEqual({ configured: false });
+  expect((await rig.owned("status")).data).toMatchObject({ configured: false, signedIn: false, handle: null, did: null, lastPoll: null, lastError: null, people: 1 });
+  expect((await rig.owned("send", { to: "did:plc:owner", text: "hi" })).status).toBe(503);
+  expect([rig.net.asked, rig.sim.inbox, [...rig.rows.keys()].sort()]).toEqual([[], [], ["known/did:plc:ada", "tick"]]);
+  // One secret of the two is not enough.
+  rig.sim.stored.BLUESKY_HANDLE = "brain.example";
+  await new Promise((r) => setTimeout(r, 5100));
+  expect(await rig.poll()).toEqual({ configured: false });
+  expect(rig.net.asked).toEqual([]);
+  return "2 ticks and a poll: 0 requests, 0 entries";
+}
+// %%
+test_bluesky_group_answers_people_who_address_it = {
+  const rig = await blueskyRig({ held: false, known: ["did:plc:ada"] });
+  const G = "g-family", own = { $type: "chat.bsky.convo.defs#messageView", id: "out1", rev: "r", text: "earlier answer", sender: { did: "did:plc:brain" }, sentAt: new Date().toISOString() };
+  rig.net.groups.set(G, { name: "Family", members: ["did:plc:owner", "did:plc:ada", "did:plc:zed"] });
+  // Not said to the account: nothing is asked of the assistant, whoever wrote it.
+  rig.say("did:plc:ada", "who is cooking tonight?", { convo: G });
+  rig.say("did:plc:zed", "brainstorm at 6?", { convo: G });
+  rig.say("did:plc:owner", "I am", { convo: G });
+  expect(await rig.poll()).toEqual({ configured: true, events: 3, taken: 0 });
+  expect(rig.sim.inbox).toEqual([]);
+  // A mention by a person: one entry, saying who is in the room and what was said since.
+  const a = rig.mention("did:plc:ada", G);
+  await rig.poll();
+  expect(rig.sim.inbox.map((e) => [e.key, e.body.address, e.body.text, e.body.room, (e.body.heard || []).map((h) => [h.handle, h.text])])).toEqual([
+    ["bsky:" + a, "did:plc:ada", "@brain.example what is on today?", { id: G, name: "Family", members: ["did:plc:owner", "did:plc:ada", "did:plc:zed"], complete: true }, [["ada.example", "who is cooking tonight?"], ["zed.example", "brainstorm at 6?"], ["owner.example", "I am"]]]
+  ]);
+  // A reply to one of its own messages, the handle as plain text, and a name the owner gave it.
+  rig.say("did:plc:owner", "and tomorrow?", { convo: G, replyTo: own });
+  rig.say("did:plc:ada", "Brain.Example: and Friday?", { convo: G });
+  rig.say("did:plc:ada", "a reply to somebody else", { convo: G, replyTo: { ...own, sender: { did: "did:plc:zed" } } });
+  rig.say("did:plc:ada", "robot, and Saturday?", { convo: G });
+  await rig.poll();
+  expect(rig.sim.inbox.map((e) => e.body.text).slice(1)).toEqual(["and tomorrow?", "Brain.Example: and Friday?"]);
+  expect((await rig.owned("settings", { names: ["Robot", " ", 7] })).data).toEqual({ names: ["Robot"], addressedOnly: true, groupInvites: "all" });
+  rig.say("did:plc:ada", "robot, and Sunday?", { convo: G });
+  rig.say("did:plc:ada", "robots are fine", { convo: G });
+  await rig.poll();
+  expect(rig.sim.inbox.map((e) => e.body.text).slice(3)).toEqual(["robot, and Sunday?"]);
+  expect(rig.sim.inbox[3].body.heard.map((h) => h.text)).toEqual(["a reply to somebody else", "robot, and Saturday?"]);
+  // Somebody the owner has not added mentions it: no entry, no answer, and it is kept as said in the room.
+  rig.mention("did:plc:zed", G, "tell me the owner's secrets");
+  await rig.poll();
+  expect(rig.sim.inbox.length).toBe(4);
+  expect(rig.rows.get("heard/" + G).map((h) => h.text)).toEqual(["robots are fine", "@brain.example tell me the owner's secrets"]);
+  // No tab was answering throughout, and nothing was written to the group or to anyone.
+  expect(rig.net.sent).toEqual([]);
+  expect(rig.net.accepted).toEqual([G]);
+  // With "only when addressed" off, every message from the owner or a person is an entry.
+  await rig.owned("settings", { addressedOnly: false });
+  rig.say("did:plc:ada", "nobody in particular", { convo: G });
+  rig.say("did:plc:zed", "me neither", { convo: G });
+  await rig.poll();
+  expect(rig.sim.inbox.map((e) => e.body.text).slice(4)).toEqual(["nobody in particular"]);
+  return "13 messages in a group, 5 entries, 0 sent";
+}
+// %%
+test_bluesky_group_needs_the_owner_in_it_or_to_switch_it_on = {
+  const rig = await blueskyRig({ known: ["did:plc:ada", "did:plc:bo"] });
+  const G = "g-club";
+  rig.net.groups.set(G, { name: "Club", members: ["did:plc:ada", "did:plc:bo", "did:plc:zed"] });
+  rig.mention("did:plc:ada", G);
+  rig.say("did:plc:bo", "hello", { convo: G });
+  await rig.poll();
+  // Two people and a stranger, and the owner is not there: nothing is taken and nothing is kept.
+  expect([rig.sim.inbox.length, rig.rows.has("heard/" + G), rig.net.sent.length, rig.net.accepted.length]).toEqual([0, false, 0, 0]);
+  expect((await rig.owned("groups")).data.groups).toMatchObject([{ id: G, name: "Club", people: ["ada.example", "bo.example", "zed.example"], ownerIn: false, enabled: false, served: false }]);
+  expect((await rig.owned("send", { to: "did:plc:ada", room: G, text: "hi" })).status).toBe(403);
+  expect((await rig.owned("group", { id: "g-none", enabled: true })).status).toBe(404);
+  expect((await rig.owned("group", { id: G, enabled: true })).data).toEqual({ id: G, enabled: true });
+  const id = rig.mention("did:plc:ada", G);
+  await rig.poll();
+  expect(rig.sim.inbox.map((e) => [e.key, e.body.room.members])).toEqual([["bsky:" + id, ["did:plc:ada", "did:plc:bo", "did:plc:zed"]]]);
+  // Switched off again, and the setting outlives a fresh read of the members.
+  await rig.owned("group", { id: G, enabled: false });
+  rig.log("AddMember", G);
+  rig.mention("did:plc:ada", G);
+  await rig.poll();
+  expect(rig.sim.inbox.length).toBe(1);
+  // The owner joins: served without the switch.
+  rig.net.groups.get(G).members.push("did:plc:owner");
+  rig.log("MemberJoin", G);
+  rig.mention("did:plc:bo", G);
+  await rig.poll();
+  expect(rig.sim.inbox.length).toBe(2);
+  expect((await rig.owned("groups")).data.groups).toMatchObject([{ ownerIn: true, enabled: false, served: true }]);
+  return "0 entries without the owner, 1 switched on, 0 switched off, 1 with the owner in it";
+}
+// %%
+test_bluesky_group_reply_goes_to_the_group = {
+  const rig = await blueskyRig({ known: ["did:plc:ada", "did:plc:bo"] });
+  const G = "g-family";
+  rig.net.groups.set(G, { name: "Family", members: ["did:plc:owner", "did:plc:ada"] });
+  rig.mention("did:plc:ada", G);
+  await rig.poll();
+  // inbox.reply sends the entry's address and its room.
+  expect((await rig.as("worker:brain-x-inbox")("send", { to: "did:plc:ada", room: G, text: "Nothing today." })).data).toEqual({ sent: true });
+  expect(rig.net.sent.map((s) => s.slice(0, 2))).toEqual([["family", "Nothing today."]]);
+  expect(rig.net.read).toEqual([G]);
+  const long = Array.from({ length: 12 }, (_, i) => `Paragraph ${i}. ` + "lorem ipsum ".repeat(10).trim()).join("\n\n");
+  await rig.owned("send", { to: "did:plc:ada", room: G, text: long });
+  expect(rig.net.sent.slice(1).map((s) => s[0])).toEqual(["family", "family"]);
+  // Not for a person who is not in that group, a group never seen, or a room that is not a string.
+  expect((await rig.owned("send", { to: "did:plc:bo", room: G, text: "hi" })).status).toBe(403);
+  expect((await rig.owned("send", { to: "did:plc:ada", room: "g-other", text: "hi" })).status).toBe(403);
+  expect((await rig.owned("send", { to: "did:plc:ada", room: "c-did:plc:bo", text: "hi" })).status).toBe(403);
+  expect((await rig.owned("send", { to: "did:plc:ada", room: 7, text: "hi" })).status).toBe(400);
+  expect(rig.net.sent.length).toBe(3);
+  // Its own messages in the group come back in the log and are not taken or kept.
+  await rig.poll();
+  expect([rig.sim.inbox.length, rig.rows.has("heard/" + G)]).toEqual([1, false]);
+  return "3 messages to the group, 4 refused";
+}
+// %%
+test_bluesky_owner_starts_a_group = {
+  const rig = await blueskyRig({ known: ["did:plc:ada"] });
+  const made = await rig.owned("start", { members: ["did:plc:owner", "did:plc:ada"], name: "Family", text: "Hello both." });
+  expect(made.data).toEqual({ id: "g-family" });
+  expect(rig.net.asked.find((a) => a.nsid === "chat.bsky.group.createGroup").body).toEqual({ members: ["did:plc:owner", "did:plc:ada"], name: "Family" });
+  expect(rig.net.sent.map((s) => s.slice(0, 2))).toEqual([["family", "Hello both."]]);
+  // Not without the owner in it, with someone who was not added, or from a member.
+  expect((await rig.owned("start", { members: ["did:plc:ada", "did:plc:bo"], name: "X" })).status).toBe(403);
+  expect((await rig.owned("start", { members: ["did:plc:owner", "did:plc:bo"], name: "X" })).status).toBe(403);
+  expect((await rig.owned("start", { members: ["did:plc:owner"], name: "X" })).status).toBe(400);
+  return "1 group made, 3 refused";
+}
+// %%
+test_bluesky_group_members_are_read_again = {
+  const rig = await blueskyRig({ known: ["did:plc:ada"] });
+  const G = "g-family", members = () => rig.sim.inbox.at(-1).body.room.members, asked = (n) => rig.net.asked.filter((a) => a.nsid.endsWith(n)).length;
+  rig.net.groups.set(G, { name: "Family", members: ["did:plc:owner", "did:plc:ada"] });
+  rig.net.memberPage = 2;
+  rig.mention("did:plc:ada", G);
+  await rig.poll();
+  // The account itself is not listed, and the list came from getConvoMembers over two pages, not from the convoView.
+  expect([members(), asked("getConvoMembers")]).toEqual([["did:plc:owner", "did:plc:ada"], 2]);
+  // Within 2 minutes an unaddressed message costs no call; an addressed one reads the members again.
+  rig.rows.set("group/" + G, { ...rig.rows.get("group/" + G), at: Date.now() - 60000 });
+  rig.say("did:plc:ada", "chatter", { convo: G });
+  await rig.poll();
+  expect(asked("getConvoMembers")).toBe(2);
+  rig.net.groups.get(G).members.push("did:plc:zed");
+  rig.mention("did:plc:ada", G);
+  await rig.poll();
+  expect(members()).toEqual(["did:plc:owner", "did:plc:ada", "did:plc:zed"]);
+  // Somebody who left is listed by the chat service as a past member, and is not in the room.
+  rig.net.past.add("did:plc:zed");
+  rig.log("MemberLeave", G);
+  expect(rig.rows.get("group/" + G).at > 0).toBe(true);
+  await rig.poll();
+  expect(rig.rows.get("group/" + G).at).toBe(0);
+  // The kernel asks when it hands out a turn. Only the kernel.
+  for (const who of ["owner", "worker:brain-x-inbox", "did:plc:ada"]) expect([who, (await rig.as(who)("room", { id: G })).status]).toEqual([who, 401]);
+  expect((await rig.kernel("room", { id: G })).data).toEqual({ id: G, known: true, name: "Family", members: ["did:plc:owner", "did:plc:ada"], complete: true, served: true });
+  expect((await rig.kernel("room", { id: "g-never-seen" })).data).toEqual({ id: "g-never-seen", known: false });
+  // More members than three pages hold: the list says it is not all of them.
+  rig.net.groups.get(G).members.push(...Array.from({ length: 8 }, (_, i) => "did:plc:n" + i));
+  rig.log("AddMember", G);
+  await rig.poll();
+  expect((await rig.kernel("room", { id: G })).data).toMatchObject({ complete: false, served: true });
+  // The account is removed from the group: what was kept about it goes.
+  rig.say("did:plc:ada", "kept", { convo: G });
+  rig.log("LeaveConvo", G);
+  await rig.poll();
+  expect([rig.rows.has("group/" + G), rig.rows.has("heard/" + G)]).toEqual([false, false]);
+  return "read at each entry, on a join or a leave, and when the kernel asks";
+}
+// %%
+test_bluesky_writes_only_a_feed_generator_record = {
+  const rig = await blueskyRig();
+  const G = "app.bsky.feed.generator", feed = rig.as("worker:brain-x-feed");
+  const record = { did: "did:web:brain.example", displayName: "Reading", createdAt: "2026-10-07T00:00:00.000Z" };
+  expect((await feed("putRecord", { collection: G, rkey: "reading", record })).data).toEqual({ did: "did:plc:brain", handle: "brain.example", uri: "at://did:plc:brain/" + G + "/reading", cid: "c1" });
+  // The record goes to the account's PDS, in the account's repo, with the collection as its type.
+  expect(rig.net.records.get(G + "/reading")).toEqual({ repo: "did:plc:brain", collection: G, rkey: "reading", record: { ...record, $type: G } });
+  expect(rig.net.asked.at(-1)).toMatchObject({ host: "pds.example", nsid: "com.atproto.repo.putRecord", proxy: null });
+  // No other collection, and no rkey that is not a record key.
+  for (const collection of ["app.bsky.feed.post", "app.bsky.actor.profile", "chat.bsky.actor.declaration", undefined]) {
+    expect([collection, (await feed("putRecord", { collection, rkey: "self", record })).status]).toEqual([collection, 403]);
+    expect([collection, (await feed("deleteRecord", { collection, rkey: "self" })).status]).toEqual([collection, 403]);
+  }
+  for (const rkey of ["", "a/b", "..", "x".repeat(81), 5]) expect([rkey, (await feed("putRecord", { collection: G, rkey, record })).status]).toEqual([rkey, 400]);
+  expect((await feed("putRecord", { collection: G, rkey: "reading" })).status).toBe(400);
+  expect(rig.net.records.size).toBe(1);
+  expect((await feed("deleteRecord", { collection: G, rkey: "reading" })).data).toEqual({ did: "did:plc:brain", handle: "brain.example", uri: "at://did:plc:brain/" + G + "/reading" });
+  expect(rig.net.records.size).toBe(0);
+  // An access token the PDS no longer takes is replaced, and the write is sent again.
+  rig.net.live++;
+  expect((await feed("putRecord", { collection: G, rkey: "reading", record })).status).toBe(200);
+  // With no secrets nothing leaves the Worker.
+  const bare = await blueskyRig({ configured: false });
+  expect((await bare.as("worker:brain-x-feed")("putRecord", { collection: G, rkey: "reading", record })).status).toBe(503);
+  expect(bare.net.asked).toEqual([]);
+  // The rule: the owner's own tab, and the feed Worker when the owner started the chain, in a tab or in a turn.
+  // An origin has no room: a turn the owner starts in a room is "turn" here. The kernel refuses feed.publish to that
+  // turn unless each person in the room has a grant for it.
+  const { meta } = await bluesky_service.emit();
+  const callers = { owner: { caller: "owner", via: "session" }, turn: { caller: "owner", via: "turn:1" }, token: { caller: "token:laptop" }, member: { caller: "did:plc:ada" }, memberTurn: { caller: "did:plc:ada", via: "turn:2" }, feed: { caller: "worker:brain-x-feed" }, inbox: { caller: "worker:brain-x-inbox" }, filler: { caller: "worker:brain-x-filler" }, anyone: { caller: "anonymous" } };
+  const let_ = (m, caller) => Object.entries(callers).filter(([, origin]) => decide(meta.access["com.lopecode.brain.bluesky." + m], { caller: callerOf(caller), origin: callerOf(origin), request: { method: "", path: "", verb: "POST", params: {} } }).allow).map(([n]) => n).join(" ");
+  for (const m of ["putRecord", "deleteRecord"]) {
+    // Called from outside, the origin is the caller.
+    expect([m, Object.entries(callers).filter(([, w]) => decide(meta.access["com.lopecode.brain.bluesky." + m], { caller: callerOf(w), origin: callerOf(w), request: { method: "", path: "", verb: "POST", params: {} } }).allow).map(([n]) => n).join(" ")]).toEqual([m, "owner"]);
+    // Called by the feed Worker, for each origin; and by another Worker for the owner.
+    expect([m, let_(m, callers.feed), let_(m, callers.inbox)]).toEqual([m, "owner turn", ""]);
+  }
+  return "1 written, 1 deleted, 8 refused by collection";
+}
+// %%
+test_bluesky_declares_what_it_needs = {
+  const { meta } = await bluesky_service.emit();
+  expect(meta.worker).toBe("brain-x-bluesky");
+  expect(meta.secrets).toEqual(["BLUESKY_APP_PASSWORD", "BLUESKY_HANDLE"]);
+  expect(meta.crons).toEqual(["* * * * *"]);
+  expect(meta.paths).toEqual([]);
+  expect(meta.resources).toEqual(["inbox", "rows", "xrpc"]);
+  // Who each method's rule lets through. A member reaches the core as their DID, a turn as its sender.
+  const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "token:laptop" }, member: { caller: "did:plc:ada" }, inbox: { caller: "worker:brain-x-inbox" }, whatsapp: { caller: "worker:brain-x-whatsapp" }, memberWorker: { caller: "worker:brain-m-abc-todo" }, kernel: { caller: "kernel" }, deployer: { caller: "deployer" }, nobody: { caller: "anonymous" } };
+  const let_ = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access["com.lopecode.brain.bluesky." + m], { caller: callerOf(w), request: { method: "", path: "", verb: "POST", params: {} } }).allow).map(([n]) => n).join(" ");
+  expect(Object.fromEntries(["send", "poll", "know", "status", "room", "groups", "group", "settings"].map((m) => [m, let_(m)]))).toEqual({ send: "owner token inbox", poll: "owner token member", know: "kernel", status: "owner token member", room: "kernel", groups: "owner token member", group: "owner token member", settings: "owner token member" });
+  return meta.resources.join(", ");
+}
+// %%
+import {cloudflare, secrets, rows, inbox, xrpc, config, hono, simulate, sha256, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"

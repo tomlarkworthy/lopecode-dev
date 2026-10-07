@@ -1,0 +1,293 @@
+md`# brain-library
+
+Notebooks kept by a Cloud Brain and served from its address. The files are in \`brain-static\`, under \`library/\`; this Worker keeps the list, the versions and who may open each.
+
+| | |
+|---|---|
+| Worker | \`brain-x-library\` |
+| \`library.put\` | procedure, owner. \`?name=\`, optional \`public=true\` and \`parent=<sha256>\`; the body is the notebook's HTML file. |
+| \`library.list\` | query, anyone. The owner gets every notebook, anyone else the public ones. |
+| \`library.versions\` | query, owner. \`?name=\`. The last 10 saves, newest first. |
+| \`library.setPublic\` | procedure, owner. \`{ name, public }\` |
+| \`library.delete\` | procedure, owner. \`{ name }\`. Deletes every version. |
+| \`GET /library/<name>\` | the notebook. Anyone for a public one, the owner for any. \`?v=<sha256>\` opens a kept version. |
+| Calls | \`static.put\`, \`static.get\`, \`static.delete\` |
+| Storage | \`rows\`, key \`n/<name>\`: \`{ title, sha256, size, public, savedAt, versions }\`. Files at \`library/<name>/<first 16 of sha256>.html\` in \`brain-static\`. |
+
+A name is 1 to 80 of \`A-Z a-z 0-9 @ . _ -\`. The body must be a lopecode notebook: a file with a \`bootconf.json\` block. The title is the file's \`<title>\`. With \`parent\`, a put is refused with 409 unless \`parent\` is the SHA-256 of the notebook's newest version (empty for a new name), so two tabs saving one notebook do not overwrite each other unseen.
+
+\`\`\`js
+client = xrpcClient("https://brain.example", { namespace: "com.lopecode.brain" })
+await client.procedure("library.put", htmlBytes, { params: { name: "notes", public: "true" }, raw: true })
+// https://brain.example/library/notes
+\`\`\`
+
+\`libraryPanel({ client, origin, owner })\` is the list as a table, with upload, public and delete for the owner.
+
+A notebook served from \`/library\` runs on the Brain's own address, so its cells call the Brain as whoever is signed in. Put only notebooks you would run as yourself.`
+// %%
+library_service = cloudflare.Service("library", libraryApp, {
+  methods: {
+    "com.lopecode.brain.library.put": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.library.list": { type: "query", who: "anyone" },
+    "com.lopecode.brain.library.versions": { type: "query", who: "owner" },
+    "com.lopecode.brain.library.setPublic": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.library.delete": { type: "procedure", who: "owner" }
+  },
+  paths: [{ path: "/library/*", who: "anyone" }],
+  calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.get", "com.lopecode.brain.static.delete"]
+})
+// %%
+library_announce = {
+  plugins.add("workers", library_service, { invalidation });
+  return "announced library_service";
+}
+// %%
+libraryApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.library.";
+  const STATIC = "com.lopecode.brain.static.";
+  const KEEP = 10;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const okName = (n) => /^[A-Za-z0-9@._-]{1,80}$/.test(n || "") && !/^\.+$/.test(n);
+  const isOwner = (c) => {
+    const who = c.req.header("x-brain-caller") || "";
+    return who === "owner" || /^(token|did):/.test(who);
+  };
+  const fileOf = (name, sha) => `library/${name}/${sha.slice(0, 16)}.html`;
+  const drop = (name, sha) => xrpc.fetch(STATIC + "delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: fileOf(name, sha) }) });
+  app.post(NS + "put", async (c) => {
+    const name = c.req.query("name") || "";
+    if (!okName(name)) return fail(c, 400, "InvalidRequest", "name");
+    const bytes = new Uint8Array(await c.req.raw.arrayBuffer());
+    if (!new TextDecoder().decode(bytes).includes('id="bootconf.json"')) return fail(c, 400, "NotANotebook", "the file has no bootconf.json block");
+    const head = await rows.get("n/" + name);
+    const parent = c.req.query("parent");
+    if (parent != null && parent !== (head ? head.sha256 : "")) return fail(c, 409, "StaleParent", `the newest version of ${name} is ${head ? head.sha256 : "none"}`);
+    const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const kept = await xrpc.fetch(STATIC + "put", { method: "POST", params: { path: fileOf(name, sha256), type: "text/html; charset=utf-8", public: "false" }, body: bytes });
+    if (!kept.ok) return fail(c, 502, "UpstreamFailed", `static.put answered ${kept.status}`);
+    const text = new TextDecoder().decode(bytes.subarray(0, 65536));
+    const title = ((text.match(/<title>([^<]*)<\/title>/) || [])[1] || name).trim().slice(0, 200);
+    const savedAt = Date.now();
+    const versions = [{ sha256, size: bytes.length, savedAt }, ...(head ? head.versions.filter((v) => v.sha256 !== sha256) : [])];
+    for (const old of versions.slice(KEEP)) await drop(name, old.sha256);
+    const open = c.req.query("public");
+    const next = { title, sha256, size: bytes.length, public: open != null ? open === "true" : !!(head && head.public), savedAt, versions: versions.slice(0, KEEP) };
+    await rows.put("n/" + name, next);
+    return c.json({ name, title, sha256, size: next.size, public: next.public, savedAt, versions: next.versions.length });
+  });
+  app.get(NS + "list", async (c) => {
+    const all = (await rows.list("n/")).map(({ key, value }) => ({ name: key.slice(2), title: value.title, sha256: value.sha256, size: value.size, public: value.public, savedAt: value.savedAt, versions: value.versions.length }));
+    return c.json({ notebooks: isOwner(c) ? all : all.filter((n) => n.public) });
+  });
+  app.get(NS + "versions", async (c) => {
+    const head = await rows.get("n/" + (c.req.query("name") || ""));
+    return head ? c.json({ versions: head.versions }) : fail(c, 404, "NotFound", c.req.query("name") || "");
+  });
+  app.post(NS + "setPublic", async (c) => {
+    const { name, public: open } = await c.req.json().catch(() => ({}));
+    const head = okName(name) ? await rows.get("n/" + name) : null;
+    if (!head) return fail(c, 404, "NotFound", String(name));
+    await rows.put("n/" + name, { ...head, public: !!open });
+    return c.json({ name, public: !!open });
+  });
+  app.post(NS + "delete", async (c) => {
+    const { name } = await c.req.json().catch(() => ({}));
+    const head = okName(name) ? await rows.get("n/" + name) : null;
+    if (!head) return c.json({ deleted: false });
+    for (const v of head.versions) await drop(name, v.sha256);
+    await rows.delete("n/" + name);
+    return c.json({ deleted: true, versions: head.versions.length });
+  });
+  app.get("/library/:name{.+}", async (c) => {
+    const name = c.req.param("name");
+    const head = okName(name) ? await rows.get("n/" + name) : null;
+    if (!head) return c.text("not found", 404);
+    if (!head.public && !isOwner(c)) return c.text("unauthorized", 401);
+    const sha = c.req.query("v") || head.sha256;
+    if (!head.versions.some((v) => v.sha256 === sha)) return c.text("not found", 404);
+    // A caller inside the Brain sees this. workers.dev removes it from a response it may compress (measured 2026-10-06).
+    const etag = 'W/"' + sha + '"';
+    const headers = { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", etag, "x-library-sha256": sha };
+    if ((c.req.header("if-none-match") || "").includes('"' + sha + '"')) return new Response(null, { status: 304, headers });
+    const file = await xrpc.fetch(STATIC + "get", { params: { path: fileOf(name, sha) } });
+    return file.ok ? new Response(file.body, { headers }) : c.text("not found", 404);
+  });
+  return app;
+}
+// %%
+// The list as a table. For the owner: upload a file, make public or private, delete, and save `current` ({ name, html() }).
+libraryPanel = ({ client, origin, owner = false, current = null } = {}) => {
+  if (!client) return htl.html`<i style="color:var(--theme-foreground-muted)">Open this notebook from a Brain to see its library.</i>`;
+  const box = htl.html`<div></div>`, note = htl.html`<div style="color:var(--theme-foreground-muted);margin-top:6px"></div>`;
+  let table = null;
+  const say = (text) => void (note.textContent = text);
+  const draw = async () => {
+    const { notebooks } = await client.query("library.list");
+    table = Inputs.table(
+      notebooks.map((n) => ({ name: n.name, title: n.title, KB: Math.round(n.size / 1024), saved: new Date(n.savedAt), public: n.public, versions: n.versions })),
+      {
+        multiple: false,
+        required: false,
+        layout: "auto",
+        format: {
+          // A link carries no session: a notebook that is not public is fetched with it and opened from the bytes.
+          name: (name) =>
+            htl.html`<a href=${origin + "/library/" + name} target="_blank" onclick=${async (e) => {
+              if (notebooks.find((n) => n.name === name).public || !client.fetch) return;
+              e.preventDefault();
+              const r = await client.fetch("/library/" + name);
+              if (!r.ok) return say(`${name}: ${r.status}`);
+              open(URL.createObjectURL(new Blob([await r.arrayBuffer()], { type: "text/html" })), "_blank");
+            }}>${name}</a>`,
+          saved: (d) => d.toISOString().slice(0, 16).replace("T", " "),
+          public: (p) => (p ? "public" : "owner")
+        }
+      }
+    );
+    box.replaceChildren(notebooks.length ? table : htl.html`<i style="color:var(--theme-foreground-muted)">No notebooks.</i>`);
+  };
+  const run = (what, fn) => async () => {
+    try {
+      say(what + "…");
+      say((await fn()) || "");
+      await draw();
+    } catch (e) {
+      say(`${what} failed: ${(e && e.message) || e}`);
+    }
+  };
+  const picked = () => {
+    const row = table && table.value;
+    if (!row) throw new Error("choose a row");
+    return row;
+  };
+  draw().catch((e) => say("library.list failed: " + ((e && e.message) || e)));
+  const refresh = Inputs.button("Refresh", { reduce: run("Refresh", async () => "") });
+  if (!owner) return htl.html`<div>${box}${refresh}${note}</div>`;
+  const file = Inputs.file({ label: "Notebook file", accept: ".html" });
+  const name = Inputs.text({ label: "Name", placeholder: "from the file's name", width: "20em" });
+  const put = async (as, bytes) => {
+    const made = await client.procedure("library.put", bytes, { params: { name: as }, raw: true });
+    return `${made.name} saved, ${made.versions} version${made.versions === 1 ? "" : "s"}: ${origin}/library/${made.name}`;
+  };
+  const upload = Inputs.button("Upload", {
+    reduce: run("Upload", async () => {
+      if (!file.value) throw new Error("choose a file");
+      return put(name.value || file.value.name.replace(/\.html?$/i, "").replace(/[^A-Za-z0-9@._-]+/g, "-"), new Uint8Array(await file.value.arrayBuffer()));
+    })
+  });
+  const flip = Inputs.button("Make public / owner only", { reduce: run("Change", async () => void (await client.procedure("library.setPublic", { name: picked().name, public: !picked().public }))) });
+  const del = Inputs.button("Delete", { reduce: run("Delete", async () => void (await client.procedure("library.delete", { name: picked().name }))) });
+  const save = current ? Inputs.button(`Save this notebook as "${current.name}"`, { reduce: run("Save", async () => put(current.name, new TextEncoder().encode(await current.html()))) }) : "";
+  return htl.html`<div>${box}<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${refresh}${flip}${del}${save}</div>${file}${name}${upload}${note}</div>`;
+}
+// %%
+md`## Tests`
+// %%
+libraryNotebook = (body, title = "Notes") => "<html><head><title>" + title + "</title><script id=\"bootconf.json\" type=\"text/plain\">{}</scr" + "ipt></head><body>" + body + "</body></html>"
+// %%
+// The library and the static Worker it calls, joined as the core joins them: the library is worker:brain-x-library there.
+libraryRig = async () => {
+  const stat = await simulate(static_service, {});
+  const asked = [];
+  const sim = await simulate(library_service, {
+    core: async (request) => {
+      const url = new URL(request.url);
+      asked.push(url.pathname.split(".").pop() + " " + (url.searchParams.get("path") || ""));
+      return stat.fetch("https://static.internal" + url.pathname + url.search, {
+        method: request.method,
+        headers: { "content-type": request.headers.get("content-type") || "", "x-brain-caller": "worker:brain-x-library" },
+        body: request.method === "GET" ? undefined : await request.arrayBuffer()
+      });
+    }
+  });
+  const call = (who, path, init = {}) => sim.fetch("https://library.internal" + path, { ...init, headers: { ...(init.headers || {}), "x-brain-caller": who } });
+  const X = "/xrpc/com.lopecode.brain.library.";
+  const put = (who, name, html, extra = "") => call(who, X + "put?name=" + encodeURIComponent(name) + extra, { method: "POST", body: html });
+  const post = (who, name, input) => call(who, X + name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  return { stat, sim, asked, call, put, post, X };
+}
+// %%
+test_library_keeps_and_serves_a_notebook = {
+  const rig = await libraryRig();
+  const one = libraryNotebook("one");
+  const made = await (await rig.put("owner", "notes", one)).json();
+  expect(made).toMatchObject({ name: "notes", title: "Notes", sha256: await sha256(one), size: one.length, public: false, versions: 1 });
+  // The file is in the static Worker's store, under library/, and not public there.
+  const file = "library/notes/" + made.sha256.slice(0, 16) + ".html";
+  expect([...rig.stat.blobs.keys()]).toEqual(["brain-x-static/f/" + file]);
+  expect(rig.stat.rows.get("f/" + file)).toMatchObject({ public: false, type: "text/html; charset=utf-8" });
+  const page = await rig.call("owner", "/library/notes");
+  expect([page.status, page.headers.get("content-type"), page.headers.get("x-library-sha256"), await page.text()]).toEqual([200, "text/html; charset=utf-8", made.sha256, one]);
+  expect((await rig.call("anonymous", "/library/notes")).status).toBe(401);
+  expect((await rig.call("owner", "/library/notes", { headers: { "if-none-match": '"' + made.sha256 + '"' } })).status).toBe(304);
+  expect((await rig.call("owner", "/library/nothing")).status).toBe(404);
+  expect((await rig.put("owner", "page", "<html><body>not a notebook</body></html>")).status).toBe(400);
+  expect((await rig.put("owner", "a/b", one)).status).toBe(400);
+  return "put, served, 401, 304, 404, 400";
+}
+// %%
+test_library_public_list_and_versions = {
+  const rig = await libraryRig();
+  const one = libraryNotebook("one"), two = libraryNotebook("two", "Notes, edited");
+  const v1 = await (await rig.put("owner", "notes", one)).json();
+  await rig.put("owner", "private", libraryNotebook("p", "Private"));
+  const list = async (who) => (await (await rig.call(who, rig.X + "list")).json()).notebooks.map((n) => n.name + (n.public ? " public" : ""));
+  expect(await list("anonymous")).toEqual([]);
+  expect(await (await rig.post("owner", "setPublic", { name: "notes", public: true })).json()).toEqual({ name: "notes", public: true });
+  expect(await list("anonymous")).toEqual(["notes public"]);
+  expect(await list("owner")).toEqual(["notes public", "private"]);
+  // A second save: the name serves the new file, the old one by ?v=, and it stays public.
+  expect((await rig.put("owner", "notes", two, "&parent=" + "0".repeat(64))).status).toBe(409);
+  const v2 = await (await rig.put("owner", "notes", two, "&parent=" + v1.sha256)).json();
+  expect(v2).toMatchObject({ title: "Notes, edited", public: true, versions: 2 });
+  expect(await (await rig.call("anonymous", "/library/notes")).text()).toBe(two);
+  expect(await (await rig.call("anonymous", "/library/notes?v=" + v1.sha256)).text()).toBe(one);
+  expect((await rig.call("anonymous", "/library/notes?v=" + "0".repeat(64))).status).toBe(404);
+  expect((await (await rig.call("owner", rig.X + "versions?name=notes")).json()).versions.map((v) => v.sha256)).toEqual([v2.sha256, v1.sha256]);
+  // Deleting removes every version's file.
+  expect(await (await rig.post("owner", "delete", { name: "notes" })).json()).toEqual({ deleted: true, versions: 2 });
+  expect([...rig.stat.blobs.keys()].length).toBe(1);
+  expect((await rig.call("anonymous", "/library/notes")).status).toBe(404);
+  return "2 versions, 1 conflict, 2 files deleted";
+}
+// %%
+test_library_keeps_ten_versions = {
+  const rig = await libraryRig();
+  for (let i = 0; i < 12; i++) await rig.put("owner", "notes", libraryNotebook("save " + i));
+  const { versions } = await (await rig.call("owner", rig.X + "versions?name=notes")).json();
+  expect(versions.length).toBe(10);
+  expect([...rig.stat.blobs.keys()].length).toBe(10);
+  expect(await (await rig.call("owner", "/library/notes")).text()).toBe(libraryNotebook("save 11"));
+  expect(rig.asked.filter((a) => a.startsWith("delete")).length).toBe(2);
+  return "12 saves, 10 kept";
+}
+// %%
+test_library_declares_what_it_needs = {
+  const { meta } = await library_service.emit();
+  expect(meta).toMatchObject({
+    worker: "brain-x-library", role: "recipe", module: "@tomlarkworthy/brain-library", resources: ["rows", "xrpc"], secrets: [],
+    calls: ["com.lopecode.brain.static.delete", "com.lopecode.brain.static.get", "com.lopecode.brain.static.put"],
+    paths: [{ path: "/library/*", who: "anyone" }]
+  });
+  return meta.calls.join(", ");
+}
+// %%
+test_library_panel_lists_notebooks = {
+  const client = { query: async () => ({ notebooks: [{ name: "notes", title: "Notes", size: 4096, public: true, savedAt: 0, versions: 2 }] }) };
+  const el = libraryPanel({ client, origin: "https://brain.example", owner: true });
+  await new Promise((r) => setTimeout(r, 0));
+  expect(el.querySelector("a").getAttribute("href")).toBe("https://brain.example/library/notes");
+  expect([...el.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["Refresh", "Make public / owner only", "Delete", "Upload"]);
+  expect(libraryPanel({ client: null }).textContent).toMatch(/Open this notebook from a Brain/);
+  return "1 row, 4 buttons";
+}
+// %%
+import {cloudflare, rows, xrpc, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {static_service} from "@tomlarkworthy/brain-static"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

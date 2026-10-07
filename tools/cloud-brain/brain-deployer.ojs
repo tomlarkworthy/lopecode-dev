@@ -1,0 +1,1710 @@
+md`# brain-deployer
+
+The deployer is the one Worker that holds the Cloudflare API token: it distils module source to Worker code, deploys it, and holds a deploy until the owner approves it. It checks each deploy, puts back what fails, keeps a new kernel or core on probation until the owner confirms it, and serves a plain page that works when nothing else does.
+
+Until 2026-10-07 the deployer was called the guard, and until 2026-10-08 its Worker was \`BASE-guard\`. The Worker is now \`BASE-deployer\`. A Brain installed before then keeps \`BASE-guard\` until it is moved (see Moving to a new Worker name). These old spellings are still read: the header \`x-brain-guard\`, the binding \`GUARD\`, the cell \`guard\`, the role and caller \`guard\`, and \`"guard"\` in a rule.
+
+\`deployer_service\` is deployed once, by the installer. Nothing on the Brain can change it afterwards: \`deployerAllows\` and the role check in \`deployerOps\` refuse any apply that names it.`
+// %%
+deployer_service = cloudflare.Service("deployer", deployerFn, {
+  role: "deployer",
+  crons: ["* * * * *"],
+  flags: ["global_fetch_strictly_public"],
+  scheduled: () => deployerOps.tick()
+})
+// %%
+md`## What an apply may touch
+
+\`deployerAllows\` is the rule for a recipe. The kernel and the core do not pass through it: they are deployed by role, under probation.`
+// %%
+deployerAllows = (row) => {
+  // brain-guard: the deployer's name before 2026-10-08.
+  const reserved = new Set(["brain", "brain-deployer", "brain-guard", "brain-core"]);
+  const kinds = new Set(["worker", "r2_bucket", "vectorize_index"]);
+  if (row.op === "unchanged") return null;
+  const [kind, name] = row.key.split("/");
+  if (reserved.has(name)) return `resource name "${name}" is reserved`;
+  if (!kinds.has(kind)) return `unknown resource kind "${kind}"`;
+  if (!/^brain-x-[a-z0-9-]{1,40}$/.test(name)) return `resource name "${name}" must match brain-x-[a-z0-9-]`;
+  // brain-m-… is a member's Worker, and the core binds brain-x-m-… under the same name.
+  if (name.startsWith("brain-x-m-")) return `resource name "${name}" is in the members' names`;
+  if (kind === "r2_bucket" && row.op === "delete" && row.objects > 0) return `bucket "${name}" holds ${row.objects} objects`;
+  return null;
+}
+// %%
+md`## Probation
+
+One transition function for a kernel or core update, driven by the deployer's one-minute cron and by \`infra.confirm\`. Times are milliseconds.`
+// %%
+nextKernelState = (s, event) => {
+  // 10 minutes unless the deployer's config sets probationMs, which a test Brain does.
+  const PROBATION_MS = event.probationMs ?? 10 * 60 * 1000;
+  const span = PROBATION_MS % 60000 ? PROBATION_MS / 1000 + " seconds" : PROBATION_MS / 60000 + " minutes";
+  if (s.state !== "probation") return s;
+  if (event.type === "confirm") return { state: "confirmed", version: s.version, lastGood: s.version };
+  if (event.type === "tick") {
+    const fails = event.healthy ? 0 : s.fails + 1;
+    if (fails >= 2) return { state: "rolled-back", version: s.lastGood, lastGood: s.lastGood, reason: "health check failed twice" };
+    if (event.now - s.since >= PROBATION_MS) return { state: "rolled-back", version: s.lastGood, lastGood: s.lastGood, reason: "not confirmed in " + span };
+    return { ...s, fails };
+  }
+  return s;
+}
+// %%
+md`## Deploying
+
+\`deployerOps\` is everything the deployer does to Cloudflare. A Worker's name in an apply is its logical name (\`brain\`, \`brain-core\`, \`brain-x-NAME\`); the script name on Cloudflare replaces \`brain\` with this Brain's base name, so two Brains can share an account.
+
+Each Worker gets a key when it is first deployed. The deployer presents it to reach that Worker from the internet, and the Worker presents it to the core to say which Worker it is.`
+// %%
+deployerOps = {
+  const text = (v) => JSON.stringify(v);
+  const jsonType = { "content-type": "application/json" };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // The deployer's own script: BASE-deployer, or BASE-guard on a Brain installed before 2026-10-08. The installer says which.
+  const selfScript = () => config.self || config.base + "-guard";
+  const actual = (logical) => (logical === "brain-deployer" ? selfScript() : config.base + logical.slice("brain".length));
+  const script = (logical) => "/workers/scripts/" + actual(logical);
+  const urlOf = (logical) => `https://${actual(logical)}.${config.subdomain}.workers.dev`;
+  const randomKey = () => [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const api = async (method, path, body, headers = {}) => {
+    const r = await fetch("https://api.cloudflare.com/client/v4/accounts/" + config.account + path, {
+      method,
+      headers: { authorization: "Bearer " + (await secrets.CF_API_TOKEN), ...headers },
+      body
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || j.success === false) throw new Error(`${method} ${path} ${r.status} ${text(j.errors || []).slice(0, 300)}`);
+    return j.result;
+  };
+  const call = (logical, key, path, init = {}, version) => {
+    // x-brain-guard: the name a Worker deployed before 2026-10-08 reads.
+    const headers = { "x-brain-deployer": key, "x-brain-guard": key, ...(init.headers || {}) };
+    if (version) headers["Cloudflare-Workers-Version-Overrides"] = `${actual(logical)}="${version}"`;
+    return fetch(urlOf(logical) + path, { ...init, headers, redirect: "manual" });
+  };
+  const healthy = async (logical, key, hash, version) => {
+    try {
+      // A member's Worker has no address on the internet: the core asks it over its binding.
+      if (logical.startsWith("brain-m-")) {
+        const j = await toCore("service.health", { worker: logical });
+        return !!j && j.ok === true && (!hash || j.hash === hash);
+      }
+      const r = await call(logical, key, "/xrpc/_health", {}, version);
+      if (!r.ok) return false;
+      const j = await r.json();
+      return j.ok === true && (!hash || j.hash === hash);
+    } catch {
+      return false;
+    }
+  };
+  const waitHealthy = async (logical, key, hash, version) => {
+    // 60 s. At 30 s two deploys of one Worker were put back while Cloudflare still answered with the version
+    // before (2026-10-06 09:30 and 09:33); the third took 25 s.
+    for (let i = 0; i < (config.pollTries || 40); i++) {
+      if (await healthy(logical, key, hash, version)) return true;
+      await sleep(config.pollMs ?? 1500);
+    }
+    return false;
+  };
+  const toCore = async (nsid, input) => {
+    const core = await rows.get("worker/brain-core");
+    if (!core || !core.hash) return null;
+    const r = await call("brain-core", core.key, "/xrpc/com.lopecode.brain." + nsid, { method: "POST", headers: jsonType, body: text(input) });
+    return r.ok ? r.json() : null;
+  };
+  const note = (key, body) => toCore("inbox.append", { source: "deployer", key, body }).catch(() => null);
+  // This deployer's own hash, set by deployerFn on each request. It names the distiller: a Worker's code is a function of
+  // its source and of the deployer that distilled it.
+  const self = { hash: null };
+  // The source kept for each module is the source of what is running. A version put back takes its source with it.
+  const keptSources = async () => (await rows.list("source/")).filter((r) => !r.value.stale).map((r) => ({ module: r.key.slice("source/".length), ...r.value }));
+  const sourcePutBack = async (logical, hash) => {
+    for (const { key, value } of await rows.list("source/")) {
+      if (value.worker !== logical || (value.hash === hash && !value.stale)) continue;
+      if (value.prev && value.prev.hash === hash) await rows.put(key, { ...value.prev, worker: logical, prev: null });
+      else await rows.put(key, { ...value, stale: true });
+    }
+  };
+  const shell = async (request) => {
+    const core = await rows.get("worker/brain-core");
+    if (!core || !core.hash) return new Response(text({ error: "NotReady", message: "the core is not deployed" }), { status: 503, headers: jsonType });
+    const query = new URLSearchParams({ path: "shell/index.html", public: "true", type: "text/html; charset=utf-8" });
+    const r = await call("brain-core", core.key, "/xrpc/com.lopecode.brain.static.put?" + query, { method: "POST", headers: { "content-type": "text/html; charset=utf-8" }, body: request.body, duplex: "half" });
+    return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/json", "access-control-allow-origin": "*" } });
+  };
+  const currentVersion = async (logical) => {
+    const d = (await api("GET", script(logical) + "/deployments")).deployments[0];
+    return (d.versions.find((v) => v.percentage === 100) || d.versions[0]).version_id;
+  };
+  const setVersions = (logical, versions) =>
+    api("POST", script(logical) + "/deployments", text({ strategy: "percentage", versions }), jsonType);
+  const settings = async () => (await rows.get("settings")) || { approval: true };
+
+  const uploadAsset = async (logical, html) => {
+    const bytes = new TextEncoder().encode(html);
+    const hash = (await sha256(html)).slice(0, 32);
+    const session = await api("POST", script(logical) + "/assets-upload-session", text({ manifest: { "/index.html": { hash, size: bytes.length } } }), jsonType);
+    if (!session.buckets || !session.buckets.length) return { jwt: session.jwt, hash };
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    const form = new FormData();
+    form.append(hash, new File([btoa(binary)], hash, { type: "text/html" }));
+    const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${config.account}/workers/assets/upload?base64=true`, {
+      method: "POST",
+      headers: { authorization: "Bearer " + session.jwt },
+      body: form
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!j.success || !j.result || !j.result.jwt) throw new Error("asset upload " + r.status + " " + text(j.errors || []).slice(0, 200));
+    return { jwt: j.result.jwt, hash };
+  };
+
+  const sqlDatabase = async () => {
+    const known = await rows.get("sql");
+    if (known) return known;
+    const name = actual("brain-sql");
+    const found = ((await api("GET", "/d1/database?name=" + encodeURIComponent(name))) || []).find((d) => d.name === name);
+    const id = found ? found.uuid : (await api("POST", "/d1/database", text({ name }), jsonType)).uuid;
+    await rows.put("sql", id);
+    return id;
+  };
+
+  // The table database: a D1 database named as brain-db's script is, bound to brain-db alone.
+  const ownDatabase = async (logical) => {
+    const known = await rows.get("db/" + logical);
+    if (known) return known;
+    const name = actual(logical);
+    const found = ((await api("GET", "/d1/database?name=" + encodeURIComponent(name))) || []).find((d) => d.name === name);
+    const id = found ? found.uuid : (await api("POST", "/d1/database", text({ name }), jsonType)).uuid;
+    await rows.put("db/" + logical, id);
+    return id;
+  };
+
+  // Bindings are built here from the resources a service declares. Nothing the tab sends is bound as given.
+  const bindingsFor = async (w, key, existing, given) => {
+    const m = w.meta, tier = m.role === "kernel" || m.role === "core";
+    const out = [];
+    // Only the kernel's and the core's own keys are bound, from the installer or made here. A secret the owner set
+    // is never bound: a Worker asks secret.get for it while it runs, and the secret's rule decides.
+    // The signing key has two names (SESSION_KEY; before 2026-10-07 COOKIE_KEY) and one value, and the kernel reads
+    // either. Cloudflare does not give a bound value back, so a name that is not held cannot be copied from the other:
+    // it is left unbound. A random value under SESSION_KEY would sign each person out. With neither held, one new
+    // value is bound under both.
+    const twin = { SESSION_KEY: "COOKIE_KEY", COOKIE_KEY: "SESSION_KEY" };
+    const held = (name) => typeof given[name] === "string" || existing.has(name);
+    let signing = null;
+    for (const name of tier ? m.secrets : []) {
+      if (typeof given[name] === "string") out.push({ type: "secret_text", name, text: given[name] });
+      else if (existing.has(name)) out.push({ type: "inherit", name });
+      else if (twin[name] && m.secrets.includes(twin[name]) && held(twin[name])) continue;
+      else out.push({ type: "secret_text", name, text: twin[name] ? (signing ??= randomKey()) : randomKey() });
+    }
+    const uses = (r) => m.resources.includes(r);
+    // Every Worker's rows are in one D1 database of the Brain, made on first use. Only the deployer has a Durable Object.
+    if (uses("rows")) out.push(existing.has("SQL") ? { type: "inherit", name: "SQL" } : { type: "d1", name: "SQL", id: await sqlDatabase() });
+    if (uses("database")) out.push(existing.has("DB") ? { type: "inherit", name: "DB" } : { type: "d1", name: "DB", id: await ownDatabase(m.worker) });
+    if (uses("blobs")) {
+      const bucket = actual("brain-blobs");
+      if (!existing.has("BLOBS")) await api("POST", "/r2/buckets", text({ name: bucket }), jsonType).catch((e) => { if (!/exist|10004/i.test(e.message)) throw e; });
+      out.push({ type: "r2_bucket", name: "BLOBS", bucket_name: bucket });
+    }
+    if (uses("inbox") || uses("xrpc") || uses("sql") || uses("core") || (m.secrets.length && !tier)) out.push({ type: "service", name: "CORE", service: actual("brain-core") });
+    // "guard": the cell's name in a source distilled before 2026-10-08.
+    if (uses("deployer") || uses("guard")) out.push({ type: "service", name: "DEPLOYER", service: actual("brain-deployer") });
+    if (uses("assets")) out.push({ type: "assets", name: "ASSETS" });
+    for (const name of existing) if (name.startsWith("X_")) out.push({ type: "inherit", name });
+    out.push({ type: "secret_text", name: "BRAIN_KEY", text: key });
+    out.push({ type: "json", name: "BRAIN_CONFIG", json: { base: config.base, subdomain: config.subdomain, host: `${config.base}.${config.subdomain}.workers.dev`, owner: config.owner || null, deployer: `https://${selfScript()}.${config.subdomain}.workers.dev` } });
+    out.push({
+      type: "json",
+      name: "BRAIN_INFO",
+      json: { name: m.worker, hash: w.hash, role: m.role, module: m.module || null, methods: m.methods, access: m.access || {}, calls: m.calls || [], paths: m.paths, secrets: m.secrets, resources: m.resources, deployedAt: new Date().toISOString() }
+    });
+    return out;
+  };
+
+  const refusal = async (w, rec) => {
+    const m = w.meta || {};
+    const logical = m.worker;
+    if (typeof logical !== "string" || !Array.isArray(m.resources) || !Array.isArray(m.secrets)) return "not an emitted Worker";
+    if (logical === "brain-deployer" || logical === "brain-guard" || m.role === "deployer" || m.role === "guard") return 'resource name "brain-deployer" is reserved';
+    // The table database is bound to one Worker, which checks every statement the others send it.
+    if (m.resources.includes("database") && logical !== "brain-db") return "only brain-db is bound to the table database";
+    if (w.parts && (await partsHash(w.parts, m)) !== w.hash) return `the parts sent for "${logical}" do not hash to ${String(w.hash).slice(0, 12)}`;
+    const tier = { kernel: "brain", core: "brain-core" }[m.role];
+    if (tier) return tier === logical ? null : `role ${m.role} must be named ${tier}`;
+    // A system Worker: routed by the core like a recipe, deployed like the core. Its name is not a recipe's.
+    if (m.role === "system") return /^brain-(?!x-|m-|core$|deployer$|guard$)[a-z0-9-]+$/.test(logical) ? null : "role system must be named brain-NAME";
+    if ((await rows.get("worker/" + logical.replace(/^brain-x-/, "brain-")) || {}).hash) return `${logical.replace(/^brain-x-/, "brain-")} is a system Worker`;
+    const reason = deployerAllows({ key: "worker/" + logical, op: rec && rec.hash ? "update" : "create" });
+    if (reason) return reason;
+    // A method or path belongs to one Worker: the core routes to the Worker of the first service that declares it.
+    for (const { value: other } of await rows.list("worker/")) {
+      if (other.worker === logical || !other.hash) continue;
+      const clash = (m.methods || []).find((x) => (other.methods || []).includes(x)) || (m.paths || []).map((x) => x.path).find((x) => (other.paths || []).some((o) => o.path === x));
+      if (clash) return `${clash} is already served by ${other.worker}`;
+    }
+    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql"].includes(r));
+    if (bad) return `a recipe may not use the platform cell "${bad}"`;
+    return m.secrets.find((s) => s.startsWith("BRAIN_") || s.startsWith("CF_")) ? "a recipe may not name a BRAIN_ or CF_ secret" : null;
+  };
+
+  const register = async (rec, access) => {
+    if (rec.role === "deployer" || rec.role === "guard") return;
+    await toCore("service.register", {
+      worker: rec.worker,
+      role: rec.role,
+      module: rec.module || null,
+      hash: rec.hash,
+      methods: access || {},
+      author: rec.author || null,
+      paths: rec.paths,
+      secrets: rec.secrets,
+      keyHash: await sha256(rec.key)
+    });
+    if (rec.role !== "recipe" && rec.role !== "system" && rec.role !== "member") return;
+    const core = await rows.get("worker/brain-core");
+    if (!core || !core.hash) return;
+    const name = "X_" + rec.worker.replace(/^brain-(x-)?/, "").toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const now = (await api("GET", script("brain-core") + "/settings")).bindings;
+    if (now.some((b) => b.name === name)) return;
+    const form = new FormData();
+    form.append("settings", new Blob([text({ bindings: [...now.map((b) => ({ type: "inherit", name: b.name })), { type: "service", name, service: actual(rec.worker) }] })], { type: "application/json" }));
+    await api("PATCH", script("brain-core") + "/settings", form);
+    // The core now runs a version with one more binding and the same code: that version is the one to keep.
+    const version = await currentVersion("brain-core");
+    const ks = await rows.get("kernelstate/brain-core");
+    if (ks && ks.state !== "probation") await rows.put("kernelstate/brain-core", { ...ks, version, lastGood: version });
+    await rows.put("worker/brain-core", { ...core, version });
+  };
+
+  const deployOne = async (w, rec, given) => {
+    const m = w.meta, logical = m.worker, name = actual(logical);
+    const key = (rec && rec.key) || randomKey();
+    const live = rec && rec.hash ? await api("GET", script(logical) + "/settings").catch(() => null) : null;
+    const existing = new Set(live ? live.bindings.map((b) => b.name) : []);
+    const bindings = await bindingsFor(w, key, existing, given);
+    const meta = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...(m.flags || []), ...wrapperFlags])], bindings };
+    let assetHash = rec ? rec.assetHash : undefined;
+    if (m.resources.includes("assets")) {
+      if (typeof w.asset === "string") {
+        const up = await uploadAsset(logical, w.asset);
+        meta.assets = { jwt: up.jwt, config: { run_worker_first: true } };
+        assetHash = up.hash;
+      } else if (existing.has("ASSETS")) meta.keep_assets = true;
+      else throw new Error(`"${logical}" needs its page and none was sent`);
+    }
+    const form = () => {
+      const f = new FormData();
+      f.append("metadata", new Blob([text(meta)], { type: "application/json" }));
+      for (const p of w.parts) f.append(p.path, new File([p.text], p.path, { type: "application/javascript+module" }));
+      return f;
+    };
+    const previous = live ? await currentVersion(logical) : null;
+    let version;
+    if (!live) {
+      // A new script needs the script upload, which goes live at once.
+      await api("PUT", script(logical), form());
+      await api("POST", script(logical) + "/subdomain", text({ enabled: true }), jsonType);
+      if (m.crons.length) await api("PUT", script(logical) + "/schedules", text(m.crons.map((cron) => ({ cron }))), jsonType);
+      version = await currentVersion(logical);
+      if (!(await waitHealthy(logical, key, w.hash))) {
+        if (previous) await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
+        else await api("DELETE", script(logical) + "?force=true");
+        throw new Error("health check failed after go-live");
+      }
+    } else {
+      version = (await api("POST", script(logical) + "/versions", form())).id;
+      await setVersions(logical, [{ version_id: previous, percentage: 100 }, { version_id: version, percentage: 0 }]);
+      if (!(await waitHealthy(logical, key, w.hash, version))) {
+        await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
+        throw new Error("self-test failed before go-live");
+      }
+      await setVersions(logical, [{ version_id: version, percentage: 100 }]);
+      if (!(await waitHealthy(logical, key, w.hash))) {
+        await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
+        throw new Error("health check failed after go-live");
+      }
+    }
+    // What is needed to put the version before back, routes included.
+    const before = rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: rec.paths, secrets: rec.secrets, resources: rec.resources } : null;
+    const next = {
+      worker: logical, role: m.role, module: m.module || null, hash: w.hash, version, key, state: "deployed", fails: 0, assetHash, distiller: typeof w.source === "string" ? self.hash : null,
+      previous: before,
+      methods: m.methods, access: m.access || {}, paths: m.paths, secrets: m.secrets, resources: m.resources, deployedAt: Date.now()
+    };
+    await rows.put("worker/" + logical, next);
+    await register(next, m.access);
+    let state = "deployed";
+    // The kernel, the core and the Worker the page comes from: a broken one cannot serve the page that would report
+    // its tests, so these are also put back when nobody confirms in time.
+    if (m.role !== "recipe" || (m.paths || []).some((p) => p.path === "/")) {
+      if (previous) {
+        await rows.put("kernelstate/" + logical, { state: "probation", version, lastGood: previous, since: Date.now(), fails: 0, hash: w.hash, lastGoodHash: rec.hash });
+        state = "probation";
+      } else {
+        await rows.put("kernelstate/" + logical, { state: "confirmed", version, lastGood: version, hash: w.hash });
+        await rows.put("confirmed/" + logical, [{ version, hash: w.hash, at: Date.now() }]);
+      }
+    }
+    await note(`deploy/${logical}/${version}`, { event: state, worker: logical, hash: w.hash });
+    return { state, version };
+  };
+
+  const apply = async ({ workers = [], remove = [], dry = false } = {}, { recovery = false } = {}) => {
+    const approval = (await settings()).approval;
+    const results = [];
+    // A Worker given as source is distilled here, and what is deployed is what that gives. An import of another
+    // module is answered from this apply first, then from the source of what is deployed.
+    const sent = Object.fromEntries(workers.filter((w) => w && typeof w.source === "string" && typeof w.module === "string").map((w) => [w.module, w.source]));
+    let kept;
+    const distilled = [];
+    for (const w of workers) {
+      // Code made somewhere else is not deployed. config.acceptEmitted is set by this module's tests and by no installer.
+      if (!w || typeof w.source !== "string") {
+        if (config.acceptEmitted) distilled.push(w);
+        else results.push({ worker: (w && w.meta && w.meta.worker) || (w && w.module) || null, state: "refused", reason: "send the module's source: this deployer deploys only what it distils" });
+      } else
+        try {
+          kept ??= Object.fromEntries((await keptSources()).map((s) => [s.module, s.text]));
+          const d = await deployerDistil({ module: w.module, source: w.source, cell: w.cell, files: w.files, sources: { ...kept, ...sent } });
+          distilled.push({ ...w, parts: d.parts, meta: d.meta, hash: d.hash });
+        } catch (e) {
+          results.push({ worker: w.module, state: "refused", reason: "cannot distil: " + String((e && e.message) || e) });
+        }
+    }
+    for (const w of distilled) {
+      const logical = w && w.meta && w.meta.worker;
+      const rec = typeof logical === "string" ? await rows.get("worker/" + logical) : null;
+      const base = { worker: logical, hash: w && w.hash };
+      const reason = await refusal(w || {}, rec);
+      if (reason) results.push({ ...base, state: "refused", reason });
+      else if (rec && rec.hash === w.hash && rec.state === "deployed" && !w.force && !(typeof w.asset === "string" && (await sha256(w.asset)).slice(0, 32) !== rec.assetHash)) {
+        // Deployed before the deployer kept source: keep it now, since it is the source of what is running.
+        if (typeof w.source === "string" && !(await rows.get("source/" + w.module))) await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev: null });
+        results.push({ ...base, state: "unchanged" });
+      }
+      else if (approval && !recovery && !(await rows.get("approved/" + w.hash))) {
+        const m = w.meta;
+        await rows.put("pending/" + w.hash, { worker: logical, hash: w.hash, methods: m.methods, paths: m.paths, secrets: m.secrets, resources: m.resources, calls: m.calls || [], access: m.access || {}, at: Date.now() });
+        results.push({ ...base, state: "waiting" });
+      } else if (dry || !w.parts) results.push({ ...base, state: "ready" });
+      else {
+        try {
+          // Only the installer, holding the recovery key, may hand a Worker a secret's value directly.
+          results.push({ ...base, ...(await deployOne(w, rec, recovery && w.secrets ? w.secrets : {})) });
+          if (typeof w.source === "string") {
+            const was = await rows.get("source/" + w.module);
+            const prev = was && !was.stale && was.worker === logical && was.hash !== w.hash ? { text: was.text, files: was.files, cell: was.cell, hash: was.hash, at: was.at } : (was && was.prev) || null;
+            await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev });
+          }
+        } catch (e) {
+          const reason = String((e && e.message) || e);
+          const kept = rec && rec.hash ? { ...rec, lastError: reason, lastErrorAt: Date.now(), failedHash: w.hash } : { worker: logical, role: w.meta.role, hash: null, key: rec && rec.key, state: "removed", lastError: reason, lastErrorAt: Date.now(), failedHash: w.hash };
+          await rows.put("worker/" + logical, kept);
+          await note(`put-back/${logical}/${w.hash}/${kept.lastErrorAt}`, { event: "put-back", worker: logical, hash: w.hash, previous: kept.hash, reason });
+          results.push({ ...base, state: "put-back", previous: kept.hash, reason });
+        }
+      }
+    }
+    for (const logical of remove) {
+      const rec = await rows.get("worker/" + logical);
+      const reason = deployerAllows({ key: "worker/" + logical, op: "delete" });
+      if (reason) results.push({ worker: logical, state: "refused", reason });
+      else if (approval && !recovery && !(await rows.get("approved/remove:" + logical))) {
+        await rows.put("pending/remove:" + logical, { worker: logical, hash: "remove:" + logical, remove: true, at: Date.now() });
+        results.push({ worker: logical, state: "waiting" });
+      } else if (!dry) {
+        await toCore("service.unregister", { worker: logical });
+        const core = await rows.get("worker/brain-core");
+        if (core && core.hash) {
+          const name = "X_" + logical.slice("brain-x-".length).toUpperCase().replace(/[^A-Z0-9]/g, "_");
+          const now = (await api("GET", script("brain-core") + "/settings")).bindings;
+          if (now.some((b) => b.name === name)) {
+            const form = new FormData();
+            form.append("settings", new Blob([text({ bindings: now.filter((b) => b.name !== name).map((b) => ({ type: "inherit", name: b.name })) })], { type: "application/json" }));
+            await api("PATCH", script("brain-core") + "/settings", form);
+          }
+        }
+        if (rec && rec.hash) await api("DELETE", script(logical) + "?force=true");
+        await rows.delete("worker/" + logical);
+        await rows.delete("approved/remove:" + logical);
+        results.push({ worker: logical, state: "removed" });
+      } else results.push({ worker: logical, state: "ready" });
+    }
+    return { results };
+  };
+
+  const putBack = async (logical, rec, to, reason) => {
+    await setVersions(logical, [{ version_id: to.version, percentage: 100 }]);
+    const at = Date.now();
+    // The routes of the version put back, when they were kept: a deploy may have changed what the Worker answers.
+    const old = rec.previous && rec.previous.version === to.version && rec.previous.methods ? rec.previous : {};
+    const next = { ...rec, ...old, hash: to.hash, version: to.version, previous: null, fails: 0, state: "deployed", lastError: reason, lastErrorAt: at, failedHash: rec.hash };
+    await rows.put("worker/" + logical, next);
+    await sourcePutBack(logical, to.hash);
+    await register(next, next.access).catch(() => null);
+    await note(`put-back/${logical}/${rec.hash}/${at}`, { event: "put-back", worker: logical, hash: rec.hash, previous: to.hash, reason });
+  };
+
+  // The last run of the cron is recorded, so a deployer whose cron has stopped, or whose tick throws, can be seen.
+  const tick = async () => {
+    // A deployer that was replaced checks nothing and puts nothing back.
+    if (config.replacedBy) return;
+    const at = Date.now(), last = await rows.get("tick");
+    // The cron and the alarm may both call within a minute; a check counts once.
+    if (last && !last.error && at - last.at < (config.tickGapMs ?? 30000)) return;
+    try {
+      await runTick();
+      await rows.put("tick", { at, ms: Date.now() - at });
+    } catch (e) {
+      await rows.put("tick", { at, error: String((e && e.message) || e) });
+      throw e;
+    }
+  };
+  const runTick = async () => {
+    const onProbation = new Set();
+    for (const { key, value: s } of await rows.list("kernelstate/")) {
+      if (s.state !== "probation") continue;
+      const logical = key.slice("kernelstate/".length);
+      onProbation.add(logical);
+      const rec = await rows.get("worker/" + logical);
+      const next = nextKernelState(s, { type: "tick", now: Date.now(), healthy: await healthy(logical, rec.key), probationMs: config.probationMs });
+      if (next.state === "rolled-back") await putBack(logical, rec, { version: s.lastGood, hash: s.lastGoodHash }, next.reason);
+      await rows.put(key, next.state === "rolled-back" ? { ...next, hash: s.lastGoodHash, failedHash: s.hash, at: Date.now() } : next);
+    }
+    // Every other Worker: two failed checks in a row puts it back to the version before, when there is one.
+    for (const { value: rec } of await rows.list("worker/")) {
+      if (rec.state !== "deployed" || !rec.hash || onProbation.has(rec.worker)) continue;
+      const fails = (await healthy(rec.worker, rec.key)) ? 0 : (rec.fails || 0) + 1;
+      if (fails >= 2 && rec.previous) await putBack(rec.worker, rec, rec.previous, "health check failed twice");
+      else if (fails !== (rec.fails || 0)) {
+        await rows.put("worker/" + rec.worker, { ...rec, fails });
+        if (fails === 2) await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash });
+      }
+    }
+  };
+
+  const confirm = async (only = null) => {
+    const confirmed = [];
+    for (const { key, value: s } of await rows.list("kernelstate/")) {
+      if (s.state !== "probation") continue;
+      const logical = key.slice("kernelstate/".length);
+      if (only && logical !== only) continue;
+      await rows.put(key, { ...nextKernelState(s, { type: "confirm" }), hash: s.hash });
+      const list = (await rows.get("confirmed/" + logical)) || [];
+      await rows.put("confirmed/" + logical, [{ version: s.version, hash: s.hash, at: Date.now() }, ...list].slice(0, 5));
+      confirmed.push(logical);
+    }
+    return { confirmed };
+  };
+
+  const rollback = async (logical, version) => {
+    const to = ((await rows.get("confirmed/" + logical)) || []).find((c) => c.version === version);
+    if (!to) throw new Error(`${version} is not a confirmed version of ${logical}`);
+    const rec = await rows.get("worker/" + logical);
+    await putBack(logical, rec, to, "rolled back from the deployer page");
+    await rows.put("kernelstate/" + logical, { state: "rolled-back", version, lastGood: version, hash: to.hash, reason: "rolled back from the deployer page", at: Date.now() });
+  };
+
+  // The core passes on what the page found when it ran a deployed module's tests.
+  const verdict = async ({ worker: logical, hash, ok, reason = "" }) => {
+    const rec = await rows.get("worker/" + logical);
+    if (!rec || rec.hash !== hash) return { state: "stale" };
+    const ks = await rows.get("kernelstate/" + logical);
+    const probation = ks && ks.state === "probation";
+    if (ok) {
+      if (probation) await confirm(logical);
+      return { state: "kept" };
+    }
+    const why = "its tests failed: " + String(reason).slice(0, 200);
+    if (probation) {
+      await putBack(logical, rec, { version: ks.lastGood, hash: ks.lastGoodHash }, why);
+      await rows.put("kernelstate/" + logical, { state: "rolled-back", version: ks.lastGood, lastGood: ks.lastGood, hash: ks.lastGoodHash, failedHash: ks.hash, reason: why, at: Date.now() });
+      return { state: "put-back", previous: ks.lastGoodHash };
+    }
+    if (!rec.previous) return { state: "kept", reason: "there is no version before this one" };
+    const previous = rec.previous.hash;
+    await putBack(logical, rec, rec.previous, why);
+    return { state: "put-back", previous };
+  };
+
+  const approve = async (hash) => {
+    const pending = await rows.get("pending/" + hash);
+    if (!pending) return false;
+    await rows.put("approved/" + hash, { at: Date.now(), worker: pending.worker });
+    await rows.delete("pending/" + hash);
+    return true;
+  };
+
+  const state = async () => ({
+    base: config.base,
+    replacedBy: config.replacedBy || null,
+    approval: (await settings()).approval,
+    tick: await rows.get("tick"),
+    workers: (await rows.list("worker/")).map(({ value: { key, ...rest } }) => rest),
+    kernel: Object.fromEntries(
+      (await rows.list("kernelstate/")).map(({ key, value }) => [
+        key.slice("kernelstate/".length),
+        value.state === "probation" ? { ...value, deadline: value.since + (config.probationMs ?? 10 * 60 * 1000) } : value
+      ])
+    ),
+    confirmed: Object.fromEntries((await rows.list("confirmed/")).map(({ key, value }) => [key.slice("confirmed/".length), value])),
+    pending: (await rows.list("pending/")).map((r) => r.value),
+    // The deployer answering, and the deployer that last distilled everything. Different: redistil has not run since an update.
+    distiller: { now: self.hash, last: await rows.get("distiller") },
+    approved: (await rows.list("approved/")).map((r) => r.key.slice("approved/".length))
+  });
+
+  const setApproval = async (on) => rows.put("settings", { ...(await settings()), approval: !!on });
+
+  // Distils the kept source of every running Worker again with this deployer. One whose code comes out different is
+  // listed, and deployed when asked, by the same path as any deploy. Run after the deployer is updated.
+  const redistil = async ({ apply: go = false } = {}, { recovery = false } = {}) => {
+    const kept = await keptSources();
+    const sources = Object.fromEntries(kept.map((s) => [s.module, s.text]));
+    const results = [], changed = [];
+    for (const s of kept) {
+      const rec = await rows.get("worker/" + s.worker);
+      if (!rec || !rec.hash) continue;
+      const base = { worker: s.worker, module: s.module };
+      if (rec.hash !== s.hash) {
+        results.push({ ...base, state: "no source", reason: `${String(rec.hash).slice(0, 12)} is running and the source kept is of ${String(s.hash).slice(0, 12)}` });
+        continue;
+      }
+      try {
+        const d = await deployerDistil({ module: s.module, source: s.text, cell: s.cell || undefined, files: s.files, sources });
+        if (d.hash === rec.hash) {
+          results.push({ ...base, state: "same", hash: d.hash });
+          if (rec.distiller !== self.hash) await rows.put("worker/" + s.worker, { ...rec, distiller: self.hash });
+        } else {
+          results.push({ ...base, state: "changes", from: rec.hash, hash: d.hash });
+          changed.push({ module: s.module, source: s.text, cell: s.cell || undefined, files: s.files });
+        }
+      } catch (e) {
+        results.push({ ...base, state: "cannot distil", reason: String((e && e.message) || e) });
+      }
+    }
+    if (go && changed.length) {
+      const out = await apply({ workers: changed }, { recovery });
+      for (const r of out.results) {
+        const row = results.find((x) => x.worker === r.worker && x.state === "changes");
+        if (row) Object.assign(row, { applied: r.state }, r.reason ? { reason: r.reason } : {});
+      }
+    }
+    const held = new Set(kept.map((s) => s.worker));
+    for (const { value: rec } of await rows.list("worker/")) if (rec.hash && rec.role !== "member" && !held.has(rec.worker)) results.push({ worker: rec.worker, module: rec.module || null, state: "no source", reason: "deployed before the deployer kept source" });
+    await rows.put("distiller", { hash: self.hash, at: Date.now(), results: results.map(({ worker, state, applied }) => ({ worker, state, applied })) });
+    return { distiller: self.hash, results };
+  };
+
+  // A member's Worker. The deployer takes nothing from what was distilled but its code: the name, the bindings, the
+  // methods and their rules are made here. It is bound to the core and to nothing else, has no address on the
+  // internet, and is deployed with no approval.
+  const MEMBER = { workers: 3, partBytes: 1000000, sourceChars: 200000 };
+  const memberId = async (did) => (await sha256(did)).slice(0, 10);
+  const dropCoreBinding = async (logical) => {
+    const core = await rows.get("worker/brain-core");
+    if (!core || !core.hash) return;
+    const name = "X_" + logical.replace(/^brain-(x-)?/, "").toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const now = (await api("GET", script("brain-core") + "/settings")).bindings;
+    if (!now.some((b) => b.name === name)) return;
+    const form = new FormData();
+    form.append("settings", new Blob([text({ bindings: now.filter((b) => b.name !== name).map((b) => ({ type: "inherit", name: b.name })) })], { type: "application/json" }));
+    await api("PATCH", script("brain-core") + "/settings", form);
+  };
+  const memberRemoveOne = async (logical) => {
+    const rec = await rows.get("worker/" + logical);
+    await toCore("service.unregister", { worker: logical });
+    await dropCoreBinding(logical);
+    if (rec && rec.hash) await api("DELETE", script(logical) + "?force=true").catch(() => null);
+    await rows.delete("worker/" + logical);
+    await rows.delete("msource/" + logical);
+  };
+  const memberDeploy = async ({ author, quota = {}, request = {} } = {}) => {
+    const refuse = (reason, worker = null) => ({ worker, state: "refused", reason });
+    if (typeof author !== "string" || !author.startsWith("did:") || author === config.owner) return refuse("a member");
+    const id = await memberId(author), ns = `com.lopecode.brain.m.${id}.`;
+    let d;
+    if (typeof request.source === "string" && typeof request.module === "string") {
+      if (request.source.length > MEMBER.sourceChars) return refuse(`the source is over ${MEMBER.sourceChars} characters`);
+      try {
+        // Distilled alone: an import is answered by cloudflare-iac and by nothing kept from another Worker.
+        d = await deployerDistil({ module: request.module, source: request.source, cell: request.cell, files: {}, sources: {} });
+      } catch (e) {
+        return refuse("cannot distil: " + String((e && e.message) || e));
+      }
+    } else if (config.acceptEmitted && request.parts) d = request;
+    else return refuse("send module and source: this deployer deploys only what it distils");
+    const m = d.meta || {};
+    const short = String(m.worker || "").replace(/^brain-x-/, "");
+    if (m.role !== "recipe" || !/^[a-z0-9]{1,20}$/.test(short)) return refuse('a member service is cloudflare.Service("NAME", …): NAME is 1 to 20 lower case letters and digits, with no role');
+    const logical = `brain-m-${id}-${short}`;
+    const bad = (m.resources || []).find((r) => !["sql", "xrpc"].includes(r));
+    if (bad) return refuse(`a member service may not use the platform cell "${bad}"`, logical);
+    if ((m.secrets || []).length) return refuse("a member service may not name a secret", logical);
+    if ((m.paths || []).length) return refuse("a member service has no paths", logical);
+    if ((m.crons || []).length || (m.flags || []).length) return refuse("a member service has no schedule and no flags", logical);
+    const access = {};
+    for (const [nsid, rule] of Object.entries(m.access || {})) {
+      if (!nsid.startsWith(ns) || !/^[A-Za-z0-9.]{1,60}$/.test(nsid.slice(ns.length))) return refuse(`${nsid}: a method of this member is named ${ns}NAME`, logical);
+      if (!rule || rule.allow || !["author", "members"].includes(rule.who)) return refuse(`${nsid}: who is "author" or "members"`, logical);
+      access[nsid] = { type: rule.type === "query" ? "query" : "procedure", who: rule.who, allow: rule.who === "author" ? `caller.kind == "owner" || caller.did == ${JSON.stringify(author)}` : 'caller.kind in ["owner", "did"]' };
+    }
+    const parts = d.parts || [];
+    if (!parts.length || parts.some((p) => typeof p.text !== "string" || !/^(worker\.js|source\.js|lib\/[A-Za-z0-9_-]+\.js)$/.test(p.path))) return refuse("the parts are worker.js, source.js and lib/NAME.js", logical);
+    const size = parts.reduce((n, p) => n + p.text.length, 0);
+    if (size > MEMBER.partBytes) return refuse(`${size} characters of code, at most ${MEMBER.partBytes}`, logical);
+    const rec = await rows.get("worker/" + logical);
+    const mine = (await rows.list(`worker/brain-m-${id}-`)).filter((r) => r.value.hash).length;
+    const limit = Number.isFinite(quota.workers) ? quota.workers : MEMBER.workers;
+    if (!(rec && rec.hash) && mine >= limit) return refuse(`${mine} services are deployed, at most ${limit}`, logical);
+    const methods = Object.keys(access).sort();
+    for (const { value: other } of await rows.list("worker/")) {
+      const clash = other.worker !== logical && other.hash && methods.find((x) => (other.methods || []).includes(x));
+      if (clash) return refuse(`${clash} is already served by ${other.worker}`, logical);
+    }
+    const meta = { worker: logical, role: "member", author, module: m.module || request.module || null, calls: [], crons: [], flags: [], methods, access, paths: [], secrets: [], resources: [...(m.resources || [])].sort(), bindings: [] };
+    const hash = await partsHash(parts, meta);
+    if (rec && rec.hash === hash && rec.state === "deployed") return { worker: logical, hash, state: "unchanged", methods };
+    const key = (rec && rec.key) || randomKey();
+    const live = rec && rec.hash ? await api("GET", script(logical) + "/settings").catch(() => null) : null;
+    const form = new FormData();
+    form.append("metadata", new Blob([text({
+      main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...wrapperFlags],
+      bindings: [
+        { type: "service", name: "CORE", service: actual("brain-core") },
+        { type: "secret_text", name: "BRAIN_KEY", text: key },
+        { type: "json", name: "BRAIN_CONFIG", json: { base: config.base, host: `${config.base}.${config.subdomain}.workers.dev` } },
+        { type: "json", name: "BRAIN_INFO", json: { name: logical, hash, role: "member", author, module: meta.module, methods, access, calls: [], paths: [], secrets: [], resources: meta.resources, deployedAt: new Date().toISOString() } }
+      ]
+    })], { type: "application/json" }));
+    for (const p of parts) form.append(p.path, new File([p.text], p.path, { type: "application/javascript+module" }));
+    const previous = live ? await currentVersion(logical) : null;
+    try {
+      await api("PUT", script(logical), form);
+      if (!live) await api("POST", script(logical) + "/subdomain", text({ enabled: false, previews_enabled: false }), jsonType);
+      const version = await currentVersion(logical);
+      const next = {
+        worker: logical, role: "member", author, module: meta.module, hash, version, key, state: "deployed", fails: 0,
+        previous: rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: [], secrets: [], resources: rec.resources } : null,
+        methods, access, paths: [], secrets: [], resources: meta.resources, deployedAt: Date.now()
+      };
+      await rows.put("worker/" + logical, next);
+      await register(next, access);
+      if (!(await waitHealthy(logical, key, hash))) throw new Error("health check failed after go-live");
+      await rows.put("msource/" + logical, { module: meta.module, text: typeof request.source === "string" ? request.source : null, author, hash, at: Date.now() });
+      await note(`deploy/${logical}/${version}`, { event: "deployed", worker: logical, hash, author });
+      return { worker: logical, hash, state: "deployed", methods };
+    } catch (e) {
+      const reason = String((e && e.message) || e);
+      if (rec && rec.hash && previous) {
+        await setVersions(logical, [{ version_id: previous, percentage: 100 }]).catch(() => null);
+        await rows.put("worker/" + logical, { ...rec, lastError: reason, lastErrorAt: Date.now(), failedHash: hash });
+        await register(rec, rec.access).catch(() => null);
+      } else await memberRemoveOne(logical).catch(() => null);
+      return { worker: logical, hash, state: "put-back", previous: (rec && rec.hash) || null, reason };
+    }
+  };
+  const memberRemove = async ({ author, request = {} } = {}) => {
+    const logical = `brain-m-${await memberId(String(author))}-${String(request.name || "")}`;
+    const rec = await rows.get("worker/" + logical);
+    if (!rec || rec.author !== author) return { worker: logical, state: "refused", reason: "not a service of this member" };
+    await memberRemoveOne(logical);
+    return { worker: logical, state: "removed" };
+  };
+  // Every Worker of one member, when the owner removes them.
+  const memberPurge = async ({ author } = {}) => {
+    const removed = [];
+    for (const { value: rec } of await rows.list(`worker/brain-m-${await memberId(String(author))}-`)) {
+      if (rec.author !== author) continue;
+      await memberRemoveOne(rec.worker);
+      removed.push(rec.worker);
+    }
+    return { removed };
+  };
+
+  // Moving to a new Worker name. A new name is a new Worker with no rows. exportRows gives every row of this
+  // deployer, the key of each Worker included; importRows takes them into a deployer that holds none. tick and
+  // distiller are this deployer's own notes and are not counted. rowsDigest is what both sides compare: per class of
+  // row, how many and the SHA-256 of their keys and values.
+  const OWN = new Set(["tick", "distiller"]);
+  const exportRows = async () => ({ rows: (await rows.list("")).filter((r) => !OWN.has(r.key)) });
+  const rowsDigest = async () => {
+    const classes = {};
+    for (const r of (await rows.list("")).filter((x) => !OWN.has(x.key)).sort((a, b) => (a.key < b.key ? -1 : 1))) {
+      const c = (classes[r.key.split("/")[0]] ??= { rows: 0, text: "" });
+      c.rows++;
+      c.text = await sha256(c.text + "\n" + r.key + "\n" + JSON.stringify(r.value));
+    }
+    return { classes: Object.fromEntries(Object.entries(classes).map(([k, v]) => [k, { rows: v.rows, sha256: v.text }])) };
+  };
+  const importRows = async ({ rows: given } = {}) => {
+    if (!Array.isArray(given) || given.some((r) => !r || typeof r.key !== "string" || r.key.startsWith("__"))) return { error: "InvalidRequest", message: "rows: [{ key, value }]" };
+    const held = (await rows.list("")).filter((r) => !OWN.has(r.key)).length;
+    if (held) return { error: "NotEmpty", message: `this deployer holds ${held} rows; rows are imported into a deployer that holds none` };
+    for (const r of given) if (!OWN.has(r.key)) await rows.put(r.key, r.value);
+    return { imported: given.filter((r) => !OWN.has(r.key)).length, ...(await rowsDigest()) };
+  };
+
+  return { apply, tick, confirm, rollback, approve, state, setApproval, verdict, shell, redistil, self, memberDeploy, memberRemove, memberPurge, memberId, exportRows, importRows, rowsDigest };
+}
+// %%
+md`## The page
+
+\`https://BASE-deployer.SUBDOMAIN.workers.dev/\`. One HTML response, no script. The status lines are public; every action needs the recovery key.`
+// %%
+deployerPage = (s, message = "") => {
+  const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const short = (h) => esc(String(h || "none").slice(0, 12));
+  const when = (t) => (t ? new Date(t).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "");
+  const worker = (w) =>
+    `<tr><td>${esc(w.worker)}</td><td><code>${short(w.hash)}</code></td><td>${esc(w.state)}${w.fails >= 2 ? ", failing" : ""}</td><td>${w.lastError ? esc(w.lastError) + " (" + when(w.lastErrorAt) + ")" : ""}</td></tr>`;
+  const kernel = Object.entries(s.kernel).map(([name, k]) =>
+    k.state === "probation"
+      ? `<p class="amber">${esc(name)} <code>${short(k.hash)}</code> is on probation until ${when(k.deadline)}.</p>`
+      : k.state === "rolled-back"
+      ? `<p class="red">${esc(name)} was rolled back to <code>${short(k.hash)}</code> at ${when(k.at)}: ${esc(k.reason)}</p>`
+      : `<p>${esc(name)} <code>${short(k.hash)}</code> is confirmed.</p>`
+  );
+  // What the owner approves: the methods and paths a Worker answers and who may call each, the methods of other
+  // Workers it calls, and the secrets it names. A rule that reads origin is marked: it limits who a Worker may act for.
+  const nsid = (n) => esc(String(n).replace("com.lopecode.brain.", ""));
+  const rule = (r) => (r && r.allow ? `<code>${esc(typeof r.allow === "string" ? r.allow : r.allow.source || JSON.stringify(r.allow))}</code>${/\borigin\b/.test(JSON.stringify(r.allow)) ? " (reads origin)" : ""}` : esc((r && r.who) || "owner"));
+  const pending = s.pending.map((p) => {
+    const answers = [
+      // A deploy held before 2026-10-07 has no rules in its record.
+      ...(p.methods || []).map((m) => `<tr><td>${nsid(m)}</td><td>${p.access ? rule(p.access[m]) : "not recorded"}</td></tr>`),
+      ...(p.paths || []).map((x) => `<tr><td>${esc(x.path)}</td><td>${rule(x)}</td></tr>`)
+    ];
+    return `<li><b>${esc(p.worker)}</b> <code>${short(p.hash)}</code>${p.remove ? " (remove)" : ""} <button name="action" value="approve:${esc(p.hash)}">Approve</button>${
+      p.remove
+        ? ""
+        : `<table><tr><th>Answers</th><th>Who may call</th></tr>${answers.join("") || "<tr><td>nothing</td><td></td></tr>"}</table>
+<p>Calls: ${p.calls ? (p.calls.length ? p.calls.map(nsid).join(", ") : "none") : "not recorded"}. Secrets: ${esc((p.secrets || []).join(", ") || "none")}.</p>`
+    }</li>`;
+  });
+  const rollbacks = Object.entries(s.confirmed).flatMap(([name, list]) =>
+    list.map((c) => `<button name="action" value="rollback:${esc(name)}:${esc(c.version)}">Roll back ${esc(name)} to ${short(c.hash)} (${when(c.at)})</button>`)
+  );
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cloud Brain deployer</title><style>
+body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#111;background:#fff}
+table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:.25rem .5rem;border-bottom:1px solid #ddd;vertical-align:top}
+button{font:inherit;margin:.2rem .3rem .2rem 0;padding:.3rem .6rem}input{font:inherit;padding:.3rem;width:100%;box-sizing:border-box}
+.amber{color:#8a6300}.red{color:#b3261e}.note{background:#f2f2f2;padding:.5rem .75rem}</style></head><body>
+<h1>Cloud Brain deployer</h1>
+${message ? `<p class="note">${esc(message)}</p>` : ""}
+${s.replacedBy ? `<p class="red">This deployer was replaced. The deployer of this Brain is at <a href="${esc(s.replacedBy)}">${esc(s.replacedBy)}</a>.</p>` : ""}
+<p>Brain <code>${esc(s.base)}</code>. ${s.kernel.brain ? "" : "No kernel is deployed."}</p>
+${kernel.join("\n")}
+<table><tr><th>Worker</th><th>Hash</th><th>State</th><th>Last error</th></tr>${s.workers.map(worker).join("")}</table>
+<form method="post" action="/">
+${s.distiller && s.distiller.now && (!s.distiller.last || s.distiller.last.hash !== s.distiller.now) ? `<p class="amber">This deployer <code>${short(s.distiller.now)}</code> has not distilled the Workers again since it was updated.</p>` : ""}
+<h2>Waiting for approval</h2>
+${pending.length ? `<ul>${pending.join("")}</ul>` : "<p>Nothing is waiting.</p>"}
+<h2>Roll back</h2>
+${rollbacks.length ? rollbacks.join("<br>") : "<p>No confirmed version to roll back to.</p>"}
+<h2>Deploys need approval: ${s.approval ? "on" : "off"}</h2>
+<button name="action" value="approval:${s.approval ? "off" : "on"}">Turn ${s.approval ? "off" : "on"}</button>
+<h2><label for="key">Recovery key</label></h2>
+<input id="key" name="key" type="password" autocomplete="off" required>
+</form></body></html>`;
+}
+// %%
+deployerFn = async (request, context) => {
+  const url = new URL(request.url);
+  deployerOps.self.hash = (context && context.info && context.info.hash) || null;
+  const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, authorization", "access-control-allow-methods": "GET, POST" };
+  const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json", ...cors } });
+  const page = async (message, status = 200) =>
+    new Response(deployerPage(await deployerOps.state(), message), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+  const inside = url.hostname.endsWith(".internal");
+  const recoveryKey = await secrets.RECOVERY_KEY;
+  // For anyone: the source of every module a Worker of this Brain owns, as the deployer holds it. A page with no
+  // service modules of its own loads them from here. Source is public at each Worker's getSource already.
+  if (url.pathname === "/xrpc/com.lopecode.brain.infra.getModules" && request.method === "GET" && !inside)
+    return json({ distiller: deployerOps.self.hash, modules: await deployerModules(context && context.source) });
+  // A member's own deploys, passed on by the kernel with the DID it signed in. No approval and no recovery key.
+  if (url.pathname.startsWith("/xrpc/com.lopecode.brain.member.") && request.method === "POST") {
+    const kernel = await rows.get("worker/brain");
+    if (!(inside && !!kernel && !!kernel.key && request.headers.get("x-brain-key") === kernel.key)) return json({ error: "AuthRequired", message: "the kernel" }, 401);
+    if (config.replacedBy) return json({ error: "Replaced", message: "this deployer was replaced by " + config.replacedBy, deployer: config.replacedBy }, 409);
+    const method = url.pathname.slice("/xrpc/com.lopecode.brain.member.".length), caller = request.headers.get("x-brain-caller"), body = await request.json().catch(() => ({}));
+    if (method === "deploy" && caller === "member") return json(await deployerOps.memberDeploy(body));
+    if (method === "remove" && caller === "member") return json(await deployerOps.memberRemove(body));
+    // A member's own modules and cloudflare-iac: what a page served to that member would load.
+    if (method === "modules" && caller === "member") return json({ distiller: deployerOps.self.hash, modules: await deployerModules(null, body.author) });
+    if (method === "purge" && caller === "owner") return json(await deployerOps.memberPurge(body));
+    return json({ error: "MethodNotImplemented", message: method }, 501);
+  }
+  if (url.pathname.startsWith("/xrpc/com.lopecode.brain.infra.")) {
+    // Two callers: the kernel over its binding, for the signed-in owner; or the holder of the recovery key.
+    const kernel = await rows.get("worker/brain");
+    const viaKernel = inside && !!kernel && !!kernel.key && request.headers.get("x-brain-key") === kernel.key && request.headers.get("x-brain-caller") === "owner";
+    const recovery = !inside && !!recoveryKey && request.headers.get("authorization") === "Bearer " + recoveryKey;
+    const method = url.pathname.slice("/xrpc/com.lopecode.brain.infra.".length);
+    // A third caller, for one method: the core, passing on the page's verdict on a deploy.
+    const coreRec = await rows.get("worker/brain-core");
+    if (method === "verdict" && request.method === "POST" && inside && !!coreRec && !!coreRec.key && request.headers.get("x-brain-key") === coreRec.key) return json(await deployerOps.verdict(await request.json()));
+    if (!viaKernel && !recovery) return json({ error: "AuthRequired", message: "the owner's session or the recovery key" }, 401);
+    // The rows hold every Worker's key: they leave and enter with the recovery key only, never through the kernel.
+    if (["exportRows", "importRows", "rowsDigest"].includes(method)) {
+      if (!recovery) return json({ error: "AuthRequired", message: "the recovery key" }, 401);
+      if (method === "rowsDigest" && request.method === "GET") return json(await deployerOps.rowsDigest());
+      if (method === "exportRows" && request.method === "GET") return json(await deployerOps.exportRows());
+      if (method === "importRows" && request.method === "POST") {
+        const out = await deployerOps.importRows(await request.json().catch(() => ({})));
+        return json(out, out.error === "NotEmpty" ? 409 : out.error ? 400 : 200);
+      }
+      return json({ error: "MethodNotImplemented", message: method }, 501);
+    }
+    // A deployer that was replaced changes nothing. It still answers getState and exportRows.
+    if (config.replacedBy && request.method === "POST") return json({ error: "Replaced", message: "this deployer was replaced by " + config.replacedBy, deployer: config.replacedBy }, 409);
+    if (method === "getState" && request.method === "GET") return json(await deployerOps.state());
+    if (method === "apply" && request.method === "POST") return json(await deployerOps.apply(await request.json(), { recovery }));
+    if (method === "confirm" && request.method === "POST") return json(await deployerOps.confirm());
+    // An installer's shell, passed on to brain-static as it arrives. The deployer keeps none of it.
+    if (method === "shell" && request.method === "POST") return deployerOps.shell(request);
+    if (method === "redistil" && request.method === "POST") return json(await deployerOps.redistil(await request.json().catch(() => ({})), { recovery }));
+    // Answers what a source distils to. Deploys nothing.
+    if (method === "distil" && request.method === "POST") {
+      try {
+        return json(await deployerDistil(await request.json()));
+      } catch (e) {
+        return json({ error: "InvalidRequest", message: String((e && e.message) || e) }, 400);
+      }
+    }
+    if (method === "verdict") return json({ error: "AuthRequired", message: "the core" }, 401);
+    return json({ error: "MethodNotImplemented", message: method }, 501);
+  }
+  if (inside || url.pathname !== "/") return new Response("not found", { status: 404 });
+  if (request.method === "GET") return page();
+  if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
+  if (config.replacedBy) return page("This deployer was replaced by " + config.replacedBy + ". Nothing was changed.", 409);
+  const form = await request.formData();
+  if (!recoveryKey || form.get("key") !== recoveryKey) return page("Wrong recovery key. Nothing was changed.", 401);
+  const [action, a, b] = String(form.get("action") || "").split(":");
+  try {
+    if (action === "approve") return page((await deployerOps.approve(a === "remove" ? "remove:" + b : a)) ? "Approved. Press Apply in the Brain again." : "Nothing with that hash is waiting.");
+    if (action === "rollback") return await deployerOps.rollback(a, b), page(`Rolled ${a} back.`);
+    if (action === "approval") return await deployerOps.setApproval(a === "on"), page(`Deploys need approval: ${a === "on" ? "on" : "off"}.`);
+    return page("Unknown action.", 400);
+  } catch (e) {
+    return page("Failed: " + String((e && e.message) || e), 500);
+  }
+}
+// %%
+// cloudflare-iac and this module are the deployer's own; every other module is the kept source of a running Worker.
+deployerModules = async (own, member = null) => {
+  const d = distillerData.default, IAC = "@tomlarkworthy/cloudflare-iac";
+  const files = { ...(d.files || {}) };
+  for (const [id, text] of Object.entries(d.content)) if (id.startsWith(IAC + "/")) files[id.slice(IAC.length + 1)] = text;
+  for (const [from, name] of [["observable-runtime", "observable-runtime.js"], ["acorn", "acorn.js"], ["acorn-walk", "acorn-walk.js"]]) files[name] = d.modules[from];
+  const out = [{ module: IAC, worker: "brain-deployer", hash: deployerOps.self.hash, text: d.modules[IAC], files }];
+  // For one member (member.modules): their own services and cloudflare-iac. The list for anyone holds no member's
+  // module: the Brain's page runs as whoever is signed in, the owner included.
+  if (member) {
+    for (const { key, value } of await rows.list(`msource/brain-m-${await deployerOps.memberId(member)}-`)) if (value.text) out.push({ module: value.module, worker: key.slice("msource/".length), hash: value.hash, text: value.text, files: {} });
+    return out;
+  }
+  if (own && own.text) out.push({ module: own.module, worker: "brain-deployer", hash: deployerOps.self.hash, text: own.text, files: {} });
+  for (const { key, value } of await rows.list("source/")) if (!value.stale) out.push({ module: key.slice("source/".length), worker: value.worker, hash: value.hash, text: value.text, files: value.files || {} });
+  return out;
+}
+// %%
+deployerDistil = async (request) => {
+  if (!request || typeof request.module !== "string" || typeof request.source !== "string") throw new Error("module and source are required");
+  return distilIn(async () => quickjsLib.load(await quickjs.module()), distillerData.default, request);
+}
+// %%
+md`## Tests
+
+The deployer runs under \`simulate\` against \`fakeCloudflare\`, a stand-in for the Cloudflare API and for the Workers it deploys. A hash added to \`fake.unhealthy\` makes that version fail its health check.`
+// %%
+fakeCloudflare = () => {
+  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [];
+  let n = 0;
+  const ok = (result) => new Response(JSON.stringify({ success: true, result }), { headers: { "content-type": "application/json" } });
+  const bad = (status, message) => new Response(JSON.stringify({ success: false, errors: [{ message }] }), { status });
+  const bindingOf = (v, name) => v.metadata.bindings.find((b) => b.name === name);
+  const live = (s) => s.versions.get(s.deployment.find((d) => d.percentage === 100).version_id);
+  const resolve = (s, bindings) =>
+    bindings.map((b) => {
+      if (b.type !== "inherit") return b;
+      const from = s && live(s).metadata.bindings.find((p) => p.name === b.name);
+      if (!from) throw new Error("inherit of a binding that does not exist: " + b.name);
+      return from;
+    });
+  const version = async (s, request) => {
+    const form = await request.formData();
+    const metadata = JSON.parse(await form.get("metadata").text());
+    metadata.bindings = resolve(s, metadata.bindings);
+    const id = "v" + ++n;
+    return { id, metadata, parts: [...form.keys()].filter((k) => k !== "metadata") };
+  };
+  const fetch = async (request) => {
+    const url = new URL(request.url);
+    log.push(request.method + " " + url.hostname.split(".")[0] + url.pathname.replace("/client/v4/accounts/acct", ""));
+    if (url.hostname.endsWith(".workers.dev")) {
+      const s = scripts.get(url.hostname.split(".")[0]);
+      if (!s) return new Response("no such script", { status: 404 });
+      const over = /="([^"]+)"/.exec(request.headers.get("Cloudflare-Workers-Version-Overrides") || "");
+      const v = over && s.deployment.some((d) => d.version_id === over[1]) ? s.versions.get(over[1]) : live(s);
+      // The deployer sends the key under both names: a Worker deployed before 2026-10-08 reads x-brain-guard.
+      if (request.headers.get("x-brain-deployer") !== bindingOf(v, "BRAIN_KEY").text || request.headers.get("x-brain-guard") !== bindingOf(v, "BRAIN_KEY").text) return new Response("not found", { status: 404 });
+      const info = bindingOf(v, "BRAIN_INFO").json;
+      if (url.pathname === "/xrpc/_health")
+        return unhealthy.has(info.hash) ? new Response("broken", { status: 500 }) : Response.json({ ok: true, name: info.name, hash: info.hash });
+      const sent = request.method === "POST" ? await request.text() : null;
+      let body = sent;
+      try {
+        body = sent == null ? null : JSON.parse(sent);
+      } catch {}
+      calls.push({ worker: info.name, nsid: url.pathname.replace("/xrpc/com.lopecode.brain.", ""), body, query: url.search });
+      if (url.pathname.endsWith(".service.health")) {
+        const m = scripts.get("cb" + body.worker.slice("brain".length));
+        const h = m ? bindingOf(live(m), "BRAIN_INFO").json.hash : null;
+        return Response.json({ ok: !!m && !unhealthy.has(h), hash: h });
+      }
+      return Response.json({});
+    }
+    if (request.headers.get("authorization") !== "Bearer tok" && !url.pathname.endsWith("/assets/upload")) return bad(403, "bad token");
+    const path = url.pathname.replace("/client/v4/accounts/acct", "");
+    if (path === "/workers/assets/upload") return ok({ jwt: "asset-done" });
+    if (path === "/r2/buckets") return ok({});
+    // One D1 database per Brain: found by name, made once.
+    if (path.startsWith("/d1/database")) {
+      if (request.method === "GET") return ok(d1);
+      d1.push({ name: JSON.parse(await request.text()).name, uuid: "d1-" + (d1.length + 1) });
+      return ok(d1.at(-1));
+    }
+    const m = /^\/workers\/scripts\/([^/]+)(\/.*)?$/.exec(path);
+    if (!m) return bad(404, "no route " + path);
+    const name = m[1], rest = m[2] || "", s = scripts.get(name);
+    if (rest === "/assets-upload-session") return ok({ jwt: "asset-session", buckets: [["h"]] });
+    if (rest === "" && request.method === "PUT") {
+      const v = await version(s, request);
+      const next = s || { versions: new Map(), deployment: [], schedules: [], subdomain: false };
+      next.versions.set(v.id, v);
+      next.deployment = [{ version_id: v.id, percentage: 100 }];
+      scripts.set(name, next);
+      return ok({ id: name });
+    }
+    if (!s) return bad(404, "no script " + name);
+    if (rest === "" && request.method === "DELETE") return scripts.delete(name), ok(null);
+    if (rest === "/versions") {
+      const v = await version(s, request);
+      if (v.metadata.migrations) return bad(400, "migrations only on the script upload");
+      s.versions.set(v.id, v);
+      return ok({ id: v.id });
+    }
+    if (rest === "/deployments" && request.method === "GET") return ok({ deployments: [{ versions: s.deployment }] });
+    if (rest === "/deployments") return (s.deployment = (await request.json()).versions), ok({});
+    if (rest === "/settings" && request.method === "GET") return ok({ bindings: live(s).metadata.bindings });
+    if (rest === "/settings") {
+      const patch = JSON.parse(await (await request.formData()).get("settings").text());
+      const v = { id: "v" + ++n, metadata: { ...live(s).metadata, bindings: resolve(s, patch.bindings) }, parts: live(s).parts };
+      s.versions.set(v.id, v);
+      s.deployment = [{ version_id: v.id, percentage: 100 }];
+      return ok({ bindings: v.metadata.bindings });
+    }
+    if (rest === "/subdomain") return (s.subdomain = (await request.json()).enabled), ok({});
+    if (rest === "/schedules") return (s.schedules = await request.json()), ok({});
+    return bad(404, "no route " + path);
+  };
+  const running = (name) => {
+    const s = scripts.get(name);
+    return s ? bindingOf(live(s), "BRAIN_INFO").json.hash : null;
+  };
+  return { fetch, scripts, log, calls, unhealthy, stored, d1, running, live: (name) => live(scripts.get(name)) };
+}
+// %%
+// A deployer under simulate, with helpers to act as the holder of the recovery key and as the kernel.
+deployerRig = async ({ acceptEmitted = true, config = {}, store } = {}) => {
+  const fake = fakeCloudflare();
+  const sim = await simulate(deployer_service, {
+    secrets: { CF_API_TOKEN: "tok", RECOVERY_KEY: "rk" },
+    config: { base: "cb", account: "acct", subdomain: "sub", owner: "did:plc:owner", self: "cb-deployer", pollMs: 0, tickGapMs: 0, pollTries: 2, acceptEmitted, ...config },
+    rows: store,
+    fetch: fake.fetch
+  });
+  const G = "https://cb-deployer.sub.workers.dev";
+  const post = (url, body, headers) => sim.fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+  const made = async (worker, role, salt, extra = {}) => {
+    const parts = [{ path: "worker.js", text: "export default {} // " + salt }];
+    const meta = { worker, role, crons: [], flags: [], methods: [], access: {}, paths: [], secrets: [], resources: [], bindings: [], ...extra };
+    return { parts, meta, hash: await partsHash(parts, meta) };
+  };
+  return {
+    fake,
+    sim,
+    made,
+    recover: async (body) => (await post(G + "/xrpc/com.lopecode.brain.infra.apply", body, { authorization: "Bearer rk" })).json(),
+    asOwner: async (method, body) => {
+      const key = (sim.rows.get("worker/brain") || {}).key;
+      const headers = { "x-brain-key": key, "x-brain-caller": "owner" };
+      const r = body === undefined
+        ? await sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, { headers })
+        : await post("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, body, headers);
+      return r.json();
+    },
+    form: (fields) => sim.fetch(G + "/", { method: "POST", body: new URLSearchParams(fields) }),
+    state: async () => (await sim.fetch(G + "/xrpc/com.lopecode.brain.infra.getState", { headers: { authorization: "Bearer rk" } })).json()
+  };
+}
+// %%
+deployerAllowsExamples = [
+  { given: { key: "worker/brain-x-whatsapp", op: "update" }, expect: null },
+  { given: { key: "worker/brain-deployer", op: "delete" }, expect: 'resource name "brain-deployer" is reserved' },
+  { given: { key: "worker/brain", op: "update" }, expect: 'resource name "brain" is reserved' },
+  { given: { key: "worker/brain-core", op: "update" }, expect: 'resource name "brain-core" is reserved' },
+  { given: { key: "queue/brain-x-jobs", op: "create" }, expect: 'unknown resource kind "queue"' },
+  { given: { key: "worker/whatsapp", op: "create" }, expect: 'resource name "whatsapp" must match brain-x-[a-z0-9-]' },
+  { given: { key: "r2_bucket/brain-x-blobs", op: "delete", objects: 412 }, expect: 'bucket "brain-x-blobs" holds 412 objects' },
+  { given: { key: "r2_bucket/brain-x-scratch", op: "delete", objects: 0 }, expect: null },
+  { given: { key: "worker/brain-deployer", op: "unchanged" }, expect: null }
+]
+// %%
+test_deployerAllows_examples = {
+  for (const e of deployerAllowsExamples) expect(deployerAllows(e.given)).toBe(e.expect);
+  return deployerAllowsExamples.length + " examples";
+}
+// %%
+test_probation_transitions = {
+  const start = { state: "probation", version: "9c03d7e", lastGood: "4f2a91c", since: 0, fails: 0 };
+  const run = (events) => events.reduce(nextKernelState, start);
+  const min = 60 * 1000;
+  expect(run([{ type: "tick", now: min, healthy: true }, { type: "confirm" }]).state).toBe("confirmed");
+  expect(run([{ type: "tick", now: min, healthy: false }, { type: "tick", now: 2 * min, healthy: false }]).reason).toBe("health check failed twice");
+  expect(run([{ type: "tick", now: min, healthy: false }, { type: "tick", now: 2 * min, healthy: true }]).state).toBe("probation");
+  expect(run(Array.from({ length: 10 }, (_, i) => ({ type: "tick", now: (i + 1) * min, healthy: true }))).reason).toBe("not confirmed in 10 minutes");
+  expect(nextKernelState({ state: "probation", version: "b", lastGood: "a", since: 0, fails: 0 }, { type: "tick", now: 90000, healthy: true, probationMs: 90000 }).reason).toBe("not confirmed in 90 seconds");
+  expect(run([{ type: "tick", now: min, healthy: false }, { type: "tick", now: 2 * min, healthy: false }, { type: "confirm" }]).version).toBe("4f2a91c");
+  return "5 cases";
+}
+// %%
+test_only_the_deployer_names_the_cloudflare_token = {
+  const e = await deployer_service.emit();
+  expect(e.meta.worker).toBe("brain-deployer");
+  expect(e.meta.secrets).toEqual(["CF_API_TOKEN", "RECOVERY_KEY"]);
+  // The deployer carries the interpreter and what distilling needs; no other Worker does.
+  expect(e.parts.map((p) => p.path)).toEqual(["worker.js", "lib/quickjs.js", "lib/distiller-data.js", "source.js", "quickjs.wasm"]);
+  const rig = await deployerRig();
+  // A recipe that names the token, or the deployer itself, is refused whoever asks.
+  const sneaky = await rig.made("brain-x-sneaky", "recipe", "a", { secrets: ["CF_API_TOKEN"] });
+  const self = await rig.made("brain-deployer", "deployer", "a");
+  const out = await rig.recover({ workers: [sneaky, self] });
+  expect(out.results.map((r) => r.state)).toEqual(["refused", "refused"]);
+  expect(out.results[1].reason).toBe('resource name "brain-deployer" is reserved');
+  expect(rig.fake.scripts.size).toBe(0);
+  return out.results[0].reason;
+}
+// %%
+test_apply_refusals = {
+  const rig = await deployerRig();
+  const cases = [
+    [await rig.made("whatsapp", "recipe", "a"), 'resource name "whatsapp" must match brain-x-[a-z0-9-]'],
+    [await rig.made("brain", "recipe", "a"), 'resource name "brain" is reserved'],
+    [await rig.made("brain-core", "kernel", "a"), "role kernel must be named brain"],
+    [await rig.made("brain-x-a", "recipe", "a", { resources: ["deployer"] }), 'a recipe may not use the platform cell "deployer"'],
+    [{ ...(await rig.made("brain-x-a", "recipe", "a")), hash: "0".repeat(64) }, 'the parts sent for "brain-x-a" do not hash to 000000000000']
+  ];
+  const out = await rig.recover({ workers: cases.map((c) => c[0]) });
+  expect(out.results.map((r) => r.reason)).toEqual(cases.map((c) => c[1]));
+  expect(rig.fake.log.filter((l) => l.includes("/workers/")).length).toBe(0);
+  return cases.length + " refusals, no Cloudflare call";
+}
+// %%
+test_the_table_database_is_bound_to_brain_db_alone = {
+  const rig = await deployerRig();
+  expect((await rig.recover({ workers: [await rig.made("brain-core", "core", "c1")] })).results[0].state).toBe("deployed");
+  // A Worker that uses sql reaches its tables through the core. It has no database binding.
+  await rig.recover({ workers: [await rig.made("brain-x-m", "recipe", "m1", { resources: ["sql"] })] });
+  expect(rig.fake.live("cb-x-m").metadata.bindings.map((b) => b.name).sort()).toEqual(["BRAIN_CONFIG", "BRAIN_INFO", "BRAIN_KEY", "CORE"]);
+  // brain-db has the table database, named as its script is, beside the Brain's one database for rows.
+  expect((await rig.recover({ workers: [await rig.made("brain-db", "system", "d1", { resources: ["database", "rows"] })] })).results[0].state).toBe("deployed");
+  const db = Object.fromEntries(rig.fake.live("cb-db").metadata.bindings.map((b) => [b.name, b]));
+  expect([db.SQL.id, db.DB.type, db.DB.id, rig.fake.d1.map((d) => d.name)]).toEqual(["d1-1", "d1", "d1-2", ["cb-sql", "cb-db"]]);
+  // No other Worker may name it, whatever its role.
+  const no = await rig.recover({ workers: [await rig.made("brain-x-n", "recipe", "n1", { resources: ["database"] }), await rig.made("brain-other", "system", "o1", { resources: ["database"] })] });
+  expect(no.results.map((r) => [r.state, r.reason])).toEqual([["refused", "only brain-db is bound to the table database"], ["refused", "only brain-db is bound to the table database"]]);
+  return db.DB.id;
+}
+// %%
+test_deploys_a_recipe_and_registers_it = {
+  const rig = await deployerRig();
+  const core = await rig.made("brain-core", "core", "c1", { resources: ["rows", "workers"] });
+  expect((await rig.recover({ workers: [core] })).results[0].state).toBe("deployed");
+  const recipe = await rig.made("brain-x-wa", "recipe", "r1", { secrets: ["WA", "UNSET"], resources: ["rows", "inbox"], access: { "com.lopecode.brain.wa.send": { type: "procedure", who: "owner" } } });
+  const out = await rig.recover({ workers: [recipe] });
+  expect(out.results[0].state).toBe("deployed");
+  const bindings = Object.fromEntries(rig.fake.live("cb-x-wa").metadata.bindings.map((b) => [b.name, b]));
+  expect(Object.keys(bindings).sort()).toEqual(["BRAIN_CONFIG", "BRAIN_INFO", "BRAIN_KEY", "CORE", "SQL"]);
+  // The secrets it names are not bound: it reads them through the core while it runs.
+  expect(bindings.CORE.service).toBe("cb-core");
+  // Rows are the Brain's one D1 database, made by the first Worker that needs it and bound to the rest.
+  expect([bindings.SQL.type, bindings.SQL.id, rig.fake.d1]).toEqual(["d1", "d1-1", [{ name: "cb-sql", uuid: "d1-1" }]]);
+  expect(bindings.BRAIN_INFO.json.hash).toBe(recipe.hash);
+  // The core learns the recipe's methods and key hash, and gains a binding to it without a code upload.
+  const registered = rig.fake.calls.filter((c) => c.nsid === "service.register").map((c) => c.body.worker);
+  expect(registered).toEqual(["brain-core", "brain-x-wa"]);
+  const coreBindings = rig.fake.live("cb-core").metadata.bindings.map((b) => b.name);
+  expect(coreBindings).toContain("X_WA");
+  expect(coreBindings).toContain("SQL");
+  // Applying the same hash again uploads nothing.
+  const before = rig.fake.log.length;
+  expect((await rig.recover({ workers: [recipe] })).results[0].state).toBe("unchanged");
+  expect(rig.fake.log.length).toBe(before);
+  return coreBindings.join(" ");
+}
+// %%
+test_the_page_worker_is_on_timed_probation = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c1", { resources: ["rows"] })] });
+  const page = { resources: ["assets"], paths: [{ path: "/", who: "anyone" }] };
+  const v1 = await rig.made("brain-x-page", "recipe", "one", page);
+  const v2 = await rig.made("brain-x-page", "recipe", "two", page);
+  // The first has nothing before it; the second can be put back, so it waits to be confirmed.
+  expect((await rig.recover({ workers: [{ ...v1, asset: "<html>1</html>" }] })).results[0].state).toBe("deployed");
+  expect((await rig.recover({ workers: [{ ...v2, asset: "<html>1</html>" }] })).results[0].state).toBe("probation");
+  expect((await rig.state()).kernel["brain-x-page"]).toMatchObject({ state: "probation", lastGoodHash: v1.hash });
+  // The same Worker with a different notebook file is a change; with the same file, or none, it is not.
+  const other = await deployerRig();
+  await other.recover({ workers: [await other.made("brain-core", "core", "c1", { resources: ["rows"] })] });
+  await other.recover({ workers: [{ ...v1, asset: "<html>1</html>" }] });
+  const same = async (asset) => (await other.recover({ workers: [{ ...v1, ...(asset ? { asset } : {}) }] })).results[0].state;
+  expect(await same("<html>1</html>")).toBe("unchanged");
+  expect(await same()).toBe("unchanged");
+  expect(await same("<html>2</html>")).toBe("probation");
+  return "probation";
+}
+// %%
+test_failed_selftest_is_put_back = {
+  const rig = await deployerRig();
+  const core = await rig.made("brain-core", "core", "c1", { resources: ["rows"] });
+  await rig.recover({ workers: [core] });
+  const v1 = await rig.made("brain-x-a", "recipe", "one");
+  const v2 = await rig.made("brain-x-a", "recipe", "two");
+  const fresh = await rig.made("brain-x-b", "recipe", "bad");
+  await rig.recover({ workers: [v1] });
+  rig.fake.unhealthy.add(v2.hash);
+  rig.fake.unhealthy.add(fresh.hash);
+  const out = await rig.recover({ workers: [v2, fresh] });
+  expect(out.results[0]).toMatchObject({ state: "put-back", previous: v1.hash, reason: "self-test failed before go-live" });
+  expect(rig.fake.running("cb-x-a")).toBe(v1.hash);
+  // A Worker with no version before it is removed.
+  expect(out.results[1]).toMatchObject({ state: "put-back", previous: null });
+  expect(rig.fake.scripts.has("cb-x-b")).toBe(false);
+  const state = await rig.state();
+  const a = state.workers.find((w) => w.worker === "brain-x-a");
+  expect(a.hash).toBe(v1.hash);
+  expect(a.lastError).toBe("self-test failed before go-live");
+  expect(a.key).toBeUndefined();
+  // The owner hears of it through the inbox.
+  const notes = rig.fake.calls.filter((c) => c.nsid === "inbox.append" && c.body.body.event === "put-back").map((c) => c.body.body.worker);
+  expect(notes).toEqual(["brain-x-a", "brain-x-b"]);
+  return a.lastError;
+}
+// %%
+test_failing_twice_after_go_live_is_put_back = {
+  const rig = await deployerRig();
+  const v1 = await rig.made("brain-x-a", "recipe", "one");
+  const v2 = await rig.made("brain-x-a", "recipe", "two");
+  await rig.recover({ workers: [v1] });
+  await rig.recover({ workers: [v2] });
+  rig.fake.unhealthy.add(v2.hash);
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb-x-a")).toBe(v2.hash);
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb-x-a")).toBe(v1.hash);
+  return (await rig.state()).workers[0].lastError;
+}
+// %%
+test_a_failed_verdict_puts_the_deploy_back = {
+  const rig = await deployerRig();
+  const core = await rig.made("brain-core", "core", "c1");
+  await rig.recover({ workers: [core] });
+  const coreKey = rig.sim.rows.get("worker/brain-core").key;
+  const say = async (body, key = coreKey) =>
+    (await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.verdict", { method: "POST", headers: { "content-type": "application/json", "x-brain-key": key }, body: JSON.stringify(body) })).json();
+  const v1 = await rig.made("brain-x-a", "recipe", "one", { methods: ["com.lopecode.brain.a.one"], access: { "com.lopecode.brain.a.one": { type: "query", who: "owner" } } });
+  const v2 = await rig.made("brain-x-a", "recipe", "two", { methods: ["com.lopecode.brain.a.two"], access: { "com.lopecode.brain.a.two": { type: "query", who: "owner" } } });
+  await rig.recover({ workers: [v1] });
+  // The first version has nothing before it: a failed verdict leaves it running.
+  expect(await say({ worker: "brain-x-a", hash: v1.hash, ok: false, reason: "test_x" })).toMatchObject({ state: "kept" });
+  await rig.recover({ workers: [v2] });
+  // Only the core may say so, and only about the hash that is running.
+  expect((await say({ worker: "brain-x-a", hash: v2.hash, ok: false }, "not-the-core")).error).toBe("AuthRequired");
+  expect(await say({ worker: "brain-x-a", hash: v1.hash, ok: false })).toEqual({ state: "stale" });
+  expect(rig.fake.running("cb-x-a")).toBe(v2.hash);
+  expect(await say({ worker: "brain-x-a", hash: v2.hash, ok: false, reason: "test_x: expected 1" })).toEqual({ state: "put-back", previous: v1.hash });
+  expect(rig.fake.running("cb-x-a")).toBe(v1.hash);
+  // The core is told the routes of the version put back, not the ones of the version that failed.
+  const told = rig.fake.calls.filter((c) => c.nsid === "service.register" && c.body.worker === "brain-x-a").at(-1).body;
+  expect(told).toMatchObject({ hash: v1.hash, methods: { "com.lopecode.brain.a.one": { type: "query", who: "owner" } } });
+  // A pass ends a kernel's probation without the owner pressing anything.
+  const k1 = await rig.made("brain", "kernel", "k1"), k2 = await rig.made("brain", "kernel", "k2");
+  await rig.recover({ workers: [k1] });
+  await rig.recover({ workers: [k2] });
+  expect((await rig.state()).kernel.brain.state).toBe("probation");
+  expect(await say({ worker: "brain", hash: k2.hash, ok: true })).toEqual({ state: "kept" });
+  expect((await rig.state()).kernel.brain.state).toBe("confirmed");
+  return (await rig.state()).workers.find((w) => w.worker === "brain-x-a").lastError;
+}
+// %%
+test_kernel_probation = {
+  const rig = await deployerRig();
+  const k1 = await rig.made("brain", "kernel", "k1");
+  const k2 = await rig.made("brain", "kernel", "k2");
+  const k3 = await rig.made("brain", "kernel", "k3");
+  // The first kernel has nothing to go back to, so it is confirmed as installed.
+  expect((await rig.recover({ workers: [k1] })).results[0].state).toBe("deployed");
+  expect((await rig.recover({ workers: [k2] })).results[0].state).toBe("probation");
+  expect(rig.fake.running("cb")).toBe(k2.hash);
+  // Unhealthy on two ticks in a row: back to k1.
+  rig.fake.unhealthy.add(k2.hash);
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb")).toBe(k2.hash);
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb")).toBe(k1.hash);
+  expect((await rig.state()).kernel.brain).toMatchObject({ state: "rolled-back", reason: "health check failed twice", hash: k1.hash });
+  // Healthy and never confirmed: back to k1 once ten minutes have passed.
+  await rig.recover({ workers: [k3] });
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb")).toBe(k3.hash);
+  const s = rig.sim.rows.get("kernelstate/brain");
+  rig.sim.rows.set("kernelstate/brain", { ...s, since: s.since - 10 * 60 * 1000 });
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb")).toBe(k1.hash);
+  expect((await rig.state()).kernel.brain.reason).toBe("not confirmed in 10 minutes");
+  // Confirmed: it stays, and becomes a version the deployer page can roll back to.
+  await rig.recover({ workers: [k3] });
+  expect((await rig.asOwner("confirm", {})).confirmed).toEqual(["brain"]);
+  rig.sim.rows.set("kernelstate/brain", { ...rig.sim.rows.get("kernelstate/brain"), since: 0 });
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb")).toBe(k3.hash);
+  expect((await rig.state()).confirmed.brain.map((c) => c.hash)).toEqual([k3.hash, k1.hash]);
+  return "failed twice, not confirmed, confirmed";
+}
+// %%
+test_the_signing_key_is_not_made_anew_under_its_new_name = {
+  const rig = await deployerRig();
+  const bound = () => {
+    const s = rig.fake.scripts.get("cb");
+    return Object.fromEntries(s.versions.get(s.deployment.find((d) => d.percentage === 100).version_id).metadata.bindings.filter((b) => /_KEY$/.test(b.name) && b.name !== "BRAIN_KEY").map((b) => [b.name, b.text]));
+  };
+  // A Brain installed before 2026-10-07: the kernel named COOKIE_KEY only.
+  const old = await rig.made("brain", "kernel", "k1", { secrets: ["COOKIE_KEY"] });
+  expect(["deployed", "probation"]).toContain((await rig.recover({ workers: [{ ...old, secrets: { COOKIE_KEY: "held" } }] })).results[0].state);
+  expect(bound()).toEqual({ COOKIE_KEY: "held" });
+  // The next kernel names both and is sent neither: the held one is kept, and no value is made for the other.
+  const next = await rig.made("brain", "kernel", "k2", { secrets: ["COOKIE_KEY", "SESSION_KEY"] });
+  expect(["deployed", "probation"]).toContain((await rig.recover({ workers: [next] })).results[0].state);
+  expect(bound()).toEqual({ COOKIE_KEY: "held" });
+  // With neither held, one new value under both names.
+  const fresh = await deployerRig();
+  await fresh.recover({ workers: [next] });
+  const s = fresh.fake.scripts.get("cb"), keys = s.versions.get(s.deployment[0].version_id).metadata.bindings.filter((b) => ["COOKIE_KEY", "SESSION_KEY"].includes(b.name)).map((b) => b.text);
+  expect([keys.length, keys[0] === keys[1], keys[0].length > 20]).toEqual([2, true, true]);
+  return "kept under the old name, not made under the new";
+}
+// %%
+test_approval_holds_an_apply = {
+  const rig = await deployerRig();
+  const kernel = await rig.made("brain", "kernel", "k1");
+  await rig.recover({ workers: [kernel] });
+  const N = "com.lopecode.brain.";
+  const recipe = await rig.made("brain-x-a", "recipe", "one", {
+    secrets: ["A_KEY"], calls: [N + "b.send"], methods: [N + "a.get", N + "a.put"],
+    access: { [N + "a.get"]: { type: "query", who: "owner" }, [N + "a.put"]: { type: "procedure", who: "owner", allow: 'caller.worker == "brain-x-b" && origin.trusted' } }
+  });
+  // Approval is on at install. The owner's session alone does not deploy.
+  const held = await rig.asOwner("apply", { workers: [recipe] });
+  expect(held.results[0].state).toBe("waiting");
+  expect(rig.fake.scripts.has("cb-x-a")).toBe(false);
+  expect((await rig.asOwner("getState")).pending.map((p) => p.secrets)).toEqual([["A_KEY"]]);
+  // The page shows what is approved: each method with who may call it, the calls, the secrets.
+  const shown = await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text();
+  expect(shown).toContain("<td>a.put</td><td><code>caller.worker == &quot;brain-x-b&quot; &amp;&amp; origin.trusted</code> (reads origin)</td>");
+  expect(shown).toContain("<td>a.get</td><td>owner</td>");
+  expect(shown).toContain("Calls: b.send. Secrets: A_KEY.");
+  // No infra method changes the setting or approves; the page needs the recovery key.
+  for (const method of ["approve", "setApproval", "rollback"]) expect((await rig.asOwner(method, { hash: recipe.hash, on: false })).error).toBe("MethodNotImplemented");
+  expect((await rig.form({ key: "wrong", action: "approve:" + recipe.hash })).status).toBe(401);
+  expect((await rig.asOwner("apply", { workers: [recipe] })).results[0].state).toBe("waiting");
+  expect((await rig.form({ key: "rk", action: "approve:" + recipe.hash })).status).toBe(200);
+  expect((await rig.asOwner("apply", { workers: [recipe] })).results[0].state).toBe("deployed");
+  // With the setting off, an apply deploys at once.
+  await rig.form({ key: "rk", action: "approval:off" });
+  const next = await rig.made("brain-x-a", "recipe", "two");
+  expect((await rig.asOwner("apply", { workers: [next] })).results[0].state).toBe("deployed");
+  return "held, approved on the deployer page, then off";
+}
+// %%
+test_infra_needs_the_kernel_or_the_recovery_key = {
+  const rig = await deployerRig();
+  const G = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.getState";
+  expect((await rig.sim.fetch(G)).status).toBe(401);
+  expect((await rig.sim.fetch(G, { headers: { authorization: "Bearer wrong" } })).status).toBe(401);
+  // A caller on the internet cannot pass as the kernel, and a binding caller needs the kernel's key.
+  expect((await rig.sim.fetch(G, { headers: { "x-brain-caller": "owner", "x-brain-key": "x" } })).status).toBe(401);
+  expect((await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.getState", { headers: { "x-brain-caller": "owner" } })).status).toBe(401);
+  await rig.recover({ workers: [await rig.made("brain", "kernel", "k1")] });
+  const key = rig.sim.rows.get("worker/brain").key;
+  expect((await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.getState", { headers: { "x-brain-caller": "token:laptop", "x-brain-key": key } })).status).toBe(401);
+  expect((await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.getState", { headers: { "x-brain-caller": "owner", "x-brain-key": key } })).status).toBe(200);
+  return "401 x5, 200 for the kernel as owner";
+}
+// %%
+test_deployer_page_rolls_the_kernel_back = {
+  const rig = await deployerRig();
+  const k1 = await rig.made("brain", "kernel", "k1");
+  const k2 = await rig.made("brain", "kernel", "k2");
+  await rig.recover({ workers: [k1] });
+  await rig.recover({ workers: [k2] });
+  await rig.asOwner("confirm", {});
+  const page = await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text();
+  expect(page).toContain("<title>Cloud Brain deployer</title>");
+  expect(page).not.toContain("<script");
+  expect(page).not.toContain(rig.sim.rows.get("worker/brain").key);
+  const v1 = (await rig.state()).confirmed.brain.find((c) => c.hash === k1.hash).version;
+  expect((await rig.form({ key: "nope", action: `rollback:brain:${v1}` })).status).toBe(401);
+  expect(rig.fake.running("cb")).toBe(k2.hash);
+  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}` })).status).toBe(200);
+  expect(rig.fake.running("cb")).toBe(k1.hash);
+  return "rolled back to " + k1.hash.slice(0, 12);
+}
+// %%
+test_a_path_or_method_belongs_to_one_worker = {
+  const rig = await deployerRig();
+  const core = await rig.made("brain-core", "core", "a");
+  const first = await rig.made("brain-x-first", "recipe", "a", { paths: [{ path: "/hooks/shared", who: "anyone" }], methods: ["com.lopecode.brain.first.say"] });
+  expect((await rig.recover({ workers: [core, first] })).results.map((r) => r.state)).toEqual(["deployed", "deployed"]);
+  const samePath = await rig.made("brain-x-second", "recipe", "a", { paths: [{ path: "/hooks/shared", who: "anyone" }] });
+  const sameMethod = await rig.made("brain-x-third", "recipe", "a", { methods: ["com.lopecode.brain.first.say"] });
+  const out = await rig.recover({ workers: [samePath, sameMethod] });
+  expect(out.results.map((r) => r.reason)).toEqual(["/hooks/shared is already served by brain-x-first", "com.lopecode.brain.first.say is already served by brain-x-first"]);
+  // The Worker that has it may be updated.
+  const again = await rig.made("brain-x-first", "recipe", "b", { paths: [{ path: "/hooks/shared", who: "anyone" }], methods: ["com.lopecode.brain.first.say"] });
+  expect((await rig.recover({ workers: [again] })).results[0].state).toBe("deployed");
+  return out.results[0].reason;
+}
+// %%
+test_distil_answers_the_tabs_hash_and_deploys_nothing = {
+  const rig = await deployerRig();
+  const U = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.distil";
+  const ask = (body, headers = { authorization: "Bearer rk" }) => rig.sim.fetch(U, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+  const source = (await exportModuleJS("@tomlarkworthy/brain-deployer")).source;
+  const before = rig.fake.log.length;
+  const r = await ask({ module: "@tomlarkworthy/brain-deployer", source, cell: "deployer_probe_service" });
+  const out = await r.json();
+  expect(out.message).toBe(undefined);
+  expect(r.status).toBe(200);
+  expect(out.hash).toBe((await deployer_probe_service.emit()).hash);
+  expect(rig.fake.log.length).toBe(before);
+  expect((await ask({}, {})).status).toBe(401);
+  const bad = await ask({ module: "@tomlarkworthy/brain-deployer", source: "export default function define() { throw new Error('boom'); }" });
+  expect(bad.status).toBe(400);
+  expect((await bad.json()).message).toContain("boom");
+  // This module has two services, so the cell has to be named; and the deployer's own is refused.
+  expect((await (await ask({ module: "@tomlarkworthy/brain-deployer", source })).json()).message).toContain("name the cell");
+  expect((await (await ask({ module: "@tomlarkworthy/brain-deployer", source, cell: "deployer_service" })).json()).message).toBe("the deployer is not distilled by a deployer");
+  return out.hash.slice(0, 12);
+}
+// %%
+test_the_shell_is_passed_on_to_static_and_needs_a_key = {
+  const rig = await deployerRig();
+  const U = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.shell";
+  const send = (headers) => rig.sim.fetch(U, { method: "POST", headers, body: "<html>shell</html>" });
+  expect((await send({})).status).toBe(401);
+  // Before a core exists there is nowhere to pass it.
+  expect((await send({ authorization: "Bearer rk" })).status).toBe(503);
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "a")] });
+  const before = rig.fake.calls.length;
+  expect((await send({ authorization: "Bearer rk" })).status).toBe(200);
+  const passed = rig.fake.calls.slice(before).filter((c) => c.nsid === "static.put");
+  expect(passed.map((c) => [c.worker, c.body, new URLSearchParams(c.query).get("path"), new URLSearchParams(c.query).get("public")])).toEqual([["brain-core", "<html>shell</html>", "shell/index.html", "true"]]);
+  return "passed on";
+}
+// %%
+test_apply_takes_source_and_deploys_what_it_distils = {
+  const rig = await deployerRig({ acceptEmitted: false });
+  // Code made elsewhere is refused, whoever sends it.
+  const made = await rig.made("brain-x-a", "recipe", "a");
+  expect((await rig.recover({ workers: [made] })).results).toEqual([{ worker: "brain-x-a", state: "refused", reason: "send the module's source: this deployer deploys only what it distils" }]);
+  expect(rig.fake.scripts.size).toBe(0);
+  const source = (await exportModuleJS("@tomlarkworthy/brain-deployer")).source;
+  const out = await rig.recover({ workers: [{ module: "@tomlarkworthy/brain-deployer", source, cell: "deployer_probe_service" }] });
+  const here = await deployer_probe_service.emit();
+  expect(out.results.map((r) => [r.worker, r.state, r.hash])).toEqual([["brain-x-probe", "deployed", here.hash]]);
+  expect([...rig.fake.scripts.keys()]).toEqual(["cb-x-probe"]);
+  expect(rig.sim.rows.get("source/@tomlarkworthy/brain-deployer")).toMatchObject({ text: source, worker: "brain-x-probe", hash: here.hash });
+  // Source that does not load is refused by name and nothing is uploaded for it.
+  const bad = await rig.recover({ workers: [{ module: "@tomlarkworthy/nothing", source: "export default function define() { throw new Error('boom'); }" }] });
+  expect(bad.results).toEqual([{ worker: "@tomlarkworthy/nothing", state: "refused", reason: "cannot distil: boom" }]);
+  expect(rig.fake.scripts.size).toBe(1);
+  return out.results[0].hash.slice(0, 12);
+}
+// %%
+test_redistil_after_a_deployer_update_and_source_follows_a_put_back = {
+  const rig = await deployerRig({ acceptEmitted: false });
+  const U = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.redistil";
+  const redistil = async (body = {}) => (await rig.sim.fetch(U, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer rk" }, body: JSON.stringify(body) })).json();
+  const source = (await exportModuleJS("@tomlarkworthy/brain-deployer")).source;
+  const M = "@tomlarkworthy/brain-deployer", one = { module: M, source, cell: "deployer_probe_service" };
+  const h1 = (await rig.recover({ workers: [one] })).results[0].hash;
+  // The same deployer distils the same code: nothing to do, and nothing is uploaded.
+  const uploads = () => rig.fake.log.filter((l) => l.startsWith("POST") && l.includes("/versions")).length;
+  const before = uploads();
+  const same = await redistil({ apply: true });
+  expect(same.results).toEqual([{ worker: "brain-x-probe", module: M, state: "same", hash: h1 }]);
+  expect(uploads()).toBe(before);
+  expect((await rig.state()).distiller.last.hash).toBe((await rig.state()).distiller.now);
+  // A record whose hash this deployer does not reproduce stands for a Worker distilled by an older deployer.
+  const rec = rig.sim.rows.get("worker/brain-x-probe"), kept = rig.sim.rows.get("source/" + M);
+  rig.sim.rows.set("worker/brain-x-probe", { ...rec, hash: "0".repeat(64) });
+  rig.sim.rows.set("source/" + M, { ...kept, hash: "0".repeat(64) });
+  expect((await redistil()).results).toEqual([{ worker: "brain-x-probe", module: M, state: "changes", from: "0".repeat(64), hash: h1 }]);
+  expect(uploads()).toBe(before);
+  expect((await redistil({ apply: true })).results[0]).toMatchObject({ state: "changes", applied: "deployed", hash: h1 });
+  expect(rig.fake.running("cb-x-probe")).toBe(h1);
+  // A second version, put back: the source kept is again the first one's.
+  const two = { ...one, source: source.replace('"com.lopecode.brain.probe.ping"', '"com.lopecode.brain.probe.pong"') };
+  const h2 = (await rig.recover({ workers: [two] })).results[0].hash;
+  expect(h2).not.toBe(h1);
+  expect(rig.sim.rows.get("source/" + M)).toMatchObject({ text: two.source, hash: h2, prev: { hash: h1 } });
+  rig.fake.unhealthy.add(h2);
+  await rig.sim.scheduled();
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb-x-probe")).toBe(h1);
+  expect(rig.sim.rows.get("source/" + M)).toMatchObject({ text: source, hash: h1, prev: null });
+  expect((await redistil({ apply: true })).results[0]).toMatchObject({ state: "same", hash: h1 });
+  return h1.slice(0, 12);
+}
+// %%
+md`## Moving to a new Worker name
+
+Until 2026-10-08 the deployer's Worker was \`BASE-guard\`. A Worker cannot be renamed: \`BASE-deployer\` is a new Worker, and its Durable Object holds no rows. The move is five steps, each one command of \`brain.ts\`, and no step deletes anything.
+
+| step | what | check |
+|---|---|---|
+| 1 | Update \`BASE-guard\` in place to this module, so that it has \`exportRows\`. | \`infra.getState\` answers as before |
+| 2 | Install \`BASE-deployer\` with the same recovery key and \`config.self\`. Send it the rows of the old one. | \`infra.rowsDigest\` is equal on both |
+| 3 | Install \`BASE-guard\` again with \`config.replacedBy\`. It then changes nothing: no apply, no tick, no approval. | an apply to it answers 409 \`Replaced\` |
+| 4 | Apply every service through \`BASE-deployer\`. The kernel and the core are then bound to it as \`DEPLOYER\`. | every Worker is \`same\` under \`redistil\` |
+| 5 | Put a stub on \`BASE-guard\` with no Cloudflare token and no recovery key. Its rows stay as they were. | its bindings are \`ROWS\` and \`BRAIN_CONFIG\` |
+
+\`exportRows\`, \`importRows\` and \`rowsDigest\` need the recovery key. The rows hold the key of every Worker, so the kernel cannot ask for them and \`brain.ts\` prints none of them. \`importRows\` refuses a deployer that holds a row. The rows \`tick\` and \`distiller\` are each deployer's own and are not copied or counted.
+
+Between step 2 and step 3 two deployers hold the token and tick. Step 3 follows step 2 at once. The copy is of one moment: a deploy through the old deployer after step 2 is not in the new one.`
+// %%
+test_rows_move_to_a_deployer_that_holds_none = {
+  const old = await deployerRig({ config: { self: undefined } });
+  await old.recover({ workers: [await old.made("brain-core", "core", "a"), await old.made("brain", "kernel", "a", { resources: ["deployer"] }), await old.made("brain-x-a", "recipe", "a")] });
+  await old.form({ key: "rk", action: "approval:off" });
+  const U = (rig, m) => "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra." + m;
+  const get = async (rig, m, headers = { authorization: "Bearer rk" }) => { const r = await rig.sim.fetch(U(rig, m), { headers }); return { status: r.status, data: await r.json() }; };
+  const post = async (rig, m, body, headers = { authorization: "Bearer rk" }) => { const r = await rig.sim.fetch(U(rig, m), { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) }); return { status: r.status, data: await r.json() }; };
+  // Only the recovery key: not the kernel for the owner, and not a wrong key.
+  expect((await get(old, "exportRows", { authorization: "Bearer wrong" })).status).toBe(401);
+  expect((await old.asOwner("exportRows")).error).toBe("AuthRequired");
+  expect((await old.asOwner("importRows", { rows: [] })).error).toBe("AuthRequired");
+  const out = (await get(old, "exportRows")).data;
+  expect(out.rows.map((r) => r.key).filter((k) => k.startsWith("worker/")).sort()).toEqual(["worker/brain", "worker/brain-core", "worker/brain-x-a"]);
+  expect(out.rows.some((r) => r.key === "tick" || r.key.startsWith("__"))).toBe(false);
+  const next = await deployerRig();
+  // Its own tick has run: that row does not make it "not empty".
+  next.sim.rows.set("tick", { at: 1 });
+  expect((await post(next, "importRows", { rows: [{ key: "__tick_origin", value: "x" }] })).status).toBe(400);
+  const done = await post(next, "importRows", out);
+  expect(done.status).toBe(200);
+  expect(done.data.imported).toBe(out.rows.length);
+  expect(done.data.classes).toEqual((await get(old, "rowsDigest")).data.classes);
+  expect(Object.keys(done.data.classes).sort()).toEqual(["confirmed", "kernelstate", "settings", "worker"]);
+  // The keys came with the rows: the new deployer reaches the same Workers, and the setting is the old one.
+  expect(next.sim.rows.get("worker/brain").key).toBe(old.sim.rows.get("worker/brain").key);
+  expect((await next.state()).approval).toBe(false);
+  // A second import is refused, and so is one row changed on either side.
+  expect((await post(next, "importRows", out)).data.error).toBe("NotEmpty");
+  next.sim.rows.set("settings", { approval: true });
+  expect((await get(next, "rowsDigest")).data.classes.settings).not.toEqual((await get(old, "rowsDigest")).data.classes.settings);
+  return `${out.rows.length} rows moved, 4 classes equal`;
+}
+// %%
+test_a_replaced_deployer_changes_nothing = {
+  const store = new Map();
+  const live = await deployerRig({ store });
+  await live.recover({ workers: [await live.made("brain-core", "core", "a"), await live.made("brain", "kernel", "a"), await live.made("brain-x-a", "recipe", "a")] });
+  const old = await deployerRig({ store, config: { replacedBy: "https://cb-deployer.sub.workers.dev" } });
+  const b = await old.made("brain-x-a", "recipe", "b");
+  expect(await old.recover({ workers: [b] })).toMatchObject({ error: "Replaced", deployer: "https://cb-deployer.sub.workers.dev" });
+  expect((await old.asOwner("confirm", {})).error).toBe("Replaced");
+  expect((await old.form({ key: "rk", action: "approval:off" })).status).toBe(409);
+  // Its tick checks nothing: a Worker that fails is not put back by it.
+  old.fake.unhealthy.add(store.get("worker/brain-x-a").hash);
+  const calls = old.fake.log.length;
+  await old.sim.scheduled();
+  await old.sim.scheduled();
+  expect(old.fake.log.length).toBe(calls);
+  // It still says what it holds, and where the deployer is.
+  expect((await old.state()).replacedBy).toBe("https://cb-deployer.sub.workers.dev");
+  expect(await (await old.sim.fetch("https://cb-deployer.sub.workers.dev/")).text()).toContain("This deployer was replaced");
+  expect(store.get("worker/brain-x-a").hash).not.toBe(b.hash);
+  return "apply, confirm and approval refused with 409";
+}
+// %%
+test_the_deployer_binds_itself_under_its_own_script_name = {
+  const bound = async (config, resource) => {
+    const rig = await deployerRig({ config });
+    await rig.recover({ workers: [await rig.made("brain-core", "core", "a"), await rig.made("brain", "kernel", "a", { resources: [resource] })] });
+    const b = rig.fake.live("cb").metadata.bindings;
+    return { service: (b.find((x) => x.name === "DEPLOYER") || {}).service, told: b.find((x) => x.name === "BRAIN_CONFIG").json.deployer, old: b.some((x) => x.name === "GUARD"), rig };
+  };
+  // A Brain installed before 2026-10-08 has no config.self: its deployer is BASE-guard.
+  expect(await bound({ self: undefined }, "deployer")).toMatchObject({ service: "cb-guard", told: "https://cb-guard.sub.workers.dev", old: false });
+  const now = await bound({}, "deployer");
+  expect(now).toMatchObject({ service: "cb-deployer", told: "https://cb-deployer.sub.workers.dev" });
+  // A source distilled before 2026-10-08 names the cell guard.
+  expect((await bound({}, "guard")).service).toBe("cb-deployer");
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "a")] });
+  for (const name of ["brain-deployer", "brain-guard"]) expect((await rig.recover({ workers: [await rig.made(name, "recipe", "a")] })).results[0].reason).toBe('resource name "brain-deployer" is reserved');
+  return "cb-guard with no config.self, cb-deployer with it";
+}
+// %%
+test_getModules_lists_what_the_deployer_owns_and_what_runs = {
+  const rig = await deployerRig({ acceptEmitted: false });
+  const U = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.getModules";
+  const list = async () => (await (await rig.sim.fetch(U)).json()).modules;
+  // Nobody has to sign in. Before any deploy: the two modules of the deployer.
+  const first = await list();
+  expect(first.map((m) => [m.module, m.worker])).toEqual([["@tomlarkworthy/cloudflare-iac", "brain-deployer"], ["@tomlarkworthy/brain-deployer", "brain-deployer"]]);
+  expect(Object.keys(first[0].files).sort()).toEqual(["acorn-walk.js", "acorn.js", "cel.js", "hono.js", "observable-runtime.js", "quickjs.js", "quickjs.wasm.b64"]);
+  expect(first[0].text).toBe((await exportModuleJS("@tomlarkworthy/cloudflare-iac")).source);
+  expect(first[1].text).toBe((await exportModuleJS("@tomlarkworthy/brain-deployer")).source);
+  // A deployed Worker's module is added with the hash that runs. The fixture has one module for two Workers.
+  const source = (await exportModuleJS("@tomlarkworthy/brain-static")).source;
+  const out = await rig.recover({ workers: [{ module: "@tomlarkworthy/brain-static", source }] });
+  expect((await list()).slice(2).map((m) => [m.module, m.worker, m.hash, m.text === source])).toEqual([["@tomlarkworthy/brain-static", "brain-x-static", out.results[0].hash, true]]);
+  // The key the deployer made for that Worker is not in the answer.
+  expect(JSON.stringify(await list()).includes(rig.sim.rows.get("worker/brain-x-static").key)).toBe(false);
+  expect((await rig.sim.fetch(U, { method: "POST" })).status).toBe(401);
+  return first.length + " then 3";
+}
+// %%
+// A small service of this module, for the distil test.
+deployer_probe_service = cloudflare.Service("probe", async () => new Response("ok"), { methods: { "com.lopecode.brain.probe.ping": { type: "query", who: "anyone" } } })
+// %%
+md`## A member's Worker
+
+\`member.deploy\`, \`member.remove\` and \`member.purge\` are reached through the kernel only, which names the member. There is no approval and no recovery key on this path, so everything is decided by rule:
+
+| | |
+|---|---|
+| Name | \`brain-m-ID-NAME\`. \`ID\` is the first ten hex digits of the SHA-256 of the member's DID; \`NAME\` is the name given to \`cloudflare.Service\`, 1 to 20 lower case letters and digits. A recipe may not be named \`brain-x-m-…\` and a system Worker may not be named \`brain-m-…\`. |
+| Source | Distilled here, in QuickJS, with no other module's kept source. At most 200,000 characters of source and 1,000,000 of code. |
+| Taken from what was distilled | The code, the Worker's name, and for each method its type and \`who\`. Nothing else: the bindings, the role, the flags and the rules are written here. |
+| Bindings | \`CORE\`, its own key, and its manifest. No database, no bucket, no secret, no other Worker. |
+| Platform cells | \`sql\` and \`xrpc\`. Any other is refused, as are a secret, a path, a cron and a flag. |
+| Methods | Named \`com.lopecode.brain.m.ID.…\`. \`who\` is \`"author"\` (the member, and the owner) or \`"members"\` (any signed-in member, and the owner). |
+| Address | None: its \`workers.dev\` address is switched off, and its health is asked through the core. |
+| Limit | 3 Workers a member, or the number the owner set for them. |
+| Source kept | Under \`msource/\`, apart from the modules \`infra.getModules\` lists. \`member.modules\` answers \`cloudflare-iac\` and the calling member's modules, for a page served to that member; nothing serves one yet. |
+
+A member's Worker is not distilled again by \`redistil\`.`
+// %%
+memberRig = async () => {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c"), await rig.made("brain", "kernel", "k")] });
+  const key = rig.sim.rows.get("worker/brain").key;
+  const as = async (method, caller, body, k = key) => {
+    const r = await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.member." + method, { method: "POST", headers: { "content-type": "application/json", "x-brain-key": k, "x-brain-caller": caller }, body: JSON.stringify(body) });
+    return { status: r.status, ...(await r.json()) };
+  };
+  const A = "did:plc:alice", id = (await sha256(A)).slice(0, 10), ns = `com.lopecode.brain.m.${id}.`;
+  const service = async (name, salt, extra = {}) => {
+    const e = await rig.made("brain-x-" + name, "recipe", salt, extra);
+    return { parts: e.parts, meta: e.meta };
+  };
+  const deploy = async (name, salt, extra, author = A, quota = {}) => as("deploy", "member", { author, quota, request: await service(name, salt, extra) });
+  return { ...rig, as, A, id, ns, service, deploy, key };
+}
+// %%
+test_a_member_deploys_with_no_approval_and_only_the_core_bound = {
+  const rig = await memberRig(), { id, ns, A } = rig;
+  expect((await rig.state()).approval).toBe(true);
+  const out = await rig.deploy("todo", "a", { resources: ["sql", "xrpc"], access: { [ns + "add"]: { type: "procedure", who: "author" }, [ns + "list"]: { type: "query", who: "members" } } });
+  expect(out).toMatchObject({ worker: `brain-m-${id}-todo`, state: "deployed", methods: [ns + "add", ns + "list"] });
+  const script = `cb-m-${id}-todo`;
+  expect(rig.fake.live(script).metadata.bindings.map((b) => b.name)).toEqual(["CORE", "BRAIN_KEY", "BRAIN_CONFIG", "BRAIN_INFO"]);
+  expect(rig.fake.scripts.get(script).subdomain).toBe(false);
+  const registered = rig.fake.calls.filter((c) => c.nsid === "service.register" && c.body.worker === `brain-m-${id}-todo`).at(-1).body;
+  expect(registered).toMatchObject({ role: "member", author: A, paths: [], secrets: [] });
+  expect(registered.methods[ns + "add"].allow).toBe('caller.kind == "owner" || caller.did == "did:plc:alice"');
+  expect(registered.methods[ns + "list"].allow).toBe('caller.kind in ["owner", "did"]');
+  expect((await rig.state()).pending).toEqual([]);
+  // The same again is unchanged; a change goes live and keeps the key.
+  expect((await rig.deploy("todo", "a", { resources: ["sql", "xrpc"], access: { [ns + "add"]: { type: "procedure", who: "author" }, [ns + "list"]: { type: "query", who: "members" } } })).state).toBe("unchanged");
+  expect((await rig.deploy("todo", "b")).state).toBe("deployed");
+  // A version that does not answer is put back.
+  const bad = await rig.service("todo", "c");
+  rig.fake.unhealthy.add(await partsHash(bad.parts, { worker: `brain-m-${id}-todo`, role: "member", author: A, module: null, calls: [], crons: [], flags: [], methods: [], access: {}, paths: [], secrets: [], resources: [], bindings: [] }));
+  expect((await rig.as("deploy", "member", { author: A, request: bad })).state).toBe("put-back");
+  expect((await rig.as("remove", "member", { author: "did:plc:bob", request: { name: "todo" } })).state).toBe("refused");
+  expect((await rig.as("remove", "member", { author: A, request: { name: "todo" } })).state).toBe("removed");
+  expect(rig.fake.scripts.has(script)).toBe(false);
+}
+// %%
+test_a_member_deploy_is_refused_outside_its_tier = {
+  const rig = await memberRig(), { ns, A, id } = rig;
+  const no = async (name, extra, author = A, quota) => (await rig.deploy(name, "x", extra, author, quota)).reason;
+  expect(await no("a", { resources: ["rows"] })).toBe('a member service may not use the platform cell "rows"');
+  for (const cell of ["blobs", "database", "deployer", "assets", "inbox", "core", "workers"]) expect(await no("a", { resources: [cell] })).toBe(`a member service may not use the platform cell "${cell}"`);
+  expect(await no("a", { secrets: ["WA_TOKEN"] })).toBe("a member service may not name a secret");
+  expect(await no("a", { paths: [{ path: "/hooks/a", who: "anyone" }] })).toBe("a member service has no paths");
+  expect(await no("a", { crons: ["* * * * *"] })).toBe("a member service has no schedule and no flags");
+  expect(await no("a", { access: { "com.lopecode.brain.library.list": { type: "query", who: "author" } } })).toMatch("a method of this member is named " + ns);
+  expect(await no("a", { access: { [ns + "x"]: { type: "query", who: "anyone" } } })).toMatch('who is "author" or "members"');
+  expect(await no("a", { access: { [ns + "x"]: { type: "query", who: "owner" } } })).toMatch('who is "author" or "members"');
+  expect(await no("a", { access: { [ns + "x"]: { type: "query", who: "author", allow: "true" } } })).toMatch('who is "author" or "members"');
+  expect(await no("has-dash", {})).toMatch("NAME is 1 to 20 lower case letters and digits");
+  expect((await rig.as("deploy", "member", { author: A, request: { parts: [{ path: "worker.js", text: "x" }], meta: { worker: "brain-core", role: "core", resources: [], secrets: [] } } })).reason).toMatch("with no role");
+  expect((await rig.as("deploy", "member", { author: A, request: { parts: [{ path: "quickjs.wasm", base64: "AA" }], meta: (await rig.service("a", "x")).meta } })).reason).toBe("the parts are worker.js, source.js and lib/NAME.js");
+  expect((await rig.as("deploy", "member", { author: "did:plc:owner", request: await rig.service("a", "x") })).reason).toBe("a member");
+  // Only the kernel is heard, and only as a member for a deploy.
+  expect((await rig.as("deploy", "member", { author: A, request: await rig.service("a", "x") }, "not-the-key")).status).toBe(401);
+  expect((await rig.as("deploy", "owner", { author: A, request: await rig.service("a", "x") })).status).toBe(501);
+  expect((await rig.sim.fetch("https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.member.deploy", { method: "POST", headers: { authorization: "Bearer rk", "x-brain-caller": "member", "content-type": "application/json" }, body: "{}" })).status).toBe(401);
+  // Three Workers a member, or what the owner set; another member's count is their own.
+  for (const n of ["a", "b", "c"]) expect((await rig.deploy(n, n)).state).toBe("deployed");
+  expect(await no("d", {})).toBe("3 services are deployed, at most 3");
+  expect((await rig.deploy("d", "d", {}, A, { workers: 4 })).state).toBe("deployed");
+  expect((await rig.deploy("a", "a", {}, "did:plc:bob")).state).toBe("deployed");
+  // A recipe and a system Worker cannot take a member's name.
+  const taken = await rig.recover({ workers: [await rig.made(`brain-x-m-${id}-a`, "recipe", "r"), await rig.made(`brain-m-${id}-zz`, "system", "s")] });
+  expect(taken.results.map((r) => r.state)).toEqual(["refused", "refused"]);
+  // Removing the member removes all of theirs and nobody else's.
+  expect((await rig.as("purge", "member", { author: A })).status).toBe(501);
+  expect((await rig.as("purge", "owner", { author: A })).removed.length).toBe(4);
+  expect([...rig.fake.scripts.keys()].filter((k) => k.startsWith("cb-m-")).length).toBe(1);
+}
+// %%
+test_getModules_keeps_a_members_module_out_of_the_brains_list = {
+  const rig = await memberRig(), { id, A } = rig;
+  rig.sim.rows.set(`msource/brain-m-${id}-todo`, { module: "@alice/todo", text: "export default function define() {}", author: A, hash: "h" });
+  const list = async (query = "") => (await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.getModules" + query)).json()).modules.map((m) => m.module);
+  expect(await list()).not.toContain("@alice/todo");
+  // Naming a member in the public list changes nothing: a member's source is given to that member only.
+  expect(await list("?member=" + encodeURIComponent(A))).not.toContain("@alice/todo");
+  const mine = async (author) => (await rig.as("modules", "member", { author })).modules.map((m) => m.module);
+  expect(await mine(A)).toEqual(["@tomlarkworthy/cloudflare-iac", "@alice/todo"]);
+  expect(await mine("did:plc:bob")).toEqual(["@tomlarkworthy/cloudflare-iac"]);
+}
+// %%
+import {cloudflare, secrets, rows, config, simulate, partsHash, sha256, quickjs, quickjsLib, distillerData, distilIn, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {exportModuleJS} from "@tomlarkworthy/exporter-3"

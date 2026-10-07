@@ -1,0 +1,78 @@
+md`# XRPC client
+
+A client for [XRPC](https://atproto.com/specs/xrpc), atproto's HTTP convention: a query is a GET of \`/xrpc/<NSID>\` with its parameters in the query string, a procedure is a POST with a JSON body, and an error is \`{ error, message }\` with a status that is not 2xx.
+
+\`\`\`js
+import {xrpcClient} from "@tomlarkworthy/xrpc-client"
+
+brain = xrpcClient("https://brain.example", { namespace: "com.lopecode.brain" })
+await brain.query("inbox.list", { after: 3 })     // GET  /xrpc/com.lopecode.brain.inbox.list?after=3
+await brain.procedure("inbox.done", { id: 4 })    // POST /xrpc/com.lopecode.brain.inbox.done
+\`\`\`
+
+A name with no dot before its last part is prefixed with \`namespace\`. A failed call throws an \`Error\` carrying \`status\` and \`error\`. Inputs are not checked against a Lexicon.
+
+\`headers\` is an object, or a function (it may be async) asked before every call, which is how a caller sends a token that changes: \`{ headers: () => ({ authorization: "Bearer " + token() }) }\`. No cookie is sent unless \`credentials\` says so. \`client.fetch(path, init)\` is a plain request to \`base + path\` with the same headers, for an address that is not a method.`
+// %%
+xrpcClient = (base, { namespace = "", fetch: send = (...a) => fetch(...a), headers = {}, credentials = "omit" } = {}) => {
+  const root = String(base).replace(/\/$/, "");
+  const own = async (init) => ({ credentials, ...init, headers: { ...(typeof headers === "function" ? (await headers()) || {} : headers), ...(init.headers || {}) } });
+  const nsid = (name) => (namespace && name.split(".").length < 3 ? namespace + "." + name : name);
+  const call = async (name, init) => {
+    const r = await send(root + "/xrpc/" + name, await own(init));
+    const type = r.headers.get("content-type") || "";
+    const body = type.includes("json") ? await r.json().catch(() => null) : type.startsWith("text/") ? await r.text() : new Uint8Array(await r.arrayBuffer());
+    if (!r.ok) throw Object.assign(new Error((body && body.message) || (body && body.error) || `${name} ${r.status}`), { status: r.status, error: (body && body.error) || "Error" });
+    return body;
+  };
+  const search = (params) => {
+    const q = new URLSearchParams(Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
+    return [...q].length ? "?" + q : "";
+  };
+  return {
+    base,
+    nsid,
+    fetch: async (path, init = {}) => send(root + path, await own(init)),
+    query: (name, params) => call(nsid(name) + search(params), { method: "GET" }),
+    procedure: (name, input, { params, raw } = {}) =>
+      call(nsid(name) + search(params), raw
+        ? { method: "POST", body: input }
+        : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input ?? {}) })
+  };
+}
+// %%
+test_xrpc_query_and_procedure = {
+  const seen = [];
+  const send = async (url, init) => {
+    seen.push({ url, method: init.method, body: init.body, type: (init.headers || {})["content-type"] });
+    return url.includes("missing")
+      ? new Response(JSON.stringify({ error: "MethodNotImplemented", message: "no such method" }), { status: 501, headers: { "content-type": "application/json" } })
+      : Response.json({ ok: true });
+  };
+  const c = xrpcClient("https://b.example/", { namespace: "com.lopecode.brain", fetch: send });
+  expect(await c.query("inbox.list", { after: 3, skip: undefined })).toEqual({ ok: true });
+  await c.procedure("inbox.done", { id: 4 });
+  await c.query("com.atproto.server.getSession");
+  await c.procedure("blob.put", "bytes", { params: { sha256: "ab" }, raw: true });
+  expect(seen.map((s) => s.method + " " + s.url)).toEqual([
+    "GET https://b.example/xrpc/com.lopecode.brain.inbox.list?after=3",
+    "POST https://b.example/xrpc/com.lopecode.brain.inbox.done",
+    "GET https://b.example/xrpc/com.atproto.server.getSession",
+    "POST https://b.example/xrpc/com.lopecode.brain.blob.put?sha256=ab"
+  ]);
+  expect(seen[1].body).toBe('{"id":4}');
+  expect(seen[3].body).toBe("bytes");
+  let thrown = null;
+  try { await c.query("missing"); } catch (e) { thrown = e; }
+  expect(thrown).toMatchObject({ status: 501, error: "MethodNotImplemented", message: "no such method" });
+  // Headers from a function are asked for on every call, and go with a plain fetch too.
+  let n = 0;
+  const sent = [];
+  const t = xrpcClient("https://b.example", { namespace: "x.y", headers: async () => ({ authorization: "Bearer " + ++n }), fetch: async (url, init) => (sent.push([url, init.headers.authorization, init.credentials]), Response.json({})) });
+  await t.query("a");
+  await t.fetch("/static/f.png");
+  expect(sent).toEqual([["https://b.example/xrpc/x.y.a", "Bearer 1", "omit"], ["https://b.example/static/f.png", "Bearer 2", "omit"]]);
+  return "4 calls and one error";
+}
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

@@ -1,0 +1,706 @@
+md`# brain-feed
+
+A Bluesky feed is a list of posts that a feed generator gives to the Bluesky app. This service keeps lists of posts and gives each list as a feed. A person or another service adds a post with \`feed.add\`. The service reads nothing from Bluesky and makes no list by itself.
+
+A service that fills a feed (the posts of some accounts, the results of a search) is a different service. It calls \`feed.add\`.`
+// %%
+viewof feedView = feedPanel({ client, owner: !!(session && session.owner) })
+// %%
+md`## Methods
+
+| | |
+|---|---|
+| Worker | \`brain-x-feed\` |
+| \`feed.list\` | query. \`{ did, feeds }\`: each \`{ rkey, name, description, public, posts, published, account, changed }\`. \`published\` is the URI of the record or \`null\`. \`changed\` is \`true\` when the name or the description is not what the record says. |
+| \`feed.put\` | procedure. \`?feed=RKEY\` and \`{ name, description, public }\`. Makes the feed or changes it. A field that is absent keeps its value. |
+| \`feed.delete\` | procedure. \`?feed=RKEY\`. Deletes the feed and its posts. A published feed is refused. |
+| \`feed.add\` | procedure. \`?feed=RKEY\` and \`{ uris: [at://…] }\`, 100 at most, or \`{ uri }\`. \`{ added, already, posts }\`. |
+| \`feed.remove\` | procedure. \`?feed=RKEY\` and \`{ uris }\`, \`{ uri }\` or \`{ by }\`. \`{ by }\` removes each post that one caller added. \`{ removed, posts }\`. |
+| \`feed.posts\` | query. \`?feed=RKEY&limit=&cursor=\`. \`{ posts: [{ uri, at, by }], cursor }\`, newest first. |
+| \`feed.publish\`, \`feed.unpublish\` | procedure. \`?feed=RKEY\`. See Publish. |
+| \`feed.status\` | query. \`{ did, endpoint, feeds, posts, published, limits }\` |
+| \`app.bsky.feed.getFeedSkeleton\` | query, anyone. \`?feed=at://…&limit=&cursor=\`. Answers for the published URI only. The [lexicon](https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/feed/getFeedSkeleton.json) of Bluesky. |
+| \`app.bsky.feed.describeFeedGenerator\` | query, anyone. \`{ did, feeds: [{ uri }] }\`: the published feeds. |
+| Storage | \`rows\`: \`feed/<rkey>\`, \`top/<rkey>\`. \`sql\`: \`feed_posts(feed, uri, indexed_at, adder)\` |
+
+\`\`\`js
+await client.procedure("feed.put", { name: "Reading", public: true }, { params: { feed: "reading" } })
+await client.procedure("feed.add", { uris: ["at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/app.bsky.feed.post/3mwwa2nrhjs27"] }, { params: { feed: "reading" } })
+\`\`\`
+
+The name of the feed is in the query string and not in the body. The body of a call is not read by a rule, and the query string is.`
+// %%
+md`## Who can call
+
+The core decides who can call a method. This service does not decide. It records the caller that the core names, in \`by\`.
+
+The rule of each \`feed.*\` method is \`caller.trusted\`: the owner, a token that names the method, or an account with a grant for the method. A member needs a grant from the owner (\`grant.put\`). The grant applies to all feeds.
+
+A Worker is not \`trusted\`. The owner opens a method to a Worker with \`rule.put\`, and the Worker must name the method in its \`calls\`. The rule can read \`request.params.feed\`, thus a rule can open one feed and not the others:
+
+\`\`\`js
+await client.procedure("rule.put", {
+  target: "com.lopecode.brain.feed.add",
+  allow: 'caller.trusted || (caller.worker == "brain-x-filler" && request.params.feed == "reading")'
+})
+\`\`\`
+
+A Worker of a member calls as its author. \`by\` is then the DID of the author.
+
+Limit: \`rule.put\` puts one rule in place of the rule of the method. The owner writes all cases in one expression. A person who is removed keeps the posts that they added. \`feed.remove\` with \`{ by }\` removes them.`
+// %%
+md`## What anyone can read
+
+A feed that is public and published is read by anyone: \`getFeedSkeleton\` gives its post URIs with no sign-in. A feed that is not public, or not published, answers \`UnknownFeed\`. The owner reads it with \`feed.posts\`.
+
+The posts are public posts of Bluesky. A feed shows which posts were chosen. Do not put a URI in a public feed if the choice must stay private.
+
+\`getFeedSkeleton\` answers only when the \`feed\` URI is equal to the URI that \`feed.publish\` recorded: the account that holds the record, the collection \`app.bsky.feed.generator\`, and the name. A different URI answers \`UnknownFeed\`. Thus a record in a different account that points at this Brain gets no posts. After \`feed.unpublish\`, the feed answers \`UnknownFeed\`. The kernel does not read a token that comes with this method, thus the answer is the same for each viewer.
+
+The cursor is \`indexed_at::uri\` of the last post of the page. \`indexed_at\` is the time of the \`feed.add\` call in milliseconds. In one call, the first URI is the newest, and each URI after it is 1 ms older. A call is always newer than the call before it.`
+// %%
+md`## Publish
+
+The Bluesky app finds a feed from a record of type [\`app.bsky.feed.generator\`](https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/feed/generator.json) in the repo of an account. The record names this Brain as \`did:web:HOST\`. The kernel answers \`/.well-known/did.json\` with a \`#bsky_fg\` service of type \`BskyFeedGenerator\` at \`https://HOST\`.
+
+\`feed.publish\` calls \`bluesky.putRecord\` of \`brain-x-bluesky\`. That Worker writes the record below in the repo of the account it is signed in to, at \`at://ACCOUNT/app.bsky.feed.generator/RKEY\`. The record is public. Each person on Bluesky can then find the feed, open it and pin it.
+
+\`\`\`json
+{ "$type": "app.bsky.feed.generator", "did": "did:web:HOST", "displayName": "Reading", "description": "…", "createdAt": "2026-10-07T20:00:00.000Z" }
+\`\`\`
+
+\`feed.unpublish\` calls \`bluesky.deleteRecord\`. Both calls are made for the caller of \`feed.publish\` (*Origin* in \`@tomlarkworthy/brain-core\`), and \`brain-x-bluesky\` refuses them when that caller is not the owner, in their tab or in a turn run for them. A rule of \`feed.publish\` that lets a member or anyone in does not let them write the record: their call answers 502. A feed must be \`public\` before it is published. A published feed cannot be deleted or made not public.
+
+Not verified: no record was written to a real account. The Bluesky app was not seen to call this service. Both calls run only under \`simulate\` (2026-10-07).`
+// %%
+md`## Limits
+
+| | |
+|---|---|
+| Feeds | 20. \`feed.put\` refuses feed 21 with \`TooManyFeeds\`. |
+| Posts in one feed | 2000. \`feed.add\` then drops the oldest posts. |
+| URIs in one \`feed.add\` or \`feed.remove\` | 100. More is refused with \`InvalidRequest\`. |
+| \`rkey\` | 1 to 15 of \`a-z 0-9 -\` |
+| \`name\` | 24 graphemes, the limit of \`displayName\` in the lexicon |
+| \`description\` | 300 graphemes |
+| A page of \`getFeedSkeleton\` or \`feed.posts\` | 1 to 100 posts, 50 when \`limit\` is absent |
+
+A URI must be \`at://DID/app.bsky.feed.post/RKEY\`. The service does not ask Bluesky if the post exists. The Bluesky app leaves out a post that it cannot find.
+
+The 15 characters of \`rkey\` are the limit that the feed generator starter kit of Bluesky gives. The lexicon says only \`key: any\`. This limit was not read from a source on 2026-10-07.`
+// %%
+feed_service = cloudflare.Service("feed", feedApp, {
+  methods: {
+    "com.lopecode.brain.feed.list": { type: "query", who: "owner" },
+    "com.lopecode.brain.feed.put": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.feed.delete": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.feed.add": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.feed.remove": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.feed.posts": { type: "query", who: "owner" },
+    "com.lopecode.brain.feed.publish": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.feed.unpublish": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.feed.status": { type: "query", who: "owner" },
+    "app.bsky.feed.getFeedSkeleton": { type: "query", who: "anyone" },
+    "app.bsky.feed.describeFeedGenerator": { type: "query", who: "anyone" }
+  },
+  calls: ["com.lopecode.brain.bluesky.putRecord", "com.lopecode.brain.bluesky.deleteRecord"]
+})
+// %%
+feed_announce = {
+  plugins.add("workers", feed_service, { invalidation });
+  return "announced feed_service";
+}
+// %%
+feedLimits = ({ feeds: 20, posts: 2000, batch: 100, page: 100 })
+// %%
+feedSchema = [
+  "CREATE TABLE IF NOT EXISTS feed_posts (feed TEXT NOT NULL, uri TEXT NOT NULL, indexed_at INTEGER NOT NULL, adder TEXT NOT NULL, PRIMARY KEY (feed, uri)) WITHOUT ROWID",
+  "CREATE INDEX IF NOT EXISTS feed_posts_newest ON feed_posts (feed, indexed_at, uri)"
+]
+// %%
+feedSql = ({
+  add: "INSERT OR IGNORE INTO feed_posts (feed, uri, indexed_at, adder) VALUES (?1, ?2, ?3, ?4)",
+  count: "SELECT COUNT(*) AS n FROM feed_posts WHERE feed = ?1",
+  total: "SELECT COUNT(*) AS n FROM feed_posts",
+  // D1 binds a number as a float: the limit and the offset are cast.
+  page: "SELECT uri, indexed_at, adder FROM feed_posts WHERE feed = ?1 AND (indexed_at < ?2 OR (indexed_at = ?2 AND uri < ?3)) ORDER BY indexed_at DESC, uri DESC LIMIT CAST(?4 AS INTEGER)",
+  // The newest post that is over the limit. It and everything older goes.
+  over: "SELECT uri, indexed_at FROM feed_posts WHERE feed = ?1 ORDER BY indexed_at DESC, uri DESC LIMIT 1 OFFSET CAST(?2 AS INTEGER)",
+  prune: "DELETE FROM feed_posts WHERE feed = ?1 AND (indexed_at < ?2 OR (indexed_at = ?2 AND uri <= ?3))",
+  drop: "DELETE FROM feed_posts WHERE feed = ?1 AND uri = ?2",
+  dropBy: "DELETE FROM feed_posts WHERE feed = ?1 AND adder = ?2",
+  clear: "DELETE FROM feed_posts WHERE feed = ?1"
+})
+// %%
+feedApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.feed.", BLUESKY = "com.lopecode.brain.bluesky.", GENERATOR = "app.bsky.feed.generator";
+  const L = feedLimits;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const RKEY = /^[a-z0-9-]{1,15}$/, POST = /^at:\/\/did:[a-z]+:[A-Za-z0-9._:%-]{1,200}\/app\.bsky\.feed\.post\/[A-Za-z0-9._~:-]{1,100}$/;
+  const graphemes = (s) => [...new Intl.Segmenter().segment(s)].length;
+  const did = () => "did:web:" + config.host;
+  let ready = null;
+  const schema = () =>
+    (ready ??= (async () => {
+      for (const s of feedSchema) await sql.exec(s);
+    })().catch((e) => {
+      ready = null;
+      throw e;
+    }));
+  const count = async (rkey) => Number((await sql.exec(feedSql.count, rkey)).rows[0].n) || 0;
+  // The feed a call names, in the query string, where the rule of the method reads it too.
+  const named = async (c) => {
+    const rkey = c.req.query("feed") || "";
+    return RKEY.test(rkey) ? await rows.get("feed/" + rkey) : null;
+  };
+  const missing = (c) => fail(c, 404, "UnknownFeed", `no feed ${String(c.req.query("feed") || "").slice(0, 80)}`);
+  const body = async (c) => (await c.req.json().catch(() => null)) || {};
+  const urisOf = (b) => {
+    const list = Array.isArray(b.uris) ? b.uris : typeof b.uri === "string" ? [b.uri] : null;
+    return list && list.length >= 1 && list.length <= L.batch && list.every((u) => typeof u === "string" && POST.test(u)) ? [...new Set(list)] : null;
+  };
+  // One page, newest first. The cursor is the indexed_at and the URI of the last post of the page before.
+  const page = async (c, rkey) => {
+    const limit = c.req.query("limit") == null ? 50 : Number(c.req.query("limit"));
+    if (!Number.isInteger(limit) || limit < 1 || limit > L.page) return { error: `limit: 1 to ${L.page}` };
+    const cursor = c.req.query("cursor"), at = cursor == null ? null : /^(\d{1,16})::(at:\/\/.{1,400})$/.exec(cursor);
+    if (cursor != null && !at) return { error: "cursor" };
+    await schema();
+    const found = (await sql.exec(feedSql.page, rkey, at ? Number(at[1]) : Number.MAX_SAFE_INTEGER, at ? at[2] : "", limit)).rows;
+    const last = found.at(-1);
+    return { posts: found, cursor: found.length === limit ? `${last.indexed_at}::${last.uri}` : undefined };
+  };
+  const view = async (f) => ({
+    rkey: f.rkey, name: f.name, description: f.description, public: f.public, posts: await count(f.rkey),
+    published: f.published ? f.published.uri : null, account: f.published ? f.published.handle : null,
+    changed: !!f.published && (f.published.name !== f.name || f.published.description !== f.description)
+  });
+  const all = async () => (await rows.list("feed/")).map((r) => r.value);
+
+  app.get(NS + "list", async (c) => {
+    await schema();
+    const feeds = [];
+    for (const f of await all()) feeds.push(await view(f));
+    return c.json({ did: did(), feeds });
+  });
+  app.get(NS + "status", async (c) => {
+    await schema();
+    const feeds = await all();
+    return c.json({ did: did(), endpoint: "https://" + config.host, feeds: feeds.length, posts: Number((await sql.exec(feedSql.total)).rows[0].n) || 0, published: feeds.filter((f) => f.published).length, limits: L });
+  });
+  app.post(NS + "put", async (c) => {
+    const rkey = c.req.query("feed") || "", b = await body(c);
+    if (!RKEY.test(rkey)) return fail(c, 400, "InvalidRequest", "feed: 1 to 15 of a-z 0-9 -");
+    const was = await rows.get("feed/" + rkey);
+    const next = { rkey, name: "", description: "", public: false, published: null, createdAt: new Date().toISOString(), ...(was || {}) };
+    if (b.name != null) next.name = typeof b.name === "string" ? b.name.trim() : null;
+    if (b.description != null) next.description = typeof b.description === "string" ? b.description.trim() : null;
+    if (b.public != null) next.public = b.public === true;
+    if (typeof next.name !== "string" || !next.name || graphemes(next.name) > 24) return fail(c, 400, "InvalidRequest", "name: 1 to 24 graphemes");
+    if (typeof next.description !== "string" || graphemes(next.description) > 300) return fail(c, 400, "InvalidRequest", "description: 300 graphemes at most");
+    if (next.published && !next.public) return fail(c, 409, "Published", `${rkey} is published. Unpublish it before you make it not public`);
+    if (!was && (await all()).length >= L.feeds) return fail(c, 409, "TooManyFeeds", `this Brain keeps ${L.feeds} feeds at most`);
+    await rows.put("feed/" + rkey, next);
+    await schema();
+    return c.json(await view(next));
+  });
+  app.post(NS + "delete", async (c) => {
+    const f = await named(c);
+    if (!f) return c.json({ deleted: false });
+    if (f.published) return fail(c, 409, "Published", `${f.rkey} is published. Unpublish it before you delete it`);
+    await schema();
+    const posts = (await sql.exec(feedSql.clear, f.rkey)).changes;
+    await rows.delete("feed/" + f.rkey);
+    await rows.delete("top/" + f.rkey);
+    return c.json({ deleted: true, posts });
+  });
+  app.post(NS + "add", async (c) => {
+    const f = await named(c);
+    if (!f) return missing(c);
+    const uris = urisOf(await body(c));
+    if (!uris) return fail(c, 400, "InvalidRequest", `uris: 1 to ${L.batch} at:// URIs of app.bsky.feed.post records`);
+    await schema();
+    // The core named the caller. The first URI of a call is the newest.
+    const by = c.req.header("x-brain-caller") || "anonymous";
+    // Each call is newer than the call before it, also when two calls come in one millisecond.
+    const now = Math.max(Date.now(), ((await rows.get("top/" + f.rkey)) || 0) + uris.length);
+    await rows.put("top/" + f.rkey, now);
+    const done = await sql.batch(uris.map((uri, i) => [feedSql.add, f.rkey, uri, now - i, by]));
+    const added = done.reduce((n, r) => n + (r.changes || 0), 0);
+    const over = (await sql.exec(feedSql.over, f.rkey, L.posts)).rows[0];
+    if (over) await sql.exec(feedSql.prune, f.rkey, over.indexed_at, over.uri);
+    return c.json({ added, already: uris.length - added, posts: await count(f.rkey) });
+  });
+  app.post(NS + "remove", async (c) => {
+    const f = await named(c);
+    if (!f) return missing(c);
+    const b = await body(c), uris = urisOf(b);
+    if (!uris && !(typeof b.by === "string" && b.by && b.by.length <= 300)) return fail(c, 400, "InvalidRequest", `uris: 1 to ${L.batch} at:// URIs, or by`);
+    await schema();
+    const done = uris ? await sql.batch(uris.map((uri) => [feedSql.drop, f.rkey, uri])) : [await sql.exec(feedSql.dropBy, f.rkey, b.by)];
+    return c.json({ removed: done.reduce((n, r) => n + (r.changes || 0), 0), posts: await count(f.rkey) });
+  });
+  app.get(NS + "posts", async (c) => {
+    const f = await named(c);
+    if (!f) return missing(c);
+    const p = await page(c, f.rkey);
+    return p.error ? fail(c, 400, "InvalidRequest", p.error) : c.json({ posts: p.posts.map((r) => ({ uri: r.uri, at: r.indexed_at, by: r.adder })), cursor: p.cursor });
+  });
+  // The record that tells Bluesky where the feed is. brain-x-bluesky holds the session and writes it.
+  // The call is made for whoever called this one: the wrapper passes the origin on, and the rule of bluesky.putRecord reads it.
+  const bluesky = async (c, name, input) => {
+    const r = await xrpc.fetch(BLUESKY + name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+    const data = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, data };
+  };
+  const upstream = (c, name, r) => fail(c, r.status === 403 || r.status === 503 || r.status === 429 ? r.status : 502, (r.data && r.data.error) || "UpstreamFailed", `bluesky.${name} answered ${r.status}${r.data && r.data.message ? ": " + r.data.message : ""}`.slice(0, 400));
+  app.post(NS + "publish", async (c) => {
+    const f = await named(c);
+    if (!f) return missing(c);
+    if (!f.public) return fail(c, 409, "NotPublic", `${f.rkey} is not public. Make it public before you publish it`);
+    const record = { did: did(), displayName: f.name, ...(f.description ? { description: f.description } : {}), createdAt: f.createdAt };
+    const r = await bluesky(c, "putRecord", { collection: GENERATOR, rkey: f.rkey, record });
+    if (!r.ok || !r.data || !r.data.uri) return upstream(c, "putRecord", r);
+    const published = { uri: r.data.uri, cid: r.data.cid || null, did: r.data.did, handle: r.data.handle || null, at: Date.now(), name: f.name, description: f.description };
+    await rows.put("feed/" + f.rkey, { ...f, published });
+    return c.json({ published: published.uri, account: published.handle, did: published.did, record: { $type: GENERATOR, ...record } });
+  });
+  app.post(NS + "unpublish", async (c) => {
+    const f = await named(c);
+    if (!f) return missing(c);
+    if (!f.published) return c.json({ unpublished: false });
+    const r = await bluesky(c, "deleteRecord", { collection: GENERATOR, rkey: f.rkey });
+    if (!r.ok) return upstream(c, "deleteRecord", r);
+    await rows.put("feed/" + f.rkey, { ...f, published: null });
+    return c.json({ unpublished: true, was: f.published.uri });
+  });
+
+  // What the Bluesky app calls. Errors have the names of the lexicon.
+  app.get("/xrpc/app.bsky.feed.describeFeedGenerator", async (c) => c.json({ did: did(), feeds: (await all()).filter((f) => f.published).map((f) => ({ uri: f.published.uri })) }));
+  app.get("/xrpc/app.bsky.feed.getFeedSkeleton", async (c) => {
+    // A feed answers for the URI of its published record only. Another account cannot name this feed as its own.
+    const uri = c.req.query("feed") || "";
+    const at = /^at:\/\/[^/]{1,300}\/app\.bsky\.feed\.generator\/([a-z0-9-]{1,15})$/.exec(uri);
+    const f = at ? await rows.get("feed/" + at[1]) : null;
+    if (!f || !f.public || !f.published || f.published.uri !== uri) return fail(c, 400, "UnknownFeed", "no such feed");
+    const p = await page(c, f.rkey);
+    return p.error ? fail(c, 400, "InvalidRequest", p.error) : c.json({ feed: p.posts.map((r) => ({ post: r.uri })), cursor: p.cursor });
+  });
+  return app;
+}
+// %%
+// "https://bsky.app/profile/<handle or DID>/post/<rkey>" or an at:// URI, as the at:// URI of the post. A handle is resolved by the public AppView.
+feedPostUri = async (text, { fetch: send = (...a) => fetch(...a) } = {}) => {
+  const t = String(text || "").trim();
+  if (/^at:\/\/did:[^/]+\/app\.bsky\.feed\.post\/[^/?#]+$/.test(t)) return t;
+  const m = /^https:\/\/bsky\.app\/profile\/([^/?#]+)\/post\/([A-Za-z0-9._~:-]+)\/?(?:[?#].*)?$/.exec(t);
+  if (!m) throw new Error("not a bsky.app post link or an at:// URI");
+  const who = decodeURIComponent(m[1]);
+  if (who.startsWith("did:")) return `at://${who}/app.bsky.feed.post/${m[2]}`;
+  const r = await send("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + encodeURIComponent(who));
+  const data = await r.json().catch(() => null);
+  if (!r.ok || !data || !/^did:/.test(data.did || "")) throw new Error(`${who} does not resolve to an account`);
+  return `at://${data.did}/app.bsky.feed.post/${m[2]}`;
+}
+// %%
+// The feeds as a table. Below it: make a feed, add a post by its link, publish.
+feedPanel = ({ client, owner = false, resolve = feedPostUri } = {}) => {
+  if (!client || !owner) return Object.assign(htl.html`<i style="color:var(--theme-foreground-muted)">Sign in to a Brain as the owner to see its feeds.</i>`, { value: null });
+  const box = htl.html`<div></div>`, note = htl.html`<div style="color:var(--theme-foreground-muted);margin-top:6px"></div>`, account = htl.html`<span></span>`;
+  let table = null;
+  const say = (text) => void (note.textContent = text);
+  const el = htl.html`<div></div>`;
+  const draw = async () => {
+    const { did, feeds } = await client.query("feed.list");
+    el.value = feeds;
+    table = Inputs.table(feeds.map((f) => ({ feed: f.rkey, name: f.name, posts: f.posts, public: f.public, published: f.published ? (f.changed ? "yes, changed since" : "yes") : "no", account: f.account || "" })), { multiple: false, required: false, layout: "auto", format: { public: (p) => (p ? "public" : "owner") } });
+    box.replaceChildren(feeds.length ? table : htl.html`<i style="color:var(--theme-foreground-muted)">No feeds.</i>`, htl.html`<div style="color:var(--theme-foreground-muted);font-size:12px">${did}</div>`);
+  };
+  const run = (what, fn) => async () => {
+    try {
+      say(what + "…");
+      say((await fn()) || "");
+      await draw();
+    } catch (e) {
+      say(`${what} failed: ${(e && e.message) || e}`);
+    }
+  };
+  const picked = () => {
+    const row = table && table.value;
+    if (!row) throw new Error("choose a row");
+    return { params: { feed: row.feed } };
+  };
+  draw().catch((e) => say("feed.list failed: " + ((e && e.message) || e)));
+  // The account a publish writes to, from the Worker that holds its session.
+  client.query("bluesky.status").then((s) => void (account.textContent = s && s.signedIn ? "@" + s.handle : "an account that is not signed in"), () => void (account.textContent = "the Brain's Bluesky account"));
+  const rkey = Inputs.text({ label: "Feed", placeholder: "reading", width: "12em" }), name = Inputs.text({ label: "Name", placeholder: "Reading", width: "16em" }), open = Inputs.toggle({ label: "Public" });
+  const make = Inputs.button("Save feed", { reduce: run("Save", async () => void (await client.procedure("feed.put", { name: name.value || undefined, public: open.value }, { params: { feed: rkey.value } }))) });
+  const link = Inputs.text({ label: "Post", placeholder: "https://bsky.app/profile/…/post/…", width: "30em" });
+  const add = Inputs.button("Add post", { reduce: run("Add", async () => ((r) => `${r.added} added, ${r.posts} in the feed`)(await client.procedure("feed.add", { uris: [await resolve(link.value)] }, picked()))) });
+  const drop = Inputs.button("Remove post", { reduce: run("Remove", async () => ((r) => `${r.removed} removed`)(await client.procedure("feed.remove", { uris: [await resolve(link.value)] }, picked()))) });
+  const refresh = Inputs.button("Refresh", { reduce: run("Refresh", async () => "") });
+  const del = Inputs.button("Delete feed", { reduce: run("Delete", async () => void (await client.procedure("feed.delete", {}, picked()))) });
+  const publish = Inputs.button("Publish", { reduce: run("Publish", async () => ((r) => `written: ${r.published}`)(await client.procedure("feed.publish", {}, picked()))) });
+  const unpublish = Inputs.button("Unpublish", { reduce: run("Unpublish", async () => ((r) => (r.unpublished ? `deleted: ${r.was}` : "it was not published"))(await client.procedure("feed.unpublish", {}, picked()))) });
+  el.append(box, htl.html`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${refresh}${del}</div>`, rkey, name, open, make, link, htl.html`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${add}${drop}</div>`, htl.html`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0">${publish}${unpublish}<span>Publish writes a public record in the repo of ${account}. Each person on Bluesky can then find the feed.</span></div>`, note);
+  return el;
+}
+// %%
+md`## Tests
+
+No SQL engine runs in a page. \`feedFakeSql\` answers for the statements of \`feedSql\` from one map, and refuses any other statement. The statements ran on D1 on cb4 on 2026-10-07.`
+// %%
+feedFakeSql = () => {
+  const posts = new Map(), seen = [];
+  const key = (feed, uri) => JSON.stringify([feed, uri]);
+  const of = (feed) => [...posts.values()].filter((p) => p.feed === feed).sort((a, b) => b.indexed_at - a.indexed_at || (a.uri < b.uri ? 1 : -1));
+  const drop = (list) => (list.forEach((p) => posts.delete(key(p.feed, p.uri))), { rows: [], changes: list.length });
+  const older = (p, at, uri, same) => p.indexed_at < at || (p.indexed_at === at && (same ? p.uri <= uri : p.uri < uri));
+  const run = async (statement, a) => {
+    seen.push(statement);
+    const S = feedSql;
+    if (feedSchema.includes(statement)) return { rows: [], changes: 0 };
+    if (statement === S.add) {
+      if (posts.has(key(a[0], a[1]))) return { rows: [], changes: 0 };
+      posts.set(key(a[0], a[1]), { feed: a[0], uri: a[1], indexed_at: a[2], adder: a[3] });
+      return { rows: [], changes: 1 };
+    }
+    if (statement === S.count) return { rows: [{ n: of(a[0]).length }], changes: 0 };
+    if (statement === S.total) return { rows: [{ n: posts.size }], changes: 0 };
+    if (statement === S.page) return { rows: of(a[0]).filter((p) => older(p, a[1], a[2], false)).slice(0, a[3]).map(({ uri, indexed_at, adder }) => ({ uri, indexed_at, adder })), changes: 0 };
+    if (statement === S.over) return { rows: of(a[0]).slice(a[1], a[1] + 1).map(({ uri, indexed_at }) => ({ uri, indexed_at })), changes: 0 };
+    if (statement === S.prune) return drop(of(a[0]).filter((p) => older(p, a[1], a[2], true)));
+    if (statement === S.drop) return drop(of(a[0]).filter((p) => p.uri === a[1]));
+    if (statement === S.dropBy) return drop(of(a[0]).filter((p) => p.adder === a[1]));
+    if (statement === S.clear) return drop(of(a[0]));
+    throw new Error("a statement feedSql does not hold: " + statement);
+  };
+  return { run, posts, seen };
+}
+// %%
+// The feed Worker and the Bluesky Worker it calls, joined as the core joins them: the feed is worker:brain-x-feed there.
+feedRig = async ({ configured = true } = {}) => {
+  const db = feedFakeSql(), bsky = await blueskyRig({ configured }), asked = [], contexts = [];
+  const sim = await simulate(feed_service, {
+    config: { host: "brain.example", owner: "did:plc:owner" },
+    core: async (request) => {
+      const nsid = new URL(request.url).pathname.replace("/xrpc/", ""), data = await request.json();
+      if (nsid === "com.lopecode.brain.db.sql") {
+        const results = [];
+        for (const [statement, ...args] of data.statements) results.push(await db.run(statement, args));
+        return Response.json({ results });
+      }
+      asked.push(nsid);
+      contexts.push(request.headers.get("x-brain-context"));
+      const r = await bsky.as("worker:brain-x-feed")(nsid.replace("com.lopecode.brain.bluesky.", ""), data);
+      return Response.json(r.data, { status: r.status });
+    }
+  });
+  const X = "https://feed.internal/xrpc/";
+  const as = (who) => {
+    const send = async (path, init = {}) => {
+      const r = await sim.fetch(X + (path.startsWith("app.") ? path : "com.lopecode.brain.feed." + path), { ...init, headers: { ...(init.headers || {}), "x-brain-caller": who, "x-brain-context": "for " + who } });
+      return { status: r.status, data: await r.json() };
+    };
+    return { get: (path) => send(path), post: (name, feed, input = {}) => send(name + "?feed=" + encodeURIComponent(feed), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }) };
+  };
+  const post = (n, who = "did:plc:author") => `at://${who}/app.bsky.feed.post/3k${String(n).padStart(6, "0")}`;
+  const at = (rkey) => "at://did:plc:brain/app.bsky.feed.generator/" + rkey;
+  const skeleton = (rkey, more = "") => as("anonymous").get("app.bsky.feed.getFeedSkeleton?feed=" + encodeURIComponent(at(rkey)) + more);
+  return { sim, db, bsky, asked, contexts, as, owner: as("owner"), post, at, skeleton };
+}
+// %%
+test_feed_publish_writes_the_record_only_when_the_owner_started_the_chain = {
+  // The core, the feed Worker and the Bluesky Worker joined by their bindings. The core decides each call by its rule.
+  const db = feedFakeSql(), bsky = await blueskyRig({ configured: true }), P = "com.lopecode.brain.", G = "app.bsky.feed.generator";
+  let core = null;
+  const feed = await simulate(feed_service, {
+    secrets: { BRAIN_KEY: "feed-key" },
+    config: { host: "brain.example", owner: "did:plc:owner" },
+    core: async (request) => {
+      if (!request.url.endsWith(P + "db.sql")) return core.sim.fetch(request);
+      const results = [];
+      for (const [statement, ...args] of (await request.json()).statements) results.push(await db.run(statement, args));
+      return Response.json({ results });
+    }
+  });
+  core = await coreRig({ workers: { feed: (request) => feed.fetch(request), bluesky: (request) => bsky.sim.fetch(request), filler: async () => Response.json({}) } });
+  const reg = async (sim, key) => core.deployer("service.register", { worker: sim.emitted.meta.worker, role: "recipe", methods: sim.emitted.meta.access, paths: [], secrets: [], hash: sim.emitted.hash, keyHash: await sha256(key) });
+  await reg(feed, "feed-key");
+  await reg(bsky.sim, "bsky-key");
+  await core.deployer("service.register", { worker: "brain-x-filler", role: "recipe", methods: {}, paths: [], secrets: [], hash: "f", keyHash: await sha256("filler-key") });
+  const filler = core.send("https://core.internal", { "x-brain-key": "filler-key" });
+  const publish = (who) => who("feed.publish?feed=a", {});
+  expect((await core.owner("feed.put?feed=a", { name: "A", public: true })).status).toBe(200);
+  // The owner and a turn run for the owner: written.
+  for (const who of [core.owner, core.as("owner", "turn:4")]) {
+    bsky.net.records = new Map();
+    expect((await publish(who)).status).toBe(200);
+    expect([...bsky.net.records.keys()]).toEqual([G + "/a"]);
+  }
+  // An account the kernel passed for feed.publish, and its turn: the feed Worker is called, and the record is not written.
+  bsky.net.records = new Map();
+  for (const who of [core.as("did:plc:ada", "jwt"), core.as("did:plc:ada", "turn:5"), core.as("token:laptop", "token")]) {
+    const r = await publish(who);
+    expect([r.status, r.data.message]).toEqual([502, "bluesky.putRecord answered 401: not allowed by the rule for this"]);
+  }
+  expect(bsky.net.records.size).toBe(0);
+  expect((await publish(core.owner)).status).toBe(200);
+  // The feed Worker called from outside by nobody the rule of feed.publish lets in.
+  expect((await publish(core.anonymous)).status).toBe(401);
+  // The owner opens feed.publish to anyone and to Workers. The record is still written for nobody new.
+  await core.owner("feed.unpublish?feed=a", {});
+  expect(bsky.net.records.size).toBe(0);
+  expect((await core.owner("rule.put", { target: P + "feed.publish", allow: "true" })).status).toBe(200);
+  for (const who of [core.anonymous, filler]) {
+    const r = await publish(who);
+    expect([r.status, r.data.message]).toEqual([502, "bluesky.putRecord answered 401: not allowed by the rule for this"]);
+  }
+  expect(bsky.net.records.size).toBe(0);
+  expect((await publish(core.owner)).status).toBe(200);
+  // Another Worker is not the feed Worker.
+  const record = { did: "did:web:brain.example", displayName: "X", createdAt: new Date().toISOString() };
+  expect((await filler("bluesky.putRecord", { collection: G, rkey: "x", record })).status).toBe(401);
+  // The owner's own tab writes it with no Worker between.
+  expect((await core.owner("bluesky.putRecord", { collection: G, rkey: "x", record })).status).toBe(200);
+  expect((await core.as("owner", "turn:4")("bluesky.putRecord", { collection: G, rkey: "y", record })).status).toBe(401);
+  return "3 written, 2 refused at brain-x-bluesky";
+}
+// %%
+test_feed_add_remove_and_no_post_twice = {
+  const rig = await feedRig(), o = rig.owner;
+  expect((await o.post("put", "reading", { name: "Reading", description: "What I read", public: true })).data).toEqual({ rkey: "reading", name: "Reading", description: "What I read", public: true, posts: 0, published: null, account: null, changed: false });
+  await o.post("publish", "reading");
+  expect((await o.post("add", "reading", { uris: [rig.post(1), rig.post(2), rig.post(2)] })).data).toEqual({ added: 2, already: 0, posts: 2 });
+  expect((await o.post("add", "reading", { uri: rig.post(2) })).data).toEqual({ added: 0, already: 1, posts: 2 });
+  expect((await o.post("add", "reading", { uris: [rig.post(3), rig.post(1)] })).data).toEqual({ added: 1, already: 1, posts: 3 });
+  // Newest first. In one call the first URI is the newest.
+  const order = async () => (await rig.skeleton("reading")).data.feed.map((p) => p.post);
+  expect(await order()).toEqual([rig.post(3), rig.post(1), rig.post(2)]);
+  expect((await o.post("remove", "reading", { uris: [rig.post(1), rig.post(9)] })).data).toEqual({ removed: 1, posts: 2 });
+  expect(await order()).toEqual([rig.post(3), rig.post(2)]);
+  // What is not a post URI, and more than 100 in one call.
+  for (const uris of [[], ["https://bsky.app/profile/a/post/b"], ["at://did:plc:a/app.bsky.feed.like/3k"], ["at://handle.example/app.bsky.feed.post/3k"], [5], Array.from({ length: 101 }, (_, i) => rig.post(i))])
+    expect((await o.post("add", "reading", { uris })).data.error).toBe("InvalidRequest");
+  expect((await o.post("add", "reading", {})).status).toBe(400);
+  expect((await o.post("add", "nothing", { uris: [rig.post(1)] })).data.error).toBe("UnknownFeed");
+  // The feed is named in the query string. A name in the body is not read.
+  const r = await rig.sim.fetch("https://feed.internal/xrpc/com.lopecode.brain.feed.add", { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: JSON.stringify({ feed: "reading", uris: [rig.post(5)] }) });
+  expect(r.status).toBe(404);
+  // Deleting the feed deletes its posts.
+  await o.post("unpublish", "reading");
+  expect((await o.post("delete", "reading")).data).toEqual({ deleted: true, posts: 2 });
+  expect([rig.db.posts.size, (await rig.skeleton("reading")).data.error]).toEqual([0, "UnknownFeed"]);
+  return "3 added, 1 removed, 8 refused";
+}
+// %%
+test_feed_skeleton_pages_with_a_cursor_that_holds = {
+  const rig = await feedRig(), o = rig.owner;
+  await o.post("put", "reading", { name: "Reading", public: true });
+  await o.post("publish", "reading");
+  for (let i = 0; i < 3; i++) await o.post("add", "reading", { uris: Array.from({ length: 40 }, (_, j) => rig.post(i * 40 + j)) });
+  const read = async (limit) => {
+    const got = [];
+    let cursor, pages = 0;
+    do {
+      const { status, data } = await rig.skeleton("reading", `&limit=${limit}` + (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""));
+      expect(status).toBe(200);
+      got.push(...data.feed.map((p) => p.post));
+      cursor = data.cursor;
+      pages++;
+    } while (cursor && pages < 50);
+    return { got, pages };
+  };
+  const whole = await read(100), small = await read(7);
+  expect([whole.got.length, new Set(whole.got).size, whole.pages]).toEqual([120, 120, 2]);
+  expect(small.got).toEqual(whole.got);
+  // The default page is 50, and each entry is { post } only.
+  const first = (await rig.skeleton("reading")).data;
+  expect([first.feed.length, Object.keys(first.feed[0]), /^\d+::at:\/\//.test(first.cursor)]).toEqual([50, ["post"], true]);
+  // A post added after the first page, and one removed from it, do not move the second page.
+  await o.post("add", "reading", { uris: [rig.post(900)] });
+  await o.post("remove", "reading", { uris: [first.feed[3].post] });
+  const second = (await rig.skeleton("reading", "&cursor=" + encodeURIComponent(first.cursor))).data;
+  expect(second.feed.map((p) => p.post)).toEqual(whole.got.slice(50, 100));
+  // The same page for the owner, with when and by whom.
+  const mine = (await o.get("posts?feed=reading&limit=2")).data;
+  expect(mine.posts.map((p) => [p.uri, p.by, p.at > 1.7e12])).toEqual([[rig.post(900), "owner", true], [whole.got[0], "owner", true]]);
+  for (const bad of ["&limit=0", "&limit=101", "&limit=x", "&cursor=nonsense", "&cursor=12"]) expect([bad, (await rig.skeleton("reading", bad)).data.error]).toEqual([bad, "InvalidRequest"]);
+  return "120 posts in 2 pages and in 18";
+}
+// %%
+test_feed_unknown_and_private_feeds_answer_UnknownFeed = {
+  const rig = await feedRig(), o = rig.owner;
+  await o.post("put", "mine", { name: "Mine" });
+  await o.post("add", "mine", { uris: [rig.post(1)] });
+  const asks = { missing: "feed=" + encodeURIComponent(rig.at("nothing")), private: "feed=" + encodeURIComponent(rig.at("mine")), "not a URI": "feed=mine", "another collection": "feed=" + encodeURIComponent("at://did:plc:brain/app.bsky.feed.post/mine"), absent: "" };
+  for (const [what, q] of Object.entries(asks)) {
+    const r = await rig.as("anonymous").get("app.bsky.feed.getFeedSkeleton?" + q);
+    expect([what, r.status, r.data.error]).toEqual([what, 400, "UnknownFeed"]);
+  }
+  // The owner reads a feed that is not public with feed.posts. Public but not published, it is still unknown to anyone.
+  expect((await o.get("posts?feed=mine")).data.posts.length).toBe(1);
+  await o.post("put", "mine", { public: true });
+  expect((await rig.skeleton("mine")).data.error).toBe("UnknownFeed");
+  // Published, it answers for the URI of its record only: not for another account, not for another collection.
+  expect((await o.post("publish", "mine")).data.published).toBe(rig.at("mine"));
+  expect((await rig.skeleton("mine")).data).toEqual({ feed: [{ post: rig.post(1) }] });
+  const other = { "another account": "at://did:plc:other/app.bsky.feed.generator/mine", "another collection": "at://did:plc:brain/app.bsky.feed.post/mine", "the service DID": "at://did:web:brain.example/app.bsky.feed.generator/mine" };
+  for (const [what, uri] of Object.entries(other)) {
+    const r = await rig.as("anonymous").get("app.bsky.feed.getFeedSkeleton?feed=" + encodeURIComponent(uri));
+    expect([what, r.status, r.data.error]).toEqual([what, 400, "UnknownFeed"]);
+  }
+  expect((await o.post("unpublish", "mine")).data.unpublished).toBe(true);
+  expect((await rig.skeleton("mine")).data.error).toBe("UnknownFeed");
+  return "10 asks refused, 1 answered";
+}
+// %%
+test_feed_records_who_added_each_post = {
+  const rig = await feedRig(), o = rig.owner;
+  await o.post("put", "club", { name: "Club", public: true });
+  // The core has decided. The service records the caller it was given.
+  const callers = ["owner", "did:plc:ada", "worker:brain-x-filler", "token:laptop"];
+  for (const [i, who] of callers.entries()) expect((await rig.as(who).post("add", "club", { uris: [rig.post(i)] })).data.added).toBe(1);
+  expect((await o.get("posts?feed=club")).data.posts.map((p) => p.by).sort()).toEqual([...callers].sort());
+  // A post that two callers add keeps the first.
+  await rig.as("did:plc:ada").post("add", "club", { uris: [rig.post(0)] });
+  expect((await o.get("posts?feed=club")).data.posts.find((p) => p.uri === rig.post(0)).by).toBe("owner");
+  // Everything one caller added goes in one call.
+  await rig.as("worker:brain-x-filler").post("add", "club", { uris: [rig.post(7), rig.post(8)] });
+  expect((await o.post("remove", "club", { by: "worker:brain-x-filler" })).data).toEqual({ removed: 3, posts: 3 });
+  expect((await o.post("remove", "club", {})).status).toBe(400);
+  return "4 callers recorded";
+}
+// %%
+test_feed_limits_are_named = {
+  const rig = await feedRig(), o = rig.owner;
+  for (const feed of ["", "Reading", "a b", "x".repeat(16), "a/b"]) expect([feed, (await o.post("put", feed, { name: "N" })).status]).toEqual([feed, 400]);
+  expect((await o.post("put", "a", {})).data.message).toBe("name: 1 to 24 graphemes");
+  expect((await o.post("put", "a", { name: "x".repeat(25) })).status).toBe(400);
+  // 24 graphemes, not 24 code units.
+  expect((await o.post("put", "a", { name: "👩‍👩‍👧‍👦".repeat(24) })).status).toBe(200);
+  expect((await o.post("put", "a", { description: "d".repeat(301) })).status).toBe(400);
+  for (let i = 1; i < 20; i++) expect((await o.post("put", "f" + i, { name: "F" + i })).status).toBe(200);
+  expect((await o.post("put", "one-more", { name: "No" })).data).toEqual({ error: "TooManyFeeds", message: "this Brain keeps 20 feeds at most" });
+  // A feed that exists is still changed.
+  expect((await o.post("put", "f1", { name: "Changed" })).data.name).toBe("Changed");
+  // Over 2000 posts the oldest go.
+  for (let i = 0; i < 21; i++) await o.post("add", "a", { uris: Array.from({ length: 100 }, (_, j) => rig.post(i * 100 + j)) });
+  const { posts } = (await o.get("posts?feed=a&limit=100")).data;
+  expect((await o.get("status")).data).toEqual({ did: "did:web:brain.example", endpoint: "https://brain.example", feeds: 20, posts: 2000, published: 0, limits: { feeds: 20, posts: 2000, batch: 100, page: 100 } });
+  expect([posts[0].uri, [...rig.db.posts.values()].some((p) => p.uri === rig.post(0)), [...rig.db.posts.values()].some((p) => p.uri === rig.post(100))]).toEqual([rig.post(2000), false, true]);
+  return "20 feeds, 2000 posts";
+}
+// %%
+test_feed_publish_writes_the_record_through_the_bluesky_worker = {
+  const rig = await feedRig(), o = rig.owner, G = "app.bsky.feed.generator";
+  await o.post("put", "reading", { name: "Reading", description: "What I read" });
+  // Not while the feed is not public.
+  expect((await o.post("publish", "reading")).data.error).toBe("NotPublic");
+  expect(rig.asked).toEqual([]);
+  await o.post("put", "reading", { public: true });
+  const created = rig.sim.rows.get("feed/reading").createdAt;
+  const record = { $type: G, did: "did:web:brain.example", displayName: "Reading", description: "What I read", createdAt: created };
+  expect((await o.post("publish", "reading")).data).toEqual({ published: rig.at("reading"), account: "brain.example", did: "did:plc:brain", record });
+  // One call to brain-x-bluesky, and the record is in the repo of the account that Worker is signed in to.
+  expect(rig.asked).toEqual(["com.lopecode.brain.bluesky.putRecord"]);
+  // It is made for the caller: the reference the core gave with feed.publish goes with it.
+  expect(rig.contexts).toEqual(["for owner"]);
+  expect(rig.bsky.net.records.get(G + "/reading")).toEqual({ repo: "did:plc:brain", collection: G, rkey: "reading", record });
+  expect((await o.get("list")).data).toEqual({ did: "did:web:brain.example", feeds: [{ rkey: "reading", name: "Reading", description: "What I read", public: true, posts: 0, published: rig.at("reading"), account: "brain.example", changed: false }] });
+  // A new name is not in the record until it is published again, with the first createdAt.
+  await o.post("put", "reading", { name: "Reading list" });
+  expect((await o.get("list")).data.feeds[0].changed).toBe(true);
+  await o.post("publish", "reading");
+  expect(rig.bsky.net.records.get(G + "/reading").record).toEqual({ ...record, displayName: "Reading list" });
+  // A published feed is not deleted and not made private.
+  expect((await o.post("delete", "reading")).data.error).toBe("Published");
+  expect((await o.post("put", "reading", { public: false })).data.error).toBe("Published");
+  expect((await o.post("unpublish", "reading")).data).toEqual({ unpublished: true, was: rig.at("reading") });
+  expect([rig.asked.at(-1), rig.bsky.net.records.size]).toEqual(["com.lopecode.brain.bluesky.deleteRecord", 0]);
+  expect((await o.post("unpublish", "reading")).data).toEqual({ unpublished: false });
+  expect((await o.post("delete", "reading")).data.deleted).toBe(true);
+  // With no Bluesky account the refusal of that Worker comes back and nothing is recorded.
+  const bare = await feedRig({ configured: false });
+  await bare.owner.post("put", "reading", { name: "Reading", public: true });
+  expect((await bare.owner.post("publish", "reading")).data).toMatchObject({ error: "NotConfigured" });
+  expect(bare.sim.rows.get("feed/reading").published).toBe(null);
+  return "published, published again, unpublished";
+}
+// %%
+test_feed_describes_published_feeds_only = {
+  const rig = await feedRig(), o = rig.owner;
+  const describe = async () => (await rig.as("anonymous").get("app.bsky.feed.describeFeedGenerator")).data;
+  await o.post("put", "one", { name: "One", public: true });
+  await o.post("put", "two", { name: "Two", public: true });
+  await o.post("put", "three", { name: "Three" });
+  expect(await describe()).toEqual({ did: "did:web:brain.example", feeds: [] });
+  await o.post("publish", "two");
+  expect(await describe()).toEqual({ did: "did:web:brain.example", feeds: [{ uri: rig.at("two") }] });
+  await o.post("unpublish", "two");
+  expect((await describe()).feeds).toEqual([]);
+  return "0, 1, 0 feeds";
+}
+// %%
+test_feed_declares_what_it_needs = {
+  const { meta } = await feed_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-feed", role: "recipe", module: "@tomlarkworthy/brain-feed", resources: ["rows", "sql", "xrpc"], secrets: [], paths: [], calls: ["com.lopecode.brain.bluesky.deleteRecord", "com.lopecode.brain.bluesky.putRecord"] });
+  // Each method another Worker is called for is in the list.
+  const rig = await feedRig();
+  await rig.owner.post("put", "a", { name: "A", public: true });
+  await rig.owner.post("publish", "a");
+  await rig.owner.post("unpublish", "a");
+  expect([...new Set(rig.asked)].sort()).toEqual(meta.calls);
+  // Who the rule of each method lets through before the owner changes it.
+  const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "token:laptop" }, granted: { caller: "did:plc:ada" }, worker: { caller: "worker:brain-x-filler" }, anyone: { caller: "anonymous" } };
+  const through = (nsid, rule = meta.access[nsid], params = {}) => Object.entries(callers).filter(([, w]) => decide(rule, { caller: callerOf(w), request: { method: nsid, path: "", verb: "POST", params } }).allow).map(([n]) => n).join(" ");
+  for (const m of ["list", "put", "delete", "add", "remove", "posts", "publish", "unpublish", "status"]) expect([m, through("com.lopecode.brain.feed." + m)]).toEqual([m, "owner token granted"]);
+  for (const m of ["getFeedSkeleton", "describeFeedGenerator"]) expect([m, through("app.bsky.feed." + m)]).toEqual([m, "owner token granted worker anyone"]);
+  // A rule the owner can put: one Worker, one feed.
+  const one = { allow: 'caller.trusted || (caller.worker == "brain-x-filler" && request.params.feed == "reading")' };
+  expect([through("x", one, { feed: "reading" }), through("x", one, { feed: "other" }), through("x", one, {})]).toEqual(["owner token granted worker", "owner token granted", "owner token granted"]);
+  return meta.calls.join(", ");
+}
+// %%
+test_feed_post_link_becomes_an_at_uri = {
+  const asked = [];
+  const send = async (url) => (asked.push(url), url.includes("nobody") ? Response.json({ error: "InvalidRequest" }, { status: 400 }) : Response.json({ did: "did:plc:ada" }));
+  const uri = (t) => feedPostUri(t, { fetch: send });
+  expect(await uri(" https://bsky.app/profile/ada.example/post/3kabc ")).toBe("at://did:plc:ada/app.bsky.feed.post/3kabc");
+  expect(asked).toEqual(["https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=ada.example"]);
+  // A DID in the link, or an at:// URI, needs no lookup.
+  expect(await uri("https://bsky.app/profile/did:plc:bo/post/3kxyz?ref=x")).toBe("at://did:plc:bo/app.bsky.feed.post/3kxyz");
+  expect(await uri("at://did:plc:bo/app.bsky.feed.post/3kxyz")).toBe("at://did:plc:bo/app.bsky.feed.post/3kxyz");
+  expect(asked.length).toBe(1);
+  const said = async (t) => uri(t).then(() => "ok", (e) => e.message);
+  expect([await said("https://example.com/a"), await said("https://bsky.app/profile/ada.example"), await said("https://bsky.app/profile/nobody.example/post/3k")]).toEqual(["not a bsky.app post link or an at:// URI", "not a bsky.app post link or an at:// URI", "nobody.example does not resolve to an account"]);
+  return "3 resolved, 3 refused";
+}
+// %%
+test_feed_panel_shows_feeds_and_says_what_publish_does = {
+  const calls = [];
+  const client = {
+    query: async (name) => (name === "bluesky.status" ? { signedIn: true, handle: "brain.example" } : { did: "did:web:brain.example", feeds: [{ rkey: "reading", name: "Reading", posts: 3, public: true, published: null, account: null, changed: false }] }),
+    procedure: async (name, input, opts) => (calls.push([name, input, opts]), { added: 1, posts: 4 })
+  };
+  const el = feedPanel({ client, owner: true, resolve: async (t) => "at://did:plc:ada/app.bsky.feed.post/" + t });
+  await new Promise((r) => setTimeout(r, 0));
+  expect([...el.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["Refresh", "Delete feed", "Save feed", "Add post", "Remove post", "Publish", "Unpublish"]);
+  expect(el.textContent).toContain("Publish writes a public record in the repo of @brain.example.");
+  expect(el.value.length).toBe(1);
+  expect(feedPanel({ client, owner: false }).textContent).toMatch(/Sign in to a Brain as the owner/);
+  return "1 feed, 7 buttons";
+}
+// %%
+import {cloudflare, rows, sql, xrpc, config, hono, simulate, decide, callerOf, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {coreRig} from "@tomlarkworthy/brain-core"
+// %%
+import {blueskyRig} from "@tomlarkworthy/brain-bluesky"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"

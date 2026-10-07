@@ -1,0 +1,576 @@
+md`# brain-blob
+
+Bytes kept by a Cloud Brain under the address of their content, in the shapes an atproto PDS uses for blobs. There are no paths: \`brain-static\` keeps files by path and is a separate store.
+
+| | |
+|---|---|
+| Worker | \`brain-x-blob\` |
+| \`blob.upload\` | procedure. The body is the bytes and \`Content-Type\` their type. Optional \`?tags=a,b\` and \`?public=true\`. Answers \`{ blob: { $type: "blob", ref: { $link: cid }, mimeType, size }, tags, created }\`. |
+| \`blob.get\` | query, anyone. \`?cid=\`, optional \`?did=\` (an uploader of it). The bytes, to whoever may read them by the tags. |
+| \`blob.info\` | query, anyone. \`?cid=\`. \`{ cid, mimeType, size, created, tags, blob }\` to whoever may read it. |
+| \`blob.list\` | query. \`?cursor=\`, \`?limit=\` (100, at most 500), \`?tag=\`, \`?did=\` (uploader), \`?mimeType=\` (a prefix: \`image/\`). \`{ cids, blobs: [{ cid, mimeType, size, created, tags }], cursor }\`, what the caller may read, by CID. |
+| \`blob.tag\` | procedure. \`{ cid, tags }\` replaces the labels; \`{ cid, add, remove }\` changes them. |
+| \`blob.delete\` | procedure. \`{ cid }\` drops the caller's claim; the owner's drops the blob. \`{ cid, did }\` by the owner drops that person's claim. |
+| Storage | bytes in \`blobs\` under \`b/<cid>\`; \`sql\` tables \`blob_entries(cid, mime, size, created, tags)\` and \`blob_tags(tag, cid)\` |
+
+A CID is CIDv1, raw codec, SHA-256, base32: \`bafkrei…\`, 59 characters (\`blobCid\`). The same bytes are the same CID here and on a PDS. The method names are this Brain's (\`com.lopecode.brain.blob.*\`), not \`com.atproto.*\`: a PDS serves every blob to anyone and this store does not.
+
+## Type
+
+\`Content-Type\` is required and is kept without its parameters. \`blobMime\` refuses an upload whose bytes say otherwise:
+
+| declared | the bytes must |
+|---|---|
+| \`image/jpeg\`, \`image/png\`, \`image/gif\`, \`image/webp\`, \`application/pdf\` | start as that format does (\`blobSniff\`) |
+| \`text/*\`, JSON, JavaScript, XML, SVG, \`+json\`, \`+xml\` | be valid UTF-8 |
+| anything else | not start as one of the five formats above |
+
+Every answer carries \`X-Content-Type-Options: nosniff\`. \`ETag\` is the CID and \`If-None-Match\` answers 304. A public blob is \`immutable\` for a year; any other is \`private, no-cache\`. A blob the owner did not upload is served with \`Content-Security-Policy: sandbox\`, and as a download when its type is one a browser runs (HTML, SVG, XML, JavaScript).
+
+## Tags
+
+Who may read or change a blob is decided from its tags, by the rules of \`brain-static\`. The tag grants are the same ones: the owner gives a member \`read\` or \`write\` on a tag with \`people.put\`.
+
+| tag | set by | meaning |
+|---|---|---|
+| \`by:<did>\` | this Worker, from the caller | an uploader. Their bytes count against their limit. The owner's uploads, and a recipe's, carry the owner's. |
+| \`worker:<name>\` | this Worker, when a Worker uploaded | a member's Worker calls as its author, so its blob carries both. |
+| \`public\` | whoever may change the blob | anyone reads it. |
+| \`members\` | whoever may change the blob | any current member reads it. |
+| any other \`a-z 0-9 -\`, 1 to 40 characters | whoever may change the blob | nothing by itself; a tag grant names it. |
+
+| | may |
+|---|---|
+| read | the owner; anyone if \`public\`; a member if \`members\`; an uploader; a person granted one of its tags; a recipe, the blobs it uploaded |
+| retag | the owner; an uploader; a person granted \`write\` on one of its tags |
+| delete | an uploader, their own claim; the owner, the blob |
+
+A tag with \`:\` in it is never taken from a caller. A blob has at most 8 labels. A caller who may not change a blob is shown its labels and their own \`by:\`, not who else uploaded it.
+
+A caller who may not read a blob is answered 404 \`BlobNotFound\`, as for a CID that was never uploaded: knowing a CID opens nothing and tells nothing.
+
+## The same bytes twice
+
+A second person who uploads bytes already kept becomes an uploader too: their \`by:\` is added, the bytes count against their limit as well, and the labels they name are added. The type stays the first uploader's. \`blob.delete\` by one of them removes that claim; the bytes go when no \`by:\` is left. Upload only adds labels; \`blob.tag\` removes them.
+
+An uploader may retag, so a second uploader can remove a label the first one set. Not handled (2026-10-07): the two would need a claim each with its own labels.
+
+## Limits
+
+- 50 MB a blob. A person's limit is the one the core sends for files (\`quota.bytes\`, default 20 MB), counted here over the blobs carrying their \`by:\`. It is counted apart from their files in \`brain-static\`.
+- A blob is kept until it is deleted. A PDS drops a blob no record refers to; this Brain has no record store, so nothing is collected.
+- \`blob.list\` reads the index: by one tag, or for a person by each tag that opens a blob to them (their own, \`public\`, \`members\`, their grants), at most 20. The owner with no filter reads the entries in CID order.
+- The entry's tags are read, changed and written back: two changes to one blob at the same moment can lose one.
+
+\`\`\`js
+client = xrpcClient("https://brain.example", { namespace: "com.lopecode.brain" })
+made = await (await fetch("https://brain.example/xrpc/com.lopecode.brain.blob.upload?tags=holiday", { method: "POST", headers: { "content-type": "image/png" }, body: bytes })).json()
+// { blob: { $type: "blob", ref: { $link: "bafkrei…" }, mimeType: "image/png", size: 1234 }, tags: ["by:did:plc:…", "holiday"], created }
+// https://brain.example/xrpc/com.lopecode.brain.blob.get?cid=bafkrei…
+\`\`\``
+// %%
+blob_service = cloudflare.Service("blob", blobApp, {
+  methods: {
+    "com.lopecode.brain.blob.upload": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.blob.get": { type: "query", who: "anyone" },
+    "com.lopecode.brain.blob.info": { type: "query", who: "anyone" },
+    "com.lopecode.brain.blob.list": { type: "query", who: "workers" },
+    "com.lopecode.brain.blob.tag": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.blob.delete": { type: "procedure", who: "workers" }
+  }
+})
+// %%
+blob_announce = {
+  plugins.add("workers", blob_service, { invalidation });
+  return "announced blob_service";
+}
+// %%
+// CIDv1 of the bytes as a PDS writes it: version 1, raw codec 0x55, sha2-256 (0x12, 32 bytes), base32 lower case after "b".
+blobCid = async (bytes) => {
+  const raw = new Uint8Array([1, 0x55, 0x12, 0x20, ...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]);
+  const A = "abcdefghijklmnopqrstuvwxyz234567";
+  let out = "b", bits = 0, acc = 0;
+  for (const b of raw) {
+    acc = (acc << 8) | b;
+    bits += 8;
+    while (bits >= 5) {
+      out += A[(acc >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+    acc &= (1 << bits) - 1;
+  }
+  return bits ? out + A[(acc << (5 - bits)) & 31] : out;
+}
+// %%
+// The format the first bytes are, for the five this store can tell, else null.
+blobSniff = (b) => {
+  const at = (i, ...xs) => xs.every((x, j) => b[i + j] === x);
+  if (at(0, 0xff, 0xd8, 0xff)) return "image/jpeg";
+  if (at(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "image/png";
+  if (at(0, 0x47, 0x49, 0x46, 0x38) && (b[4] === 0x37 || b[4] === 0x39) && b[5] === 0x61) return "image/gif";
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "image/webp";
+  if (at(0, 0x25, 0x50, 0x44, 0x46, 0x2d)) return "application/pdf";
+  return null;
+}
+// %%
+// { mimeType } for a declared Content-Type the bytes agree with, else { refused }.
+blobMime = (declared, bytes) => {
+  const mimeType = String(declared || "").split(";")[0].trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9!#$&^_.+-]{0,60}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,60}$/.test(mimeType)) return { refused: "Content-Type is the type of the bytes, as type/subtype" };
+  const told = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"], is = blobSniff(bytes);
+  if (is !== mimeType && (is || told.includes(mimeType))) return { refused: `the bytes are ${is || "not " + mimeType}, and Content-Type says ${mimeType}` };
+  if (blobTextual(mimeType)) {
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      return { refused: `${mimeType} is text and the bytes are not UTF-8` };
+    }
+  }
+  return { mimeType };
+}
+// %%
+blobTextual = (mimeType) => /^text\/|^application\/(json|javascript|ecmascript|xml|xhtml\+xml)$|^image\/svg\+xml$|\+(json|xml)$/.test(mimeType)
+// %%
+// A type a browser runs when it opens it.
+blobActive = (mimeType) => /^text\/(html|xml|javascript|ecmascript)$|^application\/(javascript|ecmascript|xml|xhtml\+xml)$|^image\/svg\+xml$|\+xml$/.test(mimeType)
+// %%
+// One call each: brain-db reads the plan of every statement of a batch before it runs any.
+blobSchema = [
+  "CREATE TABLE IF NOT EXISTS blob_entries (cid TEXT PRIMARY KEY, mime TEXT NOT NULL, size INTEGER NOT NULL, created INTEGER NOT NULL, tags TEXT NOT NULL) WITHOUT ROWID",
+  "CREATE TABLE IF NOT EXISTS blob_tags (tag TEXT NOT NULL, cid TEXT NOT NULL, PRIMARY KEY (tag, cid)) WITHOUT ROWID"
+]
+// %%
+blobSql = ({
+  get: "SELECT cid, mime, size, created, tags FROM blob_entries WHERE cid = ?1",
+  put: "INSERT INTO blob_entries (cid, mime, size, created, tags) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT (cid) DO UPDATE SET tags = excluded.tags",
+  drop: "DELETE FROM blob_entries WHERE cid = ?1",
+  tagAdd: "INSERT OR IGNORE INTO blob_tags (tag, cid) VALUES (?1, ?2)",
+  tagDrop: "DELETE FROM blob_tags WHERE tag = ?1 AND cid = ?2",
+  tagsClear: "DELETE FROM blob_tags WHERE cid = ?1",
+  // The bytes kept by one uploader: the sum over the blobs carrying their by: tag.
+  used: "SELECT COALESCE(SUM(e.size), 0) AS bytes FROM blob_tags t JOIN blob_entries e ON e.cid = t.cid WHERE t.tag = ?1",
+  // D1 binds a number as a float: the limit is cast.
+  listAll: "SELECT cid, mime, size, created, tags FROM blob_entries WHERE cid > ?1 AND mime LIKE ?2 ORDER BY cid LIMIT CAST(?3 AS INTEGER)",
+  listTag:
+    "SELECT e.cid AS cid, e.mime AS mime, e.size AS size, e.created AS created, e.tags AS tags FROM blob_tags t JOIN blob_entries e ON e.cid = t.cid WHERE t.tag = ?1 AND t.cid > ?2 AND e.mime LIKE ?3 ORDER BY t.cid LIMIT CAST(?4 AS INTEGER)"
+})
+// %%
+blobApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.blob.";
+  const MAX = 50 * 1024 * 1024, USER = /^[a-z0-9-]{1,40}$/, MAX_TAGS = 8;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const gone = (c, cid) => fail(c, 404, "BlobNotFound", cid);
+  const okCid = (cid) => typeof cid === "string" && /^bafkrei[a-z2-7]{52}$/.test(cid);
+  const ownerTag = () => "by:" + (config.owner || "owner");
+  const system = (tags) => tags.filter((t) => t.includes(":")), user = (tags) => tags.filter((t) => !t.includes(":"));
+  const named = (list) => (Array.isArray(list) && list.length <= MAX_TAGS && list.every((t) => typeof t === "string" && USER.test(t)) ? [...new Set(list)] : null);
+  let ready = null;
+  const schema = () =>
+    (ready ??= (async () => {
+      for (const s of blobSchema) await sql.exec(s);
+    })().catch((e) => {
+      ready = null;
+      throw e;
+    }));
+  const entry = async (cid) => {
+    await schema();
+    const r = (await sql.exec(blobSql.get, cid)).rows[0];
+    return r ? { cid: r.cid, mimeType: r.mime, size: Number(r.size), created: Number(r.created), tags: JSON.parse(r.tags) } : null;
+  };
+  const ref = (e) => ({ $type: "blob", ref: { $link: e.cid }, mimeType: e.mimeType, size: e.size });
+  // Who is calling, from the headers the core set, and the system tags a blob they upload is given.
+  const me = async (c) => {
+    const who = c.req.header("x-brain-caller") || "anonymous", via = c.req.header("x-brain-via") || "";
+    if (who === "owner" || who.startsWith("token:")) return { all: true, stamp: [ownerTag()] };
+    if (who.startsWith("did:")) {
+      const id = (await sha256(who)).slice(0, 10);
+      // A member's Worker calls as its author and is named in x-brain-via. Any other Worker named there is refused.
+      const worker = new RegExp(`^worker:(brain-m-${id}-[a-z0-9]+)$`).exec(via);
+      if (via.startsWith("worker:") && !worker) return null;
+      let grants = [];
+      try {
+        grants = JSON.parse(c.req.header("x-brain-tags") || "[]");
+      } catch {}
+      return { did: who, id, member: c.req.header("x-brain-member") === "1", grants: Array.isArray(grants) ? grants : [], stamp: ["by:" + who, ...(worker ? ["worker:" + worker[1]] : [])] };
+    }
+    // A recipe is the owner's code: its uploads are the owner's, and it reaches the blobs it uploaded.
+    if (who.startsWith("worker:brain-x-")) return { fixed: who, stamp: [ownerTag(), who] };
+    return who === "anonymous" ? {} : null;
+  };
+  const stores = (m) => !!m && !!(m.all || m.fixed || m.did);
+  const can = (m, tags, op) => {
+    if (!m) return false;
+    if (m.all) return true;
+    if (op === "read" && tags.includes("public")) return true;
+    if (m.fixed) return tags.includes(m.fixed);
+    if (!m.did) return false;
+    if (tags.includes("by:" + m.did)) return true;
+    if (op === "read" && m.member && tags.includes("members")) return true;
+    return m.grants.some((g) => g && tags.includes(g.tag) && (op === "read" || g.access === "write"));
+  };
+  // Another uploader is not named to a caller who may not change the blob.
+  const shown = (m, tags) => (can(m, tags, "write") ? tags : tags.filter((t) => !t.includes(":") || (m && m.did && t === "by:" + m.did)));
+  const view = (m, e) => ({ cid: e.cid, mimeType: e.mimeType, size: e.size, created: e.created, tags: shown(m, e.tags) });
+  const used = async (tag) => Number((await sql.exec(blobSql.used, tag)).rows[0].bytes) || 0;
+
+  app.post(NS + "upload", async (c) => {
+    const m = await me(c);
+    if (!stores(m)) return fail(c, 403, "Forbidden", "this caller keeps no blobs");
+    const bytes = new Uint8Array(await c.req.raw.arrayBuffer());
+    if (!bytes.length) return fail(c, 400, "InvalidRequest", "the body is the bytes");
+    if (bytes.length > MAX) return fail(c, 413, "TooLarge", `${bytes.length} bytes, at most ${MAX}`);
+    const kind = blobMime(c.req.header("content-type"), bytes);
+    if (kind.refused) return fail(c, 400, "InvalidMimeType", kind.refused);
+    let labels = named((c.req.query("tags") || "").split(",").filter(Boolean));
+    if (!labels) return fail(c, 400, "InvalidRequest", `tags: at most ${MAX_TAGS} of a-z 0-9 -`);
+    if (c.req.query("public") === "true") labels = [...new Set([...labels, "public"])];
+    const cid = await blobCid(bytes), had = await entry(cid), mine = m.stamp[0];
+    // A person is held to their limit over every blob they uploaded, whoever else uploaded the same bytes.
+    if (m.did && !(had && had.tags.includes(mine))) {
+      const limit = Number(c.req.header("x-brain-quota-bytes") || 20 * 1024 * 1024), kept = await used(mine);
+      if (kept + bytes.length > limit) return fail(c, 413, "QuotaExceeded", `${kept} bytes kept and ${bytes.length} more is over ${limit}`);
+    }
+    const tags = [...new Set([...(had ? had.tags : []), ...m.stamp, ...labels])];
+    if (user(tags).length > MAX_TAGS) return fail(c, 400, "InvalidRequest", `tags: at most ${MAX_TAGS}`);
+    const e = had ? { ...had, tags } : { cid, mimeType: kind.mimeType, size: bytes.length, created: Date.now(), tags };
+    if (!had) await blobs.put("b/" + cid, bytes);
+    await sql.batch([[blobSql.put, cid, e.mimeType, e.size, e.created, JSON.stringify(tags)], ...tags.filter((t) => !had || !had.tags.includes(t)).map((t) => [blobSql.tagAdd, t, cid])]);
+    return c.json({ blob: ref(e), tags: shown(m, tags), created: e.created });
+  });
+
+  const send = async (c, e) => {
+    const etag = '"' + e.cid + '"', open = e.tags.includes("public");
+    // no-transform keeps the ETag on a response workers.dev may compress.
+    const headers = {
+      "content-type": blobTextual(e.mimeType) ? e.mimeType + "; charset=utf-8" : e.mimeType,
+      etag,
+      "cache-control": open ? "public, max-age=31536000, immutable, no-transform" : "private, no-cache, no-transform",
+      "x-content-type-options": "nosniff",
+      "x-blob-cid": e.cid
+    };
+    // Bytes the owner did not upload are not the owner's to vouch for: no script, no origin, and no page.
+    if (!e.tags.includes(ownerTag())) {
+      headers["content-security-policy"] = "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'";
+      if (blobActive(e.mimeType)) headers["content-disposition"] = "attachment";
+    }
+    if ((c.req.header("if-none-match") || "").includes(etag)) return new Response(null, { status: 304, headers });
+    const bytes = await blobs.get("b/" + e.cid);
+    return bytes ? new Response(bytes, { headers }) : gone(c, e.cid);
+  };
+  // The entry, for a caller who may read it. A CID that was never kept and one the caller may not read answer alike.
+  const readable = async (c) => {
+    const cid = c.req.query("cid") || "", did = c.req.query("did");
+    if (!okCid(cid)) return { no: fail(c, 400, "InvalidRequest", "cid") };
+    const m = await me(c), e = await entry(cid);
+    if (!e || !can(m, e.tags, "read") || (did && !e.tags.includes("by:" + did))) return { no: gone(c, cid) };
+    return { m, e };
+  };
+  app.get(NS + "get", async (c) => {
+    const { no, e } = await readable(c);
+    return no || send(c, e);
+  });
+  app.get(NS + "info", async (c) => {
+    const { no, m, e } = await readable(c);
+    return no || c.json({ ...view(m, e), blob: ref(e) });
+  });
+
+  app.get(NS + "list", async (c) => {
+    const m = await me(c), q = c.req.query();
+    if (!stores(m)) return fail(c, 403, "Forbidden", "this caller keeps no blobs");
+    const limit = Math.min(500, Math.max(1, Math.floor(Number(q.limit)) || 100)), cursor = okCid(q.cursor) ? q.cursor : "";
+    if (q.mimeType != null && !/^[a-z0-9!#$&^.+\/-]{0,120}$/.test(q.mimeType)) return fail(c, 400, "InvalidRequest", "mimeType");
+    if (q.tag != null && !(USER.test(q.tag) || /^(by|worker):[A-Za-z0-9:._-]{1,200}$/.test(q.tag))) return fail(c, 400, "InvalidRequest", "tag");
+    if (q.did != null && !/^did:[a-z0-9]+:[A-Za-z0-9:._%-]{1,200}$/.test(q.did)) return fail(c, 400, "InvalidRequest", "did");
+    const like = (q.mimeType || "") + "%", wanted = [q.tag, q.did && "by:" + q.did].filter(Boolean);
+    // The index rows to read: the one tag asked for, else each tag that opens a blob to this caller.
+    const sources = wanted.length ? [wanted[0]] : m.all ? null : m.fixed ? [m.fixed] : ["by:" + m.did, "public", ...(m.member ? ["members"] : []), ...m.grants.map((g) => g && g.tag).filter((t) => typeof t === "string" && USER.test(t))].slice(0, 20);
+    await schema();
+    const found = sources ? (await sql.batch([...new Set(sources)].map((t) => [blobSql.listTag, t, cursor, like, limit]))).flatMap((r) => r.rows) : (await sql.exec(blobSql.listAll, cursor, like, limit)).rows;
+    const scanned = [...new Map(found.map((r) => [r.cid, r])).values()].sort((a, b) => (a.cid < b.cid ? -1 : 1)).slice(0, limit);
+    const out = scanned
+      .map((r) => ({ cid: r.cid, mimeType: r.mime, size: Number(r.size), created: Number(r.created), tags: JSON.parse(r.tags) }))
+      .filter((e) => can(m, e.tags, "read") && wanted.every((t) => e.tags.includes(t)))
+      .map((e) => view(m, e));
+    return c.json({ cids: out.map((e) => e.cid), blobs: out, ...(scanned.length === limit ? { cursor: scanned[scanned.length - 1].cid } : {}) });
+  });
+
+  // An entry this caller may change. One they may not read is not there; one they may only read is refused.
+  const changeable = async (c, cid) => {
+    if (!okCid(cid)) return { no: fail(c, 400, "InvalidRequest", "cid") };
+    const m = await me(c), e = await entry(cid);
+    if (!e || !can(m, e.tags, "read")) return { no: gone(c, cid) };
+    if (!can(m, e.tags, "write")) return { no: fail(c, 403, "Forbidden", `${cid} is not this caller's to change`) };
+    return { m, e };
+  };
+  const retagged = (e, tags) => [
+    [blobSql.put, e.cid, e.mimeType, e.size, e.created, JSON.stringify(tags)],
+    ...tags.filter((t) => !e.tags.includes(t)).map((t) => [blobSql.tagAdd, t, e.cid]),
+    ...e.tags.filter((t) => !tags.includes(t)).map((t) => [blobSql.tagDrop, t, e.cid])
+  ];
+  app.post(NS + "tag", async (c) => {
+    const { cid, tags, add = [], remove = [] } = await c.req.json().catch(() => ({}));
+    const { no, m, e } = await changeable(c, cid);
+    if (no) return no;
+    const labels = tags != null ? named(tags) : Array.isArray(add) && Array.isArray(remove) ? named([...user(e.tags).filter((t) => !remove.includes(t)), ...add]) : null;
+    if (!labels) return fail(c, 400, "InvalidRequest", `tags: at most ${MAX_TAGS} of a-z 0-9 -`);
+    const next = [...system(e.tags), ...labels];
+    await sql.batch(retagged(e, next));
+    return c.json({ cid, tags: shown(m, next) });
+  });
+  app.post(NS + "delete", async (c) => {
+    const { cid, did } = await c.req.json().catch(() => ({}));
+    if (!okCid(cid)) return fail(c, 400, "InvalidRequest", "cid");
+    const m = await me(c), e = await entry(cid);
+    if (!e || !can(m, e.tags, "read")) return gone(c, cid);
+    // What this caller takes off the blob: the owner everything, or one person's claim; a person or a recipe, their own.
+    const theirs = m.all ? (did ? (t) => t === "by:" + did : () => true) : m.did ? (t) => t === "by:" + m.did || t.startsWith(`worker:brain-m-${m.id}-`) : m.fixed ? (t) => t === m.fixed || (t === ownerTag() && system(e.tags).length === 2) : null;
+    if (!theirs || !e.tags.some((t) => t.includes(":") && theirs(t))) return fail(c, 403, "Forbidden", `${cid} was not uploaded by this caller`);
+    const next = e.tags.filter((t) => !theirs(t));
+    // The bytes go with the last uploader.
+    if (next.some((t) => t.startsWith("by:"))) {
+      await sql.batch(retagged(e, next));
+      return c.json({ deleted: false, released: true, cid });
+    }
+    await sql.batch([[blobSql.tagsClear, cid], [blobSql.drop, cid]]);
+    await blobs.delete("b/" + cid);
+    return c.json({ deleted: true, cid });
+  });
+  return app;
+}
+// %%
+md`## Tests
+
+No SQL engine runs in a page. \`blobFakeSql\` answers for the statements of \`blobSql\` from two maps, and refuses any other statement.`
+// %%
+blobFakeSql = () => {
+  const entries = new Map(), tags = new Map(), seen = [];
+  const key = (tag, cid) => JSON.stringify([tag, cid]);
+  const like = (mime, pattern) => mime.startsWith(pattern.slice(0, -1));
+  const sorted = (rows) => rows.sort((a, b) => (a.cid < b.cid ? -1 : 1));
+  const run = async (statement, a) => {
+    seen.push(statement);
+    const S = blobSql;
+    if (blobSchema.includes(statement)) return { rows: [], changes: 0 };
+    if (statement === S.get) return { rows: entries.has(a[0]) ? [{ ...entries.get(a[0]) }] : [], changes: 0 };
+    if (statement === S.put) {
+      const had = entries.get(a[0]);
+      entries.set(a[0], had ? { ...had, tags: a[4] } : { cid: a[0], mime: a[1], size: a[2], created: a[3], tags: a[4] });
+      return { rows: [], changes: 1 };
+    }
+    if (statement === S.drop) return { rows: [], changes: entries.delete(a[0]) ? 1 : 0 };
+    if (statement === S.tagAdd) return tags.set(key(a[0], a[1]), { tag: a[0], cid: a[1] }), { rows: [], changes: 1 };
+    if (statement === S.tagDrop) return { rows: [], changes: tags.delete(key(a[0], a[1])) ? 1 : 0 };
+    if (statement === S.tagsClear) {
+      for (const [k, t] of [...tags]) if (t.cid === a[0]) tags.delete(k);
+      return { rows: [], changes: 1 };
+    }
+    if (statement === S.used) return { rows: [{ bytes: [...tags.values()].filter((t) => t.tag === a[0] && entries.has(t.cid)).reduce((n, t) => n + entries.get(t.cid).size, 0) }], changes: 0 };
+    if (statement === S.listAll) return { rows: sorted([...entries.values()].filter((e) => e.cid > a[0] && like(e.mime, a[1]))).slice(0, a[2]).map((e) => ({ ...e })), changes: 0 };
+    if (statement === S.listTag)
+      return { rows: sorted([...tags.values()].filter((t) => t.tag === a[0] && t.cid > a[1] && entries.has(t.cid) && like(entries.get(t.cid).mime, a[2])).map((t) => ({ ...entries.get(t.cid) }))).slice(0, a[3]), changes: 0 };
+    throw new Error("a statement blobSql does not hold: " + statement);
+  };
+  return { run, entries, tags, seen };
+}
+// %%
+blobRig = async () => {
+  const db = blobFakeSql();
+  const sim = await simulate(blob_service, { secrets: { BRAIN_KEY: "k" }, sql: db.run });
+  const X = "https://blob.internal/xrpc/com.lopecode.brain.blob.";
+  const A = "did:plc:alice", B = "did:plc:bob", a = (await sha256(A)).slice(0, 10), b = (await sha256(B)).slice(0, 10);
+  // A person as the core sends them on: a member or not, with the tag grants the owner gave.
+  const as = (did, { member = true, grants = [], via = "", bytes } = {}) => ({ "x-brain-caller": did, ...(via ? { "x-brain-via": via } : {}), ...(member ? { "x-brain-member": "1" } : {}), "x-brain-tags": JSON.stringify(grants), ...(bytes == null ? {} : { "x-brain-quota-bytes": String(bytes) }) });
+  const who = (h) => (typeof h === "string" ? { "x-brain-caller": h } : h);
+  const call = (h, path, init = {}) => sim.fetch(X + path, { ...init, headers: { ...(init.headers || {}), ...who(h) } });
+  const upload = (h, body, type, query = "") => call(h, "upload" + query, { method: "POST", body, headers: type ? { "content-type": type } : {} });
+  const post = (h, name, input) => call(h, name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+  const get = (h, cid, extra = "") => call(h, "get?cid=" + cid + extra);
+  const list = async (h, query = "") => (await (await call(h, "list" + query)).json()).cids;
+  const png = (...rest) => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...rest]);
+  return { sim, db, X, A, B, a, b, as, call, upload, post, get, list, png };
+}
+// %%
+test_blob_cid_is_the_cid_a_pds_gives_the_bytes = {
+  // Both written down from other implementations: the empty raw block, and "hello world".
+  expect(await blobCid(new Uint8Array())).toBe("bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku");
+  expect(await blobCid(new TextEncoder().encode("hello world"))).toBe("bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao5eei66wof36n5e");
+  return "2 known CIDs";
+}
+// %%
+test_blob_upload_get_list_delete = {
+  const rig = await blobRig(), bytes = rig.png(1, 2, 3);
+  const made = await (await rig.upload("owner", bytes, "image/png", "?tags=holiday")).json();
+  const cid = await blobCid(bytes);
+  expect(made).toMatchObject({ blob: { $type: "blob", ref: { $link: cid }, mimeType: "image/png", size: 11 }, tags: ["by:owner", "holiday"] });
+  expect([...rig.sim.blobs.keys()]).toEqual(["brain-x-blob/b/" + cid]);
+  // The tables are made by the first call, one statement a call.
+  expect(rig.db.seen.slice(0, 2)).toEqual(blobSchema);
+  const got = await rig.get("owner", cid);
+  expect([got.status, got.headers.get("content-type"), got.headers.get("etag"), got.headers.get("x-content-type-options"), got.headers.get("cache-control"), [...new Uint8Array(await got.arrayBuffer())]]).toEqual([200, "image/png", `"${cid}"`, "nosniff", "private, no-cache, no-transform", [...bytes]]);
+  expect((await rig.call("owner", "get?cid=" + cid, { headers: { "if-none-match": `"${cid}"` } })).status).toBe(304);
+  expect(await (await rig.call("owner", "info?cid=" + cid)).json()).toMatchObject({ cid, mimeType: "image/png", size: 11, tags: ["by:owner", "holiday"], blob: made.blob });
+  // Text is sent as UTF-8; a public blob never changes, and says so.
+  const note = await (await rig.upload("owner", "héllo", "text/plain;charset=UTF-8", "?public=true")).json();
+  expect([note.blob.mimeType, note.tags]).toEqual(["text/plain", ["by:owner", "public"]]);
+  const open = await rig.get("anonymous", note.blob.ref.$link);
+  expect([open.status, open.headers.get("content-type"), open.headers.get("cache-control"), open.headers.get("content-security-policy"), await open.text()]).toEqual([200, "text/plain; charset=utf-8", "public, max-age=31536000, immutable, no-transform", null, "héllo"]);
+  // Listing: by CID, by tag, by type, by uploader, a page at a time.
+  const all = [cid, note.blob.ref.$link].sort();
+  expect(await rig.list("owner")).toEqual(all);
+  expect(await rig.list("owner", "?tag=holiday")).toEqual([cid]);
+  expect(await rig.list("owner", "?mimeType=text/")).toEqual([note.blob.ref.$link]);
+  expect(await rig.list("owner", "?did=did:plc:nobody")).toEqual([]);
+  const page = await (await rig.call("owner", "list?limit=1")).json();
+  expect([page.cids, page.cursor]).toEqual([[all[0]], all[0]]);
+  expect(await rig.list("owner", "?limit=1&cursor=" + page.cursor)).toEqual([all[1]]);
+  // Uploading the same bytes again adds nothing but the labels named.
+  expect((await (await rig.upload("owner", bytes, "image/png", "?tags=again")).json()).tags).toEqual(["by:owner", "holiday", "again"]);
+  expect(rig.sim.blobs.size).toBe(2);
+  expect(await (await rig.post("owner", "tag", { cid, remove: ["again"], add: ["kept"] })).json()).toEqual({ cid, tags: ["by:owner", "holiday", "kept"] });
+  expect(await (await rig.post("owner", "delete", { cid })).json()).toEqual({ deleted: true, cid });
+  expect([(await rig.get("owner", cid)).status, [...rig.sim.blobs.keys()], rig.db.entries.size, [...rig.db.tags.values()].filter((t) => t.cid === cid)]).toEqual([404, ["brain-x-blob/b/" + note.blob.ref.$link], 1, []]);
+  expect((await rig.get("owner", "nonsense")).status).toBe(400);
+  return cid;
+}
+// %%
+test_blob_the_bytes_must_be_the_type_they_are_said_to_be = {
+  const rig = await blobRig(), html = "<!doctype html><p onclick=alert(1)>a page</p>";
+  const no = async (body, type) => {
+    const r = await rig.upload("owner", body, type);
+    return [r.status, r.status === 200 ? null : (await r.json()).error];
+  };
+  expect(await no(rig.png(1), null)).toEqual([400, "InvalidMimeType"]);
+  expect(await no(rig.png(1), "picture")).toEqual([400, "InvalidMimeType"]);
+  // A page said to be a picture, a picture said to be something else, and text that is not text.
+  expect(await no(html, "image/png")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(html, "image/jpeg")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(html, "application/pdf")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(rig.png(1), "image/jpeg")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(rig.png(1), "application/octet-stream")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(rig.png(1), "text/plain")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(new Uint8Array([0xff, 0xfe, 0x00]), "text/plain")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(new Uint8Array([0xc3, 0x28]), "application/json")).toEqual([400, "InvalidMimeType"]);
+  expect(await no(new Uint8Array(), "text/plain")).toEqual([400, "InvalidRequest"]);
+  expect(rig.sim.blobs.size).toBe(0);
+  for (const [bytes, type] of [[new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), "image/jpeg"], [new TextEncoder().encode("GIF89a.."), "image/gif"], [new TextEncoder().encode("RIFF....WEBPVP8 "), "image/webp"], [new TextEncoder().encode("%PDF-1.7"), "application/pdf"], [new Uint8Array([0, 1, 2]), "application/octet-stream"], [html, "text/html"]])
+    expect([type, (await rig.upload("owner", bytes, type)).status]).toEqual([type, 200]);
+  expect(blobSniff(new Uint8Array([1, 2, 3]))).toBe(null);
+  return "10 refused, 6 kept";
+}
+// %%
+test_blob_tags_decide_who_reads_and_who_changes_it = {
+  const rig = await blobRig(), { A, B } = rig, alice = rig.as(A), bob = rig.as(B);
+  // Alice's: stamped with her, and with nothing she named herself.
+  expect((await rig.upload(alice, "hi", "text/plain", "?tags=by:did:plc:owner")).status).toBe(400);
+  const made = await (await rig.upload(alice, "hi", "text/plain", "?tags=notes")).json(), cid = made.blob.ref.$link;
+  expect(made.tags).toEqual(["by:" + A, "notes"]);
+  // Bob has the CID and nothing else: the blob is not there for him, and neither is one that was never kept.
+  const never = await blobCid(new TextEncoder().encode("never kept"));
+  for (const c of [cid, never]) {
+    expect([(await rig.get(bob, c)).status, (await rig.call(bob, "info?cid=" + c)).status, (await rig.post(bob, "tag", { cid: c, tags: ["public"] })).status, (await rig.post(bob, "delete", { cid: c })).status]).toEqual([404, 404, 404, 404]);
+    expect((await rig.get("anonymous", c)).status).toBe(404);
+  }
+  expect(await rig.list(bob)).toEqual([]);
+  expect((await rig.call("anonymous", "list")).status).toBe(403);
+  expect((await rig.upload("anonymous", "x", "text/plain")).status).toBe(403);
+  // A grant for one of its tags: read, then write. A reader is not told who uploaded it, and nobody names a by: tag.
+  const reader = rig.as(B, { grants: [{ tag: "notes", access: "read" }] }), writer = rig.as(B, { grants: [{ tag: "notes", access: "write" }] });
+  expect(await (await rig.get(reader, cid)).text()).toBe("hi");
+  expect((await (await rig.call(reader, "info?cid=" + cid)).json()).tags).toEqual(["notes"]);
+  expect(await rig.list(reader)).toEqual([cid]);
+  expect((await rig.post(reader, "tag", { cid, tags: ["public"] })).status).toBe(403);
+  expect((await rig.post(reader, "delete", { cid })).status).toBe(403);
+  expect((await rig.post(writer, "tag", { cid, tags: ["notes", "by:" + B] })).status).toBe(400);
+  expect((await rig.post(writer, "tag", { cid, add: ["by:" + B] })).status).toBe(400);
+  expect(await (await rig.post(writer, "tag", { cid, add: ["shared"] })).json()).toEqual({ cid, tags: ["by:" + A, "notes", "shared"] });
+  // A write grant changes labels. It does not make Bob an uploader: he cannot delete it, and he is not charged.
+  expect((await rig.post(writer, "delete", { cid })).status).toBe(403);
+  expect((await rig.get(bob, cid)).status).toBe(404);
+  // ?did= names an uploader, as on a PDS.
+  expect([(await rig.get(alice, cid, "&did=" + A)).status, (await rig.get(alice, cid, "&did=" + B)).status]).toEqual([200, 404]);
+  // members: any current member. public: anyone, with no script and no origin, because the owner did not upload it.
+  await rig.post(alice, "tag", { cid, tags: ["members"] });
+  expect([(await rig.get(bob, cid)).status, (await rig.get(rig.as(B, { member: false }), cid)).status, (await rig.get("anonymous", cid)).status]).toEqual([200, 404, 404]);
+  await rig.post(alice, "tag", { cid, tags: ["public"] });
+  const open = await rig.get("anonymous", cid);
+  expect([open.status, open.headers.get("content-security-policy").startsWith("sandbox"), open.headers.get("content-disposition")]).toEqual([200, true, null]);
+  // A page somebody else uploaded is a download.
+  const page = (await (await rig.upload(alice, "<svg xmlns='http://www.w3.org/2000/svg'/>", "image/svg+xml", "?public=true")).json()).blob.ref.$link;
+  const svg = await rig.get("anonymous", page);
+  expect([svg.headers.get("content-disposition"), svg.headers.get("x-content-type-options"), svg.headers.get("content-security-policy").startsWith("sandbox")]).toEqual(["attachment", "nosniff", true]);
+  // The owner reads, retags and removes everything.
+  expect((await rig.list("owner")).sort()).toEqual([cid, page].sort());
+  expect((await rig.post("owner", "tag", { cid, tags: [] })).status).toBe(200);
+  expect(await (await rig.post("owner", "delete", { cid })).json()).toEqual({ deleted: true, cid });
+  return "one blob, five callers";
+}
+// %%
+test_blob_the_same_bytes_from_two_people_are_kept_once_and_counted_twice = {
+  const rig = await blobRig(), { A, B, a } = rig, bytes = "123456789";
+  const first = await (await rig.upload(rig.as(A, { bytes: 10 }), bytes, "text/plain", "?tags=mine")).json(), cid = first.blob.ref.$link;
+  // Over the limit the core sent: 9 kept and 2 more is over 10.
+  const over = await rig.upload(rig.as(A, { bytes: 10 }), "ab", "text/plain");
+  expect([over.status, (await over.json()).error]).toEqual([413, "QuotaExceeded"]);
+  // The same bytes again cost nothing more.
+  expect((await rig.upload(rig.as(A, { bytes: 10 }), bytes, "text/plain")).status).toBe(200);
+  // Bob uploads the same bytes: he is an uploader too, charged for them, and told only of himself.
+  expect((await rig.upload(rig.as(B, { bytes: 8 }), bytes, "text/plain")).status).toBe(413);
+  const second = await (await rig.upload(rig.as(B, { bytes: 9 }), bytes, "application/x-other", "?tags=his")).json();
+  expect(second).toMatchObject({ blob: { ref: { $link: cid }, mimeType: "text/plain", size: 9 }, tags: ["by:" + A, "mine", "by:" + B, "his"] });
+  expect([rig.sim.blobs.size, JSON.parse(rig.db.entries.get(cid).tags)]).toEqual([1, ["by:" + A, "mine", "by:" + B, "his"]]);
+  expect((await rig.upload(rig.as(B, { bytes: 9 }), "x", "text/plain")).status).toBe(413);
+  expect(await rig.list(rig.as(B), "?did=" + A)).toEqual([cid]);
+  // Alice lets go: the bytes stay for Bob. Bob lets go: they are gone.
+  expect(await (await rig.post(rig.as(A), "delete", { cid })).json()).toEqual({ deleted: false, released: true, cid });
+  expect([(await rig.get(rig.as(A), cid)).status, (await rig.get(rig.as(B), cid)).status, rig.sim.blobs.size]).toEqual([404, 200, 1]);
+  expect((await rig.upload(rig.as(A, { bytes: 10 }), "ab", "text/plain")).status).toBe(200);
+  expect(await (await rig.post(rig.as(B), "delete", { cid })).json()).toEqual({ deleted: true, cid });
+  expect(rig.sim.blobs.has("brain-x-blob/b/" + cid)).toBe(false);
+  // The owner drops one person's claim, or the blob.
+  const both = "shared bytes";
+  const c2 = (await (await rig.upload(rig.as(A), both, "text/plain")).json()).blob.ref.$link;
+  await rig.upload(rig.as(B), both, "text/plain");
+  expect(await (await rig.post("owner", "delete", { cid: c2, did: A })).json()).toEqual({ deleted: false, released: true, cid: c2 });
+  expect(await (await rig.post("owner", "delete", { cid: c2 })).json()).toEqual({ deleted: true, cid: c2 });
+  return a;
+}
+// %%
+test_blob_a_worker_keeps_what_it_uploaded_and_a_members_worker_is_its_author = {
+  const rig = await blobRig(), { A, a, b } = rig;
+  const worker = rig.as(A, { via: `worker:brain-m-${a}-todo` });
+  const made = await (await rig.upload(worker, "{}", "application/json")).json(), cid = made.blob.ref.$link;
+  expect(made.tags).toEqual(["by:" + A, `worker:brain-m-${a}-todo`]);
+  // Its author reads it. A Worker named for somebody else, or a recipe named in x-brain-via, is given nothing.
+  expect((await rig.get(rig.as(A), cid)).status).toBe(200);
+  expect((await rig.get(rig.as(A, { via: `worker:brain-m-${b}-todo` }), cid)).status).toBe(404);
+  expect((await rig.upload(rig.as(A, { via: "worker:brain-x-library" }), "x", "text/plain")).status).toBe(403);
+  // The author's limit holds their Worker too.
+  expect((await rig.upload(rig.as(A, { via: `worker:brain-m-${a}-todo`, bytes: 3 }), "more", "text/plain")).status).toBe(413);
+  // A recipe is the owner's code: its blobs are the owner's, it reaches those and what is public, and no other.
+  const wa = "worker:brain-x-whatsapp", lib = "worker:brain-x-library";
+  const pic = await (await rig.upload(wa, rig.png(9), "image/png", "?tags=whatsapp")).json(), p = pic.blob.ref.$link;
+  expect(pic.tags).toEqual(["by:owner", wa, "whatsapp"]);
+  expect([(await rig.get(wa, p)).status, (await rig.get(lib, p)).status, (await rig.get(wa, cid)).status, (await rig.get(rig.as(A), p)).status]).toEqual([200, 404, 404, 404]);
+  expect([await rig.list(wa), await rig.list(lib), (await rig.list("owner")).sort()]).toEqual([[p], [], [cid, p].sort()]);
+  // A blob the owner's code kept is the owner's to vouch for.
+  expect((await rig.get("owner", p)).headers.get("content-security-policy")).toBe(null);
+  expect((await rig.post(lib, "delete", { cid: p })).status).toBe(404);
+  expect(await (await rig.post(wa, "delete", { cid: p })).json()).toEqual({ deleted: true, cid: p });
+  // The deployer and the core keep no blobs.
+  for (const who of ["deployer", "worker:brain-core", "kernel"]) expect([who, (await rig.upload(who, "x", "text/plain")).status]).toEqual([who, 403]);
+  return made.tags.join(" ");
+}
+// %%
+test_blob_declares_what_it_needs = {
+  const { meta } = await blob_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-blob", role: "recipe", module: "@tomlarkworthy/brain-blob", resources: ["blobs", "sql"], secrets: [], paths: [] });
+  expect(Object.keys(meta.access).length).toBe(6);
+  return meta.resources.join(", ");
+}
+// %%
+import {cloudflare, sql, blobs, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

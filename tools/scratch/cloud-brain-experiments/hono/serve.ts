@@ -1,0 +1,1 @@
+Bun.serve({ port: 47823, hostname: "127.0.0.1", fetch: async () => new Response(await Bun.file(import.meta.dir + "/hono.esm.js").text(), { headers: { "access-control-allow-origin": "*", "content-type": "text/javascript" } }) });

@@ -1,0 +1,70 @@
+
+ ⛅️ wrangler 4.147.0
+────────────────────
+Your Worker has access to the following bindings:
+Binding                 Resource            Mode
+env.STATE (State)       Durable Object      local
+env.LOADER              Worker Loader       local
+
+⎔ Starting local server...
+Wrangler detected this dev session is running in an AI agent.
+The Local Explorer API is available at http://localhost:8799/cdn-cgi/local/explorer/api
+Useful routes:
+  GET http://localhost:8799/cdn-cgi/local/explorer/api/local/workers - local Workers and bindings
+  POST http://localhost:8799/cdn-cgi/local/explorer/api/local/scheduled?worker=<name> - invoke a Worker's scheduled handler; cron is required (see the OpenAPI schema for the full request)
+  GET http://localhost:8799/cdn-cgi/local/explorer/api/storage/kv/namespaces - KV namespaces
+  GET http://localhost:8799/cdn-cgi/local/explorer/api/d1/database - D1 databases
+  GET http://localhost:8799/cdn-cgi/local/explorer/api/r2/buckets - R2 buckets
+  GET http://localhost:8799/cdn-cgi/local/explorer/api/workers/durable_objects/namespaces - Durable Object namespaces
+  GET http://localhost:8799/cdn-cgi/local/explorer/api/workflows - Workflows
+  POST http://localhost:8799/cdn-cgi/local/explorer/api/local/observability/query - run a read-only SQL query (SELECT/WITH only) over captured request traces and console logs. Tables: spans, logs (read attributes via json(attributes)). Example:
+    curl -X POST http://localhost:8799/cdn-cgi/local/explorer/api/local/observability/query -H 'Content-Type: application/json' -d '{"sql":"SELECT service, name, outcome, duration_ms FROM spans WHERE parent_id IS NULL LIMIT 20"}'
+  POST http://localhost:8799/cdn-cgi/local/explorer/api/local/observability/clear - clear all captured traces and logs
+If the routes above don't cover what you need, fetch the full OpenAPI schema (large - use only as a last resort):
+  GET http://localhost:8799/cdn-cgi/local/explorer/api - OpenAPI schema
+[wrangler:info] Ready on http://localhost:8799
+[wrangler:info] GET / 404 Not Found (9ms)
+[wrangler:info] GET /e1 200 OK (4ms)
+[wrangler:info] GET /e4 200 OK (3ms)
+⎔ Reloading local server...
+⎔ Local server updated and ready
+[wrangler:info] GET /e1 200 OK (27999ms)
+[wrangler:info] GET /e1 200 OK (36042ms)
+[wrangler:info] GET /e1 200 OK (44080ms)
+[wrangler:info] GET /e1 200 OK (70682ms)
+[wrangler:info] GET /e1 200 OK (2ms)
+[wrangler:info] GET /e1 200 OK (2ms)
+[wrangler:info] GET /e1/redefine 200 OK (1ms)
+[wrangler:info] GET /e1 200 OK (2ms)
+[wrangler:info] GET /e4 200 OK (2ms)
+[wrangler:info] GET /e6 200 OK (291ms)
+[wrangler:info] GET /e6 200 OK (184ms)
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mAborted(Assertion failed: list_empty(&rt->gc_obj_list), at: ../../vendor/quickjs/quickjs.c,2036,JS_FreeRuntime)[0m
+
+
+[wrangler:info] GET /e7 500 Internal Server Error (5ms)
+[wrangler:info] GET /e5 200 OK (3ms)
+[wrangler:info] GET /e5 200 OK (1ms)
+[wrangler:info] GET /e3 200 OK (1ms)
+[wrangler:info] GET /e3 200 OK (1ms)
+[wrangler:info] GET /e3/alarm/set 200 OK (1ms)
+[wrangler:info] GET /e3 200 OK (3ms)
+⎔ Reloading local server...
+⎔ Local server updated and ready
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mAborted(Assertion failed: list_empty(&rt->gc_obj_list), at: ../../vendor/quickjs/quickjs.c,2036,JS_FreeRuntime)[0m
+
+
+[wrangler:info] GET /e7 200 OK (24ms)
+[wrangler:info] GET /e3 200 OK (1ms)
+[wrangler:info] GET /e3 200 OK (2ms)
+[wrangler:info] GET /e3 200 OK (2ms)
+⎔ Reloading local server...
+⎔ Local server updated and ready
+[wrangler:info] GET /e3/agent/turn 200 OK (9ms)
+[wrangler:info] GET /e3/agent/die 200 OK (2ms)
+[wrangler:info] GET /e3/agent/saved 200 OK (2ms)
+[wrangler:info] GET /e3/agent/resume 200 OK (2ms)
+[wrangler:info] GET /e3/agent/webhook 200 OK (2ms)
+[wrangler:info] GET /e3/agent/reply 200 OK (2ms)
+[wrangler:info] GET /e3 200 OK (2ms)
+🪵  Logs were written to "/Users/tom.larkworthy/Library/Preferences/.wrangler/logs/wrangler-2026-10-04_16-43-31_769.log"

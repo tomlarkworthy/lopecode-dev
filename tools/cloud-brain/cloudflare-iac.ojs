@@ -1,0 +1,1794 @@
+md`# Cloudflare from a notebook
+
+A service declared as a notebook value. \`cloudflare.Service(name, fn, options)\` returns a service: a name, a function that answers requests, and a manifest (methods, paths, rules, \`calls\`). Call it in the tab with \`service.fetch(request)\`, read the module it would upload with \`service.emit()\`, run that module in the tab with \`simulate(service)\`. \`cloudflare.Worker\` is the name of \`Service\` until 2026-10-07 and is the same function.
+
+A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. A service holds no Cloudflare token. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted.
+
+The module is the function plus every cell it depends on, across imports, written out in dependency order with no Observable runtime. The walk stops at **platform cells** (\`secrets\`, \`rows\`, \`sql\`, \`inbox\`, \`xrpc\`), which work in the notebook and are replaced on the Worker by the Cloudflare resource they stand for, and at **library cells** (\`library(name, file)\`), which are uploaded as a second file.
+
+Refused, naming the cell: a generator, a \`viewof\` or \`mutable\` cell, a cell that depends on a notebook builtin such as \`html\` or \`width\`, and a secret read by a computed name.
+
+\`service.deploy()\` needs a Brain: with none configured it throws. \`serviceList\` shows each declared service against what the deployer runs. There is no \`service.status\`.`
+// %%
+md`## Services in this notebook
+
+A module announces a service with \`plugins.add("workers", service, { invalidation })\`, in a cell of its own. \`declaredWorkers\` is every service announced on the page, and \`serviceList\` shows them against what a deployer says is running, with one Apply.
+
+A service's hash is recomputed when its cell or any cell it reaches changes, because that re-runs the cell that announces it.`
+// %%
+declaredWorkers = plugins.get("workers")
+// %%
+// One row per declared service: what the tab would deploy against what the deployer deployed and the Worker reports.
+// Then one row per Worker the deployer runs that this notebook does not declare: its source is somewhere else, or lost.
+serviceRows = (emitted, deployerState, reported = {}, registry = {}) => [
+  ...emitted.map((e) => {
+    if (e.error) return { name: e.name, worker: null, state: "cannot deploy", note: e.error };
+    const worker = e.meta.worker;
+    const rec = deployerState ? (deployerState.workers || []).find((w) => w.worker === worker) : null;
+    const running = rec && rec.hash ? rec.hash : null;
+    const k = deployerState && deployerState.kernel ? deployerState.kernel[worker] : null;
+    const waiting = deployerState ? (deployerState.pending || []).some((p) => p.hash === e.hash) : false;
+    const approved = deployerState ? (deployerState.approved || []).includes(e.hash) : false;
+    // asDeployed: the page loaded this module from the Worker and it has not been edited since.
+    const mine = e.asDeployed || e.hash;
+    const route = registry[worker];
+    const state = !deployerState ? "unknown" : !running ? "not installed" : reported[worker] && reported[worker] !== running ? "skewed" : rec.fails >= 2 ? "failing" : running === mine ? "in sync" : "changed";
+    const note = waiting ? "waiting for approval"
+      : approved && state !== "in sync" ? "approved, press Apply"
+      : rec && rec.lastError && rec.failedHash === e.hash ? `put back: ${rec.lastError}`
+      : k && k.state === "probation" ? "on probation"
+      : route && route.hash === running && route.verified && !route.verified.ok ? `its tests failed: ${(route.verified.failed || []).join(", ") || route.verified.reason}`
+      : route && route.hash === running && route.failing ? `verified, and its tests fail now: ${(route.failing.failed || []).join(", ") || route.failing.reason}`
+      : route && route.hash === running && !route.verified ? "unverified: its tests have not been run from this version"
+      : state === "skewed" ? `${worker} is running ${String(reported[worker]).slice(0, 12)}, which the deployer did not deploy.`
+      : "";
+    return { name: e.name, worker, role: e.meta.role, module: e.meta.module || null, methods: e.meta.methods, calls: e.meta.calls || [], paths: e.meta.paths.map((p) => p.path), secrets: e.meta.secrets, hash: e.hash, running, state, verified: route && route.hash === running ? !!(route.verified && route.verified.ok) : null, note };
+  }),
+  ...((deployerState && deployerState.workers) || [])
+    .filter((w) => w.hash && !emitted.some((e) => e.meta && e.meta.worker === w.worker))
+    .map((w) => ({ name: w.worker, worker: w.worker, role: null, methods: [], paths: [], secrets: [], hash: null, running: w.hash, state: "no source", note: `${w.worker} is running and this notebook does not declare it. Its source is in another copy of the notebook, or was not saved.` }))
+]
+// %%
+// The Services table. \`brain\` is { state(), info(worker), apply(emitted), deployerUrl }; with none it lists what is declared.
+// \`moduleLink(module, label)\` gives the node shown for a Worker's name, a link to its module; with none the name is plain.
+serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
+  const hue = { "in sync": "#2e9e5b", "not installed": "#2e9e5b", changed: "#e6a700", unknown: "var(--theme-foreground-muted)", skewed: "#e5484d", failing: "#e5484d", "cannot deploy": "#e5484d", "no source": "#e5484d" };
+  const body = htl.html`<div></div>`;
+  const root = htl.html`<div style="font:14px/1.45 var(--sans-serif, system-ui, sans-serif);color:var(--theme-foreground)">${body}</div>`;
+  let emitted = [], deployerState = null, reported = {}, registry = {}, busy = "", results = [];
+  const short = (h) => (h ? String(h).slice(0, 12) : "none");
+  const draw = () => {
+    const rows = serviceRows(emitted, deployerState, reported, registry);
+    const differing = rows.filter((r) => ["changed", "not installed"].includes(r.state));
+    root.value = rows;
+    const red = (note, state) => /put back|cannot|did not deploy|tests failed|tests fail now/.test(note) || state === "cannot deploy";
+    const table = Inputs.table(
+      rows.map((r) => ({ worker: r.worker || r.name, module: r.module || null, serves: [...(r.methods || []).map((m) => m.replace("com.lopecode.brain.", "")), ...(r.paths || [])].join(", "), version: r.hash, state: r.state, tests: root.tests[r.worker] || "", note: r.note || "", running: r.running })),
+      {
+        columns: ["worker", "serves", "version", "state", "tests", "note"],
+        select: false,
+        layout: "auto",
+        rows: 40,
+        format: {
+          worker: (v, i, data) => htl.html`<b>${(moduleLink && data[i].module && moduleLink(data[i].module, v)) || v}</b>`,
+          version: (v, i, data) => htl.html`<code>${short(v)}</code>${data[i].running && data[i].running !== v ? htl.html` <span style="color:var(--theme-foreground-muted)">running <code>${short(data[i].running)}</code></span>` : ""}`,
+          state: (v) => htl.html`<span style=${`color:${hue[v]}`}>${v}</span>`,
+          note: (v, i, data) => htl.html`<span style=${`white-space:normal;color:${red(v, data[i].state) ? "#e5484d" : "var(--theme-foreground-muted)"}`}>${v}</span>`
+        }
+      }
+    );
+    const apply = Inputs.button(`Apply ${differing.length} change${differing.length === 1 ? "" : "s"}`, { disabled: !brain || !differing.length || !!busy, reduce: () => void run(differing) });
+    const again = Inputs.button("Refresh", { disabled: !brain || !!busy, reduce: () => void refresh() });
+    const waiting = results.filter((r) => r.state === "waiting");
+    const refused = results.filter((r) => r.state === "refused" || r.state === "put-back");
+    body.replaceChildren(htl.html`${table}
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${apply}${again}<span style="color:var(--theme-foreground-muted)">${busy}</span></div>
+      ${waiting.length ? htl.html`<div style="margin-top:6px;color:var(--theme-foreground-muted)">Waiting for approval: ${waiting.map((r) => r.worker).join(", ")}. ${brain && brain.deployerUrl ? htl.html`Approve on the <a href=${brain.deployerUrl} target="_blank" rel="noopener">deployer page</a>, then press Apply again.` : ""}</div>` : ""}
+      ${refused.map((r) => htl.html`<div style="margin-top:6px;color:#e5484d">${r.state === "refused" ? "Refused: " + r.reason : `${r.worker} failed its health check and was put back to ${short(r.previous)}. ${r.reason}`}</div>`)}`);
+  };
+  const refresh = async () => {
+    emitted = await Promise.all(services.map((s) => s.emit().catch((e) => ({ name: s.name, error: String((e && e.message) || e) }))));
+    emitted.sort((a, b) => String(a.meta ? a.meta.worker : a.name).localeCompare(String(b.meta ? b.meta.worker : b.name)));
+    if (brain && brain.asDeployed) for (const e of emitted) if (e.meta) e.asDeployed = brain.asDeployed(e);
+    draw();
+    if (!brain) return;
+    busy = "reading what is running…";
+    draw();
+    try {
+      deployerState = await brain.state();
+      const infos = await Promise.all(emitted.filter((e) => e.meta).map((e) => brain.info(e.meta.worker).catch(() => null)));
+      reported = Object.fromEntries(infos.filter(Boolean).map((i) => [i.name, i.hash]));
+      registry = brain.registry ? Object.fromEntries((await brain.registry().catch(() => [])).map((r) => [r.worker, r])) : {};
+      busy = "";
+    } catch (e) {
+      busy = "could not read the deployer: " + String((e && e.message) || e);
+    }
+    draw();
+    root.dispatchEvent(new CustomEvent("input", { bubbles: true }));
+  };
+  const run = async (rows) => {
+    results = [];
+    // The core before anything bound to it, the kernel last.
+    const order = (r) => (r.role === "core" ? 0 : r.role === "kernel" ? 2 : 1);
+    for (const r of [...rows].sort((a, b) => order(a) - order(b))) {
+      busy = `applying ${r.worker}…`;
+      draw();
+      try {
+        const out = await brain.apply(emitted.find((e) => e.meta && e.meta.worker === r.worker));
+        results.push(...out.results);
+      } catch (e) {
+        results.push({ worker: r.worker, state: "refused", reason: String((e && e.message) || e) });
+      }
+    }
+    busy = "";
+    await refresh();
+  };
+  root.refresh = refresh;
+  // worker -> text for the tests column, set by whoever ran them.
+  root.tests = {};
+  root.value = [];
+  refresh();
+  return root;
+}
+// %%
+md`## The seed
+
+The Cloudflare API answers a browser's preflight with 400 and no CORS headers, so a page cannot call it. The seed is a Worker the installer pastes into the Cloudflare dashboard by hand: it forwards \`/client/v4/…\` to \`api.cloudflare.com\` and adds CORS headers. It holds no credential; the page sends the token with each call. While it exists anyone who knows its URL can use it as a relay to the Cloudflare API, with their own token, so an install deletes it last.`
+// %%
+seedSource = `// Cloud Brain seed: a CORS proxy to the Cloudflare API, in your own account. Holds no credential.
+const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE", "access-control-max-age": "86400" };
+export default {
+  async fetch(request) {
+    if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+    const url = new URL(request.url);
+    if (!url.pathname.startsWith("/client/v4/")) return new Response("Cloud Brain seed", { headers: cors });
+    const headers = new Headers();
+    for (const name of ["authorization", "content-type"]) if (request.headers.has(name)) headers.set(name, request.headers.get(name));
+    const upstream = await fetch("https://api.cloudflare.com" + url.pathname + url.search, { method: request.method, headers, body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body });
+    const out = new Headers(upstream.headers);
+    for (const [k, v] of Object.entries(cors)) out.set(k, v);
+    return new Response(upstream.body, { status: upstream.status, headers: out });
+  },
+};
+`
+// %%
+md`## The example service
+
+\`fx_service\` is a Hono app that reads a secret, writes a row, appends to the inbox, calls out, and uses a helper cell, a constant and a function imported from another module. The tests below run it three ways.`
+// %%
+fx_service = cloudflare.Service("fixture", fx_app, {
+  paths: [{ path: "/hooks/whatsapp", who: "anyone" }],
+  methods: { "com.lopecode.brain.fixture.math": { type: "query" } }
+})
+// %%
+fx_emitted = (await fx_service.emit()).parts.map((p) => ({ path: p.path, bytes: p.text.length }))
+// %%
+md`## API`
+// %%
+platformTag = Symbol.for("cloudflare-iac.platform")
+// %%
+secretName = /^[A-Z][A-Z0-9_]*$/
+// %%
+// The notebook side of the platform cells. In memory until a Brain is configured with backend.use().
+backend = {
+  const store = { secrets: new Map(), rows: new Map(), blobs: new Map(), inbox: [], calls: [] };
+  return {
+    store,
+    secret: async (name) => store.secrets.get(name),
+    rowsGet: async (key) => (store.rows.has(key) ? store.rows.get(key) : null),
+    rowsPut: async (key, value) => (store.rows.set(key, value), true),
+    rowsDelete: async (key) => store.rows.delete(key),
+    rowsList: async (prefix = "") =>
+      [...store.rows].filter(([k]) => k.startsWith(prefix)).map(([key, value]) => ({ key, value })),
+    xrpc: async (kind, nsid, data) => {
+      if (nsid === "com.lopecode.brain.inbox.append") {
+        const seen = store.inbox.find((e) => e.key === data.key);
+        if (seen) return { id: seen.id, duplicate: true };
+        const entry = { id: store.inbox.length + 1, ...data };
+        store.inbox.push(entry);
+        return { id: entry.id };
+      }
+      store.calls.push({ kind, nsid, data });
+      throw new Error("no Brain configured for " + nsid);
+    },
+    rowsPutIfAbsent: async (key, value) => (store.rows.has(key) ? false : (store.rows.set(key, value), true)),
+    rowsIncrement: async (key) => (store.rows.set(key, (store.rows.get(key) || 0) + 1), store.rows.get(key)),
+    rowsAppend: async (key, item, max = 1000) => (store.rows.set(key, [...(store.rows.get(key) || []), item].slice(-max)), store.rows.get(key).length),
+    rowsDeletePrefix: async (prefix) => [...store.rows.keys()].filter((k) => k.startsWith(prefix)).map((k) => store.rows.delete(k)).length,
+    sqlRun: async () => {
+      throw new Error("sql runs in a Worker, or under simulate with a sql function");
+    },
+    databaseRun: async () => {
+      throw new Error("database runs in brain-db, or under simulate with a sql function");
+    },
+    blobGet: async (key) => store.blobs.get(key) ?? null,
+    blobPut: async (key, bytes) => (store.blobs.set(key, bytes), true),
+    blobHas: async (key) => store.blobs.has(key),
+    blobDelete: async (key) => store.blobs.delete(key),
+    xrpcFetch: async (nsid) => {
+      throw new Error("no Brain configured for " + nsid);
+    },
+    config: {},
+    forward: async (role, request) => {
+      throw new Error("no Brain configured: cannot reach " + role);
+    },
+    deploy: null,
+    use(impl) {
+      Object.assign(this, impl);
+      return this;
+    }
+  };
+}
+// %%
+secrets = new Proxy(
+  {},
+  {
+    get: (_, k) =>
+      k === platformTag
+        ? "secrets"
+        : typeof k === "string" && secretName.test(k)
+        ? backend.secret(k)
+        : undefined
+  }
+)
+// %%
+rows = ({
+  [platformTag]: "rows",
+  get: (key) => backend.rowsGet(key),
+  put: (key, value) => backend.rowsPut(key, value),
+  delete: (key) => backend.rowsDelete(key),
+  list: (prefix) => backend.rowsList(prefix),
+  putIfAbsent: (key, value) => backend.rowsPutIfAbsent(key, value),
+  increment: (key) => backend.rowsIncrement(key),
+  // One step each, so two callers cannot interleave: push onto the list at key (keeping the last max), and delete every key under a prefix.
+  append: (key, item, max) => backend.rowsAppend(key, item, max),
+  deletePrefix: (prefix) => backend.rowsDeletePrefix(prefix)
+})
+// %%
+// SQL tables in the Brain's one table database. A Worker has no binding to it: each call is db.sql on brain-db, which
+// decides per table from the statement's plan (the rules are in @tomlarkworthy/brain-db). A Worker owns the tables
+// named with its prefix, brain-x-metrics the tables metrics_*. exec answers { rows, changes }; batch takes
+// [[statement, ...args], …] and runs them as one transaction. One statement each, with no ";".
+sql = ({
+  [platformTag]: "sql",
+  exec: (statement, ...args) => backend.sqlRun([[statement, ...args]]).then((r) => r[0]),
+  batch: (list) => backend.sqlRun(list)
+})
+// %%
+// The table database itself (D1), with no check. The deployer binds it to brain-db and to no other Worker.
+database = ({
+  [platformTag]: "database",
+  batch: (list) => backend.databaseRun(list)
+})
+// %%
+blobs = ({
+  [platformTag]: "blobs",
+  get: (key) => backend.blobGet(key),
+  put: (key, bytes) => backend.blobPut(key, bytes),
+  has: (key) => backend.blobHas(key),
+  delete: (key) => backend.blobDelete(key)
+})
+// %%
+// rows, read through a few seconds of this instance's memory: for what is read on every call and written rarely
+// (a route table, access rules). A write goes to rows and drops this instance's copy; another instance sees it
+// within ttl. Not for a read that is followed by a write of the same key: use rows.
+settings = {
+  const held = new Map();
+  const read = async (k, load) => {
+    const h = held.get(k);
+    if (h && Date.now() - h.at < api.ttl) return h.value;
+    const value = await load();
+    held.set(k, { at: Date.now(), value });
+    return value;
+  };
+  const api = {
+    ttl: 5000,
+    get: (key) => read("get " + key, () => rows.get(key)),
+    list: (prefix = "") => read("list " + prefix, () => rows.list(prefix)),
+    put: async (key, value) => {
+      const done = await rows.put(key, value);
+      held.clear();
+      return done;
+    },
+    delete: async (key) => {
+      const done = await rows.delete(key);
+      held.clear();
+      return done;
+    },
+    clear: () => held.clear()
+  };
+  return api;
+}
+// %%
+config = new Proxy({}, { get: (_, k) => (k === platformTag ? "config" : typeof k === "string" ? backend.config[k] : undefined) })
+// %%
+core = ({ [platformTag]: "core", fetch: (request) => backend.forward("core", request) })
+// %%
+deployer = ({ [platformTag]: "deployer", fetch: (request) => backend.forward("deployer", request) })
+// %%
+// The name of the deployer cell until 2026-10-08. A module that imports guard gets the same cell.
+guard = deployer
+// %%
+assets = ({ [platformTag]: "assets", fetch: (request) => backend.forward("assets", request) })
+// %%
+workers = ({
+  [platformTag]: "workers",
+  has: (name) => false,
+  fetch: (name, request) => backend.forward(name, request)
+})
+// %%
+inbox = ({
+  [platformTag]: "inbox",
+  append: (entry) => backend.xrpc("procedure", "com.lopecode.brain.inbox.append", entry)
+})
+// %%
+xrpc = ({
+  [platformTag]: "xrpc",
+  query: (nsid, params) => backend.xrpc("query", nsid, params),
+  procedure: (nsid, input) => backend.xrpc("procedure", nsid, input),
+  // The same call with the body and the answer as they are: bytes in, a Response out, no error thrown for a status.
+  fetch: (nsid, options) => backend.xrpcFetch(nsid, options)
+})
+// %%
+libraries = new Map()
+// %%
+// A self-contained ES module carried to the Worker as its own file. `source` is text or a FileAttachment.
+library = async (name, source) => {
+  const text = typeof source === "string" ? source : await source.text();
+  const ns = await import(URL.createObjectURL(new Blob([text], { type: "text/javascript" })));
+  libraries.set(ns, { name, text });
+  return ns;
+}
+// %%
+cloudflare = {
+  // A service: a name, a function and a manifest. It is deployed as one Cloudflare Worker, inside the wrapper.
+  const Service = (name, fn, options = {}) => {
+    const service = {
+      name,
+      fn,
+      options,
+      fetch: async (request, { caller = "owner" } = {}) => {
+        const req = request instanceof Request ? request : new Request(request);
+        return typeof fn?.fetch === "function" ? fn.fetch(req, {}, {}) : fn(req, { caller, info: {} });
+      },
+      emit: () => emit(service),
+      deploy: async () => {
+        if (!backend.deploy) throw new Error("no Brain configured: deploy() needs a deployer");
+        return backend.deploy(await emit(service));
+      }
+    };
+    return service;
+  };
+  // Worker: the name of Service until 2026-10-07. The same function.
+  return { [platformTag]: "cloudflare", Service, Worker: Service };
+}
+// %%
+// Everything below the notebook cells in an emitted module. Runs on the Worker and under simulate().
+workerRuntime = (AsyncLocalStorage = null) => {
+  let ENV = null;
+  const tag = Symbol.for("cloudflare-iac.platform");
+  const info = () => (ENV && ENV.BRAIN_INFO) || {};
+  const json = (value, status = 200) => Response.json(value, { status });
+  // Origin. With a call the core forwards comes a reference to who started the chain (x-brain-context, see Origin in
+  // brain-core). It is held for the time this Worker answers that call, and goes back with each call made to the core
+  // in that time: secrets, sql, inbox, xrpc. Work the Worker starts itself (a schedule) holds none.
+  // On Cloudflare the holder is AsyncLocalStorage (flag nodejs_als), so two calls answered at once do not see each
+  // other's. A browser has none: under simulate() one call at a time is held, and while two overlap none is passed on.
+  const held = AsyncLocalStorage ? new AsyncLocalStorage() : null;
+  let one = null, open = 0, mixed = false;
+  const during = async (store, fn) => {
+    if (held) return held.run(store, fn);
+    if (!(ENV && ENV.__sim)) return fn();
+    if (open++ > 0) mixed = true;
+    else one = store;
+    try {
+      return await fn();
+    } finally {
+      if (--open === 0) (one = null), (mixed = false);
+    }
+  };
+  const chain = () => (held ? held.getStore() : ENV && ENV.__sim && !mixed ? one : null) || null;
+  const chained = (headers) => {
+    const now = chain();
+    return now && now.context && !("x-brain-context" in headers) ? { ...headers, "x-brain-context": now.context } : headers;
+  };
+  const core = async (kind, nsid, data) => {
+    if (!ENV.CORE) throw new Error("no core binding for " + nsid);
+    const query = kind === "query";
+    const url = "https://core.internal/xrpc/" + nsid + (query && data ? "?" + new URLSearchParams(data) : "");
+    const headers = { ...chained({ "content-type": "application/json" }), "x-brain-key": ENV.BRAIN_KEY || "" };
+    const r = await ENV.CORE.fetch(
+      new Request(url, query ? { headers } : { method: "POST", headers, body: JSON.stringify(data ?? {}) })
+    );
+    const body = await r.json().catch(() => null);
+    if (!r.ok) throw Object.assign(new Error(body?.message || nsid + " " + r.status), { error: body?.error, status: r.status });
+    return body;
+  };
+  const coreFetch = (nsid, { method = "GET", params = null, body = null, headers = {} } = {}) => {
+    if (!ENV.CORE) throw new Error("no core binding for " + nsid);
+    const url = "https://core.internal/xrpc/" + nsid + (params ? "?" + new URLSearchParams(params) : "");
+    return ENV.CORE.fetch(new Request(url, { method, headers: { ...chained(headers), "x-brain-key": ENV.BRAIN_KEY || "" }, body: method === "GET" ? undefined : body }));
+  };
+  // The bucket is one per Brain. A recipe's keys are kept under its own name, so two recipes cannot read each other's.
+  const blobKey = (key) => (ENV.BRAIN_INFO && ENV.BRAIN_INFO.role === "recipe" ? ENV.BRAIN_INFO.name + "/" : "") + key;
+  // rows on D1: one database per Brain, one table, a Worker's rows under its own name. Each op is one statement,
+  // so two callers cannot interleave inside one. Nothing is billed while no statement runs.
+  let sqlReady = null;
+  const sqlCall = async (op, key, value) => {
+    const t = info().name || "";
+    if (ENV.SQL.sim) return ENV.SQL.sim(op, key, value);
+    await (sqlReady ??= ENV.SQL.prepare("CREATE TABLE IF NOT EXISTS kv (t TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, PRIMARY KEY (t, k)) WITHOUT ROWID")
+      .run()
+      .catch((e) => {
+        sqlReady = null;
+        throw e;
+      }));
+    const q = (sql, ...args) => ENV.SQL.prepare(sql).bind(t, ...args);
+    // Every key that starts with the prefix: from it, up to it followed by the last code point.
+    const hi = (prefix) => prefix + "\u{10FFFF}";
+    if (op === "get") {
+      const r = await q("SELECT v FROM kv WHERE t = ?1 AND k = ?2", key).first();
+      return r ? JSON.parse(r.v) : null;
+    }
+    if (op === "put") return await q("INSERT INTO kv (t, k, v) VALUES (?1, ?2, ?3) ON CONFLICT (t, k) DO UPDATE SET v = excluded.v", key, JSON.stringify(value)).run(), true;
+    if (op === "delete") return (await q("DELETE FROM kv WHERE t = ?1 AND k = ?2", key).run()).meta.changes > 0;
+    if (op === "list") {
+      const r = await q("SELECT k, v FROM kv WHERE t = ?1 AND k >= ?2 AND k < ?3 ORDER BY k", key || "", hi(key || "")).all();
+      return r.results.map((x) => ({ key: x.k, value: JSON.parse(x.v) }));
+    }
+    if (op === "putIfAbsent") return (await q("INSERT OR IGNORE INTO kv (t, k, v) VALUES (?1, ?2, ?3)", key, JSON.stringify(value)).run()).meta.changes > 0;
+    if (op === "increment")
+      return Number((await q("INSERT INTO kv (t, k, v) VALUES (?1, ?2, '1') ON CONFLICT (t, k) DO UPDATE SET v = CAST(CAST(v AS INTEGER) + 1 AS TEXT) RETURNING v", key).first()).v);
+    if (op === "append") {
+      const item = JSON.stringify(value.item), max = value.max || 1000;
+      let n = (await q("INSERT INTO kv (t, k, v) VALUES (?1, ?2, json_array(json(?3))) ON CONFLICT (t, k) DO UPDATE SET v = json_insert(v, '$[#]', json(?3)) RETURNING json_array_length(v) AS n", key, item).first()).n;
+      for (; n > max; n--) await q("UPDATE kv SET v = json_remove(v, '$[0]') WHERE t = ?1 AND k = ?2", key).run();
+      return n;
+    }
+    if (op === "deletePrefix") return (await q("DELETE FROM kv WHERE t = ?1 AND k >= ?2 AND k < ?3", key || "", hi(key || "")).run()).meta.changes;
+    throw new Error("rows: no op " + op);
+  };
+  // sql: db.sql on brain-db, through the core. database: the D1 binding, which only brain-db has. A batch is one transaction.
+  const sqlRun = async (list) => (await core("procedure", "com.lopecode.brain.db.sql", { statements: list })).results;
+  const databaseRun = async (list) => {
+    if (!ENV.DB) throw new Error("this Worker is not bound to the table database");
+    if (ENV.DB.sim) {
+      const out = [];
+      for (const [statement, ...args] of list) out.push(await ENV.DB.sim(statement, args));
+      return out;
+    }
+    const shape = (r) => ({ rows: r.results || [], changes: (r.meta && r.meta.changes) || 0 });
+    const made = list.map(([statement, ...args]) => ENV.DB.prepare(statement).bind(...args));
+    return (await ENV.DB.batch(made)).map(shape);
+  };
+  // The deployer keeps its rows in a Durable Object, which also carries the alarm that ticks it.
+  const rowsCall = async (op, key, value) => {
+    if (ENV.SQL) return sqlCall(op, key, value);
+    const stub = ENV.ROWS.get(ENV.ROWS.idFromName("rows"));
+    const r = await stub.fetch(new Request("https://rows.internal/", { method: "POST", body: JSON.stringify({ op, key, value }) }));
+    return (await r.json()).value;
+  };
+  // A Worker proves which Worker it is to the core and the deployer with the key the deployer gave it at deploy.
+  const keyedRequest = (request) => {
+    const headers = new Headers(request.headers);
+    headers.set("x-brain-key", ENV.BRAIN_KEY || "");
+    return new Request(request, { headers });
+  };
+  const bindingName = (name) => "X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+  const secretsHeld = new Map();
+  const platform = {
+    cloudflare: ((Service) => ({ [tag]: "cloudflare", Service, Worker: Service }))((name, fn, options = {}) => ({ name, fn, options })),
+    // A key the platform bound (this Worker's own key, the kernel's cookie key, the deployer's token) is read from the
+    // binding. Any other secret is asked of secret.get as this Worker, which answers by the secret's rule, and is
+    // held for 5 s: a new value or a changed rule is followed without a deploy. Undefined when unset or refused.
+    // A secret's rule can read the origin, so a value is held for one origin and not handed to another.
+    secrets: new Proxy(
+      {},
+      {
+        get: (_, k) => {
+          if (typeof k !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(k)) return undefined;
+          if (ENV[k] !== undefined) return Promise.resolve(ENV[k]);
+          const now = chain(), slot = k + "|" + (now ? now.origin + "|" + now.via : "");
+          const kept = secretsHeld.get(slot);
+          if (kept && Date.now() - kept.at < 5000) return kept.value;
+          const value = core("query", "com.lopecode.brain.secret.get", { name: k }).then(
+            (r) => r.value,
+            (e) => {
+              if (e.status === 401 || e.status === 403 || e.status === 404) return undefined;
+              secretsHeld.delete(slot);
+              throw e;
+            }
+          );
+          secretsHeld.set(slot, { at: Date.now(), value });
+          return value;
+        }
+      }
+    ),
+    config: new Proxy({}, { get: (_, k) => (typeof k === "string" && ENV ? (ENV.BRAIN_CONFIG || {})[k] : undefined) }),
+    rows: {
+      get: (key) => rowsCall("get", key),
+      put: (key, value) => rowsCall("put", key, value),
+      delete: (key) => rowsCall("delete", key),
+      list: (prefix = "") => rowsCall("list", prefix),
+      putIfAbsent: (key, value) => rowsCall("putIfAbsent", key, value),
+      increment: (key) => rowsCall("increment", key),
+      append: (key, item, max = 1000) => rowsCall("append", key, { item, max }),
+      deletePrefix: (prefix) => rowsCall("deletePrefix", prefix)
+    },
+    sql: {
+      exec: (statement, ...args) => sqlRun([[statement, ...args]]).then((r) => r[0]),
+      batch: (list) => sqlRun(list)
+    },
+    database: { batch: (list) => databaseRun(list) },
+    blobs: {
+      get: async (key) => {
+        const o = await ENV.BLOBS.get(blobKey(key));
+        return o ? new Uint8Array(await o.arrayBuffer()) : null;
+      },
+      put: async (key, bytes) => (await ENV.BLOBS.put(blobKey(key), bytes), true),
+      has: async (key) => !!(await ENV.BLOBS.head(blobKey(key))),
+      delete: async (key) => (await ENV.BLOBS.delete(blobKey(key)), true)
+    },
+    inbox: { append: (entry) => core("procedure", "com.lopecode.brain.inbox.append", entry) },
+    xrpc: {
+      query: (nsid, params) => core("query", nsid, params),
+      procedure: (nsid, input) => core("procedure", nsid, input),
+      fetch: coreFetch
+    },
+    core: { fetch: (request) => ENV.CORE.fetch(keyedRequest(request)) },
+    // GUARD: the binding of a Worker deployed before 2026-10-08.
+    deployer: { fetch: (request) => (ENV.DEPLOYER || ENV.GUARD).fetch(keyedRequest(request)) },
+    assets: { fetch: (request) => ENV.ASSETS.fetch(request) },
+    workers: {
+      has: (name) => !!ENV[bindingName(name)],
+      fetch: (name, request) => {
+        const binding = ENV[bindingName(name)];
+        if (!binding) throw new Error("no binding for worker " + name);
+        return binding.fetch(request);
+      }
+    }
+  };
+  const fetch = (...args) => (ENV && ENV.__sim ? ENV.__sim.fetch(...args) : globalThis.fetch(...args));
+  // `source` is the notebook module this Worker was emitted from: { module, text }.
+  const serve = (init, source = null) => {
+    let ready = null, armed = false;
+    const load = () =>
+      (ready ??= init().catch((e) => {
+        ready = null;
+        throw e;
+      }));
+    // Every response names the Worker and version that produced it. A Worker that passes another's response on
+    // adds itself, so the header lists the whole path, the answering Worker first:
+    //   x-brain-served-by: brain-x-proxy@19650b4ce520, brain-core@da75398cadd2, brain@9fe7177516cd
+    const stamp = (r) => {
+      const me = `${info().name || "unknown"}@${String(info().hash || "").slice(0, 12)}`;
+      try {
+        r.headers.append("x-brain-served-by", me);
+        return r;
+      } catch {}
+      const headers = new Headers(r.headers);
+      headers.append("x-brain-served-by", me);
+      return new Response(r.body, { status: r.status, statusText: r.statusText, headers });
+    };
+    const self = {
+      async fetch(request, env, ctx) {
+        ENV = env;
+        return stamp(await self.answer(request, env, ctx));
+      },
+      async answer(request, env, ctx) {
+        const url = new URL(request.url);
+        const role = info().role || "recipe";
+        const edge = role === "kernel" || role === "deployer" || role === "guard";
+        const inside = url.hostname.endsWith(".internal");
+        // x-brain-guard: the header a deployer from before 2026-10-08 sends.
+        const keyed = !inside && !!env.BRAIN_KEY && (request.headers.get("x-brain-deployer") === env.BRAIN_KEY || request.headers.get("x-brain-guard") === env.BRAIN_KEY);
+        // Only the kernel and the deployer answer the internet. Every other Worker answers bindings, and the deployer
+        // presenting that Worker's own key. A caller on the internet cannot name itself.
+        if (!inside) {
+          const headers = new Headers(request.headers);
+          for (const name of [...headers.keys()]) if (name.startsWith("x-brain-")) headers.delete(name);
+          if (keyed) headers.set("x-brain-caller", "deployer");
+          request = new Request(request, { headers });
+          // A browser drops cookie from a Request it builds; under simulate() put it back.
+          if (env.__sim) Object.defineProperty(request, "headers", { value: headers });
+        }
+        // A Worker with a scheduled function is ticked by an alarm on its rows object as well as by its cron, once a
+        // minute, starting from the first request to its own address. Measured 2026-10-05: cron triggers set through
+        // the API had run 0 times after 30 minutes, and a rollback was missed.
+        if (keyed && url.pathname === "/__tick") {
+          // GET: when the alarm is next due and how its last call went.
+          if (request.method === "GET") return json(await rowsCall("armInfo"));
+          const service = await load();
+          if (service.options.scheduled) await during(null, async () => service.options.scheduled({ alarm: true }, ctx));
+          return json({ ok: true });
+        }
+        if (!inside && !armed && env.ROWS && !env.__sim) {
+          armed = true;
+          ctx.waitUntil(load().then((s) => (s.options.scheduled ? rowsCall("arm", url.origin) : null)).catch(() => void (armed = false)));
+        }
+        if (url.pathname === "/xrpc/_health")
+          return inside || edge || keyed ? json({ ok: true, name: info().name, hash: info().hash }) : new Response("not found", { status: 404 });
+        const asked = url.searchParams.get("worker");
+        // Every Worker describes itself: its manifest, and the module it was emitted from. Both are public; a
+        // Worker that does not answer the internet is reached for them through the kernel and the core.
+        const describes = url.pathname === "/xrpc/com.lopecode.brain.getInfo" ? "info" : url.pathname === "/xrpc/com.lopecode.brain.getSource" ? "source" : null;
+        if (describes && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
+          return new Response(JSON.stringify(describes === "info" ? info() : { worker: info().name, hash: info().hash, module: source ? source.module : null, text: source ? source.text : null }), {
+            headers: { "content-type": "application/json", "access-control-allow-origin": "*" }
+          });
+        if (!inside && !edge && !keyed) return new Response("not found", { status: 404 });
+        try {
+          const fn = (await load()).fn;
+          // Headers named x-brain- were removed above from a call that did not come over a binding.
+          const context = request.headers.get("x-brain-context");
+          const store = context ? { context, origin: request.headers.get("x-brain-origin") || "", via: request.headers.get("x-brain-origin-via") || "" } : null;
+          const out = await during(store, async () =>
+            typeof fn?.fetch === "function"
+              ? await fn.fetch(request, env, ctx)
+              : await fn(request, { caller: request.headers.get("x-brain-caller") || "anonymous", ctx, info: info(), source })
+          );
+          if (!(out instanceof Response)) throw new Error("the function did not return a Response");
+          return out;
+        } catch (e) {
+          return json({ error: "InternalServerError", message: String(e?.message || e) }, 500);
+        }
+      },
+      async scheduled(event, env, ctx) {
+        ENV = env;
+        const service = await load();
+        if (service.options.scheduled) await during(null, async () => service.options.scheduled(event, ctx));
+      }
+    };
+    return self;
+  };
+  class Rows {
+    constructor(state, env) {
+      this.storage = state.storage;
+      this.env = env;
+    }
+    // Calls the Worker this object belongs to, on its own address, with that Worker's key, and sets the next alarm.
+    async alarm() {
+      const origin = await this.storage.get("__tick_origin");
+      await this.storage.setAlarm(Date.now() + 60000);
+      if (!origin) return;
+      const at = Date.now();
+      const last = await globalThis
+        .fetch(origin + "/__tick", { method: "POST", headers: { "x-brain-deployer": this.env.BRAIN_KEY || "" } })
+        .then(async (r) => ({ at, status: r.status, body: r.ok ? undefined : (await r.text()).slice(0, 120) }), (e) => ({ at, error: String((e && e.message) || e) }));
+      await this.storage.put("__tick_last", last);
+    }
+    async fetch(request) {
+      const { op, key, value } = await request.json();
+      const s = this.storage;
+      if (op === "get") return Response.json({ value: (await s.get(key)) ?? null });
+      if (op === "put") return await s.put(key, value), Response.json({ value: true });
+      if (op === "delete") return Response.json({ value: await s.delete(key) });
+      if (op === "list")
+        return Response.json({ value: [...(await s.list({ prefix: key }))].filter(([k]) => !k.startsWith("__tick_")).map(([key, value]) => ({ key, value })) });
+      if (op === "armInfo") return Response.json({ value: { origin: (await s.get("__tick_origin")) ?? null, alarm: await s.getAlarm(), last: (await s.get("__tick_last")) ?? null, now: Date.now() } });
+      if (op === "arm") {
+        await s.put("__tick_origin", key);
+        if ((await s.getAlarm()) === null) await s.setAlarm(Date.now() + 60000);
+        return Response.json({ value: true });
+      }
+      if (op === "putIfAbsent") {
+        if ((await s.get(key)) !== undefined) return Response.json({ value: false });
+        return await s.put(key, value), Response.json({ value: true });
+      }
+      if (op === "increment") {
+        const n = ((await s.get(key)) || 0) + 1;
+        return await s.put(key, n), Response.json({ value: n });
+      }
+      if (op === "append") {
+        const list = [...((await s.get(key)) || []), value.item].slice(-(value.max || 1000));
+        return await s.put(key, list), Response.json({ value: list.length });
+      }
+      if (op === "deletePrefix") {
+        const keys = [...(await s.list({ prefix: key })).keys()].filter((k) => !k.startsWith("__tick_"));
+        for (let i = 0; i < keys.length; i += 128) await s.delete(keys.slice(i, i + 128));
+        return Response.json({ value: keys.length });
+      }
+      return Response.json({ value: null }, { status: 400 });
+    }
+  }
+  return { platform, fetch, serve, Rows };
+}
+// %%
+// Compatibility flags the wrapper needs. The deployer sets them on every Worker; a service does not declare them.
+wrapperFlags = ["nodejs_als"]
+// %%
+// Names a chased cell may not depend on: they exist only in a notebook.
+notebookOnly = new Set([
+  "md", "html", "svg", "tex", "htl", "dot", "mermaid", "Inputs", "Plot", "d3", "width", "now", "invalidation",
+  "visibility", "DOM", "Files", "Generators", "Promises", "FileAttachment", "Mutable", "require", "Library",
+  "SQLite", "DuckDBClient", "vl", "aq", "Arrow", "L", "topojson", "_", "@variable", "viewof", "main", "runtime"
+])
+// %%
+sha256 = async (text) =>
+  [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+// %%
+// What a deploy is compared by. The deployer recomputes it from what it was sent.
+partsHash = (parts, meta) => sha256(JSON.stringify({ parts, meta }))
+// %%
+// What a deploy sends for an emitted service: its module's source and that module's attached files, as this page holds
+// them. The deployer distils that; the parts made here are for the tests and for showing a hash before a deploy.
+asSource = (emitted, doc = globalThis.document) => {
+  const names = /new Map\(\[([^\]]*)\]\.map\(\(name\)/.exec(emitted.source.text);
+  const files = {};
+  for (const name of names ? JSON.parse("[" + names[1] + "]") : []) {
+    const node = doc && doc.getElementById(emitted.source.module + "/" + name);
+    if (node) files[name] = node.textContent;
+  }
+  return { module: emitted.source.module, source: emitted.source.text, files };
+}
+// %%
+// Walks the runtime's variable graph from the cell holding `service` and writes a plain ES module.
+emit = async (service) => {
+  // An imported name is an alias variable whose one input lives in the exporting module.
+  const follow = (v) => {
+    while ((v._inputs || []).length === 1 && v._inputs[0]._module && v._inputs[0]._module !== v._module)
+      v = v._inputs[0];
+    return v;
+  };
+  // Another module's import of the service holds the same value, and can come first in the runtime's order:
+  // on 2026-10-06 09:30 the core was emitted with the page's module as its source.
+  const held = [...runtime._variables].find((v) => v._value === service);
+  if (!held) throw new Error(`cloudflare.Service("${service.name}") is not the value of a cell`);
+  const root = follow(held);
+  const refuse = (cell, why) => {
+    throw new Error(`cannot deploy "${service.name}": cell "${cell}" ${why}`);
+  };
+  const seen = new Map(), cells = [], libs = new Map(), used = new Set(), secretNames = new Set();
+  const taken = new Set(["fetch"]);
+  const ident = (name) => {
+    let id = name.replace(/[^A-Za-z0-9_$]/g, "_");
+    if (/^[0-9]/.test(id)) id = "_" + id;
+    while (taken.has(id)) id += "_";
+    taken.add(id);
+    return id;
+  };
+  const visit = (v0, from) => {
+    const v = follow(v0);
+    if (seen.has(v)) return seen.get(v);
+    const name = v._name;
+    const value = v._value;
+    const kind = value != null ? value[platformTag] : undefined;
+    let ref;
+    if (kind === "quickjs") {
+      used.add(kind);
+      ref = "__quickjs";
+    } else if (kind) {
+      used.add(kind);
+      ref = "__rt.platform." + kind;
+    } else if (value != null && libraries.has(value)) {
+      const lib = libraries.get(value);
+      libs.set(lib.name, lib.text);
+      ref = "__lib_" + lib.name.replace(/[^A-Za-z0-9_$]/g, "_");
+    } else if (v._module === runtime._builtin || v._type === 2) {
+      if (notebookOnly.has(name) || typeof globalThis[name] === "undefined")
+        refuse(from, `depends on ${name}, which exists only in a notebook`);
+      ref = name;
+    } else {
+      if (!name) refuse(from, "depends on an unnamed cell");
+      if (/^(viewof|mutable|initial) /.test(name)) refuse(name.replace(/^\w+ /, ""), "is a viewof or mutable cell");
+      const def = v._definition;
+      if (typeof def !== "function") refuse(name, "has no definition");
+      if (/Generator/.test(def.constructor.name)) refuse(name, "is a generator");
+      for (const i of v._inputs || [])
+        if (/^(viewof|mutable|initial) /.test(i._name || "")) refuse(name, "is a viewof or mutable cell");
+      const text = String(def);
+      const deps = (v._inputs || []).map((i) => visit(i, name));
+      // Secret names are read from the parsed source, so a computed name cannot be bound.
+      if (deps.includes("__rt.platform.secrets")) {
+        const ast = acorn.parse("(" + text + ")", { ecmaVersion: "latest" });
+        const fn = ast.body[0].expression;
+        deps.forEach((d, i) => {
+          const param = fn.params[i];
+          if (d !== "__rt.platform.secrets" || !param || param.type !== "Identifier") return;
+          acorn_walk.fullAncestor(ast, (node, ancestors) => {
+            if (node.type !== "Identifier" || node.name !== param.name || node === param) return;
+            const parent = ancestors[ancestors.length - 2];
+            const member = parent.type === "MemberExpression" && parent.object === node;
+            const key = !member
+              ? null
+              : !parent.computed
+              ? parent.property.name
+              : parent.property.type === "Literal"
+              ? parent.property.value
+              : null;
+            if (typeof key !== "string" || !secretName.test(key)) refuse(name, "reads a secret by a computed name");
+            secretNames.add(key);
+          });
+        });
+      }
+      ref = ident(name);
+      cells.push({ id: ref, name, text, deps });
+    }
+    seen.set(v, ref);
+    return ref;
+  };
+  const rootRef = visit(root, service.name);
+
+  const role = service.options.role || "recipe";
+  // A system Worker is routed like a recipe and deployed like the core: under probation, and not by a recipe's rules.
+  const worker = role === "recipe" ? "brain-x-" + service.name : role === "kernel" ? "brain" : role === "system" ? "brain-" + service.name : "brain-" + role;
+  const lines = [`// ${worker}: emitted by @tomlarkworthy/cloudflare-iac. Edit the notebook, not this file.`];
+  for (const name of libs.keys())
+    lines.push(`import * as __lib_${name.replace(/[^A-Za-z0-9_$]/g, "_")} from "./lib/${name}.js";`);
+  // The module the service's cell is in, as source. The Worker serves it, and it is part of what is hashed, so
+  // what runs and what it was made from are deployed and put back together.
+  const source = await moduleSource(root._module);
+  if (source) lines.push(`import __source from "./source.js";`);
+  // The interpreter's WebAssembly is a part of the Worker. Cloudflare compiles it at upload.
+  if (used.has("quickjs")) lines.push(`import __quickjs_wasm from "./quickjs.wasm";`, `const __quickjs = { module: async () => __quickjs_wasm };`);
+  // The wrapper holds the origin of the call being answered in AsyncLocalStorage. The deployer sets the flag nodejs_als.
+  lines.push(`import { AsyncLocalStorage as __als } from "node:async_hooks";`);
+  lines.push(`const __rt = (${String(workerRuntime)})(__als);`, `const fetch = __rt.fetch;`, `const __init = async () => {`);
+  for (const c of cells) lines.push(`  const ${c.id} = await (${c.text})(${c.deps.join(", ")});`);
+  lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
+  if (used.has("rows") && (role === "deployer" || role === "guard")) lines.push(`export const Rows = __rt.Rows;`);
+  // A cell value of the tab is never copied: every chased cell is evaluated again on the Worker from its source.
+
+  const parts = [
+    { path: "worker.js", text: lines.join("\n") + "\n" },
+    ...[...libs].map(([name, text]) => ({ path: `lib/${name}.js`, text })),
+    ...(source ? [{ path: "source.js", text: "export default " + JSON.stringify(source) + ";\n" }] : []),
+    ...(used.has("quickjs") ? [{ path: "quickjs.wasm", base64: await quickjsWasmText() }] : [])
+  ];
+  const resources = [...used].filter((k) => k !== "cloudflare" && k !== "secrets" && k !== "config" && k !== "quickjs").sort();
+  const meta = {
+    worker,
+    role,
+    module: source ? source.module : null,
+    // The methods of other services this one calls. A name, never a Worker.
+    calls: [...(service.options.calls || [])].sort(),
+    crons: service.options.crons || [],
+    // The alarm that ticks a scheduled Worker calls it on its own address, which needs this flag.
+    flags: [...new Set([...(service.options.flags || []), ...(service.options.scheduled ? ["global_fetch_strictly_public"] : [])])],
+    methods: Object.keys(service.options.methods || {}).sort(),
+    access: Object.fromEntries(
+      Object.entries(service.options.methods || {}).sort().map(([nsid, m]) => [nsid, { type: m.type || "procedure", who: m.who || "owner", ...(m.allow ? { allow: checkedRule(nsid, m.allow) } : {}), ...(m.fixed ? { fixed: true } : {}) }])
+    ),
+    paths: (service.options.paths || []).map((p) => (p.allow ? { ...p, allow: checkedRule(p.path, p.allow) } : p)),
+    secrets: [...secretNames].sort(),
+    resources,
+    bindings: [
+      // Only the kernel's and the core's named secrets are bound. A recipe reads its secrets through the core.
+      ...(role === "kernel" || role === "core" || role === "deployer" ? [...secretNames].sort().map((name) => ({ type: "secret_text", name })) : []),
+      ...(used.has("rows") ? [role === "deployer" ? { type: "durable_object_namespace", name: "ROWS", class_name: "Rows" } : { type: "d1", name: "SQL" }] : []),
+      ...(used.has("database") ? [{ type: "d1", name: "DB", own: true }] : []),
+      ...(used.has("blobs") ? [{ type: "r2_bucket", name: "BLOBS", bucket_name: "brain-blobs" }] : []),
+      ...(used.has("inbox") || used.has("xrpc") || used.has("sql") || used.has("core") || (secretNames.size && (role === "recipe" || role === "system")) ? [{ type: "service", name: "CORE", service: "brain-core" }] : []),
+      ...(used.has("deployer") ? [{ type: "service", name: "DEPLOYER", service: "brain-deployer" }] : []),
+      ...(used.has("assets") ? [{ type: "assets", name: "ASSETS" }] : [])
+    ]
+  };
+  const hash = await partsHash(parts, meta);
+  return { name: service.name, parts, meta, hash, source, info: { name: worker, hash, ...meta, bindings: undefined } };
+}
+// %%
+// A module of this page as { module, text }: its name and the source the exporter writes for it. Null for a module
+// the page cannot name.
+moduleSource = async (module) => {
+  let name = [...(runtime.mains || [])].find(([, m]) => m === module)?.[0] || null;
+  if (!name) {
+    const loader = [...runtime._variables].find((v) => v._value === module && /^module @/.test(v._name || ""));
+    name = loader ? loader._name.slice("module ".length) : null;
+  }
+  if (!name) return null;
+  try {
+    return { module: name, text: (await exportModuleJS(name)).source };
+  } catch {
+    return null;
+  }
+}
+// %%
+// Runs the emitted module in the tab with every Cloudflare binding replaced by a recording fake.
+simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql } = {}) => {
+  const emitted = await service.emit();
+  const url = (text) => URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
+  let main = emitted.parts[0].text;
+  for (const part of emitted.parts.slice(1)) {
+    if (part.base64 == null) main = main.split(`"./${part.path}"`).join(JSON.stringify(url(part.text)));
+    // A browser cannot import WebAssembly as a module, so the import becomes a compile.
+    else main = main.replace(/^import (\w+) from "\.\/quickjs\.wasm";$/m, (_, name) => `const ${name} = await WebAssembly.compile(Uint8Array.from(atob(${JSON.stringify(part.base64)}), (c) => c.charCodeAt(0)));`);
+  }
+  // A browser has no node:async_hooks. The wrapper then holds one call at a time (see workerRuntime).
+  main = main.replace(/^import \{ AsyncLocalStorage as __als \} from "node:async_hooks";$/m, "const __als = null;");
+  const mod = await import(url(main));
+  const sim = { emitted, inbox: [], rows: rows || new Map(), blobs: blobs || new Map(), requests: [], calls: [] };
+  const reply = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
+  // The same rows for both stores: the deployer's Durable Object and every other Worker's D1.
+  const rowsOp = (op, key, value) => {
+    const r = sim.rows;
+    if (op === "get") return r.has(key) ? r.get(key) : null;
+    if (op === "put") return r.set(key, value), true;
+    if (op === "delete") return r.delete(key);
+    if (op === "putIfAbsent") return r.has(key) ? false : (r.set(key, value), true);
+    if (op === "increment") return r.set(key, (r.get(key) || 0) + 1), r.get(key);
+    if (op === "append") return r.set(key, [...(r.get(key) || []), value.item].slice(-(value.max || 1000))), r.get(key).length;
+    if (op === "deletePrefix") return [...r.keys()].filter((k) => k.startsWith(key)).map((k) => r.delete(k)).length;
+    return [...r].filter(([k]) => k.startsWith(key)).sort(([a], [b]) => (a < b ? -1 : 1)).map(([key, value]) => ({ key, value }));
+  };
+  const env = {
+    ...secrets,
+    BRAIN_INFO: { ...JSON.parse(JSON.stringify(emitted.info)), ...info },
+    BRAIN_CONFIG: config,
+    ASSETS: { fetch: async (request) => (assets ? assets(request) : new Response("no asset", { status: 404 })) },
+    __sim: {
+      fetch: async (input, init) => {
+        const request = new Request(input, init);
+        sim.requests.push({ method: request.method, url: request.url });
+        if (!fetch) throw new Error("simulate: outbound fetch to " + request.url + " and no fake was given");
+        return fetch(request);
+      }
+    },
+    CORE: {
+      fetch: async (request) => {
+        if (core) return core(request);
+        const nsid = new URL(request.url).pathname.replace("/xrpc/", "");
+        const data = request.method === "POST" ? await request.json() : Object.fromEntries(new URL(request.url).searchParams);
+        if (nsid === "com.lopecode.brain.inbox.append") {
+          const seen = sim.inbox.find((e) => e.key === data.key);
+          if (seen) return reply({ id: seen.id, duplicate: true });
+          sim.inbox.push({ id: sim.inbox.length + 1, ...data });
+          return reply({ id: sim.inbox.length });
+        }
+        // db.sql as brain-db would answer it, with no check: the test's sql function is the database.
+        if (nsid === "com.lopecode.brain.db.sql" && sql) {
+          const results = [];
+          for (const [statement, ...args] of data.statements) results.push(await sql(statement, args));
+          return reply({ results });
+        }
+        sim.calls.push({ nsid, data });
+        // `stored` are the secrets brain-db would hand this Worker; `secrets` are bound keys.
+        if (nsid === "com.lopecode.brain.secret.get") return data.name in stored ? reply({ name: data.name, value: stored[data.name] }) : reply({ error: "NotFound", message: "no such secret" }, 404);
+        return reply({ error: "MethodNotImplemented", message: nsid }, 501);
+      }
+    },
+    DEPLOYER: { fetch: async (request) => (deployer || guard ? (deployer || guard)(request) : reply({ error: "NoDeployer" }, 501)) },
+    BLOBS: {
+      get: async (key) => (sim.blobs.has(key) ? { arrayBuffer: async () => sim.blobs.get(key).buffer } : null),
+      put: async (key, bytes) => void sim.blobs.set(key, new Uint8Array(bytes)),
+      head: async (key) => (sim.blobs.has(key) ? {} : null),
+      delete: async (key) => void sim.blobs.delete(key)
+    },
+    ...(emitted.meta.role === "deployer" ? {} : { SQL: { sim: async (op, key, value) => rowsOp(op, key, value) } }),
+    // No SQL engine runs in a page: a test gives sql(statement, args) => { rows, changes } and answers for its statements.
+    DB: { sim: async (statement, args) => (sql ? sql(statement, args) : Promise.reject(new Error("simulate was given no sql function"))) },
+    ROWS: { idFromName: (name) => name, get: () => ({ fetch: async (request) => (({ op, key, value }) => reply({ value: rowsOp(op, key, value) }))(await request.json()) }) }
+  };
+  for (const [name, handler] of Object.entries(workers))
+    env["X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_")] = { fetch: async (request) => handler(request) };
+  sim.env = env;
+  sim.fetch = (request, init) => {
+    const req = request instanceof Request ? request : new Request(request, init);
+    if (init && init.headers) Object.defineProperty(req, "headers", { value: new Headers(init.headers) });
+    return mod.default.fetch(req, env, { waitUntil() {} });
+  };
+  sim.scheduled = () => mod.default.scheduled({ scheduledTime: Date.now() }, env, { waitUntil() {} });
+  return sim;
+}
+// %%
+md`## Fixtures and tests
+
+Cells named \`fx_*\` exist for the tests. Three of them are services the emit must refuse.`
+// %%
+fx_double = (x) => x * 2
+// %%
+fx_base = 7
+// %%
+// Hono 4.13.12 as one ES module. Import it to route a service: it travels to the Worker as lib/hono.js.
+hono = library("hono", FileAttachment("hono.js"))
+// %%
+md`## Distilling in the deployer
+
+A deploy is module source. The deployer runs it in QuickJS with \`distilIn\`, which loads the module into an Observable runtime, computes the service's cell and calls this module's \`emit\` on it. The sandbox has no network and no bindings: one host call gives it module text, attachment text and SHA-256.
+
+| | |
+|---|---|
+| \`quickjs\` | platform cell. \`quickjs.module()\` is the interpreter's WebAssembly: a part of the Worker, an attachment in the notebook |
+| \`quickjsLib\` | \`quickjs-emscripten-core\` 0.32.0 as one module; \`quickjsLib.load(wasm)\` |
+| \`distillerData\` | what distilling needs and a running Worker does not: this module's source, the Observable runtime, acorn 8.18.0, acorn-walk 8.3.5, \`hono.js\`, \`cel.js\` |
+| \`distilIn(interpreter, data, { module, source, cell, sources, files })\` | \`interpreter()\` gives a new QuickJS instance. \`{ parts, meta, hash }\`. \`cell\` defaults to the one cell named \`*_service\`. \`sources\` are other modules by name; \`files\` are the module's attachments by name |
+
+An import of a module that is neither \`module\`, in \`sources\`, nor this one fails by name. The imports of a service that are never computed (the test library, the plugin registry) are never loaded.`
+// %%
+quickjs = {
+  let made;
+  return {
+    [platformTag]: "quickjs",
+    module: () => (made ??= quickjsWasmText().then((b64) => WebAssembly.compile(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))))
+  };
+}
+// %%
+quickjsWasmText = () => FileAttachment("quickjs.wasm.b64").text()
+// %%
+quickjsLib = library("quickjs", FileAttachment("quickjs.js"))
+// %%
+distillerData = library(
+  "distiller-data",
+  "export default " +
+    JSON.stringify({
+      modules: {
+        "observable-runtime": await FileAttachment("observable-runtime.js").text(),
+        acorn: await FileAttachment("acorn.js").text(),
+        "acorn-walk": await FileAttachment("acorn-walk.js").text(),
+        "@tomlarkworthy/cloudflare-iac": (await exportModuleJS("@tomlarkworthy/cloudflare-iac")).source
+      },
+      content: {
+        "@tomlarkworthy/cloudflare-iac/hono.js": await FileAttachment("hono.js").text(),
+        "@tomlarkworthy/cloudflare-iac/cel.js": await FileAttachment("cel.js").text()
+      },
+      // Not read when distilling. The deployer hands these to a page, which needs them to emit a deployer for a new Brain.
+      files: {
+        "quickjs.js": await FileAttachment("quickjs.js").text(),
+        "quickjs.wasm.b64": await FileAttachment("quickjs.wasm.b64").text()
+      }
+    }) +
+    ";\n"
+)
+// %%
+// Self-contained: the deployer carries it as text. The two inner functions are run inside QuickJS, so they name
+// nothing but globals of the sandbox.
+distilIn = async (interpreter, data, { module, source, cell = null, sources = {}, files = {} }) => {
+  // Before anything else in the sandbox: the few names the runtime and emit touch that QuickJS does not have.
+  const prelude = function () {
+    const host = globalThis.__hostCall;
+    globalThis.window = globalThis;
+    globalThis.lopecode = { contentSync: (id) => ({ status: 200, mime: "text/javascript", bytes: host("content", id) }) };
+    globalThis.Blob = class Blob {
+      constructor(parts) {
+        this.__t = parts.map((p) => (p && p.__t != null ? p.__t : String(p))).join("");
+      }
+      async text() {
+        return this.__t;
+      }
+    };
+    // A cell that names one of these is copied to the Worker as text and runs there; here they only have to exist.
+    for (const n of ["Request", "Response", "Headers", "URLSearchParams", "AbortController", "WebSocket", "FormData", "File", "ReadableStream", "WritableStream", "TransformStream", "DecompressionStream", "CompressionStream", "WebAssembly"])
+      globalThis[n] = class {
+        constructor() {
+          throw new Error(n + " is not available while distilling");
+        }
+      };
+    for (const n of ["fetch", "atob", "btoa", "structuredClone", "queueMicrotask"])
+      globalThis[n] = () => {
+        throw new Error(n + " is not available while distilling");
+      };
+    globalThis.URL = class URL {
+      constructor() {
+        throw new Error("URL is not available while distilling");
+      }
+      static createObjectURL(b) {
+        return host("register", b.__t);
+      }
+      static revokeObjectURL() {}
+    };
+    // A module written by the exporter spells a dynamic import importShim(, and so does this cell once it has been
+    // through the exporter: written plainly here, the line below became a function that calls itself.
+    globalThis.importShim = new Function("spec", "return imp" + "ort(spec)");
+    globalThis.console = { log: () => {}, error: () => {}, warn: () => {} };
+    globalThis.setImmediate = (f) => {
+      Promise.resolve().then(f);
+    };
+    globalThis.setTimeout = (f) => {
+      Promise.resolve().then(f);
+      return 0;
+    };
+    globalThis.clearTimeout = () => {};
+    globalThis.TextEncoder = class TextEncoder {
+      encode(s) {
+        const o = [];
+        for (const ch of String(s)) {
+          const c = ch.codePointAt(0);
+          if (c < 0x80) o.push(c);
+          else if (c < 0x800) o.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+          else if (c < 0x10000) o.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+          else o.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+        }
+        return new Uint8Array(o);
+      }
+    };
+    globalThis.TextDecoder = class TextDecoder {
+      decode(b) {
+        b = b instanceof Uint8Array ? b : new Uint8Array(b || []);
+        let s = "", i = 0;
+        while (i < b.length) {
+          const c = b[i++];
+          let p = c;
+          if (c >= 0xf0) p = ((c & 7) << 18) | ((b[i++] & 63) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63);
+          else if (c >= 0xe0) p = ((c & 15) << 12) | ((b[i++] & 63) << 6) | (b[i++] & 63);
+          else if (c >= 0xc0) p = ((c & 31) << 6) | (b[i++] & 63);
+          s += String.fromCodePoint(p);
+        }
+        return s;
+      }
+    };
+    globalThis.crypto = {
+      subtle: {
+        digest: async (alg, bytes) => {
+          const b = new Uint8Array(bytes.buffer || bytes);
+          let h = "";
+          for (let i = 0; i < b.length; i++) h += (b[i] < 16 ? "0" : "") + b[i].toString(16);
+          const hex = host("sha256hex", h);
+          const out = new Uint8Array(hex.length / 2);
+          for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+          return out.buffer;
+        }
+      }
+    };
+  };
+  const main = async function (name, cell) {
+    const host = globalThis.__hostCall;
+    const { Runtime } = await import("observable-runtime");
+    const runtime = new Runtime({});
+    runtime.fileAttachments = (find) => (n) => {
+      const r = find(n);
+      if (!r) throw new Error("no attachment " + n);
+      return { url: async () => r.url, text: async () => host("blobText", r.url) };
+    };
+    const define = (await import("/" + name + ".js?v=4")).default;
+    // Every cell that could be the service is computed; a test cell named *_service is not one.
+    const wanted = (n) => (cell ? n === cell : /_service$/.test(n || "") && !/^test_/.test(n));
+    const found = [], failed = [];
+    let waiting = 0, done;
+    const settled = new Promise((a) => (done = a));
+    const settle = () => --waiting || done();
+    const module = runtime.module(define, (n) => {
+      if (!wanted(n)) return undefined;
+      waiting++;
+      return { fulfilled: (v) => (v && v.emit && found.push([n, v]), settle()), rejected: (e) => (failed.push(n + ": " + String((e && e.message) || e)), settle()) };
+    });
+    runtime.mains = new Map([[name, module]]);
+    if (!waiting) throw new Error(cell ? name + " has no cell " + cell : name + " has no cell named *_service");
+    await settled;
+    if (failed.length && !found.length) throw new Error(failed.join("; "));
+    if (!found.length) throw new Error(cell ? cell + " is not a service in " + name : "no cell named *_service holds a service in " + name);
+    if (found.length > 1) throw new Error(name + " has " + found.length + " services (" + found.map((f) => f[0]).join(", ") + "): name the cell");
+    const e = await found[0][1].emit();
+    // The deployer holds what distilling needs; it does not hold what distilling the deployer needs.
+    if (e.meta.role === "deployer") throw new Error("the deployer is not distilled by a deployer");
+    return JSON.stringify({ parts: e.parts, meta: e.meta, hash: e.hash });
+  };
+  const one = (lines) => lines.join("\n");
+  const stubs = {
+    "@tomlarkworthy/runtime-sdk": one(['export default function define(runtime, observer) { const main = runtime.module(); main.variable(observer("runtime")).define("runtime", [], () => runtime); return main; }']),
+    // The source is an input here, so the exporter answers with what was submitted.
+    "@tomlarkworthy/exporter-3": one(['export default function define(runtime, observer) { const main = runtime.module(); main.variable(observer("exportModuleJS")).define("exportModuleJS", [], () => async (name) => ({ source: globalThis.__hostCall("source", name) })); return main; }']),
+    "@tomlarkworthy/acorn-8-11-3": one(['import * as acorn from "acorn"; import * as acorn_walk from "acorn-walk";', 'export default function define(runtime, observer) { const main = runtime.module(); main.variable(observer("acorn")).define("acorn", [], () => acorn); main.variable(observer("acorn_walk")).define("acorn_walk", [], () => acorn_walk); return main; }'])
+  };
+  const sourceOf = (name) => (name === module ? source : sources[name] != null ? sources[name] : data.modules[name]);
+  // SHA-256 over bytes given as hex. A host call from QuickJS cannot await, so crypto.subtle is no use.
+  const sha = (hex) => {
+    const K = new Uint32Array(64);
+    for (let c = 2, n = 0; n < 64; c++) {
+      let prime = true;
+      for (let d = 2; d * d <= c; d++) if (c % d === 0) prime = false;
+      if (prime) K[n++] = (Math.cbrt(c) % 1) * 2 ** 32;
+    }
+    const len = hex.length / 2, total = (((len + 8) >> 6) + 1) << 6;
+    const m = new Uint8Array(total);
+    for (let i = 0; i < len; i++) m[i] = parseInt(hex.substr(i * 2, 2), 16);
+    m[len] = 0x80;
+    const dv = new DataView(m.buffer);
+    dv.setUint32(total - 8, Math.floor((len * 8) / 2 ** 32));
+    dv.setUint32(total - 4, (len * 8) >>> 0);
+    const h = new Uint32Array([0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]);
+    const w = new Uint32Array(64), r = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let o = 0; o < total; o += 64) {
+      for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+      for (let i = 16; i < 64; i++) w[i] = (w[i - 16] + (r(w[i - 15], 7) ^ r(w[i - 15], 18) ^ (w[i - 15] >>> 3)) + w[i - 7] + (r(w[i - 2], 17) ^ r(w[i - 2], 19) ^ (w[i - 2] >>> 10))) >>> 0;
+      let [a, b, c, d, e, f, g, hh] = h;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (hh + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) >>> 0;
+        const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+        hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+      h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+    }
+    return [...h].map((x) => x.toString(16).padStart(8, "0")).join("");
+  };
+  const blobs = new Map();
+  const load = (spec) => {
+    if (spec.startsWith("blob:")) return blobs.get(spec);
+    if (data.modules[spec] != null && spec[0] !== "@") return data.modules[spec];
+    const m = /^\/(@[^/]+\/[^/.]+)\.js(\?.*)?$/.exec(spec);
+    const text = m && m[1] !== module && stubs[m[1]] ? stubs[m[1]] : m ? sourceOf(m[1]) : null;
+    if (text == null) throw new Error("no source for " + (m ? m[1] : spec));
+    return text;
+  };
+  const hostCall = (name, arg) => {
+    if (name === "content") {
+      const id = decodeURIComponent(arg), own = module + "/";
+      return id.startsWith(own) && files[id.slice(own.length)] != null ? files[id.slice(own.length)] : data.content[id] != null ? data.content[id] : "";
+    }
+    if (name === "register") {
+      const url = "blob:distil/" + blobs.size;
+      blobs.set(url, arg);
+      return url;
+    }
+    if (name === "blobText") return blobs.get(arg);
+    if (name === "sha256hex") return sha(arg);
+    if (name === "source") return sourceOf(arg) || "";
+    throw new Error("no host call " + name);
+  };
+  // A new instance of the interpreter for each distil, dropped whole afterwards. Freeing a runtime after a failed
+  // run aborts the instance (seen 2026-10-06: "Assertion failed: list_empty(&rt->gc_obj_list)"), and nothing of
+  // one distil should be reachable from the next.
+  const quickjs = await interpreter();
+  const rt = quickjs.newRuntime();
+  rt.setMemoryLimit(64 * 1024 * 1024);
+  rt.setMaxStackSize(1024 * 1024);
+  rt.setModuleLoader((name) => load(name), (base, name) => name);
+  const vm = rt.newContext();
+  vm.newFunction("__hostCall", (a, b) => vm.newString(hostCall(vm.getString(a), vm.getString(b)))).consume((f) => vm.setProp(vm.global, "__hostCall", f));
+  const run = (code, file) => {
+    const r = vm.evalCode(code, file, { type: "global" });
+    if (r.error) {
+      const e = vm.dump(r.error);
+      throw new Error(file + ": " + ((e && e.message) || JSON.stringify(e)));
+    }
+  };
+  run("(" + String(prelude) + ")()", "prelude.js");
+  run("(" + String(main) + ")(" + JSON.stringify(module) + ", " + JSON.stringify(cell) + ").then((v) => { globalThis.__result = v; }, (e) => { globalThis.__error = String((e && e.message) || e); });", "main.js");
+  for (;;) {
+    const p = rt.executePendingJobs();
+    if (p.error) {
+      const e = vm.dump(p.error);
+      throw new Error((e && e.message) || JSON.stringify(e));
+    }
+    if (!p.value) break;
+  }
+  const read = (k) => vm.dump(vm.getProp(vm.global, k));
+  const failed = read("__error"), result = read("__result");
+  if (failed) throw new Error(failed);
+  if (!result) throw new Error("the sandbox stopped with no answer");
+  return JSON.parse(result);
+}
+// %%
+test_distils_in_quickjs_to_the_same_hash = {
+  // fx_service imports a function from another module, so its source is passed by name.
+  const data = distillerData.default;
+  const fixtures = (await exportModuleJS("@tomlarkworthy/cloudflare-iac-fixtures")).source;
+  const quick = async () => quickjsLib.load(await quickjs.module());
+  const out = await distilIn(quick, data, { module: "@tomlarkworthy/cloudflare-iac", source: data.modules["@tomlarkworthy/cloudflare-iac"], cell: "fx_service", sources: { "@tomlarkworthy/cloudflare-iac-fixtures": fixtures } });
+  const here = await fx_service.emit();
+  expect(out.parts.map((p) => p.path)).toEqual(here.parts.map((p) => p.path));
+  expect(out.hash).toBe(here.hash);
+  let missing;
+  try {
+    await distilIn(quick, data, { module: "@tomlarkworthy/cloudflare-iac", source: data.modules["@tomlarkworthy/cloudflare-iac"], cell: "fx_service" });
+  } catch (e) {
+    missing = e.message;
+  }
+  expect(missing).toContain("no source for @tomlarkworthy/cloudflare-iac-fixtures");
+  let wrong;
+  try {
+    await distilIn(quick, data, { module: "@tomlarkworthy/cloudflare-iac", source: data.modules["@tomlarkworthy/cloudflare-iac"], cell: "fx_base" });
+  } catch (e) {
+    wrong = e.message;
+  }
+  expect(wrong).toBe("fx_base is not a service in @tomlarkworthy/cloudflare-iac");
+  return `${out.hash.slice(0, 12)} in the tab and in QuickJS`;
+}
+// %%
+md`## Access rules
+
+A method or a path is open to whoever its rule says. The core decides, before it forwards.
+
+\`\`\`
+who: "anyone"                 true
+who: "workers"                caller.trusted || caller.kind in ["worker", "deployer"]
+who: "worker:brain-x-NAME"    caller.trusted || caller.id == "worker:brain-x-NAME"
+who: "owner", or nothing      caller.trusted
+allow: "<expression>"         the expression, in place of the line who would give
+\`\`\`
+
+A rule is one [CEL](https://github.com/google/cel-spec) expression, evaluated by [\`@marcbachmann/cel-js\`](https://github.com/marcbachmann/cel-js). The call goes ahead only if the expression is \`true\`. Any other value, a missing field or an error refuses it. \`allow\` is the whole decision: the owner is let in only if the expression says so. A rule that does not parse stops \`emit\`.
+
+| an expression reads | |
+|---|---|
+| \`caller.id\` | \`owner\`, \`anonymous\`, \`deployer\`, \`token:NAME\`, \`did:plc:…\`, \`worker:brain-x-NAME\` |
+| \`caller.kind\` | \`owner\`, \`anonymous\`, \`deployer\`, \`token\`, \`did\`, \`worker\` |
+| \`caller.did\`, \`caller.worker\`, \`caller.token\` | the DID, the Worker name, the token name; \`""\` for another kind |
+| \`caller.session\` | the owner in their own tab |
+| \`caller.trusted\` | the owner, or a token or granted account the kernel has checked against this method |
+| \`request.method\` | the NSID, or \`""\` for a path |
+| \`request.path\`, \`request.verb\` | \`/static/site/a.css\`, \`GET\` |
+| \`request.params\` | the query string as a map of strings. \`request.params.name\` is an error when \`name\` is absent; test with \`has(request.params.name)\`. |
+
+\`\`\`js
+cloudflare.Service("notes", app, {
+  methods: {
+    "com.lopecode.brain.notes.read": { type: "query", allow: 'caller.trusted || request.params.name.startsWith("pub/")' },
+    "com.lopecode.brain.notes.write": { type: "procedure", allow: 'caller.did in ["did:plc:friend"] || caller.session' }
+  },
+  paths: [{ path: "/notes/*", allow: 'request.verb == "GET"' }]
+})
+\`\`\`
+
+The request body is not read. A rule is part of the service's source: changing one is a deploy.`
+// %%
+// @marcbachmann/cel-js 8.0.0 as one ES module (cel-entry.js, esbuild). It walks a parsed tree and calls no eval, so it runs in a Worker. Travels as lib/cel.js.
+cel = library("cel", FileAttachment("cel.js"))
+// %%
+// A rule that does not parse stops the emit, so it is never deployed.
+checkedRule = (name, expression) => {
+  try {
+    cel.parse(expression);
+  } catch (e) {
+    throw new Error(`${name}: the rule does not parse: ${String((e && e.message) || e).split("\n")[0]}`);
+  }
+  return expression;
+}
+// %%
+// A method's or a path's rule as one CEL expression. `allow` is the expression; `who` is short for one of four.
+ruleExpression = (rule) =>
+  // "guard": the deployer's id and kind in a rule written before 2026-10-08. Read as "deployer".
+  (typeof (rule && rule.allow) === "string" ? rule.allow.replace(/"guard"/g, '"deployer"') : rule && rule.allow) ||
+  (rule && rule.who === "anyone"
+    ? "true"
+    : rule && rule.who === "workers"
+      ? 'caller.trusted || caller.kind in ["worker", "deployer"]'
+      : /^worker:/.test((rule && rule.who) || "")
+        ? `caller.trusted || caller.id == ${JSON.stringify(rule.who)}`
+        : "caller.trusted")
+// %%
+// What an expression may read about the caller. Every field is always present, so a rule never fails on a missing one.
+callerOf = (who) => {
+  // "guard": what a core from before 2026-10-08 calls the deployer.
+  const id = ((who && who.caller) || "anonymous").replace(/^guard$/, "deployer");
+  const kind = /^(token|did|worker):/.test(id) ? id.split(":")[0] : id;
+  return {
+    id,
+    kind,
+    did: kind === "did" ? id : "",
+    worker: kind === "worker" ? id.slice("worker:".length) : "",
+    token: kind === "token" ? id.slice("token:".length) : "",
+    // The owner in their own tab, not a token or a granted account acting for them.
+    session: id === "owner" && ((who && who.via) || "") === "session",
+    // The kernel has checked this caller against the method: the owner, a token or a granted account.
+    trusted: id === "owner" || kind === "token" || kind === "did"
+  };
+}
+// %%
+// decide(rule, { caller, request }) -> { allow, expression, error }. Anything but true is a refusal, an error included.
+decide = {
+  const parsed = new Map();
+  return (rule, context) => {
+    const expression = ruleExpression(rule);
+    try {
+      if (!parsed.has(expression)) parsed.set(expression, cel.parse(expression));
+      return { allow: parsed.get(expression)(context) === true, expression, error: null };
+    } catch (e) {
+      return { allow: false, expression, error: String((e && e.message) || e).split("\n")[0] };
+    }
+  };
+}
+// %%
+fx_app = {
+  const app = new hono.Hono();
+  app.get("/hooks/whatsapp", (c) => c.text(c.req.query("hub.challenge")));
+  app.post("/hooks/whatsapp", async (c) => {
+    const m = await c.req.json();
+    await inbox.append({ source: "whatsapp", key: m.id, body: m });
+    return c.text("ok");
+  });
+  app.use("/secrets/*", async (c, next) =>
+    c.req.header("x-brain-caller") === "owner" ? next() : c.text("unauthorized", 401)
+  );
+  app.get("/secrets/:name", async (c) => c.json({ name: c.req.param("name"), value: await secrets.T }));
+  app.get("/notebooks/:name{.+}", (c) => c.text("nb:" + c.req.param("name")));
+  app.get("/math/:n", (c) => c.json({ n: fx_double(fixtureTriple(+c.req.param("n"))) + fx_base }));
+  app.post("/rows/:key", async (c) => {
+    await rows.put(c.req.param("key"), await c.req.json());
+    return c.json({ stored: await rows.get(c.req.param("key")) });
+  });
+  app.get("/out", async (c) => c.text(await (await fetch("https://example.com/data")).text()));
+  app.get("/xrpc/com.lopecode.brain.getInfo", (c) => c.text("replaced"));
+  return app;
+}
+// %%
+fx_plain = cloudflare.Service("plain", async (request, { caller }) => {
+  const r = await fetch("https://example.com/x");
+  return new Response(caller + ":" + (await r.text()));
+})
+// %%
+fx_gen = {
+  yield 1;
+}
+// %%
+fx_bad_gen = cloudflare.Service("bad-gen", (request) => new Response(String(fx_gen)))
+// %%
+viewof fx_view = Inputs.range([0, 10], { value: 3, label: "fx_view (a refused dependency)" })
+// %%
+fx_bad_view = cloudflare.Service("bad-view", (request) => new Response(String(fx_view)))
+// %%
+fx_dom = html`<b>a refused dependency</b>`
+// %%
+fx_bad_dom = cloudflare.Service("bad-dom", (request) => new Response(fx_dom.outerHTML))
+// %%
+fx_bad_secret = cloudflare.Service("bad-secret", async (request) => new Response(await secrets[new URL(request.url).searchParams.get("n")]))
+// %%
+// The six requests of the spec's Appendix B, and what each must answer.
+fx_six = [
+  { req: ["https://brain.internal/hooks/whatsapp?hub.challenge=4821"], status: 200, body: "4821" },
+  { req: ["https://brain.internal/hooks/whatsapp", { method: "POST", body: '{"id":"m1"}', headers: { "content-type": "application/json" } }], status: 200, body: "ok" },
+  { req: ["https://brain.internal/secrets/T"], status: 401, body: "unauthorized" },
+  { req: ["https://brain.internal/secrets/T", { headers: { "x-brain-caller": "owner" } }], status: 200, body: '{"name":"T","value":"s3"}' },
+  { req: ["https://brain.internal/notebooks/a/b"], status: 200, body: "nb:a/b" },
+  { req: ["https://brain.internal/nope"], status: 404, body: "404 Not Found" }
+]
+// %%
+fx_refusal = async (service) => {
+  try {
+    await service.emit();
+  } catch (e) {
+    return e.message;
+  }
+  return "emitted";
+}
+// %%
+test_chase = {
+  const e = await fx_service.emit();
+  expect(e.parts.map((p) => p.path)).toEqual(["worker.js", "lib/hono.js", "source.js"]);
+  const text = e.parts[0].text;
+  expect([...text.matchAll(/^import .* from "(.*)";$/gm)].map((m) => m[1])).toEqual(["./lib/hono.js", "./source.js", "node:async_hooks"]);
+  for (const cell of ["fx_double", "fx_base", "fixtureTriple", "fx_app", "fx_service"])
+    expect(text).toContain("const " + cell + " = await (");
+  const sim = await simulate(fx_service);
+  const r = await sim.fetch("https://brain.internal/math/5");
+  expect(await r.json()).toEqual({ n: 37 });
+  return "5 cells chased, 1 library, /math/5 = 37";
+}
+// %%
+test_bindings_follow_platform_cells = {
+  const { meta } = await fx_service.emit();
+  expect(meta.secrets).toEqual(["T"]);
+  expect(meta.resources).toEqual(["inbox", "rows"]);
+  expect(meta.bindings.map((b) => b.type + ":" + b.name)).toEqual([
+    "d1:SQL",
+    "service:CORE"
+  ]);
+  // The secret it names is not bound. It is asked of secret.get while the Worker runs, and held for 5 s.
+  const sim = await simulate(fx_service, { stored: { T: "from-the-database" } });
+  const read = () => sim.fetch("https://brain.internal/secrets/T", { headers: { "x-brain-caller": "owner" } }).then((r) => r.json());
+  expect([await read(), await read()]).toEqual(Array(2).fill({ name: "T", value: "from-the-database" }));
+  expect(sim.calls.filter((c) => c.nsid === "com.lopecode.brain.secret.get").map((c) => c.data)).toEqual([{ name: "T" }]);
+  // Unset or refused reads as undefined, not as an error.
+  const none = await simulate(fx_service, {});
+  expect(await (await none.fetch("https://brain.internal/secrets/T", { headers: { "x-brain-caller": "owner" } })).json()).toEqual({ name: "T" });
+  expect(meta.role).toBe("recipe");
+  expect(meta.worker).toBe("brain-x-fixture");
+  return meta.bindings.length + " bindings";
+}
+// %%
+test_refuses_generator = {
+  const message = await fx_refusal(fx_bad_gen);
+  expect(message).toContain('cell "fx_gen" is a generator');
+  return message;
+}
+// %%
+test_refuses_viewof = {
+  const message = await fx_refusal(fx_bad_view);
+  expect(message).toContain('cell "fx_view" is a viewof or mutable cell');
+  return message;
+}
+// %%
+test_refuses_dom_builtin = {
+  const message = await fx_refusal(fx_bad_dom);
+  expect(message).toContain('cell "fx_dom" depends on html');
+  return message;
+}
+// %%
+test_refuses_computed_secret = {
+  const message = await fx_refusal(fx_bad_secret);
+  expect(message).toContain('cell "fx_bad_secret" reads a secret by a computed name');
+  return message;
+}
+// %%
+// Makes each kind of call to the core, after a wait, so two requests can overlap.
+fx_chain = cloudflare.Service(
+  "chain",
+  async (request) => {
+    const q = new URL(request.url).searchParams;
+    if (q.get("wait")) await new Promise((r) => setTimeout(r, Number(q.get("wait"))));
+    await xrpc.query("com.lopecode.brain.fx.who", { tag: q.get("tag") || "" });
+    if (q.get("all")) {
+      await secrets.FX_CHAIN;
+      await sql.exec("SELECT 1");
+      await inbox.append({ key: "k" });
+      await xrpc.fetch("com.lopecode.brain.fx.raw", { method: "POST", body: "b" });
+    }
+    return new Response("ok");
+  },
+  { calls: ["com.lopecode.brain.fx.who", "com.lopecode.brain.fx.raw"], crons: ["* * * * *"], scheduled: async () => void (await xrpc.query("com.lopecode.brain.fx.who", { tag: "cron" })) }
+)
+// %%
+test_the_wrapper_passes_the_origin_reference_on = {
+  const heard = [];
+  const core = async (request) => {
+    const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
+    heard.push({ nsid, context: request.headers.get("x-brain-context"), tag: u.searchParams.get("tag") });
+    return Response.json(nsid === "secret.get" ? { name: "FX_CHAIN", value: "v" } : nsid === "db.sql" ? { results: [{ rows: [], changes: 0 }] } : { ok: true });
+  };
+  const sim = await simulate(fx_chain, { core });
+  const ask = (query, headers = {}) => sim.fetch("https://chain.internal/?" + query, { headers });
+  const took = () => heard.splice(0).map((h) => [h.nsid, h.context]);
+  const O = { "x-brain-context": "c-owner", "x-brain-origin": "owner", "x-brain-origin-via": "session" }, M = { "x-brain-context": "c-member", "x-brain-origin": "did:plc:m" };
+  // Every call made while the Worker answers one carries the reference that came with it.
+  await ask("all=1", O);
+  expect(took()).toEqual([["fx.who", "c-owner"], ["secret.get", "c-owner"], ["db.sql", "c-owner"], ["inbox.append", "c-owner"], ["fx.raw", "c-owner"]]);
+  // A call that came with none passes none on. The secret is asked again: it was held for the owner.
+  await ask("all=1");
+  expect(took()).toEqual([["fx.who", null], ["secret.get", null], ["db.sql", null], ["inbox.append", null], ["fx.raw", null]]);
+  // Held for 5 s for one origin; another origin asks again.
+  await ask("all=1", O);
+  expect(took().map((h) => h[0])).toEqual(["fx.who", "db.sql", "inbox.append", "fx.raw"]);
+  await ask("all=1", M);
+  expect(took().filter((h) => h[0] === "secret.get")).toEqual([["secret.get", "c-member"]]);
+  // The schedule answers nobody.
+  await sim.scheduled();
+  expect(heard.splice(0)).toEqual([{ nsid: "fx.who", context: null, tag: "cron" }]);
+  // Two at once. A browser has no AsyncLocalStorage, so under simulate neither passes a reference on: none, never the other's.
+  await Promise.all([ask("wait=30&tag=slow", O), ask("wait=5&tag=fast", M)]);
+  expect(heard.splice(0).map((h) => [h.tag, h.context])).toEqual([["fast", null], ["slow", null]]);
+  // The schedule while a call is answered does not take that call's reference.
+  await Promise.all([ask("wait=20&tag=slow", O), sim.scheduled()]);
+  expect(heard.splice(0).map((h) => [h.tag, h.context])).toEqual([["cron", null], ["slow", null]]);
+  await ask("tag=after", M);
+  expect(took()).toEqual([["fx.who", "c-member"]]);
+  return "passed on; none for a schedule; none when two overlap";
+}
+// %%
+fx_named_old = cloudflare.Worker("named", () => new Response("x"), { methods: { "com.lopecode.brain.named.get": { type: "query", who: "anyone" } } })
+// %%
+fx_named_new = cloudflare.Service("named", () => new Response("x"), { methods: { "com.lopecode.brain.named.get": { type: "query", who: "anyone" } } })
+// %%
+test_a_service_declared_with_the_old_name_emits_the_same = {
+  const [o, n] = [await fx_named_old.emit(), await fx_named_new.emit()];
+  expect(o.meta).toEqual(n.meta);
+  expect(o.parts.map((p) => p.path)).toEqual(n.parts.map((p) => p.path));
+  // The cell's own text is part of worker.js, so the word and the cell's name differ there and nowhere else.
+  const same = (text) => text.replaceAll("fx_named_old", "fx_named").replaceAll("fx_named_new", "fx_named").replace("cloudflare.Worker(", "cloudflare.Service(");
+  expect(same(o.parts[0].text)).toBe(same(n.parts[0].text));
+  expect(o.hash === n.hash).toBe(false);
+  return "same meta, same code but for the word";
+}
+// %%
+test_simulate = {
+  const sim = await simulate(fx_service, {
+    secrets: { T: "sim" },
+    fetch: async (request) => new Response("faked " + new URL(request.url).pathname)
+  });
+  const stored = await sim.fetch("https://brain.internal/rows/k1", { method: "POST", body: '{"a":1}' });
+  expect(await stored.json()).toEqual({ stored: { a: 1 } });
+  expect(sim.rows.get("k1")).toEqual({ a: 1 });
+  const post = { method: "POST", body: '{"id":"m7"}', headers: { "content-type": "application/json" } };
+  await sim.fetch("https://brain.internal/hooks/whatsapp", post);
+  await sim.fetch("https://brain.internal/hooks/whatsapp", post);
+  expect(sim.inbox.map((e) => e.key)).toEqual(["m7"]);
+  expect(await (await sim.fetch("https://brain.internal/out")).text()).toBe("faked /data");
+  expect(sim.requests).toEqual([{ method: "GET", url: "https://example.com/data" }]);
+  // A throw inside a Hono app is answered by Hono's own error handler, in the tab and on the Worker alike.
+  const bare = await simulate(fx_service);
+  expect((await bare.fetch("https://brain.internal/out")).status).toBe(500);
+  expect(bare.requests.length).toBe(1);
+  return "row, inbox entry and outbound call observed; no fake = 500";
+}
+// %%
+test_a_worker_serves_its_manifest_and_its_source = {
+  const sim = await simulate(fx_service, { secrets: { T: "s3" }, info: { role: "kernel" } });
+  const e = sim.emitted;
+  expect(e.meta.module).toBe("@tomlarkworthy/cloudflare-iac");
+  expect(e.source.text).toContain("export default function define(");
+  // The source is one of the hashed parts: the deployer recomputes this from what it is sent.
+  expect(await partsHash(e.parts, e.meta)).toBe(e.hash);
+  expect(await partsHash(e.parts.filter((p) => p.path !== "source.js"), e.meta)).not.toBe(e.hash);
+  // From the internet, with no key, on a Worker that answers the internet.
+  const got = await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource");
+  expect(got.headers.get("access-control-allow-origin")).toBe("*");
+  const body = await got.json();
+  expect(body).toMatchObject({ worker: "brain-x-fixture", hash: e.hash, module: "@tomlarkworthy/cloudflare-iac" });
+  // Every response says which Worker and version produced it.
+  expect(got.headers.get("x-brain-served-by")).toBe("brain-x-fixture@" + e.hash.slice(0, 12));
+  expect(body.text).toBe(e.source.text);
+  // A question about another Worker is not this Worker's to answer.
+  expect((await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-other")).status).not.toBe(200);
+  // A recipe does not answer the internet at all; over a binding it does.
+  const recipe = await simulate(fx_service, { secrets: { T: "s3" } });
+  expect((await recipe.fetch("https://cb-x-fixture.sub.workers.dev/xrpc/com.lopecode.brain.getSource")).status).toBe(404);
+  expect((await (await recipe.fetch("https://fixture.internal/xrpc/com.lopecode.brain.getSource?worker=brain-x-fixture")).json()).module).toBe("@tomlarkworthy/cloudflare-iac");
+  return body.text.length + " characters of source";
+}
+// %%
+test_plain_function_caller_and_error_shape = {
+  const faked = await simulate(fx_plain, { fetch: async () => new Response("faked") });
+  const ok = await faked.fetch("https://brain.internal/", { headers: { "x-brain-caller": "token:laptop" } });
+  expect(await ok.text()).toBe("token:laptop:faked");
+  expect(await (await faked.fetch("https://brain.internal/")).text()).toBe("anonymous:faked");
+  expect(faked.emitted.parts.map((p) => p.path)).toEqual(["worker.js", "source.js"]);
+  expect(faked.emitted.meta.bindings).toEqual([]);
+  const bare = await simulate(fx_plain);
+  const refused = await bare.fetch("https://brain.internal/");
+  expect(refused.status).toBe(500);
+  const body = await refused.json();
+  expect(body.error).toBe("InternalServerError");
+  expect(body.message).toContain("no fake was given");
+  return body.message;
+}
+// %%
+test_hono_same_in_tab_and_emitted = {
+  backend.store.secrets.set("T", "s3");
+  const sim = await simulate(fx_service, { secrets: { T: "s3" } });
+  const seen = [];
+  for (const { req, status, body } of fx_six) {
+    for (const [where, call] of [["tab", (r) => fx_service.fetch(new Request(...r))], ["emitted", (r) => sim.fetch(...r)]]) {
+      const res = await call(req);
+      const got = { where, url: req[0], status: res.status, body: await res.text() };
+      expect(got).toEqual({ where, url: req[0], status, body });
+      seen.push(got);
+    }
+  }
+  expect(sim.inbox.map((e) => e.key)).toEqual(["m1"]);
+  expect(backend.store.inbox.some((e) => e.key === "m1")).toBe(true);
+  return seen.length + " answers matched";
+}
+// %%
+test_getInfo_cannot_be_replaced = {
+  const sim = await simulate(fx_service);
+  const info = await (await sim.fetch("https://brain.internal/xrpc/com.lopecode.brain.getInfo")).json();
+  expect(info.hash).toBe(sim.emitted.hash);
+  expect(info.name).toBe("brain-x-fixture");
+  const health = await (await sim.fetch("https://brain.internal/xrpc/_health")).json();
+  expect(health).toEqual({ ok: true, name: "brain-x-fixture", hash: sim.emitted.hash });
+  return info.hash.slice(0, 12);
+}
+// %%
+test_only_bindings_and_the_deployer_reach_a_recipe = {
+  const sim = await simulate(fx_service, { secrets: { T: "s3", BRAIN_KEY: "k1" } });
+  const pub = "https://brain-x-fixture.example.workers.dev";
+  expect((await sim.fetch(pub + "/math/5")).status).toBe(404);
+  expect((await sim.fetch(pub + "/xrpc/_health")).status).toBe(404);
+  expect((await sim.fetch(pub + "/xrpc/com.lopecode.brain.getInfo")).status).toBe(404);
+  const keyed = { headers: { "x-brain-deployer": "k1" } };
+  expect((await sim.fetch(pub + "/xrpc/_health", keyed)).status).toBe(200);
+  expect((await (await sim.fetch(pub + "/xrpc/com.lopecode.brain.getInfo", keyed)).json()).name).toBe("brain-x-fixture");
+  expect((await sim.fetch(pub + "/math/5", keyed)).status).toBe(200);
+  // A caller on the internet cannot name itself; the deployer's key makes it the deployer and nothing else.
+  expect((await sim.fetch(pub + "/secrets/T", { headers: { "x-brain-deployer": "k1", "x-brain-caller": "owner" } })).status).toBe(401);
+  expect((await sim.fetch(pub + "/xrpc/_health", { headers: { "x-brain-deployer": "wrong" } })).status).toBe(404);
+  // The header's name before 2026-10-08, which a deployer of that time sends.
+  expect((await sim.fetch(pub + "/xrpc/_health", { headers: { "x-brain-guard": "k1" } })).status).toBe(200);
+  expect((await sim.fetch(pub + "/xrpc/_health", { headers: { "x-brain-guard": "wrong" } })).status).toBe(404);
+  expect((await sim.fetch("https://brain.internal/math/5")).status).toBe(200);
+  return "404 from the internet, 200 over a binding";
+}
+// %%
+test_service_rows_states = {
+  const e = (name, hash) => ({ name, hash, meta: { worker: "brain-x-" + name, role: "recipe", methods: [], paths: [], secrets: [] } });
+  const emitted = [e("a", "h1"), e("b", "h2"), e("c", "h3"), e("d", "h4"), e("e", "h5"), { name: "f", error: 'cell "x" is a generator' }];
+  const deployerState = {
+    workers: [
+      { worker: "brain-x-a", hash: "h1", fails: 0 },
+      { worker: "brain-x-b", hash: "old", fails: 0, lastError: "self-test failed before go-live", failedHash: "h2" },
+      { worker: "brain-x-d", hash: "h4", fails: 0 },
+      { worker: "brain-x-e", hash: "h5", fails: 2 }
+    ],
+    kernel: {},
+    pending: [{ hash: "h3" }],
+    approved: []
+  };
+  const rows = serviceRows(emitted, deployerState, { "brain-x-a": "h1", "brain-x-d": "by-hand" });
+  expect(rows.map((r) => r.state)).toEqual(["in sync", "changed", "not installed", "skewed", "failing", "cannot deploy"]);
+  expect(rows[1].note).toBe("put back: self-test failed before go-live");
+  expect(rows[2].note).toBe("waiting for approval");
+  expect(rows[3].note).toBe("brain-x-d is running by-hand, which the deployer did not deploy.");
+  expect(serviceRows(emitted.slice(0, 1), null)[0].state).toBe("unknown");
+  // What the core knows about the running hash: not yet tested, failed, or passed.
+  const reg = { "brain-x-a": { hash: "h1", verified: null } };
+  expect(serviceRows(emitted.slice(0, 1), deployerState, {}, reg)[0]).toMatchObject({ verified: false, note: "unverified: its tests have not been run from this version" });
+  reg["brain-x-a"].verified = { ok: false, failed: ["test_x"] };
+  expect(serviceRows(emitted.slice(0, 1), deployerState, {}, reg)[0].note).toBe("its tests failed: test_x");
+  reg["brain-x-a"].verified = { ok: true };
+  expect(serviceRows(emitted.slice(0, 1), deployerState, {}, reg)[0]).toMatchObject({ verified: true, note: "" });
+  // A module loaded from its Worker and not edited since is in sync whatever its source re-exports as.
+  expect(serviceRows([{ ...emitted[1], asDeployed: "old" }], deployerState)[0].state).toBe("in sync");
+  // A Worker the deployer runs that the notebook does not declare is listed, not hidden.
+  const orphan = serviceRows(emitted.slice(0, 1), deployerState).filter((r) => r.state === "no source");
+  expect(orphan.map((r) => r.worker)).toEqual(["brain-x-b", "brain-x-d", "brain-x-e"]);
+  expect(orphan[0]).toMatchObject({ hash: null, running: "old" });
+  return rows.map((r) => r.state).join(", ");
+}
+// %%
+test_hash_is_stable_and_per_service = {
+  const a = (await fx_service.emit()).hash, b = (await fx_service.emit()).hash;
+  expect(a).toBe(b);
+  expect(a).toMatch(/^[0-9a-f]{64}$/);
+  const other = cloudflare.Service("fixture", () => new Response("x"));
+  expect(await fx_refusal(other)).toContain("is not the value of a cell");
+  return a.slice(0, 12);
+}
+// %%
+iac_tests = tests({ filter: (t) => t.name.includes("@tomlarkworthy/cloudflare-iac") })
+// %%
+test_settings_reads_rows_through_memory = {
+  const key = "settings-test/" + Math.random().toString(36).slice(2);
+  await settings.put(key, { n: 1 });
+  expect(await settings.get(key)).toEqual({ n: 1 });
+  // A write that does not go through settings is not seen until ttl has passed or the copy is dropped.
+  await rows.put(key, { n: 2 });
+  expect(await settings.get(key)).toEqual({ n: 1 });
+  expect((await settings.list("settings-test/")).find((r) => r.key === key).value).toEqual({ n: 2 });
+  const ttl = settings.ttl;
+  settings.ttl = 0;
+  expect(await settings.get(key)).toEqual({ n: 2 });
+  settings.ttl = ttl;
+  // A write through settings is seen at once, in get and in list.
+  await settings.put(key, { n: 3 });
+  expect([await settings.get(key), (await settings.list("settings-test/")).find((r) => r.key === key).value]).toEqual([{ n: 3 }, { n: 3 }]);
+  await settings.delete(key);
+  expect(await settings.get(key) ?? null).toBe(null);
+  return "held, then dropped on write";
+}
+// %%
+test_rules_are_cel_expressions = {
+  const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "token:laptop" }, did: { caller: "did:plc:friend" }, echo: { caller: "worker:brain-x-echo" }, other: { caller: "worker:brain-x-other" }, deployer: { caller: "deployer" }, anonymous: { caller: "anonymous" } };
+  const who = (rule, request = { method: "", path: "/", verb: "GET", params: {} }) =>
+    Object.entries(callers).filter(([, w]) => decide(rule, { caller: callerOf(w), request }).allow).map(([name]) => name).join(" ");
+  // The four short forms, as before CEL.
+  expect(who({ who: "anyone" })).toBe("owner token did echo other deployer anonymous");
+  expect(who({ who: "workers" })).toBe("owner token did echo other deployer");
+  expect(who({ who: "worker:brain-x-echo" })).toBe("owner token did echo");
+  expect(who({ who: "owner" })).toBe("owner token did");
+  expect(who({})).toBe("owner token did");
+  // An expression is the whole decision: the owner is let in only if it says so.
+  expect(who({ who: "owner", allow: 'caller.did in ["did:plc:friend", "did:plc:other"]' })).toBe("did");
+  expect(who({ allow: "caller.session" })).toBe("owner");
+  expect(who({ allow: 'request.params.name.startsWith("pub/") || caller.trusted' }, { method: "x", path: "", verb: "GET", params: { name: "pub/a" } })).toBe("owner token did echo other deployer anonymous");
+  // The deployer was "guard" in a rule and as a caller until 2026-10-08. Both are read as the deployer.
+  expect(who({ allow: 'caller.kind in ["worker", "guard"]' })).toBe("echo other deployer");
+  expect(who({ allow: 'caller.id == "guard"' })).toBe("deployer");
+  expect(callerOf({ caller: "guard" })).toMatchObject({ id: "deployer", kind: "deployer", trusted: false });
+  // Not true is a refusal: a missing field, a number, a rule that does not parse.
+  const refused = (allow) => decide({ allow }, { caller: callerOf(callers.owner), request: { method: "", path: "", verb: "GET", params: {} } });
+  expect(refused("request.params.name == 'a'")).toMatchObject({ allow: false, error: "No such key: name" });
+  expect(refused("1 + 1")).toMatchObject({ allow: false, error: null });
+  expect(refused("caller.kind ==").allow).toBe(false);
+  expect(typeof refused("caller.kind ==").error).toBe("string");
+  return "4 short forms, 3 expressions, 3 refusals";
+}
+// %%
+fx_badrule = cloudflare.Service("badrule", () => new Response("x"), { methods: { "com.lopecode.brain.bad.go": { type: "procedure", allow: "caller.kind ==" } } })
+// %%
+fx_goodrule = cloudflare.Service("goodrule", () => new Response("x"), {
+  methods: { "com.lopecode.brain.good.go": { type: "query", allow: 'caller.kind == "did"' } },
+  paths: [{ path: "/good/*", allow: "true" }]
+})
+// %%
+test_a_rule_that_does_not_parse_is_not_emitted = {
+  let said = "";
+  try { await fx_badrule.emit(); } catch (e) { said = e.message; }
+  expect(said.startsWith("com.lopecode.brain.bad.go: the rule does not parse")).toBe(true);
+  const { meta } = await fx_goodrule.emit();
+  expect(meta.access).toEqual({ "com.lopecode.brain.good.go": { type: "query", who: "owner", allow: 'caller.kind == "did"' } });
+  expect(meta.paths).toEqual([{ path: "/good/*", allow: "true" }]);
+  return said;
+}
+// %%
+import {runtime} from "@tomlarkworthy/runtime-sdk"
+// %%
+import {exportModuleJS} from "@tomlarkworthy/exporter-3"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {acorn, acorn_walk} from "@tomlarkworthy/acorn-8-11-3"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {tests} from "@tomlarkworthy/tests"
+// %%
+import {fixtureTriple} from "@tomlarkworthy/cloudflare-iac-fixtures"

@@ -1,0 +1,10 @@
+{"acquire":699,"connect":778,"navigated":1433,"dom":1610,"load":1610,"ready":4180} who true d 1706 err 0  closed {"closed":true,"ms":4189}  wall=4.749711
+{"acquire":544,"connect":643,"navigated":947,"dom":1057,"load":1064,"ready":2753} who true d 1837 err 0  closed {"closed":true,"ms":2771}  wall=3.206528
+{"acquire":954,"connect":1080,"navigated":3016,"dom":3234,"load":3234,"ready":6131} who true d 1720 err 0  closed {"closed":true,"ms":6214}  wall=6.619302
+{"acquire":588,"connect":645,"navigated":1550,"dom":1731,"load":1737,"ready":3634} who true d 1720 err 0  closed {"closed":true,"ms":3648}  wall=4.174995
+{"acquire":769,"connect":856,"navigated":1202,"dom":1322,"load":1329,"ready":2885} who true d 1888 err 0  closed {"closed":true,"ms":2896}  wall=3.449909
+{"acquire":520,"connect":590,"navigated":951,"dom":1113,"load":1123,"ready":3464} who true d 1675 err 0  closed {"closed":true,"ms":3471}  wall=3.972901
+{"acquire":679,"connect":753,"navigated":2029,"dom":2182,"load":2188,"ready":5055} who true d 1715 err 0  closed {"closed":true,"ms":5091}  wall=5.709860
+{"acquire":732,"connect":810,"navigated":1167,"dom":1305,"load":1306,"ready":2984} who true d 1803 err 0  closed {"closed":true,"ms":2998}  wall=3.547564
+{"acquire":462,"connect":624,"navigated":1859,"dom":2050,"load":2050,"ready":4735} who true d 1713 err 0  closed {"closed":true,"ms":4857}  wall=5.433830
+{"acquire":731,"connect":834,"navigated":1848,"dom":1951,"load":1954,"ready":3689} who true d 1894 err 0  closed {"closed":true,"ms":3756}  wall=4.301279

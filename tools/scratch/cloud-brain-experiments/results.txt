@@ -1,0 +1,55 @@
+### Experiment results, local, 2026-10-04
+
+Run under \`wrangler dev --local\` (wrangler 4.147.0, workerd, compatibility date 2025-09-01), not on Cloudflare. Code in \`tools/scratch/cloud-brain-experiments/worker/\`. Nothing here has been deployed.
+
+| # | result | output |
+|---|---|---|
+| E1 | **works, with one fix** | \`{"body":"hello 42","log":["a","b"]}\`; the \`dom\` cell never ran. With the runtime's default scheduler the first request answered and every later one hung (\`http 000\` after 8 s, three times) |
+| E3 | **works for an observed cell only** | three requests: \`"unobserved":1,1,1\` and \`"observed":3,4,5\`. After a restart: \`"observed":1\`, SQLite row \`n\` 10 → 11, saved transcript intact. An alarm set from a request fired and ran a cell |
+| E4 | startup yes, request no | at startup \`eval\` → 2, \`new Function\` → 4, \`new Runtime()\` constructed. In a request: \`EvalError: Code generation from strings disallowed for this context\` for \`eval\`, \`new Function\` and the async function constructor; \`WebAssembly.compile\`: \`Wasm code generation disallowed by embedder\`; \`import("data:…")\`: \`No such module\`; \`URL.createObjectURL() is not implemented\` |
+| E5 | **works** | a module string loaded through the Worker Loader answered \`dynamic says 42\` in 2 ms (0 ms on reuse); with \`globalOutbound: null\` its \`fetch\` threw \`This worker is not permitted to access the internet\` |
+| E6 | **works** | QuickJS wasm (503,134 bytes, 232,363 gzipped) loaded in 2 ms; \`1 + 1\` → 2. The whole Observable runtime ran inside it (24 KB bundle, \`b\` = 42 in 7 ms) and a cell defined from a string there gave 1042. A cell of the host's runtime with an interpreted body gave \`{"sum":63,"squares":[441,1764]}\` and, after redefining its input in the host, \`{"sum":3,"squares":[1,4]}\` |
+| E6 speed | 12 to 18 times slower | 3,000,000-iteration integer loop: native 14 to 17 ms, QuickJS 166 to 253 ms, same answer |
+| E7 | data and functions cross; platform objects do not | numbers, strings and JSON objects round-trip. A host function called from the guest: \`double(21)\` → 42. A guest \`async\` function awaited a host promise backed by a Durable Object call and returned. Inside the guest \`URL\`, \`fetch\`, \`TextEncoder\`, \`crypto\`, \`setTimeout\` and \`console\` are all \`undefined\`; a guest handler using \`new URL\` failed with \`'URL' is not defined\` |
+| E8 | not run | the compiler's \`parser\` and \`observableToJs\` cells load vendored libraries through file attachments, so it needs the Worker export first. The module also calls \`eval\` at line 643 of its compiled source |
+| E9 | **works, unchanged** | \`robocoop-5-core\` loaded as a module in the Durable Object's runtime; a scripted model made two tool calls and finished: roles \`system, user, assistant:call, tool, assistant:call, tool, assistant\`, \`"last":"sums: 11, 12"\`. Started from an alarm after the webhook returned \`accepted\` in 2 ms. Killed at the second model call, the transcript saved by \`onStep\` held \`system, user, assistant:call, tool=11\`; a new session loaded with it and sent a user message finished the turn |
+| E2, E10, E11, E12 | not run | they need a deploy to a Cloudflare account |
+
+What the results change:
+
+- **The runtime's scheduler must be replaced in a Worker.** \`runtime.js\` line 7 picks \`requestAnimationFrame\`, else \`setImmediate\`, else \`setTimeout\`. \`module.value()\` deletes its temporary variable in a \`finally\` (\`module.js\` line 65), which schedules a compute on a timer after the response has been sent. Workers drop a request's timers when it ends, so \`runtime._computing\` stays pending and every later request waits on it. Defining \`globalThis.requestAnimationFrame\` as a microtask before the runtime loads fixed it. This belongs in \`host.js\`.
+- **"Computed once per isolate" was wrong as written.** \`module.value(name)\` observes the cell for the length of the call and then releases it, so the cell and everything above it is recomputed on the next call. A handler cell keeps its value only if the host defines it with an observer. The host should observe \`fetch\`, \`jobs\` and \`socket\` at boot.
+- **No change to \`robocoop-5-core\` is needed to run a turn or to resume one**, on the evidence of a scripted model. A turn cannot be paused between model calls: \`send()\` is one loop. Resuming is a new \`send()\` on a restored transcript, which adds a user message.
+- **QuickJS is feasible for on-demand self-modification.** Two shapes both ran: the whole runtime inside the interpreter, or the host's runtime with interpreted cell bodies. The second keeps one runtime and lets native and interpreted cells depend on each other. Its costs are measured above: 12 to 18 times slower on a tight loop, 232 KB gzipped per upload, and an interpreted cell sees none of the platform (\`URL\`, \`fetch\`, \`crypto\`) unless the host hands each one in.
+- **Dynamic Workers are feasible for the same job** and give the new code the full platform at native speed, in a separate isolate.
+
+Not settled by these runs: whether any of it behaves the same on Cloudflare's edge; QuickJS under the CPU limit with a real cell; memory when a context lives across requests (a context with a pending host promise failed QuickJS's leak assertion on dispose, \`list_empty(&rt->gc_obj_list)\`, in my harness).
+
+
+== E13 (partial), 2026-10-05, cb-experiments build 11 ==
+GET /.well-known/did.json -> did:web:cb-experiments.endpointservices.workers.dev, service #brain type CloudBrain
+GET /xrpc/_health -> {"version":"11"}
+GET /xrpc/com.lopecode.brain.getInfo (no token) -> 401 {"error":"AuthMissing"}
+GET /xrpc/com.example.nope -> 501 {"error":"MethodNotImplemented"}
+forged JWT (iss = Tom's did:plc, 64 zero bytes as signature) -> 401 {"error":"BadJwtSignature"}
+  so: did:plc resolved from the Worker, #atproto key parsed, @atcute/crypto verifySig ran on workerd and refused.
+login dry run with scope "atproto transition:generic": 2061 ms, authorize host bsky.social, PAR accepted.
+Waiting on owner sign-in for: a real PDS-signed JWT accepted (E13), PDS proxy to did:web on workers.dev (E14), proxy out to another service (E15).
+
+== E13, E14, E15, 2026-10-05, cb-experiments build 12, owner signed in with scope "atproto transition:generic" ==
+First attempt (build 11): every proxied call 400 {"error":"InvalidRequest","message":"no service id specified in proxy header"}.
+  Cause: @atcute/client's `proxy` option is the string "<did>#<service-id>", I passed an object.
+E14  owner's PDS -> did:web:cb-experiments.endpointservices.workers.dev#brain, com.lopecode.brain.getInfo
+  200, 704 ms first call, 236 ms second.
+  {"caller":"did:plc:j7nm3lrd5h7fm3sfhcv3lhfv","alg":"ES256K","aud":"did:web:cb-experiments.endpointservices.workers.dev",
+   "lxm":"com.lopecode.brain.getInfo","lifetimeSeconds":60,"hasJti":true,"keyType":"Multikey","resolveMs":54,"verifyMs":0,
+   "forwardedHeaders":["x-forwarded-proto","x-real-ip"]}
+  So: a PDS (earthstar.us-east.host.bsky.network) proxies to a did:web on a workers.dev hostname; the JWT is ES256K,
+  aud is the bare DID (no #brain), lxm is set, 60 s life; signature verified on the Worker against the plc DID document.
+E13  the same call: real PDS-signed JWT accepted; forged signature refused (build 11).
+E15  owner's PDS -> did:web:api.bsky.app#bsky_appview, app.bsky.actor.getProfile: 200 in 188 ms, the owner's profile.
+unknown method through the proxy: the Worker's own 501 {"error":"MethodNotImplemented"} came back through the PDS unchanged.
+unknown service id (#nope): PDS answers 400 "could not resolve proxy did service url".
+Not run: a procedure (POST with a body) through the proxy; a granular rpc: scope in place of transition:generic;
+  a caller other than the owner; a second Brain.
+Session revoked after the run.

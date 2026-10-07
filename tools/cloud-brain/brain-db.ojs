@@ -1,0 +1,954 @@
+md`# brain-db
+
+Key-value tables and SQL tables kept by a Cloud Brain, each behind a rule. The SQL tables are described under *SQL tables*.
+
+| | |
+|---|---|
+| Worker | \`brain-db\`, a system Worker: the core routes to it, and it is deployed under probation like the core |
+| \`db.get\` | query. \`?db=&table=&key=\`. \`{ value }\`, \`null\` when absent. |
+| \`db.list\` | query. \`?db=&table=&prefix=&limit=100\`. \`{ rows: [{ key, value }] }\`, in key order. |
+| \`db.put\` | procedure. \`{ db, table, key, value, ifAbsent }\`. \`{ put }\`; with \`ifAbsent\`, \`put\` is false when the key exists. |
+| \`db.delete\` | procedure. \`{ db, table, key }\`. \`{ deleted }\` |
+| \`db.increment\` | procedure. \`{ db, table, key }\`. \`{ value }\`: the number at the key plus one, in one step. |
+| \`db.tables\` | query, owner. \`?db=\`. \`{ tables: [{ db, table, rule, declared }] }\`; without \`db\`, every database. |
+| \`db.setRule\` | procedure, the owner's own session. \`{ db, table, allow }\`. \`allow: null\` removes the rule. |
+| Storage | \`rows\`, which is the Brain's D1 database: \`d/<db>/<table>/<key>\`, \`table/<db>/<table>\`, \`rule/<db>/<table>\` |
+
+A database and a table are named with \`A-Z a-z 0-9 _ . -\`, at most 60 characters. A key is at most 400 characters and a value at most 100,000 bytes of JSON.
+
+## Rules
+
+The core lets a signed-in caller or a Worker call any of these methods, and lets anyone call \`db.get\` and \`db.list\`. This Worker then decides per table, with the same expressions as a method's rule (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`).
+
+| | |
+|---|---|
+| no rule | the owner, or a token of theirs |
+| \`setRule { db, table: "notes", allow }\` | that table |
+| \`setRule { db, table: "*", allow }\` | every table of the database with no rule of its own |
+
+An expression reads \`caller\` and \`origin\` as a method's rule does (*Origin* in \`@tomlarkworthy/brain-core\`), and:
+
+| | |
+|---|---|
+| \`resource.db\`, \`resource.table\` | the names |
+| \`resource.op\` | \`read\` for \`get\` and \`list\`, \`write\` for \`put\`, \`delete\` and \`increment\` |
+| \`resource.key\` | the key; for \`list\`, the prefix |
+
+\`\`\`js
+await client.procedure("db.setRule", { db: "site", table: "posts", allow: 'resource.op == "read" || caller.session' })
+await client.procedure("db.setRule", { db: "site", table: "drafts", allow: 'caller.worker == "brain-x-library"' })
+// each account reads and writes only keys that start with its own DID
+await client.procedure("db.setRule", { db: "site", table: "profiles", allow: 'caller.kind == "did" && resource.key.startsWith(caller.did + "/")' })
+\`\`\`
+
+A rule set here is read through 5 s of memory, so another instance of the Worker follows a change within that.`
+// %%
+dbView = dbPanel({ client, owner: !!(session && session.owner) })
+// %%
+md`## SQL tables
+
+One D1 database holds every Worker's SQL tables, and only this Worker is bound to it. A Worker's \`sql\` cell (\`@tomlarkworthy/cloudflare-iac\`) calls \`db.sql\` through the core. The key-value tables above, and the core's and the kernel's own rows, are in the Brain's other database and do not pass through this check.
+
+| | |
+|---|---|
+| \`db.sql\` | procedure. \`{ statements: [[statement, ...args], …] }\`, 1 to 600, run as one transaction. \`{ results: [{ rows, changes }], explained, ms: { check, run } }\` |
+| \`db.sqlGrant\` | procedure, the owner's own session. \`{ table, allow }\`. \`allow: null\` removes the rule. |
+| \`db.sqlTables\` | query, owner. \`{ tables: [{ table, type, rule }] }\` |
+
+### Who may do what
+
+| caller | |
+|---|---|
+| the owner, or a token of theirs | any statement. It is not checked. |
+| a Worker | reads and writes the tables named with its prefix, and makes, indexes, adds columns to and drops them |
+| any caller the core lets call \`db.sql\` | a table whose rule allows the caller, for \`read\` or for \`write\` |
+
+A Worker's prefix is its name without \`brain-x-\` or \`brain-\`, with \`_\` for anything that is not a letter or digit, then \`_\`: \`brain-x-metrics\` owns \`metrics_*\`. A member's Worker \`brain-m-ID-NAME\` calls as its author's DID and is named in \`x-brain-via\`; it owns \`m_ID_NAME_*\`. A rule is an expression as for a key-value table. It reads \`caller\`, \`resource.table\` and \`resource.op\`.
+
+\`\`\`js
+await client.procedure("db.sqlGrant", { table: "metrics_calls", allow: 'resource.op == "read" && caller.worker == "brain-x-library"' })
+\`\`\`
+
+### How a statement is checked
+
+1. **Its text** (\`sqlShape\`). No \`;\` anywhere, so it is one statement. It starts with \`SELECT\`, \`INSERT\`, \`UPDATE\`, \`DELETE\`, \`REPLACE\` or \`WITH\`, or it is one of the four schema forms below. This is what refuses \`PRAGMA\`, \`EXPLAIN\`, \`ATTACH\`, \`VACUUM\` and \`ANALYZE\`.
+2. **Its plan.** \`EXPLAIN\` of the statement, with the caller's own arguments, in one batch with a read of \`sqlite_master\`. Nothing is run by it.
+3. **What the plan opens** (\`sqlNeeds\`). The root page an opcode names is looked up in \`sqlite_master\`; an index counts as its table.
+
+| opcode | means |
+|---|---|
+| \`OpenRead\`, \`ReopenIdx\` (root page P2, database P3) | read |
+| \`OpenWrite\` (P2, P3) | write |
+| \`Clear\` (root page P1, database P2) | write. A \`DELETE\` with no \`WHERE\` is only this. |
+| \`Destroy\` (P1) | drop |
+
+4. **The decision.** Every table read needs \`read\` and every table written needs \`write\`: the caller's prefix, or the table's rule. \`sqlite_master\`, a name that starts \`sqlite_\` or \`_cf\`, a database other than the main one, and a root page that is no table are refused.
+
+A view is expanded in the plan, so its reader needs \`read\` on the tables under it. A trigger's statements are in the plan of the statement that fires it, so the caller needs \`write\` on what the trigger writes. Both were read from D1 on 2026-10-07 and are in the self-test.
+
+### Schema statements
+
+\`EXPLAIN\` does not name the table a \`CREATE\` makes, so a caller that is not the owner may send only these, matched from the first character, with plain names (\`A-Z a-z 0-9 _\`, not starting with a digit):
+
+\`\`\`
+CREATE TABLE [IF NOT EXISTS] name (
+CREATE [UNIQUE] INDEX [IF NOT EXISTS] name ON table (
+DROP TABLE|INDEX [IF EXISTS] name
+ALTER TABLE name ADD
+\`\`\`
+
+Every name in the text, and every table the plan reads, writes or drops, must have the caller's prefix. A rule does not open a schema statement. Views, triggers, \`CREATE TABLE … AS\`, renames and \`DROP COLUMN\` are the owner's.
+
+### Failing closed
+
+- \`sqlOpcodes.safe\` lists the opcodes that work only on registers and on cursors already opened; \`sqlOpcodes.schema\` those of a schema statement. A plan holding any other opcode is refused by name. Virtual tables (\`VOpen\`) are among those refused, so \`json_each\` is too.
+- Before its first checked statement, and again 60 s after a failure, an instance makes the tables \`db_selftest_*\` and reads the plans of \`sqlSelfTest.statements\`. If one does not say what is written beside it, every checked \`db.sql\` answers 503 \`SqlCheckFailed\` with the statement and both readings. The owner's statements and the key-value tables still work.
+
+### Plans are remembered
+
+By statement text, in the instance. A schema statement that changes something forgets them and writes \`sql/schema\` in \`rows\`; another instance reads that through 5 s of memory and forgets its own.
+
+### Limits
+
+- The plan of every statement of a batch is read before any of them runs, so a batch cannot use a table or column that an earlier statement of the same batch makes. Send the schema statement in a call of its own.
+- A statement with \`;\` in a string or a comment is refused. Pass the value as an argument. D1 runs a second statement that follows an \`EXPLAIN\`: on 2026-10-07 \`EXPLAIN SELECT 1; INSERT …\` inserted the row.
+- \`write\` on a table lets the statement that writes it read it (\`UPDATE … RETURNING\`).
+- No rule by column or by row.
+- A Worker named \`brain-x-a\` owns \`a_*\`, which includes the tables \`a_b_*\` of a Worker named \`brain-x-a-b\`.
+- \`AUTOINCREMENT\` writes \`sqlite_sequence\` and is refused.
+- Arguments and results are JSON: no blobs.
+- SQLite's documentation says the output of \`EXPLAIN\` may change between releases. Cloudflare chooses D1's release. The opcode list and the self-test turn such a change into refusals.
+- Dropping a Worker does not drop its tables.`
+// %%
+db_service = cloudflare.Service("db", dbApp, {
+  role: "system",
+  methods: {
+    "com.lopecode.brain.db.get": { type: "query", who: "anyone" },
+    "com.lopecode.brain.db.list": { type: "query", who: "anyone" },
+    "com.lopecode.brain.db.put": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.db.delete": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.db.increment": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.db.tables": { type: "query", who: "owner" },
+    "com.lopecode.brain.db.setRule": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.db.sql": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.db.sqlGrant": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.db.sqlTables": { type: "query", who: "owner" },
+    // Secrets. Their rules at the core are fixed: rule.put cannot open them.
+    "com.lopecode.brain.secret.list": { type: "query", who: "owner", fixed: true },
+    "com.lopecode.brain.secret.get": { type: "query", who: "owner", allow: 'caller.session || caller.kind == "worker"', fixed: true },
+    "com.lopecode.brain.secret.put": { type: "procedure", who: "owner", allow: "caller.session", fixed: true },
+    "com.lopecode.brain.secret.delete": { type: "procedure", who: "owner", allow: "caller.session", fixed: true },
+    "com.lopecode.brain.secret.setRule": { type: "procedure", who: "owner", allow: "caller.session", fixed: true },
+    // The owner in their tab, or a turn the owner sent. The handler refuses the owner through a PDS.
+    "com.lopecode.brain.secret.copy": { type: "procedure", who: "owner", allow: 'caller.kind == "owner"', fixed: true }
+  }
+})
+// %%
+db_announce = {
+  plugins.add("workers", db_service, { invalidation });
+  return "announced db_service";
+}
+// %%
+dbApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.db.";
+  const MAX = 100000;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const named = (s) => typeof s === "string" && /^[A-Za-z0-9_.-]{1,60}$/.test(s);
+  const who = (c) => ({ caller: c.req.header("x-brain-caller") || "anonymous", via: c.req.header("x-brain-via") || "" });
+  // Who started the chain of calls this one is part of, as the core names them. With no name it is the caller.
+  const origin = (c) => callerOf(c.req.header("x-brain-origin") ? { caller: c.req.header("x-brain-origin"), via: c.req.header("x-brain-origin-via") || "" } : who(c));
+  // The table's rule, else the database's "*", else the owner and their tokens.
+  const OWNER = { allow: 'caller.kind in ["owner", "token"]' };
+  const ruleFor = async (db, table) => (await settings.get(`rule/${db}/${table}`)) || (await settings.get(`rule/${db}/*`)) || OWNER;
+  // null when the call may go ahead, else the refusal.
+  const refused = async (c, { db, table, key = "" }, op) => {
+    if (!named(db) || !named(table)) return fail(c, 400, "InvalidRequest", "db and table are 1 to 60 of A-Z a-z 0-9 _ . -");
+    if (typeof key !== "string" || key.length > 400) return fail(c, 400, "InvalidRequest", "key is a string of at most 400 characters");
+    const verdict = decide(await ruleFor(db, table), { caller: callerOf(who(c)), origin: origin(c), resource: { db, table, op, key } });
+    return verdict.allow ? null : fail(c, who(c).caller === "anonymous" ? 401 : 403, who(c).caller === "anonymous" ? "AuthRequired" : "Forbidden", `${db}/${table} is not open to this caller for ${op}`);
+  };
+  const at = (q, key = q.key || "") => `d/${q.db}/${q.table}/${key}`;
+  // A table is known from its first write, so it can be listed without reading every key.
+  const note = async (db, table) => {
+    if (await settings.get(`table/${db}/${table}`)) return;
+    await settings.put(`table/${db}/${table}`, { createdAt: Date.now() });
+  };
+  app.get(NS + "get", async (c) => {
+    const q = c.req.query();
+    const no = await refused(c, q, "read");
+    if (no) return no;
+    return c.json({ value: (await rows.get(at(q))) ?? null });
+  });
+  app.get(NS + "list", async (c) => {
+    const q = c.req.query(), prefix = q.prefix || "";
+    const no = await refused(c, { db: q.db, table: q.table, key: prefix }, "read");
+    if (no) return no;
+    const base = at(q, "");
+    const limit = Math.max(1, Math.min(1000, Number(q.limit) || 100));
+    const found = await rows.list(base + prefix);
+    return c.json({ rows: found.slice(0, limit).map(({ key, value }) => ({ key: key.slice(base.length), value })), more: found.length > limit });
+  });
+  app.post(NS + "put", async (c) => {
+    const q = await c.req.json().catch(() => ({}));
+    const no = await refused(c, q, "write");
+    if (no) return no;
+    if (q.value === undefined) return fail(c, 400, "InvalidRequest", "value");
+    if (JSON.stringify(q.value).length > MAX) return fail(c, 413, "TooLarge", `a value is at most ${MAX} bytes of JSON`);
+    await note(q.db, q.table);
+    return c.json({ put: q.ifAbsent ? await rows.putIfAbsent(at(q), q.value) : await rows.put(at(q), q.value) });
+  });
+  app.post(NS + "delete", async (c) => {
+    const q = await c.req.json().catch(() => ({}));
+    const no = await refused(c, q, "write");
+    if (no) return no;
+    return c.json({ deleted: !!(await rows.delete(at(q))) });
+  });
+  app.post(NS + "increment", async (c) => {
+    const q = await c.req.json().catch(() => ({}));
+    const no = await refused(c, q, "write");
+    if (no) return no;
+    await note(q.db, q.table);
+    return c.json({ value: await rows.increment(at(q)) });
+  });
+  const owner = (c) => who(c).caller === "owner";
+  app.get(NS + "tables", async (c) => {
+    if (!owner(c)) return fail(c, 401, "AuthRequired", "the owner");
+    const only = c.req.query("db") || "";
+    const seen = new Map();
+    const add = (key, more) => {
+      const [db, ...rest] = key.split("/"), table = rest.join("/");
+      if (only && db !== only) return;
+      seen.set(db + "/" + table, { db, table, rule: null, declared: false, ...(seen.get(db + "/" + table) || {}), ...more });
+    };
+    for (const { key } of await rows.list("table/")) add(key.slice("table/".length), { declared: true });
+    for (const { key, value } of await rows.list("rule/")) add(key.slice("rule/".length), { rule: value.allow });
+    return c.json({ tables: [...seen.values()].sort((a, b) => (a.db + "/" + a.table < b.db + "/" + b.table ? -1 : 1)), ttl: settings.ttl });
+  });
+  app.post(NS + "setRule", async (c) => {
+    const me = who(c);
+    if (me.caller !== "owner" || me.via !== "session") return fail(c, 401, "AuthRequired", "the owner's own session");
+    const { db, table, allow = null } = await c.req.json().catch(() => ({}));
+    if (!named(db) || !(table === "*" || named(table))) return fail(c, 400, "InvalidRequest", "db, and a table or *");
+    if (allow === null) return c.json({ db, table, allow: null, deleted: !!(await settings.delete(`rule/${db}/${table}`)) });
+    try {
+      checkedRule(`${db}/${table}`, allow);
+    } catch (e) {
+      return fail(c, 400, "InvalidRequest", e.message);
+    }
+    await settings.put(`rule/${db}/${table}`, { allow, setAt: Date.now() });
+    return c.json({ db, table, allow });
+  });
+  // SQL tables. The rules are under "SQL tables" above.
+  const plans = new Map();
+  let stamp = null, tested = null, testedAt = 0;
+  const plan = (r) => r.rows.map((o) => [o.opcode, o.p1, o.p2, o.p3, o.p5]);
+  // null when this database's plans read as the check expects, else what differed.
+  const selfTest = async () => {
+    if (tested && ((await tested) === null || Date.now() - testedAt < 60000)) return tested;
+    testedAt = Date.now();
+    return (tested = (async () => {
+      try {
+        const setup = sqlSelfTest.setup.length;
+        const got = await database.batch([...sqlSelfTest.setup.map((s) => [s]), [sqlMaster], ...sqlSelfTest.statements.map(([s]) => ["EXPLAIN " + s])]);
+        for (const [i, [statement, expected]] of sqlSelfTest.statements.entries()) {
+          const says = sqlSignature(sqlNeeds(plan(got[setup + 1 + i]), got[setup].rows));
+          if (says !== expected) return `${statement}: expected ${expected}, the plan says ${says}`;
+        }
+        return null;
+      } catch (e) {
+        return String((e && e.message) || e);
+      }
+    })());
+  };
+  app.post(NS + "sql", async (c) => {
+    const me = callerOf(who(c));
+    const body = await c.req.json().catch(() => null);
+    const list = body && body.statements;
+    if (!Array.isArray(list) || !list.length || list.length > 600 || !list.every((s) => Array.isArray(s) && typeof s[0] === "string"))
+      return fail(c, 400, "InvalidRequest", "statements: 1 to 600 of [statement, ...args]");
+    const started = Date.now();
+    let checked = started, explained = 0;
+    const run = async (changes) => {
+      let results;
+      try {
+        results = await database.batch(list);
+      } catch (e) {
+        return fail(c, 400, "SqlError", String((e && e.message) || e).slice(0, 500));
+      }
+      if (changes) {
+        plans.clear();
+        await settings.put("sql/schema", { at: Date.now(), by: me.id });
+      }
+      return c.json({ results, explained, ms: { check: checked - started, run: Date.now() - checked } });
+    };
+    const shapes = list.map(([s]) => sqlShape(s));
+    if (me.kind === "owner" || me.kind === "token") return run(shapes.some((s) => s.kind !== "data"));
+    const at = shapes.findIndex((s) => s.refused);
+    if (at >= 0) return fail(c, 400, "InvalidRequest", `statement ${at + 1}: ${shapes[at].refused}`);
+    const broken = await selfTest();
+    if (broken) return fail(c, 503, "SqlCheckFailed", "the plan check does not read this database's plans as it expects, so no statement is run. " + broken);
+    // Another instance changed the schema: the plans read before that are forgotten.
+    const now = JSON.stringify((await settings.get("sql/schema")) || null);
+    if (now !== stamp) {
+      plans.clear();
+      stamp = now;
+    }
+    const fresh = [...new Map(list.map((s, i) => [s[0], [s, shapes[i]]])).values()].filter(([s]) => !plans.has(s[0]));
+    if (fresh.length) {
+      let got;
+      try {
+        got = await database.batch([[sqlMaster], ...fresh.map(([[s, ...args]]) => ["EXPLAIN " + s, ...args])]);
+      } catch (e) {
+        return fail(c, 400, "SqlError", String((e && e.message) || e).slice(0, 500));
+      }
+      fresh.forEach(([[s], shape], i) => plans.set(s, sqlNeeds(plan(got[i + 1]), got[0].rows, { schema: shape.kind === "schema" })));
+      explained = fresh.length;
+    }
+    const prefix = sqlPrefix(me, who(c).via);
+    const mine = (t) => !!prefix && t.startsWith(prefix);
+    const granted = async (t, op) => {
+      if (/^(sqlite_|_cf)/.test(t)) return false;
+      if (mine(t)) return true;
+      const rule = await settings.get("sqlrule/" + t);
+      return !!rule && decide(rule, { caller: me, origin: origin(c), resource: { table: t, op } }).allow;
+    };
+    let changes = false;
+    for (const [i, [s]] of list.entries()) {
+      const needs = plans.get(s), shape = shapes[i];
+      let no = needs.refused || null;
+      if (!no && shape.kind === "schema") {
+        const other = [...shape.names, ...needs.reads, ...needs.writes, ...needs.drops].find((t) => !mine(t));
+        if (other !== undefined) no = `${other} does not have this caller's prefix${prefix ? ", " + prefix : ""}`;
+        changes = changes || needs.changes;
+      }
+      if (!no) for (const t of needs.writes) if (!(await granted(t, "write"))) no = no || "no write on " + t;
+      if (!no) for (const t of needs.reads) if (!(await granted(t, "read"))) no = no || "no read on " + t;
+      if (no) return fail(c, me.kind === "anonymous" ? 401 : 403, me.kind === "anonymous" ? "AuthRequired" : "Forbidden", `statement ${i + 1}: ${no}`);
+    }
+    checked = Date.now();
+    return run(changes);
+  });
+  app.post(NS + "sqlGrant", async (c) => {
+    const me = who(c);
+    if (me.caller !== "owner" || me.via !== "session") return fail(c, 401, "AuthRequired", "the owner's own session");
+    const { table, allow = null } = await c.req.json().catch(() => ({}));
+    if (typeof table !== "string" || !/^[A-Za-z_][A-Za-z0-9_]{0,99}$/.test(table)) return fail(c, 400, "InvalidRequest", "table");
+    const key = "sqlrule/" + table.toLowerCase();
+    if (allow === null) return c.json({ table, allow: null, deleted: !!(await settings.delete(key)) });
+    try {
+      checkedRule(table, allow);
+    } catch (e) {
+      return fail(c, 400, "InvalidRequest", e.message);
+    }
+    await settings.put(key, { allow, setAt: Date.now() });
+    return c.json({ table, allow });
+  });
+  app.get(NS + "sqlTables", async (c) => {
+    if (!owner(c)) return fail(c, 401, "AuthRequired", "the owner");
+    const [master] = await database.batch([[sqlMaster]]);
+    const rules = new Map((await rows.list("sqlrule/")).map(({ key, value }) => [key.slice("sqlrule/".length), value.allow]));
+    return c.json({ tables: master.rows.filter((m) => (m.type === "table" || m.type === "view") && !/^(sqlite_|_cf)/i.test(m.name)).map((m) => ({ table: m.name, type: m.type, rule: rules.get(m.name.toLowerCase()) || null })) });
+  });
+  // Secrets: secret/<NAME> in this Worker's rows, apart from the tables, so no db.* method reaches one. The deployer
+  // reads them from the database itself when it deploys a Worker that names one.
+  const S = "/xrpc/com.lopecode.brain.secret.";
+  const secretName = (n) => typeof n === "string" && /^[A-Z][A-Z0-9_]*$/.test(n) && !/^(BRAIN_|CF_)/.test(n);
+  const own = (c) => callerOf(who(c)).session;
+  const sessionOnly = async (c, next) => (own(c) ? next() : fail(c, 401, "AuthRequired", "the owner's own session"));
+  app.get(S + "list", async (c) => {
+    if (!callerOf(who(c)).trusted) return fail(c, 401, "AuthRequired", "the owner");
+    const rules = new Map((await rows.list("secretrule/")).map(({ key, value }) => [key.slice("secretrule/".length), value.allow]));
+    return c.json({ secrets: (await rows.list("secret/")).map(({ key, value }) => ({ name: key.slice("secret/".length), setAt: value.setAt, rule: rules.get(key.slice("secret/".length)) || null, ...(value.copiedFrom ? { copiedFrom: value.copiedFrom, by: value.by } : {}) })) });
+  });
+  // The owner's own session reads any secret. A Worker reads one only where the owner set a rule that allows it.
+  // Nobody else does, whatever the rule says: not a token, not a granted account, not an anonymous caller.
+  app.get(S + "get", async (c) => {
+    const name = c.req.query("name"), me = callerOf(who(c));
+    if (!me.session && me.kind !== "worker") return fail(c, 401, "AuthRequired", "the owner's own session, or a Worker a rule allows");
+    if (!me.session) {
+      const rule = await settings.get("secretrule/" + name);
+      if (!rule || !decide(rule, { caller: me, origin: origin(c), resource: { name, op: "read" } }).allow) return fail(c, 403, "Forbidden", `${name} is not open to ${me.id}`);
+    }
+    const s = await rows.get("secret/" + name);
+    return s ? c.json({ name, value: s.value }) : fail(c, 404, "NotFound", "no such secret");
+  });
+  app.post(S + "put", sessionOnly, async (c) => {
+    const { name, value } = await c.req.json().catch(() => ({}));
+    if (!secretName(name)) return fail(c, 400, "InvalidRequest", "a secret name is capitals, digits and _, and does not start with BRAIN_ or CF_");
+    if (typeof value !== "string") return fail(c, 400, "InvalidRequest", "value must be a string");
+    await rows.put("secret/" + name, { value, setAt: Date.now() });
+    return c.json({ name });
+  });
+  app.post(S + "delete", sessionOnly, async (c) => {
+    const { name } = await c.req.json().catch(() => ({}));
+    await settings.delete("secretrule/" + name);
+    return c.json({ deleted: !!(await rows.delete("secret/" + name)) });
+  });
+  app.post(S + "setRule", sessionOnly, async (c) => {
+    const { name, allow = null } = await c.req.json().catch(() => ({}));
+    if (!secretName(name)) return fail(c, 400, "InvalidRequest", "name");
+    if (allow === null) return c.json({ name, allow: null, deleted: !!(await settings.delete("secretrule/" + name)) });
+    try {
+      checkedRule(name, allow);
+    } catch (e) {
+      return fail(c, 400, "InvalidRequest", e.message);
+    }
+    await settings.put("secretrule/" + name, { allow, setAt: Date.now() });
+    return c.json({ name, allow });
+  });
+  // A value goes to a second name inside this Worker. It is in no response, so a rename needs no reader of the value:
+  // not a page, not a model. `to` must be new, the rule goes with the value, and `from` stays.
+  const COPIES_A_DAY = 10;
+  app.post(S + "copy", async (c) => {
+    const me = who(c), turn = me.caller === "owner" && me.via.startsWith("turn:");
+    if (!callerOf(me).session && !turn) return fail(c, 401, "AuthRequired", "the owner's own session, or a turn the owner sent");
+    const { from, to } = await c.req.json().catch(() => ({}));
+    if (!secretName(from)) return fail(c, 400, "InvalidRequest", "from is a secret name");
+    if (!secretName(to)) return fail(c, 400, "InvalidRequest", "a secret name is capitals, digits and _, and does not start with BRAIN_ or CF_");
+    const s = await rows.get("secret/" + from);
+    if (!s) return fail(c, 404, "NotFound", "no such secret");
+    if (await rows.get("secret/" + to)) return fail(c, 409, "Conflict", `${to} is set. A copy does not replace a secret`);
+    const rule = await settings.get("secretrule/" + from);
+    // A rule that reads the name would decide differently under the new one.
+    if (rule && /\bresource\b/.test(rule.allow)) return fail(c, 409, "Conflict", `the rule of ${from} reads resource, so it would not mean the same for ${to}. Put the secret and set its rule by hand`);
+    if (turn && (await rows.increment("secretcopies/" + new Date().toISOString().slice(0, 10))) > COPIES_A_DAY) return fail(c, 429, "RateLimitExceeded", `a turn copies ${COPIES_A_DAY} secrets a day. The owner's session has no limit`);
+    const setAt = Date.now();
+    await rows.put("secret/" + to, { value: s.value, setAt, copiedFrom: from, by: turn ? "turn" : "session" });
+    if (rule) await settings.put("secretrule/" + to, { allow: rule.allow, setAt });
+    else await settings.delete("secretrule/" + to);
+    return c.json({ from, to, setAt, rule: rule ? rule.allow : null });
+  });
+  return app;
+}
+// %%
+sqlMaster = "SELECT name, tbl_name, rootpage, type FROM sqlite_master"
+// %%
+// The opcodes of SQLite 3.53.4 (sqlite.org/opcode.html), less those that name a root page, a database or a virtual
+// table. safe: registers, jumps, and cursors that are already open or are transient. schema: only in a schema statement.
+// OpenRead, OpenWrite, ReopenIdx, Clear and Destroy are read by sqlNeeds. Any other opcode refuses the statement.
+sqlOpcodes = ({
+  safe: new Set(
+    (
+    "Abortable Add AddImm Affinity AggFinal AggInverse AggStep AggStep1 AggValue And BeginSubrtn BitAnd BitNot BitOr Blob Cast Close ClrSubtype CollSeq " +
+    "Column ColumnsUsed Compare Concat Copy Count CursorHint CursorLock CursorUnlock DecrJumpZero DeferredSeek Delete Divide ElseEq EndCoroutine Eq Explain " +
+    "Filter FilterAdd FinishSeek FkCheck FkCounter FkIfZero Found Function Ge GetSubtype Gosub Goto Gt Halt HaltIfNull IdxDelete IdxGE IdxGT IdxInsert " +
+    "IdxLE IdxLT IdxRowid If IfEmpty IFindKey IfNoHope IfNot IfNotOpen IfNotZero IfNullRow IfPos IfSizeBetween Init InitCoroutine Insert Int64 IntCopy " +
+    "Integer IsNull IsTrue IsType Jump Last Le Lt MakeRecord MemMax Move Multiply MustBeInt Ne NewRowid Next NoConflict Noop Not NotExists NotFound NotNull " +
+    "Null NullRow Offset OffsetLimit Once OpenAutoindex OpenDup OpenEphemeral OpenPseudo Or Param Permutation Prev Program PureFunc Real RealAffinity " +
+    "ReleaseReg Remainder ResetCount ResetSorter ResultRow Return Rewind RowCell RowData Rowid RowSetAdd RowSetRead RowSetTest SCopy SeekEnd SeekGE SeekGT " +
+    "SeekHit SeekLE SeekLT SeekRowid SeekScan Sequence SequenceTest SetSubtype ShiftLeft ShiftRight SoftNull Sort SorterCompare SorterData SorterInsert " +
+    "SorterNext SorterOpen SorterSort String String8 Subtract Trace Transaction TypeCheck Variable Yield ZeroOrNull "
+    )
+      .trim()
+      .split(" ")
+  ),
+  schema: new Set("CreateBtree DropIndex DropTable DropTrigger Expire JournalMode ParseSchema ReadCookie SetCookie".split(" "))
+})
+// %%
+// What a statement's text allows before its plan is read: { kind: "data" }, { kind: "schema", names } or { refused }.
+sqlShape = (text) => {
+  if (typeof text !== "string" || text.length > 20000) return { refused: "a statement is text of at most 20000 characters" };
+  if (text.includes(";")) return { refused: "one statement, with no ; in it" };
+  const s = "[ \\t\\r\\n]", name = "([A-Za-z_][A-Za-z0-9_]*)";
+  const first = (new RegExp(`^${s}*([A-Za-z]+)`).exec(text) || [])[1] || "";
+  if (["SELECT", "INSERT", "UPDATE", "DELETE", "REPLACE", "WITH"].includes(first.toUpperCase())) return { kind: "data" };
+  const forms = [
+    `CREATE${s}+TABLE${s}+(?:IF${s}+NOT${s}+EXISTS${s}+)?${name}${s}*\\(`,
+    `CREATE${s}+(?:UNIQUE${s}+)?INDEX${s}+(?:IF${s}+NOT${s}+EXISTS${s}+)?${name}${s}+ON${s}+${name}${s}*\\(`,
+    `DROP${s}+(?:TABLE|INDEX)${s}+(?:IF${s}+EXISTS${s}+)?${name}${s}*$`,
+    `ALTER${s}+TABLE${s}+${name}${s}+ADD${s}`
+  ];
+  for (const form of forms) {
+    const m = new RegExp(`^${s}*${form}`, "i").exec(text);
+    if (m) return { kind: "schema", names: m.slice(1).map((n) => n.toLowerCase()) };
+  }
+  return { refused: "a statement starts with SELECT, INSERT, UPDATE, DELETE, REPLACE or WITH, or is CREATE TABLE name (, CREATE INDEX name ON table (, DROP TABLE name, DROP INDEX name or ALTER TABLE name ADD" };
+}
+// %%
+// The tables a plan opens. plan: [[opcode, p1, p2, p3, p5], …] from EXPLAIN. master: the rows of sqlMaster.
+// { reads, writes, drops, changes } with table names in lower case, or { refused }. changes: the schema is written.
+sqlNeeds = (plan, master, { schema = false } = {}) => {
+  const byRoot = new Map(master.filter((m) => Number(m.rootpage) > 1).map((m) => [Number(m.rootpage), String(m.tbl_name).toLowerCase()]));
+  const reads = new Set(), writes = new Set(), drops = new Set();
+  let changes = false;
+  const table = (root, database, into) => {
+    if (Number(database) !== 0) return "a database other than the main one";
+    if (Number(root) === 1) return schema ? null : "sqlite_master";
+    const t = byRoot.get(Number(root));
+    if (!t) return `root page ${root} is no table`;
+    into.add(t);
+    return null;
+  };
+  for (const [opcode, p1, p2, p3, p5] of plan) {
+    let no = null;
+    if (opcode === "OpenRead" || opcode === "ReopenIdx") no = table(p2, p3, reads);
+    else if (opcode === "OpenWrite") {
+      // Bit 0x10 of P5: the root page is in a register, which is the b-tree a CREATE has just made.
+      if (Number(p5) & 16) no = schema ? null : "a cursor on a new b-tree outside a schema statement";
+      else no = table(p2, p3, writes);
+    } else if (opcode === "Clear") no = table(p1, p2, writes);
+    else if (opcode === "Destroy") no = schema ? table(p1, p3, drops) : "a drop outside a schema statement";
+    else if (sqlOpcodes.schema.has(opcode)) {
+      if (!schema) no = `${opcode} belongs to a schema statement`;
+      if (opcode === "SetCookie") changes = true;
+    } else if (!sqlOpcodes.safe.has(opcode)) no = `the opcode ${opcode} is not one this check reads`;
+    if (no) return { refused: no };
+  }
+  return { reads: [...reads].sort(), writes: [...writes].sort(), drops: [...drops].sort(), changes };
+}
+// %%
+sqlSignature = (needs) => needs.refused ? "refused: " + needs.refused : [...needs.reads.map((t) => "r:" + t), ...needs.writes.map((t) => "w:" + t), ...needs.drops.map((t) => "x:" + t)].join(" ")
+// %%
+// The prefix of the tables a caller owns. Only a Worker has one.
+sqlPrefix = (caller, via = "") => {
+  const name = (worker) => worker.replace(/^brain-(x-)?/, "").toLowerCase().replace(/[^a-z0-9]/g, "_") + "_";
+  if (caller && caller.kind === "worker") return name(caller.worker);
+  // A member's Worker calls as its author, and the core names the Worker in x-brain-via: brain-m-ID-NAME owns m_ID_NAME_*.
+  return caller && caller.kind === "did" && /^worker:brain-m-[0-9a-f]{10}-[a-z0-9]+$/.test(via) ? name(via.slice("worker:".length)) : null;
+}
+// %%
+// Run by an instance before its first checked statement: a read, a write fed by a read, a DELETE with no WHERE,
+// a subquery, a view and a trigger, each with what its plan must say.
+sqlSelfTest = ({
+  setup: [
+    "CREATE TABLE IF NOT EXISTS db_selftest_a (k TEXT PRIMARY KEY, v TEXT)",
+    "CREATE TABLE IF NOT EXISTS db_selftest_b (k TEXT, v TEXT)",
+    "CREATE VIEW IF NOT EXISTS db_selftest_v AS SELECT k, v FROM db_selftest_b",
+    "CREATE TRIGGER IF NOT EXISTS db_selftest_t AFTER INSERT ON db_selftest_a BEGIN INSERT INTO db_selftest_b VALUES (new.k, new.v); END"
+  ],
+  statements: [
+    ["SELECT v FROM db_selftest_a", "r:db_selftest_a"],
+    ["INSERT INTO db_selftest_b SELECT k, v FROM db_selftest_a", "r:db_selftest_a w:db_selftest_b"],
+    ["DELETE FROM db_selftest_a", "w:db_selftest_a"],
+    ["UPDATE db_selftest_a SET v = (SELECT COUNT(*) FROM db_selftest_b)", "r:db_selftest_b w:db_selftest_a"],
+    ["SELECT v FROM db_selftest_v", "r:db_selftest_b"],
+    ["INSERT INTO db_selftest_a (k, v) VALUES ('k', 'v')", "w:db_selftest_a w:db_selftest_b"]
+  ]
+})
+// %%
+// Every table and its rule, with a form to set one.
+dbPanel = ({ client, owner = false } = {}) => {
+  const muted = "color:var(--theme-foreground-muted)";
+  if (!client || !owner) return htl.html`<i style=${muted}>Sign in as the owner to see the databases.</i>`;
+  const out = htl.html`<div></div>`, note = htl.html`<span style=${muted}></span>`;
+  const db = Inputs.text({ placeholder: "database", width: 130 });
+  const table = Inputs.text({ placeholder: "table, or *", width: 130 });
+  const allow = Inputs.text({ placeholder: 'rule, e.g. resource.op == "read" || caller.session', width: 380 });
+  const draw = async () => {
+    try {
+      const { tables } = await client.query("db.tables");
+      const data = tables.map((t) => ({ database: t.db, table: t.table, rule: t.rule || (t.table === "*" ? "" : "the owner"), written: t.declared ? "yes" : "" }));
+      out.replaceChildren(data.length ? Inputs.table(data, { select: false, layout: "auto" }) : htl.html`<i style=${muted}>No tables yet.</i>`);
+    } catch (e) {
+      note.textContent = "db.tables failed: " + e.message;
+    }
+  };
+  const act = (label, input) =>
+    Inputs.button(label, {
+      reduce: async () => {
+        try {
+          const done = await client.procedure("db.setRule", input());
+          note.textContent = done.allow === null ? `${done.db}/${done.table}: rule removed.` : `${done.db}/${done.table}: ${done.allow}`;
+          await draw();
+        } catch (e) {
+          note.textContent = "Not set: " + e.message;
+        }
+      }
+    });
+  const set = act("Set rule", () => ({ db: db.value.trim(), table: table.value.trim(), allow: allow.value.trim() }));
+  const clear = act("Remove rule", () => ({ db: db.value.trim(), table: table.value.trim(), allow: null }));
+  draw();
+  return htl.html`<div>${out}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">${db}${table}${allow}${set}${clear}${Inputs.button("Refresh", { reduce: draw })}</div><div style="margin-top:6px">${note}</div></div>`;
+}
+// %%
+md`## Tests`
+// %%
+dbRig = async () => {
+  const sim = await simulate(db_service, {});
+  const X = "/xrpc/com.lopecode.brain.db.";
+  const as = (who, via = "") => async (path, body) => {
+    const r = await sim.fetch("https://db.internal" + (path.startsWith("/") ? path : X + path), {
+      method: body === undefined ? "GET" : "POST",
+      headers: { "x-brain-caller": who, "x-brain-via": via, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    return { status: r.status, data: await r.json() };
+  };
+  return { sim, as, owner: as("owner", "session"), token: as("token:laptop", "token"), library: as("worker:brain-x-library"), friend: as("did:plc:friend", "jwt"), stranger: as("did:plc:stranger", "jwt"), anonymous: as("anonymous") };
+}
+// %%
+test_db_put_get_list_delete_increment = {
+  const rig = await dbRig();
+  expect((await rig.owner("put", { db: "site", table: "posts", key: "b", value: { title: "second" } })).data).toEqual({ put: true });
+  await rig.owner("put", { db: "site", table: "posts", key: "a", value: { title: "first" } });
+  await rig.owner("put", { db: "site", table: "drafts", key: "a", value: "draft" });
+  expect((await rig.owner("get?db=site&table=posts&key=a")).data).toEqual({ value: { title: "first" } });
+  expect((await rig.owner("get?db=site&table=posts&key=zz")).data).toEqual({ value: null });
+  expect((await rig.owner("list?db=site&table=posts")).data).toEqual({ rows: [{ key: "a", value: { title: "first" } }, { key: "b", value: { title: "second" } }], more: false });
+  expect((await rig.owner("list?db=site&table=posts&prefix=b")).data.rows.map((r) => r.key)).toEqual(["b"]);
+  expect((await rig.owner("list?db=site&table=posts&limit=1")).data).toMatchObject({ more: true });
+  // ifAbsent keeps the first value; increment counts in one step.
+  expect((await rig.owner("put", { db: "site", table: "posts", key: "a", value: "again", ifAbsent: true })).data).toEqual({ put: false });
+  expect([(await rig.owner("increment", { db: "site", table: "n", key: "seq" })).data.value, (await rig.owner("increment", { db: "site", table: "n", key: "seq" })).data.value]).toEqual([1, 2]);
+  expect((await rig.owner("delete", { db: "site", table: "posts", key: "a" })).data).toEqual({ deleted: true });
+  expect((await rig.owner("get?db=site&table=posts&key=a")).data).toEqual({ value: null });
+  // The same table and key in another database is another row.
+  await rig.owner("put", { db: "other", table: "posts", key: "b", value: "elsewhere" });
+  expect(rig.sim.rows.get("d/other/posts/b")).toBe("elsewhere");
+  expect((await rig.owner("get?db=site&table=posts&key=b")).data.value).toEqual({ title: "second" });
+  expect((await rig.owner("put", { db: "si/te", table: "posts", key: "a", value: 1 })).status).toBe(400);
+  expect((await rig.owner("put", { db: "site", table: "posts", key: "big", value: "x".repeat(100001) })).status).toBe(413);
+  return "2 databases, 3 tables";
+}
+// %%
+test_db_a_table_is_open_to_whom_its_rule_says = {
+  const rig = await dbRig();
+  await rig.owner("put", { db: "site", table: "posts", key: "a", value: "hello" });
+  // No rule: the owner and their tokens. Not a Worker, not a granted account.
+  expect([(await rig.anonymous("get?db=site&table=posts&key=a")).status, (await rig.library("get?db=site&table=posts&key=a")).status, (await rig.friend("get?db=site&table=posts&key=a")).status]).toEqual([401, 403, 403]);
+  expect((await rig.token("get?db=site&table=posts&key=a")).status).toBe(200);
+  // Read by anyone, written by the owner's own session.
+  expect((await rig.owner("setRule", { db: "site", table: "posts", allow: 'resource.op == "read" || caller.session' })).status).toBe(200);
+  expect((await rig.anonymous("get?db=site&table=posts&key=a")).data).toEqual({ value: "hello" });
+  expect((await rig.anonymous("list?db=site&table=posts")).data.rows.length).toBe(1);
+  expect((await rig.anonymous("put", { db: "site", table: "posts", key: "a", value: "defaced" })).status).toBe(401);
+  expect((await rig.token("put", { db: "site", table: "posts", key: "a", value: "by token" })).status).toBe(403);
+  expect((await rig.owner("put", { db: "site", table: "posts", key: "a", value: "edited" })).status).toBe(200);
+  // The rule is the table's: the next table is still the owner's only.
+  expect((await rig.anonymous("get?db=site&table=drafts&key=a")).status).toBe(401);
+  // One Worker's table.
+  await rig.owner("setRule", { db: "site", table: "index", allow: 'caller.worker == "brain-x-library"' });
+  expect((await rig.library("put", { db: "site", table: "index", key: "n", value: 1 })).status).toBe(200);
+  expect((await rig.owner("get?db=site&table=index&key=n")).status).toBe(403);
+  // By key: each account has the rows under its own DID, for get, put and list.
+  await rig.owner("setRule", { db: "site", table: "profiles", allow: 'caller.kind == "did" && resource.key.startsWith(caller.did + "/")' });
+  expect((await rig.friend("put", { db: "site", table: "profiles", key: "did:plc:friend/bio", value: "hi" })).status).toBe(200);
+  expect((await rig.stranger("get?db=site&table=profiles&key=did:plc:friend/bio")).status).toBe(403);
+  expect((await rig.stranger("put", { db: "site", table: "profiles", key: "did:plc:friend/bio", value: "x" })).status).toBe(403);
+  expect((await rig.friend("list?db=site&table=profiles&prefix=did:plc:friend/")).data.rows.map((r) => r.value)).toEqual(["hi"]);
+  expect((await rig.friend("list?db=site&table=profiles")).status).toBe(403);
+  // "*" is every table of the database that has no rule of its own.
+  await rig.owner("setRule", { db: "pub", table: "*", allow: 'resource.op == "read" || caller.kind == "owner"' });
+  await rig.owner("put", { db: "pub", table: "anything", key: "k", value: 1 });
+  expect((await rig.anonymous("get?db=pub&table=anything&key=k")).data).toEqual({ value: 1 });
+  expect((await rig.anonymous("get?db=site&table=drafts&key=a")).status).toBe(401);
+  return "owner only, public read, one Worker, by key, whole database";
+}
+// %%
+test_db_only_the_owners_session_sets_a_rule = {
+  const rig = await dbRig();
+  const rule = { db: "site", table: "posts", allow: "true" };
+  expect([(await rig.token("setRule", rule)).status, (await rig.library("setRule", rule)).status, (await rig.friend("setRule", rule)).status, (await rig.anonymous("setRule", rule)).status]).toEqual([401, 401, 401, 401]);
+  const bad = await rig.owner("setRule", { ...rule, allow: "caller.kind ==" });
+  expect([bad.status, bad.data.message.startsWith("site/posts: the rule does not parse")]).toEqual([400, true]);
+  // A rule that errors when it is decided refuses.
+  await rig.owner("setRule", { ...rule, allow: "caller.nothing == 1" });
+  expect((await rig.owner("get?db=site&table=posts&key=a")).status).toBe(403);
+  await rig.owner("setRule", rule);
+  await rig.owner("put", { db: "site", table: "posts", key: "a", value: 1 });
+  expect((await rig.owner("tables")).data.tables).toEqual([{ db: "site", table: "posts", rule: "true", declared: true }]);
+  expect((await rig.library("tables")).status).toBe(401);
+  // Removing the rule returns the table to the owner.
+  expect((await rig.owner("setRule", { db: "site", table: "posts", allow: null })).data).toMatchObject({ allow: null, deleted: true });
+  expect((await rig.anonymous("get?db=site&table=posts&key=a")).status).toBe(401);
+  return "4 refusals, 1 bad rule, set and removed";
+}
+// %%
+test_a_rule_reads_the_origin_the_core_names = {
+  const rig = await dbRig();
+  const S = "/xrpc/com.lopecode.brain.secret.";
+  // A Worker's call, as the core forwards it: the Worker, and who it is calling for.
+  const worker = (name, origin, via = "") => async (path) => {
+    const r = await rig.sim.fetch("https://db.internal" + path, { headers: { "x-brain-caller": "worker:" + name, ...(origin ? { "x-brain-origin": origin, "x-brain-origin-via": via } : {}) } });
+    return r.status;
+  };
+  await rig.owner(S + "put", { name: "BSKY", value: "v" });
+  await rig.owner(S + "setRule", { name: "BSKY", allow: 'caller.worker == "brain-x-bluesky" && origin.trusted' });
+  const get = S + "get?name=BSKY";
+  // With no origin named, the origin is the caller.
+  expect([await worker("brain-x-bluesky")(get), await worker("brain-x-bluesky", "owner", "session")(get), await worker("brain-x-bluesky", "did:plc:friend", "jwt")(get), await worker("brain-x-bluesky", "anonymous")(get), await worker("brain-x-bluesky", "worker:brain-x-feed")(get), await worker("brain-x-other", "owner", "session")(get)]).toEqual([403, 200, 200, 403, 403, 403]);
+  // An origin does not open a secret to a caller that is not a Worker.
+  expect((await rig.friend(get)).status).toBe(401);
+  // A key-value table.
+  await rig.owner("put", { db: "site", table: "notes", key: "a", value: 1 });
+  await rig.owner("setRule", { db: "site", table: "notes", allow: 'caller.kind == "worker" && origin.session' });
+  const read = "/xrpc/com.lopecode.brain.db.get?db=site&table=notes&key=a";
+  expect([await worker("brain-x-library")(read), await worker("brain-x-library", "owner", "session")(read), await worker("brain-x-library", "owner", "turn:3")(read)]).toEqual([403, 200, 403]);
+  return "a secret and a table";
+}
+// %%
+test_secrets_are_read_by_the_owners_session_and_by_a_worker_a_rule_names = {
+  const rig = await dbRig();
+  const whatsapp = rig.as("worker:brain-x-whatsapp");
+  expect((await rig.owner("/xrpc/com.lopecode.brain.secret.put", { name: "WA_TOKEN", value: "v1" })).status).toBe(200);
+  expect((await rig.owner("/xrpc/com.lopecode.brain.secret.put", { name: "OTHER", value: "v2" })).status).toBe(200);
+  expect((await rig.owner("/xrpc/com.lopecode.brain.secret.put", { name: "BRAIN_KEY", value: "x" })).status).toBe(400);
+  expect((await rig.owner("/xrpc/com.lopecode.brain.secret.get?name=WA_TOKEN")).data).toEqual({ name: "WA_TOKEN", value: "v1" });
+  // Not a token, not the owner through a service JWT, not a granted account, not anonymous; and no Worker without a rule.
+  const get = "/xrpc/com.lopecode.brain.secret.get?name=WA_TOKEN";
+  expect([(await rig.token(get)).status, (await rig.as("owner", "jwt")(get)).status, (await rig.friend(get)).status, (await rig.anonymous(get)).status, (await whatsapp(get)).status, (await rig.library(get)).status]).toEqual([401, 401, 401, 401, 403, 403]);
+  expect((await rig.as("owner", "jwt")("/xrpc/com.lopecode.brain.secret.put", { name: "WA_TOKEN", value: "v9" })).status).toBe(401);
+  // A rule opens one secret to one Worker.
+  expect((await rig.owner("/xrpc/com.lopecode.brain.secret.setRule", { name: "WA_TOKEN", allow: 'caller.worker == "brain-x-whatsapp"' })).status).toBe(200);
+  expect((await whatsapp(get)).data).toEqual({ name: "WA_TOKEN", value: "v1" });
+  expect([(await rig.library(get)).status, (await whatsapp("/xrpc/com.lopecode.brain.secret.get?name=OTHER")).status]).toEqual([403, 403]);
+  // A rule that is true for everyone still opens it to Workers only.
+  await rig.owner("/xrpc/com.lopecode.brain.secret.setRule", { name: "WA_TOKEN", allow: "true" });
+  expect([(await rig.library(get)).status, (await rig.anonymous(get)).status, (await rig.token(get)).status, (await rig.friend(get)).status]).toEqual([200, 401, 401, 401]);
+  expect([(await whatsapp("/xrpc/com.lopecode.brain.secret.setRule", { name: "OTHER", allow: "true" })).status, (await rig.token("/xrpc/com.lopecode.brain.secret.setRule", { name: "OTHER", allow: "true" })).status]).toEqual([401, 401]);
+  // The list has names and rules, no values. No db.* method reaches a secret.
+  const list = await rig.as("owner", "jwt")("/xrpc/com.lopecode.brain.secret.list");
+  expect(list.data.secrets.map((s) => [s.name, s.rule])).toEqual([["OTHER", null], ["WA_TOKEN", "true"]]);
+  expect(JSON.stringify(list.data)).not.toContain("v1");
+  expect((await whatsapp("/xrpc/com.lopecode.brain.secret.list")).status).toBe(401);
+  expect((await rig.owner("list?db=secret&table=WA_TOKEN")).data.rows).toEqual([]);
+  // Deleting a secret deletes its rule.
+  expect((await rig.owner("/xrpc/com.lopecode.brain.secret.delete", { name: "WA_TOKEN" })).data).toEqual({ deleted: true });
+  await rig.owner("/xrpc/com.lopecode.brain.secret.put", { name: "WA_TOKEN", value: "v3" });
+  expect((await whatsapp(get)).status).toBe(403);
+  return "6 refusals without a rule, 1 Worker with one";
+}
+// %%
+test_a_secret_is_copied_to_a_new_name_and_its_value_is_in_no_answer = {
+  const rig = await dbRig();
+  const S = "/xrpc/com.lopecode.brain.secret.", VALUE = "made-up-value-7f3a";
+  const copy = (as, from, to) => as(S + "copy", { from, to });
+  const turn = rig.as("owner", "turn:4");
+  await rig.owner(S + "put", { name: "WA_TOKEN", value: VALUE });
+  await rig.owner(S + "setRule", { name: "WA_TOKEN", allow: 'caller.worker == "brain-x-whatsapp"' });
+  await rig.owner(S + "put", { name: "PLAIN", value: "other-made-up" });
+  const answers = [];
+  const kept = async (r) => (answers.push(JSON.stringify(r.data)), r);
+  // The owner's session copies; the rule goes with the value and the source stays.
+  const done = await kept(await copy(rig.owner, "WA_TOKEN", "WHATSAPP_ACCESS_TOKEN"));
+  expect(done.data).toEqual({ from: "WA_TOKEN", to: "WHATSAPP_ACCESS_TOKEN", setAt: done.data.setAt, rule: 'caller.worker == "brain-x-whatsapp"' });
+  expect((await rig.owner(S + "get?name=WHATSAPP_ACCESS_TOKEN")).data.value).toBe(VALUE);
+  expect((await rig.owner(S + "get?name=WA_TOKEN")).data.value).toBe(VALUE);
+  const whatsapp = rig.as("worker:brain-x-whatsapp");
+  expect([(await whatsapp(S + "get?name=WHATSAPP_ACCESS_TOKEN")).status, (await rig.library(S + "get?name=WHATSAPP_ACCESS_TOKEN")).status]).toEqual([200, 403]);
+  // A turn the owner sent copies too. No rule on the source: none on the copy.
+  expect((await kept(await copy(turn, "PLAIN", "PLAIN_2"))).data).toMatchObject({ to: "PLAIN_2", rule: null });
+  expect((await whatsapp(S + "get?name=PLAIN_2")).status).toBe(403);
+  // Nobody else: a token, a granted account, the owner through a PDS, a member's turn, a Worker, nobody.
+  for (const as of [rig.token, rig.friend, rig.as("owner", "jwt"), rig.as("did:plc:friend", "turn:5"), whatsapp, rig.library, rig.anonymous])
+    expect((await kept(await copy(as, "WA_TOKEN", "STOLEN"))).status).toBe(401);
+  // Not over a secret that is set, not from one that is not, not to or from a name secret.put refuses.
+  expect((await kept(await copy(rig.owner, "WA_TOKEN", "PLAIN"))).status).toBe(409);
+  expect((await kept(await copy(rig.owner, "NOT_SET", "NEW_NAME"))).status).toBe(404);
+  expect([(await copy(rig.owner, "WA_TOKEN", "BRAIN_KEY")).status, (await copy(rig.owner, "WA_TOKEN", "lower")).status, (await copy(rig.owner, "CF_API_TOKEN", "MINE")).status, (await copy(rig.owner, "WA_TOKEN")).status]).toEqual([400, 400, 400, 400]);
+  // A rule that reads the name is not carried to another name.
+  await rig.owner(S + "put", { name: "PUB_A", value: "made-up-public" });
+  await rig.owner(S + "setRule", { name: "PUB_A", allow: 'resource.name.startsWith("PUB_")' });
+  expect((await kept(await copy(rig.owner, "PUB_A", "PUB_B"))).data.message).toMatch("reads resource");
+  // A turn copies 10 a day. The session is not counted.
+  for (let i = 0; i < 9; i++) expect((await copy(turn, "PLAIN", "T_" + i)).status).toBe(200);
+  expect((await kept(await copy(turn, "PLAIN", "T_9"))).status).toBe(429);
+  expect((await copy(rig.owner, "PLAIN", "T_9")).status).toBe(200);
+  // The list says where a copy came from. No answer of copy or list has a value.
+  const list = await kept(await rig.owner(S + "list"));
+  expect(list.data.secrets.find((s) => s.name === "WHATSAPP_ACCESS_TOKEN")).toMatchObject({ copiedFrom: "WA_TOKEN", by: "session", rule: 'caller.worker == "brain-x-whatsapp"' });
+  expect(list.data.secrets.find((s) => s.name === "PLAIN_2")).toMatchObject({ copiedFrom: "PLAIN", by: "turn" });
+  expect(answers.filter((a) => /made-up/.test(a))).toEqual([]);
+  expect(list.data.secrets.find((s) => s.name === "STOLEN")).toBe(undefined);
+  return answers.length + " answers, no value in any";
+}
+// %%
+// Plans read from a D1 database on 2026-10-07 with EXPLAIN (tools/scratch/cloud-brain-experiments/explain-ops.ts),
+// as [opcode, p1, p2, p3, p5], and that database's sqlite_master. No SQL engine runs in a page, so these stand in.
+sqlPlanFixture = ({
+  master: [
+    {"name": "db_selftest_a", "tbl_name": "db_selftest_a", "rootpage": 7, "type": "table"},
+    {"name": "sqlite_autoindex_db_selftest_a_1", "tbl_name": "db_selftest_a", "rootpage": 8, "type": "index"},
+    {"name": "db_selftest_b", "tbl_name": "db_selftest_b", "rootpage": 9, "type": "table"},
+    {"name": "db_selftest_v", "tbl_name": "db_selftest_v", "rootpage": 0, "type": "view"},
+    {"name": "db_selftest_t", "tbl_name": "db_selftest_a", "rootpage": 0, "type": "trigger"},
+    {"name": "metrics_calls", "tbl_name": "metrics_calls", "rootpage": 10, "type": "table"},
+    {"name": "metrics_faults", "tbl_name": "metrics_faults", "rootpage": 11, "type": "table"},
+    {"name": "library_docs", "tbl_name": "library_docs", "rootpage": 12, "type": "table"},
+    {"name": "sqlite_autoindex_library_docs_1", "tbl_name": "library_docs", "rootpage": 13, "type": "index"}
+  ],
+  plans: {
+    "SELECT v FROM db_selftest_a": [["Init",0,7,0,0],["OpenRead",0,7,0,0],["Rewind",0,6,0,0],["Column",0,1,1,0],["ResultRow",1,1,0,0],["Next",0,3,0,1],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "INSERT INTO db_selftest_b SELECT k, v FROM db_selftest_a": [["Init",0,16,0,0],["InitCoroutine",4,9,2,0],["OpenRead",0,7,0,0],["Rewind",0,8,0,0],["Column",0,0,2,0],["Column",0,1,3,0],["Yield",4,0,0,0],["Next",0,4,0,1],["EndCoroutine",4,0,0,0],["OpenWrite",1,9,0,0],["Yield",4,15,0,0],["NewRowid",1,1,0,0],["MakeRecord",2,2,5,0],["Insert",1,5,1,57],["Goto",0,10,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "DELETE FROM db_selftest_a": [["Init",0,4,0,0],["Clear",7,0,-1,0],["Clear",8,0,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "UPDATE db_selftest_a SET v = (SELECT COUNT(*) FROM db_selftest_b)": [["Init",0,23,0,0],["Null",0,1,2,0],["Noop",3,0,1,0],["OpenWrite",0,7,0,0],["Rewind",0,22,0,0],["Rowid",0,2,0,0],["IsNull",2,22,0,0],["Column",0,0,3,0],["BeginSubrtn",0,5,0,0],["Once",0,17,0,0],["Null",0,6,6,0],["Integer",1,7,0,0],["OpenRead",4,9,0,0],["Count",4,8,0,0],["Close",4,0,0,0],["Copy",8,6,0,0],["DecrJumpZero",7,17,0,0],["Return",5,9,1,0],["Copy",6,4,0,0],["MakeRecord",3,2,1,0],["Insert",0,1,2,7],["Next",0,5,0,1],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "SELECT v FROM db_selftest_v": [["Init",0,7,0,0],["OpenRead",1,9,0,0],["Rewind",1,6,0,0],["Column",1,1,1,0],["ResultRow",1,1,0,0],["Next",1,3,0,1],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "INSERT INTO db_selftest_a (k, v) VALUES ('k', 'v')": [["Init",0,17,0,0],["OpenWrite",0,7,0,0],["OpenWrite",1,8,0,0],["String8",0,2,0,0],["String8",0,3,0,0],["NewRowid",0,1,0,0],["Affinity",2,2,0,0],["SCopy",2,5,0,0],["IntCopy",1,6,0,0],["MakeRecord",5,2,4,0],["NoConflict",1,12,5,0],["Halt",1555,2,0,2],["MakeRecord",2,2,7,0],["IdxInsert",1,4,5,16],["Insert",0,7,1,57],["Program",-2,16,9,1],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0],["Init",0,1,0,0],["Trace",2147483647,1,0,0],["OpenWrite",0,9,0,0],["Param",4,2,0,0],["Param",5,3,0,0],["NewRowid",0,1,0,0],["MakeRecord",2,2,4,0],["Insert",0,4,1,57],["ResetCount",0,0,0,0],["Halt",0,0,0,0]],
+    "SELECT t, n FROM metrics_calls WHERE t >= ?1": [["Init",0,11,0,0],["OpenRead",1,10,0,0],["Variable",1,1,0,0],["IsNull",1,10,0,0],["Affinity",1,1,0,0],["SeekGE",1,10,1,0],["Column",1,0,2,0],["Column",1,2,3,0],["ResultRow",2,2,0,0],["Next",1,6,0,0],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "SELECT c.t, d.v FROM metrics_calls c JOIN library_docs d ON d.k = c.worker": [["Init",0,14,0,0],["OpenRead",2,10,0,0],["OpenRead",1,12,0,0],["OpenRead",3,13,0,2],["Rewind",2,13,1,0],["Column",2,1,1,0],["SeekGE",3,12,1,0],["IdxGT",3,12,1,0],["DeferredSeek",3,0,1,0],["Column",2,0,2,0],["Column",1,1,3,0],["ResultRow",2,2,0,0],["Next",2,5,0,1],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "INSERT INTO metrics_faults SELECT t, worker FROM metrics_calls": [["Init",0,18,0,0],["InitCoroutine",4,9,2,0],["OpenRead",1,10,0,0],["Rewind",1,8,5,0],["Column",1,0,2,0],["Column",1,1,3,0],["Yield",4,0,0,0],["Next",1,4,0,1],["EndCoroutine",4,0,0,0],["OpenWrite",2,11,0,0],["Yield",4,17,0,0],["NewRowid",2,1,0,0],["HaltIfNull",1299,2,2,1],["HaltIfNull",1299,2,3,1],["MakeRecord",2,2,5,0],["Insert",2,5,1,57],["Goto",0,10,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "INSERT INTO metrics_calls (t, worker, n) VALUES (?1, ?2, ?3) ON CONFLICT (t, worker) DO UPDATE SET n = n + excluded.n": [["Init",0,31,0,0],["OpenWrite",1,10,0,0],["Variable",1,2,0,0],["Variable",2,3,0,0],["Variable",3,4,0,0],["Null",0,1,0,0],["HaltIfNull",1299,2,2,1],["HaltIfNull",1299,2,3,1],["HaltIfNull",1299,2,4,1],["Affinity",2,3,0,0],["SCopy",2,6,0,0],["SCopy",3,7,0,0],["SCopy",4,8,0,0],["MakeRecord",6,3,5,0],["NoConflict",1,29,6,0],["Column",1,0,19,0],["Column",1,1,20,0],["Column",1,0,16,0],["Column",1,1,17,0],["Column",1,2,22,0],["Add",4,22,18,0],["HaltIfNull",1299,2,18,1],["Affinity",16,3,0,0],["SCopy",16,11,0,0],["SCopy",17,12,0,0],["SCopy",18,13,0,0],["MakeRecord",11,3,10,0],["IdxInsert",1,10,11,1],["Goto",0,30,0,0],["IdxInsert",1,5,6,17],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "INSERT INTO metrics_faults SELECT 1, v FROM library_docs": [["Init",0,18,0,0],["InitCoroutine",4,9,2,0],["OpenRead",0,12,0,0],["Rewind",0,8,0,0],["Integer",1,2,0,0],["Column",0,1,3,0],["Yield",4,0,0,0],["Next",0,4,0,1],["EndCoroutine",4,0,0,0],["OpenWrite",1,11,0,0],["Yield",4,17,0,0],["NewRowid",1,1,0,0],["HaltIfNull",1299,2,2,1],["HaltIfNull",1299,2,3,1],["MakeRecord",2,2,5,0],["Insert",1,5,1,57],["Goto",0,10,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "DELETE FROM library_docs": [["Init",0,4,0,0],["Clear",12,0,-1,0],["Clear",13,0,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "UPDATE library_docs SET v = ?1": [["Init",0,13,0,0],["Null",0,1,2,0],["Noop",2,0,1,0],["OpenWrite",0,12,0,0],["Rewind",0,12,0,0],["Rowid",0,2,0,0],["IsNull",2,12,0,0],["Column",0,0,3,0],["Variable",1,4,0,0],["MakeRecord",3,2,1,0],["Insert",0,1,2,7],["Next",0,5,0,1],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "SELECT name FROM sqlite_master": [["Init",0,7,0,0],["OpenRead",0,1,0,0],["Rewind",0,6,0,0],["Column",0,1,1,0],["ResultRow",1,1,0,0],["Next",0,3,0,1],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "SELECT * FROM json_each('[1]')": [["Init",0,17,0,0],["VOpen",0,0,0,0],["String8",0,3,0,0],["Integer",1,1,0,0],["Integer",1,2,0,0],["VFilter",0,16,1,0],["VColumn",0,0,4,0],["VColumn",0,1,5,0],["VColumn",0,2,6,0],["VColumn",0,3,7,0],["VColumn",0,4,8,0],["VColumn",0,5,9,0],["VColumn",0,6,10,0],["VColumn",0,7,11,0],["ResultRow",4,8,0,0],["VNext",0,6,0,0],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "SELECT 1": [["Init",0,4,0,0],["Integer",1,1,0,0],["ResultRow",1,1,0,0],["Halt",0,0,0,0],["Goto",0,1,0,0]],
+    "CREATE TABLE metrics_daily (d TEXT PRIMARY KEY, n INTEGER)": [["Init",0,39,0,0],["ReadCookie",0,3,2,0],["If",3,5,0,0],["SetCookie",0,2,4,0],["SetCookie",0,5,1,0],["CreateBtree",0,2,1,0],["OpenWrite",0,1,0,0],["NewRowid",0,1,0,0],["Blob",6,3,0,0],["Insert",0,3,1,8],["Close",0,0,0,0],["Noop",0,22,0,0],["CreateBtree",0,4,2,0],["OpenWrite",1,1,0,0],["String8",0,6,0,0],["String8",0,7,0,0],["String8",0,8,0,0],["SCopy",4,9,0,0],["Null",0,10,0,0],["NewRowid",1,5,0,0],["MakeRecord",6,5,11,0],["Insert",1,11,5,24],["Close",0,0,0,0],["Null",0,12,13,0],["Noop",3,0,12,0],["OpenWrite",2,1,0,0],["SeekRowid",2,28,1,0],["Rowid",2,13,0,0],["IsNull",13,36,0,0],["String8",0,14,0,0],["String8",0,15,0,0],["String8",0,16,0,0],["Copy",2,17,0,0],["String8",0,18,0,0],["MakeRecord",14,5,12,0],["Insert",2,12,13,0],["SetCookie",0,1,23,0],["ParseSchema",0,0,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "CREATE TABLE IF NOT EXISTS metrics_calls (t INTEGER)": [["Init",0,3,0,0],["JournalMode",0,1,-1,0],["Halt",0,0,0,0],["Transaction",0,0,22,1],["Goto",0,1,0,0]],
+    "CREATE INDEX metrics_faults_t ON metrics_faults (t)": [["Init",0,33,0,0],["Noop",0,32,0,0],["CreateBtree",0,1,2,0],["OpenWrite",0,1,0,0],["String8",0,3,0,0],["String8",0,4,0,0],["String8",0,5,0,0],["SCopy",1,6,0,0],["String8",0,7,0,0],["NewRowid",0,2,0,0],["MakeRecord",3,5,8,0],["Insert",0,8,2,24],["SorterOpen",3,0,1,0],["OpenRead",1,11,0,0],["Rewind",1,20,0,0],["Column",1,0,10,0],["Rowid",1,11,0,0],["MakeRecord",10,2,9,0],["SorterInsert",3,9,0,0],["Next",1,15,0,0],["OpenWrite",2,1,0,17],["SorterSort",3,26,0,0],["SorterData",3,9,2,0],["SeekEnd",2,0,0,0],["IdxInsert",2,9,0,16],["SorterNext",3,22,0,0],["Close",1,0,0,0],["Close",2,0,0,0],["Close",3,0,0,0],["SetCookie",0,1,23,0],["ParseSchema",0,0,0,0],["Expire",0,1,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "CREATE INDEX metrics_docs_v ON library_docs (v)": [["Init",0,33,0,0],["Noop",0,32,0,0],["CreateBtree",0,1,2,0],["OpenWrite",0,1,0,0],["String8",0,3,0,0],["String8",0,4,0,0],["String8",0,5,0,0],["SCopy",1,6,0,0],["String8",0,7,0,0],["NewRowid",0,2,0,0],["MakeRecord",3,5,8,0],["Insert",0,8,2,24],["SorterOpen",3,0,1,0],["OpenRead",1,12,0,0],["Rewind",1,20,0,0],["Column",1,1,10,0],["Rowid",1,11,0,0],["MakeRecord",10,2,9,0],["SorterInsert",3,9,0,0],["Next",1,15,0,0],["OpenWrite",2,1,0,17],["SorterSort",3,26,0,0],["SorterData",3,9,2,0],["SeekEnd",2,0,0,0],["IdxInsert",2,9,0,16],["SorterNext",3,22,0,0],["Close",1,0,0,0],["Close",2,0,0,0],["Close",3,0,0,0],["SetCookie",0,1,23,0],["ParseSchema",0,0,0,0],["Expire",0,1,0,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["Goto",0,1,0,0]],
+    "DROP TABLE metrics_faults": [["Init",0,37,0,0],["Null",0,1,0,0],["OpenWrite",0,1,0,0],["Rewind",0,11,0,0],["Column",0,2,2,0],["Ne",3,10,2,82],["Column",0,0,2,0],["Eq",4,10,2,82],["Rowid",0,5,0,0],["Delete",0,0,0,2],["Next",0,4,0,1],["Destroy",11,2,0,0],["Null",0,6,7,0],["OpenEphemeral",2,0,6,0],["IfNot",2,22,1,0],["OpenRead",1,1,0,0],["Rewind",1,22,0,0],["Column",1,3,13,0],["Ne",2,21,13,84],["Rowid",1,7,0,0],["Insert",2,6,7,0],["Next",1,17,0,1],["OpenWrite",1,1,0,0],["Rewind",2,34,0,0],["Rowid",2,7,0,0],["NotExists",1,33,7,0],["Column",1,0,8,0],["Column",1,1,9,0],["Column",1,2,10,0],["Integer",11,11,0,0],["Column",1,4,12,0],["MakeRecord",8,5,15,0],["Insert",1,15,7,0],["Next",2,24,0,0],["DropTable",0,0,0,0],["SetCookie",0,1,23,0],["Halt",0,0,0,0],["Transaction",0,1,22,1],["String8",0,3,0,0],["String8",0,4,0,0],["Goto",0,1,0,0]],
+    "ALTER TABLE metrics_faults ADD COLUMN ms REAL": [["Init",0,41,0,0],["Null",0,1,2,0],["OpenEphemeral",1,0,1,0],["OpenRead",0,1,0,0],["Rewind",0,12,0,0],["Column",0,0,8,0],["Ne",9,11,8,82],["Column",0,1,8,0],["Ne",10,11,8,82],["Rowid",0,2,0,0],["Insert",1,1,2,0],["Next",0,5,0,1],["OpenWrite",0,1,0,0],["Rewind",1,33,0,0],["Rowid",1,2,0,0],["NotExists",0,32,2,0],["Column",0,0,3,0],["Column",0,1,4,0],["Column",0,2,5,0],["Column",0,3,6,0],["Column",0,4,14,0],["Function",1,13,12,0],["Concat",15,12,8,0],["Column",0,4,16,0],["Column",0,4,22,0],["Function",1,21,20,0],["Function",0,20,19,0],["Add",19,18,17,0],["Function",0,16,12,0],["Concat",12,8,7,0],["MakeRecord",3,5,11,0],["Insert",0,11,2,0],["Next",1,14,0,0],["ReadCookie",0,12,2,0],["AddImm",12,-2,0,0],["IfPos",12,37,0,0],["SetCookie",0,2,3,0],["SetCookie",0,1,23,0],["ParseSchema",0,0,0,3],["ParseSchema",1,0,0,3],["Halt",0,0,0,0],["Transaction",0,1,22,1],["String8",0,9,0,0],["String8",0,10,0,0],["String8",0,13,0,0],["String8",0,15,0,0],["Integer",1,18,0,0],["String8",0,21,0,0],["Goto",0,1,0,0]]
+  }
+})
+// %%
+// Stands in for the table database under simulate: answers sqlMaster and EXPLAIN from sqlPlanFixture and records the rest.
+sqlFakeDatabase = ({ master = sqlPlanFixture.master, plans = sqlPlanFixture.plans } = {}) => {
+  const ran = [];
+  const run = (statement, args) => {
+    if (statement === sqlMaster) return { rows: master, changes: 0 };
+    if (statement.startsWith("EXPLAIN ")) {
+      const p = plans[statement.slice(8)];
+      if (!p) throw new Error("no plan recorded for: " + statement.slice(8));
+      return { rows: p.map(([opcode, p1, p2, p3, p5]) => ({ opcode, p1, p2, p3, p5 })), changes: 0 };
+    }
+    ran.push([statement, ...args]);
+    return { rows: [], changes: 1 };
+  };
+  return { run, ran };
+}
+// %%
+test_sql_text_rules = {
+  const kind = (s) => ((r) => r.refused ? "refused" : r.kind + (r.names ? " " + r.names.join(",") : ""))(sqlShape(s));
+  expect(["SELECT 1", "  select 1", "WITH x AS (SELECT 1) DELETE FROM t", "REPLACE INTO t VALUES (1)", "INSERT INTO t VALUES (?1)"].map(kind)).toEqual(Array(5).fill("data"));
+  expect(kind("CREATE TABLE IF NOT EXISTS Metrics_Calls (t INTEGER)")).toBe("schema metrics_calls");
+  expect(kind("create unique index if not exists metrics_i on metrics_calls (t)")).toBe("schema metrics_i,metrics_calls");
+  expect([kind("DROP TABLE IF EXISTS metrics_calls"), kind("DROP INDEX metrics_i \n"), kind("ALTER TABLE metrics_calls ADD COLUMN ms REAL")]).toEqual(["schema metrics_calls", "schema metrics_i", "schema metrics_calls"]);
+  const refused = [
+    "SELECT 1; DROP TABLE t", "SELECT ';'", "SELECT 1;", "PRAGMA table_info(t)", "EXPLAIN SELECT 1", "/* x */ PRAGMA table_info(t)", "ATTACH DATABASE 'x' AS y", "VACUUM", "ANALYZE", "BEGIN",
+    "CREATE TABLE metrics_x AS SELECT * FROM t", "CREATE TABLE main.metrics_x (a)", 'CREATE TABLE "metrics_x" (a)', "CREATE TEMP TABLE metrics_x (a)", "CREATE VIRTUAL TABLE metrics_x USING fts5(a)",
+    "CREATE VIEW metrics_v AS SELECT 1", "CREATE TRIGGER metrics_t AFTER INSERT ON metrics_calls BEGIN SELECT 1 END", "DROP VIEW metrics_v", "DROP TABLE metrics_calls, t", "DROP TABLE metrics_calls -- x",
+    "ALTER TABLE metrics_calls RENAME TO t", "ALTER TABLE metrics_calls DROP COLUMN t", "ALTER TABLE metrics_calls RENAME COLUMN a TO b", "CREATE\u00a0TABLE metrics_x (a)", "", 42
+  ];
+  expect(refused.filter((s) => kind(s) !== "refused")).toEqual([]);
+  return refused.length + " refused";
+}
+// %%
+test_sql_needs_are_read_from_real_plans = {
+  const { master, plans } = sqlPlanFixture;
+  const says = (s, opts) => sqlSignature(sqlNeeds(plans[s], master, opts));
+  // The self-test's own expectations hold on the recorded plans.
+  expect(sqlSelfTest.statements.filter(([s, expected]) => says(s) !== expected)).toEqual([]);
+  expect(says("SELECT c.t, d.v FROM metrics_calls c JOIN library_docs d ON d.k = c.worker")).toBe("r:library_docs r:metrics_calls");
+  expect(says("INSERT INTO metrics_faults SELECT 1, v FROM library_docs")).toBe("r:library_docs w:metrics_faults");
+  expect(says("INSERT INTO metrics_calls (t, worker, n) VALUES (?1, ?2, ?3) ON CONFLICT (t, worker) DO UPDATE SET n = n + excluded.n")).toBe("w:metrics_calls");
+  // A DELETE with no WHERE opens nothing: it is a Clear of the table and of its index.
+  expect(plans["DELETE FROM library_docs"].map((o) => o[0])).not.toContain("OpenWrite");
+  expect(says("DELETE FROM library_docs")).toBe("w:library_docs");
+  expect(says("SELECT 1")).toBe("");
+  expect(says("SELECT name FROM sqlite_master")).toBe("refused: sqlite_master");
+  expect(says("SELECT * FROM json_each('[1]')")).toBe("refused: the opcode VOpen is not one this check reads");
+  // A schema statement read as data is refused; read as schema, it names what it reads and drops.
+  expect(says("CREATE TABLE metrics_daily (d TEXT PRIMARY KEY, n INTEGER)")).toBe("refused: ReadCookie belongs to a schema statement");
+  expect(says("DROP TABLE metrics_faults")).toBe("refused: sqlite_master");
+  expect(sqlSignature(sqlNeeds([["Destroy", 11, 2, 0, 0]], master))).toBe("refused: a drop outside a schema statement");
+  expect(says("CREATE TABLE metrics_daily (d TEXT PRIMARY KEY, n INTEGER)", { schema: true })).toBe("");
+  expect(says("CREATE INDEX metrics_docs_v ON library_docs (v)", { schema: true })).toBe("r:library_docs");
+  expect(says("DROP TABLE metrics_faults", { schema: true })).toBe("x:metrics_faults");
+  expect([sqlNeeds(plans["DROP TABLE metrics_faults"], master, { schema: true }).changes, sqlNeeds(plans["CREATE TABLE IF NOT EXISTS metrics_calls (t INTEGER)"], master, { schema: true }).changes]).toEqual([true, false]);
+  // A root page sqlite_master does not list, another database, and an opcode not on the list.
+  expect(sqlSignature(sqlNeeds([["OpenRead", 0, 99, 0, 0]], master))).toBe("refused: root page 99 is no table");
+  expect(sqlSignature(sqlNeeds([["OpenRead", 0, 10, 1, 0]], master))).toBe("refused: a database other than the main one");
+  expect(sqlSignature(sqlNeeds([["Init", 0, 1, 0, 0], ["OpenAnyOtherWay", 0, 10, 0, 0]], master))).toBe("refused: the opcode OpenAnyOtherWay is not one this check reads");
+  // Every opcode D1 gave for the recorded statements is one the lists hold or sqlNeeds reads, bar the virtual table's.
+  const seen = new Set(Object.values(plans).flat().map((o) => o[0]));
+  expect([...seen].filter((o) => !sqlOpcodes.safe.has(o) && !sqlOpcodes.schema.has(o)).sort()).toEqual(["Clear", "Destroy", "OpenRead", "OpenWrite", "VColumn", "VFilter", "VNext", "VOpen"]);
+  expect([sqlPrefix({ kind: "did", did: "did:plc:a" }, "worker:brain-m-0123456789-todo"), sqlPrefix({ kind: "did", did: "did:plc:a" }, "session"), sqlPrefix({ kind: "did", did: "did:plc:a" }, "worker:brain-x-metrics")]).toEqual(["m_0123456789_todo_", null, null]);
+  expect([sqlPrefix({ kind: "worker", worker: "brain-x-metrics" }), sqlPrefix({ kind: "worker", worker: "brain-x-My-Thing" }), sqlPrefix({ kind: "worker", worker: "brain-db" }), sqlPrefix({ kind: "did" })]).toEqual(["metrics_", "my_thing_", "db_", null]);
+  return seen.size + " opcodes in " + Object.keys(plans).length + " plans";
+}
+// %%
+test_db_sql_decides_by_table_from_the_plan = {
+  const db = sqlFakeDatabase();
+  const sim = await simulate(db_service, { sql: db.run });
+  const as = (who, via = "") => async (statements, path = "sql") => {
+    const r = await sim.fetch("https://db.internal/xrpc/com.lopecode.brain.db." + path, { method: "POST", headers: { "x-brain-caller": who, "x-brain-via": via, "content-type": "application/json" }, body: JSON.stringify(path === "sql" ? { statements } : statements) });
+    return { status: r.status, data: await r.json() };
+  };
+  const metrics = as("worker:brain-x-metrics"), library = as("worker:brain-x-library"), owner = as("owner", "session");
+  const upsert = "INSERT INTO metrics_calls (t, worker, n) VALUES (?1, ?2, ?3) ON CONFLICT (t, worker) DO UPDATE SET n = n + excluded.n";
+  // Its own tables: read, upsert, a write fed by a read. The self-test's setup ran first, once.
+  const ok = await metrics([["SELECT t, n FROM metrics_calls WHERE t >= ?1", 0], [upsert, 1, "a", 2], [upsert, 2, "b", 3], ["INSERT INTO metrics_faults SELECT t, worker FROM metrics_calls"]]);
+  expect([ok.status, ok.data.results.length, ok.data.explained]).toEqual([200, 4, 3]);
+  expect(db.ran.slice(0, 4).map((s) => s[0])).toEqual(sqlSelfTest.setup);
+  expect(db.ran.slice(4)).toEqual([["SELECT t, n FROM metrics_calls WHERE t >= ?1", 0], [upsert, 1, "a", 2], [upsert, 2, "b", 3], ["INSERT INTO metrics_faults SELECT t, worker FROM metrics_calls"]]);
+  // The same statements again: no plan is read, and the setup is not run again.
+  expect((await metrics([[upsert, 3, "c", 4]])).data.explained).toBe(0);
+  expect(db.ran.length).toBe(9);
+  // Another Worker's table: not read, not written, not cleared, and nothing of the batch runs.
+  const no = async (who, statements) => ((r) => [r.status, r.data.message])(await who(statements));
+  expect(await no(metrics, [["SELECT c.t, d.v FROM metrics_calls c JOIN library_docs d ON d.k = c.worker"]])).toEqual([403, "statement 1: no read on library_docs"]);
+  expect(await no(metrics, [[upsert, 1, "a", 2], ["INSERT INTO metrics_faults SELECT 1, v FROM library_docs"]])).toEqual([403, "statement 2: no read on library_docs"]);
+  expect(await no(metrics, [["DELETE FROM library_docs"]])).toEqual([403, "statement 1: no write on library_docs"]);
+  expect(await no(metrics, [["UPDATE library_docs SET v = ?1", "x"]])).toEqual([403, "statement 1: no write on library_docs"]);
+  expect(await no(library, [["SELECT t, n FROM metrics_calls WHERE t >= ?1", 0]])).toEqual([403, "statement 1: no read on metrics_calls"]);
+  expect(await no(as("did:plc:friend", "jwt"), [["SELECT t, n FROM metrics_calls WHERE t >= ?1", 0]])).toEqual([403, "statement 1: no read on metrics_calls"]);
+  expect(await no(metrics, [["SELECT name FROM sqlite_master"]])).toEqual([403, "statement 1: sqlite_master"]);
+  expect(await no(metrics, [["SELECT * FROM json_each('[1]')"]])).toEqual([403, "statement 1: the opcode VOpen is not one this check reads"]);
+  expect((await metrics([["SELECT 1; DELETE FROM library_docs"]])).status).toBe(400);
+  expect((await metrics([["PRAGMA table_info(library_docs)"]])).status).toBe(400);
+  expect((await metrics([])).status).toBe(400);
+  expect(db.ran.length).toBe(9);
+  // Schema: under its own prefix only, and an index only on its own table.
+  expect((await metrics([["CREATE TABLE metrics_daily (d TEXT PRIMARY KEY, n INTEGER)"], ["CREATE INDEX metrics_faults_t ON metrics_faults (t)"]])).status).toBe(200);
+  expect(sim.rows.get("sql/schema")).toMatchObject({ by: "worker:brain-x-metrics" });
+  expect(await no(library, [["CREATE TABLE metrics_daily (d TEXT PRIMARY KEY, n INTEGER)"]])).toEqual([403, "statement 1: metrics_daily does not have this caller's prefix, library_"]);
+  expect(await no(metrics, [["CREATE INDEX metrics_docs_v ON library_docs (v)"]])).toEqual([403, "statement 1: library_docs does not have this caller's prefix, metrics_"]);
+  expect(await no(library, [["DROP TABLE metrics_faults"]])).toEqual([403, "statement 1: metrics_faults does not have this caller's prefix, library_"]);
+  expect((await metrics([["DROP TABLE metrics_faults"]])).status).toBe(200);
+  // A CREATE that finds its table changes nothing, so no plan is forgotten for it.
+  const before = sim.rows.get("sql/schema").at;
+  expect((await metrics([["CREATE TABLE IF NOT EXISTS metrics_calls (t INTEGER)"]])).status).toBe(200);
+  expect(sim.rows.get("sql/schema").at).toBe(before);
+  // A rule opens one table for one op. Only the owner's own session sets one, and it does not open schema statements.
+  expect([(await metrics({ table: "library_docs", allow: "true" }, "sqlGrant")).status, (await as("token:laptop", "token")({ table: "library_docs", allow: "true" }, "sqlGrant")).status]).toEqual([401, 401]);
+  expect((await owner({ table: "library_docs", allow: 'resource.op == "read" && caller.worker == "brain-x-metrics"' }, "sqlGrant")).status).toBe(200);
+  expect((await metrics([["SELECT c.t, d.v FROM metrics_calls c JOIN library_docs d ON d.k = c.worker"]])).status).toBe(200);
+  expect(await no(metrics, [["DELETE FROM library_docs"]])).toEqual([403, "statement 1: no write on library_docs"]);
+  expect(await no(metrics, [["CREATE INDEX metrics_docs_v ON library_docs (v)"]])).toEqual([403, "statement 1: library_docs does not have this caller's prefix, metrics_"]);
+  // The owner is not checked: no plan is read, and a statement the check has no plan for runs.
+  expect((await owner([["SELECT anything FROM anywhere"], ["PRAGMA table_info(library_docs)"]])).status).toBe(200);
+  expect(db.ran.at(-1)).toEqual(["PRAGMA table_info(library_docs)"]);
+  const tables = await sim.fetch("https://db.internal/xrpc/com.lopecode.brain.db.sqlTables", { headers: { "x-brain-caller": "owner" } });
+  expect((await tables.json()).tables.filter((t) => t.rule).map((t) => [t.table, t.type])).toEqual([["library_docs", "table"]]);
+  return db.ran.length + " statements run";
+}
+// %%
+test_db_sql_refuses_everything_when_the_plans_read_differently = {
+  // A database whose plans open tables in a way the check does not read: here, the read is given another name.
+  const renamed = Object.fromEntries(Object.entries(sqlPlanFixture.plans).map(([s, p]) => [s, p.map((o) => (o[0] === "OpenRead" ? ["OpenReadV2", ...o.slice(1)] : o))]));
+  const db = sqlFakeDatabase({ plans: renamed });
+  const sim = await simulate(db_service, { sql: db.run });
+  const call = async (who, statements) => {
+    const r = await sim.fetch("https://db.internal/xrpc/com.lopecode.brain.db.sql", { method: "POST", headers: { "x-brain-caller": who, "content-type": "application/json" }, body: JSON.stringify({ statements }) });
+    return { status: r.status, data: await r.json() };
+  };
+  const refused = await call("worker:brain-x-metrics", [["INSERT INTO metrics_calls (t, worker, n) VALUES (?1, ?2, ?3) ON CONFLICT (t, worker) DO UPDATE SET n = n + excluded.n", 1, "a", 2]]);
+  expect([refused.status, refused.data.error]).toEqual([503, "SqlCheckFailed"]);
+  expect(refused.data.message).toContain("SELECT v FROM db_selftest_a: expected r:db_selftest_a, the plan says refused: the opcode OpenReadV2 is not one this check reads");
+  expect(db.ran.map((s) => s[0])).toEqual(sqlSelfTest.setup);
+  // The owner and the key-value tables do not pass through the check.
+  expect((await call("owner", [["SELECT 1"]])).status).toBe(200);
+  const put = await sim.fetch("https://db.internal/xrpc/com.lopecode.brain.db.put", { method: "POST", headers: { "x-brain-caller": "owner", "content-type": "application/json" }, body: JSON.stringify({ db: "site", table: "posts", key: "a", value: 1 }) });
+  expect(put.status).toBe(200);
+  return refused.data.message.length + " characters of reason";
+}
+// %%
+test_db_declares_what_it_needs = {
+  const { meta } = await db_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-db", role: "system", module: "@tomlarkworthy/brain-db", resources: ["database", "rows"], secrets: [] });
+  expect(Object.entries(meta.access).filter(([m]) => m.includes(".db.")).map(([m, r]) => m.replace("com.lopecode.brain.db.", "") + " " + r.who).sort()).toEqual(["delete workers", "get anyone", "increment workers", "list anyone", "put workers", "setRule owner", "sql workers", "sqlGrant owner", "sqlTables owner", "tables owner"]);
+  // Every secret method is fixed at the core.
+  expect(Object.entries(meta.access).filter(([, r]) => r.fixed).map(([m]) => m.replace("com.lopecode.brain.", "")).sort()).toEqual(["secret.copy", "secret.delete", "secret.get", "secret.list", "secret.put", "secret.setRule"]);
+  return Object.keys(meta.access).length + " methods";
+}
+// %%
+import {cloudflare, rows, database, hono, settings, decide, callerOf, checkedRule, simulate} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

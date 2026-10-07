@@ -1,0 +1,969 @@
+md`# Cloud Brain: specification`
+// %%
+opening = md`A Cloud Brain is a set of Cloudflare Workers that one owner controls. Each Worker is deployed from one module of this notebook. A deployer Worker holds the only Cloudflare token and does every deploy. An assistant in a browser tab answers messages. No Worker calls a model.
+
+This module says what must be true and how each statement is checked. \`@tomlarkworthy/cloud-brain-docs\` says how the Brain works. The build record at the end of this module says what was run and what came back.
+
+Rewritten 2026-10-07 against the seeds in \`tools/cloud-brain/\`. The version before it is \`plan/specs/cloud-brain.html\` in the repository.`
+// %%
+related = htl.html`<p>Open: ${["cloud-brain-docs", "cloud-brain"].map((n, i) => htl.html`${i ? " · " : ""}<a href=${linkTo("@tomlarkworthy/" + n, { onObservable: false })} onclick=${(e) => (e.preventDefault(), navigate(e.currentTarget.getAttribute("href")))}><code>${n}</code></a>`)}</p>`
+// %%
+readiness = {
+  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
+  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
+  const blocking = questions.filter((q) => q.blocking && !q.answer);
+  const undrawn = states.filter((s) => !s.drawing);
+  const items = [
+    [notes.length, "annotations to resolve"],
+    [blocking.length, "blocking questions open"],
+    [unchecked.length, `of ${requirements.length} requirements without a check`],
+    [undrawn.length, `of ${states.length} states without a drawing`]
+  ];
+  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
+  // Everything that still needs the reviewer, listed here with a link to where it is answered.
+  const open = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.answer);
+  const todo = [
+    ...open.filter(({ q }) => q.blocking).map(({ q, i }) => ({ tag: "blocking question", text: q.q, to: `[data-question="${i}"]` })),
+    ...open.filter(({ q }) => !q.blocking).map(({ q, i }) => ({ tag: "open question", text: q.q, to: `[data-question="${i}"]` })),
+    ...unchecked.map((r) => ({ tag: "no check", text: `${r.id} ${r.text}`, to: `[data-requirement="${r.id}"]` })),
+    ...undrawn.map((s) => ({ tag: "not drawn", text: `state: ${s.state}`, to: `[data-state="${s.state}"]` }))
+  ];
+  const box = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"></div>`;
+  // Scrolls the pane; a plain #fragment link would replace the lopepage layout hash.
+  const jump = (to) => (e) => {
+    e.preventDefault();
+    const el = (box.closest(".lp2-pane") || box.ownerDocument).querySelector(to);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (el.animate) el.animate([{ background: "color-mix(in srgb, currentColor 22%, transparent)" }, { background: "transparent" }], 1800);
+  };
+  const short = (s) => (s.length > 110 ? s.slice(0, 110) + "…" : s);
+  box.append(htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
+    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
+    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
+  </div>`);
+  if (todo.length) box.append(htl.html`<ol style="margin:.5em 0 0;padding-left:1.4em">${todo.map((t) => htl.html`<li><a href="#" onclick=${jump(t.to)}>${t.tag}</a>: ${short(t.text)}</li>`)}</ol>`);
+  return box;
+}
+// %%
+md`## Review
+
+- **Leave a note**: ☰ → Annotate → Note, then drag over the words. The build keeps a note and the status. It replaces every other cell from the seed.
+- A change to a requirement, a state or a question goes in \`tools/cloud-brain/cloud-brain-specs.ojs\`.
+- The 17 notes from 2026-10-04 and 2026-10-05 were deleted on 2026-10-07 (Tom: \"delete\"). The questions table has their answers.`
+// %%
+md`## Outcome
+
+| | must be true | built |
+|---|---|---|
+| O1 | The owner deploys a service from the page. The deployer distils the module source and deploys it. | yes |
+| O2 | A deploy that fails its self-test, its health check or its tests is restored with no person involved. | yes |
+| O3 | A person sends a message on a channel. A turn of the assistant in a Brain tab answers on the same channel. | WhatsApp: yes. Bluesky: yes, 2 messages on cb4 2026-10-07 (the owner, a member); each entry holds a reply. The reply was not looked for in the Bluesky app. |
+| O4 | A turn runs with the permissions of its sender, not of the tab. | yes |
+| O5 | A member deploys a Worker that has the member's permissions and no more. | yes, with scratch members |
+| O6 | With no tab open, a message waits in the inbox and the sender gets one notice an hour. | yes, under \`simulate\` (R54) |
+| O7 | Another atproto account calls a method that the owner granted, through its own PDS. | claims tested; no real PDS call to this build |
+| O8 | A person with a copy of the page, a Cloudflare account and a browser installs a Brain. No data is copied. | one account, 2026-10-05; not run since |
+| O9 | The assistant can change a service and deploy the change. | yes, on cb1 2026-10-06 00:21 to 00:31 (the proxy changed, a new service \`brain-x-files\` deployed) and on cb3 2026-10-06 08:31 (a new service \`brain-files\`). The record holds no such run of 2026-10-07 and none on cb4. |
+| O10 | A turn runs with no tab open. | no. A notebook in a Cloudflare Container is a separate workstream. |`
+// %%
+md`## Scope
+
+### Not your concern
+
+- **robocoop-5.** The assistant is robocoop-5, unchanged. The page gives it a prompt, tools and a watch.
+- **\`@tomlarkworthy/exporter-3\` and \`lopecode-channel.ts\`.** Do not change them.
+- **Meta and Bluesky.** The owner makes the app, the number and the account.
+- **A PDS.** The Brain is a service that a PDS forwards to. It stores no atproto repository.
+- **Services outside the core** (\`brain-inbox\`, \`brain-whatsapp\`, \`brain-bluesky\`, \`brain-library\`, \`brain-proxy\`). Each module holds its own rules and tests. This spec has one requirement for all channels.
+
+### Non-goals
+
+- An agent loop or a model call in a Worker.
+- The Observable runtime in a running Worker. The deployer runs it in QuickJS to distil, and nowhere else.
+- More than one owner. Other people are members.
+- A copy of data on clone or install.
+- A way to change the deployer from the Brain.
+- Terraform or Pulumi compatibility.`
+// %%
+md`## Words
+
+The page uses these strings. Read from \`cloud-brain.ojs\`, \`cloudflare-iac.ojs\` and \`brain-deployer.ojs\` on 2026-10-07.`
+// %%
+copy_title = md`Cloud Brain`
+// %%
+copy_opening = md`Read-only. Sign in as the owner to use this Brain, or use Clone below to make your own.`
+// %%
+copy_strings = md`| where | text |
+|---|---|
+| status, local copy | This is a local copy. It is not connected to a Brain. Use Clone below to make one in your Cloudflare account. |
+| status, no answer | This Brain did not answer. |
+| status, not the owner | Signed in as @HANDLE. This Brain belongs to someone else, so you can read it, and use Clone below to make your own. |
+| status, owner | Signed in as @HANDLE, the owner of HOST. |
+| sign-in | atproto handle · your-handle.bsky.social · Sign in · Sign out |
+| sections | Health · Operator · Services · Library · Access · People · Clone |
+| assistant line | Answering messages in this tab. · Standing by. Another tab is answering. · N waiting · Inbox: ERROR |
+| service states | in sync · changed · not installed · skewed · failing · cannot deploy · unknown |
+| service notes | waiting for approval · approved, press Apply · unverified: its tests have not been run from this version |
+| skew note | WORKER is running HASH, which the deployer did not deploy. |
+| apply | Apply N changes · Waiting for approval: WORKERS. |
+| probation | NAME HASH is live on probation. Confirm within MM:SS or it is rolled back. · Keep this version |
+| rolled back | NAME HASH was rolled back to HASH at TIME: REASON |
+| access | New token · Grant access · Revoke · Remove · No tokens or grants. · Copy this token now. It is not shown again. |
+| people | Add member · Refresh · Set · Save · Remove · Add · may deploy |
+| clone | Copy the seed · Clone into my account · Download this notebook · Installed. Your Brain is at URL. · The seed Worker was deleted. |
+| deployer page | Cloud Brain deployer · Waiting for approval · Roll back · Deploys need approval: on · Turn off · Recovery key |`
+// %%
+md`## Visual design
+
+The six drawings are from 2026-10-04 and 2026-10-05. Their layout holds. Their row text has the old names, and they show Secrets, Add recipe and a saved state that the page does not have. Three states have no drawing.`
+// %%
+drawTools = {
+  const tools = [["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"], ["line", "Line", "L"], ["text", "Text", "T"], ["pen", "Pen", "P"], ["scribble", "Scribble", "S"]];
+  let host = null;
+  const drawing = () => host && [...host.querySelectorAll("svg")].find((s) => typeof s.setTool === "function");
+  const hint = htl.html`<span style="opacity:.6">click a drawing, then pick a tool</span>`;
+  const bar = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font:13px system-ui;position:sticky;top:0;z-index:2;padding:.4em 0;background:var(--theme-background, #fff)"></div>`;
+  for (const [id, label, key] of tools) {
+    const b = htl.html`<button title="${label} (${key})">${label}</button>`;
+    b.onclick = () => { const d = drawing(); if (d) d.setTool(id); else hint.textContent = "click a drawing first"; };
+    bar.append(b);
+  }
+  bar.append(hint);
+  const onDown = (e) => {
+    let n = e.target && e.target.closest ? e.target.closest("svg") : null;
+    while (n && typeof n.setTool !== "function") n = n.parentElement ? n.parentElement.closest("svg") : null;
+    if (!n) return;
+    host = n.parentElement;
+    hint.textContent = "tools apply to the drawing you last clicked";
+  };
+  window.document.addEventListener("pointerdown", onDown, true);
+  invalidation.then(() => window.document.removeEventListener("pointerdown", onDown, true));
+  return bar;
+}
+// %%
+artboard_default = svgLens({ keyboard: true })`<svg viewBox="0 0 640 640" width="100%" style="max-width:640px;background:var(--theme-background)" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="640" height="24" fill="var(--theme-background-alt)"/>
+  <line x1="0" y1="24" x2="640" y2="24" stroke="var(--theme-foreground-fainter)"/>
+  <text x="15" y="16" font-size="11" fill="var(--theme-foreground)" text-anchor="middle">☰</text>
+  <rect x="30" y="0" width="92" height="24" fill="var(--theme-background)"/>
+  <text x="38" y="16" font-size="11" fill="var(--theme-foreground)">cloud-brain   ×</text>
+  <text x="132" y="16" font-size="11" fill="var(--theme-foreground-muted)">robocoop-5   ×</text>
+  <text x="222" y="16" font-size="11" fill="var(--theme-foreground-muted)">brain-core   ×</text>
+  <text x="310" y="16" font-size="11" fill="var(--theme-foreground-muted)">brain-whatsapp   ×</text>
+  <text x="424" y="16" font-size="11" fill="var(--theme-foreground-muted)">+</text>
+  <text x="24" y="62" font-size="22" font-weight="700" font-family="Source Serif 4, Georgia, serif" fill="var(--theme-foreground)">Cloud Brain</text>
+  <text x="616" y="62" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">@larkworthy.bsky.social</text>
+  <rect x="24" y="76" width="592" height="28" rx="4" fill="color-mix(in srgb, #2e9e5b 18%, var(--theme-background))"/>
+  <circle cx="38" cy="90" r="4" fill="#2e9e5b"/>
+  <text x="50" y="95" font-size="12" fill="var(--theme-foreground)">Answering messages in this tab.</text>
+  <text x="604" y="95" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">0 waiting</text>
+  <text x="24" y="132" font-size="13" font-weight="600" fill="var(--theme-foreground)">Services</text>
+  <rect x="24" y="142" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <circle cx="36" cy="154" r="4" fill="#2e9e5b"/>
+  <text x="48" y="159" font-size="12" fill="var(--theme-foreground)">brain · kernel · 4f2a91c · confirmed 3 days ago</text>
+  <text x="604" y="159" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">in sync</text>
+  <rect x="24" y="168" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <circle cx="36" cy="180" r="4" fill="#2e9e5b"/>
+  <text x="48" y="185" font-size="12" fill="var(--theme-foreground)">brain-core · notebook, blob, secret, rows, inbox · b77e010</text>
+  <text x="604" y="185" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">in sync</text>
+  <rect x="24" y="194" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <circle cx="36" cy="206" r="4" fill="#2e9e5b"/>
+  <text x="48" y="211" font-size="12" fill="var(--theme-foreground)">brain-x-whatsapp · whatsapp.send, /hooks/whatsapp · 51c09aa</text>
+  <text x="604" y="211" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">in sync</text>
+  <rect x="24" y="220" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <circle cx="36" cy="232" r="4" fill="#2e9e5b"/>
+  <text x="48" y="237" font-size="12" fill="var(--theme-foreground)">brain-x-relay · relay.notify, /relay, /pair · 0d3e7f2</text>
+  <text x="604" y="237" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">in sync</text>
+  <rect x="24" y="246" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <circle cx="36" cy="258" r="4" fill="#2e9e5b"/>
+  <text x="48" y="263" font-size="12" fill="var(--theme-foreground)">brain-x-proxy · proxy.fetch · a91b6c4</text>
+  <text x="604" y="263" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">in sync</text>
+  <rect x="24" y="280" width="96" height="28" rx="5" fill="none" stroke="var(--theme-foreground-focus)"/>
+  <text x="72" y="299" font-size="12" fill="var(--theme-foreground-focus)" text-anchor="middle">Add recipe</text>
+  <rect x="496" y="279" width="120" height="30" rx="5" fill="var(--theme-foreground-faintest)"/>
+  <text x="556" y="299" font-size="13" fill="var(--theme-foreground-muted)" text-anchor="middle">Apply 0 changes</text>
+  <text x="24" y="342" font-size="13" font-weight="600" fill="var(--theme-foreground)">Secrets</text>
+  <rect x="24" y="352" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <text x="36" y="369" font-size="12" fill="var(--theme-foreground)">OPENROUTER_KEY · used by brain-x-proxy · set 2026-10-04</text>
+  <rect x="24" y="378" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <text x="36" y="395" font-size="12" fill="var(--theme-foreground)">WHATSAPP_APP_SECRET · used by brain-x-whatsapp · set 2026-10-05</text>
+  <rect x="520" y="410" width="96" height="28" rx="5" fill="none" stroke="var(--theme-foreground-focus)"/>
+  <text x="568" y="429" font-size="12" fill="var(--theme-foreground-focus)" text-anchor="middle">Set secret</text>
+  <text x="24" y="462" font-size="13" font-weight="600" fill="var(--theme-foreground)">Access</text>
+  <rect x="24" y="472" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <text x="36" y="489" font-size="12" fill="var(--theme-foreground)">laptop-file-notebooks · proxy.fetch · created 2026-10-04</text>
+  <text x="604" y="489" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">token</text>
+  <rect x="24" y="498" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <text x="36" y="515" font-size="12" fill="var(--theme-foreground)">@friend.example · index.search · granted 2026-10-05</text>
+  <text x="604" y="515" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">grant</text>
+  <rect x="416" y="530" width="96" height="28" rx="5" fill="none" stroke="var(--theme-foreground-focus)"/>
+  <text x="464" y="549" font-size="12" fill="var(--theme-foreground-focus)" text-anchor="middle">Grant access</text>
+  <rect x="520" y="530" width="96" height="28" rx="5" fill="none" stroke="var(--theme-foreground-focus)"/>
+  <text x="568" y="549" font-size="12" fill="var(--theme-foreground-focus)" text-anchor="middle">New token</text>
+  <rect x="380" y="592" width="236" height="28" rx="5" fill="none" stroke="var(--theme-foreground-muted)"/>
+  <text x="498" y="611" font-size="12" fill="var(--theme-foreground)" text-anchor="middle">Clone into your Cloudflare account</text>
+</svg>`
+// %%
+md`**default**: the owner is signed in and every Worker is in sync. Not on the page now: Add recipe, Set secret (secrets are in \`brain-secrets\`).`
+// %%
+artboard_signed_out = svgLens({ keyboard: true })`<svg viewBox="0 0 640 320" width="100%" style="max-width:640px;background:var(--theme-background)" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="640" height="24" fill="var(--theme-background-alt)"/>
+  <line x1="0" y1="24" x2="640" y2="24" stroke="var(--theme-foreground-fainter)"/>
+  <text x="15" y="16" font-size="11" fill="var(--theme-foreground)" text-anchor="middle">☰</text>
+  <rect x="30" y="0" width="92" height="24" fill="var(--theme-background)"/>
+  <text x="38" y="16" font-size="11" fill="var(--theme-foreground)">cloud-brain   ×</text>
+  <text x="132" y="16" font-size="11" fill="var(--theme-foreground-muted)">+</text>
+  <text x="24" y="62" font-size="22" font-weight="700" font-family="Source Serif 4, Georgia, serif" fill="var(--theme-foreground)">Cloud Brain</text>
+  <rect x="352" y="42" width="196" height="26" rx="4" fill="var(--theme-background-alt)" stroke="var(--theme-foreground-fainter)"/>
+  <text x="362" y="60" font-size="12" fill="var(--theme-foreground-muted)">your-handle.bsky.social</text>
+  <rect x="556" y="42" width="60" height="26" rx="4" fill="var(--theme-foreground-focus)"/>
+  <text x="586" y="60" font-size="12" fill="var(--theme-background)" text-anchor="middle">Sign in</text>
+  <rect x="24" y="84" width="592" height="30" rx="4" fill="color-mix(in srgb, #e6a700 18%, var(--theme-background))" stroke="#e6a700"/>
+  <text x="36" y="104" font-size="12" fill="var(--theme-foreground)">Read-only. Sign in as the owner to apply changes.</text>
+  <text x="24" y="142" font-size="13" font-weight="600" fill="var(--theme-foreground)">Routes</text>
+  <rect x="24" y="152" width="592" height="28" fill="var(--theme-foreground-faintest)"/>
+  <text x="36" y="171" font-size="12" fill="var(--theme-foreground)">/notebooks  → brain-notebooks</text>
+  <rect x="24" y="182" width="592" height="28" fill="var(--theme-foreground-faintest)"/>
+  <text x="36" y="201" font-size="12" fill="var(--theme-foreground)">/cors       → brain-cors</text>
+  <rect x="380" y="264" width="236" height="32" rx="5" fill="var(--theme-foreground-focus)"/>
+  <text x="498" y="285" font-size="12" fill="var(--theme-background)" text-anchor="middle">Clone into your Cloudflare account</text>
+</svg>`
+// %%
+md`**signed out**: what a visitor sees. The page loads each Worker's module and shows sample metrics. Owner methods answer 401.`
+// %%
+artboard_plan = svgLens({ keyboard: true })`<svg viewBox="0 0 640 290" width="100%" style="max-width:640px;background:var(--theme-background)" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="640" height="24" fill="var(--theme-background-alt)"/>
+  <line x1="0" y1="24" x2="640" y2="24" stroke="var(--theme-foreground-fainter)"/>
+  <text x="15" y="16" font-size="11" fill="var(--theme-foreground)" text-anchor="middle">☰</text>
+  <rect x="30" y="0" width="92" height="24" fill="var(--theme-background)"/>
+  <text x="38" y="16" font-size="11" fill="var(--theme-foreground)">cloud-brain   ×</text>
+  <text x="132" y="16" font-size="11" fill="var(--theme-foreground-muted)">+</text>
+  <text x="24" y="54" font-size="13" font-weight="600" fill="var(--theme-foreground)">Services</text>
+  <rect x="24" y="64" width="592" height="24" fill="var(--theme-foreground-faintest)"/>
+  <circle cx="36" cy="76" r="4" fill="#2e9e5b"/>
+  <text x="48" y="81" font-size="12" fill="var(--theme-foreground)">brain-core · notebook, blob, secret, rows, inbox · b77e010</text>
+  <text x="604" y="81" font-size="12" fill="var(--theme-foreground-muted)" text-anchor="end">in sync</text>
+  <rect x="24" y="90" width="592" height="24" fill="color-mix(in srgb, #e6a700 20%, var(--theme-background))"/>
+  <text x="36" y="107" font-size="12" fill="var(--theme-foreground)">brain-x-whatsapp · cell verify changed · 51c09aa → e2f4d10</text>
+  <text x="604" y="107" font-size="12" fill="#e6a700" text-anchor="end">changed, not saved</text>
+  <rect x="24" y="116" width="592" height="24" fill="color-mix(in srgb, #e6a700 20%, var(--theme-background))"/>
+  <text x="36" y="133" font-size="12" fill="var(--theme-foreground)">brain-x-proxy · a91b6c4 → 77c0e5b</text>
+  <text x="604" y="133" font-size="12" fill="#e6a700" text-anchor="end">saved, not deployed</text>
+  <rect x="24" y="142" width="592" height="24" fill="color-mix(in srgb, #2e9e5b 20%, var(--theme-background))"/>
+  <text x="36" y="159" font-size="12" fill="var(--theme-foreground)">brain-x-digest · digest.run · needs 0 secrets</text>
+  <text x="604" y="159" font-size="12" fill="#2e9e5b" text-anchor="end">not installed</text>
+  <rect x="24" y="168" width="592" height="24" fill="color-mix(in srgb, #e5484d 20%, var(--theme-background))"/>
+  <text x="36" y="185" font-size="12" fill="var(--theme-foreground)">brain-x-relay is running 9ab1c33, which the deployer did not deploy.</text>
+  <text x="604" y="185" font-size="12" fill="#e5484d" text-anchor="end">skewed</text>
+  <text x="24" y="232" font-size="12" fill="var(--theme-foreground-muted)">Waiting for approval: code sent to WhatsApp</text>
+  <text x="24" y="256" font-size="12" fill="#e5484d">Refused: resource name "brain-deployer" is reserved</text>
+  <rect x="496" y="216" width="120" height="32" rx="5" fill="var(--theme-foreground-focus)"/>
+  <text x="556" y="237" font-size="13" fill="var(--theme-background)" text-anchor="middle">Apply 3 changes</text>
+</svg>`
+// %%
+md`**changes**: one or more Workers are changed or not installed. Apply sends each module's source to the deployer. A skewed row is not applied.`
+// %%
+artboard_probation = svgLens({ keyboard: true })`<svg viewBox="0 0 640 170" width="100%" style="max-width:640px;background:var(--theme-background)" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="640" height="24" fill="var(--theme-background-alt)"/>
+  <line x1="0" y1="24" x2="640" y2="24" stroke="var(--theme-foreground-fainter)"/>
+  <text x="15" y="16" font-size="11" fill="var(--theme-foreground)" text-anchor="middle">☰</text>
+  <rect x="30" y="0" width="92" height="24" fill="var(--theme-background)"/>
+  <text x="38" y="16" font-size="11" fill="var(--theme-foreground)">cloud-brain   ×</text>
+  <text x="132" y="16" font-size="11" fill="var(--theme-foreground-muted)">+</text>
+  <text x="24" y="62" font-size="22" font-weight="700" font-family="Source Serif 4, Georgia, serif" fill="var(--theme-foreground)">Cloud Brain</text>
+  <circle cx="29" cy="82" r="5" fill="#e6a700"/>
+  <text x="42" y="86" font-size="12" fill="var(--theme-foreground-muted)">kernel 9c03d7e · on probation</text>
+  <rect x="24" y="102" width="592" height="46" rx="4" fill="color-mix(in srgb, #e6a700 18%, var(--theme-background))" stroke="#e6a700"/>
+  <text x="36" y="122" font-size="12" fill="var(--theme-foreground)">New kernel 9c03d7e is live on probation.</text>
+  <text x="36" y="139" font-size="12" fill="var(--theme-foreground)">Confirm within 08:41 or it is rolled back.</text>
+  <rect x="484" y="110" width="120" height="30" rx="5" fill="var(--theme-foreground-focus)"/>
+  <text x="544" y="130" font-size="12" fill="var(--theme-background)" text-anchor="middle">Keep this version</text>
+</svg>`
+// %%
+md`**probation**: shown from the moment a new kernel, core, \`brain-db\` or page is live. The countdown reads the deployer's deadline.`
+// %%
+artboard_rolled_back = svgLens({ keyboard: true })`<svg viewBox="0 0 640 152" width="100%" style="max-width:640px;background:var(--theme-background)" font-family="system-ui, sans-serif">
+  <rect x="0" y="0" width="640" height="24" fill="var(--theme-background-alt)"/>
+  <line x1="0" y1="24" x2="640" y2="24" stroke="var(--theme-foreground-fainter)"/>
+  <text x="15" y="16" font-size="11" fill="var(--theme-foreground)" text-anchor="middle">☰</text>
+  <rect x="30" y="0" width="92" height="24" fill="var(--theme-background)"/>
+  <text x="38" y="16" font-size="11" fill="var(--theme-foreground)">cloud-brain   ×</text>
+  <text x="132" y="16" font-size="11" fill="var(--theme-foreground-muted)">+</text>
+  <text x="24" y="62" font-size="22" font-weight="700" font-family="Source Serif 4, Georgia, serif" fill="var(--theme-foreground)">Cloud Brain</text>
+  <circle cx="29" cy="82" r="5" fill="#2e9e5b"/>
+  <text x="42" y="86" font-size="12" fill="var(--theme-foreground-muted)">kernel 4f2a91c · confirmed 3 days ago</text>
+  <rect x="24" y="102" width="592" height="30" rx="4" fill="color-mix(in srgb, #e5484d 18%, var(--theme-background))" stroke="#e5484d"/>
+  <text x="36" y="122" font-size="12" fill="var(--theme-foreground)">Kernel 9c03d7e was rolled back to 4f2a91c at 14:32: health check failed twice</text>
+</svg>`
+// %%
+md`**rolled back**: shown until the next deploy of that Worker.`
+// %%
+artboard_deployer = svgLens({ keyboard: true })`<svg viewBox="0 0 640 330" width="100%" style="max-width:640px;background:#ffffff" font-family="ui-monospace, Menlo, monospace">
+  <text x="24" y="40" font-size="16" font-weight="600" fill="#111111">Cloud Brain deployer</text>
+  <text x="24" y="70" font-size="12" fill="#111111">kernel:  9c03d7e  deployed 14:21  PROBATION  health FAIL FAIL</text>
+  <text x="24" y="90" font-size="12" fill="#111111">last confirmed:  4f2a91c  2026-10-01 09:12</text>
+  <text x="24" y="124" font-size="12" fill="#111111">Recovery key</text>
+  <rect x="24" y="132" width="300" height="26" fill="#ffffff" stroke="#111111"/>
+  <rect x="24" y="172" width="200" height="30" fill="#111111"/>
+  <text x="124" y="192" font-size="12" fill="#ffffff" text-anchor="middle">Roll back to 4f2a91c</text>
+  <text x="24" y="236" font-size="12" fill="#111111">confirmed versions</text>
+  <text x="24" y="256" font-size="12" fill="#444444">4f2a91c  2026-10-01 09:12   [roll back]</text>
+  <text x="24" y="274" font-size="12" fill="#444444">b77e010  2026-09-28 17:40   [roll back]</text>
+  <text x="24" y="292" font-size="12" fill="#444444">1d9c4aa  2026-09-27 08:03   [roll back]</text>
+  <text x="24" y="316" font-size="11" fill="#777777">deployer 3 · served by brain-deployer, no kernel involved</text>
+</svg>`
+// %%
+md`**deployer page**: \`https://BASE-deployer.SUBDOMAIN.workers.dev/\`. One HTML response, no script. Each action needs the recovery key.`
+// %%
+states = [
+  { state: "default", drawing: "artboard_default", when: "the owner is signed in and every Worker is in sync" },
+  { state: "signed out", drawing: "artboard_signed_out", when: "no session, or a session that the kernel refuses" },
+  { state: "changes", drawing: "artboard_plan", when: "a Worker is changed, not installed, skewed, failing or unverified; or an apply waits for approval" },
+  { state: "probation", drawing: "artboard_probation", when: "a new kernel, core, brain-db or page is live and not confirmed" },
+  { state: "rolled back", drawing: "artboard_rolled_back", when: "the deployer restored the previous version" },
+  { state: "deployer page", drawing: "artboard_deployer", when: "the deployer's own address" },
+  { state: "local copy", drawing: "", when: "the page is opened from a file: Clone only, no Brain" },
+  { state: "member", drawing: "", when: "a member is signed in: the member's services, portals, no owner panels" },
+  { state: "no answer", drawing: "", when: "the Brain did not answer /auth/session" }
+]
+// %%
+statesTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>state</th><th>when</th><th>drawing</th></tr></thead>
+  <tbody>${states.map((s) => htl.html`<tr data-state=${s.state}><td>${s.state}</td><td>${s.when}</td><td>${s.drawing ? htl.html`<code>${s.drawing}</code>` : htl.html`<em>not drawn</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`### Visual constraints
+
+- Cells use the theme variables \`--theme-background\`, \`--theme-foreground\` and \`--theme-foreground-muted\`. Three fixed hues: green \`#2e9e5b\`, amber \`#e6a700\`, red \`#e5484d\`.
+- Each control is an \`Inputs\` control (Tom, 2026-10-05: "stick to Inputs").
+- The Services table is \`serviceList\` in \`cloudflare-iac\`.
+- The deployer page uses no theme, no font and no script.
+- Editing is off when the page opens. The ☰ menu turns it on.`
+// %%
+md`## Requirements
+
+One requirement per row. **check** names the \`test_\` cells and the live run that prove it. A date and time is a run on a deployed Brain, recorded in the build record. "Not verified" says what no run has shown. A row whose check says "Not verified", "Not as required" or "No test" has the status \`part\`.
+
+\`cb1\`, \`cb2\` and \`cb3\` were scratch Brains of 2026-10-05 and 2026-10-06 and are deleted. \`cb4\` is the Brain that runs now.`
+// %%
+requirements = [
+  { id: "R1", status: "built", text: "cloudflare.Service(name, fn, options) must emit the function and each cell it depends on, across imports, as ES modules with no Observable runtime.", check: "cloudflare-iac: test_chase, test_hash_is_stable_and_per_service" },
+  { id: "R2", status: "built", text: "The emit must refuse a generator, a viewof or mutable cell, a DOM builtin and a computed secret name. The error must name the cell.", check: "cloudflare-iac: test_refuses_generator, test_refuses_viewof, test_refuses_dom_builtin, test_refuses_computed_secret" },
+  { id: "R3", status: "built", text: "The deployer must build a Worker's bindings from the platform cells that its code reaches. A deploy request cannot name a binding.", check: "cloudflare-iac: test_bindings_follow_platform_cells. brain-deployer: test_the_table_database_is_bound_to_brain_db_alone" },
+  { id: "R4", status: "built", text: "A service must answer one request the same way in the tab and as its emitted module. simulate must throw on an outbound call that has no fake.", check: "cloudflare-iac: test_simulate, test_hono_same_in_tab_and_emitted, test_plain_function_caller_and_error_shape" },
+  { id: "R5", status: "built", text: "Only the deployer holds a Cloudflare API token.", check: "brain-deployer: test_only_the_deployer_names_the_cloudflare_token. Cloudflare 2026-10-05: the token is a binding of BASE-deployer only" },
+  { id: "R6", status: "built", text: "A deploy is module source. The deployer must distil it in QuickJS, with no network and no bindings, and must accept no Worker code.", check: "brain-deployer: test_apply_takes_source_and_deploys_what_it_distils, test_distil_answers_the_tabs_hash_and_deploys_nothing. cloudflare-iac: test_distils_in_quickjs_to_the_same_hash. Live: brain.ts redistil reports same for each Worker" },
+  { id: "R7", status: "built", text: "The deployer must refuse an apply that names the deployer, an owner service whose name does not start brain-x-, and a method or path that another Worker serves.", check: "brain-deployer: test_apply_refusals, test_deployerAllows_examples, test_a_path_or_method_belongs_to_one_worker" },
+  { id: "R8", status: "built", text: "When a version fails its self-test or two health checks, the deployer must restore the previous version and append an inbox entry.", check: "brain-deployer: test_failed_selftest_is_put_back, test_failing_twice_after_go_live_is_put_back. cb1 2026-10-05 22:49: restored in 35.7 s" },
+  { id: "R9", status: "built", text: "A deploy is unverified until the page loads the module from the Worker, runs its test_ cells and reports. A failed report on an unverified deploy must restore the previous version.", check: "brain-core: test_a_deploy_is_unverified_until_its_tests_are_reported. brain-deployer: test_a_failed_verdict_puts_the_deploy_back" },
+  { id: "R10", status: "built", text: "A new kernel, core, brain-db or page is on probation. The deployer must restore the previous version after 10 minutes with no confirm and no passed report.", check: "brain-deployer: test_kernel_probation, test_probation_transitions, test_the_page_worker_is_on_timed_probation. cb1 2026-10-05 23:35: restored by the alarm" },
+  { id: "R11", status: "part", text: "When approval is on, the deployer must hold an owner apply until the owner approves it on the deployer page with the recovery key.", check: "brain-deployer: test_approval_holds_an_apply. Not as required: brain.ts apply sends the recovery key and is not held" },
+  { id: "R12", status: "built", text: "With the recovery key, the deployer page must roll the kernel back when the kernel does not answer.", check: "brain-deployer: test_deployer_page_rolls_the_kernel_back, test_infra_needs_the_kernel_or_the_recovery_key. cb1 2026-10-05 23:39: 4 s" },
+  { id: "R13", status: "built", text: "Each Worker must serve its manifest and its module source. A service cannot replace getInfo.", check: "cloudflare-iac: test_a_worker_serves_its_manifest_and_its_source, test_getInfo_cannot_be_replaced" },
+  { id: "R14", status: "built", text: "The Services list must show each Worker as in sync, changed, not installed, skewed, failing or cannot deploy. One action must apply all changed rows.", check: "cloudflare-iac: test_service_rows_states" },
+  { id: "R15", status: "built", text: "A deployer update must distil each Worker again from the source that the deployer keeps.", check: "brain-deployer: test_redistil_after_a_deployer_update_and_source_follows_a_put_back" },
+  { id: "R16", status: "built", text: "The kernel must serve the shell at / to anyone. The shell holds no module that a Worker owns. The page must load those modules from the Workers.", check: "brain-shell: test_shellOf_cuts_the_modules_their_files_and_their_mains, test_joinModules_adds_a_module_once_and_imports_reach_it. brain-kernel: test_did_document_and_page" },
+  { id: "R17", status: "built", text: "The page must open with the tabs cloud-brain, cloud-brain-docs and cloud-brain-specs. The operator prompt must name the docs module.", check: "the Brain's address with no hash: the three tabs show. cloud-brain: test_the_operator_is_told_to_read_the_docs" },
+  { id: "R18", status: "part", text: "The kernel must sign a person in with atproto OAuth. The kernel must set no cookie and read no cookie. A session is a bearer token.", check: "brain-kernel: test_session_token, test_a_token_is_the_callers_to_send_from_anywhere. cb4 2026-10-07 13:47: a session sent as a cookie gets 401. Not verified: a sign-in through a PDS that ends on the callback page" },
+  { id: "R19", status: "built", text: "Only the kernel's key can name a caller. The wrapper must remove each x-brain- header from a request that did not arrive over a binding.", check: "brain-kernel: test_forged_caller_is_dropped, test_credentials_are_not_forwarded. cloudflare-iac: test_only_bindings_and_the_deployer_reach_a_recipe" },
+  { id: "R20", status: "built", text: "Only the kernel and the deployer answer the internet. Any other Worker must answer 404.", check: "cloudflare-iac: test_only_bindings_and_the_deployer_reach_a_recipe. cb2 2026-10-05 22:52 and cb4 2026-10-07 12:58: 404" },
+  { id: "R21", status: "part", text: "Each call is an XRPC query or procedure. An error is { error, message }. Each method has a Lexicon.", check: "brain-core: test_routes_by_method_and_path. xrpc-client: test_xrpc_query_and_procedure. Not built: Lexicons; inputs are not checked against a schema" },
+  { id: "R22", status: "built", text: "Each method and path has one rule, a CEL expression. The core must evaluate the rule before it forwards and must refuse when the result is not true.", check: "cloudflare-iac: test_rules_are_cel_expressions, test_a_rule_that_does_not_parse_is_not_emitted. brain-core: test_a_rule_can_be_an_expression, test_owner_methods_refuse_other_callers" },
+  { id: "R23", status: "built", text: "The owner can replace a rule with no deploy, unless the service fixed the rule.", check: "brain-core: test_the_owner_sets_a_rule_without_a_deploy" },
+  { id: "R24", status: "built", text: "A Worker calls a method, never a Worker. The core must make the caller worker:NAME from the key, whatever headers the Worker sent.", check: "brain-core: test_a_worker_calls_a_method_not_a_worker" },
+  { id: "R25", status: "built", text: "secret.put, token, grant, rule.put and infra methods must accept the owner's own session only. secret.get must accept the owner's own session, and a Worker that the rule of the secret lets in; it must refuse a turn token, an owner's token, a PDS and an anonymous caller.", check: "brain-kernel: test_infra_is_for_the_owner_session_only. brain-db: test_secrets_are_read_by_the_owners_session_and_by_a_worker_a_rule_names, test_db_only_the_owners_session_sets_a_rule. cb4 2026-10-07 08:40: the owner's turn token gets 401" },
+  { id: "R26", status: "built", text: "A token or a grant reaches only the methods it names. It cannot name an infra, secret, token, grant or people method.", check: "brain-kernel: test_tokens_reach_only_their_methods, test_another_did_needs_a_grant, test_people_are_the_owners_to_change" },
+  { id: "R27", status: "part", text: "The kernel must accept a service JWT from a PDS as its iss, after it checks aud, exp, lxm and the signature.", check: "brain-kernel: test_service_jwt_claims_are_checked_first. An experiment of 2026-10-05 on a scratch Worker. Not verified: a real PDS signature against this kernel" },
+  { id: "R28", status: "built", text: "A Worker's key-value rows are its own. brain-db must decide a SQL statement that is not the owner's from its query plan, per table, and must refuse a plan with an opcode that is not listed.", check: "brain-core: test_notebook_rows_per_worker. brain-db: test_db_sql_decides_by_table_from_the_plan, test_db_sql_refuses_everything_when_the_plans_read_differently, test_db_a_table_is_open_to_whom_its_rule_says" },
+  { id: "R29", status: "built", text: "A file or a blob is read and changed by tag. Only the store writes a by: tag or a worker: tag. A blob's address is the CID of its bytes.", check: "brain-static: test_static_a_files_tags_decide_who_reads_and_who_changes_it, test_static_only_the_owner_writes_the_shell. brain-blob: test_blob_tags_decide_who_reads_and_who_changes_it, test_blob_cid_is_the_cid_a_pds_gives_the_bytes. cb4 2026-10-07 13:12: 95 rows, 0 bad" },
+  { id: "R30", status: "built", text: "The core must count each call that it answers or forwards and must send the counts to brain-metrics.", check: "brain-core: test_calls_are_counted_and_handed_to_the_metrics_service. brain-metrics: test_metrics_record_and_query" },
+  { id: "R31", status: "built", text: "Each event from outside reaches the page through the inbox: one entry per key, in order, kept until a tab marks it done.", check: "brain-inbox: test_inbox_once_per_key_in_order" },
+  { id: "R32", status: "built", text: "One tab at a time holds the inbox lease. The lease ends 30 s after its last renewal.", check: "brain-inbox: test_lease_one_tab_at_a_time. Live: lease.get answers held: true" },
+  { id: "R33", status: "built", text: "A turn must run as the sender of its entry, with a turn token. The turn must not reach more than the sender can call. The reply must go back on the entry's channel.", check: "brain-kernel: test_a_turn_is_made_as_its_sender, test_turn_token, test_poll_names_the_sender_and_hands_the_owner_turn_tokens. cloud-brain: test_turn_tool_calls_as_the_sender_or_not_at_all. brain-inbox: test_reply_goes_back_where_the_entry_came_from. cb4 2026-10-07 08:40 to 08:47" },
+  { id: "R34", status: "part", text: "A turn in a room must reach inbox.reply and only the methods that each participant has a grant for.", check: "brain-kernel: test_a_room_turn_reaches_what_everyone_in_the_room_may_call, test_a_channel_can_narrow_a_turn_and_not_widen_one. cb4 2026-10-07 20:14: 74 rows. Not verified: a real group" },
+  { id: "R35", status: "built", text: "When a turn fails, the page must mark the entry failed and tell the sender one time.", check: "cloud-brain: test_turn_failed_is_told_once_and_not_retried, test_turn_for_someone_not_added_runs_nothing" },
+  { id: "R36", status: "part", text: "No Worker calls a model or runs an agent loop.", check: "review of the seeds, 2026-10-07: no service module calls a model. No test" },
+  { id: "R37", status: "built", text: "A member deploy needs no approval. The Worker has one binding, to the core. It has no rows, secrets, paths, crons or methods open to anyone. Each call that it makes is checked as its author.", check: "brain-deployer: test_a_member_deploys_with_no_approval_and_only_the_core_bound, test_a_member_deploy_is_refused_outside_its_tier. brain-core: test_a_members_worker_calls_as_its_author_and_no_more. cb4 2026-10-07 12:58: 112 of 114 rows" },
+  { id: "R38", status: "built", text: "A portal token must reach one member's methods as the viewer. The host page must not receive the member's module source.", check: "brain-kernel: test_a_portal_token_reaches_one_members_services_as_the_viewer. brain-shell: test_openPortal_frames_the_shell_and_answers_ready_with_a_token. cb4 2026-10-07 13:47: 69 rows" },
+  { id: "R39", status: "part", text: "A channel must accept a message only from an address that is linked to a person, must check the service's signature where the service signs, and must append one entry per message id.", check: "brain-whatsapp: test_whatsapp_takes_signed_messages_from_linked_numbers, test_whatsapp_a_stranger_gets_a_link_and_no_entry. brain-bluesky: test_bluesky_a_person_is_served_and_a_stranger_is_told_once. WhatsApp round trip on cb4 2026-10-07 07:57. Bluesky on cb4 2026-10-07, inbox.list: entry 149 from the owner at 20:17 CEST and entry 164 from a member at 21:58 CEST, each done with one reply; bluesky.send answered sent: true 2 times. Not verified: the signature rule has no Bluesky case (Bluesky does not sign a message; the Worker polls with its own session), and a reply was not looked for in the Bluesky app" },
+  { id: "R40", status: "part", text: "A copy of the page, a seed Worker address and an API token must install a Brain in that account and then delete the seed.", check: "cloud-brain: test_install_order_and_where_the_token_goes. cb2 2026-10-05 22:52: 32 s, in the same account. Not verified: a second account; the Clone form since the deployer began to distil (brain-db is not in the installer)" },
+  { id: "R41", status: "part", text: "A Worker must call only the methods that its service lists in calls, and the three methods that a platform cell calls. The core must refuse any other call when the mode is enforce.", check: "brain-core: test_a_worker_calls_only_what_its_service_declared. cb4 2026-10-07: in mode report, a scratch Worker that declared lease.get called service.list (200) and static.get (400 from brain-x-static); both were counted. In mode enforce it got 200 on lease.get and 403 on service.list, static.get, secret.list and metrics.query. Under enforce the page loaded, the library saved, served and deleted a notebook, Bluesky polled, and no call was counted. Not verified under enforce: a WhatsApp picture (static.put) and a reply (inbox to *.send)" },
+  { id: "R45", status: "built", text: "secret.copy must give a secret a second name with the same rule. The value must be in no answer. The new name must not be set. A member, a token, a Worker and a turn in a room must be refused.", check: "brain-db: test_a_secret_is_copied_to_a_new_name_and_its_value_is_in_no_answer. brain-kernel: test_a_room_turn_reaches_what_everyone_in_the_room_may_call. cb4 2026-10-07: 20 rows, 0 bad (.emitted/copy-live.ts, made-up values): the owner's session and an owner turn copy; a room turn, a member turn, a member session and a stranger get 403; no credentials get 401; a set name gets 409; no source gets 404; a BRAIN_ name gets 400; no answer holds the value" },
+  { id: "R46", status: "part", text: "The signing key is SESSION_KEY. The kernel must read a token signed with SESSION_KEY or COOKIE_KEY. No name and no binding is removed.", check: "brain-kernel: test_the_signing_key_is_read_under_either_name. cb4 2026-10-07: the kernel has both bindings; a session made before the deploy is read after it. brain-deployer: test_the_signing_key_is_not_made_anew_under_its_new_name (a kernel deploy that is sent neither name keeps the held one and makes no value for the other). Not built: stage 2 (stop the write of the old name) and stage 3 (remove it)" },
+  { id: "R47", status: "built", text: "A feed is a list of post URIs. feed.add must add 100 URIs at most in one call, must keep a URI one time, and must record the caller. A feed must keep 2000 posts at most and drop the oldest. app.bsky.feed.getFeedSkeleton must give a public feed to anyone, newest first, with a cursor. A feed that is absent or not public must answer UnknownFeed.", check: "brain-feed: each test of the module under simulate. cb4 2026-10-07: 5 real post URIs added, 0 added the second time; 2 pages of 2 and 3 posts with no sign-in; a feed that is not public answers 400 UnknownFeed; 2100 URIs leave 2000." },
+  { id: "R48", status: "part", text: "feed.publish must write one app.bsky.feed.generator record in the repo of the Brain's Bluesky account, through brain-x-bluesky. bluesky.putRecord must refuse each other collection. feed.unpublish must delete the record.", check: "brain-feed: test_feed_publish_writes_the_record_through_the_bluesky_worker. brain-bluesky: test_bluesky_writes_only_a_feed_generator_record. cb4 2026-10-07: bluesky.putRecord answers 403 for app.bsky.feed.post. No record was written to a real account, and the Bluesky app was not seen to read a feed. feed.publish was not called on cb4 after the rule of bluesky.putRecord began to read origin (R50)." },
+  { id: "R49", status: "built", text: "The kernel must pass a method outside com.lopecode.brain to the core as anonymous and must not read its token. /.well-known/did.json must name a #bsky_fg service of type BskyFeedGenerator.", check: "brain-kernel: test_a_method_of_another_lexicon_is_passed_on_as_anonymous, test_did_document_and_page. cb4 2026-10-07: describeFeedGenerator with a bearer that is not a JWT answered 401 before the change and 200 after it." },
+  { id: "R50", status: "built", text: "A rule must be able to read origin: who started the chain of calls. For a call from outside, origin is the caller. For a call that a Worker makes while it answers a call, origin is the origin of the call that it answers. For a call that a Worker makes by its schedule, origin is the Worker. The core must sign the origin for one Worker with an end time, and must ignore a reference that is changed, ended, made for another Worker, or sent by the kernel. The wrapper must send the reference back with each call to the core (xrpc, secrets, sql, inbox), and two calls answered at one time must keep their own origin. bluesky.putRecord and bluesky.deleteRecord must refuse brain-x-feed when the origin is not the owner (origin.kind == \"owner\": the owner's tab, or a turn run for the owner).", check: "brain-core: test_the_origin_of_a_call_is_who_started_the_chain, test_a_reference_that_is_not_the_cores_own_gives_no_origin, test_a_members_worker_keeps_its_author_and_carries_an_origin. cloudflare-iac: test_the_wrapper_passes_the_origin_reference_on (under simulate a browser has no AsyncLocalStorage: two calls at one time pass no reference). brain-db: test_a_rule_reads_the_origin_the_core_names. brain-feed: test_feed_publish_writes_the_record_only_when_the_owner_started_the_chain. cb4 2026-10-07 23:25 to 23:26 CEST, scratch service brain-x-chaincheck, removed after: with no code to pass it on, the next method read origin owner/session for the owner and anonymous for no sign-in; a secret with the rule caller.worker == \"brain-x-chaincheck\" && origin.trusted was read for the owner and refused for no sign-in, in turn, inside 5 s; 3 rounds of 50 calls at one time (25 owner, 25 no sign-in), 150 calls, 0 with the origin of another call." },
+  { id: "R51", status: "built", text: "The Worker that holds the Cloudflare token is named the deployer: the module @tomlarkworthy/brain-deployer, the Worker brain-deployer at BASE-deployer, the role and caller deployer, the cell deployer, the binding DEPLOYER, the header x-brain-deployer. A Brain from before the change must keep working and must be moved with no row deleted: the old spellings (BASE-guard with no config.self, the cell guard, the header x-brain-guard, the caller guard, \"guard\" in a rule, guardKey in the state file) must still be read. The page must learn the deployer's address from the kernel's DID document.", check: "brain-deployer: test_rows_move_to_a_deployer_that_holds_none, test_a_replaced_deployer_changes_nothing, test_the_deployer_binds_itself_under_its_own_script_name. cloudflare-iac: test_only_bindings_and_the_deployer_reach_a_recipe, test_rules_are_cel_expressions. brain-kernel: test_did_document_and_page. cb4 2026-10-07 23:52 to 23:58 CEST: 44 rows in 7 classes copied from cb4-guard to cb4-deployer, count and SHA-256 equal per class; 13 Workers deployed through cb4-deployer and each is same under redistil; the approval setting and the 2 held deploys are on it; cb4-guard answers 410 Replaced and its bindings are ROWS and BRAIN_CONFIG. Not verified: a Brain that stays on BASE-guard with this code for more than the 20 s of the move; the page of a signed-in owner after the move." },
+  { id: "R54", status: "built", text: "With no tab that holds the lease, a channel must leave the message in the inbox and must tell that sender one time an hour that no tab is open.", check: "brain-whatsapp: test_whatsapp_no_tab_notice_once_an_hour_each. brain-bluesky: test_bluesky_no_tab_notice_once_an_hour_each. No run on a deployed Brain is recorded." },
+  { id: "R52", status: "built", text: "A service is declared with cloudflare.Service(name, fn, options). cloudflare.Worker must stay the same function. A service is deployed as one Cloudflare Worker, in the wrapper.", check: "cloudflare-iac: test_a_service_declared_with_the_old_name_emits_the_same (the manifest is equal; worker.js differs in that one word, so the hash differs). cb4 2026-10-07 23:25 CEST: a scratch service declared with cloudflare.Worker was distilled and deployed by the new deployer. 16 declarations in the seeds use Service." },
+  { id: "R53", status: "part", text: "The deployer page must show, for each held deploy, each method and path with who may call it, the calls the service declares, and the secrets it names. A rule that reads origin must be marked.", check: "brain-deployer: test_approval_holds_an_apply. cb4 2026-10-07: the 2 held deploys of brain-x-whatsapp are from before this change and show 'not recorded' for rules and calls. A deploy held by the new deployer was not seen on cb4." },
+  { id: "R42", status: "not built", text: "A Worker must call a method on another atproto service as the owner, through the kernel and the owner's PDS.", check: "from a Worker: a query to did:web:api.bsky.app#bsky_appview returns the owner's profile" },
+  { id: "R43", status: "not built", text: "The owner must be able to read the status, duration and error of the last 100 requests to a Worker and replay one in the tab.", check: "after a request that throws, the trace shows the message; the replay under simulate throws the same message" },
+  { id: "R44", status: "not built", text: "A relay must carry pairing frames between a page on a phone and a Claude Code session.", check: "the page on a phone, paired from a laptop: list_cells returns" }
+]
+// %%
+requirementsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>id</th><th>requirement</th><th>status</th><th>check</th></tr></thead>
+  <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.status}</td><td>${r.check ? htl.html`<span style="font-size:.9em">${r.check}</span>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+design = md`## Decisions
+
+Each row is in force. **words** quotes the person who decided. A row with no quote is Claude's choice and is not confirmed.
+
+| | decision | who, when, words |
+|---|---|---|
+| A1 | The assistant runs in a tab. A Worker is a stateless service. | Tom, 2026-10-05: "we can't really run the Observable runtime meaningfully in a worker, therefore all runtime stuff has to be done in the tab" |
+| A2 | A service is declared from a function. Its ancestor cells are emitted as a plain module. A Cloudflare resource is a platform cell. | Tom, 2026-10-05: "it will need to chase ancestors a bit like notebook distiller. No generators." |
+| A3 | A service is tested in the tab with simulated requests. | Tom, 2026-10-05: "We will need to simulate requests in the tab so we can unit test them outside of deployment." |
+| A4 | The inbox is the one path from outside to the assistant. | Tom, 2026-10-05: "The inbox pattern becomes a central concept." |
+| A5 | Each Worker reports its own version. | Tom, 2026-10-05: "can we insist all workers have a metadata route" |
+| A6 | Hono is the router. | Tom, 2026-10-05: "I assume the core router will be Hono" |
+| A7 | XRPC is the convention for each call, inside the Brain and from outside. | Tom, 2026-10-05: "xrpc is then perhaps the backbone" |
+| A8 | Approval of deploys is a setting. It is on at install. | Tom, 2026-10-05: "Some people want HITL and some do not."; "safe defaults but with easy loosening" |
+| A9 | Install goes through a seed Worker that the installer pastes in the Cloudflare dashboard. | Tom, 2026-10-04: "people can't run shells though in general" |
+| A10 | A separate deployer deploys and watches, and holds the only token. The Brain cannot change the deployer. | Claude; not objected to |
+| A11 | One owner DID, set at install. | Tom, 2026-10-05: "yes 1 owner" |
+| D1 | A service is one package under one hash: source, code, manifest, tests. A deploy is the save. | Claude, 2026-10-06; not objected to |
+| D2 | A Worker serves its module source and its manifest. | Tom, 2026-10-06: "module source plus manifest" |
+| D3 | A service's source is readable by anyone. | Tom, 2026-10-06: "lets go with public for now" |
+| D4 | The page is one more service. Assistant sessions are not part of a package. | Tom, 2026-10-06: "cloudbrain should jsut be another service" |
+| D6 | A probe is a normal test cell. The page runs the tests from the deployed module and reports. A clear failure restores the previous version. | Tom, 2026-10-06: "A clear fail (no absence of callback) would trigger an instant rollback when in the unverified state." |
+| D7 | The Worker is the source of truth. A deploy is module source. | Tom, 2026-10-06: "I think the worker is the source of truth" |
+| D8 | The deployer distils in QuickJS. | Tom, 2026-10-06: "I think it would need a quickJS solution, which is honestly safer in the guard anyway" (the deployer was called the guard until 2026-10-07) |
+| D9 | The deployer holds what a distil needs: \`cloudflare-iac\`, the runtime, the parser, \`hono.js\`, \`cel.js\`. | Tom, 2026-10-06: "All those heavy things seem only used by the guard?" |
+| D10 | An import of a Brain module resolves to the source of the Worker that owns the module. | Tom, 2026-10-06: "the page is rendering from the workers also itself" |
+| D11 | The shell is a file in \`brain-static\`. | Tom, 2026-10-06: "Maybe serve shell from blob storage or whatever we have at the moment." |
+| D12 | Only the owner writes the shell. | Tom, 2026-10-06: "yes only owner writes it" |
+| D13 | The shell does not contain the Workers' modules. | Tom, 2026-10-06: "shell should load without the workers code" |
+| D14 | Metrics have their own SQL tables. | Tom, 2026-10-06: "it should have its own table." |
+| D15 | All SQL goes through \`brain-db\`, checked per table from the query plan. The core stays on \`rows\`. | Tom, 2026-10-07; no words recorded |
+| D16 | Roles are owner and member. The owner can grant a member more methods. | Tom, 2026-10-07: "the roles would be "owner" and "member", and we might want to grant extra permissions per person." |
+| D17 | Each person is an atproto account. | Tom, 2026-10-07: "Everyone needs an atproto account." |
+| D18 | The owner reads each conversation. | Tom, 2026-10-07: "Yes I can read everyones conversations coz I am the owner." |
+| D19 | A failed turn is marked failed and the sender is told one time. | Tom, 2026-10-07: "Mark failed, tell the sender once" |
+| D20 | No agent loop in a Worker. A turn with no tab open needs a notebook in a container. | Tom, 2026-10-07: "Don't build the serverside loop, we want to reuse notebooks" |
+| D21 | A turn runs as its sender. | Tom, 2026-10-07: "we need to give the whats app handler the ability to "assume identity" or something." |
+| D22 | The Brain answers in group chats. | Tom, 2026-10-07: "I think it should be able to participate in group chats though." |
+| D23 | A session is a bearer token in \`localStorage\`. The kernel uses no cookie. | built 2026-10-07 13:20; who decided is not in the build record |
+| D24 | The page has a docs tab. The operator is told to read it. | Tom, 2026-10-07: "We should have a cloud-brain-docs tab by default that explains what you can do and the technical design. The operator should also be prompted to read it." |
+
+Replaced, with what replaced it:
+
+| was | by |
+|---|---|
+| The tab saves a notebook as a bundle of SHA-256 blobs, and a deploy reads the saved bundle (Tom, 2026-10-04) | D1, D7, D11 |
+| Only deployed code runs on Cloudflare; no Worker holds an interpreter (Tom, 2026-10-04) | D8: the deployer interprets module source to distil it |
+| One notebook file holds each service module | D10, D13: the shell loads them from the Workers |
+| The kernel keeps a cookie session | D23 |
+| A deploy compares hashes of code emitted in the tab | D7: the deployer distils; the hash is of the source and the distiller version |
+| The owner's number is linked by a code | each person links an address the same way, at \`/link\` |`
+// %%
+md`### Platform facts
+
+Measured on Cloudflare, 2026-10-04 to 2026-10-07.
+
+| fact | consequence |
+|---|---|
+| A Durable Object's memory is gone after 30 s idle | no state in a Worker's memory |
+| \`eval\` and \`new Function\` fail at request time | a Worker runs distilled code; the deployer interprets in QuickJS |
+| A version at 0% answers a request that has a version override | the deployer tests a version before go-live |
+| A rollback by the deployments call is healthy in 2.7 s | restore is automatic |
+| The Cloudflare API refuses a browser preflight | the seed Worker |
+| The deployer's cron trigger did not run on 2026-10-05 | the deployer ticks from an alarm |
+| \`workers.dev\` is on the Public Suffix List | sibling addresses are one site; no cookie session |
+| A distil takes 131 ms of CPU at p50; the Free plan allows 10 ms | the deployer needs the paid plan |
+| Chromium does not run a cross-origin frame that is off screen | Open scrolls to the portal frame |
+
+Not checked: a Free-plan install; a blob near 50 MB; the Bluesky cron over hours.`
+// %%
+handover = md`## Handover
+
+### Where the work is
+
+- **Seeds**: \`tools/cloud-brain/*.ojs\`, one per module. \`bun tools/cloud-brain/build.ts\` writes \`lopebooks/notebooks/@tomlarkworthy_cloud-brain.html\` and the shell.
+- **This module**: \`cloud-brain-specs.ojs\`. The build adds the notes and the status from the previous build, then the short build record from \`spec-as-built-short.md\`. The full working record is \`spec-as-built.md\`; the build does not put it in the page.
+- **CLI**: \`tools/cloud-brain/brain.ts\` (\`install-deployer\`, \`apply\`, \`confirm\`, \`redistil\`, \`shell\`, \`session\`, \`curl\`, \`bindings\`; \`migrate-deployer\` and \`retire-guard\` for a Brain from before 2026-10-08). It is a test harness and is not part of the product.
+- **Live Brain**: \`cb4\`. Backlog: \`plan/cloud-brain-backlog.md\`.
+- **Not committed as of 2026-10-08**: \`tools/cloud-brain/\` and \`plan/cloud-brain-backlog.md\` are in no git commit. \`tools/cloud-brain/.emitted/\` is ignored by git: it holds keys, emitted services and one-off check scripts, and a check that this spec cites from it is on one machine only.
+
+### Boundaries
+
+| | |
+|---|---|
+| **always** | run the module's tests before a deploy; deploy to scratch Worker names; record times from the clock |
+| **ask first** | a new npm dependency in the deployer; a change to \`exporter-3\`, \`robocoop-5\` or \`lopecode-channel.ts\`; a message to a person |
+| **never** | give a Worker other than the deployer a Cloudflare token; run a model call in a Worker; let \`secret.get\` or \`infra.*\` accept a token or a service JWT; let an owner apply touch a name outside \`brain-x-\`; print a key, a session or a token |
+
+### Checks
+
+\`\`\`
+bun tools/cloud-brain/build.ts
+bun tools/cloud-brain/test-receiver.ts                      # serves run-tests.js on 127.0.0.1:47814
+# in a paired tab: run(["<module>", ...]) from http://127.0.0.1:47814/run.js
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil      # each Worker: same
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner
+\`\`\`
+
+### Known traps
+
+- A hidden tab computes nothing. The lease must end when a tab stops.
+- A cell is emitted as its source, not its value. A constant runs again in the deployer's sandbox.
+- A deployed service has unrestricted outbound network access.
+- A rollback of code does not roll back rows or tables.
+- \`did:web\` is the hostname. A Brain that changes hostname is a new service and a new OAuth client.
+- The seed is an open relay to the Cloudflare API until the installer deletes it.
+- An open tab runs the page it loaded. Reload it after a page deploy.
+- A service JWT proves who, not which app. The kernel's OAuth scope is \`transition:generic\`.`
+// %%
+md`## Open questions
+
+A row with no answer is open. A blocking row stops the handover. "As built" is Claude's choice and is not confirmed.`
+// %%
+questions = [
+ {
+  "q": "What is the use case? Tom, 2026-10-04: \"We want this to be a one stop shop for CloudDeployed self healing AI infrastructure … We also want it to be a personal assistant talked to through whats app. But it can self upgrade.\"",
+  "blocking": true,
+  "answer": "The assistant runs in a tab. Workers are stateless services. A channel carries messages in and replies out. Tom, 2026-10-04: \"a whats app could send a URL for the user to open their browser and that does long running operations, so the main compute locus becomes the user\"; and to 'Is \"WhatsApp is the doorbell and remote control, the tab is the brain\" acceptable as the first version': \"YES\"."
+ },
+ {
+  "q": "Does the Observable runtime run on the Worker?",
+  "blocking": true,
+  "answer": "No. Tom, 2026-10-05: \"record we can't really run the Observable runtime meaningfully in a worker, therefore all runtime stuff has to be done in the tab, this means the deployed workers are fairly normal processes. We will need to simulate requests in the tab so we can unit test them outside of deployment. The inbox pattern becomes a central concept.\" Now: the deployer runs the runtime in QuickJS to distil (D8). No running Worker has it."
+ },
+ {
+  "q": "How does a service's code leave the notebook?",
+  "blocking": true,
+  "answer": "The emit follows the function's ancestor cells and writes a plain module. Tom, 2026-10-05: \"I do think we should have a 'deploy function' function that will deploy a function to a worker, but it will need to chase ancestors a bit like notebook distiller. No generators. If it depends on a special secrets interface that will be swapped for the real secrets. In the notebook the secrets can be loaded too. So this is a key architecture of how we map CF dependencies into notebook concepts.\" Now: the deployer does this from module source (D7, D8)."
+ },
+ {
+  "q": "How does a deployed function, and the notebook, read a secret?",
+  "blocking": true,
+  "answer": "A secrets platform cell. Tom, 2026-10-05: \"I do think we should have a 'deploy function' function that will deploy a function to a worker, but it will need to chase ancestors a bit like notebook distiller. No generators. If it depends on a special secrets interface that will be swapped for the real secrets. In the notebook the secrets can be loaded too. So this is a key architecture of how we map CF dependencies into notebook concepts.\" Now: a Worker asks secret.get at run time and holds the answer 5 s. A rule per secret says which Worker reads it. The owner's tab reads with the owner's session."
+ },
+ {
+  "q": "How is it decided that a deploy is needed, and where is it done?",
+  "blocking": false,
+  "answer": "By hash, in one list. Tom, 2026-10-05: \"I think the deploy function needs to compare its current state to the deployed version (e.g. a hash) and decide whether a deploy is needed. This can be surfaced as a deploy action locally, but probably the brain UI itself aggregates so all the deploys can be done as one, and the UI is centralized.\" Now: the Services list compares the hash that the deployer distils with the hash that the Worker reports. Apply sends source."
+ },
+ {
+  "q": "How does the admin notebook know what version a Worker is running?",
+  "blocking": false,
+  "answer": "Each Worker answers getInfo, which the wrapper adds. Tom, 2026-10-05: \"can we insist all workers have a metadata route and that the admin notebook would ping that to get the current version for skew detection?\""
+ },
+ {
+  "q": "How many notebooks is a Brain?",
+  "blocking": false,
+  "answer": "One page. Tom, 2026-10-05: \"I think for most deployments the cloud brain notebook will be the only notebook (with multiple mains for different services), as the services are quite thin and coupled we probably don't need to worry about multi notebook concerns. Decoupled communication is achieved with the plugin abstraction.\" Now: the shell holds the shared modules, and the page loads each service module from its Worker (D10, D13)."
+ },
+ {
+  "q": "What routes requests in the core?",
+  "blocking": false,
+  "answer": "Hono. Tom, 2026-10-05: \"I assume the core router will be Hono, so we will need to ensure we can test with Hono in the browser.\""
+ },
+ {
+  "q": "Is the Brain designed for other services to call it, and what is its API convention?",
+  "blocking": false,
+  "answer": "Yes: XRPC. Tom, 2026-10-05: \"yeah I think we should design for cross service stuff, and xrpc is then perhaps the backbone, maybe its even a way to decouple each worker within a single distribution?\" Built: routes by NSID through the core, did:web for the Brain, grants per DID and method. Not built: Lexicons."
+ },
+ {
+  "q": "Who approves a deploy the assistant submits?",
+  "blocking": true,
+  "answer": "The owner decides, with one deployer setting. Tom, 2026-10-05: \"thats up to who configured it. Some people want HITL and some do not.\" The setting changes on the deployer page only, with the recovery key."
+ },
+ {
+  "q": "How does a local copy install a Brain? Tom, 2026-10-04: \"It should be possible, from position of just a local copy of CloudBrain, to boot up the infrastructure, if a token is passed in.\"",
+  "blocking": true,
+  "answer": "A seed Worker that the installer pastes in the Cloudflare dashboard. Tom, 2026-10-04: \"people can't run shells though in general\", and of the seed: \"that works enough and they do need to create an account anyway\""
+ },
+ {
+  "q": "Which channel first?",
+  "blocking": false,
+  "answer": "WhatsApp. Tom, 2026-10-04: \"We also want it to be a personal assistant talked to through whats app.\" Bluesky direct messages and groups were added 2026-10-07."
+ },
+ {
+  "q": "Are secret values kept as plain rows?",
+  "blocking": false,
+  "answer": "Yes. Tom, 2026-10-04, earlier: \"Secrets are kind of expensive so it will just be a SQLite table.\" Now: plain rows in brain-db's D1 table."
+ },
+ {
+  "q": "Is the first Brain on Workers Paid?",
+  "blocking": false,
+  "answer": "Yes. Tom, 2026-10-04: \"I have the $5 per month\" A Free-plan install is not tested. A distil takes more CPU than the Free plan allows."
+ },
+ {
+  "q": "One Worker per service, or services merged into the core?",
+  "blocking": false,
+  "answer": "One Worker per service (Claude's choice, not confirmed). Tom, 2026-10-05: \"I think for most deployments the cloud brain notebook will be the only notebook (with multiple mains for different services), as the services are quite thin and coupled we probably don't need to worry about multi notebook concerns. Decoupled communication is achieved with the plugin abstraction.\""
+ },
+ {
+  "q": "What is the notebook API for a Worker?",
+  "blocking": false,
+  "answer": "service = cloudflare.Service(name, fn, options) declares. The page's Apply deploys. Tom, 2026-10-05, note on Design in brief: \"Wouldn't it be service = cloudflare.Worker(…) to create the abstraction in notebook code, then service.deploy(…) to make an RPC call to deploy it\""
+ },
+ {
+  "q": "Where does the XRPC client live?",
+  "blocking": false,
+  "answer": "Built: @tomlarkworthy/xrpc-client, in the shell. Tom, 2026-10-05, note on Design in brief: \"dedicated utility notebook for XRPC clients (or an offtheshelf one if its good)\""
+ },
+ {
+  "q": "How is a service added to a Brain?",
+  "blocking": false,
+  "answer": "Tom, 2026-10-05, note on walkthrough 1: \"more like, the WhatApp notebook is dragged into the notebook and adds itself to a plugin bus that the Brain picks up.\" Built: a module that announces a Worker with plugins.add(\"workers\", …). A drag-in preview is not built."
+ },
+ {
+  "q": "What is the assistant, concretely?",
+  "blocking": false,
+  "answer": "robocoop-5 in the page, with a prompt from cloud-brain and a wiki page. Tom, 2026-10-05, note on Who may deploy: \"an instance of robocoop-5 with a Cloud Brain instructions in a markdown wiki page and a custom prompt to use it (preserving info store instrcutions) is in Cloud Brain to help run the service.\" Now also told to read cloud-brain-docs (D24)."
+ },
+ {
+  "q": "Where do the deployer, the wrapper and the seed live?",
+  "blocking": false,
+  "answer": "In the notebook, not in a separate repository. Tom, 2026-10-05, note on Handover: \"why, it need to be runnable all from its own cloud. We don't need or want a github representation\" The deployer is the module brain-deployer."
+ },
+ {
+  "q": "Approval: what is the default at install, off or on?",
+  "blocking": false,
+  "answer": "On at install. Tom, 2026-10-05: \"safe defaults but with easy loosening\" Built: one switch on the deployer page."
+ },
+ {
+  "q": "Which hostname?",
+  "blocking": false,
+  "answer": "The workers.dev name that the install gets. Tom, 2026-10-05: \"Or auto generated nam, whatever is simplest, I guess the hostname would end up global config somewhere\" The hostname is one config value. The DID and the OAuth client come from it."
+ },
+ {
+  "q": "One owner DID, or a list? The spec assumes one, set at install.",
+  "blocking": false,
+  "answer": "One. Tom, 2026-10-05: \"yes 1 owner\" Other people are members (D16)."
+ },
+ {
+  "q": "Are notebooks private unless marked public?",
+  "blocking": false,
+  "answer": "Tom, 2026-10-05, note on this row: \"yes private by default\" Built: a library notebook is private unless tagged public. A service's source is public (D3)."
+ },
+ {
+  "q": "Should claude.ai on the web or phone be able to pair, not only Claude Code with a local channel? That would add a remote MCP module (tools, no push) beside the relay.",
+  "blocking": false,
+  "answer": "Not built. Tom, 2026-10-05: \"I expect people to be able to upgrade and add connectors by asking their bot, so the architecture needs to accommodate these additional connections\" Claude's reading: a connector is one more service."
+ },
+ {
+  "q": "Which model and provider for the agent?",
+  "blocking": false,
+  "answer": "robocoop-5. Tom, 2026-10-05: \"robocoop so that can be paired to owners Claude\" Built: the model is the paired Claude Code session, or a key in robocoop-5's settings."
+ },
+ {
+  "q": "Can the assistant write a new recipe, or only install from a catalogue? The spec says write: the recipe is authored in the tab like any notebook, so nothing is compiled in a Worker.",
+  "blocking": false,
+  "answer": "Yes. Tom, 2026-10-05: \"it should be able to do anything, and upgrade itself\" Built: the assistant changes and deploys services. The deployer is outside its reach (A10)."
+ },
+ {
+  "q": "Should a turn run with no tab open?",
+  "blocking": false,
+  "answer": "Later. Tom, 2026-10-05: \"Hmmm, that should definitely be an upgrade path, we can do that as we iterate on it\" Now a separate workstream (D20)."
+ },
+ {
+  "q": "Three experiments (E13 to E15 in a list of 2026-10-05 that this spec does not hold): run them on the scratch Worker cb-experiments?",
+  "blocking": false,
+  "answer": "Run 2026-10-05; all three passed. Tom: \"yes test on cb-experiments\"."
+ },
+ {
+  "q": "How are notebooks stored? Tom, 2026-10-04: \"notebooks will be more like bundles in lopecode.com where they are records of pointers to modules that are dynamically assembled on request. This suggests we will need module versioning perhaps? We should mirror how ATProto works with content addressed blobs.\"",
+  "blocking": true,
+  "answer": "Tom, 2026-10-04: \"SHA-256, I think notebooks can stay together as bundles, then deploying one as a service implies all those modules are going in together, its a natural representation.\" Replaced 2026-10-06: a deploy is module source, the deployer keeps it, and the shell and library notebooks are files in brain-static (D1, D7, D11)."
+ },
+ {
+  "q": "Where is the Brain notebook developed?",
+  "blocking": false,
+  "answer": "Tom, 2026-10-05: \"Yes the cannonical cloud brain is in the repository too.\" Also Tom, same message: \"ok I think the spec is done. Lets build it.\" Built: seeds in tools/cloud-brain/, compiled to lopebooks/notebooks/@tomlarkworthy_cloud-brain.html."
+ },
+ {
+  "q": "Should a service's source be public? Should the page be public?",
+  "blocking": false,
+  "answer": "Tom, 2026-10-06: \"lets go with public for now\""
+ },
+ {
+  "q": "Is a request trace and replay the right way to see inside a Worker? Tom, 2026-10-04: \"Observability and debugging will be a challenge of the deployed modules.\"",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "May a token call the proxy from another origin, or only a session?",
+  "blocking": false,
+  "answer": "As built: both. A token names its methods and the owner can revoke it."
+ },
+ {
+  "q": "Which platform cells?",
+  "blocking": false,
+  "answer": "As built: secrets, rows, sql, blobs, inbox, xrpc, config. A cron is a manifest field."
+ },
+ {
+  "q": "In the tab, does rows read the deployed Worker's rows?",
+  "blocking": false,
+  "answer": "As built: yes, for the signed-in owner (backend.use)."
+ },
+ {
+  "q": "Is a constant cell evaluated again, or copied as a value?",
+  "blocking": false,
+  "answer": "As built: evaluated again, in the deployer's sandbox."
+ },
+ {
+  "q": "Which plugin names?",
+  "blocking": false,
+  "answer": "As built: workers, and inbox with { source, handle }."
+ },
+ {
+  "q": "Must a service be a Hono app?",
+  "blocking": false,
+  "answer": "As built: no. A function or a Hono app."
+ },
+ {
+  "q": "XRPC methods as Hono routes, or @atcute/xrpc-server?",
+  "blocking": false,
+  "answer": "As built: Hono routes."
+ },
+ {
+  "q": "Is there a public tier of methods?",
+  "blocking": false,
+  "answer": "As built: a rule per method: anyone, members, owner, a named Worker, or a CEL expression."
+ },
+ {
+  "q": "What is the approval channel?",
+  "blocking": false,
+  "answer": "As built: the deployer page, with the recovery key. No code is sent to a phone."
+ },
+ {
+  "q": "Does self-upgrade include the deployer?",
+  "blocking": false,
+  "answer": "As built: no. A deployer update needs the Cloudflare token, from the command line."
+ },
+ {
+  "q": "Is there an Add recipe button and a catalogue?",
+  "blocking": false,
+  "answer": "As built: no."
+ },
+ {
+  "q": "What does the assistant read?",
+  "blocking": false,
+  "answer": "As built: the wiki page running-a-cloud-brain.md, and the module cloud-brain-docs."
+ },
+ {
+  "q": "Probation is 10 minutes and two failed checks. Neither number is measured. Keep them?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Which NSID authority: com.lopecode.brain.*, or another domain? No Lexicon is published.",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The kernel's OAuth scope is transition:generic, which is general account access. Accept it, or try a per-method rpc: scope?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Approval can be turned off only with the recovery key. Is that \"easy loosening\"?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "With no Claude Code session paired, which model does the assistant use, and is there a spend cap? None is built.",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Are other Cloudflare resources declared like cloudflare.Service, in place of platform cells?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The drawings are from 2026-10-04 and show the old names. Redraw them, and draw the three states that have none?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Where does an assistant conversation live? Now it is lost on reload.",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Is memory shared, or separate for each person?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "A deployer update distils each Worker again. Under approval, is that one approval or one per Worker?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Member services: are the defaults right? 3 Workers, 20 MB, 2000 calls a day, no approval, methods for author or members only.",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "brain-x-blob answers blob.*, and the blobs platform cell is still the raw bucket. Keep both names?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "A second uploader of the same bytes adds labels to the first uploader's, and either can remove any label. Keep, or one claim per uploader?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "A member's blobs and files are counted separately against one quota, so a member can hold two times the limit. Fix?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Portals: a portal token cannot be withdrawn in its 10 minutes, and an author's portal does not reach blob.* or static.*. Accept?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Portals: one frame per Worker, and each frame boots the 5.2 MB shell. Accept?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The rules for a group chat are defaults that Claude chose (addressed messages only; owner and members only; a group the owner is in; one session per group; reply to the group). Confirm each?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The room rule is stricter than asked: in a room, a member's own files and services are refused to the turn. Keep the stricter cap?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The session token is in localStorage, so each script on the Brain's page can read it. Accept?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The signing secret is still named COOKIE_KEY. Rename it? A rename signs each person out.",
+  "blocking": false,
+  "answer": "Tom, 2026-10-07: \"yes renaming signing key but do it slowly without deleting anything.\" Stage 1 is built (R46): the name is SESSION_KEY, both names are bound with one value, and no person is signed out. Stages 2 and 3 are in the backlog."
+ },
+ {
+  "q": "brain.ts apply sends the recovery key, so approval does not hold it. Change the CLI to submit and wait?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The Brain's Bluesky account is one that Scott created, not one made for this Brain. Keep it?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "The Worker set allowGroupInvites to all on that account without being asked by name. Keep the setting?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "WhatsApp pictures are public files in brain-static. Move them to private blobs?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "people.link lets the owner bind an address to a DID with no sign-in by that DID. Keep it?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "A service's calls list is recorded and not enforced (R41). Enforce it in the core?",
+  "blocking": false,
+  "answer": "Tom, 2026-10-07: \"Yes enforce the calls list\". Built (R41)."
+ },
+ {
+  "q": "calls: a name can hold * (one part; as the last part, one or more). secret.get, db.sql and inbox.append are not listed, because a platform cell calls them. A member's Worker has no list and is checked as its author. Claude chose these. Confirm each?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "secret.copy (Tom, 2026-10-07: \"copy secret could be an approved data plane primative to help with secret migrations without going through an LLM\"). Claude chose: the owner's session and an owner turn that only the owner reads can call it; the new name must not be set; the rule goes with the value; a rule that reads resource is refused; the source stays; a turn copies 10 a day. Confirm each?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "SESSION_KEY stage 2 (the installer stops the write of COOKIE_KEY) and stage 3 (the kernel stops the read; the binding is removed). When? Tom said to delete nothing, so neither is planned.",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Feeds (Tom, 2026-10-07: \"a BlueSky feed server would be useful\"; \"I think just curated list is the primative xrpcs and other things might connect to that\"). feed.publish writes a public record in the repo of the Brain's Bluesky account, cosmiccalendrics.bsky.social, which Scott made. It is not pressed. Publish under that account, or under another account?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Feeds: who can call is the rule of the method in the core (Tom, 2026-10-07: \"don't we have a general security layer with CEL\"). A rule reads the query string, not the body, so each feed.* method has the feed in the query string and a rule can name one feed. rule.put keeps one expression for a method, so the owner writes all feeds and all callers in one expression. Is that enough, or must a service name the parameter that is its resource so the owner sets one rule for each feed, as secret.setRule does for each secret?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Feeds: Claude chose these. The kernel does not read the token of a method outside com.lopecode.brain, so a feed is the same for each viewer. A feed over 2000 posts drops the oldest. A caller with the right to remove can remove a post of another caller. A member needs a grant for feed.add, and the grant is for all feeds. Confirm each?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Confused deputy (Tom, 2026-10-07: \"yes we need that security model I think\"; \"I won't really want us to do something outside CEL and a typical attribute based authorization model\"). Built as one more attribute, origin (R50). A Worker passes the origin on only where its code calls with behalf(c); brain-x-feed does. To pass it on in each call, and in secrets, sql and inbox, the Worker wrapper must change. The deployer carries the wrapper, so that is a deployer reinstall, and the wrapper then needs AsyncLocalStorage (compatibility flag nodejs_als), which a browser does not have, so simulate needs a second path. Do it at the next deployer reinstall?",
+  "blocking": false,
+  "answer": "Tom, 2026-10-07: \"next gaurd reinstall we should also give it a new name (deployer). We can't we change the gaurd now?\" Built 2026-10-07 23:19 CEST (R50): the wrapper holds the reference in AsyncLocalStorage (flag nodejs_als, which the deployer sets on each Worker) and sends it back with each call to the core. behalf is removed. Under simulate two calls at one time pass no reference."
+ },
+ {
+  "q": "origin.trusted is true for the owner, a token, and an account the kernel passed for the first method of the chain. So a member with a grant for feed.publish can publish, and a member with no grant cannot. A rule can be more strict: origin.kind == \"owner\" (the owner or a turn of the owner), or origin.session (the owner's own tab; then the assistant cannot publish for the owner). Which for bluesky.putRecord?",
+  "blocking": false,
+  "answer": "origin.kind == \"owner\". Tom, 2026-10-07: \"1 ok\", to the proposal origin.kind == \"owner\". The rule of bluesky.putRecord and bluesky.deleteRecord is caller.session || (caller.worker == \"brain-x-feed\" && origin.kind == \"owner\"). It passes the owner's tab and a turn run for the owner. It refuses a token, a member, and a turn of a member. An origin has no room: a turn the owner starts in a room has kind owner, and the kernel refuses feed.publish to that turn unless each person in the room has a grant for it."
+ },
+ {
+  "q": "Calls that do not read origin, by choice of Claude: inbox to *.send (the reply goes only to the address the entry came from), library to static.put/get/delete (the library decides who reads), whatsapp to static.put, lease.get, inbox.append, secret.get, db.sql, metrics.record. Confirm, or name one that must read origin?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Deployer rename, stage 2 (R51). The Worker is still brain-deployer at BASE-deployer. A new Worker name is a new Worker with an empty Durable Object: the rows (each Worker's key and kept source, the held deploys, the approval setting) must be copied, the approval address changes, and each Worker bound to DEPLOYER is deployed again. The caller id deployer is in rules (who: \"workers\"). Do stage 2, and when?",
+  "blocking": false,
+  "answer": "Done on cb4, 2026-10-07 23:52 to 23:58 CEST. Tom, 2026-10-07: \"2 yes\", and before that \"do it slowly without deleting anything\". The Worker is cb4-deployer. cb4-guard is a stub with no token and no key; its rows are as they were. Open: when to delete cb4-guard."
+ },
+ {
+  "q": "The origin now reaches the rule of each secret and table. No rule on cb4 reads it there. Should a rule of inbox *.send, static.put or a secret read origin? Claude changed none.",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "cloudflare.Worker is the old name of cloudflare.Service (R52) and has no other meaning. Is a bare Worker, with no wrapper and no manifest, wanted later under that name?",
+  "blocking": false,
+  "answer": ""
+ },
+ {
+  "q": "Feed URI match: does getFeedSkeleton compare the account in the feed URI?",
+  "blocking": false,
+  "answer": "Closed 2026-10-07, confused-deputy review. Yes. A feed answers only for the URI that feed.publish recorded: the account, the collection app.bsky.feed.generator, and the name. A different URI, or a feed that is not published, answers UnknownFeed. Before, a record in a different account that named this Brain got the posts of a public feed under that account. The owner reads a feed that is not published with feed.posts."
+ }
+]
+// %%
+questionsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
+  <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+as_built = md`## Build record
+
+The short form, for a reader outside the project. The working record, with each run in the order built, is \`tools/cloud-brain/spec-as-built.md\` in the repository.`
+// %%
+specModule = "@tomlarkworthy/cloud-brain-specs"
+// %%
+import {md} from "@tomlarkworthy/editable-md"
+// %%
+import {svgLens} from "@tomlarkworthy/svg-lens"
+// %%
+import {annotation, annotations} from "@tomlarkworthy/annotate"
+// %%
+import {sticky} from "@tomlarkworthy/sticky"
+// %%
+import {switchboardThread} from "@tomlarkworthy/switchboard"
+// %%
+import {linkTo, navigate} from "@tomlarkworthy/lopepage-urls"

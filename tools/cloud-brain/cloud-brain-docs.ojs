@@ -1,0 +1,294 @@
+md`# Cloud Brain: what it does and how it works
+
+A Cloud Brain is a set of Cloudflare Workers that one owner controls. Each Worker is deployed from one module of this notebook. The owner and each member is an atproto account, named by a DID.
+
+Part one says what the owner and a member can do. Part two describes the core: the Workers that each Brain has and the rules that they keep. A service outside the core has one line here and its own module.
+
+Each module name is a link that opens the module in a tab. Requirements, decisions and open questions are in ${mod("cloud-brain-specs")}. Checked against the module sources on 2026-10-07.`
+// %%
+md`## What the owner can do
+
+| task | where |
+|---|---|
+| See what runs. Deploy a change. | **Services** in ${mod("cloud-brain")}: one row per Worker, its version, its state, and **Apply**. |
+| See calls, latency and faults. | **Health** in ${mod("cloud-brain")}. |
+| Ask for a change in words. | **Operator** in ${mod("cloud-brain")}. The assistant needs a model: a paired Claude Code session, or a key in its settings. |
+| Set a secret. | ${mod("brain-secrets")}. |
+| Add a member. Set the member's methods, limits and file tags. | **People** in ${mod("cloud-brain")}. |
+| Give a script or another atproto account some methods. | **Access** in ${mod("cloud-brain")}: a token or a grant. |
+| Approve a held deploy. Roll the kernel back. Turn approval on or off. | The deployer page, \`https://BASE-deployer.SUBDOMAIN.workers.dev/\`, with the recovery key. |
+| Make a new Brain in another Cloudflare account. | **Clone** in ${mod("cloud-brain")}. Clone copies code and no data. |
+
+A message arrives on a channel. A turn of the assistant in a Brain tab answers it. One tab at a time holds the inbox. With no tab open, no message is answered: no Worker calls a model.`
+// %%
+md`## What a member can do
+
+A member is a DID that the owner added. Any other signed-in account has no rights.
+
+| task | how |
+|---|---|
+| Ask the Brain a question. | Send a message on a channel from a linked address. The turn runs with the member's permissions, not the owner's. |
+| Keep files and blobs. | \`static.*\` and \`blob.*\`, under the member's own tags. The default limit is 20 MB. |
+| Deploy a service. | \`member.deploy { module, source }\`. The Worker has its author's permissions. No approval. The default limit is 3 Workers. |
+| Use another member's service. | **Open** in ${mod("brain-shell")}. The module runs in a sandboxed frame and calls its Worker as the viewer. |
+
+Not verified: no member other than the owner has signed in to a deployed Brain. Each member path was run with minted sessions and under \`simulate\` (2026-10-07).`
+// %%
+md`## A service is a notebook module
+
+${mod("cloudflare-iac")} is the library. One cell declares a service:
+
+\`\`\`js
+notes_service = cloudflare.Service("notes", app, {
+  methods: { "com.lopecode.brain.notes.read": { type: "query", who: "owner" } },
+  crons: ["* * * * *"], scheduled: () => tidy()
+})
+\`\`\`
+
+A second cell announces it: \`plugins.add("workers", notes_service, { invalidation })\`. Until 2026-10-07 the function was \`cloudflare.Worker\`; that name is still accepted.
+
+A service is a name, a function that answers requests, and a manifest: its methods, paths, rules and \`calls\`. It is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs in a wrapper and reaches the Brain only through the platform cells below. It holds no Cloudflare token, it cannot name a binding, and its Worker does not answer the internet. The core decides each call that it makes, and in mode \`enforce\` refuses a call to a method that is not in \`calls\`. Outbound \`fetch\` is not limited.
+
+The module holds the prose, the code and the \`test_\` cells of the service. The deployed code is the function and each cell that the function depends on, across imports, with no Observable runtime. The same value runs three ways:
+
+- \`service.fetch(request)\` in the tab.
+- \`simulate(service)\`: the emitted module, in the tab.
+- Deployed, on Cloudflare.
+
+The emit refuses these and names the cell: a generator, a \`viewof\` or \`mutable\` cell, a cell that uses a notebook builtin such as \`html\` or \`width\`, a secret read by a computed name.`
+// %%
+md`## Platform cells
+
+The emit stops at the platform cells of ${mod("cloudflare-iac")}. Each cell works in the notebook. On a Worker, the wrapper replaces it.
+
+| cell | on a Worker |
+|---|---|
+| \`secrets\` | \`await secrets.NAME\` calls \`secret.get\` as that Worker and keeps the answer 5 s for one origin. No Worker reads a secret that has no rule. |
+| \`rows\` | The Worker's own key-value rows. |
+| \`sql\` | \`db.sql\` through the core: the Worker's own tables, by name prefix. |
+| \`blobs\` | The Brain's one bucket. The Worker's keys are under its own name. |
+| \`inbox\` | \`inbox.append\`: a message for the page. |
+| \`xrpc\` | A call to another method of this Brain, through the core, as \`worker:NAME\`. |
+| \`config\` | Values that the deployer wrote at deploy. |
+
+The table lists the cells that a service may use. ${mod("cloudflare-iac")} has others for the Workers of the Brain itself: \`database\` (the table database, bound to \`brain-db\` only), \`core\` and \`deployer\` (the bindings of the kernel and the core), \`workers\` (the core's binding to each Worker), \`assets\` (the kernel's binding to the Worker that serves the page), \`quickjs\` (the deployer's distiller). \`cloudflare\` is the cell that declares a service. The deployer refuses \`database\` to each Worker but \`brain-db\`.
+
+The deployer builds a Worker's bindings from the platform cells that its code reaches. A deploy request cannot name a binding.`
+// %%
+md`## The manifest
+
+A service declares these. The deployer reads them from the distilled module.
+
+| field | meaning |
+|---|---|
+| \`methods\` | The NSIDs that the service answers. Each is a \`query\` or a \`procedure\` and has a rule (\`who\` or \`allow\`). |
+| \`paths\` | Addresses that are not methods, such as \`/hooks/x\`. Each has a rule. |
+| secrets | The names that the code reads. The deployer refuses a name that starts \`BRAIN_\` or \`CF_\`. |
+| \`crons\`, \`scheduled\` | A function that runs on a schedule. |
+| \`calls\` | The NSIDs that the service calls. The core refuses a call that is not in the list (mode \`enforce\`), or counts it and passes it (mode \`report\`). \`*\` is one part of a name. \`secret.get\`, \`db.sql\` and \`inbox.append\` are not listed: a platform cell calls them. See ${mod("brain-core")}. |
+
+A method or a path belongs to one Worker. The deployer refuses a second declaration and names the first Worker.`
+// %%
+md`## The Workers
+
+${architecture}
+
+| Worker | module | holds |
+|---|---|---|
+| \`brain-deployer\`, the deployer | ${mod("brain-deployer")} | The Cloudflare API token. No other Worker has it. The deployer distils module source, deploys it, and holds a deploy for approval. Until 2026-10-07 it was called the guard, and its Worker was \`BASE-guard\`. A Brain from before then keeps that Worker until it is moved: *Moving to a new Worker name* in ${mod("brain-deployer")}. The header \`x-brain-guard\`, the cell \`guard\` and the caller \`guard\` are still read. |
+| \`brain\`, the kernel | ${mod("brain-kernel")} | The Brain's address. Sign-in. It identifies the caller. No application logic and no model call. |
+| \`brain-core\` | ${mod("brain-core")} | The route table and the owner's rules. It checks the rule before each forward. |
+| \`brain-db\` | ${mod("brain-db")} | Key-value tables, SQL tables and secrets. |
+| \`brain-x-NAME\` | one module each | An owner service. |
+| \`brain-m-ID-NAME\` | a member's module | A member service. Its one binding is to the core. |
+
+Only the kernel and the deployer answer the internet. Any other Worker answers 404, unless the request has that Worker's own key. The deployer uses the key to test the Worker.
+
+On Cloudflare, the Brain's base name replaces \`brain\` in each name. Two Brains can share an account.`
+// %%
+architecture = {
+  const box = (x, y, w, title, sub) => htl.svg`<g>
+    <rect x=${x} y=${y} width=${w} height="46" rx="6" fill="none" stroke="currentColor" stroke-opacity="0.55"></rect>
+    <text x=${x + w / 2} y=${y + 20} text-anchor="middle" font-weight="600">${title}</text>
+    <text x=${x + w / 2} y=${y + 36} text-anchor="middle" fill-opacity="0.7" font-size="11">${sub}</text></g>`;
+  const arrow = (x1, y1, x2, y2, label, dashed = false) => htl.svg`<g>
+    <line x1=${x1} y1=${y1} x2=${x2} y2=${y2} stroke="currentColor" stroke-opacity="0.7" stroke-dasharray=${dashed ? "4 4" : null} marker-end="url(#cbd-arrow)"></line>
+    ${label ? htl.svg`<text x=${(x1 + x2) / 2} y=${(y1 + y2) / 2 - 5} text-anchor="middle" font-size="11" fill-opacity="0.7">${label}</text>` : ""}</g>`;
+  return htl.html`<svg viewBox="0 0 760 300" style="max-width:760px;width:100%;font:12px var(--sans-serif, system-ui, sans-serif);color:var(--theme-foreground)" fill="currentColor">
+    <defs><marker id="cbd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="currentColor" fill-opacity="0.7"></path></marker></defs>
+    <text x="8" y="57" font-size="11" fill-opacity="0.7">internet</text>
+    <text x="8" y="247" font-size="11" fill-opacity="0.7">recovery key</text>
+    ${box(120, 30, 150, "brain (kernel)", "who is calling")}
+    ${box(120, 220, 150, "brain-deployer", "Cloudflare token, deploys")}
+    ${box(340, 125, 150, "brain-core", "routes, rules")}
+    ${box(570, 30, 170, "brain-db", "tables, SQL, secrets")}
+    ${box(570, 125, 170, "brain-x-NAME", "an owner service")}
+    ${box(570, 220, 170, "brain-m-ID-NAME", "a member service")}
+    ${arrow(60, 53, 118, 53)}
+    ${arrow(84, 243, 118, 243)}
+    ${arrow(270, 60, 340, 135, "names the caller")}
+    ${arrow(195, 76, 195, 218, "infra.*")}
+    ${arrow(270, 235, 340, 165, "registers")}
+    ${arrow(490, 135, 568, 60)}
+    ${arrow(490, 148, 568, 148, "forwards")}
+    ${arrow(490, 162, 568, 235)}
+    ${arrow(272, 256, 568, 256, "deploys, checks health with each Worker's key", true)}
+  </svg>`;
+}
+// %%
+md`## Who is calling
+
+The kernel identifies the caller, in this order. No header from a caller can set the result.
+
+| the request has | the caller is | \`via\` |
+|---|---|---|
+| a session token | \`owner\`, or the DID | \`session\` |
+| a turn token | the DID of the person whose message the turn answers | \`turn:ENTRY\` |
+| a portal token | the viewer's DID | \`portal:ID\` |
+| a JWT that an atproto key signed (a PDS forwards a call) | \`owner\`, or the DID | \`jwt\` |
+| a token that the owner made | \`token:NAME\` | \`token\` |
+| none of these | \`anonymous\` | |
+
+The deployer gives each Worker a random key at deploy and tells the core the key's hash. A call to the core over a binding has the caller's key. Only the kernel's key can name a caller. Any other key makes the caller \`worker:NAME\`, whatever headers the Worker sent.
+
+Each Worker runs in a wrapper. The wrapper removes each \`x-brain-*\` header from a request that did not arrive over a binding.`
+// %%
+md`## Sessions and tokens
+
+Sign-in is atproto OAuth on the kernel. The kernel sets no cookie and reads no cookie.
+
+| token | names | lasts | reaches |
+|---|---|---|---|
+| session | a DID | 30 days, not renewed | What that person can call. The page keeps it in \`localStorage\` and sends it as \`Authorization: Bearer\`. |
+| turn | the sender of one inbox entry | 10 minutes | What the sender can call. The owner's tab gets one with each entry, so a member's turn runs as that member. |
+| portal | a viewer and one member, the author | 10 minutes | The methods of the author's Workers, as the viewer. |
+| owner's token | a name and a list of methods | until revoked | Those methods. |
+| grant | a DID and a list of methods | until deleted | Those methods, for that account through its own PDS. |
+
+\`POST /auth/logout?everywhere=true\` ends each session, turn and portal token that the kernel issued before it.
+
+A token or a grant cannot name an \`infra\`, \`secret\`, \`token\`, \`grant\` or \`people\` method. It reaches no address that is not a method.
+
+These accept the owner's own session only: \`secret.put\`, \`token.*\`, \`grant.*\`, \`rule.put\`, \`calls.setMode\`, \`infra.*\`. They refuse a turn token, a PDS, an owner's token and a Worker's key.
+
+\`secret.get\` accepts the owner's own session, and a Worker that the rule of that secret lets in. The rule can read \`origin\`. It refuses a turn token, a PDS, an owner's token and an anonymous caller, whatever the rule says.
+
+\`secret.copy { from, to }\` gives a secret a second name. It accepts the owner's own session and a turn that the owner sent and that only the owner reads. The value is in no answer. The new name must not be set. The rule goes with the value. A turn copies 10 secrets a day.
+
+A turn for a message in a group has a room. The turn reaches \`inbox.reply\`, and a method only when each participant has a grant for it. Reference: **Rooms** in ${mod("brain-kernel")}.
+
+The key that signs the session, turn and portal tokens is \`SESSION_KEY\`. Before 2026-10-07 the name was \`COOKIE_KEY\`. The kernel signs with \`SESSION_KEY\` and reads a token signed with either. The installer binds both names with one value. The old name is not removed.`
+// %%
+md`## Rules
+
+Each method and each path has one rule. The core evaluates the rule before it forwards.
+
+\`\`\`
+who: "anyone"                 true
+who: "workers"                caller.trusted || caller.kind in ["worker", "deployer"]
+who: "worker:brain-x-NAME"    caller.trusted || caller.id == "worker:brain-x-NAME"
+who: "owner", or nothing      caller.trusted
+allow: "<expression>"         the expression replaces the line that who gives
+\`\`\`
+
+A rule is one [CEL](https://github.com/google/cel-spec) expression over \`caller\`, \`origin\` and \`request\`. The call continues only when the result is \`true\`. Any other value, a missing field or an error refuses the call. \`caller.trusted\` is the owner, or a token or a granted account that the kernel checked against this method.
+
+\`caller\` is who made the call. \`origin\` is who started the chain of calls, and has the same fields. They are equal for a call from outside. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call that it answers. For a call that a Worker makes by its own schedule, \`origin\` is the Worker. The core signs the origin into a reference that it sends with each call, and the wrapper sends the reference back with each call that the Worker makes in that time. A Worker cannot name an origin of its choice. A rule that does not read \`origin\` lets the Worker do the same for each caller it answers. Example: \`bluesky.putRecord\` has the rule \`caller.session || (caller.worker == "brain-x-feed" && origin.kind == "owner")\`: the feed service writes a public record only when the owner started the chain, in their tab or in a turn that is run for them. The calls of a platform cell (\`secrets\`, \`sql\`, \`inbox\`, \`xrpc\`) carry the same origin, so the rule of a secret or a table can read it. Reference: **Origin** in ${mod("brain-core")}.
+
+A rule is part of the service's source, so a change to a rule is a deploy. The owner can replace a rule with \`rule.put { target, allow }\`, unless the service fixed it. A rule cannot read the request body. Reference: **Access rules** in ${mod("cloudflare-iac")}.
+
+A member service declares \`who: "author"\` (the member and the owner) or \`who: "members"\`. The deployer writes the rule.`
+// %%
+md`## XRPC
+
+Each call is [XRPC](https://atproto.com/specs/xrpc), the HTTP convention of atproto, in the namespace \`com.lopecode.brain\`.
+
+- A query is \`GET /xrpc/NSID\`. Its parameters are in the query string.
+- A procedure is a \`POST\` with a body.
+- An error is \`{ error, message }\` with a status that is not 2xx.
+
+${mod("xrpc-client")} is the client that the page uses.
+
+A call from the internet:
+
+1. The kernel identifies the caller. It refuses a method that is outside the list of a member, a token, a grant, a turn or a portal.
+2. The kernel forwards the call to the core and names the caller.
+3. The core finds the one Worker whose service declared the method or path. A query sent as a \`POST\`, or a procedure sent as a \`GET\`, gets 405. A name that no service declared gets 501 \`MethodNotImplemented\`.
+4. The core evaluates the rule. A result that is not \`true\` gets 401. A rule that cannot be evaluated gets 403.
+5. The core forwards the call over its binding. For a person, it adds the member flag, the file limit and the tag grants.
+6. Each Worker on the path adds its name and version to \`x-brain-served-by\`: \`brain-x-library@17319cc3a35f, brain-core@409b93c8bffc, brain@1af0d22831c6\`.
+
+A call from one Worker to another starts at step 3, as \`worker:NAME\`. The core first checks the method against the \`calls\` list of the calling service. A member's Worker calls as its author's DID. It can call \`db.sql\`, \`static.*\`, \`blob.*\`, a member's method, and each method that the owner granted to its author.
+
+Not built: Lexicon documents. The Workers do not check an input against a schema.`
+// %%
+md`## Deploy
+
+A deploy is module source: \`{ module, source }\`. The deployer does the other steps.
+
+1. **Distil.** The deployer runs the module in QuickJS with its own copy of ${mod("cloudflare-iac")}. The result is the code, the manifest and a hash. The sandbox has no network and no bindings.
+2. **Check.** An owner service has the name \`brain-x-NAME\`. It cannot claim a method or path that another Worker serves. It cannot name the deployer, the kernel or the core.
+3. **Approve.** Approval is on at install. The deployer page lists a held deploy. The owner approves it there with the recovery key, then presses **Apply** again. Approval does not deploy.
+4. **Go live.** The deployer uploads a version, sends its own request to that version, moves it to 100%, then checks its health. On a failure, the deployer restores the previous version and appends an inbox entry.
+5. **Verify.** The page loads the module from the Worker, runs its \`test_\` cells and reports to the core. Until then the Worker is \`unverified\`. On a failed report, the deployer restores the previous version.
+
+A Worker's identity is the hash of its source and the version of the distiller. The deployer keeps each Worker's source. Each Worker serves its source at \`getSource\`. The page loads its modules from there, so the page shows the code that runs.
+
+A change to ${mod("cloudflare-iac")} is a deployer update. A deployer update needs the Cloudflare token and cannot start from the page. After it, the deployer distils each Worker again.`
+// %%
+md`## Probation and recovery
+
+A bad kernel, core, \`brain-db\` or page can lock the owner out. A new version of one of these is on probation from the moment it is live. The owner presses **Keep this version**, or the page's tests pass. After two failed health checks, or 10 minutes with no confirm, the deployer restores the previous version.
+
+No Worker of the Brain can change the deployer: the deployer refuses an apply that names it. The deployer page is one HTML response with no script. With the recovery key, the deployer page rolls the kernel back and approves a deploy. With the recovery key, the deployer also answers \`infra.*\` to a caller that is not the kernel. That is the path when the kernel is broken. The installer makes the recovery key and shows it one time.
+
+A member deploy does not use approval or the recovery key. Fixed rules limit it. Reference: **A member's Worker** in ${mod("brain-deployer")}.`
+// %%
+md`## Data
+
+| store | reached by | access |
+|---|---|---|
+| a Worker's own \`rows\` | that Worker | No other Worker reads them. |
+| key-value tables | \`db.get/list/put/delete/increment\` | One rule per table, set with \`db.setRule\`. No rule: the owner only. |
+| SQL tables | \`db.sql\`, the \`sql\` cell | A Worker owns the tables that have its name's prefix (\`brain-x-metrics\` owns \`metrics_*\`). Another caller needs the table's rule, set with \`db.sqlGrant\`. |
+| secrets | \`secret.put\`, \`await secrets.NAME\` | One rule per secret. \`secret.get\` refuses a token, a granted account and an anonymous caller, whatever the rule says. |
+| files by path | \`static.*\`, \`GET /static/PATH\` | By tag. |
+| bytes by content address | \`blob.*\` | By tag. |
+
+${mod("brain-db")} reads the query plan of each SQL statement that is not the owner's, before it runs the statement. It refuses a plan that has an opcode outside its list. There is no rule by column or by row. A removed Worker keeps its tables.
+
+**Tags** decide who reads or changes a file or a blob. The store writes \`by:DID\` and \`worker:NAME\`; a caller cannot set them. \`public\` opens a file to anyone. \`members\` opens it to each member. The owner grants a member \`read\` or \`write\` on any other tag. Reference: ${mod("brain-static")}, ${mod("brain-blob")}.`
+// %%
+md`## Metrics
+
+The core counts each call that it answers or forwards. It sends a batch to ${mod("brain-metrics")} each 10 s, or immediately after a fault. One row is one minute of one Worker, version, method, kind of caller and status. \`metrics.query\` answers 8 days at most. The Worker deletes rows older than 14 days.
+
+A fault is a status of 500 or above, except 501.
+
+Not counted: a call that does not go through the core (the deployer's health checks, a Worker's own \`fetch\`, sign-in on the kernel). A core instance that stops loses up to 10 s of counts.`
+// %%
+md`## The page
+
+The kernel serves a shell at \`/\`. The shell is this notebook without the modules that a Worker owns. ${mod("brain-shell")} asks the deployer for the list of those modules and loads each one from its Worker. A copy opened from a file loads nothing: the page is then the source, with no Brain.
+
+${mod("cloud-brain")} is the page's own module. It is deployed as a service and is on probation after each deploy. This module, ${mod("cloud-brain-specs")} and ${mod("brain-shell")} are in the shell.`
+// %%
+md`## Services outside the core
+
+Each is an owner service. Its module documents it.
+
+| module | purpose |
+|---|---|
+| ${mod("brain-inbox")} | Channels append entries. The page answers them. |
+| ${mod("brain-whatsapp")}, ${mod("brain-bluesky")} | Message channels. |
+| ${mod("brain-library")} | Notebooks that the Brain keeps and serves. |
+| ${mod("brain-feed")} | Lists of Bluesky posts, given as Bluesky feeds. |
+| ${mod("brain-proxy")} | Outbound requests with a secret added. |`
+// %%
+// A module's name as a link that opens its tab beside the ones already open.
+mod = (name, label) => {
+  const module = name.startsWith("@") ? name : "@tomlarkworthy/" + name;
+  return htl.html`<a href=${linkTo(module, { onObservable: false })} title=${module} onclick=${(e) => (e.preventDefault(), navigate(e.currentTarget.getAttribute("href")))}><code>${label || name}</code></a>`;
+}
+// %%
+import {linkTo, navigate} from "@tomlarkworthy/lopepage-urls"

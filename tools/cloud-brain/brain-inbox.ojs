@@ -1,0 +1,274 @@
+md`# brain-inbox
+
+What arrives from outside a Cloud Brain, kept in order until a tab has handled it.
+
+| | |
+|---|---|
+| Worker | \`brain-x-inbox\` |
+| \`inbox.append\` | procedure. A Worker, the deployer or the owner. \`{ source, key, body }\`. A key is kept once: a second append answers \`{ id, duplicate: true }\`. |
+| \`inbox.list\` | query, owner. \`?after=<id>&limit=50&all=true\`. \`{ entries, waiting }\`; without \`all\`, only entries not done. |
+| \`inbox.done\` | procedure, owner. \`{ id, failed }\`. \`failed\` is why it could not be handled; the entry is then finished as failed and is not handed out again. |
+| \`inbox.reply\` | procedure. \`{ id, text }\`. Sends \`text\` to the address entry \`id\` came from, through the channel it came from, and keeps it on the entry. An entry written in a room (\`body.room.id\`) is answered there: the channel is sent \`room\` beside \`to\`. The owner or a named token may answer any entry. A turn (\`x-brain-via: turn:<id>\`) may answer its own entry, and only while it is waiting. |
+| \`lease.take\` | procedure, owner. \`{ tab, release }\`. \`{ held, holder }\`. One tab holds it; unrenewed for 30 s it is free. |
+| \`inbox.poll\` | procedure, owner. \`{ tab }\`. \`{ held, holder, entries, waiting }\`: \`lease.take\` and the waiting entries in one call. |
+| \`lease.get\` | query. A Worker or the owner. \`{ held }\` |
+| Storage | \`rows\`: \`inbox/<id>\` (waiting), \`inboxdone/<id>\`, \`inboxkey/<key>\`, \`inboxseq\`, \`lease\` |
+
+An entry is \`{ id, source, from, key, received_at, body, done_at, failed, replies }\`. \`from\` is the caller the core named, not what the caller wrote.
+
+A **channel** is a Worker \`brain-x-NAME\` whose entries carry \`body.address\`, the sender as that channel knows them, and which answers \`NAME.send { to, text }\`. \`inbox.reply\` takes the channel from \`from\` and the address from the entry, so a reply goes back where the message came from and nowhere else. The kernel adds \`who\` and \`turn\` to entries on their way to a tab; see \`@tomlarkworthy/brain-kernel\`. Entries and their replies are the record of every conversation, and the owner reads all of them with \`inbox.list\`.
+
+A Worker appends with the \`inbox\` platform cell:
+
+\`\`\`js
+await inbox.append({ source: "whatsapp", key: message.id, body: { text: message.text } })
+\`\`\`
+
+A tab handles entries by announcing a handler for a source. The page holding the lease calls it, then marks the entry done.
+
+\`\`\`js
+plugins.add("inbox", { source: "whatsapp", handle: async (entry) => { /* … */ } }, { invalidation })
+\`\`\``
+// %%
+inboxView = inboxPanel({ client, owner: !!(session && session.owner) })
+// %%
+inbox_service = cloudflare.Service("inbox", inboxApp, {
+  // A reply goes out through the channel it came in on: bluesky.send, whatsapp.send, and a channel added later.
+  calls: ["com.lopecode.brain.*.send"],
+  methods: {
+    "com.lopecode.brain.inbox.append": { type: "procedure", who: "workers", allow: 'caller.kind in ["worker", "deployer", "owner"]' },
+    "com.lopecode.brain.inbox.list": { type: "query", who: "owner" },
+    "com.lopecode.brain.inbox.done": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.inbox.reply": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.inbox.poll": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.lease.take": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.lease.get": { type: "query", who: "workers" }
+  }
+})
+// %%
+inbox_announce = {
+  plugins.add("workers", inbox_service, { invalidation });
+  return "announced inbox_service";
+}
+// %%
+inboxApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.";
+  const pad = (n) => String(n).padStart(12, "0");
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  // The core has named the caller and checked it against the method's rule.
+  const who = (c) => c.req.header("x-brain-caller") || "anonymous";
+  const owner = async (c, next) => (who(c) === "owner" || /^(token|did):/.test(who(c)) ? next() : fail(c, 401, "AuthRequired", "the owner"));
+  app.post(NS + "inbox.append", async (c) => {
+    const from = who(c);
+    // The owner too: a function run in the owner's tab appends as it would on its Worker.
+    // "guard": the deployer, as a core from before 2026-10-08 names it.
+    if (from !== "deployer" && from !== "guard" && from !== "owner" && !from.startsWith("worker:")) return fail(c, 401, "AuthRequired", "a Worker, the deployer or the owner");
+    const { source, key, body } = await c.req.json();
+    if (typeof key !== "string" || !key) return fail(c, 400, "InvalidRequest", "key");
+    if (!(await rows.putIfAbsent("inboxkey/" + key, 0))) return c.json({ id: await rows.get("inboxkey/" + key), duplicate: true });
+    const id = await rows.increment("inboxseq");
+    await rows.put("inbox/" + pad(id), { id, source: String(source || from), from, key, received_at: Date.now(), body: body ?? null, done_at: null });
+    await rows.put("inboxkey/" + key, id);
+    return c.json({ id });
+  });
+  app.get(NS + "inbox.list", owner, async (c) => {
+    const after = Number(c.req.query("after") || 0), all = c.req.query("all") === "true";
+    // Waiting entries are under inbox/, finished ones under inboxdone/: a poll reads only what is waiting.
+    const entries = [...(all ? await rows.list("inboxdone/") : []), ...(await rows.list("inbox/"))].map((r) => r.value).filter((e) => e.id > after).sort((a, b) => a.id - b.id);
+    return c.json({ entries: entries.slice(0, Number(c.req.query("limit") || 50)), waiting: entries.filter((e) => !e.done_at).length });
+  });
+  const turnOf = (c) => /^turn:/.test(c.req.header("x-brain-via") || "") ? c.req.header("x-brain-via").slice(5) : null;
+  app.post(NS + "inbox.done", owner, async (c) => {
+    const { id, failed } = await c.req.json();
+    const entry = await rows.get("inbox/" + pad(id));
+    if (!entry) return (await rows.get("inboxdone/" + pad(id))) ? c.json({ id }) : fail(c, 404, "NotFound", "no such entry");
+    await rows.put("inboxdone/" + pad(id), { ...entry, done_at: Date.now(), ...(failed ? { failed: String(failed).slice(0, 300) } : {}) });
+    await rows.delete("inbox/" + pad(id));
+    return c.json({ id, ...(failed ? { failed: true } : {}) });
+  });
+  app.post(NS + "inbox.reply", owner, async (c) => {
+    const { id, text } = await c.req.json();
+    const from = who(c), turn = turnOf(c);
+    if (turn !== null ? turn !== String(id) : from.startsWith("did:")) return fail(c, 403, "Forbidden", "a turn answers its own entry only");
+    if (typeof text !== "string" || !text.trim()) return fail(c, 400, "InvalidRequest", "text");
+    const waiting = await rows.get("inbox/" + pad(id));
+    const entry = waiting || (turn === null ? await rows.get("inboxdone/" + pad(id)) : null);
+    if (!entry) return fail(c, 404, "NotFound", turn === null ? "no such entry" : "this entry is not waiting");
+    // The channel is the Worker the core named when the entry arrived, and the address is the one it gave then.
+    const channel = /^worker:brain-x-([a-z0-9-]+)$/.exec(entry.from), address = entry.body && entry.body.address;
+    if (!channel || typeof address !== "string") return fail(c, 400, "InvalidRequest", "this entry did not come from a channel");
+    const said = text.slice(0, 4096);
+    try {
+      const room = entry.body.room && typeof entry.body.room.id === "string" ? { room: entry.body.room.id } : {};
+      await xrpc.procedure(`com.lopecode.brain.${channel[1]}.send`, { to: address, text: said, ...room });
+    } catch (e) {
+      return fail(c, 502, "UpstreamError", `${channel[1]}.send: ${String((e && e.message) || e).slice(0, 300)}`);
+    }
+    await rows.put((waiting ? "inbox/" : "inboxdone/") + pad(id), { ...entry, replies: [...(entry.replies || []), { at: Date.now(), by: from, text: said }].slice(-20) });
+    return c.json({ id, sent: true });
+  });
+  // One tab answers at a time. A tab that stops renewing loses the lease after 30 s.
+  const LEASE = 30000;
+  const take = async (tab) => {
+    const now = Date.now(), held = await rows.get("lease");
+    const free = !held || held.tab === tab || now - held.at > LEASE;
+    if (free) await rows.put("lease", { tab, at: now });
+    return { held: free, holder: free ? tab : held.tab };
+  };
+  app.post(NS + "lease.take", owner, async (c) => {
+    const { tab, release } = await c.req.json();
+    const held = release ? await rows.get("lease") : null;
+    if (release) return held && held.tab === tab ? (await rows.delete("lease"), c.json({ held: false, holder: null })) : c.json({ held: false, holder: held ? held.tab : null });
+    return c.json(await take(tab));
+  });
+  // A tab's whole turn in one call: renew the lease and, holding it, read what is waiting.
+  app.post(NS + "inbox.poll", owner, async (c) => {
+    const { tab } = await c.req.json();
+    if (typeof tab !== "string" || !tab) return fail(c, 400, "InvalidRequest", "tab");
+    const lease = await take(tab);
+    const entries = lease.held ? (await rows.list("inbox/")).map((r) => r.value) : [];
+    return c.json({ ...lease, entries: entries.slice(0, 50), waiting: entries.length });
+  });
+  app.get(NS + "lease.get", async (c) => {
+    const from = who(c);
+    if (from !== "owner" && !/^(token|did|worker):/.test(from)) return fail(c, 401, "AuthRequired", "the owner or a Worker");
+    const held = await rows.get("lease");
+    return c.json({ held: !!held && Date.now() - held.at <= LEASE });
+  });
+  return app;
+}
+// %%
+// The entries the Brain holds, newest first, and which are still waiting for a tab.
+inboxPanel = ({ client, owner = false } = {}) => {
+  const muted = "color:var(--theme-foreground-muted)";
+  if (!client || !owner) return htl.html`<i style=${muted}>Sign in as the owner to see the inbox.</i>`;
+  const out = htl.html`<div></div>`, note = htl.html`<span style=${muted}></span>`;
+  const draw = async () => {
+    try {
+      const [{ entries, waiting }, lease] = await Promise.all([client.query("inbox.list", { all: "true", limit: 200 }), client.query("lease.get")]);
+      note.textContent = `${entries.length} entries, ${waiting} waiting. ${lease.held ? "A tab is answering." : "No tab is answering."}`;
+      const data = entries
+        .map((e) => ({ id: e.id, received: new Date(e.received_at), source: e.source, from: e.who ? (e.who.handle ? "@" + e.who.handle : e.who.did) + (e.who.role ? "" : " (not added)") : e.from, state: e.failed ? "failed: " + e.failed : e.done_at ? "done" : "waiting", body: JSON.stringify(e.body), reply: (e.replies || []).map((r) => r.text).join(" | ") }))
+        .reverse();
+      out.replaceChildren(data.length ? Inputs.table(data, { select: false, layout: "auto", format: { received: (d) => d.toLocaleString() } }) : htl.html`<i style=${muted}>Nothing has arrived.</i>`);
+    } catch (e) {
+      note.textContent = "inbox.list failed: " + e.message;
+    }
+  };
+  draw();
+  return htl.html`<div>${out}<div style="display:flex;gap:8px;margin-top:8px;align-items:center">${Inputs.button("Refresh", { reduce: draw })}${note}</div></div>`;
+}
+// %%
+md`## Tests`
+// %%
+inboxRig = async () => {
+  const sent = [];
+  const sim = await simulate(inbox_service, {
+    core: async (request) => {
+      const nsid = new URL(request.url).pathname.replace("/xrpc/com.lopecode.brain.", ""), body = await request.json();
+      sent.push({ nsid, ...body });
+      return body.text === "fail" ? Response.json({ error: "UpstreamError", message: "outside the 24 hour window" }, { status: 502 }) : Response.json({ sent: true });
+    }
+  });
+  const X = "/xrpc/com.lopecode.brain.";
+  const as = (who, via = "") => async (path, body) => {
+    const r = await sim.fetch("https://inbox.internal" + X + path, {
+      method: body === undefined ? "GET" : "POST",
+      headers: { "x-brain-caller": who, "x-brain-via": via, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    return { status: r.status, data: await r.json() };
+  };
+  return { sim, sent, as, owner: as("owner"), worker: as("worker:brain-x-echo"), deployer: as("deployer"), anonymous: as("anonymous"), token: as("token:laptop") };
+}
+// %%
+test_inbox_once_per_key_in_order = {
+  const rig = await inboxRig();
+  const a = await rig.worker("inbox.append", { source: "echo", key: "m1", body: { text: "one" } });
+  const again = await rig.worker("inbox.append", { source: "echo", key: "m1", body: { text: "one, retried" } });
+  await rig.deployer("inbox.append", { source: "deployer", key: "deploy/1", body: { event: "deployed" } });
+  await rig.worker("inbox.append", { source: "echo", key: "m2", body: { text: "two" } });
+  expect(again.data).toEqual({ id: a.data.id, duplicate: true });
+  expect((await rig.anonymous("inbox.append", { key: "x" })).status).toBe(401);
+  expect((await rig.token("inbox.append", { key: "x" })).status).toBe(401);
+  expect((await rig.worker("inbox.list")).status).toBe(401);
+  const list = (await rig.owner("inbox.list")).data;
+  expect(list.entries.map((e) => [e.id, e.source, e.from])).toEqual([[1, "echo", "worker:brain-x-echo"], [2, "deployer", "deployer"], [3, "echo", "worker:brain-x-echo"]]);
+  expect(list.entries[0].body).toEqual({ text: "one" });
+  expect((await rig.owner("inbox.list?after=1")).data.entries.map((e) => e.id)).toEqual([2, 3]);
+  // An entry not marked done is listed to the next tab; a done one is not, unless all are asked for.
+  await rig.owner("inbox.done", { id: 2 });
+  const next = (await rig.owner("inbox.list")).data;
+  expect(next.entries.map((e) => e.id)).toEqual([1, 3]);
+  expect(next.waiting).toBe(2);
+  expect((await rig.owner("inbox.list?all=true")).data.entries.map((e) => e.id)).toEqual([1, 2, 3]);
+  return "3 entries from 4 appends";
+}
+// %%
+test_lease_one_tab_at_a_time = {
+  const rig = await inboxRig();
+  expect((await rig.owner("lease.take", { tab: "a" })).data).toEqual({ held: true, holder: "a" });
+  expect((await rig.owner("lease.take", { tab: "b" })).data).toEqual({ held: false, holder: "a" });
+  expect((await rig.worker("lease.get")).data).toEqual({ held: true });
+  expect((await rig.anonymous("lease.get")).status).toBe(401);
+  expect((await rig.worker("lease.take", { tab: "w" })).status).toBe(401);
+  // A tab that stopped renewing 31 s ago has lost it.
+  rig.sim.rows.set("lease", { tab: "a", at: Date.now() - 31000 });
+  expect((await rig.worker("lease.get")).data).toEqual({ held: false });
+  expect((await rig.owner("lease.take", { tab: "b" })).data).toEqual({ held: true, holder: "b" });
+  expect((await rig.owner("lease.take", { tab: "b", release: true })).data).toEqual({ held: false, holder: null });
+  // poll is the lease and the waiting entries in one call. A tab without the lease is handed nothing.
+  await rig.worker("inbox.append", { source: "t", key: "k1", body: 1 });
+  expect((await rig.owner("inbox.poll", { tab: "a" })).data).toMatchObject({ held: true, holder: "a", waiting: 1 });
+  expect((await rig.owner("inbox.poll", { tab: "b" })).data).toEqual({ held: false, holder: "a", entries: [], waiting: 0 });
+  expect((await rig.worker("inbox.poll", { tab: "w" })).status).toBe(401);
+  return "a, then b after 31 s, then released, then polled";
+}
+// %%
+test_reply_goes_back_where_the_entry_came_from = {
+  const rig = await inboxRig();
+  const channel = rig.as("worker:brain-x-loop"), member = (id) => rig.as("did:plc:other", "turn:" + id);
+  await channel("inbox.append", { source: "loop", key: "a", body: { text: "hi", address: "+200" } });
+  await channel("inbox.append", { source: "loop", key: "b", body: { text: "hi", address: "+100" } });
+  await rig.deployer("inbox.append", { source: "deployer", key: "c", body: { event: "deployed", address: "+100" } });
+  // A member's turn answers entry 1 and no other. The kernel lets a member reach no other method here.
+  expect((await member(1)("inbox.reply", { id: 2, text: "to the owner's number" })).status).toBe(403);
+  expect((await rig.as("did:plc:other", "session")("inbox.reply", { id: 1, text: "no turn" })).status).toBe(403);
+  expect(rig.sent.length).toBe(0);
+  expect((await member(1)("inbox.reply", { id: 1, text: "hello" })).data).toEqual({ id: 1, sent: true });
+  // The address and the channel are the entry's, whatever the caller adds.
+  expect((await rig.owner("inbox.reply", { id: 2, text: "yes", to: "+999", channel: "evil" })).status).toBe(200);
+  expect(rig.sent).toEqual([{ nsid: "loop.send", to: "+200", text: "hello" }, { nsid: "loop.send", to: "+100", text: "yes" }]);
+  expect((await rig.owner("inbox.reply", { id: 3, text: "x" })).data.message).toBe("this entry did not come from a channel");
+  // Written in a room: answered in that room, whatever the caller names.
+  await channel("inbox.append", { source: "loop", key: "d", body: { text: "hi", address: "+200", room: { id: "g-1", members: ["+200", "+100"] } } });
+  expect((await member(4)("inbox.reply", { id: 4, text: "to the room", room: "g-2" })).status).toBe(200);
+  expect(rig.sent.pop()).toEqual({ nsid: "loop.send", to: "+200", text: "to the room", room: "g-1" });
+  await rig.owner("inbox.done", { id: 4 });
+  expect((await rig.owner("inbox.reply", { id: 1, text: "fail" })).status).toBe(502);
+  // The owner's own turn is held to its entry too.
+  expect((await rig.as("owner", "turn:2")("inbox.reply", { id: 1, text: "x" })).status).toBe(403);
+  // Finished as failed: kept, with the reason and what was said, and not handed out again.
+  await rig.owner("inbox.done", { id: 1, failed: "the model did not answer" });
+  expect((await member(1)("inbox.reply", { id: 1, text: "late" })).status).toBe(404);
+  const all = (await rig.owner("inbox.list?all=true")).data.entries;
+  expect(all.map((e) => [e.id, e.failed || null, (e.replies || []).map((r) => r.text)])).toEqual([[1, "the model did not answer", ["hello"]], [2, null, ["yes"]], [3, null, []], [4, null, ["to the room"]]]);
+  expect((await rig.owner("inbox.poll", { tab: "a" })).data.entries.map((e) => e.id)).toEqual([2, 3]);
+  return "2 sent, 1 failed upstream, 4 refused";
+}
+// %%
+test_inbox_declares_what_it_needs = {
+  const { meta } = await inbox_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-inbox", role: "recipe", module: "@tomlarkworthy/brain-inbox", resources: ["rows", "xrpc"], secrets: [] });
+  expect(Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.", ""))).toEqual(["inbox.append", "inbox.done", "inbox.list", "inbox.poll", "inbox.reply", "lease.get", "lease.take"]);
+  return Object.keys(meta.access).length + " methods";
+}
+// %%
+import {cloudflare, rows, xrpc, hono, simulate} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

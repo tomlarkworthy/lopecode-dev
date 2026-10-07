@@ -1,0 +1,8 @@
+{
+  "name": "cb-experiments",
+  "main": "worker.js",
+  "compatibility_date": "2025-09-01",
+  "durable_objects": { "bindings": [{ "name": "STATE", "class_name": "State" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["State"] }],
+  "worker_loaders": [{ "binding": "LOADER" }]
+}

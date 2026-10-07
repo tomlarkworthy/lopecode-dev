@@ -1,0 +1,207 @@
+### Code from the experiments
+
+Each block is cut from code that ran on Cloudflare on 2026-10-04 (the last one under bun only), shortened. Full files: \`tools/scratch/cloud-brain-experiments/\`, \`worker/worker.js\`, \`e2/\`, \`e6/definition-proxy.ts\`.
+
+**The scheduler shim.** Must load before the runtime. Without it the second request hangs.
+
+\`\`\`js
+// shim.js, imported first by host.js
+globalThis.requestAnimationFrame = (f) => { queueMicrotask(() => f(Date.now())); return 0; };
+\`\`\`
+
+**The host: one runtime in a Durable Object, handler cells kept observed.** A variable defined with an observer stays computed; \`module.value()\` alone recomputes it every call.
+
+\`\`\`js
+import "./shim.js";
+import { Runtime } from "./rt/index.js";          // @observablehq/runtime source files, unbundled
+import define from "./m/@tom/a.js";               // the entry module, as the notebook holds it
+import { DurableObject } from "cloudflare:workers";
+
+export class State extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.runtime = new Runtime();
+    this.main = this.runtime.module(define);
+    this.main.variable({}).define("__handler", ["fetch"], (f) => f);   // pins the fetch cell
+  }
+  async fetch(request) { return (await this.main.value("fetch"))(request, this.env, this.ctx); }
+  async alarm() { for (const job of await this.main.value("jobs")) await job.run(this.env); }
+}
+
+export default {
+  fetch(request, env) {
+    // redirect: "manual", or a 302 from a module is followed inside the Worker
+    return env.STATE.get(env.STATE.idFromName("main")).fetch(request, { redirect: "manual" });
+  },
+};
+\`\`\`
+
+**A module file with a relative import.** Bare specifiers are refused at upload.
+
+\`\`\`js
+// m/@tom/a.js
+import define1 from "./b.js";
+export default function define(runtime, observer) {
+  const main = runtime.module();
+  main.define("module @tom/b", async () => runtime.module(define1));
+  main.define("greeting", ["module @tom/b", "@variable"], (_, v) => v.import("greeting", _));
+  main.variable(observer("fetch")).define("fetch", ["greeting"], (greeting) => (request) => new Response(greeting));
+  return main;
+}
+\`\`\`
+
+**Uploading the files as a version, then deploying it.**
+
+\`\`\`sh
+API=https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/scripts/$NAME
+META='{"main_module":"host.js","compatibility_date":"2025-09-01","bindings":[
+  {"type":"durable_object_namespace","name":"STATE","class_name":"State"},
+  {"type":"inherit","name":"SOME_SECRET"}]}'
+ARGS=(-F "metadata=$META;type=application/json")
+for f in host.js shim.js m/@tom/a.js m/@tom/b.js rt/*.js; do
+  ARGS+=(-F "$f=@$f;type=application/javascript+module;filename=$f")   # part name = path
+done
+curl -X POST -H "Authorization: Bearer $TOKEN" "\${ARGS[@]}" $API/versions          # → result.id
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "content-type: application/json" $API/deployments \\
+  -d '{"strategy":"percentage","versions":[{"version_id":"OLD","percentage":100},{"version_id":"NEW","percentage":0}]}'
+curl -H 'Cloudflare-Workers-Version-Overrides: NAME="NEW"' https://$HOST/selftest   # reaches NEW only once it is listed
+\`\`\`
+
+A rollback is the same deployments call naming the old version at 100.
+
+**A static asset (the admin notebook) on a version.**
+
+\`\`\`sh
+HASH=$(shasum -a 256 $F | cut -c1-32)        # any 32 hex characters
+JWT=$(curl -X POST -H "Authorization: Bearer $TOKEN" -H "content-type: application/json" $API/assets-upload-session \\
+  -d '{"manifest":{"/index.html":{"hash":"'$HASH'","size":'$SIZE'}}}' | jq -r .result.jwt)     # result.buckets is empty if already held
+base64 -i $F | tr -d '\\n' > asset.b64
+DONE=$(curl -X POST -H "Authorization: Bearer $JWT" \\
+  -F "$HASH=@asset.b64;type=text/html;filename=$HASH" \\
+  "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/assets/upload?base64=true" | jq -r .result.jwt)
+# then add to the version's metadata:  "assets": { "jwt": "$DONE" }
+\`\`\`
+
+**A Worker deploying itself.** It reads its own parts back, so it needs no copy of its source.
+
+\`\`\`js
+sql.exec("INSERT INTO kv VALUES ('checkpoint', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(state));
+await this.ctx.storage.setAlarm(Date.now() + 15000);            // the new version wakes on this
+const content = await fetch(api + "/content/v2", { headers: auth });
+const entry = content.headers.get("cf-entrypoint");
+const form = new FormData();
+for (const [name, file] of await content.formData()) form.append(name, file, name);   // replace the edited module here
+form.append("metadata", new Blob([JSON.stringify({ main_module: entry, compatibility_date, bindings })], { type: "application/json" }));
+const up = await (await fetch(api + "/versions", { method: "POST", headers: auth, body: form })).json();
+await fetch(api + "/deployments", { method: "POST", headers: { ...auth, "content-type": "application/json" },
+  body: JSON.stringify({ strategy: "percentage", versions: [{ version_id: up.result.id, percentage: 100 }] }) });
+\`\`\`
+
+In the real design this call belongs to the guard, not to a Worker that runs notebook code.
+
+**QuickJS in a Worker.** The wasm is a file beside the Worker, imported statically.
+
+\`\`\`js
+import { newQuickJSWASMModuleFromVariant, newVariant } from "quickjs-emscripten-core";
+import RELEASE_SYNC from "@jitl/quickjs-wasmfile-release-sync";
+import wasmModule from "./quickjs.wasm";
+const QuickJS = await newQuickJSWASMModuleFromVariant(newVariant(RELEASE_SYNC, { wasmModule }));
+const vm = QuickJS.newContext();
+\`\`\`
+
+**The definition proxy.** A compiled cell's definition string becomes a native function the host runtime can hold. Functions cross in both directions.
+
+\`\`\`js
+const toGuest = (x) => {
+  if (typeof x === "function") return vm.newFunction(x.name || "host", (...hs) => toGuest(x(...hs.map((h) => vm.dump(h)))));
+  return vm.evalCode("(" + JSON.stringify(x ?? null) + ")").value;
+};
+const fromGuest = (h) => {
+  if (vm.typeof(h) === "function") {
+    const keep = h.dup();                                   // not released yet: free it when the cell is redefined
+    return (...args) => { const hs = args.map(toGuest); const r = vm.callFunction(keep, vm.undefined, ...hs);
+      hs.forEach((a) => a.dispose()); if (r.error) throw new Error(JSON.stringify(vm.dump(r.error)));
+      const v = fromGuest(r.value); r.value.dispose(); return v; };
+  }
+  return vm.dump(h);
+};
+const interpreted = (definitionSource) => (...inputs) => {
+  const fn = vm.evalCode("(" + definitionSource + ")");
+  if (fn.error) throw new Error(JSON.stringify(vm.dump(fn.error)));
+  const hs = inputs.map(toGuest);
+  const r = vm.callFunction(fn.value, vm.undefined, ...hs);
+  hs.forEach((a) => a.dispose()); fn.value.dispose();
+  if (r.error) throw new Error(JSON.stringify(vm.dump(r.error)));   // becomes the cell's error
+  const v = fromGuest(r.value); r.value.dispose(); return v;
+};
+\`\`\`
+
+**Observable source to a live cell, in one request.** \`compile\` is the toolchain notebook's own cell.
+
+\`\`\`js
+for (const c of compile("total = a * b + 1"))            // [{ _name, _inputs, _definition }]
+  main.variable({}).define(c._name, c._inputs, interpreted(c._definition));
+await main.value("total");                               // 43, with native cells a = 6, b = 7
+\`\`\`
+
+**A guest awaiting a host promise** (for a binding or a fetch handed in by the host).
+
+\`\`\`js
+const hostFetch = vm.newFunction("hostFetch", (pathH) => {
+  const p = vm.newPromise();
+  stub.fetch("https://do" + vm.getString(pathH)).then((r) => r.text())
+    .then((t) => { const s = vm.newString(t); p.resolve(s); s.dispose(); });
+  p.settled.then(() => { while (vm.runtime.executePendingJobs().value > 0); });   // pump the guest's microtasks
+  return p.handle;
+});
+vm.setProp(vm.global, "hostFetch", hostFetch); hostFetch.dispose();
+\`\`\`
+
+**A Dynamic Worker.** \`wrangler.jsonc\`: \`"worker_loaders": [{ "binding": "LOADER" }]\`.
+
+\`\`\`js
+const worker = env.LOADER.get(id, async () => ({
+  compatibilityDate: "2025-09-01", mainModule: "main.js", modules: { "main.js": code },
+  env: {},                 // the bindings the loaded code may use
+  globalOutbound: null,    // no network
+}));
+const res = await worker.getEntrypoint().fetch(new Request("https://dyn/"));
+\`\`\`
+
+**A robocoop-5 turn in the Durable Object, checkpointed each step.**
+
+\`\`\`js
+const core = this.runtime.module(defineRc5Core);                 // @tomlarkworthy/robocoop-5-core, unchanged
+const createAgentSession = await core.value("createAgentSession");
+const session = createAgentSession({ client, tools: [add], model, systemPrompt });
+if (saved) session.messages.push(...saved);                      // resume
+await session.send(input, { onStep: (_step, messages) => save(messages) });
+\`\`\`
+
+The webhook route stores the message, calls \`setAlarm(Date.now())\` and returns; \`alarm()\` runs the turn.
+
+**atproto OAuth with SQLite stores and a key made on first use.**
+
+\`\`\`js
+const store = (ns) => ({
+  get: (k) => { const r = [...sql.exec("SELECT v FROM oauth WHERE ns = ? AND k = ?", ns, k)][0]; return r ? JSON.parse(r.v) : undefined; },
+  set: (k, v) => { sql.exec("INSERT INTO oauth VALUES (?, ?, ?) ON CONFLICT(ns, k) DO UPDATE SET v = excluded.v", ns, k, JSON.stringify(v)); },
+  delete: (k) => { sql.exec("DELETE FROM oauth WHERE ns = ? AND k = ?", ns, k); },
+  clear: () => { sql.exec("DELETE FROM oauth WHERE ns = ?", ns); },
+});
+let jwk = store("key").get("main");
+if (!jwk) { jwk = await generateClientAssertionKey("main", "ES256"); store("key").set("main", jwk); }
+const oauth = new OAuthClient({
+  metadata: { client_id: origin + "/client-metadata.json", redirect_uris: [origin + "/callback"], scope: "atproto", jwks_uri: origin + "/jwks.json" },
+  keyset: [jwk],
+  stores: { sessions: store("session"), states: store("state") },
+  actorResolver: new LocalActorResolver({
+    handleResolver: new CompositeHandleResolver({ methods: {
+      dns: new DohJsonHandleResolver({ dohUrl: "https://mozilla.cloudflare-dns.com/dns-query" }), http: new WellKnownHandleResolver() } }),
+    didDocumentResolver: new CompositeDidDocumentResolver({ methods: { plc: new PlcDidDocumentResolver(), web: new WebDidDocumentResolver() } }),
+  }),
+});
+// routes: oauth.metadata, oauth.jwks, oauth.authorize({ target: { type: "account", identifier: handle } }),
+//         oauth.callback(url.searchParams), oauth.restore(did), oauth.revoke(did)
+\`\`\`
+

