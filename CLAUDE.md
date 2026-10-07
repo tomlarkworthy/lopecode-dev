@@ -114,6 +114,7 @@ nonzero when a notebook's copy differs from the tagged set.
 | Define cells via Observable source | `define_cell` MCP tool (via pairing channel) | Instant |
 | List cells with source/inputs | `list_cells` MCP tool (via pairing channel) | Instant |
 | Export/save notebook in place | `export_notebook` MCP tool (via pairing channel) | ~5-10s |
+| **Review a notebook or doc you just wrote** | `/review-notebook <path>` — one fresh-context subagent, read-only, reports findings | minutes, background |
 
 ### Cells vs Variables
 
@@ -223,3 +224,4 @@ bun test lopecode-plugin/tests/lopecode-channel.test.ts
    - **One module's cells/functions** → `bun tools/notebook-import.ts` (`importNotebookModule(jsPath, { overrides })`) — loads the module into a headless `@observablehq/runtime`, `await m.value("cellName")` returns the cell's value (a function cell gives you a reusable function; a data cell gives computed data). `overrides` inject deps a cell needs (a `require`-based or browser-only builtin, or a feeder input). No browser, no DOM. See `tools/code-metrics-cli.ts` for a worked example (it feeds `allCells` and reads the real `metricsRows`).
    - **A whole notebook** (needs importmap / file attachments) → `tools/lope-runtime.js` `loadNotebook()`.
    - **Full browser fidelity** (real DOM/APIs) → drive it in Playwright like `tools/lope-jumpgate.js` and read `__ojs_runtime` cell values via `page.evaluate`.
+18. **A fresh agent reviews what you write, always.** After authoring or substantially editing a notebook module, a spec notebook or a doc (`knowledge/*.md`, `plan/*.md`, a README), run `/review-notebook <path>` before reporting the work done. It spawns one subagent with no context from this session; the session that wrote a file cannot see what the file fails to say. Save or `export_notebook` first (the reviewer reads the file on disk), carry on while it runs, then verify and act on each finding and report what was done with it. No change is too small to skip it. `/qa-notebook` is the separate browser pass and does not replace it.
