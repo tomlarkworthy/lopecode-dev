@@ -14,7 +14,8 @@ retry.
    for the spec, then `bun tools/lope-reader.ts <notebook.html> --get-module <id>` for each module
    named in your prompt. Never read the HTML file whole (1-3 MB). Read every cell of each module.
    Write down, before going further: what the notebook is for, who it is for, and what you would
-   do first with it. Anything you could not answer is a finding.
+   do first with it. Anything you could not answer is a finding. Do not issue the step-2 reads
+   in the same batch as these: the answers are only worth having if written first.
 2. **Read the standards**: `knowledge/reviewing-a-notebook-module.md` (defect classes that survive
    "every cell computes") and `knowledge/what-makes-a-great-lopebook.md`. For prose,
    `.claude/skills/document/SKILL.md`, its anti-patterns list in particular.
@@ -24,9 +25,15 @@ retry.
    bun tools/lope-preflight.ts <notebook.html>
    bun tools/lope-browser-runner.ts <notebook.html> --run-tests --json
    ```
+   Run them as separate calls: the hook rejects a whole chained call. Preflight exits 1 on any
+   finding in the file; only a finding in a module named in your prompt counts.
    `--run-tests` skips a module that is not booted and reports a throwing test as a timeout, so a
    clean run is not proof the module has passing tests. A module with no `test_*` cells is a
-   finding when its prose makes claims a test could check.
+   finding when its prose makes claims a test could check. So is a `test_*` cell behind a gate
+   that returns a value without running (`if (!runTests) return "not run"`): it counts as a pass.
+   If the browser cannot launch, load the `--get-module` output headless instead (save it with
+   an `.mjs` name, `tools/notebook-import.ts` `importNotebookModule`), and list everything
+   rendered under `Not reviewed`.
 5. **Check claims against the code, both ways.** A claim in the prose with no cell behind it. A
    control or export no prose mentions. A number in the prose that a cell computes differently:
    read the value with `bun tools/lope-browser-runner.ts <notebook.html> --get-cell <name>`.

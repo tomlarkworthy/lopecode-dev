@@ -61,3 +61,10 @@ Scope: <whole | changes since <git ref> in <repo path>>
 ## Runs
 
 Append one line per run: date, target, verdict, findings confirmed / declined.
+
+- 2026-10-07 `lopebooks/notebooks/@tomlarkworthy_liquid-timer.html` (trial, not authored by the
+  spawning session): BLOCK, 10 findings, 9 CONFIRMED / 1 PLAUSIBLE by the reviewer, none yet
+  verified or acted on by the spawner. 124k subagent tokens, 14m36s. The browser runner could not
+  launch (Playwright headless shell missing), so nothing rendered was reviewed; the reviewer fell
+  back to `notebook-import.ts`. Five brief defects reported, four fixed in `reviewer.md` the same
+  day.
