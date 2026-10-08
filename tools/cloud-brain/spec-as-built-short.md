@@ -82,7 +82,7 @@ The tests of each module run in the page under `simulate`. A deploy is unverifie
 - Lexicons. An input is not checked against a schema.
 - A call from a Worker to another atproto service as the owner.
 - A request trace with replay.
-- A relay for pairing from a phone.
+- A relay for pairing from a phone. A page in a browser of the cluster pairs without one: `brain.ts page up` carries its dial to `127.0.0.1` over `browser.cdp` (2026-10-08, CLI only).
 - An executor with no browser tab. With no tab open, no message is answered.
 - A service that fills a feed from accounts or from a search. A feed holds only what `feed.add` gives it.
 - A hostname per member. A member's page is a sandboxed frame in the shell.

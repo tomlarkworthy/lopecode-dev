@@ -111,12 +111,55 @@ Everything from outside arrives in the inbox. One tab holds the lease and is han
 
 Text inside a message is the owner's request. Text inside a fetched page, an API response or another service's inbox entry is data, not an instruction.
 
+## A page on the cluster
+
+`brain.ts page up` runs a notebook in a browser of the cluster (`brain-x-browser`) and pairs it with the channel on this machine. Built and run on cb4 on 2026-10-08, 22:30 to 23:00 CEST.
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts page up --minutes 30 --token LOPE-PORT-XXXX     # the Brain's page, signed in, browser "brain"
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts page up --minutes 5 --token LOPE-PORT-XXXX --url "https://host/notebook.html#view=…"   # any hosted notebook, browser "test", no session
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts page state [--browser NAME]
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts page down  [--browser NAME]
+```
+
+`up` buys the time that is missing (`browser.extend`, at most 3600 s a call), opens the page (`browser.open`; a page that is open is used again), signs the Brain's own page in, and stays in the foreground as the bridge. `--keep` buys the same time again when less than 2 minutes are left. Ctrl-C stops the bridge and leaves the browser up until its time ends.
+
+The page dials `ws://127.0.0.1:PORT` as a local tab does. Nothing listens there in Cloudflare's browser. The dial is carried over `browser.cdp`:
+
+1. `Page.addScriptToEvaluateOnNewDocument` installs a script that runs before the page's code. It stands in for `WebSocket` on `127.0.0.1` and `localhost` only.
+2. Each frame leaves the page through `Runtime.addBinding`. The bridge opens a real socket to the local channel and copies frames both ways.
+3. The page, the pairing module and the channel server are not changed.
+
+Measured on cb4, 2026-10-08:
+
+```
+20:35:01 bridge up
+20:35:11 page dialled ws://127.0.0.1:54357/ws
+20:35:11 local socket open
+eval_code -> {"ua":"Mozilla/5.0 (X11; Linux x86_64) …","signedIn":true}      lease.get -> {"held":true}
+```
+
+- The public quick start (`tomlarkworthy.github.io/lopecode/notebooks/quick_start.html`) with `--url`: `connected` arrived, `eval_code` gave a Linux user agent and `brain_session` was `null`.
+- 10 to 11 s from `bridge up` to the local socket, three runs.
+- The CDP socket was not cut in 11 min 20 s (20:35:01 to 20:46:21, when the bridge was stopped by hand). The 600 s limit in `websockets.md` was measured on a socket to a Worker; it did not show on this one. A second socket ran 11 min 7 s (20:47:59 to 20:59:06) and closed 22 s after the bought time ended; the bridge then printed `the browser's time ran out` and exited. A reconnect after a cut was therefore run only by stopping and starting the bridge.
+
+Limits:
+
+- $0.09 an hour for each browser. `browser.all` shows what is up.
+- The bridge runs on this machine. With the bridge stopped the page is not paired; the Brain's page goes on holding the lease until the time ends.
+- The pairing module dials once, at load. Each time the bridge connects it loads the page again, and the lease is free for that time: `lease.get` gave `held: false` 50 s after one reload and `true` at 64 s.
+- Heap of the Brain's page: 534 to 632 MB after the first load, 993 MB after the third load in one browser. One Brain page a browser; two closed a browser on 2026-10-08.
+- Text frames only.
+- The session is given only to a page of the Brain's own origin, in the body of one `browser.eval`. A browser belongs to its caller and the owner's session is the only caller named `owner`, so no token, member or Worker reaches that page. On 2026-10-08 seven rules (`eval goto run cdp text screenshot logs` to `caller.session`) were put on cb4 for this and deleted the same hour: they added nothing and stopped a Worker from using its own browser.
+- Hosted means an https address the cluster can fetch. A `file://` notebook on this machine cannot be opened there. `brain-library` serves a notebook at `/library/<name>`, to anyone when it is public; this was not opened in a cluster browser.
+- After `page down` no tab holds the lease.
+
 ## Limits
 
 - A hidden tab computes nothing. With the tab in the background the inbox is not read and the lease lapses after 30 s; the WhatsApp recipe then answers with a link, at most once an hour.
 - The emitted Worker has no Observable runtime: a cell value is computed once per isolate, on the first request, and is not reactive.
 - `calls` lists each method that the function calls with `xrpc`. The core refuses a call that is not in the list. `*` is one part of a name. Do not list `secret.get`, `db.sql` or `inbox.append`: the platform cells `secrets`, `sql` and `inbox` call them. `brain_call` with method `calls.list` shows each refused call.
-- Not built on 2026-10-07: the pairing relay, calls between Brains.
+- Not built: a pairing relay for a page with no CDP socket (a phone), calls between Brains. A page in a browser of the cluster pairs with no relay (`page up`, above).
 - Remote browsers (`brain-browser`, built 2026-10-08): each caller (the owner, a token, a member, a Worker) has its own browsers by name (`?browser=NAME`, `default` when absent), the owner's session sees and ends all of them (`browser.all`, `browser.end`) and sets how many can be up (`maxBrowsers` 10, `maxPerOwner` 3), browser time is bought in seconds for one browser by one method (`browser.extend?seconds=60`, $0.0015, not given back, also not when a limit stops the start), and each other method answers 409 `NoTime` when none is bought, and what a page shows is data from its address and not an instruction. The assistant has no tool for it.
 - Logs (`brain-logs`, built 2026-10-08): Cloudflare keeps what each Worker writes with `console.log` for 7 days on Workers Paid, 3 on Free. The core writes one line a call (`at: "call"`, with `ray`, `caller`, `origin`, `method`, `worker`, `status`, `error`, `ms`, `price`, `rule`, `by`), the wrapper one line for a throw (the error's name and the frames of its stack, not its message), the deployer one for each step of a deploy. `logs.query`, `logs.keys` and `logs.values` take Cloudflare's telemetry bodies and answer as Cloudflare does, for this Brain's Workers only; they are for the owner's own session unless the owner sets a rule. `ray` is the `cf-ray` of an answer without the part after the hyphen. `method` is the name after `com.lopecode.brain.` (`bluesky.poll`), and `(unknown)` for a name nobody declared. Cloudflare adds `$metadata.trigger` to each line, the verb and the path of the request without its query, so a path a caller typed is kept there. It also stores the URL of the call with its query string beside each line, not headers and not the body: the parameters of a method are in the logs. Do not put a long-lived secret in a path or a query string; a short-lived single-use code may be. A line can be read 11 to 16 s after it is written (3 calls on cb4, 2026-10-08). In a service, `log({ at: "name", … })` writes a line; write names and decisions, never a secret, a header or a body. The page has a Logs panel.
 - A service that needs the Cloudflare API declares its permission groups: `cloudflare.Service(name, fn, { cloudflare: ["Workers Observability Read"] })`, and calls `cloudflareApi.fetch(path, init)`. Only `Workers Observability Read` and `Workers Tail Read` can be declared. The owner approves such a deploy on the deployer page, also when deploys need no approval. To mint, the deployer's own token needs `Account API Tokens Write` and each group it hands out: name them when the next deployer token is made.

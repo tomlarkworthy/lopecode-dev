@@ -7,6 +7,7 @@
  *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
+ *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -202,6 +203,123 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   delete st.cookie; delete st.otherCookie;
   save();
   console.log("minted for " + (args[0] || OWNER));
+} else if (cmd === "page") {
+  // The Brain's own page in a browser of the cluster (brain-x-browser), signed in as the owner and paired with a
+  // channel on this machine. The page dials ws://127.0.0.1 as a local tab does; a shim installed over CDP stands in
+  // for WebSocket on loopback addresses and a CDP binding carries each frame to a real local socket here.
+  const flag = (n: string, d = "") => { const i = args.indexOf("--" + n); return i < 0 ? d : args[i + 1]; };
+  // --url: any hosted notebook. A page of another origin gets no session and, by default, a browser of its own.
+  const other = flag("url") && new URL(flag("url")).origin !== B();
+  const NS = "com.lopecode.brain.", NAME = flag("browser", other ? "test" : "brain"), PAGE = flag("name", "page");
+  const call = async (m: string, body?: any, q = "") => {
+    const r = await fetch(`${B()}/xrpc/${NS}${m}${q}`, { method: body === undefined ? "GET" : "POST", headers: { authorization: "Bearer " + st.session, "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+    return { status: r.status, body: (await r.json().catch(() => null)) as any };
+  };
+  const evalIn = async (expression: string) => (await call("browser.eval", { browser: NAME, name: PAGE, expression })).body;
+  const mine = async () => ((await call("browser.all")).body?.browsers || []).find((b: any) => b.owner === "owner" && b.browser === NAME);
+  const state = async () => {
+    const b = await mine();
+    if (!b || !b.up) return { up: false, remaining: b ? b.remaining : 0 };
+    const v = await evalIn(`JSON.stringify({ signedIn: !!localStorage.getItem("brain_session"), heapMB: Math.round((performance.memory || {}).usedJSHeapSize / 1e6), url: location.href.replace(/cc=[^&]*/, "cc=…") })`);
+    return { up: true, remaining: b.remaining, pages: b.pages, ...(v && v.value ? JSON.parse(v.value) : { error: v }) };
+  };
+  if (args[0] === "state") console.log(JSON.stringify(await state()));
+  else if (args[0] === "down") console.log(JSON.stringify((await call("browser.end", { owner: "owner", browser: NAME })).body));
+  else if (args[0] === "up") {
+    const minutes = Number(flag("minutes", "30")), cc = flag("token"), keep = args.includes("--keep");
+    const view = flag("view", "C100(S70(@tomlarkworthy/cloud-brain,@tomlarkworthy/brain-shell),S30(@tomlarkworthy/claude-code-pairing))");
+    const given = flag("url");
+    const url = given ? given + (cc && !/[#&]cc=/.test(given) ? (given.includes("#") ? "&" : "#") + "cc=" + cc : "") : `${B()}/#view=${view}${cc ? "&cc=" + cc : ""}`;
+    let paidUntil = 0;
+    const extend = async (seconds: number) => {
+      const r = await call("browser.extend", {}, `?browser=${NAME}&seconds=${Math.min(Math.max(Math.round(seconds), 10), 3600)}`);
+      if (r.status !== 200) throw new Error("extend " + r.status + " " + JSON.stringify(r.body));
+      paidUntil = r.body.paidUntil;
+      console.log(`bought ${r.body.added} s for ${r.body.costUsd} USD`);
+    };
+    const had = await mine();
+    if (had && had.remaining > 0) paidUntil = Date.now() + had.remaining * 1000;
+    if (minutes * 60 - (had ? had.remaining : 0) >= 10) await extend(minutes * 60 - (had ? had.remaining : 0));
+    const o = await call("browser.open", { browser: NAME, name: PAGE, url });
+    if (o.status !== 200) throw new Error("open " + o.status + " " + JSON.stringify(o.body));
+    // The session goes in this body only. A browser belongs to its caller, so only the owner's own session reaches this page.
+    const s = other ? { value: "not signed in: not this Brain\x27s origin" } : await evalIn(`localStorage.getItem("brain_session") ? "was signed in" : (localStorage.setItem("brain_session", ${JSON.stringify(st.session)}), "signed in")`);
+    console.log(`page ${o.body.existing ? "reused" : "opened"}, ${s && s.value}`);
+
+    const SHIM = `(() => {
+  if (globalThis.__lopeBridgeIn) return;
+  const Native = globalThis.WebSocket, socks = new Map(); let n = 0;
+  const out = (m) => globalThis.__lopeBridge(JSON.stringify(m));
+  class Bridged extends EventTarget {
+    constructor(url, protocols) {
+      super(); this.url = String(url); this.readyState = 0; this.protocol = ""; this.extensions = ""; this.binaryType = "blob"; this.bufferedAmount = 0;
+      this.id = ++n; socks.set(this.id, this);
+      out({ id: this.id, t: "open", url: this.url, protocols: protocols || [] });
+    }
+    send(d) { if (this.readyState !== 1) throw new DOMException("not open", "InvalidStateError"); out({ id: this.id, t: "send", d: String(d) }); }
+    close(code, reason) { if (this.readyState >= 2) return; this.readyState = 2; out({ id: this.id, t: "close", code, reason }); }
+    _in(m) {
+      const fire = (type, ev) => { const h = this["on" + type]; this.dispatchEvent(ev); if (typeof h === "function") h.call(this, ev); };
+      if (m.t === "open") { this.readyState = 1; fire("open", new Event("open")); }
+      else if (m.t === "message") fire("message", new MessageEvent("message", { data: m.d }));
+      else if (m.t === "close") { this.readyState = 3; socks.delete(this.id); if (m.error) fire("error", new Event("error")); fire("close", new CloseEvent("close", { code: m.code || 1006, reason: m.reason || "", wasClean: !m.error })); }
+    }
+  }
+  for (const k of ["CONNECTING", "OPEN", "CLOSING", "CLOSED"]) { Bridged[k] = Native[k]; Bridged.prototype[k] = Native[k]; }
+  globalThis.__lopeBridgeIn = (m) => { const s = socks.get(m.id); if (s) s._in(m); };
+  globalThis.WebSocket = new Proxy(Native, { construct: (T, [u, p]) => /^wss?:\\/\\/(127\\.0\\.0\\.1|localhost)[:/]/.test(String(u)) ? new Bridged(u, p) : new T(u, p) });
+})()`;
+    const stamp = () => new Date().toISOString().slice(11, 19);
+    let first = true, cutAt = 0;
+    // One CDP socket, until Cloudflare or the service closes it. Resolves with the close code.
+    const bridge = () => new Promise<number>(async (done) => {
+      const ws = new (WebSocket as any)(`${B().replace("https", "wss")}/xrpc/${NS}browser.cdp?browser=${NAME}`, { headers: { authorization: "Bearer " + st.session } });
+      let id = 0, sid = ""; const waiting = new Map<number, (m: any) => void>(), local = new Map<number, WebSocket>();
+      const send = (method: string, params: any = {}, sessionId?: string) => new Promise<any>((ok) => { const i = ++id; waiting.set(i, ok); ws.send(JSON.stringify({ id: i, method, params, sessionId })); });
+      const toPage = (m: any) => send("Runtime.evaluate", { expression: `__lopeBridgeIn(${JSON.stringify(m)})` }, sid);
+      ws.onmessage = (e: any) => {
+        const m = JSON.parse(e.data);
+        if (m.id && waiting.has(m.id)) { waiting.get(m.id)!(m.result || m); waiting.delete(m.id); return; }
+        if (m.method !== "Runtime.bindingCalled" || m.params.name !== "__lopeBridge") return;
+        const b = JSON.parse(m.params.payload);
+        if (b.t === "open") {
+          console.log(stamp(), "page dialled", b.url);
+          const l = new WebSocket(b.url, b.protocols.length ? b.protocols : undefined); local.set(b.id, l);
+          l.onopen = () => { console.log(stamp(), "local socket open" + (cutAt ? `, ${Date.now() - cutAt} ms after the cut` : "")); cutAt = 0; toPage({ id: b.id, t: "open" }); };
+          l.onmessage = (ev) => toPage({ id: b.id, t: "message", d: String(ev.data) });
+          l.onerror = () => {};
+          l.onclose = (ev) => { if (local.delete(b.id)) { console.log(stamp(), "local socket closed", ev.code); toPage({ id: b.id, t: "close", code: ev.code, reason: ev.reason, error: ev.code !== 1000 }); } };
+        } else if (b.t === "send") local.get(b.id)?.send(b.d);
+        else if (b.t === "close") local.get(b.id)?.close();
+      };
+      ws.onerror = () => {};
+      ws.onclose = (e: any) => { for (const [k, l] of [...local]) { local.delete(k); l.close(); } done(e.code || 0); };
+      await new Promise((ok) => { ws.onopen = ok; });
+      const t = (await send("Target.getTargets")).targetInfos.find((x: any) => x.type === "page" && x.url.startsWith(new URL(url).origin));
+      if (!t) { console.log("no page of " + new URL(url).origin + " in the browser"); return ws.close(); }
+      sid = (await send("Target.attachToTarget", { targetId: t.targetId, flatten: true })).sessionId;
+      await send("Runtime.enable", {}, sid);
+      await send("Page.enable", {}, sid);
+      await send("Runtime.addBinding", { name: "__lopeBridge" }, sid);
+      await send("Page.addScriptToEvaluateOnNewDocument", { source: SHIM }, sid);
+      // The pairing module dials once, at load, and does not dial again after a close: the page is loaded again.
+      await send("Page.navigate", { url }, sid);
+      await send("Page.reload", {}, sid);
+      console.log(stamp(), first ? "bridge up" : "bridge up again");
+      first = false;
+    });
+    process.on("SIGINT", () => { console.log(`\nbridge stopped. The browser stays up until its time runs out (${Math.max(0, Math.round((paidUntil - Date.now()) / 1000))} s); "page down" closes it now.`); process.exit(0); });
+    const timer = setInterval(async () => { if (keep && paidUntil - Date.now() < 120e3) await extend(minutes * 60).catch((e) => console.log(String(e.message))); }, 30e3);
+    for (;;) {
+      const code = await bridge();
+      cutAt = Date.now();
+      if (Date.now() > paidUntil - 5000) { console.log(stamp(), `the browser's time ran out; "page up" buys more`); break; }
+      console.log(stamp(), "cdp socket closed", code, "; connecting again");
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    clearInterval(timer);
+    process.exit(0);
+  } else console.log("page up [--minutes N] [--token LOPE-…] [--view …] [--url https://…] [--browser NAME] [--name PAGE] [--keep] | page state | page down");
 } else if (cmd === "curl") {
   const path = args[0], rest = args.slice(1).filter((a) => a !== "--owner" && a !== "--other");
   const extra = args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];

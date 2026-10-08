@@ -597,3 +597,14 @@ Cloudflare stores the URL of a call, with its query string, beside each line a W
 - 24 h of cb4 (2026-10-08 20:05 UTC): no line with `code`, `state`, `iss`, `next`, `hub.verify_token`, `token`, `key`, `session`, `cc`, `sig`, `secret` or `password` as a parameter, but for one `proxy.fetch?code=…` call of a test. No line for `/link`, `/auth/*` or `/hooks/*`. Nothing to rotate.
 - Open: if the kernel ever writes a line of its own, the link code is stored. Then move the code after `#`.
 - Open: a third party's callback with a secret in its query that Cloudflare does not redact by name.
+
+## Added 2026-10-08 23:02: a page on the cluster
+
+`brain.ts page up` (see `running-a-cloud-brain.md`). Open:
+
+- The pairing module dials once, at load, so each bridge connect loads the page again and frees the lease for about a minute. A redial on close in the pairing module would remove the reload; that module is not changed without asking.
+- The heap of the Brain's page grew over loads in one browser: 632 MB, then 993 MB after the third. Not looked into.
+- No cut of the CDP socket was seen in 11 min, so the reconnect path ran only by hand.
+- `--url` on a notebook from `brain-library` (`/library/<name>`, public) was not run.
+- The owner's $1 a day allows about 11 hours of one browser.
+

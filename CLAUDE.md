@@ -84,6 +84,7 @@ nonzero when a notebook's copy differs from the tagged set.
 | `knowledge/designer-resources-for-notebooks.md` | Lopecode's inputs + themes as a Claude Design system: what is in `lopecode/design`, how `/design-sync` is run against it, the three overflow defects and their measurements, how to check a designer's bound copy is current, what is not done |
 | `knowledge/preparing-a-good-claude-design-spec-handover.md` | Writing a brief for the Claude Design agent: the boxed not-your-concern list, the from-source inventory of every control/message/state, named artboards, zip packaging — and the Ledger v1 handover that failed without them |
 | `knowledge/effective-use-of-fable.md` | Running economically on Fable 5 (2x Opus 5): what to route through subagents, which `model` to pin on an Agent call, when to compact. Injected automatically by `scripts/learnings-model-policy.sh` on a Fable session; `scripts/agent-model-gate.sh` blocks an Agent spawn that does not pin `model`. |
+| `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` | Cloud Brain (`tools/cloud-brain/`, `cb4`): where its documents are, `brain.ts`, the change routine, the logs, pairing with a page on this machine or in a browser of the cluster (`brain.ts page up`) |
 
 ### Which Tool to Use
 

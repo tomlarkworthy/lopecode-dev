@@ -2524,3 +2524,13 @@ Deploy 19:29 to 19:35 UTC: deployer `2038bf52906e`, core `c06bfb19aa78`, kernel 
 - A refused mint at a put-back, on cb4. Tested under `simulate`.
 - An upload over 1 MB through the kernel after `bodyOf` (the stream path did not change).
 
+## A page on the cluster, paired over `browser.cdp` (2026-10-08 22:30 to 23:02 CEST)
+
+`brain.ts page up | state | down`. CLI only: no Worker, no seed and no notebook changed. The record, the measurements and the limits are in `running-a-cloud-brain.md`, "A page on the cluster".
+
+- **Built:** the Brain's page in the owner's browser `brain`, signed in and paired with the channel on this machine; `--url` for any hosted notebook, in browser `test` with no session.
+- **Rejected:** a relay service on a Durable Object with both ends dialling a room. It changed the pairing protocol (Tom: "no because you have modified the protocol now"). The bridge needed no new infrastructure.
+- **Undone:** seven rule overrides on cb4 (`browser.eval goto run cdp text screenshot logs` to `caller.session`), put and deleted on 2026-10-08. A browser belongs to its caller, so they added nothing.
+- **Verified on cb4:** pairing tools against the cluster page (Linux user agent, signed in); the lease held by it with no local tab; the public quick start paired with no `brain_session`; exit when the time ran out; `browser.all` empty and `lease.get` `held: false` after.
+- **Not verified:** a reconnect after Cloudflare cuts the socket (no cut in two sockets of 11 min); `--keep`; a notebook served by `brain-library`; binary frames (not carried).
+
