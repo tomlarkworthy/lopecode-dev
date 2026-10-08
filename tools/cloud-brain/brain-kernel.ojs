@@ -1186,6 +1186,7 @@ test_a_member_reaches_their_own_services_and_the_deployer_hears_who = {
   expect(rig.toDeployer.at(-1).url).toBe("https://deployer.internal/xrpc/com.lopecode.brain.member.purge");
   expect(JSON.parse(rig.toDeployer.at(-1).body)).toEqual({ author: "did:plc:other" });
   expect((await rig.call("member.deploy", { session: rig.other, body })).status).toBe(403);
+  return "a member reaches their own services, and the deployer hears who";
 }
 // %%
 test_a_member_reads_their_own_spending = {

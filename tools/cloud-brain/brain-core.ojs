@@ -176,9 +176,24 @@ coreApp = {
   };
   // A method as it is counted and logged: the name after com.lopecode.brain., or the path a service declared.
   // Names nobody declared are counted as one, so a stranger cannot grow the table.
-  const nameOf = (c, status) => {
+  // Declared: a service's route matched (routeOf), or the core has a handler at this path. Not decided by the status.
+  const nameOf = (c) => {
     const url = new URL(c.req.url), nsid = url.pathname.startsWith(NS) ? url.pathname.slice(NS.length) : null;
-    return !c.get("target") && [404, 501].includes(status) ? "(unknown)" : nsid || c.get("path") || url.pathname;
+    const declared = c.get("target") || c.get("routed") || app.routes.some((r) => r.path === url.pathname);
+    return declared ? nsid || c.get("path") || url.pathname : "(unknown)";
+  };
+  const routeOf = async (c) => {
+    const url = new URL(c.req.url), nsid = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : null;
+    // The route table and the owner's rules are read through a few seconds of memory, not from storage on every call.
+    for (const route of (await settings.list("route/")).map((r) => r.value).filter(routed)) {
+      const method = nsid && route.methods[nsid];
+      const path = !nsid && route.paths.find((p) => p.path === url.pathname || (p.path.endsWith("/*") && url.pathname.startsWith(p.path.slice(0, -1))));
+      if (!method && !path) continue;
+      if (path) c.set("path", path.path);
+      c.set("routed", route.worker);
+      return { route, method, path, nsid };
+    }
+    return { nsid };
   };
   // One line a call, in Workers Logs: Cloudflare keeps it 7 days and logs.query reads it. The keys are the ones written
   // here and no others: names and decisions. Never a header, a body, a parameter's value or a secret.
@@ -198,13 +213,13 @@ coreApp = {
     const nsid = path.startsWith(NS) ? path.slice(NS.length) : null;
     console.log({
       at: "call", ray: (c.req.header("x-brain-ray") || "").slice(0, 64), caller: who.caller, via: who.via || "", origin: origin.caller,
-      method: nsid || c.get("path") ? nameOf(c, status).slice(0, 80) : "(unknown)", worker: c.get("target") || c.get("routed") || "brain-core", status, error: (await error) || null, ms: Date.now() - started,
+      method: nsid || c.get("path") ? nameOf(c).slice(0, 80) : "(unknown)", worker: c.get("target") || c.get("routed") || "brain-core", status, error: (await error) || null, ms: Date.now() - started,
       price: c.get("price") ?? null, rule: c.get("rule") || (status === 401 || status === 403 ? "deny" : status < 400 ? "allow" : ""), by: c.get("by") || "core"
     });
   };
   const observe = async (c, started) => {
     const target = c.get("target"), status = c.res.status, ms = Date.now() - started;
-    const method = nameOf(c, status);
+    const method = nameOf(c);
     if (method.startsWith("metrics.")) return;
     const who = c.get("who").caller, caller = /^(token|did):/.test(who) ? who.split(":")[0] : who;
     // The version that answered: the forwarded Worker's own header, or this core's.
@@ -299,6 +314,7 @@ coreApp = {
     c.set("who", who);
     const no = who.member ? await asAuthor(c, who.member) : who.caller.startsWith("worker:") ? await asDeclared(c, who.caller.slice("worker:".length)) : null;
     if (no) {
+      await routeOf(c);
       c.set("rule", "deny");
       c.set("by", who.member ? "grant" : "calls");
       await say(c, started, no.status, c.get("error"));
@@ -709,16 +725,9 @@ coreApp = {
     });
   app.all("*", async (c) => {
     const url = new URL(c.req.url), who = c.get("who");
-    // The route table and the owner's rules are read through a few seconds of memory, not from storage on every call.
-    const routes = (await settings.list("route/")).map((r) => r.value).filter(routed);
-    const nsid = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : null;
-    for (const route of routes) {
-      const method = nsid && route.methods[nsid];
-      const path = !nsid && route.paths.find((p) => p.path === url.pathname || (p.path.endsWith("/*") && url.pathname.startsWith(p.path.slice(0, -1))));
+    const { route, method, path, nsid } = await routeOf(c);
+    if (route) {
       const rule = method || path;
-      if (!rule) continue;
-      if (path) c.set("path", path.path);
-      c.set("routed", route.worker);
       if (method && (method.type === "query") !== (c.req.method === "GET")) return fail(c, 405, "InvalidRequest", `${nsid} is a ${method.type}`);
       // A member's Worker answers while its author is a member and the owner has not switched it off.
       if (route.role === "member") {
@@ -1522,6 +1531,29 @@ test_one_log_line_a_call_with_these_keys_and_no_secret = {
   ]);
   expect(mine.every((l) => typeof l.ms === "number" && l.price === null)).toBe(true);
   return mine.length + " lines, " + KEYS.length + " keys each";
+}
+// %%
+test_the_logged_method_is_named_by_what_is_declared_not_by_the_status = {
+  const rig = await coreRig();
+  await rig.owner("calls.setMode", { mode: "enforce" });
+  const lines = await logged(async () => {
+    // A method of the core that answers 404 keeps its name. A name nobody declared, refused before routing, does not.
+    await rig.owner("rule.put", { target: "com.lopecode.brain.nobody.x", allow: "true" }, { "x-brain-ray": "ray-name-1" });
+    await rig.worker("nobody.SEKRET-NSID", {}, { "x-brain-ray": "ray-name-2" });
+  });
+  const mine = lines.filter((l) => l.at === "call" && String(l.ray).startsWith("ray-name-")).sort((a, b) => (a.ray < b.ray ? -1 : 1));
+  expect(mine.map((l) => [l.method, l.status, l.by])).toEqual([["rule.put", 404, "core"], ["(unknown)", 403, "calls"]]);
+  return "rule.put 404 by name, an undeclared name 403 as (unknown)";
+}
+// %%
+test_a_posted_body_reaches_the_service_whole = {
+  const rig = await coreRig();
+  // With a content-length the core reads the body before it sends it on (bodyOf); without one it passes the stream.
+  const body = JSON.stringify({ text: "x".repeat(5000) });
+  expect((await rig.owner("echo.say", body, { "content-length": String(body.length) })).status).toBe(200);
+  expect((await rig.owner("echo.say", body)).status).toBe(200);
+  expect(rig.seen.slice(-2).map((s) => s.body)).toEqual([body, body]);
+  return "5013 characters in, 5013 out, both ways";
 }
 // %%
 test_the_log_line_of_a_priced_call_has_its_price = {

@@ -586,9 +586,9 @@ Cloudflare stores the URL of a call, with its query string, beside each line a W
 
 | In a query string | Life | Reaches a Worker that logs | Stored |
 |---|---|---|---|
-| `/link?channel=…&code=…` | 10 minutes, one use, and a sign-in | the kernel, which writes no line for it | no |
-| `/auth/login?next=/link?…code=…` | the same code | the kernel, the same | no |
-| `/auth/callback?code&state&iss` | one use, spent in that request, bound to this client's keys | the kernel, the same | no |
+| `/link?channel=…&code=…` | 10 minutes, one use, and a sign-in | the kernel, which writes no line for it || no, unless the call throws: the wrapper then writes a `throw` line and Cloudflare stores the URL beside it |
+| `/auth/login?next=/link?…code=…` | the same code | the kernel, the same || no, unless the call throws |
+| `/auth/callback?code&state&iss` | one use, spent in that request, bound to this client's keys | the kernel, the same || no, unless the call throws |
 | `/hooks/whatsapp?hub.verify_token=…` | long-lived; proves nothing but Meta's handshake, messages are checked by signature | the core, one line a call | Cloudflare writes `REDACTED` for this name (seen on a scratch Worker, not on cb4) |
 | `seconds`, `browser`, `feed`, `worker`, `name`, `path`, `cursor`, `since` | not secrets; rules and prices read them | the core | yes, expected |
 | the proxy's target URL, the browser's `goto` URL and expression | | | no: in the body |

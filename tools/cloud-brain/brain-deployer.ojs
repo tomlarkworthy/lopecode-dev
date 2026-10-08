@@ -553,6 +553,9 @@ deployerOps = {
   // version with the same code. A failure is logged and the tick tries again.
   const remint = async (logical, rec) => {
     try {
+      // A token left by a try that failed after it was bound: no Worker row names it, so it is ended here.
+      const left = await rows.get("token/" + logical);
+      if (left) (await rows.delete("token/" + logical), await dropToken(logical, left));
       const t = await mint(logical, rec.cloudflare), held = { id: t.id, groups: t.groups, expires: t.expires };
       try {
         const now = (await api("GET", script(logical) + "/settings")).bindings;
@@ -565,9 +568,12 @@ deployerOps = {
       }
       await rows.put("token/" + logical, held);
       await audit("mint", logical, held);
-      await rows.put("worker/" + logical, { ...rec, token: t.id, version: await currentVersion(logical) });
+      const next = { ...rec, token: t.id, version: await currentVersion(logical) };
+      await rows.put("worker/" + logical, next);
+      return next;
     } catch (e) {
       log({ at: "token.mint-failed", target: logical, reason: String((e && e.message) || e).slice(0, 300) });
+      return rec;
     }
   };
   const putBack = async (logical, rec, to, reason) => {
@@ -620,13 +626,11 @@ deployerOps = {
       await rows.put(key, next.state === "rolled-back" ? { ...next, hash: s.lastGoodHash, failedHash: s.hash, at: Date.now() } : next);
     }
     // Every other Worker: two failed checks in a row puts it back to the version before, when there is one.
-    for (const { value: rec } of await rows.list("worker/")) {
+    for (const row of await rows.list("worker/")) {
+      let rec = row.value;
       if (rec.state !== "deployed" || !rec.hash || onProbation.has(rec.worker)) continue;
-      // A Worker put back whose token could not be minted then.
-      if ((rec.cloudflare || []).length && !rec.token) {
-        await remint(rec.worker, rec);
-        continue;
-      }
+      // A Worker put back whose token could not be minted then. Its health is checked all the same.
+      if ((rec.cloudflare || []).length && !rec.token) rec = await remint(rec.worker, rec);
       const fails = (await healthy(rec.worker, rec.key)) ? 0 : (rec.fails || 0) + 1;
       if (fails >= 2 && rec.previous) await putBack(rec.worker, rec, rec.previous, "health check failed twice");
       else if (fails !== (rec.fails || 0)) {
@@ -1814,6 +1818,10 @@ test_redistil_after_a_deployer_update_and_source_follows_a_put_back = {
   expect(same.results).toEqual([{ worker: "brain-x-probe", module: M, state: "same", hash: h1 }]);
   expect(uploads()).toBe(before);
   expect((await rig.state()).distiller.last.hash).toBe((await rig.state()).distiller.now);
+  // A script from before logs gets them from redistil, with nothing uploaded.
+  rig.fake.scripts.get("cb-x-probe").observability = null;
+  await redistil({ apply: true });
+  expect([rig.fake.scripts.get("cb-x-probe").observability, uploads()]).toEqual([{ enabled: true, logs: { enabled: true, invocation_logs: false } }, before]);
   // A record whose hash this deployer does not reproduce stands for a Worker distilled by an older deployer.
   const rec = rig.sim.rows.get("worker/brain-x-probe"), kept = rig.sim.rows.get("source/" + M);
   rig.sim.rows.set("worker/brain-x-probe", { ...rec, hash: "0".repeat(64) });
@@ -1999,11 +2007,12 @@ test_a_member_deploys_with_no_approval_and_only_the_core_bound = {
   expect((await rig.state()).pending).toEqual([]);
   // The same again is unchanged; a change goes live and keeps the key.
   expect((await rig.deploy("todo", "a", { resources: ["sql", "xrpc"], access: { [ns + "add"]: { type: "procedure", who: "author" }, [ns + "list"]: { type: "query", who: "members" } } })).state).toBe("unchanged");
-  expect((await rig.deploy("todo", "b")).state).toBe("deployed");
+  const at = (lines) => lines.filter((l) => l.target === `brain-m-${id}-todo`).map((l) => l.at);
+  expect(at(await logged(async () => expect((await rig.deploy("todo", "b")).state).toBe("deployed")))).toContain("deploy.deployed");
   // A version that does not answer is put back.
   const bad = await rig.service("todo", "c");
   rig.fake.unhealthy.add(await partsHash(bad.parts, { worker: `brain-m-${id}-todo`, role: "member", author: A, module: null, calls: [], crons: [], flags: [], methods: [], access: {}, paths: [], secrets: [], resources: [], bindings: [] }));
-  expect((await rig.as("deploy", "member", { author: A, request: bad })).state).toBe("put-back");
+  expect(at(await logged(async () => expect((await rig.as("deploy", "member", { author: A, request: bad })).state).toBe("put-back")))).toContain("deploy.put-back");
   expect((await rig.as("remove", "member", { author: "did:plc:bob", request: { name: "todo" } })).state).toBe("refused");
   expect((await rig.as("remove", "member", { author: A, request: { name: "todo" } })).state).toBe("removed");
   expect(rig.fake.scripts.has(script)).toBe(false);
