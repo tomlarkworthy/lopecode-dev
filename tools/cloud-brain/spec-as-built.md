@@ -2393,3 +2393,23 @@ Deployed with `brain.ts apply` (no approval): browser `597988c15db8` at 19:37:45
 Not verified on cb4: `maxBrowsers` and `maxPerOwner` (simulate only); a member or a member's Worker as owner; the panel in the signed-in page; the delete of a finished browser's rows after 24 h. The rows of `worker:brain-x-bruser/default` (its purchases, no page) stay until that delete.
 
 Written 2026-10-08 19:46 CEST.
+
+## Review of the many-browsers change (2026-10-08 19:47 to 19:57 CEST)
+
+A fresh-context review of `@tomlarkworthy/brain-browser` gave 7 findings. Each held against the source.
+
+| Finding | Done |
+|---|---|
+| The panel's buttons used the typed browser name while the table showed the last drawn browser | The buttons use the browser that is shown (`shown`, set in `draw`), and a typed name is drawn on `input` |
+| One browser's error in the tick stopped the tick of each later browser | The outer `tick` catches for each browser, logs `browser tick <owner>/<browser>`, and goes on. Test: a broken row for `owner/default`, and the reader's browser still closes |
+| "The seconds stay bought" did not say they run down with no browser up | One sentence in Time and cost |
+| Two sections gave different numbers of Brain pages for one browser | Both say one |
+| Methods table: `mine` has `owner`; `liveView` takes `browser`; `end` answers `{ closed: [] }` when there is nothing; a name starts with a letter or a digit | Corrected |
+| `extend` did not name the browser in its answer | It answers `browser` |
+| With a public rule, all callers with no identity were one owner, `anonymous` | `one()` answers 401 `AuthRequired` for `anonymous` |
+
+Tests, r=222: brain-browser 15/15; 207/207 in the 19 modules of the Brain. A first build failed 15 browser tests: a new `const browser` in `one()` hid the `browser` binding (`browser.fetch is not a function`). It is named `label`.
+
+On cb4: `brain-x-browser` `2766ff9bf79b`, applied 19:55:33 to 19:55:47 CEST with `brain.ts apply` (no approval); 14 Workers `same`. `status` 200, `extend?seconds=5` 400 and no charge, `end` of a browser that does not exist 200 `{"closed":[],"browser":"x"}`. No browser was started.
+
+Not verified: the 401 for a caller with no identity on cb4 (no rule there lets one in); the panel in a signed-in page. The page that cb4 serves (`shell/index.html`) does not hold `browserPanel` (0 matches), so the panel is seen only in the notebook file.
