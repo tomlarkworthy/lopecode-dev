@@ -56,7 +56,7 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
     { type: "json", name: "BRAIN_CONFIG", json: { base: BASE, account: st.account, subdomain: st.subdomain, owner: OWNER, self: name, ...(replacedBy ? { replacedBy } : {}), ...(st.probationMs ? { probationMs: st.probationMs } : {}) } },
     { type: "json", name: "BRAIN_INFO", json: { ...e.info, name: "brain-deployer", deployedAt: new Date().toISOString() } },
   ];
-  const metadata: any = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...e.meta.flags, "nodejs_als"])], bindings };
+  const metadata: any = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...e.meta.flags, "nodejs_als"])], observability: { enabled: true, logs: { enabled: true, invocation_logs: false } }, bindings };
   if (!exists) metadata.migrations = { new_tag: "v1", new_sqlite_classes: ["Rows"] };
   const form = new FormData();
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));

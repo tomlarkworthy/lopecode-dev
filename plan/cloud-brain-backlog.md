@@ -565,3 +565,15 @@ Tom asked the Brain over WhatsApp for pictures; its owner turn wrote the change 
 - **A tab made over the socket has no row:** `list` does not show it and `maxTabs` does not count it.
 - **Not measured:** a deploy of the core or the kernel under an open socket; a socket open longer than 10 minutes; more than one socket at a time.
 - **The metrics do not know how long a socket was open.** One row at the 101.
+
+## Added 2026-10-08 21:12: logs
+
+- **Done:** Workers Logs on for each Worker with the invocation line off; one line a call at the core; `log` and `cloudflareApi` cells; a Cloudflare token minted by the deployer for a service that declares its permission groups; `brain-x-logs` (`logs.query`, `logs.keys`, `logs.values`); a Logs panel.
+- **The next deployer token** (the present one ends 2026-10-11) needs `Account API Tokens Write`, `Workers Observability Read` and `Workers Tail Read`, or `brain-x-logs` cannot be deployed again once its token has 30 days left (2026-12-07).
+- **Follow-on, not approved: a live stream.** Cloudflare has a tail of a Worker over a WebSocket (`POST /workers/scripts/NAME/tails` gives a `wss:` address; this is from memory of Cloudflare's API and was not read or tried on 2026-10-08). The permission `Workers Tail Read` is one a service can already declare. A method `logs.tail` could answer 101 and pass that socket on, as `browser.cdp` does. Not tried: a tail is for one script, so a Brain needs one for each Worker or a choice of Worker.
+- **Follow-on, not approved: metrics from the logs.** Tom, 2026-10-08: "could our metrics reporting be more cost efficient if we wrote the metrics into logs and collected them from logs?" The core's line has what a metrics row has (worker, method, caller, status, ms), and `logs.query` with `view: "calculations"` counts and takes percentiles by group. That would remove the core's batches, `metrics.record` and the `db.sql` writes of `brain-x-metrics` (109 of 478 lines in 6 minutes on cb4 were those writes). Limits to check first: 7 days of history against the metrics tables' own; a query reads rows (4.2 M for 30 minutes of the account, in the research) and its price after 2026-12-01 is not known; the Worker's version is not in the line.
+- **The kernel throws on a refused POST** ("Can't read from request stream after response has been sent"). Seen in the logs. A question in the spec.
+- **`secret.get` is 29 % of the lines** at rest (140 of 478 in 6 minutes, by `brain-x-bluesky`). The wrapper holds a secret 5 s. A longer hold, or no line for `secret.get`, would cut the volume; neither is done.
+- **A first deploy that is put back and then passes** happened again (the page, 19:08 UTC). The deployer now writes `deploy.unhealthy` with what the last health check answered. Next: read that line the next time it happens.
+- **Not reviewed:** `/review-notebook` was not run on this change; the worker that made it could not start a reviewer.
+- **Not done:** a price for a query; alerts; history past 7 days (Logpush to R2); a token for each Worker.

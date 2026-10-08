@@ -2,7 +2,7 @@ md`# Cloudflare from a notebook
 
 A service declared as a notebook value. \`cloudflare.Service(name, fn, options)\` returns a service: a name, a function that answers requests, and a manifest (methods, paths, rules, \`calls\`). Call it in the tab with \`service.fetch(request)\`, read the module it would upload with \`service.emit()\`, run that module in the tab with \`simulate(service)\`. \`cloudflare.Worker\` is the name of \`Service\` until 2026-10-07 and is the same function.
 
-A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. A service holds no Cloudflare token. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted. \`browser\` is Cloudflare Browser Run (remote browsers, billed by the browser-hour): the approval page names a service that reaches it, and a member's service is refused it.
+A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. A service holds no Cloudflare token unless it declares the permission groups it needs (\`cloudflare: ["Workers Observability Read"]\`): the deployer then holds the deploy for the owner, mints a token of exactly those groups and binds it to that Worker alone, and the service sends it with the \`cloudflareApi\` cell. \`log\` writes one line to Workers Logs with the Worker's name and the ray of the call. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted. \`browser\` is Cloudflare Browser Run (remote browsers, billed by the browser-hour): the approval page names a service that reaches it, and a member's service is refused it.
 
 The module is the function plus every cell it depends on, across imports, written out in dependency order with no Observable runtime. The walk stops at **platform cells** (\`secrets\`, \`rows\`, \`sql\`, \`inbox\`, \`xrpc\`), which work in the notebook and are replaced on the Worker by the Cloudflare resource they stand for, and at **library cells** (\`library(name, file)\`), which are uploaded as a second file.
 
@@ -315,6 +315,16 @@ assets = ({ [platformTag]: "assets", fetch: (request) => backend.forward("assets
 // HTTP form ("/v1/devtools/browser", "/v1/sessions"); an Upgrade request answers with a WebSocket that carries CDP.
 browser = ({ [platformTag]: "browser", fetch: (path, init = {}) => backend.forward("browser", new Request("https://browser.internal" + path, init)) })
 // %%
+// log({ at: "poll.skipped", reason }) writes one line to Workers Logs: the object, with this Worker's name and the
+// ray of the call being answered. Cloudflare keeps each field, 7 days. Write names and decisions; never a secret,
+// a header or a body.
+log = Object.assign((entry) => console.log({ ...entry, worker: "notebook", ray: "" }), { [platformTag]: "log" })
+// %%
+// The Cloudflare API for this account, as the token the deployer minted for this Worker allows. A service has it
+// only when it declares its permission groups: cloudflare.Service(name, fn, { cloudflare: ["Workers Observability Read"] }).
+// fetch(path, init): path is what follows /accounts/ACCOUNT. The answer is Cloudflare's own Response.
+cloudflareApi = ({ [platformTag]: "cloudflareApi", fetch: (path, init = {}) => backend.forward("cloudflareApi", new Request("https://api.cloudflare.com/client/v4/accounts/ACCOUNT" + path, init)) })
+// %%
 workers = ({
   [platformTag]: "workers",
   has: (name) => false,
@@ -394,7 +404,8 @@ workerRuntime = (AsyncLocalStorage = null) => {
   const chain = () => (held ? held.getStore() : ENV && ENV.__sim && !mixed ? one : null) || null;
   const chained = (headers) => {
     const now = chain();
-    return now && now.context && !("x-brain-context" in headers) ? { ...headers, "x-brain-context": now.context } : headers;
+    const out = now && now.context && !("x-brain-context" in headers) ? { ...headers, "x-brain-context": now.context } : headers;
+    return now && now.ray ? { ...out, "x-brain-ray": now.ray } : out;
   };
   const core = async (kind, nsid, data) => {
     if (!ENV.CORE) throw new Error("no core binding for " + nsid);
@@ -543,6 +554,8 @@ workerRuntime = (AsyncLocalStorage = null) => {
     // GUARD: the binding of a Worker deployed before 2026-10-08.
     deployer: { fetch: (request) => (ENV.DEPLOYER || ENV.GUARD).fetch(keyedRequest(request)) },
     assets: { fetch: (request) => ENV.ASSETS.fetch(request) },
+    // One line in Workers Logs. The ray is the cf-ray of the call from the internet that this one is part of.
+    log: (entry) => console.log({ ...entry, worker: info().name || "", ray: (chain() || {}).ray || "" }),
     workers: {
       has: (name) => !!ENV[bindingName(name)],
       fetch: (name, request) => {
@@ -626,7 +639,9 @@ workerRuntime = (AsyncLocalStorage = null) => {
           const fn = (await load()).fn;
           // Headers named x-brain- were removed above from a call that did not come over a binding.
           const context = request.headers.get("x-brain-context");
-          const store = context ? { context, origin: request.headers.get("x-brain-origin") || "", via: request.headers.get("x-brain-origin-via") || "" } : null;
+          // The ray: cf-ray on a call from the internet, x-brain-ray on a call over a binding, which has no cf-ray.
+          const ray = (request.headers.get("x-brain-ray") || request.headers.get("cf-ray") || "").slice(0, 64);
+          const store = context || ray ? { context, origin: request.headers.get("x-brain-origin") || "", via: request.headers.get("x-brain-origin-via") || "", ray } : null;
           const out = await during(store, async () =>
             typeof fn?.fetch === "function"
               ? await fn.fetch(request, env, ctx)
@@ -635,6 +650,8 @@ workerRuntime = (AsyncLocalStorage = null) => {
           if (!(out instanceof Response)) throw new Error("the function did not return a Response");
           return out;
         } catch (e) {
+          // The line that says why a call answered 500: Workers Logs keeps it with the trace of the call.
+          console.error({ at: "throw", worker: info().name || "", ray: (request.headers.get("x-brain-ray") || request.headers.get("cf-ray") || "").slice(0, 64), error: String(e?.name || "Error"), message: String(e?.message || e).slice(0, 500), stack: String(e?.stack || "").slice(0, 2000) });
           return json({ error: "InternalServerError", message: String(e?.message || e) }, 500);
         }
       },
@@ -767,6 +784,9 @@ emit = async (service) => {
     } else if (kind === "browser") {
       used.add(kind);
       ref = "__browser";
+    } else if (kind === "cloudflareApi") {
+      used.add(kind);
+      ref = "__cloudflareApi";
     } else if (kind) {
       used.add(kind);
       ref = "__rt.platform." + kind;
@@ -837,6 +857,10 @@ emit = async (service) => {
   // The browser cell is written here and not in the wrapper, so a Worker that does not use it is emitted as before.
   // The binding has the name the wrapper's workers cell reads for "cf-browser-run".
   if (used.has("browser")) lines.push(`const __browser = { fetch: (path, init = {}) => __rt.platform.workers.fetch("cf-browser-run", new Request("https://browser.internal" + path, init)) };`);
+  // The same for the Cloudflare API cell. CF_TOKEN is the token the deployer minted for this Worker and bound to it alone.
+  const groups = [...new Set(service.options.cloudflare || [])].sort();
+  if (used.has("cloudflareApi") && !groups.length) refuse(service.name, "uses cloudflareApi and declares no Cloudflare permissions: add cloudflare: [\"GROUP\"] to the service's options");
+  if (used.has("cloudflareApi")) lines.push(`const __cloudflareApi = { fetch: async (path, init = {}) => fetch("https://api.cloudflare.com/client/v4/accounts/" + __rt.platform.config.account + path, { ...init, headers: { "content-type": "application/json", ...(init.headers || {}), authorization: "Bearer " + (await __rt.platform.secrets.CF_TOKEN) } }) };`);
   lines.push(`const __init = async () => {`);
   for (const c of cells) lines.push(`  const ${c.id} = await (${c.text})(${c.deps.join(", ")});`);
   lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
@@ -849,7 +873,7 @@ emit = async (service) => {
     ...(source ? [{ path: "source.js", text: "export default " + JSON.stringify(source) + ";\n" }] : []),
     ...(used.has("quickjs") ? [{ path: "quickjs.wasm", base64: await quickjsWasmText() }] : [])
   ];
-  const resources = [...used].filter((k) => k !== "cloudflare" && k !== "secrets" && k !== "config" && k !== "quickjs").sort();
+  const resources = [...used].filter((k) => !["cloudflare", "secrets", "config", "quickjs", "log", "cloudflareApi"].includes(k)).sort();
   const meta = {
     worker,
     role,
@@ -866,6 +890,8 @@ emit = async (service) => {
     paths: (service.options.paths || []).map((p) => ({ ...p, ...(p.allow ? { allow: checkedRule(p.path, p.allow) } : {}), ...(p.price ? { price: checkedRule(p.path, p.price) } : {}) })),
     secrets: [...secretNames].sort(),
     resources,
+    // Cloudflare permission groups. The deployer mints a token of exactly these and binds it to this Worker as CF_TOKEN.
+    cloudflare: groups,
     bindings: [
       // Only the kernel's and the core's named secrets are bound. A recipe reads its secrets through the core.
       ...(role === "kernel" || role === "core" || role === "deployer" ? [...secretNames].sort().map((name) => ({ type: "secret_text", name })) : []),
@@ -987,6 +1013,25 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
   return sim;
 }
 // %%
+// For a test: the objects given to console.log and console.error while fn ran. Lines of other tests running at the
+// same time are in the list too, so a test filters by a name of its own.
+logged = {
+  const taps = new Set(), was = { log: console.log, error: console.error };
+  for (const level of ["log", "error"]) console[level] = (...args) => (taps.forEach((t) => t.push(args[0])), was[level].apply(console, args));
+  invalidation.then(() => Object.assign(console, was));
+  return async (fn) => {
+    const lines = [];
+    taps.add(lines);
+    try {
+      await fn();
+      await new Promise((r) => setTimeout(r, 30));
+    } finally {
+      taps.delete(lines);
+    }
+    return lines.filter((l) => l && typeof l === "object");
+  };
+}
+// %%
 md`## Fixtures and tests
 
 Cells named \`fx_*\` exist for the tests. Three of them are services the emit must refuse.`
@@ -994,6 +1039,55 @@ Cells named \`fx_*\` exist for the tests. Three of them are services the emit mu
 fx_double = (x) => x * 2
 // %%
 fx_base = 7
+// %%
+fx_logging_service = cloudflare.Service("fxlog", async (request) => {
+  log({ at: "fx.seen", n: 1, worker: "forged", ray: "forged" });
+  await xrpc.fetch("com.lopecode.brain.fx.next");
+  if (new URL(request.url).pathname === "/throw") throw new TypeError("fx broke");
+  return new Response("ok");
+})
+// %%
+fx_cloudflare_undeclared = cloudflare.Service("fxcf", async () => cloudflareApi.fetch("/workers/scripts"))
+// %%
+fx_cloudflare_declared = cloudflare.Service("fxcfd", async () => cloudflareApi.fetch("/workers/observability/telemetry/keys", { method: "POST", body: "{}" }), {
+  cloudflare: ["Workers Tail Read", "Workers Observability Read", "Workers Tail Read"]
+})
+// %%
+test_log_writes_the_workers_name_and_the_ray_and_the_ray_goes_on = {
+  const heard = [];
+  const sim = await simulate(fx_logging_service, { secrets: { BRAIN_KEY: "k" }, core: async (request) => (heard.push(request.headers.get("x-brain-ray")), Response.json({})) });
+  let status;
+  const lines = await logged(async () => {
+    await sim.fetch("https://fxlog.internal/x", { headers: { "x-brain-ray": "ray-fx-1" } });
+    status = (await sim.fetch("https://fxlog.internal/throw", { headers: { "x-brain-ray": "ray-fx-2" } })).status;
+  });
+  const mine = lines.filter((l) => String(l.ray).startsWith("ray-fx-"));
+  // What the service gave, with this Worker's name and the ray of the call: a service cannot write another's.
+  expect(mine[0]).toEqual({ at: "fx.seen", n: 1, worker: "brain-x-fxlog", ray: "ray-fx-1" });
+  // A throw is a 500 and one error line that says why.
+  expect(status).toBe(500);
+  expect(mine.find((l) => l.at === "throw")).toMatchObject({ worker: "brain-x-fxlog", ray: "ray-fx-2", error: "TypeError", message: "fx broke" });
+  // The ray goes with each call the Worker makes to the core.
+  expect(heard).toEqual(["ray-fx-1", "ray-fx-2"]);
+  // log is not a resource: nothing is bound for it.
+  expect((await fx_logging_service.emit()).meta.resources).toEqual(["xrpc"]);
+  return mine.length + " lines";
+}
+// %%
+test_cloudflareApi_needs_a_declared_permission_and_sends_the_bound_token = {
+  let refused = null;
+  try { await fx_cloudflare_undeclared.emit(); } catch (e) { refused = e.message; }
+  expect(refused).toMatch("uses cloudflareApi and declares no Cloudflare permissions");
+  const { meta } = await fx_cloudflare_declared.emit();
+  expect([meta.cloudflare, meta.resources, meta.secrets]).toEqual([["Workers Observability Read", "Workers Tail Read"], [], []]);
+  // A service that declares none has an empty list, and the list is part of the hash.
+  expect((await fx_logging_service.emit()).meta.cloudflare).toEqual([]);
+  const seen = [];
+  const sim = await simulate(fx_cloudflare_declared, { secrets: { CF_TOKEN: "minted-9" }, config: { account: "acct" }, fetch: async (request) => (seen.push([request.method, request.url, request.headers.get("authorization")]), Response.json({ success: true })) });
+  expect((await sim.fetch("https://fxcfd.internal/x")).status).toBe(200);
+  expect(seen).toEqual([["POST", "https://api.cloudflare.com/client/v4/accounts/acct/workers/observability/telemetry/keys", "Bearer minted-9"]]);
+  return meta.cloudflare.join(", ");
+}
 // %%
 // Hono 4.13.12 as one ES module. Import it to route a service: it travels to the Worker as lib/hono.js.
 hono = library("hono", FileAttachment("hono.js"))

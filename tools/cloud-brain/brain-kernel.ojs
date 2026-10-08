@@ -406,6 +406,8 @@ kernelApp = {
     for (const name of [...headers.keys()]) if (name === "cookie" || name === "authorization" || name.startsWith("x-brain-")) headers.delete(name);
     headers.set("x-brain-caller", who.caller);
     headers.set("x-brain-via", who.via);
+    // The ray Cloudflare gave this call. The core writes it in its log line, and a caller already has it as cf-ray.
+    if (c.req.header("cf-ray")) headers.set("x-brain-ray", c.req.header("cf-ray"));
     const bodied = !["GET", "HEAD"].includes(c.req.method);
     return core.fetch(new Request("https://core.internal" + url.pathname + url.search, { method: c.req.method, headers, body: bodied ? c.req.raw.body : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
   };

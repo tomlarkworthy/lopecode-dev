@@ -57,6 +57,16 @@ md`## Deploying
 
 Each Worker gets a key when it is first deployed. The deployer presents it to reach that Worker from the internet, and the Worker presents it to the core to say which Worker it is.`
 // %%
+md`## Logs and Cloudflare permissions
+
+Added 2026-10-08. The deployer turns Workers Logs on for each script and Cloudflare's own line per invocation off (\`OBSERVABILITY\`, \`ensureLogs\`). The setting belongs to the script: Cloudflare took it from the upload of a new script and ignored it in the upload of a version, so 14 of the 17 scripts of cb4 kept no logs after the first deploy of this change. \`redistil\` sets it on each script that is already deployed.
+
+A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`. The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted.
+
+The deployer's own token needs the permission \`Account API Tokens Write\` to mint, and each group it hands out.
+
+The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`token.mint\`, \`token.roll\`, \`token.delete\`.`
+// %%
 deployerOps = {
   const text = (v) => JSON.stringify(v);
   const jsonType = { "content-type": "application/json" };
@@ -83,6 +93,8 @@ deployerOps = {
     if (version) headers["Cloudflare-Workers-Version-Overrides"] = `${actual(logical)}="${version}"`;
     return fetch(urlOf(logical) + path, { ...init, headers, redirect: "manual" });
   };
+  // What the last health check of a Worker on the internet answered, for the log line of a deploy that is put back.
+  let lastHealth = "";
   const healthy = async (logical, key, hash, version) => {
     try {
       // A member's Worker has no address on the internet: the core asks it over its binding.
@@ -91,10 +103,12 @@ deployerOps = {
         return !!j && j.ok === true && (!hash || j.hash === hash);
       }
       const r = await call(logical, key, "/xrpc/_health", {}, version);
-      if (!r.ok) return false;
+      if (!r.ok) return (lastHealth = "status " + r.status), false;
       const j = await r.json();
+      lastHealth = "hash " + String(j.hash).slice(0, 12);
       return j.ok === true && (!hash || j.hash === hash);
-    } catch {
+    } catch (e) {
+      lastHealth = "threw " + String((e && e.message) || e).slice(0, 120);
       return false;
     }
   };
@@ -105,6 +119,7 @@ deployerOps = {
       if (await healthy(logical, key, hash, version)) return true;
       await sleep(config.pollMs ?? 1500);
     }
+    log({ at: "deploy.unhealthy", target: logical, hash, version: version || "live", last: lastHealth });
     return false;
   };
   const toCore = async (nsid, input) => {
@@ -140,6 +155,72 @@ deployerOps = {
   const setVersions = (logical, versions) =>
     api("POST", script(logical) + "/deployments", text({ strategy: "percentage", versions }), jsonType);
   const settings = async () => (await rows.get("settings")) || { approval: true };
+  // Workers Logs are on for every Worker, and Cloudflare's own line per invocation is off. That line stores the
+  // request's headers and its whole URL: x-brain-deployer and x-brain-guard (a Worker's key), x-brain-origin, and the
+  // code in /link?code=… were stored in clear (tried 2026-10-08, logging-research.md). What a Worker writes with
+  // console.log is kept, and the core writes one line a call from a list of names.
+  const OBSERVABILITY = { enabled: true, logs: { enabled: true, invocation_logs: false } };
+  // The setting is the script's, not a version's: Cloudflare takes it from the upload of a new script and ignores it
+  // in the upload of a version (seen 2026-10-08). For a script that exists it is set here, when it is not already.
+  const logsOn = (o) => !!o && o.enabled === true && !!o.logs && o.logs.enabled === true && o.logs.invocation_logs === false;
+  const ensureLogs = async (logical) => {
+    if (logsOn((await api("GET", script(logical) + "/script-settings")).observability)) return false;
+    await api("PATCH", script(logical) + "/script-settings", text({ observability: OBSERVABILITY }), jsonType);
+    log({ at: "deploy.logs-on", target: logical });
+    return true;
+  };
+
+  // Cloudflare permissions. A service declares the permission groups it needs (cloudflare: ["…"]). The deployer mints
+  // an account token of exactly those groups, for this account, that ends in 90 days, and binds its value to that
+  // Worker alone as CF_TOKEN. The value is not kept anywhere else and no method returns it. The deployer keeps the
+  // token's id, its groups and when it ends (token/WORKER), and writes each mint, roll and delete to audit/tokens.
+  // A service may declare only the groups in GROUPS.
+  const GROUPS = ["Workers Observability Read", "Workers Tail Read"];
+  const DAY = 86400000, TOKEN_DAYS = 90, ROLL_DAYS = 30;
+  const audit = async (event, logical, t) => {
+    const row = { at: Date.now(), event, worker: logical, token: t.id, groups: t.groups, expires: t.expires };
+    log({ at: "token." + event, target: logical, token: t.id, groups: t.groups.join(", ") });
+    await rows.append("audit/tokens", row, 500);
+    await note(`token/${logical}/${t.id}/${event}`, row);
+  };
+  const mint = async (logical, groups) => {
+    const all = await api("GET", "/tokens/permission_groups");
+    const ids = groups.map((g) => {
+      const found = all.find((p) => p.name === g && (p.scopes || []).includes("com.cloudflare.api.account"));
+      if (!found) throw new Error(`Cloudflare has no account permission group "${g}"`);
+      return { id: found.id };
+    });
+    const expires = Date.now() + TOKEN_DAYS * DAY;
+    const t = await api("POST", "/tokens", text({ name: `${actual(logical)}: minted by ${selfScript()}`, policies: [{ effect: "allow", resources: { ["com.cloudflare.api.account." + config.account]: "*" }, permission_groups: ids }], expires_on: new Date(expires).toISOString().slice(0, 19) + "Z" }), jsonType);
+    return { id: t.id, value: t.value, groups, expires };
+  };
+  // To end a token it is deleted. A rolled value was seen to answer after the roll (2026-10-08).
+  const dropToken = async (logical, t) => {
+    await api("DELETE", "/tokens/" + t.id).catch(() => null);
+    await audit("delete", logical, t);
+  };
+  // The token for a deploy: the one held, while its groups are the declared ones, Cloudflare still has it and it has
+  // more than 30 days left; else a new one. `binding` goes in the upload. done() after the version is live: the row,
+  // and the token before is deleted. undo() when the deploy is put back.
+  const tokenFor = async (logical, want, existing) => {
+    const had = await rows.get("token/" + logical);
+    if (!want.length) return { binding: [], id: null, done: async () => { if (had) (await dropToken(logical, had), await rows.delete("token/" + logical)); }, undo: async () => {} };
+    const keep = had && existing.has("CF_TOKEN") && text(had.groups) === text(want) && had.expires - Date.now() > ROLL_DAYS * DAY && (await api("GET", "/tokens/" + had.id).then((t) => t.status === "active", () => false));
+    if (keep) return { binding: [{ type: "inherit", name: "CF_TOKEN" }], id: had.id, done: async () => {}, undo: async () => {} };
+    const t = await mint(logical, want), held = { id: t.id, groups: t.groups, expires: t.expires };
+    let kept = false;
+    return {
+      binding: [{ type: "secret_text", name: "CF_TOKEN", text: t.value }],
+      id: t.id,
+      done: async () => {
+        kept = true;
+        await rows.put("token/" + logical, held);
+        await audit(had && text(had.groups) === text(want) ? "roll" : "mint", logical, held);
+        if (had) await dropToken(logical, had);
+      },
+      undo: async () => void (kept || (await api("DELETE", "/tokens/" + t.id).catch(() => null)))
+    };
+  };
 
   const uploadAsset = async (logical, html) => {
     const bytes = new TextEncoder().encode(html);
@@ -182,7 +263,7 @@ deployerOps = {
   };
 
   // Bindings are built here from the resources a service declares. Nothing the tab sends is bound as given.
-  const bindingsFor = async (w, key, existing, given) => {
+  const bindingsFor = async (w, key, existing, given, token = []) => {
     const m = w.meta, tier = m.role === "kernel" || m.role === "core";
     const out = [];
     // Only the kernel's and the core's own keys are bound, from the installer or made here. A secret the owner set
@@ -216,12 +297,14 @@ deployerOps = {
     // Browser Run. The name is the one the wrapper's workers cell reads for "cf-browser-run" (see emit in cloudflare-iac).
     if (uses("browser")) out.push({ type: "browser", name: "X_CF_BROWSER_RUN" });
     for (const name of existing) if (name.startsWith("X_") && name !== "X_CF_BROWSER_RUN") out.push({ type: "inherit", name });
+    out.push(...token);
     out.push({ type: "secret_text", name: "BRAIN_KEY", text: key });
-    out.push({ type: "json", name: "BRAIN_CONFIG", json: { base: config.base, subdomain: config.subdomain, host: `${config.base}.${config.subdomain}.workers.dev`, owner: config.owner || null, deployer: `https://${selfScript()}.${config.subdomain}.workers.dev` } });
+    // The account id goes only to a Worker that holds a Cloudflare token: its cloudflareApi cell calls /accounts/ID.
+    out.push({ type: "json", name: "BRAIN_CONFIG", json: { base: config.base, subdomain: config.subdomain, host: `${config.base}.${config.subdomain}.workers.dev`, owner: config.owner || null, deployer: `https://${selfScript()}.${config.subdomain}.workers.dev`, ...(token.length ? { account: config.account } : {}) } });
     out.push({
       type: "json",
       name: "BRAIN_INFO",
-      json: { name: m.worker, hash: w.hash, role: m.role, module: m.module || null, methods: m.methods, access: m.access || {}, calls: m.calls || [], paths: m.paths, secrets: m.secrets, resources: m.resources, deployedAt: new Date().toISOString() }
+      json: { name: m.worker, hash: w.hash, role: m.role, module: m.module || null, methods: m.methods, access: m.access || {}, calls: m.calls || [], paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], deployedAt: new Date().toISOString() }
     });
     return out;
   };
@@ -233,6 +316,9 @@ deployerOps = {
     if (logical === "brain-deployer" || logical === "brain-guard" || m.role === "deployer" || m.role === "guard") return 'resource name "brain-deployer" is reserved';
     // The table database is bound to one Worker, which checks every statement the others send it.
     if (m.resources.includes("database") && logical !== "brain-db") return "only brain-db is bound to the table database";
+    const group = (m.cloudflare || []).find((g) => !GROUPS.includes(g));
+    if ((m.cloudflare || []).length && m.role !== "recipe") return "only a recipe declares Cloudflare permissions";
+    if (group) return `"${group}" is not a Cloudflare permission a service may declare. A service may declare: ${GROUPS.join(", ")}`;
     if (w.parts && (await partsHash(w.parts, m)) !== w.hash) return `the parts sent for "${logical}" do not hash to ${String(w.hash).slice(0, 12)}`;
     const tier = { kernel: "brain", core: "brain-core" }[m.role];
     if (tier) return tier === logical ? null : `role ${m.role} must be named ${tier}`;
@@ -282,12 +368,22 @@ deployerOps = {
   };
 
   const deployOne = async (w, rec, given) => {
-    const m = w.meta, logical = m.worker, name = actual(logical);
+    const m = w.meta, logical = m.worker;
     const key = (rec && rec.key) || randomKey();
     const live = rec && rec.hash ? await api("GET", script(logical) + "/settings").catch(() => null) : null;
     const existing = new Set(live ? live.bindings.map((b) => b.name) : []);
-    const bindings = await bindingsFor(w, key, existing, given);
-    const meta = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...(m.flags || []), ...wrapperFlags])], bindings };
+    const token = await tokenFor(logical, [...(m.cloudflare || [])].sort(), existing);
+    try {
+      return await deployWith(w, rec, given, key, live, existing, token);
+    } catch (e) {
+      await token.undo();
+      throw e;
+    }
+  };
+  const deployWith = async (w, rec, given, key, live, existing, token) => {
+    const m = w.meta, logical = m.worker;
+    const bindings = await bindingsFor(w, key, existing, given, token.binding);
+    const meta = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...(m.flags || []), ...wrapperFlags])], observability: OBSERVABILITY, bindings };
     let assetHash = rec ? rec.assetHash : undefined;
     if (m.resources.includes("assets")) {
       if (typeof w.asset === "string") {
@@ -311,13 +407,16 @@ deployerOps = {
       await api("POST", script(logical) + "/subdomain", text({ enabled: true }), jsonType);
       if (m.crons.length) await api("PUT", script(logical) + "/schedules", text(m.crons.map((cron) => ({ cron }))), jsonType);
       version = await currentVersion(logical);
+      log({ at: "deploy.uploaded", target: logical, hash: w.hash, version, first: true });
       if (!(await waitHealthy(logical, key, w.hash))) {
         if (previous) await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
         else await api("DELETE", script(logical) + "?force=true");
         throw new Error("health check failed after go-live");
       }
     } else {
+      await ensureLogs(logical);
       version = (await api("POST", script(logical) + "/versions", form())).id;
+      log({ at: "deploy.uploaded", target: logical, hash: w.hash, version, previous });
       await setVersions(logical, [{ version_id: previous, percentage: 100 }, { version_id: version, percentage: 0 }]);
       if (!(await waitHealthy(logical, key, w.hash, version))) {
         await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
@@ -330,11 +429,12 @@ deployerOps = {
       }
     }
     // What is needed to put the version before back, routes included.
-    const before = rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: rec.paths, secrets: rec.secrets, resources: rec.resources } : null;
+    await token.done();
+    const before = rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: rec.paths, secrets: rec.secrets, resources: rec.resources, cloudflare: rec.cloudflare || [], token: rec.token || null } : null;
     const next = {
       worker: logical, role: m.role, module: m.module || null, hash: w.hash, version, key, state: "deployed", fails: 0, assetHash, distiller: typeof w.source === "string" ? self.hash : null,
       previous: before,
-      methods: m.methods, access: m.access || {}, paths: m.paths, secrets: m.secrets, resources: m.resources, deployedAt: Date.now()
+      methods: m.methods, access: m.access || {}, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], token: token.id, deployedAt: Date.now()
     };
     await rows.put("worker/" + logical, next);
     await register(next, m.access);
@@ -351,6 +451,7 @@ deployerOps = {
       }
     }
     await note(`deploy/${logical}/${version}`, { event: state, worker: logical, hash: w.hash });
+    log({ at: "deploy." + state, target: logical, hash: w.hash, version });
     return { state, version };
   };
 
@@ -387,9 +488,10 @@ deployerOps = {
         if (typeof w.source === "string" && !(await rows.get("source/" + w.module))) await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev: null });
         results.push({ ...base, state: "unchanged" });
       }
-      else if (approval && !recovery && !(await rows.get("approved/" + w.hash))) {
+      // A service that declares Cloudflare permissions is held for the owner also when deploys need no approval.
+      else if ((approval || (w.meta.cloudflare || []).length) && !recovery && !(await rows.get("approved/" + w.hash))) {
         const m = w.meta;
-        await rows.put("pending/" + w.hash, { worker: logical, hash: w.hash, methods: m.methods, paths: m.paths, secrets: m.secrets, resources: m.resources, calls: m.calls || [], access: m.access || {}, at: Date.now() });
+        await rows.put("pending/" + w.hash, { worker: logical, hash: w.hash, methods: m.methods, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], calls: m.calls || [], access: m.access || {}, at: Date.now() });
         results.push({ ...base, state: "waiting" });
       } else if (dry || !w.parts) results.push({ ...base, state: "ready" });
       else {
@@ -406,6 +508,7 @@ deployerOps = {
           const kept = rec && rec.hash ? { ...rec, lastError: reason, lastErrorAt: Date.now(), failedHash: w.hash } : { worker: logical, role: w.meta.role, hash: null, key: rec && rec.key, state: "removed", lastError: reason, lastErrorAt: Date.now(), failedHash: w.hash };
           await rows.put("worker/" + logical, kept);
           await note(`put-back/${logical}/${w.hash}/${kept.lastErrorAt}`, { event: "put-back", worker: logical, hash: w.hash, previous: kept.hash, reason });
+          log({ at: "deploy.put-back", target: logical, hash: w.hash, previous: kept.hash, reason });
           results.push({ ...base, state: "put-back", previous: kept.hash, reason });
         }
       }
@@ -430,11 +533,15 @@ deployerOps = {
           }
         }
         if (rec && rec.hash) await api("DELETE", script(logical) + "?force=true");
+        const token = await rows.get("token/" + logical);
+        if (token) (await dropToken(logical, token), await rows.delete("token/" + logical));
+        log({ at: "deploy.removed", target: logical, hash: rec && rec.hash });
         await rows.delete("worker/" + logical);
         await rows.delete("approved/remove:" + logical);
         results.push({ worker: logical, state: "removed" });
       } else results.push({ worker: logical, state: "ready" });
     }
+    for (const r of results) if (r.state === "refused" || r.state === "waiting") log({ at: "deploy." + r.state, target: r.worker, hash: r.hash, reason: r.reason });
     return { results };
   };
 
@@ -444,6 +551,27 @@ deployerOps = {
     // The routes of the version put back, when they were kept: a deploy may have changed what the Worker answers.
     const old = rec.previous && rec.previous.version === to.version && rec.previous.methods ? rec.previous : {};
     const next = { ...rec, ...old, hash: to.hash, version: to.version, previous: null, fails: 0, state: "deployed", lastError: reason, lastErrorAt: at, failedHash: rec.hash };
+    // The version put back holds the token value of its own deploy. When that is not the token held now, it was
+    // deleted: a new one is minted and bound, which makes one more version with the same code.
+    const groups = next.cloudflare || [];
+    if ((groups.length || rec.token) && !("token" in old && old.token === (rec.token || null))) {
+      const had = await rows.get("token/" + logical);
+      if (groups.length) {
+        const t = await mint(logical, groups), held = { id: t.id, groups: t.groups, expires: t.expires };
+        const now = (await api("GET", script(logical) + "/settings")).bindings;
+        const form = new FormData();
+        form.append("settings", new Blob([text({ bindings: [...now.filter((b) => b.name !== "CF_TOKEN").map((b) => ({ type: "inherit", name: b.name })), { type: "secret_text", name: "CF_TOKEN", text: t.value }] })], { type: "application/json" }));
+        await api("PATCH", script(logical) + "/settings", form);
+        await rows.put("token/" + logical, held);
+        await audit("mint", logical, held);
+        Object.assign(next, { token: t.id, version: await currentVersion(logical) });
+      } else {
+        await rows.delete("token/" + logical);
+        next.token = null;
+      }
+      if (had) await dropToken(logical, had);
+    }
+    log({ at: "deploy.put-back", target: logical, hash: rec.hash, previous: to.hash, reason });
     await rows.put("worker/" + logical, next);
     await sourcePutBack(logical, to.hash);
     await register(next, next.access).catch(() => null);
@@ -483,7 +611,7 @@ deployerOps = {
       if (fails >= 2 && rec.previous) await putBack(rec.worker, rec, rec.previous, "health check failed twice");
       else if (fails !== (rec.fails || 0)) {
         await rows.put("worker/" + rec.worker, { ...rec, fails });
-        if (fails === 2) await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash });
+        if (fails === 2) (log({ at: "deploy.failing", target: rec.worker, hash: rec.hash, reason: "health check failed twice and there is no version before" }), await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash }));
       }
     }
   };
@@ -498,6 +626,7 @@ deployerOps = {
       const list = (await rows.get("confirmed/" + logical)) || [];
       await rows.put("confirmed/" + logical, [{ version: s.version, hash: s.hash, at: Date.now() }, ...list].slice(0, 5));
       confirmed.push(logical);
+      log({ at: "deploy.confirmed", target: logical, hash: s.hash, version: s.version });
     }
     return { confirmed };
   };
@@ -579,6 +708,8 @@ deployerOps = {
         const d = await deployerDistil({ module: s.module, source: s.text, cell: s.cell || undefined, files: s.files, sources });
         if (d.hash === rec.hash) {
           results.push({ ...base, state: "same", hash: d.hash });
+          // A Worker deployed before 2026-10-08 keeps no logs until this is set.
+          if (rec.role !== "member") await ensureLogs(s.worker).catch(() => null);
           if (rec.distiller !== self.hash) await rows.put("worker/" + s.worker, { ...rec, distiller: self.hash });
         } else {
           results.push({ ...base, state: "changes", from: rec.hash, hash: d.hash });
@@ -646,6 +777,7 @@ deployerOps = {
     const bad = (m.resources || []).find((r) => !["sql", "xrpc"].includes(r));
     if (bad) return refuse(`a member service may not use the platform cell "${bad}"`, logical);
     if ((m.secrets || []).length) return refuse("a member service may not name a secret", logical);
+    if ((m.cloudflare || []).length) return refuse("a member service may not declare Cloudflare permissions", logical);
     if ((m.paths || []).length) return refuse("a member service has no paths", logical);
     if ((m.crons || []).length || (m.flags || []).length) return refuse("a member service has no schedule and no flags", logical);
     const access = {};
@@ -674,7 +806,7 @@ deployerOps = {
     const live = rec && rec.hash ? await api("GET", script(logical) + "/settings").catch(() => null) : null;
     const form = new FormData();
     form.append("metadata", new Blob([text({
-      main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...wrapperFlags],
+      main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...wrapperFlags], observability: OBSERVABILITY,
       bindings: [
         { type: "service", name: "CORE", service: actual("brain-core") },
         { type: "secret_text", name: "BRAIN_KEY", text: key },
@@ -786,7 +918,7 @@ deployerPage = (s, message = "") => {
         : `<table><tr><th>Answers</th><th>Who may call</th></tr>${answers.join("") || "<tr><td>nothing</td><td></td></tr>"}</table>
 <p>Calls: ${p.calls ? (p.calls.length ? p.calls.map(nsid).join(", ") : "none") : "not recorded"}. Secrets: ${esc((p.secrets || []).join(", ") || "none")}.</p>${
             (p.resources || []).includes("browser") ? "<p><b>Opens remote browsers.</b> Cloudflare bills browser time to this account.</p>" : ""
-          }`
+          }${(p.cloudflare || []).length ? `<p><b>Cloudflare permissions: ${esc(p.cloudflare.join(", "))}.</b> The deployer mints a Cloudflare API token with these and gives it to this Worker.</p>` : ""}`
     }</li>`;
   });
   const rollbacks = Object.entries(s.confirmed).flatMap(([name, list]) =>
@@ -928,7 +1060,14 @@ md`## Tests
 The deployer runs under \`simulate\` against \`fakeCloudflare\`, a stand-in for the Cloudflare API and for the Workers it deploys. A hash added to \`fake.unhealthy\` makes that version fail its health check.`
 // %%
 fakeCloudflare = () => {
-  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [];
+  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [], tokens = new Map();
+  const account = ["com.cloudflare.api.account"];
+  const groups = [
+    { id: "g-obs-user", name: "Workers Observability Read", scopes: ["com.cloudflare.api.user"] },
+    { id: "g-obs", name: "Workers Observability Read", scopes: account },
+    { id: "g-tail", name: "Workers Tail Read", scopes: account },
+    { id: "g-scripts", name: "Workers Scripts Write", scopes: account }
+  ];
   let n = 0;
   const ok = (result) => new Response(JSON.stringify({ success: true, result }), { headers: { "content-type": "application/json" } });
   const bad = (status, message) => new Response(JSON.stringify({ success: false, errors: [{ message }] }), { status });
@@ -984,6 +1123,17 @@ fakeCloudflare = () => {
       d1.push({ name: JSON.parse(await request.text()).name, uuid: "d1-" + (d1.length + 1) });
       return ok(d1.at(-1));
     }
+    // Account tokens: the value is given once, at the mint.
+    if (path === "/tokens/permission_groups") return ok(groups);
+    if (path === "/tokens" && request.method === "POST") {
+      const id = "t" + log.length, body = await request.json();
+      tokens.set(id, { id, ...body, status: "active", value: "minted-" + id });
+      return ok({ id, value: "minted-" + id, status: "active" });
+    }
+    const t = /^\/tokens\/([^/]+)$/.exec(path);
+    if (t && !tokens.has(t[1])) return bad(404, "no token " + t[1]);
+    if (t && request.method === "GET") return ok({ id: t[1], status: "active" });
+    if (t && request.method === "DELETE") return tokens.delete(t[1]), ok({ id: t[1] });
     const m = /^\/workers\/scripts\/([^/]+)(\/.*)?$/.exec(path);
     if (!m) return bad(404, "no route " + path);
     const name = m[1], rest = m[2] || "", s = scripts.get(name);
@@ -991,6 +1141,8 @@ fakeCloudflare = () => {
     if (rest === "" && request.method === "PUT") {
       const v = await version(s, request);
       const next = s || { versions: new Map(), deployment: [], schedules: [], subdomain: false };
+      // The script's own settings: taken from the upload of a script, and not from the upload of a version.
+      next.observability = v.metadata.observability || null;
       next.versions.set(v.id, v);
       next.deployment = [{ version_id: v.id, percentage: 100 }];
       scripts.set(name, next);
@@ -1014,6 +1166,10 @@ fakeCloudflare = () => {
       s.deployment = [{ version_id: v.id, percentage: 100 }];
       return ok({ bindings: v.metadata.bindings });
     }
+    if (rest === "/script-settings") {
+      if (request.method === "PATCH") s.observability = (await request.json()).observability;
+      return ok({ observability: s.observability || null });
+    }
     if (rest === "/subdomain") return (s.subdomain = (await request.json()).enabled), ok({});
     if (rest === "/schedules") return (s.schedules = await request.json()), ok({});
     return bad(404, "no route " + path);
@@ -1022,7 +1178,7 @@ fakeCloudflare = () => {
     const s = scripts.get(name);
     return s ? bindingOf(live(s), "BRAIN_INFO").json.hash : null;
   };
-  return { fetch, scripts, log, calls, unhealthy, stored, d1, running, live: (name) => live(scripts.get(name)) };
+  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, running, live: (name) => live(scripts.get(name)) };
 }
 // %%
 // A deployer under simulate, with helpers to act as the holder of the recovery key and as the kernel.
@@ -1157,6 +1313,133 @@ test_a_browser_is_bound_shown_before_approval_and_not_for_a_member = {
   await rig.asOwner("apply", { workers: [plain] });
   expect((await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text())).not.toContain("Opens remote browsers");
   return names()[0];
+}
+// %%
+test_every_upload_turns_logs_on_and_the_invocation_line_off = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain", "kernel", "k1"), await rig.made("brain-core", "core", "c1"), await rig.made("brain-x-a", "recipe", "a1")] });
+  const of = (name) => rig.fake.scripts.get(name).observability, ON = { enabled: true, logs: { enabled: true, invocation_logs: false } };
+  for (const name of ["cb", "cb-core", "cb-x-a"]) expect(of(name)).toEqual(ON);
+  // A script from before logs: Cloudflare does not take the setting from a version, so the deployer sets it on the script.
+  rig.fake.scripts.get("cb-x-a").observability = null;
+  rig.fake.scripts.get("cb-core").observability = { enabled: true, logs: { enabled: true, invocation_logs: true } };
+  const patches = () => rig.fake.log.filter((l) => l.startsWith("PATCH") && l.endsWith("/script-settings")).length;
+  await rig.recover({ workers: [await rig.made("brain-x-a", "recipe", "a2"), await rig.made("brain-core", "core", "c2")] });
+  expect([of("cb-x-a"), of("cb-core"), patches()]).toEqual([ON, ON, 2]);
+  // Already on: not set again.
+  await rig.recover({ workers: [await rig.made("brain-x-a", "recipe", "a3")] });
+  expect(patches()).toBe(2);
+  return "3 new scripts, 2 scripts set, 1 left as it was";
+}
+// %%
+test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_worker_alone = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain", "kernel", "k1"), await rig.made("brain-core", "core", "c1"), await rig.made("brain-x-plain", "recipe", "p1")] });
+  const READ = ["Workers Observability Read"], BOTH = ["Workers Observability Read", "Workers Tail Read"];
+  const logs = (salt, cloudflare = READ) => rig.made("brain-x-logs", "recipe", salt, { cloudflare });
+  // Held for the owner also when deploys need no approval, and the page names the permission.
+  await rig.form({ key: "rk", action: "approval:off" });
+  const one = await logs("l1");
+  expect((await rig.asOwner("apply", { workers: [one] })).results[0].state).toBe("waiting");
+  expect(rig.fake.tokens.size).toBe(0);
+  expect(await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text()).toContain("<b>Cloudflare permissions: Workers Observability Read.</b>");
+  await rig.form({ key: "rk", action: "approve:" + one.hash });
+  expect((await rig.asOwner("apply", { workers: [one] })).results[0].state).toBe("deployed");
+  // One token: exactly the declared group, of the account kind, on this account, ending in 90 days.
+  const [t1] = [...rig.fake.tokens.values()];
+  expect(rig.fake.tokens.size).toBe(1);
+  expect(t1.policies).toEqual([{ effect: "allow", resources: { "com.cloudflare.api.account.acct": "*" }, permission_groups: [{ id: "g-obs" }] }]);
+  expect(Math.round((new Date(t1.expires_on) - Date.now()) / 86400000)).toBe(90);
+  // The value is bound to that Worker and is nowhere else: not in another Worker, not in the deployer's rows.
+  const bound = (name) => rig.fake.live(name).metadata.bindings.find((b) => b.name === "CF_TOKEN");
+  const config = (name) => rig.fake.live(name).metadata.bindings.find((b) => b.name === "BRAIN_CONFIG").json;
+  expect(bound("cb-x-logs")).toEqual({ type: "secret_text", name: "CF_TOKEN", text: t1.value });
+  expect([bound("cb"), bound("cb-core"), bound("cb-x-plain")]).toEqual([undefined, undefined, undefined]);
+  expect([config("cb-x-logs").account, config("cb-x-plain").account]).toEqual(["acct", undefined]);
+  expect(JSON.stringify([...rig.sim.rows])).not.toContain(t1.value);
+  expect(rig.sim.rows.get("token/brain-x-logs")).toMatchObject({ id: t1.id, groups: READ });
+  const events = () => rig.sim.rows.get("audit/tokens").map((a) => a.event + " " + a.token);
+  expect(events()).toEqual(["mint " + t1.id]);
+  // The same set again: the token is kept.
+  expect((await rig.recover({ workers: [await logs("l2")] })).results[0].state).toBe("deployed");
+  expect([[...rig.fake.tokens.keys()], bound("cb-x-logs").text]).toEqual([[t1.id], t1.value]);
+  // 30 days or less left: a new token, and the one before is deleted.
+  rig.sim.rows.set("token/brain-x-logs", { ...rig.sim.rows.get("token/brain-x-logs"), expires: Date.now() + 29 * 86400000 });
+  await rig.recover({ workers: [await logs("l3")] });
+  const [t2] = [...rig.fake.tokens.values()];
+  expect([rig.fake.tokens.size, t2.id !== t1.id, bound("cb-x-logs").text]).toEqual([1, true, t2.value]);
+  // Another set: a new token of that set.
+  await rig.recover({ workers: [await logs("l4", BOTH)] });
+  const [t3] = [...rig.fake.tokens.values()];
+  expect([rig.fake.tokens.size, t3.policies[0].permission_groups]).toEqual([1, [{ id: "g-obs" }, { id: "g-tail" }]]);
+  expect(events()).toEqual(["mint " + t1.id, "roll " + t2.id, "delete " + t1.id, "mint " + t3.id, "delete " + t2.id]);
+  // A deploy that is put back leaves the token as it was.
+  const broken = await logs("l5", READ);
+  rig.fake.unhealthy.add(broken.hash);
+  expect((await rig.recover({ workers: [broken] })).results[0].state).toBe("put-back");
+  expect([[...rig.fake.tokens.keys()], bound("cb-x-logs").text]).toEqual([[t3.id], t3.value]);
+  // The service removed: no token.
+  await rig.recover({ remove: ["brain-x-logs"] });
+  expect([rig.fake.tokens.size, rig.sim.rows.has("token/brain-x-logs"), events().at(-1)]).toEqual([0, false, "delete " + t3.id]);
+  return events().length + " audit rows";
+}
+// %%
+test_a_cloudflare_permission_is_refused_off_the_list_and_outside_a_recipe = {
+  const rig = await deployerRig();
+  const reason = async (w) => (await rig.recover({ workers: [w] })).results[0].reason;
+  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers Tail Read');
+  expect(await reason(await rig.made("brain-core", "core", "c", { cloudflare: ["Workers Observability Read"] }))).toBe("only a recipe declares Cloudflare permissions");
+  expect(rig.fake.tokens.size).toBe(0);
+  const members = await memberRig();
+  expect((await members.deploy("a", "x", { cloudflare: ["Workers Observability Read"] })).reason).toBe("a member service may not declare Cloudflare permissions");
+  expect(members.fake.tokens.size).toBe(0);
+  return "3 refusals, no token";
+}
+// %%
+test_a_version_put_back_gets_a_token_that_works = {
+  const rig = await deployerRig();
+  const bound = () => rig.fake.live("cb-x-logs").metadata.bindings.find((b) => b.name === "CF_TOKEN");
+  const v1 = await rig.made("brain-x-logs", "recipe", "one", { cloudflare: ["Workers Observability Read"] });
+  const v2 = await rig.made("brain-x-logs", "recipe", "two", { cloudflare: ["Workers Observability Read", "Workers Tail Read"] });
+  await rig.recover({ workers: [v1] });
+  const first = bound().text;
+  await rig.recover({ workers: [v2] });
+  // The token of v1 was deleted when v2 went live. v2 fails twice and v1 is put back with a new one.
+  expect(rig.fake.tokens.size).toBe(1);
+  rig.fake.unhealthy.add(v2.hash);
+  await rig.sim.scheduled();
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb-x-logs")).toBe(v1.hash);
+  const [now] = [...rig.fake.tokens.values()];
+  expect([rig.fake.tokens.size, bound().text === now.value, bound().text === first, now.policies[0].permission_groups]).toEqual([1, true, false, [{ id: "g-obs" }]]);
+  expect(rig.sim.rows.get("token/brain-x-logs")).toMatchObject({ id: now.id, groups: ["Workers Observability Read"] });
+  expect(rig.sim.rows.get("worker/brain-x-logs")).toMatchObject({ hash: v1.hash, token: now.id, cloudflare: ["Workers Observability Read"] });
+  // A version put back that holds the same token keeps it.
+  const v3 = await rig.made("brain-x-logs", "recipe", "three", { cloudflare: ["Workers Observability Read"] });
+  await rig.recover({ workers: [v3] });
+  rig.fake.unhealthy.add(v3.hash);
+  await rig.sim.scheduled();
+  await rig.sim.scheduled();
+  expect([rig.fake.running("cb-x-logs"), [...rig.fake.tokens.keys()]]).toEqual([v1.hash, [now.id]]);
+  return "re-minted once";
+}
+// %%
+test_the_deployer_logs_each_step_of_a_deploy_and_why_it_was_put_back = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain", "kernel", "k1")] });
+  const v1 = await rig.made("brain-x-steps", "recipe", "one"), v2 = await rig.made("brain-x-steps", "recipe", "two");
+  rig.fake.unhealthy.add(v2.hash);
+  const lines = await logged(async () => {
+    await rig.recover({ workers: [v1] });
+    await rig.recover({ workers: [v2] });
+    await rig.asOwner("apply", { workers: [await rig.made("brain-x-steps", "recipe", "three")] });
+  });
+  const mine = lines.filter((l) => l.target === "brain-x-steps");
+  expect(mine.map((l) => l.at)).toEqual(["deploy.uploaded", "deploy.deployed", "deploy.uploaded", "deploy.unhealthy", "deploy.put-back", "deploy.waiting"]);
+  // What the last health check answered: here the version itself answered 500.
+  expect(mine[3]).toMatchObject({ hash: v2.hash, last: "status 500" });
+  expect(mine[4]).toMatchObject({ worker: "brain-deployer", hash: v2.hash, previous: v1.hash, reason: "self-test failed before go-live" });
+  return mine.length + " lines";
 }
 // %%
 test_deploys_a_recipe_and_registers_it = {
@@ -1729,7 +2012,7 @@ test_getModules_keeps_a_members_module_out_of_the_brains_list = {
   expect(await mine("did:plc:bob")).toEqual(["@tomlarkworthy/cloudflare-iac"]);
 }
 // %%
-import {cloudflare, secrets, rows, config, simulate, partsHash, sha256, quickjs, quickjsLib, distillerData, distilIn, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, secrets, rows, config, log, logged, simulate, partsHash, sha256, quickjs, quickjsLib, distillerData, distilIn, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%

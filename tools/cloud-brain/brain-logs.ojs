@@ -1,0 +1,161 @@
+md`# brain-logs
+
+A Cloud Brain recipe: the logs of this Brain's Workers, read from Cloudflare Workers Logs. It keeps nothing and has no query language of its own. A body is passed to Cloudflare's telemetry API and the answer is returned as Cloudflare gave it, its errors and limits included.
+
+| Method | Cloudflare endpoint |
+|---|---|
+| \`logs.query\` | \`POST /accounts/ACCOUNT/workers/observability/telemetry/query\`: events, invocations, traces or calculations |
+| \`logs.keys\` | \`…/telemetry/keys\`: the field names seen in a time range |
+| \`logs.values\` | \`…/telemetry/values\`: the values of one field |
+
+The body is Cloudflare's: [the query API](https://developers.cloudflare.com/api/resources/workers/subresources/observability/subresources/telemetry/methods/query/). The service changes two things in it (\`logsScope\`). \`datasets\` is \`["cloudflare-workers"]\`. The filters are put inside one filter on the script name, joined with AND, so a query reads only the Workers of this Brain: the base name, and every name that starts with the base name and a hyphen. With \`?worker=brain-x-NAME\` in the address the filter is that one Worker.
+
+\`\`\`js
+// every line of one call, by the cf-ray the caller received
+POST /xrpc/com.lopecode.brain.logs.query
+{ "queryId": "ray", "timeframe": { "from": 1791480000000, "to": 1791483600000 }, "view": "events", "limit": 100,
+  "parameters": { "filters": [{ "key": "ray", "operation": "eq", "type": "string", "value": "9a1f…-FRA" }] } }
+\`\`\`
+
+## What is in the logs
+
+Cloudflare keeps what a Worker writes with \`console.log\`, 7 days, and gives every line \`$metadata.traceId\`, which is the same in each Worker one call passed through. The deployer turns Workers Logs on for every Worker and Cloudflare's own line per invocation off, because that line stores request headers and the whole URL.
+
+| Line | Written by | Fields |
+|---|---|---|
+| \`at: "call"\` | the core, one a call | \`ray caller via origin method worker status error ms price rule by\` (see \`say\` in brain-core) |
+| \`at: "throw"\` | the wrapper, when a service throws | \`worker ray error message stack\` |
+| \`at: "deploy.…"\`, \`"token.…"\` | the deployer | \`target hash version previous reason\` |
+| \`at: "browser.…"\` | brain-browser | \`session reason\` |
+| any | a service, with the \`log\` cell | what it gives, with \`worker\` and \`ray\` |
+
+\`ray\` is the \`cf-ray\` header of the answer a caller received. A line of the kernel is found by \`$metadata.rayId\`, and every line of the call by the \`traceId\` of that line.
+
+## Who can call
+
+The owner in their own session. The owner can set another rule (\`rule.put\`). To let a Worker read its own lines and no other's: \`caller.kind == "worker" && request.params.worker == caller.worker\` for \`com.lopecode.brain.logs.query\`.
+
+## The Cloudflare token
+
+The service declares \`cloudflare: ["Workers Observability Read"]\`. The deployer holds such a deploy for the owner, mints a Cloudflare API token with that one permission and binds it to this Worker alone. The \`cloudflareApi\` cell sends it. The token reads the logs of every Worker on the Cloudflare account, which is why \`logsScope\` is not optional and no parameter can remove it.
+
+Calls have no price: Cloudflare states none for a query. Its limit is the account's API limit, 1200 requests in 5 minutes, and an answer over it is passed on.`
+// %%
+// The script on Cloudflare of a Worker of this Brain: brain-x-echo on the Brain cb4 is cb4-x-echo.
+logsScript = (base, worker) => (/^brain(-[a-z0-9-]{1,60})?$/.test(worker) ? base + worker.slice("brain".length) : null)
+// %%
+// A body with this Brain's filter around the caller's. `what` is query, keys or values.
+logsScope = (body, what, base, worker = null) => {
+  const name = (operation, value) => ({ key: "$workers.scriptName", operation, type: "string", value });
+  const mine = worker ? name("eq", logsScript(base, worker)) : { kind: "group", filterCombination: "or", filters: [name("eq", base), name("starts_with", base + "-")] };
+  const given = (what === "query" ? body.parameters : body) || {};
+  const theirs = Array.isArray(given.filters) && given.filters.length ? [{ kind: "group", filterCombination: given.filterCombination || "and", filters: given.filters }] : [];
+  const scoped = { ...given, datasets: ["cloudflare-workers"], filterCombination: "and", filters: [mine, ...theirs] };
+  return what === "query" ? { ...body, parameters: scoped } : scoped;
+}
+// %%
+logs_service = cloudflare.Service(
+  "logs",
+  async (request) => {
+    const json = (status, error, message) => new Response(JSON.stringify({ error, message }), { status, headers: { "content-type": "application/json" } });
+    const url = new URL(request.url), what = url.pathname.split(".").pop(), worker = url.searchParams.get("worker");
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) return json(400, "InvalidRequest", "the body is the body of Cloudflare's telemetry " + what);
+    if (worker !== null && !logsScript(config.base, worker)) return json(400, "InvalidRequest", "worker is the name of a Worker of this Brain: brain, brain-core, brain-x-NAME");
+    const r = await cloudflareApi.fetch("/workers/observability/telemetry/" + what, { method: "POST", body: JSON.stringify(logsScope(body, what, config.base, worker)) });
+    return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/json" } });
+  },
+  {
+    cloudflare: ["Workers Observability Read"],
+    methods: {
+      "com.lopecode.brain.logs.query": { type: "procedure", allow: "caller.session" },
+      "com.lopecode.brain.logs.keys": { type: "procedure", allow: "caller.session" },
+      "com.lopecode.brain.logs.values": { type: "procedure", allow: "caller.session" }
+    }
+  }
+)
+// %%
+logs_announce = {
+  plugins.add("workers", logs_service, { invalidation });
+  return "announced logs_service";
+}
+// %%
+md`## Tests`
+// %%
+logsRig = async () => {
+  const seen = [];
+  const sim = await simulate(logs_service, {
+    secrets: { CF_TOKEN: "minted-1", BRAIN_KEY: "k" },
+    config: { base: "cb4", account: "acct" },
+    fetch: async (request) => {
+      seen.push({ url: request.url, authorization: request.headers.get("authorization"), body: await request.json() });
+      return seen.length === 3
+        ? new Response('{"success":false,"errors":[{"code":10000,"message":"rate limited"}]}', { status: 429, headers: { "content-type": "application/json" } })
+        : new Response('{"success":true,"result":{"events":{"count":1}}}', { headers: { "content-type": "application/json" } });
+    }
+  });
+  const call = async (name, body) => {
+    const r = await sim.fetch("https://logs.internal/xrpc/com.lopecode.brain.logs." + name, { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: JSON.stringify(body) });
+    return { status: r.status, data: await r.json() };
+  };
+  return { sim, seen, call };
+}
+// %%
+test_a_query_is_passed_on_inside_this_brains_filter = {
+  const rig = await logsRig();
+  const scope = { kind: "group", filterCombination: "or", filters: [{ key: "$workers.scriptName", operation: "eq", type: "string", value: "cb4" }, { key: "$workers.scriptName", operation: "starts_with", type: "string", value: "cb4-" }] };
+  const theirs = [{ key: "status", operation: "gte", type: "number", value: 400 }, { key: "$workers.scriptName", operation: "eq", type: "string", value: "another-brain" }];
+  // The caller asks for another dataset and joins with OR. Their filters stay together, inside this Brain's.
+  const out = await rig.call("query", { queryId: "q", timeframe: { from: 1, to: 2 }, view: "events", limit: 5, parameters: { datasets: ["another"], filterCombination: "or", filters: theirs, needle: { value: "x" } } });
+  expect(out).toEqual({ status: 200, data: { success: true, result: { events: { count: 1 } } } });
+  expect(rig.seen[0]).toEqual({
+    url: "https://api.cloudflare.com/client/v4/accounts/acct/workers/observability/telemetry/query",
+    authorization: "Bearer minted-1",
+    body: { queryId: "q", timeframe: { from: 1, to: 2 }, view: "events", limit: 5, parameters: { datasets: ["cloudflare-workers"], filterCombination: "and", filters: [scope, { kind: "group", filterCombination: "or", filters: theirs }], needle: { value: "x" } } }
+  });
+  // keys and values have their filters at the top.
+  await rig.call("keys", { timeframe: { from: 1, to: 2 }, limit: 9 });
+  expect(rig.seen[1].url).toMatch(/telemetry\/keys$/);
+  expect(rig.seen[1].body).toEqual({ timeframe: { from: 1, to: 2 }, limit: 9, datasets: ["cloudflare-workers"], filterCombination: "and", filters: [scope] });
+  // Cloudflare's refusal is the answer.
+  expect(await rig.call("values", { key: "at", type: "string" })).toEqual({ status: 429, data: { success: false, errors: [{ code: 10000, message: "rate limited" }] } });
+  return "3 calls";
+}
+// %%
+test_worker_narrows_a_query_to_one_worker_of_this_brain = {
+  const rig = await logsRig();
+  const one = async (worker, body = { parameters: {} }) => {
+    const r = await rig.sim.fetch("https://logs.internal/xrpc/com.lopecode.brain.logs.query?worker=" + encodeURIComponent(worker), { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "worker:brain-x-echo" }, body: JSON.stringify(body) });
+    return r.status;
+  };
+  expect(await one("brain-x-echo")).toBe(200);
+  expect(rig.seen[0].body.parameters.filters).toEqual([{ key: "$workers.scriptName", operation: "eq", type: "string", value: "cb4-x-echo" }]);
+  expect(await one("brain")).toBe(200);
+  expect(rig.seen[1].body.parameters.filters[0].value).toBe("cb4");
+  // A name that is not a Worker of a Brain is refused before Cloudflare is asked.
+  for (const bad of ["cb9-core", "", "brain-x-a b", "brainiac", "other"]) expect(await one(bad)).toBe(400);
+  expect(rig.seen.length).toBe(2);
+  expect(logsScript("cb4", "brain-m-0123456789-todo")).toBe("cb4-m-0123456789-todo");
+  return "2 passed on, 5 refused";
+}
+// %%
+test_logs_declares_one_cloudflare_permission_and_the_owners_session = {
+  const { meta, parts } = await logs_service.emit();
+  expect(meta.worker).toBe("brain-x-logs");
+  expect(meta.cloudflare).toEqual(["Workers Observability Read"]);
+  expect([meta.resources, meta.secrets, meta.calls]).toEqual([[], [], []]);
+  expect(Object.values(meta.access).map((a) => a.allow)).toEqual(["caller.session", "caller.session", "caller.session"]);
+  // The token is read from the binding the deployer made, and from nowhere a caller can set.
+  expect(parts[0].text).toContain("__rt.platform.secrets.CF_TOKEN");
+  // The owner's rule for a Worker reading its own lines.
+  const rule = { allow: 'caller.kind == "worker" && request.params.worker == caller.worker' };
+  const ask = (caller, worker) => decide(rule, { caller: callerOf({ caller }), origin: callerOf({ caller }), request: { params: worker === null ? {} : { worker } } }).allow;
+  expect([ask("worker:brain-x-echo", "brain-x-echo"), ask("worker:brain-x-echo", "brain-core"), ask("worker:brain-x-echo", null), ask("anonymous", "")]).toEqual([true, false, false, false]);
+  return meta.cloudflare[0];
+}
+// %%
+import {cloudflare, cloudflareApi, config, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

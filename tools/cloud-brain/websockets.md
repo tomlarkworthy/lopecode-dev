@@ -120,9 +120,9 @@ already ends a browser whose time has passed, and that closes the socket. The co
 
 ```
 no upgrade                 426 UpgradeRequired
-upgrade, no time bought    refused (409 NoTime before the upgrade); no browser started
+upgrade, no time bought    refused (not 101; 409 `NoTime` in the test); no browser started
 raw socket                 connect 768 ms after extend started the browser; Browser.getVersion "Chrome/128.0.6613.137"
-                           Page.navigate example.com -> Page.loadEventFired, 8 Network.* event kinds, title "Example Domain"
+                           Page.navigate example.com -> Page.loadEventFired, Network.* events, title "Example Domain"
                            Runtime.evaluate p50 60.7 ms (n=40); a second run 49.8 ms
 browser.eval, same browser p50 427 ms (n=12); a second run 319.5 ms. A tab that open made was in Target.getTargets.
 playwright-core 1.52.0     connectOverCDP 1020 ms; goto 196 ms; click + waitForURL(iana.org) 1629 ms

@@ -100,7 +100,7 @@ Who owns and who pays are different. A Worker that calls in a chain the owner st
 
 \`open\` makes a tab in the browser. Each page has its own browser context, thus two pages on one origin do not share cookies, \`localStorage\` or IndexedDB. Two pages opened with the same \`shared: "label"\` share one context.
 
-Each call makes a new WebSocket to the browser, attaches to the tab by its target id, and closes the socket. No Durable Object holds a connection. Thus a page keeps its state between calls, and two calls at one time each have a connection.
+Each call but \`cdp\` makes a new WebSocket to the browser, attaches to the tab by its target id, and closes the socket. No Durable Object holds a connection. Thus a page keeps its state between calls, and two calls at one time each have a connection.
 
 The tabs of one browser share its fate. If the browser ends, each of its pages is closed, and the next call answers \`PageClosed\` with the reason: \`browser ended\`, \`time ran out\`, \`page ended\`, \`browser stopped answering\`. They also share its memory. Cloudflare does not publish the limit. Three tabs of the Brain's own page in one browser stopped it on cb4 two times in two attempts (see Measured), and two tabs stopped it one time in two. One page of the Brain for each browser is the safe number.
 
@@ -120,13 +120,13 @@ md`## Who can call
 
 The core decides who can call a method. This service does not decide. It keeps the rows of each caller apart, and records who started the chain of calls in \`origin\`.
 
-The rule of the first eleven methods is \`caller.trusted || caller.kind in ["worker", "deployer"]\` (\`who: "workers"\`): the owner, a token that names the method, an account with a grant, and a Worker of this Brain. A recipe Worker must also name the method in its \`calls\`. A member's Worker calls with its author's grant and no more. The owner can put a different rule with \`rule.put\`. A call with no caller has no owner and gets 401 \`AuthRequired\` from this service, whatever the rule: a rule that lets everyone in would give all of them one browser.
+The rule of the first twelve methods is \`caller.trusted || caller.kind in ["worker", "deployer"]\` (\`who: "workers"\`): the owner, a token that names the method, an account with a grant, and a Worker of this Brain. A recipe Worker must also name the method in its \`calls\`. A member's Worker calls with its author's grant and no more. The owner can put a different rule with \`rule.put\`. A call with no caller has no owner and gets 401 \`AuthRequired\` from this service, whatever the rule: a rule that lets everyone in would give all of them one browser.
 
 \`settings\`, \`liveView\`, \`all\` and \`end\` are \`caller.session\`, the owner's own session, and the owner cannot put a different rule for them. \`all\` and \`end\` are the only methods that reach the browser of a different caller.
 
-Addresses. \`open\`, \`goto\` and \`run\` refuse an address that is not \`http:\` or \`https:\`, \`localhost\`, a name that ends in \`.localhost\`, \`.internal\` or \`.local\`, and a private or link-local IP address. Only the address in the call is read. A redirect, and what the page loads by itself, are not checked. The browser runs in Cloudflare's network and not in the Brain's.
+Addresses. \`open\`, \`goto\` and \`run\` refuse an address that is not \`http:\` or \`https:\`, \`localhost\`, a name that ends in \`.localhost\`, \`.internal\` or \`.local\`, and a private or link-local IP address. Only the address in the call is read. A redirect, and what the page loads by itself, are not checked. \`browser.cdp\` checks no address: its caller sends the browser's own commands and can go to any address, \`file:\`, \`chrome:\` and a private IP address included. The caller owns that browser. The browser runs in Cloudflare's network and not in the Brain's.
 
-If a later build signs a page in to the Brain, \`eval\` and \`goto\` on that page must be for the owner's own session only: a caller that can run JavaScript in a signed-in page can do what the page can do.
+If a later build signs a page in to the Brain, \`eval\`, \`goto\` and \`cdp\` on that page must be for the owner's own session only: a caller that can run JavaScript in a signed-in page can do what the page can do.
 
 The assistant has no tool for this service. A page reads text from any address, and that text would come into the assistant's turn.`
 // %%
@@ -400,6 +400,8 @@ browserOps = {
         await tomb(p.name, reason, at);
         gone.push(p.name);
       }
+    // Why a browser ended, in Workers Logs.
+    if (b) log({ at: "browser.end", session: sid, owner, reason, pages: gone.length, seconds: Math.round((at - b.opened) / 1000) });
     return gone;
   };
   // When the bought time has passed, the browser is closed, whatever tabs it has. Each call and the tick do this first.
@@ -419,9 +421,11 @@ browserOps = {
     if (up.length >= s.maxBrowsers) throw stop(429, "TooManyBrowsers", `${s.maxBrowsers} browsers are up. That is the limit. The setting is maxBrowsers.`);
     if (up.filter((r) => r.owner === owner).length >= s.maxPerOwner) throw stop(429, "TooManyBrowsers", `${owner} has ${s.maxPerOwner} browsers up. That is the limit. The setting is maxPerOwner.`);
     const r = await http("/v1/devtools/browser?keep_alive=" + L.keepAlive, "POST").catch((e) => ({ status: 0, body: String(e) }));
+    if (r.status !== 200 || !r.body || !r.body.sessionId) log({ at: "browser.start-failed", owner, status: r.status });
     if (r.status !== 200 || !r.body || !r.body.sessionId) throw stop(502, "BrowserUnavailable", `Browser Run did not start a browser: ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
     const at = Date.now(), b = { sessionId: r.body.sessionId, opened: at, counted: at, by: owner };
     await rows.put("browser/" + b.sessionId, b);
+    log({ at: "browser.start", session: b.sessionId, owner });
     return { browser: b, cold: true };
   };
   // One start at a time. The row starting/shared is the lock, in one isolate and across isolates: a call that does not
@@ -721,10 +725,14 @@ browserOps = {
     // on as it is: this service relays no frame and holds no connection. The socket closes when the browser ends.
     cdp: async () => {
       await timed();
-      const { browser: b } = await theBrowser();
-      const r = await browser.fetch("/v1/devtools/browser/" + b.sessionId, { headers: { Upgrade: "websocket" } }).catch(() => null);
-      if (!r || !r.webSocket) throw stop(502, "BrowserUnavailable", "Browser Run gave no socket for the browser: " + (r ? r.status : "no answer"));
-      return r;
+      // A browser that died while its row is still here: its rows go and one new browser is started, as open does.
+      for (let attempt = 0; ; attempt++) {
+        const { browser: b } = await theBrowser();
+        const r = await browser.fetch("/v1/devtools/browser/" + b.sessionId, { headers: { Upgrade: "websocket" } }).catch(() => null);
+        if (r && r.webSocket) return r;
+        if (attempt || (await alive(b.sessionId))) throw stop(502, "BrowserUnavailable", "Browser Run gave no socket for the browser: " + (r ? r.status : "no answer"));
+        await end(b.sessionId, "browser ended", Date.now(), false);
+      }
     },
     // One page for one job: open, wait for load, read, close. It needs bought time for the whole of its timeout.
     // The tab closes when the job throws or runs out of time.
@@ -1204,7 +1212,7 @@ test_browser_declares_what_it_needs = {
   const through = (rule, params = {}) => Object.entries(callers).filter(([, w]) => decide(rule, { caller: callerOf(w), request: { method: "", path: "", verb: "POST", params } }).allow).map(([n]) => n).join(" ");
   const N = "com.lopecode.brain.browser.";
   // A Worker of the Brain is let through: the service is for each process of the Brain. (A recipe Worker also names the method in its calls.)
-  for (const m of ["open", "extend", "run", "list", "status", "close", "goto", "eval", "text", "screenshot", "logs"]) expect([m, through(meta.access[N + m])]).toEqual([m, "owner token granted worker"]);
+  for (const m of ["open", "extend", "run", "list", "status", "close", "goto", "eval", "text", "screenshot", "logs", "cdp"]) expect([m, through(meta.access[N + m])]).toEqual([m, "owner token granted worker"]);
   // The limits, the Live View link, and the two methods that reach the browsers of each owner: the owner's own session, and the owner cannot put a different rule.
   for (const m of ["settings", "liveView", "all", "end"]) expect([m, through(meta.access[N + m]), meta.access[N + m].fixed]).toEqual([m, "owner", true]);
   // One method has a price, and it is built from the limits.
@@ -1626,6 +1634,11 @@ test_browser_cdp_is_the_socket_of_the_callers_own_browser = {
   // Each caller's socket is on its own browser.
   const sockets = (scope) => rig.fake.sessions.get(rig.session(scope)).sockets.size;
   expect([sockets("owner/default"), sockets("worker:brain-x-reader/default")]).toEqual([1, 1]);
+  // The browser dies and its row is still here: the next call starts a new browser and answers with its socket.
+  const dead = rig.session("owner/default");
+  rig.fake.kill(dead);
+  const again = await ask("owner"), now = rig.session("owner/default");
+  expect([again.data.status, now !== dead, sockets("owner/default")]).toEqual([101, true, 1]);
   expect((await ask("anonymous")).status).toBe(401);
   return "426 with no upgrade, 409 with no time, one socket on each caller's own browser";
 }
@@ -1662,7 +1675,7 @@ test_browser_panel_shows_pages_and_the_usage = {
   return "1 page, 2 browsers, 9 buttons";
 }
 // %%
-import {cloudflare, rows, browser, hono, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, browser, log, hono, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

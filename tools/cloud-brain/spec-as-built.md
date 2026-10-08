@@ -2436,3 +2436,57 @@ socket closed 13.3 s after paidUntil, which an extend moved while it was open
 Tests, r=232: brain-browser 16/16 (one new, `test_browser_cdp_is_the_socket_of_the_callers_own_browser`); 324/324 in the 25 modules of the page that have tests.
 
 Not verified: a deploy of the core or the kernel under an open socket; a socket open longer than 10 minutes; a member as the caller. A page in a web browser cannot open a socket as a person, because it cannot send `Authorization` and the kernel reads no cookie.
+
+## Logs: Cloudflare Workers Logs, one line a call, and a token the deployer mints (2026-10-08, to 21:12 CEST)
+
+Tom, 2026-10-08: "I think we just need the minimum to reuse what it offers, but make it available as a service so other things can read it (if they have permissions)"; and on the credential: "the service declares the CF permissions it needs, and the deployer mints an API token for it connected to a secret". The research is `tools/cloud-brain/logging-research.md`.
+
+- **Built:** logs on and the invocation line off for each Worker (deployer); one line a call (core); the `log` cell and an error line for a throw (wrapper); the `cloudflare: [GROUP]` option and the `cloudflareApi` cell (wrapper, deployer); `brain-x-logs` with `logs.query`, `logs.keys`, `logs.values`; a Logs panel in the page.
+- **Deployed on cb4,** 18:50 to 18:57 UTC: deployer `476326ce1a3b`, then `abd9c093a217` and `703c98ca61f5` (19:11 UTC); core `380c07ca2901`; kernel `aad415d3dfad`; `brain-x-browser` `583ff19b52a8`; `brain-x-logs` `a00cc857bcb3`; each other Worker again from its kept source; the page `f72591c8205c` at 19:11 UTC.
+
+### What went wrong
+
+The first deploy left 14 of 17 scripts with no logs:
+
+```
+cb4                    undefined
+cb4-core               undefined
+cb4-deployer           {"enabled":true,…"invocation_logs":false}
+cb4-x-logs             {"enabled":true,…"invocation_logs":false}
+```
+
+The three with logs were the three that were uploaded as new scripts. Cloudflare takes `observability` from the upload of a script and ignores it in the upload of a version, and the fake Cloudflare of the tests took it from both, so the test passed. Now: `ensureLogs` sets it with `PATCH …/script-settings` before a version is uploaded, `redistil` sets it for each Worker that is deployed, and the fake drops it from a version. After `redistil`, 18:57:00 UTC, each of the 17 scripts had it.
+
+The second deploy of the page was put back, "health check failed after go-live", and passed when applied again 3 minutes later with no change. The logs had the put-back line and no cause: the deployer did not write what the health check answered. It now writes `deploy.unhealthy` with the last answer (a status, or the hash that answered). No such failure has happened since, so the cause is still not known.
+
+The research said the `cf-ray` that a Worker reads is the header a caller receives. It is not: the Worker reads `a4775ef6ddbee513` and the caller receives `a4775ef6ddbee513-TXL`. The panel takes the part after the hyphen off.
+
+### Measured on cb4, 18:57 to 19:05 UTC, owner's session
+
+```
+401  logs.query, no caller     {"at":"call","caller":"anonymous","method":"logs.query","worker":"brain-x-logs","error":"AuthRequired","rule":"deny","by":"manifest","status":401,"ms":0}
+402  browser.extend, $0.0001   {"at":"call","caller":"owner","via":"session","method":"browser.extend","worker":"brain-x-browser","error":"OutOfCredits","rule":"allow","by":"manifest","status":402,"price":0.0015}
+     browser logs, 60 s        {"at":"browser.start","session":"3973a3cd…","owner":"owner"}  then  {"at":"browser.end","reason":"time ran out","pages":0,"seconds":99}
+     deploy of a broken v2     {"at":"deploy.put-back","target":"brain-x-logcheck","reason":"POST /workers/scripts/cb4-x-logcheck/versions 400 [{\"code\":10021,\"message\":\"Uncaught Error: boom at start\\n  at lib/boom.js:1:81\\n\"…"}
+500  logcheck.throw            cb4-core {"at":"call",…,"status":500,"ms":56}  and  cb4-x-logcheck {"at":"throw","error":"RangeError","message":"logcheck threw on purpose","stack":…}: one ray, one trace id
+```
+
+- The owner's allowance was put back to the default, $1, after the 402.
+- **A line could be read 15.9, 14.1 and 11.4 s after its call** (3 calls, polled each second). The research measured "between 10 and 45 s".
+- **A Worker and its own lines:** with the owner's rule `caller.session || (caller.kind == "worker" && request.params.worker == caller.worker)` the scratch Worker read 4 lines, all of `cb4-x-logcheck`, and got 401 for `brain-core`. Before the rule both were 401. The rule was removed after.
+- **The token:** Cloudflare lists `cb4-x-logs: minted by cb4-deployer`, one policy, one group `Workers Observability Read`, to 2027-01-06. The value cannot be read back, so a second token of the same policy was made, tried and deleted: telemetry 200; script settings, script content and secrets 403; D1 401; a mint 403.
+- **No invocation line:** 0 lines of type `cf-worker-event`, 0 with the text `x-brain-deployer`, 0 with `authorization`, in 30 minutes.
+- **Volume:** 1184 lines in the 15.2 minutes after 18:57 UTC, with one tab of the Brain's page open: 1134 from the core, 30 from the kernel, 6 from the deployer. That is 112 000 a day and 3.4 million in 30 days, 17 % of the 20 million that the Paid plan includes; 3.1 million without this check's own 98 calls. By method: `secret.get` 328 (by `brain-x-bluesky`), `db.sql` 229 (by `brain-x-metrics`), `inbox.poll` 139. A whole hour was not measured.
+
+### Found in the logs
+
+The kernel throws `TypeError: Can't read from request stream after response has been sent` for a POST that the core refuses before it reads the body. It was there before; no log showed it. It is a question in the spec.
+
+### Not verified
+
+- On cb4: a roll of the token, a changed set of groups, a removal, a put-back that mints, and the approval page for `brain-x-logs` (it was deployed with the recovery key). Each is tested under `simulate` with a fake token API.
+- The Logs panel in the signed-in page of cb4. Its code ran in a test page with a client on cb4.
+- That a `queryId` of a saved query cannot widen a query. No saved query exists on the account, and the token cannot make one.
+- Logs of a scheduled run were seen (`browser.end` came from a tick); of a WebSocket, not.
+- The December 2026 prices of Workers Logs.
+- CPU cost of the line. Latency of `quota.get` and other calls was not compared before and after.

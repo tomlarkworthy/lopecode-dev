@@ -198,6 +198,102 @@ spendingPanel = {
   return htl.html`<div>${out}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${who}${daily}${allow}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${target}${price}${put}</div><div style="margin-top:6px">${press("Refresh", () => draw())}</div>${note}</div>`;
 }
 // %%
+md`## Logs
+
+What the Workers of this Brain wrote in the last 7 days, read from Cloudflare. Click a row to see each line of that call. Ray is the \`cf-ray\` header of an answer.`
+// %%
+logsPanel = logsView({ client: brain ? client : null })
+// %%
+// The body of logs.query for the panel's inputs. A ray is the cf-ray of an answer; a trace is Cloudflare's id for one call through each Worker.
+logsQuery = ({ minutes = 60, status = null, text = "", id = "", now = Date.now(), limit = 200 } = {}) => {
+  const is = (key, operation, value, type = "string") => ({ key, operation, type, value });
+  const hex = String(id).trim().replace(/-[A-Z]{3,4}$/, "");
+  return {
+    queryId: "brain-logs-panel",
+    timeframe: { from: now - minutes * 60000, to: now },
+    view: "events",
+    limit,
+    parameters: {
+      filters: [
+        ...(status >= 100 ? [is("status", "gte", status, "number")] : []),
+        ...(hex ? [{ kind: "group", filterCombination: "or", filters: [is("ray", "starts_with", hex), is("$metadata.rayId", "eq", hex), is("$metadata.traceId", "eq", hex)] }] : [])
+      ],
+      ...(String(text).trim() ? { needle: { value: String(text).trim(), isRegex: false, matchCase: false } } : {})
+    }
+  };
+}
+// %%
+// One row a line, from Cloudflare's answer.
+logsRows = (answer) =>
+  ((((answer || {}).result || {}).events || {}).events || []).map((e) => {
+    const s = e.source || {}, m = e.$metadata || {};
+    const rest = Object.entries(typeof s === "object" ? s : { message: s }).filter(([k]) => !["at", "worker", "ray", "status", "level"].includes(k)).map(([k, v]) => k + "=" + (v !== null && typeof v === "object" ? JSON.stringify(v) : v)).join(" ");
+    return { time: e.timestamp, worker: (e.$workers || {}).scriptName || m.service || "", level: m.level || "", at: s.at || "", status: s.status ?? "", line: (rest || m.message || "").slice(0, 400), trace: m.traceId || "" };
+  }).sort((a, b) => a.time - b.time)
+// %%
+logsView = ({ client, now = () => Date.now() } = {}) => {
+  const muted = "color:var(--theme-foreground-muted)", cell = "padding:2px 12px 2px 0;vertical-align:top";
+  if (!client) return htl.html`<i style=${muted}>Sign in as the owner to read the logs.</i>`;
+  const range = Inputs.select(new Map([["15 minutes", 15], ["1 hour", 60], ["6 hours", 360], ["24 hours", 1440], ["7 days", 10080]]), { label: "Last", value: 60 });
+  const worker = Inputs.text({ label: "Worker", placeholder: "brain-core, brain-x-NAME" });
+  const status = Inputs.number({ label: "Status ≥", min: 100, max: 599, step: 1 });
+  const text = Inputs.text({ label: "Text" });
+  const id = Inputs.text({ label: "Ray or trace", placeholder: "the cf-ray of an answer" });
+  const out = htl.html`<div style="margin-top:8px;overflow-x:auto"></div>`, note = htl.html`<div style=${muted + ";margin-top:6px"}></div>`;
+  const empty = (input) => {
+    const i = input.querySelector("input");
+    i.value = "";
+    i.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+  const run = async () => {
+    note.textContent = "Asking Cloudflare.";
+    try {
+      const name = worker.value.trim();
+      const rows = logsRows(await client.procedure("logs.query", logsQuery({ minutes: range.value, status: Number(status.querySelector("input").value), text: text.value, id: id.value, now: now() }), name ? { params: { worker: name } } : {}));
+      // The other filters are emptied: the lines of one call come from more than one Worker.
+      const pick = (trace) => () => ((id.value = trace), [worker, status, text].forEach(empty), run());
+      out.replaceChildren(htl.html`<table style="border-collapse:collapse;margin:0;font-size:0.85em;max-width:none;width:100%">
+        <tr style=${muted}><td style=${cell}>UTC</td><td style=${cell}>Worker</td><td style=${cell}>at</td><td style=${cell}>status</td><td style=${cell}>line</td></tr>
+        ${rows.map((r) => htl.html`<tr data-trace=${r.trace} style=${"cursor:pointer" + (r.level === "error" ? ";color:#e5484d" : "")} onclick=${pick(r.trace)}><td style=${cell + ";white-space:nowrap"}>${new Date(r.time).toISOString().slice(5, 23).replace("T", " ")}</td><td style=${cell}>${r.worker}</td><td style=${cell}>${r.at}</td><td style=${cell}>${r.status}</td><td style=${cell + ";font-family:var(--monospace);overflow-wrap:anywhere"}>${r.line}</td></tr>`)}
+      </table>`);
+      note.textContent = rows.length ? `${rows.length} lines. A line can be read about 15 seconds after it is written.` : "No lines. A line can be read about 15 seconds after it is written.";
+    } catch (e) {
+      note.textContent = "Not read: " + e.message;
+    }
+  };
+  return htl.html`<div>${range}${worker}${status}${text}${id}<div style="margin-top:6px">${press("Read", run)}</div>${note}${out}</div>`;
+}
+// %%
+test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace = {
+  const calls = [];
+  const answer = { result: { events: { events: [
+    { timestamp: 2000, source: { at: "call", ray: "9a1f-FRA", worker: "brain-x-echo", status: 401, error: "AuthRequired", rule: "deny", by: "owner" }, $workers: { scriptName: "cb4-core" }, $metadata: { traceId: "trace-1", level: "info" } },
+    { timestamp: 1000, source: { at: "throw", message: "broke" }, $workers: { scriptName: "cb4-x-echo" }, $metadata: { traceId: "trace-2", level: "error" } }
+  ] } } };
+  const client = { procedure: async (name, body, opts) => (calls.push([name, body, opts]), answer) };
+  const el = logsView({ client, now: () => 3600000 });
+  const set = (label, value) => { const i = [...el.querySelectorAll("label")].find((l) => l.textContent === label).parentElement.querySelector("input:not([type=range]), select"); i.value = value; i.dispatchEvent(new Event("input", { bubbles: true })); };
+  set("Worker", "brain-core");
+  set("Status ≥", "400");
+  set("Text", "AuthRequired");
+  const read = [...el.querySelectorAll("button")].find((b) => b.textContent === "Read");
+  read.click();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(calls[0]).toEqual(["logs.query", { queryId: "brain-logs-panel", timeframe: { from: 0, to: 3600000 }, view: "events", limit: 200, parameters: { filters: [{ key: "status", operation: "gte", type: "number", value: 400 }], needle: { value: "AuthRequired", isRegex: false, matchCase: false } } }, { params: { worker: "brain-core" } }]);
+  // Oldest first, and the fields of the line that are not columns are in the last column.
+  const rows = [...el.querySelectorAll("tr[data-trace]")];
+  expect(rows.map((r) => r.children[1].textContent + " " + r.children[2].textContent)).toEqual(["cb4-x-echo throw", "cb4-core call"]);
+  expect(rows[1].children[4].textContent).toBe("error=AuthRequired rule=deny by=owner");
+  // A click on a row asks for each line of its trace, of each Worker.
+  rows[1].click();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(calls[1].slice(1)).toEqual([{ queryId: "brain-logs-panel", timeframe: { from: 0, to: 3600000 }, view: "events", limit: 200, parameters: { filters: [{ kind: "group", filterCombination: "or", filters: [{ key: "ray", operation: "starts_with", type: "string", value: "trace-1" }, { key: "$metadata.rayId", operation: "eq", type: "string", value: "trace-1" }, { key: "$metadata.traceId", operation: "eq", type: "string", value: "trace-1" }] }] } }, {}]);
+  // The colo is taken off a cf-ray: Cloudflare keeps the id without it.
+  expect(logsQuery({ id: "9a1f00aa11bb22cc-FRA", now: 0 }).parameters.filters[0].filters[1].value).toBe("9a1f00aa11bb22cc");
+  expect(logsView({ client: null }).textContent).toBe("Sign in as the owner to read the logs.");
+  return rows.length + " rows";
+}
+// %%
 md`## People
 
 The owner, the members the owner added, and anyone who linked an address and has not been added. A member's messages are answered; **Methods** names what else that member's turns may call. Reference: \`@tomlarkworthy/brain-kernel\`.`
@@ -958,6 +1054,8 @@ installBrain = async ({ seed, token, handle, base = "brain", html = null, log = 
     compatibility_date: "2026-10-01",
     compatibility_flags: [...new Set([...deployerEmit.meta.flags, ...wrapperFlags])],
     migrations: { new_tag: "v1", new_sqlite_classes: ["Rows"] },
+    // Workers Logs on, Cloudflare's line per invocation off: that line stores request headers (see OBSERVABILITY in brain-deployer).
+    observability: { enabled: true, logs: { enabled: true, invocation_logs: false } },
     bindings: [
       { type: "secret_text", name: "CF_API_TOKEN", text: token },
       { type: "secret_text", name: "RECOVERY_KEY", text: recoveryKey },

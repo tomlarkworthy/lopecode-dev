@@ -94,7 +94,7 @@ core_announce = {
 coreApp = {
   const app = new hono.Hono();
   const NS = "/xrpc/com.lopecode.brain.";
-  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const fail = (c, status, error, message) => (c.set("error", error), c.json({ error, message }, status));
   const keys = new Map();
   // What the core forwards to: recipes, and system Workers such as the database.
   const routed = (r) => r.role === "recipe" || r.role === "system" || r.role === "member";
@@ -174,12 +174,37 @@ coreApp = {
     if (!short || !workers.has(short)) return;
     await workers.fetch(short, new Request(`https://${short}.internal/xrpc/${RECORD}`, { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "worker:brain-core" }, body: JSON.stringify(batch) }));
   };
+  // A method as it is counted and logged: the name after com.lopecode.brain., or the path a service declared.
+  // Names nobody declared are counted as one, so a stranger cannot grow the table.
+  const nameOf = (c, status) => {
+    const url = new URL(c.req.url), nsid = url.pathname.startsWith(NS) ? url.pathname.slice(NS.length) : null;
+    return !c.get("target") && [404, 501].includes(status) ? "(unknown)" : nsid || c.get("path") || url.pathname;
+  };
+  // One line a call, in Workers Logs: Cloudflare keeps it 7 days and logs.query reads it. The keys are the ones written
+  // here and no others: names and decisions. Never a header, a body, a parameter's value or a secret.
+  //   ray     the cf-ray of the call from the internet this one is part of; the kernel passes it on
+  //   caller  who called, via how (session, or the member's Worker); origin: who started the chain
+  //   worker  the Worker the call was forwarded to, or brain-core
+  //   error   the XRPC error name of an answer of 400 and above
+  //   price   US dollars, when the method has a price
+  //   rule    allow, deny or error; by: what decided. manifest (the service's rule), owner (the owner's rule),
+  //           fixed (a rule the service fixed), calls (what a Worker declared), grant (a member's), core (its own methods)
+  const errorOf = (c, res) =>
+    c.get("error") || (res.status >= 400 && /json/.test(res.headers.get("content-type") || "") ? res.clone().json().then((b) => (b && typeof b.error === "string" ? b.error.slice(0, 80) : null), () => null) : null);
+  const say = async (c, started, status, error) => {
+    const who = c.get("who"), origin = c.get("origin") || who, path = new URL(c.req.url).pathname;
+    // A method by its name. A path by the pattern a service declared, so what a caller put in a path is not written.
+    const nsid = path.startsWith(NS) ? path.slice(NS.length) : null;
+    console.log({
+      at: "call", ray: (c.req.header("x-brain-ray") || "").slice(0, 64), caller: who.caller, via: who.via || "", origin: origin.caller,
+      method: nsid ? nsid.slice(0, 80) : c.get("path") || "(unknown)", worker: c.get("target") || c.get("routed") || "brain-core", status, error: (await error) || null, ms: Date.now() - started,
+      price: c.get("price") ?? null, rule: c.get("rule") || (status === 401 || status === 403 ? "deny" : status < 400 ? "allow" : ""), by: c.get("by") || "core"
+    });
+  };
   const observe = async (c, started) => {
-    const url = new URL(c.req.url), target = c.get("target"), status = c.res.status, ms = Date.now() - started;
-    const nsid = url.pathname.startsWith(NS) ? url.pathname.slice(NS.length) : null;
-    if (nsid && nsid.startsWith("metrics.")) return;
-    // Names nobody declared are counted as one, so a stranger cannot grow the table.
-    const method = !target && [404, 501].includes(status) ? "(unknown)" : nsid || c.get("path") || url.pathname;
+    const target = c.get("target"), status = c.res.status, ms = Date.now() - started;
+    const method = nameOf(c, status);
+    if (method.startsWith("metrics.")) return;
     const who = c.get("who").caller, caller = /^(token|did):/.test(who) ? who.split(":")[0] : who;
     // The version that answered: the forwarded Worker's own header, or this core's.
     const by = (c.res.headers.get("x-brain-served-by") || "").split(",")[0].trim();
@@ -271,18 +296,18 @@ coreApp = {
     const started = Date.now();
     const who = await identify(c.req.raw);
     c.set("who", who);
-    if (who.member) {
-      const no = await asAuthor(c, who.member);
-      if (no) return no;
-    } else if (who.caller.startsWith("worker:")) {
-      const no = await asDeclared(c, who.caller.slice("worker:".length));
-      if (no) return no;
+    const no = who.member ? await asAuthor(c, who.member) : who.caller.startsWith("worker:") ? await asDeclared(c, who.caller.slice("worker:".length)) : null;
+    if (no) {
+      c.set("rule", "deny");
+      c.set("by", who.member ? "grant" : "calls");
+      await say(c, started, no.status, c.get("error"));
+      return no;
     }
     // Only a Worker known by its key can carry an origin. A member's Worker is checked as its author and keeps the origin too.
     const now = c.get("who");
     c.set("origin", (who.keyed && (await originFrom(c.req.header("x-brain-context"), who.keyed))) || { caller: now.caller, via: now.via || "" });
     await next();
-    const done = observe(c, started).catch(() => null);
+    const done = Promise.all([say(c, started, c.res.status, errorOf(c, c.res)), observe(c, started)]).catch(() => null);
     try {
       c.executionCtx.waitUntil(done);
     } catch {}
@@ -475,9 +500,11 @@ coreApp = {
     c.set("target", route.worker);
     if (!workers.has(short)) return fail(c, 502, "UpstreamUnavailable", `${route.worker} is not bound to the core`);
     const headers = new Headers(c.req.raw.headers);
+    const ray = c.req.header("x-brain-ray");
     for (const name of [...headers.keys()]) if (name.startsWith("x-brain-")) headers.delete(name);
     headers.set("x-brain-caller", who.caller);
     if (who.via) headers.set("x-brain-via", who.via);
+    if (ray) headers.set("x-brain-ray", ray);
     // The origin in clear, for a Worker that decides rules of its own, and the reference it sends back on a call it makes for this one.
     const origin = c.get("origin");
     headers.set("x-brain-origin", origin.caller);
@@ -561,6 +588,7 @@ coreApp = {
     if (!expression) return forward(route, c);
     const p = await pricing(), price = priceValue(expression, context);
     if (price.error) return fail(c, 403, "Forbidden", `the price of ${target} could not be decided: ${price.error}`);
+    c.set("price", price.usd);
     if (price.usd > p.perCall) return fail(c, 402, "PriceOverCeiling", `${target} costs ${money(price.usd)} for this call. The most one call may cost is ${money(p.perCall)}`);
     const u = micro(price.usd);
     if (!u) return forward(route, c);
@@ -686,6 +714,7 @@ coreApp = {
       const rule = method || path;
       if (!rule) continue;
       if (path) c.set("path", path.path);
+      c.set("routed", route.worker);
       if (method && (method.type === "query") !== (c.req.method === "GET")) return fail(c, 405, "InvalidRequest", `${nsid} is a ${method.type}`);
       // A member's Worker answers while its author is a member and the owner has not switched it off.
       if (route.role === "member") {
@@ -699,6 +728,8 @@ coreApp = {
       const set = (await settings.list("rule/")).find((r) => r.key === "rule/" + (nsid || path.path))?.value;
       const context = { caller: callerOf(who), origin: callerOf(c.get("origin")), request: { method: nsid || "", path: url.pathname, verb: c.req.method, params: Object.fromEntries(url.searchParams) } };
       const verdict = decide(set ? { allow: set.allow } : rule, context);
+      c.set("rule", verdict.allow ? "allow" : verdict.error ? "error" : "deny");
+      c.set("by", set ? "owner" : rule.fixed ? "fixed" : "manifest");
       // Allowed, then priced: a call with a price is charged to its origin's account before it is forwarded.
       if (verdict.allow) return priced(c, route, nsid || path.path, rule, context);
       return verdict.error ? fail(c, 403, "Forbidden", "the rule for this could not be decided") : fail(c, 401, "AuthRequired", "not allowed by the rule for this");
@@ -1455,7 +1486,54 @@ test_a_members_worker_spends_its_authors_credits = {
   return "the author pays";
 }
 // %%
-import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, cel, settings, simulate, sha256, xrpc, backend} from "@tomlarkworthy/cloudflare-iac"
+test_one_log_line_a_call_with_these_keys_and_no_secret = {
+  const rig = await coreRig();
+  const KEYS = ["at", "by", "caller", "error", "method", "ms", "origin", "price", "ray", "rule", "status", "via", "worker"];
+  const ray = (n) => ({ "x-brain-ray": "ray-keys-" + n });
+  const lines = await logged(async () => {
+    // Secret-looking text in a parameter, a header and a body.
+    await rig.owner("echo.say?code=SEKRET-PARAM", { password: "SEKRET-BODY" }, { ...ray(1), "x-api-key": "SEKRET-HEADER", cookie: "s=SEKRET-COOKIE" });
+    await rig.anonymous("echo.say", { n: 1 }, ray(2));
+    await rig.owner("rule.put", { target: "com.lopecode.brain.echo.read", allow: "caller.session" }, ray(3));
+    await rig.owner("/not/declared/SEKRET-PATH", undefined, ray(8));
+    await rig.anonymous("echo.read?token=SEKRET-PARAM", undefined, ray(4));
+    await rig.as("owner", "token")("echo.key", undefined, ray(5));
+    await rig.worker("nobody.declared", {}, ray(6));
+    await rig.owner("/hooks/echo?sig=SEKRET-PARAM", "SEKRET-BODY", ray(7));
+  });
+  const mine = lines.filter((l) => l.at === "call" && String(l.ray).startsWith("ray-keys-")).sort((a, b) => (a.ray < b.ray ? -1 : 1));
+  expect(mine.length).toBe(8);
+  for (const l of mine) expect(Object.keys(l).sort()).toEqual(KEYS);
+  expect(JSON.stringify(mine)).not.toMatch(/SEKRET|password|code=|token=|sig=/);
+  const pick = (l) => [l.caller, l.via, l.origin, l.method, l.worker, l.status, l.error, l.rule, l.by];
+  expect(mine.map(pick)).toEqual([
+    ["owner", "session", "owner", "echo.say", "brain-x-echo", 200, null, "allow", "manifest"],
+    ["anonymous", "", "anonymous", "echo.say", "brain-x-echo", 401, "AuthRequired", "deny", "manifest"],
+    ["owner", "session", "owner", "rule.put", "brain-core", 200, null, "allow", "core"],
+    ["anonymous", "", "anonymous", "echo.read", "brain-x-echo", 401, "AuthRequired", "deny", "owner"],
+    ["owner", "token", "owner", "echo.key", "brain-x-echo", 200, null, "allow", "fixed"],
+    ["worker:brain-x-echo", "", "worker:brain-x-echo", "nobody.declared", "brain-core", 501, "MethodNotImplemented", "", "core"],
+    ["owner", "session", "owner", "/hooks/echo", "brain-x-echo", 200, null, "allow", "manifest"],
+    ["owner", "session", "owner", "(unknown)", "brain-core", 404, null, "", "core"]
+  ]);
+  expect(mine.every((l) => typeof l.ms === "number" && l.price === null)).toBe(true);
+  return mine.length + " lines, " + KEYS.length + " keys each";
+}
+// %%
+test_the_log_line_of_a_priced_call_has_its_price = {
+  const rig = await coreRig();
+  await rig.owner("price.put", { target: "com.lopecode.brain.echo.say", price: "0.25" });
+  await rig.owner("quota.put", { who: "owner", daily: 0.3 });
+  const lines = await logged(async () => {
+    await rig.owner("echo.say", {}, { "x-brain-ray": "ray-price-1" });
+    await rig.owner("echo.say", {}, { "x-brain-ray": "ray-price-2" });
+  });
+  const mine = lines.filter((l) => l.at === "call" && String(l.ray).startsWith("ray-price-")).sort((a, b) => (a.ray < b.ray ? -1 : 1));
+  expect(mine.map((l) => [l.status, l.error, l.price, l.rule, l.by])).toEqual([[200, null, 0.25, "allow", "manifest"], [402, "OutOfCredits", 0.25, "allow", "manifest"]]);
+  return "200 then 402, each with the price";
+}
+// %%
+import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, cel, settings, simulate, sha256, xrpc, backend, logged} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%
