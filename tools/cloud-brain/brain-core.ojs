@@ -193,11 +193,12 @@ coreApp = {
     c.get("error") || (res.status >= 400 && /json/.test(res.headers.get("content-type") || "") ? res.clone().json().then((b) => (b && typeof b.error === "string" ? b.error.slice(0, 80) : null), () => null) : null);
   const say = async (c, started, status, error) => {
     const who = c.get("who"), origin = c.get("origin") || who, path = new URL(c.req.url).pathname;
-    // A method by its name. A path by the pattern a service declared, so what a caller put in a path is not written.
+    // A method by its name as it is counted (nameOf), so a name nobody declared is "(unknown)" and not what a stranger
+    // typed. A path by the pattern a service declared, so what a caller put in a path is not written.
     const nsid = path.startsWith(NS) ? path.slice(NS.length) : null;
     console.log({
       at: "call", ray: (c.req.header("x-brain-ray") || "").slice(0, 64), caller: who.caller, via: who.via || "", origin: origin.caller,
-      method: nsid ? nsid.slice(0, 80) : c.get("path") || "(unknown)", worker: c.get("target") || c.get("routed") || "brain-core", status, error: (await error) || null, ms: Date.now() - started,
+      method: nsid || c.get("path") ? nameOf(c, status).slice(0, 80) : "(unknown)", worker: c.get("target") || c.get("routed") || "brain-core", status, error: (await error) || null, ms: Date.now() - started,
       price: c.get("price") ?? null, rule: c.get("rule") || (status === 401 || status === 403 ? "deny" : status < 400 ? "allow" : ""), by: c.get("by") || "core"
     });
   };
@@ -493,6 +494,9 @@ coreApp = {
   app.post(NS + "rows.delete", owner, async (c) => c.json({ deleted: await rows.delete(rowKey(c, await c.req.json())) }));
 
   // getInfo for a named Worker, then everything a Worker declared.
+  // A body of a known small size is read before it is sent on. A stream that the next Worker does not read to its end
+  // throws "Can't read from request stream after response has been sent" here once the answer is out (cb4, 2026-10-08).
+  const bodyOf = async (c) => (+(c.req.header("content-length") || Infinity) <= 1e6 ? c.req.raw.arrayBuffer() : c.req.raw.body);
   const forward = async (route, c, path) => {
     const url = new URL(c.req.url), who = c.get("who");
     const person = who.caller.startsWith("did:") ? await rows.get("person/" + who.caller) : null;
@@ -517,7 +521,7 @@ coreApp = {
       headers.set("x-brain-tags", JSON.stringify(person.tags || []));
     }
     const bodied = !["GET", "HEAD"].includes(c.req.method);
-    return workers.fetch(short, new Request("https://" + short + ".internal" + (path || url.pathname + url.search), { method: c.req.method, headers, body: bodied ? c.req.raw.body : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
+    return workers.fetch(short, new Request("https://" + short + ".internal" + (path || url.pathname + url.search), { method: c.req.method, headers, body: bodied ? await bodyOf(c) : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
   };
   // Prices and credits. A method or a path may have a price: one CEL expression over the caller, the origin and the
   // request, which gives US dollars. The owner's price (price.put) stands in for the one a service declared. A call
@@ -1491,14 +1495,14 @@ test_one_log_line_a_call_with_these_keys_and_no_secret = {
   const KEYS = ["at", "by", "caller", "error", "method", "ms", "origin", "price", "ray", "rule", "status", "via", "worker"];
   const ray = (n) => ({ "x-brain-ray": "ray-keys-" + n });
   const lines = await logged(async () => {
-    // Secret-looking text in a parameter, a header and a body.
+    // Secret-looking text in a parameter, a header, a body, a path and a method name nobody declared.
     await rig.owner("echo.say?code=SEKRET-PARAM", { password: "SEKRET-BODY" }, { ...ray(1), "x-api-key": "SEKRET-HEADER", cookie: "s=SEKRET-COOKIE" });
     await rig.anonymous("echo.say", { n: 1 }, ray(2));
     await rig.owner("rule.put", { target: "com.lopecode.brain.echo.read", allow: "caller.session" }, ray(3));
     await rig.owner("/not/declared/SEKRET-PATH", undefined, ray(8));
     await rig.anonymous("echo.read?token=SEKRET-PARAM", undefined, ray(4));
     await rig.as("owner", "token")("echo.key", undefined, ray(5));
-    await rig.worker("nobody.declared", {}, ray(6));
+    await rig.worker("nobody.SEKRET-NSID", {}, ray(6));
     await rig.owner("/hooks/echo?sig=SEKRET-PARAM", "SEKRET-BODY", ray(7));
   });
   const mine = lines.filter((l) => l.at === "call" && String(l.ray).startsWith("ray-keys-")).sort((a, b) => (a.ray < b.ray ? -1 : 1));
@@ -1512,7 +1516,7 @@ test_one_log_line_a_call_with_these_keys_and_no_secret = {
     ["owner", "session", "owner", "rule.put", "brain-core", 200, null, "allow", "core"],
     ["anonymous", "", "anonymous", "echo.read", "brain-x-echo", 401, "AuthRequired", "deny", "owner"],
     ["owner", "token", "owner", "echo.key", "brain-x-echo", 200, null, "allow", "fixed"],
-    ["worker:brain-x-echo", "", "worker:brain-x-echo", "nobody.declared", "brain-core", 501, "MethodNotImplemented", "", "core"],
+    ["worker:brain-x-echo", "", "worker:brain-x-echo", "(unknown)", "brain-core", 501, "MethodNotImplemented", "", "core"],
     ["owner", "session", "owner", "/hooks/echo", "brain-x-echo", 200, null, "allow", "manifest"],
     ["owner", "session", "owner", "(unknown)", "brain-core", 404, null, "", "core"]
   ]);

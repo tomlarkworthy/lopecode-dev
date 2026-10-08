@@ -59,13 +59,13 @@ Each Worker gets a key when it is first deployed. The deployer presents it to re
 // %%
 md`## Logs and Cloudflare permissions
 
-Added 2026-10-08. The deployer turns Workers Logs on for each script and Cloudflare's own line per invocation off (\`OBSERVABILITY\`, \`ensureLogs\`). The setting belongs to the script: Cloudflare took it from the upload of a new script and ignored it in the upload of a version, so 14 of the 17 scripts of cb4 kept no logs after the first deploy of this change. \`redistil\` sets it on each script that is already deployed.
+Added 2026-10-08. The deployer turns Workers Logs on for each script and Cloudflare's own line per invocation off (\`OBSERVABILITY\`, \`ensureLogs\`). The setting belongs to the script: Cloudflare took it from the upload of a new script and ignored it in the upload of a version, so 14 of the 17 scripts of cb4 kept no logs after the first deploy of this change. \`redistil\` sets it on each script the deployer has a row for, a member's Worker and one it keeps no source of included. A deploy of a member's Worker sets it too.
 
-A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`. The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted.
+A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`. The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted (\`remint\`). The row of what is live is written first, with no token; when the mint or the bind fails, the line is \`token.mint-failed\` and each tick of the deployer tries again.
 
 The deployer's own token needs the permission \`Account API Tokens Write\` to mint, and each group it hands out.
 
-The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`token.mint\`, \`token.roll\`, \`token.delete\`.`
+The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\`. A member's deploy writes \`deploy.deployed\` and \`deploy.put-back\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that was sent; it is not text a caller of a method sent.`
 // %%
 deployerOps = {
   const text = (v) => JSON.stringify(v);
@@ -545,6 +545,27 @@ deployerOps = {
     return { results };
   };
 
+  // Mints and binds the token of a Worker whose row says it declares groups and holds none. That makes one more
+  // version with the same code. A failure is logged and the tick tries again.
+  const remint = async (logical, rec) => {
+    try {
+      const t = await mint(logical, rec.cloudflare), held = { id: t.id, groups: t.groups, expires: t.expires };
+      try {
+        const now = (await api("GET", script(logical) + "/settings")).bindings;
+        const form = new FormData();
+        form.append("settings", new Blob([text({ bindings: [...now.filter((b) => b.name !== "CF_TOKEN").map((b) => ({ type: "inherit", name: b.name })), { type: "secret_text", name: "CF_TOKEN", text: t.value }] })], { type: "application/json" }));
+        await api("PATCH", script(logical) + "/settings", form);
+      } catch (e) {
+        await api("DELETE", "/tokens/" + t.id).catch(() => null);
+        throw e;
+      }
+      await rows.put("token/" + logical, held);
+      await audit("mint", logical, held);
+      await rows.put("worker/" + logical, { ...rec, token: t.id, version: await currentVersion(logical) });
+    } catch (e) {
+      log({ at: "token.mint-failed", target: logical, reason: String((e && e.message) || e).slice(0, 300) });
+    }
+  };
   const putBack = async (logical, rec, to, reason) => {
     await setVersions(logical, [{ version_id: to.version, percentage: 100 }]);
     const at = Date.now();
@@ -552,30 +573,20 @@ deployerOps = {
     const old = rec.previous && rec.previous.version === to.version && rec.previous.methods ? rec.previous : {};
     const next = { ...rec, ...old, hash: to.hash, version: to.version, previous: null, fails: 0, state: "deployed", lastError: reason, lastErrorAt: at, failedHash: rec.hash };
     // The version put back holds the token value of its own deploy. When that is not the token held now, it was
-    // deleted: a new one is minted and bound, which makes one more version with the same code.
+    // deleted, and the Worker holds no token until remint gives it one.
     const groups = next.cloudflare || [];
-    if ((groups.length || rec.token) && !("token" in old && old.token === (rec.token || null))) {
-      const had = await rows.get("token/" + logical);
-      if (groups.length) {
-        const t = await mint(logical, groups), held = { id: t.id, groups: t.groups, expires: t.expires };
-        const now = (await api("GET", script(logical) + "/settings")).bindings;
-        const form = new FormData();
-        form.append("settings", new Blob([text({ bindings: [...now.filter((b) => b.name !== "CF_TOKEN").map((b) => ({ type: "inherit", name: b.name })), { type: "secret_text", name: "CF_TOKEN", text: t.value }] })], { type: "application/json" }));
-        await api("PATCH", script(logical) + "/settings", form);
-        await rows.put("token/" + logical, held);
-        await audit("mint", logical, held);
-        Object.assign(next, { token: t.id, version: await currentVersion(logical) });
-      } else {
-        await rows.delete("token/" + logical);
-        next.token = null;
-      }
-      if (had) await dropToken(logical, had);
-    }
+    const stale = (groups.length || rec.token) && !("token" in old && old.token === (rec.token || null));
+    if (stale) next.token = null;
+    // The row first: what is live is recorded before a call to Cloudflare that can fail.
     log({ at: "deploy.put-back", target: logical, hash: rec.hash, previous: to.hash, reason });
     await rows.put("worker/" + logical, next);
     await sourcePutBack(logical, to.hash);
     await register(next, next.access).catch(() => null);
     await note(`put-back/${logical}/${rec.hash}/${at}`, { event: "put-back", worker: logical, hash: rec.hash, previous: to.hash, reason });
+    if (!stale) return;
+    const had = await rows.get("token/" + logical);
+    if (had) (await rows.delete("token/" + logical), await dropToken(logical, had));
+    if (groups.length) await remint(logical, next);
   };
 
   // The last run of the cron is recorded, so a deployer whose cron has stopped, or whose tick throws, can be seen.
@@ -607,6 +618,11 @@ deployerOps = {
     // Every other Worker: two failed checks in a row puts it back to the version before, when there is one.
     for (const { value: rec } of await rows.list("worker/")) {
       if (rec.state !== "deployed" || !rec.hash || onProbation.has(rec.worker)) continue;
+      // A Worker put back whose token could not be minted then.
+      if ((rec.cloudflare || []).length && !rec.token) {
+        await remint(rec.worker, rec);
+        continue;
+      }
       const fails = (await healthy(rec.worker, rec.key)) ? 0 : (rec.fails || 0) + 1;
       if (fails >= 2 && rec.previous) await putBack(rec.worker, rec, rec.previous, "health check failed twice");
       else if (fails !== (rec.fails || 0)) {
@@ -708,8 +724,6 @@ deployerOps = {
         const d = await deployerDistil({ module: s.module, source: s.text, cell: s.cell || undefined, files: s.files, sources });
         if (d.hash === rec.hash) {
           results.push({ ...base, state: "same", hash: d.hash });
-          // A Worker deployed before 2026-10-08 keeps no logs until this is set.
-          if (rec.role !== "member") await ensureLogs(s.worker).catch(() => null);
           if (rec.distiller !== self.hash) await rows.put("worker/" + s.worker, { ...rec, distiller: self.hash });
         } else {
           results.push({ ...base, state: "changes", from: rec.hash, hash: d.hash });
@@ -727,6 +741,8 @@ deployerOps = {
       }
     }
     const held = new Set(kept.map((s) => s.worker));
+    // A script deployed before 2026-10-08 keeps no logs until this is set: each one, a member's and one with no source too.
+    for (const { value: rec } of await rows.list("worker/")) if (rec.hash) await ensureLogs(rec.worker).catch(() => null);
     for (const { value: rec } of await rows.list("worker/")) if (rec.hash && rec.role !== "member" && !held.has(rec.worker)) results.push({ worker: rec.worker, module: rec.module || null, state: "no source", reason: "deployed before the deployer kept source" });
     await rows.put("distiller", { hash: self.hash, at: Date.now(), results: results.map(({ worker, state, applied }) => ({ worker, state, applied })) });
     return { distiller: self.hash, results };
@@ -828,6 +844,8 @@ deployerOps = {
       await rows.put("worker/" + logical, next);
       await register(next, access);
       if (!(await waitHealthy(logical, key, hash))) throw new Error("health check failed after go-live");
+      await ensureLogs(logical).catch(() => null);
+      log({ at: "deploy.deployed", target: logical, hash, version, previous: (rec && rec.hash) || null });
       await rows.put("msource/" + logical, { module: meta.module, text: typeof request.source === "string" ? request.source : null, author, hash, at: Date.now() });
       await note(`deploy/${logical}/${version}`, { event: "deployed", worker: logical, hash, author });
       return { worker: logical, hash, state: "deployed", methods };
@@ -838,6 +856,7 @@ deployerOps = {
         await rows.put("worker/" + logical, { ...rec, lastError: reason, lastErrorAt: Date.now(), failedHash: hash });
         await register(rec, rec.access).catch(() => null);
       } else await memberRemoveOne(logical).catch(() => null);
+      log({ at: "deploy.put-back", target: logical, hash, previous: (rec && rec.hash) || null, reason });
       return { worker: logical, hash, state: "put-back", previous: (rec && rec.hash) || null, reason };
     }
   };
@@ -1126,6 +1145,7 @@ fakeCloudflare = () => {
     // Account tokens: the value is given once, at the mint.
     if (path === "/tokens/permission_groups") return ok(groups);
     if (path === "/tokens" && request.method === "POST") {
+      if (stored.noMint) return bad(403, "minting is refused");
       const id = "t" + log.length, body = await request.json();
       tokens.set(id, { id, ...body, status: "active", value: "minted-" + id });
       return ok({ id, value: "minted-" + id, status: "active" });
@@ -1414,14 +1434,33 @@ test_a_version_put_back_gets_a_token_that_works = {
   expect([rig.fake.tokens.size, bound().text === now.value, bound().text === first, now.policies[0].permission_groups]).toEqual([1, true, false, [{ id: "g-obs" }]]);
   expect(rig.sim.rows.get("token/brain-x-logs")).toMatchObject({ id: now.id, groups: ["Workers Observability Read"] });
   expect(rig.sim.rows.get("worker/brain-x-logs")).toMatchObject({ hash: v1.hash, token: now.id, cloudflare: ["Workers Observability Read"] });
+  // The mint is refused at the next put-back. The row says what is live and that it holds no token; a later tick mints.
+  const v4 = await rig.made("brain-x-logs", "recipe", "four", { cloudflare: ["Workers Observability Read", "Workers Tail Read"] });
+  await rig.recover({ workers: [v4] });
+  rig.fake.unhealthy.add(v4.hash);
+  rig.fake.stored.noMint = true;
+  const lines = await logged(async () => {
+    await rig.sim.scheduled();
+    await rig.sim.scheduled();
+  });
+  expect(rig.fake.running("cb-x-logs")).toBe(v1.hash);
+  expect(rig.sim.rows.get("worker/brain-x-logs")).toMatchObject({ hash: v1.hash, state: "deployed", token: null, failedHash: v4.hash });
+  expect([rig.fake.tokens.size, rig.sim.rows.has("token/brain-x-logs")]).toEqual([0, false]);
+  expect(lines.filter((l) => l.target === "brain-x-logs" && l.at === "token.mint-failed").length).toBe(1);
+  rig.fake.stored.noMint = false;
+  await rig.sim.scheduled();
+  const [later] = [...rig.fake.tokens.values()];
+  expect([rig.fake.tokens.size, bound().text === later.value, rig.fake.running("cb-x-logs")]).toEqual([1, true, v1.hash]);
+  expect(rig.sim.rows.get("worker/brain-x-logs")).toMatchObject({ hash: v1.hash, token: later.id });
+  const now2 = later;
   // A version put back that holds the same token keeps it.
   const v3 = await rig.made("brain-x-logs", "recipe", "three", { cloudflare: ["Workers Observability Read"] });
   await rig.recover({ workers: [v3] });
   rig.fake.unhealthy.add(v3.hash);
   await rig.sim.scheduled();
   await rig.sim.scheduled();
-  expect([rig.fake.running("cb-x-logs"), [...rig.fake.tokens.keys()]]).toEqual([v1.hash, [now.id]]);
-  return "re-minted once";
+  expect([rig.fake.running("cb-x-logs"), [...rig.fake.tokens.keys()]]).toEqual([v1.hash, [now2.id]]);
+  return "re-minted, and again after a refused mint";
 }
 // %%
 test_the_deployer_logs_each_step_of_a_deploy_and_why_it_was_put_back = {
@@ -1964,6 +2003,7 @@ test_a_member_deploys_with_no_approval_and_only_the_core_bound = {
   expect((await rig.as("remove", "member", { author: "did:plc:bob", request: { name: "todo" } })).state).toBe("refused");
   expect((await rig.as("remove", "member", { author: A, request: { name: "todo" } })).state).toBe("removed");
   expect(rig.fake.scripts.has(script)).toBe(false);
+  return "deployed and removed";
 }
 // %%
 test_a_member_deploy_is_refused_outside_its_tier = {
@@ -1998,6 +2038,7 @@ test_a_member_deploy_is_refused_outside_its_tier = {
   expect((await rig.as("purge", "member", { author: A })).status).toBe(501);
   expect((await rig.as("purge", "owner", { author: A })).removed.length).toBe(4);
   expect([...rig.fake.scripts.keys()].filter((k) => k.startsWith("cb-m-")).length).toBe(1);
+  return "refused outside the tier";
 }
 // %%
 test_getModules_keeps_a_members_module_out_of_the_brains_list = {
@@ -2010,6 +2051,7 @@ test_getModules_keeps_a_members_module_out_of_the_brains_list = {
   const mine = async (author) => (await rig.as("modules", "member", { author })).modules.map((m) => m.module);
   expect(await mine(A)).toEqual(["@tomlarkworthy/cloudflare-iac", "@alice/todo"]);
   expect(await mine("did:plc:bob")).toEqual(["@tomlarkworthy/cloudflare-iac"]);
+  return "a member sees its own modules";
 }
 // %%
 import {cloudflare, secrets, rows, config, log, logged, simulate, partsHash, sha256, quickjs, quickjsLib, distillerData, distilIn, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"

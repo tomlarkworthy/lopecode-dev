@@ -175,6 +175,9 @@ verifyServiceJwt = async (bearer, nsid, audience) => {
 kernelApp = {
   const app = new hono.Hono();
   const NS = "/xrpc/com.lopecode.brain.";
+  // A body of a known small size is read before it is sent on: a stream the core does not read to its end throws
+  // "Can't read from request stream after response has been sent" here once the answer is out (cb4, 2026-10-08).
+  const bodyOf = async (c) => (+(c.req.header("content-length") || Infinity) <= 1e6 ? c.req.raw.arrayBuffer() : c.req.raw.body);
   const fail = (c, status, error, message) => c.json({ error, message }, status);
   app.onError((e, c) => fail(c, 500, "InternalServerError", String((e && e.message) || e)));
   // What every member may call. Anything more is that member's grant.
@@ -409,7 +412,7 @@ kernelApp = {
     // The ray Cloudflare gave this call. The core writes it in its log line, and a caller already has it as cf-ray.
     if (c.req.header("cf-ray")) headers.set("x-brain-ray", c.req.header("cf-ray"));
     const bodied = !["GET", "HEAD"].includes(c.req.method);
-    return core.fetch(new Request("https://core.internal" + url.pathname + url.search, { method: c.req.method, headers, body: bodied ? c.req.raw.body : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
+    return core.fetch(new Request("https://core.internal" + url.pathname + url.search, { method: c.req.method, headers, body: bodied ? await bodyOf(c) : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
   };
   // People: members, and which DID an address on a channel belongs to.
   const DID = /^did:(plc|web):[A-Za-z0-9.:%-]+$/, CHANNEL = /^[a-z0-9-]{1,30}$/;
@@ -553,7 +556,7 @@ run();`;
   // Deploys go to the deployer, for the owner's own session and nobody else.
   app.all(NS + "infra.*", session, async (c) => {
     const url = new URL(c.req.url), bodied = c.req.method === "POST";
-    return deployer.fetch(new Request("https://deployer.internal" + url.pathname + url.search, { method: c.req.method, headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: bodied ? c.req.raw.body : undefined, duplex: bodied ? "half" : undefined }));
+    return deployer.fetch(new Request("https://deployer.internal" + url.pathname + url.search, { method: c.req.method, headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: bodied ? await bodyOf(c) : undefined, duplex: bodied ? "half" : undefined }));
   });
   // The inbox as a tab reads it: each entry gains who its address belongs to, and for the owner's own
   // session a poll gains a turn token for each entry the owner or a member sent. An entry written in a room

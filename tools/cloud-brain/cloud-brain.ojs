@@ -268,7 +268,7 @@ test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace = {
   const calls = [];
   const answer = { result: { events: { events: [
     { timestamp: 2000, source: { at: "call", ray: "9a1f-FRA", worker: "brain-x-echo", status: 401, error: "AuthRequired", rule: "deny", by: "owner" }, $workers: { scriptName: "cb4-core" }, $metadata: { traceId: "trace-1", level: "info" } },
-    { timestamp: 1000, source: { at: "throw", message: "broke" }, $workers: { scriptName: "cb4-x-echo" }, $metadata: { traceId: "trace-2", level: "error" } }
+    { timestamp: 1000, source: { at: "throw", error: "TypeError" }, $workers: { scriptName: "cb4-x-echo" }, $metadata: { traceId: "trace-2", level: "error" } }
   ] } } };
   const client = { procedure: async (name, body, opts) => (calls.push([name, body, opts]), answer) };
   const el = logsView({ client, now: () => 3600000 });
@@ -1024,7 +1024,8 @@ notebookHtml = async () => {
 // Installs a Brain through a seed Worker. Returns its address and the recovery key, which is made here and shown once.
 installBrain = async ({ seed, token, handle, base = "brain", html = null, log = () => {}, fetch: send = (...a) => fetch(...a), wait = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) => {
   const seedUrl = new URL(seed);
-  if (!/^[a-z][a-z0-9-]{1,30}$/.test(base)) throw new Error("the name is lower-case letters, digits and dashes");
+  // No dash: brain-logs reads every script named BASE-…, so a Brain "my" would read the logs of a Brain "my-two".
+  if (!/^[a-z][a-z0-9]{1,30}$/.test(base)) throw new Error("the name is lower-case letters and digits");
   const hex = (n = 32) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
   // Every Cloudflare call goes to the seed, which forwards it. The token is sent nowhere else.
   const api = async (path, init = {}) => {

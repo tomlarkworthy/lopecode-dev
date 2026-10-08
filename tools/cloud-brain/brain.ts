@@ -80,6 +80,8 @@ const brief = (s: any) => ({ approval: s.approval, workers: (s.workers || []).ma
 const [cmd, ...args] = process.argv.slice(2);
 // install-guard: the name of this command until 2026-10-07, when the deployer was called the guard.
 if (cmd === "install-deployer" || cmd === "install-guard") {
+  // A new Brain's base has no dash: brain-logs reads every script named BASE-…, so cb4 would read the Brain cb4-test.
+  if (!st.recoveryKey && !/^[a-z][a-z0-9]{1,30}$/.test(BASE)) throw new Error("BRAIN_BASE is lower-case letters and digits, with no dash");
   st.account ??= (await api("/accounts"))[0].id;
   st.subdomain ??= (await api(`/accounts/${st.account}/workers/subdomain`)).subdomain;
   const name = scriptName();

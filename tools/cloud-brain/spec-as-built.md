@@ -2486,7 +2486,39 @@ The kernel throws `TypeError: Can't read from request stream after response has 
 
 - On cb4: a roll of the token, a changed set of groups, a removal, a put-back that mints, and the approval page for `brain-x-logs` (it was deployed with the recovery key). Each is tested under `simulate` with a fake token API.
 - The Logs panel in the signed-in page of cb4. Its code ran in a test page with a client on cb4.
-- That a `queryId` of a saved query cannot widen a query. No saved query exists on the account, and the token cannot make one.
+- That a `queryId` of a saved query cannot widen a query. No saved query exists on the account, and the token cannot make one. (Checked later the same day: it cannot. See the review section.)
 - Logs of a scheduled run were seen (`browser.end` came from a tick); of a WebSocket, not.
 - The December 2026 prices of Workers Logs.
 - CPU cost of the line. Latency of `quota.get` and other calls was not compared before and after.
+
+## Review of the logs change (2026-10-08 21:26 to 21:47 CEST)
+
+A reviewer with no context read the logs change and blocked it. Each finding was checked against the source; what was changed:
+
+- **A name nobody declared is not logged.** The core's line took `method` from the address, so `nobody.SEKRET` was written as typed. It is now `nameOf`, the name the metrics count: `(unknown)` for an answer of 404 or 501 with no target.
+- **The wrapper's `throw` line has no message.** `await request.json()` on a body that is not JSON throws `Unexpected token 'S', "SEKRET-BODY" is not valid JSON`. The line is now `worker ray error stack`, with the error's name and the `at` frames of the stack.
+- **A put-back records what is live before it mints.** `putBack` wrote the row after the mint and the bind, so a refused mint left a row that named the failed version. The row is written first with `token: null`; `remint` mints and binds; a failure is the line `token.mint-failed` and each tick tries again.
+- **A member's Worker** has `deploy.deployed` and `deploy.put-back` lines and `ensureLogs`. `redistil` sets the log setting on each script the deployer has a row for.
+- **`brain-x-logs` forwards `query`, `keys` and `values` only**; any other name is 404 in the Worker (the core answers 501 first, since no other name is declared).
+- **A base name has no hyphen**, in `installBrain` and in `brain.ts install-deployer`: `logsScope` reads `BASE` and `BASE-…`, so `cb4` would read `cb4-test`. A Brain that is already installed is not checked.
+- **The `logged` test helper** waits for what simulated Workers gave to `waitUntil` (`simWaits`), not 30 ms.
+- **The stream error.** Kernel and core sent the request's body on as a stream. A Worker that answers before it reads the body to its end (`bluesky.poll` reads none) made the sender throw `Can't read from request stream after response has been sent` after the answer. A body with a `content-length` of 1 MB or less is now read first and sent as bytes (`bodyOf`); a larger one, or one with no length, is a stream as before.
+
+### Measured on cb4, 19:26 to 19:47 UTC
+
+- **The stream error:** 162 lines in the 10 minutes to 19:26 (80 kernel, 82 core); 0 in the 10 minutes to 19:46, in which the core logged 73 `bluesky.poll` calls.
+- **A saved `queryId` does not widen a query.** A query was saved on the account with a needle that matches nothing (the installer's token can; the minted one cannot). `logs.query` with that id answered the lines the body asked for, all of this Brain. The saved query was deleted.
+- **A filter on `method`** matches the short name: `bluesky.poll` gave lines, the whole NSID none.
+- **Lines after the deploy:** a 401 (`rule: deny, by: manifest`), a 402 (`error: OutOfCredits, price: 0.00025`; the owner's allowance was put back to the default), `(unknown)` for `nobody.SEKRETNSID`, 32 `deploy.*` lines, and a `throw` of `brain-x-proxy` with `error: SyntaxError` and frames only.
+- **Cloudflare's own `$metadata.trigger`** is on each line: the verb and the path, without the query. A search for `SEKRET` found it there for the undeclared name and nowhere else. A path that a caller typed is therefore kept by Cloudflare; the code cannot remove it.
+- **No invocation line:** 0 lines of type `cf-worker-event` and 0 with `authorization`, `cookie` or `x-brain-deployer` in 60 minutes. Each of the 17 scripts named `cb4` or `cb4-…` has logs on and invocation logs off.
+- **Volume:** 3698 lines in the hour to 19:46 UTC: core 3414, kernel 178, deployer 88. 374 of them were the stream error.
+
+Deploy 19:29 to 19:35 UTC: deployer `2038bf52906e`, core `c06bfb19aa78`, kernel `0583dfa67fc3`, logs `25061852b278`, page `bb0d040150c6`; 10 others changed with the wrapper. 15 `same` after.
+
+### Not verified
+
+- No member's Worker exists on cb4, so its log lines and its log setting were not seen there.
+- A refused mint at a put-back, on cb4. Tested under `simulate`.
+- An upload over 1 MB through the kernel after `bodyOf` (the stream path did not change).
+

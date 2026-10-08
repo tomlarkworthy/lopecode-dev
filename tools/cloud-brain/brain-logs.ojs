@@ -8,28 +8,32 @@ A Cloud Brain recipe: the logs of this Brain's Workers, read from Cloudflare Wor
 | \`logs.keys\` | \`…/telemetry/keys\`: the field names seen in a time range |
 | \`logs.values\` | \`…/telemetry/values\`: the values of one field |
 
-The body is Cloudflare's: [the query API](https://developers.cloudflare.com/api/resources/workers/subresources/observability/subresources/telemetry/methods/query/). The service changes two things in it (\`logsScope\`). \`datasets\` is \`["cloudflare-workers"]\`. The filters are put inside one filter on the script name, joined with AND, so a query reads only the Workers of this Brain: the base name, and every name that starts with the base name and a hyphen. With \`?worker=brain-x-NAME\` in the address the filter is that one Worker.
+The body is Cloudflare's: [the query API](https://developers.cloudflare.com/api/resources/workers/subresources/observability/subresources/telemetry/methods/query/). The service changes two things in it (\`logsScope\`). \`datasets\` is \`["cloudflare-workers"]\`. The filters are put inside one filter on the script name, joined with AND, so a query reads only the Workers of this Brain: the base name, and every name that starts with the base name and a hyphen. A base name therefore has no hyphen: the Brain \`cb4\` would read the scripts of a Brain \`cb4-test\` on the same account. The installer refuses such a name (\`installBrain\`, \`brain.ts\`); nothing checks a Brain installed before 2026-10-08. With \`?worker=brain-x-NAME\` in the address the filter is that one Worker.
 
 \`\`\`js
-// every line of one call, by the cf-ray the caller received
+// the core's line of one call. The answer had cf-ray: a47789bfbccce517-FRA; the value is the part before the hyphen.
 POST /xrpc/com.lopecode.brain.logs.query
 { "queryId": "ray", "timeframe": { "from": 1791480000000, "to": 1791483600000 }, "view": "events", "limit": 100,
-  "parameters": { "filters": [{ "key": "ray", "operation": "eq", "type": "string", "value": "9a1f…-FRA" }] } }
+  "parameters": { "filters": [{ "key": "ray", "operation": "eq", "type": "string", "value": "a47789bfbccce517" }] } }
+// each call of one method. method is the name after com.lopecode.brain., not the whole NSID.
+  "parameters": { "filters": [{ "key": "method", "operation": "eq", "type": "string", "value": "bluesky.poll" }] } }
 \`\`\`
+
+\`queryId\` is required by Cloudflare and is any text. The id of a query saved on the account does not replace the body: with the id of a saved query that matches nothing, the answer was the lines the body asked for, inside this Brain's filter (cb4, 2026-10-08).
 
 ## What is in the logs
 
-Cloudflare keeps what a Worker writes with \`console.log\`, 7 days, and gives every line \`$metadata.traceId\`, which is the same in each Worker one call passed through. The deployer turns Workers Logs on for every Worker and Cloudflare's own line per invocation off, because that line stores request headers and the whole URL.
+Cloudflare keeps what a Worker writes with \`console.log\`, 7 days on Workers Paid and 3 on Free, and gives every line \`$metadata.traceId\`, which is the same in each Worker one call passed through. The deployer turns Workers Logs on for every Worker and Cloudflare's own line per invocation off, because that line stores request headers and the whole URL.
 
 | Line | Written by | Fields |
 |---|---|---|
-| \`at: "call"\` | the core, one a call | \`ray caller via origin method worker status error ms price rule by\` (see \`say\` in brain-core) |
-| \`at: "throw"\` | the wrapper, when a service throws | \`worker ray error message stack\` |
-| \`at: "deploy.…"\`, \`"token.…"\` | the deployer | \`target hash version previous reason\` |
+| \`at: "call"\` | the core, one a call | \`ray caller via origin method worker status error ms price rule by\` (see \`coreApp\` in brain-core) |
+| \`at: "throw"\` | the wrapper, when a service throws | \`worker ray error stack\`: the error's name and the frames of its stack, not its message, which can quote what a caller sent |
+| \`at: "deploy.…"\`, \`"token.…"\` | the deployer | \`target hash version previous first last reason token groups\`. \`reason\` and \`last\` can hold Cloudflare's text or a health check's answer about the code deployed, not what a caller of a method sent |
 | \`at: "browser.…"\` | brain-browser | \`session reason\` |
 | any | a service, with the \`log\` cell | what it gives, with \`worker\` and \`ray\` |
 
-\`ray\` is the \`cf-ray\` header of the answer a caller received. A line of the kernel is found by \`$metadata.rayId\`, and every line of the call by the \`traceId\` of that line.
+\`ray\` is the \`cf-ray\` header of the answer a caller received, without the hyphen and the letters after it (\`a47789bfbccce517-FRA\` is logged as \`a47789bfbccce517\`): a Worker sees the id with no data-centre code. \`method\` is the name after \`com.lopecode.brain.\`, the path pattern a service declared, or \`(unknown)\` for a name nobody declared. A line of the kernel is found by \`$metadata.rayId\`, and every line of the call by the \`traceId\` of that line.
 
 ## Who can call
 
@@ -59,6 +63,7 @@ logs_service = cloudflare.Service(
   async (request) => {
     const json = (status, error, message) => new Response(JSON.stringify({ error, message }), { status, headers: { "content-type": "application/json" } });
     const url = new URL(request.url), what = url.pathname.split(".").pop(), worker = url.searchParams.get("worker");
+    if (!["query", "keys", "values"].includes(what)) return json(404, "MethodNotImplemented", "logs.query, logs.keys and logs.values");
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) return json(400, "InvalidRequest", "the body is the body of Cloudflare's telemetry " + what);
     if (worker !== null && !logsScript(config.base, worker)) return json(400, "InvalidRequest", "worker is the name of a Worker of this Brain: brain, brain-core, brain-x-NAME");
@@ -134,6 +139,9 @@ test_worker_narrows_a_query_to_one_worker_of_this_brain = {
   expect(rig.seen[1].body.parameters.filters[0].value).toBe("cb4");
   // A name that is not a Worker of a Brain is refused before Cloudflare is asked.
   for (const bad of ["cb9-core", "", "brain-x-a b", "brainiac", "other"]) expect(await one(bad)).toBe(400);
+  expect(rig.seen.length).toBe(2);
+  // Only query, keys and values go to Cloudflare.
+  for (const other of ["run", "destinations", "query/../../scripts"]) expect((await rig.call(other, { parameters: {} })).status).toBe(404);
   expect(rig.seen.length).toBe(2);
   expect(logsScript("cb4", "brain-m-0123456789-todo")).toBe("cb4-m-0123456789-todo");
   return "2 passed on, 5 refused";

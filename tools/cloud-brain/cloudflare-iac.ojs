@@ -650,8 +650,11 @@ workerRuntime = (AsyncLocalStorage = null) => {
           if (!(out instanceof Response)) throw new Error("the function did not return a Response");
           return out;
         } catch (e) {
-          // The line that says why a call answered 500: Workers Logs keeps it with the trace of the call.
-          console.error({ at: "throw", worker: info().name || "", ray: (request.headers.get("x-brain-ray") || request.headers.get("cf-ray") || "").slice(0, 64), error: String(e?.name || "Error"), message: String(e?.message || e).slice(0, 500), stack: String(e?.stack || "").slice(0, 2000) });
+          // The line that says where a call that answered 500 threw: Workers Logs keeps it with the trace of the call.
+          // The error's name and the frames of its stack. Not its message: a message can quote what the caller sent
+          // (JSON.parse: Unexpected token 'S', "SEKRET" is not valid JSON).
+          const frames = String(e?.stack || "").split("\n").filter((l) => /^\s+at /.test(l)).join("\n").slice(0, 2000);
+          console.error({ at: "throw", worker: info().name || "", ray: (request.headers.get("x-brain-ray") || request.headers.get("cf-ray") || "").slice(0, 64), error: String(e?.name || "Error").slice(0, 80), stack: frames });
           return json({ error: "InternalServerError", message: String(e?.message || e) }, 500);
         }
       },
@@ -1007,10 +1010,23 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
   sim.fetch = (request, init) => {
     const req = request instanceof Request ? request : new Request(request, init);
     if (init && init.headers) Object.defineProperty(req, "headers", { value: new Headers(init.headers) });
-    return mod.default.fetch(req, env, { waitUntil() {} });
+    return mod.default.fetch(req, env, { waitUntil: simWaits.hold });
   };
-  sim.scheduled = () => mod.default.scheduled({ scheduledTime: Date.now() }, env, { waitUntil() {} });
+  sim.scheduled = () => mod.default.scheduled({ scheduledTime: Date.now() }, env, { waitUntil: simWaits.hold });
   return sim;
+}
+// %%
+// What simulated Workers gave to waitUntil and has not ended. done() waits for all of it.
+simWaits = {
+  const open = new Set();
+  const hold = (p) => {
+    const q = Promise.resolve(p).then(() => null, () => null).then(() => void open.delete(q));
+    open.add(q);
+  };
+  const done = async () => {
+    while (open.size) await Promise.all([...open]);
+  };
+  return { hold, done };
 }
 // %%
 // For a test: the objects given to console.log and console.error while fn ran. Lines of other tests running at the
@@ -1024,7 +1040,8 @@ logged = {
     taps.add(lines);
     try {
       await fn();
-      await new Promise((r) => setTimeout(r, 30));
+      // What a simulated Worker handed to waitUntil: the core writes its line after the answer.
+      await simWaits.done();
     } finally {
       taps.delete(lines);
     }
@@ -1043,7 +1060,8 @@ fx_base = 7
 fx_logging_service = cloudflare.Service("fxlog", async (request) => {
   log({ at: "fx.seen", n: 1, worker: "forged", ray: "forged" });
   await xrpc.fetch("com.lopecode.brain.fx.next");
-  if (new URL(request.url).pathname === "/throw") throw new TypeError("fx broke");
+  // A body that is not JSON: the error's message quotes it.
+  if (new URL(request.url).pathname === "/throw") await request.json();
   return new Response("ok");
 })
 // %%
@@ -1059,14 +1077,17 @@ test_log_writes_the_workers_name_and_the_ray_and_the_ray_goes_on = {
   let status;
   const lines = await logged(async () => {
     await sim.fetch("https://fxlog.internal/x", { headers: { "x-brain-ray": "ray-fx-1" } });
-    status = (await sim.fetch("https://fxlog.internal/throw", { headers: { "x-brain-ray": "ray-fx-2" } })).status;
+    status = (await sim.fetch("https://fxlog.internal/throw", { method: "POST", body: "SEKRET-BODY", headers: { "x-brain-ray": "ray-fx-2" } })).status;
   });
   const mine = lines.filter((l) => String(l.ray).startsWith("ray-fx-"));
   // What the service gave, with this Worker's name and the ray of the call: a service cannot write another's.
   expect(mine[0]).toEqual({ at: "fx.seen", n: 1, worker: "brain-x-fxlog", ray: "ray-fx-1" });
-  // A throw is a 500 and one error line that says why.
+  // A throw is a 500 and one error line: the error's name and where, and not its message, which here quotes the body.
   expect(status).toBe(500);
-  expect(mine.find((l) => l.at === "throw")).toMatchObject({ worker: "brain-x-fxlog", ray: "ray-fx-2", error: "TypeError", message: "fx broke" });
+  const thrown = mine.find((l) => l.at === "throw");
+  expect(Object.keys(thrown).sort()).toEqual(["at", "error", "ray", "stack", "worker"]);
+  expect(thrown).toMatchObject({ worker: "brain-x-fxlog", ray: "ray-fx-2", error: "SyntaxError" });
+  expect(JSON.stringify(mine)).not.toMatch(/SEKRET/);
   // The ray goes with each call the Worker makes to the core.
   expect(heard).toEqual(["ray-fx-1", "ray-fx-2"]);
   // log is not a resource: nothing is bound for it.
