@@ -4,7 +4,8 @@
  *   bun tools/cloud-brain/brain.ts migrate-deployer         # an old Brain: installs <base>-deployer, copies the rows of <base>-guard to it, and marks <base>-guard replaced
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
  *   bun tools/cloud-brain/brain.ts apply core.json [...]    # infra.apply with the recovery key
- *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off
+ *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off | approve | rollback | remove <name>
+ *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
@@ -209,6 +210,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   // for WebSocket on loopback addresses and a CDP binding carries each frame to a real local socket here.
   const flag = (n: string, d = "") => { const i = args.indexOf("--" + n); return i < 0 ? d : args[i + 1]; };
   // --url: any hosted notebook. A page of another origin gets no session and, by default, a browser of its own.
+  if (args.includes("--url") && !/^https:\/\//.test(flag("url") || "")) { console.log("--url takes an https address"); process.exit(1); }
   const other = flag("url") && new URL(flag("url")).origin !== B();
   const NS = "com.lopecode.brain.", NAME = flag("browser", other ? "test" : "brain"), PAGE = flag("name", "page");
   const call = async (m: string, body?: any, q = "") => {
@@ -243,7 +245,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     const o = await call("browser.open", { browser: NAME, name: PAGE, url });
     if (o.status !== 200) throw new Error("open " + o.status + " " + JSON.stringify(o.body));
     // The session goes in this body only. A browser belongs to its caller, so only the owner's own session reaches this page.
-    const s = other ? { value: "not signed in: not this Brain\x27s origin" } : await evalIn(`localStorage.getItem("brain_session") ? "was signed in" : (localStorage.setItem("brain_session", ${JSON.stringify(st.session)}), "signed in")`);
+    const s = other ? { value: "not signed in: not this Brain\x27s origin" } : await evalIn(`location.origin !== ${JSON.stringify(B())} ? "not signed in: the page is at " + location.origin : localStorage.getItem("brain_session") ? "was signed in" : (localStorage.setItem("brain_session", ${JSON.stringify(st.session)}), "signed in")`);
     console.log(`page ${o.body.existing ? "reused" : "opened"}, ${s && s.value}`);
 
     const SHIM = `(() => {
@@ -270,7 +272,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   globalThis.WebSocket = new Proxy(Native, { construct: (T, [u, p]) => /^wss?:\\/\\/(127\\.0\\.0\\.1|localhost)[:/]/.test(String(u)) ? new Bridged(u, p) : new T(u, p) });
 })()`;
     const stamp = () => new Date().toISOString().slice(11, 19);
-    let first = true, cutAt = 0;
+    let first = true, cutAt = 0, gone = false;
     // One CDP socket, until Cloudflare or the service closes it. Resolves with the close code.
     const bridge = () => new Promise<number>(async (done) => {
       const ws = new (WebSocket as any)(`${B().replace("https", "wss")}/xrpc/${NS}browser.cdp?browser=${NAME}`, { headers: { authorization: "Bearer " + st.session } });
@@ -296,7 +298,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
       ws.onclose = (e: any) => { for (const [k, l] of [...local]) { local.delete(k); l.close(); } done(e.code || 0); };
       await new Promise((ok) => { ws.onopen = ok; });
       const t = (await send("Target.getTargets")).targetInfos.find((x: any) => x.type === "page" && x.url.startsWith(new URL(url).origin));
-      if (!t) { console.log("no page of " + new URL(url).origin + " in the browser"); return ws.close(); }
+      if (!t) { console.log("no page of " + new URL(url).origin + " in the browser"); gone = true; return ws.close(); }
       sid = (await send("Target.attachToTarget", { targetId: t.targetId, flatten: true })).sessionId;
       await send("Runtime.enable", {}, sid);
       await send("Page.enable", {}, sid);
@@ -313,6 +315,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     for (;;) {
       const code = await bridge();
       cutAt = Date.now();
+      if (gone) { console.log(`the page "${PAGE}" of browser "${NAME}" is at another address; "page down" then "page up" opens it again`); break; }
       if (Date.now() > paidUntil - 5000) { console.log(stamp(), `the browser's time ran out; "page up" buys more`); break; }
       console.log(stamp(), "cdp socket closed", code, "; connecting again");
       await new Promise((r) => setTimeout(r, 500));

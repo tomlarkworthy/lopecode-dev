@@ -12,7 +12,7 @@ triggers:
 Cloud Brain is a set of Cloudflare Workers that one notebook defines, deploys and operates. This
 file says where its documents are, how to reach a running Brain from this checkout, and how to
 pair with the Brain's page, on this machine or in a browser of the cluster. Written 2026-10-08
-from the session that built the cluster pairing; each command below was run that day against `cb4`.
+from the session that built the cluster pairing; each command below was run that day against `cb4`, except where it says not run.
 
 ## Where the documents are
 
@@ -40,7 +40,9 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
 - **Core** (`<base>-core`): every `/xrpc/com.lopecode.brain.*` call passes it. It checks the CEL
   rule, charges the price, writes one log line, then forwards to the service.
 - **Services** (`<base>-x-NAME`, notebook module `@tomlarkworthy/brain-NAME`): browser, logs, proxy,
-  bluesky, whatsapp, blob, feed, library, metrics, secrets, static, inbox, page.
+  bluesky, whatsapp, blob, feed, library, metrics, static, inbox. `<base>-x-page` is built from
+  `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
+- **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
   health-checks, puts a bad version back, and mints narrow tokens for services that declare them.
 - **The page**: the notebook itself, served by the kernel. One open, signed-in tab holds the
@@ -61,7 +63,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
   sessions. The Cloudflare token is `tools/scratch/cloud-brain-experiments/.cf-token`, git-ignored
   and temporary. **Never print or copy either.** If the state file is missing, there is no access;
   ask Tom.
-- The header comment of `brain.ts` lists every command. The ones used daily:
+- The header comment of `brain.ts` lists the commands. The ones used daily:
 
 | Command | Use |
 |---|---|
@@ -85,8 +87,11 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 1. Edit the seed in `tools/cloud-brain/*.ojs`. Never the notebook HTML.
 2. `bun tools/cloud-brain/build.ts`.
 3. Run the tests in a local QA tab: `qa_open_notebook` on the file URL with
-   `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`.
+   `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`. `r` does nothing; a new value makes a new URL, so the tab
+   loads the file again.
 4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply`, remove the lock.
+   Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
+   there, another one is deploying; wait.
    Kernel, core and page go on probation and are put back if unhealthy.
 5. Update the as-built record and the backlog in the same change.
 6. Run `/review-notebook` on what changed. The two logging reviews on 2026-10-08 found 15 real
@@ -98,7 +103,7 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 
 `brain-x-logs` passes Cloudflare's log queries through, scoped to this Brain, owner's session only.
 The core writes one line a call with keys `at ray caller via origin method worker status error ms
-price rule by`. Two traps met on the first day:
+price rule by`. Three traps met on the first day:
 
 - `method` is the short name (`bluesky.poll`), not the NSID. A filter on the NSID returns nothing.
 - `ray` is the `cf-ray` without the part after the hyphen.
@@ -117,6 +122,9 @@ qa_open_notebook  session brain-live, headless
 https://cb4.endpointservices.workers.dev/#view=C100(S70(@tomlarkworthy/cloud-brain,@tomlarkworthy/brain-shell),S30(@tomlarkworthy/claude-code-pairing))&cc=<token>&o=30
 ```
 
+`&o=30` is on the address this tab has used since it was first opened. What it does is not recorded;
+leave it out and nothing here depends on it (the cluster page runs without it).
+
 **In a browser of the cluster.**
 
 ```
@@ -126,10 +134,10 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts page state|down [--browser NAME]
 ```
 
 `--url` opens any hosted notebook (an https address the cluster can fetch, not `file://`) in browser
-`test`, with no session; `page down --browser test` ends it. `--keep` buys time again when under 2
+`test`, with no session; `page down --browser test` ends it. `--keep` (not run) buys time again when under 2
 minutes are left. The public quick start paired this way on 2026-10-08.
 
-It buys browser time, opens the page in the owner's browser `brain`, signs it in, and stays in the
+`page up` with no `--url` buys browser time, opens the page in the owner's browser `brain`, signs it in, and stays in the
 foreground as the bridge. `connected` then arrives on the channel for the `cb4…` URL and every
 pairing tool works against it. `page down` closes the browser. With several notebooks connected,
 pass the cb4 URL as `notebook_id`.
