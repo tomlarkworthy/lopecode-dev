@@ -555,3 +555,13 @@ Tom asked the Brain over WhatsApp for pictures; its owner turn wrote the change 
 - **Not seen on cb4:** the two limits of browsers, a member as the owner of a browser, the panel's table of all browsers in the signed-in page.
 - **An `extend` that a limit stops is charged** and its seconds stay bought (at most $0.09). If that is not wanted: the core would need a way for a service to refuse before the charge.
 - **Each call lists the rows of all browsers** only when it starts a browser and in `status`; the tick lists them one time a minute. Not measured with more than 3 browsers.
+
+
+## Added 2026-10-08 20:29: WebSockets, and `browser.cdp`
+
+- **Done:** a WebSocket passes kernel, core and service (two lines: the wrapper's `stamp`, the kernel's CORS middleware). `browser.cdp` gives a caller the CDP socket of its own browser. Record: `tools/cloud-brain/websockets.md`.
+- **A page in a web browser cannot open a socket as a person.** It cannot send `Authorization`, and the kernel reads no cookie. If the Brain's page needs one: read the token from `Sec-WebSocket-Protocol` in the kernel. Tom decides.
+- **The close of a CDP socket has no reason** (code 1005) and comes up to 60 s after `paidUntil`. A relay in the service could close at the second with a reason; it was not built, to keep the service out of the frames.
+- **A tab made over the socket has no row:** `list` does not show it and `maxTabs` does not count it.
+- **Not measured:** a deploy of the core or the kernel under an open socket; a socket open longer than 10 minutes; more than one socket at a time.
+- **The metrics do not know how long a socket was open.** One row at the 101.

@@ -2413,3 +2413,26 @@ Tests, r=222: brain-browser 15/15; 207/207 in the 19 modules of the Brain. A fir
 On cb4: `brain-x-browser` `2766ff9bf79b`, applied 19:55:33 to 19:55:47 CEST with `brain.ts apply` (no approval); 14 Workers `same`. `status` 200, `extend?seconds=5` 400 and no charge, `end` of a browser that does not exist 200 `{"closed":[],"browser":"x"}`. No browser was started.
 
 Not verified: the 401 for a caller with no identity on cb4 (no rule there lets one in); the panel in a signed-in page. The page that cb4 serves (`shell/index.html`) does not hold `browserPanel` (0 matches), so the panel is seen only in the notebook file.
+
+
+## WebSockets through the Brain, and `browser.cdp` (2026-10-08 20:05 to 20:29 CEST)
+
+Tom, 2026-10-08: "I prefer being close to the base service and not be thick with abstractions that hurt, lets see how websockets work?" The record of the experiment is `tools/cloud-brain/websockets.md`.
+
+- **A WebSocket did not pass, and now does.** Each upgrade answered 500, "Responses may only be constructed with status codes in the range 200 to 599". Two lines changed: `stamp` in the wrapper (`cloudflare-iac.ojs:576`) and the kernel's CORS middleware (`brain-kernel.ojs:195`) each make a 101 answer again with its `webSocket`. The core did not change.
+- **Deployed:** deployer `b04ab63e3487`; each Worker again from its kept source, 18:09:37 to 18:13:20 UTC; kernel `11063c35a5a2`; `brain-x-browser` `94b38cc5e5f1` and the page at 18:32 UTC.
+- **At the upgrade** the caller is identified, `calls` is checked, the rule is decided, a price is charged and one metrics row is written, as for any call. After it, the kernel and the core run no code.
+- **`browser.cdp`** returns Browser Run's answer to the upgrade for the caller's own browser. No relay was built: the tick ends the browser when its time has passed, and that closes the socket.
+
+```
+owner, token, Worker by its key   101          no caller, by the rule   401          undeclared call   403
+priced upgrade                    charged 0.0001 one time                 frames to 33 MB each way
+socket held 600 s with pings; 240 s silent; 172 s past a deploy of its own service
+raw Runtime.evaluate p50 60.7 ms against browser.eval 427 ms
+playwright-core connectOverCDP: goto, click + wait for the navigation, 4 trusted key events, screenshot
+socket closed 13.3 s after paidUntil, which an extend moved while it was open
+```
+
+Tests, r=232: brain-browser 16/16 (one new, `test_browser_cdp_is_the_socket_of_the_callers_own_browser`); 324/324 in the 25 modules of the page that have tests.
+
+Not verified: a deploy of the core or the kernel under an open socket; a socket open longer than 10 minutes; a member as the caller. A page in a web browser cannot open a socket as a person, because it cannot send `Authorization` and the kernel reads no cookie.

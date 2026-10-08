@@ -1,6 +1,6 @@
 md`# brain-browser
 
-Remote Chromium browsers for a Cloud Brain, from [Cloudflare Browser Run](https://developers.cloudflare.com/browser-run/). A caller opens a page with a name, runs JavaScript in it, reads its text, its console and a screenshot, and closes it. The service speaks the Chrome DevTools Protocol to Browser Run through the Worker's binding. It uses no library.
+Remote Chromium browsers for a Cloud Brain, from [Cloudflare Browser Run](https://developers.cloudflare.com/browser-run/). A caller opens a page with a name, runs JavaScript in it, reads its text, its console and a screenshot, and closes it. The service speaks the Chrome DevTools Protocol to Browser Run through the Worker's binding. It uses no library. A caller that wants the protocol itself gets the browser's socket with \`browser.cdp\`.
 
 The service is for each process of the Brain. A browser has a name, and belongs to the caller that bought its time: the owner, a token, a member, or a Worker. A caller reaches its own browsers and no others. A page is a tab in one browser. Browser time is bought in seconds, for one browser, before it is used.
 
@@ -26,13 +26,14 @@ md`## Methods
 | \`browser.text\` | query. \`?name=&selector=\`. \`{ text, truncated }\`: the \`innerText\` of the body or of the first match, 100 000 characters at most. |
 | \`browser.screenshot\` | query. \`?name=&fullPage=true&selector=\`. PNG bytes, 2 000 000 at most. |
 | \`browser.logs\` | query. \`?name=\`. \`{ logs: [{ t, level, text }] }\`: console calls and uncaught errors of the open document, the last 200, 500 characters each. |
+| \`browser.cdp\` | a WebSocket: a GET with \`Upgrade: websocket\`. \`?browser=\`. The browser's own Chrome DevTools Protocol socket. Starts the browser when it is down and time is bought. A GET that is not an upgrade answers 426 \`UpgradeRequired\`. |
 | \`browser.liveView\` | query, the owner's own session. \`?name=&browser=\`. \`{ url }\`: a Browser Run Live View link to the tab. |
 | \`browser.all\` | query, the owner's own session. \`{ browsers: [{ owner, browser, paidUntil, remaining, up, pages }] }\`: each browser of each owner. |
 | \`browser.end\` | procedure, the owner's own session. \`{ owner, browser }\`. Closes that browser at once. \`{ closed, browser }\`, where \`closed\` is the pages that were open: it is \`[]\` also when the owner or the browser does not exist. |
 | \`browser.settings\` | procedure, the owner's own session. \`{ maxTabs, maxBrowsers, maxPerOwner }\`. |
 | Storage | \`rows\`. For one browser, under \`b/<owner>/<browser>/\`: \`browser/<session>\`, \`paid\`, \`page/<name>\`, \`ended/<name>\`, \`starting/shared\`. For the service: \`usage/<day>\`, \`settings\`. |
 
-Each method of the first eleven, and \`liveView\`, takes \`browser\`, a name of 1 to 40 letters, digits, \`-\` and \`_\` that starts with a letter or a digit, in the query string or in the body. It is \`default\` when absent. \`extend\` reads it from the query string only.
+Each method of the first twelve, and \`liveView\`, takes \`browser\`, a name of 1 to 40 letters, digits, \`-\` and \`_\` that starts with a letter or a digit, in the query string or in the body. It is \`default\` when absent. \`extend\` reads it from the query string only.
 
 \`\`\`js
 await client.procedure("browser.extend", {}, { params: { seconds: 60 } })
@@ -49,6 +50,47 @@ Each method but \`extend\`, \`list\`, \`status\`, \`close\`, \`all\`, \`end\` an
 \`seconds\` is in the query string and not in the body, because a price reads \`request.params\` and does not read the body.
 
 Limits. \`eval\` gives a value that JSON can hold, 262 144 characters at most. The viewport on cb4 was 780 × 493: the \`width\` and \`height\` that \`open\` asks for were not applied by Browser Run. \`logs\` starts again with each document, and a page that loads a new document by itself has no log from before its first script until the next call. A Live View link gives control of the tab to the person who holds it; how long the link works was not measured.`
+// %%
+md`## The CDP socket
+
+\`browser.cdp\` gives the caller the WebSocket that Browser Run gives this Worker for the browser. The service asks Browser Run for the upgrade and returns its answer. It reads no frame, changes none and holds no connection. Thus each CDP command and each CDP event is there, and a client made for CDP connects with no code of ours.
+
+\`\`\`js
+// Raw. A server-side WebSocket can send the header; bun and node (ws) do.
+const ws = new WebSocket("wss://BRAIN/xrpc/com.lopecode.brain.browser.cdp", { headers: { authorization: "Bearer " + token } });
+ws.onmessage = (e) => console.log(e.data); // answers by id, and events
+ws.onopen = () => ws.send(JSON.stringify({ id: 1, method: "Target.createTarget", params: { url: "https://example.com/" } }));
+
+// playwright-core, as it is:
+const browser = await chromium.connectOverCDP("wss://BRAIN/xrpc/com.lopecode.brain.browser.cdp", { headers: { authorization: "Bearer " + token } });
+
+// A service of the Brain, by its own key (it declares the method in calls):
+const r = await xrpc.fetch("com.lopecode.brain.browser.cdp", { headers: { Upgrade: "websocket" } });
+r.webSocket.accept();
+\`\`\`
+
+Use the socket for what needs events or real input: a click or a key that the page sees as trusted, a wait for a navigation, the network of a page, a download. Use the methods above for one job with one answer; they need no open connection and each is one line in the metrics.
+
+The socket is the whole browser, so it reaches each tab in it, also the tabs that \`open\` made. That is the caller's own browser and no other. A tab that the socket makes has no row: \`list\` does not show it and the limit of pages does not count it.
+
+Limits.
+- The socket closes when the browser ends. A browser ends at the tick after its bought time has passed, so the socket can live up to 60 s past \`paidUntil\`; the close has code 1005 and no reason. \`extend\` on the same browser while the socket is open moves the end.
+- The rule and \`calls\` are decided one time, at the upgrade. The metrics have one row for the socket, with the time to the 101 and not the time it was open.
+- A browser page cannot set the \`Authorization\` header of a WebSocket, and the kernel reads no cookie. A page of the Brain has no way to open this socket today.
+- A deploy under an open socket was tried one time, on a scratch service: the socket went on for 172 s more, until the client closed it. Cloudflare says an in-flight request gets 30 s at a runtime update. A deploy of the core or the kernel was not tried. A client must be able to connect again.
+
+Measured on cb4, 2026-10-08 18:14 to 18:17 UTC, client in Berlin. Scripts in \`tools/scratch/ws-probe\`; the record is \`tools/cloud-brain/websockets.md\`.
+
+\`\`\`
+raw socket      connect 768 ms (browser just started)   Runtime.evaluate p50 60.7 ms, n=40
+browser.eval    p50 427 ms, n=12                         the same expression, one call each
+playwright-core connectOverCDP 1020 ms; goto example.com 196 ms; click the link and wait for iana.org 1629 ms
+                keyboard.type("lope") -> 4 keydown events, each isTrusted; 4 request events; a PNG of 5137 bytes
+brain-x-wscdp   by its own key: 101 through the core, Browser.getVersion "Chrome/128.0.6613.137",
+                events Target.targetCreated, Target.targetInfoChanged; its browser was worker:brain-x-wscdp/default
+bought 20 s, +30 s by extend while connected -> the socket closed 13.3 s after the new paidUntil
+\`\`\`
+`
 // %%
 md`## Many browsers, each with tabs
 
@@ -151,7 +193,7 @@ md`## Not built
 
 Hosting the Brain's own page in a browser. It needs an identity for the page (a session that is not the owner's own), and the proxy as the page's path to a model. The page gets a browser of its own, by a name.
 
-Also not built: a limit on the hosts a page can load (Browser Run has \`guardrails.allowedDomains\`, set when a session starts, thus for a browser and not for a tab); a viewport size; clicks and keys; downloads; the close of a tab that has no row (a call that dies between making the tab and writing its row leaves the tab until the browser ends); a read of \`/v1/history\` for the exact seconds.`
+Also not built: a limit on the hosts a page can load (Browser Run has \`guardrails.allowedDomains\`, set when a session starts, thus for a browser and not for a tab); a viewport size; methods for a click, a key or a download (\`browser.cdp\` carries them); the close of a tab that has no row (a call that dies between making the tab and writing its row leaves the tab until the browser ends); a read of \`/v1/history\` for the exact seconds.`
 // %%
 browser_service = cloudflare.Service("browser", browserApp, {
   crons: ["* * * * *"],
@@ -161,7 +203,7 @@ browser_service = cloudflare.Service("browser", browserApp, {
     // who: "workers" is the owner, a token, a granted account, and a Worker of this Brain. A caller reaches the browsers it owns and no others.
     "com.lopecode.brain.browser.extend": { type: "procedure", who: "workers", price: browserPrice },
     ...Object.fromEntries(["open", "run", "close", "goto", "eval"].map((m) => ["com.lopecode.brain.browser." + m, { type: "procedure", who: "workers" }])),
-    ...Object.fromEntries(["list", "status", "text", "screenshot", "logs"].map((m) => ["com.lopecode.brain.browser." + m, { type: "query", who: "workers" }])),
+    ...Object.fromEntries(["list", "status", "text", "screenshot", "logs", "cdp"].map((m) => ["com.lopecode.brain.browser." + m, { type: "query", who: "workers" }])),
     // A Live View link gives the person who holds it the tab. all and end reach the browsers of each owner. settings is the limits.
     // These four are for the owner's own session only.
     "com.lopecode.brain.browser.liveView": { type: "query", who: "owner", allow: "caller.session", fixed: true },
@@ -675,6 +717,15 @@ browserOps = {
       if (!t || !t.devtoolsFrontendUrl) throw stop(502, "BrowserUnavailable", "Browser Run gave no Live View link for the page");
       return { name: p.name, url: t.devtoolsFrontendUrl };
     },
+    // The browser's own CDP socket, for the caller that owns the browser. Browser Run's answer to the upgrade is passed
+    // on as it is: this service relays no frame and holds no connection. The socket closes when the browser ends.
+    cdp: async () => {
+      await timed();
+      const { browser: b } = await theBrowser();
+      const r = await browser.fetch("/v1/devtools/browser/" + b.sessionId, { headers: { Upgrade: "websocket" } }).catch(() => null);
+      if (!r || !r.webSocket) throw stop(502, "BrowserUnavailable", "Browser Run gave no socket for the browser: " + (r ? r.status : "no answer"));
+      return r;
+    },
     // One page for one job: open, wait for load, read, close. It needs bought time for the whole of its timeout.
     // The tab closes when the job throws or runs out of time.
     run: async (q, by, origin) => {
@@ -837,6 +888,11 @@ browserApp = {
   }));
   app.get(NS + "logs", answer((c) => mine(c).logs({ name: c.req.query("name") })));
   app.get(NS + "liveView", answer((c) => mine(c).liveView({ name: c.req.query("name") })));
+  // A WebSocket that carries CDP. A GET that is not an upgrade starts nothing.
+  app.get(NS + "cdp", answer((c) => {
+    if ((c.req.header("upgrade") || "").toLowerCase() !== "websocket") return c.json({ error: "UpgradeRequired", message: "browser.cdp is a WebSocket: send Upgrade: websocket" }, 426);
+    return mine(c).cdp();
+  }));
   // For the owner's own session, by the rule of each: every browser, the end of any one, and the limits.
   app.get(NS + "all", answer(() => browserOps.all()));
   app.post(NS + "end", answer(async (c) => ((q) => browserOps.one(String(q.owner || ""), q.browser).close({ all: true }))(await body(c))));
@@ -1551,6 +1607,27 @@ test_browser_each_caller_has_its_own_browsers = {
   const nobody = await rig.as("anonymous").post("extend", {}, { seconds: 10 });
   expect([nobody.status, nobody.data.error, rig.keys("", "anonymous/default")]).toEqual([401, "AuthRequired", []]);
   return "3 browsers of 2 owners: own time, own pages, own end";
+}
+// %%
+test_browser_cdp_is_the_socket_of_the_callers_own_browser = {
+  const rig = await browserRig({ paid: 0 }), X = "https://brain.internal/xrpc/com.lopecode.brain.browser.cdp";
+  const ask = async (who, upgrade = true) => {
+    const r = await rig.sim.fetch(X, { headers: { "x-brain-caller": who, "x-brain-origin": who, ...(upgrade ? { upgrade: "websocket" } : {}) } });
+    return { status: r.status, data: await r.json() };
+  };
+  // A GET that is not an upgrade starts nothing. With no time, the call is refused before a socket is asked for.
+  expect([(await ask("owner", false)).status, (await ask("owner")).data.error, rig.fake.stats.acquired, rig.fake.stats.connects]).toEqual([426, "NoTime", 0, 0]);
+  rig.setPaid(60);
+  rig.setPaid(60, "worker:brain-x-reader/default");
+  // With time the browser starts, and what Browser Run answers is the answer. The fake cannot make a Response with
+  // status 101 in a tab, so here the answer comes as JSON.
+  const mine = await ask("owner"), theirs = await ask("worker:brain-x-reader");
+  expect([mine.data.status, theirs.data.status, rig.fake.sessions.size]).toEqual([101, 101, 2]);
+  // Each caller's socket is on its own browser.
+  const sockets = (scope) => rig.fake.sessions.get(rig.session(scope)).sockets.size;
+  expect([sockets("owner/default"), sockets("worker:brain-x-reader/default")]).toEqual([1, 1]);
+  expect((await ask("anonymous")).status).toBe(401);
+  return "426 with no upgrade, 409 with no time, one socket on each caller's own browser";
 }
 // %%
 test_browser_panel_shows_pages_and_the_usage = {

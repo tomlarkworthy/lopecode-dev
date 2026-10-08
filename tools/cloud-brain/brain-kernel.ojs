@@ -192,7 +192,7 @@ kernelApp = {
     if (!c.req.header("authorization")) return;
     const headers = new Headers(c.res.headers);
     for (const [k, v] of Object.entries(cors)) headers.set(k, v);
-    c.res = new Response(c.res.body, { status: c.res.status, headers });
+    c.res = new Response(c.res.body, { status: c.res.status, headers, webSocket: c.res.webSocket });
   });
 
   // Nothing a browser sends by itself says who is calling: no cookie is read. A caller is whoever their token says.

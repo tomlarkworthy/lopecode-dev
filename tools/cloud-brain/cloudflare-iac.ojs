@@ -572,7 +572,8 @@ workerRuntime = (AsyncLocalStorage = null) => {
       } catch {}
       const headers = new Headers(r.headers);
       headers.append("x-brain-served-by", me);
-      return new Response(r.body, { status: r.status, statusText: r.statusText, headers });
+      // webSocket: a 101 answer is passed on with its socket (a WebSocket through the Brain, 2026-10-08).
+      return new Response(r.body, { status: r.status, statusText: r.statusText, headers, webSocket: r.webSocket });
     };
     const self = {
       async fetch(request, env, ctx) {

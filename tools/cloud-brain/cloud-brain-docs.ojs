@@ -224,6 +224,8 @@ A call from the internet:
 
 A call from one Worker to another starts at step 3, as \`worker:NAME\`. The core first checks the method against the \`calls\` list of the calling service. A member's Worker calls as its author's DID. It can call \`db.sql\`, \`static.*\`, \`blob.*\`, a member's method, and each method that the owner granted to its author.
 
+A query may answer a WebSocket: the caller sends \`Upgrade: websocket\` on the \`GET\`, and the service answers 101 with a socket. The seven steps are the same and happen one time, at the upgrade; after that the frames pass through the kernel and the core with no step. A path can answer one in the same way. ${mod("brain-browser")} has the one method that does, \`browser.cdp\`. This is not an XRPC subscription: the frames are what the service sends, in both directions. Measured on cb4 on 2026-10-08: a socket was open 10 minutes, and a frame of 33 MB passed each way.
+
 Not built: Lexicon documents. The Workers do not check an input against a schema.`
 // %%
 md`## Deploy
