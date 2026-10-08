@@ -23,7 +23,7 @@ POST /xrpc/com.lopecode.brain.logs.query
 
 ## What is in the logs
 
-Cloudflare keeps what a Worker writes with \`console.log\`, 7 days on Workers Paid and 3 on Free, and gives every line \`$metadata.traceId\`, which is the same in each Worker one call passed through. The deployer turns Workers Logs on for every Worker and Cloudflare's own line per invocation off, because that line stores request headers and the whole URL.
+Cloudflare keeps what a Worker writes with \`console.log\`, 7 days on Workers Paid and 3 on Free, and gives every line \`$metadata.traceId\`, which is the same in each Worker one call passed through. The deployer turns Workers Logs on for every Worker and Cloudflare's own line per invocation off, because that line stores request headers and the whole URL. With it off, Cloudflare still stores, beside each line a Worker writes, the method and URL of that call with its query string (\`$workers.event.request\`: \`method\`, \`url\`, \`path\`, \`search\`), not its headers or body. So a parameter of a method is in the logs, and a long-lived secret must not be put in a path or a query string. A short-lived single-use code may be.
 
 | Line | Written by | Fields |
 |---|---|---|

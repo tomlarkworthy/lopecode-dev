@@ -579,3 +579,21 @@ Tom asked the Brain over WhatsApp for pictures; its owner turn wrote the change 
 - **A first deploy that is put back and then passes** happened again (the page, 19:08 UTC). The deployer now writes `deploy.unhealthy` with what the last health check answered. Next: read that line the next time it happens.
 - **Not reviewed:** `/review-notebook` was not run on this change; the worker that made it could not start a reviewer.
 - **Not done:** a price for a query; alerts; history past 7 days (Logpush to R2); a token for each Worker.
+
+## Added 2026-10-08 22:10: the query string is in the logs
+
+Cloudflare stores the URL of a call, with its query string, beside each line a Worker writes. Not headers, not the body. No setting stops it (`tools/cloud-brain/logging-research.md`, correction). Rule: no long-lived secret in a path or a query string; a short-lived single-use code may be. No code was changed.
+
+| In a query string | Life | Reaches a Worker that logs | Stored |
+|---|---|---|---|
+| `/link?channel=…&code=…` | 10 minutes, one use, and a sign-in | the kernel, which writes no line for it | no |
+| `/auth/login?next=/link?…code=…` | the same code | the kernel, the same | no |
+| `/auth/callback?code&state&iss` | one use, spent in that request, bound to this client's keys | the kernel, the same | no |
+| `/hooks/whatsapp?hub.verify_token=…` | long-lived; proves nothing but Meta's handshake, messages are checked by signature | the core, one line a call | Cloudflare writes `REDACTED` for this name (seen on a scratch Worker, not on cb4) |
+| `seconds`, `browser`, `feed`, `worker`, `name`, `path`, `cursor`, `since` | not secrets; rules and prices read them | the core | yes, expected |
+| the proxy's target URL, the browser's `goto` URL and expression | | | no: in the body |
+| a session, a token, a Worker's key, the recovery key | | | no: in headers or a form body |
+
+- 24 h of cb4 (2026-10-08 20:05 UTC): no line with `code`, `state`, `iss`, `next`, `hub.verify_token`, `token`, `key`, `session`, `cc`, `sig`, `secret` or `password` as a parameter, but for one `proxy.fetch?code=…` call of a test. No line for `/link`, `/auth/*` or `/hooks/*`. Nothing to rotate.
+- Open: if the kernel ever writes a line of its own, the link code is stored. Then move the code after `#`.
+- Open: a third party's callback with a secret in its query that Cloudflare does not redact by name.

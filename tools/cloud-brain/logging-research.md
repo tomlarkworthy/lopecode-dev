@@ -17,6 +17,32 @@ Sections 5 a to h and the credential flow iii were built the same day: see `brai
 - The `cf-ray` a Worker reads has no colo: `a4775ef6ddbee513`, where the caller receives `a4775ef6ddbee513-TXL`.
 - A line was readable 11 to 16 s after its call (3 calls), inside the "10 s to 45 s" below.
 
+### Correction, 2026-10-08 20:10 UTC: custom lines carry the URL and the query string
+
+"What the invocation line keeps in clear" says that with `invocation_logs: false` no event had request headers.
+That is right, and incomplete: each custom line still has `$workers.event.request`.
+
+| Stored beside each `console.log` line | Not stored |
+|---|---|
+| `method`, `url` (with the query string), `path`, `search` (each parameter by name) | headers, `cf`, the body, the response |
+
+Seen on `cbx-logprobe` with `invocation_logs: false` (`tools/scratch/log-probe/reqprobe.ts`, `names.ts`,
+`shapes.ts`) and on `cb4-core`:
+
+- The URL is the one that Worker was called with. The core's lines have `https://core.internal/…?…`, as the kernel
+  forwarded it. A line from the handler of a WebSocket message and a line written in `waitUntil` have the URL of the
+  upgrade or of the call. A `scheduled` event has no request.
+- A Worker that writes no line stores nothing for that call.
+- Cloudflare replaces some values with `REDACTED` or `********`. Not documented; one request of each.
+  By name: `token`, `key`, `jwt`, `password`, `passwd`, `auth`, `Authorization`, `access_token`, `api_key`,
+  `hub.verify_token`, and each name with `secret` in it. By shape: 32 or more hex or mixed characters, a UUID, a JWT.
+  Stored in clear: `code`, `state`, `iss`, `sig`, `signature`, `session`, `ticket`, `nonce`, `cc`, `pin`, `otp`, a
+  24-character hex value (the length of a link code), a DID, and a URL inside a parameter.
+- The docs name no setting that stops it (<https://developers.cloudflare.com/workers/observability/logs/workers-logs/>,
+  read 2026-10-08: `enabled`, `head_sampling_rate`, `invocation_logs` only).
+
+Rule: no long-lived secret in a path or a query string. A short-lived single-use code may be. No code was changed.
+
 The text below is as it was written before the build.
 
 ## Result

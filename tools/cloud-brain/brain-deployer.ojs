@@ -159,6 +159,10 @@ deployerOps = {
   // request's headers and its whole URL: x-brain-deployer and x-brain-guard (a Worker's key), x-brain-origin, and the
   // code in /link?code=… were stored in clear (tried 2026-10-08, logging-research.md). What a Worker writes with
   // console.log is kept, and the core writes one line a call from a list of names.
+  // With the invocation line off Cloudflare still stores, beside each line a Worker writes, the method and URL of
+  // the call with its query string; not headers, not the body. It redacts some values by name or shape, by a rule it
+  // does not document. So: no long-lived secret in a path or a query string. A short-lived single-use code may be.
+  // Keep the line off: x-brain-deployer, x-brain-guard, x-brain-origin and x-brain-session would be stored in clear.
   const OBSERVABILITY = { enabled: true, logs: { enabled: true, invocation_logs: false } };
   // The setting is the script's, not a version's: Cloudflare takes it from the upload of a new script and ignores it
   // in the upload of a version (seen 2026-10-08). For a script that exists it is set here, when it is not already.
