@@ -287,7 +287,7 @@ Each is an owner service. Its module documents it.
 | ${mod("brain-whatsapp")}, ${mod("brain-bluesky")} | Message channels. |
 | ${mod("brain-library")} | Notebooks that the Brain keeps and serves. |
 | ${mod("brain-feed")} | Lists of Bluesky posts, given as Bluesky feeds. |
-| ${mod("brain-browser")} | Remote browsers from Cloudflare Browser Run: named pages as tabs of one browser, with time bought in seconds. |
+| ${mod("brain-browser")} | Remote browsers from Cloudflare Browser Run, for each process of the Brain: a caller has its own browsers by name, a page is a tab of one, and time is bought in seconds for one browser. |
 | ${mod("brain-proxy")} | Outbound requests with a secret added. |`
 // %%
 // A module's name as a link that opens its tab beside the ones already open.

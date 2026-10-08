@@ -2353,3 +2353,43 @@ Tests in the page: brain-core 24/24, brain-browser 14/14, 205 in the 18 modules.
 Not verified on cb4: the prune, the unbound-Worker case, the 1001st purchase.
 
 Written 2026-10-08 09:07 CEST.
+
+## Many browsers, each owned by its caller (2026-10-08 19:32 to 19:45 CEST)
+
+"its a shared service, each browser will be owned by another process, so this one thing has to serve the whole cluster. Of course there will need to be multiple browsers, please fix." (Tom, 2026-10-08). Until then `brain-x-browser` had one browser and one `paidUntil` for all callers.
+
+A browser is now the pair of its owner and a name. The owner is `x-brain-caller`, as the core names it; no parameter names an owner. The rows of one browser are under `b/<owner>/<name>/`, and the code for one browser is the code that was there, given rows with that prefix (`browserOps.one(owner, name)`). `browser` is in the query string or the body, `default` when absent, so the two calls of the old use are the same two calls.
+
+| decision | reason | not chosen |
+|---|---|---|
+| the caller owns, the origin pays | the core already charges the origin; a Worker in a chain the owner started keeps its browser apart from the owner's own | the origin owns: two Workers in the owner's chains would share one browser |
+| `browser.all` and `browser.end` as two methods with a fixed rule `caller.session` | the check is a rule and the owner cannot loosen it by mistake | `?all=true` and `owner` on `status` and `close`, with a rule over `request.params`: one `rule.put` that forgets the clause opens each owner's browsers |
+| default rule `who: "workers"` on the first eleven methods | the service is for the processes of the Brain; a recipe Worker still names the method in its `calls`, and a member's Worker calls as its author with the author's grant | `caller.trusted` and one `rule.put` for each Worker |
+| an `extend` that a limit stops is charged and its seconds stay bought | the core charges before the service runs and a price cannot read the count of browsers; the worst case is one `extend`, $0.09 | a refund (removed 2026-10-08); a check of the limit before the purchase, which is charged the same and buys nothing |
+
+Limits, as settings of the owner's session: `maxTabs` 8 in one browser, `maxBrowsers` 10 up in all, `maxPerOwner` 3. Cloudflare allows 200 browsers at one time on Workers Paid and 3 on Workers Free ([limits](https://developers.cloudflare.com/browser-rendering/limits/), read 2026-10-08). The count is read and then the browser starts, so two starts at one moment can pass a limit by one.
+
+Measured on cb4, 17:38 to 17:42 UTC, as the owner's session and as the scratch Worker `brain-x-bruser` (`tools/scratch/browser-run/mk-user.ts`):
+
+```
+extend?browser=a&seconds=60  cold: true     extend?browser=b&seconds=60  cold: true
+open a/one 762 ms    open b/one 784 ms      a tab named "one" in each
+brain-x-bruser.go: extend 200 {added: 20, cold: true}; run 200 "Example Domain" 711 ms
+  status: owner "worker:brain-x-bruser", browser "default"
+  list?owner=owner&browser=a -> {pages: []}     eval {browser: "a", name: "one"} -> 409 NoTime
+  all -> 401   end -> 401
+owner's browser.all: owner/a up, owner/b up, worker:brain-x-bruser/default up
+close {browser: "a", all: true}; eval b/one -> "Example Domain"; eval a/one -> 410 PageClosed
+```
+
+The Worker's 20 s were charged to `owner`, the origin of the chain: the owner's day went from $0.039 to $0.0475 in the round, 340 bought seconds.
+
+Three tabs of the Brain's page, two in `a` and one in `b`: heaps of 504, 482 and 556 MB at +35 s. Between +35 s and +60 s `a` ended (`connect answered 410`); `b` answered at +60 s with 491 MB. That morning two tabs in one browser had held, thus two is not safe either. The tick closed the three browsers of the first round at the minute after each `paidUntil`.
+
+Tests in the page: brain-browser 15/15 (one new, `test_browser_each_caller_has_its_own_browsers`), 207 in 19 modules, no failures. The service and its panel went from 713 to 763 lines; the module from 1430 to 1570.
+
+Deployed with `brain.ts apply` (no approval): browser `597988c15db8` at 19:37:45 for the round above, then `cd6d2c9aeb68` at 19:44:01 (the same service with `counted` taken out of `status.mine`); the page at 19:44:57. `brain-x-bruser` was removed at 19:44:36. 14 Workers `same`, the lease held, Bluesky signed in.
+
+Not verified on cb4: `maxBrowsers` and `maxPerOwner` (simulate only); a member or a member's Worker as owner; the panel in the signed-in page; the delete of a finished browser's rows after 24 h. The rows of `worker:brain-x-bruser/default` (its purchases, no page) stay until that delete.
+
+Written 2026-10-08 19:46 CEST.

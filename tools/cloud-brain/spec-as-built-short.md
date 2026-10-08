@@ -18,7 +18,7 @@ One Brain, `cb4`, runs in one Cloudflare account. It has 15 Workers. The table g
 | `brain-x-inbox` | `brain-inbox` | The inbox and the lease. |
 | `brain-x-metrics`, `brain-x-static`, `brain-x-blob`, `brain-x-library`, `brain-x-proxy`, `brain-x-feed` | one module each | Metrics, files, blobs, saved notebooks, outbound fetch, Bluesky feeds. |
 | `brain-x-whatsapp`, `brain-x-bluesky` | one module each | Channels. |
-| `brain-x-browser` | `brain-browser` | Remote browsers from Cloudflare Browser Run. A page is a tab of one browser. Browser time is bought in seconds by `browser.extend`. |
+| `brain-x-browser` | `brain-browser` | Remote browsers from Cloudflare Browser Run, for each process of the Brain. A browser has a name and belongs to the caller that bought its time; a page is a tab of one browser. Browser time is bought in seconds by `browser.extend`. |
 
 A service is one notebook module. The module holds the prose, the code and the tests of the service.
 
@@ -43,6 +43,7 @@ A service is one notebook module. The module holds the prose, the code and the t
 | The Brain sends a Bluesky direct message. | cb4: `bluesky.send` answered `sent: true` 2 times, to one person the owner named. Reported by the session that sent them. | 2026-10-07 |
 | `brain-x-feed` writes a public record only when the owner started the chain. | cb4, scratch service with the rule `origin.kind == "owner"`, removed after: 200 for the owner's session, 401 for no sign-in. | 2026-10-07 23:57 CEST |
 | A caller opens a page in a remote browser, runs JavaScript in it and reads a screenshot. | cb4: `browser.run` on example.com gave `Example Domain` in 1831 ms with a cold browser and 665 ms with a warm one; 3 tabs in one browser; a second request read what the first one set in the page. | 2026-10-08 |
+| Each caller has its own named browsers, each with its own time and its own end. | cb4: the owner's session had browsers `a` and `b`, and the scratch Worker `brain-x-bruser` its own `default`, charged to the owner who started the chain; the Worker got 401 from `browser.all` and `browser.end` and reached no page of the owner; `close` of `a` left `b` answering; two tabs of the Brain's page ended `a` and the one tab in `b` still answered. | 2026-10-08 |
 | Browser time is bought before use by `browser.extend` at $0.000025 a second, charged by the core and not given back, and a browser closes when its time has passed. | cb4: `extend?seconds=20` answered `x-brain-price: 0.0005`; 5 refused forms of `seconds` answered 400 and cost 0; `run` with no time answered 409 `NoTime`; 2 failed `open` calls cost 0 and added no time; 2 `extend` calls at one time added 20 s for $0.0005. Earlier that day: pages answered `closed: time ran out` 1 s after `paidUntil`. | 2026-10-08 |
 | A Worker calls only the methods that its service declared. | cb4, mode `enforce`: a scratch service that declared `lease.get` got 200 on it and 403 on 4 other methods. | 2026-10-07 |
 | A rule reads `origin`, who started a chain of calls. A Worker cannot name an origin of its choice. | cb4, scratch Worker: with the core's reference the next method read `owner`; with none, a changed one, or the name in clear it read the Worker, and a rule with `origin.trusted` answered 401. | 2026-10-07 |

@@ -541,9 +541,17 @@ Tom asked the Brain over WhatsApp for pictures; its owner turn wrote the change 
 
 - **Done from the lists above:** a declared price reaches the core; the browser is on the price list; the page with the Spending panel is deployed; a member's `quota.get` works (the 403 was for a DID that is not a member).
 - **Reload `brain-live`.** It runs the page from before 08:35 CEST. The browser panel and the ledger column changed.
-- **A page's own browser was removed** with the refunds (one browser, one `paidUntil`). A hosted Brain may need it again; the question is in the spec.
+- **A page's own browser was removed** with the refunds (one browser, one `paidUntil`). Answered 2026-10-08 19:45: a browser is now owned by its caller and has a name; see below.
 - **A model call needs a price design.** `x-brain-cost` is gone. The question is in the spec.
 - **A credit by hand.** No method returns a charge. If wanted: one owner-session method that appends a credit against a ledger id. The question is in the spec.
 - **Not measured: Browser Run's idle close at 180 s.** The tick no longer closes a session that a dead start left. Next: start a session with no command on a scratch Worker and read `/v1/sessions` after 200 s.
 - **`lope-browser-runner.ts` did not launch for a reviewer:** Playwright's headless shell 1200 is not installed under `tools/`. Next: `bunx playwright install chromium-headless-shell` in the tool's directory, or point the runner at the installed Chromium.
 - **The old pending WhatsApp deploys** (`d3f5a6d0eded`, `ecf653b0ea50`) are still on the approval page. No method removes a pending deploy.
+
+## Added 2026-10-08 19:45: many browsers, each owned by its caller
+
+- **Done:** `brain-x-browser` keeps a browser for each pair of caller and name; `browser.all` and `browser.end` for the owner's session; `maxBrowsers` and `maxPerOwner`.
+- **Two tabs of the Brain's page ended a browser** on cb4 (about 500 MB of heap each at +35 s). One tab in a second browser held. A hosted Brain page gets a browser of its own. Next: measure one tab over 10 minutes.
+- **Not seen on cb4:** the two limits of browsers, a member as the owner of a browser, the panel's table of all browsers in the signed-in page.
+- **An `extend` that a limit stops is charged** and its seconds stay bought (at most $0.09). If that is not wanted: the core would need a way for a service to refuse before the charge.
+- **Each call lists the rows of all browsers** only when it starts a browser and in `status`; the tick lists them one time a minute. Not measured with more than 3 browsers.
