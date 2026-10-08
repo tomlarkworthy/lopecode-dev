@@ -2247,7 +2247,7 @@ Tests under `simulate`: 203 of 204 in 19 modules. The one that fails is `brain-b
 
 - The ledger rows of 2026-10-08 on cb4 are the scratch run: 50 for the owner ($0.0235) and 56 for a token that is revoked. No method deletes a ledger row.
 - A day's list is read whole for each priced call. At 2000 charges that is about 300 kB.
-- A core that read an account as spent refuses it for 5 s from memory, so a raised allowance can take 5 s to reach each instance.
+- A core that read an account as spent refuses it from memory with no write (spending only grows in a day; changed 2026-10-08, was 5 s). The allowance is read from settings, which each instance holds for 5 s, so a raised allowance can take 5 s to reach each instance.
 - A cost known after the call (model tokens) is not built. The price would be the most the call can cost, and `x-brain-cost` brings it down.
 - The browser service does not use this yet. To join: a `price` line on `browser.open`, `browser.extend` and `browser.run`, and its own count of bought seconds deleted.
 
@@ -2325,7 +2325,31 @@ Tests under `simulate`: all pass in each module that was run. `brain-core` 24, `
 ### Limits
 
 - The amounts given back before 08:33 CEST on 2026-10-08 are counted as spent in that day's rows by the new core. For the owner that is $0.01.
-- The row `paid` keeps 1000 purchases. More than 1000 purchases that are all still ahead of the clock would lose the oldest.
+- The row `paid` keeps 1000 purchases. (Fixed 09:05: each entry carries the time bought before it, so dropping the oldest loses nothing.)
 - A model call still has no price method: a price is fixed before the call.
 
 Written 2026-10-08 08:37 CEST.
+
+## Second review of prices and the browser (2026-10-08 08:45 to 09:06 CEST)
+
+A fresh review of `brain-core` and `brain-browser` gave 9 findings. Each was checked against the source; all 9 held.
+
+| finding | done |
+|---|---|
+| `prune` skipped the month of its edge day, so rows 62 to 68 days old stayed | the month loop starts at 0; the test seeds days 62, 65 and 68 |
+| a priced call to a Worker that is not bound was charged, then 502 | the binding is checked before the charge; tested (`502`, no `x-brain-price`, no row) |
+| the 1001st purchase in a row was charged and added no time | each `paid` entry carries the time bought before it (`u`), and the sum starts from the first entry's `u`; tested with 1000 entries |
+| `liveView` did not need bought time | it calls `timed()`; in the NoTime test; on cb4 at 09:05 it answered 409 `NoTime` |
+| the price example in the core's prose was not `browser.extend`'s price | the example is now `shop.time`, the method the test uses |
+| two comments from before the change | corrected |
+| an account out of credits that retried grew its day row after each 5 s | the 5 s limit on the instance's memory is deleted: spending only grows in a day, so a known-spent account is refused with no write. A new instance still appends one entry that does not count |
+| the fake left an unhandled rejection that crashed `bulk-smoke-test-worker.js` | handled; the worker now ends `tests-failed` (516 of 633; the 11 failures are `sampleFileAttachment` in other modules), not `crash` |
+| two member tests returned nothing | each returns a string |
+
+Not done as asked: "write no ledger entry for a refusal". A charge is decided by appending and then reading, so an entry that loses a race is the mechanism; it is in the ledger with `counted: false`. What the retry case needed was no write once the account is known spent, which is the change above.
+
+Tests in the page: brain-core 24/24, brain-browser 14/14, 205 in the 18 modules. Deployed with `brain.ts apply` (no approval): core `730061663b76` 09:04:39 to 09:05:00, confirmed; browser `5d8faf65e1b2` to 09:05:38. 17 Workers `same` afterwards (3 are the performance work's scratch Workers).
+
+Not verified on cb4: the prune, the unbound-Worker case, the 1001st purchase.
+
+Written 2026-10-08 09:07 CEST.

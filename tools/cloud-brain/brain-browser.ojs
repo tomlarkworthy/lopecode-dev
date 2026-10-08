@@ -73,7 +73,7 @@ Cloudflare bills Browser Run by the browser-hour: $0.09 an hour, 10 hours a mont
 
 Browser time is bought before it is used, by one method. \`extend?seconds=N\` adds N seconds to \`paidUntil\`, or to now when \`paidUntil\` has passed. Its price is N × 0.000025, and no other method has a price. The core charges that to the account of who started the call before the call reaches this service (see **Prices and credits** in \`@tomlarkworthy/brain-core\`), and refuses the call with 402 \`OutOfCredits\` when the account's day is spent.
 
-What is charged is what is added. The price is 0 for a \`seconds\` that this service refuses (absent, not digits, less than 10, more than 3600), and the service then answers 400. A purchase is one appended entry in the row \`paid\`, so purchases made at one time all count. The row keeps the last 1000 purchases.
+What is charged is what is added. The price is 0 for a \`seconds\` that this service refuses (absent, not digits, less than 10, more than 3600), and the service then answers 400. A purchase is one appended entry in the row \`paid\`, so purchases made at one time all count. The row keeps the last 1000 purchases. Each entry carries the time that was bought before it, so the oldest can go.
 
 Time that is bought is not given back: not when a page is closed, not on \`close { all: true }\`, and not when Browser Run fails to start the browser after an \`extend\`. In that last case the seconds stay bought and the next call that needs the browser starts it. The most one \`extend\` can cost is 3600 × $0.000025 = $0.09.
 
@@ -137,7 +137,7 @@ browser_service = cloudflare.Service("browser", browserApp, {
     "com.lopecode.brain.browser.text": { type: "query", who: "owner" },
     "com.lopecode.brain.browser.screenshot": { type: "query", who: "owner" },
     "com.lopecode.brain.browser.logs": { type: "query", who: "owner" },
-    // A Live View link gives the person who holds it the tab. The limits are the spend. Both for the owner's own session only.
+    // A Live View link gives the person who holds it the tab. settings is the tab limit. Both for the owner's own session only.
     "com.lopecode.brain.browser.liveView": { type: "query", who: "owner", allow: "caller.session", fixed: true },
     "com.lopecode.brain.browser.settings": { type: "procedure", who: "owner", allow: "caller.session", fixed: true }
   }
@@ -278,8 +278,12 @@ browserOps = {
   const browsers = async () => (await vals("browser/")).sort((a, b) => a.opened - b.opened || (a.sessionId < b.sessionId ? -1 : 1));
   const pages = () => vals("page/");
   // Each purchase adds its seconds to the time bought so far, or to the time it was made at when that had passed.
-  // A purchase is one appended entry, so two made at one moment both count.
-  const paidUntil = async () => ((await rows.get("paid")) || []).reduce((until, e) => Math.max(until, e.t) + e.n * 1000, 0);
+  // A purchase is one appended entry, so two made at one moment both count. Each carries the time bought before it (u),
+  // so the row can drop its oldest entries.
+  const paidUntil = async () => {
+    const list = (await rows.get("paid")) || [];
+    return list.reduce((until, e) => Math.max(until, e.t) + e.n * 1000, (list[0] && list[0].u) || 0);
+  };
   const noTime = (paid, left, need) => stop(409, "NoTime", `${left > 0 ? `the call needs ${Math.ceil(need / 1000)} s of browser time and ${Math.floor(left / 1000)} s are bought` : "no browser time is bought"}. browser.extend?seconds=N buys N seconds.`, { paidUntil: paid });
   // The sessions Browser Run reports for the account, or null when it does not answer. Other Workers' sessions are in the list.
   const sessions = async () => {
@@ -572,8 +576,8 @@ browserOps = {
     extend: async (q, by) => {
       const n = browserSeconds(q.seconds);
       if (n === null) throw stop(400, "InvalidRequest", `seconds: a whole number from ${L.minSeconds} to ${L.maxSeconds}, given one time in the query string`);
-      await expire(Date.now());
-      await rows.append("paid", { t: Date.now(), n }, 1000);
+      const u = await expire(Date.now());
+      await rows.append("paid", { t: Date.now(), n, u }, 1000);
       const paid = await paidUntil(), { cold } = await theBrowser(by);
       return { paidUntil: paid, added: n, costUsd: Number((n * L.dollarsPerSecond).toFixed(6)), cold };
     },
@@ -626,6 +630,7 @@ browserOps = {
     screenshot: async (q) => withPage(named(q.name), ({ cdp, sid }) => shot(cdp, sid, q)),
     logs: async (q) => withPage(named(q.name), async ({ cdp, sid }) => ({ logs: await readLogs(cdp, sid) })),
     liveView: async (q) => {
+      await timed();
       const p = await rows.get("page/" + named(q.name));
       if (!p || p.pending) throw await missing(q.name);
       const r = await http(`/v1/devtools/browser/${p.sessionId}/json/list`);
@@ -930,6 +935,7 @@ browserFake = ({ sites = {} } = {}) => {
         try {
           let v = evaluate(t, params.expression);
           if (params.awaitPromise) v = await v;
+          if (v instanceof Promise) v.catch(() => {});
           if (v === undefined) return { result: { type: "undefined" } };
           // An object is a handle unless the value is asked for. The handle is good on this connection.
           if (params.returnByValue || v === null || (typeof v !== "object" && typeof v !== "function")) return { result: { type: typeof v, value: v } };
@@ -1099,7 +1105,7 @@ test_browser_time_is_bought_by_extend_alone = {
     const r = await rig.owner.post(m, body);
     expect([m, r.status, r.data]).toEqual([m, 409, { error: "NoTime", message: "no browser time is bought. browser.extend?seconds=N buys N seconds.", paidUntil: 0 }]);
   }
-  for (const m of ["text", "screenshot", "logs"]) expect([m, (await rig.owner.get(m, { name: "a" })).data.error]).toEqual([m, "NoTime"]);
+  for (const m of ["text", "screenshot", "logs", "liveView"]) expect([m, (await rig.owner.get(m, { name: "a" })).data.error]).toEqual([m, "NoTime"]);
   expect([(await rig.owner.get("list")).data, (await rig.owner.get("status")).data.remaining, (await rig.owner.post("close", { all: true })).status, rig.fake.stats.acquired]).toEqual([{ pages: [] }, 0, 200, 0]);
   // extend adds its seconds from now and starts the browser.
   const first = (await rig.as("token:laptop", "did:plc:ada").post("extend", {}, { seconds: 100 })).data;
@@ -1147,7 +1153,11 @@ test_browser_price_is_what_extend_adds = {
   rig.setPaid(0);
   const t0 = Date.now(), burst = await Promise.all(Array.from({ length: 12 }, () => rig.owner.post("extend", {}, { seconds: 50 })));
   expect([burst.filter((r) => r.status === 200).length, Math.round((Math.max(...burst.map((r) => r.data.paidUntil)) - t0) / 1000), rig.fake.sessions.size]).toEqual([12, 600, 1]);
-  return Object.keys(cases).length + " query strings: charged is added; 12 at once add 600 s";
+  // The row keeps 1000 purchases. One more, with all of them still bought, adds its seconds like the rest.
+  rig.sim.rows.set("paid", Array.from({ length: 1000 }, (_, i) => ({ t: t0, n: 10, u: i ? t0 + i * 10000 : 0 })));
+  const more = await rig.owner.post("extend", {}, { seconds: 10 });
+  expect([more.status, rig.rows.get("paid").length, Math.round((more.data.paidUntil - t0) / 1000)]).toEqual([200, 1000, 10010]);
+  return Object.keys(cases).length + " query strings: charged is added; 12 at once add 600 s; 1001 in a row all count";
 }
 // %%
 test_browser_gives_no_time_that_was_not_bought = {
