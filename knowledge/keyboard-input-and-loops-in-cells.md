@@ -107,7 +107,8 @@ invalidation.then(() => {
 });
 ```
 
-`@tomlarkworthy/liquid-timer` `mainLoop` does the same with `cancelAnimationFrame(frame)`.
+`@tomlarkworthy/liquid-timer` `mainLoop` did the same with `cancelAnimationFrame(frame)` (notebook
+deleted 2026-10-08; last at lopebooks `5198bb80`).
 `invalidation` is a built-in: list it as an input of the cell. A generator cell needs no cleanup: the
 runtime pulls one value per frame and stops pulling when the cell re-runs (`@tomlarkworthy/lazer-light`
 `spring`: `while (true) { …draw…; yield ctx.canvas }`).
@@ -128,7 +129,7 @@ so they run until the page is reloaded. Tell the user to save and reopen the not
 `location.reload()` reloads the notebook file from disk. Everything not yet saved is lost, including
 modules and edits made in this session. To restart, make the cell that holds the game state depend
 on a button, so a click re-runs it: the old loop is cancelled on invalidation and the cell builds a
-fresh state. `@tomlarkworthy/liquid-timer` does this:
+fresh state. `@tomlarkworthy/liquid-timer` (deleted 2026-10-08, lopebooks `5198bb80`) did this:
 
 ```js
 const _t06 = function _viewof_reset(Inputs){return(

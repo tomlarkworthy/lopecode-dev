@@ -87,7 +87,7 @@ in `event-handlers-in-cells.md`).
 cells drifts when one copy is changed. Search the module for each number that appears in more than
 one cell, and for a number that restates an entry of a table cell the module already has. Make it one
 named cell that the others list. `@tomlarkworthy/liquid-timer` `particles`
-(lopebooks/notebooks/@tomlarkworthy_liquid-timer.html) is `1500`, listed by `liquid` and the tests:
+(notebook deleted 2026-10-08; last at lopebooks `5198bb80`) was `1500`, listed by `liquid` and the tests:
 
 ```js
 const _t04 = function _particles(){return(

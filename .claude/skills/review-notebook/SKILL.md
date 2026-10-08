@@ -67,4 +67,4 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   verified or acted on by the spawner. 124k subagent tokens, 14m36s. The browser runner could not
   launch (Playwright headless shell missing), so nothing rendered was reviewed; the reviewer fell
   back to `notebook-import.ts`. Five brief defects reported, four fixed in `reviewer.md` the same
-  day.
+  day. Outcome: Tom deleted the notebook on 2026-10-08 ("it is not high quality") rather than fix it.

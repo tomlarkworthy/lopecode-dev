@@ -758,10 +758,6 @@
   "@tomlarkworthy/subdomain-certification": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html"
   },
-  "@tomlarkworthy/liquid-timer": {
-    "lopebooks": "lopebooks/notebooks/@tomlarkworthy_liquid-timer.html",
-    "upstream": null
-  },
   "@tomlarkworthy/suminagashi": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_suminagashi.html",
     "upstream": null
