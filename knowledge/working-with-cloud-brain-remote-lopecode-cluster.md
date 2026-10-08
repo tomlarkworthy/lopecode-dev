@@ -161,6 +161,11 @@ Limits:
   it, because a browser belongs to its caller. Rule overrides for this were set and removed the
   same day; they were not needed.
 - When the cluster page goes down, nothing holds the lease. Reopen the local `brain-live` tab.
+- A QA session that was closed comes back as a new browser: signed out, and its dial to `127.0.0.1`
+  fails with `ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS` (seen 2026-10-08 23:10 CEST). Open it with
+  `chromium_args: ["--disable-features=LocalNetworkAccessChecks"]`, then put the session in
+  `localStorage.brain_session` without printing it (a one-shot loopback server that the page fetches
+  from) and reload. Do not `qa_close` with no session name: it closes every session.
 
 Rejected: a relay service on a Durable Object, with both ends dialling a room. Tom: "no because you
 have modified the protocol". The bridge needed no new infrastructure.
