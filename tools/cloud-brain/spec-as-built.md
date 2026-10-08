@@ -2280,3 +2280,52 @@ Tests under `simulate`, r=178: brain-browser 13 of 13, cloudflare-iac 20, brain-
 Not verified: the Spending panel in a browser. The headless QA tab on `https://cb4…` could not pair (`ws://127.0.0.1` refused: `ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`, also with the Chromium feature switched off), so the session could not be put in its `localStorage`. `quota.get` for the test member answered 403 "has no grant" after the kernel deploy; not looked into. `brain-live` runs the page from before 07:31 CEST and needs a reload.
 
 Written 2026-10-08 07:34 CEST.
+
+## No refunds: a charge stands, and `extend` alone buys browser time (2026-10-08 08:00 to 08:37 CEST)
+
+Tom, 2026-10-08: "Don't do refunds that complicates thing, we want small lean code". This replaces the give-back of a failed call and `x-brain-cost` in the section above, and the prices on `browser.open` and `browser.run`. The sections above are the record of what was built before.
+
+### What changed
+
+- `brain-core` `09ec98eb050c`. A priced call is charged when the core accepts it. The charge is not returned, whatever the Worker answers. Deleted: the give-back on an answer that is not 2xx or a throw, the `x-brain-cost` header, `giveBack`, and the ledger fields `refunded` and `change`. The 2000 limit now counts the charges that count. The quota code (from `PRICING` to the `getInfo` route) went from 198 lines to 171, with the two additions below inside it.
+- `brain-core`: a signature of an origin reference is read in one spelling. `atob` reads the two spare bits of the last base64url character, so 1 signature in 16 had a second spelling that verified. The bytes were the same, so no forged reference passed; the test that changed the last character failed 1 time in 16. The verify now compares the re-encoded signature. The test flips a bit of the signature and of the payload, and sends the second spelling. 20 runs of 20 passed.
+- `brain-core`: old days are deleted by name for 31 days past `keepDays`, then by month for 12 months, at the first priced call of a UTC day. Before, 7 days were named, and a Brain with no priced call for 8 days kept older rows. `config.clockSkewMs` moves the day in a test. `quota.list` leaves out an account with no allowance of its own and no spend today.
+- `brain-browser` `0b2e6985e322`. `browser.extend?seconds=N` is the one method that buys time and the one with a price. N is a whole number from 10 to 3600. The price is built from `browserLimits` and is 0 for a `seconds` that the service refuses, so what is charged is what is added. A purchase is one `rows.append` to the row `paid`; purchases at one time all count. A method that uses the browser with no time bought answers 409 `NoTime`. Deleted: the prices and `seconds` of `open` and `run`, `cover` ("already covered buys nothing"), the receipt and `x-brain-cost`, a page's own browser (`own: true`), the settings `maxSeconds` and `maxSession`, and the close of a session that a dead start left. The module went from 1449 lines to 1421; the service and panel code from 738 to 707, with 3 tests in place of 2.
+- The 3600 s limit is fixed in the code and is not a setting: the price cannot read a setting, and a limit that the price does not know would charge for a call that the service then refuses.
+- `brain-kernel` is not deployed again: its code is the same, and one test was added.
+
+### Measured on cb4, 06:34 to 06:37 UTC, owner's session
+
+```
+price.list                 browser.extend declared: has(request.params.seconds) && … ? double(request.params.seconds) * 0.000025 : 0.0
+run, no time bought        409 NoTime                                   spent 0.0355 -> 0.0355
+extend, 5 refused forms    400 each (none, x, 5, 99999, 60 then x)      spent 0.0355 -> 0.0355
+extend?seconds=20          200 x-brain-price 0.0005 added 20 cold true  spent 0.036
+extend?seconds=40          200 x-brain-price 0.001  added 40            spent 0.037
+run example.com            200 "Example Domain" 886 ms, no price header
+run, timeout 60000         409 NoTime (fewer than 60 s were bought)
+open a dead address, 2x    502 NavigationFailed each                    spent 0.037 -> 0.037, paidUntil the same
+2 extends of 10 at once    200 each, paidUntil moved 20 s               spent 0.0375
+```
+
+- A deploy held for approval, by the owner's session through the kernel (`infra.apply`): `waiting`; the deployer's page showed "Price in USD: <the expression>" beside `browser.extend` and "Opens remote browsers. Cloudflare bills browser time to this account."; approved for that hash only; the second `infra.apply` answered `deployed` in 10 s. The two old WhatsApp deploys are still waiting. Picture: `tools/scratch/browser-run/approval-page-price-and-browser-20261008.jpg`.
+- The browser panel, drawn in a local tab from the built notebook with a client that sent the owner's session to cb4: "60 s costs $0.0015, charged to your day. It is not given back." before the press; "60 s added, $0.0015" after; Run once gave a screenshot of example.com. Picture: `browser-panel-add-time-cb4-20261008.jpg` in the same directory.
+- A member reads their own day: with `did:plc:cb4testmember0000000000` made a member for the test, `quota.get` 200 with `daily: 0.1`; `quota.get?who=owner` 401; `quota.list` 403; no session 401. The member was removed after. The 403 "has no grant" that was seen before is the answer to a DID that is not a member, and is correct.
+- Deploys: core 08:33:38 to 08:33:57 CEST (probation, confirmed 08:34:02); browser 08:34:02 to 08:34:17 and 08:35:46 to 08:35:56; page 08:35:56 to 08:35:58. After: each Worker `same`, the lease held, no Worker on probation.
+
+Tests under `simulate`: all pass in each module that was run. `brain-core` 24, `brain-kernel` 24, `brain-browser` 14.
+
+### Not verified
+
+- The panel inside the Brain's own page on cb4, signed in. The `brain-live` tab runs the page from before this change and was not reloaded.
+- The delete of old days on cb4. The ledger rows of 2026-10-08 (the scratch accounts `token:perf` and `token:pricecheck…` among them) go at the first priced call on or after 2026-11-08 UTC.
+- That Browser Run closes a browser that gets no command after 180 s. The service now relies on it for a session that a dead start left.
+- An `extend` that is charged while Browser Run starts no browser, on cb4. Under `simulate` the seconds stay bought and the next call starts the browser.
+
+### Limits
+
+- The amounts given back before 08:33 CEST on 2026-10-08 are counted as spent in that day's rows by the new core. For the owner that is $0.01.
+- The row `paid` keeps 1000 purchases. More than 1000 purchases that are all still ahead of the clock would lose the oldest.
+- A model call still has no price method: a price is fixed before the call.
+
+Written 2026-10-08 08:37 CEST.

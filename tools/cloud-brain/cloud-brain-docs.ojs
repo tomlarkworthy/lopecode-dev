@@ -4,7 +4,7 @@ A Cloud Brain is a set of Cloudflare Workers that one owner controls. Each Worke
 
 Part one says what the owner and a member can do. Part two describes the core: the Workers that each Brain has and the rules that they keep. A service outside the core has one line here and its own module.
 
-Each module name is a link that opens the module in a tab. Requirements, decisions and open questions are in ${mod("cloud-brain-specs")}. Checked against the module sources on 2026-10-07.`
+Each module name is a link that opens the module in a tab. Requirements, decisions and open questions are in ${mod("cloud-brain-specs")}. Checked against the module sources on 2026-10-08.`
 // %%
 md`## What the owner can do
 
@@ -68,6 +68,7 @@ The emit stops at the platform cells of ${mod("cloudflare-iac")}. Each cell work
 | \`sql\` | \`db.sql\` through the core: the Worker's own tables, by name prefix. |
 | \`blobs\` | The Brain's one bucket. The Worker's keys are under its own name. |
 | \`inbox\` | \`inbox.append\`: a message for the page. |
+| \`browser\` | The Browser Run binding: remote browsers. Cloudflare bills browser time to the account. The approval page names it, and a member's service is refused it. |
 | \`xrpc\` | A call to another method of this Brain, through the core, as \`worker:NAME\`. |
 | \`config\` | Values that the deployer wrote at deploy. |
 
@@ -197,7 +198,7 @@ A rule is one [CEL](https://github.com/google/cel-spec) expression over \`caller
 
 A rule is part of the service's source, so a change to a rule is a deploy. The owner can replace a rule with \`rule.put { target, allow }\`, unless the service fixed it. A rule cannot read the request body. Reference: **Access rules** in ${mod("cloudflare-iac")}.
 
-A method can also have a price in US dollars, charged to the account of the origin for the UTC day. Reference: **Prices and credits** in \`@tomlarkworthy/brain-core\`.
+A method can also have a price in US dollars, charged to the account of the origin for the UTC day. A charge is not returned. Reference: **Prices and credits** in ${mod("brain-core")}.
 
 A member service declares \`who: "author"\` (the member and the owner) or \`who: "members"\`. The deployer writes the rule.`
 // %%
@@ -217,8 +218,9 @@ A call from the internet:
 2. The kernel forwards the call to the core and names the caller.
 3. The core finds the one Worker whose service declared the method or path. A query sent as a \`POST\`, or a procedure sent as a \`GET\`, gets 405. A name that no service declared gets 501 \`MethodNotImplemented\`.
 4. The core evaluates the rule. A result that is not \`true\` gets 401. A rule that cannot be evaluated gets 403.
-5. The core forwards the call over its binding. For a person, it adds the member flag, the file limit and the tag grants.
-6. Each Worker on the path adds its name and version to \`x-brain-served-by\`: \`brain-x-library@17319cc3a35f, brain-core@409b93c8bffc, brain@1af0d22831c6\`.
+5. The core evaluates the price, when the method has one, and charges it to the account of the origin for the UTC day. An account with less than the price left gets 402 \`OutOfCredits\`, and the call goes no further.
+6. The core forwards the call over its binding. For a person, it adds the member flag, the file limit and the tag grants.
+7. Each Worker on the path adds its name and version to \`x-brain-served-by\`: \`brain-x-library@17319cc3a35f, brain-core@409b93c8bffc, brain@1af0d22831c6\`.
 
 A call from one Worker to another starts at step 3, as \`worker:NAME\`. The core first checks the method against the \`calls\` list of the calling service. A member's Worker calls as its author's DID. It can call \`db.sql\`, \`static.*\`, \`blob.*\`, a member's method, and each method that the owner granted to its author.
 

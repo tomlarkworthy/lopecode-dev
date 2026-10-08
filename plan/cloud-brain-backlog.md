@@ -534,5 +534,16 @@ Tom asked the Brain over WhatsApp for pictures; its owner turn wrote the change 
 - **The browser joins the price list.** `price` on `browser.open`, `browser.extend`, `browser.run`; delete its own count of bought seconds.
 - **Deploy the kernel and the page.** The kernel lets a member call `quota.get`; the page has the Spending panel. Neither was deployed on 2026-10-08, and the panel was not seen in a browser.
 - **58 ms more at p50 for a priced call** (cb4, 104 ms against 46 ms). One statement that appends and returns the list would halve it; that is a change to `rows` in `cloudflare-iac.ojs`.
-- **Tom decides:** the unit, UTC or the owner's time zone, the defaults, who pays in a room, settle-after for model tokens, whether members see each other's spend. The questions are in the spec.
+- **Tom decides:** the unit, UTC or the owner's time zone, the defaults, who pays in a room, settle-after for model tokens, whether members see each other's spend. The questions are in the spec.  (2026-10-08 08:37: refunds and settle-down were removed; see the last section.)
 - Cost is not in the metrics rows. The ledger has totals by account and by method for a day.
+
+## Added 2026-10-08 08:37: no refunds, and `extend` alone buys browser time
+
+- **Done from the lists above:** a declared price reaches the core; the browser is on the price list; the page with the Spending panel is deployed; a member's `quota.get` works (the 403 was for a DID that is not a member).
+- **Reload `brain-live`.** It runs the page from before 08:35 CEST. The browser panel and the ledger column changed.
+- **A page's own browser was removed** with the refunds (one browser, one `paidUntil`). A hosted Brain may need it again; the question is in the spec.
+- **A model call needs a price design.** `x-brain-cost` is gone. The question is in the spec.
+- **A credit by hand.** No method returns a charge. If wanted: one owner-session method that appends a credit against a ledger id. The question is in the spec.
+- **Not measured: Browser Run's idle close at 180 s.** The tick no longer closes a session that a dead start left. Next: start a session with no command on a scratch Worker and read `/v1/sessions` after 200 s.
+- **`lope-browser-runner.ts` did not launch for a reviewer:** Playwright's headless shell 1200 is not installed under `tools/`. Next: `bunx playwright install chromium-headless-shell` in the tool's directory, or point the runner at the installed Chromium.
+- **The old pending WhatsApp deploys** (`d3f5a6d0eded`, `ecf653b0ea50`) are still on the approval page. No method removes a pending deploy.

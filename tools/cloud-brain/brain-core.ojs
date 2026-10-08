@@ -69,11 +69,11 @@ The order is rule, price, charge, forward. The price is for the Worker's own wor
 
 A Worker that answers a call spends the credits of that call's origin, through any number of Workers. The most one call may cost is $1. An account's day starts at 00:00 UTC.
 
-A charge is taken before the call is forwarded and given back when the answer is not 2xx or the Worker throws. A Worker may answer \`x-brain-cost: <usd>\` to say the call cost less, and the core gives back the difference; a higher value, or one that is not an amount, is logged and not read. The answer to a priced call carries \`x-brain-price\`, what was charged in the end.
+A priced call is charged when the core accepts it, before it is forwarded. The charge is not returned: not when the Worker answers an error, and not when it throws. A service whose call can fail after the charge gives its price to one method that does only the purchase. The answer to a priced call carries \`x-brain-price\`, what was charged.
 
-An account's day is one row, \`spend/DAY/ACCOUNT\`: a list that each charge and each amount given back is appended to in one statement. A charge counts when the charges that count before it, and it, are inside the allowance it was made under. The list alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. A charge that lost to another made at the same time stays in the list and counts for nothing. A priced call is two statements (append, read) and one more when something is given back. A day holds 2000 charges for one account; the next is refused. A core that read an account as spent refuses it for 5 s without a write. Days older than \`keepDays\` (30) are deleted.
+An account's day is one row, \`spend/DAY/ACCOUNT\`: a list that each charge is appended to in one statement. A charge counts when the charges that count before it, and it, are inside the allowance it was made under. The list alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. A charge that lost to another made at the same time stays in the list and counts for nothing. A priced call is two statements (append, read). A day holds 2000 charges that count for one account; the next is refused. A core that read an account as spent refuses it for 5 s without a write. Days older than \`keepDays\` (30) are deleted at the first priced call of a UTC day; a Brain with no priced call keeps its rows until the next one.
 
-Limits. A cost known only after the call, such as the tokens of a model call, has no method yet: the price would have to be the most the call can cost, with \`x-brain-cost\` to bring it down. The allowance of a member's calls for a day (429) is a separate count.
+Limits. A cost known only after the call, such as the tokens of a model call, has no method yet: a price is fixed before the call and nothing brings it down afterwards (Tom, 2026-10-08: no refunds), so it needs a design of its own. The allowance of a member's calls for a day (429) is a separate count.
 
 **Calls.** A Worker calls the methods its service lists in \`calls\`. The core reads the list from the Worker's \`getInfo\`, which the deployer bound at deploy, and keeps it for that deployed hash. A name is exact. \`*\` is one part of a name; as the last part it is one or more: \`com.lopecode.brain.static.*\`, \`com.lopecode.brain.*.send\`. A list of only \`*\` matches nothing.
 
@@ -143,7 +143,8 @@ coreApp = {
     const m = /^c1\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/.exec(reference || "");
     if (!m) return null;
     try {
-      if (!(await crypto.subtle.verify("HMAC", await keyOfOrigin(), unb64u(m[2]), utf8.encode(m[1])))) return null;
+      // One spelling for each signature: base64url has spare bits in its last character.
+      if (b64u(unb64u(m[2])) !== m[2] || !(await crypto.subtle.verify("HMAC", await keyOfOrigin(), unb64u(m[2]), utf8.encode(m[1])))) return null;
       const p = JSON.parse(new TextDecoder().decode(unb64u(m[1])));
       return p.w === worker && p.e > Date.now() && typeof p.o === "string" ? { caller: p.o, via: p.v || "" } : null;
     } catch {
@@ -200,7 +201,9 @@ coreApp = {
   const MEMBER_NS = "com.lopecode.brain.m.";
   const QUOTA = { calls: 2000, bytes: 20 * 1024 * 1024, workers: 3 };
   const quotaOf = (person) => ({ ...QUOTA, ...((person && person.quota) || {}) });
-  const today = () => new Date().toISOString().slice(0, 10);
+  // The day is UTC. clockSkewMs moves it in a test.
+  const clock = () => Date.now() + (config.clockSkewMs || 0);
+  const today = () => new Date(clock()).toISOString().slice(0, 10);
   // Calls into and out of one member's Workers, counted per UTC day.
   const spend = async (person) => (await rows.increment(`mcalls/${person.did}/${today()}`)) <= quotaOf(person).calls;
   const asAuthor = async (c, { worker, author }) => {
@@ -522,49 +525,36 @@ coreApp = {
       return { error: String((e && e.message) || e).split("\n")[0] };
     }
   };
-  // What a day's list comes to: what is spent, and what each charge that counts still holds.
+  // What a day's list comes to: what is spent, and the charges that count.
   const fold = (list) => {
     let spent = 0;
     const net = new Map();
-    for (const e of list || []) {
-      if (e.u != null) {
-        if (spent + e.u <= e.A) (net.set(e.i, e.u), (spent += e.u));
-      } else if (net.has(e.i)) {
-        const back = Math.min(net.get(e.i), -e.a);
-        net.set(e.i, net.get(e.i) - back);
-        spent -= back;
-      }
-    }
-    return { spent, net };
+    for (const e of list || []) if (net.size < CHARGES && spent + e.u <= e.A) (net.set(e.i, e.u), (spent += e.u));
+    return { spent, net, full: net.size >= CHARGES };
   };
   const spendKey = (day, account) => `spend/${day}/${account}`;
   // What this instance last read for an account. It stops an account that is out of credits from growing its list.
   const known = new Map();
   const charge = async (account, u, allowance, about) => {
     const day = today(), key = spendKey(day, account), A = micro(allowance), k = known.get(account);
-    if (k && k.day === day && Date.now() - k.at < settings.ttl && k.spent + u > A) return { ok: false, spent: k.spent };
+    if (k && k.day === day && Date.now() - k.at < settings.ttl && (k.full || k.spent + u > A)) return { ok: false, spent: k.spent, full: k.full };
     const i = crypto.randomUUID().slice(0, 13);
-    const n = await rows.append(key, { t: Date.now(), i, u, A, ...about }, KEEP);
-    const { spent, net } = fold(await rows.get(key));
-    known.set(account, { day, spent, at: Date.now() });
-    if (net.has(i) && n > CHARGES) {
-      await rows.append(key, { t: Date.now(), i, a: -u, r: "full" }, KEEP);
-      return { ok: false, spent: spent - u, full: true };
-    }
-    return { ok: net.has(i), i, key, spent, account };
-  };
-  const giveBack = async (got, back, r) => {
-    await rows.append(got.key, { t: Date.now(), i: got.i, a: -back, r }, KEEP);
-    const k = known.get(got.account);
-    if (k) k.spent -= back;
+    await rows.append(key, { t: Date.now(), i, u, A, ...about }, KEEP);
+    const { spent, net, full } = fold(await rows.get(key));
+    known.set(account, { day, spent, full, at: Date.now() });
+    return { ok: net.has(i), spent, full: full && !net.has(i) };
   };
   let pruned = "";
   const prune = async (keepDays) => {
     if (pruned === today()) return;
     pruned = today();
-    for (let d = keepDays + 1; d <= keepDays + 7; d++) await rows.deletePrefix(`spend/${new Date(Date.now() - d * 86400000).toISOString().slice(0, 10)}/`);
+    const dayAgo = (d) => new Date(clock() - d * 86400000);
+    // 31 days by name, then 12 whole months before them: a Brain with no priced call for a year still loses its old days.
+    for (let d = keepDays + 1; d <= keepDays + 31; d++) await rows.deletePrefix(`spend/${dayAgo(d).toISOString().slice(0, 10)}/`);
+    const edge = dayAgo(keepDays + 31);
+    for (let m = 1; m <= 12; m++) await rows.deletePrefix(`spend/${new Date(Date.UTC(edge.getUTCFullYear(), edge.getUTCMonth() - m, 1)).toISOString().slice(0, 7)}-`);
   };
-  const midnight = () => new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86400000;
+  const midnight = () => new Date(today() + "T00:00:00Z").getTime() + 86400000;
   const money = (n) => "$" + String(Number(n.toFixed(6)));
   const priced = async (c, route, target, rule, context) => {
     const set = await priceSet(target), expression = set ? set.price : rule.price;
@@ -581,35 +571,20 @@ coreApp = {
     if (!got.ok)
       return fail(c, 402, "OutOfCredits", got.full
         ? `${account} has made ${CHARGES} priced calls today, which is the most for one day. The count is new at 00:00 UTC`
-        : `${target} costs ${money(usd(u))}. ${account} has spent ${money(usd(got.spent))} of ${money(allowance)} today. The allowance is new at 00:00 UTC, in ${Math.ceil((midnight() - Date.now()) / 60000)} minutes`);
+        : `${target} costs ${money(usd(u))}. ${account} has spent ${money(usd(got.spent))} of ${money(allowance)} today. The allowance is new at 00:00 UTC, in ${Math.ceil((midnight() - clock()) / 60000)} minutes`);
     const old = prune(p.keepDays).catch(() => null);
     try {
       c.executionCtx.waitUntil(old);
     } catch {}
-    let r;
-    try {
-      r = await forward(route, c);
-    } catch (e) {
-      await giveBack(got, u, "refund").catch(() => null);
-      throw e;
-    }
-    let final = u;
-    if (r.status < 200 || r.status >= 300) (await giveBack(got, u, "refund"), (final = 0));
-    else if (r.headers.has("x-brain-cost")) {
-      // The Worker may say the call cost less than its price. More, or anything that is not an amount, is not read.
-      const said = r.headers.get("x-brain-cost").trim(), n = said === "" ? NaN : Number(said);
-      if (Number.isFinite(n) && n >= 0 && micro(n) < u) (await giveBack(got, u - micro(n), "settle"), (final = micro(n)));
-      else if (!(Number.isFinite(n) && micro(n) === u)) console.log(`brain-core: ${route.worker} said ${target} cost ${JSON.stringify(said.slice(0, 40))}; the price ${usd(u)} stands`);
-    }
-    const out = new Response(r.body, r);
-    out.headers.set("x-brain-price", String(usd(final)));
+    // The charge stands whatever the Worker answers.
+    const r = await forward(route, c), out = new Response(r.body, r);
+    out.headers.set("x-brain-price", String(usd(u)));
     return out;
   };
-  // One account's day as the owner reads it: each charge, what it came to, and why it changed.
+  // One account's day as the owner reads it. A charge that does not count was refused, and cost nothing.
   const ledgerOf = (who, list) => {
-    const { net } = fold(list), why = new Map();
-    for (const e of list || []) if (e.u == null && net.has(e.i)) why.set(e.i, e.r);
-    return (list || []).filter((e) => e.u != null).map((e) => ({ at: e.t, who, origin: e.o + (e.v ? " (" + e.v + ")" : ""), caller: e.c, method: e.m, price: usd(e.u), cost: usd(net.get(e.i) ?? 0), counted: net.has(e.i), refunded: why.get(e.i) === "refund", change: why.get(e.i) || null }));
+    const { net } = fold(list);
+    return (list || []).filter((e) => e.u != null).map((e) => ({ at: e.t, who, origin: e.o + (e.v ? " (" + e.v + ")" : ""), caller: e.c, method: e.m, price: usd(e.u), cost: net.has(e.i) ? usd(e.u) : 0, counted: net.has(e.i) }));
   };
   const isAccount = (who) => who === "owner" || /^(did|token|worker):[^\s/]+$/.test(who || "");
   const dayOf = async (account, p, day = today()) => {
@@ -655,10 +630,11 @@ coreApp = {
     const p = await pricing(), day = today(), base = `spend/${day}/`;
     const set = new Map((await rows.list("quota/who/")).map(({ key, value }) => [key.slice("quota/who/".length), value]));
     const spent = new Map((await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]));
+    // The owner, each account with an allowance of its own, and each that has spent today. One whose every charge was refused is in the ledger only.
     const accounts = [...new Set(["owner", ...set.keys(), ...spent.keys()])].sort().map((who) => {
       const daily = set.has(who) && Number.isFinite(set.get(who).daily) ? set.get(who).daily : p[kindOf(who)] ?? 0;
       return { who, daily, set: set.has(who), spent: usd(fold(spent.get(who)).spent), charges: (spent.get(who) || []).filter((e) => e.u != null).length };
-    });
+    }).filter((a) => a.who === "owner" || a.set || a.spent > 0);
     return c.json({ day, unit: "USD", resetsAt: midnight(), defaults: p, accounts });
   });
   app.post(NS + "quota.put", session, async (c) => {
@@ -1122,8 +1098,14 @@ test_a_reference_that_is_not_the_cores_own_gives_no_origin = {
   expect(JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")))).toMatchObject({ o: "owner", v: "session", w: "brain-x-a" });
   expect((await rig.from("a", good)("b.go", {})).status).toBe(200);
   // Changed, signed by somebody else, cut short, or not one at all.
-  const forged = btoa(JSON.stringify({ o: "owner", v: "session", w: "brain-x-a", e: Date.now() + 60000 })).replace(/=+$/, "");
-  for (const bad of [[v, forged, sig].join("."), [v, payload, sig.slice(0, -1) + (sig.endsWith("A") ? "B" : "A")].join("."), [v, payload].join("."), "owner", "c1.e30.x"]) {
+  const enc = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const dec = (text) => Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0));
+  const flip = (text, at) => enc(dec(text).map((byte, i, all) => (i === (at + all.length) % all.length ? byte ^ 1 : byte)));
+  const forged = enc(new TextEncoder().encode(JSON.stringify({ o: "owner", v: "session", w: "brain-x-a", e: Date.now() + 60000 })));
+  // The same signature bytes spelled another way: the last character has two bits that are not read.
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", respelt = sig.slice(0, -1) + A[A.indexOf(sig.slice(-1)) + 1];
+  expect(dec(respelt)).toEqual(dec(sig));
+  for (const bad of [[v, forged, sig].join("."), [v, flip(payload, 5), sig].join("."), [v, payload, flip(sig, 0)].join("."), [v, payload, flip(sig, -1)].join("."), [v, payload, respelt].join("."), [v, payload].join("."), "owner", "c1.e30.x"]) {
     expect([bad.slice(0, 12), (await rig.from("a", bad)("b.go", {})).status]).toEqual([bad.slice(0, 12), 401]);
     expect((await rig.from("a", bad)("b.who", {})).status).toBe(200);
     expect(rig.last("b").origin).toBe("worker:brain-x-a");
@@ -1141,7 +1123,7 @@ test_a_reference_that_is_not_the_cores_own_gives_no_origin = {
   const short = await originRig({ contextMs: -1 });
   await short.owner("a.go", {});
   expect((await short.from("a", short.last("a").context)("b.go", {})).status).toBe(401);
-  return "5 refused, 2 for another Worker, 1 ended";
+  return "8 refused, 2 for another Worker, 1 ended";
 }
 // %%
 test_a_members_worker_keeps_its_author_and_carries_an_origin = {
@@ -1353,32 +1335,17 @@ test_out_of_credits_is_402_and_nothing_is_forwarded = {
   return "402 after $0.09 of $0.10";
 }
 // %%
-test_a_call_that_fails_is_given_back = {
+test_a_charge_is_not_returned = {
   const rig = await priceRig();
-  for (const q of ["status=500", "status=400", "status=302", "throw=1"]) {
-    const r = await rig.owner("shop.buy?" + q, {});
-    expect([q, r.status >= 300, r.headers.get("x-brain-price")]).toEqual([q, true, q === "throw=1" ? null : "0"]);
-  }
-  expect((await rig.day()).spent).toBe(0);
-  expect((await rig.owner("shop.buy", {})).headers.get("x-brain-price")).toBe("0.01");
+  // Whatever the Worker answers, and whatever it says the call cost: the price is charged when the core takes the call.
+  for (const q of ["status=500", "status=400", "status=302", "cost=0", "cost=0.001"]) expect([q, (await rig.owner("shop.buy?" + q, {})).headers.get("x-brain-price")]).toEqual([q, "0.01"]);
+  expect((await rig.owner("shop.buy?throw=1", {})).status).toBeGreaterThanOrEqual(500);
+  expect((await rig.day()).spent).toBe(0.06);
   const ledger = (await rig.owner("quota.ledger")).data;
-  expect(ledger.charges.map((e) => [e.price, e.cost, e.refunded])).toEqual([[0.01, 0.01, false], [0.01, 0, true], [0.01, 0, true], [0.01, 0, true], [0.01, 0, true]]);
-  expect(ledger.total).toBe(0.01);
-  return "4 given back";
-}
-// %%
-test_a_worker_can_say_a_call_cost_less_and_never_more = {
-  const rig = await priceRig();
-  const price = async (cost) => (await rig.owner("shop.big?cost=" + encodeURIComponent(cost), {})).headers.get("x-brain-price");
-  // Less: the difference is given back. Nothing: all of it.
-  expect([await price("0.004"), await price("0")]).toEqual(["0.004", "0"]);
-  expect((await rig.day()).spent).toBe(0.004);
-  // More, less than nothing, or not an amount: the price stands.
-  for (const said of ["0.5", "-1", "free", "", "NaN", "0.03"]) expect([said, await price(said)]).toEqual([said, "0.03"]);
-  expect((await rig.day()).spent).toBe(0.184);
-  const ledger = (await rig.owner("quota.ledger")).data;
-  expect(ledger.charges.slice(-2).map((e) => [e.price, e.cost, e.change])).toEqual([[0.03, 0, "settle"], [0.03, 0.004, "settle"]]);
-  return "settled down twice, never up";
+  expect(ledger.charges.map((e) => [e.price, e.cost, e.counted])).toEqual(Array(6).fill([0.01, 0.01, true]));
+  expect(Object.keys(ledger.charges[0]).sort()).toEqual(["at", "caller", "cost", "counted", "method", "origin", "price", "who"]);
+  expect(ledger.total).toBe(0.06);
+  return "6 charged, 0 returned";
 }
 // %%
 test_calls_made_at_once_do_not_spend_past_the_allowance = {
@@ -1388,30 +1355,47 @@ test_calls_made_at_once_do_not_spend_past_the_allowance = {
   const count = (status) => out.filter((r) => r.status === status).length;
   expect([count(200), count(402), rig.shop.length]).toEqual([33, 17, 33]);
   expect((await rig.day()).spent).toBe(0.99);
-  // Calls that fail at once give back exactly what they took.
+  // Calls that fail are charged like the rest: 10 of 30 pass the core at $0.01 under $0.10.
   const ada = rig.as("did:plc:ada", "session");
   const mixed = await Promise.all(Array.from({ length: 30 }, (_, i) => ada("shop.buy" + (i % 2 ? "?status=500" : ""), {})));
-  expect(mixed.filter((r) => r.status === 200).length).toBeLessThanOrEqual(10);
-  const spent = (await rig.day("did:plc:ada")).spent;
-  expect(spent).toBe(Number((mixed.filter((r) => r.status === 200).length * 0.01).toFixed(6)));
-  expect(spent).toBeLessThanOrEqual(0.1);
-  return `33 of 50, then ${spent} of 0.1`;
+  expect([mixed.filter((r) => r.status === 402).length, (await rig.day("did:plc:ada")).spent]).toEqual([20, 0.1]);
+  return "33 of 50, then 10 of 30";
 }
 // %%
 test_a_new_day_starts_at_nothing_and_old_days_are_dropped = {
-  const rig = await priceRig();
-  const ago = (d) => new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+  const config = {}, rig = await priceRig(config), DAY = 86400000;
+  const at = (ms) => new Date(Date.now() + ms).toISOString().slice(0, 10), ago = (d) => at(-d * DAY);
   const full = [{ t: 1, i: "x", u: 1000000, A: 1000000, m: "m", c: "owner", o: "owner", v: "session" }];
-  for (const d of [1, 10, 31, 37]) rig.sim.rows.set(`spend/${ago(d)}/owner`, full);
+  for (const d of [1, 10, 30, 31, 37, 38, 61, 200, 420]) rig.sim.rows.set(`spend/${ago(d)}/owner`, full);
   expect((await rig.owner("quota.ledger?day=" + ago(1))).data.total).toBe(1);
   // Yesterday was spent to the last cent; today is new.
   expect(await rig.day()).toMatchObject({ day: rig.today, spent: 0, remaining: 1 });
   expect((await rig.owner("shop.buy", {})).status).toBe(200);
-  await new Promise((r) => setTimeout(r, 20));
-  // 30 days are kept.
-  expect(rig.spends().sort()).toEqual([`spend/${ago(10)}/owner`, `spend/${ago(1)}/owner`, `spend/${rig.today}/owner`].sort());
+  await new Promise((r) => setTimeout(r, 30));
+  // 30 days are kept. Older ones go at the first priced call of a day, however long ago the last one was.
+  const days = () => rig.spends().map((k) => k.split("/")[1]).sort();
+  expect(days()).toEqual([ago(30), ago(10), ago(1), rig.today].sort());
   expect((await rig.owner("quota.ledger?day=yesterday")).status).toBe(400);
-  return "a day is a row";
+  // The clock moves. No priced call: nothing goes. Then one a day.
+  for (let i = 0; i < 3; i++) await rig.owner("shop.buy", {});
+  expect((await rig.day()).spent).toBe(0.04);
+  config.clockSkewMs = 25 * DAY;
+  expect(await rig.day()).toMatchObject({ day: at(25 * DAY), spent: 0, remaining: 1 });
+  expect(days().length).toBe(4);
+  expect((await rig.owner("shop.buy", {})).status).toBe(200);
+  await new Promise((r) => setTimeout(r, 30));
+  expect(days()).toEqual([ago(1), rig.today, at(25 * DAY)].sort());
+  // Day 30 after a charge it is still there; on day 31 it is gone.
+  config.clockSkewMs = 30 * DAY;
+  await rig.owner("shop.buy", {});
+  await new Promise((r) => setTimeout(r, 30));
+  expect(days()).toContain(rig.today);
+  expect((await rig.owner("quota.ledger?day=" + rig.today)).data.total).toBe(0.04);
+  config.clockSkewMs = 31 * DAY;
+  await rig.owner("shop.buy", {});
+  await new Promise((r) => setTimeout(r, 30));
+  expect(days()).toEqual([at(25 * DAY), at(30 * DAY), at(31 * DAY)].sort());
+  return "a day is a row, kept 30 days";
 }
 // %%
 test_the_owner_sets_prices_and_allowances_in_their_own_session = {
@@ -1443,6 +1427,11 @@ test_the_owner_sets_prices_and_allowances_in_their_own_session = {
   expect((await rig.day(null, ada)).who).toBe("did:plc:ada");
   expect([(await ada("quota.get?who=owner")).status, (await rig.anonymous("quota.get")).status, (await rig.anonymous("quota.list")).status, (await rig.anonymous("quota.ledger")).status, (await rig.anonymous("price.list")).status]).toEqual([401, 401, 401, 401, 401]);
   expect((await turn("quota.get")).data.who).toBe("owner");
+  // A member's turn, a token and a Worker each read their own account, and nobody else's. The kernel keeps quota.list and quota.ledger from a member and a token with no grant.
+  for (const [as, who] of [[rig.as("did:plc:ada", "turn:9"), "did:plc:ada"], [rig.as("token:cron", "token"), "token:cron"], [rig.from("a"), "worker:brain-x-a"]]) {
+    expect((await as("quota.get")).data).toMatchObject({ who, day: rig.today });
+    expect([who, (await as("quota.get?who=" + who)).status, (await as("quota.get?who=owner")).status]).toEqual([who, 200, 401]);
+  }
   expect((await rig.owner("quota.list")).data).toMatchObject({ day: rig.today, unit: "USD", accounts: [{ who: "did:plc:ada", daily: 0.1, set: false, spent: 0.05, charges: 1 }, { who: "owner", daily: 1, set: false, spent: 0.03, charges: 2 }] });
   return "owner session only";
 }

@@ -159,7 +159,7 @@ spendingPanel = {
   const $ = (n) => "$" + Number(Number(n).toFixed(6));
   const who = field("owner, did:…, token:NAME or worker:NAME", { width: "20em" });
   const daily = Inputs.number({ placeholder: "$ a day", width: "7em", min: 0, step: 0.01 });
-  const target = field("method, e.g. browser.open", { width: "16em" });
+  const target = field("method, e.g. browser.extend", { width: "16em" });
   const price = field("price in $, e.g. double(request.params.seconds) * 0.000025", { width: "26em" });
   const full = (m) => (m.includes("/") || m.startsWith("com.") ? m : "com.lopecode.brain." + m);
   const short = (m) => m.replace("com.lopecode.brain.", "");
@@ -186,7 +186,7 @@ spendingPanel = {
       </table>
       <table style="border-collapse:collapse;margin:10px 0 0">
         <tr style=${muted}><td style=${cell}>last charges</td><td style=${cell}>account</td><td style=${cell}>method</td><td style=${cell}>cost</td><td></td></tr>
-        ${ledger.charges.map((e) => htl.html`<tr><td style=${cell}>${new Date(e.at).toISOString().slice(11, 19)}</td><td style=${cell}>${e.who}</td><td style=${cell}>${short(e.method)}</td><td style=${cell}>${$(e.cost)}</td><td style=${muted}>${!e.counted ? "refused" : e.refunded ? "given back" : e.change === "settle" ? "of " + $(e.price) : ""}${e.caller !== e.who ? " by " + e.caller : ""}</td></tr>`)}
+        ${ledger.charges.map((e) => htl.html`<tr><td style=${cell}>${new Date(e.at).toISOString().slice(11, 19)}</td><td style=${cell}>${e.who}</td><td style=${cell}>${short(e.method)}</td><td style=${cell}>${$(e.cost)}</td><td style=${muted}>${e.counted ? "" : "refused"}${e.caller !== e.who ? " by " + e.caller : ""}</td></tr>`)}
         ${ledger.charges.length ? "" : htl.html`<tr><td style=${muted}>Nothing was charged today.</td></tr>`}
       </table>
     </div>`);

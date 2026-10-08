@@ -1183,6 +1183,20 @@ test_a_member_reaches_their_own_services_and_the_deployer_hears_who = {
   expect((await rig.call("member.deploy", { session: rig.other, body })).status).toBe(403);
 }
 // %%
+test_a_member_reads_their_own_spending = {
+  const rig = await kernelRig();
+  const asked = () => rig.seen.filter((s) => s.url.includes(".quota.")).map((s) => [s.url.split("brain.").pop(), s.headers["x-brain-caller"]]);
+  // Signed in and not a member: the kernel refuses, and the core is not asked.
+  expect((await rig.call("quota.get", { session: rig.other })).data).toMatchObject({ error: "Forbidden", message: "did:plc:other has no grant for com.lopecode.brain.quota.get" });
+  expect(asked()).toEqual([]);
+  await rig.call("people.put", { session: rig.owner, body: { did: "did:plc:other", name: "Ada" } });
+  // A member: sent to the core under their own DID, with no grant. The rest of quota.* is the owner's.
+  expect((await rig.call("quota.get", { session: rig.other })).status).toBe(200);
+  expect([(await rig.call("quota.list", { session: rig.other })).status, (await rig.call("quota.ledger", { session: rig.other })).status, (await rig.call("quota.put", { session: rig.other, body: { who: "did:plc:other", daily: 9 } })).status]).toEqual([403, 403, 403]);
+  expect(asked()).toEqual([["quota.get", "did:plc:other"]]);
+  return "quota.get only";
+}
+// %%
 test_a_token_is_the_callers_to_send_from_anywhere = {
   const rig = await kernelRig();
   const sibling = "https://cb-m-0123456789-todo.sub.workers.dev";
