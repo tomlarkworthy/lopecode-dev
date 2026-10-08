@@ -148,6 +148,56 @@ accessPanel = {
   return htl.html`<div>${list}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${who}${methods}${token}${grant}</div>${note}</div>`;
 }
 // %%
+md`## Spending
+
+A method can have a price in US dollars. A priced call is charged to the account that started it, and each account has an allowance for the UTC day.`
+// %%
+spendingPanel = {
+  if (!brain) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see spending.</i>`;
+  const out = htl.html`<div></div>`, note = htl.html`<div style="color:var(--theme-foreground-muted);margin-top:6px"></div>`;
+  const cell = "padding:2px 12px 2px 0", muted = "color:var(--theme-foreground-muted)";
+  const $ = (n) => "$" + Number(Number(n).toFixed(6));
+  const who = field("owner, did:…, token:NAME or worker:NAME", { width: "20em" });
+  const daily = Inputs.number({ placeholder: "$ a day", width: "7em", min: 0, step: 0.01 });
+  const target = field("method, e.g. browser.open", { width: "16em" });
+  const price = field("price in $, e.g. double(request.params.seconds) * 0.000025", { width: "26em" });
+  const full = (m) => (m.includes("/") || m.startsWith("com.") ? m : "com.lopecode.brain." + m);
+  const short = (m) => m.replace("com.lopecode.brain.", "");
+  const act = (label, fn) => press(label, async () => {
+    try {
+      await fn();
+      note.textContent = "";
+      await draw();
+    } catch (e) {
+      note.textContent = "Not changed: " + e.message;
+    }
+  });
+  const draw = async () => {
+    const [quota, prices, ledger] = await Promise.all([client.query("quota.list"), client.query("price.list"), client.query("quota.ledger", { limit: 20 })]);
+    out.replaceChildren(htl.html`<div>
+      <table style="border-collapse:collapse;margin:0">
+        <tr style=${muted}><td style=${cell}>account, ${quota.day} UTC</td><td style=${cell}>spent</td><td style=${cell}>a day</td><td></td></tr>
+        ${quota.accounts.map((a) => htl.html`<tr><td style=${cell}>${a.who}</td><td style=${cell}>${$(a.spent)}</td><td style=${cell}>${$(a.daily)}${a.set ? "" : htl.html` <span style=${muted}>default</span>`}</td><td>${a.set ? act("Default", () => client.procedure("quota.put", { who: a.who, daily: null })) : ""}</td></tr>`)}
+      </table>
+      <table style="border-collapse:collapse;margin:10px 0 0">
+        <tr style=${muted}><td style=${cell}>priced method</td><td style=${cell}>declared</td><td style=${cell}>set by the owner</td><td></td></tr>
+        ${prices.prices.map((p) => htl.html`<tr><td style=${cell}>${short(p.target)}</td><td style=${cell}><code>${p.declared || ""}</code></td><td style=${cell}><code>${p.set || ""}</code></td><td>${p.set ? act("Remove", () => client.procedure("price.delete", { target: p.target })) : ""}</td></tr>`)}
+        ${prices.prices.length ? "" : htl.html`<tr><td style=${muted}>No method has a price.</td></tr>`}
+      </table>
+      <table style="border-collapse:collapse;margin:10px 0 0">
+        <tr style=${muted}><td style=${cell}>last charges</td><td style=${cell}>account</td><td style=${cell}>method</td><td style=${cell}>cost</td><td></td></tr>
+        ${ledger.charges.map((e) => htl.html`<tr><td style=${cell}>${new Date(e.at).toISOString().slice(11, 19)}</td><td style=${cell}>${e.who}</td><td style=${cell}>${short(e.method)}</td><td style=${cell}>${$(e.cost)}</td><td style=${muted}>${!e.counted ? "refused" : e.refunded ? "given back" : e.change === "settle" ? "of " + $(e.price) : ""}${e.caller !== e.who ? " by " + e.caller : ""}</td></tr>`)}
+        ${ledger.charges.length ? "" : htl.html`<tr><td style=${muted}>Nothing was charged today.</td></tr>`}
+      </table>
+    </div>`);
+  };
+  await draw();
+  // Prices and allowances change in the owner's own session, which is this page.
+  const allow = act("Set allowance", () => client.procedure("quota.put", { who: who.value.trim(), daily: daily.value }));
+  const put = act("Set price", () => client.procedure("price.put", { target: full(target.value.trim()), price: price.value.trim() }));
+  return htl.html`<div>${out}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${who}${daily}${allow}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${target}${price}${put}</div><div style="margin-top:6px">${press("Refresh", () => draw())}</div>${note}</div>`;
+}
+// %%
 md`## People
 
 The owner, the members the owner added, and anyone who linked an address and has not been added. A member's messages are answered; **Methods** names what else that member's turns may call. Reference: \`@tomlarkworthy/brain-kernel\`.`
@@ -682,7 +732,7 @@ assistantRule = {
 }
 // %%
 // Methods the operator's brain_call never makes: secret values, access and deploys are the owner's actions.
-assistantRefuses = (method) => /^(com\.lopecode\.brain\.)?(secret\.get|secret\.read|token\.|grant\.|people\.(put|remove|link|unlink)|rule\.put|rule\.delete|infra\.|service\.|lease\.|inbox\.poll)/.test(method)
+assistantRefuses = (method) => /^(com\.lopecode\.brain\.)?(secret\.get|secret\.read|token\.|grant\.|people\.(put|remove|link|unlink)|rule\.put|rule\.delete|price\.put|price\.delete|quota\.put|quota\.setDefaults|settings?\.|infra\.|service\.|lease\.|inbox\.poll)/.test(method)
 // %%
 assistantTools = {
   const need = () => {
@@ -773,6 +823,9 @@ test_the_operator_is_told_to_read_the_docs = {
 test_assistant_refuses_owner_only_methods = {
   expect(["secret.get", "com.lopecode.brain.secret.get", "token.create", "grant.put", "people.put", "people.link", "infra.apply", "lease.take", "service.register"].map(assistantRefuses)).toEqual(Array(9).fill(true));
   expect(["secret.list", "secret.copy", "inbox.list", "inbox.reply", "people.list", "getInfo", "library.list"].map(assistantRefuses)).toEqual(Array(7).fill(false));
+  // The operator reads what is spent and changes no price and no allowance.
+  expect(["quota.put", "quota.setDefaults", "price.put", "com.lopecode.brain.price.delete", "settings.put"].map(assistantRefuses)).toEqual(Array(5).fill(true));
+  expect(["quota.get", "quota.list", "quota.ledger", "price.list"].map(assistantRefuses)).toEqual(Array(4).fill(false));
   expect(assistantPrompt).toContain("secret.copy { from, to }");
   return "9 refused, 7 allowed";
 }

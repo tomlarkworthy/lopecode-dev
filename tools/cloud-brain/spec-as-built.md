@@ -2148,3 +2148,135 @@ cb4, 2026-10-07 CEST:
 - Preflight reports `missing-attachment @tomlarkworthy/brain-shell needs note.txt`. It is not a missing file: `FileAttachment("note.txt")` is in the text of a made-up module inside `test_joinModules_adds_a_module_once_and_imports_reach_it`, which gives the file itself.
 
 Written 2026-10-08 00:05 CEST.
+
+## The browser service (2026-10-08 06:45 to 07:26 CEST)
+
+Tom, 2026-10-08: "Lets not worry about hosting the brain for now. Lets design a generic browser run wrapper service that we can use for anything browser related, including hosting the brain." Then: "Why only one tab per browser? This seems like it will be inefficient in the long term", and browser life as prepaid seconds so that a price list can later read `request.params.seconds`.
+
+New Worker `brain-x-browser` `0a7e916789fd` (the code of `74d4dc105497`, which the checks below ran on, with the module's prose added; deployed 07:27 CEST), module `@tomlarkworthy/brain-browser`, seed `tools/cloud-brain/brain-browser.ojs`. The design and the measurements are in the module's own cells. This section records what changed outside it and what went wrong.
+
+### What changed outside the module
+
+- `cloudflare-iac`: a platform cell `browser`. `emit` writes one line, `const __browser = …`, into a module that reaches the cell, and adds the binding `{ type: "browser", name: "X_CF_BROWSER_RUN" }`. The wrapper `workerRuntime` did not change: the line calls `__rt.platform.workers.fetch("cf-browser-run", …)`, which reads the binding of that name. `simulate` takes `browser: (request) => …`.
+- `brain-deployer`: `bindingsFor` adds the browser binding and does not also carry it over as a Worker binding; a recipe may reach `browser`; a member's service may not; the approval page adds "Opens remote browsers. Cloudflare bills browser time to this account."
+- `build.ts`: the module is in `MODULES` and `OWNED`.
+
+Other services' emitted code did not change. After `install-deployer` (deployer `f4697058a0cf`, 07:03 CEST) `redistil` gave `same` for each of the 13 Workers that ran before, and `core.json` and `feed.json` emitted from the tab were byte-equal to the ones before the change. At 07:24 CEST `redistil` gave `same` for 14.
+
+### What went wrong
+
+1. First deploy (`6a4e669fcda6`, one tab per page, idle close). `eval` used `Runtime.evaluate` with `awaitPromise`. An expression whose promise did not settle left the command waiting; the client gave up at 30 s; the two calls after it answered `BrowserUnavailable`; `close { all: true }` answered `browsers: 0` and the session was still listed 16 s later. Browser Run closed it with `WorkerError` after 115.1 s. Fix: `eval` reads a promise's result from a place in the page, each 100 to 500 ms.
+2. Second deploy (`9cb90d5956b7`). Three tabs of cb4's own page: the evals answered (heap 63 to 77 MB each at +5.5 s), a screenshot answered at +12 s, and a `run` at about +13 s did not answer. `liveView` then answered "gave no Live View link". The session ended with `WorkerError` after 92.6 s.
+3. Control, third deploy (`74d4dc105497`): three tabs of example.com for 30 s, then a `run`, three evals and `liveView`: all answered. Two tabs of cb4's page for 36 s: all answered; heap 397 and 399 MB at +35 s, 472 MB at most.
+
+From 2 and 3: the browser stops with three tabs of that page and not with three light tabs. Memory is the likely cause and was not isolated. From 1 and 2 together: a browser that stops answering makes a call wait. The service now gives each command 10 s, and the tick closes a browser that does not answer its command. That limit was tested under `simulate` and not seen on cb4.
+
+A probe that was not repeated: a scratch Worker held `Runtime.evaluate` on a promise, and a second request attached to the same tab. The second request answered. The first answered with a Worker error page after more than 30 s. One request alone, with the command left waiting 8 s, answered.
+
+### Measured
+
+Browser Run `/v1/history`, 2026-10-08, 10 sessions from 04:53 to 05:24 UTC: 411.8 browser-seconds in total (the limit for this work was 600). `GET /v1/sessions` gave `[]` at 05:23 UTC, after the last close. The service's own count for the day: 165 s bought, 217 s used.
+
+Tests under `simulate`, page run r=175: brain-browser 13 of 13. At r=171, before the prepaid change: 192 of 192 in 19 modules (180 before; brain-browser 11, brain-deployer 28). After the prepaid change, r=176: 205 of 205 in 19 modules, with brain-core at 25 from a second session that edits it in the same tree.
+
+cb4 at 07:27 CEST: 14 Workers `same`, `lease.get` `held: true`, `bluesky.status` `signedIn: true`, calls mode `enforce`. `brain.ts apply` was used: it sends the recovery key and the deploy was not held for approval.
+
+Files: `tools/scratch/browser-run/example-com-2026-10-08.png` (56 840 bytes, from `run`), `cb4-anonymous-2026-10-08.png` (38 837 bytes, 780 × 493, from `screenshot`), `probe.js` and `probe-deploy.ts` (the scratch Worker `cbx-browser-probe`, deleted 07:24 CEST).
+
+### Not verified
+
+- The approval page line for a browser, on cb4. One test under `simulate`.
+- The panel in a signed-in page.
+- `own: true`, `shared`, `goto`, `fullPage` and `selector` screenshots on cb4. Tests under `simulate`.
+- The 10 s command limit and "browser stopped answering" on cb4.
+- A dead start closed by the tick on cb4.
+- If a token with only Workers Scripts and R2 can deploy a browser binding. The token on `cb4-deployer` has every permission group of the account (read through `accounts/<id>/tokens/<id>`, 07:20 CEST), "Browser Run Write" among them.
+- A fresh-context review of the module and of this record (`/review-notebook`). The session that wrote them could not start one.
+
+Written 2026-10-08 07:26 CEST.
+
+## Prices and credits: a price beside a rule, charged by the core (2026-10-08, to 07:26 CEST)
+
+Tom, 2026-10-08: "certain xrpc methods should have a 'price' reflecting their owned internal cost (excludes xrpc they call themselves) hosted by a price list, it can then stop calls when the user runs out of credits"; "daily budget is better not monthly". Built in `brain-core` and live on cb4 as `ea6aa69af073`. The reference is **Prices and credits** in the `brain-core` module.
+
+A price is one CEL expression in US dollars over `caller`, `origin` and `request`. The order in the core is rule, price, charge, forward. The account that pays is the origin of the call.
+
+Precedent, read 2026-10-08: Google Service Infrastructure binds a method to a quota metric with a cost. [`MetricRule.metric_costs`](https://docs.cloud.google.com/service-infrastructure/docs/service-management/reference/rpc/google.api): "Metrics to update when the selected methods are called, and the associated cost applied to each metric."
+
+### The debit
+
+`rows` has no compare-and-set and the core cannot send its own SQL, so a read then a write would let calls made at one time each see the same balance. An account's day is one list row (`spend/DAY/ACCOUNT`) and each charge is one `rows.append`, which is one statement. A charge counts when the charges that count before it in the list, and it, are inside the allowance. The core reads the list back after its append and finds its own entry. Two statements for a priced call, a third when something is given back.
+
+Not chosen: a counter with `rows.increment` (adds 1 only, and a refusal after the add needs a second write to undo it); a SQL statement of the core's own (`cloudflare-iac.ojs` was another session's file that hour).
+
+### Measured on cb4, 2026-10-08 07:25 CEST
+
+Scratch services `brain-x-pricecheck` and `brain-x-pricehop`, prices set with `price.put`, both removed after with their prices. From `.emitted/price-live.out`:
+
+```
+constant 0.002                     200 x-brain-price 0.002 owner spent 0 -> 0.002
+40 s at 0.000025                   200 x-brain-price 0.001 owner spent 0.002 -> 0.003
+no seconds (fail closed)           403 x-brain-price null  owner spent 0.003 -> 0.003
+fails 500 (refund)                 500 x-brain-price 0     owner spent 0.003 -> 0.003
+settle 0.01 down to 0.003          200 x-brain-price 0.003 owner spent 0.003 -> 0.006
+settle says 5 (ignored)            200 x-brain-price 0.01  owner spent 0.006 -> 0.016
+nest: 0.001 + inner 0.002          200 x-brain-price 0.001 owner spent 0.016 -> 0.019
+far: 0.001 + hop 0.0005 + 0.002    200 x-brain-price 0.001 owner spent 0.019 -> 0.0225
+free                               200 x-brain-price null  owner spent 0.0225 -> 0.0225
+latency n=40 each, turn about: free p50 46 ms p90 63 | priced p50 104 ms p90 119
+race: 150 calls in 1786 ms, 200 x33, 402 x117, other x0; first round 200 x33; account spent 0.99 of 1
+```
+
+- The race account was a token with $1.00 and a price of $0.03: 33 calls is the most that fit, and 33 passed in the first 50.
+- `nest` is one Worker that calls a priced method; `far` goes through a second Worker. The ledger names the owner as the account and `worker:brain-x-pricecheck` as the caller of the inner rows.
+- A priced call took 58 ms more at p50 than a free call to the same Worker. That is the two statements, one after the other.
+- The deploy of the core went to probation in 11 s and was not put back. Confirmed at 07:25.
+- After: 14 Workers `same`, `lease.get` held, `bluesky.status` signed in, calls mode `enforce`, `did.json` and `describeFeedGenerator` 200.
+
+Tests under `simulate`: 203 of 204 in 19 modules. The one that fails is `brain-browser.test_browser_time_is_bought_before_it_is_used`, in a module another session was changing. `brain-core` has 25, of which 12 are for prices and credits.
+
+### Not verified
+
+- A price declared in a manifest. The emit copies `type`, `who`, `allow` and `fixed` from a method and drops `price` (`cloudflare-iac.ojs`, the `access` entry). The core reads `price` from a registered method; its tests register one. The change is one more field in that entry, checked with `checkedRule`.
+- The free path against the core from before: no call was timed on `fd09c30c1a9e`. The test shows a free call writes no row.
+- The Spending panel in a browser, and `quota.get` by a member: the page and the kernel are not deployed (the kernel adds `quota.get` to what a member calls). Until the kernel is deployed, the kernel on cb4 has no `quota.get` in a member's list; a member's call was not tried.
+- On cb4: a member, a turn, a room turn, a Worker by its own clock, a member's Worker, the 2000-charge limit, a new day, the delete of old days.
+- An anonymous priced call on cb4 answered 401 from the rule of the scratch method, before the price. The 402 for no account is seen under `simulate` only.
+
+### Limits
+
+- The ledger rows of 2026-10-08 on cb4 are the scratch run: 50 for the owner ($0.0235) and 56 for a token that is revoked. No method deletes a ledger row.
+- A day's list is read whole for each priced call. At 2000 charges that is about 300 kB.
+- A core that read an account as spent refuses it for 5 s from memory, so a raised allowance can take 5 s to reach each instance.
+- A cost known after the call (model tokens) is not built. The price would be the most the call can cost, and `x-brain-cost` brings it down.
+- The browser service does not use this yet. To join: a `price` line on `browser.open`, `browser.extend` and `browser.run`, and its own count of bought seconds deleted.
+
+Written 2026-10-08 07:27 CEST.
+
+## The browser's price moved to the core (2026-10-08 07:28 to 07:34 CEST)
+
+The core (`brain-core` `ea6aa69af073`, a different session's work) charges a method's `price`. `brain-x-browser` `1b7fe989e702` now declares one on `open`, `run` and `extend`, and its own daily limit, `charge()` and ledger are deleted: one mechanism counts money.
+
+- `cloudflare-iac`: the emit keeps `price` on a method and on a path, checked with `checkedRule` (it parses the expression and asserts no type). The deployer is `e7650314e5ee`. After its update `redistil` gave `same` for 14 Workers: the change did not alter other services' code.
+- `brain-deployer`: the approval page shows "Price in USD: <expression>" beside the rule.
+- `brain-browser`: price `(has(request.params.seconds) ? double(request.params.seconds) : 60.0) * 0.000025` on `open`, 30.0 on `run`, and `double(request.params.seconds) * 0.000025` on `extend`. Each answer carries `x-brain-cost`, the cost of what was bought.
+- Deployed with it: the kernel `1284a5907b09` (`quota.get` in the member list) and the page `9285d95a1197` with the shell, both confirmed after probation.
+
+cb4, owner's session, 05:32 UTC:
+
+```
+run?seconds=30      x-brain-price 0.00075   bought 30   spent 0.0235 -> 0.02425
+open?seconds=20     x-brain-price 0         bought 0    spent unchanged (the time was bought)
+open (no seconds)   x-brain-price 0.00085   bought 34   charged 0.0015, 0.00065 given back
+extend?seconds=10   x-brain-price 0.00025   bought 10   spent 0.02535
+extend (no seconds) 403 "the price ... could not be decided: No such key: seconds"
+quota.put owner 0.0255, then run?seconds=30 -> 402 OutOfCredits, no browser started; quota.put null restored $1
+```
+
+`quota.ledger` showed the five rows for `owner`, origin `owner (session)`. The owner's spend for 2026-10-08 at the end: $0.02535, of which $0.00185 is the browser's and the rest the price checks of the other session.
+
+Tests under `simulate`, r=178: brain-browser 13 of 13, cloudflare-iac 20, brain-deployer 28. In the full run at r=177 one test of `brain-core` failed in two page loads, `test_a_reference_that_is_not_the_cores_own_gives_no_origin` (200 where 401 is expected); the same steps run by hand in the page gave 401 five times. It changes the last character of a 43-character signature to `A` or `B`; when the signature ends in `A` the changed one decodes to the same bytes. Not fixed here: the file is the other session's.
+
+Not verified: the Spending panel in a browser. The headless QA tab on `https://cb4…` could not pair (`ws://127.0.0.1` refused: `ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`, also with the Chromium feature switched off), so the session could not be put in its `localStorage`. `quota.get` for the test member answered 403 "has no grant" after the kernel deploy; not looked into. `brain-live` runs the page from before 07:31 CEST and needs a reload.
+
+Written 2026-10-08 07:34 CEST.

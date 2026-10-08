@@ -213,7 +213,9 @@ deployerOps = {
     // "guard": the cell's name in a source distilled before 2026-10-08.
     if (uses("deployer") || uses("guard")) out.push({ type: "service", name: "DEPLOYER", service: actual("brain-deployer") });
     if (uses("assets")) out.push({ type: "assets", name: "ASSETS" });
-    for (const name of existing) if (name.startsWith("X_")) out.push({ type: "inherit", name });
+    // Browser Run. The name is the one the wrapper's workers cell reads for "cf-browser-run" (see emit in cloudflare-iac).
+    if (uses("browser")) out.push({ type: "browser", name: "X_CF_BROWSER_RUN" });
+    for (const name of existing) if (name.startsWith("X_") && name !== "X_CF_BROWSER_RUN") out.push({ type: "inherit", name });
     out.push({ type: "secret_text", name: "BRAIN_KEY", text: key });
     out.push({ type: "json", name: "BRAIN_CONFIG", json: { base: config.base, subdomain: config.subdomain, host: `${config.base}.${config.subdomain}.workers.dev`, owner: config.owner || null, deployer: `https://${selfScript()}.${config.subdomain}.workers.dev` } });
     out.push({
@@ -245,7 +247,7 @@ deployerOps = {
       const clash = (m.methods || []).find((x) => (other.methods || []).includes(x)) || (m.paths || []).map((x) => x.path).find((x) => (other.paths || []).some((o) => o.path === x));
       if (clash) return `${clash} is already served by ${other.worker}`;
     }
-    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql"].includes(r));
+    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser"].includes(r));
     if (bad) return `a recipe may not use the platform cell "${bad}"`;
     return m.secrets.find((s) => s.startsWith("BRAIN_") || s.startsWith("CF_")) ? "a recipe may not name a BRAIN_ or CF_ secret" : null;
   };
@@ -771,7 +773,7 @@ deployerPage = (s, message = "") => {
   // What the owner approves: the methods and paths a Worker answers and who may call each, the methods of other
   // Workers it calls, and the secrets it names. A rule that reads origin is marked: it limits who a Worker may act for.
   const nsid = (n) => esc(String(n).replace("com.lopecode.brain.", ""));
-  const rule = (r) => (r && r.allow ? `<code>${esc(typeof r.allow === "string" ? r.allow : r.allow.source || JSON.stringify(r.allow))}</code>${/\borigin\b/.test(JSON.stringify(r.allow)) ? " (reads origin)" : ""}` : esc((r && r.who) || "owner"));
+  const rule = (r) => (r && r.allow ? `<code>${esc(typeof r.allow === "string" ? r.allow : r.allow.source || JSON.stringify(r.allow))}</code>${/\borigin\b/.test(JSON.stringify(r.allow)) ? " (reads origin)" : ""}` : esc((r && r.who) || "owner")) + (r && r.price ? ` Price in USD: <code>${esc(String(r.price))}</code>` : "");
   const pending = s.pending.map((p) => {
     const answers = [
       // A deploy held before 2026-10-07 has no rules in its record.
@@ -782,7 +784,9 @@ deployerPage = (s, message = "") => {
       p.remove
         ? ""
         : `<table><tr><th>Answers</th><th>Who may call</th></tr>${answers.join("") || "<tr><td>nothing</td><td></td></tr>"}</table>
-<p>Calls: ${p.calls ? (p.calls.length ? p.calls.map(nsid).join(", ") : "none") : "not recorded"}. Secrets: ${esc((p.secrets || []).join(", ") || "none")}.</p>`
+<p>Calls: ${p.calls ? (p.calls.length ? p.calls.map(nsid).join(", ") : "none") : "not recorded"}. Secrets: ${esc((p.secrets || []).join(", ") || "none")}.</p>${
+            (p.resources || []).includes("browser") ? "<p><b>Opens remote browsers.</b> Cloudflare bills browser time to this account.</p>" : ""
+          }`
     }</li>`;
   });
   const rollbacks = Object.entries(s.confirmed).flatMap(([name, list]) =>
@@ -1133,6 +1137,28 @@ test_the_table_database_is_bound_to_brain_db_alone = {
   return db.DB.id;
 }
 // %%
+test_a_browser_is_bound_shown_before_approval_and_not_for_a_member = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain", "kernel", "k1"), await rig.made("brain-core", "core", "c1")] });
+  // Held for approval, the page says that the service opens browsers and that they cost money.
+  const one = await rig.made("brain-x-web", "recipe", "w1", { resources: ["browser", "rows"] });
+  expect((await rig.asOwner("apply", { workers: [one] })).results[0].state).toBe("waiting");
+  const shown = await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text();
+  expect(shown).toContain("<b>Opens remote browsers.</b> Cloudflare bills browser time to this account.");
+  expect((await rig.form({ key: "rk", action: "approve:" + one.hash })).status).toBe(200);
+  expect((await rig.asOwner("apply", { workers: [one] })).results[0].state).toBe("deployed");
+  const names = () => rig.fake.live("cb-x-web").metadata.bindings.map((b) => b.type + ":" + b.name).filter((b) => b.includes("X_")).sort();
+  expect(names()).toEqual(["browser:X_CF_BROWSER_RUN"]);
+  // A second deploy binds it once: it is not also carried over as a binding to a Worker.
+  expect((await rig.recover({ workers: [await rig.made("brain-x-web", "recipe", "w2", { resources: ["browser", "rows"] })] })).results[0].state).toBe("deployed");
+  expect(names()).toEqual(["browser:X_CF_BROWSER_RUN"]);
+  // A service that does not reach the cell has no such binding, and its page entry has no such line.
+  const plain = await rig.made("brain-x-plain", "recipe", "p1", { resources: ["rows"] });
+  await rig.asOwner("apply", { workers: [plain] });
+  expect((await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text())).not.toContain("Opens remote browsers");
+  return names()[0];
+}
+// %%
 test_deploys_a_recipe_and_registers_it = {
   const rig = await deployerRig();
   const core = await rig.made("brain-core", "core", "c1", { resources: ["rows", "workers"] });
@@ -1318,7 +1344,7 @@ test_approval_holds_an_apply = {
   const N = "com.lopecode.brain.";
   const recipe = await rig.made("brain-x-a", "recipe", "one", {
     secrets: ["A_KEY"], calls: [N + "b.send"], methods: [N + "a.get", N + "a.put"],
-    access: { [N + "a.get"]: { type: "query", who: "owner" }, [N + "a.put"]: { type: "procedure", who: "owner", allow: 'caller.worker == "brain-x-b" && origin.trusted' } }
+    access: { [N + "a.get"]: { type: "query", who: "owner", price: "0.01" }, [N + "a.put"]: { type: "procedure", who: "owner", allow: 'caller.worker == "brain-x-b" && origin.trusted' } }
   });
   // Approval is on at install. The owner's session alone does not deploy.
   const held = await rig.asOwner("apply", { workers: [recipe] });
@@ -1328,7 +1354,7 @@ test_approval_holds_an_apply = {
   // The page shows what is approved: each method with who may call it, the calls, the secrets.
   const shown = await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/")).text();
   expect(shown).toContain("<td>a.put</td><td><code>caller.worker == &quot;brain-x-b&quot; &amp;&amp; origin.trusted</code> (reads origin)</td>");
-  expect(shown).toContain("<td>a.get</td><td>owner</td>");
+  expect(shown).toContain("<td>a.get</td><td>owner Price in USD: <code>0.01</code></td>");
   expect(shown).toContain("Calls: b.send. Secrets: A_KEY.");
   // No infra method changes the setting or approves; the page needs the recovery key.
   for (const method of ["approve", "setApproval", "rollback"]) expect((await rig.asOwner(method, { hash: recipe.hash, on: false })).error).toBe("MethodNotImplemented");
@@ -1661,7 +1687,7 @@ test_a_member_deploy_is_refused_outside_its_tier = {
   const rig = await memberRig(), { ns, A, id } = rig;
   const no = async (name, extra, author = A, quota) => (await rig.deploy(name, "x", extra, author, quota)).reason;
   expect(await no("a", { resources: ["rows"] })).toBe('a member service may not use the platform cell "rows"');
-  for (const cell of ["blobs", "database", "deployer", "assets", "inbox", "core", "workers"]) expect(await no("a", { resources: [cell] })).toBe(`a member service may not use the platform cell "${cell}"`);
+  for (const cell of ["blobs", "database", "deployer", "assets", "inbox", "core", "workers", "browser"]) expect(await no("a", { resources: [cell] })).toBe(`a member service may not use the platform cell "${cell}"`);
   expect(await no("a", { secrets: ["WA_TOKEN"] })).toBe("a member service may not name a secret");
   expect(await no("a", { paths: [{ path: "/hooks/a", who: "anyone" }] })).toBe("a member service has no paths");
   expect(await no("a", { crons: ["* * * * *"] })).toBe("a member service has no schedule and no flags");

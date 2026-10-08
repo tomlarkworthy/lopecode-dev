@@ -169,7 +169,7 @@ Sign-in is atproto OAuth on the kernel. The kernel sets no cookie and reads no c
 
 A token or a grant cannot name an \`infra\`, \`secret\`, \`token\`, \`grant\` or \`people\` method. It reaches no address that is not a method.
 
-These accept the owner's own session only: \`secret.put\`, \`token.*\`, \`grant.*\`, \`rule.put\`, \`calls.setMode\`, \`infra.*\`. They refuse a turn token, a PDS, an owner's token and a Worker's key.
+These accept the owner's own session only: \`secret.put\`, \`token.*\`, \`grant.*\`, \`rule.put\`, \`price.put\`, \`price.delete\`, \`quota.put\`, \`quota.setDefaults\`, \`calls.setMode\`, \`infra.*\`. They refuse a turn token, a PDS, an owner's token and a Worker's key.
 
 \`secret.get\` accepts the owner's own session, and a Worker that the rule of that secret lets in. The rule can read \`origin\`. It refuses a turn token, a PDS, an owner's token and an anonymous caller, whatever the rule says.
 
@@ -196,6 +196,8 @@ A rule is one [CEL](https://github.com/google/cel-spec) expression over \`caller
 \`caller\` is who made the call. \`origin\` is who started the chain of calls, and has the same fields. They are equal for a call from outside. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call that it answers. For a call that a Worker makes by its own schedule, \`origin\` is the Worker. The core signs the origin into a reference that it sends with each call, and the wrapper sends the reference back with each call that the Worker makes in that time. A Worker cannot name an origin of its choice. A rule that does not read \`origin\` lets the Worker do the same for each caller it answers. Example: \`bluesky.putRecord\` has the rule \`caller.session || (caller.worker == "brain-x-feed" && origin.kind == "owner")\`: the feed service writes a public record only when the owner started the chain, in their tab or in a turn that is run for them. The calls of a platform cell (\`secrets\`, \`sql\`, \`inbox\`, \`xrpc\`) carry the same origin, so the rule of a secret or a table can read it. Reference: **Origin** in ${mod("brain-core")}.
 
 A rule is part of the service's source, so a change to a rule is a deploy. The owner can replace a rule with \`rule.put { target, allow }\`, unless the service fixed it. A rule cannot read the request body. Reference: **Access rules** in ${mod("cloudflare-iac")}.
+
+A method can also have a price in US dollars, charged to the account of the origin for the UTC day. Reference: **Prices and credits** in \`@tomlarkworthy/brain-core\`.
 
 A member service declares \`who: "author"\` (the member and the owner) or \`who: "members"\`. The deployer writes the rule.`
 // %%
@@ -283,6 +285,7 @@ Each is an owner service. Its module documents it.
 | ${mod("brain-whatsapp")}, ${mod("brain-bluesky")} | Message channels. |
 | ${mod("brain-library")} | Notebooks that the Brain keeps and serves. |
 | ${mod("brain-feed")} | Lists of Bluesky posts, given as Bluesky feeds. |
+| ${mod("brain-browser")} | Remote browsers from Cloudflare Browser Run: named pages as tabs of one browser, with time bought in seconds. |
 | ${mod("brain-proxy")} | Outbound requests with a secret added. |`
 // %%
 // A module's name as a link that opens its tab beside the ones already open.

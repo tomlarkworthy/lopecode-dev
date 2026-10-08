@@ -2,7 +2,7 @@ md`# Cloudflare from a notebook
 
 A service declared as a notebook value. \`cloudflare.Service(name, fn, options)\` returns a service: a name, a function that answers requests, and a manifest (methods, paths, rules, \`calls\`). Call it in the tab with \`service.fetch(request)\`, read the module it would upload with \`service.emit()\`, run that module in the tab with \`simulate(service)\`. \`cloudflare.Worker\` is the name of \`Service\` until 2026-10-07 and is the same function.
 
-A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. A service holds no Cloudflare token. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted.
+A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. A service holds no Cloudflare token. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted. \`browser\` is Cloudflare Browser Run (remote browsers, billed by the browser-hour): the approval page names a service that reaches it, and a member's service is refused it.
 
 The module is the function plus every cell it depends on, across imports, written out in dependency order with no Observable runtime. The walk stops at **platform cells** (\`secrets\`, \`rows\`, \`sql\`, \`inbox\`, \`xrpc\`), which work in the notebook and are replaced on the Worker by the Cloudflare resource they stand for, and at **library cells** (\`library(name, file)\`), which are uploaded as a second file.
 
@@ -310,6 +310,10 @@ deployer = ({ [platformTag]: "deployer", fetch: (request) => backend.forward("de
 guard = deployer
 // %%
 assets = ({ [platformTag]: "assets", fetch: (request) => backend.forward("assets", request) })
+// %%
+// Cloudflare Browser Run: remote browsers, billed by the browser-hour. fetch(path, init) is the binding's own
+// HTTP form ("/v1/devtools/browser", "/v1/sessions"); an Upgrade request answers with a WebSocket that carries CDP.
+browser = ({ [platformTag]: "browser", fetch: (path, init = {}) => backend.forward("browser", new Request("https://browser.internal" + path, init)) })
 // %%
 workers = ({
   [platformTag]: "workers",
@@ -759,6 +763,9 @@ emit = async (service) => {
     if (kind === "quickjs") {
       used.add(kind);
       ref = "__quickjs";
+    } else if (kind === "browser") {
+      used.add(kind);
+      ref = "__browser";
     } else if (kind) {
       used.add(kind);
       ref = "__rt.platform." + kind;
@@ -825,7 +832,11 @@ emit = async (service) => {
   if (used.has("quickjs")) lines.push(`import __quickjs_wasm from "./quickjs.wasm";`, `const __quickjs = { module: async () => __quickjs_wasm };`);
   // The wrapper holds the origin of the call being answered in AsyncLocalStorage. The deployer sets the flag nodejs_als.
   lines.push(`import { AsyncLocalStorage as __als } from "node:async_hooks";`);
-  lines.push(`const __rt = (${String(workerRuntime)})(__als);`, `const fetch = __rt.fetch;`, `const __init = async () => {`);
+  lines.push(`const __rt = (${String(workerRuntime)})(__als);`, `const fetch = __rt.fetch;`);
+  // The browser cell is written here and not in the wrapper, so a Worker that does not use it is emitted as before.
+  // The binding has the name the wrapper's workers cell reads for "cf-browser-run".
+  if (used.has("browser")) lines.push(`const __browser = { fetch: (path, init = {}) => __rt.platform.workers.fetch("cf-browser-run", new Request("https://browser.internal" + path, init)) };`);
+  lines.push(`const __init = async () => {`);
   for (const c of cells) lines.push(`  const ${c.id} = await (${c.text})(${c.deps.join(", ")});`);
   lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
   if (used.has("rows") && (role === "deployer" || role === "guard")) lines.push(`export const Rows = __rt.Rows;`);
@@ -849,9 +860,9 @@ emit = async (service) => {
     flags: [...new Set([...(service.options.flags || []), ...(service.options.scheduled ? ["global_fetch_strictly_public"] : [])])],
     methods: Object.keys(service.options.methods || {}).sort(),
     access: Object.fromEntries(
-      Object.entries(service.options.methods || {}).sort().map(([nsid, m]) => [nsid, { type: m.type || "procedure", who: m.who || "owner", ...(m.allow ? { allow: checkedRule(nsid, m.allow) } : {}), ...(m.fixed ? { fixed: true } : {}) }])
+      Object.entries(service.options.methods || {}).sort().map(([nsid, m]) => [nsid, { type: m.type || "procedure", who: m.who || "owner", ...(m.allow ? { allow: checkedRule(nsid, m.allow) } : {}), ...(m.price ? { price: checkedRule(nsid, m.price) } : {}), ...(m.fixed ? { fixed: true } : {}) }])
     ),
-    paths: (service.options.paths || []).map((p) => (p.allow ? { ...p, allow: checkedRule(p.path, p.allow) } : p)),
+    paths: (service.options.paths || []).map((p) => ({ ...p, ...(p.allow ? { allow: checkedRule(p.path, p.allow) } : {}), ...(p.price ? { price: checkedRule(p.path, p.price) } : {}) })),
     secrets: [...secretNames].sort(),
     resources,
     bindings: [
@@ -862,7 +873,8 @@ emit = async (service) => {
       ...(used.has("blobs") ? [{ type: "r2_bucket", name: "BLOBS", bucket_name: "brain-blobs" }] : []),
       ...(used.has("inbox") || used.has("xrpc") || used.has("sql") || used.has("core") || (secretNames.size && (role === "recipe" || role === "system")) ? [{ type: "service", name: "CORE", service: "brain-core" }] : []),
       ...(used.has("deployer") ? [{ type: "service", name: "DEPLOYER", service: "brain-deployer" }] : []),
-      ...(used.has("assets") ? [{ type: "assets", name: "ASSETS" }] : [])
+      ...(used.has("assets") ? [{ type: "assets", name: "ASSETS" }] : []),
+      ...(used.has("browser") ? [{ type: "browser", name: "X_CF_BROWSER_RUN" }] : [])
     ]
   };
   const hash = await partsHash(parts, meta);
@@ -886,7 +898,7 @@ moduleSource = async (module) => {
 }
 // %%
 // Runs the emitted module in the tab with every Cloudflare binding replaced by a recording fake.
-simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql } = {}) => {
+simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql, browser } = {}) => {
   const emitted = await service.emit();
   const url = (text) => URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
   let main = emitted.parts[0].text;
@@ -962,6 +974,8 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
   };
   for (const [name, handler] of Object.entries(workers))
     env["X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_")] = { fetch: async (request) => handler(request) };
+  // browser(request) answers as the Browser Run binding. For an upgrade it gives { status: 101, webSocket }.
+  if (browser) env.X_CF_BROWSER_RUN = { fetch: async (request) => browser(request) };
   sim.env = env;
   sim.fetch = (request, init) => {
     const req = request instanceof Request ? request : new Request(request, init);
@@ -1463,6 +1477,8 @@ test_bindings_follow_platform_cells = {
   expect(await (await none.fetch("https://brain.internal/secrets/T", { headers: { "x-brain-caller": "owner" } })).json()).toEqual({ name: "T" });
   expect(meta.role).toBe("recipe");
   expect(meta.worker).toBe("brain-x-fixture");
+  // The browser cell is written into a module only when the service reaches it (brain-browser does).
+  expect((await fx_service.emit()).parts[0].text).not.toContain("__browser");
   return meta.bindings.length + " bindings";
 }
 // %%

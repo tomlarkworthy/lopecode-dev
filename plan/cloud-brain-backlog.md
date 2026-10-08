@@ -517,3 +517,22 @@ Tom asked the Brain over WhatsApp for pictures; its owner turn wrote the change 
 - **`getModules` lists the kept source of removed scratch services** (`callscheck`, `chaincheck`, `deploycheck`, `loop`, `origincheck`, `sqlprobe`). `remove` keeps the `source/` row.
 - **Commit `tools/cloud-brain/` and this file.** Nothing of the Cloud Brain is in a commit. The handover cell says so.
 - **The old spellings stay read** (`BASE-guard`, the cell `guard`, `x-brain-guard`, the caller `guard`, `"guard"` in a rule, `guardKey`). Remove them when no Brain from before 2026-10-08 runs and no kept source from before then can be restored.
+
+## Added 2026-10-08 07:26: the browser service
+
+- **Three tabs of the Brain's page stop one browser.** Two attempts of two on cb4; two tabs held. Next: measure one tab over 10 minutes with `performance.memory`, and find Browser Run's memory limit. Until then a hosted Brain page gets `own: true`.
+- **The 10 s command limit is not seen on cb4.** Next: open three tabs of the page again and read what the next call and the next tick answer.
+- **The viewport is 780 × 493.** `Target.createTarget` did not apply `width` and `height`. Next: `Emulation.setDeviceMetricsOverride` before a screenshot.
+- **A tab with no row is not closed.** A call that dies between `Target.createTarget` and the row write leaves the tab until the browser ends.
+- **`usedSeconds` is to the minute.** `/v1/history` on the binding has the exact start and end of each session.
+- **The deployer's token has every permission.** The next token: which groups, and are Workers Scripts and R2 enough for a browser binding.
+- **Hosting the Brain's page.** Not built: an identity for the page, and the proxy as its path to a model.
+
+## Added 2026-10-08 07:27: prices and credits
+
+- **A declared price does not reach the core.** `cloudflare-iac.ojs`, the `access` entry of the emit: add `...(m.price ? { price: checkedRule(nsid, m.price) } : {})`, and show the price on the approval page. Until then a price is set with `price.put`.
+- **The browser joins the price list.** `price` on `browser.open`, `browser.extend`, `browser.run`; delete its own count of bought seconds.
+- **Deploy the kernel and the page.** The kernel lets a member call `quota.get`; the page has the Spending panel. Neither was deployed on 2026-10-08, and the panel was not seen in a browser.
+- **58 ms more at p50 for a priced call** (cb4, 104 ms against 46 ms). One statement that appends and returns the list would halve it; that is a change to `rows` in `cloudflare-iac.ojs`.
+- **Tom decides:** the unit, UTC or the owner's time zone, the defaults, who pays in a room, settle-after for model tokens, whether members see each other's spend. The questions are in the spec.
+- Cost is not in the metrics rows. The ledger has totals by account and by method for a day.

@@ -10,6 +10,8 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | 405 \`InvalidRequest\` | A query sent as POST, or a procedure sent as GET. |
 | 401 \`AuthRequired\` | The rule of the method or path is not true for this caller. |
 | 429 \`RateLimitExceeded\` | A member's calls for the day are used. |
+| 402 \`OutOfCredits\` | The method has a price and the account that pays has less than the price left for the day, or the call has no account. |
+| 402 \`PriceOverCeiling\` | The price of this call is more than one call may cost. |
 | 501 \`MethodNotImplemented\` | No service declares the method. |
 | 502 \`UpstreamUnavailable\` | The Worker of the service that declares it is not bound to the core. |
 
@@ -19,6 +21,11 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`rule.put\`, \`rule.delete\` | procedure, the owner's own session. \`{ name, allow }\`: a CEL expression in place of the rule a service declared. A rule the service fixed is refused. |
 | \`calls.list\` | query, owner. \`{ mode, implicit, undeclared: [{ worker, method, n }] }\`. |
 | \`calls.setMode\` | procedure, the owner's own session. \`{ mode: "report" | "enforce" | null, clear }\`. |
+| \`price.list\` | query, owner. \`{ prices: [{ target, worker, declared, set, setAt }], unit, defaults }\`. |
+| \`price.put\`, \`price.delete\` | procedure, the owner's own session. \`{ target, price }\`: a CEL expression in place of the price a service declared. |
+| \`quota.get\` | query, any account. \`{ who, day, spent, daily, remaining, resetsAt }\` for the caller's own account. The owner reads another with \`?who=\`. |
+| \`quota.list\`, \`quota.ledger\` | query, owner. Each account's day, and the charges of one day (\`?day=&who=&limit=\`) with totals by account and by method. |
+| \`quota.put\`, \`quota.setDefaults\` | procedure, the owner's own session. \`{ who, daily }\`, and \`{ owner, member, worker, token, perCall, keepDays }\`. \`null\` is the default again. |
 
 **Origin.** A rule reads \`caller\`, who made the call, and \`origin\`, who started the chain of calls it is part of. The two have the same fields. For a call from outside they are equal. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call it answers. A call a Worker makes by its own schedule has the Worker as \`origin\`. For a member's Worker \`caller\` is its author, and so is \`origin\` when it answers nobody.
 
@@ -41,6 +48,32 @@ A rule that does not name \`origin\` lets the Worker act for anyone it answers. 
 | bluesky, whatsapp → \`lease.get\`, \`inbox.append\` | no | started by the Worker's own clock |
 | any → \`secret.get\`, \`db.sql\` | no | the Worker's own secrets and tables |
 | core → \`metrics.record\` | no | the core's own counts |
+
+**Prices and credits** (added 2026-10-08). A method or a path can have a price beside its rule: a CEL expression over the same \`caller\`, \`origin\` and \`request\`, which gives US dollars. The owner's price (\`price.put\`) stands in for the declared one. A call with no price, or a price of 0, reads the route table and the settings the core already holds and writes no row.
+
+\`\`\`js
+"com.lopecode.brain.browser.extend": { type: "procedure", who: "owner", price: "double(request.params.seconds) * 0.000025" }
+\`\`\`
+
+The order is rule, price, charge, forward. The price is for the Worker's own work: a method it calls is charged by its own price when the call reaches the core. A price that throws, is not a number, or is less than 0 refuses the call with 403; one above \`perCall\` refuses it with 402. A price reads the query of the request and not its body, as a rule does.
+
+| the call is started by | the account that pays | default a day |
+|---|---|---|
+| the owner's session, the owner's turn, the owner's PDS | \`owner\` | $1.00 |
+| a member's session, PDS, portal or turn | \`did:…\`, the member | $0.10 |
+| a turn in a room | the person who wrote the message, as any turn | |
+| a token | \`token:NAME\` | $0.10 |
+| a Worker by its own clock | \`worker:NAME\` | $0.10 |
+| a member's Worker by its own clock | its author | |
+| nobody (\`anonymous\`) | none: a priced call is refused | |
+
+A Worker that answers a call spends the credits of that call's origin, through any number of Workers. The most one call may cost is $1. An account's day starts at 00:00 UTC.
+
+A charge is taken before the call is forwarded and given back when the answer is not 2xx or the Worker throws. A Worker may answer \`x-brain-cost: <usd>\` to say the call cost less, and the core gives back the difference; a higher value, or one that is not an amount, is logged and not read. The answer to a priced call carries \`x-brain-price\`, what was charged in the end.
+
+An account's day is one row, \`spend/DAY/ACCOUNT\`: a list that each charge and each amount given back is appended to in one statement. A charge counts when the charges that count before it, and it, are inside the allowance it was made under. The list alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. A charge that lost to another made at the same time stays in the list and counts for nothing. A priced call is two statements (append, read) and one more when something is given back. A day holds 2000 charges for one account; the next is refused. A core that read an account as spent refuses it for 5 s without a write. Days older than \`keepDays\` (30) are deleted.
+
+Limits. A cost known only after the call, such as the tokens of a model call, has no method yet: the price would have to be the most the call can cost, with \`x-brain-cost\` to bring it down. The allowance of a member's calls for a day (429) is a separate count.
 
 **Calls.** A Worker calls the methods its service lists in \`calls\`. The core reads the list from the Worker's \`getInfo\`, which the deployer bound at deploy, and keeps it for that deployed hash. A name is exact. \`*\` is one part of a name; as the last part it is one or more: \`com.lopecode.brain.static.*\`, \`com.lopecode.brain.*.send\`. A list of only \`*\` matches nothing.
 
@@ -456,6 +489,209 @@ coreApp = {
     const bodied = !["GET", "HEAD"].includes(c.req.method);
     return workers.fetch(short, new Request("https://" + short + ".internal" + (path || url.pathname + url.search), { method: c.req.method, headers, body: bodied ? c.req.raw.body : undefined, duplex: bodied ? "half" : undefined, redirect: "manual" }));
   };
+  // Prices and credits. A method or a path may have a price: one CEL expression over the caller, the origin and the
+  // request, which gives US dollars. The owner's price (price.put) stands in for the one a service declared. A call
+  // with no price takes none of this. A priced call is charged to the account of its origin before it is forwarded,
+  // and is refused when that leaves the account over its allowance for the UTC day.
+  // An account's day is one row: a list that charges and their corrections are appended to, in one statement each.
+  // A charge counts when the charges that count before it, with it, are inside the allowance it was made under. That
+  // is decided by the list alone, so calls made at once cannot spend past the allowance, and no call needs a lock.
+  const PRICING = { owner: 1, member: 0.1, worker: 0.1, token: 0.1, perCall: 1, keepDays: 30 };
+  const MICRO = 1e6, CHARGES = 2000, KEEP = 100000;
+  const micro = (usd) => Math.ceil(usd * MICRO - 1e-6);
+  const usd = (u) => u / MICRO;
+  const pricing = async () => ({ ...PRICING, ...((await settings.get("quota/defaults")) || {}) });
+  const accountOf = (origin) => {
+    const o = callerOf(origin);
+    return o.kind === "owner" || ["did", "token", "worker"].includes(o.kind) ? o.id : null;
+  };
+  const kindOf = (account) => (account === "owner" ? "owner" : account.startsWith("did:") ? "member" : account.split(":")[0]);
+  const allowanceOf = async (account, p) => {
+    const set = (await settings.list("quota/who/")).find((r) => r.key === "quota/who/" + account)?.value;
+    return set && Number.isFinite(set.daily) ? set.daily : p[kindOf(account)] ?? 0;
+  };
+  const priceSet = async (target) => (await settings.list("price/")).find((r) => r.key === "price/" + target)?.value || null;
+  const parsedPrice = new Map();
+  const priceValue = (expression, context) => {
+    try {
+      if (!parsedPrice.has(expression)) parsedPrice.set(expression, cel.parse(expression));
+      const v = parsedPrice.get(expression)(context), n = typeof v === "bigint" ? Number(v) : v;
+      if (typeof n !== "number" || !Number.isFinite(n)) return { error: "it is not a number" };
+      return n < 0 ? { error: "it is less than 0" } : { usd: n };
+    } catch (e) {
+      return { error: String((e && e.message) || e).split("\n")[0] };
+    }
+  };
+  // What a day's list comes to: what is spent, and what each charge that counts still holds.
+  const fold = (list) => {
+    let spent = 0;
+    const net = new Map();
+    for (const e of list || []) {
+      if (e.u != null) {
+        if (spent + e.u <= e.A) (net.set(e.i, e.u), (spent += e.u));
+      } else if (net.has(e.i)) {
+        const back = Math.min(net.get(e.i), -e.a);
+        net.set(e.i, net.get(e.i) - back);
+        spent -= back;
+      }
+    }
+    return { spent, net };
+  };
+  const spendKey = (day, account) => `spend/${day}/${account}`;
+  // What this instance last read for an account. It stops an account that is out of credits from growing its list.
+  const known = new Map();
+  const charge = async (account, u, allowance, about) => {
+    const day = today(), key = spendKey(day, account), A = micro(allowance), k = known.get(account);
+    if (k && k.day === day && Date.now() - k.at < settings.ttl && k.spent + u > A) return { ok: false, spent: k.spent };
+    const i = crypto.randomUUID().slice(0, 13);
+    const n = await rows.append(key, { t: Date.now(), i, u, A, ...about }, KEEP);
+    const { spent, net } = fold(await rows.get(key));
+    known.set(account, { day, spent, at: Date.now() });
+    if (net.has(i) && n > CHARGES) {
+      await rows.append(key, { t: Date.now(), i, a: -u, r: "full" }, KEEP);
+      return { ok: false, spent: spent - u, full: true };
+    }
+    return { ok: net.has(i), i, key, spent, account };
+  };
+  const giveBack = async (got, back, r) => {
+    await rows.append(got.key, { t: Date.now(), i: got.i, a: -back, r }, KEEP);
+    const k = known.get(got.account);
+    if (k) k.spent -= back;
+  };
+  let pruned = "";
+  const prune = async (keepDays) => {
+    if (pruned === today()) return;
+    pruned = today();
+    for (let d = keepDays + 1; d <= keepDays + 7; d++) await rows.deletePrefix(`spend/${new Date(Date.now() - d * 86400000).toISOString().slice(0, 10)}/`);
+  };
+  const midnight = () => new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86400000;
+  const money = (n) => "$" + String(Number(n.toFixed(6)));
+  const priced = async (c, route, target, rule, context) => {
+    const set = await priceSet(target), expression = set ? set.price : rule.price;
+    if (!expression) return forward(route, c);
+    const p = await pricing(), price = priceValue(expression, context);
+    if (price.error) return fail(c, 403, "Forbidden", `the price of ${target} could not be decided: ${price.error}`);
+    if (price.usd > p.perCall) return fail(c, 402, "PriceOverCeiling", `${target} costs ${money(price.usd)} for this call. The most one call may cost is ${money(p.perCall)}`);
+    const u = micro(price.usd);
+    if (!u) return forward(route, c);
+    const origin = c.get("origin"), account = accountOf(origin);
+    if (!account) return fail(c, 402, "OutOfCredits", `${target} costs ${money(price.usd)} and ${callerOf(origin).id} has no credits`);
+    const allowance = await allowanceOf(account, p);
+    const got = await charge(account, u, allowance, { m: target, c: c.get("who").caller, o: origin.caller, v: origin.via || "" });
+    if (!got.ok)
+      return fail(c, 402, "OutOfCredits", got.full
+        ? `${account} has made ${CHARGES} priced calls today, which is the most for one day. The count is new at 00:00 UTC`
+        : `${target} costs ${money(usd(u))}. ${account} has spent ${money(usd(got.spent))} of ${money(allowance)} today. The allowance is new at 00:00 UTC, in ${Math.ceil((midnight() - Date.now()) / 60000)} minutes`);
+    const old = prune(p.keepDays).catch(() => null);
+    try {
+      c.executionCtx.waitUntil(old);
+    } catch {}
+    let r;
+    try {
+      r = await forward(route, c);
+    } catch (e) {
+      await giveBack(got, u, "refund").catch(() => null);
+      throw e;
+    }
+    let final = u;
+    if (r.status < 200 || r.status >= 300) (await giveBack(got, u, "refund"), (final = 0));
+    else if (r.headers.has("x-brain-cost")) {
+      // The Worker may say the call cost less than its price. More, or anything that is not an amount, is not read.
+      const said = r.headers.get("x-brain-cost").trim(), n = said === "" ? NaN : Number(said);
+      if (Number.isFinite(n) && n >= 0 && micro(n) < u) (await giveBack(got, u - micro(n), "settle"), (final = micro(n)));
+      else if (!(Number.isFinite(n) && micro(n) === u)) console.log(`brain-core: ${route.worker} said ${target} cost ${JSON.stringify(said.slice(0, 40))}; the price ${usd(u)} stands`);
+    }
+    const out = new Response(r.body, r);
+    out.headers.set("x-brain-price", String(usd(final)));
+    return out;
+  };
+  // One account's day as the owner reads it: each charge, what it came to, and why it changed.
+  const ledgerOf = (who, list) => {
+    const { net } = fold(list), why = new Map();
+    for (const e of list || []) if (e.u == null && net.has(e.i)) why.set(e.i, e.r);
+    return (list || []).filter((e) => e.u != null).map((e) => ({ at: e.t, who, origin: e.o + (e.v ? " (" + e.v + ")" : ""), caller: e.c, method: e.m, price: usd(e.u), cost: usd(net.get(e.i) ?? 0), counted: net.has(e.i), refunded: why.get(e.i) === "refund", change: why.get(e.i) || null }));
+  };
+  const isAccount = (who) => who === "owner" || /^(did|token|worker):[^\s/]+$/.test(who || "");
+  const dayOf = async (account, p, day = today()) => {
+    const { spent } = fold(await rows.get(spendKey(day, account))), daily = await allowanceOf(account, p);
+    return { who: account, day, spent: usd(spent), daily, remaining: Math.max(0, Number((daily - usd(spent)).toFixed(6))), resetsAt: midnight() };
+  };
+  app.get(NS + "price.list", owner, async (c) => {
+    const set = new Map((await rows.list("price/")).map(({ key, value }) => [key.slice("price/".length), value]));
+    const out = [];
+    for (const { value: r } of await rows.list("route/")) {
+      if (!routed(r)) continue;
+      for (const [target, rule] of [...Object.entries(r.methods), ...r.paths.map((p) => [p.path, p])])
+        if (rule.price || set.has(target)) out.push({ target, worker: r.worker, declared: rule.price || null, set: set.has(target) ? set.get(target).price : null, setAt: set.has(target) ? set.get(target).setAt : null });
+    }
+    return c.json({ prices: out.sort((a, b) => (a.target < b.target ? -1 : 1)), unit: "USD", defaults: await pricing() });
+  });
+  app.post(NS + "price.put", session, async (c) => {
+    const b = await c.req.json().catch(() => ({})), target = b.target || b.method, price = b.price;
+    if (typeof price !== "string" || !price.trim()) return fail(c, 400, "InvalidRequest", "price is a CEL expression that gives US dollars");
+    const found = await declared(target);
+    if (!found) return fail(c, 404, "NotFound", `no service declares ${target}`);
+    try {
+      checkedRule(target, price);
+    } catch (e) {
+      return fail(c, 400, "InvalidRequest", e.message.replace("the rule", "the price"));
+    }
+    await settings.put("price/" + target, { price, setAt: Date.now() });
+    return c.json({ target, price });
+  });
+  app.post(NS + "price.delete", session, async (c) => {
+    const b = await c.req.json().catch(() => ({}));
+    return c.json({ deleted: !!(await settings.delete("price/" + (b.target || b.method))) });
+  });
+  // An account reads its own day. The owner reads any.
+  app.get(NS + "quota.get", async (c) => {
+    const who = c.get("who"), asked = c.req.query("who"), mine = accountOf(c.get("origin"));
+    if (asked && asked !== mine && who.caller !== "owner") return fail(c, 401, "AuthRequired", "the owner reads another account");
+    if (!(asked || mine)) return fail(c, 401, "AuthRequired", "an account");
+    if (asked && !isAccount(asked)) return fail(c, 400, "InvalidRequest", "who is owner, did:…, token:NAME or worker:NAME");
+    return c.json(await dayOf(asked || mine, await pricing()));
+  });
+  app.get(NS + "quota.list", owner, async (c) => {
+    const p = await pricing(), day = today(), base = `spend/${day}/`;
+    const set = new Map((await rows.list("quota/who/")).map(({ key, value }) => [key.slice("quota/who/".length), value]));
+    const spent = new Map((await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]));
+    const accounts = [...new Set(["owner", ...set.keys(), ...spent.keys()])].sort().map((who) => {
+      const daily = set.has(who) && Number.isFinite(set.get(who).daily) ? set.get(who).daily : p[kindOf(who)] ?? 0;
+      return { who, daily, set: set.has(who), spent: usd(fold(spent.get(who)).spent), charges: (spent.get(who) || []).filter((e) => e.u != null).length };
+    });
+    return c.json({ day, unit: "USD", resetsAt: midnight(), defaults: p, accounts });
+  });
+  app.post(NS + "quota.put", session, async (c) => {
+    const { who, daily = null } = await c.req.json().catch(() => ({}));
+    if (!isAccount(who)) return fail(c, 400, "InvalidRequest", "who is owner, did:…, token:NAME or worker:NAME");
+    if (daily !== null && !(typeof daily === "number" && Number.isFinite(daily) && daily >= 0)) return fail(c, 400, "InvalidRequest", "daily is US dollars, 0 or more, or null for the default");
+    if (daily === null) await settings.delete("quota/who/" + who);
+    else await settings.put("quota/who/" + who, { daily, setAt: Date.now() });
+    known.delete(who);
+    return c.json(await dayOf(who, await pricing()));
+  });
+  app.post(NS + "quota.setDefaults", session, async (c) => {
+    const b = await c.req.json().catch(() => ({})), next = { ...((await rows.get("quota/defaults")) || {}) };
+    for (const k of Object.keys(PRICING)) {
+      if (!(k in b)) continue;
+      if (b[k] === null) delete next[k];
+      else if (typeof b[k] === "number" && Number.isFinite(b[k]) && b[k] >= 0 && (k !== "keepDays" || (Number.isInteger(b[k]) && b[k] >= 1))) next[k] = b[k];
+      else return fail(c, 400, "InvalidRequest", `${k} is a number, 0 or more, or null for ${PRICING[k]}`);
+    }
+    await settings.put("quota/defaults", next);
+    known.clear();
+    return c.json({ defaults: await pricing() });
+  });
+  app.get(NS + "quota.ledger", owner, async (c) => {
+    const day = c.req.query("day") || today(), who = c.req.query("who");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return fail(c, 400, "InvalidRequest", "day is YYYY-MM-DD");
+    const base = `spend/${day}/`;
+    const lists = who ? [[who, await rows.get(base + who)]] : (await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]);
+    const charges = lists.flatMap(([w, list]) => ledgerOf(w, list)).sort((a, b) => b.at - a.at);
+    const sum = (by) => Object.entries(charges.reduce((t, e) => ((t[e[by]] = (t[e[by]] || 0) + e.cost), t), {})).map(([k, v]) => ({ [by]: k, cost: Number(v.toFixed(6)) }));
+    return c.json({ day, unit: "USD", charges: charges.slice(0, Math.min(2000, Number(c.req.query("limit")) || 200)), total: Number(charges.reduce((t, e) => t + e.cost, 0).toFixed(6)), byWho: sum("who"), byMethod: sum("method") });
+  });
+
   // A Worker's manifest and source, for anyone. The wrapper has already answered for the core itself.
   for (const what of ["getInfo", "getSource"])
     app.get(NS + what, async (c) => {
@@ -486,8 +722,10 @@ coreApp = {
       // The rule is one CEL expression over the caller, the origin and the request. Anything but true is a refusal.
       // A rule the owner has set for this method or path stands in for the one the service declared.
       const set = (await settings.list("rule/")).find((r) => r.key === "rule/" + (nsid || path.path))?.value;
-      const verdict = decide(set ? { allow: set.allow } : rule, { caller: callerOf(who), origin: callerOf(c.get("origin")), request: { method: nsid || "", path: url.pathname, verb: c.req.method, params: Object.fromEntries(url.searchParams) } });
-      if (verdict.allow) return forward(route, c);
+      const context = { caller: callerOf(who), origin: callerOf(c.get("origin")), request: { method: nsid || "", path: url.pathname, verb: c.req.method, params: Object.fromEntries(url.searchParams) } };
+      const verdict = decide(set ? { allow: set.allow } : rule, context);
+      // Allowed, then priced: a call with a price is charged to its origin's account before it is forwarded.
+      if (verdict.allow) return priced(c, route, nsid || path.path, rule, context);
       return verdict.error ? fail(c, 403, "Forbidden", "the rule for this could not be decided") : fail(c, 401, "AuthRequired", "not allowed by the rule for this");
     }
     return nsid ? fail(c, 501, "MethodNotImplemented", nsid) : c.text("not found", 404);
@@ -990,7 +1228,240 @@ test_a_members_method_is_open_by_its_rule_and_the_owner_has_a_switch = {
   expect([(await rig.as(B)(list)).status, (await rig.todo(list)).status]).toEqual([429, 429]);
 }
 // %%
-import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, settings, simulate, sha256, xrpc, backend} from "@tomlarkworthy/cloudflare-iac"
+// originRig with one more Worker, brain-x-shop, whose methods have prices. `shop` is every call that reached it.
+priceRig = async (config = {}) => {
+  const rig = await originRig(config);
+  const P = "com.lopecode.brain.", shop = [];
+  rig.sim.env.X_SHOP = {
+    fetch: async (request) => {
+      const url = new URL(request.url), q = url.searchParams;
+      if (url.pathname.endsWith("getInfo")) return Response.json({ name: "brain-x-shop", hash: "h", calls: [] });
+      shop.push({ method: url.pathname.split(".").pop(), caller: request.headers.get("x-brain-caller"), origin: request.headers.get("x-brain-origin") });
+      if (q.get("throw")) throw new Error("the shop fell over");
+      return Response.json({ ok: true }, { status: Number(q.get("status")) || 200, headers: q.has("cost") ? { "x-brain-cost": q.get("cost") } : {} });
+    }
+  };
+  const m = (price, more = {}) => ({ type: "procedure", allow: "true", ...(price ? { price } : {}), ...more });
+  await rig.deployer("service.register", {
+    worker: "brain-x-shop", role: "recipe", paths: [], secrets: [], hash: "h", keyHash: await sha256("shop-key"),
+    methods: { [P + "shop.buy"]: m("0.01"), [P + "shop.big"]: m("0.03"), [P + "shop.time"]: m("double(request.params.seconds) * 0.000025"), [P + "shop.free"]: m(null), [P + "shop.text"]: m('"a lot"'), [P + "shop.less"]: m("-0.01"), [P + "shop.nan"]: m("0.0 / 0.0"), [P + "shop.dear"]: m("2.0"), [P + "shop.whole"]: m("1"), [P + "shop.nil"]: m("0.0") }
+  });
+  const day = (who, as = rig.owner) => as("quota.get" + (who ? "?who=" + encodeURIComponent(who) : "")).then((r) => r.data);
+  const spends = () => [...rig.sim.rows.keys()].filter((k) => k.startsWith("spend/"));
+  return { ...rig, shop, day, spends, today: new Date().toISOString().slice(0, 10) };
+}
+// %%
+test_a_call_with_no_price_writes_nothing = {
+  const rig = await priceRig();
+  // The first call a core forwards makes the key that signs origins. After that a free call writes no row.
+  await rig.owner("shop.free", {});
+  const before = rig.sim.rows.size;
+  const r = await rig.owner("shop.free", {});
+  expect([r.status, r.headers.get("x-brain-price")]).toEqual([200, null]);
+  // A price of 0 is a free call as well.
+  expect([(await rig.owner("shop.nil", {})).status, (await rig.anonymous("shop.nil", {})).status]).toEqual([200, 200]);
+  expect([rig.sim.rows.size, rig.spends()]).toEqual([before, []]);
+  return "no row written";
+}
+// %%
+test_a_priced_call_is_charged_to_the_day_of_its_origin = {
+  const rig = await priceRig();
+  const r = await rig.owner("shop.buy", {});
+  expect([r.status, r.headers.get("x-brain-price")]).toEqual([200, "0.01"]);
+  // The price reads the request: 40 seconds at $0.000025 a second.
+  expect((await rig.owner("shop.time?seconds=40", {})).headers.get("x-brain-price")).toBe("0.001");
+  // $1 is the whole allowance and $0.011 of it is spent: refused.
+  expect((await rig.owner("shop.whole", {})).status).toBe(402);
+  expect(await rig.day()).toMatchObject({ who: "owner", day: rig.today, spent: 0.011, daily: 1, remaining: 0.989 });
+  expect(rig.spends()).toEqual([`spend/${rig.today}/owner`]);
+  const ledger = (await rig.owner("quota.ledger")).data;
+  expect(ledger.charges.map((e) => [e.method.split(".").pop(), e.price, e.cost, e.counted, e.caller, e.origin]).reverse()).toEqual([["buy", 0.01, 0.01, true, "owner", "owner (session)"], ["time", 0.001, 0.001, true, "owner", "owner (session)"]]);
+  expect([ledger.total, ledger.byWho, ledger.byMethod.length]).toEqual([0.011, [{ who: "owner", cost: 0.011 }], 2]);
+  return "$" + ledger.total;
+}
+// %%
+test_a_price_that_cannot_be_decided_refuses_the_call = {
+  const rig = await priceRig();
+  const tried = [];
+  for (const [m, status, error] of [["text", 403, "Forbidden"], ["less", 403, "Forbidden"], ["nan", 403, "Forbidden"], ["time", 403, "Forbidden"], ["time?seconds=soon", 403, "Forbidden"], ["dear", 402, "PriceOverCeiling"]]) {
+    const r = await rig.owner("shop." + m, {});
+    tried.push([m, r.status, r.data.error]);
+    expect([m, r.status, r.data.error]).toEqual([m, status, error]);
+  }
+  expect((await rig.owner("shop.less", {})).data.message).toBe("the price of com.lopecode.brain.shop.less could not be decided: it is less than 0");
+  expect((await rig.owner("shop.dear", {})).data.message).toBe("com.lopecode.brain.shop.dear costs $2 for this call. The most one call may cost is $1");
+  // Nothing reached the Worker and nothing was charged.
+  expect([rig.shop, rig.spends()]).toEqual([[], []]);
+  return tried.length + " refused";
+}
+// %%
+test_the_origin_pays_through_one_worker_and_through_two = {
+  const rig = await priceRig();
+  const P = "com.lopecode.brain.";
+  const spent = async () => Object.fromEntries((await rig.owner("quota.list")).data.accounts.map((a) => [a.who, a.spent]));
+  // The owner's tab and the owner's turn are one account.
+  await rig.owner("shop.buy", {});
+  await rig.as("owner", "turn:7")("shop.buy", {});
+  expect(await spent()).toEqual({ owner: 0.02 });
+  // A member, a token and a Worker by its own clock each have their own.
+  await rig.as("did:plc:ada", "turn:9")("shop.buy", {});
+  await rig.as("token:cron", "token")("shop.buy", {});
+  expect((await rig.from("a")("shop.buy", {})).status).toBe(200);
+  expect(await spent()).toEqual({ "did:plc:ada": 0.01, owner: 0.02, "token:cron": 0.01, "worker:brain-x-a": 0.01 });
+  // Through one Worker: a answers the member and calls the shop. The member pays, not a.
+  expect((await rig.chain(rig.as("did:plc:ada", "session"), "shop.buy")).status).toBe(200);
+  expect(rig.shop.at(-1)).toEqual({ method: "buy", caller: "worker:brain-x-a", origin: "did:plc:ada" });
+  // Through two: a calls b for the owner, and b calls the shop.
+  await rig.deployer("service.register", { worker: "brain-x-b", role: "recipe", methods: { [P + "b.go"]: { type: "procedure", who: "workers" } }, paths: [], secrets: [], hash: "h", keyHash: await sha256("b-key") });
+  await rig.chain(rig.owner, "b.go");
+  expect((await rig.from("b", rig.last("b").context)("shop.buy", {})).status).toBe(200);
+  expect(rig.shop.at(-1)).toEqual({ method: "buy", caller: "worker:brain-x-b", origin: "owner" });
+  expect(await spent()).toEqual({ "did:plc:ada": 0.02, owner: 0.03, "token:cron": 0.01, "worker:brain-x-a": 0.01 });
+  // Nobody is no account: refused before the Worker, alone or through a Worker that answers them.
+  const before = rig.shop.length;
+  const none = await rig.anonymous("shop.buy", {});
+  expect([none.status, none.data]).toEqual([402, { error: "OutOfCredits", message: "com.lopecode.brain.shop.buy costs $0.01 and anonymous has no credits" }]);
+  expect((await rig.chain(rig.anonymous, "shop.buy")).status).toBe(402);
+  expect(rig.shop.length).toBe(before);
+  const ledger = (await rig.owner("quota.ledger?who=" + encodeURIComponent("did:plc:ada"))).data;
+  expect(ledger.charges.map((e) => [e.caller, e.origin])).toEqual([["worker:brain-x-a", "did:plc:ada (session)"], ["did:plc:ada", "did:plc:ada (turn:9)"]]);
+  return JSON.stringify(await spent());
+}
+// %%
+test_out_of_credits_is_402_and_nothing_is_forwarded = {
+  const rig = await priceRig();
+  const ada = rig.as("did:plc:ada", "session");
+  // A member has $0.10 a day: three calls of $0.03 pass and the fourth does not.
+  expect([(await ada("shop.big", {})).status, (await ada("shop.big", {})).status, (await ada("shop.big", {})).status]).toEqual([200, 200, 200]);
+  const no = await ada("shop.big", {});
+  expect([no.status, no.data.error]).toEqual([402, "OutOfCredits"]);
+  expect(no.data.message).toMatch(/^com\.lopecode\.brain\.shop\.big costs \$0\.03\. did:plc:ada has spent \$0\.09 of \$0\.1 today\. The allowance is new at 00:00 UTC, in \d+ minutes$/);
+  expect(rig.shop.length).toBe(3);
+  // What is left still buys what it covers.
+  expect((await ada("shop.buy", {})).status).toBe(200);
+  expect(await rig.day(null, ada)).toMatchObject({ who: "did:plc:ada", spent: 0.1, daily: 0.1, remaining: 0 });
+  // Another account is not touched, and a free call is never refused.
+  expect([(await rig.owner("shop.big", {})).status, (await ada("shop.free", {})).status]).toEqual([200, 200]);
+  // The owner gives more, and the next call passes.
+  expect((await rig.owner("quota.put", { who: "did:plc:ada", daily: 0.2 })).data).toMatchObject({ who: "did:plc:ada", spent: 0.1, daily: 0.2, remaining: 0.1 });
+  expect((await ada("shop.big", {})).status).toBe(200);
+  // A refused call counts for nothing, also after the allowance grew.
+  expect((await rig.day("did:plc:ada")).spent).toBe(0.13);
+  // Back to the default: null.
+  expect((await rig.owner("quota.put", { who: "did:plc:ada", daily: null })).data.daily).toBe(0.1);
+  expect((await ada("shop.buy", {})).status).toBe(402);
+  return "402 after $0.09 of $0.10";
+}
+// %%
+test_a_call_that_fails_is_given_back = {
+  const rig = await priceRig();
+  for (const q of ["status=500", "status=400", "status=302", "throw=1"]) {
+    const r = await rig.owner("shop.buy?" + q, {});
+    expect([q, r.status >= 300, r.headers.get("x-brain-price")]).toEqual([q, true, q === "throw=1" ? null : "0"]);
+  }
+  expect((await rig.day()).spent).toBe(0);
+  expect((await rig.owner("shop.buy", {})).headers.get("x-brain-price")).toBe("0.01");
+  const ledger = (await rig.owner("quota.ledger")).data;
+  expect(ledger.charges.map((e) => [e.price, e.cost, e.refunded])).toEqual([[0.01, 0.01, false], [0.01, 0, true], [0.01, 0, true], [0.01, 0, true], [0.01, 0, true]]);
+  expect(ledger.total).toBe(0.01);
+  return "4 given back";
+}
+// %%
+test_a_worker_can_say_a_call_cost_less_and_never_more = {
+  const rig = await priceRig();
+  const price = async (cost) => (await rig.owner("shop.big?cost=" + encodeURIComponent(cost), {})).headers.get("x-brain-price");
+  // Less: the difference is given back. Nothing: all of it.
+  expect([await price("0.004"), await price("0")]).toEqual(["0.004", "0"]);
+  expect((await rig.day()).spent).toBe(0.004);
+  // More, less than nothing, or not an amount: the price stands.
+  for (const said of ["0.5", "-1", "free", "", "NaN", "0.03"]) expect([said, await price(said)]).toEqual([said, "0.03"]);
+  expect((await rig.day()).spent).toBe(0.184);
+  const ledger = (await rig.owner("quota.ledger")).data;
+  expect(ledger.charges.slice(-2).map((e) => [e.price, e.cost, e.change])).toEqual([[0.03, 0, "settle"], [0.03, 0.004, "settle"]]);
+  return "settled down twice, never up";
+}
+// %%
+test_calls_made_at_once_do_not_spend_past_the_allowance = {
+  const rig = await priceRig();
+  // $1.00 a day and $0.03 a call: 33 pass, whatever the order.
+  const out = await Promise.all(Array.from({ length: 50 }, () => rig.owner("shop.big", {})));
+  const count = (status) => out.filter((r) => r.status === status).length;
+  expect([count(200), count(402), rig.shop.length]).toEqual([33, 17, 33]);
+  expect((await rig.day()).spent).toBe(0.99);
+  // Calls that fail at once give back exactly what they took.
+  const ada = rig.as("did:plc:ada", "session");
+  const mixed = await Promise.all(Array.from({ length: 30 }, (_, i) => ada("shop.buy" + (i % 2 ? "?status=500" : ""), {})));
+  expect(mixed.filter((r) => r.status === 200).length).toBeLessThanOrEqual(10);
+  const spent = (await rig.day("did:plc:ada")).spent;
+  expect(spent).toBe(Number((mixed.filter((r) => r.status === 200).length * 0.01).toFixed(6)));
+  expect(spent).toBeLessThanOrEqual(0.1);
+  return `33 of 50, then ${spent} of 0.1`;
+}
+// %%
+test_a_new_day_starts_at_nothing_and_old_days_are_dropped = {
+  const rig = await priceRig();
+  const ago = (d) => new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+  const full = [{ t: 1, i: "x", u: 1000000, A: 1000000, m: "m", c: "owner", o: "owner", v: "session" }];
+  for (const d of [1, 10, 31, 37]) rig.sim.rows.set(`spend/${ago(d)}/owner`, full);
+  expect((await rig.owner("quota.ledger?day=" + ago(1))).data.total).toBe(1);
+  // Yesterday was spent to the last cent; today is new.
+  expect(await rig.day()).toMatchObject({ day: rig.today, spent: 0, remaining: 1 });
+  expect((await rig.owner("shop.buy", {})).status).toBe(200);
+  await new Promise((r) => setTimeout(r, 20));
+  // 30 days are kept.
+  expect(rig.spends().sort()).toEqual([`spend/${ago(10)}/owner`, `spend/${ago(1)}/owner`, `spend/${rig.today}/owner`].sort());
+  expect((await rig.owner("quota.ledger?day=yesterday")).status).toBe(400);
+  return "a day is a row";
+}
+// %%
+test_the_owner_sets_prices_and_allowances_in_their_own_session = {
+  const rig = await priceRig();
+  const P = "com.lopecode.brain.";
+  const turn = rig.as("owner", "turn:7"), ada = rig.as("did:plc:ada", "session");
+  // A turn, a token, a member and a Worker change nothing.
+  for (const as of [turn, rig.as("token:cron", "token"), ada, rig.from("a"), rig.anonymous])
+    for (const [m, body] of [["price.put", { target: P + "shop.free", price: "0.5" }], ["price.delete", { target: P + "shop.buy" }], ["quota.put", { who: "owner", daily: 100 }], ["quota.setDefaults", { member: 100 }]])
+      expect([m, (await as(m, body)).status]).toEqual([m, 401]);
+  expect((await rig.owner("price.list")).data.prices.find((p) => p.target === P + "shop.buy")).toEqual({ target: P + "shop.buy", worker: "brain-x-shop", declared: "0.01", set: null, setAt: null });
+  // The owner's price stands in for the declared one, on a method that had none too.
+  expect((await rig.owner("price.put", { target: P + "shop.buy", price: "0.02" })).data).toEqual({ target: P + "shop.buy", price: "0.02" });
+  expect((await rig.owner("price.put", { method: P + "shop.free", price: 'origin.kind == "owner" ? 0.0 : 0.05' })).status).toBe(200);
+  expect((await rig.owner("shop.buy", {})).headers.get("x-brain-price")).toBe("0.02");
+  expect([(await rig.owner("shop.free", {})).headers.get("x-brain-price"), (await ada("shop.free", {})).headers.get("x-brain-price")]).toEqual([null, "0.05"]);
+  expect((await rig.owner("price.list")).data.prices.map((p) => [p.target.split(".").pop(), p.declared, p.set]).filter((p) => p[2])).toEqual([["buy", "0.01", "0.02"], ["free", null, 'origin.kind == "owner" ? 0.0 : 0.05']]);
+  // Deleted: the declared price again.
+  expect((await rig.owner("price.delete", { target: P + "shop.buy" })).data).toEqual({ deleted: true });
+  expect((await rig.owner("shop.buy", {})).headers.get("x-brain-price")).toBe("0.01");
+  // Not a price, or not a method anyone declared.
+  expect([(await rig.owner("price.put", { target: P + "shop.buy", price: "0.01 *" })).status, (await rig.owner("price.put", { target: P + "no.such", price: "0.01" })).status, (await rig.owner("price.put", { target: P + "shop.buy" })).status]).toEqual([400, 404, 400]);
+  // Allowances: one account, or the defaults for a kind of account.
+  expect([(await rig.owner("quota.put", { who: "everyone", daily: 1 })).status, (await rig.owner("quota.put", { who: "owner", daily: -1 })).status, (await rig.owner("quota.setDefaults", { keepDays: 0 })).status]).toEqual([400, 400, 400]);
+  expect((await rig.owner("quota.setDefaults", { member: 0.5, perCall: 0.015 })).data.defaults).toEqual({ owner: 1, member: 0.5, worker: 0.1, token: 0.1, perCall: 0.015, keepDays: 30 });
+  expect([(await rig.day(null, ada)).daily, (await rig.owner("shop.big", {})).data.error]).toEqual([0.5, "PriceOverCeiling"]);
+  expect((await rig.owner("quota.setDefaults", { member: null, perCall: null })).data.defaults).toMatchObject({ member: 0.1, perCall: 1 });
+  // An account reads its own day; only the owner reads another's, the list and the ledger.
+  expect((await rig.day(null, ada)).who).toBe("did:plc:ada");
+  expect([(await ada("quota.get?who=owner")).status, (await rig.anonymous("quota.get")).status, (await rig.anonymous("quota.list")).status, (await rig.anonymous("quota.ledger")).status, (await rig.anonymous("price.list")).status]).toEqual([401, 401, 401, 401, 401]);
+  expect((await turn("quota.get")).data.who).toBe("owner");
+  expect((await rig.owner("quota.list")).data).toMatchObject({ day: rig.today, unit: "USD", accounts: [{ who: "did:plc:ada", daily: 0.1, set: false, spent: 0.05, charges: 1 }, { who: "owner", daily: 1, set: false, spent: 0.03, charges: 2 }] });
+  return "owner session only";
+}
+// %%
+test_a_members_worker_spends_its_authors_credits = {
+  const rig = await memberCoreRig(), { A, W } = rig;
+  rig.sim.env.X_B = { fetch: rig.hear("b") };
+  const P = "com.lopecode.brain.";
+  await rig.deployer("service.register", { worker: "brain-x-b", role: "recipe", methods: { [P + "b.who"]: { type: "procedure", who: "owner", price: "0.04" } }, paths: [], secrets: [], hash: "h", keyHash: await sha256("b-key") });
+  await rig.sync([{ did: A, methods: [P + "b.who"] }]);
+  const todo = rig.send("https://core.internal", { "x-brain-key": "todo-key" });
+  expect([(await todo("b.who", {})).status, (await todo("b.who", {})).status, (await todo("b.who", {})).status]).toEqual([200, 200, 402]);
+  const day = (await rig.owner("quota.list")).data.accounts;
+  expect(day.map((a) => [a.who, a.spent])).toEqual([[A, 0.08], ["owner", 0]]);
+  expect((await rig.owner("quota.ledger")).data.charges[0]).toMatchObject({ who: A, caller: A, origin: `${A} (worker:${W})`, counted: true });
+  return "the author pays";
+}
+// %%
+import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, cel, settings, simulate, sha256, xrpc, backend} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%

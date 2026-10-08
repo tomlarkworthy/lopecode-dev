@@ -178,7 +178,7 @@ kernelApp = {
   const fail = (c, status, error, message) => c.json({ error, message }, status);
   app.onError((e, c) => fail(c, 500, "InternalServerError", String((e && e.message) || e)));
   // What every member may call. Anything more is that member's grant.
-  const MEMBER = ["inbox.reply", "member.whoami", "member.services", "member.deploy", "member.remove", "member.modules", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete", "portal.token", "portal.modules"].map((m) => "com.lopecode.brain." + m);
+  const MEMBER = ["inbox.reply", "member.whoami", "member.services", "member.deploy", "member.remove", "member.modules", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete", "portal.token", "portal.modules", "quota.get"].map((m) => "com.lopecode.brain." + m);
   // What a portal token reaches beside the methods of its author's Workers, when the viewer is that author.
   const PORTAL_OWN = ["member.whoami", "member.services", "member.deploy", "member.remove", "member.modules"].map((m) => "com.lopecode.brain." + m);
   // A method of some member's own service. Its rule, which the deployer wrote, says whether another member may call it.
