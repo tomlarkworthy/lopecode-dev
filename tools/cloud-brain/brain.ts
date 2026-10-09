@@ -1,6 +1,6 @@
 /**
  * Drives a scratch Brain from the command line, in the installer's place.
- *   bun tools/cloud-brain/brain.ts install-deployer         # uploads .emitted/deployer.json as the deployer: <base>-deployer, or <base>-guard on a Brain from before 2026-10-08
+ *   bun tools/cloud-brain/brain.ts install-deployer [--token] # --token: send .cf-token as the deployer's Cloudflare token; without it an update keeps the one the Worker has. Uploads .emitted/deployer.json as the deployer: <base>-deployer, or <base>-guard on a Brain from before 2026-10-08
  *   bun tools/cloud-brain/brain.ts migrate-deployer         # an old Brain: installs <base>-deployer, copies the rows of <base>-guard to it, and marks <base>-guard replaced
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
  *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
@@ -49,7 +49,8 @@ const at = async (base: string, method: string, body?: any, raw?: string) => {
 // Uploads the deployer's code under one script name. `replacedBy` makes it a deployer that changes nothing.
 const install = async (name: string, { replacedBy = null as string | null } = {}) => {
   const e = deployerEmit();
-  const exists = await api(`/accounts/${st.account}/workers/scripts/${name}/settings`).then(() => true, () => false);
+  // Only "no such script" means a first install: any other failure stops here, before a token is sent.
+  const exists = await api(`/accounts/${st.account}/workers/scripts/${name}/settings`).then(() => true, (e) => { if (/ 404 /.test(String(e.message))) return false; throw e; });
   const bindings: any[] = [
     // An update keeps the token the Worker has: the owner may have replaced it in the dashboard, and the file
     // here would put the old one back (2026-10-09). --token sends the file's.

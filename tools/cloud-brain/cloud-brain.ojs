@@ -255,7 +255,7 @@ libraryView = libraryPanel({ client, origin: brainOrigin, owner: !!(session && s
 // %%
 md`## Access
 
-A **token** is for a caller with no session, such as a script. A **grant** lets another atproto account call this Brain through its own PDS. Each names the methods it may call; neither can deploy, read a secret or give access.`
+A **token** is for a caller with no session, such as a script. A **grant** lets another atproto account call this Brain through its own PDS. Each names the methods it may call; neither can read a secret or give access, and neither can deploy, but for the token of a sign-in link made to deploy (Copy Login Link above), which the list marks.`
 // %%
 accessPanel = {
   if (!brain) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see access.</i>`;
@@ -269,7 +269,7 @@ accessPanel = {
   const draw = async () => {
     const [{ tokens }, { grants }] = await Promise.all([client.query("token.list"), client.query("grant.list")]);
     list.replaceChildren(htl.html`<table style="border-collapse:collapse;margin:0">
-      ${tokens.map((t) => htl.html`<tr><td style="padding:2px 12px 2px 0">token <b>${t.name}</b></td><td style="padding:2px 12px">${short(t.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">created ${new Date(t.created).toISOString().slice(0, 10)}</td><td>${remove("Revoke", () => client.procedure("token.revoke", { name: t.name }))}</td></tr>`)}
+      ${tokens.map((t) => htl.html`<tr><td style="padding:2px 12px 2px 0">token <b>${t.name}</b></td><td style="padding:2px 12px">${t.deploy ? htl.html`<b>${t.unattended ? "deploys with no approval" : "deploys"}</b>${t.methods.length ? ", " : ""}` : ""}${short(t.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">created ${new Date(t.created).toISOString().slice(0, 10)}${t.until ? ", ends " + new Date(t.until).toISOString().slice(0, 16).replace("T", " ") + " UTC" : ""}</td><td>${remove("Revoke", () => client.procedure("token.revoke", { name: t.name }))}</td></tr>`)}
       ${grants.map((g) => htl.html`<tr><td style="padding:2px 12px 2px 0">${g.did}</td><td style="padding:2px 12px">${short(g.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">granted ${new Date(g.granted).toISOString().slice(0, 10)}</td><td>${remove("Remove", () => client.procedure("grant.delete", { did: g.did }))}</td></tr>`)}
       ${tokens.length + grants.length ? "" : htl.html`<tr><td style="color:var(--theme-foreground-muted)">No tokens or grants.</td></tr>`}
     </table>`);

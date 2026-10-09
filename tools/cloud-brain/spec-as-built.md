@@ -3272,3 +3272,15 @@ GET  /r2/buckets                             403               403              
 | Minors | The access test asks owner, token, granted account, Worker and stranger for both methods. The template comment says 45. `usd=0.00000214` was run again (21:52:40 UTC: 200, charged $0.000003) and is `aiMeasured.rounding`. `input` events of the panel's boxes stop inside it. `aiSettings` reads each setting the same way: a number over 0, also as text. |
 
 Tests: 8 of `brain-ai` and the 4 of the deployer that mint or refuse a permission, each forced in a QA tab, all passed. `run_tests` was not used. Not looked at: whether a refusal's log line reached Workers Logs on cb4 (the rig only); a model with an output price of 0 on cb4 (none is in the list that was read); `maxTokens` on a real model with no `context_window`.
+
+**Review of the unattended link** (00:02 CEST): one fresh reviewer, FIX, 6 findings and one beside the diff. It found no way to send `x-brain-unattended` from outside: the kernel builds the deployer's headers itself, and the deployer counts the header beside the kernel's key only. All confirmed against the source. Deployer, kernel, core and page tests 108 of 108; on cb4 by the lines below.
+
+| Finding | Done |
+|---|---|
+| Access listed an unattended deploy token as a logs token, with no end | the row says "deploys" or "deploys with no approval" and when the token ends; the prose above it names the exception |
+| A hash the owner's session left waiting stayed listed after a link deployed it | `pending/HASH` and `pending/remove:NAME` are deleted when the deploy or the removal is done; asserted |
+| `install-deployer` took any failure of its check as "no such script" and would then send the file's token | only a 404 is a first install; anything else stops |
+| `--token` on `install-deployer` was written down nowhere | in the usage header |
+| Three stale statements (`unattended` in two shapes, a comment, the list of `by`) | corrected |
+| Weak tests: a removal asserted "not waiting"; no redistil by the link | `removed`; a redistil by the link is asserted. The content-type the kernel passes on is not tested: the rig sends one type |
+| `/llms.txt` told every deploy token to POST to `infra.shell` | it says an unattended one does, and another asks the owner |

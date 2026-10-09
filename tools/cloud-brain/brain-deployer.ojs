@@ -73,7 +73,7 @@ One change to a Worker runs at a time, the tick's health check and a verdict's p
 
 A sign-in link made to deploy with no approval (\`token.link\` with \`unattended\`, see brain-kernel; added 2026-10-09): the kernel passes its token's calls with \`x-brain-unattended: token:NAME\`, which counts beside the kernel's key only. An apply, a removal or a redistil by it is not held for the owner, a Worker that declares Cloudflare permissions among them, and \`deploy.reason\` says \`by: token:NAME\`. \`GROUPS\` still bounds what can be minted, \`was\` and the reason still hold, and it hands no secret a value. Tom, 2026-10-09: "I would like LLMs to be able to deploy without approval and also choose what services they have, so reminting a new token with different scopes for example".
 
-Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\` or the member's DID) and \`targets\`. Added 2026-10-09.
+Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\`, the member's DID, or \`token:NAME\` for a sign-in link made to deploy with no approval) and \`targets\`. Added 2026-10-09.
 
 The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\`. A member's deploy writes \`deploy.deployed\` and \`deploy.put-back\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that was sent; it is not text a caller of a method sent.`
 // %%
@@ -635,6 +635,8 @@ deployerOps = {
         try {
           // Only the installer, holding the recovery key, may hand a Worker a secret's value directly.
           results.push({ ...base, ...(await deployOne(w, rec, recovery && w.secrets ? w.secrets : {})) });
+          // It is no longer waiting, whoever deployed it.
+          await rows.delete("pending/" + w.hash);
           if (typeof w.source === "string") {
             const was = await rows.get("source/" + w.module);
             const prev = was && !was.stale && was.worker === logical && was.hash !== w.hash ? { text: was.text, files: was.files, cell: was.cell, hash: was.hash, at: was.at } : (was && was.prev) || null;
@@ -683,6 +685,7 @@ deployerOps = {
         say({ at: "deploy.removed", target: logical, hash: rec && rec.hash });
         await rows.delete("worker/" + logical);
         await rows.delete("approved/remove:" + logical);
+        await rows.delete("pending/remove:" + logical);
         results.push({ worker: logical, state: "removed" });
       } else results.push({ worker: logical, state: "ready" });
       return results[0];
@@ -1281,10 +1284,10 @@ fakeCloudflare = () => {
     { id: "g-obs-user", name: "Workers Observability Read", scopes: ["com.cloudflare.api.user"] },
     { id: "g-obs", name: "Workers Observability Read", scopes: account },
     { id: "g-tail", name: "Workers Tail Read", scopes: account },
+    { id: "g-ai", name: "Workers AI Read", scopes: account },
     { id: "g-scripts", name: "Workers Scripts Write", scopes: account }
   ];
   let n = 0;
-    { id: "g-ai", name: "Workers AI Read", scopes: account },
   const ok = (result) => new Response(JSON.stringify({ success: true, result }), { headers: { "content-type": "application/json" } });
   const bad = (status, message) => new Response(JSON.stringify({ success: false, errors: [{ message }] }), { status });
   const bindingOf = (v, name) => v.metadata.bindings.find((b) => b.name === name);
@@ -1960,7 +1963,10 @@ test_a_link_made_to_deploy_with_no_approval_is_not_held = {
   expect(rig.fake.tokens.size).toBe(1);
   // Not a group off the list, and a removal is not held either.
   expect((await rig.asOwner("apply", { workers: [await rig.made("brain-x-wide", "recipe", "w1", { cloudflare: ["Workers Scripts Write"] })] }, LINK)).results[0].state).toBe("refused");
-  expect((await rig.asOwner("apply", { remove: ["brain-x-plain"] }, LINK)).results[0].state).not.toBe("waiting");
+  expect((await rig.asOwner("apply", { remove: ["brain-x-plain"] }, LINK)).results[0].state).toBe("removed");
+  // What the owner's session left waiting is not listed once the link deployed it. A redistil is not held either.
+  expect((await rig.state()).pending.map((p) => p.worker)).toEqual([]);
+  expect((await rig.asOwner("redistil", { apply: true }, LINK)).results.map((r) => r.state)).not.toContain("waiting");
   // The header counts beside the kernel's key only.
   const cold = await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.apply", { method: "POST", headers: { "content-type": "application/json", ...LINK }, body: JSON.stringify({ workers: [], reason: "a test" }) });
   expect(cold.status).toBe(401);
